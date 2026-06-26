@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:file_selector/file_selector.dart' as file_selector;
@@ -18,11 +19,13 @@ import 'package:vynody/utils/song_context_menu_utils.dart';
 import '../widgets/song_tile.dart';
 import '../widgets/library_selection_panel.dart';
 import '../widgets/library_selection_scope.dart';
+import '../widgets/song_thumbnail.dart';
 import 'package:vynody/utils/app_snack_bar.dart';
 import '../dialogs/transcode_dialog.dart';
 import 'package:vynody/transcode/transcode_riverpod.dart';
 import 'package:vynody/player/metadata/metadata_helper.dart';
 import 'package:audio_core/audio_core.dart';
+import 'package:vynody/player/settings/settings_service.dart';
 
 // 目录页
 class FoldersPage extends ConsumerStatefulWidget {
@@ -35,8 +38,6 @@ class FoldersPage extends ConsumerStatefulWidget {
 }
 
 class _FoldersPageState extends ConsumerState<FoldersPage> {
-  ScrollController _scrollController = ScrollController();
-  String? _lastFolderPath = 'sentinel_initial_path';
   bool _isSelectionMode = false;
   final Set<String> _selectedSongPaths = {};
   final Set<String> _selectedFolderPaths = {};
@@ -103,12 +104,6 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
       final folder = history.removeLast();
       scanner.setNavigationState(folder, history);
     }
-    _clearAllSelection();
-    _setFolderSelectionMode(false);
-  }
-
-  void _goHome(ScannerService scanner) {
-    scanner.setNavigationState(null, []);
     _clearAllSelection();
     _setFolderSelectionMode(false);
   }
@@ -190,53 +185,6 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
     return recurse(root);
   }
 
-  void _scrollToSong(MusicFolder folder, String songPath) {
-    final fileIndex = folder.files.indexWhere((file) => p.equals(file.path, songPath));
-    if (fileIndex == -1) return;
-
-    final hasPermission = ref.read(scannerServiceProvider).hasPermission;
-    final showPermissionWarning = folder.path == 'system' && !hasPermission;
-
-    const double goBackHeight = 64.0;
-    const double subFolderHeight = 64.0;
-    const double fileHeight = 80.0;
-
-    double fileOffset = goBackHeight;
-    if (showPermissionWarning) {
-      // (This path normally won't be reached if files exist and are being located, but included for completeness)
-      fileOffset += 200.0;
-    }
-
-    fileOffset += folder.subFolders.length * subFolderHeight;
-    fileOffset += fileIndex * fileHeight;
-
-    if (_scrollController.hasClients) {
-      final double viewportHeight = _scrollController.position.viewportDimension;
-      double targetOffset = fileOffset - (viewportHeight / 2) + (fileHeight / 2);
-      final maxScroll = _scrollController.position.maxScrollExtent;
-      targetOffset = targetOffset.clamp(0.0, maxScroll);
-
-      _scrollController.animateTo(
-        targetOffset,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
-    }
-
-    setState(() {
-      _highlightedSongPath = songPath;
-    });
-
-    _highlightTimer?.cancel();
-    _highlightTimer = Timer(const Duration(seconds: 2), () {
-      if (mounted) {
-        setState(() {
-          _highlightedSongPath = null;
-        });
-      }
-    });
-  }
-
   void _locateCurrentSong() {
     final currentMusic = ref.read(audioCurrentMusicProvider);
     if (currentMusic == null) return;
@@ -266,9 +214,17 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
         scanner.setNavigationState(targetFolder, history);
       }
 
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        _scrollToSong(targetFolder, currentMusic.path);
+      setState(() {
+        _highlightedSongPath = currentMusic.path;
+      });
+
+      _highlightTimer?.cancel();
+      _highlightTimer = Timer(const Duration(seconds: 2), () {
+        if (mounted) {
+          setState(() {
+            _highlightedSongPath = null;
+          });
+        }
       });
     } else {
       showToast(AppLocalizations.of(context)!.songNotInScannedFolders);
@@ -423,22 +379,6 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
     );
   }
 
-  List<MusicFile> _getSelectedSongs(MusicFolder currentFolder) {
-    final songs = <MusicFile>[];
-    songs.addAll(
-      currentFolder.files.where(
-        (file) => _selectedSongPaths.contains(file.path),
-      ),
-    );
-    for (final folder in currentFolder.subFolders) {
-      if (_selectedFolderPaths.contains(folder.path)) {
-        songs.addAll(folder.allSongs);
-      }
-    }
-    final seen = <String>{};
-    return songs.where((song) => seen.add(song.path)).toList(growable: false);
-  }
-
   void _toggleRootSelection(String path) {
     setState(() {
       if (_selectedRootPaths.contains(path)) {
@@ -492,11 +432,6 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
 
   @override
   void dispose() {
-    if (_scrollController.hasClients &&
-        _lastFolderPath != 'sentinel_initial_path') {
-      final scanner = ref.read(scannerServiceProvider);
-      scanner.setFolderScrollOffset(_lastFolderPath, _scrollController.offset);
-    }
     // Defer the provider write so it happens after the current widget tree
     // finishes unmounting. Doing it synchronously here can trip Riverpod's
     // "modifying a provider while building" assertion during tab switches.
@@ -512,7 +447,6 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
     _scanner?.removeListener(_handleScannerChanged);
     _dismissScanToast(notifyListeners: false);
     _scanToastState.dispose();
-    _scrollController.dispose();
     super.dispose();
   }
 
@@ -598,706 +532,103 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
     }
   }
 
+  final GlobalKey<NavigatorState> _nestedNavigatorKey = GlobalKey<NavigatorState>();
+
   @override
   Widget build(BuildContext context) {
     final scanner = ref.read(scannerServiceProvider);
-    final l10n = AppLocalizations.of(context)!;
-    Widget currentBody;
-    final isRootSelectionMode =
-        ref.watch(librarySelectionScopeProvider) ==
-        LibrarySelectionScope.folderRoot;
-    final rootFolders = ref.watch(
-      scannerServiceProvider.select((scanner) => scanner.rootFolders),
-    );
-    final currentFolder = ref.watch(
-      scannerServiceProvider.select(
-        (scanner) => scanner.navigationCurrentFolder,
-      ),
-    );
-
-    // Save and restore scroll position when current folder changes
-    final currentFolderPath = currentFolder?.path;
-    if (currentFolderPath != _lastFolderPath) {
-      if (_scrollController.hasClients &&
-          _lastFolderPath != 'sentinel_initial_path') {
-        final oldOffset = _scrollController.offset;
-        scanner.setFolderScrollOffset(_lastFolderPath, oldOffset);
-      }
-      _lastFolderPath = currentFolderPath;
-
-      final targetOffset = scanner.getFolderScrollOffset(currentFolderPath);
-      final oldController = _scrollController;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        oldController.dispose();
-      });
-      _scrollController = ScrollController(initialScrollOffset: targetOffset);
-    }
-
     final navigationHistory = ref.watch(
       scannerServiceProvider.select((scanner) => scanner.navigationHistory),
     );
-    final systemMediaFolder = ref.watch(
-      scannerServiceProvider.select((scanner) => scanner.systemMediaFolder),
+    final currentFolder = ref.watch(
+      scannerServiceProvider.select((scanner) => scanner.navigationCurrentFolder),
     );
-    final hasPermission = ref.watch(
-      scannerServiceProvider.select((scanner) => scanner.hasPermission),
-    );
-    final audio = ref.read(audioServiceProvider);
-    final currentMusic = ref.watch(audioCurrentMusicProvider);
 
     // Sync _currentFolder if it's the system root and data has been loaded.
     if (Platform.isAndroid &&
         currentFolder?.path == 'system' &&
-        systemMediaFolder != null &&
-        currentFolder != systemMediaFolder) {
+        scanner.systemMediaFolder != null &&
+        currentFolder != scanner.systemMediaFolder) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           scanner.setNavigationState(
-            systemMediaFolder,
+            scanner.systemMediaFolder!,
             List.from(navigationHistory),
           );
         }
       });
     }
 
-    if (currentFolder == null) {
-      final selectionLabel = l10n.selectedFolders(_selectedRootPaths.length);
-      final rootListBottomPadding = isRootSelectionMode ? 224.0 : 160.0;
-      final selectedRootSongs = <MusicFile>[];
-      final seenSelected = <String>{};
-      for (final folder in rootFolders) {
-        if (_selectedRootPaths.contains(folder.path)) {
-          for (final song in folder.allSongs) {
-            if (seenSelected.add(song.path)) {
-              selectedRootSongs.add(song);
-            }
-          }
-        }
-      }
-      final allRootSongs = <MusicFile>[];
-      final seenAll = <String>{};
-      for (final folder in rootFolders) {
-        for (final song in folder.allSongs) {
-          if (seenAll.add(song.path)) {
-            allRootSongs.add(song);
-          }
-        }
-      }
-      currentBody = Stack(
-        children: [
-          Column(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        AppLocalizations.of(context)!.scanDirectory,
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    if (currentMusic != null)
-                      IconButton(
-                        icon: const Icon(Icons.my_location_rounded),
-                        onPressed: _locateCurrentSong,
-                        tooltip: AppLocalizations.of(context)!.locateCurrentSong,
-                      ),
-                    IconButton(
-                      icon: Icon(
-                        Icons.sort,
-                        color: isRootSelectionMode
-                            ? Theme.of(context).colorScheme.primary
-                            : null,
-                      ),
-                      onPressed: _toggleRootSelectionMode,
-                      tooltip: AppLocalizations.of(context)!.sort,
-                    ),
-                  ],
-                ),
-              ),
-              if (Platform.isAndroid)
-                Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal:
-                        MediaQuery.of(context).orientation ==
-                            Orientation.portrait
-                        ? 8
-                        : 16,
-                    vertical: 4,
-                  ),
-                  child: ListTile(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    hoverColor: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withValues(alpha: 0.06),
-                    leading: const Icon(
-                      Icons.library_music,
-                      color: Colors.purple,
-                    ),
-                    title: Text(
-                      AppLocalizations.of(context)!.systemMediaLibrary,
-                    ),
-                    subtitle: hasPermission
-                        ? null
-                        : Text(
-                            AppLocalizations.of(context)!.needPermissionToScan,
-                            style: TextStyle(color: Colors.red, fontSize: 12),
-                          ),
-                    onTap: () {
-                      _navigateTo(
-                        systemMediaFolder ??
-                            MusicFolder(
-                              path: 'system',
-                              name: AppLocalizations.of(
-                                context,
-                              )!.systemMediaLibrary,
-                            ),
-                        scanner,
-                      );
-                    },
-                  ),
-                ),
-              Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal:
-                      MediaQuery.of(context).orientation == Orientation.portrait
-                      ? 8
-                      : 16,
-                  vertical: 4,
-                ),
-                child: ListTile(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  hoverColor: Theme.of(
-                    context,
-                  ).colorScheme.onSurface.withValues(alpha: 0.06),
-                  leading: const Icon(
-                    Icons.add_circle_outline,
-                    color: Colors.blue,
-                  ),
-                  title: Text(AppLocalizations.of(context)!.addRootDirectory),
-                  onTap: () => _pickFolder(scanner),
-                ),
-              ),
-              Expanded(
-                child: ReorderableListView.builder(
-                  key: const ValueKey('root_folders_list'),
-                  buildDefaultDragHandles: false,
-                  scrollController: _scrollController,
-                  cacheExtent: 1000,
-                  padding: EdgeInsets.only(bottom: rootListBottomPadding),
-                  itemCount: rootFolders.length,
-                  onReorder: (oldIndex, newIndex) {
-                    if (!isRootSelectionMode) return;
-                    if (newIndex > oldIndex) newIndex--;
-                    unawaited(scanner.moveRootPath(oldIndex, newIndex));
-                  },
-                  itemBuilder: (context, index) {
-                    final folder = rootFolders[index];
-                    final isSelected = _selectedRootPaths.contains(folder.path);
-                    final isRootAvailable = scanner.isRootPathAvailable(
-                      folder.path,
-                    );
-                    return GestureDetector(
-                      key: ValueKey(folder.path),
-                      behavior: HitTestBehavior.opaque,
-                      onSecondaryTapDown: (details) {
-                        unawaited(
-                          _showFolderBottomSheet(context, folder, isRoot: true),
-                        );
-                      },
-                      onLongPress: () {
-                        if (!isRootSelectionMode) {
-                          unawaited(
-                            _showFolderBottomSheet(
-                              context,
-                              folder,
-                              isRoot: true,
-                            ),
-                          );
-                        } else {
-                          _toggleRootSelection(folder.path);
-                        }
-                      },
-                      child: AnimatedOpacity(
-                        opacity: isRootAvailable ? 1.0 : 0.45,
-                        duration: const Duration(milliseconds: 180),
-                        child: Padding(
-                          padding: EdgeInsets.symmetric(
-                            horizontal:
-                                MediaQuery.of(context).orientation ==
-                                    Orientation.portrait
-                                ? 8
-                                : 16,
-                            vertical: 4,
-                          ),
-                          child: ListTile(
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            hoverColor: Theme.of(
-                              context,
-                            ).colorScheme.onSurface.withValues(alpha: 0.06),
-                            enabled: isRootAvailable || isRootSelectionMode,
-                            selected: isRootSelectionMode && isSelected,
-                            selectedTileColor: Theme.of(context)
-                                .colorScheme
-                                .primaryContainer
-                                .withValues(alpha: 0.45),
-                            leading: isRootSelectionMode
-                                ? Checkbox(
-                                    value: isSelected,
-                                    onChanged: (_) =>
-                                        _toggleRootSelection(folder.path),
-                                  )
-                                : const Icon(
-                                    Icons.folder_shared,
-                                    color: Colors.amber,
-                                  ),
-                            title: Text(folder.name),
-                            subtitle: Text(
-                              ScannerPathUtils.cleanDisplayPath(folder.path),
-                            ),
-                            onTap: isRootSelectionMode
-                                ? () => _toggleRootSelection(folder.path)
-                                : (isRootAvailable
-                                      ? () => _navigateTo(folder, scanner)
-                                      : null),
-                            trailing: isRootSelectionMode
-                                ? ReorderableDragStartListener(
-                                    index: index,
-                                    child: const Icon(Icons.drag_handle),
-                                  )
-                                : null,
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 250),
-              reverseDuration: const Duration(milliseconds: 200),
-              switchInCurve: Curves.easeOutCubic,
-              switchOutCurve: Curves.easeInCubic,
-              transitionBuilder: (child, animation) {
-                final offsetAnimation = Tween<Offset>(
-                  begin: const Offset(0, 1.0),
-                  end: Offset.zero,
-                ).animate(animation);
-                return SlideTransition(position: offsetAnimation, child: child);
-              },
-              child: isRootSelectionMode
-                  ? LibrarySelectionPanel(
-                      key: const ValueKey('root-selection-panel'),
-                      selectedSongs: selectedRootSongs,
-                      allSongs: allRootSongs,
-                      title: selectionLabel,
-                      onToggleSelectAll: () {
-                        final isAllSelected =
-                            _selectedRootPaths.length == rootFolders.length;
-                        if (isAllSelected) {
-                          setState(() {
-                            _selectedRootPaths.clear();
-                          });
-                        } else {
-                          setState(() {
-                            _selectedRootPaths
-                              ..clear()
-                              ..addAll(rootFolders.map((f) => f.path));
-                          });
-                        }
-                      },
-                      onCancel: _toggleRootSelectionMode,
-                      onDelete: _selectedRootPaths.isEmpty
-                          ? null
-                          : () => _deleteSelectedRootFolders(scanner),
-                      deleteLabel: l10n.delete,
-                      onOpenLocation: _selectedRootPaths.length == 1
-                          ? () => openFolderLocation(_selectedRootPaths.first)
-                          : null,
-                      openLocationLabel: l10n.openFolderLocation,
-                    )
-                  : const SizedBox.shrink(
-                      key: ValueKey('root-selection-panel-hidden'),
-                    ),
-            ),
-          ),
-        ],
-      );
-    } else {
-      final showSelectionPanel =
-          _isSelectionMode &&
-          _isUserRootSelectionContext(
-            scanner,
-            currentFolder,
-            navigationHistory,
-          );
-      final selectionPanelHeight = showSelectionPanel ? 220.0 : 0.0;
-      currentBody = PopScope(
-        canPop: false,
-        onPopInvokedWithResult: (didPop, result) {
-          if (didPop) return;
-          _goBack(scanner);
-        },
-        child: Column(
-          children: [
-            _buildBreadcrumbs(currentFolder, scanner),
-            if (_isSelectionMode && !showSelectionPanel)
-              Container(
-                color: Theme.of(context).colorScheme.primaryContainer,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                child: Row(
-                  children: [
-                    Text(
-                      AppLocalizations.of(
-                        context,
-                      )!.selectedSongs(_getSelectedSongs(currentFolder).length),
-                    ),
-                    const Spacer(),
-                    TextButton(
-                      onPressed: _toggleSelectionMode,
-                      child: Text(AppLocalizations.of(context)!.cancel),
-                    ),
-                  ],
-                ),
-              ),
-            Expanded(
-              child: ListView.builder(
-                key: ValueKey(currentFolderPath),
-                controller: _scrollController,
-                cacheExtent: 1000,
-                padding: EdgeInsets.only(bottom: 160 + selectionPanelHeight),
-                itemCount:
-                    1 +
-                    (currentFolder.path == 'system' && !hasPermission ? 1 : 0) +
-                    currentFolder.subFolders.length +
-                    currentFolder.files.length,
-                itemBuilder: (context, index) {
-                  var cursor = 0;
-
-                  if (index == cursor) {
-                    return Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal:
-                            MediaQuery.of(context).orientation ==
-                                Orientation.portrait
-                            ? 8
-                            : 16,
-                        vertical: 4,
-                      ),
-                      child: ListTile(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        hoverColor: Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withValues(alpha: 0.06),
-                        leading: const Icon(Icons.arrow_back_rounded),
-                        title: Text(AppLocalizations.of(context)!.goBack),
-                        onTap: () => _goBack(scanner),
-                      ),
-                    );
-                  }
-                  cursor++;
-
-                  if (currentFolder.path == 'system' && !hasPermission) {
-                    if (index == cursor) {
-                      return Padding(
-                        padding: const EdgeInsets.all(32.0),
-                        child: Center(
-                          child: Column(
-                            children: [
-                              const Icon(
-                                Icons.lock_outline,
-                                size: 64,
-                                color: Colors.grey,
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                AppLocalizations.of(
-                                  context,
-                                )!.noMediaLibraryPermission,
-                              ),
-                              const SizedBox(height: 16),
-                              ElevatedButton(
-                                onPressed: () =>
-                                    scanner.checkAndRequestPermissions(),
-                                child: Text(
-                                  AppLocalizations.of(context)!.grantPermission,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }
-                    cursor++;
-                  }
-
-                  final folderIndex = index - cursor;
-                  if (folderIndex >= 0 &&
-                      folderIndex < currentFolder.subFolders.length) {
-                    final folder = currentFolder.subFolders[folderIndex];
-                    final isSelected = _selectedFolderPaths.contains(
-                      folder.path,
-                    );
-                    return GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onSecondaryTapDown: (details) {
-                        if (!_isSelectionMode) {
-                          unawaited(
-                            _showFolderBottomSheet(
-                              context,
-                              folder,
-                              isRoot: false,
-                            ),
-                          );
-                        }
-                      },
-                      onLongPress: () {
-                        if (!_isSelectionMode) {
-                          _toggleSelectionMode();
-                          _toggleFolderSelection(folder.path);
-                        } else {
-                          _toggleFolderSelection(folder.path);
-                        }
-                      },
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(
-                          horizontal:
-                              MediaQuery.of(context).orientation ==
-                                  Orientation.portrait
-                              ? 8
-                              : 16,
-                          vertical: 4,
-                        ),
-                        child: ListTile(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          hoverColor: Theme.of(
-                            context,
-                          ).colorScheme.onSurface.withValues(alpha: 0.06),
-                          selected: _isSelectionMode && isSelected,
-                          selectedTileColor: Theme.of(context)
-                              .colorScheme
-                              .primaryContainer
-                              .withValues(alpha: 0.45),
-                          leading: _isSelectionMode
-                              ? Checkbox(
-                                  value: isSelected,
-                                  onChanged: (_) =>
-                                      _toggleFolderSelection(folder.path),
-                                )
-                              : const Icon(
-                                  Icons.folder_rounded,
-                                  color: Colors.amber,
-                                ),
-                          title: Text(folder.name),
-                          onTap: _isSelectionMode
-                              ? () => _toggleFolderSelection(folder.path)
-                              : () => _navigateTo(folder, scanner),
-                        ),
-                      ),
-                    );
-                  }
-                  cursor += currentFolder.subFolders.length;
-
-                  final fileIndex = index - cursor;
-                  if (fileIndex >= 0 &&
-                      fileIndex < currentFolder.files.length) {
-                    final file = currentFolder.files[fileIndex];
-                    final isCurrent = currentMusic?.path == file.path;
-                    final isSelected = _selectedSongPaths.contains(file.path);
-                    final songsToAdd =
-                        (_selectedSongPaths.isNotEmpty ||
-                            _selectedFolderPaths.isNotEmpty)
-                        ? _getSelectedSongs(currentFolder)
-                        : <MusicFile>[file];
-
-                    void handleShowMenu(
-                      BuildContext menuContext,
-                      Offset position,
-                    ) {
-                      showSongContextMenu(
-                        menuContext,
-                        position,
-                        song: file,
-                        songs: songsToAdd,
-                        mode: SongContextMenuMode.full,
-                        onAddToPlaylist: () => showAddSongsToPlaylistDialog(
-                          menuContext,
-                          ref.read(playlistServiceProvider),
-                          songsToAdd,
-                        ),
-                        onPlayNext: () => ref
-                            .read(audioServiceProvider)
-                            .enqueueNext(songsToAdd),
-                        onAddToQueue: () => ref
-                            .read(audioServiceProvider)
-                            .appendToQueue(songsToAdd),
-                      );
-                    }
-
-                    return GestureDetector(
-                      key: ValueKey(file.path),
-                      behavior: HitTestBehavior.opaque,
-                      onSecondaryTapDown: (details) {
-                        handleShowMenu(context, details.globalPosition);
-                      },
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(
-                          horizontal:
-                              MediaQuery.of(context).orientation ==
-                                  Orientation.portrait
-                              ? 8
-                              : 16,
-                          vertical: 4,
-                        ),
-                        child: SongTile(
-                          song: file,
-                          isCurrent: isCurrent,
-                          isSelected: isSelected,
-                          isSelectionMode: _isSelectionMode,
-                          isHighlighted: _highlightedSongPath == file.path,
-                          onTap: _isSelectionMode
-                              ? () => _toggleSelection(file.path)
-                              : () async {
-                                  unawaited(() async {
-                                    try {
-                                      await audio.playPlaylist(
-                                        currentFolder.files,
-                                        initialIndex: fileIndex,
-                                      );
-                                    } catch (e, st) {
-                                      debugPrint(
-                                        'FoldersPage: failed to start folder playback for ${file.path}: $e',
-                                      );
-                                      debugPrintStack(stackTrace: st);
-                                    }
-                                  }());
-
-                                  if (mounted) {
-                                    _clearAllSelection();
-                                    await widget.onOpenPlayback?.call();
-                                  }
-                                },
-                          onLongPress: () {
-                            if (!_isSelectionMode) {
-                              _toggleSelectionMode();
-                              _toggleSelection(file.path);
-                            }
-                          },
-                          onSecondaryTapDown: (details) {
-                            handleShowMenu(context, details.globalPosition);
-                          },
-                          onMorePressed: (buttonContext) {
-                            final renderObject = buttonContext
-                                .findRenderObject();
-                            final renderBox = renderObject is RenderBox
-                                ? renderObject
-                                : null;
-                            if (renderBox == null) return;
-                            final Offset offset = renderBox.localToGlobal(
-                              Offset.zero,
-                            );
-                            handleShowMenu(buttonContext, offset);
-                          },
-                        ),
-                      ),
-                    );
-                  }
-                  cursor += currentFolder.files.length;
-
-                  return const SizedBox.shrink();
-                },
-              ),
-            ),
-          ],
+    final pages = <Page<dynamic>>[
+      MaterialPage(
+        key: const ValueKey('folder-root-page'),
+        child: _FolderRootView(
+          onOpenPlayback: widget.onOpenPlayback,
+          isSelectionMode: _isSelectionMode,
+          selectedRootPaths: _selectedRootPaths,
+          onPickFolder: () => _pickFolder(scanner),
+          onToggleRootSelection: _toggleRootSelection,
+          onToggleRootSelectionMode: _toggleRootSelectionMode,
+          onDeleteSelectedRootFolders: () => _deleteSelectedRootFolders(scanner),
+          onNavigateTo: (folder) => _navigateTo(folder, scanner),
+          onLocateCurrentSong: _locateCurrentSong,
+          onShowFolderBottomSheet: (folder, {required isRoot}) =>
+              _showFolderBottomSheet(context, folder, isRoot: isRoot),
         ),
-      );
-
-      final selectedSongs = showSelectionPanel
-          ? _getSelectedSongs(currentFolder)
-          : <MusicFile>[];
-      currentBody = Stack(
-        children: [
-          currentBody,
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 250),
-              reverseDuration: const Duration(milliseconds: 200),
-              switchInCurve: Curves.easeOutCubic,
-              switchOutCurve: Curves.easeInCubic,
-              transitionBuilder: (child, animation) {
-                final offsetAnimation = Tween<Offset>(
-                  begin: const Offset(0, 1.0),
-                  end: Offset.zero,
-                ).animate(animation);
-                return SlideTransition(position: offsetAnimation, child: child);
-              },
-              child: showSelectionPanel
-                  ? LibrarySelectionPanel(
-                      key: const ValueKey('folder-selection-panel'),
-                      selectedSongs: selectedSongs,
-                      allSongs: currentFolder.allSongs,
-                      onToggleSelectAll: () {
-                        final isAllSelected =
-                            selectedSongs.length ==
-                                currentFolder.allSongs.length &&
-                            currentFolder.allSongs.isNotEmpty;
-                        if (isAllSelected) {
-                          setState(() {
-                            _selectedSongPaths.clear();
-                            _selectedFolderPaths.clear();
-                          });
-                        } else {
-                          _selectAllVisible(currentFolder);
-                        }
-                      },
-                      onCancel: _clearAllSelection,
-                      onOpenLocation:
-                          (_selectedFolderPaths.length == 1 &&
-                              _selectedSongPaths.isEmpty)
-                          ? () => openFolderLocation(_selectedFolderPaths.first)
-                          : null,
-                      openLocationLabel:
-                          (_selectedFolderPaths.length == 1 &&
-                              _selectedSongPaths.isEmpty)
-                          ? l10n.openFolderLocation
-                          : null,
-                    )
-                  : const SizedBox.shrink(
-                      key: ValueKey('folder-selection-panel-hidden'),
-                    ),
-            ),
+      ),
+      for (int i = 0; i < navigationHistory.length; i++)
+        MaterialPage(
+          key: ValueKey('folder-page-${navigationHistory[i].path}'),
+          child: _FolderDetailView(
+            folder: navigationHistory[i],
+            onOpenPlayback: widget.onOpenPlayback,
+            isSelectionMode: _isSelectionMode,
+            selectedSongPaths: _selectedSongPaths,
+            selectedFolderPaths: _selectedFolderPaths,
+            onNavigateTo: (folder) => _navigateTo(folder, scanner),
+            onGoBack: () => _goBack(scanner),
+            onToggleSelectionMode: _toggleSelectionMode,
+            onToggleFolderSelection: _toggleFolderSelection,
+            onToggleSelection: _toggleSelection,
+            onSelectAllVisible: () => _selectAllVisible(navigationHistory[i]),
+            onClearAllSelection: _clearAllSelection,
+            onLocateCurrentSong: _locateCurrentSong,
+            onShowFolderBottomSheet: (folder, {required isRoot}) =>
+                _showFolderBottomSheet(context, folder, isRoot: isRoot),
+            highlightedSongPath: _highlightedSongPath,
           ),
-        ],
-      );
-    }
+        ),
+      if (currentFolder != null)
+        MaterialPage(
+          key: ValueKey('folder-page-${currentFolder.path}'),
+          child: _FolderDetailView(
+            folder: currentFolder,
+            onOpenPlayback: widget.onOpenPlayback,
+            isSelectionMode: _isSelectionMode,
+            selectedSongPaths: _selectedSongPaths,
+            selectedFolderPaths: _selectedFolderPaths,
+            onNavigateTo: (folder) => _navigateTo(folder, scanner),
+            onGoBack: () => _goBack(scanner),
+            onToggleSelectionMode: _toggleSelectionMode,
+            onToggleFolderSelection: _toggleFolderSelection,
+            onToggleSelection: _toggleSelection,
+            onSelectAllVisible: () => _selectAllVisible(currentFolder),
+            onClearAllSelection: _clearAllSelection,
+            onLocateCurrentSong: _locateCurrentSong,
+            onShowFolderBottomSheet: (folder, {required isRoot}) =>
+                _showFolderBottomSheet(context, folder, isRoot: isRoot),
+            highlightedSongPath: _highlightedSongPath,
+          ),
+        ),
+    ];
 
-    return SafeArea(bottom: true, child: currentBody);
+    return Navigator(
+      key: _nestedNavigatorKey,
+      pages: pages,
+      onDidRemovePage: (page) {
+        _goBack(scanner);
+      },
+    );
   }
 
   Future<void> _showFolderBottomSheet(
@@ -1578,297 +909,6 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
       onTap: () => Navigator.pop(context, value),
     );
   }
-
-  void _showSortDialog(BuildContext context, ScannerService scanner) {
-    final currentFolder = scanner.navigationCurrentFolder;
-    final currentFolderPath = currentFolder?.path ?? '';
-    final hasCurrentFolder = currentFolder != null;
-    final globalSettings = scanner.getGlobalSortSettings();
-    final currentFolderSettings = hasCurrentFolder
-        ? scanner.getSortSettingsForFolder(currentFolderPath)
-        : globalSettings;
-    final initialScope =
-        hasCurrentFolder && scanner.hasSortOverrideForFolder(currentFolderPath)
-        ? SortScope.currentFolder
-        : SortScope.global;
-    var selectedScope = initialScope;
-    var selectedCriteria = initialScope == SortScope.currentFolder
-        ? currentFolderSettings.criteria
-        : globalSettings.criteria;
-    var selectedOrder = initialScope == SortScope.currentFolder
-        ? currentFolderSettings.order
-        : globalSettings.order;
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            void syncSelectionForScope(SortScope scope) {
-              final settings =
-                  scope == SortScope.currentFolder && hasCurrentFolder
-                  ? scanner.getSortSettingsForFolder(currentFolderPath)
-                  : scanner.getGlobalSortSettings();
-              selectedCriteria = settings.criteria;
-              selectedOrder = settings.order;
-            }
-
-            return AlertDialog(
-              title: Text(AppLocalizations.of(context)!.sortBy),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (hasCurrentFolder) ...[
-                    Text(
-                      AppLocalizations.of(context)!.sortScope,
-                      style: Theme.of(context).textTheme.titleSmall,
-                    ),
-                    RadioGroup<SortScope>(
-                      onChanged: (v) {
-                        if (v == null || v == selectedScope) return;
-                        setState(() {
-                          selectedScope = v;
-                          syncSelectionForScope(v);
-                        });
-                      },
-                      groupValue: selectedScope,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          ListTile(
-                            title: Text(
-                              AppLocalizations.of(context)!.currentFolderScope,
-                            ),
-                            leading: const Radio(
-                              value: SortScope.currentFolder,
-                            ),
-                          ),
-                          ListTile(
-                            title: Text(
-                              AppLocalizations.of(context)!.globalScope,
-                            ),
-                            leading: const Radio(value: SortScope.global),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                  ],
-                  Text(
-                    AppLocalizations.of(context)!.sortBy,
-                    style: Theme.of(context).textTheme.titleSmall,
-                  ),
-                  RadioGroup<SortCriteria>(
-                    onChanged: (v) {
-                      if (v == null) return;
-                      setState(() {
-                        selectedCriteria = v;
-                      });
-                      scanner.setSortCriteria(
-                        v,
-                        scope: selectedScope,
-                        folderPath: currentFolder?.path,
-                      );
-                    },
-                    groupValue: selectedCriteria,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        ListTile(
-                          title: Text(AppLocalizations.of(context)!.title),
-                          leading: const Radio(value: SortCriteria.title),
-                        ),
-                        ListTile(
-                          title: Text(AppLocalizations.of(context)!.fileName),
-                          leading: const Radio(value: SortCriteria.filename),
-                        ),
-                        ListTile(
-                          title: Text(
-                            AppLocalizations.of(context)!.trackNumber,
-                          ),
-                          leading: const Radio(value: SortCriteria.trackNumber),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    AppLocalizations.of(context)!.sortOrder,
-                    style: Theme.of(context).textTheme.titleSmall,
-                  ),
-                  RadioGroup<SortOrder>(
-                    onChanged: (v) {
-                      if (v == null) return;
-                      setState(() {
-                        selectedOrder = v;
-                      });
-                      scanner.setSortOrder(
-                        v,
-                        scope: selectedScope,
-                        folderPath: currentFolder?.path,
-                      );
-                    },
-                    groupValue: selectedOrder,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        ListTile(
-                          title: Text(AppLocalizations.of(context)!.ascending),
-                          leading: const Radio(value: SortOrder.ascending),
-                        ),
-                        ListTile(
-                          title: Text(AppLocalizations.of(context)!.descending),
-                          leading: const Radio(value: SortOrder.descending),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text(AppLocalizations.of(context)!.confirm),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Widget _buildBreadcrumbs(MusicFolder current, ScannerService scanner) {
-    final theme = Theme.of(context);
-    final currentMusic = ref.watch(audioCurrentMusicProvider);
-
-    List<Widget> breadcrumbItems = [];
-
-    // 首页/根目录图标
-    breadcrumbItems.add(
-      Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(8),
-          onTap: () {
-            _goHome(scanner);
-          },
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
-            child: Icon(
-              Icons.home_rounded,
-              size: 20,
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-            ),
-          ),
-        ),
-      ),
-    );
-
-    // 历史路径段
-    for (int i = 0; i < scanner.navigationHistory.length; i++) {
-      final folder = scanner.navigationHistory[i];
-      breadcrumbItems.add(
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 2),
-          child: Icon(
-            Icons.chevron_right_rounded,
-            size: 16,
-            color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
-          ),
-        ),
-      );
-      breadcrumbItems.add(
-        Material(
-          color: Colors.transparent,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(8),
-            onTap: () {
-              scanner.setNavigationState(
-                folder,
-                scanner.navigationHistory.take(i).toList(),
-              );
-            },
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
-              child: Text(
-                folder.name,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.75),
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-
-    // 当前路径段
-    breadcrumbItems.add(
-      Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 2),
-        child: Icon(
-          Icons.chevron_right_rounded,
-          size: 16,
-          color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
-        ),
-      ),
-    );
-    breadcrumbItems.add(
-      Container(
-        decoration: BoxDecoration(
-          color: theme.colorScheme.primary.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 10),
-        child: Text(
-          current.name,
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-            color: theme.colorScheme.primary,
-          ),
-        ),
-      ),
-    );
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: theme.scaffoldBackgroundColor,
-        border: Border(
-          bottom: BorderSide(color: theme.dividerColor.withValues(alpha: 0.05)),
-        ),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(children: breadcrumbItems),
-            ),
-          ),
-          const SizedBox(width: 8),
-          if (currentMusic != null) ...[
-            IconButton(
-              icon: const Icon(Icons.my_location_rounded),
-              onPressed: _locateCurrentSong,
-              tooltip: AppLocalizations.of(context)!.locateCurrentSong,
-            ),
-            const SizedBox(width: 8),
-          ],
-          IconButton(
-            icon: const Icon(Icons.sort),
-            onPressed: () => _showSortDialog(context, scanner),
-            tooltip: AppLocalizations.of(context)!.sort,
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class _ScanProgressToast extends StatelessWidget {
@@ -1994,4 +1034,1701 @@ class _ScanToastState {
   final String discoveredLabelText;
   final String preprocessedLabelText;
   final String completedLabelText;
+}
+
+// Helpers for folder_page
+bool _isUserRootSelectionContext(
+  ScannerService scanner,
+  MusicFolder? currentFolder,
+  List<MusicFolder> navigationHistory,
+) {
+  if (currentFolder == null) return false;
+
+  final rootPaths = scanner.rootFolders.map((folder) => folder.path).toSet();
+  rootPaths.add('system');
+  if (rootPaths.contains(currentFolder.path)) {
+    return true;
+  }
+
+  if (navigationHistory.isNotEmpty) {
+    final rootFolder = navigationHistory.first;
+    if (rootPaths.contains(rootFolder.path)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+MusicFile? _findRepresentativeSong(MusicFolder folder) {
+  for (final file in folder.files) {
+    if (file.thumbnailPath != null || file.id != null) {
+      return file;
+    }
+  }
+  for (final song in folder.allSongs) {
+    if (song.thumbnailPath != null || song.id != null) {
+      return song;
+    }
+  }
+  if (folder.files.isNotEmpty) {
+    return folder.files.first;
+  }
+  if (folder.allSongs.isNotEmpty) {
+    return folder.allSongs.first;
+  }
+  return null;
+}
+
+// Folder Root View
+class _FolderRootView extends ConsumerStatefulWidget {
+  const _FolderRootView({
+    required this.onOpenPlayback,
+    required this.isSelectionMode,
+    required this.selectedRootPaths,
+    required this.onPickFolder,
+    required this.onToggleRootSelection,
+    required this.onToggleRootSelectionMode,
+    required this.onDeleteSelectedRootFolders,
+    required this.onNavigateTo,
+    required this.onLocateCurrentSong,
+    required this.onShowFolderBottomSheet,
+  });
+
+  final Future<void> Function()? onOpenPlayback;
+  final bool isSelectionMode;
+  final Set<String> selectedRootPaths;
+  final VoidCallback onPickFolder;
+  final void Function(String) onToggleRootSelection;
+  final VoidCallback onToggleRootSelectionMode;
+  final Future<void> Function() onDeleteSelectedRootFolders;
+  final void Function(MusicFolder) onNavigateTo;
+  final VoidCallback onLocateCurrentSong;
+  final void Function(MusicFolder, {required bool isRoot}) onShowFolderBottomSheet;
+
+  @override
+  ConsumerState<_FolderRootView> createState() => _FolderRootViewState();
+}
+
+class _FolderRootViewState extends ConsumerState<_FolderRootView> {
+  late final ScrollController _localScrollController;
+
+  @override
+  void initState() {
+    super.initState();
+    final targetOffset = ref.read(scannerServiceProvider).getFolderScrollOffset('root');
+    _localScrollController = ScrollController(initialScrollOffset: targetOffset);
+    _localScrollController.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    ref.read(scannerServiceProvider).setFolderScrollOffset(
+      'root',
+      _localScrollController.offset,
+    );
+  }
+
+  @override
+  void dispose() {
+    _localScrollController.removeListener(_onScroll);
+    _localScrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scanner = ref.watch(scannerServiceProvider);
+    final l10n = AppLocalizations.of(context)!;
+    final isRootSelectionMode =
+        ref.watch(librarySelectionScopeProvider) ==
+        LibrarySelectionScope.folderRoot;
+    final rootFolders = ref.watch(
+      scannerServiceProvider.select((scanner) => scanner.rootFolders),
+    );
+    final hasPermission = ref.watch(
+      scannerServiceProvider.select((scanner) => scanner.hasPermission),
+    );
+    final currentMusic = ref.watch(audioCurrentMusicProvider);
+    final settings = ref.watch(settingsServiceProvider);
+    final isZh = Localizations.localeOf(context).languageCode == 'zh';
+
+    final selectionLabel = l10n.selectedFolders(widget.selectedRootPaths.length);
+    final rootListBottomPadding = isRootSelectionMode ? 224.0 : 160.0;
+    
+    final selectedRootSongs = <MusicFile>[];
+    final seenSelected = <String>{};
+    for (final folder in rootFolders) {
+      if (widget.selectedRootPaths.contains(folder.path)) {
+        for (final song in folder.allSongs) {
+          if (seenSelected.add(song.path)) {
+            selectedRootSongs.add(song);
+          }
+        }
+      }
+    }
+    final allRootSongs = <MusicFile>[];
+    final seenAll = <String>{};
+    for (final folder in rootFolders) {
+      for (final song in folder.allSongs) {
+        if (seenAll.add(song.path)) {
+          allRootSongs.add(song);
+        }
+      }
+    }
+
+    Widget rootList;
+    if (isRootSelectionMode) {
+      rootList = ReorderableListView.builder(
+        key: const ValueKey('root_folders_list'),
+        buildDefaultDragHandles: false,
+        scrollController: _localScrollController,
+        scrollCacheExtent: const ScrollCacheExtent.pixels(1000.0),
+        padding: EdgeInsets.only(bottom: rootListBottomPadding),
+        itemCount: rootFolders.length,
+        onReorder: (oldIndex, newIndex) {
+          if (newIndex > oldIndex) newIndex--;
+          unawaited(scanner.moveRootPath(oldIndex, newIndex));
+        },
+        itemBuilder: (context, index) {
+          final folder = rootFolders[index];
+          final isSelected = widget.selectedRootPaths.contains(folder.path);
+          final isRootAvailable = scanner.isRootPathAvailable(folder.path);
+          return GestureDetector(
+            key: ValueKey(folder.path),
+            behavior: HitTestBehavior.opaque,
+            onSecondaryTapDown: (details) {
+              widget.onShowFolderBottomSheet(folder, isRoot: true);
+            },
+            onLongPress: () {
+              widget.onToggleRootSelection(folder.path);
+            },
+            child: AnimatedOpacity(
+              opacity: isRootAvailable ? 1.0 : 0.45,
+              duration: const Duration(milliseconds: 180),
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal:
+                      MediaQuery.of(context).orientation ==
+                          Orientation.portrait
+                      ? 8
+                      : 16,
+                  vertical: 4,
+                ),
+                child: ListTile(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  hoverColor: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.06),
+                  enabled: isRootAvailable || isRootSelectionMode,
+                  selected: isSelected,
+                  selectedTileColor: Theme.of(context)
+                      .colorScheme
+                      .primaryContainer
+                      .withValues(alpha: 0.45),
+                  leading: Checkbox(
+                    value: isSelected,
+                    onChanged: (_) =>
+                        widget.onToggleRootSelection(folder.path),
+                  ),
+                  title: Text(folder.name),
+                  subtitle: Text(
+                    ScannerPathUtils.cleanDisplayPath(folder.path),
+                  ),
+                  onTap: () => widget.onToggleRootSelection(folder.path),
+                  trailing: ReorderableDragStartListener(
+                    index: index,
+                    child: const Icon(Icons.drag_handle),
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      );
+    } else {
+      if (settings.folderViewMode == FolderViewMode.grid) {
+        rootList = GridView.builder(
+          key: const ValueKey('root_folders_grid'),
+          controller: _localScrollController,
+          scrollCacheExtent: const ScrollCacheExtent.pixels(1000.0),
+          padding: EdgeInsets.only(bottom: rootListBottomPadding, left: 16, right: 16),
+          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+            maxCrossAxisExtent: 180,
+            crossAxisSpacing: 16,
+            mainAxisSpacing: 16,
+            childAspectRatio: 0.72,
+          ),
+          itemCount: rootFolders.length,
+          itemBuilder: (context, index) {
+            final folder = rootFolders[index];
+            final isRootAvailable = scanner.isRootPathAvailable(folder.path);
+            final representativeSong = _findRepresentativeSong(folder);
+            return AnimatedOpacity(
+              opacity: isRootAvailable ? 1.0 : 0.45,
+              duration: const Duration(milliseconds: 180),
+              child: _HoverableCard(
+                child: _FolderGridCard(
+                  folder: folder,
+                  songsCount: folder.allSongs.length,
+                  representativeSong: representativeSong,
+                  onTap: isRootAvailable ? () => widget.onNavigateTo(folder) : null,
+                  onLongPress: () => widget.onShowFolderBottomSheet(folder, isRoot: true),
+                  onSecondaryTapDown: (details) => widget.onShowFolderBottomSheet(folder, isRoot: true),
+                ),
+              ),
+            );
+          },
+        );
+      } else {
+        rootList = ListView.builder(
+          key: const ValueKey('root_folders_list_normal'),
+          controller: _localScrollController,
+          scrollCacheExtent: const ScrollCacheExtent.pixels(1000.0),
+          padding: EdgeInsets.only(bottom: rootListBottomPadding),
+          itemCount: rootFolders.length,
+          itemBuilder: (context, index) {
+            final folder = rootFolders[index];
+            final isRootAvailable = scanner.isRootPathAvailable(folder.path);
+            return GestureDetector(
+              key: ValueKey(folder.path),
+              behavior: HitTestBehavior.opaque,
+              onSecondaryTapDown: (details) {
+                widget.onShowFolderBottomSheet(folder, isRoot: true);
+              },
+              onLongPress: () {
+                widget.onShowFolderBottomSheet(folder, isRoot: true);
+              },
+              child: AnimatedOpacity(
+                opacity: isRootAvailable ? 1.0 : 0.45,
+                duration: const Duration(milliseconds: 180),
+                child: Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal:
+                        MediaQuery.of(context).orientation ==
+                            Orientation.portrait
+                        ? 8
+                        : 16,
+                    vertical: 4,
+                  ),
+                  child: ListTile(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    hoverColor: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.06),
+                    enabled: isRootAvailable,
+                    leading: Hero(
+                      tag: 'folder-cover-${folder.path}',
+                      child: const Icon(
+                        Icons.folder_shared,
+                        color: Colors.amber,
+                      ),
+                    ),
+                    title: Text(folder.name),
+                    subtitle: Text(
+                      ScannerPathUtils.cleanDisplayPath(folder.path),
+                    ),
+                    onTap: isRootAvailable
+                        ? () => widget.onNavigateTo(folder)
+                        : null,
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      }
+    }
+
+    return Scaffold(
+      body: SafeArea(
+        child: Stack(
+          children: [
+            Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          AppLocalizations.of(context)!.scanDirectory,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      if (currentMusic != null)
+                        IconButton(
+                          icon: const Icon(Icons.my_location_rounded),
+                          onPressed: widget.onLocateCurrentSong,
+                          tooltip: AppLocalizations.of(context)!.locateCurrentSong,
+                        ),
+                      if (!isRootSelectionMode)
+                        IconButton(
+                          icon: Icon(
+                            settings.folderViewMode == FolderViewMode.grid
+                                ? Icons.view_list_rounded
+                                : Icons.grid_view_rounded,
+                          ),
+                          onPressed: () {
+                            settings.folderViewMode = settings.folderViewMode == FolderViewMode.grid
+                                ? FolderViewMode.list
+                                : FolderViewMode.grid;
+                          },
+                          tooltip: settings.folderViewMode == FolderViewMode.grid
+                              ? (isZh ? '列表视图' : 'List View')
+                              : (isZh ? '网格视图' : 'Grid View'),
+                        ),
+                      IconButton(
+                        icon: Icon(
+                          Icons.sort,
+                          color: isRootSelectionMode
+                              ? Theme.of(context).colorScheme.primary
+                              : null,
+                        ),
+                        onPressed: widget.onToggleRootSelectionMode,
+                        tooltip: AppLocalizations.of(context)!.sort,
+                      ),
+                    ],
+                  ),
+                ),
+                if (Platform.isAndroid)
+                  Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal:
+                          MediaQuery.of(context).orientation ==
+                              Orientation.portrait
+                          ? 8
+                          : 16,
+                      vertical: 4,
+                    ),
+                    child: ListTile(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      hoverColor: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.06),
+                      leading: const Icon(
+                        Icons.library_music,
+                        color: Colors.purple,
+                      ),
+                      title: Text(
+                        AppLocalizations.of(context)!.systemMediaLibrary,
+                      ),
+                      subtitle: hasPermission
+                          ? null
+                          : Text(
+                              AppLocalizations.of(context)!.needPermissionToScan,
+                              style: const TextStyle(color: Colors.red, fontSize: 12),
+                            ),
+                      onTap: () {
+                        widget.onNavigateTo(
+                          scanner.systemMediaFolder ??
+                              MusicFolder(
+                                path: 'system',
+                                name: AppLocalizations.of(
+                                  context,
+                                )!.systemMediaLibrary,
+                              ),
+                        );
+                      },
+                    ),
+                  ),
+                Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal:
+                        MediaQuery.of(context).orientation == Orientation.portrait
+                        ? 8
+                        : 16,
+                    vertical: 4,
+                  ),
+                  child: ListTile(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    hoverColor: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.06),
+                    leading: const Icon(
+                      Icons.add_circle_outline,
+                      color: Colors.blue,
+                    ),
+                    title: Text(AppLocalizations.of(context)!.addRootDirectory),
+                    onTap: widget.onPickFolder,
+                  ),
+                ),
+                Expanded(child: rootList),
+              ],
+            ),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 250),
+                reverseDuration: const Duration(milliseconds: 200),
+                switchInCurve: Curves.easeOutCubic,
+                switchOutCurve: Curves.easeInCubic,
+                transitionBuilder: (child, animation) {
+                  final offsetAnimation = Tween<Offset>(
+                    begin: const Offset(0, 1.0),
+                    end: Offset.zero,
+                  ).animate(animation);
+                  return SlideTransition(position: offsetAnimation, child: child);
+                },
+                child: isRootSelectionMode
+                    ? LibrarySelectionPanel(
+                        key: const ValueKey('root-selection-panel'),
+                        selectedSongs: selectedRootSongs,
+                        allSongs: allRootSongs,
+                        title: selectionLabel,
+                        onToggleSelectAll: () {
+                          final isAllSelected =
+                              widget.selectedRootPaths.length == rootFolders.length;
+                          if (isAllSelected) {
+                            for (final f in rootFolders) {
+                              widget.onToggleRootSelection(f.path);
+                            }
+                          } else {
+                            for (final f in rootFolders) {
+                              if (!widget.selectedRootPaths.contains(f.path)) {
+                                widget.onToggleRootSelection(f.path);
+                              }
+                            }
+                          }
+                        },
+                        onCancel: widget.onToggleRootSelectionMode,
+                        onDelete: widget.selectedRootPaths.isEmpty
+                            ? null
+                            : widget.onDeleteSelectedRootFolders,
+                        deleteLabel: l10n.delete,
+                        onOpenLocation: widget.selectedRootPaths.length == 1
+                            ? () => openFolderLocation(widget.selectedRootPaths.first)
+                            : null,
+                        openLocationLabel: l10n.openFolderLocation,
+                      )
+                    : const SizedBox.shrink(
+                        key: ValueKey('root-selection-panel-hidden'),
+                      ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// Folder Detail View
+class _FolderDetailView extends ConsumerStatefulWidget {
+  const _FolderDetailView({
+    required this.folder,
+    required this.onOpenPlayback,
+    required this.isSelectionMode,
+    required this.selectedSongPaths,
+    required this.selectedFolderPaths,
+    required this.onNavigateTo,
+    required this.onGoBack,
+    required this.onToggleSelectionMode,
+    required this.onToggleFolderSelection,
+    required this.onToggleSelection,
+    required this.onSelectAllVisible,
+    required this.onClearAllSelection,
+    required this.onLocateCurrentSong,
+    required this.onShowFolderBottomSheet,
+    required this.highlightedSongPath,
+  });
+
+  final MusicFolder folder;
+  final Future<void> Function()? onOpenPlayback;
+  final bool isSelectionMode;
+  final Set<String> selectedSongPaths;
+  final Set<String> selectedFolderPaths;
+  final void Function(MusicFolder) onNavigateTo;
+  final VoidCallback onGoBack;
+  final VoidCallback onToggleSelectionMode;
+  final void Function(String) onToggleFolderSelection;
+  final void Function(String) onToggleSelection;
+  final VoidCallback onSelectAllVisible;
+  final VoidCallback onClearAllSelection;
+  final VoidCallback onLocateCurrentSong;
+  final void Function(MusicFolder, {required bool isRoot}) onShowFolderBottomSheet;
+  final String? highlightedSongPath;
+
+  @override
+  ConsumerState<_FolderDetailView> createState() => _FolderDetailViewState();
+}
+
+class _FolderDetailViewState extends ConsumerState<_FolderDetailView> {
+  late final ScrollController _localScrollController;
+  String? _lastHighlightedPath;
+
+  @override
+  void initState() {
+    super.initState();
+    final targetOffset = ref.read(scannerServiceProvider).getFolderScrollOffset(widget.folder.path);
+    _localScrollController = ScrollController(initialScrollOffset: targetOffset);
+    _localScrollController.addListener(_onScroll);
+
+    if (widget.highlightedSongPath != null) {
+      _lastHighlightedPath = widget.highlightedSongPath;
+      WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToHighlightedSong());
+    }
+  }
+
+  @override
+  void didUpdateWidget(_FolderDetailView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.highlightedSongPath != null && widget.highlightedSongPath != _lastHighlightedPath) {
+      _lastHighlightedPath = widget.highlightedSongPath;
+      WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToHighlightedSong());
+    }
+  }
+
+  void _onScroll() {
+    ref.read(scannerServiceProvider).setFolderScrollOffset(
+      widget.folder.path,
+      _localScrollController.offset,
+    );
+  }
+
+  @override
+  void dispose() {
+    _localScrollController.removeListener(_onScroll);
+    _localScrollController.dispose();
+    super.dispose();
+  }
+
+  void _scrollToHighlightedSong() {
+    if (!mounted) return;
+    final songPath = widget.highlightedSongPath;
+    if (songPath == null) return;
+
+    final fileIndex = widget.folder.files.indexWhere((file) => p.equals(file.path, songPath));
+    if (fileIndex == -1) return;
+
+    final hasPermission = ref.read(scannerServiceProvider).hasPermission;
+    final showPermissionWarning = widget.folder.path == 'system' && !hasPermission;
+
+    double fileOffset = 48.0; // Breadcrumbs
+    fileOffset += 190.0; // Header Banner approx height
+
+    if (showPermissionWarning) {
+      fileOffset += 200.0;
+    }
+
+    final settings = ref.read(settingsServiceProvider);
+    final isGrid = settings.folderViewMode == FolderViewMode.grid;
+
+    if (isGrid) {
+      final screenWidth = MediaQuery.of(context).size.width;
+      final int crossAxisCount = ((screenWidth - 16) / 196).floor().clamp(2, 6);
+      final double cardWidth = (screenWidth - 32 - (crossAxisCount - 1) * 16) / crossAxisCount;
+      final double cardHeight = cardWidth / 0.72;
+      
+      final totalGridItems = widget.folder.subFolders.length + 1;
+      final int rows = (totalGridItems / crossAxisCount).ceil();
+      fileOffset += rows * (cardHeight + 16);
+      fileOffset += fileIndex * 80.0;
+    } else {
+      fileOffset += 64.0;
+      fileOffset += widget.folder.subFolders.length * 64.0;
+      fileOffset += fileIndex * 80.0;
+    }
+
+    if (_localScrollController.hasClients) {
+      final double viewportHeight = _localScrollController.position.viewportDimension;
+      double targetOffset = fileOffset - (viewportHeight / 2) + 40.0;
+      final maxScroll = _localScrollController.position.maxScrollExtent;
+      targetOffset = targetOffset.clamp(0.0, maxScroll);
+
+      _localScrollController.animateTo(
+        targetOffset,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
+  List<MusicFile> _getSelectedSongs() {
+    final songs = <MusicFile>[];
+    songs.addAll(
+      widget.folder.files.where(
+        (file) => widget.selectedSongPaths.contains(file.path),
+      ),
+    );
+    for (final sub in widget.folder.subFolders) {
+      if (widget.selectedFolderPaths.contains(sub.path)) {
+        songs.addAll(sub.allSongs);
+      }
+    }
+    final seen = <String>{};
+    return songs.where((song) => seen.add(song.path)).toList(growable: false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scanner = ref.watch(scannerServiceProvider);
+    final l10n = AppLocalizations.of(context)!;
+    final hasPermission = ref.watch(
+      scannerServiceProvider.select((scanner) => scanner.hasPermission),
+    );
+    final audio = ref.read(audioServiceProvider);
+    final currentMusic = ref.watch(audioCurrentMusicProvider);
+    final settings = ref.watch(settingsServiceProvider);
+
+    final showSelectionPanel =
+        widget.isSelectionMode &&
+        _isUserRootSelectionContext(
+          scanner,
+          widget.folder,
+          scanner.navigationHistory,
+        );
+    final selectionPanelHeight = showSelectionPanel ? 220.0 : 0.0;
+
+    final representativeSong = _findRepresentativeSong(widget.folder);
+
+    Widget scrollBody;
+    final isGrid = settings.folderViewMode == FolderViewMode.grid;
+
+    Widget subfoldersSliver;
+    if (isGrid) {
+      final gridItemsCount = widget.folder.subFolders.length + 1;
+      subfoldersSliver = SliverPadding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        sliver: SliverGrid(
+          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+            maxCrossAxisExtent: 180,
+            crossAxisSpacing: 16,
+            mainAxisSpacing: 16,
+            childAspectRatio: 0.72,
+          ),
+          delegate: SliverChildBuilderDelegate(
+            (context, index) {
+              if (index == 0) {
+                return GestureDetector(
+                  onTap: widget.onGoBack,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      color: Theme.of(context).colorScheme.surfaceContainerLow.withValues(alpha: 0.6),
+                      border: Border.all(
+                        color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.25),
+                      ),
+                    ),
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.arrow_back_rounded, size: 36, color: Theme.of(context).colorScheme.primary),
+                          const SizedBox(height: 8),
+                          Text(
+                            AppLocalizations.of(context)!.goBack,
+                            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }
+              final folder = widget.folder.subFolders[index - 1];
+              final isSelected = widget.selectedFolderPaths.contains(folder.path);
+              final folderRepSong = _findRepresentativeSong(folder);
+              return _HoverableCard(
+                child: _FolderGridCard(
+                  folder: folder,
+                  songsCount: folder.allSongs.length,
+                  representativeSong: folderRepSong,
+                  isSelected: isSelected,
+                  isSelectionMode: widget.isSelectionMode,
+                  onTap: widget.isSelectionMode
+                      ? () => widget.onToggleFolderSelection(folder.path)
+                      : () => widget.onNavigateTo(folder),
+                  onLongPress: () {
+                    if (!widget.isSelectionMode) {
+                      widget.onToggleSelectionMode();
+                      widget.onToggleFolderSelection(folder.path);
+                    } else {
+                      widget.onToggleFolderSelection(folder.path);
+                    }
+                  },
+                  onSecondaryTapDown: (details) {
+                    if (!widget.isSelectionMode) {
+                      widget.onShowFolderBottomSheet(folder, isRoot: false);
+                    }
+                  },
+                ),
+              );
+            },
+            childCount: gridItemsCount,
+          ),
+        ),
+      );
+    } else {
+      final listItemsCount = widget.folder.subFolders.length + 1;
+      subfoldersSliver = SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            if (index == 0) {
+              return Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal:
+                      MediaQuery.of(context).orientation ==
+                          Orientation.portrait
+                      ? 8
+                      : 16,
+                  vertical: 4,
+                ),
+                child: ListTile(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  hoverColor: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.06),
+                  leading: const Icon(Icons.arrow_back_rounded),
+                  title: Text(AppLocalizations.of(context)!.goBack),
+                  onTap: widget.onGoBack,
+                ),
+              );
+            }
+            final folder = widget.folder.subFolders[index - 1];
+            final isSelected = widget.selectedFolderPaths.contains(folder.path);
+            return GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onSecondaryTapDown: (details) {
+                if (!widget.isSelectionMode) {
+                  widget.onShowFolderBottomSheet(folder, isRoot: false);
+                }
+              },
+              onLongPress: () {
+                if (!widget.isSelectionMode) {
+                  widget.onToggleSelectionMode();
+                  widget.onToggleFolderSelection(folder.path);
+                } else {
+                  widget.onToggleFolderSelection(folder.path);
+                }
+              },
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal:
+                      MediaQuery.of(context).orientation ==
+                          Orientation.portrait
+                      ? 8
+                      : 16,
+                  vertical: 4,
+                ),
+                child: ListTile(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  hoverColor: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.06),
+                  selected: widget.isSelectionMode && isSelected,
+                  selectedTileColor: Theme.of(context)
+                      .colorScheme
+                      .primaryContainer
+                      .withValues(alpha: 0.45),
+                  leading: widget.isSelectionMode
+                      ? Checkbox(
+                          value: isSelected,
+                          onChanged: (_) =>
+                              widget.onToggleFolderSelection(folder.path),
+                        )
+                      : Hero(
+                          tag: 'folder-cover-${folder.path}',
+                          child: const Icon(
+                            Icons.folder_rounded,
+                            color: Colors.amber,
+                          ),
+                        ),
+                  title: Text(folder.name),
+                  onTap: widget.isSelectionMode
+                      ? () => widget.onToggleFolderSelection(folder.path)
+                      : () => widget.onNavigateTo(folder),
+                ),
+              ),
+            );
+          },
+          childCount: listItemsCount,
+        ),
+      );
+    }
+
+    final songsSliver = SliverPadding(
+      padding: const EdgeInsets.only(top: 8),
+      sliver: SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (context, fileIndex) {
+            final file = widget.folder.files[fileIndex];
+            final isCurrent = currentMusic?.path == file.path;
+            final isSelected = widget.selectedSongPaths.contains(file.path);
+            final songsToAdd =
+                (widget.selectedSongPaths.isNotEmpty ||
+                    widget.selectedFolderPaths.isNotEmpty)
+                ? _getSelectedSongs()
+                : <MusicFile>[file];
+
+            void handleShowMenu(
+              BuildContext menuContext,
+              Offset position,
+            ) {
+              showSongContextMenu(
+                menuContext,
+                position,
+                song: file,
+                songs: songsToAdd,
+                mode: SongContextMenuMode.full,
+                onAddToPlaylist: () => showAddSongsToPlaylistDialog(
+                  menuContext,
+                  ref.read(playlistServiceProvider),
+                  songsToAdd,
+                ),
+                onPlayNext: () => ref
+                    .read(audioServiceProvider)
+                    .enqueueNext(songsToAdd),
+                onAddToQueue: () => ref
+                    .read(audioServiceProvider)
+                    .appendToQueue(songsToAdd),
+              );
+            }
+
+            return GestureDetector(
+              key: ValueKey(file.path),
+              behavior: HitTestBehavior.opaque,
+              onSecondaryTapDown: (details) {
+                handleShowMenu(context, details.globalPosition);
+              },
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal:
+                      MediaQuery.of(context).orientation ==
+                          Orientation.portrait
+                      ? 8
+                      : 16,
+                  vertical: 4,
+                ),
+                child: SongTile(
+                  song: file,
+                  isCurrent: isCurrent,
+                  isSelected: isSelected,
+                  isSelectionMode: widget.isSelectionMode,
+                  isHighlighted: widget.highlightedSongPath == file.path,
+                  onTap: widget.isSelectionMode
+                      ? () => widget.onToggleSelection(file.path)
+                      : () async {
+                          unawaited(() async {
+                            try {
+                              await audio.playPlaylist(
+                                widget.folder.files,
+                                initialIndex: fileIndex,
+                              );
+                            } catch (e, st) {
+                              debugPrint(
+                                'FoldersPage: failed to start folder playback for ${file.path}: $e',
+                              );
+                              debugPrintStack(stackTrace: st);
+                            }
+                          }());
+
+                          if (mounted) {
+                            widget.onClearAllSelection();
+                            await widget.onOpenPlayback?.call();
+                          }
+                        },
+                  onLongPress: () {
+                    if (!widget.isSelectionMode) {
+                      widget.onToggleSelectionMode();
+                      widget.onToggleSelection(file.path);
+                    }
+                  },
+                  onSecondaryTapDown: (details) {
+                    handleShowMenu(context, details.globalPosition);
+                  },
+                  onMorePressed: (buttonContext) {
+                    final renderObject = buttonContext.findRenderObject();
+                    final renderBox = renderObject is RenderBox ? renderObject : null;
+                    if (renderBox == null) return;
+                    final Offset offset = renderBox.localToGlobal(Offset.zero);
+                    handleShowMenu(buttonContext, offset);
+                  },
+                ),
+              ),
+            );
+          },
+          childCount: widget.folder.files.length,
+        ),
+      ),
+    );
+
+    scrollBody = CustomScrollView(
+      key: ValueKey(widget.folder.path),
+      controller: _localScrollController,
+      scrollCacheExtent: const ScrollCacheExtent.pixels(1000.0),
+      slivers: [
+        SliverToBoxAdapter(
+          child: _buildBreadcrumbs(widget.folder, scanner),
+        ),
+        SliverToBoxAdapter(
+          child: _buildFolderHeaderBanner(
+            context: context,
+            folder: widget.folder,
+            representativeSong: representativeSong,
+            songsCount: widget.folder.allSongs.length,
+            displayPath: ScannerPathUtils.cleanDisplayPath(widget.folder.path),
+            onPlayAll: () => audio.playPlaylist(widget.folder.allSongs),
+            onShuffle: () => audio.playPlaylist(List.of(widget.folder.allSongs)..shuffle()),
+            onTranscode: () => showTranscodeDialog(context, songs: widget.folder.allSongs),
+          ),
+        ),
+        if (widget.folder.path == 'system' && !hasPermission)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(32.0),
+              child: Center(
+                child: Column(
+                  children: [
+                    const Icon(
+                      Icons.lock_outline,
+                      size: 64,
+                      color: Colors.grey,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(l10n.noMediaLibraryPermission),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () => scanner.checkAndRequestPermissions(),
+                      child: Text(l10n.grantPermission),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        subfoldersSliver,
+        songsSliver,
+        SliverPadding(
+          padding: EdgeInsets.only(bottom: 160 + selectionPanelHeight),
+        ),
+      ],
+    );
+
+    final selectedSongs = showSelectionPanel ? _getSelectedSongs() : <MusicFile>[];
+
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        widget.onGoBack();
+      },
+      child: Scaffold(
+        body: SafeArea(
+          child: Stack(
+            children: [
+              Column(
+                children: [
+                  if (widget.isSelectionMode && !showSelectionPanel)
+                    Container(
+                      color: Theme.of(context).colorScheme.primaryContainer,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      child: Row(
+                        children: [
+                          Text(l10n.selectedSongs(_getSelectedSongs().length)),
+                          const Spacer(),
+                          TextButton(
+                            onPressed: widget.onToggleSelectionMode,
+                            child: Text(l10n.cancel),
+                          ),
+                        ],
+                      ),
+                    ),
+                  Expanded(child: scrollBody),
+                ],
+              ),
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 250),
+                  reverseDuration: const Duration(milliseconds: 200),
+                  switchInCurve: Curves.easeOutCubic,
+                  switchOutCurve: Curves.easeInCubic,
+                  transitionBuilder: (child, animation) {
+                    final offsetAnimation = Tween<Offset>(
+                      begin: const Offset(0, 1.0),
+                      end: Offset.zero,
+                    ).animate(animation);
+                    return SlideTransition(position: offsetAnimation, child: child);
+                  },
+                  child: showSelectionPanel
+                      ? LibrarySelectionPanel(
+                          key: const ValueKey('folder-selection-panel'),
+                          selectedSongs: selectedSongs,
+                          allSongs: widget.folder.allSongs,
+                          onToggleSelectAll: () {
+                            final isAllSelected =
+                                selectedSongs.length == widget.folder.allSongs.length &&
+                                widget.folder.allSongs.isNotEmpty;
+                            if (isAllSelected) {
+                              widget.onClearAllSelection();
+                            } else {
+                              widget.onSelectAllVisible();
+                            }
+                          },
+                          onCancel: widget.onClearAllSelection,
+                          onOpenLocation: (widget.selectedFolderPaths.length == 1 &&
+                                  widget.selectedSongPaths.isEmpty)
+                              ? () => openFolderLocation(widget.selectedFolderPaths.first)
+                              : null,
+                          openLocationLabel: (widget.selectedFolderPaths.length == 1 &&
+                                  widget.selectedSongPaths.isEmpty)
+                              ? l10n.openFolderLocation
+                              : null,
+                        )
+                      : const SizedBox.shrink(
+                          key: ValueKey('folder-selection-panel-hidden'),
+                        ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBreadcrumbs(MusicFolder current, ScannerService scanner) {
+    final theme = Theme.of(context);
+    final currentMusic = ref.watch(audioCurrentMusicProvider);
+    final settings = ref.watch(settingsServiceProvider);
+    final isZh = Localizations.localeOf(context).languageCode == 'zh';
+
+    List<Widget> breadcrumbItems = [];
+
+    breadcrumbItems.add(
+      Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(8),
+          onTap: () {
+            scanner.setNavigationState(null, []);
+            widget.onClearAllSelection();
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+            child: Icon(
+              Icons.home_rounded,
+              size: 20,
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    for (int i = 0; i < scanner.navigationHistory.length; i++) {
+      final folder = scanner.navigationHistory[i];
+      breadcrumbItems.add(
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 2),
+          child: Icon(
+            Icons.chevron_right_rounded,
+            size: 16,
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
+          ),
+        ),
+      );
+      breadcrumbItems.add(
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(8),
+            onTap: () {
+              scanner.setNavigationState(
+                folder,
+                scanner.navigationHistory.take(i).toList(),
+              );
+              widget.onClearAllSelection();
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+              child: Text(
+                folder.name,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.75),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    breadcrumbItems.add(
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 2),
+        child: Icon(
+          Icons.chevron_right_rounded,
+          size: 16,
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
+        ),
+      ),
+    );
+    breadcrumbItems.add(
+      Container(
+        decoration: BoxDecoration(
+          color: theme.colorScheme.primary.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 10),
+        child: Text(
+          current.name,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: theme.colorScheme.primary,
+          ),
+        ),
+      ),
+    );
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: theme.scaffoldBackgroundColor,
+        border: Border(
+          bottom: BorderSide(color: theme.dividerColor.withValues(alpha: 0.05)),
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(children: breadcrumbItems),
+            ),
+          ),
+          const SizedBox(width: 8),
+          if (currentMusic != null) ...[
+            IconButton(
+              icon: const Icon(Icons.my_location_rounded),
+              onPressed: widget.onLocateCurrentSong,
+              tooltip: AppLocalizations.of(context)!.locateCurrentSong,
+            ),
+            const SizedBox(width: 8),
+          ],
+          IconButton(
+            icon: Icon(
+              settings.folderViewMode == FolderViewMode.grid
+                  ? Icons.view_list_rounded
+                  : Icons.grid_view_rounded,
+            ),
+            onPressed: () {
+              settings.folderViewMode = settings.folderViewMode == FolderViewMode.grid
+                  ? FolderViewMode.list
+                  : FolderViewMode.grid;
+            },
+            tooltip: settings.folderViewMode == FolderViewMode.grid
+                ? (isZh ? '列表视图' : 'List View')
+                : (isZh ? '网格视图' : 'Grid View'),
+          ),
+          IconButton(
+            icon: const Icon(Icons.sort),
+            onPressed: () => _showSortDialog(context, scanner),
+            tooltip: AppLocalizations.of(context)!.sort,
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showSortDialog(BuildContext context, ScannerService scanner) {
+    final currentFolder = widget.folder;
+    final currentFolderPath = currentFolder.path;
+    final globalSettings = scanner.getGlobalSortSettings();
+    final currentFolderSettings = scanner.getSortSettingsForFolder(currentFolderPath);
+    final initialScope = scanner.hasSortOverrideForFolder(currentFolderPath)
+        ? SortScope.currentFolder
+        : SortScope.global;
+    var selectedScope = initialScope;
+    var selectedCriteria = initialScope == SortScope.currentFolder
+        ? currentFolderSettings.criteria
+        : globalSettings.criteria;
+    var selectedOrder = initialScope == SortScope.currentFolder
+        ? currentFolderSettings.order
+        : globalSettings.order;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            void syncSelectionForScope(SortScope scope) {
+              final settings =
+                  scope == SortScope.currentFolder
+                  ? scanner.getSortSettingsForFolder(currentFolderPath)
+                  : scanner.getGlobalSortSettings();
+              selectedCriteria = settings.criteria;
+              selectedOrder = settings.order;
+            }
+
+            return AlertDialog(
+              title: Text(AppLocalizations.of(context)!.sortBy),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    AppLocalizations.of(context)!.sortScope,
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                  RadioGroup<SortScope>(
+                    onChanged: (v) {
+                      if (v == null || v == selectedScope) return;
+                      setState(() {
+                        selectedScope = v;
+                        syncSelectionForScope(v);
+                      });
+                    },
+                    groupValue: selectedScope,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ListTile(
+                          title: Text(
+                            AppLocalizations.of(context)!.currentFolderScope,
+                          ),
+                          leading: const Radio(
+                            value: SortScope.currentFolder,
+                          ),
+                        ),
+                        ListTile(
+                          title: Text(
+                            AppLocalizations.of(context)!.globalScope,
+                          ),
+                          leading: const Radio(value: SortScope.global),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    AppLocalizations.of(context)!.sortBy,
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                  RadioGroup<SortCriteria>(
+                    onChanged: (v) {
+                      if (v == null) return;
+                      setState(() {
+                        selectedCriteria = v;
+                      });
+                      scanner.setSortCriteria(
+                        v,
+                        scope: selectedScope,
+                        folderPath: currentFolder.path,
+                      );
+                    },
+                    groupValue: selectedCriteria,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ListTile(
+                          title: Text(AppLocalizations.of(context)!.title),
+                          leading: const Radio(value: SortCriteria.title),
+                        ),
+                        ListTile(
+                          title: Text(AppLocalizations.of(context)!.fileName),
+                          leading: const Radio(value: SortCriteria.filename),
+                        ),
+                        ListTile(
+                          title: Text(
+                            AppLocalizations.of(context)!.trackNumber,
+                          ),
+                          leading: const Radio(value: SortCriteria.trackNumber),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    AppLocalizations.of(context)!.sortOrder,
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                  RadioGroup<SortOrder>(
+                    onChanged: (v) {
+                      if (v == null) return;
+                      setState(() {
+                        selectedOrder = v;
+                      });
+                      scanner.setSortOrder(
+                        v,
+                        scope: selectedScope,
+                        folderPath: currentFolder.path,
+                      );
+                    },
+                    groupValue: selectedOrder,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ListTile(
+                          title: Text(AppLocalizations.of(context)!.ascending),
+                          leading: const Radio(value: SortOrder.ascending),
+                        ),
+                        ListTile(
+                          title: Text(AppLocalizations.of(context)!.descending),
+                          leading: const Radio(value: SortOrder.descending),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text(AppLocalizations.of(context)!.confirm),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+// Folder details header banner
+Widget _buildFolderHeaderBanner({
+  required BuildContext context,
+  required MusicFolder folder,
+  required MusicFile? representativeSong,
+  required int songsCount,
+  required String displayPath,
+  required VoidCallback onPlayAll,
+  required VoidCallback onShuffle,
+  required VoidCallback onTranscode,
+}) {
+  final theme = Theme.of(context);
+  final isZh = Localizations.localeOf(context).languageCode == 'zh';
+
+  final int hash = folder.path.hashCode;
+  final double hue = (hash.abs() % 360).toDouble();
+  final Color startColor = HSLColor.fromAHSL(1.0, hue, 0.65, 0.45).toColor();
+  final Color endColor = HSLColor.fromAHSL(1.0, (hue + 40) % 360, 0.75, 0.35).toColor();
+
+  Widget coverWidget;
+  if (representativeSong != null) {
+    coverWidget = SongThumbnail(
+      path: representativeSong.path,
+      id: representativeSong.id,
+      size: 100,
+      width: 100,
+      height: 100,
+    );
+  } else {
+    coverWidget = Container(
+      width: 100,
+      height: 100,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [startColor, endColor],
+        ),
+      ),
+      child: const Center(
+        child: Icon(Icons.folder_rounded, size: 40, color: Colors.white70),
+      ),
+    );
+  }
+
+  return Container(
+    padding: const EdgeInsets.all(16),
+    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(20),
+      color: theme.colorScheme.surfaceContainer.withValues(alpha: 0.5),
+      border: Border.all(
+        color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2),
+      ),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Hero(
+              tag: 'folder-cover-${folder.path}',
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: coverWidget,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    folder.name,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    displayPath,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    isZh ? '$songsCount 首歌曲' : '$songsCount songs',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        const Divider(height: 1),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: FilledButton.icon(
+                onPressed: onPlayAll,
+                icon: const Icon(Icons.play_arrow_rounded),
+                label: Text(isZh ? '播放全部' : 'Play All'),
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: onShuffle,
+                icon: const Icon(Icons.shuffle_rounded),
+                label: Text(isZh ? '随机播放' : 'Shuffle'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            IconButton.filledTonal(
+              onPressed: onTranscode,
+              icon: const Icon(Icons.sync_rounded),
+              tooltip: isZh ? '音频转码' : 'Transcode',
+            ),
+          ],
+        ),
+      ],
+    ),
+  );
+}
+
+// Folder Grid Card
+class _FolderGridCard extends StatelessWidget {
+  const _FolderGridCard({
+    required this.folder,
+    required this.songsCount,
+    this.representativeSong,
+    this.isSelected = false,
+    this.isSelectionMode = false,
+    this.onTap,
+    this.onLongPress,
+    this.onSecondaryTapDown,
+  });
+
+  final MusicFolder folder;
+  final int songsCount;
+  final MusicFile? representativeSong;
+  final bool isSelected;
+  final bool isSelectionMode;
+  final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
+  final void Function(TapDownDetails)? onSecondaryTapDown;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isZh = Localizations.localeOf(context).languageCode == 'zh';
+
+    final int hash = folder.path.hashCode;
+    final double hue = (hash.abs() % 360).toDouble();
+    final Color startColor = HSLColor.fromAHSL(1.0, hue, 0.65, 0.45).toColor();
+    final Color endColor = HSLColor.fromAHSL(1.0, (hue + 40) % 360, 0.75, 0.35).toColor();
+
+    Widget coverWidget;
+    if (representativeSong != null) {
+      coverWidget = SongThumbnail(
+        path: representativeSong!.path,
+        id: representativeSong!.id,
+        size: 200,
+        width: double.infinity,
+        height: double.infinity,
+      );
+    } else {
+      coverWidget = Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [startColor, endColor],
+          ),
+        ),
+        child: Center(
+          child: Icon(
+            Icons.folder_rounded,
+            size: 48,
+            color: Colors.white.withValues(alpha: 0.85),
+          ),
+        ),
+      );
+    }
+
+    return GestureDetector(
+      onSecondaryTapDown: onSecondaryTapDown,
+      onLongPress: onLongPress,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            color: theme.colorScheme.surfaceContainerLow.withValues(alpha: 0.6),
+            border: Border.all(
+              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.25),
+            ),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                AspectRatio(
+                  aspectRatio: 1.0,
+                  child: Hero(
+                    tag: 'folder-cover-${folder.path}',
+                    child: ClipRRect(
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          coverWidget,
+                          if (isSelectionMode)
+                            Container(
+                              color: isSelected
+                                  ? theme.colorScheme.primaryContainer.withValues(alpha: 0.4)
+                                  : Colors.black26,
+                            ),
+                          if (isSelectionMode)
+                            Positioned(
+                              top: 8,
+                              left: 8,
+                              child: Icon(
+                                isSelected ? Icons.check_circle_rounded : Icons.radio_button_off_rounded,
+                                color: isSelected ? theme.colorScheme.primary : Colors.white70,
+                                size: 24,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          folder.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          isZh ? '$songsCount 首歌曲' : '$songsCount songs',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// Hoverable wrapper for grid cards
+class _HoverableCard extends StatefulWidget {
+  const _HoverableCard({required this.child});
+  final Widget child;
+  @override
+  State<_HoverableCard> createState() => _HoverableCardState();
+}
+
+class _HoverableCardState extends State<_HoverableCard> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: AnimatedScale(
+        scale: _isHovered ? 1.03 : 1.0,
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOutCubic,
+        child: widget.child,
+      ),
+    );
+  }
 }

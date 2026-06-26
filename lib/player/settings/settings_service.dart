@@ -49,6 +49,25 @@ final class LyricsAiModelSelection {
 
 enum SmallWindowBottomPanelMode { collapsed, queue, lyrics }
 
+enum FolderViewMode { list, grid }
+
+extension FolderViewModeX on FolderViewMode {
+  String get storageValue => switch (this) {
+    FolderViewMode.list => 'list',
+    FolderViewMode.grid => 'grid',
+  };
+
+  static FolderViewMode fromStorageValue(String? value) {
+    switch (value?.trim().toLowerCase()) {
+      case 'grid':
+        return FolderViewMode.grid;
+      case 'list':
+      default:
+        return FolderViewMode.list;
+    }
+  }
+}
+
 extension ThemeModeX on ThemeMode {
   String get storageValue => switch (this) {
     ThemeMode.system => 'system',
@@ -326,6 +345,7 @@ class SettingsService extends ChangeNotifier {
       'tag_completion_save_to_source_file';
   static const String _keyLanSharingEnabled = 'lan_sharing_enabled';
   static const String _keyLanSharingFolderPath = 'lan_sharing_folder_path';
+  static const String _keyFolderViewMode = 'folder_view_mode';
 
   final SharedPreferences _prefs;
   bool _isUserInactive = false;
@@ -359,6 +379,16 @@ class SettingsService extends ChangeNotifier {
     defaultValue: '',
     prefs: _prefs,
     onChanged: notifyListeners,
+  );
+
+  late final _folderViewModeProperty = SettingProperty<FolderViewMode>(
+    key: _keyFolderViewMode,
+    defaultValue: FolderViewMode.list,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+    customRead: (prefs, key, def) =>
+        FolderViewModeX.fromStorageValue(prefs.getString(key)),
+    customWrite: (prefs, key, val) => prefs.setString(key, val.storageValue),
   );
 
   late final _themeModeProperty = SettingProperty<ThemeMode>(
@@ -1539,6 +1569,9 @@ class SettingsService extends ChangeNotifier {
     smallWindowQueueWidth = size.width;
     smallWindowQueueHeight = size.height;
   }
+
+  FolderViewMode get folderViewMode => _folderViewModeProperty.value;
+  set folderViewMode(FolderViewMode value) => _folderViewModeProperty.value = value;
 
   SharedPreferences get prefs => _prefs;
 
