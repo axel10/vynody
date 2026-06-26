@@ -15,6 +15,8 @@ import '../widgets/song_tile.dart';
 import '../widgets/library_selection_panel.dart';
 import '../widgets/song_thumbnail.dart';
 import '../widgets/folder_grid_card.dart';
+import '../widgets/folder_list_tile.dart';
+import 'package:vynody/player/settings/settings_service.dart';
 import 'package:vynody/utils/folder_helpers.dart';
 
 class FolderDetailView extends ConsumerStatefulWidget {
@@ -205,6 +207,8 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
   @override
   Widget build(BuildContext context) {
     final scanner = ref.watch(scannerServiceProvider);
+    final settings = ref.watch(settingsServiceProvider);
+    final isZh = Localizations.localeOf(context).languageCode == 'zh';
     final l10n = AppLocalizations.of(context)!;
     final hasPermission = ref.watch(
       scannerServiceProvider.select((scanner) => scanner.hasPermission),
@@ -232,54 +236,103 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
 
     Widget scrollBody;
 
+    final isGrid = settings.folderViewMode == FolderViewMode.grid;
     Widget subfoldersSliver;
-    final gridItemsCount = matchedFolders.length;
-    subfoldersSliver = gridItemsCount > 0
-        ? SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            sliver: SliverGrid(
-              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                maxCrossAxisExtent: 180,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-                childAspectRatio: 0.72,
+    if (isGrid) {
+      final gridItemsCount = matchedFolders.length;
+      subfoldersSliver = gridItemsCount > 0
+          ? SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              sliver: SliverGrid(
+                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                  maxCrossAxisExtent: 180,
+                  crossAxisSpacing: 16,
+                  mainAxisSpacing: 16,
+                  childAspectRatio: 0.72,
+                ),
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    final folder = matchedFolders[index];
+                    final isSelected = widget.selectedFolderPaths.contains(folder.path);
+                    final folderRepSong = findRepresentativeSong(folder);
+                    return HoverableCard(
+                      child: FolderGridCard(
+                        folder: folder,
+                        songsCount: folder.allSongs.length,
+                        representativeSong: folderRepSong,
+                        isSelected: isSelected,
+                        isSelectionMode: widget.isSelectionMode,
+                        onTap: widget.isSelectionMode
+                            ? () => widget.onToggleFolderSelection(folder.path)
+                            : () => widget.onNavigateTo(folder),
+                        onLongPress: () {
+                          if (!widget.isSelectionMode) {
+                            widget.onToggleSelectionMode();
+                            widget.onToggleFolderSelection(folder.path);
+                          } else {
+                            widget.onToggleFolderSelection(folder.path);
+                          }
+                        },
+                        onSecondaryTapDown: (details) {
+                          if (!widget.isSelectionMode) {
+                            widget.onShowFolderBottomSheet(folder, isRoot: false);
+                          }
+                        },
+                      ),
+                    );
+                  },
+                  childCount: gridItemsCount,
+                ),
               ),
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final folder = matchedFolders[index];
-                  final isSelected = widget.selectedFolderPaths.contains(folder.path);
-                  final folderRepSong = findRepresentativeSong(folder);
-                  return HoverableCard(
-                    child: FolderGridCard(
-                      folder: folder,
-                      songsCount: folder.allSongs.length,
-                      representativeSong: folderRepSong,
-                      isSelected: isSelected,
-                      isSelectionMode: widget.isSelectionMode,
-                      onTap: widget.isSelectionMode
-                          ? () => widget.onToggleFolderSelection(folder.path)
-                          : () => widget.onNavigateTo(folder),
-                      onLongPress: () {
-                        if (!widget.isSelectionMode) {
-                          widget.onToggleSelectionMode();
-                          widget.onToggleFolderSelection(folder.path);
-                        } else {
-                          widget.onToggleFolderSelection(folder.path);
-                        }
-                      },
-                      onSecondaryTapDown: (details) {
-                        if (!widget.isSelectionMode) {
-                          widget.onShowFolderBottomSheet(folder, isRoot: false);
-                        }
-                      },
-                    ),
-                  );
-                },
-                childCount: gridItemsCount,
+            )
+          : const SliverToBoxAdapter(child: SizedBox.shrink());
+    } else {
+      final listItemsCount = matchedFolders.length;
+      subfoldersSliver = listItemsCount > 0
+          ? SliverPadding(
+              padding: const EdgeInsets.only(top: 8),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    final folder = matchedFolders[index];
+                    final isSelected = widget.selectedFolderPaths.contains(folder.path);
+                    final representativeSong = findRepresentativeSong(folder);
+                    return Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: MediaQuery.of(context).orientation == Orientation.portrait ? 8 : 16,
+                        vertical: 4,
+                      ),
+                      child: FolderListTile(
+                        folder: folder,
+                        songsCount: folder.allSongs.length,
+                        representativeSong: representativeSong,
+                        isSelected: isSelected,
+                        isSelectionMode: widget.isSelectionMode,
+                        onTap: widget.isSelectionMode
+                            ? () => widget.onToggleFolderSelection(folder.path)
+                            : () => widget.onNavigateTo(folder),
+                        onLongPress: () {
+                          if (!widget.isSelectionMode) {
+                            widget.onToggleSelectionMode();
+                            widget.onToggleFolderSelection(folder.path);
+                          } else {
+                            widget.onToggleFolderSelection(folder.path);
+                          }
+                        },
+                        onSecondaryTapDown: (details) {
+                          if (!widget.isSelectionMode) {
+                            widget.onShowFolderBottomSheet(folder, isRoot: false);
+                          }
+                        },
+                      ),
+                    );
+                  },
+                  childCount: listItemsCount,
+                ),
               ),
-            ),
-          )
-        : const SliverToBoxAdapter(child: SizedBox.shrink());
+            )
+          : const SliverToBoxAdapter(child: SizedBox.shrink());
+    }
 
     Widget songsSliver;
     final noResults = _searchQuery.isNotEmpty && matchedFolders.isEmpty && matchedSongs.isEmpty;
@@ -298,7 +351,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  Localizations.localeOf(context).languageCode == 'zh' ? '未找到匹配的文件夹或歌曲' : 'No matching folders or songs found',
+                  isZh ? '未找到匹配的文件夹或歌曲' : 'No matching folders or songs found',
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
                   ),
@@ -676,6 +729,10 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
       ),
     );
 
+    final settings = ref.watch(settingsServiceProvider);
+    final isZh = Localizations.localeOf(context).languageCode == 'zh';
+    final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
@@ -693,19 +750,94 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
             ),
           ),
           const SizedBox(width: 8),
-          if (currentMusic != null) ...[
+          if (isPortrait)
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert_rounded),
+              onSelected: (value) {
+                if (value == 'locate') {
+                  widget.onLocateCurrentSong();
+                } else if (value == 'sort') {
+                  _showSortDialog(context, scanner);
+                } else if (value == 'view_mode') {
+                  settings.folderViewMode = settings.folderViewMode == FolderViewMode.grid
+                      ? FolderViewMode.list
+                      : FolderViewMode.grid;
+                }
+              },
+              itemBuilder: (context) => [
+                if (currentMusic != null)
+                  PopupMenuItem(
+                    value: 'locate',
+                    child: Row(
+                      children: [
+                        const Icon(Icons.my_location_rounded, size: 20),
+                        const SizedBox(width: 12),
+                        Text(AppLocalizations.of(context)!.locateCurrentSong),
+                      ],
+                    ),
+                  ),
+                PopupMenuItem(
+                  value: 'sort',
+                  child: Row(
+                    children: [
+                      const Icon(Icons.sort, size: 20),
+                      const SizedBox(width: 12),
+                      Text(AppLocalizations.of(context)!.sort),
+                    ],
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 'view_mode',
+                  child: Row(
+                    children: [
+                      Icon(
+                        settings.folderViewMode == FolderViewMode.grid
+                            ? Icons.view_list_rounded
+                            : Icons.grid_view_rounded,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        settings.folderViewMode == FolderViewMode.grid
+                            ? (isZh ? '列表视图' : 'List View')
+                            : (isZh ? '网格视图' : 'Grid View'),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            )
+          else ...[
+            if (currentMusic != null) ...[
+              IconButton(
+                icon: const Icon(Icons.my_location_rounded),
+                onPressed: widget.onLocateCurrentSong,
+                tooltip: AppLocalizations.of(context)!.locateCurrentSong,
+              ),
+              const SizedBox(width: 8),
+            ],
             IconButton(
-              icon: const Icon(Icons.my_location_rounded),
-              onPressed: widget.onLocateCurrentSong,
-              tooltip: AppLocalizations.of(context)!.locateCurrentSong,
+              icon: Icon(
+                settings.folderViewMode == FolderViewMode.grid
+                    ? Icons.view_list_rounded
+                    : Icons.grid_view_rounded,
+              ),
+              onPressed: () {
+                settings.folderViewMode = settings.folderViewMode == FolderViewMode.grid
+                    ? FolderViewMode.list
+                    : FolderViewMode.grid;
+              },
+              tooltip: settings.folderViewMode == FolderViewMode.grid
+                  ? (isZh ? '列表视图' : 'List View')
+                  : (isZh ? '网格视图' : 'Grid View'),
             ),
             const SizedBox(width: 8),
+            IconButton(
+              icon: const Icon(Icons.sort),
+              onPressed: () => _showSortDialog(context, scanner),
+              tooltip: AppLocalizations.of(context)!.sort,
+            ),
           ],
-          IconButton(
-            icon: const Icon(Icons.sort),
-            onPressed: () => _showSortDialog(context, scanner),
-            tooltip: AppLocalizations.of(context)!.sort,
-          ),
         ],
       ),
     );
