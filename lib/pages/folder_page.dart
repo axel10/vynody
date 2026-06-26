@@ -26,10 +26,10 @@ class FoldersPage extends ConsumerStatefulWidget {
   const FoldersPage({super.key, this.onOpenPlayback});
 
   @override
-  ConsumerState<FoldersPage> createState() => _FoldersPageState();
+  ConsumerState<FoldersPage> createState() => FoldersPageState();
 }
 
-class _FoldersPageState extends ConsumerState<FoldersPage> {
+class FoldersPageState extends ConsumerState<FoldersPage> {
   bool _isSelectionMode = false;
   final Set<String> _selectedSongPaths = {};
   final Set<String> _selectedFolderPaths = {};
@@ -49,6 +49,16 @@ class _FoldersPageState extends ConsumerState<FoldersPage> {
   String? _highlightedSongPath;
   Timer? _highlightTimer;
   late final HeroController _heroController;
+
+  bool handleBackPressed() {
+    final scanner = _scanner;
+    if (scanner == null) return false;
+    if (scanner.navigationCurrentFolder != null) {
+      _goBack(scanner);
+      return true;
+    }
+    return false;
+  }
 
   void _setFolderSelectionMode(bool enabled) {
     _librarySelectionScopeController.setScope(

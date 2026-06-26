@@ -123,6 +123,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
   DateTime? _ignoreResizeEventsUntil;
   late final MainLayoutUiController _uiController;
   late final AppShortcutManager _shortcutManager;
+  final GlobalKey<FoldersPageState> _foldersPageKey = GlobalKey<FoldersPageState>();
 
   AnimationController? _onboardingAnimController;
   bool _isOnboardingAnimatingOut = false;
@@ -162,10 +163,9 @@ class _MainLayoutState extends ConsumerState<MainLayout>
   Future<void> _handleBackPressed() async {
     if (!Platform.isAndroid) return;
 
-    // 如果在目录页，且当前处于非根目录，由于子 PopScope 会处理返回上一级目录，这里直接返回
+    // 如果在目录页，且当前处于非根目录，则返回上一级目录
     if (_currentIndex == 0) {
-      final scanner = ref.read(scannerServiceProvider);
-      if (scanner.navigationCurrentFolder != null) {
+      if (_foldersPageKey.currentState?.handleBackPressed() ?? false) {
         return;
       }
     }
@@ -397,7 +397,10 @@ class _MainLayoutState extends ConsumerState<MainLayout>
       case 0:
         return Padding(
           padding: EdgeInsets.only(top: isDesktop ? 32 : 0, left: leftPadding),
-          child: FoldersPage(onOpenPlayback: () => _onDestinationSelected(1)),
+          child: FoldersPage(
+            key: _foldersPageKey,
+            onOpenPlayback: () => _onDestinationSelected(1),
+          ),
         );
       case 1:
         return const PlaybackPage();
