@@ -572,6 +572,9 @@ class LyricsService {
     LyricsQuery query, {
     CancelToken? cancelToken,
   }) async {
+    if (cancelToken?.isCancelled == true) {
+      return null;
+    }
     _logDebug(
       'pipeline start -> title="${query.title}" artist="${query.artist ?? ''}" '
       'album="${query.album ?? ''}" duration=${query.duration?.inSeconds ?? 'n/a'}s',
@@ -587,10 +590,17 @@ class LyricsService {
       return primaryResult;
     }
 
+    if (cancelToken?.isCancelled == true) {
+      _logDebug('pipeline cancelled after primary query -> title="${query.title}"');
+      return null;
+    }
+
     final fallbackQuery = _buildTitleOnlyFallbackQuery(query);
     if (fallbackQuery == null) {
       _logDebug('pipeline stop -> no title-only fallback for "${query.title}"');
-      await _saveEmptyToDatabase(query);
+      if (cancelToken?.isCancelled != true) {
+        await _saveEmptyToDatabase(query);
+      }
       return null;
     }
 
@@ -598,6 +608,11 @@ class LyricsService {
       'lyrics retry with title only -> title="${query.title}" '
       'artist="${query.artist ?? ''}" album="${query.album ?? ''}"',
     );
+
+    if (cancelToken?.isCancelled == true) {
+      _logDebug('pipeline cancelled before fallback query -> title="${query.title}"');
+      return null;
+    }
 
     final fallbackResult = await _fetchBestLyricsOnce(
       fallbackQuery,
@@ -618,6 +633,9 @@ class LyricsService {
     required bool cacheEmptyResult,
     CancelToken? cancelToken,
   }) async {
+    if (cancelToken?.isCancelled == true) {
+      return null;
+    }
     final searchQuery = _buildSearchQuery(query);
     _logDebug(
       'phase search -> title="${searchQuery.title}" '
@@ -625,9 +643,12 @@ class LyricsService {
       'duration=${searchQuery.duration?.inSeconds ?? 'n/a'}s',
     );
     final searchResults = await _search(searchQuery, cancelToken: cancelToken);
+    if (cancelToken?.isCancelled == true) {
+      return null;
+    }
     if (searchResults.isEmpty) {
       _logDebug('phase search empty -> title="${searchQuery.title}"');
-      if (cacheEmptyResult) {
+      if (cacheEmptyResult && cancelToken?.isCancelled != true) {
         await _saveEmptyToDatabase(cacheQuery);
       }
       return null;
@@ -635,15 +656,22 @@ class LyricsService {
 
     final scoredResults = <LyricSelectionResult>[];
     for (final candidate in searchResults) {
+      if (cancelToken?.isCancelled == true) {
+        return null;
+      }
       final scored = _scoreCandidate(searchQuery, candidate, fromGetApi: false);
       if (scored != null) {
         scoredResults.add(scored);
       }
     }
 
+    if (cancelToken?.isCancelled == true) {
+      return null;
+    }
+
     if (scoredResults.isEmpty) {
       _logDebug('phase scoring empty -> title="${searchQuery.title}"');
-      if (cacheEmptyResult) {
+      if (cacheEmptyResult && cancelToken?.isCancelled != true) {
         await _saveEmptyToDatabase(cacheQuery);
       }
       return null;
@@ -664,7 +692,7 @@ class LyricsService {
           .toList();
 
       if (fallbackCandidates.isNotEmpty) {
-        // 在3秒以内的候选中，优先选择时长差距最小的
+        // 在3秒以内的候选中，优先选择时长差距最小 of
         // 如果时长差距相同，则取评分较高的
         fallbackCandidates.sort((a, b) {
           final diffCompare = a.durationDiffSeconds.compareTo(
@@ -679,11 +707,15 @@ class LyricsService {
           'phase rejected all -> title="${searchQuery.title}" '
           'bestScore=${bestCandidate.score.toStringAsFixed(1)}',
         );
-        if (cacheEmptyResult) {
+        if (cacheEmptyResult && cancelToken?.isCancelled != true) {
           await _saveEmptyToDatabase(cacheQuery);
         }
         return null;
       }
+    }
+
+    if (cancelToken?.isCancelled == true) {
+      return null;
     }
 
     _logDebug(
