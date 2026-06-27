@@ -33,6 +33,22 @@ final incomingRequestProvider =
       IncomingRequestNotifier.new,
     );
 
+class SharingWarningNotifier extends Notifier<String?> {
+  @override
+  String? build() => null;
+
+  void setWarning(String? warning) {
+    state = warning;
+  }
+}
+
+final sharingWarningProvider =
+    NotifierProvider<SharingWarningNotifier, String?>(
+      SharingWarningNotifier.new,
+    );
+
+
+
 class ActiveTransfersNotifier extends Notifier<List<TransferSession>> {
   @override
   List<TransferSession> build() => [];
@@ -62,10 +78,10 @@ class ActiveTransfersNotifier extends Notifier<List<TransferSession>> {
     ];
   }
 
-  void updateStatus(String id, TransferStatus status) {
+  void updateStatus(String id, TransferStatus status, {String? cancelReason}) {
     state = [
       for (final s in state)
-        if (s.id == id) s.copyWith(status: status) else s,
+        if (s.id == id) s.copyWith(status: status, cancelReason: cancelReason) else s,
     ];
   }
 
@@ -146,6 +162,7 @@ class TransferSession {
   final int? filesCount;
   final int? completedFilesCount;
   final List<ActiveFileProgress> activeFiles;
+  final String? cancelReason;
 
   TransferSession({
     required this.id,
@@ -158,6 +175,7 @@ class TransferSession {
     this.filesCount,
     this.completedFilesCount,
     this.activeFiles = const [],
+    this.cancelReason,
   });
 
   double get progress => totalBytes > 0 ? bytesTransferred / totalBytes : 0.0;
@@ -173,6 +191,7 @@ class TransferSession {
     int? filesCount,
     int? completedFilesCount,
     List<ActiveFileProgress>? activeFiles,
+    String? cancelReason,
   }) {
     return TransferSession(
       id: id ?? this.id,
@@ -185,6 +204,7 @@ class TransferSession {
       filesCount: filesCount ?? this.filesCount,
       completedFilesCount: completedFilesCount ?? this.completedFilesCount,
       activeFiles: activeFiles ?? this.activeFiles,
+      cancelReason: cancelReason ?? this.cancelReason,
     );
   }
 }
@@ -374,6 +394,21 @@ class SharingService {
     _sharingFolderPath = newPath;
     await _ensureRegisteredInScanner();
   }
+
+  Future<bool> _isSharingFolderValid() async {
+    await _resolveSharingPath();
+    final path = _sharingFolderPath;
+
+    if (Platform.isAndroid) {
+      final mapping = await AndroidSafStorageHelper.findBestMapping(path);
+      if (mapping != null) {
+        return await AndroidSafStorageHelper.directoryExists(mapping.value);
+      }
+    }
+
+    return Directory(path).existsSync();
+  }
+
   Future<void> _cleanObsoleteIosPaths() async {
     if (!Platform.isIOS) return;
     final scanner = _ref.read(scannerServiceProvider);
@@ -410,14 +445,6 @@ class SharingService {
   Future<bool> start() async {
     await init();
     await _cleanObsoleteIosPaths();
-
-    if (Platform.isAndroid &&
-        _ref.read(settingsServiceProvider).lanSharingFolderPath.trim().isEmpty) {
-      debugPrint(
-        '[SharingService] Refusing to start LAN sharing on Android without a selected receive directory.',
-      );
-      return false;
-    }
 
     // 1. Resolve Local IP
     _localIp = await _getLocalIpAddress();
@@ -770,6 +797,37 @@ class SharingService {
         lyricsPackage: map['lyrics_package'] as Map<String, dynamic>?,
       );
     }).toList();
+
+    if (Platform.isAndroid &&
+        !_ref.read(settingsServiceProvider).hasLanSharingFolderPath) {
+      _ref.read(sharingWarningProvider.notifier).setWarning(
+          '有设备尝试向您发送文件，但您尚未设置接收文件保存目录，请先设置。');
+
+      request.response.statusCode = HttpStatus.ok;
+      request.response.write(
+        jsonEncode({
+          'accepted': false,
+          'reason': '接收端设备未设置文件保存目录',
+        }),
+      );
+      await request.response.close();
+      return;
+    }
+
+    final folderExists = await _isSharingFolderValid();
+    if (!folderExists) {
+      _ref.read(sharingWarningProvider.notifier).setWarning('接收文件保存目录已不存在，请重新设置。');
+
+      request.response.statusCode = HttpStatus.ok;
+      request.response.write(
+        jsonEncode({
+          'accepted': false,
+          'reason': '接收端文件保存目录已不存在',
+        }),
+      );
+      await request.response.close();
+      return;
+    }
 
     if (files.isEmpty) {
       request.response.statusCode = HttpStatus.badRequest;
@@ -1528,9 +1586,17 @@ class SharingService {
       debugPrint('[SharingService] Preflight decision accepted: $accepted');
 
       if (!accepted) {
+        final reason = responseJson['reason'] as String?;
+        if (reason == '接收端设备未设置文件保存目录') {
+          _ref.read(sharingWarningProvider.notifier).setWarning(
+              '接收端设备未设置文件保存目录，无法接收您的文件');
+        } else if (reason == '接收端文件保存目录已不存在') {
+          _ref.read(sharingWarningProvider.notifier).setWarning(
+              '接收端文件保存目录已不存在，无法接收您的文件');
+        }
         _ref
             .read(activeTransfersProvider.notifier)
-            .updateStatus(sessionId, TransferStatus.cancelled);
+            .updateStatus(sessionId, TransferStatus.cancelled, cancelReason: reason);
         return false;
       }
 

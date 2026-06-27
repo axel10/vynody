@@ -811,6 +811,26 @@ class _MainLayoutState extends ConsumerState<MainLayout>
       }
     });
 
+    // Listen for sharing warnings
+    ref.listen<String?>(sharingWarningProvider, (previous, next) {
+      if (next != null) {
+        AppSnackBar.show(
+          context,
+          ref,
+          SnackBar(
+            content: Text(next),
+            action: SnackBarAction(
+              label: '去设置',
+              onPressed: () {
+                _onDestinationSelected(4);
+              },
+            ),
+          ),
+        );
+        ref.read(sharingWarningProvider.notifier).setWarning(null);
+      }
+    });
+
     // Listen for transfer session completions to show SnackBar notifications
     ref.listen<List<TransferSession>>(activeTransfersProvider, (
       previous,

@@ -245,12 +245,6 @@ class _SharingPageState extends ConsumerState<SharingPage> {
     final settings = ref.read(settingsServiceProvider);
     final previousEnabled = settings.lanSharingEnabled;
 
-    if (enabled &&
-        Platform.isAndroid &&
-        settings.lanSharingFolderPath.trim().isEmpty) {
-      showToast('请先选择接收目录，再开启局域网共享');
-      return;
-    }
 
     if (enabled && (Platform.isIOS || Platform.isMacOS || Platform.isWindows)) {
       final hasPermission = await ref.read(sharingServiceProvider).checkLocalNetworkPermission();
@@ -325,8 +319,7 @@ class _SharingPageState extends ConsumerState<SharingPage> {
     final devicesAsync = ref.watch(discoveredDevicesProvider);
     final theme = Theme.of(context);
     final settings = ref.watch(settingsServiceProvider);
-    final canEnableSharing =
-        !Platform.isAndroid || settings.hasLanSharingFolderPath;
+
 
     if (!_didSyncInitialSharingState) {
       _didSyncInitialSharingState = true;
@@ -437,7 +430,7 @@ class _SharingPageState extends ConsumerState<SharingPage> {
                           if (Platform.isAndroid && !settings.hasLanSharingFolderPath) ...[
                             const SizedBox(height: 4),
                             Text(
-                              '请先选择接收目录，才能开启局域网共享。',
+                              '未设置接收文件保存目录时将无法接收文件，建议先设置。',
                               style: TextStyle(
                                 color: theme.colorScheme.onSurface.withValues(
                                   alpha: 0.55,
@@ -451,7 +444,7 @@ class _SharingPageState extends ConsumerState<SharingPage> {
                     ),
                     Switch(
                       value: settings.lanSharingEnabled,
-                      onChanged: canEnableSharing ? _setSharingEnabled : null,
+                      onChanged: _setSharingEnabled,
                     ),
                   ],
                 ),

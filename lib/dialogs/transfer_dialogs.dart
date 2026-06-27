@@ -151,8 +151,9 @@ void showTransferProgressDialog(BuildContext context, String sessionId) {
                           ? '"${session.fileName}" 发送完毕' 
                           : '成功接收了 ${session.completedFilesCount ?? session.filesCount ?? 1} 首歌曲')
                       : (isCancelled
-                          ? '${session.isSending ? "发送" : "接收"}已取消'
+                          ? '${session.isSending ? "发送" : "接收"}已取消${(session.cancelReason != null && session.cancelReason!.isNotEmpty) ? " (${session.cancelReason})" : ""}'
                           : '${session.isSending ? "发送" : "接收"} "${session.fileName}" 失败');
+
                   
                   AppSnackBar.show(
                     context,
