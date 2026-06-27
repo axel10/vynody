@@ -396,17 +396,21 @@ class SharingService {
   }
 
   Future<bool> _isSharingFolderValid() async {
-    await _resolveSharingPath();
-    final path = _sharingFolderPath;
+    final settings = _ref.read(settingsServiceProvider);
+    final savedPath = settings.lanSharingFolderPath;
+
+    if (savedPath.isEmpty) {
+      return Directory(_sharingFolderPath).existsSync();
+    }
 
     if (Platform.isAndroid) {
-      final mapping = await AndroidSafStorageHelper.findBestMapping(path);
+      final mapping = await AndroidSafStorageHelper.findBestMapping(savedPath);
       if (mapping != null) {
         return await AndroidSafStorageHelper.directoryExists(mapping.value);
       }
     }
 
-    return Directory(path).existsSync();
+    return Directory(savedPath).existsSync();
   }
 
   Future<void> _cleanObsoleteIosPaths() async {
