@@ -65,6 +65,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
   bool _isSearching = false;
   String _searchQuery = '';
   String? _lastHighlightedPath;
+  bool _isCoverVisible = true;
 
   @override
   void initState() {
@@ -72,6 +73,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
     _searchController = TextEditingController();
     final targetOffset = ref.read(scannerServiceProvider).getFolderScrollOffset(widget.folder.path);
     _localScrollController = ScrollController(initialScrollOffset: targetOffset);
+    _isCoverVisible = targetOffset < 160.0;
     _localScrollController.addListener(_onScroll);
 
     if (widget.highlightedSongPath != null) {
@@ -90,10 +92,17 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
   }
 
   void _onScroll() {
+    final offset = _localScrollController.offset;
     ref.read(scannerServiceProvider).setFolderScrollOffset(
       widget.folder.path,
-      _localScrollController.offset,
+      offset,
     );
+    final isVisible = offset < 160.0;
+    if (isVisible != _isCoverVisible) {
+      setState(() {
+        _isCoverVisible = isVisible;
+      });
+    }
   }
 
   @override
@@ -1081,11 +1090,14 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
         children: [
           Row(
             children: [
-              Hero(
-                tag: 'folder-cover-${folder.path}',
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: coverWidget,
+              HeroMode(
+                enabled: _isCoverVisible,
+                child: Hero(
+                  tag: 'folder-cover-${folder.path}',
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: coverWidget,
+                  ),
                 ),
               ),
               const SizedBox(width: 16),

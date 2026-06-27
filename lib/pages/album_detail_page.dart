@@ -28,12 +28,24 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage> {
   bool _isSelectionMode = false;
   final Set<String> _selectedSongPaths = {};
   late final LibrarySelectionScopeController _librarySelectionScopeController;
+  late final ScrollController _scrollController;
+  bool _isCoverVisible = true;
 
   @override
   void initState() {
     super.initState();
+    _scrollController = ScrollController()..addListener(_onScroll);
     _librarySelectionScopeController =
         ref.read(librarySelectionScopeProvider.notifier);
+  }
+
+  void _onScroll() {
+    final isVisible = _scrollController.offset < 200.0;
+    if (isVisible != _isCoverVisible) {
+      setState(() {
+        _isCoverVisible = isVisible;
+      });
+    }
   }
 
   void _toggleSelectionMode() {
@@ -81,6 +93,7 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage> {
 
   @override
   void dispose() {
+    _scrollController.dispose();
     Future.microtask(() {
       _librarySelectionScopeController.clear();
     });
@@ -108,6 +121,7 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage> {
       body: Stack(
         children: [
           CustomScrollView(
+            controller: _scrollController,
             slivers: [
               SliverToBoxAdapter(
                 child: Container(
@@ -122,16 +136,19 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage> {
                   child: LayoutBuilder(
                     builder: (context, constraints) {
                       final isWide = constraints.maxWidth >= 700;
-                      final cover = Hero(
-                        tag: 'album-cover-${widget.album.id}',
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(24),
-                          child: SongThumbnail(
-                            path: widget.album.representativeSong.path,
-                            id: widget.album.representativeSong.id,
-                            size: isWide
-                                ? 220
-                                : math.min(220, constraints.maxWidth),
+                      final cover = HeroMode(
+                        enabled: _isCoverVisible,
+                        child: Hero(
+                          tag: 'album-cover-${widget.album.id}',
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(24),
+                            child: SongThumbnail(
+                              path: widget.album.representativeSong.path,
+                              id: widget.album.representativeSong.id,
+                              size: isWide
+                                  ? 220
+                                  : math.min(220, constraints.maxWidth),
+                            ),
                           ),
                         ),
                       );
