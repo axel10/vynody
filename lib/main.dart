@@ -160,6 +160,9 @@ void main(List<String> args) async {
   await runZonedGuarded(
     () async {
       WidgetsFlutterBinding.ensureInitialized();
+      if (Platform.isAndroid) {
+        SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+      }
       AppLog.log('main start args=$args', mirrorToConsole: true);
 
       if (Platform.isWindows) {
@@ -369,9 +372,20 @@ class _MyAppState extends ConsumerState<MyApp> with WindowListener {
         themeMode: settings.themeMode,
         builder: (context, child) {
           final theme = Theme.of(context);
-          return ColoredBox(
-            color: theme.colorScheme.surface,
-            child: child ?? const SizedBox.shrink(),
+          final isDark = theme.brightness == Brightness.dark;
+          return AnnotatedRegion<SystemUiOverlayStyle>(
+            value: SystemUiOverlayStyle(
+              statusBarColor: Colors.transparent,
+              statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+              statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
+              systemNavigationBarColor: Colors.transparent,
+              systemNavigationBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+              systemNavigationBarDividerColor: Colors.transparent,
+            ),
+            child: ColoredBox(
+              color: theme.colorScheme.surface,
+              child: child ?? const SizedBox.shrink(),
+            ),
           );
         },
         localizationsDelegates: const [

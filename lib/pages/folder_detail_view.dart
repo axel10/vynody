@@ -67,6 +67,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
   String _searchQuery = '';
   String? _lastHighlightedPath;
   bool _isCoverVisible = true;
+  bool _showStatusBarOverlay = false;
 
   @override
   void initState() {
@@ -94,6 +95,9 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
 
   void _onScroll() {
     final offset = _localScrollController.offset;
+    final statusBarHeight = MediaQuery.of(context).padding.top;
+    final headerHeight = 64.0 + statusBarHeight;
+
     ref.read(scannerServiceProvider).setFolderScrollOffset(
       widget.folder.path,
       offset,
@@ -102,6 +106,26 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
     if (isVisible != _isCoverVisible) {
       setState(() {
         _isCoverVisible = isVisible;
+      });
+    }
+
+    bool showOverlay = false;
+    if (offset > headerHeight) {
+      final direction = _localScrollController.position.userScrollDirection;
+      if (direction == ScrollDirection.reverse) {
+        showOverlay = true;
+      } else if (direction == ScrollDirection.forward) {
+        showOverlay = false;
+      } else {
+        showOverlay = _showStatusBarOverlay;
+      }
+    } else {
+      showOverlay = false;
+    }
+
+    if (showOverlay != _showStatusBarOverlay) {
+      setState(() {
+        _showStatusBarOverlay = showOverlay;
       });
     }
   }
@@ -506,7 +530,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
         SliverPersistentHeader(
           delegate: _BreadcrumbsHeaderDelegate(
             child: _buildBreadcrumbs(widget.folder, scanner),
-            height: 64.0,
+            height: 64.0 + MediaQuery.of(context).padding.top,
           ),
           pinned: !Platform.isAndroid && !Platform.isIOS,
           floating: Platform.isAndroid || Platform.isIOS,
@@ -564,6 +588,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
       },
       child: Scaffold(
         body: SafeArea(
+          top: false,
           child: Stack(
             children: [
               Column(
@@ -571,7 +596,12 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
                   if (widget.isSelectionMode && !showSelectionPanel)
                     Container(
                       color: Theme.of(context).colorScheme.primaryContainer,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      padding: EdgeInsets.only(
+                        top: 8 + MediaQuery.of(context).padding.top,
+                        bottom: 8,
+                        left: 16,
+                        right: 16,
+                      ),
                       child: Row(
                         children: [
                           Text(l10n.selectedSongs(_getSelectedSongs().length)),
@@ -637,6 +667,21 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
                       : const SizedBox.shrink(
                           key: ValueKey('folder-selection-panel-hidden'),
                         ),
+                ),
+              ),
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                height: MediaQuery.of(context).padding.top,
+                child: IgnorePointer(
+                  child: AnimatedOpacity(
+                    opacity: _showStatusBarOverlay ? 1.0 : 0.0,
+                    duration: const Duration(milliseconds: 200),
+                    child: Container(
+                      color: Colors.black.withValues(alpha: 0.25),
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -773,9 +818,15 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
     final settings = ref.watch(settingsServiceProvider);
     final isZh = Localizations.localeOf(context).languageCode == 'zh';
     final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
+    final statusBarHeight = MediaQuery.of(context).padding.top;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: EdgeInsets.only(
+        top: 8 + statusBarHeight,
+        bottom: 8,
+        left: 16,
+        right: 16,
+      ),
       decoration: BoxDecoration(
         color: theme.scaffoldBackgroundColor,
         border: Border(
