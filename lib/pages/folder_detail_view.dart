@@ -580,7 +580,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
                   Expanded(
                     child: Center(
                       child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 1400),
+                        constraints: const BoxConstraints(maxWidth: 1600),
                         child: scrollBody,
                       ),
                     ),

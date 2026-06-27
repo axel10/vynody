@@ -275,12 +275,15 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
       body: SafeArea(
         child: Stack(
           children: [
-            Column(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: [
+            Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1600),
+                child: Column(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
+                        children: [
                       Expanded(
                         child: Text(
                           AppLocalizations.of(context)!.scanDirectory,
@@ -454,15 +457,12 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
                   ),
                 ),
                 Expanded(
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 1400),
-                      child: rootList,
-                    ),
-                  ),
+                  child: rootList,
                 ),
               ],
             ),
+          ),
+        ),
             Positioned(
               left: 0,
               right: 0,
