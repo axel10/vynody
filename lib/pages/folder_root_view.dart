@@ -277,7 +277,7 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
           children: [
             Center(
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 1600),
+                constraints: const BoxConstraints(maxWidth: folderPageMaxWidth),
                 child: Column(
                   children: [
                     Container(
