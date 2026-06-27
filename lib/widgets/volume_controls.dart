@@ -44,135 +44,144 @@ class VolumeSliderOverlay extends StatelessWidget {
                   padding: EdgeInsets.only(bottom: isLandscape ? 100 : 160),
                   child: GestureDetector(
                     onTap: () {}, // Prevent dismissal
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(24),
-                      child: BackdropFilter(
-                        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-                        child: Container(
-                          width: 280,
-                          height: 48,
-                          decoration: BoxDecoration(
-                            color: isDark
-                                ? Colors.black.withValues(alpha: 0.4)
-                                : Colors.white.withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(24),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.15),
-                                blurRadius: 12,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
+                    child: Container(
+                      width: 280,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.15),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
                           ),
-                          child: LayoutBuilder(
-                            builder: (context, constraints) {
-                              final width = constraints.maxWidth;
-                              final height = constraints.maxHeight;
+                        ],
+                      ),
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          // Content and background blur (clipped)
+                          Positioned.fill(
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(24),
+                              child: BackdropFilter(
+                                filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                                child: Container(
+                                  color: isDark
+                                      ? Colors.black.withValues(alpha: 0.4)
+                                      : Colors.white.withValues(alpha: 0.2),
+                                  child: LayoutBuilder(
+                                    builder: (context, constraints) {
+                                      final width = constraints.maxWidth;
+                                      final height = constraints.maxHeight;
 
-                              final percent = (volume / 100.0).clamp(0.0, 1.0);
-                              final fillWidth = percent * width;
+                                      final percent = (volume / 100.0).clamp(0.0, 1.0);
+                                      final fillWidth = percent * width;
 
-                              Widget buildContent({required Color color}) {
-                                return SizedBox(
-                                  width: width,
-                                  height: height,
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Icon(
-                                          getVolumeIcon(volume),
-                                          color: color,
-                                          size: 20,
-                                        ),
-                                        Text(
-                                          '${volume.round()}%',
-                                          style: TextStyle(
-                                            color: color,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 14,
-                                            letterSpacing: 0.5,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                );
-                              }
-
-                              return Listener(
-                                onPointerSignal: (pointerSignal) {
-                                  if (pointerSignal is PointerScrollEvent) {
-                                    onInteraction();
-                                    onScroll(pointerSignal.scrollDelta.dy);
-                                  }
-                                },
-                                child: GestureDetector(
-                                  behavior: HitTestBehavior.opaque,
-                                  onHorizontalDragUpdate: (details) {
-                                    onInteraction();
-                                    final box = context.findRenderObject() as RenderBox;
-                                    final localPos = box.globalToLocal(details.globalPosition);
-                                    final nextPercent = (localPos.dx / width).clamp(0.0, 1.0);
-                                    onVolumeChanged(nextPercent * 100.0);
-                                  },
-                                  onVerticalDragUpdate: (details) {
-                                    onInteraction();
-                                    onDrag(details.primaryDelta ?? 0);
-                                  },
-                                  onTapDown: (details) {
-                                    onInteraction();
-                                    final box = context.findRenderObject() as RenderBox;
-                                    final localPos = box.globalToLocal(details.globalPosition);
-                                    final nextPercent = (localPos.dx / width).clamp(0.0, 1.0);
-                                    onVolumeChanged(nextPercent * 100.0);
-                                  },
-                                  child: Stack(
-                                    children: [
-                                      // Active Fill
-                                      Container(
-                                        width: fillWidth,
-                                        height: height,
-                                        color: Colors.white,
-                                      ),
-
-                                      // Base content (shown on unfilled area, using white70 or black87)
-                                      buildContent(
-                                        color: isDark ? Colors.white70 : Colors.black87,
-                                      ),
-
-                                      // Masked content (shown on filled area, using black87 or white)
-                                      ClipRect(
-                                        clipper: _VolumeRectClipper(fillWidth),
-                                        child: buildContent(
-                                          color: isDark ? Colors.black87 : Colors.white,
-                                        ),
-                                      ),
-
-                                      // Border Overlay (placed on top of active fill to avoid subpixel dark lines)
-                                      IgnorePointer(
-                                        child: Container(
+                                      Widget buildContent({required Color color}) {
+                                        return SizedBox(
                                           width: width,
                                           height: height,
-                                          decoration: BoxDecoration(
-                                            borderRadius: BorderRadius.circular(24),
-                                            border: Border.all(
-                                              color: isDark
-                                                  ? Colors.white.withValues(alpha: 0.15)
-                                                  : Colors.black.withValues(alpha: 0.08),
-                                              width: 1,
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                                            child: Row(
+                                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                              children: [
+                                                Icon(
+                                                  getVolumeIcon(volume),
+                                                  color: color,
+                                                  size: 20,
+                                                ),
+                                                Text(
+                                                  '${volume.round()}%',
+                                                  style: TextStyle(
+                                                    color: color,
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 14,
+                                                    letterSpacing: 0.5,
+                                                  ),
+                                                ),
+                                              ],
                                             ),
                                           ),
+                                        );
+                                      }
+
+                                      return Listener(
+                                        onPointerSignal: (pointerSignal) {
+                                          if (pointerSignal is PointerScrollEvent) {
+                                            onInteraction();
+                                            onScroll(pointerSignal.scrollDelta.dy);
+                                          }
+                                        },
+                                        child: GestureDetector(
+                                          behavior: HitTestBehavior.opaque,
+                                          onHorizontalDragUpdate: (details) {
+                                            onInteraction();
+                                            final box = context.findRenderObject() as RenderBox;
+                                            final localPos = box.globalToLocal(details.globalPosition);
+                                            final nextPercent = (localPos.dx / width).clamp(0.0, 1.0);
+                                            onVolumeChanged(nextPercent * 100.0);
+                                          },
+                                          onVerticalDragUpdate: (details) {
+                                            onInteraction();
+                                            onDrag(details.primaryDelta ?? 0);
+                                          },
+                                          onTapDown: (details) {
+                                            onInteraction();
+                                            final box = context.findRenderObject() as RenderBox;
+                                            final localPos = box.globalToLocal(details.globalPosition);
+                                            final nextPercent = (localPos.dx / width).clamp(0.0, 1.0);
+                                            onVolumeChanged(nextPercent * 100.0);
+                                          },
+                                          child: Stack(
+                                            children: [
+                                              // Active Fill
+                                              Container(
+                                                width: fillWidth,
+                                                height: height,
+                                                color: Colors.white,
+                                              ),
+
+                                              // Base content (shown on unfilled area, using white70 or black87)
+                                              buildContent(
+                                                color: isDark ? Colors.white70 : Colors.black87,
+                                              ),
+
+                                              // Masked content (shown on filled area, using black87)
+                                              ClipRect(
+                                                clipper: _VolumeRectClipper(fillWidth),
+                                                child: buildContent(
+                                                  color: Colors.black87,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
                                         ),
-                                      ),
-                                    ],
+                                      );
+                                    },
                                   ),
                                 ),
-                              );
-                            },
+                              ),
+                            ),
                           ),
-                        ),
+                          // Border Overlay (placed outside ClipRRect so it's not clipped)
+                          Positioned.fill(
+                            child: IgnorePointer(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(24),
+                                  border: Border.all(
+                                    color: isDark
+                                        ? Colors.white.withValues(alpha: 0.18)
+                                        : Colors.black.withValues(alpha: 0.08),
+                                    width: 1,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
