@@ -629,7 +629,32 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       }
     } else if (selected == 'generate') {
       if (await _ensureLyricsApiKey()) {
-        if (!mounted) return;
+        if (!context.mounted) return;
+        if (lyricsState.hasLyrics) {
+          final confirm = await showDialog<bool>(
+            context: context,
+            builder: (dialogContext) => AlertDialog(
+              title: Text(localizedText('重新生成歌词', 'Regenerate Lyrics')),
+              content: Text(localizedText(
+                '将清空当前歌词并重新生成，是否继续？',
+                'This will clear the current lyrics and regenerate. Do you want to continue?',
+              )),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext, false),
+                  child: Text(l10n.cancel),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext, true),
+                  child: Text(l10n.confirm),
+                ),
+              ],
+            ),
+          );
+          if (confirm != true) return;
+        }
+
+        if (!context.mounted || !mounted) return;
         final errorMessage = await _lyricsControllerActions
             .regenerateLyricsForCurrentSong();
         if (errorMessage != null) {
@@ -638,7 +663,32 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       }
     } else if (selected == 'generate_timeline') {
       if (await _ensureLyricsApiKey()) {
-        if (!mounted) return;
+        if (!context.mounted) return;
+        if (lyricsState.hasLyrics) {
+          final confirm = await showDialog<bool>(
+            context: context,
+            builder: (dialogContext) => AlertDialog(
+              title: Text(localizedText('重新生成时间轴', 'Regenerate Timeline')),
+              content: Text(localizedText(
+                '将清空当前时间轴并重新生成，是否继续？',
+                'This will clear the current timeline and regenerate. Do you want to continue?',
+              )),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext, false),
+                  child: Text(l10n.cancel),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext, true),
+                  child: Text(l10n.confirm),
+                ),
+              ],
+            ),
+          );
+          if (confirm != true) return;
+        }
+
+        if (!context.mounted || !mounted) return;
         final errorMessage = await _lyricsControllerActions
             .generateTimelineForCurrentSong();
         if (errorMessage != null) {
@@ -647,7 +697,34 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       }
     } else if (selected == 'translate') {
       if (await _ensureGeminiApiKey()) {
-        if (!mounted) return;
+        if (!context.mounted) return;
+        if (hasTranslation) {
+          final confirm = await showDialog<bool>(
+            context: context,
+            builder: (dialogContext) => AlertDialog(
+              title: Text(localizedText('重新翻译歌词', 'Re-translate Lyrics')),
+              content: Text(localizedText(
+                '将清空当前翻译并重新翻译，是否继续？',
+                'This will clear the current translation and re-translate. Do you want to continue?',
+              )),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext, false),
+                  child: Text(l10n.cancel),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext, true),
+                  child: Text(l10n.confirm),
+                ),
+              ],
+            ),
+          );
+          if (confirm != true) return;
+
+          await _lyricsControllerActions.clearTranslationCacheForCurrentSong();
+        }
+
+        if (!context.mounted || !mounted) return;
         final errorMessage = await _lyricsControllerActions
             .translateLyricsForCurrentSong();
         if (errorMessage != null) {
