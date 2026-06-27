@@ -1250,7 +1250,7 @@ String _normalizeText(String? value) {
   if (text.isEmpty) return '';
 
   text = text.replaceAll(RegExp(r'[\u2013\u2014]'), '-');
-  text = text.replaceAll(RegExp(r'[\(\[\{][^\)\]\}]*[\)\]\}]'), ' ');
+  text = text.replaceAll(RegExp(r'[\(\[\{（【][^\)\]\}）】]*[\)\]\}）】]'), ' ');
   text = text.replaceAll(RegExp(r'\b(feat|ft|featuring)\b.*$'), ' ');
   text = text.replaceAll(
     RegExp(
@@ -1258,7 +1258,7 @@ String _normalizeText(String? value) {
     ),
     ' ',
   );
-  text = text.replaceAll(RegExp(r'[^a-z0-9\u4e00-\u9fff]+'), ' ');
+  text = text.replaceAll(RegExp(r'[\p{P}\p{S}]+', unicode: true), ' ');
   text = text.replaceAll(RegExp(r'\s+'), ' ').trim();
   return text;
 }
