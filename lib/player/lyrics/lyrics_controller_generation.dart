@@ -285,6 +285,9 @@ class LyricsGenerationCoordinator {
       statusLabel: statusLabel,
       modelLabel: modelLabel,
     );
+    String? lastProgressText;
+    List<LyricLine> lastSyncedLines = const [];
+
     try {
       final result = await invoke(
         cancelToken,
@@ -319,6 +322,7 @@ class LyricsGenerationCoordinator {
 
           final progressText = partialText.trim();
           if (progressText.isEmpty) return;
+          lastProgressText = progressText;
           final progressLyrics = _buildGeneratedLyrics(
             text: progressText,
             source: _support.lyricsProviderTag(),
@@ -327,7 +331,14 @@ class LyricsGenerationCoordinator {
                 translationProvider?.call() ??
                 const <String, MusicLyricTranslation>{},
           );
+          lastSyncedLines = progressLyrics.syncedLines;
           _publishGeneratedLyrics(session, song: song, lyrics: progressLyrics);
+          unawaited(_saveGeneratedLyricsToDatabase(
+            song: song,
+            generatedLyrics: progressLyrics.plainText,
+            syncedLines: progressLyrics.syncedLines,
+            source: databaseSource,
+          ));
         },
       );
 
@@ -336,12 +347,28 @@ class LyricsGenerationCoordinator {
       }
 
       if (cancelToken.isCancelled) {
+        if (lastProgressText != null && lastProgressText!.isNotEmpty) {
+          await _saveGeneratedLyricsToDatabase(
+            song: song,
+            generatedLyrics: lastProgressText!,
+            syncedLines: lastSyncedLines,
+            source: databaseSource,
+          );
+        }
         return null;
       }
 
       if (!result.isSuccess ||
           result.text == null ||
           result.text!.trim().isEmpty) {
+        if (lastProgressText != null && lastProgressText!.isNotEmpty) {
+          await _saveGeneratedLyricsToDatabase(
+            song: song,
+            generatedLyrics: lastProgressText!,
+            syncedLines: lastSyncedLines,
+            source: databaseSource,
+          );
+        }
         return result.errorMessage ?? _t('生成失败。', 'Generation failed.');
       }
 
@@ -362,6 +389,20 @@ class LyricsGenerationCoordinator {
         source: databaseSource,
       );
       return null;
+    } catch (e) {
+      if (lastProgressText != null && lastProgressText!.isNotEmpty) {
+        try {
+          await _saveGeneratedLyricsToDatabase(
+            song: song,
+            generatedLyrics: lastProgressText!,
+            syncedLines: lastSyncedLines,
+            source: databaseSource,
+          );
+        } catch (dbError) {
+          debugPrint('[LyricsController] Failed to save partial progress on error: $dbError');
+        }
+      }
+      rethrow;
     } finally {
       _finalizeLyricsGeneration(session);
     }

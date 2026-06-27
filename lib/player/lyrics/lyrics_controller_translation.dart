@@ -239,10 +239,28 @@ class LyricsTranslationCoordinator {
         );
         return null;
       }
+
+      await _saveTranslatedLyricsToDatabase(
+        songPath: request.songPath,
+        cacheKey: request.cacheKey,
+        languageCode: request.languageCode,
+      );
+
       if (cancelToken.isCancelled || errorMessage == 'cancelled') {
         return null;
       }
       return errorMessage;
+    } catch (e) {
+      try {
+        await _saveTranslatedLyricsToDatabase(
+          songPath: request.songPath,
+          cacheKey: request.cacheKey,
+          languageCode: request.languageCode,
+        );
+      } catch (dbError) {
+        debugPrint('[LyricsController] Failed to save partial translation on error: $dbError');
+      }
+      rethrow;
     } finally {
       _context.translationInFlightKeys.remove(request.translationKey);
       _context.updateSongTaskState(
@@ -372,6 +390,13 @@ class LyricsTranslationCoordinator {
     _context.bumpRevision();
     if (bumpLayoutRevision) {
       _context.bumpLyricsLayoutRevision();
+    }
+    if (cacheKey != null) {
+      unawaited(_saveTranslatedLyricsToDatabase(
+        songPath: songPath,
+        cacheKey: cacheKey,
+        languageCode: languageCode,
+      ));
     }
   }
 
