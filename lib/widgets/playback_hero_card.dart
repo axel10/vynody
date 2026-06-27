@@ -1913,6 +1913,7 @@ class PlaybackProgressSection extends ConsumerWidget {
     final progress = ref.watch(audioProgressProvider);
     final position = ref.watch(audioPositionProvider);
     final duration = ref.watch(audioDurationProvider);
+    final isPlaying = ref.watch(audioIsPlayingProvider);
     final isWaveformEnabled = ref.watch(
       settingsServiceProvider.select((s) => s.isWaveformProgressBarEnabled),
     );
@@ -1990,6 +1991,7 @@ class PlaybackProgressSection extends ConsumerWidget {
                         waveform: waveform,
                         progress: displayProgress,
                         duration: duration,
+                        isPlaying: isPlaying,
                         onScrubbing: onScrubbing ?? (_) {},
                         onSeek: onSeek ?? (_) {},
                         height: (isLandscape
@@ -2135,6 +2137,7 @@ class PlaybackOverlayProgressTimeLayer extends ConsumerWidget {
     final progress = ref.watch(audioProgressProvider);
     final position = ref.watch(audioPositionProvider);
     final duration = ref.watch(audioDurationProvider);
+    final isPlaying = ref.watch(audioIsPlayingProvider);
     final waveform = overrideWaveform ?? currentMusic?.waveform ?? const [];
     final displayProgress = overrideProgress ?? progress.clamp(0.0, 1.0);
 
@@ -2163,6 +2166,7 @@ class PlaybackOverlayProgressTimeLayer extends ConsumerWidget {
                   waveform: waveform,
                   progress: displayProgress,
                   duration: duration,
+                  isPlaying: isPlaying,
                   onScrubbing: onScrubbing ?? (_) {},
                   onSeek: onSeek ?? (_) {},
                   height: PlaybackHeroCardUiTuning.waveformOverlayHeight * controlsScale,

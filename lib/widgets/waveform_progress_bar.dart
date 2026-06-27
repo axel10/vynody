@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/scheduler.dart' show Ticker;
 import 'dart:math' as math;
 import 'dart:ui';
 
@@ -7,6 +8,7 @@ class WaveformProgressBar extends StatefulWidget {
   final List<double> waveform;
   final double progress;
   final Duration duration;
+  final bool isPlaying;
   final Function(double) onSeek;
   final Function(double) onScrubbing;
   final Color activeColor;
@@ -22,6 +24,7 @@ class WaveformProgressBar extends StatefulWidget {
     required this.waveform,
     required this.progress,
     required this.duration,
+    this.isPlaying = false,
     required this.onSeek,
     required this.onScrubbing,
     this.activeColor = Colors.white,
@@ -37,7 +40,7 @@ class WaveformProgressBar extends StatefulWidget {
   State<WaveformProgressBar> createState() => _WaveformProgressBarState();
 }
 
-class _WaveformProgressBarState extends State<WaveformProgressBar> with SingleTickerProviderStateMixin {
+class _WaveformProgressBarState extends State<WaveformProgressBar> with TickerProviderStateMixin {
   double? _hoverProgress;
   double _dragStartX = 0;
   double _dragStartProgress = 0;
@@ -46,6 +49,12 @@ class _WaveformProgressBarState extends State<WaveformProgressBar> with SingleTi
   late List<double> _animatedWaveform;
   List<double> _sourceWaveform = [];
   List<double> _targetWaveform = [];
+
+  // Smooth progress states
+  late double _smoothProgress;
+  Ticker? _ticker;
+  Duration? _lastFrameTime;
+  bool _isDragging = false;
 
   @override
   void initState() {
@@ -64,12 +73,65 @@ class _WaveformProgressBarState extends State<WaveformProgressBar> with SingleTi
         _updateAnimatedWaveform();
       });
     });
+
+    _smoothProgress = widget.progress.clamp(0.0, 1.0);
+    _ticker = createTicker(_onTick);
+    _updateTickerState();
   }
 
   @override
   void dispose() {
     _animationController.dispose();
+    _ticker?.dispose();
     super.dispose();
+  }
+
+  void _onTick(Duration elapsed) {
+    if (!mounted) return;
+
+    final Duration delta = _lastFrameTime != null ? elapsed - _lastFrameTime! : Duration.zero;
+    _lastFrameTime = elapsed;
+
+    if (_isDragging) {
+      if (_smoothProgress != widget.progress) {
+        setState(() {
+          _smoothProgress = widget.progress.clamp(0.0, 1.0);
+        });
+      }
+      return;
+    }
+
+    if (widget.isPlaying && widget.duration.inMicroseconds > 0) {
+      final double deltaProgress = delta.inMicroseconds / widget.duration.inMicroseconds;
+      double newProgress = _smoothProgress + deltaProgress;
+
+      // Gently nudge towards the target progress to correct any time drift
+      newProgress = lerpDouble(newProgress, widget.progress, 0.05) ?? newProgress;
+
+      setState(() {
+        _smoothProgress = newProgress.clamp(0.0, 1.0);
+      });
+    } else {
+      if (_smoothProgress != widget.progress) {
+        setState(() {
+          _smoothProgress = widget.progress.clamp(0.0, 1.0);
+        });
+      }
+    }
+  }
+
+  void _updateTickerState() {
+    if (widget.isPlaying && !_isDragging) {
+      if (!_ticker!.isActive) {
+        _lastFrameTime = null;
+        _ticker!.start();
+      }
+    } else {
+      if (_ticker!.isActive) {
+        _ticker!.stop();
+        _lastFrameTime = null;
+      }
+    }
   }
 
   List<double> _getEffectiveWaveform(List<double> original) {
@@ -122,6 +184,19 @@ class _WaveformProgressBarState extends State<WaveformProgressBar> with SingleTi
       
       _animationController.forward(from: 0);
     }
+
+    // Check if progress or play state changed
+    final double diff = (widget.progress - _smoothProgress).abs();
+    final double snapThreshold = widget.duration.inMilliseconds > 0
+        ? 1000.0 / widget.duration.inMilliseconds
+        : 0.01;
+
+    // Snap immediately on large leaps (seeks/song changes) or when not playing
+    if (diff > snapThreshold || !widget.isPlaying || _isDragging) {
+      _smoothProgress = widget.progress.clamp(0.0, 1.0);
+    }
+
+    _updateTickerState();
   }
 
   @override
@@ -154,9 +229,12 @@ class _WaveformProgressBarState extends State<WaveformProgressBar> with SingleTi
           child: GestureDetector(
             onHorizontalDragStart: (details) {
               setState(() {
+                _isDragging = true;
                 _dragStartX = details.localPosition.dx;
                 _dragStartProgress = widget.progress;
+                _smoothProgress = widget.progress.clamp(0.0, 1.0);
               });
+              _updateTickerState();
             },
             onHorizontalDragUpdate: (details) {
               final double deltaX = details.localPosition.dx - _dragStartX;
@@ -172,23 +250,29 @@ class _WaveformProgressBarState extends State<WaveformProgressBar> with SingleTi
               }
               
               widget.onScrubbing(newProgress);
-              if (!widget.isScrolling) {
-                setState(() {
+              setState(() {
+                _smoothProgress = newProgress;
+                if (!widget.isScrolling) {
                   _hoverProgress = newProgress;
-                });
-              }
+                }
+              });
             },
             onHorizontalDragEnd: (details) {
               widget.onSeek(widget.progress);
               setState(() {
+                _isDragging = false;
                 _hoverProgress = null;
               });
+              _updateTickerState();
             },
             onTapDown: (details) {
               if (!widget.isScrolling) {
                 final double newProgress = (details.localPosition.dx / width).clamp(0.0, 1.0);
                 widget.onScrubbing(newProgress);
                 widget.onSeek(newProgress);
+                setState(() {
+                  _smoothProgress = newProgress;
+                });
               }
             },
             child: Stack(
@@ -207,7 +291,7 @@ class _WaveformProgressBarState extends State<WaveformProgressBar> with SingleTi
                           size: Size(width, widget.height),
                           painter: WaveformPainter(
                             waveform: _animatedWaveform,
-                            progress: widget.progress,
+                            progress: _smoothProgress,
                             activeColor: widget.activeColor,
                             inactiveColor: widget.inactiveColor,
                             isScrolling: widget.isScrolling,
