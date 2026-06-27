@@ -1994,7 +1994,7 @@ class AudioService extends Notifier<AudioSnapshot> {
 
   void _logPlaybackTrace(String message) {
     if (!kDebugMode) return;
-    debugPrint('[AudioService][Trace] $message');
+    // debugPrint('[AudioService][Trace] $message');
   }
 
   Future<MusicFile> _buildMusicFileFromPath(
