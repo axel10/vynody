@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -502,8 +503,13 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
       controller: _localScrollController,
       scrollCacheExtent: const ScrollCacheExtent.pixels(1000.0),
       slivers: [
-        SliverToBoxAdapter(
-          child: _buildBreadcrumbs(widget.folder, scanner),
+        SliverPersistentHeader(
+          delegate: _BreadcrumbsHeaderDelegate(
+            child: _buildBreadcrumbs(widget.folder, scanner),
+            height: 64.0,
+          ),
+          pinned: !Platform.isAndroid && !Platform.isIOS,
+          floating: Platform.isAndroid || Platform.isIOS,
         ),
         SliverToBoxAdapter(
           child: _buildFolderHeaderBanner(
@@ -1249,5 +1255,38 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
         ],
       ),
     );
+  }
+}
+
+class _BreadcrumbsHeaderDelegate extends SliverPersistentHeaderDelegate {
+  final Widget child;
+  final double height;
+
+  _BreadcrumbsHeaderDelegate({
+    required this.child,
+    required this.height,
+  });
+
+  @override
+  double get minExtent => height;
+
+  @override
+  double get maxExtent => height;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return SizedBox(
+      height: height,
+      child: child,
+    );
+  }
+
+  @override
+  bool shouldRebuild(covariant _BreadcrumbsHeaderDelegate oldDelegate) {
+    return oldDelegate.child != child || oldDelegate.height != height;
   }
 }
