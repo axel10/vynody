@@ -1176,6 +1176,24 @@ class PlaybackHeroCard extends ConsumerWidget {
         ? Alignment.lerp(Alignment.center, Alignment.centerLeft, transition)!
         : Alignment.center;
 
+    final titleSize = (isLandscape
+            ? PlaybackHeroCardUiTuning.trackTitleStandardFont
+            : lerpDouble(
+                PlaybackHeroCardUiTuning.trackTitleStandardFont,
+                PlaybackHeroCardUiTuning.trackTitlePortraitLyricsFont,
+                transition,
+              )!) *
+        controlsScale;
+
+    final artistSize = (isLandscape
+            ? PlaybackHeroCardUiTuning.trackArtistStandardFont
+            : lerpDouble(
+                PlaybackHeroCardUiTuning.trackArtistStandardFont,
+                PlaybackHeroCardUiTuning.trackArtistPortraitLyricsFont,
+                transition,
+              )!) *
+        controlsScale;
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1204,22 +1222,15 @@ class PlaybackHeroCard extends ConsumerWidget {
                   currentMusic: currentMusic,
                 );
               },
-              child: AnimatedDefaultTextStyle(
-                duration: const Duration(milliseconds: 400),
-                curve: Curves.fastOutSlowIn,
+              child: DefaultTextStyle(
                 textAlign: TextAlign.start,
                 style: Theme.of(context).textTheme.titleLarge!.copyWith(
                   color: Colors.white,
-                  fontSize:
-                      (lyricsModeT > 0.5 && !isLandscape
-                          ? PlaybackHeroCardUiTuning
-                                .trackTitlePortraitLyricsFont
-                          : PlaybackHeroCardUiTuning.trackTitleStandardFont) *
-                      controlsScale,
+                  fontSize: titleSize,
                   fontWeight: FontWeight.bold,
                   height: 1.2,
                 ),
-                 child: Builder(
+                child: Builder(
                   builder: (context) {
                     final style = DefaultTextStyle.of(context).style;
                     return MarqueeText(
@@ -1259,19 +1270,11 @@ class PlaybackHeroCard extends ConsumerWidget {
                       currentMusic: currentMusic,
                     );
                   },
-                  child: AnimatedDefaultTextStyle(
-                    duration: const Duration(milliseconds: 400),
-                    curve: Curves.fastOutSlowIn,
+                  child: DefaultTextStyle(
                     textAlign: TextAlign.start,
                     style: Theme.of(context).textTheme.bodyMedium!.copyWith(
                       color: Colors.white70,
-                      fontSize:
-                          (lyricsModeT > 0.5 && !isLandscape
-                              ? PlaybackHeroCardUiTuning
-                                    .trackArtistPortraitLyricsFont
-                              : PlaybackHeroCardUiTuning
-                                    .trackArtistStandardFont) *
-                          controlsScale,
+                      fontSize: artistSize,
                       height: 1.3,
                     ),
                     child: Builder(
