@@ -46,7 +46,13 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
 
   Future<void> _queryArtwork(int id) async {
     try {
-      final bytes = await OnAudioQuery().queryArtwork(id, ArtworkType.AUDIO);
+      final double dpr = WidgetsBinding.instance.platformDispatcher.implicitView?.devicePixelRatio ?? 2.0;
+      final int targetSize = (widget.size * dpr).round();
+      final bytes = await OnAudioQuery().queryArtwork(
+        id,
+        ArtworkType.AUDIO,
+        size: targetSize > 200 ? targetSize : 200,
+      );
       if (mounted) {
         setState(() {
           _artworkBytes = bytes;
