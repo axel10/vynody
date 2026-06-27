@@ -1436,18 +1436,8 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
 
               // 过渡动画逻辑：新封面直接淡入盖在旧封面之上。
               // 这种方式避免了传统的“双向淡入淡出（Cross-fade）”可能导致的背景短暂变暗或跳动。
-              return AnimatedSwitcher(
+              return _SafeBackgroundSwitcher(
                 duration: const Duration(milliseconds: 1000),
-                switchInCurve: Curves.easeOut,
-                switchOutCurve: Curves.easeIn,
-                transitionBuilder: (child, animation) {
-                  final isIncoming = child.key == content.key;
-                  if (isIncoming) {
-                    return FadeTransition(opacity: animation, child: child);
-                  } else {
-                    return child;
-                  }
-                },
                 child: content,
               );
             },
@@ -1502,3 +1492,130 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
     );
   }
 }
+
+class _SafeBackgroundSwitcher extends StatefulWidget {
+  final Widget child;
+  final Duration duration;
+
+  const _SafeBackgroundSwitcher({
+    required this.child,
+    required this.duration,
+  });
+
+  @override
+  State<_SafeBackgroundSwitcher> createState() => _SafeBackgroundSwitcherState();
+}
+
+class _SafeBackgroundSwitcherState extends State<_SafeBackgroundSwitcher>
+    with TickerProviderStateMixin {
+  final List<_SwitcherItem> _items = [];
+
+  void _log(String message) {
+    if (kDebugMode) {
+      debugPrint('[_SafeBackgroundSwitcher] $message');
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _addNewChild(widget.child, animate: false);
+  }
+
+  @override
+  void didUpdateWidget(_SafeBackgroundSwitcher oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.child.key != oldWidget.child.key) {
+      _addNewChild(widget.child, animate: true);
+    }
+  }
+
+  void _addNewChild(Widget child, {required bool animate}) {
+    final key = child.key;
+    _log('Add new child: key=$key, animate=$animate');
+
+    final controller = AnimationController(
+      vsync: this,
+      duration: widget.duration,
+    );
+
+    final item = _SwitcherItem(
+      child: child,
+      controller: controller,
+      animation: CurvedAnimation(
+        parent: controller,
+        curve: Curves.easeOut,
+      ),
+    );
+
+    setState(() {
+      _items.add(item);
+    });
+
+    if (animate) {
+      controller.forward(from: 0.0).then((_) {
+        if (mounted) {
+          _cleanUpPreviousItems();
+        }
+      });
+    } else {
+      controller.value = 1.0;
+    }
+  }
+
+  void _cleanUpPreviousItems() {
+    setState(() {
+      if (_items.isNotEmpty && _items.last.controller.isCompleted) {
+        final last = _items.last;
+        final removedCount = _items.length - 1;
+        _log(
+          'Clean up previous items. Removing $removedCount items, keeping last key=${last.child.key}',
+        );
+        for (var i = 0; i < _items.length - 1; i++) {
+          _items[i].controller.dispose();
+        }
+        _items.clear();
+        _items.add(last);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    for (final item in _items) {
+      item.controller.dispose();
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      fit: StackFit.expand,
+      children: _items.map((item) {
+        final isLast = item == _items.last;
+        if (isLast) {
+          return FadeTransition(
+            opacity: item.animation,
+            child: item.child,
+          );
+        } else {
+          return item.child;
+        }
+      }).toList(),
+    );
+  }
+}
+
+class _SwitcherItem {
+  final Widget child;
+  final AnimationController controller;
+  final Animation<double> animation;
+
+  _SwitcherItem({
+    required this.child,
+    required this.controller,
+    required this.animation,
+  });
+}
+
