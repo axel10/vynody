@@ -167,11 +167,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
   ///    实现从“普通模式”到“歌词模式”的平滑过渡效果（封面缩小并移至左上角，歌词面板从屏幕下方滑入并变亮）。
   void _toggleLyricsMode() {
     final nextLyricsMode = !ref.read(audioIsLyricsActiveProvider);
-    // 延后一帧再通知 Provider，避免和本次切换动画的重建过程抢占同一帧。
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      _audioService?.setLyricsActive(nextLyricsMode);
-    });
+    _audioService?.setLyricsActive(nextLyricsMode);
   }
 
   void _flushLyricsTranslationsAfterSmallWindowExit(bool isSmallWindow) {
