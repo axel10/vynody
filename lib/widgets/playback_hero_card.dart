@@ -1917,6 +1917,10 @@ class PlaybackProgressSection extends ConsumerWidget {
     final isWaveformEnabled = ref.watch(
       settingsServiceProvider.select((s) => s.isWaveformProgressBarEnabled),
     );
+    final currentThemeColorsMap = ref.watch(audioCurrentThemeColorsMapProvider);
+    final controlIconColor = currentThemeColorsMap['darkVibrant'] ??
+        currentThemeColorsMap['darkMuted'] ??
+        Colors.black;
 
     final waveform = overrideWaveform ?? currentMusic?.waveform ?? const [];
     final displayProgress = overrideProgress ?? progress.clamp(0.0, 1.0);
@@ -2062,7 +2066,7 @@ class PlaybackProgressSection extends ConsumerWidget {
                     child: Text(
                       formatDuration(overridePosition ?? position),
                       style: TextStyle(
-                        color: Colors.black87,
+                        color: controlIconColor,
                         fontSize: math.max(PlaybackHeroCardUiTuning.minProgressTimeFontSize, 11 * controlsScale),
                         fontWeight: FontWeight.w600,
                       ),
@@ -2093,7 +2097,7 @@ class PlaybackProgressSection extends ConsumerWidget {
                     child: Text(
                       formatDuration(duration),
                       style: TextStyle(
-                        color: Colors.black87,
+                        color: controlIconColor,
                         fontSize: math.max(PlaybackHeroCardUiTuning.minProgressTimeFontSize, 11 * controlsScale),
                         fontWeight: FontWeight.w600,
                       ),
@@ -2140,6 +2144,10 @@ class PlaybackOverlayProgressTimeLayer extends ConsumerWidget {
     final isPlaying = ref.watch(audioIsPlayingProvider);
     final waveform = overrideWaveform ?? currentMusic?.waveform ?? const [];
     final displayProgress = overrideProgress ?? progress.clamp(0.0, 1.0);
+    final currentThemeColorsMap = ref.watch(audioCurrentThemeColorsMapProvider);
+    final controlIconColor = currentThemeColorsMap['darkVibrant'] ??
+        currentThemeColorsMap['darkMuted'] ??
+        Colors.black;
 
     return Stack(
       alignment: Alignment.center,
@@ -2255,7 +2263,7 @@ class PlaybackOverlayProgressTimeLayer extends ConsumerWidget {
                               child: Text(
                                 formatDuration(overridePosition ?? position),
                                 style: TextStyle(
-                                  color: Colors.black87,
+                                  color: controlIconColor,
                                   fontSize: math.max(PlaybackHeroCardUiTuning.minProgressTimeFontSize, 11 * controlsScale),
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -2296,7 +2304,7 @@ class PlaybackOverlayProgressTimeLayer extends ConsumerWidget {
                               child: Text(
                                 formatDuration(duration),
                                 style: TextStyle(
-                                  color: Colors.black87,
+                                  color: controlIconColor,
                                   fontSize: math.max(PlaybackHeroCardUiTuning.minProgressTimeFontSize, 11 * controlsScale),
                                   fontWeight: FontWeight.bold,
                                 ),
