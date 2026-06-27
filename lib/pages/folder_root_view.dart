@@ -197,7 +197,9 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
             };
 
             final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
-            final double textHeight = isPortrait ? 64.0 : 76.0;
+            final textScale = MediaQuery.textScalerOf(context).scale(10) / 10;
+            final clampedScale = textScale.clamp(1.0, 1.3);
+            final double textHeight = (isPortrait ? 72.0 : 84.0) * clampedScale;
             final itemWidth = (constraints.maxWidth - 32 - (crossAxisCount - 1) * 16) / crossAxisCount;
             final childAspectRatio = itemWidth / (itemWidth + textHeight);
 

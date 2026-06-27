@@ -152,7 +152,9 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab> {
                 };
 
                 final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
-                final double textHeight = isPortrait ? 80.0 : 96.0;
+                final textScale = MediaQuery.textScalerOf(context).scale(10) / 10;
+                final clampedScale = textScale.clamp(1.0, 1.3);
+                final double textHeight = (isPortrait ? 92.0 : 108.0) * clampedScale;
                 final itemWidth = (constraints.maxWidth - 32 - (crossAxisCount - 1) * 16) / crossAxisCount;
                 final childAspectRatio = itemWidth / (itemWidth + textHeight);
 
