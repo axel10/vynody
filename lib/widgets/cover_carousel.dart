@@ -360,8 +360,7 @@ class _CoverItemState extends State<_CoverItem> {
     // This happens when background processing completes.
     else if (widget.musicFile.artworkBytes !=
             oldWidget.musicFile.artworkBytes ||
-        widget.musicFile.artworkPath != oldWidget.musicFile.artworkPath ||
-        widget.musicFile.thumbnailPath != oldWidget.musicFile.thumbnailPath) {
+        widget.musicFile.artworkPath != oldWidget.musicFile.artworkPath) {
       _loadArtwork();
     }
   }
@@ -430,29 +429,7 @@ class _CoverItemState extends State<_CoverItem> {
       }
     }
 
-    // 4. Try thumbnailPath as a temporary display fallback only.
-    // This does not promote thumbnail bytes into artworkBytes in the model.
-    final thumbnailPath = widget.musicFile.thumbnailPath;
-    if (thumbnailPath != null) {
-      try {
-        final file = File(thumbnailPath);
-        if (await file.exists()) {
-          final bytes = await file.readAsBytes();
-          if (!mounted) return;
-          setState(() {
-            _artworkBytes = bytes;
-          });
-          widget.onArtworkLoaded?.call(bytes, thumbnailPath);
-          _logCarouselTrace(
-            '_loadArtwork used thumbnailPath path=${widget.musicFile.path} '
-            'bytes=${bytes.length} thumb=$thumbnailPath',
-          );
-          return;
-        }
-      } catch (e) {
-        debugPrint('Error loading thumbnail artwork from $thumbnailPath: $e');
-      }
-    }
+
 
     // 5. Try system query (on_audio_query)
     if (Platform.isAndroid || Platform.isIOS) {
@@ -653,23 +630,7 @@ class _CoverItemState extends State<_CoverItem> {
         }
       }
 
-      final thumbPath = widget.musicFile.thumbnailPath;
-      if (thumbPath != null) {
-        final file = File(thumbPath);
-        if (file.existsSync()) {
-          return Image.file(
-            file,
-            fit: BoxFit.contain,
-            width: double.infinity,
-            height: double.infinity,
-            gaplessPlayback: true,
-            cacheWidth: finalCacheWidth,
-            filterQuality: isCentered
-                ? FilterQuality.low
-                : FilterQuality.medium,
-          );
-        }
-      }
+
     }
 
     if (!_isLoaded) {
