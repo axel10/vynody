@@ -850,7 +850,6 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                   onNext: () => toNextMusic(audio),
                   onVolumeTap: () {
                     _handleInteraction();
-                    _ui.setVolumeHudVisible(true);
                     setState(() => _showVolumeSlider = !_showVolumeSlider);
                   },
                   onVolumeDrag: (delta) {
