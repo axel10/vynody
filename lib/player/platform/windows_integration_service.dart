@@ -16,6 +16,9 @@ class WindowsIntegrationService {
   bool? _lastIsPlaying;
   Duration _lastPosition = Duration.zero;
 
+  HttpServer? _artworkServer;
+  int? _artworkServerPort;
+
   WindowsIntegrationService(this.audioService) {
     if (!Platform.isWindows) return;
     _init();
@@ -47,6 +50,7 @@ class WindowsIntegrationService {
     });
 
     _scheduleInitialTaskbarSetup();
+    _startArtworkServer();
 
     // TEST: Deliberate early call to verify the new error message reporting.
     // This is expected to fail with "SetProgressMode failed: Window is not visible."
@@ -57,6 +61,42 @@ class WindowsIntegrationService {
         debugPrint('TEST: Expected startup error: $e');
       }
     }());
+  }
+
+  Future<void> _startArtworkServer() async {
+    try {
+      _artworkServer = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      _artworkServerPort = _artworkServer!.port;
+      _artworkServer!.listen((HttpRequest request) async {
+        try {
+          final path = request.uri.queryParameters['path'];
+          if (path == null) {
+            request.response.statusCode = HttpStatus.notFound;
+            await request.response.close();
+            return;
+          }
+          final decodedPath = Uri.decodeComponent(path);
+          final file = File(decodedPath);
+          if (await file.exists()) {
+            request.response.headers.contentType = ContentType('image', '*');
+            await file.openRead().pipe(request.response);
+          } else {
+            request.response.statusCode = HttpStatus.notFound;
+            await request.response.close();
+          }
+        } catch (e) {
+          debugPrint('Error serving artwork: $e');
+          request.response.statusCode = HttpStatus.internalServerError;
+          await request.response.close();
+        }
+      });
+      // Trigger update if there's already metadata loaded
+      if (audioService.currentMusic != null) {
+        updateMetadata(audioService.currentMusic);
+      }
+    } catch (e) {
+      debugPrint('Failed to start artwork server: $e');
+    }
   }
 
   void updateMetadata(MusicFile? song) {
@@ -72,7 +112,10 @@ class WindowsIntegrationService {
           final artPath = audioService.currentMusic?.artworkPath ??
               audioService.currentMusic?.thumbnailPath;
           if (artPath != null && File(artPath).existsSync()) {
-            return artPath;
+            if (_artworkServerPort != null) {
+              return 'http://127.0.0.1:$_artworkServerPort/cover?path=${Uri.encodeComponent(artPath)}';
+            }
+            return Uri.file(artPath).toString();
           }
           return null;
         }(),
@@ -218,5 +261,6 @@ class WindowsIntegrationService {
     _disposed = true;
     _smtcSubscription?.cancel();
     _smtc?.dispose();
+    _artworkServer?.close(force: true);
   }
 }
