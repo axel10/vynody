@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vynody/player/sharing/sharing_service.dart';
 import 'package:vynody/player/sharing/sharing_riverpod.dart';
 import 'package:vynody/utils/app_snack_bar.dart';
+import 'package:vynody/l10n/app_localizations.dart';
 
 void showIncomingTransferDialog(BuildContext context, IncomingTransferRequest request) {
   final theme = Theme.of(context);
@@ -11,12 +12,13 @@ void showIncomingTransferDialog(BuildContext context, IncomingTransferRequest re
     context: context,
     barrierDismissible: false,
     builder: (context) {
+      final l10n = AppLocalizations.of(context)!;
       final totalSize = request.files.fold<int>(0, (sum, f) => sum + f.size);
       final sizeMb = (totalSize / (1024 * 1024)).toStringAsFixed(1);
       
       String fileNames;
       if (request.files.length > 2) {
-        fileNames = '${request.files[0].name}, ${request.files[1].name} 等共 ${request.files.length} 个文件';
+        fileNames = l10n.incomingFilesFormat(request.files[0].name, request.files[1].name, '${request.files.length}');
       } else {
         fileNames = request.files.map((f) => f.name).join(', ');
       }
@@ -32,9 +34,9 @@ void showIncomingTransferDialog(BuildContext context, IncomingTransferRequest re
             children: [
               Icon(Icons.share, color: theme.colorScheme.primary),
               const SizedBox(width: 12),
-              const Text(
-                '收到文件共享请求',
-                style: TextStyle(fontWeight: FontWeight.bold),
+              Text(
+                l10n.incomingTransferRequestTitle,
+                style: const TextStyle(fontWeight: FontWeight.bold),
               ),
             ],
           ),
@@ -43,7 +45,7 @@ void showIncomingTransferDialog(BuildContext context, IncomingTransferRequest re
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '来自 "${request.senderName}" 的发送请求:',
+                l10n.incomingTransferFrom(request.senderName),
                 style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 14),
               ),
               const SizedBox(height: 12),
@@ -66,7 +68,7 @@ void showIncomingTransferDialog(BuildContext context, IncomingTransferRequest re
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      '文件大小: $sizeMb MB',
+                      l10n.fileSizeMb(sizeMb),
                       style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 12),
                     ),
                   ],
@@ -74,7 +76,7 @@ void showIncomingTransferDialog(BuildContext context, IncomingTransferRequest re
               ),
               const SizedBox(height: 16),
               Text(
-                '提示：接收后文件将自动保存至本地音乐文件夹并加入媒体库。',
+                l10n.receiveFileHint,
                 style: TextStyle(color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6), fontSize: 11),
               ),
             ],
@@ -89,7 +91,7 @@ void showIncomingTransferDialog(BuildContext context, IncomingTransferRequest re
                 Navigator.of(context).pop();
                 request.onDecision(false);
               },
-              child: const Text('拒绝'),
+              child: Text(l10n.reject),
             ),
             const SizedBox(width: 8),
             FilledButton(
@@ -100,7 +102,7 @@ void showIncomingTransferDialog(BuildContext context, IncomingTransferRequest re
                 Navigator.of(context).pop();
                 request.onDecision(true);
               },
-              child: const Text('接收', style: TextStyle(fontWeight: FontWeight.bold)),
+              child: Text(l10n.accept, style: const TextStyle(fontWeight: FontWeight.bold)),
             ),
           ],
         ),
@@ -115,6 +117,7 @@ void showTransferProgressDialog(BuildContext context, String sessionId) {
     context: context,
     barrierDismissible: false,
     builder: (context) {
+      final l10n = AppLocalizations.of(context)!;
       return BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
         child: Consumer(
@@ -146,13 +149,16 @@ void showTransferProgressDialog(BuildContext context, String sessionId) {
                   // Show quick status toast or SnackBar
                   final isSuccess = session.status == TransferStatus.success;
                   final isCancelled = session.status == TransferStatus.cancelled;
+                  final direction = session.isSending ? l10n.sendDirection : l10n.receiveDirection;
                   final text = isSuccess
                       ? (session.isSending 
-                          ? '"${session.fileName}" 发送完毕' 
-                          : '成功接收了 ${session.completedFilesCount ?? session.filesCount ?? 1} 首歌曲')
+                          ? l10n.sendCompleted(session.fileName) 
+                          : l10n.receiveCompleted(session.completedFilesCount ?? session.filesCount ?? 1))
                       : (isCancelled
-                          ? '${session.isSending ? "发送" : "接收"}已取消${(session.cancelReason != null && session.cancelReason!.isNotEmpty) ? " (${session.cancelReason})" : ""}'
-                          : '${session.isSending ? "发送" : "接收"} "${session.fileName}" 失败');
+                          ? (session.cancelReason != null && session.cancelReason!.isNotEmpty
+                              ? l10n.transferCancelledWithReason(direction, session.cancelReason!)
+                              : '$direction ${l10n.cancel.toLowerCase()}')
+                          : l10n.transferFailedFormat(direction, session.fileName));
 
                   
                   AppSnackBar.show(
@@ -168,7 +174,7 @@ void showTransferProgressDialog(BuildContext context, String sessionId) {
 
             final speed = (session.bytesTransferred / (1024 * 1024)).toStringAsFixed(1);
             final total = (session.totalBytes / (1024 * 1024)).toStringAsFixed(1);
-            final title = session.isSending ? '正在发送到 ${session.deviceName}' : '正在从 ${session.deviceName} 接收';
+            final title = session.isSending ? l10n.sendingToDevice(session.deviceName) : l10n.receivingFromDevice(session.deviceName);
 
             final completedCount = session.completedFilesCount ?? 0;
             final filesCount = session.filesCount ?? 0;
@@ -219,7 +225,7 @@ void showTransferProgressDialog(BuildContext context, String sessionId) {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            '进度: ${(session.progress * 100).toStringAsFixed(0)}%',
+                            l10n.progressFormat('${(session.progress * 100).toStringAsFixed(0)}'),
                             style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 12),
                           ),
                           Text(
@@ -233,7 +239,7 @@ void showTransferProgressDialog(BuildContext context, String sessionId) {
                         Divider(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3)),
                         const SizedBox(height: 6),
                         Text(
-                          '当前正在传输',
+                          l10n.currentlyTransferring,
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
@@ -324,7 +330,7 @@ void showTransferProgressDialog(BuildContext context, String sessionId) {
                     onPressed: () {
                       ref.read(sharingServiceProvider).cancelTransfer(sessionId);
                     },
-                    child: const Text('取消'),
+                    child: Text(l10n.cancel),
                   ),
                 ],
               ),
@@ -342,6 +348,7 @@ Future<String?> showConflictDialog(BuildContext context, String fileName) {
     context: context,
     barrierDismissible: false,
     builder: (context) {
+      final l10n = AppLocalizations.of(context)!;
       return BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
         child: AlertDialog(
@@ -355,9 +362,9 @@ Future<String?> showConflictDialog(BuildContext context, String fileName) {
             children: [
               Icon(Icons.warning_amber_rounded, color: theme.colorScheme.error),
               const SizedBox(width: 12),
-              const Text(
-                '文件冲突',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              Text(
+                l10n.fileConflictTitle,
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
             ],
           ),
@@ -365,9 +372,9 @@ Future<String?> showConflictDialog(BuildContext context, String fileName) {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                '目标设备已存在同名文件：',
-                style: TextStyle(fontSize: 14),
+              Text(
+                l10n.fileConflictMessage,
+                style: const TextStyle(fontSize: 14),
               ),
               const SizedBox(height: 8),
               Text(
@@ -378,7 +385,7 @@ Future<String?> showConflictDialog(BuildContext context, String fileName) {
               ),
               const SizedBox(height: 16),
               Text(
-                '请选择您要执行的操作：',
+                l10n.fileConflictChooseAction,
                 style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 12),
               ),
             ],
@@ -398,7 +405,7 @@ Future<String?> showConflictDialog(BuildContext context, String fileName) {
                         ),
                       ),
                       onPressed: () => Navigator.of(context).pop('skip'),
-                      child: const Text('跳过'),
+                      child: Text(l10n.skipAction),
                     ),
                     const SizedBox(width: 8),
                     FilledButton(
@@ -408,7 +415,7 @@ Future<String?> showConflictDialog(BuildContext context, String fileName) {
                         ),
                       ),
                       onPressed: () => Navigator.of(context).pop('overwrite'),
-                      child: const Text('覆盖'),
+                      child: Text(l10n.overwriteAction),
                     ),
                   ],
                 ),
@@ -423,7 +430,7 @@ Future<String?> showConflictDialog(BuildContext context, String fileName) {
                         ),
                       ),
                       onPressed: () => Navigator.of(context).pop('skip_all'),
-                      child: const Text('全部跳过'),
+                      child: Text(l10n.skipAllAction),
                     ),
                     const SizedBox(width: 8),
                     FilledButton(
@@ -433,7 +440,7 @@ Future<String?> showConflictDialog(BuildContext context, String fileName) {
                         ),
                       ),
                       onPressed: () => Navigator.of(context).pop('overwrite_all'),
-                      child: const Text('全部覆盖'),
+                      child: Text(l10n.overwriteAllAction),
                     ),
                   ],
                 ),

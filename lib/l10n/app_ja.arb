@@ -1036,5 +1036,190 @@
   "noMatchingModels": "一致するモデルが見つかりません",
   "leaveEmpty": "空のままにする",
   "leaveEmptyFallbackDescription": "バックアップモデルを設定しない場合はこれを選択します。",
-  "modelSearchHint": "モデル名、IDを入力"
+  "modelSearchHint": "モデル名、IDを入力",
+  "@sendFilesFailed": {
+    "description": "Toast when sending files fails",
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "sendFilesFailed": "ファイルの送信に失敗しました: {error}",
+  "scanningFolderMusic": "フォルダ内の音楽ファイルをスキャン中...",
+  "@scanFolderFailed": {
+    "description": "Toast when scanning folder fails",
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "scanFolderFailed": "フォルダのスキャンに失敗しました: {error}",
+  "noMusicFilesFound": "このフォルダにサポートされている音楽ファイルが見つかりません",
+  "@sendFolderFailed": {
+    "description": "Toast when sending folder fails",
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "sendFolderFailed": "フォルダの送信に失敗しました: {error}",
+  "lanSharingStartFailed": "LAN共有の開始に失敗しました。ローカルネットワーク権限を確認してください。",
+  "@syncingLyricsToDevice": {
+    "description": "Toast when syncing lyrics to a device",
+    "placeholders": {
+      "deviceName": {}
+    }
+  },
+  "syncingLyricsToDevice": "{deviceName} に歌詞を同期中...",
+  "@syncLyricsSuccess": {
+    "description": "Toast when sync completes",
+    "placeholders": {
+      "matched": {},
+      "overwritten": {},
+      "skipped": {}
+    }
+  },
+  "syncLyricsSuccess": "同期完了: 一致 {matched}、更新 {overwritten}、スキップ {skipped}",
+  "@syncLyricsFailed": {
+    "description": "Toast when sync fails",
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "syncLyricsFailed": "歌詞の同期に失敗しました: {error}",
+  "@syncingLyricsFromDevice": {
+    "description": "Toast when syncing lyrics from a device",
+    "placeholders": {
+      "deviceName": {}
+    }
+  },
+  "syncingLyricsFromDevice": "{deviceName} から歌詞を同期中...",
+  "transferInProgressDoNotLeave": "転送中です。共有ページから移動しないでください",
+  "lanSharingTitle": "LANファイル共有",
+  "lanSharingEnabledStatus": "LAN共有が有効です",
+  "lanSharingDisabledStatus": "LAN共有が無効です",
+  "@lanSharingRunningStatus": {
+    "description": "Status text showing IP and port",
+    "placeholders": {
+      "ip": {},
+      "port": {}
+    }
+  },
+  "lanSharingRunningStatus": "ローカルIP: {ip}（ポート: {port}）",
+  "lanSharingDefaultOffHint": "デフォルトでは無効です。有効にするとローカルネットワーク権限を要求します。",
+  "receiveDirectoryNotSetWarning": "ファイルを受信するには受信ディレクトリを設定する必要があります。設定してください。",
+  "@receiveDirectoryUpdated": {
+    "description": "Toast when receive directory is updated",
+    "placeholders": {
+      "path": {}
+    }
+  },
+  "receiveDirectoryUpdated": "受信ディレクトリが更新されました: {path}",
+  "receiveDirectoryTitle": "受信ディレクトリ",
+  "webShareTitle": "Web共有",
+  "webShareDescription": "同じLAN上のデバイスは、ブラウザで以下のリンクを開いて音楽をアップロードまたはダウンロードできます。",
+  "linkCopiedToClipboard": "リンクをクリップボードにコピーしました",
+  "nearbyDevices": "近くのデバイス",
+  "searchingDevices": "LAN上の他のデバイスを検索中...",
+  "startSharingToFindDevices": "共有を有効にしてデバイスを検出",
+  "deviceOnline": "オンライン",
+  "deviceOffline": "オフライン",
+  "sendMusicFiles": "音楽ファイルを送信",
+  "sendFolder": "フォルダを送信",
+  "syncLyricsToDeviceAction": "デバイスに歌詞を同期",
+  "syncLyricsFromDeviceAction": "デバイスから歌詞を同期",
+  "@loadDevicesError": {
+    "description": "Error message when loading devices fails",
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "loadDevicesError": "デバイスの読み込みに失敗しました: {error}",
+  "@incomingFilesFormat": {
+    "description": "File names in incoming transfer dialog",
+    "placeholders": {
+      "name1": {},
+      "name2": {},
+      "count": {}
+    }
+  },
+  "incomingFilesFormat": "{name1}、{name2} など全 {count} ファイル",
+  "incomingTransferRequestTitle": "ファイル転送リクエストを受信",
+  "@incomingTransferFrom": {
+    "description": "Who sent the request",
+    "placeholders": {
+      "senderName": {}
+    }
+  },
+  "incomingTransferFrom": "\"{senderName}\" からの送信リクエスト：",
+  "@fileSizeMb": {
+    "description": "File size in megabytes",
+    "placeholders": {
+      "sizeMb": {}
+    }
+  },
+  "fileSizeMb": "ファイルサイズ: {sizeMb} MB",
+  "receiveFileHint": "受信したファイルは音楽フォルダに保存され、ライブラリに追加されます。",
+  "reject": "拒否",
+  "accept": "受け入れる",
+  "@sendCompleted": {
+    "description": "Toast when sending completes",
+    "placeholders": {
+      "fileName": {}
+    }
+  },
+  "sendCompleted": "\"{fileName}\" を送信しました",
+  "@receiveCompleted": {
+    "description": "Toast when receiving completes",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "receiveCompleted": "{count}曲を受信しました",
+  "@transferCancelledWithReason": {
+    "description": "Toast when transfer is cancelled with reason",
+    "placeholders": {
+      "direction": {},
+      "reason": {}
+    }
+  },
+  "transferCancelledWithReason": "{direction}キャンセル（{reason}）",
+  "@transferFailedFormat": {
+    "description": "Toast when transfer fails",
+    "placeholders": {
+      "direction": {},
+      "fileName": {}
+    }
+  },
+  "transferFailedFormat": "{direction} \"{fileName}\" 失敗",
+  "@sendingToDevice": {
+    "description": "Title for send progress dialog",
+    "placeholders": {
+      "deviceName": {}
+    }
+  },
+  "sendingToDevice": "{deviceName} に送信中",
+  "@receivingFromDevice": {
+    "description": "Title for receive progress dialog",
+    "placeholders": {
+      "deviceName": {}
+    }
+  },
+  "receivingFromDevice": "{deviceName} から受信中",
+  "@progressFormat": {
+    "description": "Transfer progress percentage",
+    "placeholders": {
+      "percent": {}
+    }
+  },
+  "progressFormat": "進捗: {percent}%",
+  "currentlyTransferring": "現在転送中",
+  "fileConflictTitle": "ファイル競合",
+  "fileConflictMessage": "対象デバイスに同じ名前のファイルが既に存在します：",
+  "fileConflictChooseAction": "実行する操作を選択してください：",
+  "skipAction": "スキップ",
+  "overwriteAction": "上書き",
+  "skipAllAction": "すべてスキップ",
+  "overwriteAllAction": "すべて上書き",
+  "sendDirection": "送信",
+  "receiveDirection": "受信"
 }

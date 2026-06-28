@@ -4667,6 +4667,342 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'输入模型名、ID'**
   String get modelSearchHint;
+
+  /// Toast when sending files fails
+  ///
+  /// In zh, this message translates to:
+  /// **'发送文件失败: {error}'**
+  String sendFilesFailed(Object error);
+
+  /// No description provided for @scanningFolderMusic.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在扫描文件夹中的音乐文件...'**
+  String get scanningFolderMusic;
+
+  /// Toast when scanning folder fails
+  ///
+  /// In zh, this message translates to:
+  /// **'扫描文件夹失败: {error}'**
+  String scanFolderFailed(Object error);
+
+  /// No description provided for @noMusicFilesFound.
+  ///
+  /// In zh, this message translates to:
+  /// **'未在此文件夹中找到支持的音乐文件'**
+  String get noMusicFilesFound;
+
+  /// Toast when sending folder fails
+  ///
+  /// In zh, this message translates to:
+  /// **'发送文件夹失败: {error}'**
+  String sendFolderFailed(Object error);
+
+  /// No description provided for @lanSharingStartFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'局域网共享启动失败，请检查本地网络权限是否已开启'**
+  String get lanSharingStartFailed;
+
+  /// Toast when syncing lyrics to a device
+  ///
+  /// In zh, this message translates to:
+  /// **'正在向 {deviceName} 同步歌词...'**
+  String syncingLyricsToDevice(Object deviceName);
+
+  /// Toast when sync completes
+  ///
+  /// In zh, this message translates to:
+  /// **'同步成功: 匹配 {matched} 首, 更新 {overwritten} 首, 忽略 {skipped} 首'**
+  String syncLyricsSuccess(Object matched, Object overwritten, Object skipped);
+
+  /// Toast when sync fails
+  ///
+  /// In zh, this message translates to:
+  /// **'同步歌词失败: {error}'**
+  String syncLyricsFailed(Object error);
+
+  /// Toast when syncing lyrics from a device
+  ///
+  /// In zh, this message translates to:
+  /// **'正在从 {deviceName} 同步歌词...'**
+  String syncingLyricsFromDevice(Object deviceName);
+
+  /// No description provided for @transferInProgressDoNotLeave.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在传输文件，请勿离开共享页'**
+  String get transferInProgressDoNotLeave;
+
+  /// No description provided for @lanSharingTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'局域网文件共享'**
+  String get lanSharingTitle;
+
+  /// No description provided for @lanSharingEnabledStatus.
+  ///
+  /// In zh, this message translates to:
+  /// **'局域网共享已开启'**
+  String get lanSharingEnabledStatus;
+
+  /// No description provided for @lanSharingDisabledStatus.
+  ///
+  /// In zh, this message translates to:
+  /// **'局域网共享未开启'**
+  String get lanSharingDisabledStatus;
+
+  /// Status text showing IP and port
+  ///
+  /// In zh, this message translates to:
+  /// **'本机 IP: {ip}（端口: {port}）'**
+  String lanSharingRunningStatus(Object ip, Object port);
+
+  /// No description provided for @lanSharingDefaultOffHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'默认关闭，开启后会请求局域网权限'**
+  String get lanSharingDefaultOffHint;
+
+  /// No description provided for @receiveDirectoryNotSetWarning.
+  ///
+  /// In zh, this message translates to:
+  /// **'未设置接收文件保存目录时将无法接收文件，建议先设置。'**
+  String get receiveDirectoryNotSetWarning;
+
+  /// Toast when receive directory is updated
+  ///
+  /// In zh, this message translates to:
+  /// **'接收目录已更新为: {path}'**
+  String receiveDirectoryUpdated(Object path);
+
+  /// No description provided for @receiveDirectoryTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'接收文件保存目录'**
+  String get receiveDirectoryTitle;
+
+  /// No description provided for @webShareTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'浏览器网页传输 (Web Share)'**
+  String get webShareTitle;
+
+  /// No description provided for @webShareDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'同一局域网的手机/电脑可通过浏览器打开下方链接，直接向本设备上传或下载音乐：'**
+  String get webShareDescription;
+
+  /// No description provided for @linkCopiedToClipboard.
+  ///
+  /// In zh, this message translates to:
+  /// **'链接已复制到剪贴板'**
+  String get linkCopiedToClipboard;
+
+  /// No description provided for @nearbyDevices.
+  ///
+  /// In zh, this message translates to:
+  /// **'附近的设备'**
+  String get nearbyDevices;
+
+  /// No description provided for @searchingDevices.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在寻找局域网内其他设备...'**
+  String get searchingDevices;
+
+  /// No description provided for @startSharingToFindDevices.
+  ///
+  /// In zh, this message translates to:
+  /// **'开启共享后开始寻找设备'**
+  String get startSharingToFindDevices;
+
+  /// No description provided for @deviceOnline.
+  ///
+  /// In zh, this message translates to:
+  /// **'在线'**
+  String get deviceOnline;
+
+  /// No description provided for @deviceOffline.
+  ///
+  /// In zh, this message translates to:
+  /// **'已断开'**
+  String get deviceOffline;
+
+  /// No description provided for @sendMusicFiles.
+  ///
+  /// In zh, this message translates to:
+  /// **'发送音乐文件'**
+  String get sendMusicFiles;
+
+  /// No description provided for @sendFolder.
+  ///
+  /// In zh, this message translates to:
+  /// **'发送文件夹'**
+  String get sendFolder;
+
+  /// No description provided for @syncLyricsToDeviceAction.
+  ///
+  /// In zh, this message translates to:
+  /// **'同步歌词至该设备'**
+  String get syncLyricsToDeviceAction;
+
+  /// No description provided for @syncLyricsFromDeviceAction.
+  ///
+  /// In zh, this message translates to:
+  /// **'从该设备同步歌词'**
+  String get syncLyricsFromDeviceAction;
+
+  /// Error message when loading devices fails
+  ///
+  /// In zh, this message translates to:
+  /// **'加载设备出错: {error}'**
+  String loadDevicesError(Object error);
+
+  /// File names in incoming transfer dialog
+  ///
+  /// In zh, this message translates to:
+  /// **'{name1}、{name2} 等共 {count} 个文件'**
+  String incomingFilesFormat(Object name1, Object name2, Object count);
+
+  /// No description provided for @incomingTransferRequestTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'收到文件共享请求'**
+  String get incomingTransferRequestTitle;
+
+  /// Who sent the request
+  ///
+  /// In zh, this message translates to:
+  /// **'来自 \"{senderName}\" 的发送请求：'**
+  String incomingTransferFrom(Object senderName);
+
+  /// File size in megabytes
+  ///
+  /// In zh, this message translates to:
+  /// **'文件大小: {sizeMb} MB'**
+  String fileSizeMb(Object sizeMb);
+
+  /// No description provided for @receiveFileHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'提示：接收后文件将自动保存至本地音乐文件夹并加入媒体库。'**
+  String get receiveFileHint;
+
+  /// No description provided for @reject.
+  ///
+  /// In zh, this message translates to:
+  /// **'拒绝'**
+  String get reject;
+
+  /// No description provided for @accept.
+  ///
+  /// In zh, this message translates to:
+  /// **'接收'**
+  String get accept;
+
+  /// Toast when sending completes
+  ///
+  /// In zh, this message translates to:
+  /// **'\"{fileName}\" 发送完毕'**
+  String sendCompleted(Object fileName);
+
+  /// Toast when receiving completes
+  ///
+  /// In zh, this message translates to:
+  /// **'成功接收了 {count} 首歌曲'**
+  String receiveCompleted(int count);
+
+  /// Toast when transfer is cancelled with reason
+  ///
+  /// In zh, this message translates to:
+  /// **'{direction}已取消（{reason}）'**
+  String transferCancelledWithReason(Object direction, Object reason);
+
+  /// Toast when transfer fails
+  ///
+  /// In zh, this message translates to:
+  /// **'{direction} \"{fileName}\" 失败'**
+  String transferFailedFormat(Object direction, Object fileName);
+
+  /// Title for send progress dialog
+  ///
+  /// In zh, this message translates to:
+  /// **'正在发送到 {deviceName}'**
+  String sendingToDevice(Object deviceName);
+
+  /// Title for receive progress dialog
+  ///
+  /// In zh, this message translates to:
+  /// **'正在从 {deviceName} 接收'**
+  String receivingFromDevice(Object deviceName);
+
+  /// Transfer progress percentage
+  ///
+  /// In zh, this message translates to:
+  /// **'进度: {percent}%'**
+  String progressFormat(Object percent);
+
+  /// No description provided for @currentlyTransferring.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前正在传输'**
+  String get currentlyTransferring;
+
+  /// No description provided for @fileConflictTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'文件冲突'**
+  String get fileConflictTitle;
+
+  /// No description provided for @fileConflictMessage.
+  ///
+  /// In zh, this message translates to:
+  /// **'目标设备已存在同名文件：'**
+  String get fileConflictMessage;
+
+  /// No description provided for @fileConflictChooseAction.
+  ///
+  /// In zh, this message translates to:
+  /// **'请选择您要执行的操作：'**
+  String get fileConflictChooseAction;
+
+  /// No description provided for @skipAction.
+  ///
+  /// In zh, this message translates to:
+  /// **'跳过'**
+  String get skipAction;
+
+  /// No description provided for @overwriteAction.
+  ///
+  /// In zh, this message translates to:
+  /// **'覆盖'**
+  String get overwriteAction;
+
+  /// No description provided for @skipAllAction.
+  ///
+  /// In zh, this message translates to:
+  /// **'全部跳过'**
+  String get skipAllAction;
+
+  /// No description provided for @overwriteAllAction.
+  ///
+  /// In zh, this message translates to:
+  /// **'全部覆盖'**
+  String get overwriteAllAction;
+
+  /// No description provided for @sendDirection.
+  ///
+  /// In zh, this message translates to:
+  /// **'发送'**
+  String get sendDirection;
+
+  /// No description provided for @receiveDirection.
+  ///
+  /// In zh, this message translates to:
+  /// **'接收'**
+  String get receiveDirection;
 }
 
 class _AppLocalizationsDelegate

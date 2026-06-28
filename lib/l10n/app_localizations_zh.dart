@@ -2434,4 +2434,212 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get modelSearchHint => '输入模型名、ID';
+
+  @override
+  String sendFilesFailed(Object error) {
+    return '发送文件失败: $error';
+  }
+
+  @override
+  String get scanningFolderMusic => '正在扫描文件夹中的音乐文件...';
+
+  @override
+  String scanFolderFailed(Object error) {
+    return '扫描文件夹失败: $error';
+  }
+
+  @override
+  String get noMusicFilesFound => '未在此文件夹中找到支持的音乐文件';
+
+  @override
+  String sendFolderFailed(Object error) {
+    return '发送文件夹失败: $error';
+  }
+
+  @override
+  String get lanSharingStartFailed => '局域网共享启动失败，请检查本地网络权限是否已开启';
+
+  @override
+  String syncingLyricsToDevice(Object deviceName) {
+    return '正在向 $deviceName 同步歌词...';
+  }
+
+  @override
+  String syncLyricsSuccess(Object matched, Object overwritten, Object skipped) {
+    return '同步成功: 匹配 $matched 首, 更新 $overwritten 首, 忽略 $skipped 首';
+  }
+
+  @override
+  String syncLyricsFailed(Object error) {
+    return '同步歌词失败: $error';
+  }
+
+  @override
+  String syncingLyricsFromDevice(Object deviceName) {
+    return '正在从 $deviceName 同步歌词...';
+  }
+
+  @override
+  String get transferInProgressDoNotLeave => '正在传输文件，请勿离开共享页';
+
+  @override
+  String get lanSharingTitle => '局域网文件共享';
+
+  @override
+  String get lanSharingEnabledStatus => '局域网共享已开启';
+
+  @override
+  String get lanSharingDisabledStatus => '局域网共享未开启';
+
+  @override
+  String lanSharingRunningStatus(Object ip, Object port) {
+    return '本机 IP: $ip（端口: $port）';
+  }
+
+  @override
+  String get lanSharingDefaultOffHint => '默认关闭，开启后会请求局域网权限';
+
+  @override
+  String get receiveDirectoryNotSetWarning => '未设置接收文件保存目录时将无法接收文件，建议先设置。';
+
+  @override
+  String receiveDirectoryUpdated(Object path) {
+    return '接收目录已更新为: $path';
+  }
+
+  @override
+  String get receiveDirectoryTitle => '接收文件保存目录';
+
+  @override
+  String get webShareTitle => '浏览器网页传输 (Web Share)';
+
+  @override
+  String get webShareDescription => '同一局域网的手机/电脑可通过浏览器打开下方链接，直接向本设备上传或下载音乐：';
+
+  @override
+  String get linkCopiedToClipboard => '链接已复制到剪贴板';
+
+  @override
+  String get nearbyDevices => '附近的设备';
+
+  @override
+  String get searchingDevices => '正在寻找局域网内其他设备...';
+
+  @override
+  String get startSharingToFindDevices => '开启共享后开始寻找设备';
+
+  @override
+  String get deviceOnline => '在线';
+
+  @override
+  String get deviceOffline => '已断开';
+
+  @override
+  String get sendMusicFiles => '发送音乐文件';
+
+  @override
+  String get sendFolder => '发送文件夹';
+
+  @override
+  String get syncLyricsToDeviceAction => '同步歌词至该设备';
+
+  @override
+  String get syncLyricsFromDeviceAction => '从该设备同步歌词';
+
+  @override
+  String loadDevicesError(Object error) {
+    return '加载设备出错: $error';
+  }
+
+  @override
+  String incomingFilesFormat(Object name1, Object name2, Object count) {
+    return '$name1、$name2 等共 $count 个文件';
+  }
+
+  @override
+  String get incomingTransferRequestTitle => '收到文件共享请求';
+
+  @override
+  String incomingTransferFrom(Object senderName) {
+    return '来自 \"$senderName\" 的发送请求：';
+  }
+
+  @override
+  String fileSizeMb(Object sizeMb) {
+    return '文件大小: $sizeMb MB';
+  }
+
+  @override
+  String get receiveFileHint => '提示：接收后文件将自动保存至本地音乐文件夹并加入媒体库。';
+
+  @override
+  String get reject => '拒绝';
+
+  @override
+  String get accept => '接收';
+
+  @override
+  String sendCompleted(Object fileName) {
+    return '\"$fileName\" 发送完毕';
+  }
+
+  @override
+  String receiveCompleted(int count) {
+    return '成功接收了 $count 首歌曲';
+  }
+
+  @override
+  String transferCancelledWithReason(Object direction, Object reason) {
+    return '$direction已取消（$reason）';
+  }
+
+  @override
+  String transferFailedFormat(Object direction, Object fileName) {
+    return '$direction \"$fileName\" 失败';
+  }
+
+  @override
+  String sendingToDevice(Object deviceName) {
+    return '正在发送到 $deviceName';
+  }
+
+  @override
+  String receivingFromDevice(Object deviceName) {
+    return '正在从 $deviceName 接收';
+  }
+
+  @override
+  String progressFormat(Object percent) {
+    return '进度: $percent%';
+  }
+
+  @override
+  String get currentlyTransferring => '当前正在传输';
+
+  @override
+  String get fileConflictTitle => '文件冲突';
+
+  @override
+  String get fileConflictMessage => '目标设备已存在同名文件：';
+
+  @override
+  String get fileConflictChooseAction => '请选择您要执行的操作：';
+
+  @override
+  String get skipAction => '跳过';
+
+  @override
+  String get overwriteAction => '覆盖';
+
+  @override
+  String get skipAllAction => '全部跳过';
+
+  @override
+  String get overwriteAllAction => '全部覆盖';
+
+  @override
+  String get sendDirection => '发送';
+
+  @override
+  String get receiveDirection => '接收';
 }

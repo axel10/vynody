@@ -937,5 +937,190 @@
   "noMatchingModels": "No matching models found",
   "leaveEmpty": "Leave empty",
   "leaveEmptyFallbackDescription": "Select this to not set a backup model.",
-  "modelSearchHint": "Enter model name, ID"
+  "modelSearchHint": "Enter model name, ID",
+  "@sendFilesFailed": {
+    "description": "Toast when sending files fails",
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "sendFilesFailed": "Failed to send files: {error}",
+  "scanningFolderMusic": "Scanning folder for music files...",
+  "@scanFolderFailed": {
+    "description": "Toast when scanning folder fails",
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "scanFolderFailed": "Failed to scan folder: {error}",
+  "noMusicFilesFound": "No supported music files found in this folder",
+  "@sendFolderFailed": {
+    "description": "Toast when sending folder fails",
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "sendFolderFailed": "Failed to send folder: {error}",
+  "lanSharingStartFailed": "LAN sharing failed to start. Please check local network permissions.",
+  "@syncingLyricsToDevice": {
+    "description": "Toast when syncing lyrics to a device",
+    "placeholders": {
+      "deviceName": {}
+    }
+  },
+  "syncingLyricsToDevice": "Syncing lyrics to {deviceName}...",
+  "@syncLyricsSuccess": {
+    "description": "Toast when sync completes",
+    "placeholders": {
+      "matched": {},
+      "overwritten": {},
+      "skipped": {}
+    }
+  },
+  "syncLyricsSuccess": "Sync complete: {matched} matched, {overwritten} updated, {skipped} skipped",
+  "@syncLyricsFailed": {
+    "description": "Toast when sync fails",
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "syncLyricsFailed": "Failed to sync lyrics: {error}",
+  "@syncingLyricsFromDevice": {
+    "description": "Toast when syncing lyrics from a device",
+    "placeholders": {
+      "deviceName": {}
+    }
+  },
+  "syncingLyricsFromDevice": "Syncing lyrics from {deviceName}...",
+  "transferInProgressDoNotLeave": "Transfer in progress, please do not leave the sharing page",
+  "lanSharingTitle": "LAN File Sharing",
+  "lanSharingEnabledStatus": "LAN sharing is enabled",
+  "lanSharingDisabledStatus": "LAN sharing is disabled",
+  "@lanSharingRunningStatus": {
+    "description": "Status text showing IP and port",
+    "placeholders": {
+      "ip": {},
+      "port": {}
+    }
+  },
+  "lanSharingRunningStatus": "Local IP: {ip} (Port: {port})",
+  "lanSharingDefaultOffHint": "Disabled by default. Enabling will request local network permission.",
+  "receiveDirectoryNotSetWarning": "A receive directory must be set to receive files. Please set one.",
+  "@receiveDirectoryUpdated": {
+    "description": "Toast when receive directory is updated",
+    "placeholders": {
+      "path": {}
+    }
+  },
+  "receiveDirectoryUpdated": "Receive directory updated to: {path}",
+  "receiveDirectoryTitle": "Receive Directory",
+  "webShareTitle": "Web Share",
+  "webShareDescription": "Other devices on the same LAN can open the link below in a browser to upload or download music directly.",
+  "linkCopiedToClipboard": "Link copied to clipboard",
+  "nearbyDevices": "Nearby Devices",
+  "searchingDevices": "Searching for other devices on the LAN...",
+  "startSharingToFindDevices": "Enable sharing to discover devices",
+  "deviceOnline": "Online",
+  "deviceOffline": "Offline",
+  "sendMusicFiles": "Send Music Files",
+  "sendFolder": "Send Folder",
+  "syncLyricsToDeviceAction": "Sync Lyrics to Device",
+  "syncLyricsFromDeviceAction": "Sync Lyrics from Device",
+  "@loadDevicesError": {
+    "description": "Error message when loading devices fails",
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "loadDevicesError": "Failed to load devices: {error}",
+  "@incomingFilesFormat": {
+    "description": "File names in incoming transfer dialog",
+    "placeholders": {
+      "name1": {},
+      "name2": {},
+      "count": {}
+    }
+  },
+  "incomingFilesFormat": "{name1}, {name2} and {count} other files",
+  "incomingTransferRequestTitle": "Incoming File Transfer Request",
+  "@incomingTransferFrom": {
+    "description": "Who sent the request",
+    "placeholders": {
+      "senderName": {}
+    }
+  },
+  "incomingTransferFrom": "Request from \"{senderName}\":",
+  "@fileSizeMb": {
+    "description": "File size in megabytes",
+    "placeholders": {
+      "sizeMb": {}
+    }
+  },
+  "fileSizeMb": "File size: {sizeMb} MB",
+  "receiveFileHint": "Received files will be saved to the music folder and added to the library.",
+  "reject": "Reject",
+  "accept": "Accept",
+  "@sendCompleted": {
+    "description": "Toast when sending completes",
+    "placeholders": {
+      "fileName": {}
+    }
+  },
+  "sendCompleted": "\"{fileName}\" sent",
+  "@receiveCompleted": {
+    "description": "Toast when receiving completes",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "receiveCompleted": "Successfully received {count} songs",
+  "@transferCancelledWithReason": {
+    "description": "Toast when transfer is cancelled with reason",
+    "placeholders": {
+      "direction": {},
+      "reason": {}
+    }
+  },
+  "transferCancelledWithReason": "{direction} cancelled ({reason})",
+  "@transferFailedFormat": {
+    "description": "Toast when transfer fails",
+    "placeholders": {
+      "direction": {},
+      "fileName": {}
+    }
+  },
+  "transferFailedFormat": "{direction} \"{fileName}\" failed",
+  "@sendingToDevice": {
+    "description": "Title for send progress dialog",
+    "placeholders": {
+      "deviceName": {}
+    }
+  },
+  "sendingToDevice": "Sending to {deviceName}",
+  "@receivingFromDevice": {
+    "description": "Title for receive progress dialog",
+    "placeholders": {
+      "deviceName": {}
+    }
+  },
+  "receivingFromDevice": "Receiving from {deviceName}",
+  "@progressFormat": {
+    "description": "Transfer progress percentage",
+    "placeholders": {
+      "percent": {}
+    }
+  },
+  "progressFormat": "Progress: {percent}%",
+  "currentlyTransferring": "Currently Transferring",
+  "fileConflictTitle": "File Conflict",
+  "fileConflictMessage": "A file with the same name already exists on the target device:",
+  "fileConflictChooseAction": "Please choose an action:",
+  "skipAction": "Skip",
+  "overwriteAction": "Overwrite",
+  "skipAllAction": "Skip All",
+  "overwriteAllAction": "Overwrite All",
+  "sendDirection": "Send",
+  "receiveDirection": "Receive"
 }

@@ -2469,4 +2469,215 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get modelSearchHint => '모델 이름, ID 입력';
+
+  @override
+  String sendFilesFailed(Object error) {
+    return '파일 전송 실패: $error';
+  }
+
+  @override
+  String get scanningFolderMusic => '폴더에서 음악 파일 검색 중...';
+
+  @override
+  String scanFolderFailed(Object error) {
+    return '폴더 검색 실패: $error';
+  }
+
+  @override
+  String get noMusicFilesFound => '이 폴더에서 지원되는 음악 파일을 찾을 수 없습니다';
+
+  @override
+  String sendFolderFailed(Object error) {
+    return '폴더 전송 실패: $error';
+  }
+
+  @override
+  String get lanSharingStartFailed => 'LAN 공유 시작 실패. 로컬 네트워크 권한을 확인해주세요.';
+
+  @override
+  String syncingLyricsToDevice(Object deviceName) {
+    return '$deviceName에 가사 동기화 중...';
+  }
+
+  @override
+  String syncLyricsSuccess(Object matched, Object overwritten, Object skipped) {
+    return '동기화 완료: 일치 $matched곡, 업데이트 $overwritten곡, 건너뜀 $skipped곡';
+  }
+
+  @override
+  String syncLyricsFailed(Object error) {
+    return '가사 동기화 실패: $error';
+  }
+
+  @override
+  String syncingLyricsFromDevice(Object deviceName) {
+    return '$deviceName에서 가사 동기화 중...';
+  }
+
+  @override
+  String get transferInProgressDoNotLeave => '전송 중입니다. 공유 페이지를 떠나지 마세요';
+
+  @override
+  String get lanSharingTitle => 'LAN 파일 공유';
+
+  @override
+  String get lanSharingEnabledStatus => 'LAN 공유가 활성화되었습니다';
+
+  @override
+  String get lanSharingDisabledStatus => 'LAN 공유가 비활성화되었습니다';
+
+  @override
+  String lanSharingRunningStatus(Object ip, Object port) {
+    return '로컬 IP: $ip (포트: $port)';
+  }
+
+  @override
+  String get lanSharingDefaultOffHint =>
+      '기본적으로 비활성화됩니다. 활성화하면 로컬 네트워크 권한을 요청합니다.';
+
+  @override
+  String get receiveDirectoryNotSetWarning =>
+      '파일을 수신하려면 수신 디렉토리를 설정해야 합니다. 설정해주세요.';
+
+  @override
+  String receiveDirectoryUpdated(Object path) {
+    return '수신 디렉토리가 업데이트되었습니다: $path';
+  }
+
+  @override
+  String get receiveDirectoryTitle => '수신 디렉토리';
+
+  @override
+  String get webShareTitle => '웹 공유';
+
+  @override
+  String get webShareDescription =>
+      '같은 LAN에 있는 다른 기기는 브라우저에서 아래 링크를 열어 음악을 업로드하거나 다운로드할 수 있습니다.';
+
+  @override
+  String get linkCopiedToClipboard => '클립보드에 링크가 복사되었습니다';
+
+  @override
+  String get nearbyDevices => '근처 기기';
+
+  @override
+  String get searchingDevices => 'LAN에서 다른 기기 검색 중...';
+
+  @override
+  String get startSharingToFindDevices => '공유를 활성화하여 기기 검색';
+
+  @override
+  String get deviceOnline => '온라인';
+
+  @override
+  String get deviceOffline => '오프라인';
+
+  @override
+  String get sendMusicFiles => '음악 파일 보내기';
+
+  @override
+  String get sendFolder => '폴더 보내기';
+
+  @override
+  String get syncLyricsToDeviceAction => '기기로 가사 동기화';
+
+  @override
+  String get syncLyricsFromDeviceAction => '기기에서 가사 동기화';
+
+  @override
+  String loadDevicesError(Object error) {
+    return '기기 로드 실패: $error';
+  }
+
+  @override
+  String incomingFilesFormat(Object name1, Object name2, Object count) {
+    return '$name1, $name2 등 총 $count개 파일';
+  }
+
+  @override
+  String get incomingTransferRequestTitle => '파일 전송 요청 수신';
+
+  @override
+  String incomingTransferFrom(Object senderName) {
+    return '\"$senderName\"의 전송 요청:';
+  }
+
+  @override
+  String fileSizeMb(Object sizeMb) {
+    return '파일 크기: $sizeMb MB';
+  }
+
+  @override
+  String get receiveFileHint => '수신된 파일은 음악 폴더에 저장되고 라이브러리에 추가됩니다.';
+
+  @override
+  String get reject => '거절';
+
+  @override
+  String get accept => '수락';
+
+  @override
+  String sendCompleted(Object fileName) {
+    return '\"$fileName\" 전송 완료';
+  }
+
+  @override
+  String receiveCompleted(int count) {
+    return '$count곡을 성공적으로 수신했습니다';
+  }
+
+  @override
+  String transferCancelledWithReason(Object direction, Object reason) {
+    return '$direction 취소됨 ($reason)';
+  }
+
+  @override
+  String transferFailedFormat(Object direction, Object fileName) {
+    return '$direction \"$fileName\" 실패';
+  }
+
+  @override
+  String sendingToDevice(Object deviceName) {
+    return '$deviceName에 보내는 중';
+  }
+
+  @override
+  String receivingFromDevice(Object deviceName) {
+    return '$deviceName에서 받는 중';
+  }
+
+  @override
+  String progressFormat(Object percent) {
+    return '진행: $percent%';
+  }
+
+  @override
+  String get currentlyTransferring => '현재 전송 중';
+
+  @override
+  String get fileConflictTitle => '파일 충돌';
+
+  @override
+  String get fileConflictMessage => '대상 기기에 같은 이름의 파일이 이미 존재합니다:';
+
+  @override
+  String get fileConflictChooseAction => '수행할 작업을 선택하세요:';
+
+  @override
+  String get skipAction => '건너뛰기';
+
+  @override
+  String get overwriteAction => '덮어쓰기';
+
+  @override
+  String get skipAllAction => '모두 건너뛰기';
+
+  @override
+  String get overwriteAllAction => '모두 덮어쓰기';
+
+  @override
+  String get sendDirection => '보내기';
+
+  @override
+  String get receiveDirection => '받기';
 }

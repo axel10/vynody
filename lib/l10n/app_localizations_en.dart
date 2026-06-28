@@ -2554,4 +2554,220 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get modelSearchHint => 'Enter model name, ID';
+
+  @override
+  String sendFilesFailed(Object error) {
+    return 'Failed to send files: $error';
+  }
+
+  @override
+  String get scanningFolderMusic => 'Scanning folder for music files...';
+
+  @override
+  String scanFolderFailed(Object error) {
+    return 'Failed to scan folder: $error';
+  }
+
+  @override
+  String get noMusicFilesFound =>
+      'No supported music files found in this folder';
+
+  @override
+  String sendFolderFailed(Object error) {
+    return 'Failed to send folder: $error';
+  }
+
+  @override
+  String get lanSharingStartFailed =>
+      'LAN sharing failed to start. Please check local network permissions.';
+
+  @override
+  String syncingLyricsToDevice(Object deviceName) {
+    return 'Syncing lyrics to $deviceName...';
+  }
+
+  @override
+  String syncLyricsSuccess(Object matched, Object overwritten, Object skipped) {
+    return 'Sync complete: $matched matched, $overwritten updated, $skipped skipped';
+  }
+
+  @override
+  String syncLyricsFailed(Object error) {
+    return 'Failed to sync lyrics: $error';
+  }
+
+  @override
+  String syncingLyricsFromDevice(Object deviceName) {
+    return 'Syncing lyrics from $deviceName...';
+  }
+
+  @override
+  String get transferInProgressDoNotLeave =>
+      'Transfer in progress, please do not leave the sharing page';
+
+  @override
+  String get lanSharingTitle => 'LAN File Sharing';
+
+  @override
+  String get lanSharingEnabledStatus => 'LAN sharing is enabled';
+
+  @override
+  String get lanSharingDisabledStatus => 'LAN sharing is disabled';
+
+  @override
+  String lanSharingRunningStatus(Object ip, Object port) {
+    return 'Local IP: $ip (Port: $port)';
+  }
+
+  @override
+  String get lanSharingDefaultOffHint =>
+      'Disabled by default. Enabling will request local network permission.';
+
+  @override
+  String get receiveDirectoryNotSetWarning =>
+      'A receive directory must be set to receive files. Please set one.';
+
+  @override
+  String receiveDirectoryUpdated(Object path) {
+    return 'Receive directory updated to: $path';
+  }
+
+  @override
+  String get receiveDirectoryTitle => 'Receive Directory';
+
+  @override
+  String get webShareTitle => 'Web Share';
+
+  @override
+  String get webShareDescription =>
+      'Other devices on the same LAN can open the link below in a browser to upload or download music directly.';
+
+  @override
+  String get linkCopiedToClipboard => 'Link copied to clipboard';
+
+  @override
+  String get nearbyDevices => 'Nearby Devices';
+
+  @override
+  String get searchingDevices => 'Searching for other devices on the LAN...';
+
+  @override
+  String get startSharingToFindDevices => 'Enable sharing to discover devices';
+
+  @override
+  String get deviceOnline => 'Online';
+
+  @override
+  String get deviceOffline => 'Offline';
+
+  @override
+  String get sendMusicFiles => 'Send Music Files';
+
+  @override
+  String get sendFolder => 'Send Folder';
+
+  @override
+  String get syncLyricsToDeviceAction => 'Sync Lyrics to Device';
+
+  @override
+  String get syncLyricsFromDeviceAction => 'Sync Lyrics from Device';
+
+  @override
+  String loadDevicesError(Object error) {
+    return 'Failed to load devices: $error';
+  }
+
+  @override
+  String incomingFilesFormat(Object name1, Object name2, Object count) {
+    return '$name1, $name2 and $count other files';
+  }
+
+  @override
+  String get incomingTransferRequestTitle => 'Incoming File Transfer Request';
+
+  @override
+  String incomingTransferFrom(Object senderName) {
+    return 'Request from \"$senderName\":';
+  }
+
+  @override
+  String fileSizeMb(Object sizeMb) {
+    return 'File size: $sizeMb MB';
+  }
+
+  @override
+  String get receiveFileHint =>
+      'Received files will be saved to the music folder and added to the library.';
+
+  @override
+  String get reject => 'Reject';
+
+  @override
+  String get accept => 'Accept';
+
+  @override
+  String sendCompleted(Object fileName) {
+    return '\"$fileName\" sent';
+  }
+
+  @override
+  String receiveCompleted(int count) {
+    return 'Successfully received $count songs';
+  }
+
+  @override
+  String transferCancelledWithReason(Object direction, Object reason) {
+    return '$direction cancelled ($reason)';
+  }
+
+  @override
+  String transferFailedFormat(Object direction, Object fileName) {
+    return '$direction \"$fileName\" failed';
+  }
+
+  @override
+  String sendingToDevice(Object deviceName) {
+    return 'Sending to $deviceName';
+  }
+
+  @override
+  String receivingFromDevice(Object deviceName) {
+    return 'Receiving from $deviceName';
+  }
+
+  @override
+  String progressFormat(Object percent) {
+    return 'Progress: $percent%';
+  }
+
+  @override
+  String get currentlyTransferring => 'Currently Transferring';
+
+  @override
+  String get fileConflictTitle => 'File Conflict';
+
+  @override
+  String get fileConflictMessage =>
+      'A file with the same name already exists on the target device:';
+
+  @override
+  String get fileConflictChooseAction => 'Please choose an action:';
+
+  @override
+  String get skipAction => 'Skip';
+
+  @override
+  String get overwriteAction => 'Overwrite';
+
+  @override
+  String get skipAllAction => 'Skip All';
+
+  @override
+  String get overwriteAllAction => 'Overwrite All';
+
+  @override
+  String get sendDirection => 'Send';
+
+  @override
+  String get receiveDirection => 'Receive';
 }

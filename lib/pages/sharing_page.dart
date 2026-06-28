@@ -114,7 +114,7 @@ class _SharingPageState extends ConsumerState<SharingPage> {
         subscription.close();
       }
     } catch (e) {
-      showToast('发送文件失败: $e');
+        showToast(AppLocalizations.of(context)!.sendFilesFailed(e.toString()));
     }
   }
 
@@ -126,7 +126,7 @@ class _SharingPageState extends ConsumerState<SharingPage> {
         return;
       }
 
-      showToast('正在扫描文件夹中的音乐文件...');
+      showToast(AppLocalizations.of(context)!.scanningFolderMusic);
 
       final dir = Directory(dirPath);
       final List<String> musicFiles = [];
@@ -139,12 +139,12 @@ class _SharingPageState extends ConsumerState<SharingPage> {
           }
         }
       } catch (e) {
-        showToast('扫描文件夹失败: $e');
+        showToast(AppLocalizations.of(context)!.scanFolderFailed(e.toString()));
         return;
       }
 
       if (musicFiles.isEmpty) {
-        showToast('未在此文件夹中找到支持的音乐文件');
+        showToast(AppLocalizations.of(context)!.noMusicFilesFound);
         return;
       }
 
@@ -189,7 +189,7 @@ class _SharingPageState extends ConsumerState<SharingPage> {
         subscription.close();
       }
     } catch (e) {
-      showToast('发送文件夹失败: $e');
+      showToast(AppLocalizations.of(context)!.sendFolderFailed(e.toString()));
     }
   }
 
@@ -264,7 +264,7 @@ class _SharingPageState extends ConsumerState<SharingPage> {
       final serverState = ref.read(sharingServerStateProvider);
       if (!serverState.isRunning) {
         settings.lanSharingEnabled = previousEnabled;
-        showToast('局域网共享启动失败，请检查本地网络权限是否已开启');
+        showToast(AppLocalizations.of(context)!.lanSharingStartFailed);
       }
     } else {
       await _sharingServerNotifier.stop();
@@ -273,27 +273,35 @@ class _SharingPageState extends ConsumerState<SharingPage> {
 
   Future<void> _handleSyncLyricsToDevice(LanDevice device) async {
     try {
-      showToast('正在向 ${device.name} 同步歌词...');
+      showToast(AppLocalizations.of(context)!.syncingLyricsToDevice(device.name));
       final service = ref.read(sharingServiceProvider);
       final stats = await service.syncLyricsToDevice(device);
       showToast(
-        '同步成功: 匹配 ${stats['matched']} 首, 更新 ${stats['overwritten']} 首, 忽略 ${stats['skipped']} 首',
+        AppLocalizations.of(context)!.syncLyricsSuccess(
+          '${stats['matched']}',
+          '${stats['overwritten']}',
+          '${stats['skipped']}',
+        ),
       );
     } catch (e) {
-      showToast('同步歌词失败: $e');
+      showToast(AppLocalizations.of(context)!.syncLyricsFailed(e.toString()));
     }
   }
 
   Future<void> _handleSyncLyricsFromDevice(LanDevice device) async {
     try {
-      showToast('正在从 ${device.name} 同步歌词...');
+      showToast(AppLocalizations.of(context)!.syncingLyricsFromDevice(device.name));
       final service = ref.read(sharingServiceProvider);
       final stats = await service.pullLyricsFromDevice(device);
       showToast(
-        '同步成功: 本地匹配 ${stats['matched']} 首, 更新 ${stats['overwritten']} 首, 忽略 ${stats['skipped']} 首',
+        AppLocalizations.of(context)!.syncLyricsSuccess(
+          '${stats['matched']}',
+          '${stats['overwritten']}',
+          '${stats['skipped']}',
+        ),
       );
     } catch (e) {
-      showToast('同步歌词失败: $e');
+      showToast(AppLocalizations.of(context)!.syncLyricsFailed(e.toString()));
     }
   }
 
@@ -315,6 +323,7 @@ class _SharingPageState extends ConsumerState<SharingPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final serverState = ref.watch(sharingServerStateProvider);
     final devicesAsync = ref.watch(discoveredDevicesProvider);
     final theme = Theme.of(context);
@@ -353,13 +362,13 @@ class _SharingPageState extends ConsumerState<SharingPage> {
       canPop: !hasActiveTransfers,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
-        showToast('正在传输文件，请勿离开共享页');
+        showToast(l10n.transferInProgressDoNotLeave);
       },
       child: Scaffold(
       appBar: AppBar(
-        title: const Text(
-          '局域网文件共享',
-          style: TextStyle(fontWeight: FontWeight.bold),
+        title: Text(
+          l10n.lanSharingTitle,
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
       ),
       body: Padding(
@@ -409,7 +418,7 @@ class _SharingPageState extends ConsumerState<SharingPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            serverState.isRunning ? '局域网共享已开启' : '局域网共享未开启',
+                            serverState.isRunning ? l10n.lanSharingEnabledStatus : l10n.lanSharingDisabledStatus,
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -418,8 +427,8 @@ class _SharingPageState extends ConsumerState<SharingPage> {
                           const SizedBox(height: 4),
                           Text(
                             serverState.isRunning
-                                ? '本机 IP: ${serverState.localIp} (端口: ${serverState.httpPort})'
-                                : '默认关闭，开启后会请求局域网权限',
+                                ? l10n.lanSharingRunningStatus(serverState.localIp ?? '', '${serverState.httpPort}')
+                                : l10n.lanSharingDefaultOffHint,
                             style: TextStyle(
                               color: theme.colorScheme.onSurface.withValues(
                                 alpha: 0.6,
@@ -430,7 +439,7 @@ class _SharingPageState extends ConsumerState<SharingPage> {
                           if (Platform.isAndroid && !settings.hasLanSharingFolderPath) ...[
                             const SizedBox(height: 4),
                             Text(
-                              '未设置接收文件保存目录时将无法接收文件，建议先设置。',
+                              l10n.receiveDirectoryNotSetWarning,
                               style: TextStyle(
                                 color: theme.colorScheme.onSurface.withValues(
                                   alpha: 0.55,
@@ -475,14 +484,14 @@ class _SharingPageState extends ConsumerState<SharingPage> {
                         androidOutputDirectory.treeUri,
                       );
                       await ref.read(sharingServiceProvider).updateSharingFolderPath(androidOutputDirectory.displayPath);
-                      showToast('接收目录已更新为: ${androidOutputDirectory.displayPath}');
+                      showToast(l10n.receiveDirectoryUpdated(androidOutputDirectory.displayPath));
                       setState(() {});
                     }
                   } else {
                     final dirPath = await FilePicker.getDirectoryPath();
                     if (dirPath != null) {
                       await ref.read(sharingServiceProvider).updateSharingFolderPath(dirPath);
-                      showToast('接收目录已更新为: $dirPath');
+                      showToast(l10n.receiveDirectoryUpdated(dirPath));
                       setState(() {});
                     }
                   }
@@ -508,9 +517,9 @@ class _SharingPageState extends ConsumerState<SharingPage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
-                              '接收文件保存目录',
-                              style: TextStyle(
+                            Text(
+                              l10n.receiveDirectoryTitle,
+                              style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -571,8 +580,8 @@ class _SharingPageState extends ConsumerState<SharingPage> {
                       color: theme.colorScheme.primary,
                       size: 20,
                     ),
-                    title: const Text(
-                      '浏览器网页传输 (Web Share)',
+                    title: Text(
+                      l10n.webShareTitle,
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -586,7 +595,7 @@ class _SharingPageState extends ConsumerState<SharingPage> {
                       Align(
                         alignment: Alignment.centerLeft,
                         child: Text(
-                          '同一局域网的手机/电脑可通过浏览器打开下方链接，直接向本设备上传或下载音乐：',
+                          l10n.webShareDescription,
                           style: TextStyle(
                             color: theme.colorScheme.onSurface.withValues(
                               alpha: 0.6,
@@ -633,7 +642,7 @@ class _SharingPageState extends ConsumerState<SharingPage> {
                                         'http://${serverState.localIp}:${serverState.httpPort}/',
                                   ),
                                 );
-                                showToast('链接已复制到剪贴板');
+                                showToast(l10n.linkCopiedToClipboard);
                               },
                             ),
                           ],
@@ -648,7 +657,7 @@ class _SharingPageState extends ConsumerState<SharingPage> {
 
             // 3. Discovered Devices Section
             Text(
-              '附近的设备',
+              l10n.nearbyDevices,
               style: TextStyle(
                 color: theme.colorScheme.onSurface,
                 fontSize: 16,
@@ -676,8 +685,8 @@ class _SharingPageState extends ConsumerState<SharingPage> {
                           const SizedBox(height: 12),
                           Text(
                             serverState.isRunning
-                                ? '正在寻找局域网内其他设备...'
-                                : '开启共享后开始寻找设备',
+                                ? l10n.searchingDevices
+                                : l10n.startSharingToFindDevices,
                             style: TextStyle(
                               color: theme.colorScheme.onSurface.withValues(
                                 alpha: 0.4,
@@ -764,7 +773,7 @@ class _SharingPageState extends ConsumerState<SharingPage> {
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                device.isOnline ? '在线' : '已断开',
+                                device.isOnline ? l10n.deviceOnline : l10n.deviceOffline,
                                 style: TextStyle(
                                   color: device.isOnline
                                       ? Colors.green
@@ -806,7 +815,7 @@ class _SharingPageState extends ConsumerState<SharingPage> {
                                                     theme.colorScheme.primary,
                                               ),
                                               const SizedBox(width: 8),
-                                              const Text('发送音乐文件'),
+                                              Text(l10n.sendMusicFiles),
                                             ],
                                           ),
                                         ),
@@ -821,7 +830,7 @@ class _SharingPageState extends ConsumerState<SharingPage> {
                                                     theme.colorScheme.primary,
                                               ),
                                               const SizedBox(width: 8),
-                                              const Text('发送文件夹'),
+                                              Text(l10n.sendFolder),
                                             ],
                                           ),
                                         ),
@@ -837,7 +846,7 @@ class _SharingPageState extends ConsumerState<SharingPage> {
                                                     theme.colorScheme.primary,
                                               ),
                                               const SizedBox(width: 8),
-                                              const Text('同步歌词至该设备'),
+                                              Text(l10n.syncLyricsToDeviceAction),
                                             ],
                                           ),
                                         ),
@@ -852,7 +861,7 @@ class _SharingPageState extends ConsumerState<SharingPage> {
                                                     theme.colorScheme.primary,
                                               ),
                                               const SizedBox(width: 8),
-                                              const Text('从该设备同步歌词'),
+                                              Text(l10n.syncLyricsFromDeviceAction),
                                             ],
                                           ),
                                         ),
@@ -871,7 +880,7 @@ class _SharingPageState extends ConsumerState<SharingPage> {
                 ),
                 error: (e, _) => Center(
                   child: Text(
-                    '加载设备出错: $e',
+                    l10n.loadDevicesError(e.toString()),
                     style: TextStyle(color: theme.colorScheme.error),
                   ),
                 ),

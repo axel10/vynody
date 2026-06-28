@@ -1388,5 +1388,190 @@
   "noMatchingModels": "没有找到匹配的模型",
   "leaveEmpty": "留空",
   "leaveEmptyFallbackDescription": "不设置备用模型时可选择此项。",
-  "modelSearchHint": "输入模型名、ID"
+  "modelSearchHint": "输入模型名、ID",
+  "@sendFilesFailed": {
+    "description": "Toast when sending files fails",
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "sendFilesFailed": "发送文件失败: {error}",
+  "scanningFolderMusic": "正在扫描文件夹中的音乐文件...",
+  "@scanFolderFailed": {
+    "description": "Toast when scanning folder fails",
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "scanFolderFailed": "扫描文件夹失败: {error}",
+  "noMusicFilesFound": "未在此文件夹中找到支持的音乐文件",
+  "@sendFolderFailed": {
+    "description": "Toast when sending folder fails",
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "sendFolderFailed": "发送文件夹失败: {error}",
+  "lanSharingStartFailed": "局域网共享启动失败，请检查本地网络权限是否已开启",
+  "@syncingLyricsToDevice": {
+    "description": "Toast when syncing lyrics to a device",
+    "placeholders": {
+      "deviceName": {}
+    }
+  },
+  "syncingLyricsToDevice": "正在向 {deviceName} 同步歌词...",
+  "@syncLyricsSuccess": {
+    "description": "Toast when sync completes",
+    "placeholders": {
+      "matched": {},
+      "overwritten": {},
+      "skipped": {}
+    }
+  },
+  "syncLyricsSuccess": "同步成功: 匹配 {matched} 首, 更新 {overwritten} 首, 忽略 {skipped} 首",
+  "@syncLyricsFailed": {
+    "description": "Toast when sync fails",
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "syncLyricsFailed": "同步歌词失败: {error}",
+  "@syncingLyricsFromDevice": {
+    "description": "Toast when syncing lyrics from a device",
+    "placeholders": {
+      "deviceName": {}
+    }
+  },
+  "syncingLyricsFromDevice": "正在从 {deviceName} 同步歌词...",
+  "transferInProgressDoNotLeave": "正在传输文件，请勿离开共享页",
+  "lanSharingTitle": "局域网文件共享",
+  "lanSharingEnabledStatus": "局域网共享已开启",
+  "lanSharingDisabledStatus": "局域网共享未开启",
+  "@lanSharingRunningStatus": {
+    "description": "Status text showing IP and port",
+    "placeholders": {
+      "ip": {},
+      "port": {}
+    }
+  },
+  "lanSharingRunningStatus": "本机 IP: {ip}（端口: {port}）",
+  "lanSharingDefaultOffHint": "默认关闭，开启后会请求局域网权限",
+  "receiveDirectoryNotSetWarning": "未设置接收文件保存目录时将无法接收文件，建议先设置。",
+  "@receiveDirectoryUpdated": {
+    "description": "Toast when receive directory is updated",
+    "placeholders": {
+      "path": {}
+    }
+  },
+  "receiveDirectoryUpdated": "接收目录已更新为: {path}",
+  "receiveDirectoryTitle": "接收文件保存目录",
+  "webShareTitle": "浏览器网页传输 (Web Share)",
+  "webShareDescription": "同一局域网的手机/电脑可通过浏览器打开下方链接，直接向本设备上传或下载音乐：",
+  "linkCopiedToClipboard": "链接已复制到剪贴板",
+  "nearbyDevices": "附近的设备",
+  "searchingDevices": "正在寻找局域网内其他设备...",
+  "startSharingToFindDevices": "开启共享后开始寻找设备",
+  "deviceOnline": "在线",
+  "deviceOffline": "已断开",
+  "sendMusicFiles": "发送音乐文件",
+  "sendFolder": "发送文件夹",
+  "syncLyricsToDeviceAction": "同步歌词至该设备",
+  "syncLyricsFromDeviceAction": "从该设备同步歌词",
+  "@loadDevicesError": {
+    "description": "Error message when loading devices fails",
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "loadDevicesError": "加载设备出错: {error}",
+  "@incomingFilesFormat": {
+    "description": "File names in incoming transfer dialog",
+    "placeholders": {
+      "name1": {},
+      "name2": {},
+      "count": {}
+    }
+  },
+  "incomingFilesFormat": "{name1}、{name2} 等共 {count} 个文件",
+  "incomingTransferRequestTitle": "收到文件共享请求",
+  "@incomingTransferFrom": {
+    "description": "Who sent the request",
+    "placeholders": {
+      "senderName": {}
+    }
+  },
+  "incomingTransferFrom": "来自 \"{senderName}\" 的发送请求：",
+  "@fileSizeMb": {
+    "description": "File size in megabytes",
+    "placeholders": {
+      "sizeMb": {}
+    }
+  },
+  "fileSizeMb": "文件大小: {sizeMb} MB",
+  "receiveFileHint": "提示：接收后文件将自动保存至本地音乐文件夹并加入媒体库。",
+  "reject": "拒绝",
+  "accept": "接收",
+  "@sendCompleted": {
+    "description": "Toast when sending completes",
+    "placeholders": {
+      "fileName": {}
+    }
+  },
+  "sendCompleted": "\"{fileName}\" 发送完毕",
+  "@receiveCompleted": {
+    "description": "Toast when receiving completes",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "receiveCompleted": "成功接收了 {count} 首歌曲",
+  "@transferCancelledWithReason": {
+    "description": "Toast when transfer is cancelled with reason",
+    "placeholders": {
+      "direction": {},
+      "reason": {}
+    }
+  },
+  "transferCancelledWithReason": "{direction}已取消（{reason}）",
+  "@transferFailedFormat": {
+    "description": "Toast when transfer fails",
+    "placeholders": {
+      "direction": {},
+      "fileName": {}
+    }
+  },
+  "transferFailedFormat": "{direction} \"{fileName}\" 失败",
+  "@sendingToDevice": {
+    "description": "Title for send progress dialog",
+    "placeholders": {
+      "deviceName": {}
+    }
+  },
+  "sendingToDevice": "正在发送到 {deviceName}",
+  "@receivingFromDevice": {
+    "description": "Title for receive progress dialog",
+    "placeholders": {
+      "deviceName": {}
+    }
+  },
+  "receivingFromDevice": "正在从 {deviceName} 接收",
+  "@progressFormat": {
+    "description": "Transfer progress percentage",
+    "placeholders": {
+      "percent": {}
+    }
+  },
+  "progressFormat": "进度: {percent}%",
+  "currentlyTransferring": "当前正在传输",
+  "fileConflictTitle": "文件冲突",
+  "fileConflictMessage": "目标设备已存在同名文件：",
+  "fileConflictChooseAction": "请选择您要执行的操作：",
+  "skipAction": "跳过",
+  "overwriteAction": "覆盖",
+  "skipAllAction": "全部跳过",
+  "overwriteAllAction": "全部覆盖",
+  "sendDirection": "发送",
+  "receiveDirection": "接收"
 }

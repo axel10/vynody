@@ -937,5 +937,190 @@
   "noMatchingModels": "일치하는 모델을 찾을 수 없습니다",
   "leaveEmpty": "비워두기",
   "leaveEmptyFallbackDescription": "대체 모델을 설정하지 않으려면 선택하세요.",
-  "modelSearchHint": "모델 이름, ID 입력"
+  "modelSearchHint": "모델 이름, ID 입력",
+  "@sendFilesFailed": {
+    "description": "Toast when sending files fails",
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "sendFilesFailed": "파일 전송 실패: {error}",
+  "scanningFolderMusic": "폴더에서 음악 파일 검색 중...",
+  "@scanFolderFailed": {
+    "description": "Toast when scanning folder fails",
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "scanFolderFailed": "폴더 검색 실패: {error}",
+  "noMusicFilesFound": "이 폴더에서 지원되는 음악 파일을 찾을 수 없습니다",
+  "@sendFolderFailed": {
+    "description": "Toast when sending folder fails",
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "sendFolderFailed": "폴더 전송 실패: {error}",
+  "lanSharingStartFailed": "LAN 공유 시작 실패. 로컬 네트워크 권한을 확인해주세요.",
+  "@syncingLyricsToDevice": {
+    "description": "Toast when syncing lyrics to a device",
+    "placeholders": {
+      "deviceName": {}
+    }
+  },
+  "syncingLyricsToDevice": "{deviceName}에 가사 동기화 중...",
+  "@syncLyricsSuccess": {
+    "description": "Toast when sync completes",
+    "placeholders": {
+      "matched": {},
+      "overwritten": {},
+      "skipped": {}
+    }
+  },
+  "syncLyricsSuccess": "동기화 완료: 일치 {matched}곡, 업데이트 {overwritten}곡, 건너뜀 {skipped}곡",
+  "@syncLyricsFailed": {
+    "description": "Toast when sync fails",
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "syncLyricsFailed": "가사 동기화 실패: {error}",
+  "@syncingLyricsFromDevice": {
+    "description": "Toast when syncing lyrics from a device",
+    "placeholders": {
+      "deviceName": {}
+    }
+  },
+  "syncingLyricsFromDevice": "{deviceName}에서 가사 동기화 중...",
+  "transferInProgressDoNotLeave": "전송 중입니다. 공유 페이지를 떠나지 마세요",
+  "lanSharingTitle": "LAN 파일 공유",
+  "lanSharingEnabledStatus": "LAN 공유가 활성화되었습니다",
+  "lanSharingDisabledStatus": "LAN 공유가 비활성화되었습니다",
+  "@lanSharingRunningStatus": {
+    "description": "Status text showing IP and port",
+    "placeholders": {
+      "ip": {},
+      "port": {}
+    }
+  },
+  "lanSharingRunningStatus": "로컬 IP: {ip} (포트: {port})",
+  "lanSharingDefaultOffHint": "기본적으로 비활성화됩니다. 활성화하면 로컬 네트워크 권한을 요청합니다.",
+  "receiveDirectoryNotSetWarning": "파일을 수신하려면 수신 디렉토리를 설정해야 합니다. 설정해주세요.",
+  "@receiveDirectoryUpdated": {
+    "description": "Toast when receive directory is updated",
+    "placeholders": {
+      "path": {}
+    }
+  },
+  "receiveDirectoryUpdated": "수신 디렉토리가 업데이트되었습니다: {path}",
+  "receiveDirectoryTitle": "수신 디렉토리",
+  "webShareTitle": "웹 공유",
+  "webShareDescription": "같은 LAN에 있는 다른 기기는 브라우저에서 아래 링크를 열어 음악을 업로드하거나 다운로드할 수 있습니다.",
+  "linkCopiedToClipboard": "클립보드에 링크가 복사되었습니다",
+  "nearbyDevices": "근처 기기",
+  "searchingDevices": "LAN에서 다른 기기 검색 중...",
+  "startSharingToFindDevices": "공유를 활성화하여 기기 검색",
+  "deviceOnline": "온라인",
+  "deviceOffline": "오프라인",
+  "sendMusicFiles": "음악 파일 보내기",
+  "sendFolder": "폴더 보내기",
+  "syncLyricsToDeviceAction": "기기로 가사 동기화",
+  "syncLyricsFromDeviceAction": "기기에서 가사 동기화",
+  "@loadDevicesError": {
+    "description": "Error message when loading devices fails",
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "loadDevicesError": "기기 로드 실패: {error}",
+  "@incomingFilesFormat": {
+    "description": "File names in incoming transfer dialog",
+    "placeholders": {
+      "name1": {},
+      "name2": {},
+      "count": {}
+    }
+  },
+  "incomingFilesFormat": "{name1}, {name2} 등 총 {count}개 파일",
+  "incomingTransferRequestTitle": "파일 전송 요청 수신",
+  "@incomingTransferFrom": {
+    "description": "Who sent the request",
+    "placeholders": {
+      "senderName": {}
+    }
+  },
+  "incomingTransferFrom": "\"{senderName}\"의 전송 요청:",
+  "@fileSizeMb": {
+    "description": "File size in megabytes",
+    "placeholders": {
+      "sizeMb": {}
+    }
+  },
+  "fileSizeMb": "파일 크기: {sizeMb} MB",
+  "receiveFileHint": "수신된 파일은 음악 폴더에 저장되고 라이브러리에 추가됩니다.",
+  "reject": "거절",
+  "accept": "수락",
+  "@sendCompleted": {
+    "description": "Toast when sending completes",
+    "placeholders": {
+      "fileName": {}
+    }
+  },
+  "sendCompleted": "\"{fileName}\" 전송 완료",
+  "@receiveCompleted": {
+    "description": "Toast when receiving completes",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "receiveCompleted": "{count}곡을 성공적으로 수신했습니다",
+  "@transferCancelledWithReason": {
+    "description": "Toast when transfer is cancelled with reason",
+    "placeholders": {
+      "direction": {},
+      "reason": {}
+    }
+  },
+  "transferCancelledWithReason": "{direction} 취소됨 ({reason})",
+  "@transferFailedFormat": {
+    "description": "Toast when transfer fails",
+    "placeholders": {
+      "direction": {},
+      "fileName": {}
+    }
+  },
+  "transferFailedFormat": "{direction} \"{fileName}\" 실패",
+  "@sendingToDevice": {
+    "description": "Title for send progress dialog",
+    "placeholders": {
+      "deviceName": {}
+    }
+  },
+  "sendingToDevice": "{deviceName}에 보내는 중",
+  "@receivingFromDevice": {
+    "description": "Title for receive progress dialog",
+    "placeholders": {
+      "deviceName": {}
+    }
+  },
+  "receivingFromDevice": "{deviceName}에서 받는 중",
+  "@progressFormat": {
+    "description": "Transfer progress percentage",
+    "placeholders": {
+      "percent": {}
+    }
+  },
+  "progressFormat": "진행: {percent}%",
+  "currentlyTransferring": "현재 전송 중",
+  "fileConflictTitle": "파일 충돌",
+  "fileConflictMessage": "대상 기기에 같은 이름의 파일이 이미 존재합니다:",
+  "fileConflictChooseAction": "수행할 작업을 선택하세요:",
+  "skipAction": "건너뛰기",
+  "overwriteAction": "덮어쓰기",
+  "skipAllAction": "모두 건너뛰기",
+  "overwriteAllAction": "모두 덮어쓰기",
+  "sendDirection": "보내기",
+  "receiveDirection": "받기"
 }
