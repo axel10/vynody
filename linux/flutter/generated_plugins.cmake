@@ -3,7 +3,6 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
-  dart_chromaprint
   desktop_drop
   file_selector_linux
   flutter_tray

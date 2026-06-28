@@ -1,5 +1,5 @@
 {
-  "originHash" : "68b0460c8d78fcdd91466163896298dc4d3ead3a28fdb89224cc337f64912a8e",
+  "originHash" : "6a22000fa58b7195180764376ab1c553a82a009d21d49309a74bced04d6f66ef",
   "pins" : [
     {
       "identity" : "avfaudioextensions",
@@ -62,15 +62,6 @@
       "state" : {
         "revision" : "8d859aa73d115273afcebe754b22bf50d3ea0621",
         "version" : "0.6.1"
-      }
-    },
-    {
-      "identity" : "cxxtaglib",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/sbooth/CXXTagLib",
-      "state" : {
-        "revision" : "b570acead5e27006cb41ab5ff7443c8797b3b8e5",
-        "version" : "2.3.0"
       }
     },
     {
