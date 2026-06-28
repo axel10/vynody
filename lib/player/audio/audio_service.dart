@@ -28,6 +28,7 @@ import 'package:vynody/player/audio/waveform_service.dart';
 import 'package:vynody/player/platform/windows_integration_service.dart';
 import 'package:vynody/player/platform/android_integration_service.dart';
 import 'package:vynody/player/platform/darwin_integration_service.dart';
+import 'package:vynody/player/platform/linux_integration_service.dart';
 import 'package:vynody/player/scanner/scanner_service.dart';
 import 'package:vynody/player/library/playlist_service.dart';
 import 'package:vynody/player/metadata/metadata_helper.dart';
@@ -360,6 +361,7 @@ class AudioService extends Notifier<AudioSnapshot> {
   late final WindowsIntegrationService? _windowsIntegration;
   late final AndroidIntegrationService? _androidIntegration;
   late final DarwinIntegrationService? _darwinIntegration;
+  late final LinuxIntegrationService? _linuxIntegration;
   String? _themePaletteRecomputeInProgressPath;
 
   Color? get dynamicStartColor => _dynamicStartColor;
@@ -419,6 +421,9 @@ class AudioService extends Notifier<AudioSnapshot> {
         : null;
     _darwinIntegration = (Platform.isIOS || Platform.isMacOS)
         ? DarwinIntegrationService(this)
+        : null;
+    _linuxIntegration = Platform.isLinux
+        ? LinuxIntegrationService(this)
         : null;
     _player.addListener(_handlePlayerChanges);
     _settingsListener = () {
@@ -549,12 +554,15 @@ class AudioService extends Notifier<AudioSnapshot> {
         _windowsIntegration?.updateMetadata(currentSong);
         _androidIntegration?.updateMetadata(currentSong);
         _darwinIntegration?.updateMetadata(currentSong);
+        _linuxIntegration?.updateMetadata(currentSong);
         _windowsIntegration?.updatePlaybackStatus(_isPlaying);
         _androidIntegration?.updatePlaybackStatus(_isPlaying);
         _darwinIntegration?.updatePlaybackStatus(_isPlaying);
+        _linuxIntegration?.updatePlaybackStatus(_isPlaying);
         _windowsIntegration?.updateTimeline(_position, duration);
         _androidIntegration?.updateTimeline(_position, duration);
         _darwinIntegration?.updateTimeline(_position, duration);
+        _linuxIntegration?.updateTimeline(_position, duration);
         unawaited(_updateCurrentMetadata(currentSong));
       } else {
         // No restored track still exists, so discard the stale session and
@@ -1222,6 +1230,7 @@ class AudioService extends Notifier<AudioSnapshot> {
             _windowsIntegration?.updateMetadata(_queue[newIndex]);
             _androidIntegration?.updateMetadata(_queue[newIndex]);
             _darwinIntegration?.updateMetadata(_queue[newIndex]);
+            _linuxIntegration?.updateMetadata(_queue[newIndex]);
             _startQueueBackgroundProcessing();
           }),
         );
@@ -1242,9 +1251,11 @@ class AudioService extends Notifier<AudioSnapshot> {
     _windowsIntegration?.updateTimeline(_position, _duration);
     _androidIntegration?.updateTimeline(_position, _duration);
     _darwinIntegration?.updateTimeline(_position, _duration);
+    _linuxIntegration?.updateTimeline(_position, _duration);
     _windowsIntegration?.updatePlaybackStatus(_isPlaying);
     _androidIntegration?.updatePlaybackStatus(_isPlaying);
     _darwinIntegration?.updatePlaybackStatus(_isPlaying);
+    _linuxIntegration?.updatePlaybackStatus(_isPlaying);
     _updatePlaybackTrackingForCurrentSong();
 
     // 如果当前开启了歌词模式，但因为切歌瞬间加载太快（时长 Duration 还没准备好）
@@ -1974,6 +1985,7 @@ class AudioService extends Notifier<AudioSnapshot> {
     _windowsIntegration?.updateMetadata(song);
     _androidIntegration?.updateMetadata(song);
     _darwinIntegration?.updateMetadata(song);
+    _linuxIntegration?.updateMetadata(song);
 
     // Trigger lyric loading only when lyric mode is active and we still do not
     // have lyrics for this track.
@@ -2892,6 +2904,7 @@ class AudioService extends Notifier<AudioSnapshot> {
     _queueProcessor.dispose();
     _player.visualizer.removeOutput('mini_player');
     _windowsIntegration?.dispose();
+    _linuxIntegration?.dispose();
     _player.dispose();
   }
 }

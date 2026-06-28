@@ -108,6 +108,7 @@ dependencies:
   pasteboard: ^0.5.0
   package_info_plus: ^9.0.1
   bonsoir: ^7.1.2
+  audio_service_mpris: ^0.2.1
 
 dev_dependencies:
   flutter_test:
