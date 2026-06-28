@@ -336,24 +336,44 @@ class _CoverItem extends StatefulWidget {
 class _CoverItemState extends State<_CoverItem> {
   Uint8List? _artworkBytes;
   bool _isLoaded = false;
+  bool _hasLoadedHighRes = false;
 
   void _logCarouselTrace(String message) {
     if (!kDebugMode) return;
     debugPrint('[CoverCarousel][Trace] $message');
   }
 
+  bool get _isSettled {
+    final double pageOffset = widget.animation.value - widget.itemIndex;
+    return pageOffset.abs() < 0.01 && !widget.animation.isAnimating;
+  }
+
+  void _handleAnimationUpdate() {
+    if (!mounted) return;
+    if (_isSettled && !_hasLoadedHighRes) {
+      _loadHighResArtwork();
+    }
+  }
+
   @override
   void initState() {
     super.initState();
+    widget.animation.addListener(_handleAnimationUpdate);
     _loadArtwork();
   }
 
   @override
   void didUpdateWidget(_CoverItem oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.animation != widget.animation) {
+      oldWidget.animation.removeListener(_handleAnimationUpdate);
+      widget.animation.addListener(_handleAnimationUpdate);
+    }
     // If the path changed, we must reset everything
     if (oldWidget.musicFile.path != widget.musicFile.path) {
       _artworkBytes = null;
+      _isLoaded = false;
+      _hasLoadedHighRes = false;
       _loadArtwork();
     }
     // If the path is the same but artworkBytes or artworkPath appeared, we should update.
@@ -361,8 +381,16 @@ class _CoverItemState extends State<_CoverItem> {
     else if (widget.musicFile.artworkBytes !=
             oldWidget.musicFile.artworkBytes ||
         widget.musicFile.artworkPath != oldWidget.musicFile.artworkPath) {
-      _loadArtwork();
+      if (_isSettled) {
+        _loadArtwork();
+      }
     }
+  }
+
+  @override
+  void dispose() {
+    widget.animation.removeListener(_handleAnimationUpdate);
+    super.dispose();
   }
 
   Future<void> _loadArtwork() async {
@@ -374,13 +402,16 @@ class _CoverItemState extends State<_CoverItem> {
       );
     }
 
-    // If we have original HD bytes in cache, use them.
+    // 1. If we have original HD bytes in cache, use them.
     final cachedBytes = widget.audioService.getCachedArtwork(
       widget.musicFile.path,
     );
     if (cachedBytes != null) {
       if (!mounted) return;
-      setState(() => _artworkBytes = cachedBytes);
+      setState(() {
+        _artworkBytes = cachedBytes;
+        _hasLoadedHighRes = true;
+      });
       widget.onArtworkLoaded?.call(cachedBytes, null);
       _logCarouselTrace(
         '_loadArtwork used cached bytes path=${widget.musicFile.path} '
@@ -389,24 +420,62 @@ class _CoverItemState extends State<_CoverItem> {
       return;
     }
 
+    // 2. If currentMusic has artworkBytes, use them.
     if (widget.audioService.currentMusic?.path == widget.musicFile.path &&
         widget.audioService.currentMusic?.artworkBytes != null) {
       if (!mounted) return;
-      setState(
-        () => _artworkBytes = widget.audioService.currentMusic!.artworkBytes,
-      );
-      widget.onArtworkLoaded?.call(
-        widget.audioService.currentMusic!.artworkBytes,
-        null,
-      );
+      final bytes = widget.audioService.currentMusic!.artworkBytes!;
+      setState(() {
+        _artworkBytes = bytes;
+        _hasLoadedHighRes = true;
+      });
+      widget.onArtworkLoaded?.call(bytes, null);
       _logCarouselTrace(
         '_loadArtwork used currentMusic bytes path=${widget.musicFile.path} '
-        'bytes=${widget.audioService.currentMusic!.artworkBytes!.length}',
+        'bytes=${bytes.length}',
       );
       return;
     }
 
-    // 3. Try artworkPath if it exists (high res local)
+    // 3. Try thumbnailPath first (it is pre-scaled to 500x500 and much faster to read & decode!)
+    final thumbPath = widget.musicFile.thumbnailPath;
+    if (thumbPath != null) {
+      try {
+        final file = File(thumbPath);
+        if (await file.exists()) {
+          final bytes = await file.readAsBytes();
+          if (!mounted) return;
+          setState(() {
+            _artworkBytes = bytes;
+          });
+          widget.onArtworkLoaded?.call(bytes, null);
+          _logCarouselTrace(
+            '_loadArtwork used thumbnailPath path=${widget.musicFile.path} '
+            'bytes=${bytes.length}',
+          );
+          
+          if (_isSettled) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted && _isSettled && !_hasLoadedHighRes) {
+                _loadHighResArtwork();
+              }
+            });
+          }
+          return;
+        }
+      } catch (e) {
+        debugPrint('Error loading thumbnail from $thumbPath: $e');
+      }
+    }
+
+    // 4. If no thumbnail exists, fall back to high-res load immediately
+    _loadHighResArtwork();
+  }
+
+  Future<void> _loadHighResArtwork() async {
+    if (_hasLoadedHighRes) return;
+    _hasLoadedHighRes = true;
+
     final highResPath = widget.musicFile.artworkPath;
     if (highResPath != null) {
       try {
@@ -419,7 +488,7 @@ class _CoverItemState extends State<_CoverItem> {
           });
           widget.onArtworkLoaded?.call(bytes, null);
           _logCarouselTrace(
-            '_loadArtwork used highResPath path=${widget.musicFile.path} '
+            '_loadHighResArtwork used highResPath path=${widget.musicFile.path} '
             'bytes=${bytes.length}',
           );
           return;
@@ -429,9 +498,7 @@ class _CoverItemState extends State<_CoverItem> {
       }
     }
 
-
-
-    // 5. Try system query (on_audio_query)
+    // Try system query (on_audio_query)
     if (Platform.isAndroid || Platform.isIOS) {
       if (widget.musicFile.id != null) {
         final bytes = await OnAudioQuery().queryArtwork(
@@ -445,14 +512,14 @@ class _CoverItemState extends State<_CoverItem> {
         });
         widget.onArtworkLoaded?.call(bytes, null);
         _logCarouselTrace(
-          '_loadArtwork used on_audio_query path=${widget.musicFile.path} '
+          '_loadHighResArtwork used on_audio_query path=${widget.musicFile.path} '
           'bytes=${bytes.length}',
         );
         return;
       }
     }
 
-    // 6. Try extracting embedded artwork as last resort
+    // Try extracting embedded artwork as last resort
     final embeddedBytes = await MetadataHelper.decodeEmbeddedArtwork(
       widget.musicFile.path,
     );
@@ -463,17 +530,10 @@ class _CoverItemState extends State<_CoverItem> {
       });
       widget.onArtworkLoaded?.call(embeddedBytes, null);
       _logCarouselTrace(
-        '_loadArtwork used embedded path=${widget.musicFile.path} '
+        '_loadHighResArtwork used embedded path=${widget.musicFile.path} '
         'bytes=${embeddedBytes.length}',
       );
       return;
-    }
-
-    if (mounted) {
-      setState(() {
-        _artworkBytes = null;
-      });
-      widget.onArtworkLoaded?.call(null, null);
     }
   }
 
@@ -612,6 +672,24 @@ class _CoverItemState extends State<_CoverItem> {
         filterQuality: isCentered ? FilterQuality.low : FilterQuality.medium,
       );
     } else {
+      final thumbPath = widget.musicFile.thumbnailPath;
+      if (thumbPath != null) {
+        final file = File(thumbPath);
+        if (file.existsSync()) {
+          return Image.file(
+            file,
+            fit: BoxFit.contain,
+            width: double.infinity,
+            height: double.infinity,
+            gaplessPlayback: true,
+            cacheWidth: finalCacheWidth,
+            filterQuality: isCentered
+                ? FilterQuality.low
+                : FilterQuality.medium,
+          );
+        }
+      }
+
       final imagePath = widget.musicFile.artworkPath;
       if (imagePath != null) {
         final file = File(imagePath);
@@ -629,8 +707,6 @@ class _CoverItemState extends State<_CoverItem> {
           );
         }
       }
-
-
     }
 
     if (!_isLoaded) {

@@ -2427,6 +2427,7 @@ class AudioService extends Notifier<AudioSnapshot> {
       'next() start | current=${_debugSongLabel(currentMusic)} '
       'transitioning=$_isTransitioning',
     );
+    notifyListeners();
     try {
       final success = await _player.playlist.playNext();
       _logPlaybackTrace(
@@ -2437,6 +2438,7 @@ class AudioService extends Notifier<AudioSnapshot> {
         final newIndex = _player.playlist.currentIndex ?? -1;
         if (newIndex >= 0 && newIndex < _queue.length) {
           _currentIndex = newIndex;
+          notifyListeners();
           final song = _queue[_currentIndex];
           _logPlaybackTrace('next() sync target -> ${_debugSongLabel(song)}');
           await _syncCurrentPlaybackSong(song);
@@ -2473,6 +2475,7 @@ class AudioService extends Notifier<AudioSnapshot> {
       'playAtIndex($index) start | current=${_debugSongLabel(currentMusic)} '
       'transitioning=$_isTransitioning',
     );
+    notifyListeners();
     try {
       final song = _queue[index];
       _logPlaybackTrace(
@@ -2485,6 +2488,7 @@ class AudioService extends Notifier<AudioSnapshot> {
             _player.playlist.queuePlaylistId,
       );
       _currentIndex = index;
+      notifyListeners();
       await _syncCurrentPlaybackSong(song);
     } finally {
       _isTransitioning = false;
@@ -2609,6 +2613,7 @@ class AudioService extends Notifier<AudioSnapshot> {
       'previous() start | current=${_debugSongLabel(currentMusic)} '
       'transitioning=$_isTransitioning',
     );
+    notifyListeners();
     try {
       final success = await _player.playlist.playPrevious();
       _logPlaybackTrace(
@@ -2619,6 +2624,7 @@ class AudioService extends Notifier<AudioSnapshot> {
         final newIndex = _player.playlist.currentIndex ?? -1;
         if (newIndex >= 0 && newIndex < _queue.length) {
           _currentIndex = newIndex;
+          notifyListeners();
           final song = _queue[_currentIndex];
           _logPlaybackTrace(
             'previous() sync target -> ${_debugSongLabel(song)}',
