@@ -3,9 +3,84 @@
 #include <windows.h>
 #include <vector>
 #include <string>
+#include <shlobj.h>
+#include <propkey.h>
+#include <propvarutil.h>
+#include <appmodel.h>
 
 #include "flutter_window.h"
 #include "utils.h"
+
+bool IsPackaged() {
+  UINT32 length = 0;
+  LONG rc = GetCurrentPackageFullName(&length, NULL);
+  return rc != APPMODEL_ERROR_NO_PACKAGE;
+}
+
+void RegisterAppUserModelIDAndShortcut() {
+  if (IsPackaged()) {
+    return;
+  }
+
+  // Set explicit AppUserModelID for the current process
+  const wchar_t* appId = L"axel10.vynody.player";
+  SetCurrentProcessExplicitAppUserModelID(appId);
+
+  // Dynamically create a Start Menu shortcut if it does not exist
+  wchar_t startMenuPath[MAX_PATH];
+  if (SUCCEEDED(SHGetFolderPathW(NULL, CSIDL_PROGRAMS, NULL, 0, startMenuPath))) {
+    std::wstring shortcutPath = std::wstring(startMenuPath) + L"\\Vynody.lnk";
+    
+    // Check if the shortcut already exists. If it does, we don't need to recreate it every time
+    DWORD attrib = GetFileAttributesW(shortcutPath.c_str());
+    if (attrib != INVALID_FILE_ATTRIBUTES) {
+      return;
+    }
+
+    // Get current executable path
+    wchar_t exePath[MAX_PATH];
+    GetModuleFileNameW(NULL, exePath, MAX_PATH);
+
+    // Create the shortcut
+    IShellLinkW* psl;
+    HRESULT hr = CoCreateInstance(CLSID_ShellLink, NULL, CLSCTX_INPROC_SERVER, IID_IShellLinkW, (LPVOID*)&psl);
+    if (SUCCEEDED(hr)) {
+      psl->SetPath(exePath);
+      
+      // Get directory of the executable for working directory
+      std::wstring exeDir = exePath;
+      size_t lastSlash = exeDir.find_last_of(L"\\/");
+      if (lastSlash != std::wstring::npos) {
+        exeDir = exeDir.substr(0, lastSlash);
+      }
+      psl->SetWorkingDirectory(exeDir.c_str());
+
+      // Set AppUserModelID on the shortcut's property store
+      IPropertyStore* pps;
+      hr = psl->QueryInterface(IID_IPropertyStore, (LPVOID*)&pps);
+      if (SUCCEEDED(hr)) {
+        PROPVARIANT pv;
+        InitPropVariantFromString(appId, &pv);
+        hr = pps->SetValue(PKEY_AppUserModel_ID, pv);
+        if (SUCCEEDED(hr)) {
+          hr = pps->Commit();
+        }
+        PropVariantClear(&pv);
+        pps->Release();
+      }
+
+      if (SUCCEEDED(hr)) {
+        IPersistFile* ppf;
+        hr = psl->QueryInterface(IID_IPersistFile, (LPVOID*)&ppf);
+        if (SUCCEEDED(hr)) {
+          hr = ppf->Save(shortcutPath.c_str(), TRUE);
+          ppf->Release();
+        }
+      }
+      psl->Release();
+    }
+  }
+}
 
 // Struct to store hwnd during EnumWindows search
 struct FindWindowData {
@@ -75,6 +150,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   // Initialize COM, so that it is available for use in the library and/or
   // plugins.
   ::CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+
+  RegisterAppUserModelIDAndShortcut();
 
   flutter::DartProject project(L"data");
 
