@@ -1,25 +1,19 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:ui';
 
 import 'package:audio_core/audio_core.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
-import '../../l10n/app_localizations.dart';
-import '../../l10n/app_localizations_en.dart';
-import '../../l10n/app_localizations_zh.dart';
+import 'package:vynody/utils/localized_text.dart';
 import 'package:vynody/utils/query_url_utils.dart';
 import 'package:vynody/utils/network_client.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
 
 part 'acoustid_service.freezed.dart';
 
-AppLocalizations _l10n() {
-  final locale = PlatformDispatcher.instance.locale;
-  return locale.languageCode == 'zh' ? AppLocalizationsZh() : AppLocalizationsEn();
-}
+AppLocalizations _l10n() => currentAppL10n;
 
 String acoustIDReleaseGroupThumbnailUrl(String releaseGroupId) =>
     'https://coverartarchive.org/release-group/$releaseGroupId/front-250';

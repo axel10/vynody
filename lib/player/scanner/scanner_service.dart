@@ -35,17 +35,12 @@ import 'package:vynody/player/metadata/artwork_constants.dart';
 import 'package:vynody/player/library/music_file_utils.dart';
 import 'package:vynody/player/settings/settings_service.dart';
 import 'package:vynody/player/settings/track_artwork_theme_service.dart';
-import '../../l10n/app_localizations.dart';
-import '../../l10n/app_localizations_en.dart';
-import '../../l10n/app_localizations_zh.dart';
+import 'package:vynody/utils/localized_text.dart';
 import 'package:vynody/utils/linux_mount_helper.dart';
 
 export 'package:vynody/player/scanner/scanner_scan_support.dart';
 
-AppLocalizations _l10n() {
-  final locale = PlatformDispatcher.instance.locale;
-  return locale.languageCode == 'zh' ? AppLocalizationsZh() : AppLocalizationsEn();
-}
+AppLocalizations _l10n() => currentAppL10n;
 
 enum _DirectoryRescanMode { nonRecursive, recursive }
 

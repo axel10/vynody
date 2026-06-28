@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:ui';
 
 import 'package:dio/dio.dart'
     show
@@ -17,9 +16,7 @@ import 'package:path/path.dart' as p;
 
 import 'package:vynody/utils/lrc_utils.dart';
 import 'package:vynody/utils/network_client.dart';
-import 'package:vynody/l10n/app_localizations.dart';
-import 'package:vynody/l10n/app_localizations_en.dart';
-import 'package:vynody/l10n/app_localizations_zh.dart';
+import 'package:vynody/utils/localized_text.dart';
 import 'package:vynody/player/lyrics/lyrics_ai_shared.dart';
 import 'package:vynody/player/lyrics/lyrics_ai_stream_parser.dart';
 import 'package:vynody/player/lyrics/lyrics_generation_result.dart';
@@ -578,8 +575,4 @@ class LyricsAiOpenRouterClient {
       _l10n().networkRequestFailedCheckProxy;
 }
 
-AppLocalizations _l10n() {
-  return PlatformDispatcher.instance.locale.languageCode == 'zh'
-      ? AppLocalizationsZh()
-      : AppLocalizationsEn();
-}
+AppLocalizations _l10n() => currentAppL10n;

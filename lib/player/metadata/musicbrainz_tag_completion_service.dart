@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:typed_data';
-import 'dart:ui';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -8,16 +7,11 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:vynody/utils/network_client.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/player/metadata/metadata_helper.dart';
-import '../../l10n/app_localizations.dart';
-import '../../l10n/app_localizations_en.dart';
-import '../../l10n/app_localizations_zh.dart';
+import 'package:vynody/utils/localized_text.dart';
 
 part 'musicbrainz_tag_completion_service.freezed.dart';
 
-AppLocalizations _l10n() {
-  final locale = PlatformDispatcher.instance.locale;
-  return locale.languageCode == 'zh' ? AppLocalizationsZh() : AppLocalizationsEn();
-}
+AppLocalizations _l10n() => currentAppL10n;
 
 @freezed
 abstract class MusicBrainzReleaseMatch with _$MusicBrainzReleaseMatch {

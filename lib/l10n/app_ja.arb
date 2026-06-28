@@ -1,0 +1,1040 @@
+{
+  "@@locale": "ja",
+  "appTitle": "Vynody",
+  "alwaysOnTop": "常に最前面",
+  "@alwaysOnTop": {
+    "description": "Tooltip for always on top / pin button in window title bar"
+  },
+  "systemMediaLibrary": "システムメディアライブラリ",
+  "scanningDirectory": "ディレクトリをスキャン中...",
+  "filesPreprocessed": "前処理済み {count}",
+  "@filesPreprocessed": {
+    "description": "Scanning progress toast message showing how many files have had text metadata preprocessed",
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "filesDiscovered": "発見 {count}",
+  "@filesDiscovered": {
+    "description": "Scanning progress toast message showing how many files have been discovered",
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "filesFullyProcessed": "完全処理 {count}",
+  "@filesFullyProcessed": {
+    "description": "Scanning progress toast message showing how many songs have been fully processed with thumbnails and theme colors",
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "directoryAddedSuccess": "ディレクトリを追加しました",
+  "directoryAddedNoMusic": "ディレクトリを追加しましたが、再生可能なオーディオファイルが見つかりませんでした",
+  "scanDirectory": "ディレクトリをスキャン",
+  "sort": "並び替え",
+  "addRootDirectory": "ルートディレクトリを追加",
+  "goBack": "戻る",
+  "noMediaLibraryPermission": "メディアライブラリへのアクセス権限がありません",
+  "grantPermission": "権限を付与",
+  "needPermissionToScan": "ローカル音楽をスキャンするには権限が必要です",
+  "rebuildTagDatabase": "タグデータベースを再構築",
+  "rebuildDatabase": "データベースを再構築",
+  "confirmRebuildDatabase": "すべての楽曲タグ情報を手動で更新してもよろしいですか？カバーとメタデータの再読み込みに時間がかかる場合があります。",
+  "cancel": "キャンセル",
+  "confirm": "確認",
+  "rebuildingDatabase": "楽曲タグデータベースを再構築中...",
+  "sortBy": "並び替え基準",
+  "sortScope": "範囲",
+  "sortOrder": "並び順",
+  "title": "タイトル",
+  "fileName": "ファイル名",
+  "trackNumber": "トラック番号",
+  "ascending": "昇順",
+  "descending": "降順",
+  "currentFolderScope": "現在のフォルダ",
+  "globalScope": "全体",
+  "visualizerSettings": "再生ページ設定",
+  "algorithm": "スペクトラム",
+  "appearance": "外観",
+  "spectrumAppearanceGroup": "スペクトラムの外観",
+  "spectrumAdvancedOptions": "スペクトラムの詳細オプション",
+  "resetAlgorithm": "アルゴリズムをリセット",
+  "resetAppearance": "外観をリセット",
+  "smoothing": "スムージング",
+  "gravity": "グラビティ",
+  "logScale": "ログスケール",
+  "contrast": "コントラスト",
+  "normalization": "正規化",
+  "multiplier": "マルチプライヤ",
+  "skipHighFrequency": "高周波をスキップ",
+  "frequencyGroups": "周波数グループ",
+  "aggregationMode": "集約モード",
+  "opacity": "不透明度",
+  "enableGradient": "グラデーションを有効化",
+  "startColor": "開始色",
+  "endColor": "終了色",
+  "gradientRangeStop1": "グラデーション範囲ストップ1",
+  "gradientRangeStop2": "グラデーション範囲ストップ2",
+  "gradientRepeatMode": "グラデーションの繰り返しモード",
+  "color": "色",
+  "followCoverColor": "カバー色に合わせる",
+  "selectColor": "色を選択",
+  "volume": "音量",
+  "clearQueue": "キューをクリア",
+  "confirmClearQueue": "現在のキューをクリアしてもよろしいですか？",
+  "queueCleared": "キューをクリアしました",
+  "locateCurrentSong": "現在の曲を探す",
+  "songNotInScannedFolders": "現在の曲はスキャンされたディレクトリにありません",
+  "queue": "キュー",
+  "queueEmpty": "キューは空です",
+  "selectedSongs": "{count}曲選択中",
+  "unknownArtist": "不明なアーティスト",
+  "deletedSongs": "{count}曲を削除しました",
+  "delete": "削除",
+  "createPlaylist": "プレイリストを作成",
+  "playlistName": "プレイリスト名",
+  "enterPlaylistName": "プレイリスト名を入力",
+  "playlistNameExists": "プレイリスト名は既に存在します",
+  "renamePlaylist": "プレイリスト名を変更",
+  "deletePlaylist": "プレイリストを削除",
+  "confirmDeletePlaylist": "プレイリスト\"{name}\"を削除してもよろしいですか？",
+  "addToPlaylist": "プレイリストに追加",
+  "selectAll": "すべて選択",
+  "addToQueue": "キューに追加",
+  "addedToQueue": "キューに追加しました",
+  "songCount": "{count}曲",
+  "addedToPlaylist": "{count}曲を{playlist}に追加しました",
+  "createNewList": "新規リストを作成",
+  "createdPlaylist": "プレイリスト\"{name}\"を作成し、{count}曲を追加しました",
+  "rename": "名前を変更",
+  "playlist": "プレイリスト",
+  "mostPlayed": "最も再生された",
+  "recentlyAdded": "最近追加",
+  "albums": "アルバム",
+  "artists": "アーティスト",
+  "mostPlayedDescription": "再生完了回数でランク付け",
+  "recentlyAddedDescription": "ライブラリに追加された日時順",
+  "allTime": "全期間",
+  "pastWeek": "過去1週間",
+  "pastMonth": "過去1ヶ月",
+  "past90Days": "過去90日間",
+  "noPlayHistory": "再生履歴はまだありません",
+  "noPlayHistoryInRange": "この期間の再生履歴はありません",
+  "noRecentlyAddedSongs": "ライブラリに曲がまだありません",
+  "noRecentlyAddedInRange": "この期間に追加された曲はありません",
+  "addedOn": "追加日",
+  "lastPlayed": "最終再生",
+  "playCountLabel": "{count}回",
+  "@playCountLabel": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "playAll": "すべて再生",
+  "shufflePlay": "シャッフル再生",
+  "noAlbums": "アルバムが見つかりません",
+  "noArtists": "アーティストが見つかりません",
+  "searchAlbums": "アルバムまたはアーティストを検索",
+  "searchArtists": "アーティストを検索",
+  "albumSort": "並び替え",
+  "sortArtistAsc": "アーティスト名 昇順",
+  "sortTitleAsc": "アルバムタイトル 昇順",
+  "sortTrackCount": "曲数",
+  "sortDuration": "合計時間",
+  "sortRecentAdded": "最近追加",
+  "sortAscending": "昇順",
+  "sortDescending": "降順",
+  "playNext": "次に再生",
+  "addToFavorites": "お気に入りに追加",
+  "removeFromFavorites": "お気に入りから削除",
+  "viewAlbumDetails": "アルバムの詳細を表示",
+  "viewArtistDetails": "アーティストの詳細を表示",
+  "openFileLocation": "ファイルの場所を開く",
+  "copyAlbumTitle": "アルバムタイトルをコピー",
+  "copyArtistName": "アーティスト名をコピー",
+  "albumCount": "{count}枚のアルバム",
+  "emptyList": "リストは空です",
+  "dragToAddMusic": "ファイルまたはフォルダをドラッグして音楽を追加",
+  "unknownAlbum": "不明なアルバム",
+  "managePlaylists": "プレイリストを管理",
+  "createNewPlaylist": "新しいプレイリストを作成",
+  "defaultList": "デフォルトリスト",
+  "playbackMode": "再生モード",
+  "playbackOptions": "再生オプション",
+  "setVisualizerDisplay": "ビジュアライザ表示を設定",
+  "noPlaybackContent": "再生コンテンツがありません",
+  "file": "ファイル",
+  "play": "再生",
+  "list": "ライブラリ",
+  "queueTab": "キュー",
+  "more": "その他",
+  "settings": "設定",
+  "themeMode": "テーマ",
+  "themeModeSystem": "システムに従う",
+  "themeModeLight": "ライト",
+  "themeModeDark": "ダーク",
+  "immersiveTabBar": "没入型タブバー",
+  "immersiveTabBarDescription": "マウス移動時にナビゲーションバーを表示し、3秒無操作で非表示",
+  "sampleStride": "サンプルストライド",
+  "sampleStrideDescription": "値が大きいとスキャンは速いが波形精度が低下（デフォルト: 4）",
+  "waveformSegments": "波形セグメント数",
+  "waveformSegmentsDescription": "表示する波形バーの数（デフォルト: 80）",
+  "showDeveloperOptions": "開発者オプションを表示",
+  "playbackBackground": "再生背景",
+  "playbackRadialGradient": "中央ダークグラデーション",
+  "blurIntensity": "ブラー強度",
+  "blurredArtwork": "ブラーアートワーク（デフォルト）",
+  "dynamicMesh": "ダイナミックメッシュ（Apple Music風）",
+  "solidColor": "単色",
+  "customImage": "カスタム画像",
+  "presetColors": "プリセット色",
+  "customColor": "カスタム色",
+  "uploadImage": "画像を選択",
+  "normalOpacity": "通常時暗色レイヤーの不透明度",
+  "lyricsOpacity": "歌詞表示時暗色レイヤーの不透明度",
+  "chooseImageError": "画像の選択に失敗しました",
+  "noImageSelected": "画像が選択されていません",
+  "unknown": "不明",
+  "playlistModeSingle": "単曲",
+  "playlistModeSingleLoop": "単曲ループ",
+  "playlistModeQueue": "キュー",
+  "playlistModeQueueLoop": "キュー繰り返し",
+  "playlistModeAutoQueueLoop": "自動キュー繰り返し",
+  "visualizer": "ビジュアライザ",
+  "previous": "前へ",
+  "next": "次へ",
+  "pause": "一時停止",
+  "autoMode": "オートモード",
+  "advancedOptions": "詳細オプション",
+  "spectrumQuantity": "スペクトラム数",
+  "speed": "速度",
+  "quantityHigh": "高",
+  "quantityMedium": "中",
+  "quantityLow": "低",
+  "speedFast": "速い",
+  "speedMedium": "中",
+  "speedSlow": "遅い",
+  "portraitFrequencyGroups": "縦画面の周波数グループ数",
+  "landscapeFrequencyGroups": "横画面の周波数グループ数",
+  "portraitGap": "縦画面のギャップ",
+  "landscapeGap": "横画面のギャップ",
+  "enableWaveformProgressBar": "波形プログレスバーを有効化",
+  "enableWaveformProgressBarDescription": "標準スライダーの代わりに全曲波形を使用",
+  "randomMode": "ランダムモード",
+  "randomHistory": "ランダム履歴",
+  "randomRange": "ランダム範囲",
+  "randomMethod": "ランダム方式",
+  "currentQueue": "現在のキュー",
+  "globalRange": "全体（全プレイリスト）",
+  "completeRandom": "完全ランダム",
+  "shuffleRandom": "シャッフルランダム",
+  "randomQueue": "ランダムキュー",
+  "notSelected": "音楽が選択されていません",
+  "saveTagsToFile": "タグをファイルに保存",
+  "saveCurrentTagsToFile": "現在の曲のタグをファイルに保存",
+  "saveQueueTagsToFile": "キューの全タグをファイルに保存",
+  "tagsSaved": "タグを保存しました",
+  "tagsSavedCount": "タグを保存しました（{count}曲）",
+  "tagsSaveFailed": "タグの保存に失敗しました",
+  "tagsSaveFailedCount": "{count}曲の保存に失敗しました",
+  "unsupportedFormat": "{count}曲は未対応フォーマットです（OGG/Opusは保存不可）",
+  "unsupportedFormatSingle": "このフォーマット（OGG/Opus）はタグの保存に対応していません",
+  "savingTags": "タグを保存中...",
+  "noModifiedTagsToSave": "保存する変更済みタグはありません",
+  "clearPlaylist": "リストをクリア",
+  "copyTitle": "タイトルをコピー",
+  "transcodeAction": "トランスコード",
+  "transcodeSectionTitle": "オーディオトランスコード",
+  "transcodeSectionDescription": "オーディオ変換のデフォルト出力形式と品質プリセットを設定します。",
+  "transcodeDefaultFormat": "デフォルト出力形式",
+  "transcodeDefaultQuality": "デフォルト品質プリセット",
+  "transcodeTitle": "オーディオトランスコード",
+  "transcodeSongCount": "{count}曲",
+  "@transcodeSongCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "transcodeCompletedCount": "{count}ファイルをトランスコードしました",
+  "@transcodeCompletedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "transcodeCompletedWithFailures": "{success}/{total}ファイルをトランスコード完了、{failed}失敗",
+  "@transcodeCompletedWithFailures": {
+    "placeholders": {
+      "success": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      },
+      "failed": {
+        "type": "int"
+      }
+    }
+  },
+  "transcodeFailedGeneric": "トランスコードに失敗しました",
+  "transcodePreparing": "トランスコードを準備中...",
+  "transcodeProgress": "トランスコード中 {current}/{total}",
+  "@transcodeProgress": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "transcoding": "トランスコード中...",
+  "startTranscode": "トランスコード開始",
+  "transcodeEngine": "エンジン: {engine}",
+  "@transcodeEngine": {
+    "placeholders": {
+      "engine": {}
+    }
+  },
+  "transcodeUsingSystemFfmpeg": "システムのPATHからffmpegを使用しています。",
+  "transcodeUsingCustomFfmpeg": "カスタムffmpegを使用: {path}",
+  "@transcodeUsingCustomFfmpeg": {
+    "placeholders": {
+      "path": {}
+    }
+  },
+  "transcodeFormat": "出力形式",
+  "transcodeQualityPreset": "品質プリセット",
+  "transcodeQualityLow": "低",
+  "transcodeQualityMedium": "中",
+  "transcodeQualityHigh": "高",
+  "transcodeQualityExtreme": "最高",
+  "transcodeLosslessPresetHint": "このロスレス形式では品質段階やビットレートモードは使用しません。",
+  "transcodeAdvancedOptions": "詳細オプション",
+  "transcodeAdvancedCustomized": "詳細パラメータがカスタマイズされました",
+  "transcodeAdvancedFollowingPreset": "詳細パラメータは現在のプリセットに従います",
+  "transcodeLosslessAdvancedHint": "このロスレス形式ではソース保持オプションのみ利用可能です。",
+  "transcodeBitRateInvalid": "有効なビットレートを入力してください",
+  "transcodeBitRate": "ビットレート",
+  "transcodeBitRateMode": "ビットレートモード",
+  "transcodeEncodingEngine": "エンコーディングエンジン",
+  "transcodeSystemEncoder": "Media3（システム）",
+  "transcodeFfmpegRustEncoder": "FFmpeg（Rust）",
+  "transcodeAacEncoder": "AACエンコーダ",
+  "transcodeSampleRate": "サンプルレート",
+  "transcodeChannels": "チャンネル",
+  "transcodeResetToPreset": "現在のプリセットにリセット",
+  "transcodeResetLosslessOptions": "ロスレスオプションをリセット",
+  "transcodeOutputDirectory": "出力ディレクトリ",
+  "transcodeOutputPreview": "プレビュー",
+  "transcodeChooseDirectory": "ディレクトリを選択",
+  "transcodeUseSourceDirectory": "ソースディレクトリを使用",
+  "transcodeKeepSource": "ソースを保持",
+  "transcodeMono": "モノラル",
+  "transcodeStereo": "ステレオ",
+  "openFolderLocation": "フォルダの場所を開く",
+  "songTagsSavedToSourceFileAndApp": "楽曲タグをソースファイルとアプリに保存しました",
+  "songTagsSavedToApp": "楽曲タグをアプリに保存しました",
+  "durationZero": "0:00",
+  "generateLyrics": "歌詞を生成",
+  "generateTimeline": "タイムラインを生成",
+  "queueGenerateLyrics": "歌詞生成をキューに入れる",
+  "pauseAutoScroll": "自動スクロールを一時停止",
+  "resumeAutoScroll": "自動スクロールを再開",
+  "translateLyrics": "歌詞を翻訳",
+  "clearLyricsCache": "現在の歌詞キャッシュをクリア",
+  "clearTranslationCache": "現在の翻訳キャッシュをクリア",
+  "requery": "再クエリ",
+  "sleepTimerTitle": "スリープタイマー",
+  "sleepTimerDescription": "カウントダウンを選択すると、時間経過後に再生が一時停止します。",
+  "sleepTimerRunningTitle": "スリープタイマー動作中",
+  "sleepTimerRunningDescription": "カウントダウン終了時に自動的に再生を一時停止します。",
+  "remainingTime": "残り時間",
+  "startCountdown": "カウントダウン開始",
+  "end": "終了",
+  "equalizer": "イコライザ",
+  "equalizerEnabledStatus": "高忠実度調整が有効です",
+  "equalizerDisabledStatus": "無効",
+  "bassBoost": "バスブースト",
+  "preampGain": "プリアンプゲイン",
+  "reset": "リセット",
+  "close": "閉じる",
+  "timelineAdjustmentTitle": "タイムライン調整",
+  "timelineAdjustmentDescription": "右にドラッグすると歌詞が遅れ、左にドラッグすると早くなります。",
+  "timelineOffsetEarlier": "{seconds}秒早い",
+  "@timelineOffsetEarlier": {
+    "placeholders": {
+      "seconds": {}
+    }
+  },
+  "timelineOffsetLater": "{seconds}秒遅い",
+  "@timelineOffsetLater": {
+    "placeholders": {
+      "seconds": {}
+    }
+  },
+  "timelineOffsetCurrent": "現在のオフセット: 0.0秒",
+  "enterAcoustidApiKeyTitle": "AcoustID APIキーを入力",
+  "acoustidApiKeyDescription": "音声フィンガープリントに使用されます。空白のままにすると内蔵のデフォルトキーが復元されます。",
+  "acoustidApiKeyHint": "AcoustID APIキーを貼り付け",
+  "apiKey": "APIキー",
+  "save": "保存",
+  "enterLyricsTitle": "歌詞を入力",
+  "lyricsInputHint": "ここに歌詞を貼り付けるか入力してください。複数行テキストに対応しています。",
+  "enterGoogleAiStudioApiKeyTitle": "Google AI Studio APIキーを入力",
+  "googleAiStudioApiKeyDescription": "Google AI Studioでの歌詞生成、タイムライン生成、翻訳に使用されます。",
+  "pasteGoogleAiStudioApiKey": "Google AI Studio APIキーを貼り付け",
+  "enterOpenRouterApiKeyTitle": "OpenRouter APIキーを入力",
+  "openRouterApiKeyDescription": "OpenRouterでの歌詞生成とタイムライン生成に使用されます。翻訳は常にGeminiを使用します。",
+  "pasteOpenRouterApiKey": "OpenRouter APIキーを貼り付け",
+  "enterGeminiApiKeyTitle": "Gemini APIキーを入力",
+  "geminiApiKeyDescription": "歌詞の翻訳に使用されます。",
+  "pasteGeminiApiKey": "Gemini APIキーを貼り付け",
+  "testConnection": "接続テスト",
+  "enterApiKey": "APIキーを入力してください。",
+  "testingConnection": "接続をテスト中...",
+  "getKey": "キーを取得",
+  "editSongTagsTitle": "楽曲タグを編集",
+  "changeArtwork": "カバーを変更",
+  "clearArtwork": "カバーをクリア",
+  "editSongTagsDescription": "変更内容はアプリ内のみに保存するか、ソースファイルにも書き戻すことができます。",
+  "artistLabel": "アーティスト",
+  "albumLabel": "アルバム",
+  "trackNumberLabel": "トラック番号",
+  "trackNumberMustBeInteger": "トラック番号は整数である必要があります",
+  "leaveBlankKeepsCurrentValue": "空白にするとこのフィールドをクリアします",
+  "currentFileFormatCannotWriteBack": "このファイル形式はソースファイルへの書き戻しをサポートしていません。変更はアプリ内のみ保存できます。",
+  "leaveBlankDoesNotClearOriginalValue": "ヒント: フィールドを空白にするとその値がクリアされます。",
+  "saveToApp": "アプリに保存",
+  "saveToSourceFileAndApp": "ソースファイルとアプリに保存",
+  "saveToSourceFileFailed": "ソースファイルへの保存に失敗しました。ファイル形式が書き込みに対応していること、ファイルが使用中でないことを確認してください。",
+  "fileOccupiedByOtherApp": "ファイルが別のアプリに使用されているため書き込めません",
+  "saveFailed": "保存に失敗しました。後でもう一度お試しください。",
+  "apiKeySaved": "{provider} APIキーを保存しました",
+  "@apiKeySaved": {
+    "placeholders": {
+      "provider": {}
+    }
+  },
+  "apiKeySavedAcoustid": "AcoustID APIキーを保存しました",
+  "generalSectionTitle": "インターフェース",
+  "generalSectionDescription": "これらのオプションはページと再生UIの全体的な外観に影響します。",
+  "interfaceLanguage": "インターフェース言語",
+  "interfaceLanguageDescription": "アプリケーションの表示言語を選択します。",
+  "scanSectionTitle": "スキャン",
+  "scanSectionDescription": "これらのオプションはライブラリスキャンがオーディオファイルを処理する方法を制御します。",
+  "skipShortAudioDuringScan": "スキャン中に短い音声をスキップ",
+  "skipShortAudioDuringScanDescription": "しきい値より短い音声はライブラリに追加されません。",
+  "shortAudioScanThreshold": "短い音声のしきい値",
+  "shortAudioScanThresholdDescription": "この時間より短いファイルはスキップされます。",
+  "shortAudioScanThresholdValue": "{seconds}秒",
+  "@shortAudioScanThresholdValue": {
+    "placeholders": {
+      "seconds": {}
+    }
+  },
+  "shortcutSettingsTitle": "カスタムショートカット",
+  "shortcutSettingsDescription": "クリックしてプレイヤーアクションのショートカットを再録音して保存します。",
+  "edit": "編集",
+  "lyricsSectionTitle": "歌詞",
+  "lyricsSectionDescription": "これらの設定は歌詞生成とタイムライン生成にのみ影響します。",
+  "lyricsTranslationTargetLanguageLabel": "翻訳対象言語",
+  "lyricsTranslationTargetLanguageDescription": "デフォルトではシステム言語に従います。手動で選択も可能です。",
+  "lyricsSaveMethodLabel": "歌詞の保存場所",
+  "lyricsSaveMethodDescription": "ファイル書き込み時の歌詞の保存場所を選択します。",
+  "lyricsSaveMethodOriginal": "元の場所",
+  "lyricsSaveMethodEmbedded": "埋め込み",
+  "lyricsSaveMethodLrcFile": "LRCファイル",
+  "followSystemLanguage": "システムに従う",
+  "autoSwitchLyricsProvider": "歌詞プロバイダを自動切替",
+  "autoSwitchLyricsProviderEnabledDesc": "最初にGoogle AI Studioを試します。プライマリとフォールバックの両モデルが429または5xxエラーで失敗した場合、自動的にOpenRouterに切り替えて試行を継続します。",
+  "autoSwitchLyricsProviderDisabledDesc": "自動切替を有効にするには、Google AI StudioとOpenRouterの両方のAPIキーが必要です。",
+  "lyricsAiProviderTitle": "歌詞AIプロバイダ",
+  "lyricsAiProviderDescription": "歌詞生成とタイムライン生成にのみ影響します。翻訳は常にGoogle AI Studioを使用します。",
+  "apiKeySavedProvider": "{provider} APIキーが保存されました",
+  "@apiKeySavedProvider": {
+    "placeholders": {
+      "provider": {}
+    }
+  },
+  "googleAiStudioApiKeySaved": "Google AI Studio APIキーを保存しました",
+  "googleAiStudioApiKeyMissing": "Google AI Studio APIキーがまだ保存されていません。歌詞生成とタイムライン生成時に最初にプロンプトが表示されます。",
+  "openRouterApiKeySaved": "OpenRouter APIキーを保存しました",
+  "openRouterApiKeyMissing": "OpenRouter APIキーがまだ保存されていません。歌詞生成とタイムライン生成時に最初にプロンプトが表示されます。",
+  "apiKeySavedStatus": "保存済み",
+  "apiKeyMissingStatus": "未入力",
+  "platformApiKeysSectionTitle": "プラットフォームAPIキー",
+  "fill": "入力",
+  "modify": "変更",
+  "geminiModelsSectionTitle": "モデルを選択",
+  "geminiModelsSectionDescription": "これらのモデルはGoogle AI Studioでの歌詞生成、タイムライン生成、歌詞翻訳に使用されます。",
+  "primaryModelLabel": "プライマリモデル",
+  "backupModelLabel": "フォールバックモデル",
+  "translationModelLabel": "翻訳モデル",
+  "fetching": "取得中...",
+  "fetchModelList": "モデル一覧を取得",
+  "restoreDefault": "デフォルトに戻す",
+  "acoustidSectionTitle": "フィンガープリンティング",
+  "acoustidApiKeyTitle": "AcoustID APIキー",
+  "acoustidApiKeyHelp": "AcoustIDは音声フィンガープリントに使用されます。ご自身のAPIキーの使用をお勧めします。",
+  "acoustidApiKeySaved": "AcoustID APIキーを保存しました",
+  "acoustidApiKeyDefault": "現在内蔵のデフォルトキーを使用中です。ご自身のキーに置き換えることをお勧めします。",
+  "applyForApiKey": "APIキーを申請: https://acoustid.org/new-application",
+  "queueTabBarFavoriteAdded": "お気に入りに追加しました",
+  "queueTabBarFavoriteRemoved": "お気に入りから削除しました",
+  "tagCompletion": "タグ補完",
+  "tagCompletionDescription": "AcoustIDとMusicBrainzの結果でタグを一致させます",
+  "goToSettings": "設定へ行く",
+  "searchReleaseTitles": "リリースタイトルを検索",
+  "closeSearch": "検索を閉じる",
+  "refreshResults": "結果を更新",
+  "filterMusicBrainzReleaseTitle": "MusicBrainzリリースタイトルをフィルタ",
+  "clearSearch": "検索をクリア",
+  "localTitle": "ローカルタイトル",
+  "queryConditions": "クエリ条件",
+  "musicBrainzLoading": "MusicBrainzを読み込み中",
+  "musicBrainzLoadingWithResults": "既存の結果はパネルに残ります",
+  "musicBrainzLoadingHint": "お待ちください",
+  "musicBrainzQueryFailed": "MusicBrainzクエリが失敗しました",
+  "musicBrainzNetworkErrorHint": "リクエストに失敗しました。通常はネットワークの不安定さ、タイムアウト、またはサーバー拒否が原因です。後で再試行してください。",
+  "musicBrainzFilteredEmptyHint": "現在のフィルタ条件では、そのキーワードを含むリリースタイトルは見つかりませんでした。",
+  "musicBrainzEmptyHint": "MusicBrainzは利用可能な結果を返しませんでした。タイトル、アーティスト、またはアルバムのフィルタを緩めてみてください。",
+  "musicBrainzEmptyMoreCompleteHint": "後で再試行するか、現在のタイトルまたはアーティスト情報がより完全であることを確認してください。",
+  "retry": "再試行",
+  "noMatchingRelease": "一致するリリースが見つかりません",
+  "noMatchingResults": "一致する結果が見つかりません",
+  "networkConnectionFailed": "ネットワーク接続に失敗しました",
+  "searchAgain": "もう一度検索",
+  "acoustidRecognitionRecords": "AcoustID認識レコード",
+  "musicBrainzRecordings": "MusicBrainzレコーディング",
+  "noExpandableReleaseGroups": "展開可能なリリースグループがありません",
+  "noExpandableReleases": "展開可能なリリースがありません",
+  "noMatchingResultHint": "後で再試行するか、現在のタイトルまたはアーティスト情報がより完全であることを確認してください。",
+  "releaseCountLabel": "{count}件のリリース",
+  "@releaseCountLabel": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "recordingCountLabel": "{count}件のレコーディング",
+  "@recordingCountLabel": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "trackCountShort": "{count}トラック",
+  "@trackCountShort": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "scoreLabel": "スコア {score}",
+  "@scoreLabel": {
+    "placeholders": {
+      "score": {
+        "type": "int"
+      }
+    }
+  },
+  "matchScoreLabel": "一致 {score}%",
+  "@matchScoreLabel": {
+    "placeholders": {
+      "score": {
+        "type": "int"
+      }
+    }
+  },
+  "editQueryCondition": "クエリ条件を編集",
+  "enterNewQueryText": "新しいクエリテキストを入力",
+  "durationLabel": "再生時間",
+  "customShortcuts": "カスタムショートカット",
+  "pressShortcutCombo": "ショートカットキーを押してください",
+  "clickToRecord": "クリックして録音",
+  "searchingLyrics": "歌詞を検索中",
+  "noLyrics": "歌詞はまだありません",
+  "providerLabel": "プロバイダ",
+  "modelLabel": "モデル",
+  "unspecified": "未指定",
+  "targetTimeLabel": "ターゲット時間 {duration}",
+  "@targetTimeLabel": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "songDeletedSkipped": "曲が削除されたためスキップしました",
+  "songDeleted": "曲が削除されました",
+  "lyricsTaskUploading": "アップロード中",
+  "lyricsTaskWaiting": "待機中",
+  "lyricsTaskRequesting": "リクエスト中",
+  "lyricsTaskGenerating": "生成中",
+  "lyricsTaskRetrying": "再試行中",
+  "lyricsTaskProcessing": "処理中",
+  "unknownModel": "不明なモデル",
+  "selectedFolders": "{count}フォルダ選択中",
+  "@selectedFolders": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "foldersDeleted": "{count}フォルダを削除しました",
+  "@foldersDeleted": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "persistentAccessDenied": "そのフォルダへのアクセスを保存できませんでした。もう一度選択してください。",
+  "folderAddFailed": "フォルダの追加に失敗しました",
+  "sleepTimer": "スリープタイマー",
+  "sleepTimerRemaining": "スリープタイマー {duration}",
+  "@sleepTimerRemaining": {
+    "placeholders": {
+      "duration": {}
+    }
+  },
+  "unknownArtistOrAlbum": "不明",
+  "pressAgainToExit": "もう一度押すと終了します",
+  "tagCompletionSuccessWithCover": "タグを補完して保存しました。カバーは一時ディレクトリにダウンロードされました",
+  "tagCompletionSuccess": "タグを補完して保存しました",
+  "selectOnlineLyrics": "オンライン歌詞を選択",
+  "increaseLyricsFont": "歌詞フォントを拡大",
+  "decreaseLyricsFont": "歌詞フォントを縮小",
+  "restoreDefaultSize": "デフォルトサイズに戻す",
+  "adjustLyricsFont": "文字サイズを調整",
+  "searchingOnlineLyrics": "オンライン歌詞を検索中",
+  "onlineLyricsResults": "オンライン歌詞の結果",
+  "untitledLyrics": "無題の歌詞",
+  "hasTimeline": "タイムラインあり",
+  "viewLyricsDetails": "歌詞の詳細を表示",
+  "lyricsDetails": "歌詞の詳細",
+  "lyricsContent": "歌詞の内容",
+  "noLyricsContent": "歌詞の内容がありません",
+  "queryContentLabel": "内容",
+  "yes": "はい",
+  "no": "いいえ",
+  "dropAddedSongs": "{addedCount}曲追加しました",
+  "dropAddedSongsWithExisting": "{addedCount}曲追加、{existingCount}曲は既に存在しました",
+  "copyCover": "カバーをクリップボードにコピー",
+  "copyCoverSuccess": "カバーをクリップボードにコピーしました",
+  "searchLyricsPlaceholder": "曲名、アーティスト、または歌詞を入力して検索",
+  "share": "共有",
+  "@share": {
+    "description": "Share tab label"
+  },
+  "windowsSettingsTitle": "Windows設定",
+  "fileAssociationTitle": "ファイル関連付け",
+  "fileAssociationDescription": "一般的な音楽形式（mp3, flac, wavなど）をこのアプリに関連付けて、ダブルクリックで開けるようにします。",
+  "associateButton": "関連付ける",
+  "disassociateButton": "解除",
+  "associationSuccess": "関連付けに成功しました！ダブルクリックが機能しない場合は、Windowsのデフォルトアプリ設定でVynodyを選択してください。",
+  "disassociationSuccess": "ファイル関連付けを正常に解除しました。",
+  "associationFailed": "関連付けに失敗しました: {error}",
+  "@associationFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "onboardingTitle": "Vynodyへようこそ",
+  "onboardingSubtitle": "いくつかの簡単なステップで音楽の旅を始めましょう。",
+  "onboardingStepFileAssociation": "ファイルタイプを関連付ける",
+  "onboardingFileAssociationDesc": "一般的な音楽形式（mp3, flac, wavなど）をVynodyに関連付けて、ファイルエクスプローラーでダブルクリックするだけで音楽を再生できます。",
+  "onboardingFileAssociationTip": "関連付け後、システムが「開くアプリの選択」メニューを表示する場合があります。リストから「Vynody」を選択し、「常にこのアプリを使う」にチェックを入れてください。",
+  "onboardingStepRootDirectory": "音楽ルートディレクトリを追加",
+  "onboardingRootDirectoryDesc": "音楽ファイルが保存されているフォルダを選択してください。Vynodyが自動的にスキャンしてあなたの音楽ライブラリを構築します。",
+  "onboardingSelectDirectory": "フォルダを選択",
+  "onboardingSuccessTitle": "準備完了！",
+  "onboardingSuccessDesc": "メディアライブラリを追加しました。音楽をお楽しみください！",
+  "onboardingStartButton": "始める",
+  "onboardingSkip": "後で設定",
+  "onboardingNext": "次へ",
+  "onboardingBack": "戻る",
+  "resetOnboarding": "オンボーディングをリセット",
+  "resetOnboardingDesc": "オンボーディング状態をクリアします。次回起動時にウェルカムガイドが再表示されます。",
+  "songProperties": "曲のプロパティ",
+  "failedToLoadDetails": "詳細の読み込みに失敗しました",
+  "noPropertiesAvailable": "利用可能なプロパティがありません",
+  "detailFilePath": "ファイルパス",
+  "detailFormat": "形式",
+  "detailCodec": "コーデック",
+  "detailDuration": "再生時間",
+  "detailFileSize": "ファイルサイズ",
+  "detailBitrate": "ビットレート",
+  "detailSampleRate": "サンプルレート",
+  "detailChannels": "チャンネル",
+  "detailBitDepth": "ビット深度",
+  "detailMono": "モノラル",
+  "detailStereo": "ステレオ",
+  "detailChannelsCount": "{count}チャンネル",
+  "@detailChannelsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "localNetworkPermissionDeniedTitle": "ローカルネットワークアクセスが制限されています",
+  "localNetworkPermissionDeniedMessage": "利用可能なローカルネットワークIPアドレスが検出されなかったか、ローカルネットワーク権限が拒否されました。\n\n以下をご確認ください:\n1. デバイスがWi-Fiまたはローカルネットワークに接続されていることを確認してください。\n2. システム設定でアプリのローカルネットワークアクセスが許可されていることを確認してください:\n   - iOS/macOS: システム設定 > プライバシーとセキュリティ > ローカルネットワーク でVynodyのスイッチをオンにしてください。\n   - Windows: ネットワークに接続していることを確認し、WindowsファイアウォールがVynodyのネットワークアクセスを許可していることを確認してください。",
+  "localNetworkPermissionWindowsMessage": "利用可能なローカルネットワークIPアドレスが検出されませんでした。\n\n以下をご確認ください:\n1. デバイスがローカルネットワーク（Wi-Fiまたはイーサネット）に接続されていることを確認してください。\n2. 接続済みでもエラーが続く場合は、Windowsファイアウォール設定でVynodyがファイアウォールを通過できるようにしてください。",
+  "openSettingsButton": "設定を開く",
+  "closeButton": "閉じる",
+  "copyTranslationResults": "翻訳結果をコピー",
+  "writeLyricsToFile": "歌詞をファイルに書き込む",
+  "selectLyricSource": "歌詞ソースを選択",
+  "regenerateLyrics": "歌詞を再生成",
+  "regenerateLyricsConfirmation": "現在の歌詞をクリアして再生成します。続行しますか？",
+  "regenerateTimeline": "タイムラインを再生成",
+  "regenerateTimelineConfirmation": "現在のタイムラインをクリアして再生成します。続行しますか？",
+  "retranslateLyrics": "歌詞を再翻訳",
+  "retranslateLyricsConfirmation": "現在の翻訳をクリアして再翻訳します。続行しますか？",
+  "translationCopiedToClipboard": "翻訳結果をクリップボードにコピーしました",
+  "writingLyrics": "歌詞を書き込み中...",
+  "lyricsWrittenToFile": "歌詞をファイルに書き込みました",
+  "writeLyricsFailed": "歌詞の書き込みに失敗しました",
+  "externalLrcFile": "外部LRCファイル",
+  "embeddedLyrics": "埋め込み歌詞",
+  "manuallyAdjustedLyrics": "手動調整済み歌詞",
+  "lrclibOnlineLyrics": "LrcLibオンライン歌詞",
+  "aiGeneratedLyrics": "AI生成歌詞",
+  "matchScore": "一致",
+  "untitledRelease": "無題のリリース",
+  "localSongFileNotFoundForGeneration": "ローカル曲ファイルが存在しないため、歌詞を生成できません。",
+  "localSongFileNotFoundForTimeline": "ローカル曲ファイルが存在しないため、タイムラインを生成できません。",
+  "noLyricsForTimelineGeneration": "タイムライン生成に利用可能な歌詞がありません。",
+  "noLyricsAvailableForTranslation": "翻訳に利用可能な歌詞がありません。",
+  "noCurrentSongAvailable": "現在の曲がありません。",
+  "invalidTargetLanguage": "対象言語が無効です。",
+  "songAlreadyQueuedForTranslation": "現在の曲は既に翻訳キューに入っています。",
+  "songAlreadyQueuedForGeneration": "現在の曲は既に歌詞生成キューに入っています。",
+  "songNoLongerExistsForTranslation": "現在の曲はもう存在しないため、歌詞を翻訳できません。",
+  "generationFailed": "生成に失敗しました。",
+  "generatingLyrics": "歌詞を生成中",
+  "generatingTimeline": "タイムラインを生成中",
+  "regeneratingLyrics": "歌詞を再生成中",
+  "translatingLyrics": "歌詞を翻訳中",
+  "transcodingSongFile": "曲ファイルをトランスコード中",
+  "uploadingSongFile": "曲ファイルをアップロード中",
+  "fileUploadedWaitingForReadiness": "ファイルをアップロードしました。準備が整うのを待っています",
+  "waitingForFileReadiness": "ファイルの準備が整うのを待っています",
+  "requestingModelResponse": "モデルの応答をリクエスト中",
+  "retryingTaskKindGeneration": "{taskKind}の生成を再試行中",
+  "retrying": "再試行中",
+  "processing": "処理中",
+  "timeline": "タイムライン",
+  "lyrics": "歌詞",
+  "lyricGenerationError": "歌詞生成中にエラーが発生しました: {error}",
+  "timelineGenerationError": "タイムライン生成中にエラーが発生しました: {error}",
+  "unknownGenerationError": "歌詞生成中に不明なエラーが発生しました。",
+  "unknownTimelineGenerationError": "タイムライン生成中に不明なエラーが発生しました。",
+  "unknownTranslationError": "歌詞翻訳中に不明なエラーが発生しました。",
+  "unknownError": "不明なエラー",
+  "modelRefusedToGenerateLyrics": "モデルが歌詞の生成を拒否しました。",
+  "modelRefusedToGenerateTimeline": "モデルがタイムラインの生成を拒否しました。",
+  "doubaoPreUploadTranscodingFailed": "Doubaoアップロード前の音声トランスコードに失敗しました。",
+  "doubaoTempTranscodeNotInTempDir": "一時トランスコードファイルがテンポラリディレクトリに作成されませんでした。",
+  "doubaoEmptyStreamingResponse": "Doubaoが空のストリーミングレスポンスを返しました。",
+  "doubaoEmptyResponse": "Doubaoが空のレスポンスを返しました。",
+  "geminiEmptyStreamingResponse": "Geminiが空のストリーミングレスポンスを返しました。",
+  "geminiEmptyResponse": "Geminiが空のレスポンスを返しました。",
+  "openRouterEmptyStreamingResponse": "OpenRouterが空のストリーミングレスポンスを返しました。",
+  "openRouterEmptyResponse": "OpenRouterが空のレスポンスを返しました。",
+  "deepseekEmptyStreamingResponse": "DeepSeekが空のストリーミングレスポンスを返しました。",
+  "deepseekEmptyResponse": "DeepSeekが空のレスポンスを返しました。",
+  "customProviderEmptyStreamingResponse": "カスタムプロバイダが空のストリーミングレスポンスを返しました。",
+  "customProviderEmptyResponse": "カスタムプロバイダが空のレスポンスを返しました。",
+  "fileUploadFailed": "ファイルのアップロードに失敗しました。もう一度お試しください。",
+  "uploadedFileNotReady": "アップロードしたファイルが準備できませんでした。後でもう一度お試しください。",
+  "audioTranscodingFailed": "オーディオのトランスコードに失敗しました。",
+  "tempTranscodeNotInTempDir": "一時トランスコードファイルがテンポラリディレクトリに作成されませんでした。",
+  "networkRequestFailedCheckProxy": "ネットワークリクエストに失敗しました。ネットワークとプロキシ設定を確認してください。",
+  "quotaExhaustedToday": "本日の割り当てを使い切りました。明日リセットされてから再試行してください。",
+  "googleAiHeavyLoad": "Google AIは高負荷のため一時的に利用できません。",
+  "lyricsGenerationFailedWithError": "歌詞生成に失敗しました: {error}",
+  "@lyricsGenerationFailedWithError": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "missingApiKeyForAction": "{providerName}のAPIキーが見つからないため、{action}は利用できません。",
+  "@missingApiKeyForAction": {
+    "placeholders": {
+      "action": {},
+      "providerName": {}
+    }
+  },
+  "googleServerFlaky": "Googleの調子が良くないようです。再試行すると成功する場合があります。",
+  "translateLyricsAction": "歌詞を翻訳",
+  "generateLyricsAction": "歌詞を生成",
+  "generateTimelineAction": "タイムラインを生成",
+  "deepseekOnlyTranslation": "DeepSeekは歌詞の翻訳にのみ利用可能です。",
+  "customProviderOnlyTranslation": "カスタムプロバイダは歌詞の翻訳にのみ利用可能です。",
+  "customProviderNoBaseUrl": "カスタムプロバイダのベースURLが設定されていません。",
+  "pleaseEnterApiKey": "APIキーを入力してください。",
+  "connectionSuccessVerificationPassed": "接続成功、検証に合格しました。",
+  "connectionSuccessDetectedModels": "接続成功、{count}個のモデルを検出しました。",
+  "@connectionSuccessDetectedModels": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "testFailedWithStatus": "テスト失敗（{statusCode}）: {message}",
+  "@testFailedWithStatus": {
+    "placeholders": {
+      "statusCode": {},
+      "message": {}
+    }
+  },
+  "testFailedCheckNetworkOrApiKey": "テストに失敗しました。ネットワークまたはAPIキーを確認してください。",
+  "testFailedStatusCheckApiKey": "テスト失敗（{statusCode}）。APIキーが有効かどうか確認してください。",
+  "@testFailedStatusCheckApiKey": {
+    "placeholders": {
+      "statusCode": {}
+    }
+  },
+  "enterGoogleAiStudioApiKeyFirst": "最初にGoogle AI Studio APIキーを入力してください。",
+  "enterDoubaoApiKeyFirst": "最初にDoubao APIキーを入力してください。",
+  "enterDeepseekApiKeyFirst": "最初にDeepSeek APIキーを入力してください。",
+  "enterCustomApiKeyAndBaseUrl": "最初にカスタムAPIキーとベースURLを入力してください。",
+  "fetchedCountModels": "{count}個のモデルを取得しました。",
+  "@fetchedCountModels": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "requestFailedWithStatus": "リクエスト失敗（{statusCode}）: {message}",
+  "@requestFailedWithStatus": {
+    "placeholders": {
+      "statusCode": {},
+      "message": {}
+    }
+  },
+  "requestFailedCheckNetwork": "リクエストに失敗しました。ネットワークを確認してください。",
+  "requestFailedStatus": "リクエストに失敗しました（{statusCode}）。",
+  "@requestFailedStatus": {
+    "placeholders": {
+      "statusCode": {}
+    }
+  },
+  "doubao": "Doubao",
+  "custom": "カスタム",
+  "noModelSelected": "モデルが選択されていません",
+  "acoustidRequestFailed": "AcoustIDリクエストに失敗しました",
+  "acoustidRequestReturnedStatus": "AcoustIDリクエストが{statusCode}を返しました。ご自身のAcoustID APIキーを申請して設定で入力してください。",
+  "@acoustidRequestReturnedStatus": {
+    "placeholders": {
+      "statusCode": {}
+    }
+  },
+  "writeTagDatabaseFailed": "タグデータベースの書き込みに失敗しました",
+  "playPause": "再生/一時停止",
+  "nextTrack": "次の曲",
+  "previousTrack": "前の曲",
+  "volumeUp": "音量上げる",
+  "volumeDown": "音量下げる",
+  "toggleMute": "ミュート切替",
+  "seekForward5s": "5秒進む",
+  "seekBackward5s": "5秒戻る",
+  "toggleFullScreen": "全画面切替",
+  "playPauseDescription": "現在の再生状態を制御します。",
+  "nextDescription": "次の曲にスキップします。",
+  "previousDescription": "前の曲に戻ります。",
+  "volumeUpDescription": "音量を5%ずつ上げます。",
+  "volumeDownDescription": "音量を5%ずつ下げます。",
+  "toggleMuteDescription": "ミュートを切り替えます。",
+  "seekForward5sDescription": "5秒早送りします。",
+  "seekBackward5sDescription": "5秒巻き戻しします。",
+  "toggleFullScreenDescription": "ウィンドウモードと全画面を切り替えます。",
+  "unknownKey": "不明なキー",
+  "removeFromQueue": "キューから削除",
+  "removeFromPlaylist": "プレイリストから削除",
+  "alreadyLatestVersion": "既に最新バージョンです。",
+  "updateAvailable": "アップデートがあります",
+  "newVersionAvailable": "新しいバージョンv{version}が利用可能です。GitHubのリリースページからダウンロードしてください。",
+  "@newVersionAvailable": {
+    "placeholders": {
+      "version": {}
+    }
+  },
+  "openRelease": "リリースを開く",
+  "checkUpdateFailedNetwork": "アップデートの確認に失敗しました。ネットワークの問題かGitHubのレート制限の可能性があります。",
+  "tags": "タグ",
+  "about": "詳細情報",
+  "rebuildIndex": "インデックスを再構築",
+  "rebuildIndexDescription": "すべての曲レコード（外部ソースを除く）をクリアし、すべてのルートディレクトリを再スキャンします。",
+  "rebuildIndexConfirmation": "すべての曲レコード（外部ソースを除く）をクリアし、すべてのルートディレクトリを再スキャンしてもよろしいですか？この処理には時間がかかる場合があります。",
+  "rebuildIndexStarted": "インデックスの再構築を開始しました",
+  "rebuild": "再構築",
+  "advanced": "詳細",
+  "advancedOptionsDescription": "デバッグと動作調整のためのオプション。",
+  "showDeveloperOptionsDescription": "デバッグ用のより詳細なオプションを表示します。",
+  "onboardingReset": "オンボーディングがリセットされました。次回起動時に反映されます。",
+  "tagsSectionDescription": "オーディオファイルのメタデータと自動補完を設定します。",
+  "autoSaveToSourceFile": "ソースファイルに自動保存",
+  "autoSaveToSourceFileDescription": "タグ補完時に自動的に物理オーディオファイルに書き戻します。",
+  "aboutSectionDescription": "バージョン情報、プロジェクトリンク、関連情報。",
+  "checkForUpdates": "アップデートを確認",
+  "lyricsGenerationModel": "歌詞生成モデル",
+  "lyricsGenerationModelDescription": "AIによる歌詞生成とタイムライン生成/修正に使用されます。",
+  "lyricsTranslationModel": "歌詞翻訳モデル",
+  "lyricsTranslationModelDescription": "歌詞を対象言語に翻訳するために使用されます。",
+  "onlyForLyricTranslation": "歌詞翻訳のみ",
+  "fillApiKeyFirstEnablesModels": "少なくとも1つのAPIキーを入力してモデル選択を有効にしてください。",
+  "customApiProvider": "カスタムAPIプロバイダ",
+  "clearedGoogleAiStudioApiKey": "Google AI Studio APIキーをクリアしました",
+  "clearedOpenRouterApiKey": "OpenRouter APIキーをクリアしました",
+  "clearedDoubaoApiKey": "Doubao APIキーをクリアしました",
+  "clearedDeepseekApiKey": "DeepSeek APIキーをクリアしました",
+  "clearedCustomProviderConfig": "カスタムプロバイダ設定をクリアしました",
+  "savedDoubaoApiKey": "Doubao APIキーを保存しました",
+  "savedDeepseekApiKey": "DeepSeek APIキーを保存しました",
+  "savedCustomProviderConfig": "カスタムプロバイダ設定を保存しました",
+  "noMatchingFoldersOrSongs": "一致するフォルダまたは曲が見つかりません",
+  "listView": "リスト表示",
+  "gridView": "グリッド表示",
+  "songsCountFormat": "{count}曲",
+  "searchInFolderAndSubfolders": "フォルダとサブフォルダを検索...",
+  "shuffle": "シャッフル",
+  "search": "検索",
+  "selectFolders": "フォルダを選択",
+  "removeDirectory": "ディレクトリを削除",
+  "removeRootDirectoryConfirmation": "ルートディレクトリ\"{name}\"を削除してもよろしいですか？ディスク上の物理ファイルは削除されません。",
+  "@removeRootDirectoryConfirmation": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "deselectAll": "すべて選択解除",
+  "favorites": "お気に入り",
+  "aggregationPeak": "ピーク",
+  "aggregationMean": "平均",
+  "aggregationRms": "RMS",
+  "filesToTranscode": "トランスコードするファイル",
+  "chooseAndroidOutputDirectoryFirst": "最初にAndroidの出力ディレクトリを選択してください。",
+  "currentSongProgressPercent": "現在の曲 {percent}%",
+  "@currentSongProgressPercent": {
+    "placeholders": {
+      "percent": {}
+    }
+  },
+  "overallProgressPercent": "全体 {percent}%",
+  "@overallProgressPercent": {
+    "placeholders": {
+      "percent": {}
+    }
+  },
+  "pleaseChooseOutputDirectory": "出力ディレクトリを選択してください。",
+  "selectedArtistsCount": "{count}人のアーティストを選択中",
+  "@selectedArtistsCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "selectedAlbumsCount": "{count}枚のアルバムを選択中",
+  "@selectedAlbumsCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "simplifiedChinese": "簡体字中国語",
+  "traditionalChinese": "繁体字中国語",
+  "chineseLanguage": "中国語",
+  "englishLanguage": "英語",
+  "japaneseLanguage": "日本語",
+  "koreanLanguage": "韓国語",
+  "frenchLanguage": "フランス語",
+  "germanLanguage": "ドイツ語",
+  "spanishLanguage": "スペイン語",
+  "portugueseLanguage": "ポルトガル語",
+  "russianLanguage": "ロシア語",
+  "systemLanguage": "システム言語",
+  "targetLanguage": "対象言語",
+  "whatAreAiLyrics": "AI歌詞とは？",
+  "whatIsAiLyricTranslation": "AI歌詞翻訳とは？",
+  "aiLyricsIntroGeneration": "AIは曲から歌詞を生成し、タイムラインに合わせることができます。",
+  "aiLyricsIntroTranslation": "AIは歌詞を好きな言語に翻訳して、曲をより理解しやすくします。",
+  "whyNeedApiKey": "なぜAPIキーが必要ですか？",
+  "apiKeyExplanation": "APIキーはAIプロバイダへのアクセス資格情報です。アプリはこれを使用して歌詞生成、タイムライン調整、翻訳のリクエストを直接送信します。",
+  "apiKeyLocalOnly": "あなたのAPIキーはこのデバイスにのみ保存され、Vynody開発者サーバーにアップロードされることはありません。",
+  "chooseAnAiProvider": "AIプロバイダを選択:",
+  "googleProviderPros": "Google公式チャンネルで、強力なGeminiモデルと generous な無料枠があります。",
+  "googleProviderCons": "高トラフィック時に429エラーが発生することがあります。その場合は別のプロバイダに切り替えてください。",
+  "openRouterProviderPros": "多くのプロバイダといくつかの無料モデルにアクセスできるモデルアグリゲータです。",
+  "openRouterProviderCons": "チャージに手数料が含まれる場合があり、ウェブサイトは英語のみです。",
+  "doubaoProviderPros": "ByteDance製、中国語テキストに強い。新規ユーザーはモデルあたり50万トークンの無料枠を取得できます。",
+  "doubaoProviderCons": "登録が比較的面倒で、本人確認が必要です。",
+  "deepseekProviderPros": "中国語の理解度が高く、低価格で歌詞翻訳に適しています。",
+  "deepseekProviderCons": "テキスト入力のみ。歌詞生成とタイムライン調整には別のプロバイダのAPIキーが必要です。",
+  "highlights": "ハイライト",
+  "notes": "メモ",
+  "enterProviderApiKey": "{provider} APIキーを入力:",
+  "@enterProviderApiKey": {
+    "placeholders": {
+      "provider": {}
+    }
+  },
+  "pasteYourApiKey": "APIキーをここに貼り付け",
+  "getApiKey": "APIキーを取得",
+  "testConnectionButton": "接続テスト",
+  "enableAiLyricGeneration": "AI歌詞生成を有効化",
+  "enableAiLyricTranslation": "AI歌詞翻訳を有効化",
+  "notNow": "今はしない",
+  "startSetup": "セットアップを開始",
+  "chooseAiProvider": "AIプロバイダを選択",
+  "backStep": "戻る",
+  "continueAction": "続ける",
+  "nextStep": "次へ",
+  "configureApiKey": "APIキーを設定",
+  "saveAndFinish": "保存して完了",
+  "testing": "テスト中...",
+  "noteTitle": "注意",
+  "deepseekTextInputOnlyNote": "DeepSeekはテキスト入力のみをサポートしています。歌詞生成とタイムライン調整には別のプロバイダのAPIキーが必要です。",
+  "retryAttemptOfMax": "再試行 {attempt}/{maxRetry}",
+  "@retryAttemptOfMax": {
+    "placeholders": {
+      "attempt": {},
+      "maxRetry": {}
+    }
+  },
+  "generatingTaskKind": "{taskKind}を生成中",
+  "@generatingTaskKind": {
+    "placeholders": {
+      "taskKind": {}
+    }
+  },
+  "connectionTestException": "接続テストエラー: {error}",
+  "@connectionTestException": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "testingConnectionProgress": "接続をテスト中...",
+  "clear": "クリア",
+  "enterDoubaoApiKey": "Doubao APIキーを入力",
+  "doubaoApiKeyDescription": "歌詞生成と翻訳のためのVolcano/Doubao APIキーを入力してください。",
+  "enterDeepseekApiKey": "DeepSeek APIキーを入力",
+  "deepseekApiKeyDescription": "歌詞翻訳のみのためのDeepSeek APIキーを入力してください。",
+  "pleaseEnterApiKeyHint": "APIキーを入力してください",
+  "platform": "プラットフォーム",
+  "showRecommendedOnly": "推奨のみ表示",
+  "noAvailableChannels": "利用可能なチャンネルがありません",
+  "noMatchingModels": "一致するモデルが見つかりません",
+  "leaveEmpty": "空のままにする",
+  "leaveEmptyFallbackDescription": "バックアップモデルを設定しない場合はこれを選択します。",
+  "modelSearchHint": "モデル名、IDを入力"
+}

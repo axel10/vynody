@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:path/path.dart' as p;
 
 import 'package:audio_core/audio_core.dart';
@@ -7,14 +5,9 @@ import 'package:audio_core/audio_core.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/models/music_folder.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
-import '../../l10n/app_localizations.dart';
-import '../../l10n/app_localizations_en.dart';
-import '../../l10n/app_localizations_zh.dart';
+import 'package:vynody/utils/localized_text.dart';
 
-AppLocalizations _l10n() {
-  final locale = PlatformDispatcher.instance.locale;
-  return locale.languageCode == 'zh' ? AppLocalizationsZh() : AppLocalizationsEn();
-}
+AppLocalizations _l10n() => currentAppL10n;
 
 class ScannerTreeBuilder {
   ScannerTreeBuilder({

@@ -9,7 +9,6 @@ import 'package:vynody/player/settings/shortcut_bindings.dart';
 import 'package:vynody/transcode/transcode_models.dart';
 import 'package:vynody/utils/language_code_utils.dart';
 
-import 'package:vynody/l10n/app_localizations.dart';
 import 'package:vynody/utils/localized_text.dart';
 
 AppLocalizations _l10n() => currentAppL10n;

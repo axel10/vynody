@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui';
 
 import 'package:dio/dio.dart' show CancelToken, DioException;
 import 'package:flutter/foundation.dart';
@@ -7,9 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/models/music_lyric.dart';
 import 'package:vynody/models/music_lyric_translation.dart';
-import 'package:vynody/l10n/app_localizations.dart';
-import 'package:vynody/l10n/app_localizations_en.dart';
-import 'package:vynody/l10n/app_localizations_zh.dart';
+import 'package:vynody/utils/localized_text.dart';
 import 'package:vynody/utils/language_code_utils.dart';
 import 'package:vynody/player/lyrics/lyrics_cache_models.dart';
 import 'package:vynody/player/lyrics/lyrics_controller_context.dart';
@@ -451,8 +448,4 @@ class LyricsTranslationCoordinator {
   }
 }
 
-AppLocalizations _l10n() {
-  return PlatformDispatcher.instance.locale.languageCode == 'zh'
-      ? AppLocalizationsZh()
-      : AppLocalizationsEn();
-}
+AppLocalizations _l10n() => currentAppL10n;

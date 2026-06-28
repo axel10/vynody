@@ -4,15 +4,10 @@ import 'dart:ui';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 
-import '../l10n/app_localizations.dart';
 import 'package:vynody/player/lyrics/lyrics_service.dart';
-import '../l10n/app_localizations_en.dart';
-import '../l10n/app_localizations_zh.dart';
+import 'package:vynody/utils/localized_text.dart';
 
-AppLocalizations _l10n() {
-  final locale = PlatformDispatcher.instance.locale;
-  return locale.languageCode == 'zh' ? AppLocalizationsZh() : AppLocalizationsEn();
-}
+AppLocalizations _l10n() => currentAppL10n;
 
 typedef OnlineLyricsSearch =
     Future<List<LyricTrack>> Function({

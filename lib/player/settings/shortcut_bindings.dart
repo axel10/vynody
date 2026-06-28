@@ -1,9 +1,6 @@
-import 'dart:ui';
 import 'package:flutter/widgets.dart';
 import 'package:flutter/services.dart';
-import '../../l10n/app_localizations.dart';
-import '../../l10n/app_localizations_en.dart';
-import '../../l10n/app_localizations_zh.dart';
+import 'package:vynody/utils/localized_text.dart';
 
 enum AppShortcutAction {
   playPause,
@@ -18,9 +15,7 @@ enum AppShortcutAction {
 }
 
 extension AppShortcutActionX on AppShortcutAction {
-  AppLocalizations get _l10n => PlatformDispatcher.instance.locale.languageCode == 'zh'
-      ? AppLocalizationsZh()
-      : AppLocalizationsEn();
+  AppLocalizations get _l10n => currentAppL10n;
 
   String get storageKey => switch (this) {
     AppShortcutAction.playPause => 'play_pause',
@@ -227,10 +222,7 @@ class ShortcutBinding {
 
   static String _formatKeyLabel(LogicalKeyboardKey? key) {
     if (key == null) {
-      final l10n = PlatformDispatcher.instance.locale.languageCode == 'zh'
-          ? AppLocalizationsZh()
-          : AppLocalizationsEn();
-      return l10n.unknownKey;
+      return currentAppL10n.unknownKey;
     }
 
     final label = key.keyLabel.trim();

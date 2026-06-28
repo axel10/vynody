@@ -1,17 +1,9 @@
-import 'dart:ui';
-
 import 'package:vynody/player/settings/settings_service.dart';
 import 'package:vynody/utils/network_client.dart';
 
-import 'package:vynody/l10n/app_localizations.dart';
-import 'package:vynody/l10n/app_localizations_en.dart';
-import 'package:vynody/l10n/app_localizations_zh.dart';
+import 'package:vynody/utils/localized_text.dart';
 
-AppLocalizations _l10n() {
-  return PlatformDispatcher.instance.locale.languageCode == 'zh' 
-      ? AppLocalizationsZh() 
-      : AppLocalizationsEn();
-}
+AppLocalizations _l10n() => currentAppL10n;
 
 final class LyricsModelInfo {
   const LyricsModelInfo({

@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:ui';
 
 import 'package:dio/dio.dart'
     show
@@ -15,9 +14,7 @@ import 'package:dio/dio.dart'
 import 'package:flutter/foundation.dart';
 
 import 'package:vynody/utils/lrc_utils.dart';
-import 'package:vynody/l10n/app_localizations.dart';
-import 'package:vynody/l10n/app_localizations_en.dart';
-import 'package:vynody/l10n/app_localizations_zh.dart';
+import 'package:vynody/utils/localized_text.dart';
 import 'package:vynody/utils/network_client.dart';
 import 'package:vynody/player/lyrics/lyrics_ai_api_client.dart';
 import 'package:vynody/player/lyrics/lyrics_ai_doubao.dart';
@@ -1631,8 +1628,4 @@ class _PreparedAudio {
   final File? tempFile;
 }
 
-AppLocalizations _l10n() {
-  return PlatformDispatcher.instance.locale.languageCode == 'zh'
-      ? AppLocalizationsZh()
-      : AppLocalizationsEn();
-}
+AppLocalizations _l10n() => currentAppL10n;

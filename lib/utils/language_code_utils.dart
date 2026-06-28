@@ -1,6 +1,5 @@
 import 'dart:ui';
 
-import 'package:vynody/l10n/app_localizations.dart';
 import 'package:vynody/utils/localized_text.dart';
 
 AppLocalizations _l10n() => currentAppL10n;

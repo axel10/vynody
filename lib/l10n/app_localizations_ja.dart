@@ -1,0 +1,2562 @@
+// ignore: unused_import
+import 'package:intl/intl.dart' as intl;
+import 'app_localizations.dart';
+
+// ignore_for_file: type=lint
+
+/// The translations for Japanese (`ja`).
+class AppLocalizationsJa extends AppLocalizations {
+  AppLocalizationsJa([String locale = 'ja']) : super(locale);
+
+  @override
+  String get appTitle => 'Vynody';
+
+  @override
+  String get alwaysOnTop => '常に最前面';
+
+  @override
+  String get systemMediaLibrary => 'システムメディアライブラリ';
+
+  @override
+  String get scanningDirectory => 'ディレクトリをスキャン中...';
+
+  @override
+  String filesPreprocessed(Object count) {
+    return '前処理済み $count';
+  }
+
+  @override
+  String filesDiscovered(Object count) {
+    return '発見 $count';
+  }
+
+  @override
+  String filesFullyProcessed(Object count) {
+    return '完全処理 $count';
+  }
+
+  @override
+  String get directoryAddedSuccess => 'ディレクトリを追加しました';
+
+  @override
+  String get directoryAddedNoMusic =>
+      'ディレクトリを追加しましたが、再生可能なオーディオファイルが見つかりませんでした';
+
+  @override
+  String get scanDirectory => 'ディレクトリをスキャン';
+
+  @override
+  String get sort => '並び替え';
+
+  @override
+  String get addRootDirectory => 'ルートディレクトリを追加';
+
+  @override
+  String get goBack => '戻る';
+
+  @override
+  String get noMediaLibraryPermission => 'メディアライブラリへのアクセス権限がありません';
+
+  @override
+  String get grantPermission => '権限を付与';
+
+  @override
+  String get needPermissionToScan => 'ローカル音楽をスキャンするには権限が必要です';
+
+  @override
+  String get rebuildTagDatabase => 'タグデータベースを再構築';
+
+  @override
+  String get rebuildDatabase => 'データベースを再構築';
+
+  @override
+  String get confirmRebuildDatabase =>
+      'すべての楽曲タグ情報を手動で更新してもよろしいですか？カバーとメタデータの再読み込みに時間がかかる場合があります。';
+
+  @override
+  String get cancel => 'キャンセル';
+
+  @override
+  String get confirm => '確認';
+
+  @override
+  String get rebuildingDatabase => '楽曲タグデータベースを再構築中...';
+
+  @override
+  String get sortBy => '並び替え基準';
+
+  @override
+  String get sortScope => '範囲';
+
+  @override
+  String get sortOrder => '並び順';
+
+  @override
+  String get title => 'タイトル';
+
+  @override
+  String get fileName => 'ファイル名';
+
+  @override
+  String get trackNumber => 'トラック番号';
+
+  @override
+  String get ascending => '昇順';
+
+  @override
+  String get descending => '降順';
+
+  @override
+  String get currentFolderScope => '現在のフォルダ';
+
+  @override
+  String get globalScope => '全体';
+
+  @override
+  String get visualizerSettings => '再生ページ設定';
+
+  @override
+  String get algorithm => 'スペクトラム';
+
+  @override
+  String get appearance => '外観';
+
+  @override
+  String get spectrumAppearanceGroup => 'スペクトラムの外観';
+
+  @override
+  String get spectrumAdvancedOptions => 'スペクトラムの詳細オプション';
+
+  @override
+  String get resetAlgorithm => 'アルゴリズムをリセット';
+
+  @override
+  String get resetAppearance => '外観をリセット';
+
+  @override
+  String get smoothing => 'スムージング';
+
+  @override
+  String get gravity => 'グラビティ';
+
+  @override
+  String get logScale => 'ログスケール';
+
+  @override
+  String get contrast => 'コントラスト';
+
+  @override
+  String get normalization => '正規化';
+
+  @override
+  String get multiplier => 'マルチプライヤ';
+
+  @override
+  String get skipHighFrequency => '高周波をスキップ';
+
+  @override
+  String get frequencyGroups => '周波数グループ';
+
+  @override
+  String get aggregationMode => '集約モード';
+
+  @override
+  String get opacity => '不透明度';
+
+  @override
+  String get enableGradient => 'グラデーションを有効化';
+
+  @override
+  String get startColor => '開始色';
+
+  @override
+  String get endColor => '終了色';
+
+  @override
+  String get gradientRangeStop1 => 'グラデーション範囲ストップ1';
+
+  @override
+  String get gradientRangeStop2 => 'グラデーション範囲ストップ2';
+
+  @override
+  String get gradientRepeatMode => 'グラデーションの繰り返しモード';
+
+  @override
+  String get color => '色';
+
+  @override
+  String get followCoverColor => 'カバー色に合わせる';
+
+  @override
+  String get selectColor => '色を選択';
+
+  @override
+  String get volume => '音量';
+
+  @override
+  String get clearQueue => 'キューをクリア';
+
+  @override
+  String get confirmClearQueue =>
+      '現在のキューをクリアしてもよろしいですか？';
+
+  @override
+  String get queueCleared => 'キューをクリアしました';
+
+  @override
+  String get locateCurrentSong => '現在の曲を探す';
+
+  @override
+  String get songNotInScannedFolders =>
+      '現在の曲はスキャンされたディレクトリにありません';
+
+  @override
+  String get queue => 'キュー';
+
+  @override
+  String get queueEmpty => 'キューは空です';
+
+  @override
+  String selectedSongs(int count) {
+    return '$count曲選択中';
+  }
+
+  @override
+  String get unknownArtist => '不明なアーティスト';
+
+  @override
+  String deletedSongs(int count) {
+    return '$count曲を削除しました';
+  }
+
+  @override
+  String get delete => '削除';
+
+  @override
+  String get createPlaylist => 'プレイリストを作成';
+
+  @override
+  String get playlistName => 'プレイリスト名';
+
+  @override
+  String get enterPlaylistName => 'プレイリスト名を入力';
+
+  @override
+  String get playlistNameExists => 'プレイリスト名は既に存在します';
+
+  @override
+  String get renamePlaylist => 'プレイリスト名を変更';
+
+  @override
+  String get deletePlaylist => 'プレイリストを削除';
+
+  @override
+  String confirmDeletePlaylist(String name) {
+    return 'プレイリスト"$name"を削除してもよろしいですか？';
+  }
+
+  @override
+  String get addToPlaylist => 'プレイリストに追加';
+
+  @override
+  String get selectAll => 'すべて選択';
+
+  @override
+  String get addToQueue => 'キューに追加';
+
+  @override
+  String get addedToQueue => 'キューに追加しました';
+
+  @override
+  String songCount(int count) {
+    return '$count曲';
+  }
+
+  @override
+  String addedToPlaylist(int count, String playlist) {
+    return '$count曲を$playlistに追加しました';
+  }
+
+  @override
+  String get createNewList => '新規リストを作成';
+
+  @override
+  String createdPlaylist(String name, int count) {
+    return 'プレイリスト"$name"を作成し、$count曲を追加しました';
+  }
+
+  @override
+  String get rename => '名前を変更';
+
+  @override
+  String get playlist => 'プレイリスト';
+
+  @override
+  String get mostPlayed => '最も再生された';
+
+  @override
+  String get recentlyAdded => '最近追加';
+
+  @override
+  String get albums => 'アルバム';
+
+  @override
+  String get artists => 'アーティスト';
+
+  @override
+  String get mostPlayedDescription => '再生完了回数でランク付け';
+
+  @override
+  String get recentlyAddedDescription =>
+      'ライブラリに追加された日時順';
+
+  @override
+  String get allTime => '全期間';
+
+  @override
+  String get pastWeek => '過去1週間';
+
+  @override
+  String get pastMonth => '過去1ヶ月';
+
+  @override
+  String get past90Days => '過去90日間';
+
+  @override
+  String get noPlayHistory => '再生履歴はまだありません';
+
+  @override
+  String get noPlayHistoryInRange => 'この期間の再生履歴はありません';
+
+  @override
+  String get noRecentlyAddedSongs => 'ライブラリに曲がまだありません';
+
+  @override
+  String get noRecentlyAddedInRange => 'この期間に追加された曲はありません';
+
+  @override
+  String get addedOn => '追加日';
+
+  @override
+  String get lastPlayed => '最終再生';
+
+  @override
+  String playCountLabel(int count) {
+    return '$count回';
+  }
+
+  @override
+  String get playAll => 'すべて再生';
+
+  @override
+  String get shufflePlay => 'シャッフル再生';
+
+  @override
+  String get noAlbums => 'アルバムが見つかりません';
+
+  @override
+  String get noArtists => 'アーティストが見つかりません';
+
+  @override
+  String get searchAlbums => 'アルバムまたはアーティストを検索';
+
+  @override
+  String get searchArtists => 'アーティストを検索';
+
+  @override
+  String get albumSort => '並び替え';
+
+  @override
+  String get sortArtistAsc => 'アーティスト名 昇順';
+
+  @override
+  String get sortTitleAsc => 'アルバムタイトル 昇順';
+
+  @override
+  String get sortTrackCount => '曲数';
+
+  @override
+  String get sortDuration => '合計時間';
+
+  @override
+  String get sortRecentAdded => '最近追加';
+
+  @override
+  String get sortAscending => '昇順';
+
+  @override
+  String get sortDescending => '降順';
+
+  @override
+  String get playNext => '次に再生';
+
+  @override
+  String get addToFavorites => 'お気に入りに追加';
+
+  @override
+  String get removeFromFavorites => 'お気に入りから削除';
+
+  @override
+  String get viewAlbumDetails => 'アルバムの詳細を表示';
+
+  @override
+  String get viewArtistDetails => 'アーティストの詳細を表示';
+
+  @override
+  String get openFileLocation => 'ファイルの場所を開く';
+
+  @override
+  String get copyAlbumTitle => 'アルバムタイトルをコピー';
+
+  @override
+  String get copyArtistName => 'アーティスト名をコピー';
+
+  @override
+  String albumCount(int count) {
+    return '$count枚のアルバム';
+  }
+
+  @override
+  String get emptyList => 'リストは空です';
+
+  @override
+  String get dragToAddMusic => 'ファイルまたはフォルダをドラッグして音楽を追加';
+
+  @override
+  String get unknownAlbum => '不明なアルバム';
+
+  @override
+  String get managePlaylists => 'プレイリストを管理';
+
+  @override
+  String get createNewPlaylist => '新しいプレイリストを作成';
+
+  @override
+  String get defaultList => 'デフォルトリスト';
+
+  @override
+  String get playbackMode => '再生モード';
+
+  @override
+  String get playbackOptions => '再生オプション';
+
+  @override
+  String get setVisualizerDisplay => 'ビジュアライザ表示を設定';
+
+  @override
+  String get noPlaybackContent => '再生コンテンツがありません';
+
+  @override
+  String get file => 'ファイル';
+
+  @override
+  String get play => '再生';
+
+  @override
+  String get list => 'ライブラリ';
+
+  @override
+  String get queueTab => 'キュー';
+
+  @override
+  String get more => 'その他';
+
+  @override
+  String get settings => '設定';
+
+  @override
+  String get themeMode => 'テーマ';
+
+  @override
+  String get themeModeSystem => 'システムに従う';
+
+  @override
+  String get themeModeLight => 'ライト';
+
+  @override
+  String get themeModeDark => 'ダーク';
+
+  @override
+  String get immersiveTabBar => '没入型タブバー';
+
+  @override
+  String get immersiveTabBarDescription =>
+      'マウス移動時にナビゲーションバーを表示し、3秒無操作で非表示';
+
+  @override
+  String get sampleStride => 'サンプルストライド';
+
+  @override
+  String get sampleStrideDescription =>
+      '値が大きいとスキャンは速いが波形精度が低下（デフォルト: 4）';
+
+  @override
+  String get waveformSegments => '波形セグメント数';
+
+  @override
+  String get waveformSegmentsDescription =>
+      '表示する波形バーの数（デフォルト: 80）';
+
+  @override
+  String get showDeveloperOptions => '開発者オプションを表示';
+
+  @override
+  String get playbackBackground => '再生背景';
+
+  @override
+  String get playbackRadialGradient => '中央ダークグラデーション';
+
+  @override
+  String get blurIntensity => 'ブラー強度';
+
+  @override
+  String get blurredArtwork => 'ブラーアートワーク（デフォルト）';
+
+  @override
+  String get dynamicMesh => 'ダイナミックメッシュ（Apple Music風）';
+
+  @override
+  String get solidColor => '単色';
+
+  @override
+  String get customImage => 'カスタム画像';
+
+  @override
+  String get presetColors => 'プリセット色';
+
+  @override
+  String get customColor => 'カスタム色';
+
+  @override
+  String get uploadImage => '画像を選択';
+
+  @override
+  String get normalOpacity => '通常時暗色レイヤーの不透明度';
+
+  @override
+  String get lyricsOpacity => '歌詞表示時暗色レイヤーの不透明度';
+
+  @override
+  String get chooseImageError => '画像の選択に失敗しました';
+
+  @override
+  String get noImageSelected => '画像が選択されていません';
+
+  @override
+  String get unknown => '不明';
+
+  @override
+  String get playlistModeSingle => '単曲';
+
+  @override
+  String get playlistModeSingleLoop => '単曲ループ';
+
+  @override
+  String get playlistModeQueue => 'キュー';
+
+  @override
+  String get playlistModeQueueLoop => 'キュー繰り返し';
+
+  @override
+  String get playlistModeAutoQueueLoop => '自動キュー繰り返し';
+
+  @override
+  String get visualizer => 'ビジュアライザ';
+
+  @override
+  String get previous => '前へ';
+
+  @override
+  String get next => '次へ';
+
+  @override
+  String get pause => '一時停止';
+
+  @override
+  String get autoMode => 'オートモード';
+
+  @override
+  String get advancedOptions => '詳細オプション';
+
+  @override
+  String get spectrumQuantity => 'スペクトラム数';
+
+  @override
+  String get speed => '速度';
+
+  @override
+  String get quantityHigh => '高';
+
+  @override
+  String get quantityMedium => '中';
+
+  @override
+  String get quantityLow => '低';
+
+  @override
+  String get speedFast => '速い';
+
+  @override
+  String get speedMedium => '中';
+
+  @override
+  String get speedSlow => '遅い';
+
+  @override
+  String get portraitFrequencyGroups => '縦画面の周波数グループ数';
+
+  @override
+  String get landscapeFrequencyGroups => '横画面の周波数グループ数';
+
+  @override
+  String get portraitGap => '縦画面のギャップ';
+
+  @override
+  String get landscapeGap => '横画面のギャップ';
+
+  @override
+  String get enableWaveformProgressBar => '波形プログレスバーを有効化';
+
+  @override
+  String get enableWaveformProgressBarDescription =>
+      '標準スライダーの代わりに全曲波形を使用';
+
+  @override
+  String get randomMode => 'ランダムモード';
+
+  @override
+  String get randomHistory => 'ランダム履歴';
+
+  @override
+  String get randomRange => 'ランダム範囲';
+
+  @override
+  String get randomMethod => 'ランダム方式';
+
+  @override
+  String get currentQueue => '現在のキュー';
+
+  @override
+  String get globalRange => '全体（全プレイリスト）';
+
+  @override
+  String get completeRandom => '完全ランダム';
+
+  @override
+  String get shuffleRandom => 'シャッフルランダム';
+
+  @override
+  String get randomQueue => 'ランダムキュー';
+
+  @override
+  String get notSelected => '音楽が選択されていません';
+
+  @override
+  String get saveTagsToFile => 'タグをファイルに保存';
+
+  @override
+  String get saveCurrentTagsToFile => '現在の曲のタグをファイルに保存';
+
+  @override
+  String get saveQueueTagsToFile => 'キューの全タグをファイルに保存';
+
+  @override
+  String get tagsSaved => 'タグを保存しました';
+
+  @override
+  String tagsSavedCount(Object count) {
+    return 'タグを保存しました（$count曲）';
+  }
+
+  @override
+  String get tagsSaveFailed => 'タグの保存に失敗しました';
+
+  @override
+  String tagsSaveFailedCount(Object count) {
+    return '$count曲の保存に失敗しました';
+  }
+
+  @override
+  String unsupportedFormat(Object count) {
+    return '$count曲は未対応フォーマットです（OGG/Opusは保存不可）';
+  }
+
+  @override
+  String get unsupportedFormatSingle =>
+      'このフォーマット（OGG/Opus）はタグの保存に対応していません';
+
+  @override
+  String get savingTags => 'タグを保存中...';
+
+  @override
+  String get noModifiedTagsToSave => '保存する変更済みタグはありません';
+
+  @override
+  String get clearPlaylist => 'リストをクリア';
+
+  @override
+  String get copyTitle => 'タイトルをコピー';
+
+  @override
+  String get transcodeAction => 'トランスコード';
+
+  @override
+  String get transcodeSectionTitle => 'オーディオトランスコード';
+
+  @override
+  String get transcodeSectionDescription =>
+      'オーディオ変換のデフォルト出力形式と品質プリセットを設定します。';
+
+  @override
+  String get transcodeDefaultFormat => 'デフォルト出力形式';
+
+  @override
+  String get transcodeDefaultQuality => 'デフォルト品質プリセット';
+
+  @override
+  String get transcodeTitle => 'オーディオトランスコード';
+
+  @override
+  String transcodeSongCount(int count) {
+    return '$count曲';
+  }
+
+  @override
+  String transcodeCompletedCount(int count) {
+    return '$countファイルをトランスコードしました';
+  }
+
+  @override
+  String transcodeCompletedWithFailures(int success, int total, int failed) {
+    return '$success/$totalファイルをトランスコード完了、$failed失敗';
+  }
+
+  @override
+  String get transcodeFailedGeneric => 'トランスコードに失敗しました';
+
+  @override
+  String get transcodePreparing => 'トランスコードを準備中...';
+
+  @override
+  String transcodeProgress(int current, int total) {
+    return 'トランスコード中 $current/$total';
+  }
+
+  @override
+  String get transcoding => 'トランスコード中...';
+
+  @override
+  String get startTranscode => 'トランスコード開始';
+
+  @override
+  String transcodeEngine(Object engine) {
+    return 'エンジン: $engine';
+  }
+
+  @override
+  String get transcodeUsingSystemFfmpeg =>
+      'システムのPATHからffmpegを使用しています。';
+
+  @override
+  String transcodeUsingCustomFfmpeg(Object path) {
+    return 'カスタムffmpegを使用: $path';
+  }
+
+  @override
+  String get transcodeFormat => '出力形式';
+
+  @override
+  String get transcodeQualityPreset => '品質プリセット';
+
+  @override
+  String get transcodeQualityLow => '低';
+
+  @override
+  String get transcodeQualityMedium => '中';
+
+  @override
+  String get transcodeQualityHigh => '高';
+
+  @override
+  String get transcodeQualityExtreme => '最高';
+
+  @override
+  String get transcodeLosslessPresetHint =>
+      'このロスレス形式では品質段階やビットレートモードは使用しません。';
+
+  @override
+  String get transcodeAdvancedOptions => '詳細オプション';
+
+  @override
+  String get transcodeAdvancedCustomized =>
+      '詳細パラメータがカスタマイズされました';
+
+  @override
+  String get transcodeAdvancedFollowingPreset =>
+      '詳細パラメータは現在のプリセットに従います';
+
+  @override
+  String get transcodeLosslessAdvancedHint =>
+      'このロスレス形式ではソース保持オプションのみ利用可能です。';
+
+  @override
+  String get transcodeBitRateInvalid => '有効なビットレートを入力してください';
+
+  @override
+  String get transcodeBitRate => 'ビットレート';
+
+  @override
+  String get transcodeBitRateMode => 'ビットレートモード';
+
+  @override
+  String get transcodeEncodingEngine => 'エンコーディングエンジン';
+
+  @override
+  String get transcodeSystemEncoder => 'Media3（システム）';
+
+  @override
+  String get transcodeFfmpegRustEncoder => 'FFmpeg（Rust）';
+
+  @override
+  String get transcodeAacEncoder => 'AACエンコーダ';
+
+  @override
+  String get transcodeSampleRate => 'サンプルレート';
+
+  @override
+  String get transcodeChannels => 'チャンネル';
+
+  @override
+  String get transcodeResetToPreset => '現在のプリセットにリセット';
+
+  @override
+  String get transcodeResetLosslessOptions => 'ロスレスオプションをリセット';
+
+  @override
+  String get transcodeOutputDirectory => '出力ディレクトリ';
+
+  @override
+  String get transcodeOutputPreview => 'プレビュー';
+
+  @override
+  String get transcodeChooseDirectory => 'ディレクトリを選択';
+
+  @override
+  String get transcodeUseSourceDirectory => 'ソースディレクトリを使用';
+
+  @override
+  String get transcodeKeepSource => 'ソースを保持';
+
+  @override
+  String get transcodeMono => 'モノラル';
+
+  @override
+  String get transcodeStereo => 'ステレオ';
+
+  @override
+  String get openFolderLocation => 'フォルダの場所を開く';
+
+  @override
+  String get songTagsSavedToSourceFileAndApp =>
+      '楽曲タグをソースファイルとアプリに保存しました';
+
+  @override
+  String get songTagsSavedToApp => '楽曲タグをアプリに保存しました';
+
+  @override
+  String get durationZero => '0:00';
+
+  @override
+  String get generateLyrics => '歌詞を生成';
+
+  @override
+  String get generateTimeline => 'タイムラインを生成';
+
+  @override
+  String get queueGenerateLyrics => '歌詞生成をキューに入れる';
+
+  @override
+  String get pauseAutoScroll => '自動スクロールを一時停止';
+
+  @override
+  String get resumeAutoScroll => '自動スクロールを再開';
+
+  @override
+  String get translateLyrics => '歌詞を翻訳';
+
+  @override
+  String get clearLyricsCache => '現在の歌詞キャッシュをクリア';
+
+  @override
+  String get clearTranslationCache => '現在の翻訳キャッシュをクリア';
+
+  @override
+  String get requery => '再クエリ';
+
+  @override
+  String get sleepTimerTitle => 'スリープタイマー';
+
+  @override
+  String get sleepTimerDescription =>
+      'カウントダウンを選択すると、時間経過後に再生が一時停止します。';
+
+  @override
+  String get sleepTimerRunningTitle => 'スリープタイマー動作中';
+
+  @override
+  String get sleepTimerRunningDescription =>
+      'カウントダウン終了時に自動的に再生を一時停止します。';
+
+  @override
+  String get remainingTime => '残り時間';
+
+  @override
+  String get startCountdown => 'カウントダウン開始';
+
+  @override
+  String get end => '終了';
+
+  @override
+  String get equalizer => 'イコライザ';
+
+  @override
+  String get equalizerEnabledStatus => '高忠実度調整が有効です';
+
+  @override
+  String get equalizerDisabledStatus => '無効';
+
+  @override
+  String get bassBoost => 'バスブースト';
+
+  @override
+  String get preampGain => 'プリアンプゲイン';
+
+  @override
+  String get reset => 'リセット';
+
+  @override
+  String get close => '閉じる';
+
+  @override
+  String get timelineAdjustmentTitle => 'タイムライン調整';
+
+  @override
+  String get timelineAdjustmentDescription =>
+      '右にドラッグすると歌詞が遅れ、左にドラッグすると早くなります。';
+
+  @override
+  String timelineOffsetEarlier(Object seconds) {
+    return '${seconds}秒早い';
+  }
+
+  @override
+  String timelineOffsetLater(Object seconds) {
+    return '${seconds}秒遅い';
+  }
+
+  @override
+  String get timelineOffsetCurrent => '現在のオフセット: 0.0秒';
+
+  @override
+  String get enterAcoustidApiKeyTitle => 'AcoustID APIキーを入力';
+
+  @override
+  String get acoustidApiKeyDescription =>
+      '音声フィンガープリントに使用されます。空白のままにすると内蔵のデフォルトキーが復元されます。';
+
+  @override
+  String get acoustidApiKeyHint => 'AcoustID APIキーを貼り付け';
+
+  @override
+  String get apiKey => 'APIキー';
+
+  @override
+  String get save => '保存';
+
+  @override
+  String get enterLyricsTitle => '歌詞を入力';
+
+  @override
+  String get lyricsInputHint =>
+      'ここに歌詞を貼り付けるか入力してください。複数行テキストに対応しています。';
+
+  @override
+  String get enterGoogleAiStudioApiKeyTitle => 'Google AI Studio APIキーを入力';
+
+  @override
+  String get googleAiStudioApiKeyDescription =>
+      'Google AI Studioでの歌詞生成、タイムライン生成、翻訳に使用されます。';
+
+  @override
+  String get pasteGoogleAiStudioApiKey => 'Google AI Studio APIキーを貼り付け';
+
+  @override
+  String get enterOpenRouterApiKeyTitle => 'OpenRouter APIキーを入力';
+
+  @override
+  String get openRouterApiKeyDescription =>
+      'OpenRouterでの歌詞生成とタイムライン生成に使用されます。翻訳は常にGeminiを使用します。';
+
+  @override
+  String get pasteOpenRouterApiKey => 'OpenRouter APIキーを貼り付け';
+
+  @override
+  String get enterGeminiApiKeyTitle => 'Gemini APIキーを入力';
+
+  @override
+  String get geminiApiKeyDescription => '歌詞の翻訳に使用されます。';
+
+  @override
+  String get pasteGeminiApiKey => 'Gemini APIキーを貼り付け';
+
+  @override
+  String get testConnection => '接続テスト';
+
+  @override
+  String get enterApiKey => 'APIキーを入力してください。';
+
+  @override
+  String get testingConnection => '接続をテスト中...';
+
+  @override
+  String get getKey => 'キーを取得';
+
+  @override
+  String get editSongTagsTitle => '楽曲タグを編集';
+
+  @override
+  String get changeArtwork => 'カバーを変更';
+
+  @override
+  String get clearArtwork => 'カバーをクリア';
+
+  @override
+  String get editSongTagsDescription =>
+      '変更内容はアプリ内のみに保存するか、ソースファイルにも書き戻すことができます。';
+
+  @override
+  String get artistLabel => 'アーティスト';
+
+  @override
+  String get albumLabel => 'アルバム';
+
+  @override
+  String get trackNumberLabel => 'トラック番号';
+
+  @override
+  String get trackNumberMustBeInteger => 'トラック番号は整数である必要があります';
+
+  @override
+  String get leaveBlankKeepsCurrentValue => '空白にするとこのフィールドをクリアします';
+
+  @override
+  String get currentFileFormatCannotWriteBack =>
+      'このファイル形式はソースファイルへの書き戻しをサポートしていません。変更はアプリ内のみ保存できます。';
+
+  @override
+  String get leaveBlankDoesNotClearOriginalValue =>
+      'ヒント: フィールドを空白にするとその値がクリアされます。';
+
+  @override
+  String get saveToApp => 'アプリに保存';
+
+  @override
+  String get saveToSourceFileAndApp => 'ソースファイルとアプリに保存';
+
+  @override
+  String get saveToSourceFileFailed =>
+      'ソースファイルへの保存に失敗しました。ファイル形式が書き込みに対応していること、ファイルが使用中でないことを確認してください。';
+
+  @override
+  String get fileOccupiedByOtherApp =>
+      'ファイルが別のアプリに使用されているため書き込めません';
+
+  @override
+  String get saveFailed => '保存に失敗しました。後でもう一度お試しください。';
+
+  @override
+  String apiKeySaved(Object provider) {
+    return '$provider APIキーを保存しました';
+  }
+
+  @override
+  String get apiKeySavedAcoustid => 'AcoustID APIキーを保存しました';
+
+  @override
+  String get generalSectionTitle => 'インターフェース';
+
+  @override
+  String get generalSectionDescription =>
+      'これらのオプションはページと再生UIの全体的な外観に影響します。';
+
+  @override
+  String get interfaceLanguage => 'インターフェース言語';
+
+  @override
+  String get interfaceLanguageDescription =>
+      'アプリケーションの表示言語を選択します。';
+
+  @override
+  String get scanSectionTitle => 'スキャン';
+
+  @override
+  String get scanSectionDescription =>
+      'これらのオプションはライブラリスキャンがオーディオファイルを処理する方法を制御します。';
+
+  @override
+  String get skipShortAudioDuringScan => 'スキャン中に短い音声をスキップ';
+
+  @override
+  String get skipShortAudioDuringScanDescription =>
+      'しきい値より短い音声はライブラリに追加されません。';
+
+  @override
+  String get shortAudioScanThreshold => '短い音声のしきい値';
+
+  @override
+  String get shortAudioScanThresholdDescription =>
+      'この時間より短いファイルはスキップされます。';
+
+  @override
+  String shortAudioScanThresholdValue(Object seconds) {
+    return '$seconds秒';
+  }
+
+  @override
+  String get shortcutSettingsTitle => 'カスタムショートカット';
+
+  @override
+  String get shortcutSettingsDescription =>
+      'クリックしてプレイヤーアクションのショートカットを再録音して保存します。';
+
+  @override
+  String get edit => '編集';
+
+  @override
+  String get lyricsSectionTitle => '歌詞';
+
+  @override
+  String get lyricsSectionDescription =>
+      'これらの設定は歌詞生成とタイムライン生成にのみ影響します。';
+
+  @override
+  String get lyricsTranslationTargetLanguageLabel => '翻訳対象言語';
+
+  @override
+  String get lyricsTranslationTargetLanguageDescription =>
+      'デフォルトではシステム言語に従います。手動で選択も可能です。';
+
+  @override
+  String get lyricsSaveMethodLabel => '歌詞の保存場所';
+
+  @override
+  String get lyricsSaveMethodDescription =>
+      'ファイル書き込み時の歌詞の保存場所を選択します。';
+
+  @override
+  String get lyricsSaveMethodOriginal => '元の場所';
+
+  @override
+  String get lyricsSaveMethodEmbedded => '埋め込み';
+
+  @override
+  String get lyricsSaveMethodLrcFile => 'LRCファイル';
+
+  @override
+  String get followSystemLanguage => 'システムに従う';
+
+  @override
+  String get autoSwitchLyricsProvider => '歌詞プロバイダを自動切替';
+
+  @override
+  String get autoSwitchLyricsProviderEnabledDesc =>
+      '最初にGoogle AI Studioを試します。プライマリとフォールバックの両モデルが429または5xxエラーで失敗した場合、自動的にOpenRouterに切り替えて試行を継続します。';
+
+  @override
+  String get autoSwitchLyricsProviderDisabledDesc =>
+      '自動切替を有効にするには、Google AI StudioとOpenRouterの両方のAPIキーが必要です。';
+
+  @override
+  String get lyricsAiProviderTitle => '歌詞AIプロバイダ';
+
+  @override
+  String get lyricsAiProviderDescription =>
+      '歌詞生成とタイムライン生成にのみ影響します。翻訳は常にGoogle AI Studioを使用します。';
+
+  @override
+  String get googleAiStudioApiKeySaved => 'Google AI Studio APIキーを保存しました';
+
+  @override
+  String get googleAiStudioApiKeyMissing =>
+      'Google AI Studio APIキーがまだ保存されていません。歌詞生成とタイムライン生成時に最初にプロンプトが表示されます。';
+
+  @override
+  String get openRouterApiKeySaved => 'OpenRouter APIキーを保存しました';
+
+  @override
+  String get openRouterApiKeyMissing =>
+      'OpenRouter APIキーがまだ保存されていません。歌詞生成とタイムライン生成時に最初にプロンプトが表示されます。';
+
+  @override
+  String get apiKeySavedStatus => '保存済み';
+
+  @override
+  String get apiKeyMissingStatus => '未入力';
+
+  @override
+  String get platformApiKeysSectionTitle => 'プラットフォームAPIキー';
+
+  @override
+  String get fill => '入力';
+
+  @override
+  String get modify => '変更';
+
+  @override
+  String get geminiModelsSectionTitle => 'モデルを選択';
+
+  @override
+  String get geminiModelsSectionDescription =>
+      'これらのモデルはGoogle AI Studioでの歌詞生成、タイムライン生成、歌詞翻訳に使用されます。';
+
+  @override
+  String get primaryModelLabel => 'プライマリモデル';
+
+  @override
+  String get backupModelLabel => 'フォールバックモデル';
+
+  @override
+  String get translationModelLabel => '翻訳モデル';
+
+  @override
+  String get fetching => '取得中...';
+
+  @override
+  String get fetchModelList => 'モデル一覧を取得';
+
+  @override
+  String get restoreDefault => 'デフォルトに戻す';
+
+  @override
+  String get acoustidSectionTitle => 'フィンガープリンティング';
+
+  @override
+  String get acoustidApiKeyTitle => 'AcoustID APIキー';
+
+  @override
+  String get acoustidApiKeyHelp =>
+      'AcoustIDは音声フィンガープリントに使用されます。ご自身のAPIキーの使用をお勧めします。';
+
+  @override
+  String get acoustidApiKeySaved => 'AcoustID APIキーを保存しました';
+
+  @override
+  String get acoustidApiKeyDefault =>
+      '現在内蔵のデフォルトキーを使用中です。ご自身のキーに置き換えることをお勧めします。';
+
+  @override
+  String get applyForApiKey =>
+      'APIキーを申請: https://acoustid.org/new-application';
+
+  @override
+  String get queueTabBarFavoriteAdded => 'お気に入りに追加しました';
+
+  @override
+  String get queueTabBarFavoriteRemoved => 'お気に入りから削除しました';
+
+  @override
+  String get tagCompletion => 'タグ補完';
+
+  @override
+  String get tagCompletionDescription =>
+      'AcoustIDとMusicBrainzの結果でタグを一致させます';
+
+  @override
+  String get goToSettings => '設定へ行く';
+
+  @override
+  String get searchReleaseTitles => 'リリースタイトルを検索';
+
+  @override
+  String get closeSearch => '検索を閉じる';
+
+  @override
+  String get refreshResults => '結果を更新';
+
+  @override
+  String get filterMusicBrainzReleaseTitle =>
+      'MusicBrainzリリースタイトルをフィルタ';
+
+  @override
+  String get clearSearch => '検索をクリア';
+
+  @override
+  String get localTitle => 'ローカルタイトル';
+
+  @override
+  String get queryConditions => 'クエリ条件';
+
+  @override
+  String get musicBrainzLoading => 'MusicBrainzを読み込み中';
+
+  @override
+  String get musicBrainzLoadingWithResults =>
+      '既存の結果はパネルに残ります';
+
+  @override
+  String get musicBrainzLoadingHint => 'お待ちください';
+
+  @override
+  String get musicBrainzQueryFailed => 'MusicBrainzクエリが失敗しました';
+
+  @override
+  String get musicBrainzNetworkErrorHint =>
+      'リクエストに失敗しました。通常はネットワークの不安定さ、タイムアウト、またはサーバー拒否が原因です。後で再試行してください。';
+
+  @override
+  String get musicBrainzFilteredEmptyHint =>
+      '現在のフィルタ条件では、そのキーワードを含むリリースタイトルは見つかりませんでした。';
+
+  @override
+  String get musicBrainzEmptyHint =>
+      'MusicBrainzは利用可能な結果を返しませんでした。タイトル、アーティスト、またはアルバムのフィルタを緩めてみてください。';
+
+  @override
+  String get musicBrainzEmptyMoreCompleteHint =>
+      '後で再試行するか、現在のタイトルまたはアーティスト情報がより完全であることを確認してください。';
+
+  @override
+  String get retry => '再試行';
+
+  @override
+  String get noMatchingRelease => '一致するリリースが見つかりません';
+
+  @override
+  String get noMatchingResults => '一致する結果が見つかりません';
+
+  @override
+  String get networkConnectionFailed => 'ネットワーク接続に失敗しました';
+
+  @override
+  String get searchAgain => 'もう一度検索';
+
+  @override
+  String get acoustidRecognitionRecords => 'AcoustID認識レコード';
+
+  @override
+  String get musicBrainzRecordings => 'MusicBrainzレコーディング';
+
+  @override
+  String get noExpandableReleaseGroups =>
+      '展開可能なリリースグループがありません';
+
+  @override
+  String get noExpandableReleases => '展開可能なリリースがありません';
+
+  @override
+  String get noMatchingResultHint =>
+      '後で再試行するか、現在のタイトルまたはアーティスト情報がより完全であることを確認してください。';
+
+  @override
+  String releaseCountLabel(int count) {
+    return '$count件のリリース';
+  }
+
+  @override
+  String recordingCountLabel(int count) {
+    return '$count件のレコーディング';
+  }
+
+  @override
+  String trackCountShort(int count) {
+    return '$countトラック';
+  }
+
+  @override
+  String scoreLabel(int score) {
+    return 'スコア $score';
+  }
+
+  @override
+  String matchScoreLabel(int score) {
+    return '一致 $score%';
+  }
+
+  @override
+  String get editQueryCondition => 'クエリ条件を編集';
+
+  @override
+  String get enterNewQueryText => '新しいクエリテキストを入力';
+
+  @override
+  String get durationLabel => '再生時間';
+
+  @override
+  String get customShortcuts => 'カスタムショートカット';
+
+  @override
+  String get pressShortcutCombo => 'ショートカットキーを押してください';
+
+  @override
+  String get clickToRecord => 'クリックして録音';
+
+  @override
+  String get searchingLyrics => '歌詞を検索中';
+
+  @override
+  String get noLyrics => '歌詞はまだありません';
+
+  @override
+  String get providerLabel => 'プロバイダ';
+
+  @override
+  String get modelLabel => 'モデル';
+
+  @override
+  String get unspecified => '未指定';
+
+  @override
+  String targetTimeLabel(String duration) {
+    return 'ターゲット時間 $duration';
+  }
+
+  @override
+  String get songDeletedSkipped => '曲が削除されたためスキップしました';
+
+  @override
+  String get songDeleted => '曲が削除されました';
+
+  @override
+  String get lyricsTaskUploading => 'アップロード中';
+
+  @override
+  String get lyricsTaskWaiting => '待機中';
+
+  @override
+  String get lyricsTaskRequesting => 'リクエスト中';
+
+  @override
+  String get lyricsTaskGenerating => '生成中';
+
+  @override
+  String get lyricsTaskRetrying => '再試行中';
+
+  @override
+  String get lyricsTaskProcessing => '処理中';
+
+  @override
+  String get unknownModel => '不明なモデル';
+
+  @override
+  String selectedFolders(int count) {
+    return '$countフォルダ選択中';
+  }
+
+  @override
+  String foldersDeleted(int count) {
+    return '$countフォルダを削除しました';
+  }
+
+  @override
+  String get persistentAccessDenied =>
+      'そのフォルダへのアクセスを保存できませんでした。もう一度選択してください。';
+
+  @override
+  String get folderAddFailed => 'フォルダの追加に失敗しました';
+
+  @override
+  String get sleepTimer => 'スリープタイマー';
+
+  @override
+  String sleepTimerRemaining(Object duration) {
+    return 'スリープタイマー $duration';
+  }
+
+  @override
+  String get unknownArtistOrAlbum => '不明';
+
+  @override
+  String get pressAgainToExit => 'もう一度押すと終了します';
+
+  @override
+  String get tagCompletionSuccessWithCover =>
+      'タグを補完して保存しました。カバーは一時ディレクトリにダウンロードされました';
+
+  @override
+  String get tagCompletionSuccess => 'タグを補完して保存しました';
+
+  @override
+  String get selectOnlineLyrics => 'オンライン歌詞を選択';
+
+  @override
+  String get increaseLyricsFont => '歌詞フォントを拡大';
+
+  @override
+  String get decreaseLyricsFont => '歌詞フォントを縮小';
+
+  @override
+  String get restoreDefaultSize => 'デフォルトサイズに戻す';
+
+  @override
+  String get adjustLyricsFont => '文字サイズを調整';
+
+  @override
+  String get searchingOnlineLyrics => 'オンライン歌詞を検索中';
+
+  @override
+  String get onlineLyricsResults => 'オンライン歌詞の結果';
+
+  @override
+  String get untitledLyrics => '無題の歌詞';
+
+  @override
+  String get hasTimeline => 'タイムラインあり';
+
+  @override
+  String get viewLyricsDetails => '歌詞の詳細を表示';
+
+  @override
+  String get lyricsDetails => '歌詞の詳細';
+
+  @override
+  String get lyricsContent => '歌詞の内容';
+
+  @override
+  String get noLyricsContent => '歌詞の内容がありません';
+
+  @override
+  String get queryContentLabel => '内容';
+
+  @override
+  String get yes => 'はい';
+
+  @override
+  String get no => 'いいえ';
+
+  @override
+  String dropAddedSongs(int addedCount) {
+    return '$addedCount曲追加しました';
+  }
+
+  @override
+  String dropAddedSongsWithExisting(int addedCount, int existingCount) {
+    return '$addedCount曲追加、$existingCount曲は既に存在しました';
+  }
+
+  @override
+  String get copyCover => 'カバーをクリップボードにコピー';
+
+  @override
+  String get copyCoverSuccess => 'カバーをクリップボードにコピーしました';
+
+  @override
+  String get searchLyricsPlaceholder =>
+      '曲名、アーティスト、または歌詞を入力して検索';
+
+  @override
+  String get share => '共有';
+
+  @override
+  String get windowsSettingsTitle => 'Windows設定';
+
+  @override
+  String get fileAssociationTitle => 'ファイル関連付け';
+
+  @override
+  String get fileAssociationDescription =>
+      '一般的な音楽形式（mp3, flac, wavなど）をこのアプリに関連付けて、ダブルクリックで開けるようにします。';
+
+  @override
+  String get associateButton => '関連付ける';
+
+  @override
+  String get disassociateButton => '解除';
+
+  @override
+  String get associationSuccess =>
+      '関連付けに成功しました！ダブルクリックが機能しない場合は、Windowsのデフォルトアプリ設定でVynodyを選択してください。';
+
+  @override
+  String get disassociationSuccess => 'ファイル関連付けを正常に解除しました。';
+
+  @override
+  String associationFailed(Object error) {
+    return '関連付けに失敗しました: $error';
+  }
+
+  @override
+  String get onboardingTitle => 'Vynodyへようこそ';
+
+  @override
+  String get onboardingSubtitle =>
+      'いくつかの簡単なステップで音楽の旅を始めましょう。';
+
+  @override
+  String get onboardingStepFileAssociation => 'ファイルタイプを関連付ける';
+
+  @override
+  String get onboardingFileAssociationDesc =>
+      '一般的な音楽形式（mp3, flac, wavなど）をVynodyに関連付けて、ファイルエクスプローラーでダブルクリックするだけで音楽を再生できます。';
+
+  @override
+  String get onboardingFileAssociationTip =>
+      '関連付け後、システムが「開くアプリの選択」メニューを表示する場合があります。リストから「Vynody」を選択し、「常にこのアプリを使う」にチェックを入れてください。';
+
+  @override
+  String get onboardingStepRootDirectory => '音楽ルートディレクトリを追加';
+
+  @override
+  String get onboardingRootDirectoryDesc =>
+      '音楽ファイルが保存されているフォルダを選択してください。Vynodyが自動的にスキャンしてあなたの音楽ライブラリを構築します。';
+
+  @override
+  String get onboardingSelectDirectory => 'フォルダを選択';
+
+  @override
+  String get onboardingSuccessTitle => '準備完了！';
+
+  @override
+  String get onboardingSuccessDesc =>
+      'メディアライブラリを追加しました。音楽をお楽しみください！';
+
+  @override
+  String get onboardingStartButton => '始める';
+
+  @override
+  String get onboardingSkip => '後で設定';
+
+  @override
+  String get onboardingNext => '次へ';
+
+  @override
+  String get onboardingBack => '戻る';
+
+  @override
+  String get resetOnboarding => 'オンボーディングをリセット';
+
+  @override
+  String get resetOnboardingDesc =>
+      'オンボーディング状態をクリアします。次回起動時にウェルカムガイドが再表示されます。';
+
+  @override
+  String get songProperties => '曲のプロパティ';
+
+  @override
+  String get failedToLoadDetails => '詳細の読み込みに失敗しました';
+
+  @override
+  String get noPropertiesAvailable => '利用可能なプロパティがありません';
+
+  @override
+  String get detailFilePath => 'ファイルパス';
+
+  @override
+  String get detailFormat => '形式';
+
+  @override
+  String get detailCodec => 'コーデック';
+
+  @override
+  String get detailDuration => '再生時間';
+
+  @override
+  String get detailFileSize => 'ファイルサイズ';
+
+  @override
+  String get detailBitrate => 'ビットレート';
+
+  @override
+  String get detailSampleRate => 'サンプルレート';
+
+  @override
+  String get detailChannels => 'チャンネル';
+
+  @override
+  String get detailBitDepth => 'ビット深度';
+
+  @override
+  String get detailMono => 'モノラル';
+
+  @override
+  String get detailStereo => 'ステレオ';
+
+  @override
+  String detailChannelsCount(int count) {
+    return '$countチャンネル';
+  }
+
+  @override
+  String get localNetworkPermissionDeniedTitle =>
+      'ローカルネットワークアクセスが制限されています';
+
+  @override
+  String get localNetworkPermissionDeniedMessage =>
+      '利用可能なローカルネットワークIPアドレスが検出されなかったか、ローカルネットワーク権限が拒否されました。\n\n以下をご確認ください:\n1. デバイスがWi-Fiまたはローカルネットワークに接続されていることを確認してください。\n2. システム設定でアプリのローカルネットワークアクセスが許可されていることを確認してください:\n   - iOS/macOS: システム設定 > プライバシーとセキュリティ > ローカルネットワーク でVynodyのスイッチをオンにしてください。\n   - Windows: ネットワークに接続していることを確認し、WindowsファイアウォールがVynodyのネットワークアクセスを許可していることを確認してください。';
+
+  @override
+  String get localNetworkPermissionWindowsMessage =>
+      '利用可能なローカルネットワークIPアドレスが検出されませんでした。\n\n以下をご確認ください:\n1. デバイスがローカルネットワーク（Wi-Fiまたはイーサネット）に接続されていることを確認してください。\n2. 接続済みでもエラーが続く場合は、Windowsファイアウォール設定でVynodyがファイアウォールを通過できるようにしてください。';
+
+  @override
+  String get openSettingsButton => '設定を開く';
+
+  @override
+  String get closeButton => '閉じる';
+
+  @override
+  String get copyTranslationResults => '翻訳結果をコピー';
+
+  @override
+  String get writeLyricsToFile => '歌詞をファイルに書き込む';
+
+  @override
+  String get selectLyricSource => '歌詞ソースを選択';
+
+  @override
+  String get regenerateLyrics => '歌詞を再生成';
+
+  @override
+  String get regenerateLyricsConfirmation =>
+      '現在の歌詞をクリアして再生成します。続行しますか？';
+
+  @override
+  String get regenerateTimeline => 'タイムラインを再生成';
+
+  @override
+  String get regenerateTimelineConfirmation =>
+      '現在のタイムラインをクリアして再生成します。続行しますか？';
+
+  @override
+  String get retranslateLyrics => '歌詞を再翻訳';
+
+  @override
+  String get retranslateLyricsConfirmation =>
+      '現在の翻訳をクリアして再翻訳します。続行しますか？';
+
+  @override
+  String get translationCopiedToClipboard =>
+      '翻訳結果をクリップボードにコピーしました';
+
+  @override
+  String get writingLyrics => '歌詞を書き込み中...';
+
+  @override
+  String get lyricsWrittenToFile => '歌詞をファイルに書き込みました';
+
+  @override
+  String get writeLyricsFailed => '歌詞の書き込みに失敗しました';
+
+  @override
+  String get externalLrcFile => '外部LRCファイル';
+
+  @override
+  String get embeddedLyrics => '埋め込み歌詞';
+
+  @override
+  String get manuallyAdjustedLyrics => '手動調整済み歌詞';
+
+  @override
+  String get lrclibOnlineLyrics => 'LrcLibオンライン歌詞';
+
+  @override
+  String get aiGeneratedLyrics => 'AI生成歌詞';
+
+  @override
+  String get matchScore => '一致';
+
+  @override
+  String get untitledRelease => '無題のリリース';
+
+  @override
+  String get localSongFileNotFoundForGeneration =>
+      'ローカル曲ファイルが存在しないため、歌詞を生成できません。';
+
+  @override
+  String get localSongFileNotFoundForTimeline =>
+      'ローカル曲ファイルが存在しないため、タイムラインを生成できません。';
+
+  @override
+  String get noLyricsForTimelineGeneration =>
+      'タイムライン生成に利用可能な歌詞がありません。';
+
+  @override
+  String get noLyricsAvailableForTranslation =>
+      '翻訳に利用可能な歌詞がありません。';
+
+  @override
+  String get noCurrentSongAvailable => '現在の曲がありません。';
+
+  @override
+  String get invalidTargetLanguage => '対象言語が無効です。';
+
+  @override
+  String get songAlreadyQueuedForTranslation =>
+      '現在の曲は既に翻訳キューに入っています。';
+
+  @override
+  String get songAlreadyQueuedForGeneration =>
+      '現在の曲は既に歌詞生成キューに入っています。';
+
+  @override
+  String get songNoLongerExistsForTranslation =>
+      '現在の曲はもう存在しないため、歌詞を翻訳できません。';
+
+  @override
+  String get generationFailed => '生成に失敗しました。';
+
+  @override
+  String get generatingLyrics => '歌詞を生成中';
+
+  @override
+  String get generatingTimeline => 'タイムラインを生成中';
+
+  @override
+  String get regeneratingLyrics => '歌詞を再生成中';
+
+  @override
+  String get translatingLyrics => '歌詞を翻訳中';
+
+  @override
+  String get transcodingSongFile => '曲ファイルをトランスコード中';
+
+  @override
+  String get uploadingSongFile => '曲ファイルをアップロード中';
+
+  @override
+  String get fileUploadedWaitingForReadiness =>
+      'ファイルをアップロードしました。準備が整うのを待っています';
+
+  @override
+  String get waitingForFileReadiness =>
+      'ファイルの準備が整うのを待っています';
+
+  @override
+  String get requestingModelResponse => 'モデルの応答をリクエスト中';
+
+  @override
+  String retryingTaskKindGeneration(Object taskKind) {
+    return '${taskKind}の生成を再試行中';
+  }
+
+  @override
+  String get retrying => '再試行中';
+
+  @override
+  String get processing => '処理中';
+
+  @override
+  String get timeline => 'タイムライン';
+
+  @override
+  String get lyrics => '歌詞';
+
+  @override
+  String lyricGenerationError(Object error) {
+    return '歌詞生成中にエラーが発生しました: $error';
+  }
+
+  @override
+  String timelineGenerationError(Object error) {
+    return 'タイムライン生成中にエラーが発生しました: $error';
+  }
+
+  @override
+  String get unknownGenerationError =>
+      '歌詞生成中に不明なエラーが発生しました。';
+
+  @override
+  String get unknownTimelineGenerationError =>
+      'タイムライン生成中に不明なエラーが発生しました。';
+
+  @override
+  String get unknownTranslationError =>
+      '歌詞翻訳中に不明なエラーが発生しました。';
+
+  @override
+  String get unknownError => '不明なエラー';
+
+  @override
+  String get modelRefusedToGenerateLyrics =>
+      'モデルが歌詞の生成を拒否しました。';
+
+  @override
+  String get modelRefusedToGenerateTimeline =>
+      'モデルがタイムラインの生成を拒否しました。';
+
+  @override
+  String get doubaoPreUploadTranscodingFailed =>
+      'Doubaoアップロード前の音声トランスコードに失敗しました。';
+
+  @override
+  String get doubaoTempTranscodeNotInTempDir =>
+      '一時トランスコードファイルがテンポラリディレクトリに作成されませんでした。';
+
+  @override
+  String get doubaoEmptyStreamingResponse =>
+      'Doubaoが空のストリーミングレスポンスを返しました。';
+
+  @override
+  String get doubaoEmptyResponse => 'Doubaoが空のレスポンスを返しました。';
+
+  @override
+  String get geminiEmptyStreamingResponse =>
+      'Geminiが空のストリーミングレスポンスを返しました。';
+
+  @override
+  String get geminiEmptyResponse => 'Geminiが空のレスポンスを返しました。';
+
+  @override
+  String get openRouterEmptyStreamingResponse =>
+      'OpenRouterが空のストリーミングレスポンスを返しました。';
+
+  @override
+  String get openRouterEmptyResponse =>
+      'OpenRouterが空のレスポンスを返しました。';
+
+  @override
+  String get deepseekEmptyStreamingResponse =>
+      'DeepSeekが空のストリーミングレスポンスを返しました。';
+
+  @override
+  String get deepseekEmptyResponse =>
+      'DeepSeekが空のレスポンスを返しました。';
+
+  @override
+  String get customProviderEmptyStreamingResponse =>
+      'カスタムプロバイダが空のストリーミングレスポンスを返しました。';
+
+  @override
+  String get customProviderEmptyResponse =>
+      'カスタムプロバイダが空のレスポンスを返しました。';
+
+  @override
+  String get fileUploadFailed => 'ファイルのアップロードに失敗しました。もう一度お試しください。';
+
+  @override
+  String get uploadedFileNotReady =>
+      'アップロードしたファイルが準備できませんでした。後でもう一度お試しください。';
+
+  @override
+  String get audioTranscodingFailed => 'オーディオのトランスコードに失敗しました。';
+
+  @override
+  String get tempTranscodeNotInTempDir =>
+      '一時トランスコードファイルがテンポラリディレクトリに作成されませんでした。';
+
+  @override
+  String get networkRequestFailedCheckProxy =>
+      'ネットワークリクエストに失敗しました。ネットワークとプロキシ設定を確認してください。';
+
+  @override
+  String get quotaExhaustedToday =>
+      '本日の割り当てを使い切りました。明日リセットされてから再試行してください。';
+
+  @override
+  String get googleAiHeavyLoad =>
+      'Google AIは高負荷のため一時的に利用できません。';
+
+  @override
+  String lyricsGenerationFailedWithError(Object error) {
+    return '歌詞生成に失敗しました: $error';
+  }
+
+  @override
+  String missingApiKeyForAction(Object providerName, Object action) {
+    return '${providerName}のAPIキーが見つからないため、$actionは利用できません。';
+  }
+
+  @override
+  String get googleServerFlaky =>
+      'Googleの調子が良くないようです。再試行すると成功する場合があります。';
+
+  @override
+  String get translateLyricsAction => '歌詞を翻訳';
+
+  @override
+  String get generateLyricsAction => '歌詞を生成';
+
+  @override
+  String get generateTimelineAction => 'タイムラインを生成';
+
+  @override
+  String get deepseekOnlyTranslation =>
+      'DeepSeekは歌詞の翻訳にのみ利用可能です。';
+
+  @override
+  String get customProviderOnlyTranslation =>
+      'カスタムプロバイダは歌詞の翻訳にのみ利用可能です。';
+
+  @override
+  String get customProviderNoBaseUrl =>
+      'カスタムプロバイダのベースURLが設定されていません。';
+
+  @override
+  String get pleaseEnterApiKey => 'APIキーを入力してください。';
+
+  @override
+  String get connectionSuccessVerificationPassed =>
+      '接続成功、検証に合格しました。';
+
+  @override
+  String connectionSuccessDetectedModels(Object count) {
+    return '接続成功、$count個のモデルを検出しました。';
+  }
+
+  @override
+  String testFailedWithStatus(Object statusCode, Object message) {
+    return 'テスト失敗（$statusCode）: $message';
+  }
+
+  @override
+  String get testFailedCheckNetworkOrApiKey =>
+      'テストに失敗しました。ネットワークまたはAPIキーを確認してください。';
+
+  @override
+  String testFailedStatusCheckApiKey(Object statusCode) {
+    return 'テスト失敗（$statusCode）。APIキーが有効かどうか確認してください。';
+  }
+
+  @override
+  String get enterGoogleAiStudioApiKeyFirst =>
+      '最初にGoogle AI Studio APIキーを入力してください。';
+
+  @override
+  String get enterDoubaoApiKeyFirst =>
+      '最初にDoubao APIキーを入力してください。';
+
+  @override
+  String get enterDeepseekApiKeyFirst =>
+      '最初にDeepSeek APIキーを入力してください。';
+
+  @override
+  String get enterCustomApiKeyAndBaseUrl =>
+      '最初にカスタムAPIキーとベースURLを入力してください。';
+
+  @override
+  String fetchedCountModels(Object count) {
+    return '$count個のモデルを取得しました。';
+  }
+
+  @override
+  String requestFailedWithStatus(Object statusCode, Object message) {
+    return 'リクエスト失敗（$statusCode）: $message';
+  }
+
+  @override
+  String get requestFailedCheckNetwork =>
+      'リクエストに失敗しました。ネットワークを確認してください。';
+
+  @override
+  String requestFailedStatus(Object statusCode) {
+    return 'リクエストに失敗しました（$statusCode）。';
+  }
+
+  @override
+  String get doubao => 'Doubao';
+
+  @override
+  String get custom => 'カスタム';
+
+  @override
+  String get noModelSelected => 'モデルが選択されていません';
+
+  @override
+  String get acoustidRequestFailed => 'AcoustIDリクエストに失敗しました';
+
+  @override
+  String acoustidRequestReturnedStatus(Object statusCode) {
+    return 'AcoustIDリクエストが$statusCodeを返しました。ご自身のAcoustID APIキーを申請して設定で入力してください。';
+  }
+
+  @override
+  String get writeTagDatabaseFailed => 'タグデータベースの書き込みに失敗しました';
+
+  @override
+  String get playPause => '再生/一時停止';
+
+  @override
+  String get nextTrack => '次の曲';
+
+  @override
+  String get previousTrack => '前の曲';
+
+  @override
+  String get volumeUp => '音量上げる';
+
+  @override
+  String get volumeDown => '音量下げる';
+
+  @override
+  String get toggleMute => 'ミュート切替';
+
+  @override
+  String get seekForward5s => '5秒進む';
+
+  @override
+  String get seekBackward5s => '5秒戻る';
+
+  @override
+  String get toggleFullScreen => '全画面切替';
+
+  @override
+  String get playPauseDescription => '現在の再生状態を制御します。';
+
+  @override
+  String get nextDescription => '次の曲にスキップします。';
+
+  @override
+  String get previousDescription => '前の曲に戻ります。';
+
+  @override
+  String get volumeUpDescription => '音量を5%ずつ上げます。';
+
+  @override
+  String get volumeDownDescription => '音量を5%ずつ下げます。';
+
+  @override
+  String get toggleMuteDescription => 'ミュートを切り替えます。';
+
+  @override
+  String get seekForward5sDescription => '5秒早送りします。';
+
+  @override
+  String get seekBackward5sDescription => '5秒巻き戻しします。';
+
+  @override
+  String get toggleFullScreenDescription =>
+      'ウィンドウモードと全画面を切り替えます。';
+
+  @override
+  String get unknownKey => '不明なキー';
+
+  @override
+  String get removeFromQueue => 'キューから削除';
+
+  @override
+  String get removeFromPlaylist => 'プレイリストから削除';
+
+  @override
+  String get alreadyLatestVersion => '既に最新バージョンです。';
+
+  @override
+  String get updateAvailable => 'アップデートがあります';
+
+  @override
+  String newVersionAvailable(Object version) {
+    return '新しいバージョンv$versionが利用可能です。GitHubのリリースページからダウンロードしてください。';
+  }
+
+  @override
+  String get openRelease => 'リリースを開く';
+
+  @override
+  String get checkUpdateFailedNetwork =>
+      'アップデートの確認に失敗しました。ネットワークの問題かGitHubのレート制限の可能性があります。';
+
+  @override
+  String get tags => 'タグ';
+
+  @override
+  String get about => '詳細情報';
+
+  @override
+  String get rebuildIndex => 'インデックスを再構築';
+
+  @override
+  String get rebuildIndexDescription =>
+      'すべての曲レコード（外部ソースを除く）をクリアし、すべてのルートディレクトリを再スキャンします。';
+
+  @override
+  String get rebuildIndexConfirmation =>
+      'すべての曲レコード（外部ソースを除く）をクリアし、すべてのルートディレクトリを再スキャンしてもよろしいですか？この処理には時間がかかる場合があります。';
+
+  @override
+  String get rebuildIndexStarted => 'インデックスの再構築を開始しました';
+
+  @override
+  String get rebuild => '再構築';
+
+  @override
+  String get advanced => '詳細';
+
+  @override
+  String get advancedOptionsDescription =>
+      'デバッグと動作調整のためのオプション。';
+
+  @override
+  String get showDeveloperOptionsDescription =>
+      'デバッグ用のより詳細なオプションを表示します。';
+
+  @override
+  String get onboardingReset =>
+      'オンボーディングがリセットされました。次回起動時に反映されます。';
+
+  @override
+  String get tagsSectionDescription =>
+      'オーディオファイルのメタデータと自動補完を設定します。';
+
+  @override
+  String get autoSaveToSourceFile => 'ソースファイルに自動保存';
+
+  @override
+  String get autoSaveToSourceFileDescription =>
+      'タグ補完時に自動的に物理オーディオファイルに書き戻します。';
+
+  @override
+  String get aboutSectionDescription =>
+      'バージョン情報、プロジェクトリンク、関連情報。';
+
+  @override
+  String get checkForUpdates => 'アップデートを確認';
+
+  @override
+  String get lyricsGenerationModel => '歌詞生成モデル';
+
+  @override
+  String get lyricsGenerationModelDescription =>
+      'AIによる歌詞生成とタイムライン生成/修正に使用されます。';
+
+  @override
+  String get lyricsTranslationModel => '歌詞翻訳モデル';
+
+  @override
+  String get lyricsTranslationModelDescription =>
+      '歌詞を対象言語に翻訳するために使用されます。';
+
+  @override
+  String get onlyForLyricTranslation => '歌詞翻訳のみ';
+
+  @override
+  String get fillApiKeyFirstEnablesModels =>
+      '少なくとも1つのAPIキーを入力してモデル選択を有効にしてください。';
+
+  @override
+  String get customApiProvider => 'カスタムAPIプロバイダ';
+
+  @override
+  String get clearedGoogleAiStudioApiKey => 'Google AI Studio APIキーをクリアしました';
+
+  @override
+  String get clearedOpenRouterApiKey => 'OpenRouter APIキーをクリアしました';
+
+  @override
+  String get clearedDoubaoApiKey => 'Doubao APIキーをクリアしました';
+
+  @override
+  String get clearedDeepseekApiKey => 'DeepSeek APIキーをクリアしました';
+
+  @override
+  String get clearedCustomProviderConfig =>
+      'カスタムプロバイダ設定をクリアしました';
+
+  @override
+  String get savedDoubaoApiKey => 'Doubao APIキーを保存しました';
+
+  @override
+  String get savedDeepseekApiKey => 'DeepSeek APIキーを保存しました';
+
+  @override
+  String get savedCustomProviderConfig =>
+      'カスタムプロバイダ設定を保存しました';
+
+  @override
+  String get noMatchingFoldersOrSongs =>
+      '一致するフォルダまたは曲が見つかりません';
+
+  @override
+  String get listView => 'リスト表示';
+
+  @override
+  String get gridView => 'グリッド表示';
+
+  @override
+  String songsCountFormat(Object count) {
+    return '$count曲';
+  }
+
+  @override
+  String get searchInFolderAndSubfolders =>
+      'フォルダとサブフォルダを検索...';
+
+  @override
+  String get shuffle => 'シャッフル';
+
+  @override
+  String get search => '検索';
+
+  @override
+  String get selectFolders => 'フォルダを選択';
+
+  @override
+  String get removeDirectory => 'ディレクトリを削除';
+
+  @override
+  String removeRootDirectoryConfirmation(Object name) {
+    return 'ルートディレクトリ"$name"を削除してもよろしいですか？ディスク上の物理ファイルは削除されません。';
+  }
+
+  @override
+  String get deselectAll => 'すべて選択解除';
+
+  @override
+  String get favorites => 'お気に入り';
+
+  @override
+  String get aggregationPeak => 'ピーク';
+
+  @override
+  String get aggregationMean => '平均';
+
+  @override
+  String get aggregationRms => 'RMS';
+
+  @override
+  String get filesToTranscode => 'トランスコードするファイル';
+
+  @override
+  String get chooseAndroidOutputDirectoryFirst =>
+      '最初にAndroidの出力ディレクトリを選択してください。';
+
+  @override
+  String currentSongProgressPercent(Object percent) {
+    return '現在の曲 $percent%';
+  }
+
+  @override
+  String overallProgressPercent(Object percent) {
+    return '全体 $percent%';
+  }
+
+  @override
+  String get pleaseChooseOutputDirectory =>
+      '出力ディレクトリを選択してください。';
+
+  @override
+  String selectedArtistsCount(Object count) {
+    return '$count人のアーティストを選択中';
+  }
+
+  @override
+  String selectedAlbumsCount(Object count) {
+    return '$count枚のアルバムを選択中';
+  }
+
+  @override
+  String get simplifiedChinese => '簡体字中国語';
+
+  @override
+  String get traditionalChinese => '繁体字中国語';
+
+  @override
+  String get chineseLanguage => '中国語';
+
+  @override
+  String get englishLanguage => '英語';
+
+  @override
+  String get japaneseLanguage => '日本語';
+
+  @override
+  String get koreanLanguage => '韓国語';
+
+  @override
+  String get frenchLanguage => 'フランス語';
+
+  @override
+  String get germanLanguage => 'ドイツ語';
+
+  @override
+  String get spanishLanguage => 'スペイン語';
+
+  @override
+  String get portugueseLanguage => 'ポルトガル語';
+
+  @override
+  String get russianLanguage => 'ロシア語';
+
+  @override
+  String get systemLanguage => 'システム言語';
+
+  @override
+  String get targetLanguage => '対象言語';
+
+  @override
+  String get whatAreAiLyrics => 'AI歌詞とは？';
+
+  @override
+  String get whatIsAiLyricTranslation => 'AI歌詞翻訳とは？';
+
+  @override
+  String get aiLyricsIntroGeneration =>
+      'AIは曲から歌詞を生成し、タイムラインに合わせることができます。';
+
+  @override
+  String get aiLyricsIntroTranslation =>
+      'AIは歌詞を好きな言語に翻訳して、曲をより理解しやすくします。';
+
+  @override
+  String get whyNeedApiKey => 'なぜAPIキーが必要ですか？';
+
+  @override
+  String get apiKeyExplanation =>
+      'APIキーはAIプロバイダへのアクセス資格情報です。アプリはこれを使用して歌詞生成、タイムライン調整、翻訳のリクエストを直接送信します。';
+
+  @override
+  String get apiKeyLocalOnly =>
+      'あなたのAPIキーはこのデバイスにのみ保存され、Vynody開発者サーバーにアップロードされることはありません。';
+
+  @override
+  String get chooseAnAiProvider => 'AIプロバイダを選択:';
+
+  @override
+  String get googleProviderPros =>
+      'Google公式チャンネルで、強力なGeminiモデルと generous な無料枠があります。';
+
+  @override
+  String get googleProviderCons =>
+      '高トラフィック時に429エラーが発生することがあります。その場合は別のプロバイダに切り替えてください。';
+
+  @override
+  String get openRouterProviderPros =>
+      '多くのプロバイダといくつかの無料モデルにアクセスできるモデルアグリゲータです。';
+
+  @override
+  String get openRouterProviderCons =>
+      'チャージに手数料が含まれる場合があり、ウェブサイトは英語のみです。';
+
+  @override
+  String get doubaoProviderPros =>
+      'ByteDance製、中国語テキストに強い。新規ユーザーはモデルあたり50万トークンの無料枠を取得できます。';
+
+  @override
+  String get doubaoProviderCons =>
+      '登録が比較的面倒で、本人確認が必要です。';
+
+  @override
+  String get deepseekProviderPros =>
+      '中国語の理解度が高く、低価格で歌詞翻訳に適しています。';
+
+  @override
+  String get deepseekProviderCons =>
+      'テキスト入力のみ。歌詞生成とタイムライン調整には別のプロバイダのAPIキーが必要です。';
+
+  @override
+  String get highlights => 'ハイライト';
+
+  @override
+  String get notes => 'メモ';
+
+  @override
+  String enterProviderApiKey(Object provider) {
+    return '$provider APIキーを入力:';
+  }
+
+  @override
+  String get pasteYourApiKey => 'APIキーをここに貼り付け';
+
+  @override
+  String get getApiKey => 'APIキーを取得';
+
+  @override
+  String get testConnectionButton => '接続テスト';
+
+  @override
+  String get enableAiLyricGeneration => 'AI歌詞生成を有効化';
+
+  @override
+  String get enableAiLyricTranslation => 'AI歌詞翻訳を有効化';
+
+  @override
+  String get notNow => '今はしない';
+
+  @override
+  String get startSetup => 'セットアップを開始';
+
+  @override
+  String get chooseAiProvider => 'AIプロバイダを選択';
+
+  @override
+  String get backStep => '戻る';
+
+  @override
+  String get continueAction => '続ける';
+
+  @override
+  String get nextStep => '次へ';
+
+  @override
+  String get configureApiKey => 'APIキーを設定';
+
+  @override
+  String get saveAndFinish => '保存して完了';
+
+  @override
+  String get testing => 'テスト中...';
+
+  @override
+  String get noteTitle => '注意';
+
+  @override
+  String get deepseekTextInputOnlyNote =>
+      'DeepSeekはテキスト入力のみをサポートしています。歌詞生成とタイムライン調整には別のプロバイダのAPIキーが必要です。';
+
+  @override
+  String retryAttemptOfMax(Object attempt, Object maxRetry) {
+    return '再試行 $attempt/$maxRetry';
+  }
+
+  @override
+  String generatingTaskKind(Object taskKind) {
+    return '${taskKind}を生成中';
+  }
+
+  @override
+  String connectionTestException(Object error) {
+    return '接続テストエラー: $error';
+  }
+
+  @override
+  String get testingConnectionProgress => '接続をテスト中...';
+
+  @override
+  String get clear => 'クリア';
+
+  @override
+  String get enterDoubaoApiKey => 'Doubao APIキーを入力';
+
+  @override
+  String get doubaoApiKeyDescription =>
+      '歌詞生成と翻訳のためのVolcano/Doubao APIキーを入力してください。';
+
+  @override
+  String get enterDeepseekApiKey => 'DeepSeek APIキーを入力';
+
+  @override
+  String get deepseekApiKeyDescription =>
+      '歌詞翻訳のみのためのDeepSeek APIキーを入力してください。';
+
+  @override
+  String get pleaseEnterApiKeyHint => 'APIキーを入力してください';
+
+  @override
+  String get platform => 'プラットフォーム';
+
+  @override
+  String get showRecommendedOnly => '推奨のみ表示';
+
+  @override
+  String get noAvailableChannels => '利用可能なチャンネルがありません';
+
+  @override
+  String get noMatchingModels => '一致するモデルが見つかりません';
+
+  @override
+  String get leaveEmpty => '空のままにする';
+
+  @override
+  String get leaveEmptyFallbackDescription =>
+      'バックアップモデルを設定しない場合はこれを選択します。';
+
+  @override
+  String get modelSearchHint => 'モデル名、IDを入力';
+}

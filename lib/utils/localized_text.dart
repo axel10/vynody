@@ -1,7 +1,7 @@
 import 'dart:ui';
 import '../l10n/app_localizations.dart';
-import '../l10n/app_localizations_en.dart';
-import '../l10n/app_localizations_zh.dart';
+
+export '../l10n/app_localizations.dart';
 
 abstract final class LocalizedText {
   static String? overrideLanguageCode;
@@ -9,6 +9,12 @@ abstract final class LocalizedText {
 
 AppLocalizations get currentAppL10n {
   final code = LocalizedText.overrideLanguageCode;
-  final isZh = code == 'zh' || (code != 'en' && PlatformDispatcher.instance.locale.languageCode == 'zh');
-  return isZh ? AppLocalizationsZh() : AppLocalizationsEn();
+  final langCode = (code != null && code != 'system' && code.isNotEmpty)
+      ? code
+      : PlatformDispatcher.instance.locale.languageCode;
+  try {
+    return lookupAppLocalizations(Locale(langCode));
+  } catch (_) {
+    return lookupAppLocalizations(const Locale('en'));
+  }
 }

@@ -1,8 +1,4 @@
-import 'dart:ui';
-
-import 'package:vynody/l10n/app_localizations.dart';
-import 'package:vynody/l10n/app_localizations_en.dart';
-import 'package:vynody/l10n/app_localizations_zh.dart';
+import 'package:vynody/utils/localized_text.dart';
 import 'package:vynody/utils/lrc_utils.dart';
 
 final class LyricsAiPromptBuilder {
@@ -275,8 +271,4 @@ final class LyricsAiTranslationTextHelper {
 
 }
 
-AppLocalizations _l10n() {
-  return PlatformDispatcher.instance.locale.languageCode == 'zh'
-      ? AppLocalizationsZh()
-      : AppLocalizationsEn();
-}
+AppLocalizations _l10n() => currentAppL10n;
