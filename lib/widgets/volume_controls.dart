@@ -27,9 +27,6 @@ class VolumeSliderOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
     return Positioned.fill(
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
@@ -67,9 +64,7 @@ class VolumeSliderOverlay extends StatelessWidget {
                               child: BackdropFilter(
                                 filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
                                 child: Container(
-                                  color: isDark
-                                      ? Colors.black.withValues(alpha: 0.4)
-                                      : Colors.white.withValues(alpha: 0.2),
+                                  color: Colors.white.withValues(alpha: 0.15),
                                   child: LayoutBuilder(
                                     builder: (context, constraints) {
                                       final width = constraints.maxWidth;
@@ -145,7 +140,7 @@ class VolumeSliderOverlay extends StatelessWidget {
 
                                               // Base content (shown on unfilled area, using white70 or black87)
                                               buildContent(
-                                                color: isDark ? Colors.white70 : Colors.black87,
+                                                color: Colors.white,
                                               ),
 
                                               // Masked content (shown on filled area, using black87)
@@ -172,9 +167,7 @@ class VolumeSliderOverlay extends StatelessWidget {
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(24),
                                   border: Border.all(
-                                    color: isDark
-                                        ? Colors.white.withValues(alpha: 0.18)
-                                        : Colors.black.withValues(alpha: 0.08),
+                                    color: Colors.white.withValues(alpha: 0.18),
                                     width: 1,
                                   ),
                                 ),
