@@ -1103,7 +1103,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get shortcutSettingsDescription =>
-      'クリックしてプレイヤーアクションのショートカットを再録音して保存します。';
+      'クリックしてプレイヤー操作のショートカットキーを再設定して保存します。';
 
   @override
   String get edit => '編集';
@@ -1367,7 +1367,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get pressShortcutCombo => 'ショートカットキーを押してください';
 
   @override
-  String get clickToRecord => 'クリックして録音';
+  String get clickToRecord => 'クリックして設定';
 
   @override
   String get searchingLyrics => '歌詞を検索中';
@@ -2344,8 +2344,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get chooseAnAiProvider => 'AIプロバイダを選択:';
 
   @override
-  String get googleProviderPros =>
-      'Google公式チャンネルで、強力なGeminiモデルと generous な無料枠があります。';
+  String get googleProviderPros => 'Google公式チャンネルで、強力なGeminiモデルと豊富な無料枠があります。';
 
   @override
   String get googleProviderCons =>

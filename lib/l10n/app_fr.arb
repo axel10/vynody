@@ -440,7 +440,7 @@
     }
   },
   "shortcutSettingsTitle": "Raccourcis personnalisés",
-  "shortcutSettingsDescription": "Cliquez pour réenregistrer les raccourcis des actions du lecteur.",
+  "shortcutSettingsDescription": "Cliquez pour redéfinir et enregistrer les raccourcis des actions du lecteur.",
   "edit": "Modifier",
   "lyricsSectionTitle": "Paroles",
   "lyricsSectionDescription": "Ces réglages n'affectent que la génération de paroles et de chronologie.",
@@ -453,16 +453,10 @@
   "lyricsSaveMethodLrcFile": "Fichier LRC",
   "followSystemLanguage": "Suivre le système",
   "autoSwitchLyricsProvider": "Changement automatique de fournisseur",
-  "autoSwitchLyricsProviderEnabledDesc": "Google AI Studio est essayé en premier. En cas d'échec, bascule automatiquement vers OpenRouter.",
+  "autoSwitchLyricsProviderEnabledDesc": "Google AI Studio est essayé en premier. Si le modèle principal et le modèle de secours échouent tous deux avec des erreurs 429 ou 5xx, l'application bascule automatiquement vers OpenRouter et continue d'essayer.",
   "autoSwitchLyricsProviderDisabledDesc": "Vous avez besoin des clés API Google AI Studio et OpenRouter pour activer le changement automatique.",
   "lyricsAiProviderTitle": "Fournisseur IA de paroles",
   "lyricsAiProviderDescription": "Cela n'affecte que la génération de paroles et de chronologie. La traduction utilise toujours Google AI Studio.",
-  "apiKeySavedProvider": "Clé API {provider} sauvegardée",
-  "@apiKeySavedProvider": {
-    "placeholders": {
-      "provider": {}
-    }
-  },
   "googleAiStudioApiKeySaved": "Clé API Google AI Studio sauvegardée",
   "googleAiStudioApiKeyMissing": "Aucune clé API Google AI Studio sauvegardée. La génération vous le rappellera.",
   "openRouterApiKeySaved": "Clé API OpenRouter sauvegardée",
@@ -561,7 +555,7 @@
   "durationLabel": "Durée",
   "customShortcuts": "Raccourcis personnalisés",
   "pressShortcutCombo": "Appuyez sur la combinaison de touches",
-  "clickToRecord": "Cliquez pour enregistrer",
+  "clickToRecord": "Cliquez pour définir",
   "searchingLyrics": "Recherche de paroles",
   "noLyrics": "Pas encore de paroles",
   "providerLabel": "Fournisseur",
@@ -690,7 +684,7 @@
     }
   },
   "localNetworkPermissionDeniedTitle": "Accès au réseau local restreint",
-  "localNetworkPermissionDeniedMessage": "Aucune adresse IP locale disponible ou permission refusée.\n\nVérifiez :\n1. Connexion Wi-Fi ou LAN.\n2. Autorisez l'accès au réseau local dans les paramètres de confidentialité.",
+  "localNetworkPermissionDeniedMessage": "Aucune adresse IP locale disponible ou l'accès au réseau local a été refusé.\n\nVeuillez vérifier les points suivants :\n1. Assurez-vous que votre appareil est connecté à un réseau Wi-Fi ou local.\n2. Assurez-vous que l'application est autorisée à accéder au réseau local dans les paramètres système :\n   - iOS/macOS : Allez dans Réglages > Confidentialité et sécurité > Réseau local, et activez Vynody.\n   - Windows : Assurez-vous d'être connecté et vérifiez que le pare-feu Windows autorise l'accès à Vynody.",
   "localNetworkPermissionWindowsMessage": "Aucune adresse IP locale détectée.\n\nVérifiez :\n1. Connexion au réseau local.\n2. Vérifiez le pare-feu Windows pour autoriser Vynody.",
   "openSettingsButton": "Ouvrir les paramètres",
   "closeButton": "Fermer",
@@ -898,7 +892,7 @@
   "aiLyricsIntroGeneration": "L'IA peut générer des paroles à partir de la chanson et les aligner temporellement.",
   "aiLyricsIntroTranslation": "L'IA peut traduire les paroles dans votre langue préférée.",
   "whyNeedApiKey": "Pourquoi ai-je besoin d'une clé API ?",
-  "apiKeyExplanation": "Une clé API est votre identifiant d'accès pour un fournisseur IA. L'application l'utilise pour les demandes.",
+  "apiKeyExplanation": "Une clé API est votre identifiant d'accès pour un fournisseur IA. L'application l'utilise pour envoyer des demandes directes de génération de paroles, d'ajustement de chronologie ou de traduction.",
   "apiKeyLocalOnly": "Votre clé API est stockée localement et n'est jamais envoyée aux serveurs Vynody.",
   "chooseAnAiProvider": "Choisissez un fournisseur IA :",
   "googleProviderPros": "Chaîne officielle Google, modèles Gemini puissants et quotas gratuits généreux.",
@@ -1022,7 +1016,7 @@
   "receiveDirectoryUpdated": "Répertoire de réception mis à jour : {path}",
   "receiveDirectoryTitle": "Répertoire de réception",
   "webShareTitle": "Partage Web",
-  "webShareDescription": "Les appareils sur le même LAN peuvent ouvrir le lien pour télécharger de la musique.",
+  "webShareDescription": "Les autres appareils sur le même réseau local (LAN) peuvent ouvrir le lien ci-dessous dans un navigateur pour envoyer ou télécharger de la musique directement.",
   "linkCopiedToClipboard": "Lien copié dans le presse-papier",
   "nearbyDevices": "Appareils à proximité",
   "searchingDevices": "Recherche d'autres appareils sur le LAN...",

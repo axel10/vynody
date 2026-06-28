@@ -440,7 +440,7 @@
     }
   },
   "shortcutSettingsTitle": "カスタムショートカット",
-  "shortcutSettingsDescription": "クリックしてプレイヤーアクションのショートカットを再録音して保存します。",
+  "shortcutSettingsDescription": "クリックしてプレイヤー操作のショートカットキーを再設定して保存します。",
   "edit": "編集",
   "lyricsSectionTitle": "歌詞",
   "lyricsSectionDescription": "これらの設定は歌詞生成とタイムライン生成にのみ影響します。",
@@ -457,12 +457,6 @@
   "autoSwitchLyricsProviderDisabledDesc": "自動切替を有効にするには、Google AI StudioとOpenRouterの両方のAPIキーが必要です。",
   "lyricsAiProviderTitle": "歌詞AIプロバイダ",
   "lyricsAiProviderDescription": "歌詞生成とタイムライン生成にのみ影響します。翻訳は常にGoogle AI Studioを使用します。",
-  "apiKeySavedProvider": "{provider} APIキーが保存されました",
-  "@apiKeySavedProvider": {
-    "placeholders": {
-      "provider": {}
-    }
-  },
   "googleAiStudioApiKeySaved": "Google AI Studio APIキーを保存しました",
   "googleAiStudioApiKeyMissing": "Google AI Studio APIキーがまだ保存されていません。歌詞生成とタイムライン生成時に最初にプロンプトが表示されます。",
   "openRouterApiKeySaved": "OpenRouter APIキーを保存しました",
@@ -561,7 +555,7 @@
   "durationLabel": "再生時間",
   "customShortcuts": "カスタムショートカット",
   "pressShortcutCombo": "ショートカットキーを押してください",
-  "clickToRecord": "クリックして録音",
+  "clickToRecord": "クリックして設定",
   "searchingLyrics": "歌詞を検索中",
   "noLyrics": "歌詞はまだありません",
   "providerLabel": "プロバイダ",
@@ -979,7 +973,7 @@
   "apiKeyExplanation": "APIキーはAIプロバイダへのアクセス資格情報です。アプリはこれを使用して歌詞生成、タイムライン調整、翻訳のリクエストを直接送信します。",
   "apiKeyLocalOnly": "あなたのAPIキーはこのデバイスにのみ保存され、Vynody開発者サーバーにアップロードされることはありません。",
   "chooseAnAiProvider": "AIプロバイダを選択:",
-  "googleProviderPros": "Google公式チャンネルで、強力なGeminiモデルと generous な無料枠があります。",
+  "googleProviderPros": "Google公式チャンネルで、強力なGeminiモデルと豊富な無料枠があります。",
   "googleProviderCons": "高トラフィック時に429エラーが発生することがあります。その場合は別のプロバイダに切り替えてください。",
   "openRouterProviderPros": "多くのプロバイダといくつかの無料モデルにアクセスできるモデルアグリゲータです。",
   "openRouterProviderCons": "チャージに手数料が含まれる場合があり、ウェブサイトは英語のみです。",

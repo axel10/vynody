@@ -1146,7 +1146,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get shortcutSettingsDescription =>
-      'Cliquez pour réenregistrer les raccourcis des actions du lecteur.';
+      'Cliquez pour redéfinir et enregistrer les raccourcis des actions du lecteur.';
 
   @override
   String get edit => 'Modifier';
@@ -1191,7 +1191,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get autoSwitchLyricsProviderEnabledDesc =>
-      'Google AI Studio est essayé en premier. En cas d\'échec, bascule automatiquement vers OpenRouter.';
+      'Google AI Studio est essayé en premier. Si le modèle principal et le modèle de secours échouent tous deux avec des erreurs 429 ou 5xx, l\'application bascule automatiquement vers OpenRouter et continue d\'essayer.';
 
   @override
   String get autoSwitchLyricsProviderDisabledDesc =>
@@ -1420,7 +1420,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get pressShortcutCombo => 'Appuyez sur la combinaison de touches';
 
   @override
-  String get clickToRecord => 'Cliquez pour enregistrer';
+  String get clickToRecord => 'Cliquez pour définir';
 
   @override
   String get searchingLyrics => 'Recherche de paroles';
@@ -1716,7 +1716,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get localNetworkPermissionDeniedMessage =>
-      'Aucune adresse IP locale disponible ou permission refusée.\n\nVérifiez :\n1. Connexion Wi-Fi ou LAN.\n2. Autorisez l\'accès au réseau local dans les paramètres de confidentialité.';
+      'Aucune adresse IP locale disponible ou l\'accès au réseau local a été refusé.\n\nVeuillez vérifier les points suivants :\n1. Assurez-vous que votre appareil est connecté à un réseau Wi-Fi ou local.\n2. Assurez-vous que l\'application est autorisée à accéder au réseau local dans les paramètres système :\n   - iOS/macOS : Allez dans Réglages > Confidentialité et sécurité > Réseau local, et activez Vynody.\n   - Windows : Assurez-vous d\'être connecté et vérifiez que le pare-feu Windows autorise l\'accès à Vynody.';
 
   @override
   String get localNetworkPermissionWindowsMessage =>
@@ -2449,7 +2449,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get apiKeyExplanation =>
-      'Une clé API est votre identifiant d\'accès pour un fournisseur IA. L\'application l\'utilise pour les demandes.';
+      'Une clé API est votre identifiant d\'accès pour un fournisseur IA. L\'application l\'utilise pour envoyer des demandes directes de génération de paroles, d\'ajustement de chronologie ou de traduction.';
 
   @override
   String get apiKeyLocalOnly =>
@@ -2694,7 +2694,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get webShareDescription =>
-      'Les appareils sur le même LAN peuvent ouvrir le lien pour télécharger de la musique.';
+      'Les autres appareils sur le même réseau local (LAN) peuvent ouvrir le lien ci-dessous dans un navigateur pour envoyer ou télécharger de la musique directement.';
 
   @override
   String get linkCopiedToClipboard => 'Lien copié dans le presse-papier';

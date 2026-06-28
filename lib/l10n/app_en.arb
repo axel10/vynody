@@ -457,12 +457,6 @@
   "autoSwitchLyricsProviderDisabledDesc": "You need API keys for both Google AI Studio and OpenRouter before auto-switching can be enabled.",
   "lyricsAiProviderTitle": "Lyrics AI Provider",
   "lyricsAiProviderDescription": "This only affects lyric generation and timeline generation. Translation always uses Google AI Studio.",
-  "apiKeySavedProvider": "{provider} API key has been saved",
-  "@apiKeySavedProvider": {
-    "placeholders": {
-      "provider": {}
-    }
-  },
   "googleAiStudioApiKeySaved": "Google AI Studio API key saved",
   "googleAiStudioApiKeyMissing": "No Google AI Studio API key is saved yet. Lyric generation and timeline generation will prompt you first.",
   "openRouterApiKeySaved": "OpenRouter API key saved",

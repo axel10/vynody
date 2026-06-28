@@ -1143,7 +1143,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get shortcutSettingsDescription =>
-      'Klicken Sie, um Tastenkürzel für Player-Aktionen neu aufzuzeichnen.';
+      'Klicken Sie, um Tastenkürzel für Player-Aktionen neu zu belegen.';
 
   @override
   String get edit => 'Bearbeiten';
@@ -1186,11 +1186,11 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get autoSwitchLyricsProviderEnabledDesc =>
-      'Google AI Studio wird zuerst versucht. Bei Fehler wird automatisch zu OpenRouter gewechselt.';
+      'Google AI Studio wird zuerst versucht. Wenn sowohl das Haupt- als auch das Ausweichmodell mit 429- oder 5xx-Fehlern fehlschlagen, wechselt die App automatisch zu OpenRouter und versucht es weiter.';
 
   @override
   String get autoSwitchLyricsProviderDisabledDesc =>
-      'Sie benötigen API-Schlüssel für Google AI Studio und OpenRouter.';
+      'Sie müssen die API-Schlüssel für Google AI Studio und OpenRouter eingeben, bevor der automatische Wechsel aktiviert werden kann.';
 
   @override
   String get lyricsAiProviderTitle => 'KI-Anbieter für Songtexte';
@@ -1415,7 +1415,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get pressShortcutCombo => 'Tastenkombination drücken';
 
   @override
-  String get clickToRecord => 'Zum Aufzeichnen klicken';
+  String get clickToRecord => 'Klicken zum Festlegen';
 
   @override
   String get searchingLyrics => 'Songtexte suchen';
@@ -1618,7 +1618,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get onboardingFileAssociationTip =>
-      'Wählen Sie nach der Zuordnung \'Vynody\' und \'Immer verwenden\'.';
+      'Nach der Zuordnung fordert das System Sie möglicherweise auf, eine Standard-App auszuwählen. Bitte wählen Sie \'Vynody\' aus der Liste und aktivieren Sie \'Immer diese App verwenden\'.';
 
   @override
   String get onboardingStepRootDirectory => 'Musik-Stammverzeichnis hinzufügen';
@@ -1710,7 +1710,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get localNetworkPermissionDeniedMessage =>
-      'Keine lokale IP-Adresse verfügbar oder Zugriff verweigert.\n\nPrüfen Sie:\n1. Wi-Fi- oder LAN-Verbindung.\n2. Erlauben Sie Netzwerkzugriff in den Datenschutzeinstellungen.';
+      'Keine lokale IP-Adresse verfügbar oder der Zugriff auf das lokale Netzwerk wurde verweigert.\n\nBitte überprüfen Sie Folgendes:\n1. Stellen Sie sicher, dass Ihr Gerät mit einem WLAN oder lokalen Netzwerk verbunden ist.\n2. Stellen Sie sicher, dass die App in den Systemeinstellungen auf das lokale Netzwerk zugreifen darf:\n   - iOS/macOS: Gehen Sie zu Einstellungen > Datenschutz & Sicherheit > Lokales Netzwerk und aktivieren Sie Vynody.\n   - Windows: Stellen Sie sicher, dass Sie verbunden sind, und überprüfen Sie die Firewall-Einstellungen, um Vynody den Zugriff zu erlauben.';
 
   @override
   String get localNetworkPermissionWindowsMessage =>
@@ -2443,7 +2443,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get apiKeyExplanation =>
-      'Ein API-Schlüssel ist Ihre Zugangsberechtigung für einen KI-Anbieter. Die App verwendet ihn für Anfragen.';
+      'Ein API-Schlüssel ist Ihre Zugangsberechtigung für einen KI-Anbieter. Die App verwendet ihn, um direkt Anfragen zur Songtext-Generierung, Zeitachsen-Anpassung oder Übersetzung an den Anbieter zu senden.';
 
   @override
   String get apiKeyLocalOnly =>

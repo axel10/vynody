@@ -440,7 +440,7 @@
     }
   },
   "shortcutSettingsTitle": "Atajos personalizados",
-  "shortcutSettingsDescription": "Haz clic para volver a grabar y guardar atajos para las acciones del reproductor.",
+  "shortcutSettingsDescription": "Haz clic para volver a asignar y guardar atajos para las acciones del reproductor.",
   "edit": "Editar",
   "lyricsSectionTitle": "Letras",
   "lyricsSectionDescription": "Esta configuración solo afecta la generación de letras y línea de tiempo.",
@@ -457,12 +457,6 @@
   "autoSwitchLyricsProviderDisabledDesc": "Necesitas claves API de Google AI Studio y OpenRouter para activar el cambio automático.",
   "lyricsAiProviderTitle": "Proveedor de IA para letras",
   "lyricsAiProviderDescription": "Esto solo afecta la generación de letras y línea de tiempo. La traducción siempre usa Google AI Studio.",
-  "apiKeySavedProvider": "Clave API de {provider} guardada",
-  "@apiKeySavedProvider": {
-    "placeholders": {
-      "provider": {}
-    }
-  },
   "googleAiStudioApiKeySaved": "Clave API de Google AI Studio guardada",
   "googleAiStudioApiKeyMissing": "No hay clave API de Google AI Studio guardada. La generación de letras y línea de tiempo te lo notificarán.",
   "openRouterApiKeySaved": "Clave API de OpenRouter guardada",
@@ -561,7 +555,7 @@
   "durationLabel": "Duración",
   "customShortcuts": "Atajos personalizados",
   "pressShortcutCombo": "Presiona la combinación de teclas",
-  "clickToRecord": "Haz clic para grabar",
+  "clickToRecord": "Haz clic para configurar",
   "searchingLyrics": "Buscando letras",
   "noLyrics": "Sin letras aún",
   "providerLabel": "Proveedor",
@@ -902,7 +896,7 @@
   "apiKeyLocalOnly": "La clave API solo se guarda en tu dispositivo local y nunca se envía a los servidores de Vynody.",
   "chooseAnAiProvider": "Elige un proveedor de IA:",
   "googleProviderPros": "Canal oficial de Google, modelos Gemini potentes y cuotas gratuitas generosas.",
-  "googleProviderCons": "La conexión directa desde China continental está restringida. Puede dar errores 429 con mucha carga.",
+  "googleProviderCons": "La conexión directa desde China continental está restringida y requiere una VPN/proxy estable. El tráfico alto puede causar errores 429; cambia a otro proveedor si esto ocurre.",
   "openRouterProviderPros": "Plataforma agregadora de modelos del extranjero, con acceso a múltiples modelos y algunos gratuitos.",
   "openRouterProviderCons": "Las recargas tienen comisiones y el sitio web solo está en inglés.",
   "doubaoProviderPros": "De ByteDance, acceso rápido desde China, buenos resultados en chino. Nuevos usuarios tienen 500k tokens gratis por modelo.",

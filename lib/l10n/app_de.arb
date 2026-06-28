@@ -440,7 +440,7 @@
     }
   },
   "shortcutSettingsTitle": "Benutzerdefinierte Tastenkürzel",
-  "shortcutSettingsDescription": "Klicken Sie, um Tastenkürzel für Player-Aktionen neu aufzuzeichnen.",
+  "shortcutSettingsDescription": "Klicken Sie, um Tastenkürzel für Player-Aktionen neu zu belegen.",
   "edit": "Bearbeiten",
   "lyricsSectionTitle": "Songtexte",
   "lyricsSectionDescription": "Diese Einstellungen betreffen nur die Generierung von Songtexten und Zeitachsen.",
@@ -453,16 +453,10 @@
   "lyricsSaveMethodLrcFile": "LRC-Datei",
   "followSystemLanguage": "System folgen",
   "autoSwitchLyricsProvider": "Automatischer Anbieterwechsel",
-  "autoSwitchLyricsProviderEnabledDesc": "Google AI Studio wird zuerst versucht. Bei Fehler wird automatisch zu OpenRouter gewechselt.",
-  "autoSwitchLyricsProviderDisabledDesc": "Sie benötigen API-Schlüssel für Google AI Studio und OpenRouter.",
+  "autoSwitchLyricsProviderEnabledDesc": "Google AI Studio wird zuerst versucht. Wenn sowohl das Haupt- als auch das Ausweichmodell mit 429- oder 5xx-Fehlern fehlschlagen, wechselt die App automatisch zu OpenRouter und versucht es weiter.",
+  "autoSwitchLyricsProviderDisabledDesc": "Sie müssen die API-Schlüssel für Google AI Studio und OpenRouter eingeben, bevor der automatische Wechsel aktiviert werden kann.",
   "lyricsAiProviderTitle": "KI-Anbieter für Songtexte",
   "lyricsAiProviderDescription": "Betrifft nur die Generierung von Songtexten und Zeitachsen. Übersetzung verwendet immer Google AI Studio.",
-  "apiKeySavedProvider": "{provider}-API-Schlüssel gespeichert",
-  "@apiKeySavedProvider": {
-    "placeholders": {
-      "provider": {}
-    }
-  },
   "googleAiStudioApiKeySaved": "Google AI Studio-API-Schlüssel gespeichert",
   "googleAiStudioApiKeyMissing": "Kein Google AI Studio-API-Schlüssel gespeichert. Sie werden daran erinnert.",
   "openRouterApiKeySaved": "OpenRouter-API-Schlüssel gespeichert",
@@ -561,7 +555,7 @@
   "durationLabel": "Dauer",
   "customShortcuts": "Benutzerdefinierte Tastenkürzel",
   "pressShortcutCombo": "Tastenkombination drücken",
-  "clickToRecord": "Zum Aufzeichnen klicken",
+  "clickToRecord": "Klicken zum Festlegen",
   "searchingLyrics": "Songtexte suchen",
   "noLyrics": "Noch keine Songtexte",
   "providerLabel": "Anbieter",
@@ -655,7 +649,7 @@
   "onboardingSubtitle": "Ein paar einfache Schritte, um Ihre Musikreise zu beginnen.",
   "onboardingStepFileAssociation": "Dateitypen zuordnen",
   "onboardingFileAssociationDesc": "Ordnen Sie Musikformate Vynody zu, um per Doppelklick abzuspielen.",
-  "onboardingFileAssociationTip": "Wählen Sie nach der Zuordnung 'Vynody' und 'Immer verwenden'.",
+  "onboardingFileAssociationTip": "Nach der Zuordnung fordert das System Sie möglicherweise auf, eine Standard-App auszuwählen. Bitte wählen Sie 'Vynody' aus der Liste und aktivieren Sie 'Immer diese App verwenden'.",
   "onboardingStepRootDirectory": "Musik-Stammverzeichnis hinzufügen",
   "onboardingRootDirectoryDesc": "Wählen Sie den Ordner mit Ihrer Musik. Vynody erstellt automatisch Ihre Mediathek.",
   "onboardingSelectDirectory": "Ordner auswählen",
@@ -690,7 +684,7 @@
     }
   },
   "localNetworkPermissionDeniedTitle": "Lokaler Netzwerkzugriff eingeschränkt",
-  "localNetworkPermissionDeniedMessage": "Keine lokale IP-Adresse verfügbar oder Zugriff verweigert.\n\nPrüfen Sie:\n1. Wi-Fi- oder LAN-Verbindung.\n2. Erlauben Sie Netzwerkzugriff in den Datenschutzeinstellungen.",
+  "localNetworkPermissionDeniedMessage": "Keine lokale IP-Adresse verfügbar oder der Zugriff auf das lokale Netzwerk wurde verweigert.\n\nBitte überprüfen Sie Folgendes:\n1. Stellen Sie sicher, dass Ihr Gerät mit einem WLAN oder lokalen Netzwerk verbunden ist.\n2. Stellen Sie sicher, dass die App in den Systemeinstellungen auf das lokale Netzwerk zugreifen darf:\n   - iOS/macOS: Gehen Sie zu Einstellungen > Datenschutz & Sicherheit > Lokales Netzwerk und aktivieren Sie Vynody.\n   - Windows: Stellen Sie sicher, dass Sie verbunden sind, und überprüfen Sie die Firewall-Einstellungen, um Vynody den Zugriff zu erlauben.",
   "localNetworkPermissionWindowsMessage": "Keine lokale IP-Adresse verfügbar.\n\nPrüfen Sie:\n1. LAN-Verbindung (Wi-Fi oder Ethernet).\n2. Überprüfen Sie die Windows-Firewall für Vynody.",
   "openSettingsButton": "Einstellungen öffnen",
   "closeButton": "Schließen",
@@ -898,7 +892,7 @@
   "aiLyricsIntroGeneration": "KI kann Songtexte aus dem Song generieren und zeitlich ausrichten.",
   "aiLyricsIntroTranslation": "KI kann Songtexte in Ihre bevorzugte Sprache übersetzen.",
   "whyNeedApiKey": "Warum brauche ich einen API-Schlüssel?",
-  "apiKeyExplanation": "Ein API-Schlüssel ist Ihre Zugangsberechtigung für einen KI-Anbieter. Die App verwendet ihn für Anfragen.",
+  "apiKeyExplanation": "Ein API-Schlüssel ist Ihre Zugangsberechtigung für einen KI-Anbieter. Die App verwendet ihn, um direkt Anfragen zur Songtext-Generierung, Zeitachsen-Anpassung oder Übersetzung an den Anbieter zu senden.",
   "apiKeyLocalOnly": "Ihr API-Schlüssel wird nur lokal gespeichert und niemals an Vynody-Server gesendet.",
   "chooseAnAiProvider": "Wählen Sie einen KI-Anbieter:",
   "googleProviderPros": "Offizieller Google-Kanal, leistungsstarke Gemini-Modelle, großzügige kostenlose Kontingente.",

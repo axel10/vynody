@@ -1144,7 +1144,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get shortcutSettingsDescription =>
-      'Haz clic para volver a grabar y guardar atajos para las acciones del reproductor.';
+      'Haz clic para volver a asignar y guardar atajos para las acciones del reproductor.';
 
   @override
   String get edit => 'Editar';
@@ -1419,7 +1419,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get pressShortcutCombo => 'Presiona la combinación de teclas';
 
   @override
-  String get clickToRecord => 'Haz clic para grabar';
+  String get clickToRecord => 'Haz clic para configurar';
 
   @override
   String get searchingLyrics => 'Buscando letras';
@@ -2460,7 +2460,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get googleProviderCons =>
-      'La conexión directa desde China continental está restringida. Puede dar errores 429 con mucha carga.';
+      'La conexión directa desde China continental está restringida y requiere una VPN/proxy estable. El tráfico alto puede causar errores 429; cambia a otro proveedor si esto ocurre.';
 
   @override
   String get openRouterProviderPros =>

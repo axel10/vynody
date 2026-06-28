@@ -1132,7 +1132,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get lyricsSaveMethodDescription => '파일에 쓸 때 가사가 저장될 위치를 선택합니다.';
 
   @override
-  String get lyricsSaveMethodOriginal => '소스 형식 유지';
+  String get lyricsSaveMethodOriginal => '원본 위치';
 
   @override
   String get lyricsSaveMethodEmbedded => '내장';
@@ -1371,7 +1371,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get pressShortcutCombo => '단축키 조합을 누르세요';
 
   @override
-  String get clickToRecord => '클릭하여 기록';
+  String get clickToRecord => '클릭하여 설정';
 
   @override
   String get searchingLyrics => '가사 검색 중';
@@ -2354,7 +2354,8 @@ class AppLocalizationsKo extends AppLocalizations {
       '트래픽이 많으면 가끔 429 오류가 발생할 수 있습니다. 그런 경우 다른 제공자로 전환하세요.';
 
   @override
-  String get openRouterProviderPros => '다양한 제공자와 일부 무료 모델에 접근할 수 있는 모델 집계자입니다.';
+  String get openRouterProviderPros =>
+      '다양한 AI 모델을 통합 제공하는 해외 플랫폼으로, 일부 무료 모델도 제공합니다.';
 
   @override
   String get openRouterProviderCons => '충전에 수수료가 포함될 수 있으며 웹사이트는 영어 전용입니다.';
