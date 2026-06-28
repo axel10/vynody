@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'package:vynody/models/music_file.dart';
+import 'package:vynody/player/audio/app_playback_mode.dart';
 
 part 'audio_snapshot.freezed.dart';
 
@@ -23,7 +24,7 @@ abstract class AudioSnapshot with _$AudioSnapshot {
     required int currentIndex,
     required bool isRandomMode,
     required bool isShuffleRandomMode,
-    required PlaylistMode playbackMode,
+    required AppPlaybackMode playbackMode,
     required EqualizerConfig equalizerConfig,
     required VisualizerOptimizationOptions currentVisualizerOptions,
     @Default(<MusicFile>[]) List<MusicFile> randomHistory,

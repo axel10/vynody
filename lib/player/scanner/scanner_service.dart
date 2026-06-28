@@ -3302,6 +3302,66 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     return ScannerPathUtils.pathsEqual(left, right);
   }
 
+  /// Find the next folder containing music after [currentFolderPath].
+  MusicFolder? findNextFolderWithMusic(String currentFolderPath) {
+    final list = <MusicFolder>[];
+    void traverse(MusicFolder folder) {
+      if (folder.files.isNotEmpty) {
+        list.add(folder);
+      }
+      for (final sub in folder.subFolders) {
+        traverse(sub);
+      }
+    }
+
+    if (_systemMediaFolder != null) {
+      traverse(_systemMediaFolder!);
+    }
+    for (final root in _scannedRootFolders) {
+      traverse(root);
+    }
+
+    if (list.isEmpty) return null;
+
+    final index = list.indexWhere((f) => _pathsEqual(f.path, currentFolderPath));
+    if (index == -1) {
+      return list.first;
+    }
+
+    final nextIndex = (index + 1) % list.length;
+    return list[nextIndex];
+  }
+
+  /// Find the previous folder containing music before [currentFolderPath].
+  MusicFolder? findPreviousFolderWithMusic(String currentFolderPath) {
+    final list = <MusicFolder>[];
+    void traverse(MusicFolder folder) {
+      if (folder.files.isNotEmpty) {
+        list.add(folder);
+      }
+      for (final sub in folder.subFolders) {
+        traverse(sub);
+      }
+    }
+
+    if (_systemMediaFolder != null) {
+      traverse(_systemMediaFolder!);
+    }
+    for (final root in _scannedRootFolders) {
+      traverse(root);
+    }
+
+    if (list.isEmpty) return null;
+
+    final index = list.indexWhere((f) => _pathsEqual(f.path, currentFolderPath));
+    if (index == -1) {
+      return list.last;
+    }
+
+    final prevIndex = (index - 1 + list.length) % list.length;
+    return list[prevIndex];
+  }
+
   bool _pathContains(String parent, String child) {
     return ScannerPathUtils.pathContains(parent, child);
   }

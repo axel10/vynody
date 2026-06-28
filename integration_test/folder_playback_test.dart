@@ -12,6 +12,7 @@ import 'package:vynody/models/music_folder.dart';
 import 'package:vynody/pages/folder_page.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/audio/audio_service.dart';
+import 'package:vynody/player/audio/playback_source.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/player/scanner/scanner_service.dart';
 
@@ -152,6 +153,7 @@ class _FakeAudioService extends AudioService {
   Future<void> playPlaylist(
     List<MusicFile> songs, {
     int initialIndex = 0,
+    PlaybackSource? source,
   }) async {
     playPlaylistCallCount++;
     lastPlayList = List<MusicFile>.unmodifiable(songs);

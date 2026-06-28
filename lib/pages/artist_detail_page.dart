@@ -8,6 +8,7 @@ import '../l10n/app_localizations.dart';
 import 'package:vynody/models/artist_summary.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
+import 'package:vynody/player/audio/playback_source.dart';
 import 'package:vynody/utils/song_context_menu_utils.dart';
 import '../widgets/desktop_window_title_bar.dart';
 import '../widgets/song_thumbnail.dart';
@@ -204,9 +205,22 @@ class _ArtistDetailContentState extends ConsumerState<ArtistDetailContent> {
                 ),
                 child: _ArtistInfo(
                   artist: widget.artist,
-                  onPlayAll: () => audio.playPlaylist(displaySongs),
-                  onShufflePlay: () =>
-                      audio.playPlaylist(List.of(displaySongs)..shuffle()),
+                  onPlayAll: () => audio.playPlaylist(
+                    displaySongs,
+                    source: PlaybackSource(
+                      type: PlaybackSourceType.artist,
+                      id: widget.artist.queryKey,
+                      name: widget.artist.name,
+                    ),
+                  ),
+                  onShufflePlay: () => audio.playPlaylist(
+                    List.of(displaySongs)..shuffle(),
+                    source: PlaybackSource(
+                      type: PlaybackSourceType.artist,
+                      id: widget.artist.queryKey,
+                      name: widget.artist.name,
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -232,9 +246,22 @@ class _ArtistDetailContentState extends ConsumerState<ArtistDetailContent> {
                         section: section,
                         currentMusic: currentMusic,
                         theme: theme,
-                        onPlayAlbum: () => audio.playPlaylist(section.songs),
-                        onShufflePlayAlbum: () =>
-                            audio.playPlaylist(List.of(section.songs)..shuffle()),
+                         onPlayAlbum: () => audio.playPlaylist(
+                           section.songs,
+                           source: PlaybackSource(
+                             type: PlaybackSourceType.album,
+                             id: '${section.title.toLowerCase()}::${(section.songs.firstOrNull?.artist ?? "").toLowerCase()}',
+                             name: section.title,
+                           ),
+                         ),
+                         onShufflePlayAlbum: () => audio.playPlaylist(
+                           List.of(section.songs)..shuffle(),
+                           source: PlaybackSource(
+                             type: PlaybackSourceType.album,
+                             id: '${section.title.toLowerCase()}::${(section.songs.firstOrNull?.artist ?? "").toLowerCase()}',
+                             name: section.title,
+                           ),
+                         ),
                         onSongTap: (songIndex) {
                           final song = section.songs[songIndex];
                           if (_effectiveIsSelectionMode) {
@@ -243,6 +270,11 @@ class _ArtistDetailContentState extends ConsumerState<ArtistDetailContent> {
                             audio.playPlaylist(
                               displaySongs,
                               initialIndex: section.startIndex + songIndex,
+                              source: PlaybackSource(
+                                type: PlaybackSourceType.artist,
+                                id: widget.artist.queryKey,
+                                name: widget.artist.name,
+                              ),
                             );
                           }
                         },

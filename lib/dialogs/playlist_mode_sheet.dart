@@ -1,8 +1,8 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:audio_core/audio_core.dart';
 import '../l10n/app_localizations.dart';
+import 'package:vynody/player/audio/app_playback_mode.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/utils/playback_utils.dart';
 
@@ -65,7 +65,7 @@ class PlaylistModeSheet extends ConsumerWidget {
               ),
               const SizedBox(height: 12),
               // Playlist modes list
-              ...PlaylistMode.values.map((mode) {
+              ...AppPlaybackMode.values.map((mode) {
                 final isSelected = currentMode == mode;
                 final icon = getPlaylistModeIcon(mode);
                 final name = getPlaylistModeName(mode, l10n);

@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/app_localizations.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
+import 'package:vynody/player/audio/playback_source.dart';
 import 'package:vynody/player/library/playlist_service.dart';
 import '../widgets/song_tile.dart';
 import 'package:vynody/utils/song_context_menu_utils.dart';
@@ -809,10 +810,15 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
                                     showDeletedSongSnack(context, ref, skipped: false);
                                     return;
                                   }
-                                  audio.playPlaylist(
-                                    activePlaylist.songs,
-                                    initialIndex: index,
-                                  );
+                                   audio.playPlaylist(
+                                     activePlaylist.songs,
+                                     initialIndex: index,
+                                     source: PlaybackSource(
+                                       type: PlaybackSourceType.playlist,
+                                       id: activePlaylist.id,
+                                       name: activePlaylist.name,
+                                     ),
+                                   );
                                 },
                           onLongPress: () {
                             if (!isSelectionMode) {

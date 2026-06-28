@@ -6,6 +6,7 @@ import '../l10n/app_localizations.dart';
 import 'package:vynody/models/album_summary.dart';
 import 'package:vynody/player/library/album_library.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
+import 'package:vynody/player/audio/playback_source.dart';
 import 'package:vynody/utils/song_context_menu_utils.dart';
 import '../widgets/song_thumbnail.dart';
 import 'album_detail_page.dart';
@@ -545,7 +546,14 @@ class _AlbumCard extends ConsumerWidget {
                                 padding: EdgeInsets.zero,
                                 constraints: const BoxConstraints(),
                                 tooltip: l10n.playAll,
-                                onPressed: () => audio.playPlaylist(album.songs),
+                                onPressed: () => audio.playPlaylist(
+                                  album.songs,
+                                  source: PlaybackSource(
+                                    type: PlaybackSourceType.album,
+                                    id: album.id,
+                                    name: album.title,
+                                  ),
+                                ),
                                 icon: Icon(
                                   Icons.play_circle_filled,
                                   size: isPortrait ? 22 : 26,
@@ -712,12 +720,24 @@ class _AlbumCard extends ConsumerWidget {
 
     switch (selected) {
       case 'play_all':
-        await ref.read(audioServiceProvider).playPlaylist(album.songs);
+        await ref.read(audioServiceProvider).playPlaylist(
+          album.songs,
+          source: PlaybackSource(
+            type: PlaybackSourceType.album,
+            id: album.id,
+            name: album.title,
+          ),
+        );
         break;
       case 'shuffle':
-        await ref
-            .read(audioServiceProvider)
-            .playPlaylist(List.of(album.songs)..shuffle());
+        await ref.read(audioServiceProvider).playPlaylist(
+          List.of(album.songs)..shuffle(),
+          source: PlaybackSource(
+            type: PlaybackSourceType.album,
+            id: album.id,
+            name: album.title,
+          ),
+        );
         break;
       case 'play_next':
         await ref.read(audioServiceProvider).enqueueNext(album.songs);

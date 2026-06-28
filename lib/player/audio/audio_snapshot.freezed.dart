@@ -14,7 +14,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$AudioSnapshot {
 
- bool get isPlaying; bool get isTransitioning; bool? get isLastActionNext; MusicFile? get currentMusic; Duration get position; Duration get duration; double get volume; bool get isMuted; List<MusicFile> get playbackQueue; int get currentIndex; bool get isRandomMode; bool get isShuffleRandomMode; PlaylistMode get playbackMode; EqualizerConfig get equalizerConfig; VisualizerOptimizationOptions get currentVisualizerOptions; List<MusicFile> get randomHistory; List<MusicFile> get randomQueue; int? get historyCursor; int? get deckCursor; bool get isVisualizerEnabled; Color? get dynamicStartColor; Color? get dynamicEndColor; Map<String, Color> get currentThemeColorsMap; bool get isLyricsActive; Duration? get sleepTimerRemaining; Duration? get sleepTimerDuration;
+ bool get isPlaying; bool get isTransitioning; bool? get isLastActionNext; MusicFile? get currentMusic; Duration get position; Duration get duration; double get volume; bool get isMuted; List<MusicFile> get playbackQueue; int get currentIndex; bool get isRandomMode; bool get isShuffleRandomMode; AppPlaybackMode get playbackMode; EqualizerConfig get equalizerConfig; VisualizerOptimizationOptions get currentVisualizerOptions; List<MusicFile> get randomHistory; List<MusicFile> get randomQueue; int? get historyCursor; int? get deckCursor; bool get isVisualizerEnabled; Color? get dynamicStartColor; Color? get dynamicEndColor; Map<String, Color> get currentThemeColorsMap; bool get isLyricsActive; Duration? get sleepTimerRemaining; Duration? get sleepTimerDuration;
 /// Create a copy of AudioSnapshot
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -45,7 +45,7 @@ abstract mixin class $AudioSnapshotCopyWith<$Res>  {
   factory $AudioSnapshotCopyWith(AudioSnapshot value, $Res Function(AudioSnapshot) _then) = _$AudioSnapshotCopyWithImpl;
 @useResult
 $Res call({
- bool isPlaying, bool isTransitioning, bool? isLastActionNext, MusicFile? currentMusic, Duration position, Duration duration, double volume, bool isMuted, List<MusicFile> playbackQueue, int currentIndex, bool isRandomMode, bool isShuffleRandomMode, PlaylistMode playbackMode, EqualizerConfig equalizerConfig, VisualizerOptimizationOptions currentVisualizerOptions, List<MusicFile> randomHistory, List<MusicFile> randomQueue, int? historyCursor, int? deckCursor, bool isVisualizerEnabled, Color? dynamicStartColor, Color? dynamicEndColor, Map<String, Color> currentThemeColorsMap, bool isLyricsActive, Duration? sleepTimerRemaining, Duration? sleepTimerDuration
+ bool isPlaying, bool isTransitioning, bool? isLastActionNext, MusicFile? currentMusic, Duration position, Duration duration, double volume, bool isMuted, List<MusicFile> playbackQueue, int currentIndex, bool isRandomMode, bool isShuffleRandomMode, AppPlaybackMode playbackMode, EqualizerConfig equalizerConfig, VisualizerOptimizationOptions currentVisualizerOptions, List<MusicFile> randomHistory, List<MusicFile> randomQueue, int? historyCursor, int? deckCursor, bool isVisualizerEnabled, Color? dynamicStartColor, Color? dynamicEndColor, Map<String, Color> currentThemeColorsMap, bool isLyricsActive, Duration? sleepTimerRemaining, Duration? sleepTimerDuration
 });
 
 
@@ -77,7 +77,7 @@ as List<MusicFile>,currentIndex: null == currentIndex ? _self.currentIndex : cur
 as int,isRandomMode: null == isRandomMode ? _self.isRandomMode : isRandomMode // ignore: cast_nullable_to_non_nullable
 as bool,isShuffleRandomMode: null == isShuffleRandomMode ? _self.isShuffleRandomMode : isShuffleRandomMode // ignore: cast_nullable_to_non_nullable
 as bool,playbackMode: null == playbackMode ? _self.playbackMode : playbackMode // ignore: cast_nullable_to_non_nullable
-as PlaylistMode,equalizerConfig: null == equalizerConfig ? _self.equalizerConfig : equalizerConfig // ignore: cast_nullable_to_non_nullable
+as AppPlaybackMode,equalizerConfig: null == equalizerConfig ? _self.equalizerConfig : equalizerConfig // ignore: cast_nullable_to_non_nullable
 as EqualizerConfig,currentVisualizerOptions: null == currentVisualizerOptions ? _self.currentVisualizerOptions : currentVisualizerOptions // ignore: cast_nullable_to_non_nullable
 as VisualizerOptimizationOptions,randomHistory: null == randomHistory ? _self.randomHistory : randomHistory // ignore: cast_nullable_to_non_nullable
 as List<MusicFile>,randomQueue: null == randomQueue ? _self.randomQueue : randomQueue // ignore: cast_nullable_to_non_nullable
@@ -187,7 +187,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool isPlaying,  bool isTransitioning,  bool? isLastActionNext,  MusicFile? currentMusic,  Duration position,  Duration duration,  double volume,  bool isMuted,  List<MusicFile> playbackQueue,  int currentIndex,  bool isRandomMode,  bool isShuffleRandomMode,  PlaylistMode playbackMode,  EqualizerConfig equalizerConfig,  VisualizerOptimizationOptions currentVisualizerOptions,  List<MusicFile> randomHistory,  List<MusicFile> randomQueue,  int? historyCursor,  int? deckCursor,  bool isVisualizerEnabled,  Color? dynamicStartColor,  Color? dynamicEndColor,  Map<String, Color> currentThemeColorsMap,  bool isLyricsActive,  Duration? sleepTimerRemaining,  Duration? sleepTimerDuration)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool isPlaying,  bool isTransitioning,  bool? isLastActionNext,  MusicFile? currentMusic,  Duration position,  Duration duration,  double volume,  bool isMuted,  List<MusicFile> playbackQueue,  int currentIndex,  bool isRandomMode,  bool isShuffleRandomMode,  AppPlaybackMode playbackMode,  EqualizerConfig equalizerConfig,  VisualizerOptimizationOptions currentVisualizerOptions,  List<MusicFile> randomHistory,  List<MusicFile> randomQueue,  int? historyCursor,  int? deckCursor,  bool isVisualizerEnabled,  Color? dynamicStartColor,  Color? dynamicEndColor,  Map<String, Color> currentThemeColorsMap,  bool isLyricsActive,  Duration? sleepTimerRemaining,  Duration? sleepTimerDuration)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _AudioSnapshot() when $default != null:
 return $default(_that.isPlaying,_that.isTransitioning,_that.isLastActionNext,_that.currentMusic,_that.position,_that.duration,_that.volume,_that.isMuted,_that.playbackQueue,_that.currentIndex,_that.isRandomMode,_that.isShuffleRandomMode,_that.playbackMode,_that.equalizerConfig,_that.currentVisualizerOptions,_that.randomHistory,_that.randomQueue,_that.historyCursor,_that.deckCursor,_that.isVisualizerEnabled,_that.dynamicStartColor,_that.dynamicEndColor,_that.currentThemeColorsMap,_that.isLyricsActive,_that.sleepTimerRemaining,_that.sleepTimerDuration);case _:
@@ -208,7 +208,7 @@ return $default(_that.isPlaying,_that.isTransitioning,_that.isLastActionNext,_th
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool isPlaying,  bool isTransitioning,  bool? isLastActionNext,  MusicFile? currentMusic,  Duration position,  Duration duration,  double volume,  bool isMuted,  List<MusicFile> playbackQueue,  int currentIndex,  bool isRandomMode,  bool isShuffleRandomMode,  PlaylistMode playbackMode,  EqualizerConfig equalizerConfig,  VisualizerOptimizationOptions currentVisualizerOptions,  List<MusicFile> randomHistory,  List<MusicFile> randomQueue,  int? historyCursor,  int? deckCursor,  bool isVisualizerEnabled,  Color? dynamicStartColor,  Color? dynamicEndColor,  Map<String, Color> currentThemeColorsMap,  bool isLyricsActive,  Duration? sleepTimerRemaining,  Duration? sleepTimerDuration)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool isPlaying,  bool isTransitioning,  bool? isLastActionNext,  MusicFile? currentMusic,  Duration position,  Duration duration,  double volume,  bool isMuted,  List<MusicFile> playbackQueue,  int currentIndex,  bool isRandomMode,  bool isShuffleRandomMode,  AppPlaybackMode playbackMode,  EqualizerConfig equalizerConfig,  VisualizerOptimizationOptions currentVisualizerOptions,  List<MusicFile> randomHistory,  List<MusicFile> randomQueue,  int? historyCursor,  int? deckCursor,  bool isVisualizerEnabled,  Color? dynamicStartColor,  Color? dynamicEndColor,  Map<String, Color> currentThemeColorsMap,  bool isLyricsActive,  Duration? sleepTimerRemaining,  Duration? sleepTimerDuration)  $default,) {final _that = this;
 switch (_that) {
 case _AudioSnapshot():
 return $default(_that.isPlaying,_that.isTransitioning,_that.isLastActionNext,_that.currentMusic,_that.position,_that.duration,_that.volume,_that.isMuted,_that.playbackQueue,_that.currentIndex,_that.isRandomMode,_that.isShuffleRandomMode,_that.playbackMode,_that.equalizerConfig,_that.currentVisualizerOptions,_that.randomHistory,_that.randomQueue,_that.historyCursor,_that.deckCursor,_that.isVisualizerEnabled,_that.dynamicStartColor,_that.dynamicEndColor,_that.currentThemeColorsMap,_that.isLyricsActive,_that.sleepTimerRemaining,_that.sleepTimerDuration);case _:
@@ -228,7 +228,7 @@ return $default(_that.isPlaying,_that.isTransitioning,_that.isLastActionNext,_th
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool isPlaying,  bool isTransitioning,  bool? isLastActionNext,  MusicFile? currentMusic,  Duration position,  Duration duration,  double volume,  bool isMuted,  List<MusicFile> playbackQueue,  int currentIndex,  bool isRandomMode,  bool isShuffleRandomMode,  PlaylistMode playbackMode,  EqualizerConfig equalizerConfig,  VisualizerOptimizationOptions currentVisualizerOptions,  List<MusicFile> randomHistory,  List<MusicFile> randomQueue,  int? historyCursor,  int? deckCursor,  bool isVisualizerEnabled,  Color? dynamicStartColor,  Color? dynamicEndColor,  Map<String, Color> currentThemeColorsMap,  bool isLyricsActive,  Duration? sleepTimerRemaining,  Duration? sleepTimerDuration)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool isPlaying,  bool isTransitioning,  bool? isLastActionNext,  MusicFile? currentMusic,  Duration position,  Duration duration,  double volume,  bool isMuted,  List<MusicFile> playbackQueue,  int currentIndex,  bool isRandomMode,  bool isShuffleRandomMode,  AppPlaybackMode playbackMode,  EqualizerConfig equalizerConfig,  VisualizerOptimizationOptions currentVisualizerOptions,  List<MusicFile> randomHistory,  List<MusicFile> randomQueue,  int? historyCursor,  int? deckCursor,  bool isVisualizerEnabled,  Color? dynamicStartColor,  Color? dynamicEndColor,  Map<String, Color> currentThemeColorsMap,  bool isLyricsActive,  Duration? sleepTimerRemaining,  Duration? sleepTimerDuration)?  $default,) {final _that = this;
 switch (_that) {
 case _AudioSnapshot() when $default != null:
 return $default(_that.isPlaying,_that.isTransitioning,_that.isLastActionNext,_that.currentMusic,_that.position,_that.duration,_that.volume,_that.isMuted,_that.playbackQueue,_that.currentIndex,_that.isRandomMode,_that.isShuffleRandomMode,_that.playbackMode,_that.equalizerConfig,_that.currentVisualizerOptions,_that.randomHistory,_that.randomQueue,_that.historyCursor,_that.deckCursor,_that.isVisualizerEnabled,_that.dynamicStartColor,_that.dynamicEndColor,_that.currentThemeColorsMap,_that.isLyricsActive,_that.sleepTimerRemaining,_that.sleepTimerDuration);case _:
@@ -264,7 +264,7 @@ class _AudioSnapshot extends AudioSnapshot {
 @override final  int currentIndex;
 @override final  bool isRandomMode;
 @override final  bool isShuffleRandomMode;
-@override final  PlaylistMode playbackMode;
+@override final  AppPlaybackMode playbackMode;
 @override final  EqualizerConfig equalizerConfig;
 @override final  VisualizerOptimizationOptions currentVisualizerOptions;
  final  List<MusicFile> _randomHistory;
@@ -327,7 +327,7 @@ abstract mixin class _$AudioSnapshotCopyWith<$Res> implements $AudioSnapshotCopy
   factory _$AudioSnapshotCopyWith(_AudioSnapshot value, $Res Function(_AudioSnapshot) _then) = __$AudioSnapshotCopyWithImpl;
 @override @useResult
 $Res call({
- bool isPlaying, bool isTransitioning, bool? isLastActionNext, MusicFile? currentMusic, Duration position, Duration duration, double volume, bool isMuted, List<MusicFile> playbackQueue, int currentIndex, bool isRandomMode, bool isShuffleRandomMode, PlaylistMode playbackMode, EqualizerConfig equalizerConfig, VisualizerOptimizationOptions currentVisualizerOptions, List<MusicFile> randomHistory, List<MusicFile> randomQueue, int? historyCursor, int? deckCursor, bool isVisualizerEnabled, Color? dynamicStartColor, Color? dynamicEndColor, Map<String, Color> currentThemeColorsMap, bool isLyricsActive, Duration? sleepTimerRemaining, Duration? sleepTimerDuration
+ bool isPlaying, bool isTransitioning, bool? isLastActionNext, MusicFile? currentMusic, Duration position, Duration duration, double volume, bool isMuted, List<MusicFile> playbackQueue, int currentIndex, bool isRandomMode, bool isShuffleRandomMode, AppPlaybackMode playbackMode, EqualizerConfig equalizerConfig, VisualizerOptimizationOptions currentVisualizerOptions, List<MusicFile> randomHistory, List<MusicFile> randomQueue, int? historyCursor, int? deckCursor, bool isVisualizerEnabled, Color? dynamicStartColor, Color? dynamicEndColor, Map<String, Color> currentThemeColorsMap, bool isLyricsActive, Duration? sleepTimerRemaining, Duration? sleepTimerDuration
 });
 
 
@@ -359,7 +359,7 @@ as List<MusicFile>,currentIndex: null == currentIndex ? _self.currentIndex : cur
 as int,isRandomMode: null == isRandomMode ? _self.isRandomMode : isRandomMode // ignore: cast_nullable_to_non_nullable
 as bool,isShuffleRandomMode: null == isShuffleRandomMode ? _self.isShuffleRandomMode : isShuffleRandomMode // ignore: cast_nullable_to_non_nullable
 as bool,playbackMode: null == playbackMode ? _self.playbackMode : playbackMode // ignore: cast_nullable_to_non_nullable
-as PlaylistMode,equalizerConfig: null == equalizerConfig ? _self.equalizerConfig : equalizerConfig // ignore: cast_nullable_to_non_nullable
+as AppPlaybackMode,equalizerConfig: null == equalizerConfig ? _self.equalizerConfig : equalizerConfig // ignore: cast_nullable_to_non_nullable
 as EqualizerConfig,currentVisualizerOptions: null == currentVisualizerOptions ? _self.currentVisualizerOptions : currentVisualizerOptions // ignore: cast_nullable_to_non_nullable
 as VisualizerOptimizationOptions,randomHistory: null == randomHistory ? _self._randomHistory : randomHistory // ignore: cast_nullable_to_non_nullable
 as List<MusicFile>,randomQueue: null == randomQueue ? _self._randomQueue : randomQueue // ignore: cast_nullable_to_non_nullable

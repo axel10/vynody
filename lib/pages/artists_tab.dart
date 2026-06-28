@@ -6,6 +6,7 @@ import '../l10n/app_localizations.dart';
 import 'package:vynody/models/artist_summary.dart';
 import 'package:vynody/player/library/artist_library.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
+import 'package:vynody/player/audio/playback_source.dart';
 import 'artist_detail_page.dart';
 import '../widgets/artist_avatar.dart';
 import '../widgets/scroll_to_top_wrapper.dart';
@@ -668,7 +669,14 @@ class _ArtistListItem extends ConsumerWidget {
                 if (!isSelectionMode)
                   IconButton(
                     tooltip: playAllLabel,
-                    onPressed: () => audio.playPlaylist(artist.songs),
+                    onPressed: () => audio.playPlaylist(
+                      artist.songs,
+                      source: PlaybackSource(
+                        type: PlaybackSourceType.artist,
+                        id: artist.queryKey,
+                        name: artist.name,
+                      ),
+                    ),
                     icon: const Icon(Icons.play_arrow_rounded),
                   ),
               ],
@@ -871,12 +879,24 @@ Future<void> _showArtistContextMenuForArtist(
 
   switch (selected) {
     case 'play_all':
-      await ref.read(audioServiceProvider).playPlaylist(artist.songs);
+      await ref.read(audioServiceProvider).playPlaylist(
+        artist.songs,
+        source: PlaybackSource(
+          type: PlaybackSourceType.artist,
+          id: artist.queryKey,
+          name: artist.name,
+        ),
+      );
       break;
     case 'shuffle':
-      await ref
-          .read(audioServiceProvider)
-          .playPlaylist(List.of(artist.songs)..shuffle());
+      await ref.read(audioServiceProvider).playPlaylist(
+        List.of(artist.songs)..shuffle(),
+        source: PlaybackSource(
+          type: PlaybackSourceType.artist,
+          id: artist.queryKey,
+          name: artist.name,
+        ),
+      );
       break;
     case 'view_details':
       Navigator.of(context).push(

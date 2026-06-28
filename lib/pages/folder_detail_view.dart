@@ -8,6 +8,7 @@ import '../l10n/app_localizations.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/models/music_folder.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
+import 'package:vynody/player/audio/playback_source.dart';
 import 'package:vynody/player/scanner/scanner_sorting.dart';
 import 'package:vynody/player/scanner/scanner_service.dart';
 import 'package:vynody/player/scanner/scanner_path_utils.dart';
@@ -480,10 +481,15 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
                         : () async {
                             unawaited(() async {
                               try {
-                                await audio.playPlaylist(
-                                  matchedSongs,
-                                  initialIndex: fileIndex,
-                                );
+                                 await audio.playPlaylist(
+                                   matchedSongs,
+                                   initialIndex: fileIndex,
+                                   source: PlaybackSource(
+                                     type: PlaybackSourceType.folder,
+                                     id: widget.folder.path,
+                                     name: widget.folder.name,
+                                   ),
+                                 );
                               } catch (e, st) {
                                 debugPrint(
                                   'FoldersPage: failed to start folder playback for ${file.path}: $e',
@@ -543,8 +549,22 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
             representativeSong: representativeSong,
             songsCount: widget.folder.allSongs.length,
             displayPath: ScannerPathUtils.cleanDisplayPath(widget.folder.path),
-            onPlayAll: () => audio.playPlaylist(widget.folder.allSongs),
-            onShuffle: () => audio.playPlaylist(List.of(widget.folder.allSongs)..shuffle()),
+            onPlayAll: () => audio.playPlaylist(
+              widget.folder.allSongs,
+              source: PlaybackSource(
+                type: PlaybackSourceType.folder,
+                id: widget.folder.path,
+                name: widget.folder.name,
+              ),
+            ),
+            onShuffle: () => audio.playPlaylist(
+              List.of(widget.folder.allSongs)..shuffle(),
+              source: PlaybackSource(
+                type: PlaybackSourceType.folder,
+                id: widget.folder.path,
+                name: widget.folder.name,
+              ),
+            ),
           ),
         ),
         if (widget.folder.path == 'system' && !hasPermission)

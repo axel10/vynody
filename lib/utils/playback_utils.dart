@@ -1,4 +1,4 @@
-import 'package:audio_core/audio_core.dart';
+import 'package:vynody/player/audio/app_playback_mode.dart';
 import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 
@@ -8,32 +8,32 @@ String formatDuration(Duration d) {
   return '$minutes:${seconds.toString().padLeft(2, "0")}';
 }
 
-IconData getPlaylistModeIcon(PlaylistMode mode) {
+IconData getPlaylistModeIcon(AppPlaybackMode mode) {
   switch (mode) {
-    case PlaylistMode.single:
+    case AppPlaybackMode.single:
       return Icons.looks_one_outlined;
-    case PlaylistMode.singleLoop:
+    case AppPlaybackMode.singleLoop:
       return Icons.repeat_one_rounded;
-    case PlaylistMode.queue:
+    case AppPlaybackMode.queue:
       return Icons.reorder_rounded;
-    case PlaylistMode.queueLoop:
+    case AppPlaybackMode.queueLoop:
       return Icons.repeat_rounded;
-    case PlaylistMode.autoQueueLoop:
+    case AppPlaybackMode.autoQueueLoop:
       return Icons.all_inclusive_rounded;
   }
 }
 
-String getPlaylistModeName(PlaylistMode mode, AppLocalizations l10n) {
+String getPlaylistModeName(AppPlaybackMode mode, AppLocalizations l10n) {
   switch (mode) {
-    case PlaylistMode.single:
+    case AppPlaybackMode.single:
       return l10n.playlistModeSingle;
-    case PlaylistMode.singleLoop:
+    case AppPlaybackMode.singleLoop:
       return l10n.playlistModeSingleLoop;
-    case PlaylistMode.queue:
+    case AppPlaybackMode.queue:
       return l10n.playlistModeQueue;
-    case PlaylistMode.queueLoop:
+    case AppPlaybackMode.queueLoop:
       return l10n.playlistModeQueueLoop;
-    case PlaylistMode.autoQueueLoop:
+    case AppPlaybackMode.autoQueueLoop:
       return l10n.playlistModeAutoQueueLoop;
   }
 }

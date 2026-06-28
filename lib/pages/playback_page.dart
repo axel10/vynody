@@ -10,6 +10,7 @@ import 'package:window_manager/window_manager.dart';
 import '../l10n/app_localizations.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/audio/audio_service.dart';
+import 'package:vynody/player/audio/app_playback_mode.dart';
 import 'package:vynody/player/lyrics/lyrics_riverpod.dart';
 import 'package:vynody/player/settings/settings_service.dart';
 import 'package:vynody/player/metadata/musicbrainz_tag_completion_service.dart';
@@ -20,7 +21,6 @@ import '../widgets/visualizer_painter.dart';
 import '../widgets/volume_controls.dart';
 import '../widgets/dynamic_mesh_background.dart';
 import 'package:vynody/utils/playback_utils.dart';
-import 'package:vynody/player/library/playlist_service.dart';
 import 'package:vynody/models/music_file.dart';
 import '../dialogs/visualizer_options_dialog.dart';
 import '../dialogs/song_tag_edit_dialog.dart';
@@ -215,8 +215,8 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
 
   void _cyclePlaylistMode(AudioService audio) {
     final currentMode = audio.playbackMode;
-    final nextMode = PlaylistMode
-        .values[(currentMode.index + 1) % PlaylistMode.values.length];
+    final nextMode = AppPlaybackMode
+        .values[(currentMode.index + 1) % AppPlaybackMode.values.length];
     audio.setPlaybackMode(nextMode);
   }
 
@@ -1596,11 +1596,15 @@ class _SafeBackgroundSwitcherState extends State<_SafeBackgroundSwitcher>
         final isLast = item == _items.last;
         if (isLast) {
           return FadeTransition(
+            key: ObjectKey(item),
             opacity: item.animation,
             child: item.child,
           );
         } else {
-          return item.child;
+          return KeyedSubtree(
+            key: ObjectKey(item),
+            child: item.child,
+          );
         }
       }).toList(),
     );

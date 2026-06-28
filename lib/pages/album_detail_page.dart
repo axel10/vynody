@@ -8,6 +8,7 @@ import 'package:window_manager/window_manager.dart';
 import '../l10n/app_localizations.dart';
 import 'package:vynody/models/album_summary.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
+import 'package:vynody/player/audio/playback_source.dart';
 import 'package:vynody/utils/song_context_menu_utils.dart';
 import '../widgets/desktop_window_title_bar.dart';
 import '../widgets/song_thumbnail.dart';
@@ -154,9 +155,22 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage> {
                       );
                       final info = _AlbumInfo(
                         album: widget.album,
-                        onPlayAll: () => audio.playPlaylist(widget.album.songs),
-                        onShufflePlay: () =>
-                            audio.playPlaylist(List.of(widget.album.songs)..shuffle()),
+                        onPlayAll: () => audio.playPlaylist(
+                          widget.album.songs,
+                          source: PlaybackSource(
+                            type: PlaybackSourceType.album,
+                            id: widget.album.id,
+                            name: widget.album.title,
+                          ),
+                        ),
+                        onShufflePlay: () => audio.playPlaylist(
+                          List.of(widget.album.songs)..shuffle(),
+                          source: PlaybackSource(
+                            type: PlaybackSourceType.album,
+                            id: widget.album.id,
+                            name: widget.album.title,
+                          ),
+                        ),
                       );
 
                       if (isWide) {
@@ -235,7 +249,15 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage> {
                       trailing: durationLabel == null ? null : Text(durationLabel),
                       onTap: _isSelectionMode
                           ? () => _toggleSelection(song.path)
-                          : () => audio.playPlaylist(widget.album.songs, initialIndex: index),
+                          : () => audio.playPlaylist(
+                              widget.album.songs,
+                              initialIndex: index,
+                              source: PlaybackSource(
+                                type: PlaybackSourceType.album,
+                                id: widget.album.id,
+                                name: widget.album.title,
+                              ),
+                            ),
                     ),
                   );
                 },

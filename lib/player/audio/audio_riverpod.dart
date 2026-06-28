@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:vynody/player/audio/audio_service.dart';
 import 'package:vynody/player/audio/audio_snapshot.dart';
+import 'package:vynody/player/audio/app_playback_mode.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:vynody/models/music_file.dart';
@@ -164,7 +165,7 @@ final audioIsShuffleRandomModeProvider = Provider<bool>((ref) {
   );
 });
 
-final audioPlaybackModeProvider = Provider<PlaylistMode>((ref) {
+final audioPlaybackModeProvider = Provider<AppPlaybackMode>((ref) {
   return ref.watch(
     audioSnapshotProvider.select((snapshot) => snapshot.playbackMode),
   );

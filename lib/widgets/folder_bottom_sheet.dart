@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/app_localizations.dart';
 import 'package:vynody/models/music_folder.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
+import 'package:vynody/player/audio/playback_source.dart';
 import 'package:vynody/utils/song_context_menu_utils.dart';
 import '../widgets/library_selection_scope.dart';
 import 'package:vynody/utils/app_snack_bar.dart';
@@ -204,10 +205,24 @@ Future<String?> showFolderBottomSheet(
 
   switch (selected) {
     case 'play_all':
-      await audio.playPlaylist(songs);
+      await audio.playPlaylist(
+        songs,
+        source: PlaybackSource(
+          type: PlaybackSourceType.folder,
+          id: folder.path,
+          name: folder.name,
+        ),
+      );
       break;
     case 'shuffle':
-      await audio.playPlaylist(List.of(songs)..shuffle());
+      await audio.playPlaylist(
+        List.of(songs)..shuffle(),
+        source: PlaybackSource(
+          type: PlaybackSourceType.folder,
+          id: folder.path,
+          name: folder.name,
+        ),
+      );
       break;
     case 'play_next':
       await audio.enqueueNext(songs);

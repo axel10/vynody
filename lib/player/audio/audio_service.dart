@@ -12,6 +12,10 @@ import 'package:path_provider/path_provider.dart';
 
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/audio/audio_snapshot.dart';
+import 'package:vynody/player/audio/app_playback_mode.dart';
+import 'package:vynody/player/audio/playback_source.dart';
+import 'package:vynody/player/library/album_library.dart';
+import 'package:vynody/player/library/artist_library.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/player/metadata/artwork_constants.dart';
 
@@ -43,14 +47,16 @@ class _PlaybackSessionState {
     required this.positionMs,
     required this.playbackMode,
     required this.randomPlayback,
+    this.source,
   });
 
   final int version;
   final List<MusicFile> queue;
   final int currentIndex;
   final int positionMs;
-  final PlaylistMode playbackMode;
+  final AppPlaybackMode playbackMode;
   final _RandomPlaybackSessionState randomPlayback;
+  final PlaybackSource? source;
 
   Map<String, Object?> toJson() {
     return <String, Object?>{
@@ -60,6 +66,7 @@ class _PlaybackSessionState {
       'positionMs': positionMs,
       'playbackMode': playbackMode.name,
       'randomPlayback': randomPlayback.toJson(),
+      'source': source?.toJson(),
     };
   }
 
@@ -80,6 +87,11 @@ class _PlaybackSessionState {
       }
     }
 
+    final sourceJson = json['source'];
+    final source = sourceJson != null
+        ? PlaybackSource.fromJson(sourceJson as Map<String, dynamic>)
+        : null;
+
     return _PlaybackSessionState(
       version: (json['version'] as num?)?.toInt() ?? 1,
       queue: queue,
@@ -91,6 +103,7 @@ class _PlaybackSessionState {
           (key, value) => MapEntry(key.toString(), value),
         ),
       ),
+      source: source,
     );
   }
 }
@@ -145,19 +158,19 @@ MusicFile _musicFileFromSessionJson(Map<String, dynamic> json) {
   );
 }
 
-PlaylistMode _playbackModeFromStorage(String? value) {
+AppPlaybackMode _playbackModeFromStorage(String? value) {
   switch (value) {
     case 'single':
-      return PlaylistMode.single;
+      return AppPlaybackMode.single;
     case 'singleLoop':
-      return PlaylistMode.singleLoop;
+      return AppPlaybackMode.singleLoop;
     case 'queueLoop':
-      return PlaylistMode.queueLoop;
+      return AppPlaybackMode.queueLoop;
     case 'autoQueueLoop':
-      return PlaylistMode.autoQueueLoop;
+      return AppPlaybackMode.autoQueueLoop;
     case 'queue':
     default:
-      return PlaylistMode.queue;
+      return AppPlaybackMode.queue;
   }
 }
 
@@ -289,6 +302,9 @@ class AudioService extends Notifier<AudioSnapshot> {
   static const String _isMutedStorageKey = 'player_is_muted';
 
   late final AudioCoreController _player;
+  AppPlaybackMode _playbackMode = AppPlaybackMode.queue;
+  PlaybackSource? _currentSource;
+  bool _isHandlingQueueFinished = false;
   bool _isPlaying = false;
   Duration _position = Duration.zero;
   Duration _duration = Duration.zero;
@@ -494,7 +510,9 @@ class AudioService extends Notifier<AudioSnapshot> {
         reconcile: false,
       );
 
-      _player.playlist.setMode(session.playbackMode);
+      _playbackMode = session.playbackMode;
+      _currentSource = session.source;
+      _player.playlist.setMode(_playbackMode.toCoreMode());
 
       final restoredIndex = await _resolveRestoredQueueIndex(session);
       if (restoredIndex >= 0) {
@@ -672,8 +690,9 @@ class AudioService extends Notifier<AudioSnapshot> {
       queue: List<MusicFile>.unmodifiable(_queue),
       currentIndex: _currentIndex,
       positionMs: _position.inMilliseconds,
-      playbackMode: playbackMode,
+      playbackMode: _playbackMode,
       randomPlayback: _captureRandomPlaybackSession(),
+      source: _currentSource,
     );
 
     await prefs.setString(
@@ -1171,6 +1190,14 @@ class AudioService extends Notifier<AudioSnapshot> {
     }
     _logPositionDebug();
 
+    if (_player.player.currentState == PlayerState.completed &&
+        !_player.playlist.hasNext &&
+        _playbackMode == AppPlaybackMode.autoQueueLoop &&
+        !_isHandlingQueueFinished) {
+      unawaited(_handleQueueFinished());
+      return;
+    }
+
     final int newIndex = _player.playlist.currentIndex ?? -1;
     if (newIndex != _currentIndex && !_isTransitioning) {
       // 检测到歌曲切换
@@ -1311,7 +1338,7 @@ class AudioService extends Notifier<AudioSnapshot> {
   VisualizerOptimizationOptions get currentVisualizerOptions =>
       _player.visualizer.options;
 
-  PlaylistMode get playbackMode => _player.playlist.mode;
+  AppPlaybackMode get playbackMode => _playbackMode;
 
   EqualizerConfig get equalizerConfig => _player.equalizerConfig;
 
@@ -1320,8 +1347,9 @@ class AudioService extends Notifier<AudioSnapshot> {
     notifyListeners();
   }
 
-  void setPlaybackMode(PlaylistMode mode) {
-    _player.playlist.setMode(mode);
+  void setPlaybackMode(AppPlaybackMode mode) {
+    _playbackMode = mode;
+    _player.playlist.setMode(mode.toCoreMode());
     notifyListeners();
     unawaited(_persistPlaybackSession());
   }
@@ -2087,6 +2115,7 @@ class AudioService extends Notifier<AudioSnapshot> {
       );
       if (!append) {
         _queue.clear();
+        _currentSource = null;
       }
 
       _queue.add(song);
@@ -2106,6 +2135,7 @@ class AudioService extends Notifier<AudioSnapshot> {
   Future<void> playPlaylist(
     List<MusicFile> songs, {
     int initialIndex = 0,
+    PlaybackSource? source,
   }) async {
     if (songs.isEmpty) return;
     final safeIndex = initialIndex.clamp(0, songs.length - 1);
@@ -2114,6 +2144,8 @@ class AudioService extends Notifier<AudioSnapshot> {
       _showMissingSongNotice(skipped: false);
       return;
     }
+
+    _currentSource = source;
 
     // 1. 设置正在切换状态并通知 UI
     _isTransitioning = true;
@@ -2276,6 +2308,7 @@ class AudioService extends Notifier<AudioSnapshot> {
   Future<void> clearPlaylist() async {
     _cancelSleepTimer(notify: false);
     _queue.clear();
+    _currentSource = null;
     await _clearCurrentMusicState();
 
     await _player.playlist.clear();
@@ -2284,6 +2317,106 @@ class AudioService extends Notifier<AudioSnapshot> {
     _isPlaying = false;
     notifyListeners();
     unawaited(_persistPlaybackSession());
+  }
+
+  Future<void> _handleQueueFinished() async {
+    if (_isHandlingQueueFinished) return;
+    _isHandlingQueueFinished = true;
+
+    try {
+      final source = _currentSource;
+      if (source == null) {
+        debugPrint('[AudioService] _handleQueueFinished: currentSource is null');
+        return;
+      }
+
+      debugPrint('[AudioService] _handleQueueFinished: type=${source.type} id=${source.id}');
+
+      switch (source.type) {
+        case PlaybackSourceType.playlist:
+          final list = _playlistService?.playlists ?? [];
+          final playableList = list.where((p) => p.songs.isNotEmpty).toList();
+          if (playableList.isEmpty) return;
+          int idx = playableList.indexWhere((p) => p.id == source.id);
+          if (idx == -1) {
+            idx = 0;
+          } else {
+            idx = (idx + 1) % playableList.length;
+          }
+          final nextPlaylist = playableList[idx];
+          await playPlaylist(
+            nextPlaylist.songs,
+            source: PlaybackSource(
+              type: PlaybackSourceType.playlist,
+              id: nextPlaylist.id,
+              name: nextPlaylist.name,
+            ),
+          );
+          break;
+
+        case PlaybackSourceType.folder:
+          if (_scannerService == null) return;
+          final nextFolder = _scannerService!.findNextFolderWithMusic(source.id);
+          if (nextFolder == null || nextFolder.allSongs.isEmpty) return;
+          await playPlaylist(
+            nextFolder.allSongs,
+            source: PlaybackSource(
+              type: PlaybackSourceType.folder,
+              id: nextFolder.path,
+              name: nextFolder.name,
+            ),
+          );
+          break;
+
+        case PlaybackSourceType.album:
+          final allSongs = await _db.getAllSongMetadata();
+          final albums = buildAlbumSummaries(allSongs);
+          final playableAlbums = albums.where((a) => a.songs.isNotEmpty).toList();
+          if (playableAlbums.isEmpty) return;
+          int idx = playableAlbums.indexWhere((a) => a.id == source.id);
+          if (idx == -1) {
+            idx = 0;
+          } else {
+            idx = (idx + 1) % playableAlbums.length;
+          }
+          final nextAlbum = playableAlbums[idx];
+          await playPlaylist(
+            nextAlbum.songs,
+            source: PlaybackSource(
+              type: PlaybackSourceType.album,
+              id: nextAlbum.id,
+              name: nextAlbum.title,
+            ),
+          );
+          break;
+
+        case PlaybackSourceType.artist:
+          final repository = ArtistLibraryRepository(database: _db);
+          final artists = await repository.watchArtistSummaries().first;
+          final playableArtists = artists.where((a) => a.songs.isNotEmpty).toList();
+          if (playableArtists.isEmpty) return;
+          int idx = playableArtists.indexWhere((a) => a.queryKey == source.id);
+          if (idx == -1) {
+            idx = 0;
+          } else {
+            idx = (idx + 1) % playableArtists.length;
+          }
+          final nextArtist = playableArtists[idx];
+          await playPlaylist(
+            nextArtist.songs,
+            source: PlaybackSource(
+              type: PlaybackSourceType.artist,
+              id: nextArtist.queryKey,
+              name: nextArtist.name,
+            ),
+          );
+          break;
+      }
+    } catch (e) {
+      debugPrint('[AudioService] Error handling queue finished: $e');
+    } finally {
+      _isHandlingQueueFinished = false;
+    }
   }
 
   Future<void> next() async {
@@ -2307,6 +2440,10 @@ class AudioService extends Notifier<AudioSnapshot> {
           final song = _queue[_currentIndex];
           _logPlaybackTrace('next() sync target -> ${_debugSongLabel(song)}');
           await _syncCurrentPlaybackSong(song);
+        }
+      } else {
+        if (_playbackMode == AppPlaybackMode.autoQueueLoop) {
+          await _handleQueueFinished();
         }
       }
     } finally {
@@ -2360,6 +2497,110 @@ class AudioService extends Notifier<AudioSnapshot> {
     }
   }
 
+  Future<void> _handleQueuePrevious() async {
+    if (_isHandlingQueueFinished) return;
+    _isHandlingQueueFinished = true;
+
+    try {
+      final source = _currentSource;
+      if (source == null) {
+        debugPrint('[AudioService] _handleQueuePrevious: currentSource is null');
+        return;
+      }
+
+      debugPrint('[AudioService] _handleQueuePrevious: type=${source.type} id=${source.id}');
+
+      switch (source.type) {
+        case PlaybackSourceType.playlist:
+          final list = _playlistService?.playlists ?? [];
+          final playableList = list.where((p) => p.songs.isNotEmpty).toList();
+          if (playableList.isEmpty) return;
+          int idx = playableList.indexWhere((p) => p.id == source.id);
+          if (idx == -1) {
+            idx = playableList.length - 1;
+          } else {
+            idx = (idx - 1 + playableList.length) % playableList.length;
+          }
+          final nextPlaylist = playableList[idx];
+          await playPlaylist(
+            nextPlaylist.songs,
+            initialIndex: nextPlaylist.songs.length - 1,
+            source: PlaybackSource(
+              type: PlaybackSourceType.playlist,
+              id: nextPlaylist.id,
+              name: nextPlaylist.name,
+            ),
+          );
+          break;
+
+        case PlaybackSourceType.folder:
+          if (_scannerService == null) return;
+          final nextFolder = _scannerService!.findPreviousFolderWithMusic(source.id);
+          if (nextFolder == null || nextFolder.allSongs.isEmpty) return;
+          await playPlaylist(
+            nextFolder.allSongs,
+            initialIndex: nextFolder.allSongs.length - 1,
+            source: PlaybackSource(
+              type: PlaybackSourceType.folder,
+              id: nextFolder.path,
+              name: nextFolder.name,
+            ),
+          );
+          break;
+
+        case PlaybackSourceType.album:
+          final allSongs = await _db.getAllSongMetadata();
+          final albums = buildAlbumSummaries(allSongs);
+          final playableAlbums = albums.where((a) => a.songs.isNotEmpty).toList();
+          if (playableAlbums.isEmpty) return;
+          int idx = playableAlbums.indexWhere((a) => a.id == source.id);
+          if (idx == -1) {
+            idx = playableAlbums.length - 1;
+          } else {
+            idx = (idx - 1 + playableAlbums.length) % playableAlbums.length;
+          }
+          final nextAlbum = playableAlbums[idx];
+          await playPlaylist(
+            nextAlbum.songs,
+            initialIndex: nextAlbum.songs.length - 1,
+            source: PlaybackSource(
+              type: PlaybackSourceType.album,
+              id: nextAlbum.id,
+              name: nextAlbum.title,
+            ),
+          );
+          break;
+
+        case PlaybackSourceType.artist:
+          final repository = ArtistLibraryRepository(database: _db);
+          final artists = await repository.watchArtistSummaries().first;
+          final playableArtists = artists.where((a) => a.songs.isNotEmpty).toList();
+          if (playableArtists.isEmpty) return;
+          int idx = playableArtists.indexWhere((a) => a.queryKey == source.id);
+          if (idx == -1) {
+            idx = playableArtists.length - 1;
+          } else {
+            idx = (idx - 1 + playableArtists.length) % playableArtists.length;
+          }
+          final nextArtist = playableArtists[idx];
+          await playPlaylist(
+            nextArtist.songs,
+            initialIndex: nextArtist.songs.length - 1,
+            source: PlaybackSource(
+              type: PlaybackSourceType.artist,
+              id: nextArtist.queryKey,
+              name: nextArtist.name,
+            ),
+          );
+          break;
+      }
+    } catch (e) {
+      debugPrint('[AudioService] Error handling queue previous: $e');
+    } finally {
+      _isHandlingQueueFinished = false;
+    }
+  }
+
   Future<void> previous() async {
     if (_isTransitioning) return;
     _isTransitioning = true;
@@ -2383,6 +2624,10 @@ class AudioService extends Notifier<AudioSnapshot> {
             'previous() sync target -> ${_debugSongLabel(song)}',
           );
           await _syncCurrentPlaybackSong(song);
+        }
+      } else {
+        if (_playbackMode == AppPlaybackMode.autoQueueLoop) {
+          await _handleQueuePrevious();
         }
       }
     } finally {
