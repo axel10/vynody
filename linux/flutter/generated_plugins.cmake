@@ -6,11 +6,11 @@ list(APPEND FLUTTER_PLUGIN_LIST
   dart_chromaprint
   desktop_drop
   file_selector_linux
+  flutter_tray
   mobile_storage_listener
   pasteboard
   screen_retriever_linux
   sqlite3_flutter_libs
-  tray_manager
   url_launcher_linux
   window_manager
 )

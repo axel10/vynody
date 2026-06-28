@@ -7,12 +7,12 @@ list(APPEND FLUTTER_PLUGIN_LIST
   dart_chromaprint
   desktop_drop
   file_selector_windows
+  flutter_tray
   mobile_storage_listener
   pasteboard
   permission_handler_windows
   screen_retriever_windows
   sqlite3_flutter_libs
-  tray_manager
   url_launcher_windows
   window_manager
   windows_taskbar

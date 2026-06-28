@@ -57,6 +57,7 @@ dependencies:
   window_manager: ^0.5.1
   desktop_drop: ^0.7.0
   collection: ^1.19.1
+  image: ^4.8.0
 
 
   flutter_colorpicker: ^1.1.0
@@ -109,7 +110,11 @@ dependencies:
   package_info_plus: ^9.0.1
   bonsoir: ^7.1.2
   audio_service_mpris: ^0.2.1
-  tray_manager: ^0.5.3
+  flutter_tray:
+    git:
+      url: https://github.com/axel10/flutter_tray
+      ref: main
+  dbus: ^0.7.14
 
 dev_dependencies:
   flutter_test:
@@ -250,6 +255,6 @@ dependency_overrides:
     path: ./audio_core
   # flutter_taglib:
   #   path: ./audio_core/flutter_taglib
-#   mobile_storage_listener:
-#     path: ./mobile_storage_listener
+  #   mobile_storage_listener:
+  #     path: ./mobile_storage_listener
 

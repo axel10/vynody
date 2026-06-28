@@ -1,17 +1,28 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:vynody/player/audio/audio_service.dart';
 import 'package:vynody/player/settings/settings_service.dart';
+import 'package:path/path.dart' as path;
+import 'package:flutter_tray/flutter_tray.dart' as ft;
 
-class DesktopTrayService with TrayListener {
+class DesktopTrayService {
   final AudioService audioService;
   final SettingsService settingsService;
   bool _initialized = false;
   bool? _lastIsPlaying;
   bool? _lastIsMuted;
+  final ft.FlutterTray _tray = ft.FlutterTray();
+  StreamSubscription<ft.TrayEvent>? _eventSubscription;
+
+  static const int _idPrevious = 1;
+  static const int _idTogglePlay = 2;
+  static const int _idNext = 3;
+  static const int _idToggleMute = 4;
+  static const int _idSeparator = 5;
+  static const int _idDisableTray = 6;
+  static const int _idExit = 7;
 
   DesktopTrayService({
     required this.audioService,
@@ -36,24 +47,58 @@ class DesktopTrayService with TrayListener {
     }
   }
 
+  String _getIconAbsolutePath(String assetPath) {
+    if (Platform.isMacOS) {
+      return path.normalize(path.joinAll([
+        path.dirname(Platform.resolvedExecutable),
+        '../Resources/flutter_assets',
+        assetPath,
+      ]));
+    } else {
+      return path.normalize(path.joinAll([
+        path.dirname(Platform.resolvedExecutable),
+        'data/flutter_assets',
+        assetPath,
+      ]));
+    }
+  }
+
   Future<void> _initTray() async {
     try {
       debugPrint('[Tray] Initializing system tray...');
-      final iconPath = Platform.isWindows ? 'assets/images/app_icon.ico' : 'assets/images/icon.png';
-      debugPrint('[Tray] Setting icon: $iconPath');
-      await trayManager.setIcon(iconPath);
-      if (!Platform.isLinux) {
-        debugPrint('[Tray] Setting tooltip...');
-        try {
-          await trayManager.setToolTip('Vynody');
-        } catch (e) {
-          debugPrint('[Tray] Failed to set tooltip: $e');
-        }
+      final iconRelativePath = Platform.isWindows ? 'assets/images/app_icon.ico' : 'assets/images/icon.png';
+      final iconAbsolutePath = _getIconAbsolutePath(iconRelativePath);
+      debugPrint('[Tray] Absolute icon path: $iconAbsolutePath');
+
+      final success = await _tray.initTray(
+        iconPath: iconAbsolutePath,
+        tooltip: 'Vynody',
+      );
+
+      if (success) {
+        _eventSubscription?.cancel();
+        _eventSubscription = _tray.eventStream.listen((event) {
+          switch (event.type) {
+            case ft.TrayEventType.leftClick:
+              debugPrint('[Tray] Left click');
+              _showAndFocusWindow();
+              break;
+            case ft.TrayEventType.rightClick:
+              debugPrint('[Tray] Right click');
+              break;
+            case ft.TrayEventType.menuClick:
+              debugPrint('[Tray] Menu click: id=${event.menuId}');
+              _handleMenuItemClick(event.menuId);
+              break;
+          }
+        });
+
+        _initialized = true;
+        debugPrint('[Tray] System tray initialized. Setting up menu...');
+        await updateMenu(force: true);
+      } else {
+        debugPrint('[Tray] Failed to initialize tray: initTray returned false');
       }
-      trayManager.addListener(this);
-      _initialized = true;
-      debugPrint('[Tray] System tray initialized. Setting up menu...');
-      await updateMenu(force: true);
     } catch (e) {
       debugPrint('[Tray] Failed to initialize tray: $e');
     }
@@ -61,11 +106,13 @@ class DesktopTrayService with TrayListener {
 
   Future<void> _destroyTray() async {
     try {
-      trayManager.removeListener(this);
-      await trayManager.destroy();
+      _eventSubscription?.cancel();
+      _eventSubscription = null;
+      await _tray.destroy();
       _initialized = false;
       _lastIsPlaying = null;
       _lastIsMuted = null;
+      debugPrint('[Tray] System tray destroyed.');
     } catch (e) {
       debugPrint('Failed to destroy tray: $e');
     }
@@ -87,64 +134,57 @@ class DesktopTrayService with TrayListener {
     _lastIsMuted = isMuted;
 
     try {
-      final menu = Menu(items: [
-        MenuItem(
-          key: 'previous',
+      await _tray.setMenu([
+        ft.MenuItem(
+          id: _idPrevious,
           label: '上一首',
         ),
-        MenuItem(
-          key: 'toggle_play',
+        ft.MenuItem(
+          id: _idTogglePlay,
           label: isPlaying ? '暂停' : '播放',
         ),
-        MenuItem(
-          key: 'next',
+        ft.MenuItem(
+          id: _idNext,
           label: '下一首',
         ),
-        MenuItem(
-          key: 'toggle_mute',
+        ft.MenuItem(
+          id: _idToggleMute,
           label: isMuted ? '取消静音' : '静音',
         ),
-        MenuItem.separator(),
-        MenuItem(
-          key: 'disable_tray',
+        ft.MenuItem.separator(_idSeparator),
+        ft.MenuItem(
+          id: _idDisableTray,
           label: '停用系统托盘',
         ),
-        MenuItem(
-          key: 'exit',
+        ft.MenuItem(
+          id: _idExit,
           label: '退出',
         ),
       ]);
-      await trayManager.setContextMenu(menu);
     } catch (e) {
       debugPrint('[Tray] Failed to set tray context menu: $e');
     }
   }
 
-  @override
-  void onTrayIconMouseDown() {
-    _showAndFocusWindow();
-  }
-
-  @override
-  void onTrayMenuItemClick(MenuItem menuItem) {
-    debugPrint('[Tray] Menu item clicked: ${menuItem.key} (${menuItem.label})');
-    switch (menuItem.key) {
-      case 'previous':
+  void _handleMenuItemClick(int? id) {
+    if (id == null) return;
+    switch (id) {
+      case _idPrevious:
         audioService.previous();
         break;
-      case 'toggle_play':
+      case _idTogglePlay:
         audioService.togglePlay();
         break;
-      case 'next':
+      case _idNext:
         audioService.next();
         break;
-      case 'toggle_mute':
+      case _idToggleMute:
         audioService.toggleMute();
         break;
-      case 'disable_tray':
+      case _idDisableTray:
         settingsService.enableSystemTray = false;
         break;
-      case 'exit':
+      case _idExit:
         _destroyTray().then((_) {
           exit(0);
         });
@@ -172,3 +212,4 @@ class DesktopTrayService with TrayListener {
     }
   }
 }
+
