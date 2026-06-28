@@ -2364,6 +2364,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get spanishLanguage => 'Spanish';
 
   @override
+  String get nativeLanguageZh => '简体中文';
+
+  @override
+  String get nativeLanguageEn => 'English';
+
+  @override
+  String get nativeLanguageJa => '日本語';
+
+  @override
+  String get nativeLanguageKo => '한국어';
+
+  @override
+  String get nativeLanguageFr => 'Français';
+
+  @override
+  String get nativeLanguageDe => 'Deutsch';
+
+  @override
+  String get nativeLanguageEs => 'Español';
+
+  @override
   String get portugueseLanguage => 'Portuguese';
 
   @override

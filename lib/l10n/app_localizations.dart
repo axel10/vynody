@@ -4338,6 +4338,48 @@ abstract class AppLocalizations {
   /// **'西班牙文'**
   String get spanishLanguage;
 
+  /// No description provided for @nativeLanguageZh.
+  ///
+  /// In zh, this message translates to:
+  /// **'简体中文'**
+  String get nativeLanguageZh;
+
+  /// No description provided for @nativeLanguageEn.
+  ///
+  /// In zh, this message translates to:
+  /// **'English'**
+  String get nativeLanguageEn;
+
+  /// No description provided for @nativeLanguageJa.
+  ///
+  /// In zh, this message translates to:
+  /// **'日本語'**
+  String get nativeLanguageJa;
+
+  /// No description provided for @nativeLanguageKo.
+  ///
+  /// In zh, this message translates to:
+  /// **'한국어'**
+  String get nativeLanguageKo;
+
+  /// No description provided for @nativeLanguageFr.
+  ///
+  /// In zh, this message translates to:
+  /// **'Français'**
+  String get nativeLanguageFr;
+
+  /// No description provided for @nativeLanguageDe.
+  ///
+  /// In zh, this message translates to:
+  /// **'Deutsch'**
+  String get nativeLanguageDe;
+
+  /// No description provided for @nativeLanguageEs.
+  ///
+  /// In zh, this message translates to:
+  /// **'Español'**
+  String get nativeLanguageEs;
+
   /// No description provided for @portugueseLanguage.
   ///
   /// In zh, this message translates to:

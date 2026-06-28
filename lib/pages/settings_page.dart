@@ -435,31 +435,31 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           ),
           DropdownMenuItem<String>(
             value: 'zh',
-            child: Text(l10n.chineseLanguage),
+            child: Text(l10n.nativeLanguageZh),
           ),
           DropdownMenuItem<String>(
             value: 'ja',
-            child: Text(l10n.japaneseLanguage),
+            child: Text(l10n.nativeLanguageJa),
           ),
           DropdownMenuItem<String>(
             value: 'ko',
-            child: Text(l10n.koreanLanguage),
+            child: Text(l10n.nativeLanguageKo),
           ),
           DropdownMenuItem<String>(
             value: 'es',
-            child: Text(l10n.spanishLanguage),
+            child: Text(l10n.nativeLanguageEs),
           ),
           DropdownMenuItem<String>(
             value: 'fr',
-            child: Text(l10n.frenchLanguage),
+            child: Text(l10n.nativeLanguageFr),
           ),
           DropdownMenuItem<String>(
             value: 'de',
-            child: Text(l10n.germanLanguage),
+            child: Text(l10n.nativeLanguageDe),
           ),
           DropdownMenuItem<String>(
             value: 'en',
-            child: Text(l10n.englishLanguage),
+            child: Text(l10n.nativeLanguageEn),
           ),
         ],
         onChanged: (value) {
