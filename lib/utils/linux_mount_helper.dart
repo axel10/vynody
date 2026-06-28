@@ -24,6 +24,29 @@ class LinuxMountHelper {
   /// Extracts the target mount point path and the volume label from a given file path.
   /// For example, '/run/media/abc/新加卷/Music/song.mp3'
   /// returns MountInfo(mountPoint: '/run/media/abc/新加卷', label: '新加卷').
+  @visibleForTesting
+  static bool isLabelMatch(String seg, String label) {
+    if (seg == label) return true;
+    if (!seg.startsWith(label)) return false;
+    final suffix = seg.substring(label.length);
+    if (suffix.isEmpty) return true;
+
+    // Suffix must be optional separator followed by digits
+    var startIdx = 0;
+    if (suffix.startsWith(' ') || suffix.startsWith('_') || suffix.startsWith('-')) {
+      startIdx = 1;
+    }
+    if (startIdx >= suffix.length) return false;
+    for (int i = startIdx; i < suffix.length; i++) {
+      final code = suffix.codeUnitAt(i);
+      if (code < 48 || code > 57) return false; // Not a digit
+    }
+    return true;
+  }
+
+  /// Extracts the target mount point path and the volume label from a given file path.
+  /// For example, '/run/media/abc/新加卷/Music/song.mp3'
+  /// returns MountInfo(mountPoint: '/run/media/abc/新加卷', label: '新加卷').
   static Future<_MountInfo?> _getMountInfo(String path) async {
     final normalized = p.normalize(path);
     final segments = p.split(normalized).where((s) => s.isNotEmpty && s != '/').toList();
@@ -53,12 +76,15 @@ class LinuxMountHelper {
       debugPrint('[LinuxMountHelper] Failed to list labels via lsblk: $e');
     }
 
-    // 2. Match segments against labels
+    // 2. Match segments against labels (longest label first)
+    final sortedLabels = labels.toList()..sort((a, b) => b.length.compareTo(a.length));
     for (int i = 0; i < segments.length; i++) {
       final seg = segments[i];
-      if (labels.contains(seg)) {
-        final mountPoint = '/${segments.sublist(0, i + 1).join('/')}';
-        return _MountInfo(mountPoint: mountPoint, label: seg);
+      for (final label in sortedLabels) {
+        if (isLabelMatch(seg, label)) {
+          final mountPoint = '/${segments.sublist(0, i + 1).join('/')}';
+          return _MountInfo(mountPoint: mountPoint, label: label);
+        }
       }
     }
 
