@@ -210,6 +210,16 @@ void main(List<String> args) async {
 
       AppLog.log('initializing settings service', mirrorToConsole: true);
       final settingsService = await SettingsService.init();
+
+      if (Platform.isWindows) {
+        try {
+          if (settingsService.windowsAutoRepairShortcut) {
+            const MethodChannel('vynody/single_instance').invokeMethod('registerShortcut');
+          }
+        } catch (e) {
+          AppLog.log('failed to trigger registerShortcut: $e', mirrorToConsole: true);
+        }
+      }
       AppLog.log(
         'cleaning lyrics AI temporary transcode files',
         mirrorToConsole: true,

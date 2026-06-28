@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:async';
+import 'package:flutter/services.dart';
 
 import 'package:audio_core/audio_core.dart';
 import 'package:dio/dio.dart';
@@ -221,60 +222,109 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     if (!Platform.isWindows) return const SizedBox.shrink();
 
     final l10n = AppLocalizations.of(context)!;
-    return ListTile(
-      leading: const Icon(Icons.open_in_new_rounded),
-      title: Text(l10n.fileAssociationTitle),
-      subtitle: Text(
-        _isAssociated ? '已开启关联 (Associated)' : '未开启关联 (Not Associated)',
-        style: TextStyle(
-          color: _isAssociated ? Colors.green : Colors.orange,
-          fontWeight: FontWeight.w500,
+    final settings = ref.watch(settingsServiceProvider);
+    final isPackaged = Platform.resolvedExecutable.contains(r'\WindowsApps\');
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ListTile(
+          leading: const Icon(Icons.open_in_new_rounded),
+          title: Text(l10n.fileAssociationTitle),
+          subtitle: Text(
+            _isAssociated ? '已开启关联 (Associated)' : '未开启关联 (Not Associated)',
+            style: TextStyle(
+              color: _isAssociated ? Colors.green : Colors.orange,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          trailing: Wrap(
+            spacing: 8,
+            children: [
+              FilledButton.tonal(
+                onPressed: () async {
+                  try {
+                    await WindowsAssociationService.associate();
+                    await _checkAssociationStatus();
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(l10n.associationSuccess)),
+                    );
+                  } catch (e) {
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(l10n.associationFailed(e.toString()))),
+                    );
+                  }
+                },
+                child: Text(l10n.associateButton),
+              ),
+              if (_isAssociated)
+                OutlinedButton(
+                  onPressed: () async {
+                    try {
+                      await WindowsAssociationService.disassociate();
+                      await _checkAssociationStatus();
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(l10n.disassociationSuccess)),
+                      );
+                    } catch (e) {
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(l10n.associationFailed(e.toString())),
+                        ),
+                      );
+                    }
+                  },
+                  child: Text(l10n.disassociateButton),
+                ),
+            ],
+          ),
         ),
-      ),
-      trailing: Wrap(
-        spacing: 8,
-        children: [
-          FilledButton.tonal(
-            onPressed: () async {
-              try {
-                await WindowsAssociationService.associate();
-                await _checkAssociationStatus();
-                if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(l10n.associationSuccess)),
+        if (!isPackaged) ...[
+          const Divider(),
+          SwitchListTile(
+            secondary: const Icon(Icons.settings_suggest_rounded),
+            title: const Text('自动修复开始菜单快捷方式'),
+            subtitle: const Text('每次启动时自动检查并创建开始菜单快捷方式以正确显示媒体控制项名称与图标'),
+            value: settings.windowsAutoRepairShortcut,
+            onChanged: (value) async {
+              if (!value) {
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('确定关闭吗？'),
+                    content: const Text('如果缺少开始菜单快捷方式，Windows 媒体控制中心（音量调节弹窗）将会把软件显示为“未知应用”，并且无法展示应用图标。是否确定关闭此功能？'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(false),
+                        child: const Text('取消'),
+                      ),
+                      FilledButton(
+                        onPressed: () => Navigator.of(context).pop(true),
+                        child: const Text('确定关闭'),
+                      ),
+                    ],
+                  ),
                 );
-              } catch (e) {
-                if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(l10n.associationFailed(e.toString()))),
-                );
+                if (confirm == true) {
+                  settings.windowsAutoRepairShortcut = false;
+                }
+              } else {
+                settings.windowsAutoRepairShortcut = true;
+                try {
+                  await const MethodChannel('vynody/single_instance')
+                      .invokeMethod('registerShortcut');
+                } catch (e) {
+                  debugPrint('Failed to trigger registerShortcut: $e');
+                }
               }
             },
-            child: Text(l10n.associateButton),
           ),
-          if (_isAssociated)
-            OutlinedButton(
-              onPressed: () async {
-                try {
-                  await WindowsAssociationService.disassociate();
-                  await _checkAssociationStatus();
-                  if (!context.mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(l10n.disassociationSuccess)),
-                  );
-                } catch (e) {
-                  if (!context.mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(l10n.associationFailed(e.toString())),
-                    ),
-                  );
-                }
-              },
-              child: Text(l10n.disassociateButton),
-            ),
         ],
-      ),
+      ],
     );
   }
 

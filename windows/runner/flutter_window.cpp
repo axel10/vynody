@@ -35,6 +35,18 @@ bool FlutterWindow::OnCreate() {
       flutter_controller_->engine()->messenger(), "vynody/single_instance",
       &flutter::StandardMethodCodec::GetInstance());
 
+  channel_->SetMethodCallHandler(
+      [](const flutter::MethodCall<flutter::EncodableValue>& call,
+         std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
+        if (call.method_name() == "registerShortcut") {
+          extern void RegisterAppUserModelIDAndShortcut();
+          RegisterAppUserModelIDAndShortcut();
+          result->Success(flutter::EncodableValue(true));
+        } else {
+          result->NotImplemented();
+        }
+      });
+
   flutter_controller_->engine()->SetNextFrameCallback([&]() {
     this->Show();
   });
