@@ -197,8 +197,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get clearQueue => 'キューをクリア';
 
   @override
-  String get confirmClearQueue =>
-      '現在のキューをクリアしてもよろしいですか？';
+  String get confirmClearQueue => '現在のキューをクリアしてもよろしいですか？';
 
   @override
   String get queueCleared => 'キューをクリアしました';
@@ -207,8 +206,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get locateCurrentSong => '現在の曲を探す';
 
   @override
-  String get songNotInScannedFolders =>
-      '現在の曲はスキャンされたディレクトリにありません';
+  String get songNotInScannedFolders => '現在の曲はスキャンされたディレクトリにありません';
 
   @override
   String get queue => 'キュー';
@@ -252,7 +250,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String confirmDeletePlaylist(String name) {
-    return 'プレイリスト"$name"を削除してもよろしいですか？';
+    return 'プレイリスト\"$name\"を削除してもよろしいですか？';
   }
 
   @override
@@ -282,7 +280,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String createdPlaylist(String name, int count) {
-    return 'プレイリスト"$name"を作成し、$count曲を追加しました';
+    return 'プレイリスト\"$name\"を作成し、$count曲を追加しました';
   }
 
   @override
@@ -307,8 +305,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get mostPlayedDescription => '再生完了回数でランク付け';
 
   @override
-  String get recentlyAddedDescription =>
-      'ライブラリに追加された日時順';
+  String get recentlyAddedDescription => 'ライブラリに追加された日時順';
 
   @override
   String get allTime => '全期間';
@@ -480,22 +477,19 @@ class AppLocalizationsJa extends AppLocalizations {
   String get immersiveTabBar => '没入型タブバー';
 
   @override
-  String get immersiveTabBarDescription =>
-      'マウス移動時にナビゲーションバーを表示し、3秒無操作で非表示';
+  String get immersiveTabBarDescription => 'マウス移動時にナビゲーションバーを表示し、3秒無操作で非表示';
 
   @override
   String get sampleStride => 'サンプルストライド';
 
   @override
-  String get sampleStrideDescription =>
-      '値が大きいとスキャンは速いが波形精度が低下（デフォルト: 4）';
+  String get sampleStrideDescription => '値が大きいとスキャンは速いが波形精度が低下（デフォルト: 4）';
 
   @override
   String get waveformSegments => '波形セグメント数';
 
   @override
-  String get waveformSegmentsDescription =>
-      '表示する波形バーの数（デフォルト: 80）';
+  String get waveformSegmentsDescription => '表示する波形バーの数（デフォルト: 80）';
 
   @override
   String get showDeveloperOptions => '開発者オプションを表示';
@@ -618,8 +612,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get enableWaveformProgressBar => '波形プログレスバーを有効化';
 
   @override
-  String get enableWaveformProgressBarDescription =>
-      '標準スライダーの代わりに全曲波形を使用';
+  String get enableWaveformProgressBarDescription => '標準スライダーの代わりに全曲波形を使用';
 
   @override
   String get randomMode => 'ランダムモード';
@@ -682,8 +675,7 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get unsupportedFormatSingle =>
-      'このフォーマット（OGG/Opus）はタグの保存に対応していません';
+  String get unsupportedFormatSingle => 'このフォーマット（OGG/Opus）はタグの保存に対応していません';
 
   @override
   String get savingTags => 'タグを保存中...';
@@ -704,8 +696,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get transcodeSectionTitle => 'オーディオトランスコード';
 
   @override
-  String get transcodeSectionDescription =>
-      'オーディオ変換のデフォルト出力形式と品質プリセットを設定します。';
+  String get transcodeSectionDescription => 'オーディオ変換のデフォルト出力形式と品質プリセットを設定します。';
 
   @override
   String get transcodeDefaultFormat => 'デフォルト出力形式';
@@ -754,8 +745,7 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get transcodeUsingSystemFfmpeg =>
-      'システムのPATHからffmpegを使用しています。';
+  String get transcodeUsingSystemFfmpeg => 'システムのPATHからffmpegを使用しています。';
 
   @override
   String transcodeUsingCustomFfmpeg(Object path) {
@@ -781,23 +771,19 @@ class AppLocalizationsJa extends AppLocalizations {
   String get transcodeQualityExtreme => '最高';
 
   @override
-  String get transcodeLosslessPresetHint =>
-      'このロスレス形式では品質段階やビットレートモードは使用しません。';
+  String get transcodeLosslessPresetHint => 'このロスレス形式では品質段階やビットレートモードは使用しません。';
 
   @override
   String get transcodeAdvancedOptions => '詳細オプション';
 
   @override
-  String get transcodeAdvancedCustomized =>
-      '詳細パラメータがカスタマイズされました';
+  String get transcodeAdvancedCustomized => '詳細パラメータがカスタマイズされました';
 
   @override
-  String get transcodeAdvancedFollowingPreset =>
-      '詳細パラメータは現在のプリセットに従います';
+  String get transcodeAdvancedFollowingPreset => '詳細パラメータは現在のプリセットに従います';
 
   @override
-  String get transcodeLosslessAdvancedHint =>
-      'このロスレス形式ではソース保持オプションのみ利用可能です。';
+  String get transcodeLosslessAdvancedHint => 'このロスレス形式ではソース保持オプションのみ利用可能です。';
 
   @override
   String get transcodeBitRateInvalid => '有効なビットレートを入力してください';
@@ -857,8 +843,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get openFolderLocation => 'フォルダの場所を開く';
 
   @override
-  String get songTagsSavedToSourceFileAndApp =>
-      '楽曲タグをソースファイルとアプリに保存しました';
+  String get songTagsSavedToSourceFileAndApp => '楽曲タグをソースファイルとアプリに保存しました';
 
   @override
   String get songTagsSavedToApp => '楽曲タグをアプリに保存しました';
@@ -897,15 +882,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get sleepTimerTitle => 'スリープタイマー';
 
   @override
-  String get sleepTimerDescription =>
-      'カウントダウンを選択すると、時間経過後に再生が一時停止します。';
+  String get sleepTimerDescription => 'カウントダウンを選択すると、時間経過後に再生が一時停止します。';
 
   @override
   String get sleepTimerRunningTitle => 'スリープタイマー動作中';
 
   @override
-  String get sleepTimerRunningDescription =>
-      'カウントダウン終了時に自動的に再生を一時停止します。';
+  String get sleepTimerRunningDescription => 'カウントダウン終了時に自動的に再生を一時停止します。';
 
   @override
   String get remainingTime => '残り時間';
@@ -941,17 +924,16 @@ class AppLocalizationsJa extends AppLocalizations {
   String get timelineAdjustmentTitle => 'タイムライン調整';
 
   @override
-  String get timelineAdjustmentDescription =>
-      '右にドラッグすると歌詞が遅れ、左にドラッグすると早くなります。';
+  String get timelineAdjustmentDescription => '右にドラッグすると歌詞が遅れ、左にドラッグすると早くなります。';
 
   @override
   String timelineOffsetEarlier(Object seconds) {
-    return '${seconds}秒早い';
+    return '$seconds秒早い';
   }
 
   @override
   String timelineOffsetLater(Object seconds) {
-    return '${seconds}秒遅い';
+    return '$seconds秒遅い';
   }
 
   @override
@@ -977,8 +959,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get enterLyricsTitle => '歌詞を入力';
 
   @override
-  String get lyricsInputHint =>
-      'ここに歌詞を貼り付けるか入力してください。複数行テキストに対応しています。';
+  String get lyricsInputHint => 'ここに歌詞を貼り付けるか入力してください。複数行テキストに対応しています。';
 
   @override
   String get enterGoogleAiStudioApiKeyTitle => 'Google AI Studio APIキーを入力';
@@ -1068,8 +1049,7 @@ class AppLocalizationsJa extends AppLocalizations {
       'ソースファイルへの保存に失敗しました。ファイル形式が書き込みに対応していること、ファイルが使用中でないことを確認してください。';
 
   @override
-  String get fileOccupiedByOtherApp =>
-      'ファイルが別のアプリに使用されているため書き込めません';
+  String get fileOccupiedByOtherApp => 'ファイルが別のアプリに使用されているため書き込めません';
 
   @override
   String get saveFailed => '保存に失敗しました。後でもう一度お試しください。';
@@ -1086,15 +1066,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get generalSectionTitle => 'インターフェース';
 
   @override
-  String get generalSectionDescription =>
-      'これらのオプションはページと再生UIの全体的な外観に影響します。';
+  String get generalSectionDescription => 'これらのオプションはページと再生UIの全体的な外観に影響します。';
 
   @override
   String get interfaceLanguage => 'インターフェース言語';
 
   @override
-  String get interfaceLanguageDescription =>
-      'アプリケーションの表示言語を選択します。';
+  String get interfaceLanguageDescription => 'アプリケーションの表示言語を選択します。';
 
   @override
   String get scanSectionTitle => 'スキャン';
@@ -1107,15 +1085,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get skipShortAudioDuringScan => 'スキャン中に短い音声をスキップ';
 
   @override
-  String get skipShortAudioDuringScanDescription =>
-      'しきい値より短い音声はライブラリに追加されません。';
+  String get skipShortAudioDuringScanDescription => 'しきい値より短い音声はライブラリに追加されません。';
 
   @override
   String get shortAudioScanThreshold => '短い音声のしきい値';
 
   @override
-  String get shortAudioScanThresholdDescription =>
-      'この時間より短いファイルはスキップされます。';
+  String get shortAudioScanThresholdDescription => 'この時間より短いファイルはスキップされます。';
 
   @override
   String shortAudioScanThresholdValue(Object seconds) {
@@ -1136,8 +1112,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get lyricsSectionTitle => '歌詞';
 
   @override
-  String get lyricsSectionDescription =>
-      'これらの設定は歌詞生成とタイムライン生成にのみ影響します。';
+  String get lyricsSectionDescription => 'これらの設定は歌詞生成とタイムライン生成にのみ影響します。';
 
   @override
   String get lyricsTranslationTargetLanguageLabel => '翻訳対象言語';
@@ -1150,8 +1125,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get lyricsSaveMethodLabel => '歌詞の保存場所';
 
   @override
-  String get lyricsSaveMethodDescription =>
-      'ファイル書き込み時の歌詞の保存場所を選択します。';
+  String get lyricsSaveMethodDescription => 'ファイル書き込み時の歌詞の保存場所を選択します。';
 
   @override
   String get lyricsSaveMethodOriginal => '元の場所';
@@ -1255,8 +1229,7 @@ class AppLocalizationsJa extends AppLocalizations {
       '現在内蔵のデフォルトキーを使用中です。ご自身のキーに置き換えることをお勧めします。';
 
   @override
-  String get applyForApiKey =>
-      'APIキーを申請: https://acoustid.org/new-application';
+  String get applyForApiKey => 'APIキーを申請: https://acoustid.org/new-application';
 
   @override
   String get queueTabBarFavoriteAdded => 'お気に入りに追加しました';
@@ -1268,8 +1241,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get tagCompletion => 'タグ補完';
 
   @override
-  String get tagCompletionDescription =>
-      'AcoustIDとMusicBrainzの結果でタグを一致させます';
+  String get tagCompletionDescription => 'AcoustIDとMusicBrainzの結果でタグを一致させます';
 
   @override
   String get goToSettings => '設定へ行く';
@@ -1284,8 +1256,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get refreshResults => '結果を更新';
 
   @override
-  String get filterMusicBrainzReleaseTitle =>
-      'MusicBrainzリリースタイトルをフィルタ';
+  String get filterMusicBrainzReleaseTitle => 'MusicBrainzリリースタイトルをフィルタ';
 
   @override
   String get clearSearch => '検索をクリア';
@@ -1300,8 +1271,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get musicBrainzLoading => 'MusicBrainzを読み込み中';
 
   @override
-  String get musicBrainzLoadingWithResults =>
-      '既存の結果はパネルに残ります';
+  String get musicBrainzLoadingWithResults => '既存の結果はパネルに残ります';
 
   @override
   String get musicBrainzLoadingHint => 'お待ちください';
@@ -1347,8 +1317,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get musicBrainzRecordings => 'MusicBrainzレコーディング';
 
   @override
-  String get noExpandableReleaseGroups =>
-      '展開可能なリリースグループがありません';
+  String get noExpandableReleaseGroups => '展開可能なリリースグループがありません';
 
   @override
   String get noExpandableReleases => '展開可能なリリースがありません';
@@ -1458,8 +1427,7 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get persistentAccessDenied =>
-      'そのフォルダへのアクセスを保存できませんでした。もう一度選択してください。';
+  String get persistentAccessDenied => 'そのフォルダへのアクセスを保存できませんでした。もう一度選択してください。';
 
   @override
   String get folderAddFailed => 'フォルダの追加に失敗しました';
@@ -1550,8 +1518,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get copyCoverSuccess => 'カバーをクリップボードにコピーしました';
 
   @override
-  String get searchLyricsPlaceholder =>
-      '曲名、アーティスト、または歌詞を入力して検索';
+  String get searchLyricsPlaceholder => '曲名、アーティスト、または歌詞を入力して検索';
 
   @override
   String get share => '共有';
@@ -1588,8 +1555,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get onboardingTitle => 'Vynodyへようこそ';
 
   @override
-  String get onboardingSubtitle =>
-      'いくつかの簡単なステップで音楽の旅を始めましょう。';
+  String get onboardingSubtitle => 'いくつかの簡単なステップで音楽の旅を始めましょう。';
 
   @override
   String get onboardingStepFileAssociation => 'ファイルタイプを関連付ける';
@@ -1616,8 +1582,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get onboardingSuccessTitle => '準備完了！';
 
   @override
-  String get onboardingSuccessDesc =>
-      'メディアライブラリを追加しました。音楽をお楽しみください！';
+  String get onboardingSuccessDesc => 'メディアライブラリを追加しました。音楽をお楽しみください！';
 
   @override
   String get onboardingStartButton => '始める';
@@ -1635,8 +1600,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get resetOnboarding => 'オンボーディングをリセット';
 
   @override
-  String get resetOnboardingDesc =>
-      'オンボーディング状態をクリアします。次回起動時にウェルカムガイドが再表示されます。';
+  String get resetOnboardingDesc => 'オンボーディング状態をクリアします。次回起動時にウェルカムガイドが再表示されます。';
 
   @override
   String get songProperties => '曲のプロパティ';
@@ -1686,8 +1650,7 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get localNetworkPermissionDeniedTitle =>
-      'ローカルネットワークアクセスが制限されています';
+  String get localNetworkPermissionDeniedTitle => 'ローカルネットワークアクセスが制限されています';
 
   @override
   String get localNetworkPermissionDeniedMessage =>
@@ -1716,26 +1679,22 @@ class AppLocalizationsJa extends AppLocalizations {
   String get regenerateLyrics => '歌詞を再生成';
 
   @override
-  String get regenerateLyricsConfirmation =>
-      '現在の歌詞をクリアして再生成します。続行しますか？';
+  String get regenerateLyricsConfirmation => '現在の歌詞をクリアして再生成します。続行しますか？';
 
   @override
   String get regenerateTimeline => 'タイムラインを再生成';
 
   @override
-  String get regenerateTimelineConfirmation =>
-      '現在のタイムラインをクリアして再生成します。続行しますか？';
+  String get regenerateTimelineConfirmation => '現在のタイムラインをクリアして再生成します。続行しますか？';
 
   @override
   String get retranslateLyrics => '歌詞を再翻訳';
 
   @override
-  String get retranslateLyricsConfirmation =>
-      '現在の翻訳をクリアして再翻訳します。続行しますか？';
+  String get retranslateLyricsConfirmation => '現在の翻訳をクリアして再翻訳します。続行しますか？';
 
   @override
-  String get translationCopiedToClipboard =>
-      '翻訳結果をクリップボードにコピーしました';
+  String get translationCopiedToClipboard => '翻訳結果をクリップボードにコピーしました';
 
   @override
   String get writingLyrics => '歌詞を書き込み中...';
@@ -1776,12 +1735,10 @@ class AppLocalizationsJa extends AppLocalizations {
       'ローカル曲ファイルが存在しないため、タイムラインを生成できません。';
 
   @override
-  String get noLyricsForTimelineGeneration =>
-      'タイムライン生成に利用可能な歌詞がありません。';
+  String get noLyricsForTimelineGeneration => 'タイムライン生成に利用可能な歌詞がありません。';
 
   @override
-  String get noLyricsAvailableForTranslation =>
-      '翻訳に利用可能な歌詞がありません。';
+  String get noLyricsAvailableForTranslation => '翻訳に利用可能な歌詞がありません。';
 
   @override
   String get noCurrentSongAvailable => '現在の曲がありません。';
@@ -1790,16 +1747,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get invalidTargetLanguage => '対象言語が無効です。';
 
   @override
-  String get songAlreadyQueuedForTranslation =>
-      '現在の曲は既に翻訳キューに入っています。';
+  String get songAlreadyQueuedForTranslation => '現在の曲は既に翻訳キューに入っています。';
 
   @override
-  String get songAlreadyQueuedForGeneration =>
-      '現在の曲は既に歌詞生成キューに入っています。';
+  String get songAlreadyQueuedForGeneration => '現在の曲は既に歌詞生成キューに入っています。';
 
   @override
-  String get songNoLongerExistsForTranslation =>
-      '現在の曲はもう存在しないため、歌詞を翻訳できません。';
+  String get songNoLongerExistsForTranslation => '現在の曲はもう存在しないため、歌詞を翻訳できません。';
 
   @override
   String get generationFailed => '生成に失敗しました。';
@@ -1823,19 +1777,17 @@ class AppLocalizationsJa extends AppLocalizations {
   String get uploadingSongFile => '曲ファイルをアップロード中';
 
   @override
-  String get fileUploadedWaitingForReadiness =>
-      'ファイルをアップロードしました。準備が整うのを待っています';
+  String get fileUploadedWaitingForReadiness => 'ファイルをアップロードしました。準備が整うのを待っています';
 
   @override
-  String get waitingForFileReadiness =>
-      'ファイルの準備が整うのを待っています';
+  String get waitingForFileReadiness => 'ファイルの準備が整うのを待っています';
 
   @override
   String get requestingModelResponse => 'モデルの応答をリクエスト中';
 
   @override
   String retryingTaskKindGeneration(Object taskKind) {
-    return '${taskKind}の生成を再試行中';
+    return '$taskKindの生成を再試行中';
   }
 
   @override
@@ -1861,27 +1813,22 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get unknownGenerationError =>
-      '歌詞生成中に不明なエラーが発生しました。';
+  String get unknownGenerationError => '歌詞生成中に不明なエラーが発生しました。';
 
   @override
-  String get unknownTimelineGenerationError =>
-      'タイムライン生成中に不明なエラーが発生しました。';
+  String get unknownTimelineGenerationError => 'タイムライン生成中に不明なエラーが発生しました。';
 
   @override
-  String get unknownTranslationError =>
-      '歌詞翻訳中に不明なエラーが発生しました。';
+  String get unknownTranslationError => '歌詞翻訳中に不明なエラーが発生しました。';
 
   @override
   String get unknownError => '不明なエラー';
 
   @override
-  String get modelRefusedToGenerateLyrics =>
-      'モデルが歌詞の生成を拒否しました。';
+  String get modelRefusedToGenerateLyrics => 'モデルが歌詞の生成を拒否しました。';
 
   @override
-  String get modelRefusedToGenerateTimeline =>
-      'モデルがタイムラインの生成を拒否しました。';
+  String get modelRefusedToGenerateTimeline => 'モデルがタイムラインの生成を拒否しました。';
 
   @override
   String get doubaoPreUploadTranscodingFailed =>
@@ -1892,15 +1839,13 @@ class AppLocalizationsJa extends AppLocalizations {
       '一時トランスコードファイルがテンポラリディレクトリに作成されませんでした。';
 
   @override
-  String get doubaoEmptyStreamingResponse =>
-      'Doubaoが空のストリーミングレスポンスを返しました。';
+  String get doubaoEmptyStreamingResponse => 'Doubaoが空のストリーミングレスポンスを返しました。';
 
   @override
   String get doubaoEmptyResponse => 'Doubaoが空のレスポンスを返しました。';
 
   @override
-  String get geminiEmptyStreamingResponse =>
-      'Geminiが空のストリーミングレスポンスを返しました。';
+  String get geminiEmptyStreamingResponse => 'Geminiが空のストリーミングレスポンスを返しました。';
 
   @override
   String get geminiEmptyResponse => 'Geminiが空のレスポンスを返しました。';
@@ -1910,31 +1855,26 @@ class AppLocalizationsJa extends AppLocalizations {
       'OpenRouterが空のストリーミングレスポンスを返しました。';
 
   @override
-  String get openRouterEmptyResponse =>
-      'OpenRouterが空のレスポンスを返しました。';
+  String get openRouterEmptyResponse => 'OpenRouterが空のレスポンスを返しました。';
 
   @override
-  String get deepseekEmptyStreamingResponse =>
-      'DeepSeekが空のストリーミングレスポンスを返しました。';
+  String get deepseekEmptyStreamingResponse => 'DeepSeekが空のストリーミングレスポンスを返しました。';
 
   @override
-  String get deepseekEmptyResponse =>
-      'DeepSeekが空のレスポンスを返しました。';
+  String get deepseekEmptyResponse => 'DeepSeekが空のレスポンスを返しました。';
 
   @override
   String get customProviderEmptyStreamingResponse =>
       'カスタムプロバイダが空のストリーミングレスポンスを返しました。';
 
   @override
-  String get customProviderEmptyResponse =>
-      'カスタムプロバイダが空のレスポンスを返しました。';
+  String get customProviderEmptyResponse => 'カスタムプロバイダが空のレスポンスを返しました。';
 
   @override
   String get fileUploadFailed => 'ファイルのアップロードに失敗しました。もう一度お試しください。';
 
   @override
-  String get uploadedFileNotReady =>
-      'アップロードしたファイルが準備できませんでした。後でもう一度お試しください。';
+  String get uploadedFileNotReady => 'アップロードしたファイルが準備できませんでした。後でもう一度お試しください。';
 
   @override
   String get audioTranscodingFailed => 'オーディオのトランスコードに失敗しました。';
@@ -1948,12 +1888,10 @@ class AppLocalizationsJa extends AppLocalizations {
       'ネットワークリクエストに失敗しました。ネットワークとプロキシ設定を確認してください。';
 
   @override
-  String get quotaExhaustedToday =>
-      '本日の割り当てを使い切りました。明日リセットされてから再試行してください。';
+  String get quotaExhaustedToday => '本日の割り当てを使い切りました。明日リセットされてから再試行してください。';
 
   @override
-  String get googleAiHeavyLoad =>
-      'Google AIは高負荷のため一時的に利用できません。';
+  String get googleAiHeavyLoad => 'Google AIは高負荷のため一時的に利用できません。';
 
   @override
   String lyricsGenerationFailedWithError(Object error) {
@@ -1961,13 +1899,12 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String missingApiKeyForAction(Object providerName, Object action) {
-    return '${providerName}のAPIキーが見つからないため、$actionは利用できません。';
+  String missingApiKeyForAction(Object action, Object providerName) {
+    return '$providerNameのAPIキーが見つからないため、$actionは利用できません。';
   }
 
   @override
-  String get googleServerFlaky =>
-      'Googleの調子が良くないようです。再試行すると成功する場合があります。';
+  String get googleServerFlaky => 'Googleの調子が良くないようです。再試行すると成功する場合があります。';
 
   @override
   String get translateLyricsAction => '歌詞を翻訳';
@@ -1979,23 +1916,19 @@ class AppLocalizationsJa extends AppLocalizations {
   String get generateTimelineAction => 'タイムラインを生成';
 
   @override
-  String get deepseekOnlyTranslation =>
-      'DeepSeekは歌詞の翻訳にのみ利用可能です。';
+  String get deepseekOnlyTranslation => 'DeepSeekは歌詞の翻訳にのみ利用可能です。';
 
   @override
-  String get customProviderOnlyTranslation =>
-      'カスタムプロバイダは歌詞の翻訳にのみ利用可能です。';
+  String get customProviderOnlyTranslation => 'カスタムプロバイダは歌詞の翻訳にのみ利用可能です。';
 
   @override
-  String get customProviderNoBaseUrl =>
-      'カスタムプロバイダのベースURLが設定されていません。';
+  String get customProviderNoBaseUrl => 'カスタムプロバイダのベースURLが設定されていません。';
 
   @override
   String get pleaseEnterApiKey => 'APIキーを入力してください。';
 
   @override
-  String get connectionSuccessVerificationPassed =>
-      '接続成功、検証に合格しました。';
+  String get connectionSuccessVerificationPassed => '接続成功、検証に合格しました。';
 
   @override
   String connectionSuccessDetectedModels(Object count) {
@@ -2003,7 +1936,7 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String testFailedWithStatus(Object statusCode, Object message) {
+  String testFailedWithStatus(Object message, Object statusCode) {
     return 'テスト失敗（$statusCode）: $message';
   }
 
@@ -2021,16 +1954,13 @@ class AppLocalizationsJa extends AppLocalizations {
       '最初にGoogle AI Studio APIキーを入力してください。';
 
   @override
-  String get enterDoubaoApiKeyFirst =>
-      '最初にDoubao APIキーを入力してください。';
+  String get enterDoubaoApiKeyFirst => '最初にDoubao APIキーを入力してください。';
 
   @override
-  String get enterDeepseekApiKeyFirst =>
-      '最初にDeepSeek APIキーを入力してください。';
+  String get enterDeepseekApiKeyFirst => '最初にDeepSeek APIキーを入力してください。';
 
   @override
-  String get enterCustomApiKeyAndBaseUrl =>
-      '最初にカスタムAPIキーとベースURLを入力してください。';
+  String get enterCustomApiKeyAndBaseUrl => '最初にカスタムAPIキーとベースURLを入力してください。';
 
   @override
   String fetchedCountModels(Object count) {
@@ -2038,13 +1968,12 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String requestFailedWithStatus(Object statusCode, Object message) {
+  String requestFailedWithStatus(Object message, Object statusCode) {
     return 'リクエスト失敗（$statusCode）: $message';
   }
 
   @override
-  String get requestFailedCheckNetwork =>
-      'リクエストに失敗しました。ネットワークを確認してください。';
+  String get requestFailedCheckNetwork => 'リクエストに失敗しました。ネットワークを確認してください。';
 
   @override
   String requestFailedStatus(Object statusCode) {
@@ -2123,8 +2052,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get seekBackward5sDescription => '5秒巻き戻しします。';
 
   @override
-  String get toggleFullScreenDescription =>
-      'ウィンドウモードと全画面を切り替えます。';
+  String get toggleFullScreenDescription => 'ウィンドウモードと全画面を切り替えます。';
 
   @override
   String get unknownKey => '不明なキー';
@@ -2180,31 +2108,25 @@ class AppLocalizationsJa extends AppLocalizations {
   String get advanced => '詳細';
 
   @override
-  String get advancedOptionsDescription =>
-      'デバッグと動作調整のためのオプション。';
+  String get advancedOptionsDescription => 'デバッグと動作調整のためのオプション。';
 
   @override
-  String get showDeveloperOptionsDescription =>
-      'デバッグ用のより詳細なオプションを表示します。';
+  String get showDeveloperOptionsDescription => 'デバッグ用のより詳細なオプションを表示します。';
 
   @override
-  String get onboardingReset =>
-      'オンボーディングがリセットされました。次回起動時に反映されます。';
+  String get onboardingReset => 'オンボーディングがリセットされました。次回起動時に反映されます。';
 
   @override
-  String get tagsSectionDescription =>
-      'オーディオファイルのメタデータと自動補完を設定します。';
+  String get tagsSectionDescription => 'オーディオファイルのメタデータと自動補完を設定します。';
 
   @override
   String get autoSaveToSourceFile => 'ソースファイルに自動保存';
 
   @override
-  String get autoSaveToSourceFileDescription =>
-      'タグ補完時に自動的に物理オーディオファイルに書き戻します。';
+  String get autoSaveToSourceFileDescription => 'タグ補完時に自動的に物理オーディオファイルに書き戻します。';
 
   @override
-  String get aboutSectionDescription =>
-      'バージョン情報、プロジェクトリンク、関連情報。';
+  String get aboutSectionDescription => 'バージョン情報、プロジェクトリンク、関連情報。';
 
   @override
   String get checkForUpdates => 'アップデートを確認';
@@ -2220,8 +2142,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get lyricsTranslationModel => '歌詞翻訳モデル';
 
   @override
-  String get lyricsTranslationModelDescription =>
-      '歌詞を対象言語に翻訳するために使用されます。';
+  String get lyricsTranslationModelDescription => '歌詞を対象言語に翻訳するために使用されます。';
 
   @override
   String get onlyForLyricTranslation => '歌詞翻訳のみ';
@@ -2246,8 +2167,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get clearedDeepseekApiKey => 'DeepSeek APIキーをクリアしました';
 
   @override
-  String get clearedCustomProviderConfig =>
-      'カスタムプロバイダ設定をクリアしました';
+  String get clearedCustomProviderConfig => 'カスタムプロバイダ設定をクリアしました';
 
   @override
   String get savedDoubaoApiKey => 'Doubao APIキーを保存しました';
@@ -2256,12 +2176,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get savedDeepseekApiKey => 'DeepSeek APIキーを保存しました';
 
   @override
-  String get savedCustomProviderConfig =>
-      'カスタムプロバイダ設定を保存しました';
+  String get savedCustomProviderConfig => 'カスタムプロバイダ設定を保存しました';
 
   @override
-  String get noMatchingFoldersOrSongs =>
-      '一致するフォルダまたは曲が見つかりません';
+  String get noMatchingFoldersOrSongs => '一致するフォルダまたは曲が見つかりません';
 
   @override
   String get listView => 'リスト表示';
@@ -2275,8 +2193,7 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get searchInFolderAndSubfolders =>
-      'フォルダとサブフォルダを検索...';
+  String get searchInFolderAndSubfolders => 'フォルダとサブフォルダを検索...';
 
   @override
   String get shuffle => 'シャッフル';
@@ -2292,7 +2209,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String removeRootDirectoryConfirmation(Object name) {
-    return 'ルートディレクトリ"$name"を削除してもよろしいですか？ディスク上の物理ファイルは削除されません。';
+    return 'ルートディレクトリ\"$name\"を削除してもよろしいですか？ディスク上の物理ファイルは削除されません。';
   }
 
   @override
@@ -2328,8 +2245,7 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get pleaseChooseOutputDirectory =>
-      '出力ディレクトリを選択してください。';
+  String get pleaseChooseOutputDirectory => '出力ディレクトリを選択してください。';
 
   @override
   String selectedArtistsCount(Object count) {
@@ -2387,12 +2303,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get whatIsAiLyricTranslation => 'AI歌詞翻訳とは？';
 
   @override
-  String get aiLyricsIntroGeneration =>
-      'AIは曲から歌詞を生成し、タイムラインに合わせることができます。';
+  String get aiLyricsIntroGeneration => 'AIは曲から歌詞を生成し、タイムラインに合わせることができます。';
 
   @override
-  String get aiLyricsIntroTranslation =>
-      'AIは歌詞を好きな言語に翻訳して、曲をより理解しやすくします。';
+  String get aiLyricsIntroTranslation => 'AIは歌詞を好きな言語に翻訳して、曲をより理解しやすくします。';
 
   @override
   String get whyNeedApiKey => 'なぜAPIキーが必要ですか？';
@@ -2421,20 +2335,17 @@ class AppLocalizationsJa extends AppLocalizations {
       '多くのプロバイダといくつかの無料モデルにアクセスできるモデルアグリゲータです。';
 
   @override
-  String get openRouterProviderCons =>
-      'チャージに手数料が含まれる場合があり、ウェブサイトは英語のみです。';
+  String get openRouterProviderCons => 'チャージに手数料が含まれる場合があり、ウェブサイトは英語のみです。';
 
   @override
   String get doubaoProviderPros =>
       'ByteDance製、中国語テキストに強い。新規ユーザーはモデルあたり50万トークンの無料枠を取得できます。';
 
   @override
-  String get doubaoProviderCons =>
-      '登録が比較的面倒で、本人確認が必要です。';
+  String get doubaoProviderCons => '登録が比較的面倒で、本人確認が必要です。';
 
   @override
-  String get deepseekProviderPros =>
-      '中国語の理解度が高く、低価格で歌詞翻訳に適しています。';
+  String get deepseekProviderPros => '中国語の理解度が高く、低価格で歌詞翻訳に適しています。';
 
   @override
   String get deepseekProviderCons =>
@@ -2507,7 +2418,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String generatingTaskKind(Object taskKind) {
-    return '${taskKind}を生成中';
+    return '$taskKindを生成中';
   }
 
   @override
@@ -2532,8 +2443,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get enterDeepseekApiKey => 'DeepSeek APIキーを入力';
 
   @override
-  String get deepseekApiKeyDescription =>
-      '歌詞翻訳のみのためのDeepSeek APIキーを入力してください。';
+  String get deepseekApiKeyDescription => '歌詞翻訳のみのためのDeepSeek APIキーを入力してください。';
 
   @override
   String get pleaseEnterApiKeyHint => 'APIキーを入力してください';
@@ -2554,8 +2464,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get leaveEmpty => '空のままにする';
 
   @override
-  String get leaveEmptyFallbackDescription =>
-      'バックアップモデルを設定しない場合はこれを選択します。';
+  String get leaveEmptyFallbackDescription => 'バックアップモデルを設定しない場合はこれを選択します。';
 
   @override
   String get modelSearchHint => 'モデル名、IDを入力';
