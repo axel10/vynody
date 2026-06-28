@@ -367,6 +367,7 @@ class _MyAppState extends ConsumerState<MyApp> with WindowListener {
     Widget app = OKToast(
       child: MaterialApp(
         title: 'Vynody',
+        locale: settings.effectiveLocale,
         theme: _buildTheme(Brightness.light),
         darkTheme: _buildTheme(Brightness.dark),
         themeMode: settings.themeMode,

@@ -865,6 +865,8 @@
   "apiKeySavedAcoustid": "AcoustID API Key 已保存",
   "generalSectionTitle": "界面",
   "generalSectionDescription": "这些选项会影响页面和播放界面的整体显示方式。",
+  "interfaceLanguage": "界面语言",
+  "interfaceLanguageDescription": "选择软件的界面显示语言。",
   "scanSectionTitle": "扫描",
   "scanSectionDescription": "这些选项会控制媒体库扫描如何处理音频文件。",
   "skipShortAudioDuringScan": "扫描时跳过短音频",

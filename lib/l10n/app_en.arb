@@ -425,6 +425,8 @@
   "apiKeySavedAcoustid": "AcoustID API key saved",
   "generalSectionTitle": "Interface",
   "generalSectionDescription": "These options affect the overall appearance of the pages and playback UI.",
+  "interfaceLanguage": "Interface Language",
+  "interfaceLanguageDescription": "Select the display language of the application.",
   "scanSectionTitle": "Scanning",
   "scanSectionDescription": "These options control how the library scan treats audio files.",
   "skipShortAudioDuringScan": "Skip short audio during scan",

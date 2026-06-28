@@ -1063,6 +1063,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get generalSectionDescription => '这些选项会影响页面和播放界面的整体显示方式。';
 
   @override
+  String get interfaceLanguage => '界面语言';
+
+  @override
+  String get interfaceLanguageDescription => '选择软件的界面显示语言。';
+
+  @override
   String get scanSectionTitle => '扫描';
 
   @override

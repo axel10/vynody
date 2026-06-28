@@ -2108,6 +2108,18 @@ abstract class AppLocalizations {
   /// **'这些选项会影响页面和播放界面的整体显示方式。'**
   String get generalSectionDescription;
 
+  /// No description provided for @interfaceLanguage.
+  ///
+  /// In zh, this message translates to:
+  /// **'界面语言'**
+  String get interfaceLanguage;
+
+  /// No description provided for @interfaceLanguageDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'选择软件的界面显示语言。'**
+  String get interfaceLanguageDescription;
+
   /// No description provided for @scanSectionTitle.
   ///
   /// In zh, this message translates to:

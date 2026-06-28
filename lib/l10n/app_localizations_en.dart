@@ -1090,6 +1090,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'These options affect the overall appearance of the pages and playback UI.';
 
   @override
+  String get interfaceLanguage => 'Interface Language';
+
+  @override
+  String get interfaceLanguageDescription =>
+      'Select the display language of the application.';
+
+  @override
   String get scanSectionTitle => 'Scanning';
 
   @override

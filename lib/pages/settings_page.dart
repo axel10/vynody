@@ -412,6 +412,44 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     );
   }
 
+  Widget _buildLanguageSection(
+    BuildContext context,
+    SettingsService settings,
+  ) {
+    final l10n = AppLocalizations.of(context)!;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      child: DropdownButtonFormField<String>(
+        initialValue: settings.appLocale,
+        isExpanded: true,
+        decoration: InputDecoration(
+          labelText: l10n.interfaceLanguage,
+          border: const OutlineInputBorder(),
+          helperText: l10n.interfaceLanguageDescription,
+        ),
+        items: [
+          DropdownMenuItem<String>(
+            value: 'system',
+            child: Text(l10n.followSystemLanguage),
+          ),
+          DropdownMenuItem<String>(
+            value: 'zh',
+            child: Text(l10n.chineseLanguage),
+          ),
+          DropdownMenuItem<String>(
+            value: 'en',
+            child: Text(l10n.englishLanguage),
+          ),
+        ],
+        onChanged: (value) {
+          if (value == null) return;
+          settings.appLocale = value;
+        },
+      ),
+    );
+  }
+
   Widget _buildScanSection(BuildContext context, SettingsService settings) {
     final l10n = AppLocalizations.of(context)!;
     const minSeconds = 5;
@@ -905,6 +943,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           l10n.generalSectionDescription,
         ),
         _buildThemeModeSection(context, settings),
+        _buildLanguageSection(context, settings),
         SwitchListTile(
           title: Text(l10n.immersiveTabBar),
           subtitle: Text(l10n.immersiveTabBarDescription),

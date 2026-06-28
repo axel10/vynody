@@ -10,14 +10,9 @@ import 'package:vynody/transcode/transcode_models.dart';
 import 'package:vynody/utils/language_code_utils.dart';
 
 import 'package:vynody/l10n/app_localizations.dart';
-import 'package:vynody/l10n/app_localizations_en.dart';
-import 'package:vynody/l10n/app_localizations_zh.dart';
+import 'package:vynody/utils/localized_text.dart';
 
-AppLocalizations _l10n() {
-  return WidgetsBinding.instance.platformDispatcher.locale.languageCode == 'zh' 
-      ? AppLocalizationsZh() 
-      : AppLocalizationsEn();
-}
+AppLocalizations _l10n() => currentAppL10n;
 
 enum LyricsAiProvider { googleAiStudio, openRouter, doubao, deepseek, custom }
 
@@ -238,6 +233,7 @@ class SettingsService extends ChangeNotifier {
       'doubao-seed-2-0-lite-260428';
   static const String defaultDeepSeekTranslationModelId = 'deepseek-v4-flash';
   static const String _keyThemeMode = 'theme_mode';
+  static const String _keyLocale = 'app_locale';
   static const String _keyImmersiveTabBar = 'immersive_tab_bar_enabled';
   static const String _keySampleStride = 'sample_stride';
   static const String _keyWaveformChunks = 'waveform_chunks';
@@ -406,6 +402,16 @@ class SettingsService extends ChangeNotifier {
     customRead: (prefs, key, def) =>
         ThemeModeX.fromStorageValue(prefs.getString(key)),
     customWrite: (prefs, key, val) => prefs.setString(key, val.storageValue),
+  );
+
+  late final SettingProperty<String> _localeProperty = SettingProperty<String>(
+    key: _keyLocale,
+    defaultValue: 'system',
+    prefs: _prefs,
+    onChanged: () {
+      LocalizedText.overrideLanguageCode = _localeProperty.value;
+      notifyListeners();
+    },
   );
 
   late final _isImmersiveTabBarEnabledProperty = SettingProperty<bool>(
@@ -1039,6 +1045,7 @@ class SettingsService extends ChangeNotifier {
     : _shortcutBindings = _loadShortcutBindings(_prefs) {
     _lastKnownCustomProviderName =
         _prefs.getString(customProviderNameStorageKey)?.trim() ?? '';
+    LocalizedText.overrideLanguageCode = _prefs.getString(_keyLocale) ?? 'system';
   }
 
   bool get hasShownOnboarding => _hasShownOnboardingProperty.value;
@@ -1061,6 +1068,17 @@ class SettingsService extends ChangeNotifier {
 
   ThemeMode get themeMode => _themeModeProperty.value;
   set themeMode(ThemeMode value) => _themeModeProperty.value = value;
+
+  String get appLocale => _localeProperty.value;
+  set appLocale(String value) => _localeProperty.value = value;
+
+  Locale? get effectiveLocale {
+    final stored = appLocale;
+    if (stored == 'system' || stored.isEmpty) {
+      return null;
+    }
+    return Locale(stored);
+  }
 
   bool get isImmersiveTabBarEnabled => _isImmersiveTabBarEnabledProperty.value;
   set isImmersiveTabBarEnabled(bool value) =>
