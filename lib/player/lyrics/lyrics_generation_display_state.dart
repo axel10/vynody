@@ -1,6 +1,16 @@
-import 'package:flutter/widgets.dart';
+import 'dart:ui';
 
 import 'package:vynody/player/lyrics/lyrics_generation_phase.dart';
+
+import 'package:vynody/l10n/app_localizations.dart';
+import 'package:vynody/l10n/app_localizations_en.dart';
+import 'package:vynody/l10n/app_localizations_zh.dart';
+
+AppLocalizations _l10n() {
+  return PlatformDispatcher.instance.locale.languageCode == 'zh' 
+      ? AppLocalizationsZh() 
+      : AppLocalizationsEn();
+}
 
 class LyricsGenerationDisplayState {
   const LyricsGenerationDisplayState({
@@ -48,11 +58,7 @@ class LyricsGenerationDisplayState {
     if (retryAttempt <= 0 || maxRetryCount <= 0) {
       return '';
     }
-    final isZh =
-        WidgetsBinding.instance.platformDispatcher.locale.languageCode == 'zh';
-    return isZh
-        ? '重试第 $retryAttempt 次 / 共 $maxRetryCount 次'
-        : 'Retry $retryAttempt / $maxRetryCount';
+    return _l10n().retryAttemptOfMax(retryAttempt, maxRetryCount);
   }
 
   @override

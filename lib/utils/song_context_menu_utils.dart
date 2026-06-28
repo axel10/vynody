@@ -104,13 +104,11 @@ Future<void> openFolderLocation(String folderPath) async {
 }
 
 String _getRemoveFromQueueLabel(BuildContext context) {
-  final locale = Localizations.localeOf(context).languageCode;
-  return locale == 'zh' ? '从队列中移除' : 'Remove from Queue';
+  return AppLocalizations.of(context)!.removeFromQueue;
 }
 
 String _getRemoveFromPlaylistLabel(BuildContext context) {
-  final locale = Localizations.localeOf(context).languageCode;
-  return locale == 'zh' ? '从歌单中移除' : 'Remove from Playlist';
+  return AppLocalizations.of(context)!.removeFromPlaylist;
 }
 
 Future<void> showSongContextMenu(

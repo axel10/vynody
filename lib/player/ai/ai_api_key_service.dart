@@ -5,12 +5,21 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vynody/utils/network_client.dart';
 import 'package:vynody/player/settings/settings_service.dart';
 
+import 'package:vynody/l10n/app_localizations.dart';
+import 'package:vynody/l10n/app_localizations_en.dart';
+import 'package:vynody/l10n/app_localizations_zh.dart';
+
+AppLocalizations _l10n() {
+  return PlatformDispatcher.instance.locale.languageCode == 'zh' 
+      ? AppLocalizationsZh() 
+      : AppLocalizationsEn();
+}
+
 class AIApiKeyService {
   AIApiKeyService({NetworkClient? client})
     : _client = client ?? NetworkClient.instance;
 
   final NetworkClient _client;
-  bool get _isZh => PlatformDispatcher.instance.locale.languageCode == 'zh';
 
   Future<String?> loadApiKey() async {
     final prefs = await SharedPreferences.getInstance();
@@ -28,7 +37,7 @@ class AIApiKeyService {
     if (normalizedKey.isEmpty) {
       return GeminiApiKeyTestResult(
         success: false,
-        message: _isZh ? '请输入 API key。' : 'Please enter an API key.',
+        message: _l10n().pleaseEnterApiKey,
       );
     }
 
@@ -42,12 +51,8 @@ class AIApiKeyService {
       return GeminiApiKeyTestResult(
         success: true,
         message: models.isEmpty
-            ? (_isZh
-                  ? '连接成功，已通过验证。'
-                  : 'Connection successful, verification passed.')
-            : (_isZh
-                  ? '连接成功，检测到 ${models.length} 个模型。'
-                  : 'Connection successful, detected ${models.length} models.'),
+            ? _l10n().connectionSuccessVerificationPassed
+            : _l10n().connectionSuccessDetectedModels(models.length),
         models: models,
       );
     } catch (e) {
@@ -96,9 +101,7 @@ class AIApiKeyService {
           if (message != null && message.isNotEmpty) {
             return statusCode == null
                 ? message
-                : (_isZh
-                      ? '测试失败（$statusCode）：$message'
-                      : 'Test failed ($statusCode): $message');
+                : _l10n().testFailedWithStatus(message, statusCode);
           }
         }
       }
@@ -107,23 +110,15 @@ class AIApiKeyService {
       if (message != null && message.isNotEmpty) {
         return statusCode == null
             ? message
-            : (_isZh
-                  ? '测试失败（$statusCode）：$message'
-                  : 'Test failed ($statusCode): $message');
+            : _l10n().testFailedWithStatus(message, statusCode);
       }
 
       return statusCode == null
-          ? (_isZh
-                ? '测试失败，请检查网络或 API key。'
-                : 'Test failed. Please check your network or API key.')
-          : (_isZh
-                ? '测试失败（$statusCode），请检查 API key 是否有效。'
-                : 'Test failed ($statusCode). Please check whether the API key is valid.');
+          ? _l10n().testFailedCheckNetworkOrApiKey
+          : _l10n().testFailedStatusCheckApiKey(statusCode);
     }
 
-    return _isZh
-        ? '测试失败，请检查网络或 API key。'
-        : 'Test failed. Please check your network or API key.';
+    return _l10n().testFailedCheckNetworkOrApiKey;
   }
 }
 

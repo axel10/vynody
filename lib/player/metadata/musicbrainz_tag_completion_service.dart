@@ -1,15 +1,23 @@
 import 'dart:async';
 import 'dart:typed_data';
+import 'dart:ui';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:vynody/utils/localized_text.dart';
 import 'package:vynody/utils/network_client.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/player/metadata/metadata_helper.dart';
+import '../../l10n/app_localizations.dart';
+import '../../l10n/app_localizations_en.dart';
+import '../../l10n/app_localizations_zh.dart';
 
 part 'musicbrainz_tag_completion_service.freezed.dart';
+
+AppLocalizations _l10n() {
+  final locale = PlatformDispatcher.instance.locale;
+  return locale.languageCode == 'zh' ? AppLocalizationsZh() : AppLocalizationsEn();
+}
 
 @freezed
 abstract class MusicBrainzReleaseMatch with _$MusicBrainzReleaseMatch {
@@ -142,7 +150,7 @@ abstract class MusicBrainzTrackMatch with _$MusicBrainzTrackMatch {
       recordingId: json['id'] as String? ?? '',
       title: json['title'] as String? ?? '',
       artist: artist.isEmpty
-          ? localizedText('未知艺术家', 'Unknown Artist')
+          ? _l10n().unknownArtist
           : artist,
       album: album,
       releaseId: releaseId,
@@ -198,13 +206,13 @@ abstract class MusicBrainzTrackMatch with _$MusicBrainzTrackMatch {
           key: key,
           title: release.title.trim().isNotEmpty
               ? release.title.trim()
-              : localizedText('未命名发行版', 'Untitled Release'),
+              : _l10n().untitledRelease,
           releases: [release],
         );
         order.add(key);
       } else {
         builder.releases.add(release);
-        if (builder.title == localizedText('未命名发行版', 'Untitled Release') &&
+        if (builder.title == _l10n().untitledRelease &&
             release.title.trim().isNotEmpty) {
           builder.title = release.title.trim();
         }
@@ -372,7 +380,7 @@ class MusicBrainzTagCompletionService {
       filePath: songPath,
       title: effectiveMatch.title,
       artist: effectiveMatch.artist,
-      album: effectiveMatch.album ?? localizedText('未知专辑', 'Unknown Album'),
+      album: effectiveMatch.album ?? _l10n().unknownAlbum,
       duration: fallbackDurationMillis ?? effectiveMatch.durationMillis,
       trackNumber: effectiveMatch.trackNumber,
       artworkBytes: cover?.bytes,

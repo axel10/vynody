@@ -1696,4 +1696,855 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get closeButton => 'Close';
+
+  @override
+  String get copyTranslationResults => 'Copy translation results';
+
+  @override
+  String get writeLyricsToFile => 'Write lyrics to file';
+
+  @override
+  String get selectLyricSource => 'Select lyric source';
+
+  @override
+  String get regenerateLyrics => 'Regenerate Lyrics';
+
+  @override
+  String get regenerateLyricsConfirmation =>
+      'This will clear the current lyrics and regenerate. Continue?';
+
+  @override
+  String get regenerateTimeline => 'Regenerate Timeline';
+
+  @override
+  String get regenerateTimelineConfirmation =>
+      'This will clear the current timeline and regenerate. Continue?';
+
+  @override
+  String get retranslateLyrics => 'Re-translate Lyrics';
+
+  @override
+  String get retranslateLyricsConfirmation =>
+      'This will clear the current translation and re-translate. Continue?';
+
+  @override
+  String get translationCopiedToClipboard =>
+      'Translation results copied to clipboard';
+
+  @override
+  String get writingLyrics => 'Writing lyrics...';
+
+  @override
+  String get lyricsWrittenToFile => 'Lyrics written to file successfully';
+
+  @override
+  String get writeLyricsFailed => 'Failed to write lyrics';
+
+  @override
+  String get externalLrcFile => 'External LRC file';
+
+  @override
+  String get embeddedLyrics => 'Embedded lyrics';
+
+  @override
+  String get manuallyAdjustedLyrics => 'Manually adjusted lyrics';
+
+  @override
+  String get lrclibOnlineLyrics => 'LrcLib online lyrics';
+
+  @override
+  String get aiGeneratedLyrics => 'AI generated lyrics';
+
+  @override
+  String get matchScore => 'Match';
+
+  @override
+  String get untitledRelease => 'Untitled Release';
+
+  @override
+  String get localSongFileNotFoundForGeneration =>
+      'The local song file does not exist, so lyrics cannot be generated.';
+
+  @override
+  String get localSongFileNotFoundForTimeline =>
+      'The local song file does not exist, so a timeline cannot be generated.';
+
+  @override
+  String get noLyricsForTimelineGeneration =>
+      'No lyrics available for timeline generation.';
+
+  @override
+  String get noLyricsAvailableForTranslation =>
+      'No lyrics are available for translation.';
+
+  @override
+  String get noCurrentSongAvailable => 'No current song available.';
+
+  @override
+  String get invalidTargetLanguage => 'Invalid target language.';
+
+  @override
+  String get songAlreadyQueuedForTranslation =>
+      'The current song is already queued for translation.';
+
+  @override
+  String get songAlreadyQueuedForGeneration =>
+      'The current song is already queued for lyrics generation.';
+
+  @override
+  String get songNoLongerExistsForTranslation =>
+      'The current song no longer exists, so lyrics cannot be translated.';
+
+  @override
+  String get generationFailed => 'Generation failed.';
+
+  @override
+  String get generatingLyrics => 'Generating lyrics';
+
+  @override
+  String get generatingTimeline => 'Generating timeline';
+
+  @override
+  String get regeneratingLyrics => 'Regenerating lyrics';
+
+  @override
+  String get translatingLyrics => 'Translating lyrics';
+
+  @override
+  String get transcodingSongFile => 'Transcoding song file';
+
+  @override
+  String get uploadingSongFile => 'Uploading song file';
+
+  @override
+  String get fileUploadedWaitingForReadiness =>
+      'File uploaded, waiting for readiness';
+
+  @override
+  String get waitingForFileReadiness => 'Waiting for file readiness';
+
+  @override
+  String get requestingModelResponse => 'Requesting model response';
+
+  @override
+  String retryingTaskKindGeneration(Object taskKind) {
+    return 'Retrying $taskKind generation';
+  }
+
+  @override
+  String get retrying => 'Retrying';
+
+  @override
+  String get processing => 'Processing';
+
+  @override
+  String get timeline => 'timeline';
+
+  @override
+  String get lyrics => 'lyrics';
+
+  @override
+  String lyricGenerationError(Object error) {
+    return 'An error occurred while generating lyrics: $error';
+  }
+
+  @override
+  String timelineGenerationError(Object error) {
+    return 'An error occurred while generating the timeline: $error';
+  }
+
+  @override
+  String get unknownGenerationError =>
+      'An unknown error occurred while generating lyrics.';
+
+  @override
+  String get unknownTimelineGenerationError =>
+      'An unknown error occurred while generating the timeline.';
+
+  @override
+  String get unknownTranslationError =>
+      'An unknown error occurred while translating lyrics.';
+
+  @override
+  String get unknownError => 'Unknown error';
+
+  @override
+  String get modelRefusedToGenerateLyrics =>
+      'The model refused to generate lyrics.';
+
+  @override
+  String get modelRefusedToGenerateTimeline =>
+      'The model refused to generate the timeline.';
+
+  @override
+  String get doubaoPreUploadTranscodingFailed =>
+      'Audio transcoding failed before Doubao upload.';
+
+  @override
+  String get doubaoTempTranscodeNotInTempDir =>
+      'The temporary transcoded file was not created in the temp directory.';
+
+  @override
+  String get doubaoEmptyStreamingResponse =>
+      'Doubao returned an empty streaming response.';
+
+  @override
+  String get doubaoEmptyResponse => 'Doubao returned an empty response.';
+
+  @override
+  String get geminiEmptyStreamingResponse =>
+      'Gemini returned an empty streaming response.';
+
+  @override
+  String get geminiEmptyResponse => 'Gemini returned an empty response.';
+
+  @override
+  String get openRouterEmptyStreamingResponse =>
+      'OpenRouter returned an empty streaming response.';
+
+  @override
+  String get openRouterEmptyResponse =>
+      'OpenRouter returned an empty response.';
+
+  @override
+  String get deepseekEmptyStreamingResponse =>
+      'DeepSeek returned an empty streaming response.';
+
+  @override
+  String get deepseekEmptyResponse => 'DeepSeek returned an empty response.';
+
+  @override
+  String get customProviderEmptyStreamingResponse =>
+      'Custom provider returned an empty streaming response.';
+
+  @override
+  String get customProviderEmptyResponse =>
+      'Custom provider returned an empty response.';
+
+  @override
+  String get fileUploadFailed => 'File upload failed. Please try again.';
+
+  @override
+  String get uploadedFileNotReady =>
+      'The uploaded file did not become ready. Please try again later.';
+
+  @override
+  String get audioTranscodingFailed => 'Audio transcoding failed.';
+
+  @override
+  String get tempTranscodeNotInTempDir =>
+      'The temporary transcoded file was not created in the temp directory.';
+
+  @override
+  String get networkRequestFailedCheckProxy =>
+      'Network request failed. Please check your network and proxy settings.';
+
+  @override
+  String get quotaExhaustedToday =>
+      'Today\'s quota has been exhausted. Please try again after it resets tomorrow.';
+
+  @override
+  String get googleAiHeavyLoad =>
+      'Google AI is under heavy load and is temporarily unavailable.';
+
+  @override
+  String lyricsGenerationFailedWithError(Object error) {
+    return 'Lyrics generation failed: $error';
+  }
+
+  @override
+  String missingApiKeyForAction(Object action, Object providerName) {
+    return 'API key for $providerName was not found, so $action is unavailable.';
+  }
+
+  @override
+  String get googleServerFlaky =>
+      'Google is having a rough moment. Please try again and it may succeed.';
+
+  @override
+  String get translateLyricsAction => 'translate lyrics';
+
+  @override
+  String get generateLyricsAction => 'generate lyrics';
+
+  @override
+  String get generateTimelineAction => 'generate timeline';
+
+  @override
+  String get deepseekOnlyTranslation =>
+      'DeepSeek is only available for lyric translation.';
+
+  @override
+  String get customProviderOnlyTranslation =>
+      'Custom provider is only available for lyric translation.';
+
+  @override
+  String get customProviderNoBaseUrl =>
+      'Custom provider base URL is not configured.';
+
+  @override
+  String get pleaseEnterApiKey => 'Please enter an API key.';
+
+  @override
+  String get connectionSuccessVerificationPassed =>
+      'Connection successful, verification passed.';
+
+  @override
+  String connectionSuccessDetectedModels(Object count) {
+    return 'Connection successful, detected $count models.';
+  }
+
+  @override
+  String testFailedWithStatus(Object message, Object statusCode) {
+    return 'Test failed ($statusCode): $message';
+  }
+
+  @override
+  String get testFailedCheckNetworkOrApiKey =>
+      'Test failed. Please check your network or API key.';
+
+  @override
+  String testFailedStatusCheckApiKey(Object statusCode) {
+    return 'Test failed ($statusCode). Please check whether the API key is valid.';
+  }
+
+  @override
+  String get enterGoogleAiStudioApiKeyFirst =>
+      'Please enter a Google AI Studio API key first.';
+
+  @override
+  String get enterDoubaoApiKeyFirst => 'Please enter a Doubao API key first.';
+
+  @override
+  String get enterDeepseekApiKeyFirst =>
+      'Please enter a DeepSeek API key first.';
+
+  @override
+  String get enterCustomApiKeyAndBaseUrl =>
+      'Please enter the custom API key and base URL first.';
+
+  @override
+  String fetchedCountModels(Object count) {
+    return 'Fetched $count models.';
+  }
+
+  @override
+  String requestFailedWithStatus(Object message, Object statusCode) {
+    return 'Request failed ($statusCode): $message';
+  }
+
+  @override
+  String get requestFailedCheckNetwork => 'Request failed. Check your network.';
+
+  @override
+  String requestFailedStatus(Object statusCode) {
+    return 'Request failed ($statusCode).';
+  }
+
+  @override
+  String get doubao => 'Doubao';
+
+  @override
+  String get custom => 'Custom';
+
+  @override
+  String get noModelSelected => 'No model selected';
+
+  @override
+  String get acoustidRequestFailed => 'AcoustID request failed';
+
+  @override
+  String acoustidRequestReturnedStatus(Object statusCode) {
+    return 'AcoustID request returned $statusCode. Please apply for your own AcoustID API key and fill it in settings.';
+  }
+
+  @override
+  String get writeTagDatabaseFailed => 'Failed to write tag database';
+
+  @override
+  String get playPause => 'Play / Pause';
+
+  @override
+  String get nextTrack => 'Next';
+
+  @override
+  String get previousTrack => 'Previous';
+
+  @override
+  String get volumeUp => 'Volume Up';
+
+  @override
+  String get volumeDown => 'Volume Down';
+
+  @override
+  String get toggleMute => 'Toggle Mute';
+
+  @override
+  String get seekForward5s => 'Seek Forward 5s';
+
+  @override
+  String get seekBackward5s => 'Seek Backward 5s';
+
+  @override
+  String get toggleFullScreen => 'Toggle Full Screen';
+
+  @override
+  String get playPauseDescription => 'Control the current playback state.';
+
+  @override
+  String get nextDescription => 'Skip to the next song.';
+
+  @override
+  String get previousDescription => 'Go back to the previous song.';
+
+  @override
+  String get volumeUpDescription => 'Increase volume by 5% each time.';
+
+  @override
+  String get volumeDownDescription => 'Decrease volume by 5% each time.';
+
+  @override
+  String get toggleMuteDescription => 'Toggle mute.';
+
+  @override
+  String get seekForward5sDescription => 'Seek forward 5 seconds.';
+
+  @override
+  String get seekBackward5sDescription => 'Seek backward 5 seconds.';
+
+  @override
+  String get toggleFullScreenDescription =>
+      'Switch between windowed mode and full screen.';
+
+  @override
+  String get unknownKey => 'Unknown key';
+
+  @override
+  String get removeFromQueue => 'Remove from Queue';
+
+  @override
+  String get removeFromPlaylist => 'Remove from Playlist';
+
+  @override
+  String get alreadyLatestVersion => 'You are already on the latest version.';
+
+  @override
+  String get updateAvailable => 'Update Available';
+
+  @override
+  String newVersionAvailable(Object version) {
+    return 'A new version v$version is available. Download from the GitHub Release page.';
+  }
+
+  @override
+  String get openRelease => 'Open Release';
+
+  @override
+  String get checkUpdateFailedNetwork =>
+      'Failed to check for updates. It may be a network issue or GitHub rate limit.';
+
+  @override
+  String get tags => 'Tags';
+
+  @override
+  String get about => 'About';
+
+  @override
+  String get rebuildIndex => 'Rebuild Index';
+
+  @override
+  String get rebuildIndexDescription =>
+      'Clear all song records (except external sources) and rescan all root directories.';
+
+  @override
+  String get rebuildIndexConfirmation =>
+      'Are you sure you want to clear all song records (except external sources) and re-scan all root directories? This process may take some time.';
+
+  @override
+  String get rebuildIndexStarted => 'Rebuild index started';
+
+  @override
+  String get rebuild => 'Rebuild';
+
+  @override
+  String get advanced => 'Advanced';
+
+  @override
+  String get advancedOptionsDescription =>
+      'Options for debugging and behavior tuning.';
+
+  @override
+  String get showDeveloperOptionsDescription =>
+      'Show more advanced options intended for debugging.';
+
+  @override
+  String get onboardingReset =>
+      'Onboarding has been reset. It will take effect on next startup.';
+
+  @override
+  String get tagsSectionDescription =>
+      'Configure audio file metadata and auto-completion.';
+
+  @override
+  String get autoSaveToSourceFile => 'Auto-save to Source File';
+
+  @override
+  String get autoSaveToSourceFileDescription =>
+      'Automatically write tags back to the physical audio file when completed.';
+
+  @override
+  String get aboutSectionDescription =>
+      'Version info, project links, and related info.';
+
+  @override
+  String get checkForUpdates => 'Check for updates';
+
+  @override
+  String get lyricsGenerationModel => 'Lyrics Generation Model';
+
+  @override
+  String get lyricsGenerationModelDescription =>
+      'Used for AI-generated lyrics and timeline generation/correction.';
+
+  @override
+  String get lyricsTranslationModel => 'Lyrics Translation Model';
+
+  @override
+  String get lyricsTranslationModelDescription =>
+      'Used for translating lyrics to the target language.';
+
+  @override
+  String get onlyForLyricTranslation => 'Only for lyric translation';
+
+  @override
+  String get fillApiKeyFirstEnablesModels =>
+      'Please fill in at least one API key to enable model selection.';
+
+  @override
+  String get customApiProvider => 'Custom API Provider';
+
+  @override
+  String get clearedGoogleAiStudioApiKey => 'Cleared Google AI Studio API Key';
+
+  @override
+  String get clearedOpenRouterApiKey => 'Cleared OpenRouter API Key';
+
+  @override
+  String get clearedDoubaoApiKey => 'Cleared Doubao API Key';
+
+  @override
+  String get clearedDeepseekApiKey => 'Cleared DeepSeek API Key';
+
+  @override
+  String get clearedCustomProviderConfig =>
+      'Cleared custom provider configuration';
+
+  @override
+  String get savedDoubaoApiKey => 'Saved Doubao API Key';
+
+  @override
+  String get savedDeepseekApiKey => 'Saved DeepSeek API Key';
+
+  @override
+  String get savedCustomProviderConfig => 'Saved custom provider configuration';
+
+  @override
+  String get noMatchingFoldersOrSongs => 'No matching folders or songs found';
+
+  @override
+  String get listView => 'List View';
+
+  @override
+  String get gridView => 'Grid View';
+
+  @override
+  String songsCountFormat(Object count) {
+    return '$count songs';
+  }
+
+  @override
+  String get searchInFolderAndSubfolders =>
+      'Search in folder and subfolders...';
+
+  @override
+  String get shuffle => 'Shuffle';
+
+  @override
+  String get search => 'Search';
+
+  @override
+  String get selectFolders => 'Select Folders';
+
+  @override
+  String get removeDirectory => 'Remove Directory';
+
+  @override
+  String removeRootDirectoryConfirmation(Object name) {
+    return 'Are you sure you want to remove the root directory \"$name\"? This will not delete physical files on disk.';
+  }
+
+  @override
+  String get deselectAll => 'Deselect All';
+
+  @override
+  String get favorites => 'Favorites';
+
+  @override
+  String get aggregationPeak => 'Peak';
+
+  @override
+  String get aggregationMean => 'Mean';
+
+  @override
+  String get aggregationRms => 'RMS';
+
+  @override
+  String get filesToTranscode => 'Files to Transcode';
+
+  @override
+  String get chooseAndroidOutputDirectoryFirst =>
+      'Please choose an Android output directory first.';
+
+  @override
+  String currentSongProgressPercent(Object percent) {
+    return 'Current song $percent%';
+  }
+
+  @override
+  String overallProgressPercent(Object percent) {
+    return 'Overall $percent%';
+  }
+
+  @override
+  String get pleaseChooseOutputDirectory =>
+      'Please choose an output directory.';
+
+  @override
+  String selectedArtistsCount(Object count) {
+    return 'Selected $count artists';
+  }
+
+  @override
+  String selectedAlbumsCount(Object count) {
+    return 'Selected $count albums';
+  }
+
+  @override
+  String get simplifiedChinese => 'Simplified Chinese';
+
+  @override
+  String get traditionalChinese => 'Traditional Chinese';
+
+  @override
+  String get chineseLanguage => 'Chinese';
+
+  @override
+  String get englishLanguage => 'English';
+
+  @override
+  String get japaneseLanguage => 'Japanese';
+
+  @override
+  String get koreanLanguage => 'Korean';
+
+  @override
+  String get frenchLanguage => 'French';
+
+  @override
+  String get germanLanguage => 'German';
+
+  @override
+  String get spanishLanguage => 'Spanish';
+
+  @override
+  String get portugueseLanguage => 'Portuguese';
+
+  @override
+  String get russianLanguage => 'Russian';
+
+  @override
+  String get systemLanguage => 'System language';
+
+  @override
+  String get targetLanguage => 'Target language';
+
+  @override
+  String get whatAreAiLyrics => 'What are AI lyrics?';
+
+  @override
+  String get whatIsAiLyricTranslation => 'What is AI lyric translation?';
+
+  @override
+  String get aiLyricsIntroGeneration =>
+      'AI can generate lyrics from the song and align them to a timeline.';
+
+  @override
+  String get aiLyricsIntroTranslation =>
+      'AI can translate lyrics into your preferred language so the song is easier to understand.';
+
+  @override
+  String get whyNeedApiKey => 'Why do I need an API key?';
+
+  @override
+  String get apiKeyExplanation =>
+      'An API key is your access credential for an AI provider. The app uses it to send requests directly for lyric generation, timeline adjustment, or translation.';
+
+  @override
+  String get apiKeyLocalOnly =>
+      'Your API key is stored only on this device and is never uploaded to Vynody developer servers.';
+
+  @override
+  String get chooseAnAiProvider => 'Choose an AI provider:';
+
+  @override
+  String get googleProviderPros =>
+      'Official Google channel with strong Gemini models and generous free quotas.';
+
+  @override
+  String get googleProviderCons =>
+      'High traffic can occasionally cause 429 errors. If that happens, switch to another provider.';
+
+  @override
+  String get openRouterProviderPros =>
+      'A model aggregator with access to many providers and some free models.';
+
+  @override
+  String get openRouterProviderCons =>
+      'Top-ups may include processing fees, and the website is English-only.';
+
+  @override
+  String get doubaoProviderPros =>
+      'Built by ByteDance, strong for Chinese text. New users get 500k free tokens per model.';
+
+  @override
+  String get doubaoProviderCons =>
+      'Registration is relatively involved and requires real-name verification.';
+
+  @override
+  String get deepseekProviderPros =>
+      'Good Chinese understanding, low pricing, and well suited for lyric translation.';
+
+  @override
+  String get deepseekProviderCons =>
+      'Text input only. Lyric generation and timeline adjustment require an API key from another provider.';
+
+  @override
+  String get highlights => 'Highlights';
+
+  @override
+  String get notes => 'Notes';
+
+  @override
+  String enterProviderApiKey(Object provider) {
+    return 'Enter your $provider API key:';
+  }
+
+  @override
+  String get pasteYourApiKey => 'Paste your API key here';
+
+  @override
+  String get getApiKey => 'Get API key';
+
+  @override
+  String get testConnectionButton => 'Test connection';
+
+  @override
+  String get enableAiLyricGeneration => 'Enable AI Lyric Generation';
+
+  @override
+  String get enableAiLyricTranslation => 'Enable AI Lyric Translation';
+
+  @override
+  String get notNow => 'Not now';
+
+  @override
+  String get startSetup => 'Start setup';
+
+  @override
+  String get chooseAiProvider => 'Choose AI Provider';
+
+  @override
+  String get backStep => 'Back';
+
+  @override
+  String get continueAction => 'Continue';
+
+  @override
+  String get nextStep => 'Next';
+
+  @override
+  String get configureApiKey => 'Configure API Key';
+
+  @override
+  String get saveAndFinish => 'Save and finish';
+
+  @override
+  String get testing => 'Testing...';
+
+  @override
+  String get noteTitle => 'Note';
+
+  @override
+  String get deepseekTextInputOnlyNote =>
+      'DeepSeek supports text input only. Lyric generation and timeline adjustment require an API key from another provider.';
+
+  @override
+  String retryAttemptOfMax(Object attempt, Object maxRetry) {
+    return 'Retry $attempt / $maxRetry';
+  }
+
+  @override
+  String generatingTaskKind(Object taskKind) {
+    return 'Generating $taskKind';
+  }
+
+  @override
+  String connectionTestException(Object error) {
+    return 'Connection test error: $error';
+  }
+
+  @override
+  String get testingConnectionProgress => 'Testing connection...';
+
+  @override
+  String get clear => 'Clear';
+
+  @override
+  String get enterDoubaoApiKey => 'Enter Doubao API Key';
+
+  @override
+  String get doubaoApiKeyDescription =>
+      'Please enter your Volcano/Doubao API key for lyric generation and translation.';
+
+  @override
+  String get enterDeepseekApiKey => 'Enter DeepSeek API Key';
+
+  @override
+  String get deepseekApiKeyDescription =>
+      'Please enter your DeepSeek API key for lyric translation only.';
+
+  @override
+  String get pleaseEnterApiKeyHint => 'Please enter API key';
+
+  @override
+  String get platform => 'Platform';
+
+  @override
+  String get showRecommendedOnly => 'Show recommended only';
+
+  @override
+  String get noAvailableChannels => 'No available channels';
+
+  @override
+  String get noMatchingModels => 'No matching models found';
+
+  @override
+  String get leaveEmpty => 'Leave empty';
+
+  @override
+  String get leaveEmptyFallbackDescription =>
+      'Select this to not set a backup model.';
+
+  @override
+  String get modelSearchHint => 'Enter model name, ID';
 }

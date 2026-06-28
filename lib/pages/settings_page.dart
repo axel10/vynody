@@ -143,14 +143,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       if (!mounted) return;
 
       if (_compareVersions(currentVersion, latestVersion) >= 0) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              Localizations.localeOf(context).languageCode == 'zh'
-                  ? '当前已经是最新版本。'
-                  : 'You are already on the latest version.',
-            ),
-          ),
+          SnackBar(content: Text(l10n.alreadyLatestVersion)),
         );
         return;
       }
@@ -158,19 +153,14 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       await showDialog<void>(
         context: context,
         builder: (dialogContext) {
-          final isZh =
-              Localizations.localeOf(dialogContext).languageCode == 'zh';
+          final l10n = AppLocalizations.of(dialogContext)!;
           return AlertDialog(
-            title: Text(isZh ? '发现新版本' : 'Update Available'),
-            content: Text(
-              isZh
-                  ? '检测到新版本 v$latestVersion，前往 GitHub Release 页面下载更新。'
-                  : 'A new version v$latestVersion is available. You can download it from the GitHub Release page.',
-            ),
+            title: Text(l10n.updateAvailable),
+            content: Text(l10n.newVersionAvailable(latestVersion)),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(dialogContext).pop(),
-                child: Text(isZh ? '取消' : 'Cancel'),
+                child: Text(l10n.cancel),
               ),
               FilledButton(
                 onPressed: () async {
@@ -178,7 +168,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   final uri = Uri.parse(releaseUrl);
                   await launchUrl(uri, mode: LaunchMode.externalApplication);
                 },
-                child: Text(isZh ? '前往 Release' : 'Open Release'),
+                child: Text(l10n.openRelease),
               ),
             ],
           );
@@ -186,14 +176,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       );
     } catch (_) {
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            Localizations.localeOf(context).languageCode == 'zh'
-                ? '检查更新失败，可能是网络问题或 GitHub 限流。'
-                : 'Failed to check for updates. It may be a network issue or GitHub rate limit.',
-          ),
-        ),
+        SnackBar(content: Text(l10n.checkUpdateFailedNetwork)),
       );
     } finally {
       if (mounted) {
@@ -222,15 +207,13 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       _SettingsSection.home => l10n.settings,
       _SettingsSection.general => l10n.generalSectionTitle,
       _SettingsSection.scanning => l10n.scanSectionTitle,
-      _SettingsSection.tags =>
-        Localizations.localeOf(context).languageCode == 'zh' ? '标签' : 'Tags',
+      _SettingsSection.tags => l10n.tags,
       _SettingsSection.transcode => l10n.transcodeSectionTitle,
       _SettingsSection.lyrics => l10n.lyricsSectionTitle,
       _SettingsSection.acoustid => l10n.acoustidSectionTitle,
       _SettingsSection.shortcuts => l10n.shortcutSettingsTitle,
       _SettingsSection.windows => l10n.windowsSettingsTitle,
-      _SettingsSection.about =>
-        Localizations.localeOf(context).languageCode == 'zh' ? '关于' : 'About',
+      _SettingsSection.about => l10n.about,
     };
   }
 
@@ -482,27 +465,15 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         const Divider(height: 1),
         ListTile(
           leading: const Icon(Icons.restart_alt),
-          title: Text(
-            Localizations.localeOf(context).languageCode == 'zh'
-                ? '重建索引'
-                : 'Rebuild Index',
-          ),
-          subtitle: Text(
-            Localizations.localeOf(context).languageCode == 'zh'
-                ? '清空除外部来源以外的所有歌曲记录并重新扫描所有根目录。'
-                : 'Clear all song records (except external sources) and rescan all root directories.',
-          ),
+          title: Text(l10n.rebuildIndex),
+          subtitle: Text(l10n.rebuildIndexDescription),
           trailing: FilledButton.tonal(
             onPressed: () async {
-              final isZh = Localizations.localeOf(context).languageCode == 'zh';
-              final title = isZh ? '重建索引' : 'Rebuild Index';
-              final content = isZh
-                  ? '确认清空除外部来源以外的所有歌曲记录并重新扫描所有根目录吗？此操作需要一些时间。'
-                  : 'Are you sure you want to clear all song records (except external sources) and re-scan all root directories? This process may take some time.';
+              final content = l10n.rebuildIndexConfirmation;
               final confirm = await showDialog<bool>(
                 context: context,
                 builder: (dialogContext) => AlertDialog(
-                  title: Text(title),
+                  title: Text(l10n.rebuildIndex),
                   content: Text(content),
                   actions: [
                     TextButton(
@@ -521,18 +492,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 unawaited(scanner.rebuildIndex());
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(isZh ? '重建索引已启动' : 'Rebuild index started'),
-                    ),
+                    SnackBar(content: Text(l10n.rebuildIndexStarted)),
                   );
                 }
               }
             },
-            child: Text(
-              Localizations.localeOf(context).languageCode == 'zh'
-                  ? '重建'
-                  : 'Rebuild',
-            ),
+            child: Text(l10n.rebuild),
           ),
         ),
       ],
@@ -543,6 +508,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     BuildContext context,
     SettingsService settings,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
       child: Column(
@@ -550,8 +516,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         children: [
           _buildModelGroupCard(
             context,
-            title: '歌词生成模型',
-            description: '用于 AI 听歌生成歌词，以及给现有歌词生成/修正时间轴。',
+            title: l10n.lyricsGenerationModel,
+            description: l10n.lyricsGenerationModelDescription,
             primarySelection: settings.generationPrimaryModel,
             fallbackSelection: settings.generationFallbackModel,
             enabled: settings.hasAnyLyricsModelProvider,
@@ -569,8 +535,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           const SizedBox(height: 16),
           _buildModelGroupCard(
             context,
-            title: '歌词翻译模型',
-            description: '用于把歌词翻译到目标语言。',
+            title: l10n.lyricsTranslationModel,
+            description: l10n.lyricsTranslationModelDescription,
             primarySelection: settings.translationPrimaryModel,
             fallbackSelection: settings.translationFallbackModel,
             enabled: settings.hasAnyLyricsModelProvider,
@@ -884,9 +850,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         _buildHomeSectionTile(
           context,
           icon: Icons.label_outline_rounded,
-          title: Localizations.localeOf(context).languageCode == 'zh'
-              ? '标签'
-              : 'Tags',
+          title: l10n.tags,
           onTap: () => _openSection(_SettingsSection.tags),
         ),
         _buildHomeSectionTile(
@@ -923,9 +887,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         _buildHomeSectionTile(
           context,
           icon: Icons.info_outline_rounded,
-          title: Localizations.localeOf(context).languageCode == 'zh'
-              ? '关于'
-              : 'About',
+          title: l10n.about,
           onTap: () => _openSection(_SettingsSection.about),
         ),
       ],
@@ -961,11 +923,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         ),
         SwitchListTile(
           title: Text(l10n.showDeveloperOptions),
-          subtitle: Text(
-            Localizations.localeOf(context).languageCode == 'zh'
-                ? '显示更多偏调试用途的高级项。'
-                : 'Show advanced options intended for debugging.',
-          ),
+          subtitle: Text(l10n.showDeveloperOptionsDescription),
           value: settings.showDeveloperOptions,
           onChanged: (value) {
             settings.showDeveloperOptions = value;
@@ -978,15 +936,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           trailing: FilledButton.tonal(
             onPressed: () {
               settings.hasShownOnboarding = false;
-              final isZh = Localizations.localeOf(context).languageCode == 'zh';
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    isZh
-                        ? '已重置新手引导状态，下次启动时生效。'
-                        : 'Onboarding has been reset. It will take effect on next startup.',
-                  ),
-                ),
+                SnackBar(content: Text(l10n.onboardingReset)),
               );
             },
             child: Text(l10n.reset),
@@ -995,12 +946,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         if (settings.showDeveloperOptions) ...[
           const SizedBox(height: 8),
           _buildSectionHeader(
-            Localizations.localeOf(context).languageCode == 'zh'
-                ? '高级'
-                : 'Advanced',
-            Localizations.localeOf(context).languageCode == 'zh'
-                ? '更偏调试和行为控制的选项。'
-                : 'Options for debugging and behavior tuning.',
+            l10n.advanced,
+            l10n.advancedOptionsDescription,
           ),
           ListTile(
             title: Text(l10n.waveformSegments),
@@ -1069,23 +1016,17 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   }
 
   Widget _buildTagsPage(BuildContext context, SettingsService settings) {
-    final isZh = Localizations.localeOf(context).languageCode == 'zh';
+    final l10n = AppLocalizations.of(context)!;
     return ListView(
       padding: const EdgeInsets.only(bottom: 100),
       children: [
         _buildSectionHeader(
-          isZh ? '标签' : 'Tags',
-          isZh
-              ? '关于音频文件元数据和自动补全的配置。'
-              : 'Configure audio file metadata and auto-completion.',
+          l10n.tags,
+          l10n.tagsSectionDescription,
         ),
         SwitchListTile(
-          title: Text(isZh ? '自动写入源文件' : 'Auto-save to Source File'),
-          subtitle: Text(
-            isZh
-                ? '补全或更新歌曲标签时，默认同步写入物理音频文件。'
-                : 'Automatically write tags back to the physical audio file when completed.',
-          ),
+          title: Text(l10n.autoSaveToSourceFile),
+          subtitle: Text(l10n.autoSaveToSourceFileDescription),
           value: settings.tagCompletionSaveToSourceFile,
           onChanged: (value) {
             settings.tagCompletionSaveToSourceFile = value;
@@ -1149,7 +1090,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 SnackBar(
                   content: Text(
                     enteredApiKey.trim().isEmpty
-                        ? '已清空 Google AI Studio API Key'
+                        ? l10n.clearedGoogleAiStudioApiKey
                         : l10n.apiKeySaved('Google AI Studio'),
                   ),
                 ),
@@ -1184,7 +1125,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 SnackBar(
                   content: Text(
                     enteredApiKey.trim().isEmpty
-                        ? '已清空 OpenRouter API Key'
+                        ? l10n.clearedOpenRouterApiKey
                         : l10n.apiKeySaved('OpenRouter'),
                   ),
                 ),
@@ -1221,8 +1162,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 SnackBar(
                   content: Text(
                     enteredApiKey.trim().isEmpty
-                        ? '已清空豆包 API Key'
-                        : '已保存豆包 API Key',
+                        ? l10n.clearedDoubaoApiKey
+                        : l10n.savedDoubaoApiKey,
                   ),
                 ),
               );
@@ -1236,7 +1177,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           leading: _buildProviderIcon(LyricsAiProvider.deepseek),
           title: const Text('DeepSeek API Key'),
           subtitle: Text(
-            '${settings.deepseekApiKey.trim().isEmpty ? l10n.apiKeyMissingStatus : l10n.apiKeySavedStatus}  ·  仅用于歌词翻译',
+            '${settings.deepseekApiKey.trim().isEmpty ? l10n.apiKeyMissingStatus : l10n.apiKeySavedStatus}  ·  ${l10n.onlyForLyricTranslation}',
           ),
           trailing: FilledButton.tonal(
             onPressed: () async {
@@ -1254,8 +1195,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 SnackBar(
                   content: Text(
                     enteredApiKey.trim().isEmpty
-                        ? '已清空 DeepSeek API Key'
-                        : '已保存 DeepSeek API Key',
+                        ? l10n.clearedDeepseekApiKey
+                        : l10n.savedDeepseekApiKey,
                   ),
                 ),
               );
@@ -1268,12 +1209,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         ListTile(
           leading: _buildProviderIcon(LyricsAiProvider.custom),
           title: Text(settings.customProviderName.trim().isEmpty
-              ? (Localizations.localeOf(context).languageCode == 'zh'
-                  ? '自定义 API 供应商'
-                  : 'Custom API Provider')
+              ? l10n.customApiProvider
               : settings.customProviderName.trim()),
           subtitle: Text(
-            '${settings.customProviderApiKey.trim().isEmpty ? l10n.apiKeyMissingStatus : l10n.apiKeySavedStatus}  ·  仅用于歌词翻译',
+            '${settings.customProviderApiKey.trim().isEmpty ? l10n.apiKeyMissingStatus : l10n.apiKeySavedStatus}  ·  ${l10n.onlyForLyricTranslation}',
           ),
           trailing: FilledButton.tonal(
             onPressed: () async {
@@ -1294,8 +1233,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 SnackBar(
                   content: Text(
                     result.apiKey.trim().isEmpty
-                        ? '已清空自定义供应商配置'
-                        : '已保存自定义供应商配置',
+                        ? l10n.clearedCustomProviderConfig
+                        : l10n.savedCustomProviderConfig,
                   ),
                 ),
               );
@@ -1312,7 +1251,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
             child: Text(
-              '请先填写至少一个 API Key，模型选择才会启用。',
+              l10n.fillApiKeyFirstEnablesModels,
               style: TextStyle(color: Theme.of(context).hintColor),
             ),
           ),
@@ -1422,15 +1361,13 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   }
 
   Widget _buildAboutPage(BuildContext context) {
-    final isZh = Localizations.localeOf(context).languageCode == 'zh';
+    final l10n = AppLocalizations.of(context)!;
     return ListView(
       padding: const EdgeInsets.only(bottom: 100),
       children: [
         _buildSectionHeader(
-          isZh ? '关于' : 'About',
-          isZh
-              ? '版本信息、项目链接和相关资料。'
-              : 'Version info, project links, and related info.',
+          l10n.about,
+          l10n.aboutSectionDescription,
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
@@ -1481,7 +1418,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : const Icon(Icons.system_update_alt_rounded),
-                  label: Text(isZh ? '检查更新' : 'Check for updates'),
+                  label: Text(l10n.checkForUpdates),
                 ),
               ],
             ),
@@ -1640,10 +1577,10 @@ class _CustomProviderConfigDialogState
   Future<void> _testConnection() async {
     final baseUrl = _baseUrlController.text.trim();
     final apiKey = _apiKeyController.text.trim();
+    final l10n = AppLocalizations.of(context)!;
     if (baseUrl.isEmpty || apiKey.isEmpty) {
       setState(() {
-        _statusText = _t('请先填写 Base URL 和 API Key。',
-            'Please fill in the base URL and API key first.');
+        _statusText = l10n.pleaseEnterApiKey;
         _statusSuccess = false;
       });
       return;
@@ -1651,7 +1588,7 @@ class _CustomProviderConfigDialogState
 
     setState(() {
       _isTesting = true;
-      _statusText = _t('正在测试连接...', 'Testing connection...');
+      _statusText = l10n.testingConnectionProgress;
       _statusSuccess = false;
     });
 
@@ -1672,10 +1609,7 @@ class _CustomProviderConfigDialogState
           setState(() {
             _isTesting = false;
             _statusSuccess = true;
-            _statusText = _t(
-              '连接成功，检测到 ${models.length} 个模型。',
-              'Connected successfully, ${models.length} models detected.',
-            );
+            _statusText = l10n.connectionSuccessDetectedModels(models.length);
           });
           return;
         }
@@ -1683,19 +1617,13 @@ class _CustomProviderConfigDialogState
       setState(() {
         _isTesting = false;
         _statusSuccess = false;
-        _statusText = _t(
-          '响应格式不符合预期。',
-          'Unexpected response format.',
-        );
+        _statusText = 'Unexpected response format.';
       });
     } catch (e) {
       setState(() {
         _isTesting = false;
         _statusSuccess = false;
-        _statusText = _t(
-          '连接失败：$e',
-          'Connection failed: $e',
-        );
+        _statusText = l10n.connectionTestException(e);
       });
     }
   }
@@ -1706,15 +1634,11 @@ class _CustomProviderConfigDialogState
     );
   }
 
-  String _t(String zh, String en) {
-    return Localizations.localeOf(context).languageCode == 'zh' ? zh : en;
-  }
-
   @override
   Widget build(BuildContext context) {
-    final isZh = Localizations.localeOf(context).languageCode == 'zh';
+    final l10n = AppLocalizations.of(context)!;
     return AlertDialog(
-      title: Text(isZh ? '自定义 API 供应商' : 'Custom API Provider'),
+      title: Text(l10n.customApiProvider),
       content: SizedBox(
         width: 480,
         child: Column(
@@ -1730,9 +1654,7 @@ class _CustomProviderConfigDialogState
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      isZh
-                          ? '此供应商仅可用于歌词翻译，不支持歌词生成与时间轴生成。'
-                          : 'This provider is only for lyric translation. Lyrics generation and timeline are not supported.',
+                      l10n.customProviderOnlyTranslation,
                       style: Theme.of(context)
                           .textTheme
                           .bodySmall
@@ -1745,21 +1667,19 @@ class _CustomProviderConfigDialogState
             TextField(
               controller: _nameController,
               decoration: InputDecoration(
-                labelText: isZh ? '供应商名称' : 'Provider Name',
-                hintText: isZh ? '如：我的服务商' : 'e.g. My Provider',
+                labelText: l10n.providerLabel,
+                hintText: 'e.g. My Provider',
                 border: const OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: _baseUrlController,
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 labelText: 'Base URL',
                 hintText: 'https://api.openai.com/v1',
-                border: const OutlineInputBorder(),
-                helperText: isZh
-                    ? 'OpenAI 兼容格式的 API 地址'
-                    : 'OpenAI-compatible API endpoint',
+                border: OutlineInputBorder(),
+                helperText: 'OpenAI-compatible API endpoint',
               ),
             ),
             const SizedBox(height: 16),
@@ -1767,7 +1687,7 @@ class _CustomProviderConfigDialogState
               controller: _apiKeyController,
               decoration: InputDecoration(
                 labelText: 'API Key',
-                hintText: isZh ? '请输入 API Key' : 'Enter API Key',
+                hintText: l10n.pleaseEnterApiKeyHint,
                 border: const OutlineInputBorder(),
               ),
             ),
@@ -1803,21 +1723,15 @@ class _CustomProviderConfigDialogState
           onPressed: _isTesting
               ? null
               : () => Navigator.of(context).pop(),
-          child: Text(
-            AppLocalizations.of(context)?.cancel ?? 'Cancel',
-          ),
+          child: Text(l10n.cancel),
         ),
         TextButton(
           onPressed: _isTesting ? null : _clearAndSave,
-          child: Text(isZh ? '清空' : 'Clear'),
+          child: Text(l10n.clear),
         ),
         TextButton(
           onPressed: _isTesting ? null : _testConnection,
-          child: Text(
-            _isTesting
-                ? (isZh ? '测试中...' : 'Testing...')
-                : (isZh ? '测试连接' : 'Test Connection'),
-          ),
+          child: Text(_isTesting ? l10n.testingConnection : l10n.testConnection),
         ),
         FilledButton(
           onPressed: () {
@@ -1829,9 +1743,7 @@ class _CustomProviderConfigDialogState
               ),
             );
           },
-          child: Text(
-            AppLocalizations.of(context)?.save ?? 'Save',
-          ),
+          child: Text(l10n.save),
         ),
       ],
     );
@@ -1981,7 +1893,7 @@ class _LyricsModelPickerDialogState
 
   @override
   Widget build(BuildContext context) {
-    final isZh = Localizations.localeOf(context).languageCode == 'zh';
+    final l10n = AppLocalizations.of(context)!;
     final settings = ref.watch(settingsServiceProvider);
     final availableProviders = settings.availableLyricsModelProviders;
     final availableTabs = [
@@ -2002,8 +1914,8 @@ class _LyricsModelPickerDialogState
     return AlertDialog(
       title: Text(
         widget.purpose == LyricsAiModelPurpose.generation
-            ? '选择歌词生成模型'
-            : '选择歌词翻译模型',
+            ? l10n.lyricsGenerationModel
+            : l10n.lyricsTranslationModel,
       ),
       content: SizedBox(
         width: 560,
@@ -2012,16 +1924,16 @@ class _LyricsModelPickerDialogState
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             if (availableTabs.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 4),
-                child: Text('请先填写 API Key，才能查看可用模型。'),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Text(l10n.fillApiKeyFirstEnablesModels),
               )
             else
               DropdownButtonFormField<LyricsAiProvider>(
                 value: effectiveProvider,
                 isExpanded: true,
                 decoration: InputDecoration(
-                  labelText: isZh ? '平台' : 'Platform',
+                  labelText: l10n.platform,
                   border: const OutlineInputBorder(),
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 12,
@@ -2070,13 +1982,13 @@ class _LyricsModelPickerDialogState
                 });
               },
               decoration: InputDecoration(
-                labelText: '搜索模型',
-                hintText: '输入模型名、ID',
+                labelText: l10n.search,
+                hintText: l10n.modelSearchHint,
                 prefixIcon: const Icon(Icons.search),
                 suffixIcon: _searchQuery.isEmpty
                     ? null
                     : IconButton(
-                        tooltip: '清除搜索',
+                        tooltip: l10n.clearSearch,
                         onPressed: () {
                           _searchController.clear();
                           setState(() {
@@ -2123,7 +2035,7 @@ class _LyricsModelPickerDialogState
                               _showRecommendedOnly = !_showRecommendedOnly;
                             });
                           },
-                          child: const Text('仅显示推荐模型'),
+                          child: Text(l10n.showRecommendedOnly),
                         ),
                       ],
                     ),
@@ -2138,10 +2050,10 @@ class _LyricsModelPickerDialogState
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: availableTabs.isEmpty
-                    ? const Center(
+                    ? Center(
                         child: Padding(
-                          padding: EdgeInsets.all(24),
-                          child: Text('暂无可用渠道'),
+                          padding: const EdgeInsets.all(24),
+                          child: Text(l10n.noAvailableChannels),
                         ),
                       )
                     : _isLoading
@@ -2152,10 +2064,10 @@ class _LyricsModelPickerDialogState
                         ),
                       )
                     : _filteredModels.isEmpty
-                    ? const Center(
+                    ? Center(
                         child: Padding(
-                          padding: EdgeInsets.all(24),
-                          child: Text('没有找到匹配的模型'),
+                          padding: const EdgeInsets.all(24),
+                          child: Text(l10n.noMatchingModels),
                         ),
                       )
                     : ListView(
@@ -2165,8 +2077,8 @@ class _LyricsModelPickerDialogState
                             RadioListTile<String>(
                               value: '',
                               groupValue: _selection.modelId,
-                              title: const Text('留空'),
-                              subtitle: const Text('不设置备用模型时可选择此项。'),
+                              title: Text(l10n.leaveEmpty),
+                              subtitle: Text(l10n.leaveEmptyFallbackDescription),
                               onChanged: (value) {
                                 setState(() {
                                   _selection = LyricsAiModelSelection(
@@ -2207,13 +2119,13 @@ class _LyricsModelPickerDialogState
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: Text(AppLocalizations.of(context)!.cancel),
+          child: Text(l10n.cancel),
         ),
         FilledButton(
           onPressed: canSave
               ? () => Navigator.of(context).pop(_selection)
               : null,
-          child: Text(AppLocalizations.of(context)!.save),
+          child: Text(l10n.save),
         ),
       ],
     );

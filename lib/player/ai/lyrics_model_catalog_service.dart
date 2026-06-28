@@ -3,6 +3,16 @@ import 'dart:ui';
 import 'package:vynody/player/settings/settings_service.dart';
 import 'package:vynody/utils/network_client.dart';
 
+import 'package:vynody/l10n/app_localizations.dart';
+import 'package:vynody/l10n/app_localizations_en.dart';
+import 'package:vynody/l10n/app_localizations_zh.dart';
+
+AppLocalizations _l10n() {
+  return PlatformDispatcher.instance.locale.languageCode == 'zh' 
+      ? AppLocalizationsZh() 
+      : AppLocalizationsEn();
+}
+
 final class LyricsModelInfo {
   const LyricsModelInfo({
     required this.id,
@@ -62,8 +72,6 @@ class LyricsModelCatalogService {
 
   final NetworkClient _client;
 
-  bool get _isZh => PlatformDispatcher.instance.locale.languageCode == 'zh';
-
   Future<LyricsModelCatalogResult> fetchModels({
     required LyricsAiProvider provider,
     required LyricsAiModelPurpose purpose,
@@ -100,9 +108,7 @@ class LyricsModelCatalogService {
     if (normalizedKey.isEmpty) {
       return LyricsModelCatalogResult(
         success: false,
-        message: _isZh
-            ? '请先填写 Google AI Studio API Key。'
-            : 'Please enter a Google AI Studio API key first.',
+        message: _l10n().enterGoogleAiStudioApiKeyFirst,
       );
     }
 
@@ -114,9 +120,7 @@ class LyricsModelCatalogService {
       final models = _extractGoogleModels(response.data, purpose);
       return LyricsModelCatalogResult(
         success: true,
-        message: _isZh
-            ? '已获取 ${models.length} 个模型。'
-            : 'Fetched ${models.length} models.',
+        message: _l10n().fetchedCountModels(models.length),
         models: models,
       );
     } catch (error) {
@@ -135,9 +139,7 @@ class LyricsModelCatalogService {
       final models = _extractOpenRouterModels(response.data, purpose);
       return LyricsModelCatalogResult(
         success: true,
-        message: _isZh
-            ? '已获取 ${models.length} 个模型。'
-            : 'Fetched ${models.length} models.',
+        message: _l10n().fetchedCountModels(models.length),
         models: models,
       );
     } catch (error) {
@@ -156,9 +158,7 @@ class LyricsModelCatalogService {
     if (normalizedKey.isEmpty) {
       return LyricsModelCatalogResult(
         success: false,
-        message: _isZh
-            ? '请先填写豆包 API Key。'
-            : 'Please enter a Doubao API key first.',
+        message: _l10n().enterDoubaoApiKeyFirst,
       );
     }
 
@@ -170,9 +170,7 @@ class LyricsModelCatalogService {
       final models = _extractDoubaoModels(response.data, purpose);
       return LyricsModelCatalogResult(
         success: true,
-        message: _isZh
-            ? '已获取 ${models.length} 个模型。'
-            : 'Fetched ${models.length} models.',
+        message: _l10n().fetchedCountModels(models.length),
         models: models,
       );
     } catch (error) {
@@ -191,18 +189,14 @@ class LyricsModelCatalogService {
     if (normalizedKey.isEmpty) {
       return LyricsModelCatalogResult(
         success: false,
-        message: _isZh
-            ? '请先填写 DeepSeek API Key。'
-            : 'Please enter a DeepSeek API key first.',
+        message: _l10n().enterDeepseekApiKeyFirst,
       );
     }
 
     if (purpose != LyricsAiModelPurpose.translation) {
       return LyricsModelCatalogResult(
         success: true,
-        message: _isZh
-            ? 'DeepSeek 仅用于歌词翻译。'
-            : 'DeepSeek is only available for lyric translation.',
+        message: _l10n().deepseekOnlyTranslation,
         models: const [],
       );
     }
@@ -215,9 +209,7 @@ class LyricsModelCatalogService {
       final models = _extractDeepSeekModels(response.data);
       return LyricsModelCatalogResult(
         success: true,
-        message: _isZh
-            ? '已获取 ${models.length} 个模型。'
-            : 'Fetched ${models.length} models.',
+        message: _l10n().fetchedCountModels(models.length),
         models: models,
       );
     } catch (error) {
@@ -238,18 +230,14 @@ class LyricsModelCatalogService {
     if (normalizedKey.isEmpty || normalizedUrl.isEmpty) {
       return LyricsModelCatalogResult(
         success: false,
-        message: _isZh
-            ? '请先填写自定义 API Key 和 Base URL。'
-            : 'Please enter the custom API key and base URL first.',
+        message: _l10n().enterCustomApiKeyAndBaseUrl,
       );
     }
 
     if (purpose != LyricsAiModelPurpose.translation) {
       return LyricsModelCatalogResult(
         success: true,
-        message: _isZh
-            ? '自定义供应商仅用于歌词翻译。'
-            : 'Custom provider is only available for lyric translation.',
+        message: _l10n().customProviderOnlyTranslation,
         models: const [],
       );
     }
@@ -267,9 +255,7 @@ class LyricsModelCatalogService {
       final models = _extractCustomModels(response.data);
       return LyricsModelCatalogResult(
         success: true,
-        message: _isZh
-            ? '已获取 ${models.length} 个模型。'
-            : 'Fetched ${models.length} models.',
+        message: _l10n().fetchedCountModels(models.length),
         models: models,
       );
     } catch (error) {
@@ -545,15 +531,13 @@ class LyricsModelCatalogService {
       if (message != null && message.isNotEmpty) {
         return statusCode == null
             ? message
-            : (_isZh
-                  ? '请求失败（$statusCode）：$message'
-                  : 'Request failed ($statusCode): $message');
+            : _l10n().requestFailedWithStatus(message, statusCode);
       }
       return statusCode == null
-          ? (_isZh ? '请求失败，请检查网络。' : 'Request failed. Check your network.')
-          : (_isZh ? '请求失败（$statusCode）。' : 'Request failed ($statusCode).');
+          ? _l10n().requestFailedCheckNetwork
+          : _l10n().requestFailedStatus(statusCode);
     }
 
-    return _isZh ? '请求失败，请检查网络。' : 'Request failed. Check your network.';
+    return _l10n().requestFailedCheckNetwork;
   }
 }

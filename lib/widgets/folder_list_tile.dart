@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/models/music_folder.dart';
+import 'package:vynody/l10n/app_localizations.dart';
 import 'package:vynody/widgets/song_thumbnail.dart';
 
 class FolderListTile extends StatelessWidget {
@@ -30,7 +31,7 @@ class FolderListTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isZh = Localizations.localeOf(context).languageCode == 'zh';
+    final l10n = AppLocalizations.of(context)!;
     final trailingWidget = trailing;
 
     final int hash = folder.path.hashCode;
@@ -153,7 +154,7 @@ class FolderListTile extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          isZh ? '$songsCount 首歌曲' : '$songsCount songs',
+                          l10n.songsCountFormat(songsCount),
                           style: theme.textTheme.bodySmall?.copyWith(
                             fontSize: 12,
                             color: theme.colorScheme.onSurfaceVariant,

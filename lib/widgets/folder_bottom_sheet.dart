@@ -28,9 +28,8 @@ Future<String?> showFolderBottomSheet(
       folder.path.trim().isNotEmpty &&
       folder.path != 'system';
 
-  final isZh = Localizations.localeOf(context).languageCode == 'zh';
-  final selectLabel = isZh ? '选择目录' : 'Select Folders';
-  final removeLabel = isZh ? '移除目录' : 'Remove Directory';
+  final selectLabel = l10n.selectFolders;
+  final removeLabel = l10n.removeDirectory;
 
   final selected = await showModalBottomSheet<String>(
     context: context,
@@ -237,9 +236,7 @@ Future<String?> showFolderBottomSheet(
         builder: (dialogContext) => AlertDialog(
           title: Text(removeLabel),
           content: Text(
-            isZh
-                ? '确定要移除根目录 "${folder.name}" 吗？此操作不会删除磁盘上的物理文件。'
-                : 'Are you sure you want to remove the root directory "${folder.name}"? This will not delete physical files on disk.',
+            l10n.removeRootDirectoryConfirmation(folder.name),
           ),
           actions: [
             TextButton(

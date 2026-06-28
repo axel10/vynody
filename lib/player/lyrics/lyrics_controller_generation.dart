@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 
 import 'package:dio/dio.dart' show CancelToken, DioException;
 import 'package:flutter/foundation.dart';
@@ -8,6 +9,9 @@ import 'package:vynody/models/lyric_line.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/models/music_lyric.dart';
 import 'package:vynody/models/music_lyric_translation.dart';
+import 'package:vynody/l10n/app_localizations.dart';
+import 'package:vynody/l10n/app_localizations_en.dart';
+import 'package:vynody/l10n/app_localizations_zh.dart';
 import 'package:vynody/utils/lrc_utils.dart';
 import 'package:vynody/utils/lyrics_id_utils.dart';
 import 'package:vynody/player/lyrics/lyrics_cache_models.dart';
@@ -18,7 +22,6 @@ import 'package:vynody/player/lyrics/lyrics_generation_phase.dart';
 import 'package:vynody/player/lyrics/lyrics_generation_result.dart';
 import 'package:vynody/player/lyrics/lyrics_ai_service.dart';
 import 'package:vynody/player/lyrics/lyrics_service.dart';
-import 'package:vynody/utils/localized_text.dart';
 
 typedef _LyricsGenerationInvoker =
     Future<LyricsGenerationResult> Function(
@@ -165,28 +168,28 @@ class LyricsGenerationCoordinator {
       case 'transcoding':
         return currentStatus;
       case 'uploading':
-        return _t('正在上传歌曲文件', 'Uploading song file');
+        return _l10n().uploadingSongFile;
       case 'processing':
-        return _t('文件已上传，正在等待文件就绪', 'File uploaded, waiting for readiness');
+        return _l10n().fileUploadedWaitingForReadiness;
       case 'requesting':
-        return _t('正在请求模型响应', 'Requesting model response');
+        return _l10n().requestingModelResponse;
       case 'generating':
-        return _t('正在生成$taskKind', 'Generating $taskKind');
+        return _l10n().generatingTaskKind(taskKind);
       case 'retrying':
-        return _t('正在重试生成$taskKind', 'Retrying $taskKind generation');
+        return _l10n().retryingTaskKindGeneration(taskKind);
       default:
         return currentStatus.isNotEmpty
             ? currentStatus
-            : _t('正在处理', 'Processing');
+            : _l10n().processing;
     }
   }
 
   String _generationTaskKind(String statusLabel) {
     if (statusLabel.contains('时间轴') ||
         statusLabel.toLowerCase().contains('timeline')) {
-      return _t('时间轴', 'timeline');
+      return _l10n().timeline;
     }
-    return _t('歌词', 'lyrics');
+    return _l10n().lyrics;
   }
 
   void _updateLyricsGenerationModelLabel(String? modelLabel) {
@@ -369,7 +372,7 @@ class LyricsGenerationCoordinator {
             source: databaseSource,
           );
         }
-        return result.errorMessage ?? _t('生成失败。', 'Generation failed.');
+        return result.errorMessage ?? _l10n().generationFailed;
       }
 
       final lyrics = _buildGeneratedLyrics(
@@ -415,7 +418,7 @@ class LyricsGenerationCoordinator {
       return await _runLyricsGeneration(
         song: song,
         databaseSource: LyricsCacheSource.aiGenerate,
-        statusLabel: _t('正在生成歌词', 'Generating lyrics'),
+        statusLabel: _l10n().generatingLyrics,
         modelLabel: _context.lyricsAiService.currentGenerationModelLabel,
         cancelToken: cancelToken,
         invoke:
@@ -441,10 +444,7 @@ class LyricsGenerationCoordinator {
         return null;
       }
       debugPrint('[LyricsController] Failed to generate lyrics: $e');
-      return _t(
-        '生成歌词时发生错误：$e',
-        'An error occurred while generating lyrics: $e',
-      );
+      return _l10n().lyricGenerationError('$e');
     } finally {
       if (_context.lyricsAiCancelToken == cancelToken) {
         _context.lyricsAiCancelToken = null;
@@ -469,10 +469,7 @@ class LyricsGenerationCoordinator {
         '[LyricsController] generate timeline skipped: no usable lyrics '
         'path=${song.path}',
       );
-      return _t(
-        '没有可用于生成时间轴的歌词。',
-        'No lyrics available for timeline generation.',
-      );
+      return _l10n().noLyricsForTimelineGeneration;
     }
 
     final cancelToken = CancelToken();
@@ -481,7 +478,7 @@ class LyricsGenerationCoordinator {
       return await _runLyricsGeneration(
         song: song,
         databaseSource: LyricsCacheSource.aiTimeline,
-        statusLabel: _t('正在生成时间轴', 'Generating timeline'),
+        statusLabel: _l10n().generatingTimeline,
         modelLabel: _context.lyricsAiService.currentGenerationModelLabel,
         cancelToken: cancelToken,
         translationProvider: () =>
@@ -511,10 +508,7 @@ class LyricsGenerationCoordinator {
         return null;
       }
       debugPrint('[LyricsController] Failed to generate timeline: $e');
-      return _t(
-        '生成时间轴时发生错误：$e',
-        'An error occurred while generating the timeline: $e',
-      );
+      return _l10n().timelineGenerationError('$e');
     } finally {
       if (_context.lyricsAiCancelToken == cancelToken) {
         _context.lyricsAiCancelToken = null;
@@ -536,18 +530,15 @@ class LyricsGenerationCoordinator {
     final song = _context.currentMusic();
     if (song == null) {
       debugPrint('[LyricsController] generate lyrics skipped: no current song');
-      return _t('没有可用的当前歌曲。', 'No current song available.');
+      return _l10n().noCurrentSongAvailable;
     }
     if (_context.isLyricsGenerationBusyForSong(song.path)) {
-      return _t(
-        '当前歌曲的歌词任务已在排队或生成中。',
-        'The current song is already queued for lyrics generation.',
-      );
+      return _l10n().songAlreadyQueuedForGeneration;
     }
 
     _queueLyricsGeneration(
       song,
-      statusLabel: _t('正在生成歌词', 'Generating lyrics'),
+      statusLabel: _l10n().generatingLyrics,
       modelLabel: _context.lyricsAiService.currentGenerationModelLabel,
     );
 
@@ -562,18 +553,15 @@ class LyricsGenerationCoordinator {
       debugPrint(
         '[LyricsController] generate timeline skipped: no current song',
       );
-      return _t('没有可用的当前歌曲。', 'No current song available.');
+      return _l10n().noCurrentSongAvailable;
     }
     if (_context.isLyricsGenerationBusyForSong(song.path)) {
-      return _t(
-        '当前歌曲的歌词任务已在排队或生成中。',
-        'The current song is already queued for lyrics generation.',
-      );
+      return _l10n().songAlreadyQueuedForGeneration;
     }
 
     _queueLyricsGeneration(
       song,
-      statusLabel: _t('正在生成时间轴', 'Generating timeline'),
+      statusLabel: _l10n().generatingTimeline,
       modelLabel: _context.lyricsAiService.currentGenerationModelLabel,
     );
 
@@ -589,22 +577,18 @@ class LyricsGenerationCoordinator {
       debugPrint(
         '[LyricsController] regenerate lyrics skipped: no current song',
       );
-      return _t('没有可用的当前歌曲。', 'No current song available.');
+      return _l10n().noCurrentSongAvailable;
     }
 
     _support.clearLyricsStateForPath(song.path);
     _queueLyricsGeneration(
       song,
-      statusLabel: _t('正在重新生成歌词', 'Regenerating lyrics'),
+      statusLabel: _l10n().regeneratingLyrics,
       modelLabel: _context.lyricsAiService.currentGenerationModelLabel,
     );
     return _context.lyricsAiTaskQueue.enqueue(() {
       return _generateLyricsForSong(_support.songForPath(song.path) ?? song);
     });
-  }
-
-  String _t(String zh, String en) {
-    return localizedText(zh, en);
   }
 
   Future<void> _saveGeneratedLyricsToDatabase({
@@ -654,4 +638,10 @@ class LyricsGenerationCoordinator {
 
     return _context.getState().currentLyricsText.trim();
   }
+}
+
+AppLocalizations _l10n() {
+  return PlatformDispatcher.instance.locale.languageCode == 'zh'
+      ? AppLocalizationsZh()
+      : AppLocalizationsEn();
 }

@@ -6,7 +6,14 @@ import 'package:vynody/player/metadata/acoustid_service.dart';
 import 'package:vynody/player/metadata/metadata_helper.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/player/metadata/musicbrainz_tag_completion_service.dart';
-import 'package:vynody/utils/localized_text.dart';
+import '../l10n/app_localizations.dart';
+import '../l10n/app_localizations_en.dart';
+import '../l10n/app_localizations_zh.dart';
+
+AppLocalizations _l10n() {
+  final locale = PlatformDispatcher.instance.locale;
+  return locale.languageCode == 'zh' ? AppLocalizationsZh() : AppLocalizationsEn();
+}
 
 final songTagCompletionControllerProvider = ChangeNotifierProvider.autoDispose
     .family<SongTagCompletionController, String>((ref, songPath) {
@@ -89,7 +96,7 @@ class SongTagCompletionController extends ChangeNotifier {
       _emit();
     } catch (e) {
       if (_disposed || revision != _musicBrainzQueryRevision) return;
-      musicBrainzErrorMessage = localizedText('MusicBrainz 查询失败：$e', 'MusicBrainz query failed: $e');
+      musicBrainzErrorMessage = _l10n().musicBrainzQueryFailed;
       isMusicBrainzLoading = false;
       _emit();
     }
@@ -117,10 +124,7 @@ class SongTagCompletionController extends ChangeNotifier {
     } on AcoustIDClientException catch (e) {
       debugPrint('AcoustID: client error ${e.statusCode}: ${e.message}');
       if (_disposed) return;
-      acoustidClientErrorMessage = localizedText(
-        'AcoustID 请求返回 ${e.statusCode}。请申请你自己的 AcoustID API key 并填入设置页。',
-        'AcoustID request returned ${e.statusCode}. Please apply for your own AcoustID API key and fill it in settings.',
-      );
+      acoustidClientErrorMessage = _l10n().acoustidRequestReturnedStatus(e.statusCode);
       isAcoustIDLoading = false;
       _emit();
     } catch (e) {
@@ -164,7 +168,7 @@ class SongTagCompletionController extends ChangeNotifier {
         title: recording.title.isNotEmpty ? recording.title : fallbackTitle,
         artist: recording.artist.isNotEmpty
             ? recording.artist
-            : localizedText('未知艺术家', 'Unknown Artist'),
+            : _l10n().unknownArtist,
         album: albumTitle,
         duration: durationMillis,
         artworkBytes: coverArtBytes,
@@ -173,7 +177,7 @@ class SongTagCompletionController extends ChangeNotifier {
       );
 
       if (saved == null) {
-        throw StateError('写入标签数据库失败');
+        throw StateError(_l10n().writeTagDatabaseFailed);
       }
 
       final updated = saved.$1;
@@ -212,7 +216,7 @@ class SongTagCompletionController extends ChangeNotifier {
     } catch (e) {
       if (_disposed) return null;
       isApplying = false;
-      errorMessage = localizedText('保存失败：$e', 'Save failed: $e');
+      errorMessage = _l10n().saveFailed;
       _emit();
       return null;
     }
@@ -248,7 +252,7 @@ class SongTagCompletionController extends ChangeNotifier {
     } catch (e) {
       if (_disposed) return null;
       isApplying = false;
-      errorMessage = localizedText('保存失败：$e', 'Save failed: $e');
+      errorMessage = _l10n().saveFailed;
       _emit();
       return null;
     }
@@ -274,7 +278,7 @@ MusicBrainzTrackMatch _buildAcoustIDSelectionMatch({
     title: recording.title.isNotEmpty ? recording.title : fallbackTitle,
     artist: recording.artist.isNotEmpty
         ? recording.artist
-        : localizedText('未知艺术家', 'Unknown Artist'),
+        : _l10n().unknownArtist,
     album: albumTitle,
     releaseId: releaseId,
     releaseGroupId: releaseGroupId,

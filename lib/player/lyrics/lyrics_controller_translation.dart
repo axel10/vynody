@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 
 import 'package:dio/dio.dart' show CancelToken, DioException;
 import 'package:flutter/foundation.dart';
@@ -6,8 +7,10 @@ import 'package:flutter/foundation.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/models/music_lyric.dart';
 import 'package:vynody/models/music_lyric_translation.dart';
+import 'package:vynody/l10n/app_localizations.dart';
+import 'package:vynody/l10n/app_localizations_en.dart';
+import 'package:vynody/l10n/app_localizations_zh.dart';
 import 'package:vynody/utils/language_code_utils.dart';
-import 'package:vynody/utils/localized_text.dart';
 import 'package:vynody/player/lyrics/lyrics_cache_models.dart';
 import 'package:vynody/player/lyrics/lyrics_controller_context.dart';
 import 'package:vynody/player/lyrics/lyrics_controller_utils.dart';
@@ -42,14 +45,14 @@ class LyricsTranslationCoordinator {
   }) async {
     final song = _context.currentMusic();
     if (song == null) {
-      return _t('没有可用的当前歌曲。', 'No current song available.');
+      return _l10n().noCurrentSongAvailable;
     }
 
     final normalizedLanguageCode = LanguageCodeUtils.normalizeLanguageCode(
       targetLanguageCode ?? _context.state.lyricsTranslationLanguageCode,
     );
     if (normalizedLanguageCode.isEmpty) {
-      return _t('目标语言无效。', 'Invalid target language.');
+      return _l10n().invalidTargetLanguage;
     }
     if (_context.state.lyricsTranslationLanguageCode !=
         normalizedLanguageCode) {
@@ -62,17 +65,14 @@ class LyricsTranslationCoordinator {
     }
 
     if (_context.isLyricsTranslationBusyForSong(song.path)) {
-      return _t(
-        '当前歌曲的歌词任务已在排队或翻译中。',
-        'The current song is already queued for translation.',
-      );
+      return _l10n().songAlreadyQueuedForTranslation;
     }
 
     _context.updateSongTaskState(
       song.path,
       (current) => current.copyWith(
         isTranslationQueued: true,
-        translationStatus: _t('正在翻译歌词', 'Translating lyrics'),
+        translationStatus: _l10n().translatingLyrics,
       ),
     );
 
@@ -90,10 +90,7 @@ class LyricsTranslationCoordinator {
   }) async {
     final currentSong = _support.songForPath(song.path);
     if (currentSong == null) {
-      return _t(
-        '当前歌曲已不存在，无法翻译歌词。',
-        'The current song no longer exists, so lyrics cannot be translated.',
-      );
+      return _l10n().songNoLongerExistsForTranslation;
     }
 
     final cancelToken = CancelToken();
@@ -102,7 +99,7 @@ class LyricsTranslationCoordinator {
     try {
       final sourceLyrics = _lyricsSourceForTranslation(currentSong);
       if (sourceLyrics.isEmpty) {
-        return _t('没有可用于翻译的歌词。', 'No lyrics available for translation.');
+        return _l10n().noLyricsAvailableForTranslation;
       }
 
       final request = await _buildLyricsTranslationRequest(
@@ -192,7 +189,7 @@ class LyricsTranslationCoordinator {
       (current) => current.copyWith(
         isTranslationQueued: false,
         isTranslationRunning: true,
-        translationStatus: _t('正在翻译歌词', 'Translating lyrics'),
+        translationStatus: _l10n().translatingLyrics,
       ),
     );
 
@@ -310,10 +307,6 @@ class LyricsTranslationCoordinator {
     _context.updateLyricsGenerationDisplayState(
       current.copyWith(modelLabel: modelLabel ?? ''),
     );
-  }
-
-  String _t(String zh, String en) {
-    return localizedText(zh, en);
   }
 
   String _lyricsSourceForTranslation(MusicFile song) {
@@ -456,4 +449,10 @@ class LyricsTranslationCoordinator {
     final provider = _context.settingsService.translationPrimaryModel.provider;
     return provider.storageValue;
   }
+}
+
+AppLocalizations _l10n() {
+  return PlatformDispatcher.instance.locale.languageCode == 'zh'
+      ? AppLocalizationsZh()
+      : AppLocalizationsEn();
 }

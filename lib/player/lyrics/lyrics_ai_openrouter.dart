@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:dio/dio.dart'
     show
@@ -16,7 +17,9 @@ import 'package:path/path.dart' as p;
 
 import 'package:vynody/utils/lrc_utils.dart';
 import 'package:vynody/utils/network_client.dart';
-import 'package:vynody/utils/localized_text.dart';
+import 'package:vynody/l10n/app_localizations.dart';
+import 'package:vynody/l10n/app_localizations_en.dart';
+import 'package:vynody/l10n/app_localizations_zh.dart';
 import 'package:vynody/player/lyrics/lyrics_ai_shared.dart';
 import 'package:vynody/player/lyrics/lyrics_ai_stream_parser.dart';
 import 'package:vynody/player/lyrics/lyrics_generation_result.dart';
@@ -49,10 +52,7 @@ class LyricsAiOpenRouterClient {
     if (!await file.exists()) {
       debugPrint('[OpenRouterLyrics] file not found for generation: $filePath');
       return LyricsGenerationResult.failure(
-        _t(
-          '本地歌曲文件不存在，无法生成歌词。',
-          'The local song file does not exist, so lyrics cannot be generated.',
-        ),
+        _l10n().localSongFileNotFoundForGeneration,
       );
     }
 
@@ -119,12 +119,12 @@ class LyricsAiOpenRouterClient {
       final normalizedText = LrcUtils.normalizeGeneratedLyricsText(cleanedText);
       if (sawRefusalLikeText || _looksLikeRefusalResponse(normalizedText)) {
         return LyricsGenerationResult.failure(
-          _t('模型拒绝生成歌词。', 'The model refused to generate lyrics.'),
+          _l10n().modelRefusedToGenerateLyrics,
         );
       }
       if (normalizedText.trim().isEmpty) {
         return LyricsGenerationResult.failure(
-          _t('OpenRouter 返回了空响应。', 'OpenRouter returned an empty response.'),
+          _l10n().openRouterEmptyResponse,
         );
       }
 
@@ -136,10 +136,7 @@ class LyricsAiOpenRouterClient {
       return LyricsGenerationResult.failure(
         _formatGenerationErrorMessage(
           e,
-          fallback: _t(
-            '生成歌词时发生未知错误。',
-            'An unknown error occurred while generating lyrics.',
-          ),
+          fallback: _l10n().unknownGenerationError,
         ),
       );
     }
@@ -159,10 +156,7 @@ class LyricsAiOpenRouterClient {
     if (!await file.exists()) {
       debugPrint('[OpenRouterLyrics] file not found for timeline: $filePath');
       return LyricsGenerationResult.failure(
-        _t(
-          '本地歌曲文件不存在，无法生成时间轴。',
-          'The local song file does not exist, so a timeline cannot be generated.',
-        ),
+        _l10n().localSongFileNotFoundForTimeline,
       );
     }
 
@@ -172,7 +166,7 @@ class LyricsAiOpenRouterClient {
         '[OpenRouterLyrics] no usable lyrics for timeline generation.',
       );
       return LyricsGenerationResult.failure(
-        _t('没有可用歌词，无法生成时间轴。', 'No lyrics available for timeline generation.'),
+        _l10n().noLyricsForTimelineGeneration,
       );
     }
 
@@ -242,7 +236,7 @@ class LyricsAiOpenRouterClient {
       final normalizedText = LrcUtils.normalizeGeneratedLyricsText(cleanedText);
       if (sawRefusalLikeText || _looksLikeRefusalResponse(normalizedText)) {
         return LyricsGenerationResult.failure(
-          _t('模型拒绝生成时间轴。', 'The model refused to generate the timeline.'),
+          _l10n().modelRefusedToGenerateTimeline,
         );
       }
       debugPrint(
@@ -251,7 +245,7 @@ class LyricsAiOpenRouterClient {
       );
       if (normalizedText.trim().isEmpty) {
         return LyricsGenerationResult.failure(
-          _t('OpenRouter 返回了空响应。', 'OpenRouter returned an empty response.'),
+          _l10n().openRouterEmptyResponse,
         );
       }
 
@@ -261,10 +255,7 @@ class LyricsAiOpenRouterClient {
       return LyricsGenerationResult.failure(
         _formatGenerationErrorMessage(
           e,
-          fallback: _t(
-            '生成时间轴时发生未知错误。',
-            'An unknown error occurred while generating the timeline.',
-          ),
+          fallback: _l10n().unknownTimelineGenerationError,
         ),
       );
     }
@@ -334,10 +325,7 @@ class LyricsAiOpenRouterClient {
     final body = response.data;
     if (body == null || body.stream == null) {
       throw Exception(
-        _t(
-          'OpenRouter 返回了空流响应。',
-          'OpenRouter returned an empty streaming response.',
-        ),
+        _l10n().openRouterEmptyStreamingResponse,
       );
     }
 
@@ -558,7 +546,7 @@ class LyricsAiOpenRouterClient {
       return text;
     }
 
-    return fallback ?? _t('未知错误', 'Unknown error');
+    return fallback ?? _l10n().unknownError;
   }
 
   bool _isNetworkUnavailableError(DioException error) {
@@ -586,12 +574,12 @@ class LyricsAiOpenRouterClient {
         text.contains('os error: 113');
   }
 
-  String get _networkUnavailableMessage => _t(
-    '网络请求失败，请检查网络以及代理状态。',
-    'Network request failed. Please check your network and proxy settings.',
-  );
+  String get _networkUnavailableMessage =>
+      _l10n().networkRequestFailedCheckProxy;
+}
 
-  String _t(String zh, String en) {
-    return localizedText(zh, en);
-  }
+AppLocalizations _l10n() {
+  return PlatformDispatcher.instance.locale.languageCode == 'zh'
+      ? AppLocalizationsZh()
+      : AppLocalizationsEn();
 }

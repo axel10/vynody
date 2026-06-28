@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/music_file.dart';
 import '../models/music_folder.dart';
+import '../l10n/app_localizations.dart';
 import '../widgets/song_thumbnail.dart';
 
 class FolderGridCard extends StatelessWidget {
@@ -28,7 +29,7 @@ class FolderGridCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isZh = Localizations.localeOf(context).languageCode == 'zh';
+    final l10n = AppLocalizations.of(context)!;
     final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
 
     final int hash = folder.path.hashCode;
@@ -134,7 +135,7 @@ class FolderGridCard extends StatelessWidget {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          isZh ? '$songsCount 首歌曲' : '$songsCount songs',
+                          l10n.songsCountFormat(songsCount),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: (isPortrait

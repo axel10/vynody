@@ -3187,6 +3187,1470 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'关闭'**
   String get closeButton;
+
+  /// No description provided for @copyTranslationResults.
+  ///
+  /// In zh, this message translates to:
+  /// **'复制翻译结果'**
+  String get copyTranslationResults;
+
+  /// No description provided for @writeLyricsToFile.
+  ///
+  /// In zh, this message translates to:
+  /// **'将歌词写入文件'**
+  String get writeLyricsToFile;
+
+  /// No description provided for @selectLyricSource.
+  ///
+  /// In zh, this message translates to:
+  /// **'选择歌词来源'**
+  String get selectLyricSource;
+
+  /// No description provided for @regenerateLyrics.
+  ///
+  /// In zh, this message translates to:
+  /// **'重新生成歌词'**
+  String get regenerateLyrics;
+
+  /// No description provided for @regenerateLyricsConfirmation.
+  ///
+  /// In zh, this message translates to:
+  /// **'将清空当前歌词并重新生成，是否继续？'**
+  String get regenerateLyricsConfirmation;
+
+  /// No description provided for @regenerateTimeline.
+  ///
+  /// In zh, this message translates to:
+  /// **'重新生成时间轴'**
+  String get regenerateTimeline;
+
+  /// No description provided for @regenerateTimelineConfirmation.
+  ///
+  /// In zh, this message translates to:
+  /// **'将清空当前时间轴并重新生成，是否继续？'**
+  String get regenerateTimelineConfirmation;
+
+  /// No description provided for @retranslateLyrics.
+  ///
+  /// In zh, this message translates to:
+  /// **'重新翻译歌词'**
+  String get retranslateLyrics;
+
+  /// No description provided for @retranslateLyricsConfirmation.
+  ///
+  /// In zh, this message translates to:
+  /// **'将清空当前翻译并重新翻译，是否继续？'**
+  String get retranslateLyricsConfirmation;
+
+  /// No description provided for @translationCopiedToClipboard.
+  ///
+  /// In zh, this message translates to:
+  /// **'已复制翻译结果到剪贴板'**
+  String get translationCopiedToClipboard;
+
+  /// No description provided for @writingLyrics.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在写入歌词...'**
+  String get writingLyrics;
+
+  /// No description provided for @lyricsWrittenToFile.
+  ///
+  /// In zh, this message translates to:
+  /// **'歌词写入文件成功'**
+  String get lyricsWrittenToFile;
+
+  /// No description provided for @writeLyricsFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'写入歌词失败'**
+  String get writeLyricsFailed;
+
+  /// No description provided for @externalLrcFile.
+  ///
+  /// In zh, this message translates to:
+  /// **'同名外置LRC文件'**
+  String get externalLrcFile;
+
+  /// No description provided for @embeddedLyrics.
+  ///
+  /// In zh, this message translates to:
+  /// **'音频内嵌歌词'**
+  String get embeddedLyrics;
+
+  /// No description provided for @manuallyAdjustedLyrics.
+  ///
+  /// In zh, this message translates to:
+  /// **'手动修改的歌词'**
+  String get manuallyAdjustedLyrics;
+
+  /// No description provided for @lrclibOnlineLyrics.
+  ///
+  /// In zh, this message translates to:
+  /// **'LrcLib在线歌词'**
+  String get lrclibOnlineLyrics;
+
+  /// No description provided for @aiGeneratedLyrics.
+  ///
+  /// In zh, this message translates to:
+  /// **'AI生成的歌词'**
+  String get aiGeneratedLyrics;
+
+  /// No description provided for @matchScore.
+  ///
+  /// In zh, this message translates to:
+  /// **'匹配度'**
+  String get matchScore;
+
+  /// No description provided for @untitledRelease.
+  ///
+  /// In zh, this message translates to:
+  /// **'未命名发行版'**
+  String get untitledRelease;
+
+  /// No description provided for @localSongFileNotFoundForGeneration.
+  ///
+  /// In zh, this message translates to:
+  /// **'本地歌曲文件不存在，无法生成歌词。'**
+  String get localSongFileNotFoundForGeneration;
+
+  /// No description provided for @localSongFileNotFoundForTimeline.
+  ///
+  /// In zh, this message translates to:
+  /// **'本地歌曲文件不存在，无法生成时间轴。'**
+  String get localSongFileNotFoundForTimeline;
+
+  /// No description provided for @noLyricsForTimelineGeneration.
+  ///
+  /// In zh, this message translates to:
+  /// **'没有可用歌词，无法生成时间轴。'**
+  String get noLyricsForTimelineGeneration;
+
+  /// No description provided for @noLyricsAvailableForTranslation.
+  ///
+  /// In zh, this message translates to:
+  /// **'没有可用于翻译的歌词。'**
+  String get noLyricsAvailableForTranslation;
+
+  /// No description provided for @noCurrentSongAvailable.
+  ///
+  /// In zh, this message translates to:
+  /// **'没有可用的当前歌曲。'**
+  String get noCurrentSongAvailable;
+
+  /// No description provided for @invalidTargetLanguage.
+  ///
+  /// In zh, this message translates to:
+  /// **'目标语言无效。'**
+  String get invalidTargetLanguage;
+
+  /// No description provided for @songAlreadyQueuedForTranslation.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前歌曲的歌词任务已在排队或翻译中。'**
+  String get songAlreadyQueuedForTranslation;
+
+  /// No description provided for @songAlreadyQueuedForGeneration.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前歌曲的歌词任务已在排队或生成中。'**
+  String get songAlreadyQueuedForGeneration;
+
+  /// No description provided for @songNoLongerExistsForTranslation.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前歌曲已不存在，无法翻译歌词。'**
+  String get songNoLongerExistsForTranslation;
+
+  /// No description provided for @generationFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'生成失败。'**
+  String get generationFailed;
+
+  /// No description provided for @generatingLyrics.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在生成歌词'**
+  String get generatingLyrics;
+
+  /// No description provided for @generatingTimeline.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在生成时间轴'**
+  String get generatingTimeline;
+
+  /// No description provided for @regeneratingLyrics.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在重新生成歌词'**
+  String get regeneratingLyrics;
+
+  /// No description provided for @translatingLyrics.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在翻译歌词'**
+  String get translatingLyrics;
+
+  /// No description provided for @transcodingSongFile.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在转码歌曲文件'**
+  String get transcodingSongFile;
+
+  /// No description provided for @uploadingSongFile.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在上传歌曲文件'**
+  String get uploadingSongFile;
+
+  /// No description provided for @fileUploadedWaitingForReadiness.
+  ///
+  /// In zh, this message translates to:
+  /// **'文件已上传，正在等待文件就绪'**
+  String get fileUploadedWaitingForReadiness;
+
+  /// No description provided for @waitingForFileReadiness.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在等待文件就绪'**
+  String get waitingForFileReadiness;
+
+  /// No description provided for @requestingModelResponse.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在请求模型响应'**
+  String get requestingModelResponse;
+
+  /// No description provided for @retryingTaskKindGeneration.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在重试生成{taskKind}'**
+  String retryingTaskKindGeneration(Object taskKind);
+
+  /// No description provided for @retrying.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在重试'**
+  String get retrying;
+
+  /// No description provided for @processing.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在处理'**
+  String get processing;
+
+  /// No description provided for @timeline.
+  ///
+  /// In zh, this message translates to:
+  /// **'时间轴'**
+  String get timeline;
+
+  /// No description provided for @lyrics.
+  ///
+  /// In zh, this message translates to:
+  /// **'歌词'**
+  String get lyrics;
+
+  /// No description provided for @lyricGenerationError.
+  ///
+  /// In zh, this message translates to:
+  /// **'生成歌词时发生错误：{error}'**
+  String lyricGenerationError(Object error);
+
+  /// No description provided for @timelineGenerationError.
+  ///
+  /// In zh, this message translates to:
+  /// **'生成时间轴时发生错误：{error}'**
+  String timelineGenerationError(Object error);
+
+  /// No description provided for @unknownGenerationError.
+  ///
+  /// In zh, this message translates to:
+  /// **'生成歌词时发生未知错误。'**
+  String get unknownGenerationError;
+
+  /// No description provided for @unknownTimelineGenerationError.
+  ///
+  /// In zh, this message translates to:
+  /// **'生成时间轴时发生未知错误。'**
+  String get unknownTimelineGenerationError;
+
+  /// No description provided for @unknownTranslationError.
+  ///
+  /// In zh, this message translates to:
+  /// **'翻译歌词时发生未知错误。'**
+  String get unknownTranslationError;
+
+  /// No description provided for @unknownError.
+  ///
+  /// In zh, this message translates to:
+  /// **'未知错误'**
+  String get unknownError;
+
+  /// No description provided for @modelRefusedToGenerateLyrics.
+  ///
+  /// In zh, this message translates to:
+  /// **'模型拒绝生成歌词。'**
+  String get modelRefusedToGenerateLyrics;
+
+  /// No description provided for @modelRefusedToGenerateTimeline.
+  ///
+  /// In zh, this message translates to:
+  /// **'模型拒绝生成时间轴。'**
+  String get modelRefusedToGenerateTimeline;
+
+  /// No description provided for @doubaoPreUploadTranscodingFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'豆包上传前音频转码失败。'**
+  String get doubaoPreUploadTranscodingFailed;
+
+  /// No description provided for @doubaoTempTranscodeNotInTempDir.
+  ///
+  /// In zh, this message translates to:
+  /// **'豆包临时转码文件未生成在临时目录。'**
+  String get doubaoTempTranscodeNotInTempDir;
+
+  /// No description provided for @doubaoEmptyStreamingResponse.
+  ///
+  /// In zh, this message translates to:
+  /// **'豆包返回了空流响应。'**
+  String get doubaoEmptyStreamingResponse;
+
+  /// No description provided for @doubaoEmptyResponse.
+  ///
+  /// In zh, this message translates to:
+  /// **'豆包返回了空响应。'**
+  String get doubaoEmptyResponse;
+
+  /// No description provided for @geminiEmptyStreamingResponse.
+  ///
+  /// In zh, this message translates to:
+  /// **'Gemini 返回了空流响应。'**
+  String get geminiEmptyStreamingResponse;
+
+  /// No description provided for @geminiEmptyResponse.
+  ///
+  /// In zh, this message translates to:
+  /// **'Gemini 返回了空响应。'**
+  String get geminiEmptyResponse;
+
+  /// No description provided for @openRouterEmptyStreamingResponse.
+  ///
+  /// In zh, this message translates to:
+  /// **'OpenRouter 返回了空流响应。'**
+  String get openRouterEmptyStreamingResponse;
+
+  /// No description provided for @openRouterEmptyResponse.
+  ///
+  /// In zh, this message translates to:
+  /// **'OpenRouter 返回了空响应。'**
+  String get openRouterEmptyResponse;
+
+  /// No description provided for @deepseekEmptyStreamingResponse.
+  ///
+  /// In zh, this message translates to:
+  /// **'DeepSeek 返回了空流响应。'**
+  String get deepseekEmptyStreamingResponse;
+
+  /// No description provided for @deepseekEmptyResponse.
+  ///
+  /// In zh, this message translates to:
+  /// **'DeepSeek 返回了空响应。'**
+  String get deepseekEmptyResponse;
+
+  /// No description provided for @customProviderEmptyStreamingResponse.
+  ///
+  /// In zh, this message translates to:
+  /// **'自定义供应商返回了空流响应。'**
+  String get customProviderEmptyStreamingResponse;
+
+  /// No description provided for @customProviderEmptyResponse.
+  ///
+  /// In zh, this message translates to:
+  /// **'自定义供应商返回了空响应。'**
+  String get customProviderEmptyResponse;
+
+  /// No description provided for @fileUploadFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'文件上传失败，请重试。'**
+  String get fileUploadFailed;
+
+  /// No description provided for @uploadedFileNotReady.
+  ///
+  /// In zh, this message translates to:
+  /// **'上传后的文件未能就绪，请稍后重试。'**
+  String get uploadedFileNotReady;
+
+  /// No description provided for @audioTranscodingFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'音频转码失败。'**
+  String get audioTranscodingFailed;
+
+  /// No description provided for @tempTranscodeNotInTempDir.
+  ///
+  /// In zh, this message translates to:
+  /// **'临时转码文件未生成在临时目录。'**
+  String get tempTranscodeNotInTempDir;
+
+  /// No description provided for @networkRequestFailedCheckProxy.
+  ///
+  /// In zh, this message translates to:
+  /// **'网络请求失败，请检查网络以及代理状态。'**
+  String get networkRequestFailedCheckProxy;
+
+  /// No description provided for @quotaExhaustedToday.
+  ///
+  /// In zh, this message translates to:
+  /// **'今天额度已用完，请等待明天额度恢复再试'**
+  String get quotaExhaustedToday;
+
+  /// No description provided for @googleAiHeavyLoad.
+  ///
+  /// In zh, this message translates to:
+  /// **'谷歌AI服务遭遇大量请求，暂时不可用'**
+  String get googleAiHeavyLoad;
+
+  /// No description provided for @lyricsGenerationFailedWithError.
+  ///
+  /// In zh, this message translates to:
+  /// **'生成歌词失败：{error}'**
+  String lyricsGenerationFailedWithError(Object error);
+
+  /// No description provided for @missingApiKeyForAction.
+  ///
+  /// In zh, this message translates to:
+  /// **'未找到 {providerName} API Key，无法{action}。'**
+  String missingApiKeyForAction(Object action, Object providerName);
+
+  /// No description provided for @googleServerFlaky.
+  ///
+  /// In zh, this message translates to:
+  /// **'Google服务器开小差了，重试一下或许会成功哦'**
+  String get googleServerFlaky;
+
+  /// No description provided for @translateLyricsAction.
+  ///
+  /// In zh, this message translates to:
+  /// **'翻译歌词'**
+  String get translateLyricsAction;
+
+  /// No description provided for @generateLyricsAction.
+  ///
+  /// In zh, this message translates to:
+  /// **'生成歌词'**
+  String get generateLyricsAction;
+
+  /// No description provided for @generateTimelineAction.
+  ///
+  /// In zh, this message translates to:
+  /// **'生成时间轴'**
+  String get generateTimelineAction;
+
+  /// No description provided for @deepseekOnlyTranslation.
+  ///
+  /// In zh, this message translates to:
+  /// **'DeepSeek 仅支持歌词翻译。'**
+  String get deepseekOnlyTranslation;
+
+  /// No description provided for @customProviderOnlyTranslation.
+  ///
+  /// In zh, this message translates to:
+  /// **'自定义供应商仅支持歌词翻译。'**
+  String get customProviderOnlyTranslation;
+
+  /// No description provided for @customProviderNoBaseUrl.
+  ///
+  /// In zh, this message translates to:
+  /// **'未配置自定义供应商的 Base URL。'**
+  String get customProviderNoBaseUrl;
+
+  /// No description provided for @pleaseEnterApiKey.
+  ///
+  /// In zh, this message translates to:
+  /// **'请输入 API key。'**
+  String get pleaseEnterApiKey;
+
+  /// No description provided for @connectionSuccessVerificationPassed.
+  ///
+  /// In zh, this message translates to:
+  /// **'连接成功，已通过验证。'**
+  String get connectionSuccessVerificationPassed;
+
+  /// No description provided for @connectionSuccessDetectedModels.
+  ///
+  /// In zh, this message translates to:
+  /// **'连接成功，检测到 {count} 个模型。'**
+  String connectionSuccessDetectedModels(Object count);
+
+  /// No description provided for @testFailedWithStatus.
+  ///
+  /// In zh, this message translates to:
+  /// **'测试失败（{statusCode}）：{message}'**
+  String testFailedWithStatus(Object message, Object statusCode);
+
+  /// No description provided for @testFailedCheckNetworkOrApiKey.
+  ///
+  /// In zh, this message translates to:
+  /// **'测试失败，请检查网络或 API key。'**
+  String get testFailedCheckNetworkOrApiKey;
+
+  /// No description provided for @testFailedStatusCheckApiKey.
+  ///
+  /// In zh, this message translates to:
+  /// **'测试失败（{statusCode}），请检查 API key 是否有效。'**
+  String testFailedStatusCheckApiKey(Object statusCode);
+
+  /// No description provided for @enterGoogleAiStudioApiKeyFirst.
+  ///
+  /// In zh, this message translates to:
+  /// **'请先填写 Google AI Studio API Key。'**
+  String get enterGoogleAiStudioApiKeyFirst;
+
+  /// No description provided for @enterDoubaoApiKeyFirst.
+  ///
+  /// In zh, this message translates to:
+  /// **'请先填写豆包 API Key。'**
+  String get enterDoubaoApiKeyFirst;
+
+  /// No description provided for @enterDeepseekApiKeyFirst.
+  ///
+  /// In zh, this message translates to:
+  /// **'请先填写 DeepSeek API Key。'**
+  String get enterDeepseekApiKeyFirst;
+
+  /// No description provided for @enterCustomApiKeyAndBaseUrl.
+  ///
+  /// In zh, this message translates to:
+  /// **'请先填写自定义 API Key 和 Base URL。'**
+  String get enterCustomApiKeyAndBaseUrl;
+
+  /// No description provided for @fetchedCountModels.
+  ///
+  /// In zh, this message translates to:
+  /// **'已获取 {count} 个模型。'**
+  String fetchedCountModels(Object count);
+
+  /// No description provided for @requestFailedWithStatus.
+  ///
+  /// In zh, this message translates to:
+  /// **'请求失败（{statusCode}）：{message}'**
+  String requestFailedWithStatus(Object message, Object statusCode);
+
+  /// No description provided for @requestFailedCheckNetwork.
+  ///
+  /// In zh, this message translates to:
+  /// **'请求失败，请检查网络。'**
+  String get requestFailedCheckNetwork;
+
+  /// No description provided for @requestFailedStatus.
+  ///
+  /// In zh, this message translates to:
+  /// **'请求失败（{statusCode}）。'**
+  String requestFailedStatus(Object statusCode);
+
+  /// No description provided for @doubao.
+  ///
+  /// In zh, this message translates to:
+  /// **'豆包'**
+  String get doubao;
+
+  /// No description provided for @custom.
+  ///
+  /// In zh, this message translates to:
+  /// **'自定义'**
+  String get custom;
+
+  /// No description provided for @noModelSelected.
+  ///
+  /// In zh, this message translates to:
+  /// **'未选择模型'**
+  String get noModelSelected;
+
+  /// No description provided for @acoustidRequestFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'AcoustID 请求失败'**
+  String get acoustidRequestFailed;
+
+  /// No description provided for @acoustidRequestReturnedStatus.
+  ///
+  /// In zh, this message translates to:
+  /// **'AcoustID 请求返回 {statusCode}。请申请你自己的 AcoustID API key 并填入设置页。'**
+  String acoustidRequestReturnedStatus(Object statusCode);
+
+  /// No description provided for @writeTagDatabaseFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'写入标签数据库失败'**
+  String get writeTagDatabaseFailed;
+
+  /// No description provided for @playPause.
+  ///
+  /// In zh, this message translates to:
+  /// **'播放 / 暂停'**
+  String get playPause;
+
+  /// No description provided for @nextTrack.
+  ///
+  /// In zh, this message translates to:
+  /// **'下一首'**
+  String get nextTrack;
+
+  /// No description provided for @previousTrack.
+  ///
+  /// In zh, this message translates to:
+  /// **'上一首'**
+  String get previousTrack;
+
+  /// No description provided for @volumeUp.
+  ///
+  /// In zh, this message translates to:
+  /// **'音量增加'**
+  String get volumeUp;
+
+  /// No description provided for @volumeDown.
+  ///
+  /// In zh, this message translates to:
+  /// **'音量减少'**
+  String get volumeDown;
+
+  /// No description provided for @toggleMute.
+  ///
+  /// In zh, this message translates to:
+  /// **'静音切换'**
+  String get toggleMute;
+
+  /// No description provided for @seekForward5s.
+  ///
+  /// In zh, this message translates to:
+  /// **'快进 5 秒'**
+  String get seekForward5s;
+
+  /// No description provided for @seekBackward5s.
+  ///
+  /// In zh, this message translates to:
+  /// **'后退 5 秒'**
+  String get seekBackward5s;
+
+  /// No description provided for @toggleFullScreen.
+  ///
+  /// In zh, this message translates to:
+  /// **'切换全屏'**
+  String get toggleFullScreen;
+
+  /// No description provided for @playPauseDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'控制当前播放状态。'**
+  String get playPauseDescription;
+
+  /// No description provided for @nextDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'切换到下一首歌曲。'**
+  String get nextDescription;
+
+  /// No description provided for @previousDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'切换到上一首歌曲。'**
+  String get previousDescription;
+
+  /// No description provided for @volumeUpDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'每次增加 5% 音量。'**
+  String get volumeUpDescription;
+
+  /// No description provided for @volumeDownDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'每次减少 5% 音量。'**
+  String get volumeDownDescription;
+
+  /// No description provided for @toggleMuteDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'切换静音。'**
+  String get toggleMuteDescription;
+
+  /// No description provided for @seekForward5sDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'向前快进 5 秒。'**
+  String get seekForward5sDescription;
+
+  /// No description provided for @seekBackward5sDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'向后快退 5 秒。'**
+  String get seekBackward5sDescription;
+
+  /// No description provided for @toggleFullScreenDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'在窗口模式和全屏模式之间切换。'**
+  String get toggleFullScreenDescription;
+
+  /// No description provided for @unknownKey.
+  ///
+  /// In zh, this message translates to:
+  /// **'未知按键'**
+  String get unknownKey;
+
+  /// No description provided for @removeFromQueue.
+  ///
+  /// In zh, this message translates to:
+  /// **'从队列中移除'**
+  String get removeFromQueue;
+
+  /// No description provided for @removeFromPlaylist.
+  ///
+  /// In zh, this message translates to:
+  /// **'从歌单中移除'**
+  String get removeFromPlaylist;
+
+  /// No description provided for @alreadyLatestVersion.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前已经是最新版本。'**
+  String get alreadyLatestVersion;
+
+  /// No description provided for @updateAvailable.
+  ///
+  /// In zh, this message translates to:
+  /// **'发现新版本'**
+  String get updateAvailable;
+
+  /// No description provided for @newVersionAvailable.
+  ///
+  /// In zh, this message translates to:
+  /// **'检测到新版本 v{version}，前往 GitHub Release 页面下载更新。'**
+  String newVersionAvailable(Object version);
+
+  /// No description provided for @openRelease.
+  ///
+  /// In zh, this message translates to:
+  /// **'前往 Release'**
+  String get openRelease;
+
+  /// No description provided for @checkUpdateFailedNetwork.
+  ///
+  /// In zh, this message translates to:
+  /// **'检查更新失败，可能是网络问题或 GitHub 限流。'**
+  String get checkUpdateFailedNetwork;
+
+  /// No description provided for @tags.
+  ///
+  /// In zh, this message translates to:
+  /// **'标签'**
+  String get tags;
+
+  /// No description provided for @about.
+  ///
+  /// In zh, this message translates to:
+  /// **'关于'**
+  String get about;
+
+  /// No description provided for @rebuildIndex.
+  ///
+  /// In zh, this message translates to:
+  /// **'重建索引'**
+  String get rebuildIndex;
+
+  /// No description provided for @rebuildIndexDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'清空除外部来源以外的所有歌曲记录并重新扫描所有根目录。'**
+  String get rebuildIndexDescription;
+
+  /// No description provided for @rebuildIndexConfirmation.
+  ///
+  /// In zh, this message translates to:
+  /// **'确认清空除外部来源以外的所有歌曲记录并重新扫描所有根目录吗？此操作需要一些时间。'**
+  String get rebuildIndexConfirmation;
+
+  /// No description provided for @rebuildIndexStarted.
+  ///
+  /// In zh, this message translates to:
+  /// **'重建索引已启动'**
+  String get rebuildIndexStarted;
+
+  /// No description provided for @rebuild.
+  ///
+  /// In zh, this message translates to:
+  /// **'重建'**
+  String get rebuild;
+
+  /// No description provided for @advanced.
+  ///
+  /// In zh, this message translates to:
+  /// **'高级'**
+  String get advanced;
+
+  /// No description provided for @advancedOptionsDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'更偏调试和行为控制的选项。'**
+  String get advancedOptionsDescription;
+
+  /// No description provided for @showDeveloperOptionsDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'显示更多偏调试用途的高级项。'**
+  String get showDeveloperOptionsDescription;
+
+  /// No description provided for @onboardingReset.
+  ///
+  /// In zh, this message translates to:
+  /// **'已重置新手引导状态，下次启动时生效。'**
+  String get onboardingReset;
+
+  /// No description provided for @tagsSectionDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'关于音频文件元数据和自动补全的配置。'**
+  String get tagsSectionDescription;
+
+  /// No description provided for @autoSaveToSourceFile.
+  ///
+  /// In zh, this message translates to:
+  /// **'自动写入源文件'**
+  String get autoSaveToSourceFile;
+
+  /// No description provided for @autoSaveToSourceFileDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'补全或更新歌曲标签时，默认同步写入物理音频文件。'**
+  String get autoSaveToSourceFileDescription;
+
+  /// No description provided for @aboutSectionDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'版本信息、项目链接和相关资料。'**
+  String get aboutSectionDescription;
+
+  /// No description provided for @checkForUpdates.
+  ///
+  /// In zh, this message translates to:
+  /// **'检查更新'**
+  String get checkForUpdates;
+
+  /// No description provided for @lyricsGenerationModel.
+  ///
+  /// In zh, this message translates to:
+  /// **'歌词生成模型'**
+  String get lyricsGenerationModel;
+
+  /// No description provided for @lyricsGenerationModelDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'用于 AI 听歌生成歌词，以及给现有歌词生成/修正时间轴。'**
+  String get lyricsGenerationModelDescription;
+
+  /// No description provided for @lyricsTranslationModel.
+  ///
+  /// In zh, this message translates to:
+  /// **'歌词翻译模型'**
+  String get lyricsTranslationModel;
+
+  /// No description provided for @lyricsTranslationModelDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'用于把歌词翻译到目标语言。'**
+  String get lyricsTranslationModelDescription;
+
+  /// No description provided for @onlyForLyricTranslation.
+  ///
+  /// In zh, this message translates to:
+  /// **'仅用于歌词翻译'**
+  String get onlyForLyricTranslation;
+
+  /// No description provided for @fillApiKeyFirstEnablesModels.
+  ///
+  /// In zh, this message translates to:
+  /// **'请先填写至少一个 API Key，模型选择才会启用。'**
+  String get fillApiKeyFirstEnablesModels;
+
+  /// No description provided for @customApiProvider.
+  ///
+  /// In zh, this message translates to:
+  /// **'自定义 API 供应商'**
+  String get customApiProvider;
+
+  /// No description provided for @clearedGoogleAiStudioApiKey.
+  ///
+  /// In zh, this message translates to:
+  /// **'已清空 Google AI Studio API Key'**
+  String get clearedGoogleAiStudioApiKey;
+
+  /// No description provided for @clearedOpenRouterApiKey.
+  ///
+  /// In zh, this message translates to:
+  /// **'已清空 OpenRouter API Key'**
+  String get clearedOpenRouterApiKey;
+
+  /// No description provided for @clearedDoubaoApiKey.
+  ///
+  /// In zh, this message translates to:
+  /// **'已清空豆包 API Key'**
+  String get clearedDoubaoApiKey;
+
+  /// No description provided for @clearedDeepseekApiKey.
+  ///
+  /// In zh, this message translates to:
+  /// **'已清空 DeepSeek API Key'**
+  String get clearedDeepseekApiKey;
+
+  /// No description provided for @clearedCustomProviderConfig.
+  ///
+  /// In zh, this message translates to:
+  /// **'已清空自定义供应商配置'**
+  String get clearedCustomProviderConfig;
+
+  /// No description provided for @savedDoubaoApiKey.
+  ///
+  /// In zh, this message translates to:
+  /// **'已保存豆包 API Key'**
+  String get savedDoubaoApiKey;
+
+  /// No description provided for @savedDeepseekApiKey.
+  ///
+  /// In zh, this message translates to:
+  /// **'已保存 DeepSeek API Key'**
+  String get savedDeepseekApiKey;
+
+  /// No description provided for @savedCustomProviderConfig.
+  ///
+  /// In zh, this message translates to:
+  /// **'已保存自定义供应商配置'**
+  String get savedCustomProviderConfig;
+
+  /// No description provided for @noMatchingFoldersOrSongs.
+  ///
+  /// In zh, this message translates to:
+  /// **'未找到匹配的文件夹或歌曲'**
+  String get noMatchingFoldersOrSongs;
+
+  /// No description provided for @listView.
+  ///
+  /// In zh, this message translates to:
+  /// **'列表视图'**
+  String get listView;
+
+  /// No description provided for @gridView.
+  ///
+  /// In zh, this message translates to:
+  /// **'网格视图'**
+  String get gridView;
+
+  /// No description provided for @songsCountFormat.
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 首歌曲'**
+  String songsCountFormat(Object count);
+
+  /// No description provided for @searchInFolderAndSubfolders.
+  ///
+  /// In zh, this message translates to:
+  /// **'在当前目录及子目录下搜索...'**
+  String get searchInFolderAndSubfolders;
+
+  /// No description provided for @shuffle.
+  ///
+  /// In zh, this message translates to:
+  /// **'随机播放'**
+  String get shuffle;
+
+  /// No description provided for @search.
+  ///
+  /// In zh, this message translates to:
+  /// **'搜索'**
+  String get search;
+
+  /// No description provided for @selectFolders.
+  ///
+  /// In zh, this message translates to:
+  /// **'选择目录'**
+  String get selectFolders;
+
+  /// No description provided for @removeDirectory.
+  ///
+  /// In zh, this message translates to:
+  /// **'移除目录'**
+  String get removeDirectory;
+
+  /// No description provided for @removeRootDirectoryConfirmation.
+  ///
+  /// In zh, this message translates to:
+  /// **'确定要移除根目录 \"{name}\" 吗？此操作不会删除磁盘上的物理文件。'**
+  String removeRootDirectoryConfirmation(Object name);
+
+  /// No description provided for @deselectAll.
+  ///
+  /// In zh, this message translates to:
+  /// **'取消全选'**
+  String get deselectAll;
+
+  /// No description provided for @favorites.
+  ///
+  /// In zh, this message translates to:
+  /// **'收藏'**
+  String get favorites;
+
+  /// No description provided for @aggregationPeak.
+  ///
+  /// In zh, this message translates to:
+  /// **'峰值'**
+  String get aggregationPeak;
+
+  /// No description provided for @aggregationMean.
+  ///
+  /// In zh, this message translates to:
+  /// **'平均值'**
+  String get aggregationMean;
+
+  /// No description provided for @aggregationRms.
+  ///
+  /// In zh, this message translates to:
+  /// **'均方根'**
+  String get aggregationRms;
+
+  /// No description provided for @filesToTranscode.
+  ///
+  /// In zh, this message translates to:
+  /// **'待转码文件'**
+  String get filesToTranscode;
+
+  /// No description provided for @chooseAndroidOutputDirectoryFirst.
+  ///
+  /// In zh, this message translates to:
+  /// **'请先选择一个 Android 输出目录。'**
+  String get chooseAndroidOutputDirectoryFirst;
+
+  /// No description provided for @currentSongProgressPercent.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前歌曲 {percent}%'**
+  String currentSongProgressPercent(Object percent);
+
+  /// No description provided for @overallProgressPercent.
+  ///
+  /// In zh, this message translates to:
+  /// **'总体 {percent}%'**
+  String overallProgressPercent(Object percent);
+
+  /// No description provided for @pleaseChooseOutputDirectory.
+  ///
+  /// In zh, this message translates to:
+  /// **'请先选择一个输出目录。'**
+  String get pleaseChooseOutputDirectory;
+
+  /// No description provided for @selectedArtistsCount.
+  ///
+  /// In zh, this message translates to:
+  /// **'已选择 {count} 位艺术家'**
+  String selectedArtistsCount(Object count);
+
+  /// No description provided for @selectedAlbumsCount.
+  ///
+  /// In zh, this message translates to:
+  /// **'已选择 {count} 张专辑'**
+  String selectedAlbumsCount(Object count);
+
+  /// No description provided for @simplifiedChinese.
+  ///
+  /// In zh, this message translates to:
+  /// **'简体中文'**
+  String get simplifiedChinese;
+
+  /// No description provided for @traditionalChinese.
+  ///
+  /// In zh, this message translates to:
+  /// **'繁体中文'**
+  String get traditionalChinese;
+
+  /// No description provided for @chineseLanguage.
+  ///
+  /// In zh, this message translates to:
+  /// **'中文'**
+  String get chineseLanguage;
+
+  /// No description provided for @englishLanguage.
+  ///
+  /// In zh, this message translates to:
+  /// **'英文'**
+  String get englishLanguage;
+
+  /// No description provided for @japaneseLanguage.
+  ///
+  /// In zh, this message translates to:
+  /// **'日文'**
+  String get japaneseLanguage;
+
+  /// No description provided for @koreanLanguage.
+  ///
+  /// In zh, this message translates to:
+  /// **'韩文'**
+  String get koreanLanguage;
+
+  /// No description provided for @frenchLanguage.
+  ///
+  /// In zh, this message translates to:
+  /// **'法文'**
+  String get frenchLanguage;
+
+  /// No description provided for @germanLanguage.
+  ///
+  /// In zh, this message translates to:
+  /// **'德文'**
+  String get germanLanguage;
+
+  /// No description provided for @spanishLanguage.
+  ///
+  /// In zh, this message translates to:
+  /// **'西班牙文'**
+  String get spanishLanguage;
+
+  /// No description provided for @portugueseLanguage.
+  ///
+  /// In zh, this message translates to:
+  /// **'葡萄牙文'**
+  String get portugueseLanguage;
+
+  /// No description provided for @russianLanguage.
+  ///
+  /// In zh, this message translates to:
+  /// **'俄文'**
+  String get russianLanguage;
+
+  /// No description provided for @systemLanguage.
+  ///
+  /// In zh, this message translates to:
+  /// **'系统语言'**
+  String get systemLanguage;
+
+  /// No description provided for @targetLanguage.
+  ///
+  /// In zh, this message translates to:
+  /// **'目标语言'**
+  String get targetLanguage;
+
+  /// No description provided for @whatAreAiLyrics.
+  ///
+  /// In zh, this message translates to:
+  /// **'什么是 AI 歌词？'**
+  String get whatAreAiLyrics;
+
+  /// No description provided for @whatIsAiLyricTranslation.
+  ///
+  /// In zh, this message translates to:
+  /// **'什么是 AI 歌词翻译？'**
+  String get whatIsAiLyricTranslation;
+
+  /// No description provided for @aiLyricsIntroGeneration.
+  ///
+  /// In zh, this message translates to:
+  /// **'AI 可以根据歌曲内容生成歌词，并自动匹配时间轴。'**
+  String get aiLyricsIntroGeneration;
+
+  /// No description provided for @aiLyricsIntroTranslation.
+  ///
+  /// In zh, this message translates to:
+  /// **'AI 可以把歌词翻译成你熟悉的语言，方便理解歌曲内容。'**
+  String get aiLyricsIntroTranslation;
+
+  /// No description provided for @whyNeedApiKey.
+  ///
+  /// In zh, this message translates to:
+  /// **'为什么需要 API Key？'**
+  String get whyNeedApiKey;
+
+  /// No description provided for @apiKeyExplanation.
+  ///
+  /// In zh, this message translates to:
+  /// **'API Key 相当于你在 AI 服务商那里的访问凭证。应用会用它直接向服务商发起请求，完成歌词生成、时间轴调整或翻译。'**
+  String get apiKeyExplanation;
+
+  /// No description provided for @apiKeyLocalOnly.
+  ///
+  /// In zh, this message translates to:
+  /// **'API Key 只保存在你的本地设备，不会上传到 Vynody 开发者服务器。'**
+  String get apiKeyLocalOnly;
+
+  /// No description provided for @chooseAnAiProvider.
+  ///
+  /// In zh, this message translates to:
+  /// **'选择一个 AI 服务商：'**
+  String get chooseAnAiProvider;
+
+  /// No description provided for @googleProviderPros.
+  ///
+  /// In zh, this message translates to:
+  /// **'Google 官方通道，Gemini 模型能力强，免费额度较多。'**
+  String get googleProviderPros;
+
+  /// No description provided for @googleProviderCons.
+  ///
+  /// In zh, this message translates to:
+  /// **'中国大陆直连受限，需要稳定的 VPN/代理。请求人数较多时可能报 429，遇到 429 请切换到其他渠道。'**
+  String get googleProviderCons;
+
+  /// No description provided for @openRouterProviderPros.
+  ///
+  /// In zh, this message translates to:
+  /// **'海外大模型聚合平台，可使用多个模型，也有部分免费模型。'**
+  String get openRouterProviderPros;
+
+  /// No description provided for @openRouterProviderCons.
+  ///
+  /// In zh, this message translates to:
+  /// **'充值需要支付手续费，网页只有英文。'**
+  String get openRouterProviderCons;
+
+  /// No description provided for @doubaoProviderPros.
+  ///
+  /// In zh, this message translates to:
+  /// **'字节跳动出品，国内访问快，中文效果好。新用户每个模型有 50 万免费 token。'**
+  String get doubaoProviderPros;
+
+  /// No description provided for @doubaoProviderCons.
+  ///
+  /// In zh, this message translates to:
+  /// **'注册步骤相对繁琐，需要实名认证。'**
+  String get doubaoProviderCons;
+
+  /// No description provided for @deepseekProviderPros.
+  ///
+  /// In zh, this message translates to:
+  /// **'中文理解好，价格便宜，适合歌词翻译。'**
+  String get deepseekProviderPros;
+
+  /// No description provided for @deepseekProviderCons.
+  ///
+  /// In zh, this message translates to:
+  /// **'仅支持文本输入。如需歌词生成、时间轴调整，需要填入其他渠道 API Key。'**
+  String get deepseekProviderCons;
+
+  /// No description provided for @highlights.
+  ///
+  /// In zh, this message translates to:
+  /// **'【特点】'**
+  String get highlights;
+
+  /// No description provided for @notes.
+  ///
+  /// In zh, this message translates to:
+  /// **'【注意事项】'**
+  String get notes;
+
+  /// No description provided for @enterProviderApiKey.
+  ///
+  /// In zh, this message translates to:
+  /// **'请输入 {provider} 的 API Key：'**
+  String enterProviderApiKey(Object provider);
+
+  /// No description provided for @pasteYourApiKey.
+  ///
+  /// In zh, this message translates to:
+  /// **'在此粘贴你的 API Key'**
+  String get pasteYourApiKey;
+
+  /// No description provided for @getApiKey.
+  ///
+  /// In zh, this message translates to:
+  /// **'获取 API Key'**
+  String get getApiKey;
+
+  /// No description provided for @testConnectionButton.
+  ///
+  /// In zh, this message translates to:
+  /// **'测试连接'**
+  String get testConnectionButton;
+
+  /// No description provided for @enableAiLyricGeneration.
+  ///
+  /// In zh, this message translates to:
+  /// **'启用 AI 歌词生成'**
+  String get enableAiLyricGeneration;
+
+  /// No description provided for @enableAiLyricTranslation.
+  ///
+  /// In zh, this message translates to:
+  /// **'启用 AI 歌词翻译'**
+  String get enableAiLyricTranslation;
+
+  /// No description provided for @notNow.
+  ///
+  /// In zh, this message translates to:
+  /// **'暂不启用'**
+  String get notNow;
+
+  /// No description provided for @startSetup.
+  ///
+  /// In zh, this message translates to:
+  /// **'开始配置'**
+  String get startSetup;
+
+  /// No description provided for @chooseAiProvider.
+  ///
+  /// In zh, this message translates to:
+  /// **'选择 AI 服务商'**
+  String get chooseAiProvider;
+
+  /// No description provided for @backStep.
+  ///
+  /// In zh, this message translates to:
+  /// **'上一步'**
+  String get backStep;
+
+  /// No description provided for @continueAction.
+  ///
+  /// In zh, this message translates to:
+  /// **'继续'**
+  String get continueAction;
+
+  /// No description provided for @nextStep.
+  ///
+  /// In zh, this message translates to:
+  /// **'下一步'**
+  String get nextStep;
+
+  /// No description provided for @configureApiKey.
+  ///
+  /// In zh, this message translates to:
+  /// **'配置 API Key'**
+  String get configureApiKey;
+
+  /// No description provided for @saveAndFinish.
+  ///
+  /// In zh, this message translates to:
+  /// **'保存并完成'**
+  String get saveAndFinish;
+
+  /// No description provided for @testing.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在测试...'**
+  String get testing;
+
+  /// No description provided for @noteTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'提示'**
+  String get noteTitle;
+
+  /// No description provided for @deepseekTextInputOnlyNote.
+  ///
+  /// In zh, this message translates to:
+  /// **'DeepSeek 仅支持文本输入。如需歌词生成、时间轴调整，需要填入其他渠道 API Key。'**
+  String get deepseekTextInputOnlyNote;
+
+  /// No description provided for @retryAttemptOfMax.
+  ///
+  /// In zh, this message translates to:
+  /// **'重试第 {attempt} 次 / 共 {maxRetry} 次'**
+  String retryAttemptOfMax(Object attempt, Object maxRetry);
+
+  /// No description provided for @generatingTaskKind.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在生成{taskKind}'**
+  String generatingTaskKind(Object taskKind);
+
+  /// No description provided for @connectionTestException.
+  ///
+  /// In zh, this message translates to:
+  /// **'连接测试异常：{error}'**
+  String connectionTestException(Object error);
+
+  /// No description provided for @testingConnectionProgress.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在测试连接...'**
+  String get testingConnectionProgress;
+
+  /// No description provided for @clear.
+  ///
+  /// In zh, this message translates to:
+  /// **'清空'**
+  String get clear;
+
+  /// No description provided for @enterDoubaoApiKey.
+  ///
+  /// In zh, this message translates to:
+  /// **'输入豆包 API Key'**
+  String get enterDoubaoApiKey;
+
+  /// No description provided for @doubaoApiKeyDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'请输入火山方舟 / 豆包的 API Key，用于歌词生成和翻译。'**
+  String get doubaoApiKeyDescription;
+
+  /// No description provided for @enterDeepseekApiKey.
+  ///
+  /// In zh, this message translates to:
+  /// **'输入 DeepSeek API Key'**
+  String get enterDeepseekApiKey;
+
+  /// No description provided for @deepseekApiKeyDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'请输入 DeepSeek 的 API Key，仅用于歌词翻译。'**
+  String get deepseekApiKeyDescription;
+
+  /// No description provided for @pleaseEnterApiKeyHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'请输入 API Key'**
+  String get pleaseEnterApiKeyHint;
+
+  /// No description provided for @platform.
+  ///
+  /// In zh, this message translates to:
+  /// **'平台'**
+  String get platform;
+
+  /// No description provided for @showRecommendedOnly.
+  ///
+  /// In zh, this message translates to:
+  /// **'仅显示推荐模型'**
+  String get showRecommendedOnly;
+
+  /// No description provided for @noAvailableChannels.
+  ///
+  /// In zh, this message translates to:
+  /// **'暂无可用渠道'**
+  String get noAvailableChannels;
+
+  /// No description provided for @noMatchingModels.
+  ///
+  /// In zh, this message translates to:
+  /// **'没有找到匹配的模型'**
+  String get noMatchingModels;
+
+  /// No description provided for @leaveEmpty.
+  ///
+  /// In zh, this message translates to:
+  /// **'留空'**
+  String get leaveEmpty;
+
+  /// No description provided for @leaveEmptyFallbackDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'不设置备用模型时可选择此项。'**
+  String get leaveEmptyFallbackDescription;
+
+  /// No description provided for @modelSearchHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'输入模型名、ID'**
+  String get modelSearchHint;
 }
 
 class _AppLocalizationsDelegate

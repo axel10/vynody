@@ -1345,11 +1345,11 @@ class VisualizerOptionsDialog extends ConsumerWidget {
   }
 
   String _aggregationModeLabel(BuildContext context, FftAggregationMode mode) {
-    final isZh = AppLocalizations.of(context)!.localeName.startsWith('zh');
+    final l10n = AppLocalizations.of(context)!;
     return switch (mode) {
-      FftAggregationMode.peak => isZh ? '峰值' : 'Peak',
-      FftAggregationMode.mean => isZh ? '平均值' : 'Mean',
-      FftAggregationMode.rms => isZh ? '均方根' : 'RMS',
+      FftAggregationMode.peak => l10n.aggregationPeak,
+      FftAggregationMode.mean => l10n.aggregationMean,
+      FftAggregationMode.rms => l10n.aggregationRms,
     };
   }
 

@@ -53,11 +53,7 @@ class LibrarySelectionPanel extends ConsumerWidget {
         (Platform.isWindows || Platform.isMacOS || Platform.isLinux) &&
         (onOpenLocation != null || hasFilePath);
 
-    final selectAllText = isAllSelected
-        ? (Localizations.localeOf(context).languageCode == 'zh'
-              ? '取消全选'
-              : 'Deselect All')
-        : l10n.selectAll;
+    final selectAllText = isAllSelected ? l10n.deselectAll : l10n.selectAll;
 
     final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
 
@@ -191,7 +187,7 @@ class LibrarySelectionPanel extends ConsumerWidget {
                                                 content: Text(
                                                   l10n.addedToPlaylist(
                                                     selectedSongs.length,
-                                                    '收藏',
+                                                    l10n.favorites,
                                                   ),
                                                 ),
                                               ),

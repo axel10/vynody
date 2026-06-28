@@ -1645,4 +1645,787 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get closeButton => '关闭';
+
+  @override
+  String get copyTranslationResults => '复制翻译结果';
+
+  @override
+  String get writeLyricsToFile => '将歌词写入文件';
+
+  @override
+  String get selectLyricSource => '选择歌词来源';
+
+  @override
+  String get regenerateLyrics => '重新生成歌词';
+
+  @override
+  String get regenerateLyricsConfirmation => '将清空当前歌词并重新生成，是否继续？';
+
+  @override
+  String get regenerateTimeline => '重新生成时间轴';
+
+  @override
+  String get regenerateTimelineConfirmation => '将清空当前时间轴并重新生成，是否继续？';
+
+  @override
+  String get retranslateLyrics => '重新翻译歌词';
+
+  @override
+  String get retranslateLyricsConfirmation => '将清空当前翻译并重新翻译，是否继续？';
+
+  @override
+  String get translationCopiedToClipboard => '已复制翻译结果到剪贴板';
+
+  @override
+  String get writingLyrics => '正在写入歌词...';
+
+  @override
+  String get lyricsWrittenToFile => '歌词写入文件成功';
+
+  @override
+  String get writeLyricsFailed => '写入歌词失败';
+
+  @override
+  String get externalLrcFile => '同名外置LRC文件';
+
+  @override
+  String get embeddedLyrics => '音频内嵌歌词';
+
+  @override
+  String get manuallyAdjustedLyrics => '手动修改的歌词';
+
+  @override
+  String get lrclibOnlineLyrics => 'LrcLib在线歌词';
+
+  @override
+  String get aiGeneratedLyrics => 'AI生成的歌词';
+
+  @override
+  String get matchScore => '匹配度';
+
+  @override
+  String get untitledRelease => '未命名发行版';
+
+  @override
+  String get localSongFileNotFoundForGeneration => '本地歌曲文件不存在，无法生成歌词。';
+
+  @override
+  String get localSongFileNotFoundForTimeline => '本地歌曲文件不存在，无法生成时间轴。';
+
+  @override
+  String get noLyricsForTimelineGeneration => '没有可用歌词，无法生成时间轴。';
+
+  @override
+  String get noLyricsAvailableForTranslation => '没有可用于翻译的歌词。';
+
+  @override
+  String get noCurrentSongAvailable => '没有可用的当前歌曲。';
+
+  @override
+  String get invalidTargetLanguage => '目标语言无效。';
+
+  @override
+  String get songAlreadyQueuedForTranslation => '当前歌曲的歌词任务已在排队或翻译中。';
+
+  @override
+  String get songAlreadyQueuedForGeneration => '当前歌曲的歌词任务已在排队或生成中。';
+
+  @override
+  String get songNoLongerExistsForTranslation => '当前歌曲已不存在，无法翻译歌词。';
+
+  @override
+  String get generationFailed => '生成失败。';
+
+  @override
+  String get generatingLyrics => '正在生成歌词';
+
+  @override
+  String get generatingTimeline => '正在生成时间轴';
+
+  @override
+  String get regeneratingLyrics => '正在重新生成歌词';
+
+  @override
+  String get translatingLyrics => '正在翻译歌词';
+
+  @override
+  String get transcodingSongFile => '正在转码歌曲文件';
+
+  @override
+  String get uploadingSongFile => '正在上传歌曲文件';
+
+  @override
+  String get fileUploadedWaitingForReadiness => '文件已上传，正在等待文件就绪';
+
+  @override
+  String get waitingForFileReadiness => '正在等待文件就绪';
+
+  @override
+  String get requestingModelResponse => '正在请求模型响应';
+
+  @override
+  String retryingTaskKindGeneration(Object taskKind) {
+    return '正在重试生成$taskKind';
+  }
+
+  @override
+  String get retrying => '正在重试';
+
+  @override
+  String get processing => '正在处理';
+
+  @override
+  String get timeline => '时间轴';
+
+  @override
+  String get lyrics => '歌词';
+
+  @override
+  String lyricGenerationError(Object error) {
+    return '生成歌词时发生错误：$error';
+  }
+
+  @override
+  String timelineGenerationError(Object error) {
+    return '生成时间轴时发生错误：$error';
+  }
+
+  @override
+  String get unknownGenerationError => '生成歌词时发生未知错误。';
+
+  @override
+  String get unknownTimelineGenerationError => '生成时间轴时发生未知错误。';
+
+  @override
+  String get unknownTranslationError => '翻译歌词时发生未知错误。';
+
+  @override
+  String get unknownError => '未知错误';
+
+  @override
+  String get modelRefusedToGenerateLyrics => '模型拒绝生成歌词。';
+
+  @override
+  String get modelRefusedToGenerateTimeline => '模型拒绝生成时间轴。';
+
+  @override
+  String get doubaoPreUploadTranscodingFailed => '豆包上传前音频转码失败。';
+
+  @override
+  String get doubaoTempTranscodeNotInTempDir => '豆包临时转码文件未生成在临时目录。';
+
+  @override
+  String get doubaoEmptyStreamingResponse => '豆包返回了空流响应。';
+
+  @override
+  String get doubaoEmptyResponse => '豆包返回了空响应。';
+
+  @override
+  String get geminiEmptyStreamingResponse => 'Gemini 返回了空流响应。';
+
+  @override
+  String get geminiEmptyResponse => 'Gemini 返回了空响应。';
+
+  @override
+  String get openRouterEmptyStreamingResponse => 'OpenRouter 返回了空流响应。';
+
+  @override
+  String get openRouterEmptyResponse => 'OpenRouter 返回了空响应。';
+
+  @override
+  String get deepseekEmptyStreamingResponse => 'DeepSeek 返回了空流响应。';
+
+  @override
+  String get deepseekEmptyResponse => 'DeepSeek 返回了空响应。';
+
+  @override
+  String get customProviderEmptyStreamingResponse => '自定义供应商返回了空流响应。';
+
+  @override
+  String get customProviderEmptyResponse => '自定义供应商返回了空响应。';
+
+  @override
+  String get fileUploadFailed => '文件上传失败，请重试。';
+
+  @override
+  String get uploadedFileNotReady => '上传后的文件未能就绪，请稍后重试。';
+
+  @override
+  String get audioTranscodingFailed => '音频转码失败。';
+
+  @override
+  String get tempTranscodeNotInTempDir => '临时转码文件未生成在临时目录。';
+
+  @override
+  String get networkRequestFailedCheckProxy => '网络请求失败，请检查网络以及代理状态。';
+
+  @override
+  String get quotaExhaustedToday => '今天额度已用完，请等待明天额度恢复再试';
+
+  @override
+  String get googleAiHeavyLoad => '谷歌AI服务遭遇大量请求，暂时不可用';
+
+  @override
+  String lyricsGenerationFailedWithError(Object error) {
+    return '生成歌词失败：$error';
+  }
+
+  @override
+  String missingApiKeyForAction(Object action, Object providerName) {
+    return '未找到 $providerName API Key，无法$action。';
+  }
+
+  @override
+  String get googleServerFlaky => 'Google服务器开小差了，重试一下或许会成功哦';
+
+  @override
+  String get translateLyricsAction => '翻译歌词';
+
+  @override
+  String get generateLyricsAction => '生成歌词';
+
+  @override
+  String get generateTimelineAction => '生成时间轴';
+
+  @override
+  String get deepseekOnlyTranslation => 'DeepSeek 仅支持歌词翻译。';
+
+  @override
+  String get customProviderOnlyTranslation => '自定义供应商仅支持歌词翻译。';
+
+  @override
+  String get customProviderNoBaseUrl => '未配置自定义供应商的 Base URL。';
+
+  @override
+  String get pleaseEnterApiKey => '请输入 API key。';
+
+  @override
+  String get connectionSuccessVerificationPassed => '连接成功，已通过验证。';
+
+  @override
+  String connectionSuccessDetectedModels(Object count) {
+    return '连接成功，检测到 $count 个模型。';
+  }
+
+  @override
+  String testFailedWithStatus(Object message, Object statusCode) {
+    return '测试失败（$statusCode）：$message';
+  }
+
+  @override
+  String get testFailedCheckNetworkOrApiKey => '测试失败，请检查网络或 API key。';
+
+  @override
+  String testFailedStatusCheckApiKey(Object statusCode) {
+    return '测试失败（$statusCode），请检查 API key 是否有效。';
+  }
+
+  @override
+  String get enterGoogleAiStudioApiKeyFirst => '请先填写 Google AI Studio API Key。';
+
+  @override
+  String get enterDoubaoApiKeyFirst => '请先填写豆包 API Key。';
+
+  @override
+  String get enterDeepseekApiKeyFirst => '请先填写 DeepSeek API Key。';
+
+  @override
+  String get enterCustomApiKeyAndBaseUrl => '请先填写自定义 API Key 和 Base URL。';
+
+  @override
+  String fetchedCountModels(Object count) {
+    return '已获取 $count 个模型。';
+  }
+
+  @override
+  String requestFailedWithStatus(Object message, Object statusCode) {
+    return '请求失败（$statusCode）：$message';
+  }
+
+  @override
+  String get requestFailedCheckNetwork => '请求失败，请检查网络。';
+
+  @override
+  String requestFailedStatus(Object statusCode) {
+    return '请求失败（$statusCode）。';
+  }
+
+  @override
+  String get doubao => '豆包';
+
+  @override
+  String get custom => '自定义';
+
+  @override
+  String get noModelSelected => '未选择模型';
+
+  @override
+  String get acoustidRequestFailed => 'AcoustID 请求失败';
+
+  @override
+  String acoustidRequestReturnedStatus(Object statusCode) {
+    return 'AcoustID 请求返回 $statusCode。请申请你自己的 AcoustID API key 并填入设置页。';
+  }
+
+  @override
+  String get writeTagDatabaseFailed => '写入标签数据库失败';
+
+  @override
+  String get playPause => '播放 / 暂停';
+
+  @override
+  String get nextTrack => '下一首';
+
+  @override
+  String get previousTrack => '上一首';
+
+  @override
+  String get volumeUp => '音量增加';
+
+  @override
+  String get volumeDown => '音量减少';
+
+  @override
+  String get toggleMute => '静音切换';
+
+  @override
+  String get seekForward5s => '快进 5 秒';
+
+  @override
+  String get seekBackward5s => '后退 5 秒';
+
+  @override
+  String get toggleFullScreen => '切换全屏';
+
+  @override
+  String get playPauseDescription => '控制当前播放状态。';
+
+  @override
+  String get nextDescription => '切换到下一首歌曲。';
+
+  @override
+  String get previousDescription => '切换到上一首歌曲。';
+
+  @override
+  String get volumeUpDescription => '每次增加 5% 音量。';
+
+  @override
+  String get volumeDownDescription => '每次减少 5% 音量。';
+
+  @override
+  String get toggleMuteDescription => '切换静音。';
+
+  @override
+  String get seekForward5sDescription => '向前快进 5 秒。';
+
+  @override
+  String get seekBackward5sDescription => '向后快退 5 秒。';
+
+  @override
+  String get toggleFullScreenDescription => '在窗口模式和全屏模式之间切换。';
+
+  @override
+  String get unknownKey => '未知按键';
+
+  @override
+  String get removeFromQueue => '从队列中移除';
+
+  @override
+  String get removeFromPlaylist => '从歌单中移除';
+
+  @override
+  String get alreadyLatestVersion => '当前已经是最新版本。';
+
+  @override
+  String get updateAvailable => '发现新版本';
+
+  @override
+  String newVersionAvailable(Object version) {
+    return '检测到新版本 v$version，前往 GitHub Release 页面下载更新。';
+  }
+
+  @override
+  String get openRelease => '前往 Release';
+
+  @override
+  String get checkUpdateFailedNetwork => '检查更新失败，可能是网络问题或 GitHub 限流。';
+
+  @override
+  String get tags => '标签';
+
+  @override
+  String get about => '关于';
+
+  @override
+  String get rebuildIndex => '重建索引';
+
+  @override
+  String get rebuildIndexDescription => '清空除外部来源以外的所有歌曲记录并重新扫描所有根目录。';
+
+  @override
+  String get rebuildIndexConfirmation =>
+      '确认清空除外部来源以外的所有歌曲记录并重新扫描所有根目录吗？此操作需要一些时间。';
+
+  @override
+  String get rebuildIndexStarted => '重建索引已启动';
+
+  @override
+  String get rebuild => '重建';
+
+  @override
+  String get advanced => '高级';
+
+  @override
+  String get advancedOptionsDescription => '更偏调试和行为控制的选项。';
+
+  @override
+  String get showDeveloperOptionsDescription => '显示更多偏调试用途的高级项。';
+
+  @override
+  String get onboardingReset => '已重置新手引导状态，下次启动时生效。';
+
+  @override
+  String get tagsSectionDescription => '关于音频文件元数据和自动补全的配置。';
+
+  @override
+  String get autoSaveToSourceFile => '自动写入源文件';
+
+  @override
+  String get autoSaveToSourceFileDescription => '补全或更新歌曲标签时，默认同步写入物理音频文件。';
+
+  @override
+  String get aboutSectionDescription => '版本信息、项目链接和相关资料。';
+
+  @override
+  String get checkForUpdates => '检查更新';
+
+  @override
+  String get lyricsGenerationModel => '歌词生成模型';
+
+  @override
+  String get lyricsGenerationModelDescription =>
+      '用于 AI 听歌生成歌词，以及给现有歌词生成/修正时间轴。';
+
+  @override
+  String get lyricsTranslationModel => '歌词翻译模型';
+
+  @override
+  String get lyricsTranslationModelDescription => '用于把歌词翻译到目标语言。';
+
+  @override
+  String get onlyForLyricTranslation => '仅用于歌词翻译';
+
+  @override
+  String get fillApiKeyFirstEnablesModels => '请先填写至少一个 API Key，模型选择才会启用。';
+
+  @override
+  String get customApiProvider => '自定义 API 供应商';
+
+  @override
+  String get clearedGoogleAiStudioApiKey => '已清空 Google AI Studio API Key';
+
+  @override
+  String get clearedOpenRouterApiKey => '已清空 OpenRouter API Key';
+
+  @override
+  String get clearedDoubaoApiKey => '已清空豆包 API Key';
+
+  @override
+  String get clearedDeepseekApiKey => '已清空 DeepSeek API Key';
+
+  @override
+  String get clearedCustomProviderConfig => '已清空自定义供应商配置';
+
+  @override
+  String get savedDoubaoApiKey => '已保存豆包 API Key';
+
+  @override
+  String get savedDeepseekApiKey => '已保存 DeepSeek API Key';
+
+  @override
+  String get savedCustomProviderConfig => '已保存自定义供应商配置';
+
+  @override
+  String get noMatchingFoldersOrSongs => '未找到匹配的文件夹或歌曲';
+
+  @override
+  String get listView => '列表视图';
+
+  @override
+  String get gridView => '网格视图';
+
+  @override
+  String songsCountFormat(Object count) {
+    return '$count 首歌曲';
+  }
+
+  @override
+  String get searchInFolderAndSubfolders => '在当前目录及子目录下搜索...';
+
+  @override
+  String get shuffle => '随机播放';
+
+  @override
+  String get search => '搜索';
+
+  @override
+  String get selectFolders => '选择目录';
+
+  @override
+  String get removeDirectory => '移除目录';
+
+  @override
+  String removeRootDirectoryConfirmation(Object name) {
+    return '确定要移除根目录 \"$name\" 吗？此操作不会删除磁盘上的物理文件。';
+  }
+
+  @override
+  String get deselectAll => '取消全选';
+
+  @override
+  String get favorites => '收藏';
+
+  @override
+  String get aggregationPeak => '峰值';
+
+  @override
+  String get aggregationMean => '平均值';
+
+  @override
+  String get aggregationRms => '均方根';
+
+  @override
+  String get filesToTranscode => '待转码文件';
+
+  @override
+  String get chooseAndroidOutputDirectoryFirst => '请先选择一个 Android 输出目录。';
+
+  @override
+  String currentSongProgressPercent(Object percent) {
+    return '当前歌曲 $percent%';
+  }
+
+  @override
+  String overallProgressPercent(Object percent) {
+    return '总体 $percent%';
+  }
+
+  @override
+  String get pleaseChooseOutputDirectory => '请先选择一个输出目录。';
+
+  @override
+  String selectedArtistsCount(Object count) {
+    return '已选择 $count 位艺术家';
+  }
+
+  @override
+  String selectedAlbumsCount(Object count) {
+    return '已选择 $count 张专辑';
+  }
+
+  @override
+  String get simplifiedChinese => '简体中文';
+
+  @override
+  String get traditionalChinese => '繁体中文';
+
+  @override
+  String get chineseLanguage => '中文';
+
+  @override
+  String get englishLanguage => '英文';
+
+  @override
+  String get japaneseLanguage => '日文';
+
+  @override
+  String get koreanLanguage => '韩文';
+
+  @override
+  String get frenchLanguage => '法文';
+
+  @override
+  String get germanLanguage => '德文';
+
+  @override
+  String get spanishLanguage => '西班牙文';
+
+  @override
+  String get portugueseLanguage => '葡萄牙文';
+
+  @override
+  String get russianLanguage => '俄文';
+
+  @override
+  String get systemLanguage => '系统语言';
+
+  @override
+  String get targetLanguage => '目标语言';
+
+  @override
+  String get whatAreAiLyrics => '什么是 AI 歌词？';
+
+  @override
+  String get whatIsAiLyricTranslation => '什么是 AI 歌词翻译？';
+
+  @override
+  String get aiLyricsIntroGeneration => 'AI 可以根据歌曲内容生成歌词，并自动匹配时间轴。';
+
+  @override
+  String get aiLyricsIntroTranslation => 'AI 可以把歌词翻译成你熟悉的语言，方便理解歌曲内容。';
+
+  @override
+  String get whyNeedApiKey => '为什么需要 API Key？';
+
+  @override
+  String get apiKeyExplanation =>
+      'API Key 相当于你在 AI 服务商那里的访问凭证。应用会用它直接向服务商发起请求，完成歌词生成、时间轴调整或翻译。';
+
+  @override
+  String get apiKeyLocalOnly => 'API Key 只保存在你的本地设备，不会上传到 Vynody 开发者服务器。';
+
+  @override
+  String get chooseAnAiProvider => '选择一个 AI 服务商：';
+
+  @override
+  String get googleProviderPros => 'Google 官方通道，Gemini 模型能力强，免费额度较多。';
+
+  @override
+  String get googleProviderCons =>
+      '中国大陆直连受限，需要稳定的 VPN/代理。请求人数较多时可能报 429，遇到 429 请切换到其他渠道。';
+
+  @override
+  String get openRouterProviderPros => '海外大模型聚合平台，可使用多个模型，也有部分免费模型。';
+
+  @override
+  String get openRouterProviderCons => '充值需要支付手续费，网页只有英文。';
+
+  @override
+  String get doubaoProviderPros => '字节跳动出品，国内访问快，中文效果好。新用户每个模型有 50 万免费 token。';
+
+  @override
+  String get doubaoProviderCons => '注册步骤相对繁琐，需要实名认证。';
+
+  @override
+  String get deepseekProviderPros => '中文理解好，价格便宜，适合歌词翻译。';
+
+  @override
+  String get deepseekProviderCons => '仅支持文本输入。如需歌词生成、时间轴调整，需要填入其他渠道 API Key。';
+
+  @override
+  String get highlights => '【特点】';
+
+  @override
+  String get notes => '【注意事项】';
+
+  @override
+  String enterProviderApiKey(Object provider) {
+    return '请输入 $provider 的 API Key：';
+  }
+
+  @override
+  String get pasteYourApiKey => '在此粘贴你的 API Key';
+
+  @override
+  String get getApiKey => '获取 API Key';
+
+  @override
+  String get testConnectionButton => '测试连接';
+
+  @override
+  String get enableAiLyricGeneration => '启用 AI 歌词生成';
+
+  @override
+  String get enableAiLyricTranslation => '启用 AI 歌词翻译';
+
+  @override
+  String get notNow => '暂不启用';
+
+  @override
+  String get startSetup => '开始配置';
+
+  @override
+  String get chooseAiProvider => '选择 AI 服务商';
+
+  @override
+  String get backStep => '上一步';
+
+  @override
+  String get continueAction => '继续';
+
+  @override
+  String get nextStep => '下一步';
+
+  @override
+  String get configureApiKey => '配置 API Key';
+
+  @override
+  String get saveAndFinish => '保存并完成';
+
+  @override
+  String get testing => '正在测试...';
+
+  @override
+  String get noteTitle => '提示';
+
+  @override
+  String get deepseekTextInputOnlyNote =>
+      'DeepSeek 仅支持文本输入。如需歌词生成、时间轴调整，需要填入其他渠道 API Key。';
+
+  @override
+  String retryAttemptOfMax(Object attempt, Object maxRetry) {
+    return '重试第 $attempt 次 / 共 $maxRetry 次';
+  }
+
+  @override
+  String generatingTaskKind(Object taskKind) {
+    return '正在生成$taskKind';
+  }
+
+  @override
+  String connectionTestException(Object error) {
+    return '连接测试异常：$error';
+  }
+
+  @override
+  String get testingConnectionProgress => '正在测试连接...';
+
+  @override
+  String get clear => '清空';
+
+  @override
+  String get enterDoubaoApiKey => '输入豆包 API Key';
+
+  @override
+  String get doubaoApiKeyDescription => '请输入火山方舟 / 豆包的 API Key，用于歌词生成和翻译。';
+
+  @override
+  String get enterDeepseekApiKey => '输入 DeepSeek API Key';
+
+  @override
+  String get deepseekApiKeyDescription => '请输入 DeepSeek 的 API Key，仅用于歌词翻译。';
+
+  @override
+  String get pleaseEnterApiKeyHint => '请输入 API Key';
+
+  @override
+  String get platform => '平台';
+
+  @override
+  String get showRecommendedOnly => '仅显示推荐模型';
+
+  @override
+  String get noAvailableChannels => '暂无可用渠道';
+
+  @override
+  String get noMatchingModels => '没有找到匹配的模型';
+
+  @override
+  String get leaveEmpty => '留空';
+
+  @override
+  String get leaveEmptyFallbackDescription => '不设置备用模型时可选择此项。';
+
+  @override
+  String get modelSearchHint => '输入模型名、ID';
 }

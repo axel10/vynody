@@ -9,6 +9,16 @@ import 'package:vynody/player/settings/shortcut_bindings.dart';
 import 'package:vynody/transcode/transcode_models.dart';
 import 'package:vynody/utils/language_code_utils.dart';
 
+import 'package:vynody/l10n/app_localizations.dart';
+import 'package:vynody/l10n/app_localizations_en.dart';
+import 'package:vynody/l10n/app_localizations_zh.dart';
+
+AppLocalizations _l10n() {
+  return WidgetsBinding.instance.platformDispatcher.locale.languageCode == 'zh' 
+      ? AppLocalizationsZh() 
+      : AppLocalizationsEn();
+}
+
 enum LyricsAiProvider { googleAiStudio, openRouter, doubao, deepseek, custom }
 
 enum LyricsAiModelPurpose { generation, translation }
@@ -89,9 +99,6 @@ extension ThemeModeX on ThemeMode {
 }
 
 extension LyricsAiProviderX on LyricsAiProvider {
-  bool get _isZhLocale =>
-      WidgetsBinding.instance.platformDispatcher.locale.languageCode == 'zh';
-
   String get storageValue => switch (this) {
     LyricsAiProvider.googleAiStudio => 'google_ai_studio',
     LyricsAiProvider.openRouter => 'openrouter',
@@ -103,15 +110,15 @@ extension LyricsAiProviderX on LyricsAiProvider {
   String get displayName {
     if (this == LyricsAiProvider.custom) {
       return SettingsService._lastKnownCustomProviderName.trim().isEmpty
-          ? (_isZhLocale ? '自定义' : 'Custom')
+          ? _l10n().custom
           : SettingsService._lastKnownCustomProviderName.trim();
     }
     return switch (this) {
       LyricsAiProvider.googleAiStudio =>
-        _isZhLocale ? 'Google AI Studio' : 'Google AI Studio',
-      LyricsAiProvider.openRouter => _isZhLocale ? 'OpenRouter' : 'OpenRouter',
-      LyricsAiProvider.doubao => _isZhLocale ? '豆包' : 'Doubao',
-      LyricsAiProvider.deepseek => _isZhLocale ? 'DeepSeek' : 'DeepSeek',
+        'Google AI Studio',
+      LyricsAiProvider.openRouter => 'OpenRouter',
+      LyricsAiProvider.doubao => _l10n().doubao,
+      LyricsAiProvider.deepseek => 'DeepSeek',
       LyricsAiProvider.custom => '',
     };
   }
@@ -1357,11 +1364,9 @@ class SettingsService extends ChangeNotifier {
   }
 
   static String lyricsModelDisplayName(String modelId) {
-    final isZh =
-        WidgetsBinding.instance.platformDispatcher.locale.languageCode == 'zh';
     final trimmed = modelId.trim();
     if (trimmed.isEmpty) {
-      return isZh ? '未选择模型' : 'No model selected';
+      return _l10n().noModelSelected;
     }
 
     final normalized = trimmed.startsWith('google/')

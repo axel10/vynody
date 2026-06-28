@@ -75,7 +75,6 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
   Widget build(BuildContext context) {
     final scanner = ref.watch(scannerServiceProvider);
     final settings = ref.watch(settingsServiceProvider);
-    final isZh = Localizations.localeOf(context).languageCode == 'zh';
     final l10n = AppLocalizations.of(context)!;
     final isRootSelectionMode =
         ref.watch(librarySelectionScopeProvider) ==
@@ -348,8 +347,8 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
                                   const SizedBox(width: 12),
                                   Text(
                                     settings.folderViewMode == FolderViewMode.grid
-                                        ? (isZh ? '列表视图' : 'List View')
-                                        : (isZh ? '网格视图' : 'Grid View'),
+                                        ? l10n.listView
+                                        : l10n.gridView,
                                   ),
                                 ],
                               ),
@@ -375,8 +374,8 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
                                 : FolderViewMode.grid;
                           },
                           tooltip: settings.folderViewMode == FolderViewMode.grid
-                              ? (isZh ? '列表视图' : 'List View')
-                              : (isZh ? '网格视图' : 'Grid View'),
+                              ? l10n.listView
+                              : l10n.gridView,
                         ),
                         IconButton(
                           icon: Icon(

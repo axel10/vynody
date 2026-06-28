@@ -1,5 +1,9 @@
+import 'dart:ui';
 import 'package:flutter/widgets.dart';
 import 'package:flutter/services.dart';
+import '../../l10n/app_localizations.dart';
+import '../../l10n/app_localizations_en.dart';
+import '../../l10n/app_localizations_zh.dart';
 
 enum AppShortcutAction {
   playPause,
@@ -14,8 +18,9 @@ enum AppShortcutAction {
 }
 
 extension AppShortcutActionX on AppShortcutAction {
-  bool get _isZhLocale =>
-      WidgetsBinding.instance.platformDispatcher.locale.languageCode == 'zh';
+  AppLocalizations get _l10n => PlatformDispatcher.instance.locale.languageCode == 'zh'
+      ? AppLocalizationsZh()
+      : AppLocalizationsEn();
 
   String get storageKey => switch (this) {
     AppShortcutAction.playPause => 'play_pause',
@@ -30,39 +35,27 @@ extension AppShortcutActionX on AppShortcutAction {
   };
 
   String get label => switch (this) {
-    AppShortcutAction.playPause => _isZhLocale ? '播放 / 暂停' : 'Play / Pause',
-    AppShortcutAction.next => _isZhLocale ? '下一首' : 'Next',
-    AppShortcutAction.previous => _isZhLocale ? '上一首' : 'Previous',
-    AppShortcutAction.volumeUp => _isZhLocale ? '音量增加' : 'Volume Up',
-    AppShortcutAction.volumeDown => _isZhLocale ? '音量减少' : 'Volume Down',
-    AppShortcutAction.mute => _isZhLocale ? '静音切换' : 'Toggle Mute',
-    AppShortcutAction.seekForward => _isZhLocale ? '快进 5 秒' : 'Seek Forward 5s',
-    AppShortcutAction.seekBackward =>
-      _isZhLocale ? '后退 5 秒' : 'Seek Backward 5s',
-    AppShortcutAction.toggleFullScreen =>
-      _isZhLocale ? '切换全屏' : 'Toggle Full Screen',
+    AppShortcutAction.playPause => _l10n.playPause,
+    AppShortcutAction.next => _l10n.nextTrack,
+    AppShortcutAction.previous => _l10n.previousTrack,
+    AppShortcutAction.volumeUp => _l10n.volumeUp,
+    AppShortcutAction.volumeDown => _l10n.volumeDown,
+    AppShortcutAction.mute => _l10n.toggleMute,
+    AppShortcutAction.seekForward => _l10n.seekForward5s,
+    AppShortcutAction.seekBackward => _l10n.seekBackward5s,
+    AppShortcutAction.toggleFullScreen => _l10n.toggleFullScreen,
   };
 
   String get description => switch (this) {
-    AppShortcutAction.playPause =>
-      _isZhLocale ? '控制当前播放状态。' : 'Control the current playback state.',
-    AppShortcutAction.next =>
-      _isZhLocale ? '切换到下一首歌曲。' : 'Skip to the next song.',
-    AppShortcutAction.previous =>
-      _isZhLocale ? '切换到上一首歌曲。' : 'Go back to the previous song.',
-    AppShortcutAction.volumeUp =>
-      _isZhLocale ? '每次增加 5% 音量。' : 'Increase volume by 5% each time.',
-    AppShortcutAction.volumeDown =>
-      _isZhLocale ? '每次减少 5% 音量。' : 'Decrease volume by 5% each time.',
-    AppShortcutAction.mute => _isZhLocale ? '切换静音。' : 'Toggle mute.',
-    AppShortcutAction.seekForward =>
-      _isZhLocale ? '向前快进 5 秒。' : 'Seek forward 5 seconds.',
-    AppShortcutAction.seekBackward =>
-      _isZhLocale ? '向后快退 5 秒。' : 'Seek backward 5 seconds.',
-    AppShortcutAction.toggleFullScreen =>
-      _isZhLocale
-          ? '在窗口模式和全屏模式之间切换。'
-          : 'Switch between windowed mode and full screen.',
+    AppShortcutAction.playPause => _l10n.playPauseDescription,
+    AppShortcutAction.next => _l10n.nextDescription,
+    AppShortcutAction.previous => _l10n.previousDescription,
+    AppShortcutAction.volumeUp => _l10n.volumeUpDescription,
+    AppShortcutAction.volumeDown => _l10n.volumeDownDescription,
+    AppShortcutAction.mute => _l10n.toggleMuteDescription,
+    AppShortcutAction.seekForward => _l10n.seekForward5sDescription,
+    AppShortcutAction.seekBackward => _l10n.seekBackward5sDescription,
+    AppShortcutAction.toggleFullScreen => _l10n.toggleFullScreenDescription,
   };
 
   ShortcutBinding get defaultBinding => switch (this) {
@@ -234,10 +227,10 @@ class ShortcutBinding {
 
   static String _formatKeyLabel(LogicalKeyboardKey? key) {
     if (key == null) {
-      return WidgetsBinding.instance.platformDispatcher.locale.languageCode ==
-              'zh'
-          ? '未知按键'
-          : 'Unknown key';
+      final l10n = PlatformDispatcher.instance.locale.languageCode == 'zh'
+          ? AppLocalizationsZh()
+          : AppLocalizationsEn();
+      return l10n.unknownKey;
     }
 
     final label = key.keyLabel.trim();

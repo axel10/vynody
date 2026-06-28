@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:dio/dio.dart'
     show
@@ -17,12 +18,14 @@ import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:audio_core/audio_core.dart';
 
+import 'package:vynody/l10n/app_localizations.dart';
+import 'package:vynody/l10n/app_localizations_en.dart';
+import 'package:vynody/l10n/app_localizations_zh.dart';
 import 'package:vynody/player/lyrics/lyrics_ai_stream_parser.dart';
 import 'package:vynody/player/lyrics/lyrics_ai_shared.dart';
 import 'package:vynody/player/lyrics/lyrics_ai_temp_files.dart';
 import 'package:vynody/player/lyrics/lyrics_generation_result.dart';
 import 'package:vynody/utils/lrc_utils.dart';
-import 'package:vynody/utils/localized_text.dart';
 import 'package:vynody/utils/network_client.dart';
 import 'package:vynody/transcode/transcode_models.dart';
 import 'package:vynody/transcode/transcode_service.dart';
@@ -168,10 +171,7 @@ class LyricsAiDoubaoClient {
     if (!await file.exists()) {
       debugPrint('[DoubaoLyrics] file not found for generation: $filePath');
       return LyricsGenerationResult.failure(
-        _t(
-          '本地歌曲文件不存在，无法生成歌词。',
-          'The local song file does not exist, so lyrics cannot be generated.',
-        ),
+        _l10n().localSongFileNotFoundForGeneration,
       );
     }
 
@@ -217,20 +217,14 @@ class LyricsAiDoubaoClient {
     if (!await file.exists()) {
       debugPrint('[DoubaoLyrics] file not found for timeline: $filePath');
       return LyricsGenerationResult.failure(
-        _t(
-          '本地歌曲文件不存在，无法生成时间轴。',
-          'The local song file does not exist, so a timeline cannot be generated.',
-        ),
+        _l10n().localSongFileNotFoundForTimeline,
       );
     }
 
     final normalizedLyrics = lyrics.trim();
     if (normalizedLyrics.isEmpty) {
       return LyricsGenerationResult.failure(
-        _t(
-          '没有可用歌词，无法生成时间轴。',
-          'No lyrics are available for timeline generation.',
-        ),
+        _l10n().noLyricsForTimelineGeneration,
       );
     }
 
@@ -278,7 +272,7 @@ class LyricsAiDoubaoClient {
     );
     if (!result.result.success || result.result.outputPath == null) {
       throw Exception(
-        _t('豆包上传前音频转码失败。', 'Audio transcoding failed before Doubao upload.'),
+        _l10n().doubaoPreUploadTranscodingFailed,
       );
     }
 
@@ -296,10 +290,7 @@ class LyricsAiDoubaoClient {
 
     if (!p.isWithin(resolvedTempPath, resolvedOutputPath)) {
       throw Exception(
-        _t(
-          '豆包临时转码文件未生成在临时目录。',
-          'The temporary transcoded file was not created in the temp directory.',
-        ),
+        _l10n().doubaoTempTranscodeNotInTempDir,
       );
     }
     return _PreparedUploadAudio(file: outputFile, tempFile: outputFile);
@@ -334,7 +325,7 @@ class LyricsAiDoubaoClient {
       preparation: preparedLyrics,
     );
     if (preparedLyrics.targetLineCount == 0) {
-      return _t('没有可用于翻译的歌词。', 'No lyrics are available for translation.');
+      return _l10n().noLyricsAvailableForTranslation;
     }
 
     final prompt = LyricsAiPromptBuilder.buildTranslateLyricsPrompt(
@@ -383,7 +374,7 @@ class LyricsAiDoubaoClient {
 
       final body = response.data;
       if (body == null || body.stream == null) {
-        return _t('豆包返回了空流响应。', 'Doubao returned an empty streaming response.');
+        return _l10n().doubaoEmptyStreamingResponse;
       }
 
       final textStream = body.stream.cast<List<int>>().transform(utf8.decoder);
@@ -412,7 +403,7 @@ class LyricsAiDoubaoClient {
 
       if (!processor.hasReceivedAnyChunk ||
           processor.finalVisibleText.trim().isEmpty) {
-        return _t('豆包返回了空响应。', 'Doubao returned an empty response.');
+          return _l10n().doubaoEmptyResponse;
       }
 
       debugPrint('[DoubaoLyrics] translation result:');
@@ -424,18 +415,12 @@ class LyricsAiDoubaoClient {
       }
       return _formatErrorMessage(
         e,
-        fallback: _t(
-          '翻译歌词时发生未知错误。',
-          'An unknown error occurred while translating lyrics.',
-        ),
+        fallback: _l10n().unknownTranslationError,
       );
     } catch (e) {
       return _formatErrorMessage(
         e,
-        fallback: _t(
-          '翻译歌词时发生未知错误。',
-          'An unknown error occurred while translating lyrics.',
-        ),
+        fallback: _l10n().unknownTranslationError,
       );
     }
   }
@@ -462,7 +447,7 @@ class LyricsAiDoubaoClient {
       );
       if (uploadedFile == null) {
         return LyricsGenerationResult.failure(
-          _t('文件上传失败，请重试。', 'File upload failed. Please try again.'),
+          _l10n().fileUploadFailed,
         );
       }
 
@@ -476,10 +461,7 @@ class LyricsAiDoubaoClient {
       );
       if (readyFile == null) {
         return LyricsGenerationResult.failure(
-          _t(
-            '上传后的文件未能就绪，请稍后重试。',
-            'The uploaded file did not become ready. Please try again later.',
-          ),
+          _l10n().uploadedFileNotReady,
         );
       }
 
@@ -513,7 +495,7 @@ class LyricsAiDoubaoClient {
       final body = response.data;
       if (body == null || body.stream == null) {
         return LyricsGenerationResult.failure(
-          _t('豆包返回了空流响应。', 'Doubao returned an empty streaming response.'),
+          _l10n().doubaoEmptyStreamingResponse,
         );
       }
 
@@ -565,7 +547,7 @@ class LyricsAiDoubaoClient {
             );
       if (normalizedText.trim().isEmpty) {
         return LyricsGenerationResult.failure(
-          _t('豆包返回了空响应。', 'Doubao returned an empty response.'),
+          _l10n().doubaoEmptyResponse,
         );
       }
 
@@ -578,20 +560,14 @@ class LyricsAiDoubaoClient {
       return LyricsGenerationResult.failure(
         _formatErrorMessage(
           e,
-          fallback: _t(
-            '生成歌词时发生未知错误。',
-            'An unknown error occurred while generating lyrics.',
-          ),
+          fallback: _l10n().unknownGenerationError,
         ),
       );
     } catch (e) {
       return LyricsGenerationResult.failure(
         _formatErrorMessage(
           e,
-          fallback: _t(
-            '生成歌词时发生未知错误。',
-            'An unknown error occurred while generating lyrics.',
-          ),
+          fallback: _l10n().unknownGenerationError,
         ),
       );
     }
@@ -636,10 +612,15 @@ class LyricsAiDoubaoClient {
       return text;
     }
 
-    return fallback ?? _t('未知错误', 'Unknown error');
+    return fallback ?? _l10n().unknownError;
   }
 
-  String _t(String zh, String en) => localizedText(zh, en);
+}
+
+AppLocalizations _l10n() {
+  return PlatformDispatcher.instance.locale.languageCode == 'zh'
+      ? AppLocalizationsZh()
+      : AppLocalizationsEn();
 }
 
 class _PreparedUploadAudio {

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:dio/dio.dart'
     show
@@ -14,7 +15,9 @@ import 'package:dio/dio.dart'
 import 'package:flutter/foundation.dart';
 
 import 'package:vynody/utils/lrc_utils.dart';
-import 'package:vynody/utils/localized_text.dart';
+import 'package:vynody/l10n/app_localizations.dart';
+import 'package:vynody/l10n/app_localizations_en.dart';
+import 'package:vynody/l10n/app_localizations_zh.dart';
 import 'package:vynody/utils/network_client.dart';
 import 'package:vynody/player/lyrics/lyrics_ai_api_client.dart';
 import 'package:vynody/player/lyrics/lyrics_ai_doubao.dart';
@@ -153,7 +156,7 @@ class LyricsAiService {
   String get customProviderNameDisplay {
     final config = _config;
     return config.customProviderName.trim().isEmpty
-        ? (_t('自定义', 'Custom'))
+        ? (_l10n().custom)
         : config.customProviderName.trim();
   }
 
@@ -171,16 +174,10 @@ class LyricsAiService {
     required String action,
   }) {
     final providerName = _providerLabel(provider);
-    return _t(
-      '未找到 $providerName API Key，无法$action。',
-      'API key for $providerName was not found, so $action is unavailable.',
-    );
+    return _l10n().missingApiKeyForAction(action, providerName);
   }
 
-  static String get _googleServerFlakyMessage => localizedText(
-    'Google服务器开小差了，重试一下或许会成功哦',
-    'Google is having a rough moment. Please try again and it may succeed.',
-  );
+  static String get _googleServerFlakyMessage => _l10n().googleServerFlaky;
 
   bool _shouldUseGoogleServerFlakyMessage(Object error) {
     if (error is DioException) {
@@ -208,7 +205,7 @@ class LyricsAiService {
     final targetLineCount = preparedLyrics.targetLineCount;
     if (targetLineCount == 0) {
       debugPrint('[LyricsAi] no usable lyrics after stripping timestamps.');
-      return _t('没有可用于翻译的歌词。', 'No lyrics are available for translation.');
+      return _l10n().noLyricsAvailableForTranslation;
     }
     final prompt = LyricsAiPromptBuilder.buildTranslateLyricsPrompt(
       lyrics: LyricsAiTranslationTextHelper.normalizeSourceLyrics(lyrics),
@@ -239,7 +236,7 @@ class LyricsAiService {
       if (apiKey.isEmpty) {
         lastError = _missingApiKeyMessage(
           candidate.provider,
-          action: _t('翻译歌词', 'translate lyrics'),
+          action: _l10n().translateLyricsAction,
         );
         continue;
       }
@@ -303,10 +300,7 @@ class LyricsAiService {
       lastError = error;
     }
     return lastError ??
-        _t(
-          '翻译歌词时发生未知错误。',
-          'An unknown error occurred while translating lyrics.',
-        );
+        _l10n().unknownTranslationError;
   }
 
   Future<LyricsGenerationResult> generateLyricsFromFile({
@@ -323,10 +317,7 @@ class LyricsAiService {
     if (!await originalFile.exists()) {
       debugPrint('[LyricsAi] file not found for generation: $filePath');
       return LyricsGenerationResult.failure(
-        _t(
-          '本地歌曲文件不存在，无法生成歌词。',
-          'The local song file does not exist, so lyrics cannot be generated.',
-        ),
+        _l10n().localSongFileNotFoundForGeneration,
       );
     }
 
@@ -359,7 +350,7 @@ class LyricsAiService {
         if (apiKey.isEmpty) {
           lastError = _missingApiKeyMessage(
             candidate.provider,
-            action: _t('生成歌词', 'generate lyrics'),
+            action: _l10n().generateLyricsAction,
           );
           continue;
         }
@@ -398,16 +389,10 @@ class LyricsAiService {
             cancelToken: cancelToken,
           ),
           LyricsAiProvider.deepseek => LyricsGenerationResult.failure(
-            _t(
-              'DeepSeek 仅支持歌词翻译。',
-              'DeepSeek is only available for lyric translation.',
-            ),
+            _l10n().deepseekOnlyTranslation,
           ),
           LyricsAiProvider.custom => LyricsGenerationResult.failure(
-            _t(
-              '自定义供应商仅支持歌词翻译。',
-              'Custom provider is only available for lyric translation.',
-            ),
+            _l10n().customProviderOnlyTranslation,
           ),
         };
         if (result.isSuccess) {
@@ -417,10 +402,7 @@ class LyricsAiService {
       }
       return LyricsGenerationResult.failure(
         lastError ??
-            _t(
-              '生成歌词时发生未知错误。',
-              'An unknown error occurred while generating lyrics.',
-            ),
+            _l10n().unknownGenerationError,
       );
     } finally {
       await _deleteIfExists(preparedAudio?.tempFile);
@@ -442,20 +424,14 @@ class LyricsAiService {
     if (!await originalFile.exists()) {
       debugPrint('[LyricsAi] file not found for timeline: $filePath');
       return LyricsGenerationResult.failure(
-        _t(
-          '本地歌曲文件不存在，无法生成时间轴。',
-          'The local song file does not exist, so a timeline cannot be generated.',
-        ),
+        _l10n().localSongFileNotFoundForTimeline,
       );
     }
     final normalizedLyrics = lyrics.trim();
     if (normalizedLyrics.isEmpty) {
       debugPrint('[LyricsAi] no usable lyrics for timeline generation.');
       return LyricsGenerationResult.failure(
-        _t(
-          '没有可用歌词，无法生成时间轴。',
-          'No lyrics are available for timeline generation.',
-        ),
+        _l10n().noLyricsForTimelineGeneration,
       );
     }
 
@@ -488,7 +464,7 @@ class LyricsAiService {
         if (apiKey.isEmpty) {
           lastError = _missingApiKeyMessage(
             candidate.provider,
-            action: _t('生成时间轴', 'generate timeline'),
+            action: _l10n().generateTimelineAction,
           );
           continue;
         }
@@ -528,16 +504,10 @@ class LyricsAiService {
               cancelToken: cancelToken,
             ),
           LyricsAiProvider.deepseek => LyricsGenerationResult.failure(
-            _t(
-              'DeepSeek 仅支持歌词翻译。',
-              'DeepSeek is only available for lyric translation.',
-            ),
+            _l10n().deepseekOnlyTranslation,
           ),
           LyricsAiProvider.custom => LyricsGenerationResult.failure(
-            _t(
-              '自定义供应商仅支持歌词翻译。',
-              'Custom provider is only available for lyric translation.',
-            ),
+            _l10n().customProviderOnlyTranslation,
           ),
         };
         if (result.isSuccess) {
@@ -547,10 +517,7 @@ class LyricsAiService {
       }
       return LyricsGenerationResult.failure(
         lastError ??
-            _t(
-              '生成时间轴时发生未知错误。',
-              'An unknown error occurred while generating the timeline.',
-            ),
+            _l10n().unknownTimelineGenerationError,
       );
     } finally {
       await _deleteIfExists(preparedAudio?.tempFile);
@@ -597,7 +564,7 @@ class LyricsAiService {
           return _normalizeGenerationResult(fallbackResult);
         }
         return LyricsGenerationResult.failure(
-          _t('文件上传失败，请重试。', 'File upload failed. Please try again.'),
+          _l10n().fileUploadFailed,
         );
       }
 
@@ -624,10 +591,7 @@ class LyricsAiService {
           return _normalizeGenerationResult(fallbackResult);
         }
         return LyricsGenerationResult.failure(
-          _t(
-            '上传后的文件未能就绪，请稍后重试。',
-            'The uploaded file did not become ready. Please try again later.',
-          ),
+          _l10n().uploadedFileNotReady,
         );
       }
       onStageChanged?.call('requesting');
@@ -665,10 +629,7 @@ class LyricsAiService {
       return LyricsGenerationResult.failure(
         _formatGenerationErrorMessage(
           e,
-          fallback: _t(
-            '生成歌词时发生未知错误。',
-            'An unknown error occurred while generating lyrics.',
-          ),
+          fallback: _l10n().unknownGenerationError,
         ),
       );
     }
@@ -764,10 +725,7 @@ class LyricsAiService {
 
       final body = response.data;
       if (body == null || body.stream == null) {
-        return _t(
-          'Gemini 返回了空流响应。',
-          'Gemini returned an empty streaming response.',
-        );
+        return _l10n().geminiEmptyStreamingResponse;
       }
 
       Timer? printTimer;
@@ -825,7 +783,7 @@ class LyricsAiService {
       emitProgress(force: true);
       if (!processor.hasReceivedAnyChunk ||
           processor.finalVisibleText.trim().isEmpty) {
-        return _t('Gemini 返回了空响应。', 'Gemini returned an empty response.');
+        return _l10n().geminiEmptyResponse;
       }
       _logTranslationResult(
         providerLabel: 'GoogleAIStudio',
@@ -841,18 +799,12 @@ class LyricsAiService {
       }
       return _formatGenerationErrorMessage(
         error,
-        fallback: _t(
-          '翻译歌词时发生未知错误。',
-          'An unknown error occurred while translating lyrics.',
-        ),
+        fallback: _l10n().unknownTranslationError,
       );
     } catch (error) {
       return _formatGenerationErrorMessage(
         error,
-        fallback: _t(
-          '翻译歌词时发生未知错误。',
-          'An unknown error occurred while translating lyrics.',
-        ),
+        fallback: _l10n().unknownTranslationError,
       );
     }
   }
@@ -909,10 +861,7 @@ class LyricsAiService {
 
       final body = response.data;
       if (body == null || body.stream == null) {
-        return _t(
-          'OpenRouter 返回了空流响应。',
-          'OpenRouter returned an empty streaming response.',
-        );
+        return _l10n().openRouterEmptyStreamingResponse;
       }
 
       final textStream = body.stream.cast<List<int>>().transform(utf8.decoder);
@@ -946,10 +895,7 @@ class LyricsAiService {
       }
       if (!processor.hasReceivedAnyChunk ||
           processor.finalVisibleText.trim().isEmpty) {
-        return _t(
-          'OpenRouter 返回了空响应。',
-          'OpenRouter returned an empty response.',
-        );
+        return _l10n().openRouterEmptyResponse;
       }
       _logTranslationResult(
         providerLabel: 'OpenRouter',
@@ -962,18 +908,12 @@ class LyricsAiService {
       }
       return _formatGenerationErrorMessage(
         error,
-        fallback: _t(
-          '翻译歌词时发生未知错误。',
-          'An unknown error occurred while translating lyrics.',
-        ),
+        fallback: _l10n().unknownTranslationError,
       );
     } catch (error) {
       return _formatGenerationErrorMessage(
         error,
-        fallback: _t(
-          '翻译歌词时发生未知错误。',
-          'An unknown error occurred while translating lyrics.',
-        ),
+        fallback: _l10n().unknownTranslationError,
       );
     }
   }
@@ -1025,10 +965,7 @@ class LyricsAiService {
 
       final body = response.data;
       if (body == null || body.stream == null) {
-        return _t(
-          'DeepSeek 返回了空流响应。',
-          'DeepSeek returned an empty streaming response.',
-        );
+        return _l10n().deepseekEmptyStreamingResponse;
       }
 
       final textStream = body.stream.cast<List<int>>().transform(utf8.decoder);
@@ -1064,7 +1001,7 @@ class LyricsAiService {
 
       if (!processor.hasReceivedAnyChunk ||
           processor.finalVisibleText.trim().isEmpty) {
-        return _t('DeepSeek 返回了空响应。', 'DeepSeek returned an empty response.');
+        return _l10n().deepseekEmptyResponse;
       }
       _logTranslationResult(
         providerLabel: 'DeepSeek',
@@ -1077,18 +1014,12 @@ class LyricsAiService {
       }
       return _formatGenerationErrorMessage(
         error,
-        fallback: _t(
-          '翻译歌词时发生未知错误。',
-          'An unknown error occurred while translating lyrics.',
-        ),
+        fallback: _l10n().unknownTranslationError,
       );
     } catch (error) {
       return _formatGenerationErrorMessage(
         error,
-        fallback: _t(
-          '翻译歌词时发生未知错误。',
-          'An unknown error occurred while translating lyrics.',
-        ),
+        fallback: _l10n().unknownTranslationError,
       );
     }
   }
@@ -1106,10 +1037,7 @@ class LyricsAiService {
   }) async {
     final baseUrl = _config.customProviderBaseUrl.trim();
     if (baseUrl.isEmpty) {
-      return _t(
-        '未配置自定义供应商的 Base URL。',
-        'Custom provider base URL is not configured.',
-      );
+      return _l10n().customProviderNoBaseUrl;
     }
 
     final processor = LyricsAiTranslationStreamProcessor(
@@ -1153,10 +1081,7 @@ class LyricsAiService {
 
       final body = response.data;
       if (body == null || body.stream == null) {
-        return _t(
-          '自定义供应商返回了空流响应。',
-          'Custom provider returned an empty streaming response.',
-        );
+        return _l10n().customProviderEmptyStreamingResponse;
       }
 
       final textStream = body.stream.cast<List<int>>().transform(utf8.decoder);
@@ -1192,10 +1117,7 @@ class LyricsAiService {
 
       if (!processor.hasReceivedAnyChunk ||
           processor.finalVisibleText.trim().isEmpty) {
-        return _t(
-          '自定义供应商返回了空响应。',
-          'Custom provider returned an empty response.',
-        );
+        return _l10n().customProviderEmptyResponse;
       }
       _logTranslationResult(
         providerLabel: providerName,
@@ -1208,18 +1130,12 @@ class LyricsAiService {
       }
       return _formatGenerationErrorMessage(
         error,
-        fallback: _t(
-          '翻译歌词时发生未知错误。',
-          'An unknown error occurred while translating lyrics.',
-        ),
+        fallback: _l10n().unknownTranslationError,
       );
     } catch (error) {
       return _formatGenerationErrorMessage(
         error,
-        fallback: _t(
-          '翻译歌词时发生未知错误。',
-          'An unknown error occurred while translating lyrics.',
-        ),
+        fallback: _l10n().unknownTranslationError,
       );
     }
   }
@@ -1297,10 +1213,7 @@ class LyricsAiService {
 
           final body = response.data;
           if (body == null || body.stream == null) {
-            lastErrorMessage = _t(
-              'Gemini 返回了空流响应。',
-              'Gemini returned an empty streaming response.',
-            );
+            lastErrorMessage = _l10n().geminiEmptyStreamingResponse;
             debugPrint('[LyricsAi] Empty streaming body.');
             onStageChanged?.call('retrying');
             if (attempt < maxGenerationAttempts) {
@@ -1374,10 +1287,7 @@ class LyricsAiService {
               ? LrcUtils.normalizeGeneratedLyricsText(finalText)
               : finalText;
           if (normalizedFinalText.isEmpty) {
-            lastErrorMessage = _t(
-              'Gemini 返回了空响应。',
-              'Gemini returned an empty response.',
-            );
+            lastErrorMessage = _l10n().geminiEmptyResponse;
             debugPrint('[LyricsAi] empty lyrics response.');
             debugPrint(
               '[LyricsAi] raw generate response: ${generatedBuffer.toString()}',
@@ -1484,10 +1394,7 @@ class LyricsAiService {
 
     return _LyricsGenerationOutcome(
       result: LyricsGenerationResult.failure(
-        _t(
-          '生成歌词失败：$lastErrorMessage',
-          'Lyrics generation failed: $lastErrorMessage',
-        ),
+        _l10n().lyricsGenerationFailedWithError(lastErrorMessage ?? _l10n().unknownError),
       ),
     );
   }
@@ -1529,7 +1436,7 @@ class LyricsAiService {
       return text;
     }
 
-    return fallback ?? _t('未知错误', 'Unknown error');
+    return fallback ?? _l10n().unknownError;
   }
 
   void _logTranslationRequest({
@@ -1579,10 +1486,8 @@ class LyricsAiService {
         text.contains('os error: 113');
   }
 
-  String get _networkUnavailableMessage => _t(
-    '网络请求失败，请检查网络以及代理状态。',
-    'Network request failed. Please check your network and proxy settings.',
-  );
+  String get _networkUnavailableMessage =>
+      _l10n().networkRequestFailedCheckProxy;
 
   bool _shouldUseFallbackModel(int? statusCode) {
     return statusCode == 429 || _isServerError(statusCode);
@@ -1594,16 +1499,10 @@ class LyricsAiService {
 
   String? _fallbackFailureMessageForStatus(int? statusCode) {
     if (statusCode == 429) {
-      return _t(
-        '今天额度已用完，请等待明天额度恢复再试',
-        'Today’s quota has been exhausted. Please try again after it resets tomorrow.',
-      );
+      return _l10n().quotaExhaustedToday;
     }
     if (_isServerError(statusCode)) {
-      return _t(
-        '谷歌AI服务遭遇大量请求，暂时不可用',
-        'Google AI is under heavy load and is temporarily unavailable.',
-      );
+      return _l10n().googleAiHeavyLoad;
     }
     return null;
   }
@@ -1644,10 +1543,6 @@ class LyricsAiService {
 
     debugPrint('[LyricsAi] switching to OpenRouter after $fallbackLog.');
     return openRouterFallbackGenerator(fallbackApiKey);
-  }
-
-  String _t(String zh, String en) {
-    return localizedText(zh, en);
   }
 
   Future<_PreparedAudio> _prepareAudioFile(
@@ -1696,7 +1591,7 @@ class LyricsAiService {
       copyMetadata: false,
     );
     if (!result.result.success || result.result.outputPath == null) {
-      throw Exception(_t('音频转码失败。', 'Audio transcoding failed.'));
+      throw Exception(_l10n().audioTranscodingFailed);
     }
 
     final outputPath = result.result.outputPath!;
@@ -1713,10 +1608,7 @@ class LyricsAiService {
 
     if (!p.isWithin(resolvedTempPath, resolvedOutputPath)) {
       throw Exception(
-        _t(
-          '临时转码文件未生成在临时目录。',
-          'The temporary transcoded file was not created in the temp directory.',
-        ),
+        _l10n().tempTranscodeNotInTempDir,
       );
     }
     return _PreparedAudio(file: outputFile, tempFile: outputFile);
@@ -1737,4 +1629,10 @@ class _PreparedAudio {
 
   final File file;
   final File? tempFile;
+}
+
+AppLocalizations _l10n() {
+  return PlatformDispatcher.instance.locale.languageCode == 'zh'
+      ? AppLocalizationsZh()
+      : AppLocalizationsEn();
 }

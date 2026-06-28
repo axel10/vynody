@@ -1,10 +1,18 @@
 import 'dart:io';
+import 'dart:ui';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
 import 'package:vynody/player/lyrics/lyrics_service.dart';
-import 'package:vynody/utils/localized_text.dart';
+import '../l10n/app_localizations_en.dart';
+import '../l10n/app_localizations_zh.dart';
+
+AppLocalizations _l10n() {
+  final locale = PlatformDispatcher.instance.locale;
+  return locale.languageCode == 'zh' ? AppLocalizationsZh() : AppLocalizationsEn();
+}
 
 typedef OnlineLyricsSearch =
     Future<List<LyricTrack>> Function({
@@ -214,7 +222,7 @@ class _OnlineLyricsSearchDialogState extends State<_OnlineLyricsSearchDialog> {
         border: Border.all(color: color.withValues(alpha: 0.28), width: 1),
       ),
       child: Text(
-        '${localizedText('匹配度', 'Match')} ${score.toStringAsFixed(0)}%',
+        '${_l10n().matchScore} ${score.toStringAsFixed(0)}%',
         style: theme.textTheme.bodySmall?.copyWith(
           color: color,
           fontWeight: FontWeight.w600,

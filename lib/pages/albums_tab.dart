@@ -260,9 +260,7 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab> {
                                 key: const ValueKey('album-selection-panel'),
                                 selectedSongs: selectedSongs,
                                 allSongs: allSongs,
-                                title: Localizations.localeOf(context).languageCode == 'zh'
-                                    ? '已选择 ${_selectedAlbumIds.length} 张专辑'
-                                    : 'Selected ${_selectedAlbumIds.length} albums',
+                                title: l10n.selectedAlbumsCount(_selectedAlbumIds.length),
                                 onToggleSelectAll: () {
                                   final isAllSelected = _selectedAlbumIds.length == visibleAlbums.length && visibleAlbums.isNotEmpty;
                                   setState(() {

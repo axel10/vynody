@@ -28,7 +28,6 @@ import 'lyrics_panel_toasts.dart';
 import 'lyrics_panel_views.dart';
 import 'playback_ui_tuning.dart';
 import '../utils/song_context_menu_utils.dart';
-import 'package:vynody/utils/localized_text.dart';
 import 'package:vynody/player/metadata/metadata_helper.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/player/settings/settings_service.dart';
@@ -537,7 +536,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
         buildContextMenuItem<String>(
           value: 'copy_translation',
           enabled: true,
-          label: localizedText('复制翻译结果', 'Copy translation results'),
+          label: l10n.copyTranslationResults,
           icon: Icons.copy_rounded,
           context: context,
         ),
@@ -573,7 +572,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
                       lyricsState.lyricsSearchAttempted)) &&
               ref.read(audioCurrentMusicProvider) != null &&
               (saveToLrc || isMetadataWritable(ref.read(audioCurrentMusicProvider)!.path)),
-          label: localizedText('将歌词写入文件', 'Write lyrics to file'),
+          label: l10n.writeLyricsToFile,
           icon: Icons.save_alt_rounded,
           context: context,
         ),
@@ -581,7 +580,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
         buildContextMenuItem<String>(
           value: 'select_lyrics_source',
           enabled: hasCurrentSong,
-          label: localizedText('选择歌词来源', 'Select lyric source'),
+          label: l10n.selectLyricSource,
           icon: Icons.source_rounded,
           context: context,
         ),
@@ -634,11 +633,8 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
           final confirm = await showDialog<bool>(
             context: context,
             builder: (dialogContext) => AlertDialog(
-              title: Text(localizedText('重新生成歌词', 'Regenerate Lyrics')),
-              content: Text(localizedText(
-                '将清空当前歌词并重新生成，是否继续？',
-                'This will clear the current lyrics and regenerate. Do you want to continue?',
-              )),
+              title: Text(l10n.regenerateLyrics),
+              content: Text(l10n.regenerateLyricsConfirmation),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(dialogContext, false),
@@ -668,11 +664,8 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
           final confirm = await showDialog<bool>(
             context: context,
             builder: (dialogContext) => AlertDialog(
-              title: Text(localizedText('重新生成时间轴', 'Regenerate Timeline')),
-              content: Text(localizedText(
-                '将清空当前时间轴并重新生成，是否继续？',
-                'This will clear the current timeline and regenerate. Do you want to continue?',
-              )),
+              title: Text(l10n.regenerateTimeline),
+              content: Text(l10n.regenerateTimelineConfirmation),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(dialogContext, false),
@@ -702,11 +695,8 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
           final confirm = await showDialog<bool>(
             context: context,
             builder: (dialogContext) => AlertDialog(
-              title: Text(localizedText('重新翻译歌词', 'Re-translate Lyrics')),
-              content: Text(localizedText(
-                '将清空当前翻译并重新翻译，是否继续？',
-                'This will clear the current translation and re-translate. Do you want to continue?',
-              )),
+              title: Text(l10n.retranslateLyrics),
+              content: Text(l10n.retranslateLyricsConfirmation),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(dialogContext, false),
@@ -737,9 +727,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
             ? translation.translatedLines.join('\n').trim()
             : translation.translatedText.trim();
         await Clipboard.setData(ClipboardData(text: copyText));
-        showToast(
-          localizedText('已复制翻译结果到剪贴板', 'Translation results copied to clipboard'),
-        );
+        showToast(l10n.translationCopiedToClipboard);
       }
     } else if (selected == 'search_online_lyrics') {
       await _searchOnlineLyrics();
@@ -762,7 +750,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
               }).join('\n')
             : displayPlainLyrics;
 
-        showToast(localizedText('正在写入歌词...', 'Writing lyrics...'));
+        showToast(l10n.writingLyrics);
 
         final settings = ref.read(settingsServiceProvider);
         final displayLyrics = _lyricsForDisplay();
@@ -785,13 +773,13 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
             lyricsToSave,
             source: newSource,
           );
-          showToast(localizedText('歌词写入文件成功', 'Lyrics written to file successfully'));
+          showToast(l10n.lyricsWrittenToFile);
         } else {
           final errorMsg = MetadataHelper.lastWriteError ?? '';
           showToast(
             errorMsg.isNotEmpty
-                ? '${localizedText('写入歌词失败', 'Failed to write lyrics')}: $errorMsg'
-                : localizedText('写入歌词失败', 'Failed to write lyrics'),
+                ? '${l10n.writeLyricsFailed}: $errorMsg'
+                : l10n.writeLyricsFailed,
           );
         }
       }
@@ -1677,6 +1665,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     MusicFile song,
     List<LyricsCacheRecord> sources,
   ) async {
+    final l10n = AppLocalizations.of(context)!;
     final query = await _lyricsControllerActions.buildLyricsQueryForSong(song);
     final cacheKey = query?.cacheKey.trim() ?? '';
     if (cacheKey.isEmpty) return;
@@ -1717,7 +1706,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       builder: (context) {
         final theme = Theme.of(context);
         return AlertDialog(
-          title: Text(localizedText('选择歌词来源', 'Select lyric source')),
+          title: Text(l10n.selectLyricSource),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -1727,19 +1716,19 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
                 IconData icon;
                 switch (record.source) {
                   case LyricsCacheSource.external:
-                    title = localizedText('同名外置LRC文件', 'External LRC file');
+                    title = l10n.externalLrcFile;
                     icon = Icons.file_present_rounded;
                     break;
                   case LyricsCacheSource.embedded:
-                    title = localizedText('音频内嵌歌词', 'Embedded lyrics');
+                    title = l10n.embeddedLyrics;
                     icon = Icons.music_note_rounded;
                     break;
                   case LyricsCacheSource.manualAdjust:
-                    title = localizedText('手动修改的歌词', 'Manually adjusted lyrics');
+                    title = l10n.manuallyAdjustedLyrics;
                     icon = Icons.edit_note_rounded;
                     break;
                   case LyricsCacheSource.lrclib:
-                    title = localizedText('LrcLib在线歌词', 'LrcLib online lyrics');
+                    title = l10n.lrclibOnlineLyrics;
                     icon = Icons.cloud_done_rounded;
                     break;
                   default:
@@ -1747,7 +1736,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
                       final langSuffix = record.languageCode.isNotEmpty
                           ? ' (${getLanguageDisplayName(record.languageCode)})'
                           : '';
-                      title = '${localizedText('AI生成的歌词', 'AI generated lyrics')}$langSuffix';
+                      title = '${l10n.aiGeneratedLyrics}$langSuffix';
                       icon = Icons.auto_awesome_rounded;
                     } else {
                       title = record.source.dbValue;
@@ -1774,7 +1763,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text(localizedText('取消', 'Cancel')),
+              child: Text(l10n.cancel),
             ),
           ],
         );
@@ -1784,11 +1773,14 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
 
   String getLanguageDisplayName(String code) {
     if (code.isEmpty) return '';
+    final l10n = AppLocalizations.of(context)!;
     final lower = code.toLowerCase();
-    if (lower == 'zh') return '中文';
-    if (lower == 'en') return 'English';
-    if (lower == 'ja') return '日本語';
-    if (lower == 'ko') return '한국어';
-    return code.toUpperCase();
+    switch (lower) {
+      case 'zh': return l10n.chineseLanguage;
+      case 'en': return l10n.englishLanguage;
+      case 'ja': return l10n.japaneseLanguage;
+      case 'ko': return l10n.koreanLanguage;
+      default: return code.toUpperCase();
+    }
   }
 }

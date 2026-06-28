@@ -1,6 +1,16 @@
-import 'package:flutter/widgets.dart';
+import 'dart:ui';
 
 import 'package:vynody/player/lyrics/lyrics_generation_phase.dart';
+
+import 'package:vynody/l10n/app_localizations.dart';
+import 'package:vynody/l10n/app_localizations_en.dart';
+import 'package:vynody/l10n/app_localizations_zh.dart';
+
+AppLocalizations _l10n() {
+  return PlatformDispatcher.instance.locale.languageCode == 'zh' 
+      ? AppLocalizationsZh() 
+      : AppLocalizationsEn();
+}
 
 class LyricsSongTaskState {
   const LyricsSongTaskState({
@@ -31,25 +41,23 @@ class LyricsSongTaskState {
 
   String get activeStatusLabel {
     final generationLabel = generationStatus.trim();
-    final isZh =
-        WidgetsBinding.instance.platformDispatcher.locale.languageCode == 'zh';
     if (isGenerationBusy) {
       if (generationLabel.isNotEmpty) {
         return generationLabel;
       }
       return switch (generationPhase) {
         LyricsGenerationPhase.transcoding =>
-          isZh ? '正在转码歌曲文件' : 'Transcoding song file',
+          _l10n().transcodingSongFile,
         LyricsGenerationPhase.uploading =>
-          isZh ? '正在上传歌曲文件' : 'Uploading song file',
+          _l10n().uploadingSongFile,
         LyricsGenerationPhase.processing =>
-          isZh ? '正在等待文件就绪' : 'Waiting for file readiness',
+          _l10n().waitingForFileReadiness,
         LyricsGenerationPhase.requesting =>
-          isZh ? '正在请求模型响应' : 'Requesting model response',
+          _l10n().requestingModelResponse,
         LyricsGenerationPhase.generating =>
-          isZh ? '正在生成歌词' : 'Generating lyrics',
-        LyricsGenerationPhase.retrying => isZh ? '正在重试' : 'Retrying',
-        LyricsGenerationPhase.idle => isZh ? '正在处理' : 'Processing',
+          _l10n().generatingLyrics,
+        LyricsGenerationPhase.retrying => _l10n().retrying,
+        LyricsGenerationPhase.idle => _l10n().processing,
       };
     }
 
@@ -57,7 +65,7 @@ class LyricsSongTaskState {
     if (isTranslationBusy) {
       return translationLabel.isNotEmpty
           ? translationLabel
-          : (isZh ? '正在翻译歌词' : 'Translating lyrics');
+          : _l10n().translatingLyrics;
     }
 
     return '';

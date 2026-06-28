@@ -1,11 +1,20 @@
+import 'dart:ui';
+
 import 'package:path/path.dart' as p;
 
 import 'package:audio_core/audio_core.dart';
 
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/models/music_folder.dart';
-import 'package:vynody/utils/localized_text.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
+import '../../l10n/app_localizations.dart';
+import '../../l10n/app_localizations_en.dart';
+import '../../l10n/app_localizations_zh.dart';
+
+AppLocalizations _l10n() {
+  final locale = PlatformDispatcher.instance.locale;
+  return locale.languageCode == 'zh' ? AppLocalizationsZh() : AppLocalizationsEn();
+}
 
 class ScannerTreeBuilder {
   ScannerTreeBuilder({
@@ -42,7 +51,7 @@ class ScannerTreeBuilder {
       items,
       compareNaturally,
       rootPath: 'system',
-      rootName: localizedText('系统媒体库', 'System Media Library'),
+      rootName: _l10n().systemMediaLibrary,
     );
   }
 

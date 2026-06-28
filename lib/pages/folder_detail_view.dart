@@ -243,7 +243,6 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
   Widget build(BuildContext context) {
     final scanner = ref.watch(scannerServiceProvider);
     final settings = ref.watch(settingsServiceProvider);
-    final isZh = Localizations.localeOf(context).languageCode == 'zh';
     final l10n = AppLocalizations.of(context)!;
     final hasPermission = ref.watch(
       scannerServiceProvider.select((scanner) => scanner.hasPermission),
@@ -406,7 +405,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  isZh ? '未找到匹配的文件夹或歌曲' : 'No matching folders or songs found',
+                  l10n.noMatchingFoldersOrSongs,
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
                   ),
@@ -818,7 +817,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
     );
 
     final settings = ref.watch(settingsServiceProvider);
-    final isZh = Localizations.localeOf(context).languageCode == 'zh';
+    final l10n = AppLocalizations.of(context)!;
     final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
     final statusBarHeight = MediaQuery.of(context).padding.top;
 
@@ -893,8 +892,8 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
                       const SizedBox(width: 12),
                       Text(
                         settings.folderViewMode == FolderViewMode.grid
-                            ? (isZh ? '列表视图' : 'List View')
-                            : (isZh ? '网格视图' : 'Grid View'),
+                            ? l10n.listView
+                            : l10n.gridView,
                       ),
                     ],
                   ),
@@ -922,8 +921,8 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
                     : FolderViewMode.grid;
               },
               tooltip: settings.folderViewMode == FolderViewMode.grid
-                  ? (isZh ? '列表视图' : 'List View')
-                  : (isZh ? '网格视图' : 'Grid View'),
+                  ? l10n.listView
+                  : l10n.gridView,
             ),
             const SizedBox(width: 8),
             IconButton(
@@ -1101,7 +1100,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
     required VoidCallback onShuffle,
   }) {
     final theme = Theme.of(context);
-    final isZh = Localizations.localeOf(context).languageCode == 'zh';
+    final l10n = AppLocalizations.of(context)!;
 
     final int hash = folder.path.hashCode;
     final double hue = (hash.abs() % 360).toDouble();
@@ -1184,7 +1183,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      isZh ? '$songsCount 首歌曲' : '$songsCount songs',
+                      l10n.songCount(songsCount),
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: theme.colorScheme.primary,
                         fontWeight: FontWeight.w600,
@@ -1210,7 +1209,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
                           autofocus: true,
                           style: theme.textTheme.bodyMedium,
                           decoration: InputDecoration(
-                            hintText: isZh ? '在当前目录及子目录下搜索...' : 'Search in folder and subfolders...',
+                            hintText: l10n.searchInFolderAndSubfolders,
                             prefixIcon: const Icon(Icons.search_rounded, size: 20),
                             suffixIcon: _searchQuery.isNotEmpty
                                 ? IconButton(
@@ -1258,7 +1257,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
                       FilledButton.icon(
                         onPressed: onPlayAll,
                         icon: const Icon(Icons.play_arrow_rounded, size: 16),
-                        label: Text(isZh ? '播放全部' : 'Play All'),
+                        label: Text(l10n.playAll),
                         style: FilledButton.styleFrom(
                           minimumSize: const Size(0, 32),
                           padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -1274,7 +1273,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
                       FilledButton.tonalIcon(
                         onPressed: onShuffle,
                         icon: const Icon(Icons.shuffle_rounded, size: 16),
-                        label: Text(isZh ? '随机播放' : 'Shuffle'),
+                        label: Text(l10n.shuffle),
                         style: FilledButton.styleFrom(
                           minimumSize: const Size(0, 32),
                           padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -1294,7 +1293,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
                           });
                         },
                         icon: const Icon(Icons.search_rounded, size: 16),
-                        tooltip: isZh ? '搜索' : 'Search',
+                        tooltip: l10n.search,
                         style: IconButton.styleFrom(
                           minimumSize: const Size(32, 32),
                           padding: EdgeInsets.zero,

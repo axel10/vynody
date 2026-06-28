@@ -371,9 +371,7 @@ class _ArtistsTabState extends ConsumerState<ArtistsTab> {
                             key: const ValueKey('artist-selection-panel'),
                             selectedSongs: selectedSongs,
                             allSongs: allSongs,
-                            title: Localizations.localeOf(context).languageCode == 'zh'
-                                ? '已选择 ${_selectedArtistKeys.length} 位艺术家'
-                                : 'Selected ${_selectedArtistKeys.length} artists',
+                            title: l10n.selectedArtistsCount(_selectedArtistKeys.length),
                             onToggleSelectAll: () {
                               final isAllSelected = _selectedArtistKeys.length == visibleArtists.length && visibleArtists.isNotEmpty;
                               setState(() {

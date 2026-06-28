@@ -1,5 +1,15 @@
 import 'dart:ui';
 
+import 'package:vynody/l10n/app_localizations.dart';
+import 'package:vynody/l10n/app_localizations_en.dart';
+import 'package:vynody/l10n/app_localizations_zh.dart';
+
+AppLocalizations _l10n() {
+  return PlatformDispatcher.instance.locale.languageCode == 'zh' 
+      ? AppLocalizationsZh() 
+      : AppLocalizationsEn();
+}
+
 class LanguageCodeUtils {
   static const String fallbackLanguageCode = 'en';
   static const List<String> supportedTranslationLanguageCodes = <String>[
@@ -41,32 +51,31 @@ class LanguageCodeUtils {
 
   static String languageDisplayName(String languageCode) {
     final normalized = normalizeLanguageCode(languageCode);
-    final isZh = PlatformDispatcher.instance.locale.languageCode == 'zh';
 
     switch (normalized) {
       case 'zh-cn':
-        return isZh ? '简体中文' : 'Simplified Chinese';
+        return _l10n().simplifiedChinese;
       case 'zh-tw':
-        return isZh ? '繁体中文' : 'Traditional Chinese';
+        return _l10n().traditionalChinese;
       case 'en':
-        return isZh ? '英文' : 'English';
+        return _l10n().englishLanguage;
       case 'ja':
-        return isZh ? '日文' : 'Japanese';
+        return _l10n().japaneseLanguage;
       case 'ko':
-        return isZh ? '韩文' : 'Korean';
+        return _l10n().koreanLanguage;
       case 'fr':
-        return isZh ? '法文' : 'French';
+        return _l10n().frenchLanguage;
       case 'de':
-        return isZh ? '德文' : 'German';
+        return _l10n().germanLanguage;
       case 'es':
-        return isZh ? '西班牙文' : 'Spanish';
+        return _l10n().spanishLanguage;
       case 'pt':
-        return isZh ? '葡萄牙文' : 'Portuguese';
+        return _l10n().portugueseLanguage;
       case 'ru':
-        return isZh ? '俄文' : 'Russian';
+        return _l10n().russianLanguage;
       default:
         return normalized.isEmpty
-            ? (isZh ? '系统语言' : 'System language')
+            ? _l10n().systemLanguage
             : languageCode;
     }
   }

@@ -1,4 +1,8 @@
-import 'package:vynody/utils/localized_text.dart';
+import 'dart:ui';
+
+import 'package:vynody/l10n/app_localizations.dart';
+import 'package:vynody/l10n/app_localizations_en.dart';
+import 'package:vynody/l10n/app_localizations_zh.dart';
 import 'package:vynody/utils/lrc_utils.dart';
 
 final class LyricsAiPromptBuilder {
@@ -242,32 +246,37 @@ final class LyricsAiTranslationTextHelper {
       case 'zh':
       case 'zh-cn':
       case 'zh-hans':
-        return _t('中文', 'Chinese');
+        return _l10n().chineseLanguage;
       case 'zh-tw':
       case 'zh-hant':
-        return _t('繁体中文', 'Traditional Chinese');
+        return _l10n().traditionalChinese;
       case 'en':
-        return _t('英文', 'English');
+        return _l10n().englishLanguage;
       case 'ja':
-        return _t('日文', 'Japanese');
+        return _l10n().japaneseLanguage;
       case 'ko':
-        return _t('韩文', 'Korean');
+        return _l10n().koreanLanguage;
       case 'fr':
-        return _t('法文', 'French');
+        return _l10n().frenchLanguage;
       case 'de':
-        return _t('德文', 'German');
+        return _l10n().germanLanguage;
       case 'es':
-        return _t('西班牙文', 'Spanish');
+        return _l10n().spanishLanguage;
       case 'pt':
-        return _t('葡萄牙文', 'Portuguese');
+        return _l10n().portugueseLanguage;
       case 'ru':
-        return _t('俄文', 'Russian');
+        return _l10n().russianLanguage;
       default:
         return languageCode.trim().isEmpty
-            ? _t('目标语言', 'Target language')
+            ? _l10n().targetLanguage
             : languageCode;
     }
   }
 
-  static String _t(String zh, String en) => localizedText(zh, en);
+}
+
+AppLocalizations _l10n() {
+  return PlatformDispatcher.instance.locale.languageCode == 'zh'
+      ? AppLocalizationsZh()
+      : AppLocalizationsEn();
 }

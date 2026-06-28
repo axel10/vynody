@@ -1,10 +1,9 @@
 import 'dart:ui';
+import '../l10n/app_localizations.dart';
+import '../l10n/app_localizations_en.dart';
+import '../l10n/app_localizations_zh.dart';
 
-bool isZhLocale([Locale? locale]) {
-  final effectiveLocale = locale ?? PlatformDispatcher.instance.locale;
-  return effectiveLocale.languageCode.toLowerCase() == 'zh';
-}
-
-String localizedText(String zh, String en, {Locale? locale}) {
-  return isZhLocale(locale) ? zh : en;
+AppLocalizations get currentAppL10n {
+  final locale = PlatformDispatcher.instance.locale;
+  return locale.languageCode == 'zh' ? AppLocalizationsZh() : AppLocalizationsEn();
 }

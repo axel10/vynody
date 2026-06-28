@@ -204,7 +204,7 @@ class _ApiKeyDialogState extends State<_ApiKeyDialog> {
         ),
         TextButton(
           onPressed: _isTesting ? null : _clearAndSave,
-          child: const Text('清空'),
+          child: Text(AppLocalizations.of(context)!.clear),
         ),
         TextButton(
           onPressed: _isTesting ? null : _runTest,
@@ -297,9 +297,9 @@ Future<String?> showDoubaoApiKeyDialog(
   final l10n = AppLocalizations.of(context)!;
   return _showApiKeyDialog(
     context,
-    title: '输入豆包 API Key',
-    description: '请输入火山方舟 / 豆包的 API Key，用于歌词生成和翻译。',
-    hintText: '请输入 API Key',
+    title: l10n.enterDoubaoApiKey,
+    description: l10n.doubaoApiKeyDescription,
+    hintText: l10n.pleaseEnterApiKeyHint,
     testButtonLabel: l10n.testConnection,
     saveButtonLabel: l10n.save,
     emptyMessage: l10n.enterApiKey,
@@ -319,11 +319,11 @@ Future<String?> showDoubaoApiKeyDialog(
         return _ApiKeyDialogResult(
           success: result.success,
           message: result.success
-              ? '连接成功，检测到 ${result.models.length} 个模型。'
+              ? l10n.connectionSuccessDetectedModels(result.models.length)
               : result.message,
         );
       } catch (e) {
-        return _ApiKeyDialogResult(success: false, message: '连接测试异常：$e');
+        return _ApiKeyDialogResult(success: false, message: l10n.connectionTestException(e));
       }
     },
   );
@@ -338,9 +338,9 @@ Future<String?> showDeepSeekApiKeyDialog(
   final l10n = AppLocalizations.of(context)!;
   return _showApiKeyDialog(
     context,
-    title: '输入 DeepSeek API Key',
-    description: '请输入 DeepSeek 的 API Key，仅用于歌词翻译。',
-    hintText: '请输入 API Key',
+    title: l10n.enterDeepseekApiKey,
+    description: l10n.deepseekApiKeyDescription,
+    hintText: l10n.pleaseEnterApiKeyHint,
     testButtonLabel: l10n.testConnection,
     saveButtonLabel: l10n.save,
     emptyMessage: l10n.enterApiKey,
@@ -359,11 +359,11 @@ Future<String?> showDeepSeekApiKeyDialog(
         return _ApiKeyDialogResult(
           success: result.success,
           message: result.success
-              ? '连接成功，检测到 ${result.models.length} 个模型。'
+              ? l10n.connectionSuccessDetectedModels(result.models.length)
               : result.message,
         );
       } catch (e) {
-        return _ApiKeyDialogResult(success: false, message: '连接测试异常：$e');
+        return _ApiKeyDialogResult(success: false, message: l10n.connectionTestException(e));
       }
     },
   );
@@ -526,9 +526,10 @@ class _LyricsApiKeyWizardDialogState
 
   Future<void> _runTestConnection() async {
     final apiKey = _keyController.text.trim();
+    final l10n = AppLocalizations.of(context)!;
     if (apiKey.isEmpty) {
       setState(() {
-        _statusText = '请输入 API Key。';
+        _statusText = l10n.pleaseEnterApiKey;
         _statusType = _StatusType.warning;
       });
       return;
@@ -536,7 +537,7 @@ class _LyricsApiKeyWizardDialogState
 
     setState(() {
       _isTesting = true;
-      _statusText = '正在测试连接...';
+      _statusText = l10n.testingConnectionProgress;
       _statusType = _StatusType.loading;
     });
 
@@ -578,7 +579,7 @@ class _LyricsApiKeyWizardDialogState
         setState(() {
           _isTesting = false;
           _statusText = result.success
-              ? '连接成功，检测到 ${result.models.length} 个模型。'
+              ? l10n.connectionSuccessDetectedModels(result.models.length)
               : result.message;
           _statusType = result.success
               ? _StatusType.success
@@ -588,7 +589,7 @@ class _LyricsApiKeyWizardDialogState
     } catch (e) {
       setState(() {
         _isTesting = false;
-        _statusText = '连接测试异常：$e';
+        _statusText = l10n.connectionTestException(e);
         _statusType = _StatusType.error;
       });
     }
@@ -667,48 +668,28 @@ class _LyricsApiKeyWizardDialogState
     Navigator.of(context).pop(true);
   }
 
-  bool _isZhLocale(BuildContext context) {
-    return Localizations.localeOf(context).languageCode.toLowerCase() == 'zh';
-  }
-
   _ProviderDetail _getProviderDetail(LyricsAiProvider provider) {
-    final isZh = _isZhLocale(context);
+    final l10n = AppLocalizations.of(context)!;
     switch (provider) {
       case LyricsAiProvider.googleAiStudio:
         return _ProviderDetail(
-          pros: isZh
-              ? 'Google 官方通道，Gemini 模型能力强，免费额度较多。'
-              : 'Official Google channel with strong Gemini models and generous free quotas.',
-          cons: isZh
-              ? '中国大陆直连受限，需要稳定的 VPN/代理。请求人数较多时可能报 429，遇到 429 请切换到其他渠道。'
-              : 'High traffic can occasionally cause 429 errors. If that happens, switch to another provider.',
+          pros: l10n.googleProviderPros,
+          cons: l10n.googleProviderCons,
         );
       case LyricsAiProvider.openRouter:
         return _ProviderDetail(
-          pros: isZh
-              ? '海外大模型聚合平台，可使用多个模型，也有部分免费模型。'
-              : 'A model aggregator with access to many providers and some free models.',
-          cons: isZh
-              ? '充值需要支付手续费，网页只有英文。'
-              : 'Top-ups may include processing fees, and the website is English-only.',
+          pros: l10n.openRouterProviderPros,
+          cons: l10n.openRouterProviderCons,
         );
       case LyricsAiProvider.doubao:
         return _ProviderDetail(
-          pros: isZh
-              ? '字节跳动出品，国内访问快，中文效果好。新用户每个模型有 50 万免费 token。'
-              : 'Built by ByteDance, strong for Chinese text. New users get 500k free tokens per model.',
-          cons: isZh
-              ? '注册步骤相对繁琐，需要实名认证。'
-              : 'Registration is relatively involved and requires real-name verification.',
+          pros: l10n.doubaoProviderPros,
+          cons: l10n.doubaoProviderCons,
         );
       case LyricsAiProvider.deepseek:
         return _ProviderDetail(
-          pros: isZh
-              ? '中文理解好，价格便宜，适合歌词翻译。'
-              : 'Good Chinese understanding, low pricing, and well suited for lyric translation.',
-          cons: isZh
-              ? '仅支持文本输入。如需歌词生成、时间轴调整，需要填入其他渠道 API Key。'
-              : 'Text input only. Lyric generation and timeline adjustment require an API key from another provider.',
+          pros: l10n.deepseekProviderPros,
+          cons: l10n.deepseekProviderCons,
         );
       case LyricsAiProvider.custom:
         return _ProviderDetail(
@@ -720,43 +701,29 @@ class _LyricsApiKeyWizardDialogState
 
   Widget _buildIntroPage(BuildContext context) {
     final isGeneration = widget.purpose == LyricsAiModelPurpose.generation;
-    final isZh = _isZhLocale(context);
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          isZh
-              ? isGeneration
-                    ? '什么是 AI 歌词？'
-                    : '什么是 AI 歌词翻译？'
-              : isGeneration
-              ? 'What are AI lyrics?'
-              : 'What is AI lyric translation?',
+          isGeneration ? l10n.whatAreAiLyrics : l10n.whatIsAiLyricTranslation,
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
         ),
         const SizedBox(height: 8),
         Text(
-          isZh
-              ? isGeneration
-                    ? 'AI 可以根据歌曲内容生成歌词，并自动匹配时间轴。'
-                    : 'AI 可以把歌词翻译成你熟悉的语言，方便理解歌曲内容。'
-              : isGeneration
-              ? 'AI can generate lyrics from the song and align them to a timeline.'
-              : 'AI can translate lyrics into your preferred language so the song is easier to understand.',
+          isGeneration ? l10n.aiLyricsIntroGeneration : l10n.aiLyricsIntroTranslation,
           style: const TextStyle(fontSize: 14, height: 1.4),
         ),
         const SizedBox(height: 16),
         Text(
-          isZh ? '为什么需要 API Key？' : 'Why do I need an API key?',
+          l10n.whyNeedApiKey,
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
         ),
         const SizedBox(height: 8),
         Text(
-          isZh
-              ? 'API Key 相当于你在 AI 服务商那里的访问凭证。应用会用它直接向服务商发起请求，完成歌词生成、时间轴调整或翻译。'
-              : 'An API key is your access credential for an AI provider. The app uses it to send requests directly for lyric generation, timeline adjustment, or translation.',
+          l10n.apiKeyExplanation,
           style: const TextStyle(fontSize: 14, height: 1.4),
         ),
         const SizedBox(height: 16),
@@ -775,9 +742,7 @@ class _LyricsApiKeyWizardDialogState
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  isZh
-                      ? 'API Key 只保存在你的本地设备，不会上传到 Vynody 开发者服务器。'
-                      : 'Your API key is stored only on this device and is never uploaded to Vynody developer servers.',
+                  l10n.apiKeyLocalOnly,
                   style: const TextStyle(fontSize: 13, height: 1.3),
                 ),
               ),
@@ -789,7 +754,7 @@ class _LyricsApiKeyWizardDialogState
   }
 
   Widget _buildProviderSelectionPage(BuildContext context) {
-    final isZh = _isZhLocale(context);
+    final l10n = AppLocalizations.of(context)!;
     final filteredProviders = LyricsAiProvider.values.where((p) {
       if (p == LyricsAiProvider.custom) {
         return false;
@@ -807,7 +772,7 @@ class _LyricsApiKeyWizardDialogState
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          isZh ? '选择一个 AI 服务商：' : 'Choose an AI provider:',
+          l10n.chooseAnAiProvider,
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
         ),
         const SizedBox(height: 12),
@@ -1038,7 +1003,7 @@ class _LyricsApiKeyWizardDialogState
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  isZh ? '【特点】' : 'Highlights',
+                  l10n.highlights,
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color: theme.colorScheme.primary,
@@ -1052,7 +1017,7 @@ class _LyricsApiKeyWizardDialogState
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  isZh ? '【注意事项】' : 'Notes',
+                  l10n.notes,
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color: theme.colorScheme.error,
@@ -1074,7 +1039,7 @@ class _LyricsApiKeyWizardDialogState
 
   Widget _buildApiKeyInputPage(BuildContext context) {
     final provider = _selectedProvider!;
-    final isZh = _isZhLocale(context);
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
 
     String getKeyUrl = '';
@@ -1115,9 +1080,7 @@ class _LyricsApiKeyWizardDialogState
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          isZh
-              ? '请输入 ${provider.displayName} 的 API Key：'
-              : 'Enter your ${provider.displayName} API key:',
+          l10n.enterProviderApiKey(provider.displayName),
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
         ),
         const SizedBox(height: 12),
@@ -1129,7 +1092,7 @@ class _LyricsApiKeyWizardDialogState
           autocorrect: false,
           decoration: InputDecoration(
             labelText: 'API Key',
-            hintText: isZh ? '在此粘贴你的 API Key' : 'Paste your API key here',
+            hintText: l10n.pasteYourApiKey,
             suffixIcon: IconButton(
               icon: Icon(
                 _obscureText
@@ -1157,7 +1120,7 @@ class _LyricsApiKeyWizardDialogState
             TextButton.icon(
               onPressed: () => launchUrlString(getKeyUrl),
               icon: const Icon(Icons.open_in_new_rounded, size: 16),
-              label: Text(isZh ? '获取 API Key' : 'Get API key'),
+              label: Text(l10n.getApiKey),
             ),
             ElevatedButton.icon(
               onPressed: _isTesting ? null : _runTestConnection,
@@ -1168,15 +1131,7 @@ class _LyricsApiKeyWizardDialogState
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.network_check_rounded, size: 16),
-              label: Text(
-                _isTesting
-                    ? isZh
-                          ? '正在测试...'
-                          : 'Testing...'
-                    : isZh
-                    ? '测试连接'
-                    : 'Test connection',
-              ),
+              label: Text(_isTesting ? l10n.testing : l10n.testConnectionButton),
             ),
           ],
         ),
@@ -1203,26 +1158,21 @@ class _LyricsApiKeyWizardDialogState
   Widget build(BuildContext context) {
     final isPage3Valid =
         _selectedProvider != null && _keyController.text.trim().isNotEmpty;
-    final isZh = _isZhLocale(context);
+    final l10n = AppLocalizations.of(context)!;
     final settings = ref.read(settingsServiceProvider);
+    final isGeneration = widget.purpose == LyricsAiModelPurpose.generation;
 
     Widget content;
     String title;
     List<Widget> actions;
 
     if (_currentPage == 1) {
-      title = isZh
-          ? widget.purpose == LyricsAiModelPurpose.generation
-                ? '启用 AI 歌词生成'
-                : '启用 AI 歌词翻译'
-          : widget.purpose == LyricsAiModelPurpose.generation
-          ? 'Enable AI Lyric Generation'
-          : 'Enable AI Lyric Translation';
+      title = isGeneration ? l10n.enableAiLyricGeneration : l10n.enableAiLyricTranslation;
       content = _buildIntroPage(context);
       actions = [
         TextButton(
           onPressed: () => Navigator.of(context).pop(false),
-          child: Text(isZh ? '暂不启用' : 'Not now'),
+          child: Text(l10n.notNow),
         ),
         FilledButton(
           onPressed: () {
@@ -1230,11 +1180,11 @@ class _LyricsApiKeyWizardDialogState
               _currentPage = 2;
             });
           },
-          child: Text(isZh ? '开始配置' : 'Start setup'),
+          child: Text(l10n.startSetup),
         ),
       ];
     } else if (_currentPage == 2) {
-      title = isZh ? '选择 AI 服务商' : 'Choose AI Provider';
+      title = l10n.chooseAiProvider;
       content = _buildProviderSelectionPage(context);
       actions = [
         TextButton(
@@ -1247,15 +1197,7 @@ class _LyricsApiKeyWizardDialogState
               });
             }
           },
-          child: Text(
-            isZh
-                ? settings.hasAnyLyricsModelProvider
-                      ? '取消'
-                      : '上一步'
-                : settings.hasAnyLyricsModelProvider
-                ? 'Cancel'
-                : 'Back',
-          ),
+          child: Text(settings.hasAnyLyricsModelProvider ? l10n.cancel : l10n.backStep),
         ),
         FilledButton(
           onPressed: _selectedProvider == null
@@ -1266,22 +1208,18 @@ class _LyricsApiKeyWizardDialogState
                       context: context,
                       builder: (dialogContext) {
                         return AlertDialog(
-                          title: Text(isZh ? '提示' : 'Note'),
-                          content: Text(
-                            isZh
-                                ? 'DeepSeek 仅支持文本输入。如需歌词生成、时间轴调整，需要填入其他渠道 API Key。'
-                                : 'DeepSeek supports text input only. Lyric generation and timeline adjustment require an API key from another provider.',
-                          ),
+                          title: Text(l10n.noteTitle),
+                          content: Text(l10n.deepseekTextInputOnlyNote),
                           actions: [
                             TextButton(
                               onPressed: () =>
                                   Navigator.of(dialogContext).pop(false),
-                              child: Text(isZh ? '取消' : 'Cancel'),
+                              child: Text(l10n.cancel),
                             ),
                             TextButton(
                               onPressed: () =>
                                   Navigator.of(dialogContext).pop(true),
-                              child: Text(isZh ? '继续' : 'Continue'),
+                              child: Text(l10n.continueAction),
                             ),
                           ],
                         );
@@ -1294,11 +1232,11 @@ class _LyricsApiKeyWizardDialogState
                     _currentPage = 3;
                   });
                 },
-          child: Text(isZh ? '下一步' : 'Next'),
+          child: Text(l10n.nextStep),
         ),
       ];
     } else {
-      title = isZh ? '配置 API Key' : 'Configure API Key';
+      title = l10n.configureApiKey;
       content = _buildApiKeyInputPage(context);
       actions = [
         TextButton(
@@ -1309,11 +1247,11 @@ class _LyricsApiKeyWizardDialogState
               _statusType = _StatusType.none;
             });
           },
-          child: Text(isZh ? '上一步' : 'Back'),
+          child: Text(l10n.backStep),
         ),
         FilledButton(
           onPressed: isPage3Valid && !_isTesting ? _saveAndFinish : null,
-          child: Text(isZh ? '保存并完成' : 'Save and finish'),
+          child: Text(l10n.saveAndFinish),
         ),
       ];
     }

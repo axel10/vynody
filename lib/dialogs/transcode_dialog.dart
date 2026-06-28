@@ -304,7 +304,7 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
     final l10n = AppLocalizations.of(context)!;
     if (Platform.isAndroid && _androidOutputDirectory == null) {
       setState(() {
-        _errorText = 'Please choose an Android output directory first.';
+        _errorText = l10n.chooseAndroidOutputDirectoryFirst;
       });
       return;
     }
@@ -502,7 +502,7 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
                         Text(
                           _currentFileProgress == null
                               ? l10n.transcodePreparing
-                              : 'Current song ${((_currentFileProgress! * 100).clamp(0, 100)).toStringAsFixed(1)}%',
+                              : l10n.currentSongProgressPercent((( _currentFileProgress! * 100).clamp(0, 100)).toStringAsFixed(1)),
                         ),
                         const SizedBox(height: 12),
                         LinearProgressIndicator(
@@ -513,7 +513,7 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
                         Text(
                           _overallProgress == null
                               ? l10n.transcodePreparing
-                              : 'Overall ${((_overallProgress! * 100).clamp(0, 100)).toStringAsFixed(1)}%',
+                              : l10n.overallProgressPercent((( _overallProgress! * 100).clamp(0, 100)).toStringAsFixed(1)),
                         ),
                       ],
                     ),
@@ -546,8 +546,7 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
 
   Widget _buildFilesList(AppLocalizations l10n) {
     final theme = Theme.of(context);
-    final isZh = Localizations.localeOf(context).languageCode == 'zh';
-    final titleText = isZh ? '待转码文件' : 'Files to Transcode';
+    final titleText = l10n.filesToTranscode;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -912,7 +911,7 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
         const SizedBox(height: 6),
         Text(
           outputDirectory == null
-              ? 'Please choose an output directory.'
+              ? l10n.pleaseChooseOutputDirectory
               : '${l10n.transcodeOutputPreview}: $preview',
           style: Theme.of(context).textTheme.bodySmall,
         ),
