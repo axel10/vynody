@@ -49,8 +49,17 @@ class DesktopTrayService {
 
   String _getIconAbsolutePath(String assetPath) {
     if (Platform.isMacOS) {
+      final baseDir = path.dirname(Platform.resolvedExecutable);
+      final frameworkPath = path.normalize(path.joinAll([
+        baseDir,
+        '../Frameworks/App.framework/Resources/flutter_assets',
+        assetPath,
+      ]));
+      if (File(frameworkPath).existsSync()) {
+        return frameworkPath;
+      }
       return path.normalize(path.joinAll([
-        path.dirname(Platform.resolvedExecutable),
+        baseDir,
         '../Resources/flutter_assets',
         assetPath,
       ]));
