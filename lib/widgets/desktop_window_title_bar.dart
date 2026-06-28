@@ -550,7 +550,8 @@ class _WindowsCapsuleButtonState extends State<_WindowsCapsuleButton> {
   @override
   Widget build(BuildContext context) {
     final isDark = widget.brightness == Brightness.dark;
-    final buttonRadius = BorderRadius.all(const Radius.circular(6));
+    final isLinux = Platform.isLinux;
+    final buttonRadius = isLinux ? null : BorderRadius.all(const Radius.circular(6));
 
     Color iconColor =
         widget.data.color ?? (isDark ? Colors.white70 : Colors.black87);
@@ -584,11 +585,12 @@ class _WindowsCapsuleButtonState extends State<_WindowsCapsuleButton> {
           alignment: Alignment.center,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 150),
-            width: 32,
-            height: widget.height - 10,
+            width: isLinux ? 24 : 32,
+            height: isLinux ? 24 : widget.height - 10,
             decoration: BoxDecoration(
               color: _isHovered ? hoverBg : Colors.transparent,
-              borderRadius: buttonRadius,
+              shape: isLinux ? BoxShape.circle : BoxShape.rectangle,
+              borderRadius: isLinux ? null : buttonRadius,
             ),
             child: Icon(
               widget.data.icon,
