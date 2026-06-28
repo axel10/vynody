@@ -1,0 +1,2802 @@
+// ignore: unused_import
+import 'package:intl/intl.dart' as intl;
+import 'app_localizations.dart';
+
+// ignore_for_file: type=lint
+
+/// The translations for German (`de`).
+class AppLocalizationsDe extends AppLocalizations {
+  AppLocalizationsDe([String locale = 'de']) : super(locale);
+
+  @override
+  String get appTitle => 'Vynody';
+
+  @override
+  String get alwaysOnTop => 'Immer im Vordergrund';
+
+  @override
+  String get systemMediaLibrary => 'System-Mediathek';
+
+  @override
+  String get scanningDirectory => 'Scanne Verzeichnis...';
+
+  @override
+  String filesPreprocessed(Object count) {
+    return '$count vorverarbeitet';
+  }
+
+  @override
+  String filesDiscovered(Object count) {
+    return '$count entdeckt';
+  }
+
+  @override
+  String filesFullyProcessed(Object count) {
+    return '$count vollständig verarbeitet';
+  }
+
+  @override
+  String get directoryAddedSuccess => 'Verzeichnis erfolgreich hinzugefügt';
+
+  @override
+  String get directoryAddedNoMusic =>
+      'Verzeichnis hinzugefügt, aber keine abspielbaren Audiodateien gefunden';
+
+  @override
+  String get scanDirectory => 'Verzeichnis scannen';
+
+  @override
+  String get sort => 'Sortieren';
+
+  @override
+  String get addRootDirectory => 'Stammverzeichnis hinzufügen';
+
+  @override
+  String get goBack => 'Zurück';
+
+  @override
+  String get noMediaLibraryPermission => 'Kein Zugriff auf die Mediathek';
+
+  @override
+  String get grantPermission => 'Berechtigung erteilen';
+
+  @override
+  String get needPermissionToScan =>
+      'Berechtigung zum Scannen lokaler Musik erforderlich';
+
+  @override
+  String get rebuildTagDatabase => 'Tag-Datenbank neu aufbauen';
+
+  @override
+  String get rebuildDatabase => 'Datenbank neu aufbauen';
+
+  @override
+  String get confirmRebuildDatabase =>
+      'Sollen alle Song-Tags aktualisiert werden? Dies kann einige Zeit dauern.';
+
+  @override
+  String get cancel => 'Abbrechen';
+
+  @override
+  String get confirm => 'Bestätigen';
+
+  @override
+  String get rebuildingDatabase => 'Song-Tag-Datenbank wird neu aufgebaut...';
+
+  @override
+  String get sortBy => 'Sortieren nach';
+
+  @override
+  String get sortScope => 'Bereich';
+
+  @override
+  String get sortOrder => 'Sortierreihenfolge';
+
+  @override
+  String get title => 'Titel';
+
+  @override
+  String get fileName => 'Dateiname';
+
+  @override
+  String get trackNumber => 'Titelnummer';
+
+  @override
+  String get ascending => 'Aufsteigend';
+
+  @override
+  String get descending => 'Absteigend';
+
+  @override
+  String get currentFolderScope => 'Aktueller Ordner';
+
+  @override
+  String get globalScope => 'Global';
+
+  @override
+  String get visualizerSettings => 'Wiedergabeseiten-Einstellungen';
+
+  @override
+  String get algorithm => 'Spektrum';
+
+  @override
+  String get appearance => 'Aussehen';
+
+  @override
+  String get spectrumAppearanceGroup => 'Spektrum-Aussehen';
+
+  @override
+  String get spectrumAdvancedOptions => 'Erweiterte Spektrum-Optionen';
+
+  @override
+  String get resetAlgorithm => 'Algorithmus zurücksetzen';
+
+  @override
+  String get resetAppearance => 'Aussehen zurücksetzen';
+
+  @override
+  String get smoothing => 'Glättung';
+
+  @override
+  String get gravity => 'Schwerkraft';
+
+  @override
+  String get logScale => 'Logarithmische Skala';
+
+  @override
+  String get contrast => 'Kontrast';
+
+  @override
+  String get normalization => 'Normalisierung';
+
+  @override
+  String get multiplier => 'Multiplikator';
+
+  @override
+  String get skipHighFrequency => 'Hohe Frequenzen überspringen';
+
+  @override
+  String get frequencyGroups => 'Frequenzgruppen';
+
+  @override
+  String get aggregationMode => 'Aggregationsmodus';
+
+  @override
+  String get opacity => 'Deckkraft';
+
+  @override
+  String get enableGradient => 'Farbverlauf aktivieren';
+
+  @override
+  String get startColor => 'Startfarbe';
+
+  @override
+  String get endColor => 'Endfarbe';
+
+  @override
+  String get gradientRangeStop1 => 'Verlaufsstopp 1';
+
+  @override
+  String get gradientRangeStop2 => 'Verlaufsstopp 2';
+
+  @override
+  String get gradientRepeatMode => 'Wiederholungsmodus';
+
+  @override
+  String get color => 'Farbe';
+
+  @override
+  String get followCoverColor => 'Coverfarbe folgen';
+
+  @override
+  String get selectColor => 'Farbe auswählen';
+
+  @override
+  String get volume => 'Lautstärke';
+
+  @override
+  String get clearQueue => 'Warteschlange leeren';
+
+  @override
+  String get confirmClearQueue =>
+      'Soll die aktuelle Warteschlange wirklich geleert werden?';
+
+  @override
+  String get queueCleared => 'Warteschlange geleert';
+
+  @override
+  String get locateCurrentSong => 'Aktuellen Song suchen';
+
+  @override
+  String get songNotInScannedFolders =>
+      'Aktueller Song befindet sich nicht in gescannten Verzeichnissen';
+
+  @override
+  String get queue => 'Warteschlange';
+
+  @override
+  String get queueEmpty => 'Warteschlange ist leer';
+
+  @override
+  String selectedSongs(int count) {
+    return '$count Songs ausgewählt';
+  }
+
+  @override
+  String get unknownArtist => 'Unbekannter Künstler';
+
+  @override
+  String deletedSongs(int count) {
+    return '$count Songs gelöscht';
+  }
+
+  @override
+  String get delete => 'Löschen';
+
+  @override
+  String get createPlaylist => 'Playlist erstellen';
+
+  @override
+  String get playlistName => 'Playlist-Name';
+
+  @override
+  String get enterPlaylistName => 'Playlist-Namen eingeben';
+
+  @override
+  String get playlistNameExists => 'Playlist-Name existiert bereits';
+
+  @override
+  String get renamePlaylist => 'Playlist umbenennen';
+
+  @override
+  String get deletePlaylist => 'Playlist löschen';
+
+  @override
+  String confirmDeletePlaylist(String name) {
+    return 'Soll die Playlist \"$name\" wirklich gelöscht werden?';
+  }
+
+  @override
+  String get addToPlaylist => 'Zur Playlist hinzufügen';
+
+  @override
+  String get selectAll => 'Alle auswählen';
+
+  @override
+  String get addToQueue => 'Zur Warteschlange hinzufügen';
+
+  @override
+  String get addedToQueue => 'Zur Warteschlange hinzugefügt';
+
+  @override
+  String songCount(int count) {
+    return '$count Songs';
+  }
+
+  @override
+  String addedToPlaylist(int count, String playlist) {
+    return '$count Songs zu $playlist hinzugefügt';
+  }
+
+  @override
+  String get createNewList => 'Neue Liste erstellen';
+
+  @override
+  String createdPlaylist(String name, int count) {
+    return 'Playlist \"$name\" mit $count Songs erstellt';
+  }
+
+  @override
+  String get rename => 'Umbenennen';
+
+  @override
+  String get playlist => 'Playlist';
+
+  @override
+  String get mostPlayed => 'Am häufigsten gespielt';
+
+  @override
+  String get recentlyAdded => 'Kürzlich hinzugefügt';
+
+  @override
+  String get albums => 'Alben';
+
+  @override
+  String get artists => 'Künstler';
+
+  @override
+  String get mostPlayedDescription => 'Sortiert nach vollständigen Wiedergaben';
+
+  @override
+  String get recentlyAddedDescription =>
+      'Sortiert nach Aufnahmezeitpunkt in die Mediathek';
+
+  @override
+  String get allTime => 'Gesamte Zeit';
+
+  @override
+  String get pastWeek => 'Letzte Woche';
+
+  @override
+  String get pastMonth => 'Letzter Monat';
+
+  @override
+  String get past90Days => 'Letzte 90 Tage';
+
+  @override
+  String get noPlayHistory => 'Noch kein Wiedergabeverlauf';
+
+  @override
+  String get noPlayHistoryInRange =>
+      'Kein Wiedergabeverlauf in diesem Zeitraum';
+
+  @override
+  String get noRecentlyAddedSongs => 'Noch keine Songs in der Mediathek';
+
+  @override
+  String get noRecentlyAddedInRange =>
+      'In diesem Zeitraum wurden keine Songs hinzugefügt';
+
+  @override
+  String get addedOn => 'Hinzugefügt am';
+
+  @override
+  String get lastPlayed => 'Zuletzt gespielt';
+
+  @override
+  String playCountLabel(int count) {
+    return '$count Wiedergaben';
+  }
+
+  @override
+  String get playAll => 'Alle abspielen';
+
+  @override
+  String get shufflePlay => 'Zufallswiedergabe';
+
+  @override
+  String get noAlbums => 'Noch keine Alben verfügbar';
+
+  @override
+  String get noArtists => 'Noch keine Künstler verfügbar';
+
+  @override
+  String get searchAlbums => 'Alben oder Künstler suchen';
+
+  @override
+  String get searchArtists => 'Künstler suchen';
+
+  @override
+  String get albumSort => 'Sortieren';
+
+  @override
+  String get sortArtistAsc => 'Künstler A-Z';
+
+  @override
+  String get sortTitleAsc => 'Albumtitel A-Z';
+
+  @override
+  String get sortTrackCount => 'Song-Anzahl';
+
+  @override
+  String get sortDuration => 'Gesamtdauer';
+
+  @override
+  String get sortRecentAdded => 'Kürzlich hinzugefügt';
+
+  @override
+  String get sortAscending => 'Aufsteigend';
+
+  @override
+  String get sortDescending => 'Absteigend';
+
+  @override
+  String get playNext => 'Als Nächstes abspielen';
+
+  @override
+  String get addToFavorites => 'Zu Favoriten hinzufügen';
+
+  @override
+  String get removeFromFavorites => 'Aus Favoriten entfernen';
+
+  @override
+  String get viewAlbumDetails => 'Album-Details anzeigen';
+
+  @override
+  String get viewArtistDetails => 'Künstler-Details anzeigen';
+
+  @override
+  String get openFileLocation => 'Dateispeicherort öffnen';
+
+  @override
+  String get copyAlbumTitle => 'Albumtitel kopieren';
+
+  @override
+  String get copyArtistName => 'Künstlernamen kopieren';
+
+  @override
+  String albumCount(int count) {
+    return '$count Alben';
+  }
+
+  @override
+  String get emptyList => 'Liste ist leer';
+
+  @override
+  String get dragToAddMusic =>
+      'Dateien oder Ordner zum Hinzufügen von Musik ziehen';
+
+  @override
+  String get unknownAlbum => 'Unbekanntes Album';
+
+  @override
+  String get managePlaylists => 'Playlists verwalten';
+
+  @override
+  String get createNewPlaylist => 'Neue Playlist erstellen';
+
+  @override
+  String get defaultList => 'Standard-Liste';
+
+  @override
+  String get playbackMode => 'Wiedergabemodus';
+
+  @override
+  String get playbackOptions => 'Wiedergabeoptionen';
+
+  @override
+  String get setVisualizerDisplay => 'Visualizer-Anzeige einstellen';
+
+  @override
+  String get noPlaybackContent => 'Kein Wiedergabeinhalt';
+
+  @override
+  String get file => 'Datei';
+
+  @override
+  String get play => 'Wiedergabe';
+
+  @override
+  String get list => 'Mediathek';
+
+  @override
+  String get queueTab => 'Warteschlange';
+
+  @override
+  String get more => 'Mehr';
+
+  @override
+  String get settings => 'Einstellungen';
+
+  @override
+  String get themeMode => 'Design';
+
+  @override
+  String get themeModeSystem => 'System folgen';
+
+  @override
+  String get themeModeLight => 'Hell';
+
+  @override
+  String get themeModeDark => 'Dunkel';
+
+  @override
+  String get immersiveTabBar => 'Immersive Tab-Leiste';
+
+  @override
+  String get immersiveTabBarDescription =>
+      'Navigationsleiste bei Mausbewegung anzeigen, nach 3 s Inaktivität ausblenden';
+
+  @override
+  String get sampleStride => 'Abtastschritt';
+
+  @override
+  String get sampleStrideDescription =>
+      'Größere Werte scannen schneller, aber mit geringerer Wellenformgenauigkeit (Standard: 4)';
+
+  @override
+  String get waveformSegments => 'Wellenform-Segmente';
+
+  @override
+  String get waveformSegmentsDescription =>
+      'Anzahl der Wellenbalken zur Anzeige (Standard: 80)';
+
+  @override
+  String get showDeveloperOptions => 'Entwickleroptionen anzeigen';
+
+  @override
+  String get playbackBackground => 'Wiedergabe-Hintergrund';
+
+  @override
+  String get playbackRadialGradient => 'Mittlerer Dunkelverlauf';
+
+  @override
+  String get blurIntensity => 'Unschärfe-Intensität';
+
+  @override
+  String get blurredArtwork => 'Unscharfes Cover (Standard)';
+
+  @override
+  String get dynamicMesh => 'Dynamisches Mesh (Apple Music-Stil)';
+
+  @override
+  String get solidColor => 'Einfarbig';
+
+  @override
+  String get customImage => 'Benutzerdefiniertes Bild';
+
+  @override
+  String get presetColors => 'Voreingestellte Farben';
+
+  @override
+  String get customColor => 'Benutzerdefinierte Farbe';
+
+  @override
+  String get uploadImage => 'Bild auswählen';
+
+  @override
+  String get normalOpacity => 'Normale Dunkelschicht-Deckkraft';
+
+  @override
+  String get lyricsOpacity => 'Text-Dunkelschicht-Deckkraft';
+
+  @override
+  String get chooseImageError => 'Fehler beim Auswählen des Bildes';
+
+  @override
+  String get noImageSelected => 'Kein Bild ausgewählt';
+
+  @override
+  String get unknown => 'Unbekannt';
+
+  @override
+  String get playlistModeSingle => 'Einzeltitel';
+
+  @override
+  String get playlistModeSingleLoop => 'Einzeltitel wiederholen';
+
+  @override
+  String get playlistModeQueue => 'Wiedergabeliste';
+
+  @override
+  String get playlistModeQueueLoop => 'Wiedergabeliste wiederholen';
+
+  @override
+  String get playlistModeAutoQueueLoop => 'Auto-Wiedergabeliste wiederholen';
+
+  @override
+  String get visualizer => 'Visualizer';
+
+  @override
+  String get previous => 'Vorheriger';
+
+  @override
+  String get next => 'Nächster';
+
+  @override
+  String get pause => 'Pause';
+
+  @override
+  String get autoMode => 'Automatikmodus';
+
+  @override
+  String get advancedOptions => 'Erweiterte Optionen';
+
+  @override
+  String get spectrumQuantity => 'Spektrum-Anzahl';
+
+  @override
+  String get speed => 'Geschwindigkeit';
+
+  @override
+  String get quantityHigh => 'Hoch';
+
+  @override
+  String get quantityMedium => 'Mittel';
+
+  @override
+  String get quantityLow => 'Niedrig';
+
+  @override
+  String get speedFast => 'Schnell';
+
+  @override
+  String get speedMedium => 'Mittel';
+
+  @override
+  String get speedSlow => 'Langsam';
+
+  @override
+  String get portraitFrequencyGroups => 'Spektrum-Anzahl Hochformat';
+
+  @override
+  String get landscapeFrequencyGroups => 'Spektrum-Anzahl Querformat';
+
+  @override
+  String get portraitGap => 'Abstand Hochformat';
+
+  @override
+  String get landscapeGap => 'Abstand Querformat';
+
+  @override
+  String get enableWaveformProgressBar =>
+      'Wellenform-Fortschrittsbalken aktivieren';
+
+  @override
+  String get enableWaveformProgressBarDescription =>
+      'Gesamte Song-Wellenform anstelle des Standardschiebereglers verwenden';
+
+  @override
+  String get randomMode => 'Zufallsmodus';
+
+  @override
+  String get randomHistory => 'Zufallsverlauf';
+
+  @override
+  String get randomRange => 'Zufallsbereich';
+
+  @override
+  String get randomMethod => 'Zufallsmethode';
+
+  @override
+  String get currentQueue => 'Aktuelle Warteschlange';
+
+  @override
+  String get globalRange => 'Global (alle Playlists)';
+
+  @override
+  String get completeRandom => 'Vollständiger Zufall';
+
+  @override
+  String get shuffleRandom => 'Mischen';
+
+  @override
+  String get randomQueue => 'Zufalls-Warteschlange';
+
+  @override
+  String get notSelected => 'Keine Musik ausgewählt';
+
+  @override
+  String get saveTagsToFile => 'Tags in Datei speichern';
+
+  @override
+  String get saveCurrentTagsToFile =>
+      'Tags des aktuellen Songs in Datei speichern';
+
+  @override
+  String get saveQueueTagsToFile =>
+      'Alle Tags der Warteschlange in Datei speichern';
+
+  @override
+  String get tagsSaved => 'Tags erfolgreich gespeichert';
+
+  @override
+  String tagsSavedCount(Object count) {
+    return 'Tags gespeichert ($count Songs)';
+  }
+
+  @override
+  String get tagsSaveFailed => 'Fehler beim Speichern der Tags';
+
+  @override
+  String tagsSaveFailedCount(Object count) {
+    return 'Fehler beim Speichern von $count Songs';
+  }
+
+  @override
+  String unsupportedFormat(Object count) {
+    return '$count Songs haben ein nicht unterstütztes Format (OGG/Opus)';
+  }
+
+  @override
+  String get unsupportedFormatSingle =>
+      'Dieses Format (OGG/Opus) unterstützt das Speichern von Tags nicht';
+
+  @override
+  String get savingTags => 'Speichere Tags...';
+
+  @override
+  String get noModifiedTagsToSave => 'Keine geänderten Tags zu speichern';
+
+  @override
+  String get clearPlaylist => 'Liste leeren';
+
+  @override
+  String get copyTitle => 'Titel kopieren';
+
+  @override
+  String get transcodeAction => 'Transkodieren';
+
+  @override
+  String get transcodeSectionTitle => 'Audio-Transkodierung';
+
+  @override
+  String get transcodeSectionDescription =>
+      'Standard-Ausgabeformat und Qualitätsvoreinstellung festlegen.';
+
+  @override
+  String get transcodeDefaultFormat => 'Standard-Ausgabeformat';
+
+  @override
+  String get transcodeDefaultQuality => 'Standard-Qualitätsvoreinstellung';
+
+  @override
+  String get transcodeTitle => 'Audio-Transkodierung';
+
+  @override
+  String transcodeSongCount(int count) {
+    return '$count Songs';
+  }
+
+  @override
+  String transcodeCompletedCount(int count) {
+    return '$count Transkodierungsaufgaben abgeschlossen';
+  }
+
+  @override
+  String transcodeCompletedWithFailures(int success, int total, int failed) {
+    return '$success/$total Aufgaben abgeschlossen, $failed fehlgeschlagen';
+  }
+
+  @override
+  String get transcodeFailedGeneric => 'Transkodierung fehlgeschlagen';
+
+  @override
+  String get transcodePreparing => 'Transkodierung wird vorbereitet...';
+
+  @override
+  String transcodeProgress(int current, int total) {
+    return 'Transkodiere $current/$total';
+  }
+
+  @override
+  String get transcoding => 'Transkodierung läuft...';
+
+  @override
+  String get startTranscode => 'Transkodierung starten';
+
+  @override
+  String transcodeEngine(Object engine) {
+    return 'Engine: $engine';
+  }
+
+  @override
+  String get transcodeUsingSystemFfmpeg =>
+      'Verwende ffmpeg aus dem System-PATH.';
+
+  @override
+  String transcodeUsingCustomFfmpeg(Object path) {
+    return 'Verwende benutzerdefiniertes ffmpeg: $path';
+  }
+
+  @override
+  String get transcodeFormat => 'Ausgabeformat';
+
+  @override
+  String get transcodeQualityPreset => 'Qualitätsvoreinstellung';
+
+  @override
+  String get transcodeQualityLow => 'Niedrig';
+
+  @override
+  String get transcodeQualityMedium => 'Mittel';
+
+  @override
+  String get transcodeQualityHigh => 'Hoch';
+
+  @override
+  String get transcodeQualityExtreme => 'Höchste';
+
+  @override
+  String get transcodeLosslessPresetHint =>
+      'Dieses verlustfreie Format verwendet keine Qualitätsstufen oder Bitratenmodi.';
+
+  @override
+  String get transcodeAdvancedOptions => 'Erweiterte Optionen';
+
+  @override
+  String get transcodeAdvancedCustomized =>
+      'Erweiterte Parameter wurden manuell geändert';
+
+  @override
+  String get transcodeAdvancedFollowingPreset =>
+      'Erweiterte Parameter folgen der aktuellen Voreinstellung';
+
+  @override
+  String get transcodeLosslessAdvancedHint =>
+      'Dieses verlustfreie Format behält nur quellbezogene Optionen bei.';
+
+  @override
+  String get transcodeBitRateInvalid => 'Gültige Bitrate eingeben';
+
+  @override
+  String get transcodeBitRate => 'Bitrate';
+
+  @override
+  String get transcodeBitRateMode => 'Bitratenmodus';
+
+  @override
+  String get transcodeEncodingEngine => 'Codierungs-Engine';
+
+  @override
+  String get transcodeSystemEncoder => 'Media3 (System)';
+
+  @override
+  String get transcodeFfmpegRustEncoder => 'FFmpeg (Rust)';
+
+  @override
+  String get transcodeAacEncoder => 'AAC-Encoder';
+
+  @override
+  String get transcodeSampleRate => 'Abtastrate';
+
+  @override
+  String get transcodeChannels => 'Kanäle';
+
+  @override
+  String get transcodeResetToPreset =>
+      'Auf aktuelle Voreinstellung zurücksetzen';
+
+  @override
+  String get transcodeResetLosslessOptions =>
+      'Verlustfreie Optionen zurücksetzen';
+
+  @override
+  String get transcodeOutputDirectory => 'Ausgabeverzeichnis';
+
+  @override
+  String get transcodeOutputPreview => 'Vorschau';
+
+  @override
+  String get transcodeChooseDirectory => 'Verzeichnis auswählen';
+
+  @override
+  String get transcodeUseSourceDirectory => 'Quellverzeichnis verwenden';
+
+  @override
+  String get transcodeKeepSource => 'Quelldatei behalten';
+
+  @override
+  String get transcodeMono => 'Mono';
+
+  @override
+  String get transcodeStereo => 'Stereo';
+
+  @override
+  String get openFolderLocation => 'Ordnerspeicherort öffnen';
+
+  @override
+  String get songTagsSavedToSourceFileAndApp =>
+      'Song-Tags in Quelldatei und App gespeichert';
+
+  @override
+  String get songTagsSavedToApp => 'Song-Tags in der App gespeichert';
+
+  @override
+  String get durationZero => '0:00';
+
+  @override
+  String get generateLyrics => 'Songtext generieren';
+
+  @override
+  String get generateTimeline => 'Zeitachse generieren';
+
+  @override
+  String get queueGenerateLyrics => 'Generierung einreihen';
+
+  @override
+  String get pauseAutoScroll => 'Automatisches Scrollen anhalten';
+
+  @override
+  String get resumeAutoScroll => 'Automatisches Scrollen fortsetzen';
+
+  @override
+  String get translateLyrics => 'Songtext übersetzen';
+
+  @override
+  String get clearLyricsCache => 'Aktuellen Songtext-Cache leeren';
+
+  @override
+  String get clearTranslationCache => 'Aktuellen Übersetzungs-Cache leeren';
+
+  @override
+  String get requery => 'Erneut abfragen';
+
+  @override
+  String get sleepTimerTitle => 'Sleep-Timer';
+
+  @override
+  String get sleepTimerDescription =>
+      'Countdown auswählen. Die Wiedergabe wird nach Ablauf pausiert.';
+
+  @override
+  String get sleepTimerRunningTitle => 'Sleep-Timer läuft';
+
+  @override
+  String get sleepTimerRunningDescription =>
+      'Die Wiedergabe wird nach Ablauf des Countdowns automatisch pausiert.';
+
+  @override
+  String get remainingTime => 'Verbleibende Zeit';
+
+  @override
+  String get startCountdown => 'Countdown starten';
+
+  @override
+  String get end => 'Ende';
+
+  @override
+  String get equalizer => 'Equalizer';
+
+  @override
+  String get equalizerEnabledStatus => 'High-Fidelity-Anpassung aktiviert';
+
+  @override
+  String get equalizerDisabledStatus => 'Deaktiviert';
+
+  @override
+  String get bassBoost => 'Bass-Anhebung';
+
+  @override
+  String get preampGain => 'Vorverstärkung';
+
+  @override
+  String get reset => 'Zurücksetzen';
+
+  @override
+  String get close => 'Schließen';
+
+  @override
+  String get timelineAdjustmentTitle => 'Zeitachse manuell anpassen';
+
+  @override
+  String get timelineAdjustmentDescription =>
+      'Nach rechts ziehen verzögert den Text, nach links beschleunigt ihn.';
+
+  @override
+  String timelineOffsetEarlier(Object seconds) {
+    return '${seconds}s früher';
+  }
+
+  @override
+  String timelineOffsetLater(Object seconds) {
+    return '${seconds}s später';
+  }
+
+  @override
+  String get timelineOffsetCurrent => 'Aktuelle Verschiebung: 0,0 s';
+
+  @override
+  String get enterAcoustidApiKeyTitle => 'AcoustID-API-Schlüssel eingeben';
+
+  @override
+  String get acoustidApiKeyDescription =>
+      'Für Audio-Fingerprinting. Bei Leerung wird der integrierte Schlüssel wiederhergestellt.';
+
+  @override
+  String get acoustidApiKeyHint => 'AcoustID-API-Schlüssel einfügen';
+
+  @override
+  String get apiKey => 'API-Schlüssel';
+
+  @override
+  String get save => 'Speichern';
+
+  @override
+  String get enterLyricsTitle => 'Songtext eingeben';
+
+  @override
+  String get lyricsInputHint =>
+      'Songtext hier einfügen oder eingeben. Mehrzeiliger Text wird unterstützt.';
+
+  @override
+  String get enterGoogleAiStudioApiKeyTitle =>
+      'Google AI Studio-API-Schlüssel eingeben';
+
+  @override
+  String get googleAiStudioApiKeyDescription =>
+      'Wird für Songtext-Generierung, Zeitachse und Übersetzung verwendet.';
+
+  @override
+  String get pasteGoogleAiStudioApiKey =>
+      'Google AI Studio-API-Schlüssel einfügen';
+
+  @override
+  String get enterOpenRouterApiKeyTitle => 'OpenRouter-API-Schlüssel eingeben';
+
+  @override
+  String get openRouterApiKeyDescription =>
+      'Für Songtext- und Zeitachsen-Generierung. Übersetzung verwendet immer Gemini.';
+
+  @override
+  String get pasteOpenRouterApiKey => 'OpenRouter-API-Schlüssel einfügen';
+
+  @override
+  String get enterGeminiApiKeyTitle => 'Gemini-API-Schlüssel eingeben';
+
+  @override
+  String get geminiApiKeyDescription =>
+      'Wird für die Songtext-Übersetzung verwendet.';
+
+  @override
+  String get pasteGeminiApiKey => 'Gemini-API-Schlüssel einfügen';
+
+  @override
+  String get testConnection => 'Verbindung testen';
+
+  @override
+  String get enterApiKey => 'Bitte einen API-Schlüssel eingeben.';
+
+  @override
+  String get testingConnection => 'Verbindung wird getestet...';
+
+  @override
+  String get getKey => 'Schlüssel besorgen';
+
+  @override
+  String get editSongTagsTitle => 'Song-Tags bearbeiten';
+
+  @override
+  String get changeArtwork => 'Cover ändern';
+
+  @override
+  String get clearArtwork => 'Cover entfernen';
+
+  @override
+  String get editSongTagsDescription =>
+      'Änderungen können nur in der App oder auch in der Quelldatei gespeichert werden.';
+
+  @override
+  String get artistLabel => 'Künstler';
+
+  @override
+  String get albumLabel => 'Album';
+
+  @override
+  String get trackNumberLabel => 'Titelnummer';
+
+  @override
+  String get trackNumberMustBeInteger =>
+      'Die Titelnummer muss eine ganze Zahl sein';
+
+  @override
+  String get leaveBlankKeepsCurrentValue =>
+      'Leer lassen, um dieses Feld zu leeren';
+
+  @override
+  String get currentFileFormatCannotWriteBack =>
+      'Dieses Dateiformat unterstützt das Zurückschreiben in die Quelldatei nicht.';
+
+  @override
+  String get leaveBlankDoesNotClearOriginalValue =>
+      'Hinweis: Ein leeres Feld löscht seinen Wert.';
+
+  @override
+  String get saveToApp => 'In App speichern';
+
+  @override
+  String get saveToSourceFileAndApp => 'In Quelldatei und App speichern';
+
+  @override
+  String get saveToSourceFileFailed =>
+      'Fehler beim Speichern in der Quelldatei. Prüfen Sie, ob das Format Schreibzugriff unterstützt.';
+
+  @override
+  String get fileOccupiedByOtherApp =>
+      'Die Datei wird von einer anderen App verwendet';
+
+  @override
+  String get saveFailed =>
+      'Speichern fehlgeschlagen. Bitte später erneut versuchen.';
+
+  @override
+  String apiKeySaved(Object provider) {
+    return '$provider-API-Schlüssel gespeichert';
+  }
+
+  @override
+  String get apiKeySavedAcoustid => 'AcoustID-API-Schlüssel gespeichert';
+
+  @override
+  String get generalSectionTitle => 'Oberfläche';
+
+  @override
+  String get generalSectionDescription =>
+      'Diese Optionen beeinflussen das allgemeine Erscheinungsbild der Seiten und der Wiedergabeoberfläche.';
+
+  @override
+  String get interfaceLanguage => 'Oberflächensprache';
+
+  @override
+  String get interfaceLanguageDescription =>
+      'Wählen Sie die Anzeigesprache der Anwendung.';
+
+  @override
+  String get scanSectionTitle => 'Scannen';
+
+  @override
+  String get scanSectionDescription =>
+      'Diese Optionen steuern, wie der Mediathek-Scan Audiodateien behandelt.';
+
+  @override
+  String get skipShortAudioDuringScan =>
+      'Kurze Audiodateien beim Scannen überspringen';
+
+  @override
+  String get skipShortAudioDuringScanDescription =>
+      'Audio kürzer als der Schwellenwert wird nicht zur Mediathek hinzugefügt.';
+
+  @override
+  String get shortAudioScanThreshold => 'Schwellenwert für kurze Audiodateien';
+
+  @override
+  String get shortAudioScanThresholdDescription =>
+      'Dateien kürzer als diese Dauer werden übersprungen.';
+
+  @override
+  String shortAudioScanThresholdValue(Object seconds) {
+    return '$seconds s';
+  }
+
+  @override
+  String get shortcutSettingsTitle => 'Benutzerdefinierte Tastenkürzel';
+
+  @override
+  String get shortcutSettingsDescription =>
+      'Klicken Sie, um Tastenkürzel für Player-Aktionen neu aufzuzeichnen.';
+
+  @override
+  String get edit => 'Bearbeiten';
+
+  @override
+  String get lyricsSectionTitle => 'Songtexte';
+
+  @override
+  String get lyricsSectionDescription =>
+      'Diese Einstellungen betreffen nur die Generierung von Songtexten und Zeitachsen.';
+
+  @override
+  String get lyricsTranslationTargetLanguageLabel => 'Übersetzungszielsprache';
+
+  @override
+  String get lyricsTranslationTargetLanguageDescription =>
+      'Standardmäßig der Systemsprache folgen oder manuell auswählen.';
+
+  @override
+  String get lyricsSaveMethodLabel => 'Speicherort für Songtexte';
+
+  @override
+  String get lyricsSaveMethodDescription =>
+      'Wählen Sie, wo Songtexte beim Schreiben gespeichert werden.';
+
+  @override
+  String get lyricsSaveMethodOriginal => 'Wie Quelle';
+
+  @override
+  String get lyricsSaveMethodEmbedded => 'Eingebettet';
+
+  @override
+  String get lyricsSaveMethodLrcFile => 'LRC-Datei';
+
+  @override
+  String get followSystemLanguage => 'System folgen';
+
+  @override
+  String get autoSwitchLyricsProvider => 'Automatischer Anbieterwechsel';
+
+  @override
+  String get autoSwitchLyricsProviderEnabledDesc =>
+      'Google AI Studio wird zuerst versucht. Bei Fehler wird automatisch zu OpenRouter gewechselt.';
+
+  @override
+  String get autoSwitchLyricsProviderDisabledDesc =>
+      'Sie benötigen API-Schlüssel für Google AI Studio und OpenRouter.';
+
+  @override
+  String get lyricsAiProviderTitle => 'KI-Anbieter für Songtexte';
+
+  @override
+  String get lyricsAiProviderDescription =>
+      'Betrifft nur die Generierung von Songtexten und Zeitachsen. Übersetzung verwendet immer Google AI Studio.';
+
+  @override
+  String get googleAiStudioApiKeySaved =>
+      'Google AI Studio-API-Schlüssel gespeichert';
+
+  @override
+  String get googleAiStudioApiKeyMissing =>
+      'Kein Google AI Studio-API-Schlüssel gespeichert. Sie werden daran erinnert.';
+
+  @override
+  String get openRouterApiKeySaved => 'OpenRouter-API-Schlüssel gespeichert';
+
+  @override
+  String get openRouterApiKeyMissing =>
+      'Kein OpenRouter-API-Schlüssel gespeichert. Sie werden daran erinnert.';
+
+  @override
+  String get apiKeySavedStatus => 'Gespeichert';
+
+  @override
+  String get apiKeyMissingStatus => 'Nicht ausgefüllt';
+
+  @override
+  String get platformApiKeysSectionTitle => 'Plattform-API-Schlüssel';
+
+  @override
+  String get fill => 'Ausfüllen';
+
+  @override
+  String get modify => 'Ändern';
+
+  @override
+  String get geminiModelsSectionTitle => 'Modell auswählen';
+
+  @override
+  String get geminiModelsSectionDescription =>
+      'Diese Modelle werden für die Generierung von Songtexten, Zeitachsen und Übersetzung verwendet.';
+
+  @override
+  String get primaryModelLabel => 'Primäres Modell';
+
+  @override
+  String get backupModelLabel => 'Backup-Modell';
+
+  @override
+  String get translationModelLabel => 'Übersetzungsmodell';
+
+  @override
+  String get fetching => 'Abrufen...';
+
+  @override
+  String get fetchModelList => 'Modellliste abrufen';
+
+  @override
+  String get restoreDefault => 'Standard wiederherstellen';
+
+  @override
+  String get acoustidSectionTitle => 'Audio-Fingerprinting';
+
+  @override
+  String get acoustidApiKeyTitle => 'AcoustID-API-Schlüssel';
+
+  @override
+  String get acoustidApiKeyHelp =>
+      'AcoustID wird für Audio-Fingerprinting verwendet. Wir empfehlen Ihren eigenen API-Schlüssel.';
+
+  @override
+  String get acoustidApiKeySaved => 'AcoustID-API-Schlüssel gespeichert';
+
+  @override
+  String get acoustidApiKeyDefault =>
+      'Der integrierte Schlüssel wird verwendet. Ersetzen Sie ihn durch Ihren eigenen.';
+
+  @override
+  String get applyForApiKey =>
+      'API-Schlüssel beantragen: https://acoustid.org/new-application';
+
+  @override
+  String get queueTabBarFavoriteAdded => 'Zu Favoriten hinzugefügt';
+
+  @override
+  String get queueTabBarFavoriteRemoved => 'Aus Favoriten entfernt';
+
+  @override
+  String get tagCompletion => 'Tag-Vervollständigung';
+
+  @override
+  String get tagCompletionDescription =>
+      'Tags mit AcoustID- und MusicBrainz-Ergebnissen abgleichen';
+
+  @override
+  String get goToSettings => 'Zu den Einstellungen';
+
+  @override
+  String get searchReleaseTitles => 'Veröffentlichungstitel suchen';
+
+  @override
+  String get closeSearch => 'Suche schließen';
+
+  @override
+  String get refreshResults => 'Ergebnisse aktualisieren';
+
+  @override
+  String get filterMusicBrainzReleaseTitle =>
+      'MusicBrainz-Veröffentlichungstitel filtern';
+
+  @override
+  String get clearSearch => 'Suche zurücksetzen';
+
+  @override
+  String get localTitle => 'Lokaler Titel';
+
+  @override
+  String get queryConditions => 'Abfragebedingungen';
+
+  @override
+  String get musicBrainzLoading => 'MusicBrainz wird geladen';
+
+  @override
+  String get musicBrainzLoadingWithResults =>
+      'Vorhandene Ergebnisse bleiben im Bereich';
+
+  @override
+  String get musicBrainzLoadingHint => 'Bitte warten';
+
+  @override
+  String get musicBrainzQueryFailed => 'MusicBrainz-Abfrage fehlgeschlagen';
+
+  @override
+  String get musicBrainzNetworkErrorHint =>
+      'Die Anfrage ist fehlgeschlagen, meist aufgrund von Netzwerkproblemen oder Zeitüberschreitung.';
+
+  @override
+  String get musicBrainzFilteredEmptyHint =>
+      'Keine Veröffentlichungstitel mit diesem Schlüsselwort unter den aktuellen Filtern.';
+
+  @override
+  String get musicBrainzEmptyHint =>
+      'MusicBrainz hat keine verwendbaren Ergebnisse zurückgegeben. Versuchen Sie, die Filter zu lockern.';
+
+  @override
+  String get musicBrainzEmptyMoreCompleteHint =>
+      'Später erneut versuchen oder prüfen, ob die Titel-/Künstlerinformationen vollständiger sind.';
+
+  @override
+  String get retry => 'Wiederholen';
+
+  @override
+  String get noMatchingRelease => 'Keine passende Veröffentlichung gefunden';
+
+  @override
+  String get noMatchingResults => 'Keine passenden Ergebnisse gefunden';
+
+  @override
+  String get networkConnectionFailed => 'Netzwerkverbindung fehlgeschlagen';
+
+  @override
+  String get searchAgain => 'Erneut suchen';
+
+  @override
+  String get acoustidRecognitionRecords => 'AcoustID-Erkennungsdatensätze';
+
+  @override
+  String get musicBrainzRecordings => 'MusicBrainz-Aufnahmen';
+
+  @override
+  String get noExpandableReleaseGroups =>
+      'Keine erweiterbaren Veröffentlichungsgruppen';
+
+  @override
+  String get noExpandableReleases => 'Keine erweiterbaren Veröffentlichungen';
+
+  @override
+  String get noMatchingResultHint =>
+      'Später erneut versuchen oder Informationen prüfen.';
+
+  @override
+  String releaseCountLabel(int count) {
+    return '$count Veröffentlichungsversionen';
+  }
+
+  @override
+  String recordingCountLabel(int count) {
+    return '$count Aufnahmen';
+  }
+
+  @override
+  String trackCountShort(int count) {
+    return '$count Titel';
+  }
+
+  @override
+  String scoreLabel(int score) {
+    return 'Punktzahl $score';
+  }
+
+  @override
+  String matchScoreLabel(int score) {
+    return 'Übereinstimmung $score%';
+  }
+
+  @override
+  String get editQueryCondition => 'Abfragebedingung bearbeiten';
+
+  @override
+  String get enterNewQueryText => 'Neuen Abfragetext eingeben';
+
+  @override
+  String get durationLabel => 'Dauer';
+
+  @override
+  String get customShortcuts => 'Benutzerdefinierte Tastenkürzel';
+
+  @override
+  String get pressShortcutCombo => 'Tastenkombination drücken';
+
+  @override
+  String get clickToRecord => 'Zum Aufzeichnen klicken';
+
+  @override
+  String get searchingLyrics => 'Songtexte suchen';
+
+  @override
+  String get noLyrics => 'Noch keine Songtexte';
+
+  @override
+  String get providerLabel => 'Anbieter';
+
+  @override
+  String get modelLabel => 'Modell';
+
+  @override
+  String get unspecified => 'Nicht angegeben';
+
+  @override
+  String targetTimeLabel(String duration) {
+    return 'Zielzeit $duration';
+  }
+
+  @override
+  String get songDeletedSkipped => 'Song gelöscht, übersprungen';
+
+  @override
+  String get songDeleted => 'Song gelöscht';
+
+  @override
+  String get lyricsTaskUploading => 'Hochladen';
+
+  @override
+  String get lyricsTaskWaiting => 'Warten';
+
+  @override
+  String get lyricsTaskRequesting => 'Anfrage läuft';
+
+  @override
+  String get lyricsTaskGenerating => 'Generieren';
+
+  @override
+  String get lyricsTaskRetrying => 'Wiederholen';
+
+  @override
+  String get lyricsTaskProcessing => 'Verarbeitung';
+
+  @override
+  String get unknownModel => 'Unbekanntes Modell';
+
+  @override
+  String selectedFolders(int count) {
+    return '$count Ordner ausgewählt';
+  }
+
+  @override
+  String foldersDeleted(int count) {
+    return '$count Ordner gelöscht';
+  }
+
+  @override
+  String get persistentAccessDenied =>
+      'Zugriff auf diesen Ordner konnte nicht gespeichert werden. Bitte erneut auswählen.';
+
+  @override
+  String get folderAddFailed => 'Ordner konnte nicht hinzugefügt werden';
+
+  @override
+  String get sleepTimer => 'Sleep-Timer';
+
+  @override
+  String sleepTimerRemaining(Object duration) {
+    return 'Sleep-Timer $duration';
+  }
+
+  @override
+  String get unknownArtistOrAlbum => 'Unbekannt';
+
+  @override
+  String get pressAgainToExit => 'Erneut drücken, um die App zu beenden';
+
+  @override
+  String get tagCompletionSuccessWithCover =>
+      'Tags vervollständigt und gespeichert, Cover heruntergeladen';
+
+  @override
+  String get tagCompletionSuccess => 'Tags vervollständigt und gespeichert';
+
+  @override
+  String get selectOnlineLyrics => 'Online-Songtexte auswählen';
+
+  @override
+  String get increaseLyricsFont => 'Schriftgröße vergrößern';
+
+  @override
+  String get decreaseLyricsFont => 'Schriftgröße verkleinern';
+
+  @override
+  String get restoreDefaultSize => 'Standardgröße wiederherstellen';
+
+  @override
+  String get adjustLyricsFont => 'Textgröße anpassen';
+
+  @override
+  String get searchingOnlineLyrics => 'Online-Songtexte suchen';
+
+  @override
+  String get onlineLyricsResults => 'Online-Songtext-Ergebnisse';
+
+  @override
+  String get untitledLyrics => 'Unbenannter Songtext';
+
+  @override
+  String get hasTimeline => 'Mit Zeitachse';
+
+  @override
+  String get viewLyricsDetails => 'Songtext-Details anzeigen';
+
+  @override
+  String get lyricsDetails => 'Songtext-Details';
+
+  @override
+  String get lyricsContent => 'Songtext-Inhalt';
+
+  @override
+  String get noLyricsContent => 'Kein Songtext-Inhalt';
+
+  @override
+  String get queryContentLabel => 'Inhalt';
+
+  @override
+  String get yes => 'Ja';
+
+  @override
+  String get no => 'Nein';
+
+  @override
+  String dropAddedSongs(int addedCount) {
+    return '$addedCount Songs hinzugefügt';
+  }
+
+  @override
+  String dropAddedSongsWithExisting(int addedCount, int existingCount) {
+    return '$addedCount Songs hinzugefügt, $existingCount bereits vorhanden';
+  }
+
+  @override
+  String get copyCover => 'Cover in Zwischenablage kopieren';
+
+  @override
+  String get copyCoverSuccess =>
+      'Cover erfolgreich in die Zwischenablage kopiert';
+
+  @override
+  String get searchLyricsPlaceholder =>
+      'Songtitel, Künstler oder Text eingeben';
+
+  @override
+  String get share => 'Teilen';
+
+  @override
+  String get windowsSettingsTitle => 'Windows-Einstellungen';
+
+  @override
+  String get fileAssociationTitle => 'Dateizuordnung';
+
+  @override
+  String get fileAssociationDescription =>
+      'Musikformate (mp3, flac, wav...) dieser App zuordnen.';
+
+  @override
+  String get associateButton => 'Zuordnen';
+
+  @override
+  String get disassociateButton => 'Zuordnung aufheben';
+
+  @override
+  String get associationSuccess =>
+      'Zuordnung erfolgreich! Falls Doppelklick nicht funktioniert, wählen Sie Vynody in den Standard-Apps.';
+
+  @override
+  String get disassociationSuccess => 'Dateizuordnung erfolgreich entfernt.';
+
+  @override
+  String associationFailed(Object error) {
+    return 'Zuordnung fehlgeschlagen: $error';
+  }
+
+  @override
+  String get onboardingTitle => 'Willkommen bei Vynody';
+
+  @override
+  String get onboardingSubtitle =>
+      'Ein paar einfache Schritte, um Ihre Musikreise zu beginnen.';
+
+  @override
+  String get onboardingStepFileAssociation => 'Dateitypen zuordnen';
+
+  @override
+  String get onboardingFileAssociationDesc =>
+      'Ordnen Sie Musikformate Vynody zu, um per Doppelklick abzuspielen.';
+
+  @override
+  String get onboardingFileAssociationTip =>
+      'Wählen Sie nach der Zuordnung \'Vynody\' und \'Immer verwenden\'.';
+
+  @override
+  String get onboardingStepRootDirectory => 'Musik-Stammverzeichnis hinzufügen';
+
+  @override
+  String get onboardingRootDirectoryDesc =>
+      'Wählen Sie den Ordner mit Ihrer Musik. Vynody erstellt automatisch Ihre Mediathek.';
+
+  @override
+  String get onboardingSelectDirectory => 'Ordner auswählen';
+
+  @override
+  String get onboardingSuccessTitle => 'Alles bereit!';
+
+  @override
+  String get onboardingSuccessDesc =>
+      'Mediathek erfolgreich hinzugefügt. Genießen Sie Ihre Musik!';
+
+  @override
+  String get onboardingStartButton => 'Vynody starten';
+
+  @override
+  String get onboardingSkip => 'Später einrichten';
+
+  @override
+  String get onboardingNext => 'Weiter';
+
+  @override
+  String get onboardingBack => 'Zurück';
+
+  @override
+  String get resetOnboarding => 'Einführungsguide zurücksetzen';
+
+  @override
+  String get resetOnboardingDesc =>
+      'Der Einführungsguide wird beim nächsten Start erneut angezeigt.';
+
+  @override
+  String get songProperties => 'Song-Eigenschaften';
+
+  @override
+  String get failedToLoadDetails => 'Details konnten nicht geladen werden';
+
+  @override
+  String get noPropertiesAvailable =>
+      'Keine detaillierten Eigenschaften verfügbar';
+
+  @override
+  String get detailFilePath => 'Dateipfad';
+
+  @override
+  String get detailFormat => 'Format';
+
+  @override
+  String get detailCodec => 'Codec';
+
+  @override
+  String get detailDuration => 'Dauer';
+
+  @override
+  String get detailFileSize => 'Dateigröße';
+
+  @override
+  String get detailBitrate => 'Bitrate';
+
+  @override
+  String get detailSampleRate => 'Abtastrate';
+
+  @override
+  String get detailChannels => 'Kanäle';
+
+  @override
+  String get detailBitDepth => 'Bittiefe';
+
+  @override
+  String get detailMono => 'Mono';
+
+  @override
+  String get detailStereo => 'Stereo';
+
+  @override
+  String detailChannelsCount(int count) {
+    return '$count Kanäle';
+  }
+
+  @override
+  String get localNetworkPermissionDeniedTitle =>
+      'Lokaler Netzwerkzugriff eingeschränkt';
+
+  @override
+  String get localNetworkPermissionDeniedMessage =>
+      'Keine lokale IP-Adresse verfügbar oder Zugriff verweigert.\n\nPrüfen Sie:\n1. Wi-Fi- oder LAN-Verbindung.\n2. Erlauben Sie Netzwerkzugriff in den Datenschutzeinstellungen.';
+
+  @override
+  String get localNetworkPermissionWindowsMessage =>
+      'Keine lokale IP-Adresse verfügbar.\n\nPrüfen Sie:\n1. LAN-Verbindung (Wi-Fi oder Ethernet).\n2. Überprüfen Sie die Windows-Firewall für Vynody.';
+
+  @override
+  String get openSettingsButton => 'Einstellungen öffnen';
+
+  @override
+  String get closeButton => 'Schließen';
+
+  @override
+  String get copyTranslationResults => 'Übersetzungsergebnisse kopieren';
+
+  @override
+  String get writeLyricsToFile => 'Songtext in Datei schreiben';
+
+  @override
+  String get selectLyricSource => 'Songtext-Quelle auswählen';
+
+  @override
+  String get regenerateLyrics => 'Songtext neu generieren';
+
+  @override
+  String get regenerateLyricsConfirmation =>
+      'Der aktuelle Songtext wird gelöscht und neu generiert. Fortfahren?';
+
+  @override
+  String get regenerateTimeline => 'Zeitachse neu generieren';
+
+  @override
+  String get regenerateTimelineConfirmation =>
+      'Die aktuelle Zeitachse wird gelöscht und neu generiert. Fortfahren?';
+
+  @override
+  String get retranslateLyrics => 'Songtext neu übersetzen';
+
+  @override
+  String get retranslateLyricsConfirmation =>
+      'Die aktuelle Übersetzung wird gelöscht und neu erstellt. Fortfahren?';
+
+  @override
+  String get translationCopiedToClipboard =>
+      'Übersetzung in die Zwischenablage kopiert';
+
+  @override
+  String get writingLyrics => 'Songtext wird geschrieben...';
+
+  @override
+  String get lyricsWrittenToFile => 'Songtext erfolgreich in Datei geschrieben';
+
+  @override
+  String get writeLyricsFailed => 'Fehler beim Schreiben des Songtexts';
+
+  @override
+  String get externalLrcFile => 'Externe LRC-Datei';
+
+  @override
+  String get embeddedLyrics => 'Eingebetteter Songtext';
+
+  @override
+  String get manuallyAdjustedLyrics => 'Manuell angepasster Songtext';
+
+  @override
+  String get lrclibOnlineLyrics => 'LrcLib-Online-Songtext';
+
+  @override
+  String get aiGeneratedLyrics => 'KI-generierter Songtext';
+
+  @override
+  String get matchScore => 'Übereinstimmung';
+
+  @override
+  String get untitledRelease => 'Unbenannte Veröffentlichung';
+
+  @override
+  String get localSongFileNotFoundForGeneration =>
+      'Die lokale Songdatei existiert nicht. Songtext kann nicht generiert werden.';
+
+  @override
+  String get localSongFileNotFoundForTimeline =>
+      'Die lokale Songdatei existiert nicht. Zeitachse kann nicht generiert werden.';
+
+  @override
+  String get noLyricsForTimelineGeneration =>
+      'Kein Songtext für die Zeitachsengenerierung verfügbar.';
+
+  @override
+  String get noLyricsAvailableForTranslation =>
+      'Kein Songtext für die Übersetzung verfügbar.';
+
+  @override
+  String get noCurrentSongAvailable => 'Kein aktueller Song verfügbar.';
+
+  @override
+  String get invalidTargetLanguage => 'Ungültige Zielsprache.';
+
+  @override
+  String get songAlreadyQueuedForTranslation =>
+      'Der Song ist bereits für die Übersetzung in der Warteschlange.';
+
+  @override
+  String get songAlreadyQueuedForGeneration =>
+      'Der Song ist bereits für die Generierung in der Warteschlange.';
+
+  @override
+  String get songNoLongerExistsForTranslation =>
+      'Der Song existiert nicht mehr. Übersetzung nicht möglich.';
+
+  @override
+  String get generationFailed => 'Generierung fehlgeschlagen.';
+
+  @override
+  String get generatingLyrics => 'Generiere Songtext';
+
+  @override
+  String get generatingTimeline => 'Generiere Zeitachse';
+
+  @override
+  String get regeneratingLyrics => 'Generiere Songtext neu';
+
+  @override
+  String get translatingLyrics => 'Übersetze Songtext';
+
+  @override
+  String get transcodingSongFile => 'Transkodiere Songdatei';
+
+  @override
+  String get uploadingSongFile => 'Lade Songdatei hoch';
+
+  @override
+  String get fileUploadedWaitingForReadiness =>
+      'Datei hochgeladen, warte auf Bereitschaft';
+
+  @override
+  String get waitingForFileReadiness => 'Warte auf Dateibereitschaft';
+
+  @override
+  String get requestingModelResponse => 'Fordere Modellantwort an';
+
+  @override
+  String retryingTaskKindGeneration(Object taskKind) {
+    return 'Wiederhole $taskKind-Generierung';
+  }
+
+  @override
+  String get retrying => 'Wiederholen';
+
+  @override
+  String get processing => 'Verarbeitung';
+
+  @override
+  String get timeline => 'Zeitachse';
+
+  @override
+  String get lyrics => 'Songtext';
+
+  @override
+  String lyricGenerationError(Object error) {
+    return 'Fehler bei der Songtext-Generierung: $error';
+  }
+
+  @override
+  String timelineGenerationError(Object error) {
+    return 'Fehler bei der Zeitachsen-Generierung: $error';
+  }
+
+  @override
+  String get unknownGenerationError =>
+      'Unbekannter Fehler bei der Songtext-Generierung.';
+
+  @override
+  String get unknownTimelineGenerationError =>
+      'Unbekannter Fehler bei der Zeitachsen-Generierung.';
+
+  @override
+  String get unknownTranslationError =>
+      'Unbekannter Fehler bei der Songtext-Übersetzung.';
+
+  @override
+  String get unknownError => 'Unbekannter Fehler';
+
+  @override
+  String get modelRefusedToGenerateLyrics =>
+      'Das Modell hat die Songtext-Generierung verweigert.';
+
+  @override
+  String get modelRefusedToGenerateTimeline =>
+      'Das Modell hat die Zeitachsen-Generierung verweigert.';
+
+  @override
+  String get doubaoPreUploadTranscodingFailed =>
+      'Audio-Transkodierung vor Doubao-Upload fehlgeschlagen.';
+
+  @override
+  String get doubaoTempTranscodeNotInTempDir =>
+      'Die temporäre Doubao-Datei wurde nicht im Temp-Verzeichnis erstellt.';
+
+  @override
+  String get doubaoEmptyStreamingResponse =>
+      'Doubao hat eine leere Streaming-Antwort zurückgegeben.';
+
+  @override
+  String get doubaoEmptyResponse =>
+      'Doubao hat eine leere Antwort zurückgegeben.';
+
+  @override
+  String get geminiEmptyStreamingResponse =>
+      'Gemini hat eine leere Streaming-Antwort zurückgegeben.';
+
+  @override
+  String get geminiEmptyResponse =>
+      'Gemini hat eine leere Antwort zurückgegeben.';
+
+  @override
+  String get openRouterEmptyStreamingResponse =>
+      'OpenRouter hat eine leere Streaming-Antwort zurückgegeben.';
+
+  @override
+  String get openRouterEmptyResponse =>
+      'OpenRouter hat eine leere Antwort zurückgegeben.';
+
+  @override
+  String get deepseekEmptyStreamingResponse =>
+      'DeepSeek hat eine leere Streaming-Antwort zurückgegeben.';
+
+  @override
+  String get deepseekEmptyResponse =>
+      'DeepSeek hat eine leere Antwort zurückgegeben.';
+
+  @override
+  String get customProviderEmptyStreamingResponse =>
+      'Der benutzerdefinierte Anbieter hat eine leere Streaming-Antwort zurückgegeben.';
+
+  @override
+  String get customProviderEmptyResponse =>
+      'Der benutzerdefinierte Anbieter hat eine leere Antwort zurückgegeben.';
+
+  @override
+  String get fileUploadFailed =>
+      'Datei-Upload fehlgeschlagen. Bitte erneut versuchen.';
+
+  @override
+  String get uploadedFileNotReady =>
+      'Die hochgeladene Datei wurde nicht bereit. Später erneut versuchen.';
+
+  @override
+  String get audioTranscodingFailed => 'Audio-Transkodierung fehlgeschlagen.';
+
+  @override
+  String get tempTranscodeNotInTempDir =>
+      'Die temporäre Transkodierungsdatei wurde nicht im Temp-Verzeichnis erstellt.';
+
+  @override
+  String get networkRequestFailedCheckProxy =>
+      'Netzwerkanfrage fehlgeschlagen. Überprüfen Sie Ihre Verbindung und Proxy-Einstellungen.';
+
+  @override
+  String get quotaExhaustedToday =>
+      'Das heutige Kontingent ist aufgebraucht. Morgen erneut versuchen.';
+
+  @override
+  String get googleAiHeavyLoad =>
+      'Google AI ist stark ausgelastet und vorübergehend nicht verfügbar.';
+
+  @override
+  String lyricsGenerationFailedWithError(Object error) {
+    return 'Songtext-Generierung fehlgeschlagen: $error';
+  }
+
+  @override
+  String missingApiKeyForAction(Object action, Object providerName) {
+    return 'Kein API-Schlüssel für $providerName gefunden. $action nicht möglich.';
+  }
+
+  @override
+  String get googleServerFlaky =>
+      'Google hat gerade Probleme. Ein erneuter Versuch könnte funktionieren.';
+
+  @override
+  String get translateLyricsAction => 'Songtext übersetzen';
+
+  @override
+  String get generateLyricsAction => 'Songtext generieren';
+
+  @override
+  String get generateTimelineAction => 'Zeitachse generieren';
+
+  @override
+  String get deepseekOnlyTranslation =>
+      'DeepSeek ist nur für die Songtext-Übersetzung verfügbar.';
+
+  @override
+  String get customProviderOnlyTranslation =>
+      'Der benutzerdefinierte Anbieter ist nur für die Übersetzung verfügbar.';
+
+  @override
+  String get customProviderNoBaseUrl =>
+      'Keine Basis-URL für den benutzerdefinierten Anbieter konfiguriert.';
+
+  @override
+  String get pleaseEnterApiKey => 'Bitte einen API-Schlüssel eingeben.';
+
+  @override
+  String get connectionSuccessVerificationPassed =>
+      'Verbindung erfolgreich, Verifizierung bestanden.';
+
+  @override
+  String connectionSuccessDetectedModels(Object count) {
+    return 'Verbindung erfolgreich, $count Modelle erkannt.';
+  }
+
+  @override
+  String testFailedWithStatus(Object message, Object statusCode) {
+    return 'Test fehlgeschlagen ($statusCode): $message';
+  }
+
+  @override
+  String get testFailedCheckNetworkOrApiKey =>
+      'Test fehlgeschlagen. Netzwerk oder API-Schlüssel prüfen.';
+
+  @override
+  String testFailedStatusCheckApiKey(Object statusCode) {
+    return 'Test fehlgeschlagen ($statusCode). API-Schlüssel prüfen.';
+  }
+
+  @override
+  String get enterGoogleAiStudioApiKeyFirst =>
+      'Bitte zuerst einen Google AI Studio-API-Schlüssel eingeben.';
+
+  @override
+  String get enterDoubaoApiKeyFirst =>
+      'Bitte zuerst einen Doubao-API-Schlüssel eingeben.';
+
+  @override
+  String get enterDeepseekApiKeyFirst =>
+      'Bitte zuerst einen DeepSeek-API-Schlüssel eingeben.';
+
+  @override
+  String get enterCustomApiKeyAndBaseUrl =>
+      'Bitte zuerst den benutzerdefinierten API-Schlüssel und die Basis-URL eingeben.';
+
+  @override
+  String fetchedCountModels(Object count) {
+    return '$count Modelle abgerufen.';
+  }
+
+  @override
+  String requestFailedWithStatus(Object message, Object statusCode) {
+    return 'Anfrage fehlgeschlagen ($statusCode): $message';
+  }
+
+  @override
+  String get requestFailedCheckNetwork =>
+      'Anfrage fehlgeschlagen. Netzwerk prüfen.';
+
+  @override
+  String requestFailedStatus(Object statusCode) {
+    return 'Anfrage fehlgeschlagen ($statusCode).';
+  }
+
+  @override
+  String get doubao => 'Doubao';
+
+  @override
+  String get custom => 'Benutzerdefiniert';
+
+  @override
+  String get noModelSelected => 'Kein Modell ausgewählt';
+
+  @override
+  String get acoustidRequestFailed => 'AcoustID-Anfrage fehlgeschlagen';
+
+  @override
+  String acoustidRequestReturnedStatus(Object statusCode) {
+    return 'AcoustID-Anfrage gab $statusCode zurück. Fordern Sie Ihren eigenen API-Schlüssel an.';
+  }
+
+  @override
+  String get writeTagDatabaseFailed =>
+      'Fehler beim Schreiben der Tag-Datenbank';
+
+  @override
+  String get playPause => 'Abspielen / Pause';
+
+  @override
+  String get nextTrack => 'Nächster';
+
+  @override
+  String get previousTrack => 'Vorheriger';
+
+  @override
+  String get volumeUp => 'Lauter';
+
+  @override
+  String get volumeDown => 'Leiser';
+
+  @override
+  String get toggleMute => 'Stumm schalten';
+
+  @override
+  String get seekForward5s => '5 s vorwärts';
+
+  @override
+  String get seekBackward5s => '5 s rückwärts';
+
+  @override
+  String get toggleFullScreen => 'Vollbild umschalten';
+
+  @override
+  String get playPauseDescription => 'Steuert den aktuellen Wiedergabestatus.';
+
+  @override
+  String get nextDescription => 'Zum nächsten Song springen.';
+
+  @override
+  String get previousDescription => 'Zum vorherigen Song zurückkehren.';
+
+  @override
+  String get volumeUpDescription => 'Lautstärke jedes Mal um 5% erhöhen.';
+
+  @override
+  String get volumeDownDescription => 'Lautstärke jedes Mal um 5% verringern.';
+
+  @override
+  String get toggleMuteDescription => 'Stummschaltung ein-/ausschalten.';
+
+  @override
+  String get seekForward5sDescription => '5 Sekunden vorwärts springen.';
+
+  @override
+  String get seekBackward5sDescription => '5 Sekunden rückwärts springen.';
+
+  @override
+  String get toggleFullScreenDescription =>
+      'Zwischen Fenster- und Vollbildmodus wechseln.';
+
+  @override
+  String get unknownKey => 'Unbekannte Taste';
+
+  @override
+  String get removeFromQueue => 'Aus Warteschlange entfernen';
+
+  @override
+  String get removeFromPlaylist => 'Aus Playlist entfernen';
+
+  @override
+  String get alreadyLatestVersion => 'Sie haben bereits die neueste Version.';
+
+  @override
+  String get updateAvailable => 'Update verfügbar';
+
+  @override
+  String newVersionAvailable(Object version) {
+    return 'Neue Version v$version verfügbar. Von GitHub Releases herunterladen.';
+  }
+
+  @override
+  String get openRelease => 'Zu Release';
+
+  @override
+  String get checkUpdateFailedNetwork =>
+      'Update-Prüfung fehlgeschlagen. Netzwerkproblem oder GitHub-Limit.';
+
+  @override
+  String get tags => 'Tags';
+
+  @override
+  String get about => 'Über';
+
+  @override
+  String get rebuildIndex => 'Index neu aufbauen';
+
+  @override
+  String get rebuildIndexDescription =>
+      'Alle Song-Datensätze löschen (außer externe Quellen) und alle Stammverzeichnisse erneut scannen.';
+
+  @override
+  String get rebuildIndexConfirmation =>
+      'Alle Datensätze löschen und erneut scannen? Dies kann einige Zeit dauern.';
+
+  @override
+  String get rebuildIndexStarted => 'Index-Neuaufbau gestartet';
+
+  @override
+  String get rebuild => 'Neu aufbauen';
+
+  @override
+  String get advanced => 'Erweitert';
+
+  @override
+  String get advancedOptionsDescription =>
+      'Optionen für Debugging und Verhaltenssteuerung.';
+
+  @override
+  String get showDeveloperOptionsDescription =>
+      'Erweiterte Debug-Optionen anzeigen.';
+
+  @override
+  String get onboardingReset =>
+      'Einführungsguide zurückgesetzt. Wird beim Neustart wirksam.';
+
+  @override
+  String get tagsSectionDescription =>
+      'Konfiguration von Audio-Metadaten und automatischer Vervollständigung.';
+
+  @override
+  String get autoSaveToSourceFile => 'Automatisch in Quelldatei speichern';
+
+  @override
+  String get autoSaveToSourceFileDescription =>
+      'Tags automatisch in die physische Audiodatei schreiben.';
+
+  @override
+  String get aboutSectionDescription =>
+      'Versionsinfo, Projektlinks und verwandte Ressourcen.';
+
+  @override
+  String get checkForUpdates => 'Nach Updates suchen';
+
+  @override
+  String get lyricsGenerationModel => 'Songtext-Generierungsmodell';
+
+  @override
+  String get lyricsGenerationModelDescription =>
+      'Für KI-generierte Songtexte und Zeitachsen-Korrektur.';
+
+  @override
+  String get lyricsTranslationModel => 'Songtext-Übersetzungsmodell';
+
+  @override
+  String get lyricsTranslationModelDescription =>
+      'Zum Übersetzen von Songtexten in die Zielsprache.';
+
+  @override
+  String get onlyForLyricTranslation => 'Nur für Übersetzung';
+
+  @override
+  String get fillApiKeyFirstEnablesModels =>
+      'Füllen Sie mindestens einen API-Schlüssel aus, um die Modellauswahl zu aktivieren.';
+
+  @override
+  String get customApiProvider => 'Benutzerdefinierter API-Anbieter';
+
+  @override
+  String get clearedGoogleAiStudioApiKey =>
+      'Google AI Studio-API-Schlüssel gelöscht';
+
+  @override
+  String get clearedOpenRouterApiKey => 'OpenRouter-API-Schlüssel gelöscht';
+
+  @override
+  String get clearedDoubaoApiKey => 'Doubao-API-Schlüssel gelöscht';
+
+  @override
+  String get clearedDeepseekApiKey => 'DeepSeek-API-Schlüssel gelöscht';
+
+  @override
+  String get clearedCustomProviderConfig =>
+      'Benutzerdefinierte Anbieterkonfiguration gelöscht';
+
+  @override
+  String get savedDoubaoApiKey => 'Doubao-API-Schlüssel gespeichert';
+
+  @override
+  String get savedDeepseekApiKey => 'DeepSeek-API-Schlüssel gespeichert';
+
+  @override
+  String get savedCustomProviderConfig =>
+      'Benutzerdefinierte Anbieterkonfiguration gespeichert';
+
+  @override
+  String get noMatchingFoldersOrSongs =>
+      'Keine passenden Ordner oder Songs gefunden';
+
+  @override
+  String get listView => 'Listenansicht';
+
+  @override
+  String get gridView => 'Rasteransicht';
+
+  @override
+  String songsCountFormat(Object count) {
+    return '$count Songs';
+  }
+
+  @override
+  String get searchInFolderAndSubfolders =>
+      'Im Ordner und Unterordnern suchen...';
+
+  @override
+  String get shuffle => 'Zufallswiedergabe';
+
+  @override
+  String get search => 'Suchen';
+
+  @override
+  String get selectFolders => 'Ordner auswählen';
+
+  @override
+  String get removeDirectory => 'Verzeichnis entfernen';
+
+  @override
+  String removeRootDirectoryConfirmation(Object name) {
+    return 'Stammverzeichnis \"$name\" wirklich entfernen? Physische Dateien werden nicht gelöscht.';
+  }
+
+  @override
+  String get deselectAll => 'Alle abwählen';
+
+  @override
+  String get favorites => 'Favoriten';
+
+  @override
+  String get aggregationPeak => 'Spitze';
+
+  @override
+  String get aggregationMean => 'Mittelwert';
+
+  @override
+  String get aggregationRms => 'RMS';
+
+  @override
+  String get filesToTranscode => 'Zu transkodierende Dateien';
+
+  @override
+  String get chooseAndroidOutputDirectoryFirst =>
+      'Bitte zuerst ein Android-Ausgabeverzeichnis wählen.';
+
+  @override
+  String currentSongProgressPercent(Object percent) {
+    return 'Aktueller Song $percent%';
+  }
+
+  @override
+  String overallProgressPercent(Object percent) {
+    return 'Gesamt $percent%';
+  }
+
+  @override
+  String get pleaseChooseOutputDirectory =>
+      'Bitte ein Ausgabeverzeichnis wählen.';
+
+  @override
+  String selectedArtistsCount(Object count) {
+    return '$count Künstler ausgewählt';
+  }
+
+  @override
+  String selectedAlbumsCount(Object count) {
+    return '$count Alben ausgewählt';
+  }
+
+  @override
+  String get simplifiedChinese => 'Vereinfachtes Chinesisch';
+
+  @override
+  String get traditionalChinese => 'Traditionelles Chinesisch';
+
+  @override
+  String get chineseLanguage => 'Chinesisch';
+
+  @override
+  String get englishLanguage => 'Englisch';
+
+  @override
+  String get japaneseLanguage => 'Japanisch';
+
+  @override
+  String get koreanLanguage => 'Koreanisch';
+
+  @override
+  String get frenchLanguage => 'Französisch';
+
+  @override
+  String get germanLanguage => 'Deutsch';
+
+  @override
+  String get spanishLanguage => 'Spanisch';
+
+  @override
+  String get portugueseLanguage => 'Portugiesisch';
+
+  @override
+  String get russianLanguage => 'Russisch';
+
+  @override
+  String get systemLanguage => 'Systemsprache';
+
+  @override
+  String get targetLanguage => 'Zielsprache';
+
+  @override
+  String get whatAreAiLyrics => 'Was sind KI-Songtexte?';
+
+  @override
+  String get whatIsAiLyricTranslation => 'Was ist KI-Songtext-Übersetzung?';
+
+  @override
+  String get aiLyricsIntroGeneration =>
+      'KI kann Songtexte aus dem Song generieren und zeitlich ausrichten.';
+
+  @override
+  String get aiLyricsIntroTranslation =>
+      'KI kann Songtexte in Ihre bevorzugte Sprache übersetzen.';
+
+  @override
+  String get whyNeedApiKey => 'Warum brauche ich einen API-Schlüssel?';
+
+  @override
+  String get apiKeyExplanation =>
+      'Ein API-Schlüssel ist Ihre Zugangsberechtigung für einen KI-Anbieter. Die App verwendet ihn für Anfragen.';
+
+  @override
+  String get apiKeyLocalOnly =>
+      'Ihr API-Schlüssel wird nur lokal gespeichert und niemals an Vynody-Server gesendet.';
+
+  @override
+  String get chooseAnAiProvider => 'Wählen Sie einen KI-Anbieter:';
+
+  @override
+  String get googleProviderPros =>
+      'Offizieller Google-Kanal, leistungsstarke Gemini-Modelle, großzügige kostenlose Kontingente.';
+
+  @override
+  String get googleProviderCons =>
+      'Kann bei hoher Last 429-Fehler verursachen. Bei Bedarf Anbieter wechseln.';
+
+  @override
+  String get openRouterProviderPros =>
+      'Modell-Aggregator mit Zugang zu mehreren Anbietern und einigen kostenlosen Modellen.';
+
+  @override
+  String get openRouterProviderCons =>
+      'Aufladungen können Gebühren enthalten. Website nur auf Englisch.';
+
+  @override
+  String get doubaoProviderPros =>
+      'Von ByteDance, stark bei Chinesisch. 500k kostenlose Tokens pro Modell für Neulinge.';
+
+  @override
+  String get doubaoProviderCons =>
+      'Registrierung erfordert echte Identitätsprüfung.';
+
+  @override
+  String get deepseekProviderPros =>
+      'Gutes Chinesisch-Verständnis, niedriger Preis, ideal für Übersetzung.';
+
+  @override
+  String get deepseekProviderCons =>
+      'Nur Texteingabe. Für Songtext-Generierung ist ein anderer Anbieter nötig.';
+
+  @override
+  String get highlights => 'Highlights';
+
+  @override
+  String get notes => 'Hinweise';
+
+  @override
+  String enterProviderApiKey(Object provider) {
+    return 'Geben Sie Ihren $provider-API-Schlüssel ein:';
+  }
+
+  @override
+  String get pasteYourApiKey => 'API-Schlüssel hier einfügen';
+
+  @override
+  String get getApiKey => 'API-Schlüssel besorgen';
+
+  @override
+  String get testConnectionButton => 'Verbindung testen';
+
+  @override
+  String get enableAiLyricGeneration => 'KI-Songtext-Generierung aktivieren';
+
+  @override
+  String get enableAiLyricTranslation => 'KI-Songtext-Übersetzung aktivieren';
+
+  @override
+  String get notNow => 'Jetzt nicht';
+
+  @override
+  String get startSetup => 'Einrichtung starten';
+
+  @override
+  String get chooseAiProvider => 'KI-Anbieter wählen';
+
+  @override
+  String get backStep => 'Zurück';
+
+  @override
+  String get continueAction => 'Fortfahren';
+
+  @override
+  String get nextStep => 'Weiter';
+
+  @override
+  String get configureApiKey => 'API-Schlüssel konfigurieren';
+
+  @override
+  String get saveAndFinish => 'Speichern und abschließen';
+
+  @override
+  String get testing => 'Test läuft...';
+
+  @override
+  String get noteTitle => 'Hinweis';
+
+  @override
+  String get deepseekTextInputOnlyNote =>
+      'DeepSeek unterstützt nur Texteingabe. Für Songtext-Generierung einen anderen Anbieter nutzen.';
+
+  @override
+  String retryAttemptOfMax(Object attempt, Object maxRetry) {
+    return 'Versuch $attempt/$maxRetry';
+  }
+
+  @override
+  String generatingTaskKind(Object taskKind) {
+    return 'Generiere $taskKind';
+  }
+
+  @override
+  String connectionTestException(Object error) {
+    return 'Verbindungstest-Fehler: $error';
+  }
+
+  @override
+  String get testingConnectionProgress => 'Verbindung wird getestet...';
+
+  @override
+  String get clear => 'Löschen';
+
+  @override
+  String get enterDoubaoApiKey => 'Doubao-API-Schlüssel eingeben';
+
+  @override
+  String get doubaoApiKeyDescription =>
+      'Geben Sie Ihren Volcano/Doubao-API-Schlüssel für Generierung und Übersetzung ein.';
+
+  @override
+  String get enterDeepseekApiKey => 'DeepSeek-API-Schlüssel eingeben';
+
+  @override
+  String get deepseekApiKeyDescription =>
+      'Geben Sie Ihren DeepSeek-API-Schlüssel nur für die Übersetzung ein.';
+
+  @override
+  String get pleaseEnterApiKeyHint => 'Bitte API-Schlüssel eingeben';
+
+  @override
+  String get platform => 'Plattform';
+
+  @override
+  String get showRecommendedOnly => 'Nur empfohlene anzeigen';
+
+  @override
+  String get noAvailableChannels => 'Keine verfügbaren Kanäle';
+
+  @override
+  String get noMatchingModels => 'Keine passenden Modelle gefunden';
+
+  @override
+  String get leaveEmpty => 'Leer lassen';
+
+  @override
+  String get leaveEmptyFallbackDescription =>
+      'Auswählen, um kein Backup-Modell zu verwenden.';
+
+  @override
+  String get modelSearchHint => 'Modellname oder ID eingeben';
+
+  @override
+  String sendFilesFailed(Object error) {
+    return 'Senden fehlgeschlagen: $error';
+  }
+
+  @override
+  String get scanningFolderMusic => 'Scanne Ordner nach Musikdateien...';
+
+  @override
+  String scanFolderFailed(Object error) {
+    return 'Scannen fehlgeschlagen: $error';
+  }
+
+  @override
+  String get noMusicFilesFound => 'Keine unterstützten Musikdateien gefunden';
+
+  @override
+  String sendFolderFailed(Object error) {
+    return 'Senden des Ordners fehlgeschlagen: $error';
+  }
+
+  @override
+  String get lanSharingStartFailed =>
+      'LAN-Freigabe fehlgeschlagen. Netzwerkberechtigungen prüfen.';
+
+  @override
+  String syncingLyricsToDevice(Object deviceName) {
+    return 'Songtexte zu $deviceName synchronisieren...';
+  }
+
+  @override
+  String syncLyricsSuccess(Object matched, Object overwritten, Object skipped) {
+    return 'Synchronisation abgeschlossen: $matched übereinstimmend, $overwritten aktualisiert, $skipped übersprungen';
+  }
+
+  @override
+  String syncLyricsFailed(Object error) {
+    return 'Songtext-Synchronisation fehlgeschlagen: $error';
+  }
+
+  @override
+  String syncingLyricsFromDevice(Object deviceName) {
+    return 'Songtexte von $deviceName empfangen...';
+  }
+
+  @override
+  String get transferInProgressDoNotLeave =>
+      'Übertragung läuft. Bitte verlassen Sie die Freigabeseite nicht.';
+
+  @override
+  String get lanSharingTitle => 'LAN-Dateifreigabe';
+
+  @override
+  String get lanSharingEnabledStatus => 'LAN-Freigabe aktiviert';
+
+  @override
+  String get lanSharingDisabledStatus => 'LAN-Freigabe deaktiviert';
+
+  @override
+  String lanSharingRunningStatus(Object ip, Object port) {
+    return 'Lokale IP: $ip (Port: $port)';
+  }
+
+  @override
+  String get lanSharingDefaultOffHint =>
+      'Standardmäßig deaktiviert. Die Aktivierung erfordert LAN-Berechtigung.';
+
+  @override
+  String get receiveDirectoryNotSetWarning =>
+      'Kein Empfangsverzeichnis festgelegt. Bitte eins einrichten.';
+
+  @override
+  String receiveDirectoryUpdated(Object path) {
+    return 'Empfangsverzeichnis aktualisiert auf: $path';
+  }
+
+  @override
+  String get receiveDirectoryTitle => 'Empfangsverzeichnis';
+
+  @override
+  String get webShareTitle => 'Web-Freigabe';
+
+  @override
+  String get webShareDescription =>
+      'Andere Geräte im selben LAN können den Link öffnen, um Musik hoch- oder herunterzuladen.';
+
+  @override
+  String get linkCopiedToClipboard => 'Link in die Zwischenablage kopiert';
+
+  @override
+  String get nearbyDevices => 'Geräte in der Nähe';
+
+  @override
+  String get searchingDevices => 'Suche nach anderen Geräten im LAN...';
+
+  @override
+  String get startSharingToFindDevices =>
+      'Freigabe aktivieren, um Geräte zu finden';
+
+  @override
+  String get deviceOnline => 'Online';
+
+  @override
+  String get deviceOffline => 'Getrennt';
+
+  @override
+  String get sendMusicFiles => 'Musikdateien senden';
+
+  @override
+  String get sendFolder => 'Ordner senden';
+
+  @override
+  String get syncLyricsToDeviceAction => 'Songtexte an Gerät senden';
+
+  @override
+  String get syncLyricsFromDeviceAction => 'Songtexte von Gerät empfangen';
+
+  @override
+  String loadDevicesError(Object error) {
+    return 'Fehler beim Laden der Geräte: $error';
+  }
+
+  @override
+  String incomingFilesFormat(Object name1, Object name2, Object count) {
+    return '$name1, $name2 und $count weitere Dateien';
+  }
+
+  @override
+  String get incomingTransferRequestTitle =>
+      'Eingehende Dateiübertragungsanfrage';
+
+  @override
+  String incomingTransferFrom(Object senderName) {
+    return 'Anfrage von \"$senderName\":';
+  }
+
+  @override
+  String fileSizeMb(Object sizeMb) {
+    return 'Dateigröße: $sizeMb MB';
+  }
+
+  @override
+  String get receiveFileHint =>
+      'Empfangene Dateien werden im Musikordner gespeichert und zur Mediathek hinzugefügt.';
+
+  @override
+  String get reject => 'Ablehnen';
+
+  @override
+  String get accept => 'Annehmen';
+
+  @override
+  String sendCompleted(Object fileName) {
+    return '\"$fileName\" gesendet';
+  }
+
+  @override
+  String receiveCompleted(int count) {
+    return '$count Songs erfolgreich empfangen';
+  }
+
+  @override
+  String transferCancelledWithReason(Object direction, Object reason) {
+    return '$direction abgebrochen ($reason)';
+  }
+
+  @override
+  String transferFailedFormat(Object direction, Object fileName) {
+    return '$direction \"$fileName\" fehlgeschlagen';
+  }
+
+  @override
+  String sendingToDevice(Object deviceName) {
+    return 'Sende an $deviceName';
+  }
+
+  @override
+  String receivingFromDevice(Object deviceName) {
+    return 'Empfange von $deviceName';
+  }
+
+  @override
+  String progressFormat(Object percent) {
+    return 'Fortschritt: $percent%';
+  }
+
+  @override
+  String get currentlyTransferring => 'Derzeit wird übertragen';
+
+  @override
+  String get fileConflictTitle => 'Dateikonflikt';
+
+  @override
+  String get fileConflictMessage =>
+      'Auf dem Zielgerät existiert bereits eine Datei mit demselben Namen:';
+
+  @override
+  String get fileConflictChooseAction => 'Bitte wählen Sie eine Aktion:';
+
+  @override
+  String get skipAction => 'Überspringen';
+
+  @override
+  String get overwriteAction => 'Überschreiben';
+
+  @override
+  String get skipAllAction => 'Alle überspringen';
+
+  @override
+  String get overwriteAllAction => 'Alle überschreiben';
+
+  @override
+  String get sendDirection => 'Senden';
+
+  @override
+  String get receiveDirection => 'Empfangen';
+}

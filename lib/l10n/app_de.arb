@@ -1,0 +1,1126 @@
+{
+  "@@locale": "de",
+  "appTitle": "Vynody",
+  "alwaysOnTop": "Immer im Vordergrund",
+  "@alwaysOnTop": {
+    "description": "Tooltip for always on top / pin button in window title bar"
+  },
+  "systemMediaLibrary": "System-Mediathek",
+  "scanningDirectory": "Scanne Verzeichnis...",
+  "filesPreprocessed": "{count} vorverarbeitet",
+  "@filesPreprocessed": {
+    "description": "Scanning progress toast message showing how many files have had text metadata preprocessed",
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "filesDiscovered": "{count} entdeckt",
+  "@filesDiscovered": {
+    "description": "Scanning progress toast message showing how many files have been discovered",
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "filesFullyProcessed": "{count} vollständig verarbeitet",
+  "@filesFullyProcessed": {
+    "description": "Scanning progress toast message showing how many songs have been fully processed with thumbnails and theme colors",
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "directoryAddedSuccess": "Verzeichnis erfolgreich hinzugefügt",
+  "directoryAddedNoMusic": "Verzeichnis hinzugefügt, aber keine abspielbaren Audiodateien gefunden",
+  "scanDirectory": "Verzeichnis scannen",
+  "sort": "Sortieren",
+  "addRootDirectory": "Stammverzeichnis hinzufügen",
+  "goBack": "Zurück",
+  "noMediaLibraryPermission": "Kein Zugriff auf die Mediathek",
+  "grantPermission": "Berechtigung erteilen",
+  "needPermissionToScan": "Berechtigung zum Scannen lokaler Musik erforderlich",
+  "rebuildTagDatabase": "Tag-Datenbank neu aufbauen",
+  "rebuildDatabase": "Datenbank neu aufbauen",
+  "confirmRebuildDatabase": "Sollen alle Song-Tags aktualisiert werden? Dies kann einige Zeit dauern.",
+  "cancel": "Abbrechen",
+  "confirm": "Bestätigen",
+  "rebuildingDatabase": "Song-Tag-Datenbank wird neu aufgebaut...",
+  "sortBy": "Sortieren nach",
+  "sortScope": "Bereich",
+  "sortOrder": "Sortierreihenfolge",
+  "title": "Titel",
+  "fileName": "Dateiname",
+  "trackNumber": "Titelnummer",
+  "ascending": "Aufsteigend",
+  "descending": "Absteigend",
+  "currentFolderScope": "Aktueller Ordner",
+  "globalScope": "Global",
+  "visualizerSettings": "Wiedergabeseiten-Einstellungen",
+  "algorithm": "Spektrum",
+  "appearance": "Aussehen",
+  "spectrumAppearanceGroup": "Spektrum-Aussehen",
+  "spectrumAdvancedOptions": "Erweiterte Spektrum-Optionen",
+  "resetAlgorithm": "Algorithmus zurücksetzen",
+  "resetAppearance": "Aussehen zurücksetzen",
+  "smoothing": "Glättung",
+  "gravity": "Schwerkraft",
+  "logScale": "Logarithmische Skala",
+  "contrast": "Kontrast",
+  "normalization": "Normalisierung",
+  "multiplier": "Multiplikator",
+  "skipHighFrequency": "Hohe Frequenzen überspringen",
+  "frequencyGroups": "Frequenzgruppen",
+  "aggregationMode": "Aggregationsmodus",
+  "opacity": "Deckkraft",
+  "enableGradient": "Farbverlauf aktivieren",
+  "startColor": "Startfarbe",
+  "endColor": "Endfarbe",
+  "gradientRangeStop1": "Verlaufsstopp 1",
+  "gradientRangeStop2": "Verlaufsstopp 2",
+  "gradientRepeatMode": "Wiederholungsmodus",
+  "color": "Farbe",
+  "followCoverColor": "Coverfarbe folgen",
+  "selectColor": "Farbe auswählen",
+  "volume": "Lautstärke",
+  "clearQueue": "Warteschlange leeren",
+  "confirmClearQueue": "Soll die aktuelle Warteschlange wirklich geleert werden?",
+  "queueCleared": "Warteschlange geleert",
+  "locateCurrentSong": "Aktuellen Song suchen",
+  "songNotInScannedFolders": "Aktueller Song befindet sich nicht in gescannten Verzeichnissen",
+  "queue": "Warteschlange",
+  "queueEmpty": "Warteschlange ist leer",
+  "selectedSongs": "{count} Songs ausgewählt",
+  "unknownArtist": "Unbekannter Künstler",
+  "deletedSongs": "{count} Songs gelöscht",
+  "delete": "Löschen",
+  "createPlaylist": "Playlist erstellen",
+  "playlistName": "Playlist-Name",
+  "enterPlaylistName": "Playlist-Namen eingeben",
+  "playlistNameExists": "Playlist-Name existiert bereits",
+  "renamePlaylist": "Playlist umbenennen",
+  "deletePlaylist": "Playlist löschen",
+  "confirmDeletePlaylist": "Soll die Playlist \"{name}\" wirklich gelöscht werden?",
+  "addToPlaylist": "Zur Playlist hinzufügen",
+  "selectAll": "Alle auswählen",
+  "addToQueue": "Zur Warteschlange hinzufügen",
+  "addedToQueue": "Zur Warteschlange hinzugefügt",
+  "songCount": "{count} Songs",
+  "addedToPlaylist": "{count} Songs zu {playlist} hinzugefügt",
+  "createNewList": "Neue Liste erstellen",
+  "createdPlaylist": "Playlist \"{name}\" mit {count} Songs erstellt",
+  "rename": "Umbenennen",
+  "playlist": "Playlist",
+  "mostPlayed": "Am häufigsten gespielt",
+  "recentlyAdded": "Kürzlich hinzugefügt",
+  "albums": "Alben",
+  "artists": "Künstler",
+  "mostPlayedDescription": "Sortiert nach vollständigen Wiedergaben",
+  "recentlyAddedDescription": "Sortiert nach Aufnahmezeitpunkt in die Mediathek",
+  "allTime": "Gesamte Zeit",
+  "pastWeek": "Letzte Woche",
+  "pastMonth": "Letzter Monat",
+  "past90Days": "Letzte 90 Tage",
+  "noPlayHistory": "Noch kein Wiedergabeverlauf",
+  "noPlayHistoryInRange": "Kein Wiedergabeverlauf in diesem Zeitraum",
+  "noRecentlyAddedSongs": "Noch keine Songs in der Mediathek",
+  "noRecentlyAddedInRange": "In diesem Zeitraum wurden keine Songs hinzugefügt",
+  "addedOn": "Hinzugefügt am",
+  "lastPlayed": "Zuletzt gespielt",
+  "playCountLabel": "{count} Wiedergaben",
+  "@playCountLabel": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "playAll": "Alle abspielen",
+  "shufflePlay": "Zufallswiedergabe",
+  "noAlbums": "Noch keine Alben verfügbar",
+  "noArtists": "Noch keine Künstler verfügbar",
+  "searchAlbums": "Alben oder Künstler suchen",
+  "searchArtists": "Künstler suchen",
+  "albumSort": "Sortieren",
+  "sortArtistAsc": "Künstler A-Z",
+  "sortTitleAsc": "Albumtitel A-Z",
+  "sortTrackCount": "Song-Anzahl",
+  "sortDuration": "Gesamtdauer",
+  "sortRecentAdded": "Kürzlich hinzugefügt",
+  "sortAscending": "Aufsteigend",
+  "sortDescending": "Absteigend",
+  "playNext": "Als Nächstes abspielen",
+  "addToFavorites": "Zu Favoriten hinzufügen",
+  "removeFromFavorites": "Aus Favoriten entfernen",
+  "viewAlbumDetails": "Album-Details anzeigen",
+  "viewArtistDetails": "Künstler-Details anzeigen",
+  "openFileLocation": "Dateispeicherort öffnen",
+  "copyAlbumTitle": "Albumtitel kopieren",
+  "copyArtistName": "Künstlernamen kopieren",
+  "albumCount": "{count} Alben",
+  "emptyList": "Liste ist leer",
+  "dragToAddMusic": "Dateien oder Ordner zum Hinzufügen von Musik ziehen",
+  "unknownAlbum": "Unbekanntes Album",
+  "managePlaylists": "Playlists verwalten",
+  "createNewPlaylist": "Neue Playlist erstellen",
+  "defaultList": "Standard-Liste",
+  "playbackMode": "Wiedergabemodus",
+  "playbackOptions": "Wiedergabeoptionen",
+  "setVisualizerDisplay": "Visualizer-Anzeige einstellen",
+  "noPlaybackContent": "Kein Wiedergabeinhalt",
+  "file": "Datei",
+  "play": "Wiedergabe",
+  "list": "Mediathek",
+  "queueTab": "Warteschlange",
+  "more": "Mehr",
+  "settings": "Einstellungen",
+  "themeMode": "Design",
+  "themeModeSystem": "System folgen",
+  "themeModeLight": "Hell",
+  "themeModeDark": "Dunkel",
+  "immersiveTabBar": "Immersive Tab-Leiste",
+  "immersiveTabBarDescription": "Navigationsleiste bei Mausbewegung anzeigen, nach 3 s Inaktivität ausblenden",
+  "sampleStride": "Abtastschritt",
+  "sampleStrideDescription": "Größere Werte scannen schneller, aber mit geringerer Wellenformgenauigkeit (Standard: 4)",
+  "waveformSegments": "Wellenform-Segmente",
+  "waveformSegmentsDescription": "Anzahl der Wellenbalken zur Anzeige (Standard: 80)",
+  "showDeveloperOptions": "Entwickleroptionen anzeigen",
+  "playbackBackground": "Wiedergabe-Hintergrund",
+  "playbackRadialGradient": "Mittlerer Dunkelverlauf",
+  "blurIntensity": "Unschärfe-Intensität",
+  "blurredArtwork": "Unscharfes Cover (Standard)",
+  "dynamicMesh": "Dynamisches Mesh (Apple Music-Stil)",
+  "solidColor": "Einfarbig",
+  "customImage": "Benutzerdefiniertes Bild",
+  "presetColors": "Voreingestellte Farben",
+  "customColor": "Benutzerdefinierte Farbe",
+  "uploadImage": "Bild auswählen",
+  "normalOpacity": "Normale Dunkelschicht-Deckkraft",
+  "lyricsOpacity": "Text-Dunkelschicht-Deckkraft",
+  "chooseImageError": "Fehler beim Auswählen des Bildes",
+  "noImageSelected": "Kein Bild ausgewählt",
+  "unknown": "Unbekannt",
+  "playlistModeSingle": "Einzeltitel",
+  "playlistModeSingleLoop": "Einzeltitel wiederholen",
+  "playlistModeQueue": "Wiedergabeliste",
+  "playlistModeQueueLoop": "Wiedergabeliste wiederholen",
+  "playlistModeAutoQueueLoop": "Auto-Wiedergabeliste wiederholen",
+  "visualizer": "Visualizer",
+  "previous": "Vorheriger",
+  "next": "Nächster",
+  "pause": "Pause",
+  "autoMode": "Automatikmodus",
+  "advancedOptions": "Erweiterte Optionen",
+  "spectrumQuantity": "Spektrum-Anzahl",
+  "speed": "Geschwindigkeit",
+  "quantityHigh": "Hoch",
+  "quantityMedium": "Mittel",
+  "quantityLow": "Niedrig",
+  "speedFast": "Schnell",
+  "speedMedium": "Mittel",
+  "speedSlow": "Langsam",
+  "portraitFrequencyGroups": "Spektrum-Anzahl Hochformat",
+  "landscapeFrequencyGroups": "Spektrum-Anzahl Querformat",
+  "portraitGap": "Abstand Hochformat",
+  "landscapeGap": "Abstand Querformat",
+  "enableWaveformProgressBar": "Wellenform-Fortschrittsbalken aktivieren",
+  "enableWaveformProgressBarDescription": "Gesamte Song-Wellenform anstelle des Standardschiebereglers verwenden",
+  "randomMode": "Zufallsmodus",
+  "randomHistory": "Zufallsverlauf",
+  "randomRange": "Zufallsbereich",
+  "randomMethod": "Zufallsmethode",
+  "currentQueue": "Aktuelle Warteschlange",
+  "globalRange": "Global (alle Playlists)",
+  "completeRandom": "Vollständiger Zufall",
+  "shuffleRandom": "Mischen",
+  "randomQueue": "Zufalls-Warteschlange",
+  "notSelected": "Keine Musik ausgewählt",
+  "saveTagsToFile": "Tags in Datei speichern",
+  "saveCurrentTagsToFile": "Tags des aktuellen Songs in Datei speichern",
+  "saveQueueTagsToFile": "Alle Tags der Warteschlange in Datei speichern",
+  "tagsSaved": "Tags erfolgreich gespeichert",
+  "tagsSavedCount": "Tags gespeichert ({count} Songs)",
+  "tagsSaveFailed": "Fehler beim Speichern der Tags",
+  "tagsSaveFailedCount": "Fehler beim Speichern von {count} Songs",
+  "unsupportedFormat": "{count} Songs haben ein nicht unterstütztes Format (OGG/Opus)",
+  "unsupportedFormatSingle": "Dieses Format (OGG/Opus) unterstützt das Speichern von Tags nicht",
+  "savingTags": "Speichere Tags...",
+  "noModifiedTagsToSave": "Keine geänderten Tags zu speichern",
+  "clearPlaylist": "Liste leeren",
+  "copyTitle": "Titel kopieren",
+  "transcodeAction": "Transkodieren",
+  "transcodeSectionTitle": "Audio-Transkodierung",
+  "transcodeSectionDescription": "Standard-Ausgabeformat und Qualitätsvoreinstellung festlegen.",
+  "transcodeDefaultFormat": "Standard-Ausgabeformat",
+  "transcodeDefaultQuality": "Standard-Qualitätsvoreinstellung",
+  "transcodeTitle": "Audio-Transkodierung",
+  "transcodeSongCount": "{count} Songs",
+  "@transcodeSongCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "transcodeCompletedCount": "{count} Transkodierungsaufgaben abgeschlossen",
+  "@transcodeCompletedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "transcodeCompletedWithFailures": "{success}/{total} Aufgaben abgeschlossen, {failed} fehlgeschlagen",
+  "@transcodeCompletedWithFailures": {
+    "placeholders": {
+      "success": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      },
+      "failed": {
+        "type": "int"
+      }
+    }
+  },
+  "transcodeFailedGeneric": "Transkodierung fehlgeschlagen",
+  "transcodePreparing": "Transkodierung wird vorbereitet...",
+  "transcodeProgress": "Transkodiere {current}/{total}",
+  "@transcodeProgress": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "transcoding": "Transkodierung läuft...",
+  "startTranscode": "Transkodierung starten",
+  "transcodeEngine": "Engine: {engine}",
+  "@transcodeEngine": {
+    "placeholders": {
+      "engine": {}
+    }
+  },
+  "transcodeUsingSystemFfmpeg": "Verwende ffmpeg aus dem System-PATH.",
+  "transcodeUsingCustomFfmpeg": "Verwende benutzerdefiniertes ffmpeg: {path}",
+  "@transcodeUsingCustomFfmpeg": {
+    "placeholders": {
+      "path": {}
+    }
+  },
+  "transcodeFormat": "Ausgabeformat",
+  "transcodeQualityPreset": "Qualitätsvoreinstellung",
+  "transcodeQualityLow": "Niedrig",
+  "transcodeQualityMedium": "Mittel",
+  "transcodeQualityHigh": "Hoch",
+  "transcodeQualityExtreme": "Höchste",
+  "transcodeLosslessPresetHint": "Dieses verlustfreie Format verwendet keine Qualitätsstufen oder Bitratenmodi.",
+  "transcodeAdvancedOptions": "Erweiterte Optionen",
+  "transcodeAdvancedCustomized": "Erweiterte Parameter wurden manuell geändert",
+  "transcodeAdvancedFollowingPreset": "Erweiterte Parameter folgen der aktuellen Voreinstellung",
+  "transcodeLosslessAdvancedHint": "Dieses verlustfreie Format behält nur quellbezogene Optionen bei.",
+  "transcodeBitRateInvalid": "Gültige Bitrate eingeben",
+  "transcodeBitRate": "Bitrate",
+  "transcodeBitRateMode": "Bitratenmodus",
+  "transcodeEncodingEngine": "Codierungs-Engine",
+  "transcodeSystemEncoder": "Media3 (System)",
+  "transcodeFfmpegRustEncoder": "FFmpeg (Rust)",
+  "transcodeAacEncoder": "AAC-Encoder",
+  "transcodeSampleRate": "Abtastrate",
+  "transcodeChannels": "Kanäle",
+  "transcodeResetToPreset": "Auf aktuelle Voreinstellung zurücksetzen",
+  "transcodeResetLosslessOptions": "Verlustfreie Optionen zurücksetzen",
+  "transcodeOutputDirectory": "Ausgabeverzeichnis",
+  "transcodeOutputPreview": "Vorschau",
+  "transcodeChooseDirectory": "Verzeichnis auswählen",
+  "transcodeUseSourceDirectory": "Quellverzeichnis verwenden",
+  "transcodeKeepSource": "Quelldatei behalten",
+  "transcodeMono": "Mono",
+  "transcodeStereo": "Stereo",
+  "openFolderLocation": "Ordnerspeicherort öffnen",
+  "songTagsSavedToSourceFileAndApp": "Song-Tags in Quelldatei und App gespeichert",
+  "songTagsSavedToApp": "Song-Tags in der App gespeichert",
+  "durationZero": "0:00",
+  "generateLyrics": "Songtext generieren",
+  "generateTimeline": "Zeitachse generieren",
+  "queueGenerateLyrics": "Generierung einreihen",
+  "pauseAutoScroll": "Automatisches Scrollen anhalten",
+  "resumeAutoScroll": "Automatisches Scrollen fortsetzen",
+  "translateLyrics": "Songtext übersetzen",
+  "clearLyricsCache": "Aktuellen Songtext-Cache leeren",
+  "clearTranslationCache": "Aktuellen Übersetzungs-Cache leeren",
+  "requery": "Erneut abfragen",
+  "sleepTimerTitle": "Sleep-Timer",
+  "sleepTimerDescription": "Countdown auswählen. Die Wiedergabe wird nach Ablauf pausiert.",
+  "sleepTimerRunningTitle": "Sleep-Timer läuft",
+  "sleepTimerRunningDescription": "Die Wiedergabe wird nach Ablauf des Countdowns automatisch pausiert.",
+  "remainingTime": "Verbleibende Zeit",
+  "startCountdown": "Countdown starten",
+  "end": "Ende",
+  "equalizer": "Equalizer",
+  "equalizerEnabledStatus": "High-Fidelity-Anpassung aktiviert",
+  "equalizerDisabledStatus": "Deaktiviert",
+  "bassBoost": "Bass-Anhebung",
+  "preampGain": "Vorverstärkung",
+  "reset": "Zurücksetzen",
+  "close": "Schließen",
+  "timelineAdjustmentTitle": "Zeitachse manuell anpassen",
+  "timelineAdjustmentDescription": "Nach rechts ziehen verzögert den Text, nach links beschleunigt ihn.",
+  "timelineOffsetEarlier": "{seconds}s früher",
+  "@timelineOffsetEarlier": {
+    "placeholders": {
+      "seconds": {}
+    }
+  },
+  "timelineOffsetLater": "{seconds}s später",
+  "@timelineOffsetLater": {
+    "placeholders": {
+      "seconds": {}
+    }
+  },
+  "timelineOffsetCurrent": "Aktuelle Verschiebung: 0,0 s",
+  "enterAcoustidApiKeyTitle": "AcoustID-API-Schlüssel eingeben",
+  "acoustidApiKeyDescription": "Für Audio-Fingerprinting. Bei Leerung wird der integrierte Schlüssel wiederhergestellt.",
+  "acoustidApiKeyHint": "AcoustID-API-Schlüssel einfügen",
+  "apiKey": "API-Schlüssel",
+  "save": "Speichern",
+  "enterLyricsTitle": "Songtext eingeben",
+  "lyricsInputHint": "Songtext hier einfügen oder eingeben. Mehrzeiliger Text wird unterstützt.",
+  "enterGoogleAiStudioApiKeyTitle": "Google AI Studio-API-Schlüssel eingeben",
+  "googleAiStudioApiKeyDescription": "Wird für Songtext-Generierung, Zeitachse und Übersetzung verwendet.",
+  "pasteGoogleAiStudioApiKey": "Google AI Studio-API-Schlüssel einfügen",
+  "enterOpenRouterApiKeyTitle": "OpenRouter-API-Schlüssel eingeben",
+  "openRouterApiKeyDescription": "Für Songtext- und Zeitachsen-Generierung. Übersetzung verwendet immer Gemini.",
+  "pasteOpenRouterApiKey": "OpenRouter-API-Schlüssel einfügen",
+  "enterGeminiApiKeyTitle": "Gemini-API-Schlüssel eingeben",
+  "geminiApiKeyDescription": "Wird für die Songtext-Übersetzung verwendet.",
+  "pasteGeminiApiKey": "Gemini-API-Schlüssel einfügen",
+  "testConnection": "Verbindung testen",
+  "enterApiKey": "Bitte einen API-Schlüssel eingeben.",
+  "testingConnection": "Verbindung wird getestet...",
+  "getKey": "Schlüssel besorgen",
+  "editSongTagsTitle": "Song-Tags bearbeiten",
+  "changeArtwork": "Cover ändern",
+  "clearArtwork": "Cover entfernen",
+  "editSongTagsDescription": "Änderungen können nur in der App oder auch in der Quelldatei gespeichert werden.",
+  "artistLabel": "Künstler",
+  "albumLabel": "Album",
+  "trackNumberLabel": "Titelnummer",
+  "trackNumberMustBeInteger": "Die Titelnummer muss eine ganze Zahl sein",
+  "leaveBlankKeepsCurrentValue": "Leer lassen, um dieses Feld zu leeren",
+  "currentFileFormatCannotWriteBack": "Dieses Dateiformat unterstützt das Zurückschreiben in die Quelldatei nicht.",
+  "leaveBlankDoesNotClearOriginalValue": "Hinweis: Ein leeres Feld löscht seinen Wert.",
+  "saveToApp": "In App speichern",
+  "saveToSourceFileAndApp": "In Quelldatei und App speichern",
+  "saveToSourceFileFailed": "Fehler beim Speichern in der Quelldatei. Prüfen Sie, ob das Format Schreibzugriff unterstützt.",
+  "fileOccupiedByOtherApp": "Die Datei wird von einer anderen App verwendet",
+  "saveFailed": "Speichern fehlgeschlagen. Bitte später erneut versuchen.",
+  "apiKeySaved": "{provider}-API-Schlüssel gespeichert",
+  "@apiKeySaved": {
+    "placeholders": {
+      "provider": {}
+    }
+  },
+  "apiKeySavedAcoustid": "AcoustID-API-Schlüssel gespeichert",
+  "generalSectionTitle": "Oberfläche",
+  "generalSectionDescription": "Diese Optionen beeinflussen das allgemeine Erscheinungsbild der Seiten und der Wiedergabeoberfläche.",
+  "interfaceLanguage": "Oberflächensprache",
+  "interfaceLanguageDescription": "Wählen Sie die Anzeigesprache der Anwendung.",
+  "scanSectionTitle": "Scannen",
+  "scanSectionDescription": "Diese Optionen steuern, wie der Mediathek-Scan Audiodateien behandelt.",
+  "skipShortAudioDuringScan": "Kurze Audiodateien beim Scannen überspringen",
+  "skipShortAudioDuringScanDescription": "Audio kürzer als der Schwellenwert wird nicht zur Mediathek hinzugefügt.",
+  "shortAudioScanThreshold": "Schwellenwert für kurze Audiodateien",
+  "shortAudioScanThresholdDescription": "Dateien kürzer als diese Dauer werden übersprungen.",
+  "shortAudioScanThresholdValue": "{seconds} s",
+  "@shortAudioScanThresholdValue": {
+    "placeholders": {
+      "seconds": {}
+    }
+  },
+  "shortcutSettingsTitle": "Benutzerdefinierte Tastenkürzel",
+  "shortcutSettingsDescription": "Klicken Sie, um Tastenkürzel für Player-Aktionen neu aufzuzeichnen.",
+  "edit": "Bearbeiten",
+  "lyricsSectionTitle": "Songtexte",
+  "lyricsSectionDescription": "Diese Einstellungen betreffen nur die Generierung von Songtexten und Zeitachsen.",
+  "lyricsTranslationTargetLanguageLabel": "Übersetzungszielsprache",
+  "lyricsTranslationTargetLanguageDescription": "Standardmäßig der Systemsprache folgen oder manuell auswählen.",
+  "lyricsSaveMethodLabel": "Speicherort für Songtexte",
+  "lyricsSaveMethodDescription": "Wählen Sie, wo Songtexte beim Schreiben gespeichert werden.",
+  "lyricsSaveMethodOriginal": "Wie Quelle",
+  "lyricsSaveMethodEmbedded": "Eingebettet",
+  "lyricsSaveMethodLrcFile": "LRC-Datei",
+  "followSystemLanguage": "System folgen",
+  "autoSwitchLyricsProvider": "Automatischer Anbieterwechsel",
+  "autoSwitchLyricsProviderEnabledDesc": "Google AI Studio wird zuerst versucht. Bei Fehler wird automatisch zu OpenRouter gewechselt.",
+  "autoSwitchLyricsProviderDisabledDesc": "Sie benötigen API-Schlüssel für Google AI Studio und OpenRouter.",
+  "lyricsAiProviderTitle": "KI-Anbieter für Songtexte",
+  "lyricsAiProviderDescription": "Betrifft nur die Generierung von Songtexten und Zeitachsen. Übersetzung verwendet immer Google AI Studio.",
+  "apiKeySavedProvider": "{provider}-API-Schlüssel gespeichert",
+  "@apiKeySavedProvider": {
+    "placeholders": {
+      "provider": {}
+    }
+  },
+  "googleAiStudioApiKeySaved": "Google AI Studio-API-Schlüssel gespeichert",
+  "googleAiStudioApiKeyMissing": "Kein Google AI Studio-API-Schlüssel gespeichert. Sie werden daran erinnert.",
+  "openRouterApiKeySaved": "OpenRouter-API-Schlüssel gespeichert",
+  "openRouterApiKeyMissing": "Kein OpenRouter-API-Schlüssel gespeichert. Sie werden daran erinnert.",
+  "apiKeySavedStatus": "Gespeichert",
+  "apiKeyMissingStatus": "Nicht ausgefüllt",
+  "platformApiKeysSectionTitle": "Plattform-API-Schlüssel",
+  "fill": "Ausfüllen",
+  "modify": "Ändern",
+  "geminiModelsSectionTitle": "Modell auswählen",
+  "geminiModelsSectionDescription": "Diese Modelle werden für die Generierung von Songtexten, Zeitachsen und Übersetzung verwendet.",
+  "primaryModelLabel": "Primäres Modell",
+  "backupModelLabel": "Backup-Modell",
+  "translationModelLabel": "Übersetzungsmodell",
+  "fetching": "Abrufen...",
+  "fetchModelList": "Modellliste abrufen",
+  "restoreDefault": "Standard wiederherstellen",
+  "acoustidSectionTitle": "Audio-Fingerprinting",
+  "acoustidApiKeyTitle": "AcoustID-API-Schlüssel",
+  "acoustidApiKeyHelp": "AcoustID wird für Audio-Fingerprinting verwendet. Wir empfehlen Ihren eigenen API-Schlüssel.",
+  "acoustidApiKeySaved": "AcoustID-API-Schlüssel gespeichert",
+  "acoustidApiKeyDefault": "Der integrierte Schlüssel wird verwendet. Ersetzen Sie ihn durch Ihren eigenen.",
+  "applyForApiKey": "API-Schlüssel beantragen: https://acoustid.org/new-application",
+  "queueTabBarFavoriteAdded": "Zu Favoriten hinzugefügt",
+  "queueTabBarFavoriteRemoved": "Aus Favoriten entfernt",
+  "tagCompletion": "Tag-Vervollständigung",
+  "tagCompletionDescription": "Tags mit AcoustID- und MusicBrainz-Ergebnissen abgleichen",
+  "goToSettings": "Zu den Einstellungen",
+  "searchReleaseTitles": "Veröffentlichungstitel suchen",
+  "closeSearch": "Suche schließen",
+  "refreshResults": "Ergebnisse aktualisieren",
+  "filterMusicBrainzReleaseTitle": "MusicBrainz-Veröffentlichungstitel filtern",
+  "clearSearch": "Suche zurücksetzen",
+  "localTitle": "Lokaler Titel",
+  "queryConditions": "Abfragebedingungen",
+  "musicBrainzLoading": "MusicBrainz wird geladen",
+  "musicBrainzLoadingWithResults": "Vorhandene Ergebnisse bleiben im Bereich",
+  "musicBrainzLoadingHint": "Bitte warten",
+  "musicBrainzQueryFailed": "MusicBrainz-Abfrage fehlgeschlagen",
+  "musicBrainzNetworkErrorHint": "Die Anfrage ist fehlgeschlagen, meist aufgrund von Netzwerkproblemen oder Zeitüberschreitung.",
+  "musicBrainzFilteredEmptyHint": "Keine Veröffentlichungstitel mit diesem Schlüsselwort unter den aktuellen Filtern.",
+  "musicBrainzEmptyHint": "MusicBrainz hat keine verwendbaren Ergebnisse zurückgegeben. Versuchen Sie, die Filter zu lockern.",
+  "musicBrainzEmptyMoreCompleteHint": "Später erneut versuchen oder prüfen, ob die Titel-/Künstlerinformationen vollständiger sind.",
+  "retry": "Wiederholen",
+  "noMatchingRelease": "Keine passende Veröffentlichung gefunden",
+  "noMatchingResults": "Keine passenden Ergebnisse gefunden",
+  "networkConnectionFailed": "Netzwerkverbindung fehlgeschlagen",
+  "searchAgain": "Erneut suchen",
+  "acoustidRecognitionRecords": "AcoustID-Erkennungsdatensätze",
+  "musicBrainzRecordings": "MusicBrainz-Aufnahmen",
+  "noExpandableReleaseGroups": "Keine erweiterbaren Veröffentlichungsgruppen",
+  "noExpandableReleases": "Keine erweiterbaren Veröffentlichungen",
+  "noMatchingResultHint": "Später erneut versuchen oder Informationen prüfen.",
+  "releaseCountLabel": "{count} Veröffentlichungsversionen",
+  "@releaseCountLabel": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "recordingCountLabel": "{count} Aufnahmen",
+  "@recordingCountLabel": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "trackCountShort": "{count} Titel",
+  "@trackCountShort": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "scoreLabel": "Punktzahl {score}",
+  "@scoreLabel": {
+    "placeholders": {
+      "score": {
+        "type": "int"
+      }
+    }
+  },
+  "matchScoreLabel": "Übereinstimmung {score}%",
+  "@matchScoreLabel": {
+    "placeholders": {
+      "score": {
+        "type": "int"
+      }
+    }
+  },
+  "editQueryCondition": "Abfragebedingung bearbeiten",
+  "enterNewQueryText": "Neuen Abfragetext eingeben",
+  "durationLabel": "Dauer",
+  "customShortcuts": "Benutzerdefinierte Tastenkürzel",
+  "pressShortcutCombo": "Tastenkombination drücken",
+  "clickToRecord": "Zum Aufzeichnen klicken",
+  "searchingLyrics": "Songtexte suchen",
+  "noLyrics": "Noch keine Songtexte",
+  "providerLabel": "Anbieter",
+  "modelLabel": "Modell",
+  "unspecified": "Nicht angegeben",
+  "targetTimeLabel": "Zielzeit {duration}",
+  "@targetTimeLabel": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "songDeletedSkipped": "Song gelöscht, übersprungen",
+  "songDeleted": "Song gelöscht",
+  "lyricsTaskUploading": "Hochladen",
+  "lyricsTaskWaiting": "Warten",
+  "lyricsTaskRequesting": "Anfrage läuft",
+  "lyricsTaskGenerating": "Generieren",
+  "lyricsTaskRetrying": "Wiederholen",
+  "lyricsTaskProcessing": "Verarbeitung",
+  "unknownModel": "Unbekanntes Modell",
+  "selectedFolders": "{count} Ordner ausgewählt",
+  "@selectedFolders": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "foldersDeleted": "{count} Ordner gelöscht",
+  "@foldersDeleted": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "persistentAccessDenied": "Zugriff auf diesen Ordner konnte nicht gespeichert werden. Bitte erneut auswählen.",
+  "folderAddFailed": "Ordner konnte nicht hinzugefügt werden",
+  "sleepTimer": "Sleep-Timer",
+  "sleepTimerRemaining": "Sleep-Timer {duration}",
+  "@sleepTimerRemaining": {
+    "placeholders": {
+      "duration": {}
+    }
+  },
+  "unknownArtistOrAlbum": "Unbekannt",
+  "pressAgainToExit": "Erneut drücken, um die App zu beenden",
+  "tagCompletionSuccessWithCover": "Tags vervollständigt und gespeichert, Cover heruntergeladen",
+  "tagCompletionSuccess": "Tags vervollständigt und gespeichert",
+  "selectOnlineLyrics": "Online-Songtexte auswählen",
+  "increaseLyricsFont": "Schriftgröße vergrößern",
+  "decreaseLyricsFont": "Schriftgröße verkleinern",
+  "restoreDefaultSize": "Standardgröße wiederherstellen",
+  "adjustLyricsFont": "Textgröße anpassen",
+  "searchingOnlineLyrics": "Online-Songtexte suchen",
+  "onlineLyricsResults": "Online-Songtext-Ergebnisse",
+  "untitledLyrics": "Unbenannter Songtext",
+  "hasTimeline": "Mit Zeitachse",
+  "viewLyricsDetails": "Songtext-Details anzeigen",
+  "lyricsDetails": "Songtext-Details",
+  "lyricsContent": "Songtext-Inhalt",
+  "noLyricsContent": "Kein Songtext-Inhalt",
+  "queryContentLabel": "Inhalt",
+  "yes": "Ja",
+  "no": "Nein",
+  "dropAddedSongs": "{addedCount} Songs hinzugefügt",
+  "dropAddedSongsWithExisting": "{addedCount} Songs hinzugefügt, {existingCount} bereits vorhanden",
+  "copyCover": "Cover in Zwischenablage kopieren",
+  "copyCoverSuccess": "Cover erfolgreich in die Zwischenablage kopiert",
+  "searchLyricsPlaceholder": "Songtitel, Künstler oder Text eingeben",
+  "share": "Teilen",
+  "@share": {
+    "description": "Share tab label"
+  },
+  "windowsSettingsTitle": "Windows-Einstellungen",
+  "fileAssociationTitle": "Dateizuordnung",
+  "fileAssociationDescription": "Musikformate (mp3, flac, wav...) dieser App zuordnen.",
+  "associateButton": "Zuordnen",
+  "disassociateButton": "Zuordnung aufheben",
+  "associationSuccess": "Zuordnung erfolgreich! Falls Doppelklick nicht funktioniert, wählen Sie Vynody in den Standard-Apps.",
+  "disassociationSuccess": "Dateizuordnung erfolgreich entfernt.",
+  "associationFailed": "Zuordnung fehlgeschlagen: {error}",
+  "@associationFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "onboardingTitle": "Willkommen bei Vynody",
+  "onboardingSubtitle": "Ein paar einfache Schritte, um Ihre Musikreise zu beginnen.",
+  "onboardingStepFileAssociation": "Dateitypen zuordnen",
+  "onboardingFileAssociationDesc": "Ordnen Sie Musikformate Vynody zu, um per Doppelklick abzuspielen.",
+  "onboardingFileAssociationTip": "Wählen Sie nach der Zuordnung 'Vynody' und 'Immer verwenden'.",
+  "onboardingStepRootDirectory": "Musik-Stammverzeichnis hinzufügen",
+  "onboardingRootDirectoryDesc": "Wählen Sie den Ordner mit Ihrer Musik. Vynody erstellt automatisch Ihre Mediathek.",
+  "onboardingSelectDirectory": "Ordner auswählen",
+  "onboardingSuccessTitle": "Alles bereit!",
+  "onboardingSuccessDesc": "Mediathek erfolgreich hinzugefügt. Genießen Sie Ihre Musik!",
+  "onboardingStartButton": "Vynody starten",
+  "onboardingSkip": "Später einrichten",
+  "onboardingNext": "Weiter",
+  "onboardingBack": "Zurück",
+  "resetOnboarding": "Einführungsguide zurücksetzen",
+  "resetOnboardingDesc": "Der Einführungsguide wird beim nächsten Start erneut angezeigt.",
+  "songProperties": "Song-Eigenschaften",
+  "failedToLoadDetails": "Details konnten nicht geladen werden",
+  "noPropertiesAvailable": "Keine detaillierten Eigenschaften verfügbar",
+  "detailFilePath": "Dateipfad",
+  "detailFormat": "Format",
+  "detailCodec": "Codec",
+  "detailDuration": "Dauer",
+  "detailFileSize": "Dateigröße",
+  "detailBitrate": "Bitrate",
+  "detailSampleRate": "Abtastrate",
+  "detailChannels": "Kanäle",
+  "detailBitDepth": "Bittiefe",
+  "detailMono": "Mono",
+  "detailStereo": "Stereo",
+  "detailChannelsCount": "{count} Kanäle",
+  "@detailChannelsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "localNetworkPermissionDeniedTitle": "Lokaler Netzwerkzugriff eingeschränkt",
+  "localNetworkPermissionDeniedMessage": "Keine lokale IP-Adresse verfügbar oder Zugriff verweigert.\n\nPrüfen Sie:\n1. Wi-Fi- oder LAN-Verbindung.\n2. Erlauben Sie Netzwerkzugriff in den Datenschutzeinstellungen.",
+  "localNetworkPermissionWindowsMessage": "Keine lokale IP-Adresse verfügbar.\n\nPrüfen Sie:\n1. LAN-Verbindung (Wi-Fi oder Ethernet).\n2. Überprüfen Sie die Windows-Firewall für Vynody.",
+  "openSettingsButton": "Einstellungen öffnen",
+  "closeButton": "Schließen",
+  "copyTranslationResults": "Übersetzungsergebnisse kopieren",
+  "writeLyricsToFile": "Songtext in Datei schreiben",
+  "selectLyricSource": "Songtext-Quelle auswählen",
+  "regenerateLyrics": "Songtext neu generieren",
+  "regenerateLyricsConfirmation": "Der aktuelle Songtext wird gelöscht und neu generiert. Fortfahren?",
+  "regenerateTimeline": "Zeitachse neu generieren",
+  "regenerateTimelineConfirmation": "Die aktuelle Zeitachse wird gelöscht und neu generiert. Fortfahren?",
+  "retranslateLyrics": "Songtext neu übersetzen",
+  "retranslateLyricsConfirmation": "Die aktuelle Übersetzung wird gelöscht und neu erstellt. Fortfahren?",
+  "translationCopiedToClipboard": "Übersetzung in die Zwischenablage kopiert",
+  "writingLyrics": "Songtext wird geschrieben...",
+  "lyricsWrittenToFile": "Songtext erfolgreich in Datei geschrieben",
+  "writeLyricsFailed": "Fehler beim Schreiben des Songtexts",
+  "externalLrcFile": "Externe LRC-Datei",
+  "embeddedLyrics": "Eingebetteter Songtext",
+  "manuallyAdjustedLyrics": "Manuell angepasster Songtext",
+  "lrclibOnlineLyrics": "LrcLib-Online-Songtext",
+  "aiGeneratedLyrics": "KI-generierter Songtext",
+  "matchScore": "Übereinstimmung",
+  "untitledRelease": "Unbenannte Veröffentlichung",
+  "localSongFileNotFoundForGeneration": "Die lokale Songdatei existiert nicht. Songtext kann nicht generiert werden.",
+  "localSongFileNotFoundForTimeline": "Die lokale Songdatei existiert nicht. Zeitachse kann nicht generiert werden.",
+  "noLyricsForTimelineGeneration": "Kein Songtext für die Zeitachsengenerierung verfügbar.",
+  "noLyricsAvailableForTranslation": "Kein Songtext für die Übersetzung verfügbar.",
+  "noCurrentSongAvailable": "Kein aktueller Song verfügbar.",
+  "invalidTargetLanguage": "Ungültige Zielsprache.",
+  "songAlreadyQueuedForTranslation": "Der Song ist bereits für die Übersetzung in der Warteschlange.",
+  "songAlreadyQueuedForGeneration": "Der Song ist bereits für die Generierung in der Warteschlange.",
+  "songNoLongerExistsForTranslation": "Der Song existiert nicht mehr. Übersetzung nicht möglich.",
+  "generationFailed": "Generierung fehlgeschlagen.",
+  "generatingLyrics": "Generiere Songtext",
+  "generatingTimeline": "Generiere Zeitachse",
+  "regeneratingLyrics": "Generiere Songtext neu",
+  "translatingLyrics": "Übersetze Songtext",
+  "transcodingSongFile": "Transkodiere Songdatei",
+  "uploadingSongFile": "Lade Songdatei hoch",
+  "fileUploadedWaitingForReadiness": "Datei hochgeladen, warte auf Bereitschaft",
+  "waitingForFileReadiness": "Warte auf Dateibereitschaft",
+  "requestingModelResponse": "Fordere Modellantwort an",
+  "retryingTaskKindGeneration": "Wiederhole {taskKind}-Generierung",
+  "retrying": "Wiederholen",
+  "processing": "Verarbeitung",
+  "timeline": "Zeitachse",
+  "lyrics": "Songtext",
+  "lyricGenerationError": "Fehler bei der Songtext-Generierung: {error}",
+  "timelineGenerationError": "Fehler bei der Zeitachsen-Generierung: {error}",
+  "unknownGenerationError": "Unbekannter Fehler bei der Songtext-Generierung.",
+  "unknownTimelineGenerationError": "Unbekannter Fehler bei der Zeitachsen-Generierung.",
+  "unknownTranslationError": "Unbekannter Fehler bei der Songtext-Übersetzung.",
+  "unknownError": "Unbekannter Fehler",
+  "modelRefusedToGenerateLyrics": "Das Modell hat die Songtext-Generierung verweigert.",
+  "modelRefusedToGenerateTimeline": "Das Modell hat die Zeitachsen-Generierung verweigert.",
+  "doubaoPreUploadTranscodingFailed": "Audio-Transkodierung vor Doubao-Upload fehlgeschlagen.",
+  "doubaoTempTranscodeNotInTempDir": "Die temporäre Doubao-Datei wurde nicht im Temp-Verzeichnis erstellt.",
+  "doubaoEmptyStreamingResponse": "Doubao hat eine leere Streaming-Antwort zurückgegeben.",
+  "doubaoEmptyResponse": "Doubao hat eine leere Antwort zurückgegeben.",
+  "geminiEmptyStreamingResponse": "Gemini hat eine leere Streaming-Antwort zurückgegeben.",
+  "geminiEmptyResponse": "Gemini hat eine leere Antwort zurückgegeben.",
+  "openRouterEmptyStreamingResponse": "OpenRouter hat eine leere Streaming-Antwort zurückgegeben.",
+  "openRouterEmptyResponse": "OpenRouter hat eine leere Antwort zurückgegeben.",
+  "deepseekEmptyStreamingResponse": "DeepSeek hat eine leere Streaming-Antwort zurückgegeben.",
+  "deepseekEmptyResponse": "DeepSeek hat eine leere Antwort zurückgegeben.",
+  "customProviderEmptyStreamingResponse": "Der benutzerdefinierte Anbieter hat eine leere Streaming-Antwort zurückgegeben.",
+  "customProviderEmptyResponse": "Der benutzerdefinierte Anbieter hat eine leere Antwort zurückgegeben.",
+  "fileUploadFailed": "Datei-Upload fehlgeschlagen. Bitte erneut versuchen.",
+  "uploadedFileNotReady": "Die hochgeladene Datei wurde nicht bereit. Später erneut versuchen.",
+  "audioTranscodingFailed": "Audio-Transkodierung fehlgeschlagen.",
+  "tempTranscodeNotInTempDir": "Die temporäre Transkodierungsdatei wurde nicht im Temp-Verzeichnis erstellt.",
+  "networkRequestFailedCheckProxy": "Netzwerkanfrage fehlgeschlagen. Überprüfen Sie Ihre Verbindung und Proxy-Einstellungen.",
+  "quotaExhaustedToday": "Das heutige Kontingent ist aufgebraucht. Morgen erneut versuchen.",
+  "googleAiHeavyLoad": "Google AI ist stark ausgelastet und vorübergehend nicht verfügbar.",
+  "lyricsGenerationFailedWithError": "Songtext-Generierung fehlgeschlagen: {error}",
+  "missingApiKeyForAction": "Kein API-Schlüssel für {providerName} gefunden. {action} nicht möglich.",
+  "googleServerFlaky": "Google hat gerade Probleme. Ein erneuter Versuch könnte funktionieren.",
+  "translateLyricsAction": "Songtext übersetzen",
+  "generateLyricsAction": "Songtext generieren",
+  "generateTimelineAction": "Zeitachse generieren",
+  "deepseekOnlyTranslation": "DeepSeek ist nur für die Songtext-Übersetzung verfügbar.",
+  "customProviderOnlyTranslation": "Der benutzerdefinierte Anbieter ist nur für die Übersetzung verfügbar.",
+  "customProviderNoBaseUrl": "Keine Basis-URL für den benutzerdefinierten Anbieter konfiguriert.",
+  "pleaseEnterApiKey": "Bitte einen API-Schlüssel eingeben.",
+  "connectionSuccessVerificationPassed": "Verbindung erfolgreich, Verifizierung bestanden.",
+  "connectionSuccessDetectedModels": "Verbindung erfolgreich, {count} Modelle erkannt.",
+  "testFailedWithStatus": "Test fehlgeschlagen ({statusCode}): {message}",
+  "testFailedCheckNetworkOrApiKey": "Test fehlgeschlagen. Netzwerk oder API-Schlüssel prüfen.",
+  "testFailedStatusCheckApiKey": "Test fehlgeschlagen ({statusCode}). API-Schlüssel prüfen.",
+  "enterGoogleAiStudioApiKeyFirst": "Bitte zuerst einen Google AI Studio-API-Schlüssel eingeben.",
+  "enterDoubaoApiKeyFirst": "Bitte zuerst einen Doubao-API-Schlüssel eingeben.",
+  "enterDeepseekApiKeyFirst": "Bitte zuerst einen DeepSeek-API-Schlüssel eingeben.",
+  "enterCustomApiKeyAndBaseUrl": "Bitte zuerst den benutzerdefinierten API-Schlüssel und die Basis-URL eingeben.",
+  "fetchedCountModels": "{count} Modelle abgerufen.",
+  "requestFailedWithStatus": "Anfrage fehlgeschlagen ({statusCode}): {message}",
+  "requestFailedCheckNetwork": "Anfrage fehlgeschlagen. Netzwerk prüfen.",
+  "requestFailedStatus": "Anfrage fehlgeschlagen ({statusCode}).",
+  "doubao": "Doubao",
+  "custom": "Benutzerdefiniert",
+  "noModelSelected": "Kein Modell ausgewählt",
+  "acoustidRequestFailed": "AcoustID-Anfrage fehlgeschlagen",
+  "acoustidRequestReturnedStatus": "AcoustID-Anfrage gab {statusCode} zurück. Fordern Sie Ihren eigenen API-Schlüssel an.",
+  "writeTagDatabaseFailed": "Fehler beim Schreiben der Tag-Datenbank",
+  "playPause": "Abspielen / Pause",
+  "nextTrack": "Nächster",
+  "previousTrack": "Vorheriger",
+  "volumeUp": "Lauter",
+  "volumeDown": "Leiser",
+  "toggleMute": "Stumm schalten",
+  "seekForward5s": "5 s vorwärts",
+  "seekBackward5s": "5 s rückwärts",
+  "toggleFullScreen": "Vollbild umschalten",
+  "playPauseDescription": "Steuert den aktuellen Wiedergabestatus.",
+  "nextDescription": "Zum nächsten Song springen.",
+  "previousDescription": "Zum vorherigen Song zurückkehren.",
+  "volumeUpDescription": "Lautstärke jedes Mal um 5% erhöhen.",
+  "volumeDownDescription": "Lautstärke jedes Mal um 5% verringern.",
+  "toggleMuteDescription": "Stummschaltung ein-/ausschalten.",
+  "seekForward5sDescription": "5 Sekunden vorwärts springen.",
+  "seekBackward5sDescription": "5 Sekunden rückwärts springen.",
+  "toggleFullScreenDescription": "Zwischen Fenster- und Vollbildmodus wechseln.",
+  "unknownKey": "Unbekannte Taste",
+  "removeFromQueue": "Aus Warteschlange entfernen",
+  "removeFromPlaylist": "Aus Playlist entfernen",
+  "alreadyLatestVersion": "Sie haben bereits die neueste Version.",
+  "updateAvailable": "Update verfügbar",
+  "newVersionAvailable": "Neue Version v{version} verfügbar. Von GitHub Releases herunterladen.",
+  "openRelease": "Zu Release",
+  "checkUpdateFailedNetwork": "Update-Prüfung fehlgeschlagen. Netzwerkproblem oder GitHub-Limit.",
+  "tags": "Tags",
+  "about": "Über",
+  "rebuildIndex": "Index neu aufbauen",
+  "rebuildIndexDescription": "Alle Song-Datensätze löschen (außer externe Quellen) und alle Stammverzeichnisse erneut scannen.",
+  "rebuildIndexConfirmation": "Alle Datensätze löschen und erneut scannen? Dies kann einige Zeit dauern.",
+  "rebuildIndexStarted": "Index-Neuaufbau gestartet",
+  "rebuild": "Neu aufbauen",
+  "advanced": "Erweitert",
+  "advancedOptionsDescription": "Optionen für Debugging und Verhaltenssteuerung.",
+  "showDeveloperOptionsDescription": "Erweiterte Debug-Optionen anzeigen.",
+  "onboardingReset": "Einführungsguide zurückgesetzt. Wird beim Neustart wirksam.",
+  "tagsSectionDescription": "Konfiguration von Audio-Metadaten und automatischer Vervollständigung.",
+  "autoSaveToSourceFile": "Automatisch in Quelldatei speichern",
+  "autoSaveToSourceFileDescription": "Tags automatisch in die physische Audiodatei schreiben.",
+  "aboutSectionDescription": "Versionsinfo, Projektlinks und verwandte Ressourcen.",
+  "checkForUpdates": "Nach Updates suchen",
+  "lyricsGenerationModel": "Songtext-Generierungsmodell",
+  "lyricsGenerationModelDescription": "Für KI-generierte Songtexte und Zeitachsen-Korrektur.",
+  "lyricsTranslationModel": "Songtext-Übersetzungsmodell",
+  "lyricsTranslationModelDescription": "Zum Übersetzen von Songtexten in die Zielsprache.",
+  "onlyForLyricTranslation": "Nur für Übersetzung",
+  "fillApiKeyFirstEnablesModels": "Füllen Sie mindestens einen API-Schlüssel aus, um die Modellauswahl zu aktivieren.",
+  "customApiProvider": "Benutzerdefinierter API-Anbieter",
+  "clearedGoogleAiStudioApiKey": "Google AI Studio-API-Schlüssel gelöscht",
+  "clearedOpenRouterApiKey": "OpenRouter-API-Schlüssel gelöscht",
+  "clearedDoubaoApiKey": "Doubao-API-Schlüssel gelöscht",
+  "clearedDeepseekApiKey": "DeepSeek-API-Schlüssel gelöscht",
+  "clearedCustomProviderConfig": "Benutzerdefinierte Anbieterkonfiguration gelöscht",
+  "savedDoubaoApiKey": "Doubao-API-Schlüssel gespeichert",
+  "savedDeepseekApiKey": "DeepSeek-API-Schlüssel gespeichert",
+  "savedCustomProviderConfig": "Benutzerdefinierte Anbieterkonfiguration gespeichert",
+  "noMatchingFoldersOrSongs": "Keine passenden Ordner oder Songs gefunden",
+  "listView": "Listenansicht",
+  "gridView": "Rasteransicht",
+  "songsCountFormat": "{count} Songs",
+  "searchInFolderAndSubfolders": "Im Ordner und Unterordnern suchen...",
+  "shuffle": "Zufallswiedergabe",
+  "search": "Suchen",
+  "selectFolders": "Ordner auswählen",
+  "removeDirectory": "Verzeichnis entfernen",
+  "removeRootDirectoryConfirmation": "Stammverzeichnis \"{name}\" wirklich entfernen? Physische Dateien werden nicht gelöscht.",
+  "deselectAll": "Alle abwählen",
+  "favorites": "Favoriten",
+  "aggregationPeak": "Spitze",
+  "aggregationMean": "Mittelwert",
+  "aggregationRms": "RMS",
+  "filesToTranscode": "Zu transkodierende Dateien",
+  "chooseAndroidOutputDirectoryFirst": "Bitte zuerst ein Android-Ausgabeverzeichnis wählen.",
+  "currentSongProgressPercent": "Aktueller Song {percent}%",
+  "overallProgressPercent": "Gesamt {percent}%",
+  "pleaseChooseOutputDirectory": "Bitte ein Ausgabeverzeichnis wählen.",
+  "selectedArtistsCount": "{count} Künstler ausgewählt",
+  "selectedAlbumsCount": "{count} Alben ausgewählt",
+  "simplifiedChinese": "Vereinfachtes Chinesisch",
+  "traditionalChinese": "Traditionelles Chinesisch",
+  "chineseLanguage": "Chinesisch",
+  "englishLanguage": "Englisch",
+  "japaneseLanguage": "Japanisch",
+  "koreanLanguage": "Koreanisch",
+  "frenchLanguage": "Französisch",
+  "germanLanguage": "Deutsch",
+  "spanishLanguage": "Spanisch",
+  "portugueseLanguage": "Portugiesisch",
+  "russianLanguage": "Russisch",
+  "systemLanguage": "Systemsprache",
+  "targetLanguage": "Zielsprache",
+  "whatAreAiLyrics": "Was sind KI-Songtexte?",
+  "whatIsAiLyricTranslation": "Was ist KI-Songtext-Übersetzung?",
+  "aiLyricsIntroGeneration": "KI kann Songtexte aus dem Song generieren und zeitlich ausrichten.",
+  "aiLyricsIntroTranslation": "KI kann Songtexte in Ihre bevorzugte Sprache übersetzen.",
+  "whyNeedApiKey": "Warum brauche ich einen API-Schlüssel?",
+  "apiKeyExplanation": "Ein API-Schlüssel ist Ihre Zugangsberechtigung für einen KI-Anbieter. Die App verwendet ihn für Anfragen.",
+  "apiKeyLocalOnly": "Ihr API-Schlüssel wird nur lokal gespeichert und niemals an Vynody-Server gesendet.",
+  "chooseAnAiProvider": "Wählen Sie einen KI-Anbieter:",
+  "googleProviderPros": "Offizieller Google-Kanal, leistungsstarke Gemini-Modelle, großzügige kostenlose Kontingente.",
+  "googleProviderCons": "Kann bei hoher Last 429-Fehler verursachen. Bei Bedarf Anbieter wechseln.",
+  "openRouterProviderPros": "Modell-Aggregator mit Zugang zu mehreren Anbietern und einigen kostenlosen Modellen.",
+  "openRouterProviderCons": "Aufladungen können Gebühren enthalten. Website nur auf Englisch.",
+  "doubaoProviderPros": "Von ByteDance, stark bei Chinesisch. 500k kostenlose Tokens pro Modell für Neulinge.",
+  "doubaoProviderCons": "Registrierung erfordert echte Identitätsprüfung.",
+  "deepseekProviderPros": "Gutes Chinesisch-Verständnis, niedriger Preis, ideal für Übersetzung.",
+  "deepseekProviderCons": "Nur Texteingabe. Für Songtext-Generierung ist ein anderer Anbieter nötig.",
+  "highlights": "Highlights",
+  "notes": "Hinweise",
+  "enterProviderApiKey": "Geben Sie Ihren {provider}-API-Schlüssel ein:",
+  "pasteYourApiKey": "API-Schlüssel hier einfügen",
+  "getApiKey": "API-Schlüssel besorgen",
+  "testConnectionButton": "Verbindung testen",
+  "enableAiLyricGeneration": "KI-Songtext-Generierung aktivieren",
+  "enableAiLyricTranslation": "KI-Songtext-Übersetzung aktivieren",
+  "notNow": "Jetzt nicht",
+  "startSetup": "Einrichtung starten",
+  "chooseAiProvider": "KI-Anbieter wählen",
+  "backStep": "Zurück",
+  "continueAction": "Fortfahren",
+  "nextStep": "Weiter",
+  "configureApiKey": "API-Schlüssel konfigurieren",
+  "saveAndFinish": "Speichern und abschließen",
+  "testing": "Test läuft...",
+  "noteTitle": "Hinweis",
+  "deepseekTextInputOnlyNote": "DeepSeek unterstützt nur Texteingabe. Für Songtext-Generierung einen anderen Anbieter nutzen.",
+  "retryAttemptOfMax": "Versuch {attempt}/{maxRetry}",
+  "generatingTaskKind": "Generiere {taskKind}",
+  "connectionTestException": "Verbindungstest-Fehler: {error}",
+  "testingConnectionProgress": "Verbindung wird getestet...",
+  "clear": "Löschen",
+  "enterDoubaoApiKey": "Doubao-API-Schlüssel eingeben",
+  "doubaoApiKeyDescription": "Geben Sie Ihren Volcano/Doubao-API-Schlüssel für Generierung und Übersetzung ein.",
+  "enterDeepseekApiKey": "DeepSeek-API-Schlüssel eingeben",
+  "deepseekApiKeyDescription": "Geben Sie Ihren DeepSeek-API-Schlüssel nur für die Übersetzung ein.",
+  "pleaseEnterApiKeyHint": "Bitte API-Schlüssel eingeben",
+  "platform": "Plattform",
+  "showRecommendedOnly": "Nur empfohlene anzeigen",
+  "noAvailableChannels": "Keine verfügbaren Kanäle",
+  "noMatchingModels": "Keine passenden Modelle gefunden",
+  "leaveEmpty": "Leer lassen",
+  "leaveEmptyFallbackDescription": "Auswählen, um kein Backup-Modell zu verwenden.",
+  "modelSearchHint": "Modellname oder ID eingeben",
+  "@sendFilesFailed": {
+    "description": "Toast when sending files fails",
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "sendFilesFailed": "Senden fehlgeschlagen: {error}",
+  "scanningFolderMusic": "Scanne Ordner nach Musikdateien...",
+  "@scanFolderFailed": {
+    "description": "Toast when scanning folder fails",
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "scanFolderFailed": "Scannen fehlgeschlagen: {error}",
+  "noMusicFilesFound": "Keine unterstützten Musikdateien gefunden",
+  "@sendFolderFailed": {
+    "description": "Toast when sending folder fails",
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "sendFolderFailed": "Senden des Ordners fehlgeschlagen: {error}",
+  "lanSharingStartFailed": "LAN-Freigabe fehlgeschlagen. Netzwerkberechtigungen prüfen.",
+  "@syncingLyricsToDevice": {
+    "description": "Toast when syncing lyrics to a device",
+    "placeholders": {
+      "deviceName": {}
+    }
+  },
+  "syncingLyricsToDevice": "Songtexte zu {deviceName} synchronisieren...",
+  "@syncLyricsSuccess": {
+    "description": "Toast when sync completes",
+    "placeholders": {
+      "matched": {},
+      "overwritten": {},
+      "skipped": {}
+    }
+  },
+  "syncLyricsSuccess": "Synchronisation abgeschlossen: {matched} übereinstimmend, {overwritten} aktualisiert, {skipped} übersprungen",
+  "@syncLyricsFailed": {
+    "description": "Toast when sync fails",
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "syncLyricsFailed": "Songtext-Synchronisation fehlgeschlagen: {error}",
+  "@syncingLyricsFromDevice": {
+    "description": "Toast when syncing lyrics from a device",
+    "placeholders": {
+      "deviceName": {}
+    }
+  },
+  "syncingLyricsFromDevice": "Songtexte von {deviceName} empfangen...",
+  "transferInProgressDoNotLeave": "Übertragung läuft. Bitte verlassen Sie die Freigabeseite nicht.",
+  "lanSharingTitle": "LAN-Dateifreigabe",
+  "lanSharingEnabledStatus": "LAN-Freigabe aktiviert",
+  "lanSharingDisabledStatus": "LAN-Freigabe deaktiviert",
+  "@lanSharingRunningStatus": {
+    "description": "Status text showing IP and port",
+    "placeholders": {
+      "ip": {},
+      "port": {}
+    }
+  },
+  "lanSharingRunningStatus": "Lokale IP: {ip} (Port: {port})",
+  "lanSharingDefaultOffHint": "Standardmäßig deaktiviert. Die Aktivierung erfordert LAN-Berechtigung.",
+  "receiveDirectoryNotSetWarning": "Kein Empfangsverzeichnis festgelegt. Bitte eins einrichten.",
+  "@receiveDirectoryUpdated": {
+    "description": "Toast when receive directory is updated",
+    "placeholders": {
+      "path": {}
+    }
+  },
+  "receiveDirectoryUpdated": "Empfangsverzeichnis aktualisiert auf: {path}",
+  "receiveDirectoryTitle": "Empfangsverzeichnis",
+  "webShareTitle": "Web-Freigabe",
+  "webShareDescription": "Andere Geräte im selben LAN können den Link öffnen, um Musik hoch- oder herunterzuladen.",
+  "linkCopiedToClipboard": "Link in die Zwischenablage kopiert",
+  "nearbyDevices": "Geräte in der Nähe",
+  "searchingDevices": "Suche nach anderen Geräten im LAN...",
+  "startSharingToFindDevices": "Freigabe aktivieren, um Geräte zu finden",
+  "deviceOnline": "Online",
+  "deviceOffline": "Getrennt",
+  "sendMusicFiles": "Musikdateien senden",
+  "sendFolder": "Ordner senden",
+  "syncLyricsToDeviceAction": "Songtexte an Gerät senden",
+  "syncLyricsFromDeviceAction": "Songtexte von Gerät empfangen",
+  "@loadDevicesError": {
+    "description": "Error message when loading devices fails",
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "loadDevicesError": "Fehler beim Laden der Geräte: {error}",
+  "@incomingFilesFormat": {
+    "description": "File names in incoming transfer dialog",
+    "placeholders": {
+      "name1": {},
+      "name2": {},
+      "count": {}
+    }
+  },
+  "incomingFilesFormat": "{name1}, {name2} und {count} weitere Dateien",
+  "incomingTransferRequestTitle": "Eingehende Dateiübertragungsanfrage",
+  "@incomingTransferFrom": {
+    "description": "Who sent the request",
+    "placeholders": {
+      "senderName": {}
+    }
+  },
+  "incomingTransferFrom": "Anfrage von \"{senderName}\":",
+  "@fileSizeMb": {
+    "description": "File size in megabytes",
+    "placeholders": {
+      "sizeMb": {}
+    }
+  },
+  "fileSizeMb": "Dateigröße: {sizeMb} MB",
+  "receiveFileHint": "Empfangene Dateien werden im Musikordner gespeichert und zur Mediathek hinzugefügt.",
+  "reject": "Ablehnen",
+  "accept": "Annehmen",
+  "@sendCompleted": {
+    "description": "Toast when sending completes",
+    "placeholders": {
+      "fileName": {}
+    }
+  },
+  "sendCompleted": "\"{fileName}\" gesendet",
+  "@receiveCompleted": {
+    "description": "Toast when receiving completes",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "receiveCompleted": "{count} Songs erfolgreich empfangen",
+  "@transferCancelledWithReason": {
+    "description": "Toast when transfer is cancelled with reason",
+    "placeholders": {
+      "direction": {},
+      "reason": {}
+    }
+  },
+  "transferCancelledWithReason": "{direction} abgebrochen ({reason})",
+  "@transferFailedFormat": {
+    "description": "Toast when transfer fails",
+    "placeholders": {
+      "direction": {},
+      "fileName": {}
+    }
+  },
+  "transferFailedFormat": "{direction} \"{fileName}\" fehlgeschlagen",
+  "@sendingToDevice": {
+    "description": "Title for send progress dialog",
+    "placeholders": {
+      "deviceName": {}
+    }
+  },
+  "sendingToDevice": "Sende an {deviceName}",
+  "@receivingFromDevice": {
+    "description": "Title for receive progress dialog",
+    "placeholders": {
+      "deviceName": {}
+    }
+  },
+  "receivingFromDevice": "Empfange von {deviceName}",
+  "@progressFormat": {
+    "description": "Transfer progress percentage",
+    "placeholders": {
+      "percent": {}
+    }
+  },
+  "progressFormat": "Fortschritt: {percent}%",
+  "currentlyTransferring": "Derzeit wird übertragen",
+  "fileConflictTitle": "Dateikonflikt",
+  "fileConflictMessage": "Auf dem Zielgerät existiert bereits eine Datei mit demselben Namen:",
+  "fileConflictChooseAction": "Bitte wählen Sie eine Aktion:",
+  "skipAction": "Überspringen",
+  "overwriteAction": "Überschreiben",
+  "skipAllAction": "Alle überspringen",
+  "overwriteAllAction": "Alle überschreiben",
+  "sendDirection": "Senden",
+  "receiveDirection": "Empfangen"
+}
