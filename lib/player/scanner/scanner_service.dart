@@ -1637,6 +1637,16 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     if (normalizedDirectory.isEmpty) {
       return;
     }
+
+    final affectedRoots = _rootPathsForDirectoryPath(normalizedDirectory);
+    if (affectedRoots.isEmpty) {
+      debugPrint(
+        '[ScannerService] Skip rescan for directory outside active roots: '
+        '$normalizedDirectory',
+      );
+      return;
+    }
+
     if (Platform.isLinux) {
       await LinuxMountHelper.ensureMounted(normalizedDirectory);
     }
@@ -1651,7 +1661,6 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       metadataConcurrency: 2,
       comparePaths: _compareNaturally,
     );
-    final affectedRoots = _rootPathsForDirectoryPath(normalizedDirectory);
 
     try {
       final directory = Directory(normalizedDirectory);
@@ -1770,6 +1779,13 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
 
     final normalizedPath = _normalizePath(path);
     if (normalizedPath.isEmpty) {
+      return;
+    }
+
+    final hasMatchingRoot = _roots.rootPaths.any(
+      (root) => _pathContains(root, normalizedPath) || _pathsEqual(root, normalizedPath),
+    );
+    if (!hasMatchingRoot) {
       return;
     }
 
