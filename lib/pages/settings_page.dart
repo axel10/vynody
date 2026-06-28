@@ -1038,7 +1038,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             settings.showDeveloperOptions = value;
           },
         ),
-        if (Platform.isWindows || Platform.isLinux || Platform.isMacOS)
+        if (Platform.isWindows || Platform.isLinux)
           SwitchListTile(
             title: const Text('启用系统托盘'),
             subtitle: const Text('在系统任务栏托盘中显示图标，方便快速控制播放'),

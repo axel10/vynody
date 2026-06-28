@@ -28,7 +28,7 @@ class DesktopTrayService {
     required this.audioService,
     required this.settingsService,
   }) {
-    if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
+    if (!kIsWeb && (Platform.isWindows || Platform.isLinux)) {
       settingsService.addListener(_handleSettingsChange);
       _syncTrayState();
     }
@@ -215,7 +215,7 @@ class DesktopTrayService {
   }
 
   void dispose() {
-    if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
+    if (!kIsWeb && (Platform.isWindows || Platform.isLinux)) {
       settingsService.removeListener(_handleSettingsChange);
       _destroyTray();
     }

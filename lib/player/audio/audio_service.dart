@@ -427,7 +427,7 @@ class AudioService extends Notifier<AudioSnapshot> {
     _linuxIntegration = Platform.isLinux
         ? LinuxIntegrationService(this)
         : null;
-    _desktopTrayIntegration = !kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)
+    _desktopTrayIntegration = !kIsWeb && (Platform.isWindows || Platform.isLinux)
         ? DesktopTrayService(audioService: this, settingsService: settingsService)
         : null;
     _player.addListener(_handlePlayerChanges);
