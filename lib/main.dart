@@ -395,7 +395,7 @@ class _MyAppState extends ConsumerState<MyApp> with WindowListener {
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],
-        supportedLocales: const [Locale('en'), Locale('ja'), Locale('ko'), Locale('zh')],
+        supportedLocales: AppLocalizations.supportedLocales,
         home: MainLayout(args: widget.args),
         navigatorKey: navigatorKey,
       ),

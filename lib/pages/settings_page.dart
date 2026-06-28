@@ -446,6 +446,18 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             child: Text(l10n.koreanLanguage),
           ),
           DropdownMenuItem<String>(
+            value: 'es',
+            child: Text(l10n.spanishLanguage),
+          ),
+          DropdownMenuItem<String>(
+            value: 'fr',
+            child: Text(l10n.frenchLanguage),
+          ),
+          DropdownMenuItem<String>(
+            value: 'de',
+            child: Text(l10n.germanLanguage),
+          ),
+          DropdownMenuItem<String>(
             value: 'en',
             child: Text(l10n.englishLanguage),
           ),
