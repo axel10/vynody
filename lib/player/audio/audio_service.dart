@@ -29,6 +29,7 @@ import 'package:vynody/player/platform/windows_integration_service.dart';
 import 'package:vynody/player/platform/android_integration_service.dart';
 import 'package:vynody/player/platform/darwin_integration_service.dart';
 import 'package:vynody/player/platform/linux_integration_service.dart';
+import 'package:vynody/player/platform/desktop_tray_service.dart';
 import 'package:vynody/player/scanner/scanner_service.dart';
 import 'package:vynody/player/library/playlist_service.dart';
 import 'package:vynody/player/metadata/metadata_helper.dart';
@@ -362,6 +363,7 @@ class AudioService extends Notifier<AudioSnapshot> {
   late final AndroidIntegrationService? _androidIntegration;
   late final DarwinIntegrationService? _darwinIntegration;
   late final LinuxIntegrationService? _linuxIntegration;
+  late final DesktopTrayService? _desktopTrayIntegration;
   String? _themePaletteRecomputeInProgressPath;
 
   Color? get dynamicStartColor => _dynamicStartColor;
@@ -425,6 +427,9 @@ class AudioService extends Notifier<AudioSnapshot> {
     _linuxIntegration = Platform.isLinux
         ? LinuxIntegrationService(this)
         : null;
+    _desktopTrayIntegration = !kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)
+        ? DesktopTrayService(audioService: this, settingsService: settingsService)
+        : null;
     _player.addListener(_handlePlayerChanges);
     _settingsListener = () {
       if (_disposed) return;
@@ -460,6 +465,7 @@ class AudioService extends Notifier<AudioSnapshot> {
   void notifyListeners() {
     if (_disposed) return;
     state = snapshot;
+    _desktopTrayIntegration?.updateMenu();
   }
 
   Future<void> _restorePlaybackSession() async {
@@ -2905,6 +2911,7 @@ class AudioService extends Notifier<AudioSnapshot> {
     _player.visualizer.removeOutput('mini_player');
     _windowsIntegration?.dispose();
     _linuxIntegration?.dispose();
+    _desktopTrayIntegration?.dispose();
     _player.dispose();
   }
 }

@@ -235,6 +235,7 @@ class SettingsService extends ChangeNotifier {
   static const String _keyThemeMode = 'theme_mode';
   static const String _keyLocale = 'app_locale';
   static const String _keyWindowsAutoRepairShortcut = 'windows_auto_repair_shortcut';
+  static const String _keyEnableSystemTray = 'enable_system_tray';
   static const String _keyImmersiveTabBar = 'immersive_tab_bar_enabled';
   static const String _keySampleStride = 'sample_stride';
   static const String _keyWaveformChunks = 'waveform_chunks';
@@ -424,6 +425,13 @@ class SettingsService extends ChangeNotifier {
 
   late final _windowsAutoRepairShortcutProperty = SettingProperty<bool>(
     key: _keyWindowsAutoRepairShortcut,
+    defaultValue: true,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
+  late final _enableSystemTrayProperty = SettingProperty<bool>(
+    key: _keyEnableSystemTray,
     defaultValue: true,
     prefs: _prefs,
     onChanged: notifyListeners,
@@ -1095,6 +1103,10 @@ class SettingsService extends ChangeNotifier {
   bool get windowsAutoRepairShortcut => _windowsAutoRepairShortcutProperty.value;
   set windowsAutoRepairShortcut(bool value) =>
       _windowsAutoRepairShortcutProperty.value = value;
+
+  bool get enableSystemTray => _enableSystemTrayProperty.value;
+  set enableSystemTray(bool value) =>
+      _enableSystemTrayProperty.value = value;
 
   int get sampleStride => _sampleStrideProperty.value;
   set sampleStride(int value) => _sampleStrideProperty.value = value;

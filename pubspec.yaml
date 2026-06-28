@@ -109,6 +109,7 @@ dependencies:
   package_info_plus: ^9.0.1
   bonsoir: ^7.1.2
   audio_service_mpris: ^0.2.1
+  tray_manager: ^0.5.3
 
 dev_dependencies:
   flutter_test:
@@ -142,13 +143,14 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
-  # To add assets to your application, add an assets section, like this:
   assets:
     - assets/icons/play_arrow.ico
     - assets/icons/pause.ico
     - assets/icons/skip_previous.ico
     - assets/icons/skip_next.ico
     - assets/icons/lyrics/
+    - assets/images/app_icon.ico
+    - assets/images/icon.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

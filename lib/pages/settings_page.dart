@@ -1038,6 +1038,15 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             settings.showDeveloperOptions = value;
           },
         ),
+        if (Platform.isWindows || Platform.isLinux || Platform.isMacOS)
+          SwitchListTile(
+            title: const Text('启用系统托盘'),
+            subtitle: const Text('在系统任务栏托盘中显示图标，方便快速控制播放'),
+            value: settings.enableSystemTray,
+            onChanged: (value) {
+              settings.enableSystemTray = value;
+            },
+          ),
         ListTile(
           leading: const Icon(Icons.help_outline),
           title: Text(l10n.resetOnboarding),
