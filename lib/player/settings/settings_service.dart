@@ -61,13 +61,14 @@ extension FolderViewModeX on FolderViewMode {
     FolderViewMode.grid => 'grid',
   };
 
-  static FolderViewMode fromStorageValue(String? value) {
+  static FolderViewMode fromStorageValue(String? value, FolderViewMode defaultValue) {
     switch (value?.trim().toLowerCase()) {
       case 'grid':
         return FolderViewMode.grid;
       case 'list':
-      default:
         return FolderViewMode.list;
+      default:
+        return defaultValue;
     }
   }
 }
@@ -385,11 +386,11 @@ class SettingsService extends ChangeNotifier {
 
   late final _folderViewModeProperty = SettingProperty<FolderViewMode>(
     key: _keyFolderViewMode,
-    defaultValue: FolderViewMode.list,
+    defaultValue: FolderViewMode.grid,
     prefs: _prefs,
     onChanged: notifyListeners,
     customRead: (prefs, key, def) =>
-        FolderViewModeX.fromStorageValue(prefs.getString(key)),
+        FolderViewModeX.fromStorageValue(prefs.getString(key), def),
     customWrite: (prefs, key, val) => prefs.setString(key, val.storageValue),
   );
 
