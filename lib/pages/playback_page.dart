@@ -53,6 +53,23 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
   Uint8List? _pendingArtworkBytes;
   String? _pendingArtworkPath;
   Timer? _heroWarmupTimer;
+  Timer? _volumeSliderTimer;
+
+  void _startVolumeSliderTimer() {
+    _volumeSliderTimer?.cancel();
+    _volumeSliderTimer = Timer(const Duration(seconds: 3), () {
+      if (mounted) {
+        setState(() {
+          _showVolumeSlider = false;
+        });
+      }
+    });
+  }
+
+  void _cancelVolumeSliderTimer() {
+    _volumeSliderTimer?.cancel();
+    _volumeSliderTimer = null;
+  }
 
   SettingsService? _settingsService;
   AudioService? _audioService;
@@ -97,6 +114,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
   @override
   void dispose() {
     _heroWarmupTimer?.cancel();
+    _volumeSliderTimer?.cancel();
     // 延迟重置，避免在 dispose 过程中触发 notifyListeners 导致的 "locked" 错误
     final settings = _settingsService;
     if (settings != null) {
@@ -846,7 +864,14 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                   onNext: () => toNextMusic(audio),
                   onVolumeTap: () {
                     _handleInteraction();
-                    setState(() => _showVolumeSlider = !_showVolumeSlider);
+                    setState(() {
+                      _showVolumeSlider = !_showVolumeSlider;
+                      if (_showVolumeSlider) {
+                        _startVolumeSliderTimer();
+                      } else {
+                        _cancelVolumeSliderTimer();
+                      }
+                    });
                   },
                   onVolumeDrag: (delta) {
                     _handleInteraction();
@@ -1131,18 +1156,27 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                         volume: volume,
                         onVolumeChanged: (val) {
                           _handleInteraction();
+                          _startVolumeSliderTimer();
                           audio.setVolume(val.roundToDouble(), showVolumeHud: false);
                         },
                         onDismiss: () {
+                          _cancelVolumeSliderTimer();
                           setState(() => _showVolumeSlider = false);
                         },
                         isLandscape: isLandscape,
                         getVolumeIcon: getVolumeIcon,
-                        onDrag: (delta) =>
-                            _adjustVolumeFromDrag(audio, delta, showVolumeHud: false),
-                        onScroll: (deltaY) =>
-                            _adjustVolumeFromScroll(audio, deltaY, showVolumeHud: false),
-                        onInteraction: _handleInteraction,
+                        onDrag: (delta) {
+                          _startVolumeSliderTimer();
+                          _adjustVolumeFromDrag(audio, delta, showVolumeHud: false);
+                        },
+                        onScroll: (deltaY) {
+                          _startVolumeSliderTimer();
+                          _adjustVolumeFromScroll(audio, deltaY, showVolumeHud: false);
+                        },
+                        onInteraction: () {
+                          _handleInteraction();
+                          _startVolumeSliderTimer();
+                        },
                       );
                     },
                   ),
