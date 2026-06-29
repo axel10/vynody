@@ -594,9 +594,11 @@ packages:
   flutter_tray:
     dependency: "direct main"
     description:
-      path: flutter_tray
-      relative: true
-    source: path
+      path: "."
+      ref: main
+      resolved-ref: ca34156075af423db1652776ecafdc26d567d167
+      url: "https://github.com/axel10/flutter_tray"
+    source: git
     version: "0.0.1"
   flutter_web_plugins:
     dependency: transitive
