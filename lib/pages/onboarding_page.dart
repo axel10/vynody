@@ -110,7 +110,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final totalPages = 2;
+    final showLinuxGuide = Platform.isLinux;
+    final totalPages = showLinuxGuide ? 3 : 2;
 
     return Scaffold(
       body: Container(
@@ -177,6 +178,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                               _buildWelcomePage(l10n, theme),
                               // Step 2: Add Music Directory
                               _buildMusicDirectoryPage(l10n, theme),
+                              // Step 3 (Linux only): Linux Disk Auto-Mount Guide
+                              if (showLinuxGuide)
+                                _buildLinuxMountGuidePage(theme),
                             ],
                           ),
                         ),
@@ -486,6 +490,181 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Future<void> _openGnomeDisks() async {
+    try {
+      final result = await Process.run('gnome-disks', []);
+      if (result.exitCode != 0) {
+        if (mounted) {
+          final isChinese = Localizations.localeOf(context).languageCode == 'zh';
+          AppSnackBar.show(
+            context,
+            ref,
+            SnackBar(
+              content: Text(
+                isChinese
+                    ? '无法自动打开磁盘管理器，请在应用菜单中手动搜索并打开「磁盘 (Disks)」'
+                    : 'Failed to open Disk Utility automatically. Please open "Disks" manually from your application menu.',
+              ),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        final isChinese = Localizations.localeOf(context).languageCode == 'zh';
+        AppSnackBar.show(
+          context,
+          ref,
+          SnackBar(
+            content: Text(
+              isChinese
+                  ? '系统未安装 gnome-disks，请手动打开系统磁盘管理工具进行配置。'
+                  : 'gnome-disks is not installed. Please open your system\'s disk utility to configure.',
+            ),
+          ),
+        );
+      }
+    }
+  }
+
+  Widget _buildLinuxMountGuidePage(ThemeData theme) {
+    final isChinese = Localizations.localeOf(context).languageCode == 'zh';
+
+    final title = isChinese ? '配置硬盘自动挂载' : 'Configure Disk Auto-Mount';
+    final desc = isChinese
+        ? '在 Linux 系统中，未配置自动挂载的内部硬盘分区在开机后需要输入管理员密码才能访问。\n\n为了避免每次打开 Vynody 时都需要输入密码挂载硬盘，推荐设置自动挂载：'
+        : 'On Linux, internal drive partitions that are not configured for auto-mount require an administrator password to access after booting.\n\nTo avoid entering a password every time you open Vynody, we recommend setting up auto-mount:';
+
+    final step1 = isChinese
+        ? '1. 打开系统的「磁盘 (Disks)」管理器'
+        : '1. Open the system "Disks" utility';
+    final step2 = isChinese
+        ? '2. 选中包含音乐的分区，点击 ⚙️ 齿轮图标 (附加分区选项)'
+        : '2. Select the music partition, click ⚙️ gear icon (Additional partition options)';
+    final step3 = isChinese
+        ? '3. 选择“编辑挂载选项”，关闭“用户会话默认值”并勾选“系统启动时挂载”'
+        : '3. Select "Edit Mount Options", turn off "User Session Defaults" and check "Mount at system startup"';
+
+    final openButtonText = isChinese ? '打开磁盘管理器 (Disks)' : 'Open Disk Manager (Disks)';
+
+    return Padding(
+      padding: const EdgeInsets.all(32.0),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.storage_rounded,
+                  color: Colors.orange,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  title,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            desc,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurface.withOpacity(0.8),
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.onSurface.withOpacity(0.03),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: theme.colorScheme.onSurface.withOpacity(0.08),
+                ),
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildStepRow(step1, theme),
+                    const SizedBox(height: 12),
+                    _buildStepRow(step2, theme),
+                    const SizedBox(height: 12),
+                    _buildStepRow(step3, theme),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Center(
+            child: SizedBox(
+              width: double.infinity,
+              height: 46,
+              child: OutlinedButton.icon(
+                onPressed: _openGnomeDisks,
+                icon: const Icon(Icons.launch_rounded, size: 18),
+                label: Text(
+                  openButtonText,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                style: OutlinedButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  side: BorderSide(
+                    color: theme.colorScheme.onSurface.withOpacity(0.15),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStepRow(String text, ThemeData theme) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 3.0),
+          child: Icon(
+            Icons.arrow_right_rounded,
+            size: 16,
+            color: theme.colorScheme.primary,
+          ),
+        ),
+        const SizedBox(width: 4),
+        Expanded(
+          child: Text(
+            text,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              height: 1.4,
+              fontSize: 13.5,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
