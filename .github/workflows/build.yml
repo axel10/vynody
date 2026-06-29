@@ -383,6 +383,26 @@ jobs:
       - name: Disable Swift Package Manager
         run: flutter config --no-enable-swift-package-manager
 
+      - name: Import macOS Certificates
+        env:
+          MACOS_CERTIFICATE_P12_BASE64: ${{ secrets.MACOS_CERTIFICATE_P12_BASE64 }}
+          MACOS_CERTIFICATE_P12_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_P12_PASSWORD }}
+        run: |
+          if [ -z "$MACOS_CERTIFICATE_P12_BASE64" ]; then
+            echo "MACOS_CERTIFICATE_P12_BASE64 is not set. Skipping certificate import."
+            exit 0
+          fi
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          KEYCHAIN_PASSWORD=$(openssl rand -base64 14)
+          P12_PATH=$RUNNER_TEMP/certificate.p12
+          echo "$MACOS_CERTIFICATE_P12_BASE64" | base64 --decode > "$P12_PATH"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security default-keychain -s "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$P12_PATH" -k "$KEYCHAIN_PATH" -P "$MACOS_CERTIFICATE_P12_PASSWORD" -T /usr/bin/codesign -T /usr/bin/productsign -T /usr/bin/security
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+
       - name: Install dependencies
         run: flutter pub get
 
@@ -425,8 +445,14 @@ jobs:
           echo "Relevant compile lines:"
           grep -nE 'SFBAudioEngine|AudioPlayer\.mm|AudioPlayer\.h|stop_token|jthread|-std=' build/macos/xcodebuild-diag.log || true
 
-      - name: Build macOS
-        run: flutter build macos --release
+      - name: Build and Package DMG (Signed and Notarized)
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APP_SPECIFIC_PASSWORD: ${{ secrets.APP_SPECIFIC_PASSWORD }}
+          TEAM_ID: ${{ secrets.TEAM_ID }}
+        run: |
+          chmod +x build_dmg.sh
+          ./build_dmg.sh
 
       - name: Verify universal binary
         run: |
@@ -438,23 +464,13 @@ jobs:
             exit 1
           fi
 
-      - name: Build DMG staging folder
+      - name: Clean up Keychain
+        if: always()
         run: |
-          rm -rf vynody-dmg
-          mkdir -p vynody-dmg
-          cp -R build/macos/Build/Products/Release/Vynody.app vynody-dmg/
-          codesign --force --deep --sign - --preserve-metadata=entitlements,identifier,flags vynody-dmg/Vynody.app
-          ln -s /Applications vynody-dmg/Applications
-
-      - name: Package macOS DMG
-        run: |
-          VERSION=$(grep '^version: ' pubspec.yaml | cut -d ' ' -f 2 | tr '+' '-')
-          hdiutil create \
-            -volname "Vynody" \
-            -srcfolder vynody-dmg \
-            -ov \
-            -format UDZO \
-            vynody-macos-$VERSION.dmg
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          if [ -f "$KEYCHAIN_PATH" ]; then
+            security delete-keychain "$KEYCHAIN_PATH" || true
+          fi
 
       - name: Upload macOS package
         uses: actions/upload-artifact@v4
