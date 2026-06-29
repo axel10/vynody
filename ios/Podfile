@@ -48,6 +48,11 @@ post_install do |installer|
     user_project.root_object.package_references << package_ref_user
   end
   package_ref_user.repositoryURL = 'https://github.com/axel10/SFBAudioEngine'
+  user_project.targets.each do |target|
+    target.build_configurations.each do |config|
+      config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'x86_64'
+    end
+  end
   user_project.save
 
   # 2. Update Pods.xcodeproj to register the remote package
@@ -69,6 +74,7 @@ post_install do |installer|
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
       config.build_settings['SWIFT_ENABLE_EXPLICIT_MODULES'] = 'NO'
       config.build_settings['CLANG_ENABLE_EXPLICIT_MODULES'] = 'NO'
+      config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'x86_64'
     end
 
     if target.name == 'audio_core'

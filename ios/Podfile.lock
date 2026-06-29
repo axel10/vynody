@@ -10,8 +10,6 @@ PODS:
   - bonsoir_darwin (0.0.1):
     - Flutter
     - FlutterMacOS
-  - dart_chromaprint (0.0.1):
-    - Flutter
   - device_info_plus (0.0.1):
     - Flutter
   - DKImagePickerController/Core (4.3.9):
@@ -113,7 +111,6 @@ DEPENDENCIES:
   - audio_service (from `.symlinks/plugins/audio_service/darwin`)
   - audio_session (from `.symlinks/plugins/audio_session/ios`)
   - bonsoir_darwin (from `.symlinks/plugins/bonsoir_darwin/darwin`)
-  - dart_chromaprint (from `.symlinks/plugins/dart_chromaprint/ios`)
   - device_info_plus (from `.symlinks/plugins/device_info_plus/ios`)
   - file_picker (from `.symlinks/plugins/file_picker/ios`)
   - file_selector_ios (from `.symlinks/plugins/file_selector_ios/ios`)
@@ -149,8 +146,6 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/audio_session/ios"
   bonsoir_darwin:
     :path: ".symlinks/plugins/bonsoir_darwin/darwin"
-  dart_chromaprint:
-    :path: ".symlinks/plugins/dart_chromaprint/ios"
   device_info_plus:
     :path: ".symlinks/plugins/device_info_plus/ios"
   file_picker:
@@ -189,7 +184,6 @@ SPEC CHECKSUMS:
   audio_service: aa99a6ba2ae7565996015322b0bb024e1d25c6fd
   audio_session: 9bb7f6c970f21241b19f5a3658097ae459681ba0
   bonsoir_darwin: 14bd7429acb51db6a8e51f6574ac3b1ea0037a87
-  dart_chromaprint: 944f8c222a8ab7676a4213d7e0dbd9555a0c482a
   device_info_plus: 71ffc6ab7634ade6267c7a93088ed7e4f74e5896
   DKImagePickerController: 946cec48c7873164274ecc4624d19e3da4c1ef3c
   DKPhotoGallery: b3834fecb755ee09a593d7c9e389d8b5d6deed60
@@ -213,6 +207,6 @@ SPEC CHECKSUMS:
   SwiftyGif: 706c60cf65fa2bc5ee0313beece843c8eb8194d4
   url_launcher_ios: 7a95fa5b60cc718a708b8f2966718e93db0cef1b
 
-PODFILE CHECKSUM: 8f38c55e3c0fcccc37ea7cfde5b1ac397ba362c7
+PODFILE CHECKSUM: 7225f17e63505e2cd5aa8c21db18a28ee614b40d
 
 COCOAPODS: 1.16.2
