@@ -848,6 +848,7 @@
   "noMatchingFoldersOrSongs": "No se encontraron carpetas o canciones que coincidan",
   "listView": "Vista de lista",
   "gridView": "Vista de cuadrícula",
+  "hybridView": "Vista híbrida",
   "songsCountFormat": "{count} canciones",
   "searchInFolderAndSubfolders": "Buscar en el directorio actual y subdirectorios...",
   "shuffle": "Aleatorio",

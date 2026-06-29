@@ -4170,6 +4170,12 @@ abstract class AppLocalizations {
   /// **'网格视图'**
   String get gridView;
 
+  /// No description provided for @hybridView.
+  ///
+  /// In zh, this message translates to:
+  /// **'混合视图'**
+  String get hybridView;
+
   /// No description provided for @songsCountFormat.
   ///
   /// In zh, this message translates to:

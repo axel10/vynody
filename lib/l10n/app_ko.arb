@@ -848,6 +848,7 @@
   "noMatchingFoldersOrSongs": "일치하는 폴더 또는 노래가 없습니다",
   "listView": "목록 보기",
   "gridView": "격자 보기",
+  "hybridView": "하이브리드 보기",
   "songsCountFormat": "{count}곡",
   "searchInFolderAndSubfolders": "폴더 및 하위 폴더에서 검색...",
   "shuffle": "셔플",

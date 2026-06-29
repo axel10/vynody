@@ -901,6 +901,7 @@
   "noMatchingFoldersOrSongs": "一致するフォルダまたは曲が見つかりません",
   "listView": "リスト表示",
   "gridView": "グリッド表示",
+  "hybridView": "ハイブリッド表示",
   "songsCountFormat": "{count}曲",
   "searchInFolderAndSubfolders": "フォルダとサブフォルダを検索...",
   "shuffle": "シャッフル",

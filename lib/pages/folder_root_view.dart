@@ -183,7 +183,8 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
         },
       );
     } else {
-      final isGrid = settings.folderViewMode == FolderViewMode.grid;
+      final isGrid = settings.folderViewMode == FolderViewMode.hybrid ||
+          settings.folderViewMode == FolderViewMode.grid;
       if (isGrid) {
         rootList = LayoutBuilder(
           builder: (context, constraints) {
@@ -303,9 +304,11 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
                             } else if (value == 'sort') {
                               widget.onToggleRootSelectionMode();
                             } else if (value == 'view_mode') {
-                              settings.folderViewMode = settings.folderViewMode == FolderViewMode.grid
-                                  ? FolderViewMode.list
-                                  : FolderViewMode.grid;
+                              settings.folderViewMode = switch (settings.folderViewMode) {
+                                FolderViewMode.list => FolderViewMode.hybrid,
+                                FolderViewMode.hybrid => FolderViewMode.grid,
+                                FolderViewMode.grid => FolderViewMode.list,
+                              };
                             }
                           },
                           itemBuilder: (context) => [
@@ -339,16 +342,20 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
                               child: Row(
                                 children: [
                                   Icon(
-                                    settings.folderViewMode == FolderViewMode.grid
-                                        ? Icons.view_list_rounded
-                                        : Icons.grid_view_rounded,
+                                    switch (settings.folderViewMode) {
+                                      FolderViewMode.list => Icons.grid_view_rounded,
+                                      FolderViewMode.hybrid => Icons.view_module_rounded,
+                                      FolderViewMode.grid => Icons.view_list_rounded,
+                                    },
                                     size: 20,
                                   ),
                                   const SizedBox(width: 12),
                                   Text(
-                                    settings.folderViewMode == FolderViewMode.grid
-                                        ? l10n.listView
-                                        : l10n.gridView,
+                                    switch (settings.folderViewMode) {
+                                      FolderViewMode.list => l10n.hybridView,
+                                      FolderViewMode.hybrid => l10n.gridView,
+                                      FolderViewMode.grid => l10n.listView,
+                                    },
                                   ),
                                 ],
                               ),
@@ -364,18 +371,24 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
                           ),
                         IconButton(
                           icon: Icon(
-                            settings.folderViewMode == FolderViewMode.grid
-                                ? Icons.view_list_rounded
-                                : Icons.grid_view_rounded,
+                            switch (settings.folderViewMode) {
+                              FolderViewMode.list => Icons.grid_view_rounded,
+                              FolderViewMode.hybrid => Icons.view_module_rounded,
+                              FolderViewMode.grid => Icons.view_list_rounded,
+                            },
                           ),
                           onPressed: () {
-                            settings.folderViewMode = settings.folderViewMode == FolderViewMode.grid
-                                ? FolderViewMode.list
-                                : FolderViewMode.grid;
+                            settings.folderViewMode = switch (settings.folderViewMode) {
+                              FolderViewMode.list => FolderViewMode.hybrid,
+                              FolderViewMode.hybrid => FolderViewMode.grid,
+                              FolderViewMode.grid => FolderViewMode.list,
+                            };
                           },
-                          tooltip: settings.folderViewMode == FolderViewMode.grid
-                              ? l10n.listView
-                              : l10n.gridView,
+                          tooltip: switch (settings.folderViewMode) {
+                            FolderViewMode.list => l10n.hybridView,
+                            FolderViewMode.hybrid => l10n.gridView,
+                            FolderViewMode.grid => l10n.listView,
+                          },
                         ),
                         IconButton(
                           icon: Icon(

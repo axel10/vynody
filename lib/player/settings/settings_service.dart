@@ -53,17 +53,20 @@ final class LyricsAiModelSelection {
 
 enum SmallWindowBottomPanelMode { collapsed, queue, lyrics }
 
-enum FolderViewMode { list, grid }
+enum FolderViewMode { list, hybrid, grid }
 
 extension FolderViewModeX on FolderViewMode {
   String get storageValue => switch (this) {
     FolderViewMode.list => 'list',
-    FolderViewMode.grid => 'grid',
+    FolderViewMode.hybrid => 'grid',
+    FolderViewMode.grid => 'grid_all',
   };
 
   static FolderViewMode fromStorageValue(String? value, FolderViewMode defaultValue) {
     switch (value?.trim().toLowerCase()) {
       case 'grid':
+        return FolderViewMode.hybrid;
+      case 'grid_all':
         return FolderViewMode.grid;
       case 'list':
         return FolderViewMode.list;
@@ -388,7 +391,7 @@ class SettingsService extends ChangeNotifier {
 
   late final _folderViewModeProperty = SettingProperty<FolderViewMode>(
     key: _keyFolderViewMode,
-    defaultValue: FolderViewMode.grid,
+    defaultValue: FolderViewMode.hybrid,
     prefs: _prefs,
     onChanged: notifyListeners,
     customRead: (prefs, key, def) =>

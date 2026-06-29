@@ -2298,6 +2298,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get gridView => 'Vue en grille';
 
   @override
+  String get hybridView => 'Vue hybride';
+
+  @override
   String songsCountFormat(Object count) {
     return '$count chansons';
   }

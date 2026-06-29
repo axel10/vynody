@@ -1305,6 +1305,7 @@
   "noMatchingFoldersOrSongs": "未找到匹配的文件夹或歌曲",
   "listView": "列表视图",
   "gridView": "网格视图",
+  "hybridView": "混合视图",
   "songsCountFormat": "{count} 首歌曲",
   "searchInFolderAndSubfolders": "在当前目录及子目录下搜索...",
   "shuffle": "随机播放",

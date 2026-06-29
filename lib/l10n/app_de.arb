@@ -848,6 +848,7 @@
   "noMatchingFoldersOrSongs": "Keine passenden Ordner oder Songs gefunden",
   "listView": "Listenansicht",
   "gridView": "Rasteransicht",
+  "hybridView": "Hybridansicht",
   "songsCountFormat": "{count} Songs",
   "searchInFolderAndSubfolders": "Im Ordner und Unterordnern suchen...",
   "shuffle": "Zufallswiedergabe",

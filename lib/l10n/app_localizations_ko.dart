@@ -2191,6 +2191,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get gridView => '격자 보기';
 
   @override
+  String get hybridView => '하이브리드 보기';
+
+  @override
   String songsCountFormat(Object count) {
     return '$count곡';
   }

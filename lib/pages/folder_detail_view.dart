@@ -18,6 +18,7 @@ import '../widgets/library_selection_panel.dart';
 import '../widgets/song_thumbnail.dart';
 import '../widgets/folder_grid_card.dart';
 import '../widgets/folder_list_tile.dart';
+import '../widgets/song_grid_card.dart';
 import 'package:vynody/player/settings/settings_service.dart';
 import 'package:vynody/utils/folder_helpers.dart';
 
@@ -250,6 +251,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
     );
     final audio = ref.read(audioServiceProvider);
     final currentMusic = ref.watch(audioCurrentMusicProvider);
+    final isPlaying = ref.watch(audioIsPlayingProvider);
 
     final matchedFolders = _searchQuery.isNotEmpty
         ? _findMatchingFolders(widget.folder, _searchQuery)
@@ -271,9 +273,10 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
 
     Widget scrollBody;
 
-    final isGrid = settings.folderViewMode == FolderViewMode.grid;
+    final isFolderGrid = settings.folderViewMode == FolderViewMode.hybrid ||
+        settings.folderViewMode == FolderViewMode.grid;
     Widget subfoldersSliver;
-    if (isGrid) {
+    if (isFolderGrid) {
       final gridItemsCount = matchedFolders.length;
       subfoldersSliver = gridItemsCount > 0
           ? SliverLayoutBuilder(
@@ -391,6 +394,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
 
     Widget songsSliver;
     final noResults = _searchQuery.isNotEmpty && matchedFolders.isEmpty && matchedSongs.isEmpty;
+    final isSongGrid = settings.folderViewMode == FolderViewMode.grid;
     if (noResults) {
       songsSliver = SliverToBoxAdapter(
         child: Padding(
@@ -416,6 +420,126 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
           ),
         ),
       );
+    } else if (isSongGrid) {
+      final gridItemsCount = matchedSongs.length;
+      songsSliver = gridItemsCount > 0
+          ? SliverLayoutBuilder(
+              builder: (context, constraints) {
+                final width = constraints.crossAxisExtent;
+                final crossAxisCount = switch (width) {
+                  >= 1350 => 6,
+                  >= 1100 => 5,
+                  >= 850 => 4,
+                  >= 650 => 3,
+                  _ => 2,
+                };
+
+                final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
+                final textScale = MediaQuery.textScalerOf(context).scale(10) / 10;
+                final clampedScale = textScale.clamp(1.0, 1.3);
+                final double textHeight = (isPortrait ? 72.0 : 84.0) * clampedScale;
+                final itemWidth = (width - 32 - (crossAxisCount - 1) * 16) / crossAxisCount;
+                final childAspectRatio = itemWidth / (itemWidth + textHeight);
+
+                return SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  sliver: SliverGrid(
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: crossAxisCount,
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
+                      childAspectRatio: childAspectRatio,
+                    ),
+                    delegate: SliverChildBuilderDelegate(
+                      (context, fileIndex) {
+                        final file = matchedSongs[fileIndex];
+                        final isCurrent = currentMusic?.path == file.path;
+                        final isSelected = widget.selectedSongPaths.contains(file.path);
+                        final songsToAdd =
+                            (widget.selectedSongPaths.isNotEmpty ||
+                                widget.selectedFolderPaths.isNotEmpty)
+                            ? _getSelectedSongs()
+                            : <MusicFile>[file];
+
+                        void handleShowMenu(
+                          BuildContext menuContext,
+                          Offset position,
+                        ) {
+                          showSongContextMenu(
+                            menuContext,
+                            position,
+                            song: file,
+                            songs: songsToAdd,
+                            mode: SongContextMenuMode.full,
+                            onAddToPlaylist: () => showAddSongsToPlaylistDialog(
+                              menuContext,
+                              ref.read(playlistServiceProvider),
+                              songsToAdd,
+                            ),
+                            onPlayNext: () => ref
+                                .read(audioServiceProvider)
+                                .enqueueNext(songsToAdd),
+                            onAddToQueue: () => ref
+                                .read(audioServiceProvider)
+                                .appendToQueue(songsToAdd),
+                          );
+                        }
+
+                        return HoverableCard(
+                          child: SongGridCard(
+                            song: file,
+                            isCurrent: isCurrent,
+                            isPlaying: isPlaying,
+                            isSelected: isSelected,
+                            isSelectionMode: widget.isSelectionMode,
+                            onTap: widget.isSelectionMode
+                                ? () => widget.onToggleSelection(file.path)
+                                : () async {
+                                    unawaited(() async {
+                                      try {
+                                         await audio.playPlaylist(
+                                           matchedSongs,
+                                           initialIndex: fileIndex,
+                                           source: PlaybackSource(
+                                             type: PlaybackSourceType.folder,
+                                             id: widget.folder.path,
+                                             name: widget.folder.name,
+                                           ),
+                                         );
+                                      } catch (e, st) {
+                                        debugPrint(
+                                          'FoldersPage: failed to start folder playback for ${file.path}: $e',
+                                        );
+                                        debugPrintStack(stackTrace: st);
+                                      }
+                                    }());
+
+                                    if (mounted) {
+                                      widget.onClearAllSelection();
+                                      await widget.onOpenPlayback?.call();
+                                    }
+                                  },
+                            onLongPress: () {
+                              if (!widget.isSelectionMode) {
+                                widget.onToggleSelectionMode();
+                                widget.onToggleSelection(file.path);
+                              } else {
+                                widget.onToggleSelection(file.path);
+                              }
+                            },
+                            onSecondaryTapDown: (details) {
+                              handleShowMenu(context, details.globalPosition);
+                            },
+                          ),
+                        );
+                      },
+                      childCount: gridItemsCount,
+                    ),
+                  ),
+                );
+              },
+            )
+          : const SliverToBoxAdapter(child: SizedBox.shrink());
     } else {
       songsSliver = SliverPadding(
         padding: const EdgeInsets.only(top: 8),
@@ -872,9 +996,11 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
                 } else if (value == 'sort') {
                   _showSortDialog(context, scanner);
                 } else if (value == 'view_mode') {
-                  settings.folderViewMode = settings.folderViewMode == FolderViewMode.grid
-                      ? FolderViewMode.list
-                      : FolderViewMode.grid;
+                  settings.folderViewMode = switch (settings.folderViewMode) {
+                    FolderViewMode.list => FolderViewMode.hybrid,
+                    FolderViewMode.hybrid => FolderViewMode.grid,
+                    FolderViewMode.grid => FolderViewMode.list,
+                  };
                 }
               },
               itemBuilder: (context) => [
@@ -904,16 +1030,20 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
                   child: Row(
                     children: [
                       Icon(
-                        settings.folderViewMode == FolderViewMode.grid
-                            ? Icons.view_list_rounded
-                            : Icons.grid_view_rounded,
+                        switch (settings.folderViewMode) {
+                          FolderViewMode.list => Icons.grid_view_rounded,
+                          FolderViewMode.hybrid => Icons.view_module_rounded,
+                          FolderViewMode.grid => Icons.view_list_rounded,
+                        },
                         size: 20,
                       ),
                       const SizedBox(width: 12),
                       Text(
-                        settings.folderViewMode == FolderViewMode.grid
-                            ? l10n.listView
-                            : l10n.gridView,
+                        switch (settings.folderViewMode) {
+                          FolderViewMode.list => l10n.hybridView,
+                          FolderViewMode.hybrid => l10n.gridView,
+                          FolderViewMode.grid => l10n.listView,
+                        },
                       ),
                     ],
                   ),
@@ -931,18 +1061,24 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
             ],
             IconButton(
               icon: Icon(
-                settings.folderViewMode == FolderViewMode.grid
-                    ? Icons.view_list_rounded
-                    : Icons.grid_view_rounded,
+                switch (settings.folderViewMode) {
+                  FolderViewMode.list => Icons.grid_view_rounded,
+                  FolderViewMode.hybrid => Icons.view_module_rounded,
+                  FolderViewMode.grid => Icons.view_list_rounded,
+                },
               ),
               onPressed: () {
-                settings.folderViewMode = settings.folderViewMode == FolderViewMode.grid
-                    ? FolderViewMode.list
-                    : FolderViewMode.grid;
+                settings.folderViewMode = switch (settings.folderViewMode) {
+                  FolderViewMode.list => FolderViewMode.hybrid,
+                  FolderViewMode.hybrid => FolderViewMode.grid,
+                  FolderViewMode.grid => FolderViewMode.list,
+                };
               },
-              tooltip: settings.folderViewMode == FolderViewMode.grid
-                  ? l10n.listView
-                  : l10n.gridView,
+              tooltip: switch (settings.folderViewMode) {
+                FolderViewMode.list => l10n.hybridView,
+                FolderViewMode.hybrid => l10n.gridView,
+                FolderViewMode.grid => l10n.listView,
+              },
             ),
             const SizedBox(width: 8),
             IconButton(

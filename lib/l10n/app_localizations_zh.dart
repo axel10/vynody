@@ -2161,6 +2161,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get gridView => '网格视图';
 
   @override
+  String get hybridView => '混合视图';
+
+  @override
   String songsCountFormat(Object count) {
     return '$count 首歌曲';
   }
