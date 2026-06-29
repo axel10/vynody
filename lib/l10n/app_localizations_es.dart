@@ -2826,4 +2826,105 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get receiveDirection => 'Recibir';
+
+  @override
+  String get fileAssociationEnabled => 'Asociación activada';
+
+  @override
+  String get fileAssociationDisabled => 'Asociación desactivada';
+
+  @override
+  String get windowsAutoRepairShortcut =>
+      'Reparar acceso directo del menú Inicio automáticamente';
+
+  @override
+  String get windowsAutoRepairShortcutDescription =>
+      'Verificar y crear el acceso directo del menú Inicio en cada inicio para mostrar el nombre e icono correctos del control multimedia';
+
+  @override
+  String get confirmDisableShortcutRepair => '¿Deshabilitar esta función?';
+
+  @override
+  String get confirmDisableShortcutRepairContent =>
+      'Sin el acceso directo del menú Inicio, los controles multimedia de Windows pueden mostrar la app como \"Desconocida\" y sin icono. ¿Está seguro de que desea deshabilitar esto?';
+
+  @override
+  String get confirmDisable => 'Deshabilitar';
+
+  @override
+  String get enableSystemTray => 'Habilitar bandeja del sistema';
+
+  @override
+  String get enableSystemTrayDescription =>
+      'Mostrar icono en la bandeja del sistema para control rápido de reproducción';
+
+  @override
+  String get googleAiStudioApiKey => 'Google AI Studio API Key';
+
+  @override
+  String get openRouterApiKey => 'OpenRouter API Key';
+
+  @override
+  String get doubaoApiKey => 'Doubao API Key';
+
+  @override
+  String get deepseekApiKey => 'DeepSeek API Key';
+
+  @override
+  String get unexpectedResponseFormat => 'Formato de respuesta inesperado.';
+
+  @override
+  String get baseUrl => 'Base URL';
+
+  @override
+  String get openaiCompatibleEndpoint =>
+      'Punto de conexión de API compatible con OpenAI';
+
+  @override
+  String onboardingAddedDirectoriesCount(Object count) {
+    return 'Directorios añadidos ($count):';
+  }
+
+  @override
+  String get gnomeDisksOpenFailed =>
+      'No se pudo abrir la Utilidad de Discos automáticamente. Abra \"Discos\" manualmente desde el menú de aplicaciones.';
+
+  @override
+  String get gnomeDisksNotInstalled =>
+      'gnome-disks no está instalado. Abra la utilidad de discos de su sistema para configurar.';
+
+  @override
+  String get linuxMountGuideTitle => 'Configurar montaje automático de disco';
+
+  @override
+  String get linuxMountGuideDescription =>
+      'En Linux, las particiones de discos internos no configuradas para montaje automático requieren una contraseña de administrador después del inicio.\n\nPara evitar tener que introducir una contraseña cada vez que abra Vynody, recomendamos configurar el montaje automático:';
+
+  @override
+  String get linuxMountGuideStep1 =>
+      '1. Abra la utilidad \"Discos\" del sistema';
+
+  @override
+  String get linuxMountGuideStep2 =>
+      '2. Seleccione la partición de música, haga clic en el icono de engranaje ⚙️ (Opciones adicionales de partición)';
+
+  @override
+  String get linuxMountGuideStep3 =>
+      '3. Seleccione \"Editar opciones de montaje\", desactive \"Valores predeterminados de sesión de usuario\" y marque \"Montar al inicio del sistema\"';
+
+  @override
+  String get linuxMountGuideOpenButton =>
+      'Abrir Administrador de discos (Disks)';
+
+  @override
+  String get unmute => 'Activar sonido';
+
+  @override
+  String get mute => 'Silenciar';
+
+  @override
+  String get disableSystemTray => 'Deshabilitar bandeja del sistema';
+
+  @override
+  String get exitApp => 'Salir';
 }

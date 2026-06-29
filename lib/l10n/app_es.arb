@@ -1123,5 +1123,39 @@
   "skipAllAction": "Saltar todo",
   "overwriteAllAction": "Sobrescribir todo",
   "sendDirection": "Enviar",
-  "receiveDirection": "Recibir"
+  "receiveDirection": "Recibir",
+  "fileAssociationEnabled": "Asociación activada",
+  "fileAssociationDisabled": "Asociación desactivada",
+  "windowsAutoRepairShortcut": "Reparar acceso directo del menú Inicio automáticamente",
+  "windowsAutoRepairShortcutDescription": "Verificar y crear el acceso directo del menú Inicio en cada inicio para mostrar el nombre e icono correctos del control multimedia",
+  "confirmDisableShortcutRepair": "¿Deshabilitar esta función?",
+  "confirmDisableShortcutRepairContent": "Sin el acceso directo del menú Inicio, los controles multimedia de Windows pueden mostrar la app como \"Desconocida\" y sin icono. ¿Está seguro de que desea deshabilitar esto?",
+  "confirmDisable": "Deshabilitar",
+  "enableSystemTray": "Habilitar bandeja del sistema",
+  "enableSystemTrayDescription": "Mostrar icono en la bandeja del sistema para control rápido de reproducción",
+  "googleAiStudioApiKey": "Google AI Studio API Key",
+  "openRouterApiKey": "OpenRouter API Key",
+  "doubaoApiKey": "Doubao API Key",
+  "deepseekApiKey": "DeepSeek API Key",
+  "unexpectedResponseFormat": "Formato de respuesta inesperado.",
+  "baseUrl": "Base URL",
+  "openaiCompatibleEndpoint": "Punto de conexión de API compatible con OpenAI",
+  "onboardingAddedDirectoriesCount": "Directorios añadidos ({count}):",
+  "@onboardingAddedDirectoriesCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "gnomeDisksOpenFailed": "No se pudo abrir la Utilidad de Discos automáticamente. Abra \"Discos\" manualmente desde el menú de aplicaciones.",
+  "gnomeDisksNotInstalled": "gnome-disks no está instalado. Abra la utilidad de discos de su sistema para configurar.",
+  "linuxMountGuideTitle": "Configurar montaje automático de disco",
+  "linuxMountGuideDescription": "En Linux, las particiones de discos internos no configuradas para montaje automático requieren una contraseña de administrador después del inicio.\n\nPara evitar tener que introducir una contraseña cada vez que abra Vynody, recomendamos configurar el montaje automático:",
+  "linuxMountGuideStep1": "1. Abra la utilidad \"Discos\" del sistema",
+  "linuxMountGuideStep2": "2. Seleccione la partición de música, haga clic en el icono de engranaje ⚙️ (Opciones adicionales de partición)",
+  "linuxMountGuideStep3": "3. Seleccione \"Editar opciones de montaje\", desactive \"Valores predeterminados de sesión de usuario\" y marque \"Montar al inicio del sistema\"",
+  "linuxMountGuideOpenButton": "Abrir Administrador de discos (Disks)",
+  "unmute": "Activar sonido",
+  "mute": "Silenciar",
+  "disableSystemTray": "Deshabilitar bandeja del sistema",
+  "exitApp": "Salir"
 }

@@ -2699,4 +2699,100 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get receiveDirection => '受信';
+
+  @override
+  String get fileAssociationEnabled => '関連付け済み';
+
+  @override
+  String get fileAssociationDisabled => '未関連付け';
+
+  @override
+  String get windowsAutoRepairShortcut => 'スタートメニューのショートカットを自動修復';
+
+  @override
+  String get windowsAutoRepairShortcutDescription =>
+      '起動時にスタートメニューのショートカットを自動的に確認・作成し、メディアコントロールの名前とアイコンを正しく表示します';
+
+  @override
+  String get confirmDisableShortcutRepair => 'この機能を無効にしますか？';
+
+  @override
+  String get confirmDisableShortcutRepairContent =>
+      'スタートメニューのショートカットがない場合、Windowsのメディアコントロールにアプリが「不明」と表示され、アイコンが表示されなくなる可能性があります。本当に無効にしますか？';
+
+  @override
+  String get confirmDisable => '無効にする';
+
+  @override
+  String get enableSystemTray => 'システムトレイを有効にする';
+
+  @override
+  String get enableSystemTrayDescription => 'システムトレイにアイコンを表示し、再生をすばやく操作できます';
+
+  @override
+  String get googleAiStudioApiKey => 'Google AI Studio API Key';
+
+  @override
+  String get openRouterApiKey => 'OpenRouter API Key';
+
+  @override
+  String get doubaoApiKey => 'Doubao API Key';
+
+  @override
+  String get deepseekApiKey => 'DeepSeek API Key';
+
+  @override
+  String get unexpectedResponseFormat => '予期しない応答形式です。';
+
+  @override
+  String get baseUrl => 'Base URL';
+
+  @override
+  String get openaiCompatibleEndpoint => 'OpenAI互換のAPIエンドポイント';
+
+  @override
+  String onboardingAddedDirectoriesCount(Object count) {
+    return '追加されたディレクトリ（$count）：';
+  }
+
+  @override
+  String get gnomeDisksOpenFailed =>
+      'ディスクユーティリティを自動的に開けませんでした。アプリケーションメニューから手動で「Disks」を開いてください。';
+
+  @override
+  String get gnomeDisksNotInstalled =>
+      'gnome-disksがインストールされていません。システムのディスクユーティリティを開いて設定してください。';
+
+  @override
+  String get linuxMountGuideTitle => 'ディスクの自動マウントを設定';
+
+  @override
+  String get linuxMountGuideDescription =>
+      'Linuxでは、自動マウントが設定されていない内蔵ディスクパーティションは、起動後に管理者パスワードが必要です。\n\nVynodyを開くたびにパスワードを入力しなくて済むように、自動マウントの設定をお勧めします：';
+
+  @override
+  String get linuxMountGuideStep1 => '1. システムの「Disks」ユーティリティを開く';
+
+  @override
+  String get linuxMountGuideStep2 =>
+      '2. 音楽パーティションを選択し、⚙️ 歯車アイコンをクリック（追加のパーティションオプション）';
+
+  @override
+  String get linuxMountGuideStep3 =>
+      '3. 「マウントオプションの編集」を選択し、「ユーザーセッションのデフォルト」をオフにして「システム起動時にマウント」にチェックを入れる';
+
+  @override
+  String get linuxMountGuideOpenButton => 'ディスクマネージャー（Disks）を開く';
+
+  @override
+  String get unmute => 'ミュート解除';
+
+  @override
+  String get mute => 'ミュート';
+
+  @override
+  String get disableSystemTray => 'システムトレイを無効にする';
+
+  @override
+  String get exitApp => '終了';
 }

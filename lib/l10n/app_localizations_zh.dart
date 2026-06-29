@@ -2663,4 +2663,97 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get receiveDirection => '接收';
+
+  @override
+  String get fileAssociationEnabled => '已开启关联';
+
+  @override
+  String get fileAssociationDisabled => '未开启关联';
+
+  @override
+  String get windowsAutoRepairShortcut => '自动修复开始菜单快捷方式';
+
+  @override
+  String get windowsAutoRepairShortcutDescription =>
+      '每次启动时自动检查并创建开始菜单快捷方式以正确显示媒体控制项名称与图标';
+
+  @override
+  String get confirmDisableShortcutRepair => '确定关闭此功能吗？';
+
+  @override
+  String get confirmDisableShortcutRepairContent =>
+      '如果缺少开始菜单快捷方式，Windows 媒体控制中心（音量调节弹窗）将会把软件显示为\"未知应用\"，并且无法展示应用图标。是否确定关闭此功能？';
+
+  @override
+  String get confirmDisable => '确定关闭';
+
+  @override
+  String get enableSystemTray => '启用系统托盘';
+
+  @override
+  String get enableSystemTrayDescription => '在系统任务栏托盘中显示图标，方便快速控制播放';
+
+  @override
+  String get googleAiStudioApiKey => 'Google AI Studio API Key';
+
+  @override
+  String get openRouterApiKey => 'OpenRouter API Key';
+
+  @override
+  String get doubaoApiKey => '豆包 API Key';
+
+  @override
+  String get deepseekApiKey => 'DeepSeek API Key';
+
+  @override
+  String get unexpectedResponseFormat => '意外的响应格式。';
+
+  @override
+  String get baseUrl => 'Base URL';
+
+  @override
+  String get openaiCompatibleEndpoint => '兼容 OpenAI 的 API 端点';
+
+  @override
+  String onboardingAddedDirectoriesCount(Object count) {
+    return '已添加的目录（$count）：';
+  }
+
+  @override
+  String get gnomeDisksOpenFailed => '无法自动打开磁盘管理器，请在应用菜单中手动搜索并打开「磁盘 (Disks)」';
+
+  @override
+  String get gnomeDisksNotInstalled => '系统未安装 gnome-disks，请手动打开系统磁盘管理工具进行配置。';
+
+  @override
+  String get linuxMountGuideTitle => '配置硬盘自动挂载';
+
+  @override
+  String get linuxMountGuideDescription =>
+      '在 Linux 系统中，未配置自动挂载的内部硬盘分区在开机后需要输入管理员密码才能访问。\n\n为了避免每次打开 Vynody 时都需要输入密码挂载硬盘，推荐设置自动挂载：';
+
+  @override
+  String get linuxMountGuideStep1 => '1. 打开系统的「磁盘 (Disks)」管理器';
+
+  @override
+  String get linuxMountGuideStep2 => '2. 选中包含音乐的分区，点击 ⚙️ 齿轮图标（附加分区选项）';
+
+  @override
+  String get linuxMountGuideStep3 =>
+      '3. 选择\"编辑挂载选项\"，关闭\"用户会话默认值\"并勾选\"系统启动时挂载\"';
+
+  @override
+  String get linuxMountGuideOpenButton => '打开磁盘管理器 (Disks)';
+
+  @override
+  String get unmute => '取消静音';
+
+  @override
+  String get mute => '静音';
+
+  @override
+  String get disableSystemTray => '停用系统托盘';
+
+  @override
+  String get exitApp => '退出';
 }

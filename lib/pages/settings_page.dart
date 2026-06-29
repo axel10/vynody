@@ -232,7 +232,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           leading: const Icon(Icons.open_in_new_rounded),
           title: Text(l10n.fileAssociationTitle),
           subtitle: Text(
-            _isAssociated ? '已开启关联 (Associated)' : '未开启关联 (Not Associated)',
+            _isAssociated ? l10n.fileAssociationEnabled : l10n.fileAssociationDisabled,
             style: TextStyle(
               color: _isAssociated ? Colors.green : Colors.orange,
               fontWeight: FontWeight.w500,
@@ -287,27 +287,30 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           const Divider(),
           SwitchListTile(
             secondary: const Icon(Icons.settings_suggest_rounded),
-            title: const Text('自动修复开始菜单快捷方式'),
-            subtitle: const Text('每次启动时自动检查并创建开始菜单快捷方式以正确显示媒体控制项名称与图标'),
+            title: Text(l10n.windowsAutoRepairShortcut),
+            subtitle: Text(l10n.windowsAutoRepairShortcutDescription),
             value: settings.windowsAutoRepairShortcut,
             onChanged: (value) async {
               if (!value) {
                 final confirm = await showDialog<bool>(
                   context: context,
-                  builder: (context) => AlertDialog(
-                    title: const Text('确定关闭吗？'),
-                    content: const Text('如果缺少开始菜单快捷方式，Windows 媒体控制中心（音量调节弹窗）将会把软件显示为“未知应用”，并且无法展示应用图标。是否确定关闭此功能？'),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.of(context).pop(false),
-                        child: const Text('取消'),
-                      ),
-                      FilledButton(
-                        onPressed: () => Navigator.of(context).pop(true),
-                        child: const Text('确定关闭'),
-                      ),
-                    ],
-                  ),
+                  builder: (dialogContext) {
+                    final l10n = AppLocalizations.of(dialogContext)!;
+                    return AlertDialog(
+                      title: Text(l10n.confirmDisableShortcutRepair),
+                      content: Text(l10n.confirmDisableShortcutRepairContent),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.of(dialogContext).pop(false),
+                          child: Text(l10n.cancel),
+                        ),
+                        FilledButton(
+                          onPressed: () => Navigator.of(dialogContext).pop(true),
+                          child: Text(l10n.confirmDisable),
+                        ),
+                      ],
+                    );
+                  },
                 );
                 if (confirm == true) {
                   settings.windowsAutoRepairShortcut = false;
@@ -1040,8 +1043,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         ),
         if (Platform.isWindows || Platform.isLinux)
           SwitchListTile(
-            title: const Text('启用系统托盘'),
-            subtitle: const Text('在系统任务栏托盘中显示图标，方便快速控制播放'),
+            title: Text(l10n.enableSystemTray),
+            subtitle: Text(l10n.enableSystemTrayDescription),
             value: settings.enableSystemTray,
             onChanged: (value) {
               settings.enableSystemTray = value;
@@ -1185,7 +1188,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         _buildSectionHeader(l10n.platformApiKeysSectionTitle),
         ListTile(
           leading: _buildProviderIcon(LyricsAiProvider.googleAiStudio),
-          title: const Text('Google AI Studio API Key'),
+          title: Text(l10n.googleAiStudioApiKey),
           subtitle: Text(
             settings.geminiApiKey.trim().isEmpty
                 ? l10n.apiKeyMissingStatus
@@ -1221,7 +1224,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         ),
         ListTile(
           leading: _buildProviderIcon(LyricsAiProvider.openRouter),
-          title: const Text('OpenRouter API Key'),
+          title: Text(l10n.openRouterApiKey),
           subtitle: Text(
             settings.openRouterApiKey.trim().isEmpty
                 ? l10n.apiKeyMissingStatus
@@ -1258,7 +1261,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         ),
         ListTile(
           leading: _buildProviderIcon(LyricsAiProvider.doubao),
-          title: const Text('豆包 API Key'),
+          title: Text(l10n.doubaoApiKey),
           subtitle: Text(
             settings.doubaoApiKey.trim().isEmpty
                 ? l10n.apiKeyMissingStatus
@@ -1293,7 +1296,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         ),
         ListTile(
           leading: _buildProviderIcon(LyricsAiProvider.deepseek),
-          title: const Text('DeepSeek API Key'),
+          title: Text(l10n.deepseekApiKey),
           subtitle: Text(
             '${settings.deepseekApiKey.trim().isEmpty ? l10n.apiKeyMissingStatus : l10n.apiKeySavedStatus}  ·  ${l10n.onlyForLyricTranslation}',
           ),
@@ -1735,7 +1738,7 @@ class _CustomProviderConfigDialogState
       setState(() {
         _isTesting = false;
         _statusSuccess = false;
-        _statusText = 'Unexpected response format.';
+        _statusText = l10n.unexpectedResponseFormat;
       });
     } catch (e) {
       setState(() {
@@ -1786,25 +1789,25 @@ class _CustomProviderConfigDialogState
               controller: _nameController,
               decoration: InputDecoration(
                 labelText: l10n.providerLabel,
-                hintText: 'e.g. My Provider',
+                hintText: 'My Provider',
                 border: const OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: _baseUrlController,
-              decoration: const InputDecoration(
-                labelText: 'Base URL',
+              decoration: InputDecoration(
+                labelText: l10n.baseUrl,
                 hintText: 'https://api.openai.com/v1',
-                border: OutlineInputBorder(),
-                helperText: 'OpenAI-compatible API endpoint',
+                border: const OutlineInputBorder(),
+                helperText: l10n.openaiCompatibleEndpoint,
               ),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: _apiKeyController,
               decoration: InputDecoration(
-                labelText: 'API Key',
+                labelText: l10n.apiKey,
                 hintText: l10n.pleaseEnterApiKeyHint,
                 border: const OutlineInputBorder(),
               ),

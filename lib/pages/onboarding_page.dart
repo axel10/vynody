@@ -322,7 +322,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           const SizedBox(height: 24),
           if (rootFolders.isNotEmpty) ...[
             Text(
-              '已添加的目录 (${rootFolders.length})：',
+              l10n.onboardingAddedDirectoriesCount(rootFolders.length),
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.bold,
@@ -498,32 +498,24 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       final result = await Process.run('gnome-disks', []);
       if (result.exitCode != 0) {
         if (mounted) {
-          final isChinese = Localizations.localeOf(context).languageCode == 'zh';
+          final l10n = AppLocalizations.of(context)!;
           AppSnackBar.show(
             context,
             ref,
             SnackBar(
-              content: Text(
-                isChinese
-                    ? '无法自动打开磁盘管理器，请在应用菜单中手动搜索并打开「磁盘 (Disks)」'
-                    : 'Failed to open Disk Utility automatically. Please open "Disks" manually from your application menu.',
-              ),
+              content: Text(l10n.gnomeDisksOpenFailed),
             ),
           );
         }
       }
     } catch (e) {
       if (mounted) {
-        final isChinese = Localizations.localeOf(context).languageCode == 'zh';
+        final l10n = AppLocalizations.of(context)!;
         AppSnackBar.show(
           context,
           ref,
           SnackBar(
-            content: Text(
-              isChinese
-                  ? '系统未安装 gnome-disks，请手动打开系统磁盘管理工具进行配置。'
-                  : 'gnome-disks is not installed. Please open your system\'s disk utility to configure.',
-            ),
+            content: Text(l10n.gnomeDisksNotInstalled),
           ),
         );
       }
@@ -531,24 +523,13 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   Widget _buildLinuxMountGuidePage(ThemeData theme) {
-    final isChinese = Localizations.localeOf(context).languageCode == 'zh';
-
-    final title = isChinese ? '配置硬盘自动挂载' : 'Configure Disk Auto-Mount';
-    final desc = isChinese
-        ? '在 Linux 系统中，未配置自动挂载的内部硬盘分区在开机后需要输入管理员密码才能访问。\n\n为了避免每次打开 Vynody 时都需要输入密码挂载硬盘，推荐设置自动挂载：'
-        : 'On Linux, internal drive partitions that are not configured for auto-mount require an administrator password to access after booting.\n\nTo avoid entering a password every time you open Vynody, we recommend setting up auto-mount:';
-
-    final step1 = isChinese
-        ? '1. 打开系统的「磁盘 (Disks)」管理器'
-        : '1. Open the system "Disks" utility';
-    final step2 = isChinese
-        ? '2. 选中包含音乐的分区，点击 ⚙️ 齿轮图标 (附加分区选项)'
-        : '2. Select the music partition, click ⚙️ gear icon (Additional partition options)';
-    final step3 = isChinese
-        ? '3. 选择“编辑挂载选项”，关闭“用户会话默认值”并勾选“系统启动时挂载”'
-        : '3. Select "Edit Mount Options", turn off "User Session Defaults" and check "Mount at system startup"';
-
-    final openButtonText = isChinese ? '打开磁盘管理器 (Disks)' : 'Open Disk Manager (Disks)';
+    final l10n = AppLocalizations.of(context)!;
+    final title = l10n.linuxMountGuideTitle;
+    final desc = l10n.linuxMountGuideDescription;
+    final step1 = l10n.linuxMountGuideStep1;
+    final step2 = l10n.linuxMountGuideStep2;
+    final step3 = l10n.linuxMountGuideStep3;
+    final openButtonText = l10n.linuxMountGuideOpenButton;
 
     return Padding(
       padding: const EdgeInsets.all(32.0),

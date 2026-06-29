@@ -5051,6 +5051,180 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'接收'**
   String get receiveDirection;
+
+  /// No description provided for @fileAssociationEnabled.
+  ///
+  /// In zh, this message translates to:
+  /// **'已开启关联'**
+  String get fileAssociationEnabled;
+
+  /// No description provided for @fileAssociationDisabled.
+  ///
+  /// In zh, this message translates to:
+  /// **'未开启关联'**
+  String get fileAssociationDisabled;
+
+  /// No description provided for @windowsAutoRepairShortcut.
+  ///
+  /// In zh, this message translates to:
+  /// **'自动修复开始菜单快捷方式'**
+  String get windowsAutoRepairShortcut;
+
+  /// No description provided for @windowsAutoRepairShortcutDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'每次启动时自动检查并创建开始菜单快捷方式以正确显示媒体控制项名称与图标'**
+  String get windowsAutoRepairShortcutDescription;
+
+  /// No description provided for @confirmDisableShortcutRepair.
+  ///
+  /// In zh, this message translates to:
+  /// **'确定关闭此功能吗？'**
+  String get confirmDisableShortcutRepair;
+
+  /// No description provided for @confirmDisableShortcutRepairContent.
+  ///
+  /// In zh, this message translates to:
+  /// **'如果缺少开始菜单快捷方式，Windows 媒体控制中心（音量调节弹窗）将会把软件显示为\"未知应用\"，并且无法展示应用图标。是否确定关闭此功能？'**
+  String get confirmDisableShortcutRepairContent;
+
+  /// No description provided for @confirmDisable.
+  ///
+  /// In zh, this message translates to:
+  /// **'确定关闭'**
+  String get confirmDisable;
+
+  /// No description provided for @enableSystemTray.
+  ///
+  /// In zh, this message translates to:
+  /// **'启用系统托盘'**
+  String get enableSystemTray;
+
+  /// No description provided for @enableSystemTrayDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'在系统任务栏托盘中显示图标，方便快速控制播放'**
+  String get enableSystemTrayDescription;
+
+  /// No description provided for @googleAiStudioApiKey.
+  ///
+  /// In zh, this message translates to:
+  /// **'Google AI Studio API Key'**
+  String get googleAiStudioApiKey;
+
+  /// No description provided for @openRouterApiKey.
+  ///
+  /// In zh, this message translates to:
+  /// **'OpenRouter API Key'**
+  String get openRouterApiKey;
+
+  /// No description provided for @doubaoApiKey.
+  ///
+  /// In zh, this message translates to:
+  /// **'豆包 API Key'**
+  String get doubaoApiKey;
+
+  /// No description provided for @deepseekApiKey.
+  ///
+  /// In zh, this message translates to:
+  /// **'DeepSeek API Key'**
+  String get deepseekApiKey;
+
+  /// No description provided for @unexpectedResponseFormat.
+  ///
+  /// In zh, this message translates to:
+  /// **'意外的响应格式。'**
+  String get unexpectedResponseFormat;
+
+  /// No description provided for @baseUrl.
+  ///
+  /// In zh, this message translates to:
+  /// **'Base URL'**
+  String get baseUrl;
+
+  /// No description provided for @openaiCompatibleEndpoint.
+  ///
+  /// In zh, this message translates to:
+  /// **'兼容 OpenAI 的 API 端点'**
+  String get openaiCompatibleEndpoint;
+
+  /// No description provided for @onboardingAddedDirectoriesCount.
+  ///
+  /// In zh, this message translates to:
+  /// **'已添加的目录（{count}）：'**
+  String onboardingAddedDirectoriesCount(Object count);
+
+  /// No description provided for @gnomeDisksOpenFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'无法自动打开磁盘管理器，请在应用菜单中手动搜索并打开「磁盘 (Disks)」'**
+  String get gnomeDisksOpenFailed;
+
+  /// No description provided for @gnomeDisksNotInstalled.
+  ///
+  /// In zh, this message translates to:
+  /// **'系统未安装 gnome-disks，请手动打开系统磁盘管理工具进行配置。'**
+  String get gnomeDisksNotInstalled;
+
+  /// No description provided for @linuxMountGuideTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'配置硬盘自动挂载'**
+  String get linuxMountGuideTitle;
+
+  /// No description provided for @linuxMountGuideDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'在 Linux 系统中，未配置自动挂载的内部硬盘分区在开机后需要输入管理员密码才能访问。\n\n为了避免每次打开 Vynody 时都需要输入密码挂载硬盘，推荐设置自动挂载：'**
+  String get linuxMountGuideDescription;
+
+  /// No description provided for @linuxMountGuideStep1.
+  ///
+  /// In zh, this message translates to:
+  /// **'1. 打开系统的「磁盘 (Disks)」管理器'**
+  String get linuxMountGuideStep1;
+
+  /// No description provided for @linuxMountGuideStep2.
+  ///
+  /// In zh, this message translates to:
+  /// **'2. 选中包含音乐的分区，点击 ⚙️ 齿轮图标（附加分区选项）'**
+  String get linuxMountGuideStep2;
+
+  /// No description provided for @linuxMountGuideStep3.
+  ///
+  /// In zh, this message translates to:
+  /// **'3. 选择\"编辑挂载选项\"，关闭\"用户会话默认值\"并勾选\"系统启动时挂载\"'**
+  String get linuxMountGuideStep3;
+
+  /// No description provided for @linuxMountGuideOpenButton.
+  ///
+  /// In zh, this message translates to:
+  /// **'打开磁盘管理器 (Disks)'**
+  String get linuxMountGuideOpenButton;
+
+  /// No description provided for @unmute.
+  ///
+  /// In zh, this message translates to:
+  /// **'取消静音'**
+  String get unmute;
+
+  /// No description provided for @mute.
+  ///
+  /// In zh, this message translates to:
+  /// **'静音'**
+  String get mute;
+
+  /// No description provided for @disableSystemTray.
+  ///
+  /// In zh, this message translates to:
+  /// **'停用系统托盘'**
+  String get disableSystemTray;
+
+  /// No description provided for @exitApp.
+  ///
+  /// In zh, this message translates to:
+  /// **'退出'**
+  String get exitApp;
 }
 
 class _AppLocalizationsDelegate

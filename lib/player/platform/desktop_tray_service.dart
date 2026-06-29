@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:vynody/player/audio/audio_service.dart';
 import 'package:vynody/player/settings/settings_service.dart';
+import 'package:vynody/utils/localized_text.dart';
 import 'package:path/path.dart' as path;
 import 'package:flutter_tray/flutter_tray.dart' as ft;
 
@@ -143,31 +144,32 @@ class DesktopTrayService {
     _lastIsMuted = isMuted;
 
     try {
+      final l10n = currentAppL10n;
       await _tray.setMenu([
         ft.MenuItem(
           id: _idPrevious,
-          label: '上一首',
+          label: l10n.previous,
         ),
         ft.MenuItem(
           id: _idTogglePlay,
-          label: isPlaying ? '暂停' : '播放',
+          label: isPlaying ? l10n.pause : l10n.play,
         ),
         ft.MenuItem(
           id: _idNext,
-          label: '下一首',
+          label: l10n.next,
         ),
         ft.MenuItem(
           id: _idToggleMute,
-          label: isMuted ? '取消静音' : '静音',
+          label: isMuted ? l10n.unmute : l10n.mute,
         ),
         ft.MenuItem.separator(_idSeparator),
         ft.MenuItem(
           id: _idDisableTray,
-          label: '停用系统托盘',
+          label: l10n.disableSystemTray,
         ),
         ft.MenuItem(
           id: _idExit,
-          label: '退出',
+          label: l10n.exitApp,
         ),
       ]);
     } catch (e) {

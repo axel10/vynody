@@ -2820,4 +2820,105 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get receiveDirection => 'Empfangen';
+
+  @override
+  String get fileAssociationEnabled => 'Verknüpfung aktiviert';
+
+  @override
+  String get fileAssociationDisabled => 'Verknüpfung deaktiviert';
+
+  @override
+  String get windowsAutoRepairShortcut =>
+      'Startmenü-Verknüpfung automatisch reparieren';
+
+  @override
+  String get windowsAutoRepairShortcutDescription =>
+      'Überprüft und erstellt die Startmenü-Verknüpfung bei jedem Start, um den korrekten Namen und das Symbol der Mediensteuerung anzuzeigen';
+
+  @override
+  String get confirmDisableShortcutRepair => 'Diese Funktion deaktivieren?';
+
+  @override
+  String get confirmDisableShortcutRepairContent =>
+      'Ohne die Startmenü-Verknüpfung zeigt die Windows-Mediensteuerung die App möglicherweise als \"Unbekannt\" an und kein Symbol. Möchten Sie diese Funktion wirklich deaktivieren?';
+
+  @override
+  String get confirmDisable => 'Deaktivieren';
+
+  @override
+  String get enableSystemTray => 'System Tray aktivieren';
+
+  @override
+  String get enableSystemTrayDescription =>
+      'Symbol in der Taskleiste anzeigen für schnelle Wiedergabesteuerung';
+
+  @override
+  String get googleAiStudioApiKey => 'Google AI Studio API Key';
+
+  @override
+  String get openRouterApiKey => 'OpenRouter API Key';
+
+  @override
+  String get doubaoApiKey => 'Doubao API Key';
+
+  @override
+  String get deepseekApiKey => 'DeepSeek API Key';
+
+  @override
+  String get unexpectedResponseFormat => 'Unerwartetes Antwortformat.';
+
+  @override
+  String get baseUrl => 'Base URL';
+
+  @override
+  String get openaiCompatibleEndpoint => 'OpenAI-kompatibler API-Endpunkt';
+
+  @override
+  String onboardingAddedDirectoriesCount(Object count) {
+    return 'Hinzugefügte Verzeichnisse ($count):';
+  }
+
+  @override
+  String get gnomeDisksOpenFailed =>
+      'Festplatten-Dienstprogramm konnte nicht automatisch geöffnet werden. Bitte öffnen Sie \"Disks\" manuell aus Ihrem Anwendungsmenü.';
+
+  @override
+  String get gnomeDisksNotInstalled =>
+      'gnome-disks ist nicht installiert. Bitte öffnen Sie Ihr Festplatten-Dienstprogramm, um zu konfigurieren.';
+
+  @override
+  String get linuxMountGuideTitle =>
+      'Automatische Festplatteneinbindung konfigurieren';
+
+  @override
+  String get linuxMountGuideDescription =>
+      'Unter Linux erfordern interne Festplattenpartitionen, die nicht für die automatische Einbindung konfiguriert sind, nach dem Booten ein Administratorpasswort.\n\nUm zu vermeiden, dass Sie jedes Mal beim Öffnen von Vynody ein Passwort eingeben müssen, empfehlen wir die automatische Einbindung:';
+
+  @override
+  String get linuxMountGuideStep1 =>
+      '1. Öffnen Sie das \"Disks\"-Dienstprogramm des Systems';
+
+  @override
+  String get linuxMountGuideStep2 =>
+      '2. Wählen Sie Ihre Musikpartition aus und klicken Sie auf das ⚙️ Zahnradsymbol (Zusätzliche Partitionsoptionen)';
+
+  @override
+  String get linuxMountGuideStep3 =>
+      '3. Wählen Sie \"Mount-Optionen bearbeiten\", deaktivieren Sie \"Benutzersitzungs-Standardwerte\" und aktivieren Sie \"Beim Systemstart einbinden\"';
+
+  @override
+  String get linuxMountGuideOpenButton =>
+      'Datenträgerverwaltung (Disks) öffnen';
+
+  @override
+  String get unmute => 'Stummschaltung aufheben';
+
+  @override
+  String get mute => 'Stumm';
+
+  @override
+  String get disableSystemTray => 'System Tray deaktivieren';
+
+  @override
+  String get exitApp => 'Beenden';
 }

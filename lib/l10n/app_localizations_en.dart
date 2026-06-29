@@ -2791,4 +2791,101 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get receiveDirection => 'Receive';
+
+  @override
+  String get fileAssociationEnabled => 'Associated';
+
+  @override
+  String get fileAssociationDisabled => 'Not Associated';
+
+  @override
+  String get windowsAutoRepairShortcut => 'Auto-repair Start Menu Shortcut';
+
+  @override
+  String get windowsAutoRepairShortcutDescription =>
+      'Automatically check and create the Start Menu shortcut on each startup to display the correct media control name and icon';
+
+  @override
+  String get confirmDisableShortcutRepair => 'Disable this feature?';
+
+  @override
+  String get confirmDisableShortcutRepairContent =>
+      'Without the Start Menu shortcut, Windows media controls may display the app as \"Unknown\" and show no icon. Are you sure you want to disable this?';
+
+  @override
+  String get confirmDisable => 'Disable';
+
+  @override
+  String get enableSystemTray => 'Enable System Tray';
+
+  @override
+  String get enableSystemTrayDescription =>
+      'Show icon in the system tray for quick playback control';
+
+  @override
+  String get googleAiStudioApiKey => 'Google AI Studio API Key';
+
+  @override
+  String get openRouterApiKey => 'OpenRouter API Key';
+
+  @override
+  String get doubaoApiKey => 'Doubao API Key';
+
+  @override
+  String get deepseekApiKey => 'DeepSeek API Key';
+
+  @override
+  String get unexpectedResponseFormat => 'Unexpected response format.';
+
+  @override
+  String get baseUrl => 'Base URL';
+
+  @override
+  String get openaiCompatibleEndpoint => 'OpenAI-compatible API endpoint';
+
+  @override
+  String onboardingAddedDirectoriesCount(Object count) {
+    return 'Added directories ($count):';
+  }
+
+  @override
+  String get gnomeDisksOpenFailed =>
+      'Failed to open Disk Utility automatically. Please open \"Disks\" manually from your application menu.';
+
+  @override
+  String get gnomeDisksNotInstalled =>
+      'gnome-disks is not installed. Please open your system\'s disk utility to configure.';
+
+  @override
+  String get linuxMountGuideTitle => 'Configure Disk Auto-Mount';
+
+  @override
+  String get linuxMountGuideDescription =>
+      'On Linux, internal drive partitions that are not configured for auto-mount require an administrator password to access after booting.\n\nTo avoid entering a password every time you open Vynody, we recommend setting up auto-mount:';
+
+  @override
+  String get linuxMountGuideStep1 => '1. Open the system \"Disks\" utility';
+
+  @override
+  String get linuxMountGuideStep2 =>
+      '2. Select your music partition, click the ⚙️ gear icon (Additional partition options)';
+
+  @override
+  String get linuxMountGuideStep3 =>
+      '3. Select \"Edit Mount Options\", turn off \"User Session Defaults\" and check \"Mount at system startup\"';
+
+  @override
+  String get linuxMountGuideOpenButton => 'Open Disk Manager (Disks)';
+
+  @override
+  String get unmute => 'Unmute';
+
+  @override
+  String get mute => 'Mute';
+
+  @override
+  String get disableSystemTray => 'Disable System Tray';
+
+  @override
+  String get exitApp => 'Exit';
 }

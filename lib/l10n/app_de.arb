@@ -1123,5 +1123,39 @@
   "skipAllAction": "Alle überspringen",
   "overwriteAllAction": "Alle überschreiben",
   "sendDirection": "Senden",
-  "receiveDirection": "Empfangen"
+  "receiveDirection": "Empfangen",
+  "fileAssociationEnabled": "Verknüpfung aktiviert",
+  "fileAssociationDisabled": "Verknüpfung deaktiviert",
+  "windowsAutoRepairShortcut": "Startmenü-Verknüpfung automatisch reparieren",
+  "windowsAutoRepairShortcutDescription": "Überprüft und erstellt die Startmenü-Verknüpfung bei jedem Start, um den korrekten Namen und das Symbol der Mediensteuerung anzuzeigen",
+  "confirmDisableShortcutRepair": "Diese Funktion deaktivieren?",
+  "confirmDisableShortcutRepairContent": "Ohne die Startmenü-Verknüpfung zeigt die Windows-Mediensteuerung die App möglicherweise als \"Unbekannt\" an und kein Symbol. Möchten Sie diese Funktion wirklich deaktivieren?",
+  "confirmDisable": "Deaktivieren",
+  "enableSystemTray": "System Tray aktivieren",
+  "enableSystemTrayDescription": "Symbol in der Taskleiste anzeigen für schnelle Wiedergabesteuerung",
+  "googleAiStudioApiKey": "Google AI Studio API Key",
+  "openRouterApiKey": "OpenRouter API Key",
+  "doubaoApiKey": "Doubao API Key",
+  "deepseekApiKey": "DeepSeek API Key",
+  "unexpectedResponseFormat": "Unerwartetes Antwortformat.",
+  "baseUrl": "Base URL",
+  "openaiCompatibleEndpoint": "OpenAI-kompatibler API-Endpunkt",
+  "onboardingAddedDirectoriesCount": "Hinzugefügte Verzeichnisse ({count}):",
+  "@onboardingAddedDirectoriesCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "gnomeDisksOpenFailed": "Festplatten-Dienstprogramm konnte nicht automatisch geöffnet werden. Bitte öffnen Sie \"Disks\" manuell aus Ihrem Anwendungsmenü.",
+  "gnomeDisksNotInstalled": "gnome-disks ist nicht installiert. Bitte öffnen Sie Ihr Festplatten-Dienstprogramm, um zu konfigurieren.",
+  "linuxMountGuideTitle": "Automatische Festplatteneinbindung konfigurieren",
+  "linuxMountGuideDescription": "Unter Linux erfordern interne Festplattenpartitionen, die nicht für die automatische Einbindung konfiguriert sind, nach dem Booten ein Administratorpasswort.\n\nUm zu vermeiden, dass Sie jedes Mal beim Öffnen von Vynody ein Passwort eingeben müssen, empfehlen wir die automatische Einbindung:",
+  "linuxMountGuideStep1": "1. Öffnen Sie das \"Disks\"-Dienstprogramm des Systems",
+  "linuxMountGuideStep2": "2. Wählen Sie Ihre Musikpartition aus und klicken Sie auf das ⚙️ Zahnradsymbol (Zusätzliche Partitionsoptionen)",
+  "linuxMountGuideStep3": "3. Wählen Sie \"Mount-Optionen bearbeiten\", deaktivieren Sie \"Benutzersitzungs-Standardwerte\" und aktivieren Sie \"Beim Systemstart einbinden\"",
+  "linuxMountGuideOpenButton": "Datenträgerverwaltung (Disks) öffnen",
+  "unmute": "Stummschaltung aufheben",
+  "mute": "Stumm",
+  "disableSystemTray": "System Tray deaktivieren",
+  "exitApp": "Beenden"
 }
