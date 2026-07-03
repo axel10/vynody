@@ -10,6 +10,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/app_localizations.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
+import 'package:vynody/player/settings/settings_service.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/utils/playback_utils.dart';
 import 'package:vynody/utils/song_context_menu_utils.dart';
@@ -431,6 +432,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                   tLand: tLand,
                   isWaveformEnabled: isWaveformEnabled,
                   isSmallWindow: isSmallWindow,
+                  lyricsStyle: settings.lyricsStyle,
                 );
 
                 return SizedBox(
@@ -597,6 +599,7 @@ class PlaybackHeroCard extends ConsumerWidget {
     required double tLand,
     required bool isWaveformEnabled,
     required bool isSmallWindow,
+    required LyricsStyle lyricsStyle,
   }) {
     // ---------------- Portrait Normal ----------------
     final double scaleFactor = isSmallWindow ? 0.82 : 1.0;
@@ -781,7 +784,7 @@ class PlaybackHeroCard extends ConsumerWidget {
     final lNormalControlsTop = lNormalInfoTop + lNormalInfoHeight + lNormalGap;
 
     // ---------------- Landscape Lyrics ----------------
-    // 左侧列的目标宽度只跟高度相关，避免随着窗口横向拉伸产生跳变。
+    // 左侧列的目标宽度在普通歌词模式下只跟高度相关，在苹果歌词模式下为1:1宽度比。
     const lLyricsTopPadding = 16.0;
     const lLyricsOuterLeftPadding = 48.0;
     const lLyricsInnerLeftPadding = 16.0;
@@ -794,12 +797,31 @@ class PlaybackHeroCard extends ConsumerWidget {
       0.0,
       height - (lLyricsTopPadding * 2),
     );
-    // Determine the total width of the left column (mainly dictated by the controls area)
-    final double lLyricsMaxColumnWidth = math.min(width * 0.45, 800.0);
-    final double lLyricsColumnWidth = (width * 0.20).clamp(
-      math.min(380.0, lLyricsMaxColumnWidth),
-      lLyricsMaxColumnWidth,
-    );
+
+    final double lLyricsColumnWidth;
+    final double lLyricsLyricsLeft;
+    final double lLyricsLyricsWidth;
+    final double lLyricsScale;
+
+    if (lyricsStyle == LyricsStyle.apple) {
+      final double rightRatio = PlaybackHeroCardUiTuning.appleLyricsRightPanelRatio;
+      final double leftRatio = 1.0 - rightRatio;
+      lLyricsColumnWidth = width * leftRatio;
+      lLyricsLyricsLeft = width * leftRatio + 24.0;
+      lLyricsLyricsWidth = math.max(0.0, width * rightRatio - 24.0 - 48.0);
+    } else {
+      final double lLyricsMaxColumnWidth = math.min(width * 0.45, 800.0);
+      lLyricsColumnWidth = (width * 0.20).clamp(
+        math.min(380.0, lLyricsMaxColumnWidth),
+        lLyricsMaxColumnWidth,
+      );
+      lLyricsLyricsLeft = lLyricsOuterLeftPadding + lLyricsColumnWidth + lLyricsInnerLeftPadding;
+      lLyricsLyricsWidth = math.max(
+        0.0,
+        width - lLyricsLyricsLeft - 32.0,
+      );
+    }
+
     final double lLyricsWidthScale = (lLyricsColumnWidth / 400.0).clamp(
       1.0,
       1.8,
@@ -815,9 +837,33 @@ class PlaybackHeroCard extends ConsumerWidget {
         (lLyricsInfoBaseHeight * lLyricsWidthScale) +
         lLyricsInfoControlsSpacing +
         (lLyricsControlsBaseHeight * lLyricsWidthScale);
-    final lLyricsScale = lLyricsPreferredTotalHeight <= 0.0
-        ? 1.0
-        : math.min(1.0, lLyricsAvailableHeight / lLyricsPreferredTotalHeight);
+
+    if (lyricsStyle == LyricsStyle.apple) {
+      // For Apple Style: must fit both vertically and horizontally within the left column
+      // Height adaptation: when height is sufficient, occupy about 50% of the screen height.
+      // When height is insufficient, occupy up to 100% of the screen height to prevent controls from being too small.
+      const double minComfortableHeight = 460.0;
+      final double targetOccupiedHeight = math.max(minComfortableHeight, lLyricsAvailableHeight * 0.75)
+          .clamp(0.0, lLyricsAvailableHeight);
+      final double heightScale = targetOccupiedHeight / lLyricsPreferredTotalHeight;
+
+      final double maxHorizontalSpace = math.max(120.0, lLyricsColumnWidth - 64.0);
+      final double lLyricsWidthFitScale = maxHorizontalSpace / (lLyricsPreferredCoverSide * lLyricsWidthScale);
+      lLyricsScale = lLyricsPreferredTotalHeight <= 0.0
+          ? 1.0
+          : math.min(
+              1.0,
+              math.min(
+                heightScale,
+                lLyricsWidthFitScale,
+              ),
+            );
+    } else {
+      lLyricsScale = lLyricsPreferredTotalHeight <= 0.0
+          ? 1.0
+          : math.min(1.0, lLyricsAvailableHeight / lLyricsPreferredTotalHeight);
+    }
+
     final lLyricsCoverSide =
         lLyricsPreferredCoverSide * lLyricsWidthScale * lLyricsScale;
     final double lLyricsItemWidth = lLyricsCoverSide;
@@ -825,7 +871,17 @@ class PlaybackHeroCard extends ConsumerWidget {
         lLyricsInfoBaseHeight * lLyricsWidthScale * lLyricsScale;
     final lLyricsControlsHeight =
         lLyricsControlsBaseHeight * lLyricsWidthScale * lLyricsScale;
-    final lLyricsCoverTop = lLyricsTopPadding;
+    final double lLyricsCoverTop;
+    if (lyricsStyle == LyricsStyle.apple) {
+      final double lLyricsActualTotalHeight = lLyricsCoverSide +
+          lLyricsCoverInfoSpacing +
+          lLyricsInfoHeight +
+          lLyricsInfoControlsSpacing +
+          lLyricsControlsHeight;
+      lLyricsCoverTop = math.max(16.0, (height - lLyricsActualTotalHeight) / 2);
+    } else {
+      lLyricsCoverTop = lLyricsTopPadding;
+    }
 
     // 居中对齐逻辑：封面、信息区和控制区在列宽内统一居中对齐
     // Centering logic: cover, info and controls are centered within the column and aligned in width
@@ -844,22 +900,29 @@ class PlaybackHeroCard extends ConsumerWidget {
       tLand,
     ) * scaleFactor;
 
-    final lLyricsCoverLeft = lLyricsOuterLeftPadding;
-    final lLyricsInfoLeft = lLyricsCoverLeft;
-    final lLyricsControlsLeft = lLyricsCoverLeft;
+    final double lLyricsCoverLeft;
+    final double lLyricsInfoLeft;
+    final double lLyricsControlsLeft;
+
+    if (lyricsStyle == LyricsStyle.apple) {
+      final double leftAreaCenter = lLyricsColumnWidth / 2;
+      lLyricsCoverLeft = (leftAreaCenter - lLyricsCoverSide / 2).clamp(
+        32.0,
+        math.max(32.0, lLyricsColumnWidth - lLyricsCoverSide - 24.0),
+      );
+      lLyricsInfoLeft = lLyricsCoverLeft;
+      lLyricsControlsLeft = lLyricsCoverLeft;
+    } else {
+      lLyricsCoverLeft = lLyricsOuterLeftPadding;
+      lLyricsInfoLeft = lLyricsCoverLeft;
+      lLyricsControlsLeft = lLyricsCoverLeft;
+    }
 
     final lLyricsInfoTop =
         lLyricsCoverTop + lLyricsCoverSide + lLyricsCoverInfoSpacing;
 
     final lLyricsControlsTop =
         lLyricsInfoTop + lLyricsInfoHeight + lLyricsInfoControlsSpacing;
-
-    final lLyricsLyricsLeft =
-        lLyricsOuterLeftPadding + lLyricsColumnWidth + lLyricsInnerLeftPadding;
-    final double lLyricsLyricsWidth = math.max(
-      0.0,
-      width - lLyricsLyricsLeft - 32.0,
-    );
 
 
     // Build the Panes

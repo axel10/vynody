@@ -33,7 +33,7 @@ class PlaybackPageUiTuning {
   static const double lyricsVerticalPadding = 28.0; // 每行歌词之间的间距
 
   // 歌词自适应字体大小配置参数
-  static const double lyricsMinFontScale = 1.0;
+  static const double lyricsMinFontScale = 1.3;
   static const double lyricsMaxFontScale = 3.0;
   static const double lyricsBaseScaleSmallScreenWidth = 360.0;
   static const double lyricsBaseScaleLargeScreenWidth = 1000.0;
@@ -96,6 +96,7 @@ class PlaybackHeroCardUiTuning {
   static const double lCoverMaxSide = 1800.0;
   static const double lNormalCoverSideFactor = 0.72; // 横屏普通模式封面尺寸系数
   static const double lLyricsPreferredCoverSide = 360.0;
+  static const double appleLyricsRightPanelRatio = 0.5; // 苹果样式下歌词模式占比
 
   static const double trackTitlePortraitLyricsFont = 20.0;
   static const double trackTitleStandardFont = 24.0;

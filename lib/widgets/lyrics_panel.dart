@@ -116,6 +116,9 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
   List<double>? _oldItemCenters;
   List<double>? _oldLineHeights;
   bool _isFocusMode = true;
+  int? _overrideActiveIndex;
+  Duration? _seekTargetTimestamp;
+  DateTime _seekSetTime = DateTime.fromMillisecondsSinceEpoch(0);
   List<double> _currentItemCenters = const [];
   List<double> _currentLineHeights = const [];
   LyricsStyle? _lastBuiltLyricsStyle;
@@ -439,6 +442,10 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
   @override
   void didUpdateWidget(covariant LyricsPanel oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.lyrics != widget.lyrics) {
+      _overrideActiveIndex = null;
+      _seekTargetTimestamp = null;
+    }
     final oldOffset = _timelineOffsetToSeconds(
       oldWidget.lyrics?.timelineOffset,
     );
@@ -1206,6 +1213,11 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
           displayLines[targetLine].timestamp,
         );
         unawaited(ref.read(audioServiceProvider).seek(targetPosition));
+        setState(() {
+          _overrideActiveIndex = targetLine;
+          _seekTargetTimestamp = targetPosition;
+          _seekSetTime = DateTime.now();
+        });
       }
     } finally {
       if (mounted) {
@@ -1298,6 +1310,9 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       unawaited(ref.read(audioServiceProvider).seek(targetPosition));
       setState(() {
         _isFocusMode = true;
+        _overrideActiveIndex = index;
+        _seekTargetTimestamp = targetPosition;
+        _seekSetTime = DateTime.now();
       });
       _scheduleScrollIfNeeded(force: true, itemCenters: _currentItemCenters);
     }
@@ -1306,26 +1321,46 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
   int _activeLineIndex(List<LyricLine> displayLines) {
     if (displayLines.isEmpty || !_hasTimedLyrics(displayLines)) return -1;
 
-    final current = math.max(
-      0,
-      _adjustedPositionMilliseconds + _lyricsActiveLineSeekEpsilonMilliseconds,
-    );
-    int low = 0;
-    int high = displayLines.length - 1;
-    int answer = 0;
+    int calculateNormal() {
+      final current = math.max(
+        0,
+        _adjustedPositionMilliseconds + _lyricsActiveLineSeekEpsilonMilliseconds,
+      );
+      int low = 0;
+      int high = displayLines.length - 1;
+      int answer = 0;
 
-    while (low <= high) {
-      final mid = (low + high) >> 1;
-      final midMs = displayLines[mid].timestamp.inMilliseconds;
-      if (midMs <= current) {
-        answer = mid;
-        low = mid + 1;
+      while (low <= high) {
+        final mid = (low + high) >> 1;
+        final midMs = displayLines[mid].timestamp.inMilliseconds;
+        if (midMs <= current) {
+          answer = mid;
+          low = mid + 1;
+        } else {
+          high = mid - 1;
+        }
+      }
+      return answer;
+    }
+
+    final normalIndex = calculateNormal();
+    final overrideIdx = _overrideActiveIndex;
+    final targetTs = _seekTargetTimestamp;
+
+    if (overrideIdx != null && targetTs != null) {
+      final timeSinceSeek = DateTime.now().difference(_seekSetTime);
+      final positionDiff = (widget.position - targetTs).abs();
+      if (positionDiff < const Duration(milliseconds: 800) ||
+          timeSinceSeek > const Duration(seconds: 2)) {
+        _overrideActiveIndex = null;
+        _seekTargetTimestamp = null;
+        return normalIndex;
       } else {
-        high = mid - 1;
+        return overrideIdx;
       }
     }
 
-    return answer;
+    return normalIndex;
   }
 
   bool _hasTimedLyrics(List<LyricLine> displayLines) {
