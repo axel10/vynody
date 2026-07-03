@@ -1396,7 +1396,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     final lyricsState = ref.watch(lyricsControllerProvider);
     final currentSong = ref.watch(audioCurrentMusicProvider);
     final currentSongTaskState = _taskStateForSongPath(currentSong?.path);
-    final lyricsFontScale = ref.watch(
+    final userFontScale = ref.watch(
       settingsServiceProvider.select((settings) => settings.lyricsFontScale),
     );
     final lyricsStyle = ref.watch(
@@ -1455,7 +1455,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
             displayLines: displayLines,
             displayPlainLyrics: displayPlainLyrics,
             hasCurrentSong: hasCurrentSong,
-            lyricsFontScale: lyricsFontScale,
+            lyricsFontScale: userFontScale,
             requeryOnly: true,
           );
         },
@@ -1469,11 +1469,42 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     return LayoutBuilder(
       builder: (context, constraints) {
         _writeLog('LayoutBuilder: maxWidth=${constraints.maxWidth} maxHeight=${constraints.maxHeight}');
+        final double screenWidth = MediaQuery.sizeOf(context).width;
+        final double panelWidth = constraints.maxWidth;
+
+        // Base scale based on screen width/resolution
+        double baseScale;
+        if (screenWidth <= PlaybackPageUiTuning.lyricsBaseScaleSmallScreenWidth) {
+          baseScale = PlaybackPageUiTuning.lyricsMaxBaseScale;
+        } else if (screenWidth >= PlaybackPageUiTuning.lyricsBaseScaleLargeScreenWidth) {
+          baseScale = PlaybackPageUiTuning.lyricsMinBaseScale;
+        } else {
+          baseScale = PlaybackPageUiTuning.lyricsMaxBaseScale -
+              (screenWidth - PlaybackPageUiTuning.lyricsBaseScaleSmallScreenWidth) *
+                  (PlaybackPageUiTuning.lyricsMaxBaseScale - PlaybackPageUiTuning.lyricsMinBaseScale) /
+                  (PlaybackPageUiTuning.lyricsBaseScaleLargeScreenWidth - PlaybackPageUiTuning.lyricsBaseScaleSmallScreenWidth);
+        }
+
+        // Panel width factor: larger width -> larger font
+        double panelWidthFactor;
+        if (panelWidth >= PlaybackPageUiTuning.lyricsPanelWidthReference) {
+          panelWidthFactor = 1.0 + (panelWidth - PlaybackPageUiTuning.lyricsPanelWidthReference) *
+                  PlaybackPageUiTuning.lyricsPanelWidthGrowFactor;
+        } else {
+          panelWidthFactor = 1.0 - (PlaybackPageUiTuning.lyricsPanelWidthReference - panelWidth) *
+                  PlaybackPageUiTuning.lyricsPanelWidthShrinkFactor;
+        }
+
+        final double calculatedFontScale = (baseScale * panelWidthFactor * userFontScale).clamp(
+          PlaybackPageUiTuning.lyricsMinFontScale,
+          PlaybackPageUiTuning.lyricsMaxFontScale,
+        );
+
         final lineMetrics = _measureLineMetrics(
           lines: renderedLines,
           lyrics: lyrics,
           maxWidth: constraints.maxWidth,
-          lyricsFontScale: lyricsFontScale,
+          lyricsFontScale: calculatedFontScale,
           hasTimedLyrics: hasTimedLyrics,
           context: context,
         );
@@ -1570,7 +1601,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
             displayLines != _lastBuiltDisplayLines ||
             constraints.maxWidth != _lastBuiltMaxWidth ||
             constraints.maxHeight != _lastBuiltMaxHeight ||
-            lyricsFontScale != _lastBuiltFontScale ||
+            calculatedFontScale != _lastBuiltFontScale ||
             _isAutoScrollPaused != _lastBuiltAutoScrollPaused ||
             textColor != _lastBuiltTextColor ||
             secondaryTextColor != _lastBuiltSecondaryTextColor ||
@@ -1584,7 +1615,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
           _lastBuiltDisplayLines = displayLines;
           _lastBuiltMaxWidth = constraints.maxWidth;
           _lastBuiltMaxHeight = constraints.maxHeight;
-          _lastBuiltFontScale = lyricsFontScale;
+          _lastBuiltFontScale = calculatedFontScale;
           _lastBuiltAutoScrollPaused = _isAutoScrollPaused;
           _lastBuiltTextColor = textColor;
           _lastBuiltSecondaryTextColor = secondaryTextColor;
@@ -1600,7 +1631,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
             hasTimedLyrics: hasTimedLyrics,
             activeIndex: focusedIndex,
             isAutoScrollPaused: _isAutoScrollPaused,
-            lyricsFontScale: lyricsFontScale,
+            lyricsFontScale: calculatedFontScale,
             textColor: textColor,
             secondaryTextColor: secondaryTextColor,
             scrollController: _scrollController,
@@ -1631,7 +1662,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
                 displayLines: displayLines,
                 displayPlainLyrics: displayPlainLyrics,
                 hasCurrentSong: hasCurrentSong,
-                lyricsFontScale: lyricsFontScale,
+                lyricsFontScale: userFontScale,
               );
             },
             bottomSpacerHeight: widget.bottomSpacerHeight,

@@ -132,6 +132,17 @@ class PlaybackPageUiTuning {
 
   static const double lyricsVerticalPadding = 28.0; // 每行歌词之间的间距
 
+  // 歌词自适应字体大小配置参数
+  static const double lyricsMinFontScale = 1.0;
+  static const double lyricsMaxFontScale = 3.0;
+  static const double lyricsBaseScaleSmallScreenWidth = 360.0;
+  static const double lyricsBaseScaleLargeScreenWidth = 1000.0;
+  static const double lyricsMinBaseScale = 0.9;
+  static const double lyricsMaxBaseScale = 1.15;
+  static const double lyricsPanelWidthReference = 360.0;
+  static const double lyricsPanelWidthGrowFactor = 0.0015;
+  static const double lyricsPanelWidthShrinkFactor = 0.0025;
+
   static EdgeInsets contentPadding({
     required bool isLandscape,
     required bool isLyricsMode,
