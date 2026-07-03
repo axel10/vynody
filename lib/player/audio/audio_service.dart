@@ -396,6 +396,7 @@ class AudioService extends Notifier<AudioSnapshot> {
     _isMuted = settingsService.prefs.getBool(_isMutedStorageKey) ?? false;
 
     _player = AudioCoreController(
+      suspendVisualizerInBackground: true,
       fadeSettings: FadeSettings(
         fadeOnSwitch: true,
         fadeOnPauseResume: true,
