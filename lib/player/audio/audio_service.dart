@@ -340,6 +340,10 @@ class AudioService extends Notifier<AudioSnapshot> {
   bool _restoringPlaybackSession = false;
   bool _playbackSessionReady = false;
   Timer? _playbackSessionAutoSaveTimer;
+  bool _userVisualizerEnabled = true;
+  bool _isWindowMinimized = false;
+  bool _isAppBackgrounded = false;
+  AppLifecycleListener? _lifecycleListener;
   bool _initialVolumeApplied = false;
   bool _showVolumeHudForLastVolumeChange = true;
   late final VoidCallback _settingsListener;
@@ -396,7 +400,6 @@ class AudioService extends Notifier<AudioSnapshot> {
     _isMuted = settingsService.prefs.getBool(_isMutedStorageKey) ?? false;
 
     _player = AudioCoreController(
-      suspendVisualizerInBackground: true,
       fadeSettings: FadeSettings(
         fadeOnSwitch: true,
         fadeOnPauseResume: true,
@@ -404,8 +407,22 @@ class AudioService extends Notifier<AudioSnapshot> {
       ),
     );
 
+    _lifecycleListener = AppLifecycleListener(
+      onStateChange: (state) {
+        final nextBackgrounded = (state == AppLifecycleState.paused || state == AppLifecycleState.hidden);
+        if (_isAppBackgrounded != nextBackgrounded) {
+          _isAppBackgrounded = nextBackgrounded;
+          _updateEffectiveVisualizerState();
+        }
+      },
+    );
+    ref.onDispose(() {
+      _lifecycleListener?.dispose();
+    });
+
     ref.listen<bool>(isWindowMinimizedProvider, (previous, next) {
-      _player.setSuspendedForMinimize(next);
+      _isWindowMinimized = next;
+      _updateEffectiveVisualizerState();
     });
     _visualizerOptions = VisualizerOptionsService(
       controller: _player,
@@ -1353,7 +1370,7 @@ class AudioService extends Notifier<AudioSnapshot> {
 
   // Keep UI and platform adapters behind this facade so the player
   // implementation can change without spreading direct player access.
-  bool get isVisualizerEnabled => _player.visualizer.enabled;
+  bool get isVisualizerEnabled => _userVisualizerEnabled;
 
   Stream<FftFrame> get visualizerStream => _player.visualizer.optimizedStream;
 
@@ -1364,9 +1381,15 @@ class AudioService extends Notifier<AudioSnapshot> {
 
   EqualizerConfig get equalizerConfig => _player.equalizerConfig;
 
-  void setVisualizerEnabled(bool enabled) {
-    _player.visualizer.setEnabled(enabled);
+  void _updateEffectiveVisualizerState() {
+    final bool effectiveEnabled = _userVisualizerEnabled && !_isAppBackgrounded && !_isWindowMinimized;
+    _player.visualizer.setEnabled(effectiveEnabled);
     notifyListeners();
+  }
+
+  void setVisualizerEnabled(bool enabled) {
+    _userVisualizerEnabled = enabled;
+    _updateEffectiveVisualizerState();
   }
 
   void setPlaybackMode(AppPlaybackMode mode) {
