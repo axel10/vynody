@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:file_selector/file_selector.dart' as file_selector;
@@ -66,21 +67,28 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
   }
 
   Future<void> _requestBatteryExemption() async {
-    if (_isBatteryExempted) return;
+    debugPrint('[Onboarding] _requestBatteryExemption called. _isBatteryExempted = $_isBatteryExempted');
+    const channel = MethodChannel('app.vynody.player/battery');
     try {
-      final status = await Permission.ignoreBatteryOptimizations.request();
-      if (status.isGranted) {
-        if (mounted) {
-          setState(() {
-            _isBatteryExempted = true;
-          });
-        }
-      } else {
-        await openAppSettings();
-      }
+      debugPrint('[Onboarding] Invoking requestIgnoreBatteryOptimizations via channel...');
+      await channel.invokeMethod('requestIgnoreBatteryOptimizations');
+      debugPrint('[Onboarding] requestIgnoreBatteryOptimizations success.');
     } catch (e) {
-      debugPrint('[Onboarding] Error requesting battery exemption: $e');
-      await openAppSettings();
+      debugPrint('[Onboarding] requestIgnoreBatteryOptimizations failed: $e');
+      try {
+        debugPrint('[Onboarding] Invoking openBatterySettings via channel...');
+        await channel.invokeMethod('openBatterySettings');
+        debugPrint('[Onboarding] openBatterySettings success.');
+      } catch (e2) {
+        debugPrint('[Onboarding] openBatterySettings failed: $e2');
+        try {
+          debugPrint('[Onboarding] Invoking openAppSettings via permission_handler...');
+          final opened = await openAppSettings();
+          debugPrint('[Onboarding] openAppSettings result: $opened');
+        } catch (e3) {
+          debugPrint('[Onboarding] openAppSettings failed: $e3');
+        }
+      }
     }
   }
 
