@@ -116,6 +116,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
   List<double>? _oldItemCenters;
   List<double>? _oldLineHeights;
   bool _isFocusMode = true;
+  int _activePointers = 0;
   int? _overrideActiveIndex;
   Duration? _seekTargetTimestamp;
   DateTime _seekSetTime = DateTime.fromMillisecondsSinceEpoch(0);
@@ -938,25 +939,35 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
               final lineBottom = _currentItemCenters[activeIndex] + _currentLineHeights[activeIndex] / 2;
               final isVisible = lineBottom >= offset - 20.0 && lineTop <= offset + viewportHeight + 20.0;
               if (isVisible) {
-                _lastActiveIndex = activeIndex;
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (mounted) {
-                    setState(() {
-                      _isFocusMode = true;
-                      _enteringFocusModeTriggered = true;
-                    });
-                  }
-                });
+                if (_activePointers > 0) {
+                  shouldScroll = false;
+                } else {
+                  _lastActiveIndex = activeIndex;
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (mounted) {
+                      setState(() {
+                        _isFocusMode = true;
+                        _enteringFocusModeTriggered = true;
+                      });
+                    }
+                  });
+                }
               } else {
-                _lastActiveIndex = activeIndex;
+                if (_activePointers == 0) {
+                  _lastActiveIndex = activeIndex;
+                }
                 shouldScroll = false;
               }
             } else {
-              _lastActiveIndex = activeIndex;
+              if (_activePointers == 0) {
+                _lastActiveIndex = activeIndex;
+              }
               shouldScroll = false;
             }
           } else {
-            _lastActiveIndex = activeIndex;
+            if (_activePointers == 0) {
+              _lastActiveIndex = activeIndex;
+            }
             shouldScroll = false;
           }
         }
@@ -1749,63 +1760,79 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
 
         final mainView = _cachedLyricsView!;
         if (lyricsStyle == LyricsStyle.apple) {
-          return NotificationListener<ScrollNotification>(
-            onNotification: (notification) {
-              if (notification is UserScrollNotification) {
-                if (notification.direction != ScrollDirection.idle) {
-                  if (_isFocusMode) {
-                    setState(() {
-                      _isFocusMode = false;
-                    });
+          return Listener(
+            behavior: HitTestBehavior.translucent,
+            onPointerDown: (event) {
+              _activePointers++;
+            },
+            onPointerUp: (event) {
+              _activePointers = math.max(0, _activePointers - 1);
+              if (_activePointers == 0) {
+                _scheduleScrollIfNeeded(itemCenters: itemCenters);
+              }
+            },
+            onPointerCancel: (event) {
+              _activePointers = 0;
+              _scheduleScrollIfNeeded(itemCenters: itemCenters);
+            },
+            child: NotificationListener<ScrollNotification>(
+              onNotification: (notification) {
+                if (notification is UserScrollNotification) {
+                  if (notification.direction != ScrollDirection.idle) {
+                    if (_isFocusMode) {
+                      setState(() {
+                        _isFocusMode = false;
+                      });
+                    }
                   }
                 }
-              }
-              return false;
-            },
-            child: Stack(
-              children: [
-                mainView,
-                if (!_isFocusMode)
-                  Positioned(
-                    bottom: widget.bottomSpacerHeight + widget.bottomTabBarHeight + 20,
-                    right: 20,
-                    child: MouseRegion(
-                      cursor: SystemMouseCursors.click,
-                      child: GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _isFocusMode = true;
-                            _enteringFocusModeTriggered = true;
-                          });
-                          _scheduleScrollIfNeeded(force: true, itemCenters: itemCenters);
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.6),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: Colors.white24, width: 0.5),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.sync_rounded, color: Colors.white, size: 16),
-                              const SizedBox(width: 6),
-                              Text(
-                                l10n.resumeLyricsSync,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
+                return false;
+              },
+              child: Stack(
+                children: [
+                  mainView,
+                  if (!_isFocusMode)
+                    Positioned(
+                      bottom: widget.bottomSpacerHeight + widget.bottomTabBarHeight + 20,
+                      right: 20,
+                      child: MouseRegion(
+                        cursor: SystemMouseCursors.click,
+                        child: GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _isFocusMode = true;
+                              _enteringFocusModeTriggered = true;
+                            });
+                            _scheduleScrollIfNeeded(force: true, itemCenters: itemCenters);
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.6),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: Colors.white24, width: 0.5),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.sync_rounded, color: Colors.white, size: 16),
+                                const SizedBox(width: 6),
+                                Text(
+                                  l10n.resumeLyricsSync,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
           );
         }
