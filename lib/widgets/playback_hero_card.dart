@@ -23,6 +23,7 @@ import '../widgets/waveform_progress_bar.dart';
 import 'marquee_text.dart';
 
 const String playbackHeroTag = 'player_capsule';
+double _maxWindowHeightSeen = 0.0;
 
 enum _TrackInfoMenuTarget { title, artistAlbum }
 
@@ -840,12 +841,30 @@ class PlaybackHeroCard extends ConsumerWidget {
 
     if (lyricsStyle == LyricsStyle.apple) {
       // For Apple Style: must fit both vertically and horizontally within the left column
-      // Height adaptation: when height is sufficient, occupy about 50% of the screen height.
-      // When height is insufficient, occupy up to 100% of the screen height to prevent controls from being too small.
-      const double minComfortableHeight = 460.0;
-      final double targetOccupiedHeight = math.max(minComfortableHeight, lLyricsAvailableHeight * 0.75)
-          .clamp(0.0, lLyricsAvailableHeight);
-      final double heightScale = targetOccupiedHeight / lLyricsPreferredTotalHeight;
+      // Height adaptation: 0.75 of the screen height acts as the maximum control height limit.
+      // It only starts shrinking together with the window when the window is small enough to require compression.
+      final double constantHeight = lLyricsCoverInfoSpacing + lLyricsInfoControlsSpacing;
+      final double scalableHeight = lLyricsPreferredTotalHeight - constantHeight;
+
+      _maxWindowHeightSeen = math.max(_maxWindowHeightSeen, height);
+      double screenHeight = _maxWindowHeightSeen;
+      if (screenHeight <= 0.0) {
+        try {
+          final view = View.of(context);
+          screenHeight = view.display.size.height / view.display.devicePixelRatio;
+        } catch (_) {
+          screenHeight = height;
+        }
+      }
+
+      final double maxControlsHeight = screenHeight * 0.75;
+      final double targetOccupiedHeight = math.min(maxControlsHeight, lLyricsAvailableHeight);
+
+      final double heightScale = targetOccupiedHeight >= lLyricsPreferredTotalHeight
+          ? 1.0
+          : (scalableHeight <= 0.0
+              ? 1.0
+              : math.max(0.0, targetOccupiedHeight - constantHeight) / scalableHeight);
 
       final double maxHorizontalSpace = math.max(120.0, lLyricsColumnWidth - 64.0);
       final double lLyricsWidthFitScale = maxHorizontalSpace / (lLyricsPreferredCoverSide * lLyricsWidthScale);
