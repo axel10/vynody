@@ -1978,6 +1978,7 @@ class PlaybackProgressSection extends ConsumerWidget {
                   builder: (context) {
                     final size = MediaQuery.of(context).size;
                     final settings = ref.watch(settingsServiceProvider);
+                    final isMinimized = ref.watch(isWindowMinimizedProvider);
                     final bool isSmallWindow = PlaybackPageUiTuning.isSmallWindow(
                       size,
                       isWaveformEnabled: settings.isWaveformProgressBarEnabled,
@@ -1998,6 +1999,7 @@ class PlaybackProgressSection extends ConsumerWidget {
                         isPlaying: isPlaying,
                         onScrubbing: onScrubbing ?? (_) {},
                         onSeek: onSeek ?? (_) {},
+                        isWindowMinimized: isMinimized,
                         height: (isLandscape
                                 ? PlaybackHeroCardUiTuning.waveformLandscapeHeight
                                 : PlaybackHeroCardUiTuning.waveformPortraitLyricsHeight) *
@@ -2157,6 +2159,7 @@ class PlaybackOverlayProgressTimeLayer extends ConsumerWidget {
           builder: (context) {
             final size = MediaQuery.of(context).size;
             final settings = ref.watch(settingsServiceProvider);
+            final isMinimized = ref.watch(isWindowMinimizedProvider);
             final bool isSmallWindow = PlaybackPageUiTuning.isSmallWindow(
               size,
               isWaveformEnabled: settings.isWaveformProgressBarEnabled,
@@ -2177,6 +2180,7 @@ class PlaybackOverlayProgressTimeLayer extends ConsumerWidget {
                   isPlaying: isPlaying,
                   onScrubbing: onScrubbing ?? (_) {},
                   onSeek: onSeek ?? (_) {},
+                  isWindowMinimized: isMinimized,
                   height: PlaybackHeroCardUiTuning.waveformOverlayHeight * controlsScale,
                   barWidth: (isLandscape
                           ? PlaybackHeroCardUiTuning.waveformBarWidthLandscape

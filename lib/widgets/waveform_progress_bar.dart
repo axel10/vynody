@@ -18,6 +18,7 @@ class WaveformProgressBar extends StatefulWidget {
   final bool showTooltip;
   final double? barWidth;
   final double? barGap;
+  final bool isWindowMinimized;
 
   const WaveformProgressBar({
     super.key,
@@ -34,6 +35,7 @@ class WaveformProgressBar extends StatefulWidget {
     this.showTooltip = true,
     this.barWidth,
     this.barGap,
+    this.isWindowMinimized = false,
   });
 
   @override
@@ -124,7 +126,7 @@ class _WaveformProgressBarState extends State<WaveformProgressBar> with TickerPr
   }
 
   void _updateTickerState() {
-    if (widget.isPlaying && !_isDragging && !_suspendedForBackground) {
+    if (widget.isPlaying && !_isDragging && !_suspendedForBackground && !widget.isWindowMinimized) {
       if (!_ticker!.isActive) {
         _lastFrameTime = null;
         _ticker!.start();
@@ -139,12 +141,12 @@ class _WaveformProgressBarState extends State<WaveformProgressBar> with TickerPr
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.hidden) {
       if (!_suspendedForBackground) {
         _suspendedForBackground = true;
         _updateTickerState();
       }
-    } else if (state == AppLifecycleState.resumed) {
+    } else if (state == AppLifecycleState.resumed || state == AppLifecycleState.inactive) {
       if (_suspendedForBackground) {
         _suspendedForBackground = false;
         _updateTickerState();

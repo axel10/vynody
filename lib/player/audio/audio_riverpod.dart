@@ -30,6 +30,8 @@ final audioServiceProvider = Provider<AudioService>((ref) {
   return ref.read(audioServiceStateProvider.notifier);
 });
 
+final isWindowMinimizedProvider = StateProvider<bool>((ref) => false);
+
 final scannerServiceProvider = ChangeNotifierProvider<ScannerService>((ref) {
   return ScannerService();
 });

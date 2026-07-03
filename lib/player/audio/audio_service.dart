@@ -403,6 +403,10 @@ class AudioService extends Notifier<AudioSnapshot> {
         mode: FadeMode.crossfade,
       ),
     );
+
+    ref.listen<bool>(isWindowMinimizedProvider, (previous, next) {
+      _player.setSuspendedForMinimize(next);
+    });
     _visualizerOptions = VisualizerOptionsService(
       controller: _player,
       settingsService: settingsService,
