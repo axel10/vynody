@@ -1164,6 +1164,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get lyricsSaveMethodLrcFile => 'LRC File';
 
   @override
+  String get lyricsStyleLabel => 'Lyric Panel Style';
+
+  @override
+  String get lyricsStyleDescription =>
+      'Choose the display and interaction style for the lyric panel.';
+
+  @override
+  String get lyricsStyleTraditional => 'Traditional';
+
+  @override
+  String get lyricsStyleApple => 'Apple Style';
+
+  @override
+  String get resumeLyricsSync => 'Resume Sync';
+
+  @override
   String get followSystemLanguage => 'Follow system';
 
   @override

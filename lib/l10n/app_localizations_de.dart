@@ -1179,6 +1179,22 @@ class AppLocalizationsDe extends AppLocalizations {
   String get lyricsSaveMethodLrcFile => 'LRC-Datei';
 
   @override
+  String get lyricsStyleLabel => 'Songtext-Stil';
+
+  @override
+  String get lyricsStyleDescription =>
+      'Wählen Sie den Anzeigestil für das Songtext-Panel.';
+
+  @override
+  String get lyricsStyleTraditional => 'Traditionell';
+
+  @override
+  String get lyricsStyleApple => 'Apple-Stil';
+
+  @override
+  String get resumeLyricsSync => 'Synchronisierung fortsetzen';
+
+  @override
   String get followSystemLanguage => 'System folgen';
 
   @override

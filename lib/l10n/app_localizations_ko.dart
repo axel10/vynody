@@ -1141,6 +1141,21 @@ class AppLocalizationsKo extends AppLocalizations {
   String get lyricsSaveMethodLrcFile => 'LRC 파일';
 
   @override
+  String get lyricsStyleLabel => '가사 패널 스타일';
+
+  @override
+  String get lyricsStyleDescription => '가사 패널의 표시 스타일을 선택합니다.';
+
+  @override
+  String get lyricsStyleTraditional => '기본 스크롤';
+
+  @override
+  String get lyricsStyleApple => '애플 스타일';
+
+  @override
+  String get resumeLyricsSync => '가사 동기화 재개';
+
+  @override
   String get followSystemLanguage => '시스템 언어 따르기';
 
   @override

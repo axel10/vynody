@@ -1183,6 +1183,22 @@ class AppLocalizationsFr extends AppLocalizations {
   String get lyricsSaveMethodLrcFile => 'Fichier LRC';
 
   @override
+  String get lyricsStyleLabel => 'Style de panneau de paroles';
+
+  @override
+  String get lyricsStyleDescription =>
+      'Choisissez le style d\'affichage pour le panneau de paroles.';
+
+  @override
+  String get lyricsStyleTraditional => 'Traditionnel';
+
+  @override
+  String get lyricsStyleApple => 'Style Apple';
+
+  @override
+  String get resumeLyricsSync => 'Reprendre la synchronisation';
+
+  @override
   String get followSystemLanguage => 'Suivre le système';
 
   @override

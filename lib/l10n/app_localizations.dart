@@ -2244,6 +2244,36 @@ abstract class AppLocalizations {
   /// **'LRC文件'**
   String get lyricsSaveMethodLrcFile;
 
+  /// No description provided for @lyricsStyleLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'歌词面板样式'**
+  String get lyricsStyleLabel;
+
+  /// No description provided for @lyricsStyleDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'选择歌词面板的展示和交互样式。'**
+  String get lyricsStyleDescription;
+
+  /// No description provided for @lyricsStyleTraditional.
+  ///
+  /// In zh, this message translates to:
+  /// **'传统滚动'**
+  String get lyricsStyleTraditional;
+
+  /// No description provided for @lyricsStyleApple.
+  ///
+  /// In zh, this message translates to:
+  /// **'苹果样式'**
+  String get lyricsStyleApple;
+
+  /// No description provided for @resumeLyricsSync.
+  ///
+  /// In zh, this message translates to:
+  /// **'恢复歌词同步'**
+  String get resumeLyricsSync;
+
   /// No description provided for @followSystemLanguage.
   ///
   /// In zh, this message translates to:

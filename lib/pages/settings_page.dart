@@ -865,6 +865,48 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     );
   }
 
+  Widget _buildLyricsStyleSection(
+    BuildContext context,
+    SettingsService settings,
+  ) {
+    final l10n = AppLocalizations.of(context)!;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            l10n.lyricsStyleDescription,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<LyricsStyle>(
+            initialValue: settings.lyricsStyle,
+            isExpanded: true,
+            decoration: InputDecoration(
+              labelText: l10n.lyricsStyleLabel,
+              border: const OutlineInputBorder(),
+            ),
+            items: [
+              DropdownMenuItem<LyricsStyle>(
+                value: LyricsStyle.traditional,
+                child: Text(l10n.lyricsStyleTraditional),
+              ),
+              DropdownMenuItem<LyricsStyle>(
+                value: LyricsStyle.apple,
+                child: Text(l10n.lyricsStyleApple),
+              ),
+            ],
+            onChanged: (newValue) {
+              if (newValue == null) return;
+              settings.lyricsStyle = newValue;
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildTranscodeSection(
     BuildContext context,
     SettingsService settings,
@@ -1185,6 +1227,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         _buildLyricsTranslationLanguageSection(context, settings),
         const SizedBox(height: 16),
         _buildLyricsSaveMethodSection(context, settings),
+        const SizedBox(height: 16),
+        _buildLyricsStyleSection(context, settings),
         _buildSectionHeader(l10n.platformApiKeysSectionTitle),
         ListTile(
           leading: _buildProviderIcon(LyricsAiProvider.googleAiStudio),

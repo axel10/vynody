@@ -21,6 +21,8 @@ enum LyricsAiModelSlot { primary, fallback }
 
 enum LyricsSaveMethod { original, embedded, lrcFile }
 
+enum LyricsStyle { traditional, apple }
+
 final class LyricsAiModelSelection {
   const LyricsAiModelSelection({required this.provider, required this.modelId});
 
@@ -253,6 +255,7 @@ class SettingsService extends ChangeNotifier {
   static const String _keyLyricsTranslationTargetLanguage =
       'lyrics_translation_target_language';
   static const String _keyLyricsSaveMethod = 'lyrics_save_method';
+  static const String _keyLyricsStyle = 'lyrics_style';
   static const String _keyLyricsFontScale = 'lyrics_font_scale';
   static const String _keyGenerationPrimaryProvider =
       'lyrics_generation_primary_provider';
@@ -478,6 +481,13 @@ class SettingsService extends ChangeNotifier {
   late final _lyricsSaveMethodProperty = SettingProperty<String>(
     key: _keyLyricsSaveMethod,
     defaultValue: LyricsSaveMethod.original.name,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
+  late final _lyricsStyleProperty = SettingProperty<String>(
+    key: _keyLyricsStyle,
+    defaultValue: LyricsStyle.traditional.name,
     prefs: _prefs,
     onChanged: notifyListeners,
   );
@@ -1150,6 +1160,17 @@ class SettingsService extends ChangeNotifier {
 
   set lyricsSaveMethod(LyricsSaveMethod value) {
     _lyricsSaveMethodProperty.value = value.name;
+  }
+
+  LyricsStyle get lyricsStyle {
+    return LyricsStyle.values.firstWhere(
+      (style) => style.name == _lyricsStyleProperty.value,
+      orElse: () => LyricsStyle.traditional,
+    );
+  }
+
+  set lyricsStyle(LyricsStyle value) {
+    _lyricsStyleProperty.value = value.name;
   }
 
   double get lyricsFontScale => _lyricsFontScaleProperty.value;

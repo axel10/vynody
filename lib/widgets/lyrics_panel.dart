@@ -6,6 +6,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' as rpod;
 import 'package:oktoast/oktoast.dart';
@@ -114,6 +115,11 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
   int _lastLayoutRevision = 0;
   List<double>? _oldItemCenters;
   List<double>? _oldLineHeights;
+  bool _isFocusMode = true;
+  List<double> _currentItemCenters = const [];
+  List<double> _currentLineHeights = const [];
+  LyricsStyle? _lastBuiltLyricsStyle;
+  bool? _lastBuiltIsFocusMode;
 
   Widget? _cachedLyricsView;
   int? _lastBuiltActiveIndex;
@@ -900,7 +906,52 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     final activeIndex = _activeLineIndex(lines);
     _writeLog('_scheduleScrollIfNeeded: activeIndex=$activeIndex _lastActiveIndex=$_lastActiveIndex force=$force');
     if (!force && activeIndex == _lastActiveIndex) return;
-    _lastActiveIndex = activeIndex;
+
+    bool shouldScroll = true;
+
+    final lyricsStyle = ref.read(settingsServiceProvider).lyricsStyle;
+    if (lyricsStyle == LyricsStyle.apple) {
+      if (!force) {
+        if (_isFocusMode) {
+          _lastActiveIndex = activeIndex;
+        } else {
+          if (_scrollController.hasClients) {
+            final offset = _scrollController.offset;
+            final viewportHeight = _scrollController.position.viewportDimension;
+            if (activeIndex >= 0 && activeIndex < _currentItemCenters.length && activeIndex < _currentLineHeights.length) {
+              final lineTop = _currentItemCenters[activeIndex] - _currentLineHeights[activeIndex] / 2;
+              final lineBottom = _currentItemCenters[activeIndex] + _currentLineHeights[activeIndex] / 2;
+              final isVisible = lineBottom >= offset - 20.0 && lineTop <= offset + viewportHeight + 20.0;
+              if (isVisible) {
+                _lastActiveIndex = activeIndex;
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted) {
+                    setState(() {
+                      _isFocusMode = true;
+                    });
+                  }
+                });
+              } else {
+                _lastActiveIndex = activeIndex;
+                shouldScroll = false;
+              }
+            } else {
+              _lastActiveIndex = activeIndex;
+              shouldScroll = false;
+            }
+          } else {
+            _lastActiveIndex = activeIndex;
+            shouldScroll = false;
+          }
+        }
+      } else {
+        _lastActiveIndex = activeIndex;
+      }
+    } else {
+      _lastActiveIndex = activeIndex;
+    }
+
+    if (!shouldScroll) return;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !_scrollController.hasClients) return;
@@ -1195,11 +1246,18 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     // 计算可见区域的中心（避开底部遮挡/渐变区/安全区）
     final visibleCenter = (viewportHeight - bottomSpacers) / 2 - fadeAsymmetryShift;
 
-    final targetCenter = itemCenters[index];
-    final target = math.max(
-      0.0,
-      math.min(targetCenter - visibleCenter, maxExtent),
-    );
+    final lyricsStyle = ref.read(settingsServiceProvider).lyricsStyle;
+    final double target;
+    if (lyricsStyle == LyricsStyle.apple && index < _currentLineHeights.length) {
+      final topOfLine = itemCenters[index] - _currentLineHeights[index] / 2;
+      target = math.max(0.0, math.min(topOfLine - 100.0, maxExtent));
+    } else {
+      final targetCenter = itemCenters[index];
+      target = math.max(
+        0.0,
+        math.min(targetCenter - visibleCenter, maxExtent),
+      );
+    }
 
     final currentOffset = _scrollController.offset;
     _writeLog('_scrollToLineIndex: index=$index target=$target currentOffset=$currentOffset difference=${(target - currentOffset).abs()} animate=$animate');
@@ -1229,6 +1287,19 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       );
     } else {
       _scrollController.jumpTo(target);
+    }
+  }
+
+  void _handleLineTapped(int index, List<LyricLine> displayLines) {
+    if (index < 0 || index >= displayLines.length) return;
+    final line = displayLines[index];
+    if (line.isTimed) {
+      final targetPosition = _audioSeekPositionForLyricTimestamp(line.timestamp);
+      unawaited(ref.read(audioServiceProvider).seek(targetPosition));
+      setState(() {
+        _isFocusMode = true;
+      });
+      _scheduleScrollIfNeeded(force: true, itemCenters: _currentItemCenters);
     }
   }
 
@@ -1328,6 +1399,9 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     final lyricsFontScale = ref.watch(
       settingsServiceProvider.select((settings) => settings.lyricsFontScale),
     );
+    final lyricsStyle = ref.watch(
+      settingsServiceProvider.select((settings) => settings.lyricsStyle),
+    );
     final lyricsForDisplay = _lyricsForDisplay();
     final displayLyrics = _displayLyrics(lyricsState, lyricsForDisplay);
     final displayLines = displayLyrics?.syncedLines ?? const [];
@@ -1406,6 +1480,8 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
         final lineHeights = lineMetrics.heights;
         final itemCenters = lineMetrics.itemCenters;
         final anchorCenters = lineMetrics.anchorCenters;
+        _currentLineHeights = lineHeights;
+        _currentItemCenters = itemCenters;
 
         // --- SCROLL JITTER MITIGATION ---
         if (_scrollController.hasClients &&
@@ -1499,7 +1575,9 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
             textColor != _lastBuiltTextColor ||
             secondaryTextColor != _lastBuiltSecondaryTextColor ||
             lyricsState != _lastBuiltLyricsState ||
-            currentSong != _lastBuiltCurrentSong;
+            currentSong != _lastBuiltCurrentSong ||
+            lyricsStyle != _lastBuiltLyricsStyle ||
+            _isFocusMode != _lastBuiltIsFocusMode;
 
         if (needsRebuild) {
           _lastBuiltActiveIndex = focusedIndex;
@@ -1512,6 +1590,8 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
           _lastBuiltSecondaryTextColor = secondaryTextColor;
           _lastBuiltLyricsState = lyricsState;
           _lastBuiltCurrentSong = currentSong;
+          _lastBuiltLyricsStyle = lyricsStyle;
+          _lastBuiltIsFocusMode = _isFocusMode;
 
           _cachedLyricsView = LyricsPanelTimedLyricsView(
             lyrics: lyrics,
@@ -1525,19 +1605,19 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
             secondaryTextColor: secondaryTextColor,
             scrollController: _scrollController,
             scrollBehavior: _lyricsScrollBehavior(context),
-            onVerticalDragStart: hasTimedLyrics
+            onVerticalDragStart: hasTimedLyrics && lyricsStyle == LyricsStyle.traditional
                 ? (_) => _beginLyricsDrag(displayLines)
                 : null,
-            onVerticalDragUpdate: hasTimedLyrics
+            onVerticalDragUpdate: hasTimedLyrics && lyricsStyle == LyricsStyle.traditional
                 ? (details) =>
                       _updateLyricsDrag(details, displayLines, itemCenters)
                 : null,
-            onVerticalDragEnd: hasTimedLyrics
+            onVerticalDragEnd: hasTimedLyrics && lyricsStyle == LyricsStyle.traditional
                 ? (_) {
                     unawaited(_endLyricsDrag(displayLines));
                   }
                 : null,
-            onVerticalDragCancel: hasTimedLyrics
+            onVerticalDragCancel: hasTimedLyrics && lyricsStyle == LyricsStyle.traditional
                 ? () {
                     unawaited(_endLyricsDrag(displayLines));
                   }
@@ -1556,10 +1636,77 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
             },
             bottomSpacerHeight: widget.bottomSpacerHeight,
             bottomTabBarHeight: widget.bottomTabBarHeight,
+            lyricsStyle: lyricsStyle,
+            isFocusMode: _isFocusMode,
+            onLineTapped: (index) {
+              _handleLineTapped(index, renderedLines);
+            },
           );
         }
 
-        return _cachedLyricsView!;
+        final mainView = _cachedLyricsView!;
+        if (lyricsStyle == LyricsStyle.apple) {
+          return NotificationListener<ScrollNotification>(
+            onNotification: (notification) {
+              if (notification is UserScrollNotification) {
+                if (notification.direction != ScrollDirection.idle) {
+                  if (_isFocusMode) {
+                    setState(() {
+                      _isFocusMode = false;
+                    });
+                  }
+                }
+              }
+              return false;
+            },
+            child: Stack(
+              children: [
+                mainView,
+                if (!_isFocusMode)
+                  Positioned(
+                    bottom: widget.bottomSpacerHeight + widget.bottomTabBarHeight + 20,
+                    right: 20,
+                    child: MouseRegion(
+                      cursor: SystemMouseCursors.click,
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _isFocusMode = true;
+                          });
+                          _scheduleScrollIfNeeded(force: true, itemCenters: itemCenters);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.6),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: Colors.white24, width: 0.5),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.sync_rounded, color: Colors.white, size: 16),
+                              const SizedBox(width: 6),
+                              Text(
+                                l10n.resumeLyricsSync,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          );
+        }
+
+        return mainView;
       },
     );
   }

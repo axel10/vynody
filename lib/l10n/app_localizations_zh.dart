@@ -1128,6 +1128,21 @@ class AppLocalizationsZh extends AppLocalizations {
   String get lyricsSaveMethodLrcFile => 'LRC文件';
 
   @override
+  String get lyricsStyleLabel => '歌词面板样式';
+
+  @override
+  String get lyricsStyleDescription => '选择歌词面板的展示和交互样式。';
+
+  @override
+  String get lyricsStyleTraditional => '传统滚动';
+
+  @override
+  String get lyricsStyleApple => '苹果样式';
+
+  @override
+  String get resumeLyricsSync => '恢复歌词同步';
+
+  @override
   String get followSystemLanguage => '跟随系统';
 
   @override

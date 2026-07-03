@@ -1137,6 +1137,21 @@ class AppLocalizationsJa extends AppLocalizations {
   String get lyricsSaveMethodLrcFile => 'LRCファイル';
 
   @override
+  String get lyricsStyleLabel => '歌詞スタイル';
+
+  @override
+  String get lyricsStyleDescription => '歌詞パネルの表示スタイルを選択します。';
+
+  @override
+  String get lyricsStyleTraditional => 'デフォルト';
+
+  @override
+  String get lyricsStyleApple => 'Appleスタイル';
+
+  @override
+  String get resumeLyricsSync => '歌詞の同期を再開';
+
+  @override
   String get followSystemLanguage => 'システムに従う';
 
   @override

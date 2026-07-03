@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -7,6 +8,7 @@ import 'package:vynody/models/lyric_line.dart';
 import 'package:vynody/models/music_lyric.dart';
 import '../l10n/app_localizations.dart';
 import 'package:vynody/player/lyrics/lyrics_controller_state.dart';
+import 'package:vynody/player/settings/settings_service.dart';
 import 'playback_ui_tuning.dart';
 
 class LyricsPanelEmptyState extends StatelessWidget {
@@ -133,6 +135,9 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
     required this.onContextMenu,
     required this.bottomSpacerHeight,
     this.bottomTabBarHeight = 0.0,
+    required this.lyricsStyle,
+    required this.isFocusMode,
+    this.onLineTapped,
   });
 
   final MusicLyric? lyrics;
@@ -153,6 +158,9 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
   final void Function(Offset globalPosition) onContextMenu;
   final double bottomSpacerHeight;
   final double bottomTabBarHeight;
+  final LyricsStyle lyricsStyle;
+  final bool isFocusMode;
+  final ValueChanged<int>? onLineTapped;
 
   @override
   Widget build(BuildContext context) {
@@ -161,10 +169,10 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
 
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
-      onVerticalDragStart: isAutoScrollPaused ? null : onVerticalDragStart,
-      onVerticalDragUpdate: isAutoScrollPaused ? null : onVerticalDragUpdate,
-      onVerticalDragEnd: isAutoScrollPaused ? null : onVerticalDragEnd,
-      onVerticalDragCancel: isAutoScrollPaused ? null : onVerticalDragCancel,
+      onVerticalDragStart: isAutoScrollPaused || lyricsStyle == LyricsStyle.apple ? null : onVerticalDragStart,
+      onVerticalDragUpdate: isAutoScrollPaused || lyricsStyle == LyricsStyle.apple ? null : onVerticalDragUpdate,
+      onVerticalDragEnd: isAutoScrollPaused || lyricsStyle == LyricsStyle.apple ? null : onVerticalDragEnd,
+      onVerticalDragCancel: isAutoScrollPaused || lyricsStyle == LyricsStyle.apple ? null : onVerticalDragCancel,
       onSecondaryTapDown: (details) => onContextMenu(details.globalPosition),
       onLongPressStart: (details) {
         HapticFeedback.mediumImpact();
@@ -183,13 +191,14 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
                     controller: scrollController,
                     clipBehavior: Clip.none,
                     physics: hasTimedLyrics
-                        ? (isAutoScrollPaused
+                        ? (isAutoScrollPaused || lyricsStyle == LyricsStyle.apple
                               ? const BouncingScrollPhysics()
                               : const NeverScrollableScrollPhysics())
                         : const AlwaysScrollableScrollPhysics(
                             parent: BouncingScrollPhysics(),
                           ),
                     padding: EdgeInsets.only(
+                      top: lyricsStyle == LyricsStyle.apple ? 120.0 : 0.0,
                       bottom: bottomSpacerHeight + bottomTabBarHeight + 500,
                     ),
                     child: Column(
@@ -218,7 +227,7 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
                                 color: isActive
                                     ? textColor
                                     : textColor.withValues(
-                                        alpha: isNear ? 0.72 : 0.46,
+                                        alpha: (isNear && lyricsStyle != LyricsStyle.apple) ? 0.72 : 0.46,
                                       ),
                                 fontSize: timedLyricFontSize,
                                 fontWeight: isActive
@@ -235,64 +244,88 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
                                 leadingDistribution: TextLeadingDistribution.even,
                               );
 
-                        return RepaintBoundary(
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(
-                              vertical: verticalItemPadding,
-                              horizontal: 24.0,
-                            ),
-                            child: Center(
-                              child: AnimatedScale(
-                                duration: const Duration(milliseconds: 220),
-                                curve: Curves.easeOutCubic,
-                                scale: targetScale,
-                                alignment: Alignment.center,
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Expanded(
-                                          child: Text(
-                                            line.text,
-                                            textAlign: TextAlign.center,
-                                            style: lineStyle,
-                                          ),
-                                        ),
-                                      ],
+                        final animatedScaleChild = AnimatedScale(
+                          duration: const Duration(milliseconds: 220),
+                          curve: Curves.easeOutCubic,
+                          scale: targetScale,
+                          alignment: lyricsStyle == LyricsStyle.apple ? Alignment.centerLeft : Alignment.center,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: lyricsStyle == LyricsStyle.apple ? CrossAxisAlignment.start : CrossAxisAlignment.center,
+                            children: [
+                              Row(
+                                mainAxisAlignment: lyricsStyle == LyricsStyle.apple ? MainAxisAlignment.start : MainAxisAlignment.center,
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      line.text,
+                                      textAlign: lyricsStyle == LyricsStyle.apple ? TextAlign.left : TextAlign.center,
+                                      style: lineStyle,
                                     ),
-                                    if (hasTimedLyrics &&
-                                        translated.isNotEmpty) ...[
-                                      SizedBox(height: translatedSpacing),
-                                      Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 12,
-                                        ),
-                                        child: Text(
-                                          translated,
-                                          textAlign: TextAlign.center,
-                                          style: TextStyle(
-                                            color: isActive
-                                                ? secondaryTextColor.withValues(alpha: 1.0)
-                                                : secondaryTextColor,
-                                            fontSize: translationFontSize,
-                                            fontWeight: isActive
-                                                ? FontWeight.w700
-                                                : FontWeight.w400,
-                                            height: 1.3,
-                                            leadingDistribution:
-                                                TextLeadingDistribution.even,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ],
-                                ),
+                                  ),
+                                ],
                               ),
-                            ),
+                              if (hasTimedLyrics &&
+                                  translated.isNotEmpty) ...[
+                                SizedBox(height: translatedSpacing),
+                                Padding(
+                                  padding: lyricsStyle == LyricsStyle.apple
+                                      ? const EdgeInsets.only(right: 12)
+                                      : const EdgeInsets.symmetric(horizontal: 12),
+                                  child: Text(
+                                    translated,
+                                    textAlign: lyricsStyle == LyricsStyle.apple ? TextAlign.left : TextAlign.center,
+                                    style: TextStyle(
+                                      color: isActive
+                                          ? secondaryTextColor.withValues(alpha: 1.0)
+                                          : secondaryTextColor,
+                                      fontSize: translationFontSize,
+                                      fontWeight: isActive
+                                          ? FontWeight.w700
+                                          : FontWeight.w400,
+                                      height: 1.3,
+                                      leadingDistribution:
+                                          TextLeadingDistribution.even,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
                         );
+
+                        final bool shouldBlur = lyricsStyle == LyricsStyle.apple && isFocusMode && !isActive;
+                        final blurredChild = shouldBlur
+                            ? ImageFiltered(
+                                imageFilter: ui.ImageFilter.blur(sigmaX: 1.5, sigmaY: 1.5),
+                                child: animatedScaleChild,
+                              )
+                            : animatedScaleChild;
+
+                        final lineContent = Padding(
+                          padding: EdgeInsets.symmetric(
+                            vertical: verticalItemPadding,
+                            horizontal: 24.0,
+                          ),
+                          child: Align(
+                            alignment: lyricsStyle == LyricsStyle.apple ? Alignment.centerLeft : Alignment.center,
+                            child: blurredChild,
+                          ),
+                        );
+
+                        if (lyricsStyle == LyricsStyle.apple && onLineTapped != null) {
+                          return RepaintBoundary(
+                            child: GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: () => onLineTapped!(index),
+                              child: lineContent,
+                            ),
+                          );
+                        } else {
+                          return RepaintBoundary(
+                            child: lineContent,
+                          );
+                        }
                       }),
                     ),
                   ),
