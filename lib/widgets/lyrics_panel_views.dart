@@ -115,7 +115,7 @@ class LyricsPanelEmptyState extends StatelessWidget {
   }
 }
 
-class LyricsPanelTimedLyricsView extends StatelessWidget {
+class LyricsPanelTimedLyricsView extends StatefulWidget {
   const LyricsPanelTimedLyricsView({
     super.key,
     required this.lyrics,
@@ -172,75 +172,85 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
   final int firstVisibleIndex;
 
   @override
+  State<LyricsPanelTimedLyricsView> createState() => _LyricsPanelTimedLyricsViewState();
+}
+
+class _LyricsPanelTimedLyricsViewState extends State<LyricsPanelTimedLyricsView> {
+  int? _hoveredIndex;
+
+  @override
   Widget build(BuildContext context) {
-    final targetLang = lyricsState.lyricsTranslationLanguageCode;
-    final effectiveLang = lyrics?.getEffectiveTranslationLanguage(targetLang) ?? targetLang;
+    final targetLang = widget.lyricsState.lyricsTranslationLanguageCode;
+    final effectiveLang = widget.lyrics?.getEffectiveTranslationLanguage(targetLang) ?? targetLang;
     final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
 
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
-      onVerticalDragStart: isAutoScrollPaused || lyricsStyle == LyricsStyle.apple ? null : onVerticalDragStart,
-      onVerticalDragUpdate: isAutoScrollPaused || lyricsStyle == LyricsStyle.apple ? null : onVerticalDragUpdate,
-      onVerticalDragEnd: isAutoScrollPaused || lyricsStyle == LyricsStyle.apple ? null : onVerticalDragEnd,
-      onVerticalDragCancel: isAutoScrollPaused || lyricsStyle == LyricsStyle.apple ? null : onVerticalDragCancel,
-      onSecondaryTapDown: (details) => onContextMenu(details.globalPosition),
+      onVerticalDragStart: widget.isAutoScrollPaused || widget.lyricsStyle == LyricsStyle.apple ? null : widget.onVerticalDragStart,
+      onVerticalDragUpdate: widget.isAutoScrollPaused || widget.lyricsStyle == LyricsStyle.apple ? null : widget.onVerticalDragUpdate,
+      onVerticalDragEnd: widget.isAutoScrollPaused || widget.lyricsStyle == LyricsStyle.apple ? null : widget.onVerticalDragEnd,
+      onVerticalDragCancel: widget.isAutoScrollPaused || widget.lyricsStyle == LyricsStyle.apple ? null : widget.onVerticalDragCancel,
+      onSecondaryTapDown: (details) => widget.onContextMenu(details.globalPosition),
       onLongPressStart: (details) {
         HapticFeedback.mediumImpact();
-        onContextMenu(details.globalPosition);
+        widget.onContextMenu(details.globalPosition);
       },
       child: Column(
         children: [
           Expanded(
             child: _LyricsFadeShaderMask(
-              bottomSpacerHeight: bottomSpacerHeight + bottomTabBarHeight,
+              bottomSpacerHeight: widget.bottomSpacerHeight + widget.bottomTabBarHeight,
               child: ClipRect(
                 clipper: const _VerticalOnlyClipper(),
                 child: ScrollConfiguration(
-                  behavior: scrollBehavior,
+                  behavior: widget.scrollBehavior,
                   child: SingleChildScrollView(
-                    controller: scrollController,
+                    controller: widget.scrollController,
                     clipBehavior: Clip.none,
-                    physics: hasTimedLyrics
-                        ? (isAutoScrollPaused || lyricsStyle == LyricsStyle.apple
+                    physics: widget.hasTimedLyrics
+                        ? (widget.isAutoScrollPaused || widget.lyricsStyle == LyricsStyle.apple
                               ? const BouncingScrollPhysics()
                               : const NeverScrollableScrollPhysics())
                         : const AlwaysScrollableScrollPhysics(
                             parent: BouncingScrollPhysics(),
                           ),
                     padding: EdgeInsets.only(
-                      top: lyricsStyle == LyricsStyle.apple
+                      top: widget.lyricsStyle == LyricsStyle.apple
                           ? (isPortrait ? 0.0 : 120.0)
                           : 0.0,
-                      bottom: bottomSpacerHeight + bottomTabBarHeight + 500,
+                      bottom: widget.bottomSpacerHeight + widget.bottomTabBarHeight + 500,
                     ),
                     child: Column(
-                      children: List.generate(displayLines.length, (index) {
-                        final line = displayLines[index];
+                      children: List.generate(widget.displayLines.length, (index) {
+                        final line = widget.displayLines[index];
                         final translated =
-                            lyrics
+                            widget.lyrics
                                 ?.translatedLineAt(
                                   index,
                                   effectiveLang,
                                 )
                                 .trim() ??
                             '';
-                        final distance = (index - activeIndex).abs();
-                        final isActive = hasTimedLyrics && index == activeIndex;
+                        final distance = (index - widget.activeIndex).abs();
+                        final isActive = widget.hasTimedLyrics && index == widget.activeIndex;
+                        final isHovered = _hoveredIndex == index;
                         final isNear =
-                            hasTimedLyrics && distance <= 1 && !isActive;
+                            widget.hasTimedLyrics && distance <= 1 && !isActive;
                         final targetScale = isActive ? 1.12 : 1.0;
-                        final timedLyricFontSize = 16 * lyricsFontScale;
-                        final plainLyricFontSize = 18 * lyricsFontScale;
-                        final translationFontSize = 13 * lyricsFontScale;
-                        final verticalItemPadding = PlaybackPageUiTuning.lyricsVerticalPadding * lyricsFontScale;
-                        final translatedSpacing = 3 * lyricsFontScale;
-                        final lineStyle = hasTimedLyrics
+                        final timedLyricFontSize = 16 * widget.lyricsFontScale;
+                        final plainLyricFontSize = 18 * widget.lyricsFontScale;
+                        final translationFontSize = 13 * widget.lyricsFontScale;
+                        final verticalItemPadding = PlaybackPageUiTuning.lyricsVerticalPadding * widget.lyricsFontScale;
+                        final translatedSpacing = 3 * widget.lyricsFontScale;
+                        final lineStyle = widget.hasTimedLyrics
                             ? Theme.of(context).textTheme.bodyLarge!.copyWith(
                                 color: isActive
-                                    ? textColor
-                                    : textColor.withValues(
-                                        alpha: (isNear && lyricsStyle != LyricsStyle.apple) ? 0.72 : 0.46,
-                                      ),
+                                    ? widget.textColor
+                                    : (isHovered
+                                        ? widget.textColor.withValues(alpha: 1.0)
+                                        : widget.textColor.withValues(
+                                            alpha: (isNear && widget.lyricsStyle != LyricsStyle.apple) ? 0.72 : 0.46,
+                                          )),
                                 fontSize: timedLyricFontSize,
                                 fontWeight: isActive
                                     ? FontWeight.w700
@@ -249,7 +259,9 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
                                 leadingDistribution: TextLeadingDistribution.even,
                               )
                             : TextStyle(
-                                color: textColor.withValues(alpha: 0.92),
+                                color: isHovered
+                                    ? widget.textColor.withValues(alpha: 1.0)
+                                    : widget.textColor.withValues(alpha: 0.92),
                                 fontSize: plainLyricFontSize,
                                 fontWeight: FontWeight.w400,
                                 height: 1.6,
@@ -260,37 +272,39 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
                           duration: const Duration(milliseconds: 220),
                           curve: Curves.easeOutCubic,
                           scale: targetScale,
-                          alignment: lyricsStyle == LyricsStyle.apple ? Alignment.centerLeft : Alignment.center,
+                          alignment: widget.lyricsStyle == LyricsStyle.apple ? Alignment.centerLeft : Alignment.center,
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: lyricsStyle == LyricsStyle.apple ? CrossAxisAlignment.start : CrossAxisAlignment.center,
+                            crossAxisAlignment: widget.lyricsStyle == LyricsStyle.apple ? CrossAxisAlignment.start : CrossAxisAlignment.center,
                             children: [
                               Row(
-                                mainAxisAlignment: lyricsStyle == LyricsStyle.apple ? MainAxisAlignment.start : MainAxisAlignment.center,
+                                mainAxisAlignment: widget.lyricsStyle == LyricsStyle.apple ? MainAxisAlignment.start : MainAxisAlignment.center,
                                 children: [
                                   Expanded(
                                     child: Text(
                                       line.text,
-                                      textAlign: lyricsStyle == LyricsStyle.apple ? TextAlign.left : TextAlign.center,
+                                      textAlign: widget.lyricsStyle == LyricsStyle.apple ? TextAlign.left : TextAlign.center,
                                       style: lineStyle,
                                     ),
                                   ),
                                 ],
                               ),
-                              if (hasTimedLyrics &&
+                              if (widget.hasTimedLyrics &&
                                   translated.isNotEmpty) ...[
                                 SizedBox(height: translatedSpacing),
                                 Padding(
-                                  padding: lyricsStyle == LyricsStyle.apple
+                                  padding: widget.lyricsStyle == LyricsStyle.apple
                                       ? const EdgeInsets.only(right: 12)
                                       : const EdgeInsets.symmetric(horizontal: 12),
                                   child: Text(
                                     translated,
-                                    textAlign: lyricsStyle == LyricsStyle.apple ? TextAlign.left : TextAlign.center,
+                                    textAlign: widget.lyricsStyle == LyricsStyle.apple ? TextAlign.left : TextAlign.center,
                                     style: TextStyle(
                                       color: isActive
-                                          ? secondaryTextColor.withValues(alpha: 1.0)
-                                          : secondaryTextColor,
+                                          ? widget.secondaryTextColor.withValues(alpha: 1.0)
+                                          : (isHovered
+                                              ? widget.secondaryTextColor.withValues(alpha: 1.0)
+                                              : widget.secondaryTextColor),
                                       fontSize: translationFontSize,
                                       fontWeight: isActive
                                           ? FontWeight.w700
@@ -306,7 +320,7 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
                           ),
                         );
 
-                        final bool shouldBlur = lyricsStyle == LyricsStyle.apple && isFocusMode && !isActive;
+                        final bool shouldBlur = widget.lyricsStyle == LyricsStyle.apple && widget.isFocusMode && !isActive && !isHovered;
                         final blurredChild = shouldBlur
                             ? ImageFiltered(
                                 imageFilter: ui.ImageFilter.blur(sigmaX: 1.5, sigmaY: 1.5),
@@ -320,17 +334,17 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
                             horizontal: 24.0,
                           ),
                           child: Align(
-                            alignment: lyricsStyle == LyricsStyle.apple ? Alignment.centerLeft : Alignment.center,
+                            alignment: widget.lyricsStyle == LyricsStyle.apple ? Alignment.centerLeft : Alignment.center,
                             child: blurredChild,
                           ),
                         );
 
                         final Widget itemWidget;
-                        if (lyricsStyle == LyricsStyle.apple && onLineTapped != null) {
+                        if (widget.lyricsStyle == LyricsStyle.apple && widget.onLineTapped != null) {
                           itemWidget = RepaintBoundary(
                             child: GestureDetector(
                               behavior: HitTestBehavior.opaque,
-                              onTap: () => onLineTapped!(index),
+                              onTap: () => widget.onLineTapped!(index),
                               child: lineContent,
                             ),
                           );
@@ -340,18 +354,35 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
                           );
                         }
 
-                        if (lyricsStyle == LyricsStyle.apple && isFocusMode) {
+                        final wrappedItemWidget = MouseRegion(
+                          hitTestBehavior: HitTestBehavior.opaque,
+                          onEnter: (_) {
+                            setState(() {
+                              _hoveredIndex = index;
+                            });
+                          },
+                          onExit: (_) {
+                            setState(() {
+                              if (_hoveredIndex == index) {
+                                _hoveredIndex = null;
+                              }
+                            });
+                          },
+                          child: itemWidget,
+                        );
+
+                        if (widget.lyricsStyle == LyricsStyle.apple && widget.isFocusMode) {
                           return StaggeredAppleLyricsScrollWrapper(
                             index: index,
-                            activeIndex: activeIndex,
-                            scrollDelta: scrollDelta,
-                            scrollTriggerTime: scrollTriggerTime,
-                            isEnteringFocusMode: isEnteringFocusMode,
-                            firstVisibleIndex: firstVisibleIndex,
-                            child: itemWidget,
+                            activeIndex: widget.activeIndex,
+                            scrollDelta: widget.scrollDelta,
+                            scrollTriggerTime: widget.scrollTriggerTime,
+                            isEnteringFocusMode: widget.isEnteringFocusMode,
+                            firstVisibleIndex: widget.firstVisibleIndex,
+                            child: wrappedItemWidget,
                           );
                         }
-                        return itemWidget;
+                        return wrappedItemWidget;
                       }),
                     ),
                   ),
