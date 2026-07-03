@@ -208,12 +208,17 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     required double lyricsFontScale,
     required bool hasTimedLyrics,
     required BuildContext context,
+    required LyricsStyle lyricsStyle,
   }) {
     final timedLyricFontSize = 16 * lyricsFontScale;
     final plainLyricFontSize = 18 * lyricsFontScale;
     final translationFontSize = 13 * lyricsFontScale;
-    final verticalItemPadding =
-        PlaybackPageUiTuning.lyricsVerticalPadding * lyricsFontScale;
+    final basePadding = !hasTimedLyrics
+        ? PlaybackPageUiTuning.appleLyricsVerticalPadding
+        : (lyricsStyle == LyricsStyle.apple
+            ? PlaybackPageUiTuning.appleLyricsVerticalPadding
+            : PlaybackPageUiTuning.traditionalLyricsVerticalPadding);
+    final verticalItemPadding = basePadding * lyricsFontScale;
     final translatedSpacing = 3 * lyricsFontScale;
 
     final lineStyle = hasTimedLyrics
@@ -1491,6 +1496,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     final accent = widget.accentColor ?? Theme.of(context).colorScheme.primary;
     final lyrics = displayLyrics;
     final hasTimedLyrics = _hasTimedLyrics(displayLines);
+    final effectiveLyricsStyle = hasTimedLyrics ? lyricsStyle : LyricsStyle.traditional;
     final textColor = widget.textColor ?? Colors.white;
     final secondaryTextColor =
         widget.secondaryTextColor ?? textColor.withValues(alpha: 0.62);
@@ -1582,6 +1588,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
           lyricsFontScale: calculatedFontScale,
           hasTimedLyrics: hasTimedLyrics,
           context: context,
+          lyricsStyle: effectiveLyricsStyle,
         );
         final lineHeights = lineMetrics.heights;
         final itemCenters = lineMetrics.itemCenters;
@@ -1682,7 +1689,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
             secondaryTextColor != _lastBuiltSecondaryTextColor ||
             lyricsState != _lastBuiltLyricsState ||
             currentSong != _lastBuiltCurrentSong ||
-            lyricsStyle != _lastBuiltLyricsStyle ||
+            effectiveLyricsStyle != _lastBuiltLyricsStyle ||
             _isFocusMode != _lastBuiltIsFocusMode ||
             _scrollTriggerTime != _lastBuiltScrollTriggerTime ||
             _isEnteringFocusMode != _lastBuiltIsEnteringFocusMode ||
@@ -1699,7 +1706,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
           _lastBuiltSecondaryTextColor = secondaryTextColor;
           _lastBuiltLyricsState = lyricsState;
           _lastBuiltCurrentSong = currentSong;
-          _lastBuiltLyricsStyle = lyricsStyle;
+          _lastBuiltLyricsStyle = effectiveLyricsStyle;
           _lastBuiltIsFocusMode = _isFocusMode;
           _lastBuiltScrollTriggerTime = _scrollTriggerTime;
           _lastBuiltIsEnteringFocusMode = _isEnteringFocusMode;
@@ -1717,19 +1724,19 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
             secondaryTextColor: secondaryTextColor,
             scrollController: _scrollController,
             scrollBehavior: _lyricsScrollBehavior(context),
-            onVerticalDragStart: hasTimedLyrics && lyricsStyle == LyricsStyle.traditional
+            onVerticalDragStart: hasTimedLyrics && effectiveLyricsStyle == LyricsStyle.traditional
                 ? (_) => _beginLyricsDrag(displayLines)
                 : null,
-            onVerticalDragUpdate: hasTimedLyrics && lyricsStyle == LyricsStyle.traditional
+            onVerticalDragUpdate: hasTimedLyrics && effectiveLyricsStyle == LyricsStyle.traditional
                 ? (details) =>
                       _updateLyricsDrag(details, displayLines, itemCenters)
                 : null,
-            onVerticalDragEnd: hasTimedLyrics && lyricsStyle == LyricsStyle.traditional
+            onVerticalDragEnd: hasTimedLyrics && effectiveLyricsStyle == LyricsStyle.traditional
                 ? (_) {
                     unawaited(_endLyricsDrag(displayLines));
                   }
                 : null,
-            onVerticalDragCancel: hasTimedLyrics && lyricsStyle == LyricsStyle.traditional
+            onVerticalDragCancel: hasTimedLyrics && effectiveLyricsStyle == LyricsStyle.traditional
                 ? () {
                     unawaited(_endLyricsDrag(displayLines));
                   }
@@ -1748,7 +1755,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
             },
             bottomSpacerHeight: widget.bottomSpacerHeight,
             bottomTabBarHeight: widget.bottomTabBarHeight,
-            lyricsStyle: lyricsStyle,
+            lyricsStyle: effectiveLyricsStyle,
             isFocusMode: _isFocusMode,
             onLineTapped: (index) {
               _handleLineTapped(index, renderedLines);
@@ -1761,7 +1768,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
         }
 
         final mainView = _cachedLyricsView!;
-        if (lyricsStyle == LyricsStyle.apple) {
+        if (effectiveLyricsStyle == LyricsStyle.apple) {
           return Listener(
             behavior: HitTestBehavior.translucent,
             onPointerDown: (event) {

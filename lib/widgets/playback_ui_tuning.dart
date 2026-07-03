@@ -29,7 +29,8 @@ class PlaybackPageUiTuning {
   static const double portraitTopPadding = 12.0;
   static const double lyricsTopPadding = 8.0;
 
-  static const double lyricsVerticalPadding = 14.0; // 每行歌词之间的间距
+  static const double traditionalLyricsVerticalPadding = 20.0; // 传统歌词面板每行歌词之间的间距
+  static const double appleLyricsVerticalPadding = 14.0; // 苹果样式歌词面板每行歌词之间的间距
 
   // 歌词自适应字体大小配置参数
   static const double lyricsMinFontScale = 1.3;

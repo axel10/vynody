@@ -16,6 +16,7 @@ import 'package:vynody/utils/playback_utils.dart';
 import 'package:vynody/utils/song_context_menu_utils.dart';
 import '../widgets/cover_carousel.dart';
 import '../widgets/lyrics_panel.dart';
+import 'package:vynody/player/lyrics/lyrics_riverpod.dart';
 import '../widgets/mini_player_widgets.dart';
 import '../widgets/animated_play_pause_button.dart';
 import '../widgets/playback_ui_tuning.dart';
@@ -391,6 +392,14 @@ class PlaybackHeroCard extends ConsumerWidget {
 
     final size = MediaQuery.of(context).size;
     final settings = ref.watch(settingsServiceProvider);
+    final lyricsState = ref.watch(lyricsControllerProvider);
+    final currentLyricsForCurrentSong = ref.read(lyricsControllerProvider.notifier).currentLyricsForCurrentSong();
+    final baseLyrics = currentLyricsForCurrentSong ?? currentMusic?.lyrics;
+    final displayLines = lyricsState.currentLyricsLines.isNotEmpty
+        ? lyricsState.currentLyricsLines
+        : (baseLyrics?.syncedLines ?? const []);
+    final hasTimedLyrics = displayLines.any((line) => line.isTimed);
+
     final bool isSmallWindow = PlaybackPageUiTuning.isSmallWindow(
       size,
       isWaveformEnabled: settings.isWaveformProgressBarEnabled,
@@ -433,7 +442,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                   tLand: tLand,
                   isWaveformEnabled: isWaveformEnabled,
                   isSmallWindow: isSmallWindow,
-                  lyricsStyle: settings.lyricsStyle,
+                  lyricsStyle: hasTimedLyrics ? settings.lyricsStyle : LyricsStyle.traditional,
                 );
 
                 return SizedBox(
