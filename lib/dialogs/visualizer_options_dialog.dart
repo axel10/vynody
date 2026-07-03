@@ -823,8 +823,10 @@ class VisualizerOptionsDialog extends ConsumerWidget {
           padding: EdgeInsets.symmetric(horizontal: isPortrait ? 0 : 12),
           child: TextButton.icon(
             onPressed: () {
-              settings.playbackBackgroundNormalOpacity = 0.20;
-              settings.playbackBackgroundLyricsOpacity = 0.40;
+              settings.playbackBackgroundNormalOpacity =
+                  SettingsService.defaultPlaybackBackgroundNormalOpacity;
+              settings.playbackBackgroundLyricsOpacity =
+                  SettingsService.defaultPlaybackBackgroundLyricsOpacity;
               settings.playbackBlurredArtworkBlurSigma = 30.0;
               settings.playbackCustomImageBlurSigma = 0.0;
               setDialogState(() {});

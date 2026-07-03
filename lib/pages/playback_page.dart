@@ -1317,7 +1317,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
     SettingsService settings,
     bool isSmallWin,
   ) {
-    double opacity = 0.40;
+    double opacity = SettingsService.defaultPlaybackBackgroundLyricsOpacity;
     if (backgroundType == 0 || backgroundType == 2 || backgroundType == 3) {
       opacity = settings.playbackBackgroundLyricsOpacity;
     }

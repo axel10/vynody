@@ -289,6 +289,9 @@ class SettingsService extends ChangeNotifier {
   static const double maxLyricsFontScale = 1.5;
   static const double lyricsFontScaleStep = 0.1;
 
+  static const double defaultPlaybackBackgroundNormalOpacity = 0.20;
+  static const double defaultPlaybackBackgroundLyricsOpacity = 0.30;
+
   // Visualizer styling keys
   static const String _keyVisColor = 'visualizer_color';
   static const String _keyVisOpacity = 'visualizer_opacity';
@@ -840,14 +843,14 @@ class SettingsService extends ChangeNotifier {
 
   late final _playbackBackgroundNormalOpacityProperty = SettingProperty<double>(
     key: _keyPlaybackBackgroundNormalOpacity,
-    defaultValue: 0.20,
+    defaultValue: defaultPlaybackBackgroundNormalOpacity,
     prefs: _prefs,
     onChanged: notifyListeners,
   );
 
   late final _playbackBackgroundLyricsOpacityProperty = SettingProperty<double>(
     key: _keyPlaybackBackgroundLyricsOpacity,
-    defaultValue: 0.40,
+    defaultValue: defaultPlaybackBackgroundLyricsOpacity,
     prefs: _prefs,
     onChanged: notifyListeners,
   );

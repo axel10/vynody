@@ -11,7 +11,6 @@ class PlaybackPageUiTuning {
     return isSmallWindowMode;
   }
 
-
   static const Size smallWindowMinSize = Size(360, 360);
   static const Size smallWindowMaxSize = Size(600, 600);
   static const Size smallWindowDefaultSize = Size(360, 360);
@@ -30,7 +29,7 @@ class PlaybackPageUiTuning {
   static const double portraitTopPadding = 12.0;
   static const double lyricsTopPadding = 8.0;
 
-  static const double lyricsVerticalPadding = 28.0; // 每行歌词之间的间距
+  static const double lyricsVerticalPadding = 14.0; // 每行歌词之间的间距
 
   // 歌词自适应字体大小配置参数
   static const double lyricsMinFontScale = 1.3;
@@ -124,7 +123,6 @@ class PlaybackHeroCardUiTuning {
   static const double waveformBarWidthLandscape = 4.5; // 横屏下波形柱子宽度
   static const double waveformBarGapLandscape = 2; // 横屏下波形柱子间隙
 
-
   // 控件区理想高度计算及缩放基准 (Ideal height calculation and scaling base)
   // 减小此值会让按钮和文字在相同屏幕宽度下显得更大
   static const double pControlsScaleBase = 375.0; // 竖屏缩放基准
@@ -134,8 +132,7 @@ class PlaybackHeroCardUiTuning {
   static const double controlsTimeRowHeight = 24.0;
   static const double controlsTimeGap = 8.0;
   static const double progressBarWidthFactor = 1.0; // 进度条宽度比例（相对于按钮区）
-  static const double portraitProgressBarWidthFactor =
-      1.0; // 竖屏进度条宽度比例
+  static const double portraitProgressBarWidthFactor = 1.0; // 竖屏进度条宽度比例
   static const double landscapeInfoControlsGap = 0.0; // 横屏下标题区到控件区的距离
   static const double landscapeInfoHeightBase = 48.0;
   static const double controlsRowLandscapeGap = 12.0;
