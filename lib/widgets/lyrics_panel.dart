@@ -534,7 +534,9 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
           icon: Icons.more_time_rounded,
           context: context,
         ),
-      if (!requeryOnly && _hasTimedLyrics(displayLines))
+      if (!requeryOnly &&
+          _hasTimedLyrics(displayLines) &&
+          settings.lyricsStyle != LyricsStyle.apple)
         buildContextMenuItem<String>(
           value: 'toggle_auto_scroll',
           enabled: hasCurrentSong,
