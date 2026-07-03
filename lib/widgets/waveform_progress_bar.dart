@@ -40,7 +40,7 @@ class WaveformProgressBar extends StatefulWidget {
   State<WaveformProgressBar> createState() => _WaveformProgressBarState();
 }
 
-class _WaveformProgressBarState extends State<WaveformProgressBar> with TickerProviderStateMixin {
+class _WaveformProgressBarState extends State<WaveformProgressBar> with TickerProviderStateMixin, WidgetsBindingObserver {
   double? _hoverProgress;
   double _dragStartX = 0;
   double _dragStartProgress = 0;
@@ -55,6 +55,7 @@ class _WaveformProgressBarState extends State<WaveformProgressBar> with TickerPr
   Ticker? _ticker;
   Duration? _lastFrameTime;
   bool _isDragging = false;
+  bool _suspendedForBackground = false;
 
   @override
   void initState() {
@@ -77,10 +78,12 @@ class _WaveformProgressBarState extends State<WaveformProgressBar> with TickerPr
     _smoothProgress = widget.progress.clamp(0.0, 1.0);
     _ticker = createTicker(_onTick);
     _updateTickerState();
+    WidgetsBinding.instance.addObserver(this);
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _animationController.dispose();
     _ticker?.dispose();
     super.dispose();
@@ -121,7 +124,7 @@ class _WaveformProgressBarState extends State<WaveformProgressBar> with TickerPr
   }
 
   void _updateTickerState() {
-    if (widget.isPlaying && !_isDragging) {
+    if (widget.isPlaying && !_isDragging && !_suspendedForBackground) {
       if (!_ticker!.isActive) {
         _lastFrameTime = null;
         _ticker!.start();
@@ -130,6 +133,21 @@ class _WaveformProgressBarState extends State<WaveformProgressBar> with TickerPr
       if (_ticker!.isActive) {
         _ticker!.stop();
         _lastFrameTime = null;
+      }
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+      if (!_suspendedForBackground) {
+        _suspendedForBackground = true;
+        _updateTickerState();
+      }
+    } else if (state == AppLifecycleState.resumed) {
+      if (_suspendedForBackground) {
+        _suspendedForBackground = false;
+        _updateTickerState();
       }
     }
   }
