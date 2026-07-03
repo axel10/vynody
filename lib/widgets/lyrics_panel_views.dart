@@ -340,7 +340,7 @@ class _LyricsPanelTimedLyricsViewState extends State<LyricsPanelTimedLyricsView>
                         );
 
                         final Widget itemWidget;
-                        if (widget.lyricsStyle == LyricsStyle.apple && widget.onLineTapped != null) {
+                        if (widget.onLineTapped != null) {
                           itemWidget = RepaintBoundary(
                             child: GestureDetector(
                               behavior: HitTestBehavior.opaque,
@@ -356,6 +356,7 @@ class _LyricsPanelTimedLyricsViewState extends State<LyricsPanelTimedLyricsView>
 
                         final wrappedItemWidget = MouseRegion(
                           hitTestBehavior: HitTestBehavior.opaque,
+                          cursor: widget.hasTimedLyrics ? SystemMouseCursors.click : MouseCursor.defer,
                           onEnter: (_) {
                             setState(() {
                               _hoveredIndex = index;
