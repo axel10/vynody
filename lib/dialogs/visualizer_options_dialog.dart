@@ -145,7 +145,9 @@ class VisualizerOptionsDialog extends ConsumerWidget {
               l10n.spectrumAdvancedOptions,
               resetLabel: l10n.resetAlgorithm,
               onReset: () {
-                audio.resetVisualizerOptions();
+                audio.resetVisualizerOptions(
+                  orientation: MediaQuery.of(context).orientation,
+                );
                 setDialogState(() {});
               },
             ),

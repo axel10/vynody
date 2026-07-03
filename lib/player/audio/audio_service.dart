@@ -2754,8 +2754,8 @@ class AudioService extends Notifier<AudioSnapshot> {
     notifyListeners();
   }
 
-  void resetVisualizerOptions() {
-    _visualizerOptions.resetOptions();
+  void resetVisualizerOptions({required Orientation orientation}) {
+    _visualizerOptions.resetToAutoSettings(orientation: orientation);
     notifyListeners();
   }
 

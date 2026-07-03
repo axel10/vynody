@@ -112,12 +112,7 @@ class VisualizerOptionsService extends ChangeNotifier {
     saveOptions();
   }
 
-  void applySettings({required Orientation orientation}) {
-    if (!settingsService.isAutoMode) {
-      // Manual mode uses saved options already applied to player
-      return;
-    }
-
+  VisualizerOptimizationOptions _getAutoOptions({required Orientation orientation}) {
     final isLandscape = orientation == Orientation.landscape;
     int freqGroups = isLandscape
         ? settingsService.landscapeFrequencyGroups
@@ -175,7 +170,7 @@ class VisualizerOptionsService extends ChangeNotifier {
         break;
     }
 
-    final options = controller.visualizer.options.copyWith(
+    return controller.visualizer.options.copyWith(
       frequencyGroups: freqGroups,
       skipHighFrequencyGroups: skipHigh,
       smoothingCoefficient: smoothing,
@@ -185,7 +180,23 @@ class VisualizerOptionsService extends ChangeNotifier {
       overallMultiplier: 1.5,
       aggregationMode: FftAggregationMode.peak,
     );
+  }
 
+  void resetToAutoSettings({required Orientation orientation}) {
+    final options = _getAutoOptions(orientation: orientation).copyWith(
+      logarithmicScale: 2.0,
+    );
+    updateOptions(options);
+    saveOptions();
+  }
+
+  void applySettings({required Orientation orientation}) {
+    if (!settingsService.isAutoMode) {
+      // Manual mode uses saved options already applied to player
+      return;
+    }
+
+    final options = _getAutoOptions(orientation: orientation);
     controller.visualizer.updateOptions(options);
     notifyListeners();
   }
