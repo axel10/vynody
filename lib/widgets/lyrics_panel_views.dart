@@ -175,6 +175,7 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
   Widget build(BuildContext context) {
     final targetLang = lyricsState.lyricsTranslationLanguageCode;
     final effectiveLang = lyrics?.getEffectiveTranslationLanguage(targetLang) ?? targetLang;
+    final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
 
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
@@ -207,7 +208,9 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
                             parent: BouncingScrollPhysics(),
                           ),
                     padding: EdgeInsets.only(
-                      top: lyricsStyle == LyricsStyle.apple ? 120.0 : 0.0,
+                      top: lyricsStyle == LyricsStyle.apple
+                          ? (isPortrait ? 0.0 : 120.0)
+                          : 0.0,
                       bottom: bottomSpacerHeight + bottomTabBarHeight + 500,
                     ),
                     child: Column(
