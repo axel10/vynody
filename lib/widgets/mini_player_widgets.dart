@@ -194,16 +194,18 @@ class MiniSpectrumBackground extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isPlaying = ref.watch(audioIsPlayingProvider);
+    if (!isPlaying) return const SizedBox.shrink();
+
     // 使用独立的 FFT 流（专用于迷你播放器）
     final fftStream = audio.miniPlayerFftStream;
     if (fftStream == null) return const SizedBox.shrink();
-    final isPlaying = ref.watch(audioIsPlayingProvider);
 
     return StreamBuilder<FftFrame>(
       stream: fftStream,
       builder: (context, snapshot) {
         final frame = snapshot.data;
-        if (frame == null || !isPlaying) return const SizedBox.shrink();
+        if (frame == null) return const SizedBox.shrink();
         return RepaintBoundary(
           child: CustomPaint(
             painter: _MiniSpectrumPainter(
