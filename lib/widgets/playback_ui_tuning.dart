@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 
 class PlaybackPageUiTuning {
@@ -10,105 +8,7 @@ class PlaybackPageUiTuning {
     required bool isWaveformEnabled,
     bool isSmallWindowMode = false,
   }) {
-    if (isSmallWindowMode) {
-      return true;
-    }
-    try {
-      final displays = ui.PlatformDispatcher.instance.displays;
-      if (displays.isNotEmpty) {
-        final screenHeight = displays.first.size.height / displays.first.devicePixelRatio;
-        if (size.height >= screenHeight / 2) {
-          return false;
-        }
-      }
-    } catch (_) {}
-
-    if (size.width < 240 || size.height < 240) {
-      return true;
-    }
-
-    final bool isLandscape = size.width > size.height;
-
-    if (isLandscape) {
-      final double width = size.width;
-      final double height = size.height;
-
-      final lNormalContentWidth = width
-          .clamp(0.0, math.max(1600.0, height * 2.5).toDouble())
-          .toDouble();
-      final lNormalOffsetX = (width - lNormalContentWidth) / 2;
-      final lColumnWidth = lNormalContentWidth * 0.5;
-
-      final lNormalControlsWidth = (lNormalContentWidth * 0.24 + 72).clamp(
-        PlaybackHeroCardUiTuning.lControlsMinWidth,
-        PlaybackHeroCardUiTuning.lControlsMaxWidth,
-      );
-      final lNormalCoverSide = math
-          .min(
-            lColumnWidth * PlaybackHeroCardUiTuning.lNormalCoverSideFactor,
-            height * PlaybackHeroCardUiTuning.lNormalCoverSideFactor,
-          )
-          .clamp(
-            PlaybackHeroCardUiTuning.lCoverMinSide,
-            PlaybackHeroCardUiTuning.lCoverMaxSide,
-          );
-
-      final lNormalLeftCenter = lNormalOffsetX + (lNormalContentWidth * 0.25);
-      final lNormalCoverLeft = lNormalLeftCenter - (lNormalCoverSide / 2);
-      final lNormalCoverRightEdge = lNormalCoverLeft + lNormalCoverSide;
-      final lContentRightEdge = lNormalOffsetX + lNormalContentWidth;
-      final lRemainingSpace = lContentRightEdge - lNormalCoverRightEdge;
-
-      final lNormalControlsLeft =
-          lNormalCoverRightEdge + (lRemainingSpace - lNormalControlsWidth) / 2;
-
-      final gap = lNormalControlsLeft - lNormalCoverRightEdge;
-      const safetyMargin = -20.0;
-
-      return gap < safetyMargin;
-    } else {
-      final double width = size.width;
-      final double height = size.height;
-
-      final pNormalScale = (width / PlaybackHeroCardUiTuning.pControlsScaleBase).clamp(0.9, 1.15);
-      
-      final pNormalControlsBaseIdealHeight =
-          (PlaybackHeroCardUiTuning.controlsTopButtonsHeight +
-          (isWaveformEnabled
-              ? PlaybackHeroCardUiTuning.waveformStandardTimeRowSpacing
-              : PlaybackHeroCardUiTuning.controlsRowPortraitGap) +
-          (isWaveformEnabled
-              ? PlaybackHeroCardUiTuning.waveformOverlayHeight
-              : 48.0) +
-          (isWaveformEnabled
-              ? 0.0
-              : (8.0 +
-                    PlaybackHeroCardUiTuning.controlsTimeRowHeight +
-                    PlaybackHeroCardUiTuning.controlsRowPortraitGap +
-                    PlaybackHeroCardUiTuning.controlsMainButtonsHeight))) * 1.0;
-
-      final pNormalControlsHeight =
-          (pNormalControlsBaseIdealHeight * pNormalScale)
-              .clamp(0.0, height * PlaybackHeroCardUiTuning.pControlsHeightFactor)
-              .ceilToDouble();
-      final pNormalInfoHeight = PlaybackHeroCardUiTuning.pInfoHeight * pNormalScale;
-
-      final pNormalBottomLimit =
-          height - PlaybackHeroCardUiTuning.portraitBottomReservedSpace;
-
-      final pNormalTotalContentHeight = pNormalInfoHeight + pNormalControlsHeight;
-
-      final hypotheticalCoverSide = math
-          .min(
-            width,
-            pNormalBottomLimit -
-                pNormalTotalContentHeight -
-                PlaybackHeroCardUiTuning.pNormalCoverInfoMinGap,
-          );
-
-      const coverThreshold = 240.0;
-      return hypotheticalCoverSide < coverThreshold;
-    }
+    return isSmallWindowMode;
   }
 
 
