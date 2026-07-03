@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
@@ -138,6 +139,10 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
     required this.lyricsStyle,
     required this.isFocusMode,
     this.onLineTapped,
+    required this.scrollDelta,
+    required this.scrollTriggerTime,
+    required this.isEnteringFocusMode,
+    required this.firstVisibleIndex,
   });
 
   final MusicLyric? lyrics;
@@ -161,6 +166,10 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
   final LyricsStyle lyricsStyle;
   final bool isFocusMode;
   final ValueChanged<int>? onLineTapped;
+  final double scrollDelta;
+  final int scrollTriggerTime;
+  final bool isEnteringFocusMode;
+  final int firstVisibleIndex;
 
   @override
   Widget build(BuildContext context) {
@@ -313,8 +322,9 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
                           ),
                         );
 
+                        final Widget itemWidget;
                         if (lyricsStyle == LyricsStyle.apple && onLineTapped != null) {
-                          return RepaintBoundary(
+                          itemWidget = RepaintBoundary(
                             child: GestureDetector(
                               behavior: HitTestBehavior.opaque,
                               onTap: () => onLineTapped!(index),
@@ -322,10 +332,23 @@ class LyricsPanelTimedLyricsView extends StatelessWidget {
                             ),
                           );
                         } else {
-                          return RepaintBoundary(
+                          itemWidget = RepaintBoundary(
                             child: lineContent,
                           );
                         }
+
+                        if (lyricsStyle == LyricsStyle.apple && isFocusMode) {
+                          return StaggeredAppleLyricsScrollWrapper(
+                            index: index,
+                            activeIndex: activeIndex,
+                            scrollDelta: scrollDelta,
+                            scrollTriggerTime: scrollTriggerTime,
+                            isEnteringFocusMode: isEnteringFocusMode,
+                            firstVisibleIndex: firstVisibleIndex,
+                            child: itemWidget,
+                          );
+                        }
+                        return itemWidget;
                       }),
                     ),
                   ),
@@ -431,6 +454,145 @@ class _LyricsFadeShaderMask extends StatelessWidget {
         },
         child: child,
       ),
+    );
+  }
+}
+
+class StaggeredAppleLyricsScrollWrapper extends StatefulWidget {
+  final Widget child;
+  final int index;
+  final int activeIndex;
+  final double scrollDelta;
+  final int scrollTriggerTime;
+  final bool isEnteringFocusMode;
+  final int firstVisibleIndex;
+
+  const StaggeredAppleLyricsScrollWrapper({
+    super.key,
+    required this.child,
+    required this.index,
+    required this.activeIndex,
+    required this.scrollDelta,
+    required this.scrollTriggerTime,
+    required this.isEnteringFocusMode,
+    required this.firstVisibleIndex,
+  });
+
+  @override
+  State<StaggeredAppleLyricsScrollWrapper> createState() =>
+      _StaggeredAppleLyricsScrollWrapperState();
+}
+
+class _StaggeredAppleLyricsScrollWrapperState
+    extends State<StaggeredAppleLyricsScrollWrapper>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+  double _startOffset = 0.0;
+  double _currentOffset = 0.0;
+  Timer? _delayTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 550),
+    );
+    _animation = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOutQuint,
+    );
+
+    if (widget.scrollTriggerTime > 0) {
+      _startOffset = widget.scrollDelta;
+      _currentOffset = widget.scrollDelta;
+
+      final int delayMs;
+      if (widget.isEnteringFocusMode) {
+        delayMs = math.min(350, math.max(0, widget.index - widget.firstVisibleIndex) * 15);
+      } else {
+        final distance = (widget.index - widget.activeIndex).abs();
+        delayMs = math.min(150, distance * 12);
+      }
+
+      if (delayMs == 0) {
+        _controller.forward(from: 0.0);
+      } else {
+        _delayTimer = Timer(Duration(milliseconds: delayMs), () {
+          if (mounted) {
+            _controller.forward(from: 0.0);
+          }
+        });
+      }
+    }
+  }
+
+  @override
+  void didUpdateWidget(StaggeredAppleLyricsScrollWrapper oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (widget.scrollTriggerTime != oldWidget.scrollTriggerTime &&
+        widget.scrollTriggerTime > 0) {
+      _startAnimation();
+    }
+  }
+
+  void _startAnimation() {
+    _delayTimer?.cancel();
+    _controller.stop();
+
+    final int delayMs;
+    if (widget.isEnteringFocusMode) {
+      delayMs = math.min(350, math.max(0, widget.index - widget.firstVisibleIndex) * 15);
+    } else {
+      final distance = (widget.index - widget.activeIndex).abs();
+      delayMs = math.min(150, distance * 12);
+    }
+    
+    _startOffset = widget.scrollDelta + _currentOffset;
+
+    if (delayMs == 0) {
+      _controller.forward(from: 0.0);
+    } else {
+      setState(() {});
+      _delayTimer = Timer(Duration(milliseconds: delayMs), () {
+        if (mounted) {
+          _controller.forward(from: 0.0);
+        }
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _delayTimer?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (context, child) {
+        if (_controller.isAnimating) {
+          _currentOffset = _startOffset * (1.0 - _animation.value);
+        } else if (_delayTimer?.isActive ?? false) {
+          _currentOffset = _startOffset;
+        } else {
+          _currentOffset = 0.0;
+        }
+
+        if (_currentOffset == 0.0) {
+          return widget.child;
+        }
+
+        return Transform.translate(
+          offset: Offset(0.0, _currentOffset),
+          child: widget.child,
+        );
+      },
     );
   }
 }

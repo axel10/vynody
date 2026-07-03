@@ -123,6 +123,14 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
   List<double> _currentLineHeights = const [];
   LyricsStyle? _lastBuiltLyricsStyle;
   bool? _lastBuiltIsFocusMode;
+  double _lastScrollDelta = 0.0;
+  int _scrollTriggerTime = 0;
+  int? _lastBuiltScrollTriggerTime;
+  bool _enteringFocusModeTriggered = false;
+  bool _isEnteringFocusMode = false;
+  int _firstVisibleIndex = 0;
+  int? _lastBuiltFirstVisibleIndex;
+  bool? _lastBuiltIsEnteringFocusMode;
 
   Widget? _cachedLyricsView;
   int? _lastBuiltActiveIndex;
@@ -935,6 +943,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
                   if (mounted) {
                     setState(() {
                       _isFocusMode = true;
+                      _enteringFocusModeTriggered = true;
                     });
                   }
                 });
@@ -1290,13 +1299,29 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     }
 
     if (animate) {
-      unawaited(
-        _scrollController.animateTo(
-          target,
-          duration: const Duration(milliseconds: 260),
-          curve: Curves.easeOutCubic,
-        ),
-      );
+      if (lyricsStyle == LyricsStyle.apple && _isFocusMode) {
+        final delta = target - currentOffset;
+        _scrollController.jumpTo(target);
+        final isEntering = _enteringFocusModeTriggered;
+        _enteringFocusModeTriggered = false;
+        final firstVisible = _findClosestLineIndex(target, itemCenters);
+        if (mounted) {
+          setState(() {
+            _lastScrollDelta = delta;
+            _scrollTriggerTime = DateTime.now().millisecondsSinceEpoch;
+            _isEnteringFocusMode = isEntering;
+            _firstVisibleIndex = firstVisible;
+          });
+        }
+      } else {
+        unawaited(
+          _scrollController.animateTo(
+            target,
+            duration: const Duration(milliseconds: 260),
+            curve: Curves.easeOutCubic,
+          ),
+        );
+      }
     } else {
       _scrollController.jumpTo(target);
     }
@@ -1310,6 +1335,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       unawaited(ref.read(audioServiceProvider).seek(targetPosition));
       setState(() {
         _isFocusMode = true;
+        _enteringFocusModeTriggered = true;
         _overrideActiveIndex = index;
         _seekTargetTimestamp = targetPosition;
         _seekSetTime = DateTime.now();
@@ -1643,7 +1669,10 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
             lyricsState != _lastBuiltLyricsState ||
             currentSong != _lastBuiltCurrentSong ||
             lyricsStyle != _lastBuiltLyricsStyle ||
-            _isFocusMode != _lastBuiltIsFocusMode;
+            _isFocusMode != _lastBuiltIsFocusMode ||
+            _scrollTriggerTime != _lastBuiltScrollTriggerTime ||
+            _isEnteringFocusMode != _lastBuiltIsEnteringFocusMode ||
+            _firstVisibleIndex != _lastBuiltFirstVisibleIndex;
 
         if (needsRebuild) {
           _lastBuiltActiveIndex = focusedIndex;
@@ -1658,6 +1687,9 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
           _lastBuiltCurrentSong = currentSong;
           _lastBuiltLyricsStyle = lyricsStyle;
           _lastBuiltIsFocusMode = _isFocusMode;
+          _lastBuiltScrollTriggerTime = _scrollTriggerTime;
+          _lastBuiltIsEnteringFocusMode = _isEnteringFocusMode;
+          _lastBuiltFirstVisibleIndex = _firstVisibleIndex;
 
           _cachedLyricsView = LyricsPanelTimedLyricsView(
             lyrics: lyrics,
@@ -1707,6 +1739,10 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
             onLineTapped: (index) {
               _handleLineTapped(index, renderedLines);
             },
+            scrollDelta: _lastScrollDelta,
+            scrollTriggerTime: _scrollTriggerTime,
+            isEnteringFocusMode: _isEnteringFocusMode,
+            firstVisibleIndex: _firstVisibleIndex,
           );
         }
 
@@ -1738,6 +1774,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
                         onTap: () {
                           setState(() {
                             _isFocusMode = true;
+                            _enteringFocusModeTriggered = true;
                           });
                           _scheduleScrollIfNeeded(force: true, itemCenters: itemCenters);
                         },
