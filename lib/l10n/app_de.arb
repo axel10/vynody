@@ -1158,5 +1158,13 @@
   "unmute": "Stummschaltung aufheben",
   "mute": "Stumm",
   "disableSystemTray": "System Tray deaktivieren",
+  "onboardingAndroidBatteryTitle": "Schutz für Hintergrund-Wiedergabe",
+  "onboardingAndroidBatteryDescription": "Aufgrund der strengen Akku-Optimierungsrichtlinien von Android empfehlen wir, die Akku-Einschränkung für Vynody auf „Nicht eingeschränkt“ (Unrestricted) zu setzen, um zu verhindern, dass die Musikwiedergabe im Hintergrund beendet wird.",
+  "onboardingAndroidBatteryStep1": "1. Tippen Sie unten auf die Schaltfläche „Zu den Einstellungen“.",
+  "onboardingAndroidBatteryStep2": "2. Erlauben Sie im Systemdialog das Ignorieren der Akku-Optimierung oder navigieren Sie zu den Akku-Einstellungen.",
+  "onboardingAndroidBatteryStep3": "3. Wenn Sie zu den Einstellungen weitergeleitet werden, wählen Sie „Nicht eingeschränkt“ oder „Keine Einschränkung“.",
+  "onboardingAndroidBatteryButton": "Zu den Einstellungen",
+  "onboardingAndroidBatteryStatusOptimized": "Status: Eingeschränkt (Wiedergabe stoppt eventuell im Hintergrund)",
+  "onboardingAndroidBatteryStatusUnrestricted": "Status: Nicht eingeschränkt (empfohlen, Wiedergabe geschützt)",
   "exitApp": "Beenden"
 }

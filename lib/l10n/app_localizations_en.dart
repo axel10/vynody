@@ -2890,5 +2890,35 @@ class AppLocalizationsEn extends AppLocalizations {
   String get disableSystemTray => 'Disable System Tray';
 
   @override
+  String get onboardingAndroidBatteryTitle => 'Background Playback Protection';
+
+  @override
+  String get onboardingAndroidBatteryDescription =>
+      'Due to Android\'s strict battery optimization policies, to prevent music playback from being killed in the background, we recommend setting Vynody\'s battery restriction to \"Unrestricted\".';
+
+  @override
+  String get onboardingAndroidBatteryStep1 =>
+      '1. Tap the \"Go to Settings\" button below.';
+
+  @override
+  String get onboardingAndroidBatteryStep2 =>
+      '2. Allow ignoring battery optimizations in the system prompt, or navigate to the battery settings.';
+
+  @override
+  String get onboardingAndroidBatteryStep3 =>
+      '3. If navigated to settings, select \"Unrestricted\" or \"No restriction\".';
+
+  @override
+  String get onboardingAndroidBatteryButton => 'Go to Settings';
+
+  @override
+  String get onboardingAndroidBatteryStatusOptimized =>
+      'Status: Restricted (playback may stop in background)';
+
+  @override
+  String get onboardingAndroidBatteryStatusUnrestricted =>
+      'Status: Unrestricted (recommended, playback protected)';
+
+  @override
   String get exitApp => 'Exit';
 }

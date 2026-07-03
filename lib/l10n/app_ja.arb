@@ -1256,6 +1256,14 @@
   "linuxMountGuideOpenButton": "ディスクマネージャー（Disks）を開く",
   "unmute": "ミュート解除",
   "mute": "ミュート",
-  "disableSystemTray": "システムトレイを無効にする",
+  "disableSystemTray": "システムトレイを无効にする",
+  "onboardingAndroidBatteryTitle": "バックグラウンド再生の保護",
+  "onboardingAndroidBatteryDescription": "Androidの厳格なバッテリー最適化ポリシーにより、バックグラウンドでの音楽再生が強制終了されるのを防ぐため、Vynodyのバッテリー制限を「制限なし」（Unrestricted）に設定することをお勧めします。",
+  "onboardingAndroidBatteryStep1": "1. 下の「設定へ」ボタンをタップします。",
+  "onboardingAndroidBatteryStep2": "2. システムダイアログでバッテリー最適化の無視を許可するか、バッテリー設定に移動します。",
+  "onboardingAndroidBatteryStep3": "3. 設定画面に移動した場合は、「制限なし」を選択してください。",
+  "onboardingAndroidBatteryButton": "設定へ",
+  "onboardingAndroidBatteryStatusOptimized": "現在の状態：制限あり（バックグラウンド再生が停止する可能性があります）",
+  "onboardingAndroidBatteryStatusUnrestricted": "現在の状態：制限なし（推奨、バックグラウンド再生保護済み）",
   "exitApp": "終了"
 }

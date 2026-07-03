@@ -1158,5 +1158,13 @@
   "unmute": "음소거 해제",
   "mute": "음소거",
   "disableSystemTray": "시스템 트레이 비활성화",
+  "onboardingAndroidBatteryTitle": "백그라운드 재생 보호 설정",
+  "onboardingAndroidBatteryDescription": "안드로이드의 엄격한 배터리 최적화 정책으로 인해 백그라운드에서 음악 재생이 강제 종료되는 것을 방지하려면 Vynody의 배터리 사용 제한을 '제한 없음'(Unrestricted)으로 설정하는 것이 좋습니다.",
+  "onboardingAndroidBatteryStep1": "1. 아래 '설정으로 이동' 버튼을 누릅니다.",
+  "onboardingAndroidBatteryStep2": "2. 시스템 팝업에서 배터리 최적화 예외를 허용하거나 배터리 설정 페이지로 이동합니다.",
+  "onboardingAndroidBatteryStep3": "3. 설정 페이지로 이동하면 '제한 없음'을 선택하십시오.",
+  "onboardingAndroidBatteryButton": "설정으로 이동",
+  "onboardingAndroidBatteryStatusOptimized": "현재 상태: 제한됨 (백그라운드 재생이 중단될 수 있음)",
+  "onboardingAndroidBatteryStatusUnrestricted": "현재 상태: 제한 없음 (권장, 백그라운드 재생 보호됨)",
   "exitApp": "종료"
 }

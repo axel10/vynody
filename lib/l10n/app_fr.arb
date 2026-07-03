@@ -1158,5 +1158,13 @@
   "unmute": "Réactiver le son",
   "mute": "Muet",
   "disableSystemTray": "Désactiver la barre d'état système",
+  "onboardingAndroidBatteryTitle": "Protection de lecture en arrière-plan",
+  "onboardingAndroidBatteryDescription": "En raison des règles strictes d'optimisation de la batterie d'Android, pour éviter que la lecture de musique ne soit interrompue en arrière-plan, nous vous recommandons de définir la restriction de batterie de Vynody sur « Non restreinte » (Unrestricted).",
+  "onboardingAndroidBatteryStep1": "1. Appuyez sur le bouton « Aller aux paramètres » ci-dessous.",
+  "onboardingAndroidBatteryStep2": "2. Autorisez l'ignorance des optimisations de batterie dans l'invite système, ou accédez aux paramètres de la batterie.",
+  "onboardingAndroidBatteryStep3": "3. Si vous êtes redirigé vers les paramètres, sélectionnez « Non restreinte » ou « Aucune restriction ».",
+  "onboardingAndroidBatteryButton": "Aller aux paramètres",
+  "onboardingAndroidBatteryStatusOptimized": "Statut : Restreint (la lecture peut s'arrêter en arrière-plan)",
+  "onboardingAndroidBatteryStatusUnrestricted": "Statut : Non restreinte (recommandé, lecture protégée)",
   "exitApp": "Quitter"
 }

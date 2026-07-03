@@ -2931,5 +2931,36 @@ class AppLocalizationsFr extends AppLocalizations {
   String get disableSystemTray => 'Désactiver la barre d\'état système';
 
   @override
+  String get onboardingAndroidBatteryTitle =>
+      'Protection de lecture en arrière-plan';
+
+  @override
+  String get onboardingAndroidBatteryDescription =>
+      'En raison des règles strictes d\'optimisation de la batterie d\'Android, pour éviter que la lecture de musique ne soit interrompue en arrière-plan, nous vous recommandons de définir la restriction de batterie de Vynody sur « Non restreinte » (Unrestricted).';
+
+  @override
+  String get onboardingAndroidBatteryStep1 =>
+      '1. Appuyez sur le bouton « Aller aux paramètres » ci-dessous.';
+
+  @override
+  String get onboardingAndroidBatteryStep2 =>
+      '2. Autorisez l\'ignorance des optimisations de batterie dans l\'invite système, ou accédez aux paramètres de la batterie.';
+
+  @override
+  String get onboardingAndroidBatteryStep3 =>
+      '3. Si vous êtes redirigé vers les paramètres, sélectionnez « Non restreinte » ou « Aucune restriction ».';
+
+  @override
+  String get onboardingAndroidBatteryButton => 'Aller aux paramètres';
+
+  @override
+  String get onboardingAndroidBatteryStatusOptimized =>
+      'Statut : Restreint (la lecture peut s\'arrêter en arrière-plan)';
+
+  @override
+  String get onboardingAndroidBatteryStatusUnrestricted =>
+      'Statut : Non restreinte (recommandé, lecture protégée)';
+
+  @override
   String get exitApp => 'Quitter';
 }

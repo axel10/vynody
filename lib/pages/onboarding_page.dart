@@ -11,6 +11,7 @@ import '../l10n/app_localizations.dart';
 import 'package:vynody/transcode/transcode_riverpod.dart';
 import 'package:vynody/player/metadata/metadata_helper.dart';
 import 'package:audio_core/audio_core.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
   final VoidCallback onComplete;
@@ -21,18 +22,66 @@ class OnboardingScreen extends ConsumerStatefulWidget {
   ConsumerState<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
-class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
+class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with WidgetsBindingObserver {
   final PageController _pageController = PageController();
   int _currentPage = 0;
+  bool _isBatteryExempted = false;
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    if (Platform.isAndroid) {
+      _checkBatteryExemptionStatus();
+    }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _pageController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      if (Platform.isAndroid) {
+        _checkBatteryExemptionStatus();
+      }
+    }
+  }
+
+  Future<void> _checkBatteryExemptionStatus() async {
+    try {
+      final exempted = await Permission.ignoreBatteryOptimizations.isGranted;
+      if (mounted) {
+        setState(() {
+          _isBatteryExempted = exempted;
+        });
+      }
+    } catch (e) {
+      debugPrint('[Onboarding] Error checking battery exemption: $e');
+    }
+  }
+
+  Future<void> _requestBatteryExemption() async {
+    if (_isBatteryExempted) return;
+    try {
+      final status = await Permission.ignoreBatteryOptimizations.request();
+      if (status.isGranted) {
+        if (mounted) {
+          setState(() {
+            _isBatteryExempted = true;
+          });
+        }
+      } else {
+        await openAppSettings();
+      }
+    } catch (e) {
+      debugPrint('[Onboarding] Error requesting battery exemption: $e');
+      await openAppSettings();
+    }
   }
 
 
@@ -111,7 +160,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final showLinuxGuide = Platform.isLinux;
-    final totalPages = showLinuxGuide ? 3 : 2;
+    final showAndroidBatteryGuide = Platform.isAndroid;
+    final totalPages = 2 + (showLinuxGuide ? 1 : 0) + (showAndroidBatteryGuide ? 1 : 0);
 
     return Scaffold(
       body: Container(
@@ -181,6 +231,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                               // Step 3 (Linux only): Linux Disk Auto-Mount Guide
                               if (showLinuxGuide)
                                 _buildLinuxMountGuidePage(theme),
+                              // Step 3 (Android only): Android Battery Optimization Guide
+                              if (showAndroidBatteryGuide)
+                                _buildAndroidBatteryGuidePage(theme),
                             ],
                           ),
                         ),
@@ -646,6 +699,135 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildAndroidBatteryGuidePage(ThemeData theme) {
+    final l10n = AppLocalizations.of(context)!;
+    final title = l10n.onboardingAndroidBatteryTitle;
+    final desc = l10n.onboardingAndroidBatteryDescription;
+    final step1 = l10n.onboardingAndroidBatteryStep1;
+    final step2 = l10n.onboardingAndroidBatteryStep2;
+    final step3 = l10n.onboardingAndroidBatteryStep3;
+    final openButtonText = l10n.onboardingAndroidBatteryButton;
+    final statusText = _isBatteryExempted
+        ? l10n.onboardingAndroidBatteryStatusUnrestricted
+        : l10n.onboardingAndroidBatteryStatusOptimized;
+
+    return Padding(
+      padding: const EdgeInsets.all(32.0),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.red.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.battery_alert_rounded,
+                  color: Colors.red,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  title,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            desc,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurface.withOpacity(0.8),
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.onSurface.withOpacity(0.03),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: theme.colorScheme.onSurface.withOpacity(0.08),
+                ),
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildStepRow(step1, theme),
+                    const SizedBox(height: 12),
+                    _buildStepRow(step2, theme),
+                    const SizedBox(height: 12),
+                    _buildStepRow(step3, theme),
+                    const SizedBox(height: 16),
+                    const Divider(),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(
+                          _isBatteryExempted
+                              ? Icons.check_circle_rounded
+                              : Icons.warning_amber_rounded,
+                          color: _isBatteryExempted ? Colors.green : Colors.amber,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            statusText,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: _isBatteryExempted ? Colors.green : Colors.amber,
+                              fontSize: 13.5,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Center(
+            child: SizedBox(
+              width: double.infinity,
+              height: 46,
+              child: OutlinedButton.icon(
+                onPressed: _requestBatteryExemption,
+                icon: const Icon(Icons.settings_suggest_rounded, size: 18),
+                label: Text(
+                  openButtonText,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                style: OutlinedButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  side: BorderSide(
+                    color: theme.colorScheme.onSurface.withOpacity(0.15),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

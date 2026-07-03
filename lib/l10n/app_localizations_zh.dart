@@ -2758,5 +2758,32 @@ class AppLocalizationsZh extends AppLocalizations {
   String get disableSystemTray => '停用系统托盘';
 
   @override
+  String get onboardingAndroidBatteryTitle => '后台播放防误杀设置';
+
+  @override
+  String get onboardingAndroidBatteryDescription =>
+      '由于安卓系统的电池管理策略非常严格，为了防止音乐在后台播放时被系统强制关闭，建议将 Vynody 的电池使用限制设置为「无限制」（Unrestricted）。';
+
+  @override
+  String get onboardingAndroidBatteryStep1 => '1. 点击下方的「去设置」按钮。';
+
+  @override
+  String get onboardingAndroidBatteryStep2 => '2. 在系统弹窗中允许忽略电池优化，或者跳转到电池设置页面。';
+
+  @override
+  String get onboardingAndroidBatteryStep3 =>
+      '3. 如果跳转至设置列表，选择「无限制」或「允许后台活动 / 不限制电池使用」。';
+
+  @override
+  String get onboardingAndroidBatteryButton => '去设置';
+
+  @override
+  String get onboardingAndroidBatteryStatusOptimized => '当前状态：已限制（可能导致后台播放中断）';
+
+  @override
+  String get onboardingAndroidBatteryStatusUnrestricted =>
+      '当前状态：无限制（推荐，后台播放已保护）';
+
+  @override
   String get exitApp => '退出';
 }

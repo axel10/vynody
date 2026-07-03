@@ -5226,6 +5226,54 @@ abstract class AppLocalizations {
   /// **'停用系统托盘'**
   String get disableSystemTray;
 
+  /// No description provided for @onboardingAndroidBatteryTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'后台播放防误杀设置'**
+  String get onboardingAndroidBatteryTitle;
+
+  /// No description provided for @onboardingAndroidBatteryDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'由于安卓系统的电池管理策略非常严格，为了防止音乐在后台播放时被系统强制关闭，建议将 Vynody 的电池使用限制设置为「无限制」（Unrestricted）。'**
+  String get onboardingAndroidBatteryDescription;
+
+  /// No description provided for @onboardingAndroidBatteryStep1.
+  ///
+  /// In zh, this message translates to:
+  /// **'1. 点击下方的「去设置」按钮。'**
+  String get onboardingAndroidBatteryStep1;
+
+  /// No description provided for @onboardingAndroidBatteryStep2.
+  ///
+  /// In zh, this message translates to:
+  /// **'2. 在系统弹窗中允许忽略电池优化，或者跳转到电池设置页面。'**
+  String get onboardingAndroidBatteryStep2;
+
+  /// No description provided for @onboardingAndroidBatteryStep3.
+  ///
+  /// In zh, this message translates to:
+  /// **'3. 如果跳转至设置列表，选择「无限制」或「允许后台活动 / 不限制电池使用」。'**
+  String get onboardingAndroidBatteryStep3;
+
+  /// No description provided for @onboardingAndroidBatteryButton.
+  ///
+  /// In zh, this message translates to:
+  /// **'去设置'**
+  String get onboardingAndroidBatteryButton;
+
+  /// No description provided for @onboardingAndroidBatteryStatusOptimized.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前状态：已限制（可能导致后台播放中断）'**
+  String get onboardingAndroidBatteryStatusOptimized;
+
+  /// No description provided for @onboardingAndroidBatteryStatusUnrestricted.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前状态：无限制（推荐，后台播放已保护）'**
+  String get onboardingAndroidBatteryStatusUnrestricted;
+
   /// No description provided for @exitApp.
   ///
   /// In zh, this message translates to:

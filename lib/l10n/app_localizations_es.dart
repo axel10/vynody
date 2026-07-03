@@ -2929,5 +2929,36 @@ class AppLocalizationsEs extends AppLocalizations {
   String get disableSystemTray => 'Deshabilitar bandeja del sistema';
 
   @override
+  String get onboardingAndroidBatteryTitle =>
+      'Protección de reproducción en segundo plano';
+
+  @override
+  String get onboardingAndroidBatteryDescription =>
+      'Debido a las estrictas políticas de optimización de batería de Android, para evitar que la reproducción de música se detenga en segundo plano, recomendamos configurar la restricción de batería de Vynody a «Sin restricciones» (Unrestricted).';
+
+  @override
+  String get onboardingAndroidBatteryStep1 =>
+      '1. Toque el botón «Ir a Ajustes» a continuación.';
+
+  @override
+  String get onboardingAndroidBatteryStep2 =>
+      '2. Permita omitir las optimizaciones de batería en el cuadro de diálogo del sistema o vaya a los ajustes de batería.';
+
+  @override
+  String get onboardingAndroidBatteryStep3 =>
+      '3. Si es redirigido a los ajustes, seleccione «Sin restricciones».';
+
+  @override
+  String get onboardingAndroidBatteryButton => 'Ir a Ajustes';
+
+  @override
+  String get onboardingAndroidBatteryStatusOptimized =>
+      'Estado: Restringido (la reproducción puede detenerse en segundo plano)';
+
+  @override
+  String get onboardingAndroidBatteryStatusUnrestricted =>
+      'Estado: Sin restricciones (recomendado, reproducción protegida)';
+
+  @override
   String get exitApp => 'Salir';
 }

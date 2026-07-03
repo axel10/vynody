@@ -2923,5 +2923,36 @@ class AppLocalizationsDe extends AppLocalizations {
   String get disableSystemTray => 'System Tray deaktivieren';
 
   @override
+  String get onboardingAndroidBatteryTitle =>
+      'Schutz für Hintergrund-Wiedergabe';
+
+  @override
+  String get onboardingAndroidBatteryDescription =>
+      'Aufgrund der strengen Akku-Optimierungsrichtlinien von Android empfehlen wir, die Akku-Einschränkung für Vynody auf „Nicht eingeschränkt“ (Unrestricted) zu setzen, um zu verhindern, dass die Musikwiedergabe im Hintergrund beendet wird.';
+
+  @override
+  String get onboardingAndroidBatteryStep1 =>
+      '1. Tippen Sie unten auf die Schaltfläche „Zu den Einstellungen“.';
+
+  @override
+  String get onboardingAndroidBatteryStep2 =>
+      '2. Erlauben Sie im Systemdialog das Ignorieren der Akku-Optimierung oder navigieren Sie zu den Akku-Einstellungen.';
+
+  @override
+  String get onboardingAndroidBatteryStep3 =>
+      '3. Wenn Sie zu den Einstellungen weitergeleitet werden, wählen Sie „Nicht eingeschränkt“ oder „Keine Einschränkung“.';
+
+  @override
+  String get onboardingAndroidBatteryButton => 'Zu den Einstellungen';
+
+  @override
+  String get onboardingAndroidBatteryStatusOptimized =>
+      'Status: Eingeschränkt (Wiedergabe stoppt eventuell im Hintergrund)';
+
+  @override
+  String get onboardingAndroidBatteryStatusUnrestricted =>
+      'Status: Nicht eingeschränkt (empfohlen, Wiedergabe geschützt)';
+
+  @override
   String get exitApp => 'Beenden';
 }

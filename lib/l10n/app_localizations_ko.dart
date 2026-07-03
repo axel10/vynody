@@ -2800,5 +2800,34 @@ class AppLocalizationsKo extends AppLocalizations {
   String get disableSystemTray => '시스템 트레이 비활성화';
 
   @override
+  String get onboardingAndroidBatteryTitle => '백그라운드 재생 보호 설정';
+
+  @override
+  String get onboardingAndroidBatteryDescription =>
+      '안드로이드의 엄격한 배터리 최적화 정책으로 인해 백그라운드에서 음악 재생이 강제 종료되는 것을 방지하려면 Vynody의 배터리 사용 제한을 \'제한 없음\'(Unrestricted)으로 설정하는 것이 좋습니다.';
+
+  @override
+  String get onboardingAndroidBatteryStep1 => '1. 아래 \'설정으로 이동\' 버튼을 누릅니다.';
+
+  @override
+  String get onboardingAndroidBatteryStep2 =>
+      '2. 시스템 팝업에서 배터리 최적화 예외를 허용하거나 배터리 설정 페이지로 이동합니다.';
+
+  @override
+  String get onboardingAndroidBatteryStep3 =>
+      '3. 설정 페이지로 이동하면 \'제한 없음\'을 선택하십시오.';
+
+  @override
+  String get onboardingAndroidBatteryButton => '설정으로 이동';
+
+  @override
+  String get onboardingAndroidBatteryStatusOptimized =>
+      '현재 상태: 제한됨 (백그라운드 재생이 중단될 수 있음)';
+
+  @override
+  String get onboardingAndroidBatteryStatusUnrestricted =>
+      '현재 상태: 제한 없음 (권장, 백그라운드 재생 보호됨)';
+
+  @override
   String get exitApp => '종료';
 }

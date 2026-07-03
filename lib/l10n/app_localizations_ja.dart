@@ -2794,7 +2794,36 @@ class AppLocalizationsJa extends AppLocalizations {
   String get mute => 'ミュート';
 
   @override
-  String get disableSystemTray => 'システムトレイを無効にする';
+  String get disableSystemTray => 'システムトレイを无効にする';
+
+  @override
+  String get onboardingAndroidBatteryTitle => 'バックグラウンド再生の保護';
+
+  @override
+  String get onboardingAndroidBatteryDescription =>
+      'Androidの厳格なバッテリー最適化ポリシーにより、バックグラウンドでの音楽再生が強制終了されるのを防ぐため、Vynodyのバッテリー制限を「制限なし」（Unrestricted）に設定することをお勧めします。';
+
+  @override
+  String get onboardingAndroidBatteryStep1 => '1. 下の「設定へ」ボタンをタップします。';
+
+  @override
+  String get onboardingAndroidBatteryStep2 =>
+      '2. システムダイアログでバッテリー最適化の無視を許可するか、バッテリー設定に移動します。';
+
+  @override
+  String get onboardingAndroidBatteryStep3 =>
+      '3. 設定画面に移動した場合は、「制限なし」を選択してください。';
+
+  @override
+  String get onboardingAndroidBatteryButton => '設定へ';
+
+  @override
+  String get onboardingAndroidBatteryStatusOptimized =>
+      '現在の状態：制限あり（バックグラウンド再生が停止する可能性があります）';
+
+  @override
+  String get onboardingAndroidBatteryStatusUnrestricted =>
+      '現在の状態：制限なし（推奨、バックグラウンド再生保護済み）';
 
   @override
   String get exitApp => '終了';
