@@ -581,9 +581,63 @@ jobs:
           find artifacts -type f \( -name "vynody-*" -o -name "vynody-*" \) -exec cp {} release_assets/ \;
           ls -l release_assets
 
+      - name: Generate Release Body
+        run: |
+          TAG_NAME="${{ github.event.inputs.tag_name || github.ref_name }}"
+          REPO="${{ github.repository }}"
+          
+          echo "## 📦 Downloads / 下载" > release_notes.md
+          echo "" >> release_notes.md
+          
+          if ls release_assets/vynody-android-* >/dev/null 2>&1; then
+            echo "### 📱 Android" >> release_notes.md
+            for f in release_assets/vynody-android-*; do
+              fname=$(basename "$f")
+              echo "- [$fname](https://github.com/${REPO}/releases/download/${TAG_NAME}/${fname})" >> release_notes.md
+            done
+            echo "" >> release_notes.md
+          fi
+          
+          if ls release_assets/vynody-windows-* >/dev/null 2>&1; then
+            echo "### 💻 Windows" >> release_notes.md
+            for f in release_assets/vynody-windows-*; do
+              fname=$(basename "$f")
+              echo "- [$fname](https://github.com/${REPO}/releases/download/${TAG_NAME}/${fname})" >> release_notes.md
+            done
+            echo "" >> release_notes.md
+          fi
+          
+          if ls release_assets/vynody-macos-* >/dev/null 2>&1; then
+            echo "### 🍏 macOS" >> release_notes.md
+            for f in release_assets/vynody-macos-*; do
+              fname=$(basename "$f")
+              echo "- [$fname](https://github.com/${REPO}/releases/download/${TAG_NAME}/${fname})" >> release_notes.md
+            done
+            echo "" >> release_notes.md
+          fi
+          
+          if ls release_assets/vynody-linux-* >/dev/null 2>&1; then
+            echo "### 🐧 Linux" >> release_notes.md
+            for f in release_assets/vynody-linux-*; do
+              fname=$(basename "$f")
+              echo "- [$fname](https://github.com/${REPO}/releases/download/${TAG_NAME}/${fname})" >> release_notes.md
+            done
+            echo "" >> release_notes.md
+          fi
+          
+          if ls release_assets/vynody-ios-* >/dev/null 2>&1; then
+            echo "### 🍎 iOS" >> release_notes.md
+            for f in release_assets/vynody-ios-*; do
+              fname=$(basename "$f")
+              echo "- [$fname](https://github.com/${REPO}/releases/download/${TAG_NAME}/${fname})" >> release_notes.md
+            done
+            echo "" >> release_notes.md
+          fi
+
       - name: Create Release and Upload Assets
         uses: softprops/action-gh-release@v2
         with:
           files: release_assets/*
+          body_path: release_notes.md
           tag_name: ${{ github.event.inputs.tag_name || github.ref_name }}
           token: ${{ secrets.GITHUB_TOKEN }}
