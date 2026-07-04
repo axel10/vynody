@@ -240,11 +240,9 @@ class _LyricsPanelTimedLyricsViewState extends State<LyricsPanelTimedLyricsView>
                         final timedLyricFontSize = 16 * widget.lyricsFontScale;
                         final plainLyricFontSize = 18 * widget.lyricsFontScale;
                         final translationFontSize = 13 * widget.lyricsFontScale;
-                        final basePadding = !widget.hasTimedLyrics
+                        final basePadding = widget.lyricsStyle == LyricsStyle.apple
                             ? PlaybackPageUiTuning.appleLyricsVerticalPadding
-                            : (widget.lyricsStyle == LyricsStyle.apple
-                                ? PlaybackPageUiTuning.appleLyricsVerticalPadding
-                                : PlaybackPageUiTuning.traditionalLyricsVerticalPadding);
+                            : PlaybackPageUiTuning.traditionalLyricsVerticalPadding;
                         final verticalItemPadding = basePadding * widget.lyricsFontScale;
                         final translatedSpacing = 3 * widget.lyricsFontScale;
                         final lineStyle = widget.hasTimedLyrics
@@ -264,9 +262,7 @@ class _LyricsPanelTimedLyricsViewState extends State<LyricsPanelTimedLyricsView>
                                 leadingDistribution: TextLeadingDistribution.even,
                               )
                             : TextStyle(
-                                color: isHovered
-                                    ? widget.textColor.withValues(alpha: 1.0)
-                                    : widget.textColor.withValues(alpha: 0.92),
+                                color: widget.textColor,
                                 fontSize: plainLyricFontSize,
                                 fontWeight: widget.lyricsStyle == LyricsStyle.apple
                                     ? FontWeight.w700
@@ -327,7 +323,7 @@ class _LyricsPanelTimedLyricsViewState extends State<LyricsPanelTimedLyricsView>
                           ),
                         );
 
-                        final bool shouldBlur = widget.lyricsStyle == LyricsStyle.apple && widget.isFocusMode && !isActive && !isHovered;
+                        final bool shouldBlur = widget.hasTimedLyrics && widget.lyricsStyle == LyricsStyle.apple && widget.isFocusMode && !isActive && !isHovered;
                         final blurredChild = shouldBlur
                             ? ImageFiltered(
                                 imageFilter: ui.ImageFilter.blur(sigmaX: 1.5, sigmaY: 1.5),

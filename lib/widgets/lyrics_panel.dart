@@ -213,11 +213,9 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     final timedLyricFontSize = 16 * lyricsFontScale;
     final plainLyricFontSize = 18 * lyricsFontScale;
     final translationFontSize = 13 * lyricsFontScale;
-    final basePadding = !hasTimedLyrics
+    final basePadding = lyricsStyle == LyricsStyle.apple
         ? PlaybackPageUiTuning.appleLyricsVerticalPadding
-        : (lyricsStyle == LyricsStyle.apple
-            ? PlaybackPageUiTuning.appleLyricsVerticalPadding
-            : PlaybackPageUiTuning.traditionalLyricsVerticalPadding);
+        : PlaybackPageUiTuning.traditionalLyricsVerticalPadding;
     final verticalItemPadding = basePadding * lyricsFontScale;
     final translatedSpacing = 3 * lyricsFontScale;
 
@@ -825,8 +823,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       await _showManualLyricsDialog(displayPlainLyrics);
     } else if (selected == 'adjust_lyrics_font') {
       if (context.mounted) {
-        final hasTimed = _hasTimedLyrics(displayLines);
-        final style = hasTimed ? settings.lyricsStyle : LyricsStyle.traditional;
+        final style = settings.lyricsStyle;
         await showLyricsFontScaleDialog(context, ref, lyricsStyle: style);
       }
     }
@@ -1496,7 +1493,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     final accent = widget.accentColor ?? Theme.of(context).colorScheme.primary;
     final lyrics = displayLyrics;
     final hasTimedLyrics = _hasTimedLyrics(displayLines);
-    final effectiveLyricsStyle = hasTimedLyrics ? lyricsStyle : LyricsStyle.traditional;
+    final effectiveLyricsStyle = lyricsStyle;
     final userFontScale = ref.watch(
       settingsServiceProvider.select((settings) =>
           effectiveLyricsStyle == LyricsStyle.apple
@@ -1787,7 +1784,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
         }
 
         final mainView = _cachedLyricsView!;
-        if (effectiveLyricsStyle == LyricsStyle.apple) {
+        if (effectiveLyricsStyle == LyricsStyle.apple && hasTimedLyrics) {
           return Listener(
             behavior: HitTestBehavior.translucent,
             onPointerDown: (event) {
