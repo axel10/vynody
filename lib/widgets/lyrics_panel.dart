@@ -1557,11 +1557,11 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
         // Base scale based on screen width/resolution
         double baseScale;
         if (screenWidth <= PlaybackPageUiTuning.lyricsBaseScaleSmallScreenWidth) {
-          baseScale = PlaybackPageUiTuning.lyricsMinBaseScale;
-        } else if (screenWidth >= PlaybackPageUiTuning.lyricsBaseScaleLargeScreenWidth) {
           baseScale = PlaybackPageUiTuning.lyricsMaxBaseScale;
+        } else if (screenWidth >= PlaybackPageUiTuning.lyricsBaseScaleLargeScreenWidth) {
+          baseScale = PlaybackPageUiTuning.lyricsMinBaseScale;
         } else {
-          baseScale = PlaybackPageUiTuning.lyricsMinBaseScale +
+          baseScale = PlaybackPageUiTuning.lyricsMaxBaseScale -
               (screenWidth - PlaybackPageUiTuning.lyricsBaseScaleSmallScreenWidth) *
                   (PlaybackPageUiTuning.lyricsMaxBaseScale - PlaybackPageUiTuning.lyricsMinBaseScale) /
                   (PlaybackPageUiTuning.lyricsBaseScaleLargeScreenWidth - PlaybackPageUiTuning.lyricsBaseScaleSmallScreenWidth);

@@ -37,8 +37,8 @@ class PlaybackPageUiTuning {
   static const double lyricsMaxFontScale = 3.0;
   static const double lyricsBaseScaleSmallScreenWidth = 360.0;
   static const double lyricsBaseScaleLargeScreenWidth = 1000.0;
-  static const double lyricsMinBaseScale = 0.9;
-  static const double lyricsMaxBaseScale = 1.15;
+  static const double lyricsMinBaseScale = 1.15;
+  static const double lyricsMaxBaseScale = 1.20;
   static const double lyricsPanelWidthReference = 360.0;
   static const double lyricsPanelWidthGrowFactor = 0.0015;
   static const double lyricsPanelWidthShrinkFactor = 0.0025;
