@@ -1557,11 +1557,11 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
         // Base scale based on screen width/resolution
         double baseScale;
         if (screenWidth <= PlaybackPageUiTuning.lyricsBaseScaleSmallScreenWidth) {
-          baseScale = PlaybackPageUiTuning.lyricsMaxBaseScale;
-        } else if (screenWidth >= PlaybackPageUiTuning.lyricsBaseScaleLargeScreenWidth) {
           baseScale = PlaybackPageUiTuning.lyricsMinBaseScale;
+        } else if (screenWidth >= PlaybackPageUiTuning.lyricsBaseScaleLargeScreenWidth) {
+          baseScale = PlaybackPageUiTuning.lyricsMaxBaseScale;
         } else {
-          baseScale = PlaybackPageUiTuning.lyricsMaxBaseScale -
+          baseScale = PlaybackPageUiTuning.lyricsMinBaseScale +
               (screenWidth - PlaybackPageUiTuning.lyricsBaseScaleSmallScreenWidth) *
                   (PlaybackPageUiTuning.lyricsMaxBaseScale - PlaybackPageUiTuning.lyricsMinBaseScale) /
                   (PlaybackPageUiTuning.lyricsBaseScaleLargeScreenWidth - PlaybackPageUiTuning.lyricsBaseScaleSmallScreenWidth);
@@ -1571,7 +1571,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
         // For traditional scrolling lyrics/plain lyrics, we clamp the panel width used for font scaling
         // to prevent the text from becoming too large on wide screens.
         final double effectivePanelWidth = effectiveLyricsStyle == LyricsStyle.traditional
-            ? panelWidth.clamp(0.0, 500.0)
+            ? panelWidth.clamp(0.0, PlaybackPageUiTuning.traditionalLyricsMaxWidthClamp)
             : panelWidth;
 
         double panelWidthFactor;
