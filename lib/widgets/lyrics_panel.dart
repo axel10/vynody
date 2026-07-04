@@ -1289,7 +1289,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     final double target;
     if (lyricsStyle == LyricsStyle.apple && index < _currentLineHeights.length) {
       final topOfLine = itemCenters[index] - _currentLineHeights[index] / 2;
-      final offset = isPortrait ? 0.0 : 100.0;
+      final offset = isPortrait ? 25.0 : 100.0;
       target = math.max(0.0, math.min(topOfLine - offset, maxExtent));
     } else {
       final targetCenter = itemCenters[index];

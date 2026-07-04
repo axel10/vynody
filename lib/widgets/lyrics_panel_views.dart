@@ -216,7 +216,7 @@ class _LyricsPanelTimedLyricsViewState extends State<LyricsPanelTimedLyricsView>
                           ),
                     padding: EdgeInsets.only(
                       top: widget.lyricsStyle == LyricsStyle.apple
-                          ? (isPortrait ? 0.0 : 120.0)
+                          ? (isPortrait ? 50.0 : 120.0)
                           : 0.0,
                       bottom: widget.bottomSpacerHeight + widget.bottomTabBarHeight + 500,
                     ),
