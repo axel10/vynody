@@ -1570,11 +1570,11 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
         }
 
         // Panel width factor: larger width -> larger font
-        // For traditional scrolling lyrics/plain lyrics, we clamp the panel width used for font scaling
-        // to prevent the text from becoming too large on wide screens.
+        // For both traditional and Apple scrolling lyrics, we clamp the panel width used for font scaling
+        // to prevent the text from becoming too large on wide screens and restricting user font scale adjustments.
         final double effectivePanelWidth = effectiveLyricsStyle == LyricsStyle.traditional
             ? panelWidth.clamp(0.0, PlaybackPageUiTuning.traditionalLyricsMaxWidthClamp)
-            : panelWidth;
+            : panelWidth.clamp(0.0, PlaybackPageUiTuning.appleLyricsMaxWidthClamp);
 
         double panelWidthFactor;
         if (effectivePanelWidth >= PlaybackPageUiTuning.lyricsPanelWidthReference) {
