@@ -1,3 +1,4 @@
+import 'dart:collection';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
@@ -32,27 +33,54 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
   Uint8List? _artworkBytes;
   bool _artworkQueried = false;
 
+  static final LinkedHashMap<String, Uint8List> _artworkCache = LinkedHashMap<String, Uint8List>();
+
   @override
   void initState() {
     super.initState();
     if (Platform.isAndroid || Platform.isIOS) {
       if (widget.id != null) {
-        _queryArtwork(widget.id!);
+        final cacheKey = '${widget.id}_$_bucketedSize';
+        if (_artworkCache.containsKey(cacheKey)) {
+          _artworkBytes = _artworkCache[cacheKey];
+          _artworkQueried = true;
+        } else {
+          _queryArtwork(widget.id!);
+        }
       } else {
         _triggerLoad();
       }
     }
   }
 
+  double get _bucketedSize {
+    if (widget.size <= 60.0) {
+      return 60.0;
+    } else if (widget.size <= 120.0) {
+      return 120.0;
+    } else if (widget.size <= 250.0) {
+      return 250.0;
+    } else {
+      return 400.0;
+    }
+  }
+
   Future<void> _queryArtwork(int id) async {
     try {
       final double dpr = WidgetsBinding.instance.platformDispatcher.implicitView?.devicePixelRatio ?? 2.0;
-      final int targetSize = (widget.size * dpr).round();
+      final int targetSize = (_bucketedSize * dpr).round();
       final bytes = await OnAudioQuery().queryArtwork(
         id,
         ArtworkType.AUDIO,
         size: targetSize > 200 ? targetSize : 200,
       );
+      if (bytes != null && bytes.isNotEmpty) {
+        final cacheKey = '${id}_$_bucketedSize';
+        _artworkCache[cacheKey] = bytes;
+        if (_artworkCache.length > 100) {
+          _artworkCache.remove(_artworkCache.keys.first);
+        }
+      }
       if (mounted) {
         setState(() {
           _artworkBytes = bytes;
@@ -93,7 +121,13 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
       _artworkBytes = null;
       _artworkQueried = false;
       if ((Platform.isAndroid || Platform.isIOS) && widget.id != null) {
-        _queryArtwork(widget.id!);
+        final cacheKey = '${widget.id}_$_bucketedSize';
+        if (_artworkCache.containsKey(cacheKey)) {
+          _artworkBytes = _artworkCache[cacheKey];
+          _artworkQueried = true;
+        } else {
+          _queryArtwork(widget.id!);
+        }
       } else if (Platform.isAndroid || Platform.isIOS) {
         _triggerLoad();
       }
@@ -113,7 +147,7 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
     final double adjustedSize = (widget.size * dpr).round() / dpr;
     final double layoutWidth = widget.width ?? adjustedSize;
     final double layoutHeight = widget.height ?? adjustedSize;
-    final int cachePixels = (widget.size * dpr).round();
+    final int cachePixels = (_bucketedSize * dpr).round();
 
     if (imagePath != null) {
       final file = File(imagePath);
