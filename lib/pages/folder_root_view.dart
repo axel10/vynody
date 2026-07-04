@@ -434,16 +434,21 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
                               AppLocalizations.of(context)!.needPermissionToScan,
                               style: const TextStyle(color: Colors.red, fontSize: 12),
                             ),
-                      onTap: () {
-                        widget.onNavigateTo(
-                          scanner.systemMediaFolder ??
-                              MusicFolder(
-                                path: 'system',
-                                name: AppLocalizations.of(
-                                  context,
-                                )!.systemMediaLibrary,
-                              ),
-                        );
+                      onTap: () async {
+                        if (!hasPermission) {
+                          await scanner.checkAndRequestPermissions();
+                        }
+                        if (context.mounted) {
+                          widget.onNavigateTo(
+                            scanner.systemMediaFolder ??
+                                MusicFolder(
+                                  path: 'system',
+                                  name: AppLocalizations.of(
+                                    context,
+                                  )!.systemMediaLibrary,
+                                ),
+                          );
+                        }
                       },
                     ),
                   ),

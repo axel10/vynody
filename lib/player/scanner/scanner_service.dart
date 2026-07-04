@@ -339,7 +339,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     }
 
     if (Platform.isAndroid) {
-      unawaited(checkAndRequestPermissions());
+      unawaited(checkPermissionStatus());
     } else if (_supportsPersistentAccess) {
       unawaited(_syncAppleScopedAccessState());
     }
@@ -501,7 +501,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
         notifyListeners();
       });
       await _timeInitStep('check and request permissions', () {
-        return checkAndRequestPermissions();
+        return checkPermissionStatus();
       });
       // Auto scan on startup
       await _timeInitStep('startup scan', scan);
@@ -560,7 +560,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       'hasPermission=$_hasPermission '
       'playerController=${_playerController != null}',
     );
-    _hasPermission = await _checkPermissions();
+    _hasPermission = await _checkPermissions(request: true);
     debugPrint(
       '[ScannerService] checkAndRequestPermissions result '
       'hasPermission=$_hasPermission',
@@ -569,6 +569,23 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     if (_hasPermission) {
       // 系统媒体库扫描可能比本地目录扫描慢很多，启动时不要把
       // 根目录初始化卡在这里。
+      unawaited(scanSystemMedia());
+    }
+  }
+
+  Future<void> checkPermissionStatus() async {
+    debugPrint(
+      '[ScannerService] checkPermissionStatus start '
+      'hasPermission=$_hasPermission '
+      'playerController=${_playerController != null}',
+    );
+    _hasPermission = await _checkPermissions(request: false);
+    debugPrint(
+      '[ScannerService] checkPermissionStatus result '
+      'hasPermission=$_hasPermission',
+    );
+    notifyListeners();
+    if (_hasPermission) {
       unawaited(scanSystemMedia());
     }
   }
@@ -1027,8 +1044,20 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
-  Future<bool> _checkPermissions() async {
+  Future<bool> _checkPermissions({bool request = true}) async {
     if (Platform.isAndroid) {
+      if (!request) {
+        final deviceInfo = DeviceInfoPlugin();
+        final androidInfo = await deviceInfo.androidInfo;
+        if (androidInfo.version.sdkInt >= 33) {
+          final status = await Permission.audio.status;
+          return status.isGranted;
+        } else {
+          final status = await Permission.storage.status;
+          return status.isGranted;
+        }
+      }
+
       final controller = _playerController;
       if (controller != null) {
         debugPrint(

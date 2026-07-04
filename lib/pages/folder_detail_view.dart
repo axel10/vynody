@@ -71,11 +71,18 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
   bool _isCoverVisible = true;
   bool _showStatusBarOverlay = false;
 
+  MusicFolder get _effectiveFolder {
+    if (widget.folder.path == 'system') {
+      return ref.read(scannerServiceProvider).systemMediaFolder ?? widget.folder;
+    }
+    return widget.folder;
+  }
+
   @override
   void initState() {
     super.initState();
     _searchController = TextEditingController();
-    final targetOffset = ref.read(scannerServiceProvider).getFolderScrollOffset(widget.folder.path);
+    final targetOffset = ref.read(scannerServiceProvider).getFolderScrollOffset(_effectiveFolder.path);
     _localScrollController = ScrollController(initialScrollOffset: targetOffset);
     _isCoverVisible = targetOffset < 160.0;
     _localScrollController.addListener(_onScroll);
@@ -101,7 +108,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
     final headerHeight = 64.0 + statusBarHeight;
 
     ref.read(scannerServiceProvider).setFolderScrollOffset(
-      widget.folder.path,
+      _effectiveFolder.path,
       offset,
     );
     final isVisible = offset < 160.0;
@@ -187,11 +194,12 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
     final songPath = widget.highlightedSongPath;
     if (songPath == null) return;
 
-    final fileIndex = widget.folder.files.indexWhere((file) => p.equals(file.path, songPath));
+    final folder = _effectiveFolder;
+    final fileIndex = folder.files.indexWhere((file) => p.equals(file.path, songPath));
     if (fileIndex == -1) return;
 
     final hasPermission = ref.read(scannerServiceProvider).hasPermission;
-    final showPermissionWarning = widget.folder.path == 'system' && !hasPermission;
+    final showPermissionWarning = folder.path == 'system' && !hasPermission;
 
     double fileOffset = 48.0;
     fileOffset += 190.0;
@@ -206,7 +214,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
     final double cardWidth = (crossAxisExtent - (crossAxisCount - 1) * 16) / crossAxisCount;
     final double cardHeight = cardWidth / 0.72;
 
-    final totalGridItems = widget.folder.subFolders.length;
+    final totalGridItems = folder.subFolders.length;
     final int rows = (totalGridItems / crossAxisCount).ceil();
     fileOffset += rows * (cardHeight + 16);
     fileOffset += fileIndex * 80.0;
@@ -227,12 +235,13 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
 
   List<MusicFile> _getSelectedSongs() {
     final songs = <MusicFile>[];
+    final folder = _effectiveFolder;
     songs.addAll(
-      widget.folder.allSongs.where(
+      folder.allSongs.where(
         (file) => widget.selectedSongPaths.contains(file.path),
       ),
     );
-    for (final sub in widget.folder.subFolders) {
+    for (final sub in folder.subFolders) {
       if (widget.selectedFolderPaths.contains(sub.path)) {
         songs.addAll(sub.allSongs);
       }
@@ -243,6 +252,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
 
   @override
   Widget build(BuildContext context) {
+    final folder = _effectiveFolder;
     final scanner = ref.watch(scannerServiceProvider);
     final settings = ref.watch(settingsServiceProvider);
     final l10n = AppLocalizations.of(context)!;
@@ -254,22 +264,22 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
     final isPlaying = ref.watch(audioIsPlayingProvider);
 
     final matchedFolders = _searchQuery.isNotEmpty
-        ? _findMatchingFolders(widget.folder, _searchQuery)
-        : widget.folder.subFolders;
+        ? _findMatchingFolders(folder, _searchQuery)
+        : folder.subFolders;
     final matchedSongs = _searchQuery.isNotEmpty
-        ? _findMatchingSongs(widget.folder, _searchQuery)
-        : widget.folder.files;
+        ? _findMatchingSongs(folder, _searchQuery)
+        : folder.files;
 
     final showSelectionPanel =
         widget.isSelectionMode &&
         isUserRootSelectionContext(
           scanner,
-          widget.folder,
+          folder,
           scanner.navigationHistory,
         );
     final selectionPanelHeight = showSelectionPanel ? 220.0 : 0.0;
 
-    final representativeSong = findRepresentativeSong(widget.folder);
+    final representativeSong = findRepresentativeSong(folder);
 
     Widget scrollBody;
 
@@ -502,8 +512,8 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
                                            initialIndex: fileIndex,
                                            source: PlaybackSource(
                                              type: PlaybackSourceType.folder,
-                                             id: widget.folder.path,
-                                             name: widget.folder.name,
+                                             id: folder.path,
+                                             name: folder.name,
                                            ),
                                          );
                                       } catch (e, st) {
@@ -610,8 +620,8 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
                                    initialIndex: fileIndex,
                                    source: PlaybackSource(
                                      type: PlaybackSourceType.folder,
-                                     id: widget.folder.path,
-                                     name: widget.folder.name,
+                                     id: folder.path,
+                                     name: folder.name,
                                    ),
                                  );
                               } catch (e, st) {
@@ -654,13 +664,13 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
     }
 
     scrollBody = CustomScrollView(
-      key: ValueKey(widget.folder.path),
+      key: ValueKey(folder.path),
       controller: _localScrollController,
       scrollCacheExtent: const ScrollCacheExtent.pixels(1000.0),
       slivers: [
         SliverPersistentHeader(
           delegate: _BreadcrumbsHeaderDelegate(
-            child: _buildBreadcrumbs(widget.folder, scanner),
+            child: _buildBreadcrumbs(folder, scanner),
             height: 64.0 + MediaQuery.of(context).padding.top,
           ),
           pinned: !Platform.isAndroid && !Platform.isIOS,
@@ -669,29 +679,29 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
         SliverToBoxAdapter(
           child: _buildFolderHeaderBanner(
             context: context,
-            folder: widget.folder,
+            folder: folder,
             representativeSong: representativeSong,
-            songsCount: widget.folder.allSongs.length,
-            displayPath: ScannerPathUtils.cleanDisplayPath(widget.folder.path),
+            songsCount: folder.allSongs.length,
+            displayPath: ScannerPathUtils.cleanDisplayPath(folder.path),
             onPlayAll: () => audio.playPlaylist(
-              widget.folder.allSongs,
+              folder.allSongs,
               source: PlaybackSource(
                 type: PlaybackSourceType.folder,
-                id: widget.folder.path,
-                name: widget.folder.name,
+                id: folder.path,
+                name: folder.name,
               ),
             ),
             onShuffle: () => audio.playPlaylist(
-              List.of(widget.folder.allSongs)..shuffle(),
+              List.of(folder.allSongs)..shuffle(),
               source: PlaybackSource(
                 type: PlaybackSourceType.folder,
-                id: widget.folder.path,
-                name: widget.folder.name,
+                id: folder.path,
+                name: folder.name,
               ),
             ),
           ),
         ),
-        if (widget.folder.path == 'system' && !hasPermission)
+        if (folder.path == 'system' && !hasPermission)
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.all(32.0),
@@ -788,11 +798,11 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
                       ? LibrarySelectionPanel(
                           key: const ValueKey('folder-selection-panel'),
                           selectedSongs: selectedSongs,
-                          allSongs: widget.folder.allSongs,
+                          allSongs: folder.allSongs,
                           onToggleSelectAll: () {
                             final isAllSelected =
-                                selectedSongs.length == widget.folder.allSongs.length &&
-                                widget.folder.allSongs.isNotEmpty;
+                                selectedSongs.length == folder.allSongs.length &&
+                                folder.allSongs.isNotEmpty;
                             if (isAllSelected) {
                               widget.onClearAllSelection();
                             } else {
@@ -1093,7 +1103,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
   }
 
   void _showSortDialog(BuildContext context, ScannerService scanner) {
-    final currentFolder = widget.folder;
+    final currentFolder = _effectiveFolder;
     final currentFolderPath = currentFolder.path;
     final globalSettings = scanner.getGlobalSortSettings();
     final currentFolderSettings = scanner.getSortSettingsForFolder(currentFolderPath);
