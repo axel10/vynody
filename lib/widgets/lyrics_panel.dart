@@ -1567,17 +1567,30 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
         }
 
         // Panel width factor: larger width -> larger font
+        // For traditional scrolling lyrics/plain lyrics, we clamp the panel width used for font scaling
+        // to prevent the text from becoming too large on wide screens.
+        final double effectivePanelWidth = effectiveLyricsStyle == LyricsStyle.traditional
+            ? panelWidth.clamp(0.0, 500.0)
+            : panelWidth;
+
         double panelWidthFactor;
-        if (panelWidth >= PlaybackPageUiTuning.lyricsPanelWidthReference) {
-          panelWidthFactor = 1.0 + (panelWidth - PlaybackPageUiTuning.lyricsPanelWidthReference) *
+        if (effectivePanelWidth >= PlaybackPageUiTuning.lyricsPanelWidthReference) {
+          panelWidthFactor = 1.0 + (effectivePanelWidth - PlaybackPageUiTuning.lyricsPanelWidthReference) *
                   PlaybackPageUiTuning.lyricsPanelWidthGrowFactor;
         } else {
-          panelWidthFactor = 1.0 - (PlaybackPageUiTuning.lyricsPanelWidthReference - panelWidth) *
+          panelWidthFactor = 1.0 - (PlaybackPageUiTuning.lyricsPanelWidthReference - effectivePanelWidth) *
                   PlaybackPageUiTuning.lyricsPanelWidthShrinkFactor;
         }
 
-        final double calculatedFontScale = (baseScale * panelWidthFactor * userFontScale).clamp(
-          PlaybackPageUiTuning.lyricsMinFontScale,
+        // Clamp the base adaptive scale (baseScale * panelWidthFactor) before multiplying by userFontScale,
+        // so that userFontScale can scale the font size up and down linearly without being prematurely clamped.
+        final double baseAdaptiveScale = (baseScale * panelWidthFactor).clamp(
+          effectiveLyricsStyle == LyricsStyle.traditional ? 1.0 : PlaybackPageUiTuning.lyricsMinFontScale,
+          PlaybackPageUiTuning.lyricsMaxFontScale,
+        );
+
+        final double calculatedFontScale = (baseAdaptiveScale * userFontScale).clamp(
+          0.8,
           PlaybackPageUiTuning.lyricsMaxFontScale,
         );
 
