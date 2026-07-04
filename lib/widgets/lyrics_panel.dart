@@ -1587,14 +1587,25 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
 
         // Clamp the base adaptive scale (baseScale * panelWidthFactor) before multiplying by userFontScale,
         // so that userFontScale can scale the font size up and down linearly without being prematurely clamped.
-        final double baseAdaptiveScale = (baseScale * panelWidthFactor).clamp(
+        double baseAdaptiveScale = (baseScale * panelWidthFactor).clamp(
           effectiveLyricsStyle == LyricsStyle.traditional ? 1.0 : PlaybackPageUiTuning.lyricsMinFontScale,
           PlaybackPageUiTuning.lyricsMaxFontScale,
         );
 
+        // Adapt for high resolution screens in Apple lyrics mode, scaling up smoothly
+        double effectiveMaxFontScale = PlaybackPageUiTuning.lyricsMaxFontScale;
+        if (effectiveLyricsStyle == LyricsStyle.apple &&
+            screenWidth > PlaybackPageUiTuning.appleLyricsBaseScreenWidth) {
+          final double highResFactor = 1.0 +
+              (screenWidth - PlaybackPageUiTuning.appleLyricsBaseScreenWidth) *
+                  PlaybackPageUiTuning.appleLyricsHighResSlope;
+          baseAdaptiveScale *= highResFactor;
+          effectiveMaxFontScale *= highResFactor;
+        }
+
         final double calculatedFontScale = (baseAdaptiveScale * userFontScale).clamp(
           0.8,
-          PlaybackPageUiTuning.lyricsMaxFontScale,
+          effectiveMaxFontScale,
         );
 
         final lineMetrics = _measureLineMetrics(

@@ -44,6 +44,8 @@ class PlaybackPageUiTuning {
   static const double lyricsPanelWidthShrinkFactor = 0.0025;
   static const double traditionalLyricsMaxWidthClamp = 560.0; // 传统歌词模式下用于计算字体缩放的最大面板宽度
   static const double appleLyricsMaxWidthClamp = 560.0; // 苹果样式歌词模式下用于计算字体缩放的最大面板宽度
+  static const double appleLyricsBaseScreenWidth = 1920.0; // 苹果样式歌词高分辨率适配的基准屏幕宽度
+  static const double appleLyricsHighResSlope = 0.00015; // 超过基准宽度后苹果样式歌词的增长斜率系数
 
   static EdgeInsets contentPadding({
     required bool isLandscape,
