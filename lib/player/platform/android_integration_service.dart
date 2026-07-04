@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:audio_service/audio_service.dart';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:vynody/player/audio/audio_service.dart' as app; // To distinguish from package:audio_service
 import 'package:vynody/player/audio/audio_handler.dart';
@@ -25,8 +26,6 @@ class AndroidIntegrationService {
 
   Future<void> _init() async {
     try {
-      await _ensureNotificationPermission();
-
       _handler = await AudioService.init(
         builder: () => MyAudioHandler(audioService),
         config: AudioServiceConfig(
@@ -41,6 +40,10 @@ class AndroidIntegrationService {
       );
       _initialized = true;
       _updateInitialState();
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _ensureNotificationPermission();
+      });
     } catch (e, st) {
       debugPrint('Android audio service init failed: $e');
       debugPrintStack(stackTrace: st);

@@ -1964,6 +1964,13 @@ class AudioService extends Notifier<AudioSnapshot> {
           '_updateCurrentMetadata artwork hydrate applied -> '
           'current=${_debugSongLabel(currentMusic)}',
         );
+
+        final updatedSong = _queue[_currentIndex];
+        _windowsIntegration?.updateMetadata(updatedSong);
+        _androidIntegration?.updateMetadata(updatedSong);
+        _darwinIntegration?.updateMetadata(updatedSong);
+        _linuxIntegration?.updateMetadata(updatedSong);
+
         // If we already have cached theme colors from the database, keep them
         // as the final source of truth to avoid a second visual color change.
         if (!hasCachedThemeColors) {
