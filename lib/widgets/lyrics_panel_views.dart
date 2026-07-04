@@ -257,7 +257,7 @@ class _LyricsPanelTimedLyricsViewState extends State<LyricsPanelTimedLyricsView>
                                             alpha: (isNear && widget.lyricsStyle != LyricsStyle.apple) ? 0.72 : 0.46,
                                           )),
                                 fontSize: timedLyricFontSize,
-                                fontWeight: isActive
+                                fontWeight: (isActive || widget.lyricsStyle == LyricsStyle.apple)
                                     ? FontWeight.w700
                                     : FontWeight.w400,
                                 height: 1.4,
@@ -268,7 +268,9 @@ class _LyricsPanelTimedLyricsViewState extends State<LyricsPanelTimedLyricsView>
                                     ? widget.textColor.withValues(alpha: 1.0)
                                     : widget.textColor.withValues(alpha: 0.92),
                                 fontSize: plainLyricFontSize,
-                                fontWeight: FontWeight.w400,
+                                fontWeight: widget.lyricsStyle == LyricsStyle.apple
+                                    ? FontWeight.w700
+                                    : FontWeight.w400,
                                 height: 1.6,
                                 leadingDistribution: TextLeadingDistribution.even,
                               );
@@ -311,7 +313,7 @@ class _LyricsPanelTimedLyricsViewState extends State<LyricsPanelTimedLyricsView>
                                               ? widget.secondaryTextColor.withValues(alpha: 1.0)
                                               : widget.secondaryTextColor),
                                       fontSize: translationFontSize,
-                                      fontWeight: isActive
+                                      fontWeight: (isActive || widget.lyricsStyle == LyricsStyle.apple)
                                           ? FontWeight.w700
                                           : FontWeight.w400,
                                       height: 1.3,

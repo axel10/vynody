@@ -224,19 +224,20 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     final lineStyle = hasTimedLyrics
         ? Theme.of(context).textTheme.bodyLarge!.copyWith(
             fontSize: timedLyricFontSize,
-            fontWeight: FontWeight.w400,
+            fontWeight: lyricsStyle == LyricsStyle.apple ? FontWeight.w700 : FontWeight.w400,
             height: 1.4,
             leadingDistribution: TextLeadingDistribution.even,
           )
         : TextStyle(
             fontSize: plainLyricFontSize,
-            fontWeight: FontWeight.w400,
+            fontWeight: lyricsStyle == LyricsStyle.apple ? FontWeight.w700 : FontWeight.w400,
             height: 1.6,
             leadingDistribution: TextLeadingDistribution.even,
           );
 
     final translationStyle = TextStyle(
       fontSize: translationFontSize,
+      fontWeight: lyricsStyle == LyricsStyle.apple ? FontWeight.w700 : FontWeight.w400,
       height: 1.3,
       leadingDistribution: TextLeadingDistribution.even,
     );
