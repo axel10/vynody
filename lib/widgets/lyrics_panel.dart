@@ -1554,6 +1554,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       builder: (context, constraints) {
         _writeLog('LayoutBuilder: maxWidth=${constraints.maxWidth} maxHeight=${constraints.maxHeight}');
         final double screenWidth = MediaQuery.sizeOf(context).width;
+        final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
         final double panelWidth = constraints.maxWidth;
 
         // Base scale based on screen width/resolution
@@ -1572,9 +1573,12 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
         // Panel width factor: larger width -> larger font
         // For both traditional and Apple scrolling lyrics, we clamp the panel width used for font scaling
         // to prevent the text from becoming too large on wide screens and restricting user font scale adjustments.
+        final double appleClamp = isPortrait
+            ? PlaybackPageUiTuning.appleLyricsMaxWidthClamp
+            : PlaybackPageUiTuning.appleLyricsLandscapeMaxWidthClamp;
         final double effectivePanelWidth = effectiveLyricsStyle == LyricsStyle.traditional
             ? panelWidth.clamp(0.0, PlaybackPageUiTuning.traditionalLyricsMaxWidthClamp)
-            : panelWidth.clamp(0.0, PlaybackPageUiTuning.appleLyricsMaxWidthClamp);
+            : panelWidth.clamp(0.0, appleClamp);
 
         double panelWidthFactor;
         if (effectivePanelWidth >= PlaybackPageUiTuning.lyricsPanelWidthReference) {
@@ -1587,8 +1591,11 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
 
         // Clamp the base adaptive scale (baseScale * panelWidthFactor) before multiplying by userFontScale,
         // so that userFontScale can scale the font size up and down linearly without being prematurely clamped.
+        final double minScaleLimit = effectiveLyricsStyle == LyricsStyle.traditional
+            ? 1.0
+            : (isPortrait ? PlaybackPageUiTuning.lyricsMinFontScale : 0.8);
         double baseAdaptiveScale = (baseScale * panelWidthFactor).clamp(
-          effectiveLyricsStyle == LyricsStyle.traditional ? 1.0 : PlaybackPageUiTuning.lyricsMinFontScale,
+          minScaleLimit,
           PlaybackPageUiTuning.lyricsMaxFontScale,
         );
 
@@ -1605,11 +1612,10 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
         }
 
         // Apply a 1.5x scale factor for Apple-style lyrics in landscape orientation
-        final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
         if (effectiveLyricsStyle == LyricsStyle.apple && !isPortrait) {
           baseAdaptiveScale *= 1.5;
           effectiveMaxFontScale *= 1.5;
-          effectiveMinFontScale *= 1.5;
+          // Keep effectiveMinFontScale at 0.8 in landscape so manual adjustment can scale down properly.
         }
 
         final double calculatedFontScale = (baseAdaptiveScale * userFontScale).clamp(
