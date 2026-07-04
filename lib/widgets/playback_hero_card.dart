@@ -517,12 +517,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                                     key: ValueKey('controls_sizing_box_${useOverlayStyle ? 'overlay' : 'default'}'),
                                     width:
                                         (effectiveIsLandscape
-                                            ? lerpDouble(
-                                                PlaybackHeroCardUiTuning
-                                                    .lControlsScaleBase,
-                                                layout.controls.width,
-                                                tLyrics,
-                                              )!
+                                            ? layout.controls.width
                                             : width *
                                                   PlaybackHeroCardUiTuning
                                                       .portraitControlsWidthFactor),
