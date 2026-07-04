@@ -49,6 +49,17 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
     if (state == AppLifecycleState.resumed) {
       if (Platform.isAndroid) {
         _checkBatteryExemptionStatus();
+        // 延迟检测以应对 Android 系统电池优化状态同步延迟的问题
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (mounted) {
+            _checkBatteryExemptionStatus();
+          }
+        });
+        Future.delayed(const Duration(milliseconds: 1000), () {
+          if (mounted) {
+            _checkBatteryExemptionStatus();
+          }
+        });
       }
     }
   }
