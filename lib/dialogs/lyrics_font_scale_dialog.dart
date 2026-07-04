@@ -8,7 +8,11 @@ import '../player/settings/settings_service.dart';
 /// of the screen to adjust the lyrics font scale in real-time.
 /// The dialog's background barrier is transparent, allowing the user to see
 /// the text size change dynamically underneath.
-Future<void> showLyricsFontScaleDialog(BuildContext context, WidgetRef ref) async {
+Future<void> showLyricsFontScaleDialog(
+  BuildContext context,
+  WidgetRef ref, {
+  required LyricsStyle lyricsStyle,
+}) async {
   final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
 
   await showDialog<void>(
@@ -41,7 +45,9 @@ Future<void> showLyricsFontScaleDialog(BuildContext context, WidgetRef ref) asyn
                 child: Consumer(
                   builder: (context, ref, child) {
                     final settings = ref.watch(settingsServiceProvider);
-                    final currentScale = settings.lyricsFontScale;
+                    final currentScale = lyricsStyle == LyricsStyle.apple
+                        ? settings.lyricsFontScaleApple
+                        : settings.lyricsFontScaleTraditional;
                     final l10n = AppLocalizations.of(context)!;
 
                     return Row(
@@ -52,7 +58,11 @@ Future<void> showLyricsFontScaleDialog(BuildContext context, WidgetRef ref) asyn
                           child: IconButton(
                             icon: const Icon(Icons.format_size_rounded, color: Colors.white, size: 20),
                             onPressed: () {
-                              ref.read(settingsServiceProvider).resetLyricsFontScale();
+                              if (lyricsStyle == LyricsStyle.apple) {
+                                ref.read(settingsServiceProvider).resetLyricsFontScaleApple();
+                              } else {
+                                ref.read(settingsServiceProvider).resetLyricsFontScaleTraditional();
+                              }
                             },
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(),
@@ -78,7 +88,11 @@ Future<void> showLyricsFontScaleDialog(BuildContext context, WidgetRef ref) asyn
                               onChanged: (value) {
                                 // Round to one decimal place to avoid floating point precision issues
                                 final rounded = (value * 10).round() / 10.0;
-                                ref.read(settingsServiceProvider).lyricsFontScale = rounded;
+                                if (lyricsStyle == LyricsStyle.apple) {
+                                  ref.read(settingsServiceProvider).lyricsFontScaleApple = rounded;
+                                } else {
+                                  ref.read(settingsServiceProvider).lyricsFontScaleTraditional = rounded;
+                                }
                               },
                             ),
                           ),

@@ -257,6 +257,8 @@ class SettingsService extends ChangeNotifier {
   static const String _keyLyricsSaveMethod = 'lyrics_save_method';
   static const String _keyLyricsStyle = 'lyrics_style';
   static const String _keyLyricsFontScale = 'lyrics_font_scale';
+  static const String _keyLyricsFontScaleTraditional = 'lyrics_font_scale_traditional';
+  static const String _keyLyricsFontScaleApple = 'lyrics_font_scale_apple';
   static const String _keyGenerationPrimaryProvider =
       'lyrics_generation_primary_provider';
   static const String _keyGenerationPrimaryModelId =
@@ -495,13 +497,32 @@ class SettingsService extends ChangeNotifier {
     onChanged: notifyListeners,
   );
 
-  late final _lyricsFontScaleProperty = SettingProperty<double>(
-    key: _keyLyricsFontScale,
+  late final _lyricsFontScaleTraditionalProperty = SettingProperty<double>(
+    key: _keyLyricsFontScaleTraditional,
     defaultValue: defaultLyricsFontScale,
     prefs: _prefs,
     onChanged: notifyListeners,
-    customRead: (prefs, key, def) =>
-        _normalizeLyricsFontScale(prefs.getDouble(key) ?? def),
+    customRead: (prefs, key, def) {
+      if (!prefs.containsKey(key) && prefs.containsKey(_keyLyricsFontScale)) {
+        return _normalizeLyricsFontScale(prefs.getDouble(_keyLyricsFontScale) ?? def);
+      }
+      return _normalizeLyricsFontScale(prefs.getDouble(key) ?? def);
+    },
+    customWrite: (prefs, key, val) =>
+        prefs.setDouble(key, _normalizeLyricsFontScale(val)),
+  );
+
+  late final _lyricsFontScaleAppleProperty = SettingProperty<double>(
+    key: _keyLyricsFontScaleApple,
+    defaultValue: defaultLyricsFontScale,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+    customRead: (prefs, key, def) {
+      if (!prefs.containsKey(key) && prefs.containsKey(_keyLyricsFontScale)) {
+        return _normalizeLyricsFontScale(prefs.getDouble(_keyLyricsFontScale) ?? def);
+      }
+      return _normalizeLyricsFontScale(prefs.getDouble(key) ?? def);
+    },
     customWrite: (prefs, key, val) =>
         prefs.setDouble(key, _normalizeLyricsFontScale(val)),
   );
@@ -1176,8 +1197,14 @@ class SettingsService extends ChangeNotifier {
     _lyricsStyleProperty.value = value.name;
   }
 
-  double get lyricsFontScale => _lyricsFontScaleProperty.value;
-  set lyricsFontScale(double value) => _lyricsFontScaleProperty.value = value;
+  double get lyricsFontScale => lyricsFontScaleTraditional;
+  set lyricsFontScale(double value) => lyricsFontScaleTraditional = value;
+
+  double get lyricsFontScaleTraditional => _lyricsFontScaleTraditionalProperty.value;
+  set lyricsFontScaleTraditional(double value) => _lyricsFontScaleTraditionalProperty.value = value;
+
+  double get lyricsFontScaleApple => _lyricsFontScaleAppleProperty.value;
+  set lyricsFontScaleApple(double value) => _lyricsFontScaleAppleProperty.value = value;
 
   LyricsAiProvider get lyricsAiProvider => generationPrimaryModel.provider;
   set lyricsAiProvider(LyricsAiProvider value) {
@@ -1747,7 +1774,15 @@ class SettingsService extends ChangeNotifier {
   }
 
   void resetLyricsFontScale() {
-    _lyricsFontScaleProperty.reset();
+    resetLyricsFontScaleTraditional();
+  }
+
+  void resetLyricsFontScaleTraditional() {
+    _lyricsFontScaleTraditionalProperty.reset();
+  }
+
+  void resetLyricsFontScaleApple() {
+    _lyricsFontScaleAppleProperty.reset();
   }
 
   void resetLyricsAiModels() {

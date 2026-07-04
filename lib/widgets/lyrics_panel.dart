@@ -825,7 +825,9 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       await _showManualLyricsDialog(displayPlainLyrics);
     } else if (selected == 'adjust_lyrics_font') {
       if (context.mounted) {
-        await showLyricsFontScaleDialog(context, ref);
+        final hasTimed = _hasTimedLyrics(displayLines);
+        final style = hasTimed ? settings.lyricsStyle : LyricsStyle.traditional;
+        await showLyricsFontScaleDialog(context, ref, lyricsStyle: style);
       }
     }
   }
@@ -1477,9 +1479,6 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     final lyricsState = ref.watch(lyricsControllerProvider);
     final currentSong = ref.watch(audioCurrentMusicProvider);
     final currentSongTaskState = _taskStateForSongPath(currentSong?.path);
-    final userFontScale = ref.watch(
-      settingsServiceProvider.select((settings) => settings.lyricsFontScale),
-    );
     final lyricsStyle = ref.watch(
       settingsServiceProvider.select((settings) => settings.lyricsStyle),
     );
@@ -1498,6 +1497,12 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     final lyrics = displayLyrics;
     final hasTimedLyrics = _hasTimedLyrics(displayLines);
     final effectiveLyricsStyle = hasTimedLyrics ? lyricsStyle : LyricsStyle.traditional;
+    final userFontScale = ref.watch(
+      settingsServiceProvider.select((settings) =>
+          effectiveLyricsStyle == LyricsStyle.apple
+              ? settings.lyricsFontScaleApple
+              : settings.lyricsFontScaleTraditional),
+    );
     final textColor = widget.textColor ?? Colors.white;
     final secondaryTextColor =
         widget.secondaryTextColor ?? textColor.withValues(alpha: 0.62);
