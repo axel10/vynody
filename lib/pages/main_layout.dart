@@ -243,6 +243,24 @@ class _MainLayoutState extends ConsumerState<MainLayout>
   }
 
   @override
+  void onWindowMaximize() {
+    ref.read(isWindowMinimizedProvider.notifier).state = false;
+    debugPrint('[main_layout] Window maximized');
+  }
+
+  @override
+  void onWindowUnmaximize() {
+    ref.read(isWindowMinimizedProvider.notifier).state = false;
+    debugPrint('[main_layout] Window unmaximized');
+  }
+
+  @override
+  void onWindowFocus() {
+    ref.read(isWindowMinimizedProvider.notifier).state = false;
+    debugPrint('[main_layout] Window focused');
+  }
+
+  @override
   void onWindowResized() async {
     if (_ignoreResizeEventsUntil != null &&
         DateTime.now().isBefore(_ignoreResizeEventsUntil!)) {
