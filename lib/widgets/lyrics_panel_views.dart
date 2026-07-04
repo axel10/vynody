@@ -202,24 +202,30 @@ class _LyricsPanelTimedLyricsViewState extends State<LyricsPanelTimedLyricsView>
               bottomSpacerHeight: widget.bottomSpacerHeight + widget.bottomTabBarHeight,
               child: ClipRect(
                 clipper: const _VerticalOnlyClipper(),
-                child: ScrollConfiguration(
-                  behavior: widget.scrollBehavior,
-                  child: SingleChildScrollView(
-                    controller: widget.scrollController,
-                    clipBehavior: Clip.none,
-                    physics: widget.hasTimedLyrics
-                        ? (widget.isAutoScrollPaused || widget.lyricsStyle == LyricsStyle.apple
-                              ? const BouncingScrollPhysics()
-                              : const NeverScrollableScrollPhysics())
-                        : const AlwaysScrollableScrollPhysics(
-                            parent: BouncingScrollPhysics(),
-                          ),
-                    padding: EdgeInsets.only(
-                      top: widget.lyricsStyle == LyricsStyle.apple
-                          ? (isPortrait ? 50.0 : 120.0)
-                          : 0.0,
-                      bottom: widget.bottomSpacerHeight + widget.bottomTabBarHeight + 500,
-                    ),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final viewportHeight = constraints.maxHeight;
+                    final extraBottomPadding = widget.lyricsStyle == LyricsStyle.apple
+                        ? math.max(500.0, viewportHeight - (isPortrait ? 25.0 : 100.0))
+                        : 500.0;
+                    return ScrollConfiguration(
+                      behavior: widget.scrollBehavior,
+                      child: SingleChildScrollView(
+                        controller: widget.scrollController,
+                        clipBehavior: Clip.none,
+                        physics: widget.hasTimedLyrics
+                            ? (widget.isAutoScrollPaused || widget.lyricsStyle == LyricsStyle.apple
+                                  ? const BouncingScrollPhysics()
+                                  : const NeverScrollableScrollPhysics())
+                            : const AlwaysScrollableScrollPhysics(
+                                parent: BouncingScrollPhysics(),
+                              ),
+                        padding: EdgeInsets.only(
+                          top: widget.lyricsStyle == LyricsStyle.apple
+                              ? (isPortrait ? 50.0 : 120.0)
+                              : 0.0,
+                          bottom: widget.bottomSpacerHeight + widget.bottomTabBarHeight + extraBottomPadding,
+                        ),
                     child: Column(
                       children: List.generate(widget.displayLines.length, (index) {
                         final line = widget.displayLines[index];
@@ -389,7 +395,9 @@ class _LyricsPanelTimedLyricsViewState extends State<LyricsPanelTimedLyricsView>
                         return wrappedItemWidget;
                       }),
                     ),
-                  ),
+                      ),
+                    );
+                  },
                 ),
               ),
             ),
