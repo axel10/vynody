@@ -324,6 +324,13 @@ jobs:
       - name: Checkout audio_core submodule
         run: git submodule update --init --force audio_core
 
+      - name: Checkout SFBAudioEngine
+        run: |
+          git clone https://github.com/axel10/SFBAudioEngine.git audio_core/SFBAudioEngine
+          SFB_COMMIT=$(git -C audio_core ls-tree HEAD SFBAudioEngine | awk '{print $3}')
+          git -C audio_core/SFBAudioEngine checkout $SFB_COMMIT
+
+
       - name: Select Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
@@ -494,6 +501,13 @@ jobs:
 
       - name: Checkout audio_core submodule
         run: git submodule update --init --force audio_core
+
+      - name: Checkout SFBAudioEngine
+        run: |
+          git clone https://github.com/axel10/SFBAudioEngine.git audio_core/SFBAudioEngine
+          SFB_COMMIT=$(git -C audio_core ls-tree HEAD SFBAudioEngine | awk '{print $3}')
+          git -C audio_core/SFBAudioEngine checkout $SFB_COMMIT
+
 
       - name: Select Xcode
         uses: maxim-lobanov/setup-xcode@v1
