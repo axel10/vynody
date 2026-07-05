@@ -1225,6 +1225,13 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     _lastLayoutRevision = layoutRevision;
     if (!hasTimedLyrics) return;
 
+    final settings = ref.read(settingsServiceProvider);
+    if (settings.lyricsStyle == LyricsStyle.apple) {
+      if (!_isFocusMode) return;
+    } else {
+      if (_isAutoScrollPaused) return;
+    }
+
     _scheduleScrollIfNeeded(
       force: true,
       animate: false,
