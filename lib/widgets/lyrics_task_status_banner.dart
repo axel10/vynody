@@ -418,7 +418,7 @@ class _BusyBannerBody extends StatelessWidget {
                         transitionBuilder: (child, animation) {
                           return FadeTransition(
                             opacity: animation,
-                            child: SizeTransition(
+                            child: _NonClippingSizeTransition(
                               sizeFactor: animation,
                               axis: Axis.horizontal,
                               alignment: Alignment.centerRight,
@@ -613,6 +613,31 @@ class _CancelButtonState extends State<_CancelButton> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _NonClippingSizeTransition extends AnimatedWidget {
+  const _NonClippingSizeTransition({
+    required Animation<double> sizeFactor,
+    this.axis = Axis.vertical,
+    this.alignment = Alignment.center,
+    this.child,
+  }) : super(listenable: sizeFactor);
+
+  final Axis axis;
+  final AlignmentGeometry alignment;
+  final Widget? child;
+
+  Animation<double> get sizeFactor => listenable as Animation<double>;
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: alignment,
+      heightFactor: axis == Axis.vertical ? math.max(sizeFactor.value, 0.0) : null,
+      widthFactor: axis == Axis.horizontal ? math.max(sizeFactor.value, 0.0) : null,
+      child: child,
     );
   }
 }
