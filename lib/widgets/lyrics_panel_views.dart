@@ -307,10 +307,12 @@ class _LyricsPanelTimedLyricsViewState extends State<LyricsPanelTimedLyricsView>
                                   mainAxisAlignment: widget.lyricsStyle == LyricsStyle.apple ? MainAxisAlignment.start : MainAxisAlignment.center,
                                   children: [
                                     Expanded(
-                                      child: Text(
-                                        line.text,
-                                        textAlign: widget.lyricsStyle == LyricsStyle.apple ? TextAlign.left : TextAlign.center,
+                                      child: AnimatedDefaultTextStyle(
+                                        duration: const Duration(milliseconds: 300),
+                                        curve: Curves.easeOutCubic,
                                         style: lineStyle,
+                                        textAlign: widget.lyricsStyle == LyricsStyle.apple ? TextAlign.left : TextAlign.center,
+                                        child: Text(line.text),
                                       ),
                                     ),
                                   ],
@@ -322,9 +324,9 @@ class _LyricsPanelTimedLyricsViewState extends State<LyricsPanelTimedLyricsView>
                                     padding: widget.lyricsStyle == LyricsStyle.apple
                                         ? const EdgeInsets.only(right: 12)
                                         : const EdgeInsets.symmetric(horizontal: 12),
-                                    child: Text(
-                                      translated,
-                                      textAlign: widget.lyricsStyle == LyricsStyle.apple ? TextAlign.left : TextAlign.center,
+                                    child: AnimatedDefaultTextStyle(
+                                      duration: const Duration(milliseconds: 300),
+                                      curve: Curves.easeOutCubic,
                                       style: TextStyle(
                                         color: isActive
                                             ? widget.secondaryTextColor.withValues(alpha: 1.0)
@@ -339,6 +341,8 @@ class _LyricsPanelTimedLyricsViewState extends State<LyricsPanelTimedLyricsView>
                                         leadingDistribution:
                                             TextLeadingDistribution.even,
                                       ),
+                                      textAlign: widget.lyricsStyle == LyricsStyle.apple ? TextAlign.left : TextAlign.center,
+                                      child: Text(translated),
                                     ),
                                   ),
                                 ],
@@ -348,12 +352,21 @@ class _LyricsPanelTimedLyricsViewState extends State<LyricsPanelTimedLyricsView>
                         );
 
                         final bool shouldBlur = widget.hasTimedLyrics && widget.lyricsStyle == LyricsStyle.apple && widget.isFocusMode && !isActive && !isHovered;
-                        final blurredChild = shouldBlur
-                            ? ImageFiltered(
-                                imageFilter: ui.ImageFilter.blur(sigmaX: 1.5, sigmaY: 1.5),
-                                child: animatedScaleChild,
-                              )
-                            : animatedScaleChild;
+                        final blurredChild = TweenAnimationBuilder<double>(
+                          tween: Tween<double>(end: shouldBlur ? 1.5 : 0.0),
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeOutCubic,
+                          builder: (context, blurSigma, child) {
+                            if (blurSigma == 0.0) {
+                              return child!;
+                            }
+                            return ImageFiltered(
+                              imageFilter: ui.ImageFilter.blur(sigmaX: blurSigma, sigmaY: blurSigma),
+                              child: child,
+                            );
+                          },
+                          child: animatedScaleChild,
+                        );
 
                         final lineContent = Padding(
                           padding: EdgeInsets.symmetric(
@@ -565,7 +578,7 @@ class _StaggeredAppleLyricsScrollWrapperState
     );
     _animation = CurvedAnimation(
       parent: _controller,
-      curve: Curves.easeOutQuint,
+      curve: Curves.easeOutCubic,
     );
 
     if (widget.scrollTriggerTime > 0) {
@@ -577,7 +590,7 @@ class _StaggeredAppleLyricsScrollWrapperState
         delayMs = math.min(350, math.max(0, widget.index - widget.firstVisibleIndex) * 15);
       } else {
         final distance = (widget.index - widget.activeIndex).abs();
-        delayMs = math.min(150, distance * 12);
+        delayMs = math.min(100, distance * 8);
       }
 
       if (delayMs == 0) {
@@ -611,7 +624,7 @@ class _StaggeredAppleLyricsScrollWrapperState
       delayMs = math.min(350, math.max(0, widget.index - widget.firstVisibleIndex) * 15);
     } else {
       final distance = (widget.index - widget.activeIndex).abs();
-      delayMs = math.min(150, distance * 12);
+      delayMs = math.min(100, distance * 8);
     }
     
     _startOffset = widget.scrollDelta + _currentOffset;
