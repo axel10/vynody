@@ -492,7 +492,7 @@ class SettingsService extends ChangeNotifier {
 
   late final _lyricsStyleProperty = SettingProperty<String>(
     key: _keyLyricsStyle,
-    defaultValue: LyricsStyle.traditional.name,
+    defaultValue: LyricsStyle.apple.name,
     prefs: _prefs,
     onChanged: notifyListeners,
   );
@@ -1189,7 +1189,7 @@ class SettingsService extends ChangeNotifier {
   LyricsStyle get lyricsStyle {
     return LyricsStyle.values.firstWhere(
       (style) => style.name == _lyricsStyleProperty.value,
-      orElse: () => LyricsStyle.traditional,
+      orElse: () => LyricsStyle.apple,
     );
   }
 
