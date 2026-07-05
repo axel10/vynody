@@ -145,6 +145,7 @@ class LyricsPanelTimedLyricsView extends StatefulWidget {
     required this.firstVisibleIndex,
     required this.isSmallWin,
     required this.maxWidth,
+    required this.isGenerating,
   });
 
   final MusicLyric? lyrics;
@@ -174,6 +175,7 @@ class LyricsPanelTimedLyricsView extends StatefulWidget {
   final int firstVisibleIndex;
   final bool isSmallWin;
   final double maxWidth;
+  final bool isGenerating;
 
   @override
   State<LyricsPanelTimedLyricsView> createState() => _LyricsPanelTimedLyricsViewState();
@@ -397,7 +399,7 @@ class _LyricsPanelTimedLyricsViewState extends State<LyricsPanelTimedLyricsView>
                           child: itemWidget,
                         );
 
-                        if (widget.lyricsStyle == LyricsStyle.apple && widget.isFocusMode) {
+                        if (widget.lyricsStyle == LyricsStyle.apple && widget.isFocusMode && !widget.isGenerating) {
                           return StaggeredAppleLyricsScrollWrapper(
                             index: index,
                             activeIndex: widget.activeIndex,

@@ -133,6 +133,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
   int? _lastBuiltFirstVisibleIndex;
   bool? _lastBuiltIsEnteringFocusMode;
   bool? _lastBuiltIsSmallWin;
+  bool? _lastBuiltIsGenerating;
 
   Widget? _cachedLyricsView;
   int? _lastBuiltActiveIndex;
@@ -1333,7 +1334,9 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     }
 
     if (animate) {
-      if (lyricsStyle == LyricsStyle.apple && _isFocusMode) {
+      final currentSong = ref.read(audioCurrentMusicProvider);
+      final isGenerating = _taskStateForSongPath(currentSong?.path).isGenerationBusy;
+      if (lyricsStyle == LyricsStyle.apple && _isFocusMode && !isGenerating) {
         final delta = target - currentOffset;
         _scrollController.jumpTo(target);
         final isEntering = _enteringFocusModeTriggered;
@@ -1511,6 +1514,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     final accent = widget.accentColor ?? Theme.of(context).colorScheme.primary;
     final lyrics = displayLyrics;
     final hasTimedLyrics = _hasTimedLyrics(displayLines);
+    final isGenerating = currentSongTaskState.isGenerationBusy;
     final effectiveLyricsStyle = lyricsStyle;
     final userFontScale = ref.watch(
       settingsServiceProvider.select((settings) =>
@@ -1754,7 +1758,8 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
             _scrollTriggerTime != _lastBuiltScrollTriggerTime ||
             _isEnteringFocusMode != _lastBuiltIsEnteringFocusMode ||
             _firstVisibleIndex != _lastBuiltFirstVisibleIndex ||
-            isSmallWin != _lastBuiltIsSmallWin;
+            isSmallWin != _lastBuiltIsSmallWin ||
+            isGenerating != _lastBuiltIsGenerating;
 
         if (needsRebuild) {
           _lastBuiltActiveIndex = focusedIndex;
@@ -1773,6 +1778,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
           _lastBuiltIsEnteringFocusMode = _isEnteringFocusMode;
           _lastBuiltFirstVisibleIndex = _firstVisibleIndex;
           _lastBuiltIsSmallWin = isSmallWin;
+          _lastBuiltIsGenerating = isGenerating;
 
           _cachedLyricsView = LyricsPanelTimedLyricsView(
             lyrics: lyrics,
@@ -1828,6 +1834,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
             firstVisibleIndex: _firstVisibleIndex,
             isSmallWin: isSmallWin,
             maxWidth: constraints.maxWidth,
+            isGenerating: isGenerating,
           );
         }
 
