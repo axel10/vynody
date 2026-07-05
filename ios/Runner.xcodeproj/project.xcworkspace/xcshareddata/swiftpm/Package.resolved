@@ -1,5 +1,5 @@
 {
-  "originHash" : "6a22000fa58b7195180764376ab1c553a82a009d21d49309a74bced04d6f66ef",
+  "originHash" : "ba93d55828fa31c9d25c0e657d15da2d74ee67287a795202777b6d0b2e2f2d7f",
   "pins" : [
     {
       "identity" : "avfaudioextensions",
@@ -65,15 +65,6 @@
       }
     },
     {
-      "identity" : "cxxtaglib",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/sbooth/CXXTagLib",
-      "state" : {
-        "revision" : "b570acead5e27006cb41ab5ff7443c8797b3b8e5",
-        "version" : "2.3.0"
-      }
-    },
-    {
       "identity" : "cxxunfairlock",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/sbooth/CXXUnfairLock",
@@ -125,15 +116,6 @@
       "state" : {
         "revision" : "8e23828b9d88f0ff1ff2d7c4bcb65739a4bdeff8",
         "version" : "0.3.0"
-      }
-    },
-    {
-      "identity" : "sfbaudioengine",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/axel10/SFBAudioEngine",
-      "state" : {
-        "branch" : "main",
-        "revision" : "e1678bfc442f505c883eec73acbe6983aff53d5d"
       }
     },
     {

@@ -36,18 +36,22 @@ target 'Runner' do
 end
 
 post_install do |installer|
-  # 1. Update user project (Runner.xcodeproj) to register the remote package
+  # 1. Update user project (Runner.xcodeproj) to register the local package
   user_project = installer.aggregate_targets.first.user_project
-  package_ref_user = user_project.root_object.package_references.find { |ref| ref.respond_to?(:repositoryURL) && ref.repositoryURL.include?('SFBAudioEngine') }
+  package_ref_user = user_project.root_object.package_references.find { |ref|
+    (ref.respond_to?(:repositoryURL) && ref.repositoryURL.include?('SFBAudioEngine')) ||
+    (ref.respond_to?(:relative_path) && ref.relative_path.include?('SFBAudioEngine'))
+  }
+  if !package_ref_user.nil? && package_ref_user.isa != 'XCLocalSwiftPackageReference'
+    user_project.root_object.package_references.delete(package_ref_user)
+    package_ref_user.remove_from_project
+    package_ref_user = nil
+  end
   if package_ref_user.nil?
-    package_ref_user = user_project.new(Xcodeproj::Project::Object::XCRemoteSwiftPackageReference)
-    package_ref_user.requirement = {
-      'kind' => 'branch',
-      'branch' => 'main'
-    }
+    package_ref_user = user_project.new(Xcodeproj::Project::Object::XCLocalSwiftPackageReference)
     user_project.root_object.package_references << package_ref_user
   end
-  package_ref_user.repositoryURL = 'https://github.com/axel10/SFBAudioEngine'
+  package_ref_user.relative_path = '../audio_core/SFBAudioEngine'
   
   user_project.build_configurations.each do |config|
     config.build_settings['MACOSX_DEPLOYMENT_TARGET'] = '13.0'
@@ -56,18 +60,22 @@ post_install do |installer|
   end
   user_project.save
 
-  # 2. Update Pods.xcodeproj to register the remote package
+  # 2. Update Pods.xcodeproj to register the local package
   pods_project = installer.pods_project
-  package_ref_pods = pods_project.root_object.package_references.find { |ref| ref.respond_to?(:repositoryURL) && ref.repositoryURL.include?('SFBAudioEngine') }
+  package_ref_pods = pods_project.root_object.package_references.find { |ref|
+    (ref.respond_to?(:repositoryURL) && ref.repositoryURL.include?('SFBAudioEngine')) ||
+    (ref.respond_to?(:relative_path) && ref.relative_path.include?('SFBAudioEngine'))
+  }
+  if !package_ref_pods.nil? && package_ref_pods.isa != 'XCLocalSwiftPackageReference'
+    pods_project.root_object.package_references.delete(package_ref_pods)
+    package_ref_pods.remove_from_project
+    package_ref_pods = nil
+  end
   if package_ref_pods.nil?
-    package_ref_pods = pods_project.new(Xcodeproj::Project::Object::XCRemoteSwiftPackageReference)
-    package_ref_pods.requirement = {
-      'kind' => 'branch',
-      'branch' => 'main'
-    }
+    package_ref_pods = pods_project.new(Xcodeproj::Project::Object::XCLocalSwiftPackageReference)
     pods_project.root_object.package_references << package_ref_pods
   end
-  package_ref_pods.repositoryURL = 'https://github.com/axel10/SFBAudioEngine'
+  package_ref_pods.relative_path = '../../audio_core/SFBAudioEngine'
 
   pods_project.build_configurations.each do |config|
     config.build_settings['MACOSX_DEPLOYMENT_TARGET'] = '13.0'
@@ -90,9 +98,31 @@ post_install do |installer|
       product_dep = target.package_product_dependencies.find { |dep| dep.product_name == 'SFBAudioEngine' }
       if product_dep.nil?
         product_dep = pods_project.new(Xcodeproj::Project::Object::XCSwiftPackageProductDependency)
-        product_dep.package = package_ref_pods
         product_dep.product_name = 'SFBAudioEngine'
         target.package_product_dependencies << product_dep
+      end
+      product_dep.package = package_ref_pods
+
+      # Add library search path and linker flag for local FFmpeg static library
+      sfb_ffmpeg_path = File.expand_path('../../audio_core/SFBAudioEngine/macos/Frameworks/FFmpeg.xcframework/macos-arm64_x86_64', __FILE__)
+      target.build_configurations.each do |config|
+        paths = config.build_settings['LIBRARY_SEARCH_PATHS']
+        if paths.nil?
+          config.build_settings['LIBRARY_SEARCH_PATHS'] = ['$(inherited)', sfb_ffmpeg_path]
+        elsif paths.is_a?(Array)
+          paths << sfb_ffmpeg_path unless paths.include?(sfb_ffmpeg_path)
+        else
+          config.build_settings['LIBRARY_SEARCH_PATHS'] = "#{paths} \"#{sfb_ffmpeg_path}\""
+        end
+
+        flags = config.build_settings['OTHER_LDFLAGS']
+        if flags.nil?
+          config.build_settings['OTHER_LDFLAGS'] = ['$(inherited)', '-lffmpeg']
+        elsif flags.is_a?(Array)
+          flags << '-lffmpeg' unless flags.include?('-lffmpeg')
+        else
+          config.build_settings['OTHER_LDFLAGS'] = "#{flags} -lffmpeg"
+        end
       end
     end
   end
