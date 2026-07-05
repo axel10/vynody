@@ -132,6 +132,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
   int _firstVisibleIndex = 0;
   int? _lastBuiltFirstVisibleIndex;
   bool? _lastBuiltIsEnteringFocusMode;
+  bool? _lastBuiltIsSmallWin;
 
   Widget? _cachedLyricsView;
   int? _lastBuiltActiveIndex;
@@ -251,6 +252,16 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     final targetLang = ref.read(lyricsControllerProvider).lyricsTranslationLanguageCode;
     final effectiveLang = lyrics?.getEffectiveTranslationLanguage(targetLang) ?? targetLang;
 
+    final double layoutMaxWidth;
+    final double translationLayoutMaxWidth;
+    if (lyricsStyle == LyricsStyle.apple) {
+      layoutMaxWidth = maxWidth - 48.0;
+      translationLayoutMaxWidth = layoutMaxWidth - 12.0;
+    } else {
+      layoutMaxWidth = maxWidth - 48.0;
+      translationLayoutMaxWidth = maxWidth - 72.0;
+    }
+
     for (int i = 0; i < lines.length; i++) {
       final line = lines[i];
       final translated =
@@ -267,7 +278,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
         text: TextSpan(text: line.text, style: lineStyle),
         textDirection: textDirection,
         textScaler: textScaler,
-      )..layout(maxWidth: math.max(0.0, maxWidth - 48.0));
+      )..layout(maxWidth: math.max(0.0, layoutMaxWidth));
       double itemHeight = textPainter.height;
 
       // 2. Calculate translation height if present
@@ -276,7 +287,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
           text: TextSpan(text: translated, style: translationStyle),
           textDirection: textDirection,
           textScaler: textScaler,
-        )..layout(maxWidth: math.max(0.0, maxWidth - 72.0));
+        )..layout(maxWidth: math.max(0.0, translationLayoutMaxWidth));
         itemHeight += translatedSpacing + transPainter.height;
       }
 
@@ -1121,12 +1132,13 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     final focusedIndex = isDraggingLyrics && dragCurrentLine != null
         ? dragCurrentLine
         : activeIndex;
+    final lyricsStyle = ref.read(settingsServiceProvider).lyricsStyle;
     final topOffset = calculateLyricTopOffsetFromPanelTop(
       lineHeights: lineHeights,
       lineCenters: itemCenters,
       lineIndex: focusedIndex,
       scrollOffset: _scrollController.offset,
-      scale: 1.12,
+      scale: lyricsStyle == LyricsStyle.apple ? 1.0 : 1.12,
     );
 
     if (_lastReportedActiveLyricTopOffset == topOffset) {
@@ -1282,8 +1294,9 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     final bottomPadding = MediaQuery.of(context).padding.bottom;
     final bottomSpacers = widget.bottomSpacerHeight + widget.bottomTabBarHeight + bottomPadding;
     final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
+    final isSmallWin = ref.read(settingsServiceProvider).isSmallWindowMode;
     // 考虑上下渐变区域不对称带来的视觉中心偏移 (15.0) 以及安全区域遮挡
-    final fadeAsymmetryShift = isPortrait ? 15.0 : 0.0;
+    final fadeAsymmetryShift = (isPortrait || isSmallWin) ? 15.0 : 0.0;
     // 计算可见区域的中心（避开底部遮挡/渐变区/安全区）
     final visibleCenter = (viewportHeight - bottomSpacers) / 2 - fadeAsymmetryShift;
 
@@ -1291,7 +1304,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     final double target;
     if (lyricsStyle == LyricsStyle.apple && index < _currentLineHeights.length) {
       final topOfLine = itemCenters[index] - _currentLineHeights[index] / 2;
-      final offset = isPortrait ? 25.0 : 100.0;
+      final offset = (isPortrait || isSmallWin) ? 25.0 : 100.0;
       target = math.max(0.0, math.min(topOfLine - offset, maxExtent));
     } else {
       final targetCenter = itemCenters[index];
@@ -1481,6 +1494,9 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     final lyricsStyle = ref.watch(
       settingsServiceProvider.select((settings) => settings.lyricsStyle),
     );
+    final isSmallWin = ref.watch(
+      settingsServiceProvider.select((settings) => settings.isSmallWindowMode),
+    );
     final lyricsForDisplay = _lyricsForDisplay();
     final displayLyrics = _displayLyrics(lyricsState, lyricsForDisplay);
     final displayLines = displayLyrics?.syncedLines ?? const [];
@@ -1595,7 +1611,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
         // so that userFontScale can scale the font size up and down linearly without being prematurely clamped.
         final double minScaleLimit = effectiveLyricsStyle == LyricsStyle.traditional
             ? 1.0
-            : (isPortrait ? PlaybackPageUiTuning.lyricsMinFontScale : 0.8);
+            : ((isPortrait || isSmallWin) ? PlaybackPageUiTuning.lyricsMinFontScale : 0.8);
         double baseAdaptiveScale = (baseScale * panelWidthFactor).clamp(
           minScaleLimit,
           PlaybackPageUiTuning.lyricsMaxFontScale,
@@ -1613,8 +1629,8 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
           effectiveMaxFontScale *= highResFactor;
         }
 
-        // Apply a 1.5x scale factor for Apple-style lyrics in landscape orientation
-        if (effectiveLyricsStyle == LyricsStyle.apple && !isPortrait) {
+        // Apply a 1.5x scale factor for Apple-style lyrics in landscape orientation (not in small window mode)
+        if (effectiveLyricsStyle == LyricsStyle.apple && !isPortrait && !isSmallWin) {
           baseAdaptiveScale *= 1.5;
           effectiveMaxFontScale *= 1.5;
           // Keep effectiveMinFontScale at 0.8 in landscape so manual adjustment can scale down properly.
@@ -1737,7 +1753,8 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
             _isFocusMode != _lastBuiltIsFocusMode ||
             _scrollTriggerTime != _lastBuiltScrollTriggerTime ||
             _isEnteringFocusMode != _lastBuiltIsEnteringFocusMode ||
-            _firstVisibleIndex != _lastBuiltFirstVisibleIndex;
+            _firstVisibleIndex != _lastBuiltFirstVisibleIndex ||
+            isSmallWin != _lastBuiltIsSmallWin;
 
         if (needsRebuild) {
           _lastBuiltActiveIndex = focusedIndex;
@@ -1755,6 +1772,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
           _lastBuiltScrollTriggerTime = _scrollTriggerTime;
           _lastBuiltIsEnteringFocusMode = _isEnteringFocusMode;
           _lastBuiltFirstVisibleIndex = _firstVisibleIndex;
+          _lastBuiltIsSmallWin = isSmallWin;
 
           _cachedLyricsView = LyricsPanelTimedLyricsView(
             lyrics: lyrics,
@@ -1808,6 +1826,8 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
             scrollTriggerTime: _scrollTriggerTime,
             isEnteringFocusMode: _isEnteringFocusMode,
             firstVisibleIndex: _firstVisibleIndex,
+            isSmallWin: isSmallWin,
+            maxWidth: constraints.maxWidth,
           );
         }
 

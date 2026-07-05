@@ -143,6 +143,8 @@ class LyricsPanelTimedLyricsView extends StatefulWidget {
     required this.scrollTriggerTime,
     required this.isEnteringFocusMode,
     required this.firstVisibleIndex,
+    required this.isSmallWin,
+    required this.maxWidth,
   });
 
   final MusicLyric? lyrics;
@@ -170,6 +172,8 @@ class LyricsPanelTimedLyricsView extends StatefulWidget {
   final int scrollTriggerTime;
   final bool isEnteringFocusMode;
   final int firstVisibleIndex;
+  final bool isSmallWin;
+  final double maxWidth;
 
   @override
   State<LyricsPanelTimedLyricsView> createState() => _LyricsPanelTimedLyricsViewState();
@@ -222,7 +226,9 @@ class _LyricsPanelTimedLyricsViewState extends State<LyricsPanelTimedLyricsView>
                               ),
                         padding: EdgeInsets.only(
                           top: widget.lyricsStyle == LyricsStyle.apple
-                              ? (isPortrait ? 50.0 : 120.0)
+                              ? (widget.isSmallWin
+                                  ? 30.0
+                                  : (isPortrait ? 50.0 : 120.0))
                               : 0.0,
                           bottom: widget.bottomSpacerHeight + widget.bottomTabBarHeight + extraBottomPadding,
                         ),
@@ -242,7 +248,7 @@ class _LyricsPanelTimedLyricsViewState extends State<LyricsPanelTimedLyricsView>
                         final isHovered = _hoveredIndex == index;
                         final isNear =
                             widget.hasTimedLyrics && distance <= 1 && !isActive;
-                        final targetScale = isActive ? 1.12 : 1.0;
+                        final targetScale = isActive && widget.lyricsStyle != LyricsStyle.apple ? 1.12 : 1.0;
                         final timedLyricFontSize = 16 * widget.lyricsFontScale;
                         final plainLyricFontSize = 18 * widget.lyricsFontScale;
                         final translationFontSize = 13 * widget.lyricsFontScale;
@@ -277,55 +283,65 @@ class _LyricsPanelTimedLyricsViewState extends State<LyricsPanelTimedLyricsView>
                                 leadingDistribution: TextLeadingDistribution.even,
                               );
 
+                        final double layoutMaxWidth;
+                        if (widget.lyricsStyle == LyricsStyle.apple) {
+                          layoutMaxWidth = widget.maxWidth - 48.0;
+                        } else {
+                          layoutMaxWidth = widget.maxWidth - 48.0;
+                        }
+
                         final animatedScaleChild = AnimatedScale(
                           duration: const Duration(milliseconds: 220),
                           curve: Curves.easeOutCubic,
                           scale: targetScale,
                           alignment: widget.lyricsStyle == LyricsStyle.apple ? Alignment.centerLeft : Alignment.center,
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: widget.lyricsStyle == LyricsStyle.apple ? CrossAxisAlignment.start : CrossAxisAlignment.center,
-                            children: [
-                              Row(
-                                mainAxisAlignment: widget.lyricsStyle == LyricsStyle.apple ? MainAxisAlignment.start : MainAxisAlignment.center,
-                                children: [
-                                  Expanded(
+                          child: SizedBox(
+                            width: layoutMaxWidth,
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: widget.lyricsStyle == LyricsStyle.apple ? CrossAxisAlignment.start : CrossAxisAlignment.center,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: widget.lyricsStyle == LyricsStyle.apple ? MainAxisAlignment.start : MainAxisAlignment.center,
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        line.text,
+                                        textAlign: widget.lyricsStyle == LyricsStyle.apple ? TextAlign.left : TextAlign.center,
+                                        style: lineStyle,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                if (widget.hasTimedLyrics &&
+                                    translated.isNotEmpty) ...[
+                                  SizedBox(height: translatedSpacing),
+                                  Padding(
+                                    padding: widget.lyricsStyle == LyricsStyle.apple
+                                        ? const EdgeInsets.only(right: 12)
+                                        : const EdgeInsets.symmetric(horizontal: 12),
                                     child: Text(
-                                      line.text,
+                                      translated,
                                       textAlign: widget.lyricsStyle == LyricsStyle.apple ? TextAlign.left : TextAlign.center,
-                                      style: lineStyle,
+                                      style: TextStyle(
+                                        color: isActive
+                                            ? widget.secondaryTextColor.withValues(alpha: 1.0)
+                                            : (isHovered
+                                                ? widget.secondaryTextColor.withValues(alpha: 1.0)
+                                                : widget.secondaryTextColor),
+                                        fontSize: translationFontSize,
+                                        fontWeight: (isActive || widget.lyricsStyle == LyricsStyle.apple)
+                                            ? FontWeight.w700
+                                            : FontWeight.w400,
+                                        height: 1.3,
+                                        leadingDistribution:
+                                            TextLeadingDistribution.even,
+                                      ),
                                     ),
                                   ),
                                 ],
-                              ),
-                              if (widget.hasTimedLyrics &&
-                                  translated.isNotEmpty) ...[
-                                SizedBox(height: translatedSpacing),
-                                Padding(
-                                  padding: widget.lyricsStyle == LyricsStyle.apple
-                                      ? const EdgeInsets.only(right: 12)
-                                      : const EdgeInsets.symmetric(horizontal: 12),
-                                  child: Text(
-                                    translated,
-                                    textAlign: widget.lyricsStyle == LyricsStyle.apple ? TextAlign.left : TextAlign.center,
-                                    style: TextStyle(
-                                      color: isActive
-                                          ? widget.secondaryTextColor.withValues(alpha: 1.0)
-                                          : (isHovered
-                                              ? widget.secondaryTextColor.withValues(alpha: 1.0)
-                                              : widget.secondaryTextColor),
-                                      fontSize: translationFontSize,
-                                      fontWeight: (isActive || widget.lyricsStyle == LyricsStyle.apple)
-                                          ? FontWeight.w700
-                                          : FontWeight.w400,
-                                      height: 1.3,
-                                      leadingDistribution:
-                                          TextLeadingDistribution.even,
-                                    ),
-                                  ),
-                                ),
                               ],
-                            ],
+                            ),
                           ),
                         );
 
