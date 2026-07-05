@@ -458,6 +458,8 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     if (oldWidget.lyrics != widget.lyrics) {
       _overrideActiveIndex = null;
       _seekTargetTimestamp = null;
+      _isFocusMode = true;
+      _lastActiveIndex = -1;
     }
     final oldOffset = _timelineOffsetToSeconds(
       oldWidget.lyrics?.timelineOffset,
@@ -1839,51 +1841,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
                 }
                 return false;
               },
-              child: Stack(
-                children: [
-                  mainView,
-                  if (!_isFocusMode)
-                    Positioned(
-                      bottom: widget.bottomSpacerHeight + widget.bottomTabBarHeight + 20,
-                      right: 20,
-                      child: MouseRegion(
-                        cursor: SystemMouseCursors.click,
-                        child: GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _isFocusMode = true;
-                              _enteringFocusModeTriggered = true;
-                            });
-                            _scheduleScrollIfNeeded(force: true, itemCenters: itemCenters);
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.6),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: Colors.white24, width: 0.5),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(Icons.sync_rounded, color: Colors.white, size: 16),
-                                const SizedBox(width: 6),
-                                Text(
-                                  l10n.resumeLyricsSync,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
+              child: mainView,
             ),
           );
         }
