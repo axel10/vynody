@@ -845,15 +845,17 @@ class PlaybackHeroCard extends ConsumerWidget {
       final double constantHeight = lLyricsCoverInfoSpacing + lLyricsInfoControlsSpacing;
       final double scalableHeight = lLyricsPreferredTotalHeight - constantHeight;
 
+      double screenHeight = 0.0;
+      try {
+        final view = View.of(context);
+        screenHeight = view.display.size.height / view.display.devicePixelRatio;
+      } catch (_) {
+        // Fallback if view query fails
+      }
+
       _maxWindowHeightSeen = math.max(_maxWindowHeightSeen, height);
-      double screenHeight = _maxWindowHeightSeen;
       if (screenHeight <= 0.0) {
-        try {
-          final view = View.of(context);
-          screenHeight = view.display.size.height / view.display.devicePixelRatio;
-        } catch (_) {
-          screenHeight = height;
-        }
+        screenHeight = _maxWindowHeightSeen;
       }
 
       final double maxControlsHeight = screenHeight * 0.75;
