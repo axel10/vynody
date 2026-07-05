@@ -959,7 +959,8 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
               final lineTop = _currentItemCenters[activeIndex] - _currentLineHeights[activeIndex] / 2;
               final lineBottom = _currentItemCenters[activeIndex] + _currentLineHeights[activeIndex] / 2;
               final isVisible = lineBottom >= offset - 20.0 && lineTop <= offset + viewportHeight + 20.0;
-              if (isVisible) {
+              final isPlaying = ref.read(audioIsPlayingProvider);
+              if (isVisible && isPlaying) {
                 if (_activePointers > 0) {
                   shouldScroll = false;
                 } else {
