@@ -468,10 +468,17 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
   void didUpdateWidget(covariant LyricsPanel oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.lyrics != widget.lyrics) {
-      _overrideActiveIndex = null;
-      _seekTargetTimestamp = null;
-      _isFocusMode = true;
-      _lastActiveIndex = -1;
+      final oldLyrics = oldWidget.lyrics;
+      final newLyrics = widget.lyrics;
+      final bool lyricsContentChanged = oldLyrics?.id != newLyrics?.id ||
+          oldLyrics?.plainText != newLyrics?.plainText ||
+          !listEquals(oldLyrics?.syncedLines, newLyrics?.syncedLines);
+      if (lyricsContentChanged) {
+        _overrideActiveIndex = null;
+        _seekTargetTimestamp = null;
+        _isFocusMode = true;
+        _lastActiveIndex = -1;
+      }
     }
     final oldOffset = _timelineOffsetToSeconds(
       oldWidget.lyrics?.timelineOffset,
@@ -994,7 +1001,11 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
           }
         }
       } else {
-        _lastActiveIndex = activeIndex;
+        if (!_isFocusMode) {
+          shouldScroll = false;
+        } else {
+          _lastActiveIndex = activeIndex;
+        }
       }
     } else {
       _lastActiveIndex = activeIndex;
@@ -1224,13 +1235,6 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
 
     _lastLayoutRevision = layoutRevision;
     if (!hasTimedLyrics) return;
-
-    final settings = ref.read(settingsServiceProvider);
-    if (settings.lyricsStyle == LyricsStyle.apple) {
-      if (!_isFocusMode) return;
-    } else {
-      if (_isAutoScrollPaused) return;
-    }
 
     _scheduleScrollIfNeeded(
       force: true,
