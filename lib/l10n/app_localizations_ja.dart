@@ -2842,4 +2842,15 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get exitApp => '終了';
+
+  @override
+  String get showScanProgressToastSetting => 'スキャン状態トーストを表示';
+
+  @override
+  String get showScanProgressToastSettingDescription =>
+      'フォルダのスキャン時に画面上部にリアルタイムのスキャン進行状況を表示します。';
+
+  @override
+  String get scanToastHiddenHint =>
+      'スキャン状態トーストが非表示になりました。「設定 - インターフェース」で再有効化できます。';
 }

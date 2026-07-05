@@ -1171,5 +1171,8 @@
   "onboardingAndroidBatteryButton": "Zu den Einstellungen",
   "onboardingAndroidBatteryStatusOptimized": "Status: Eingeschränkt (Wiedergabe stoppt eventuell im Hintergrund)",
   "onboardingAndroidBatteryStatusUnrestricted": "Status: Nicht eingeschränkt (empfohlen, Wiedergabe geschützt)",
-  "exitApp": "Beenden"
+  "exitApp": "Beenden",
+  "showScanProgressToastSetting": "Scan-Status-Toast anzeigen",
+  "showScanProgressToastSettingDescription": "Zeigt den Echtzeit-Scan-Fortschritt am oberen Bildschirmrand an, wenn Ordner gescannt werden.",
+  "scanToastHiddenHint": "Scan-Status-Toast ausgeblendet. Sie können ihn in Einstellungen - Oberfläche wieder aktivieren."
 }

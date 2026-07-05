@@ -1270,5 +1270,8 @@
   "onboardingAndroidBatteryButton": "設定へ",
   "onboardingAndroidBatteryStatusOptimized": "現在の状態：制限あり（バックグラウンド再生が停止する可能性があります）",
   "onboardingAndroidBatteryStatusUnrestricted": "現在の状態：制限なし（推奨、バックグラウンド再生保護済み）",
-  "exitApp": "終了"
+  "exitApp": "終了",
+  "showScanProgressToastSetting": "スキャン状態トーストを表示",
+  "showScanProgressToastSettingDescription": "フォルダのスキャン時に画面上部にリアルタイムのスキャン進行状況を表示します。",
+  "scanToastHiddenHint": "スキャン状態トーストが非表示になりました。「設定 - インターフェース」で再有効化できます。"
 }

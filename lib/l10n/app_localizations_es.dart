@@ -2977,4 +2977,16 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get exitApp => 'Salir';
+
+  @override
+  String get showScanProgressToastSetting =>
+      'Mostrar toast de estado de escaneo';
+
+  @override
+  String get showScanProgressToastSettingDescription =>
+      'Muestra el progreso de escaneo en tiempo real en la parte superior de la pantalla al escanear carpetas.';
+
+  @override
+  String get scanToastHiddenHint =>
+      'Toast de estado de escaneo oculto. Puede volver a habilitarlo en Ajustes - Interfaz.';
 }

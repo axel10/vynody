@@ -2979,4 +2979,16 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get exitApp => 'Quitter';
+
+  @override
+  String get showScanProgressToastSetting =>
+      'Afficher le toast d\'état du scan';
+
+  @override
+  String get showScanProgressToastSettingDescription =>
+      'Affiche la progression du scan en temps réel en haut de l\'écran lors du scan des dossiers.';
+
+  @override
+  String get scanToastHiddenHint =>
+      'Le toast d\'état du scan a été masqué. Vous pouvez le réactiver dans Paramètres - Interface.';
 }

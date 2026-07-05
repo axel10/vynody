@@ -242,6 +242,7 @@ class SettingsService extends ChangeNotifier {
   static const String _keyWindowsAutoRepairShortcut = 'windows_auto_repair_shortcut';
   static const String _keyEnableSystemTray = 'enable_system_tray';
   static const String _keyImmersiveTabBar = 'immersive_tab_bar_enabled';
+  static const String _keyShowScanProgressToast = 'show_scan_progress_toast';
   static const String _keySampleStride = 'sample_stride';
   static const String _keyWaveformChunks = 'waveform_chunks';
   static const String geminiApiKeyStorageKey = 'gemini_api_key';
@@ -430,6 +431,13 @@ class SettingsService extends ChangeNotifier {
   late final _isImmersiveTabBarEnabledProperty = SettingProperty<bool>(
     key: _keyImmersiveTabBar,
     defaultValue: false,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
+  late final _showScanProgressToastProperty = SettingProperty<bool>(
+    key: _keyShowScanProgressToast,
+    defaultValue: true,
     prefs: _prefs,
     onChanged: notifyListeners,
   );
@@ -1136,6 +1144,10 @@ class SettingsService extends ChangeNotifier {
   bool get isImmersiveTabBarEnabled => _isImmersiveTabBarEnabledProperty.value;
   set isImmersiveTabBarEnabled(bool value) =>
       _isImmersiveTabBarEnabledProperty.value = value;
+
+  bool get showScanProgressToast => _showScanProgressToastProperty.value;
+  set showScanProgressToast(bool value) =>
+      _showScanProgressToastProperty.value = value;
 
   bool get windowsAutoRepairShortcut => _windowsAutoRepairShortcutProperty.value;
   set windowsAutoRepairShortcut(bool value) =>

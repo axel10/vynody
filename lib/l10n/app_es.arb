@@ -1171,5 +1171,8 @@
   "onboardingAndroidBatteryButton": "Ir a Ajustes",
   "onboardingAndroidBatteryStatusOptimized": "Estado: Restringido (la reproducción puede detenerse en segundo plano)",
   "onboardingAndroidBatteryStatusUnrestricted": "Estado: Sin restricciones (recomendado, reproducción protegida)",
-  "exitApp": "Salir"
+  "exitApp": "Salir",
+  "showScanProgressToastSetting": "Mostrar toast de estado de escaneo",
+  "showScanProgressToastSettingDescription": "Muestra el progreso de escaneo en tiempo real en la parte superior de la pantalla al escanear carpetas.",
+  "scanToastHiddenHint": "Toast de estado de escaneo oculto. Puede volver a habilitarlo en Ajustes - Interfaz."
 }

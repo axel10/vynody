@@ -1171,5 +1171,8 @@
   "onboardingAndroidBatteryButton": "Aller aux paramètres",
   "onboardingAndroidBatteryStatusOptimized": "Statut : Restreint (la lecture peut s'arrêter en arrière-plan)",
   "onboardingAndroidBatteryStatusUnrestricted": "Statut : Non restreinte (recommandé, lecture protégée)",
-  "exitApp": "Quitter"
+  "exitApp": "Quitter",
+  "showScanProgressToastSetting": "Afficher le toast d'état du scan",
+  "showScanProgressToastSettingDescription": "Affiche la progression du scan en temps réel en haut de l'écran lors du scan des dossiers.",
+  "scanToastHiddenHint": "Le toast d'état du scan a été masqué. Vous pouvez le réactiver dans Paramètres - Interface."
 }

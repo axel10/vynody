@@ -2801,4 +2801,14 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get exitApp => '退出';
+
+  @override
+  String get showScanProgressToastSetting => '显示扫描状态提示';
+
+  @override
+  String get showScanProgressToastSettingDescription =>
+      '在添加文件夹并进行文件扫描时，在顶部显示实时的扫描进度提示';
+
+  @override
+  String get scanToastHiddenHint => '扫描状态提示已隐藏，可在“设置 - 界面”中重新打开';
 }

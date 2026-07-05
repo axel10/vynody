@@ -5309,6 +5309,24 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'退出'**
   String get exitApp;
+
+  /// No description provided for @showScanProgressToastSetting.
+  ///
+  /// In zh, this message translates to:
+  /// **'显示扫描状态提示'**
+  String get showScanProgressToastSetting;
+
+  /// No description provided for @showScanProgressToastSettingDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'在添加文件夹并进行文件扫描时，在顶部显示实时的扫描进度提示'**
+  String get showScanProgressToastSettingDescription;
+
+  /// No description provided for @scanToastHiddenHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'扫描状态提示已隐藏，可在“设置 - 界面”中重新打开'**
+  String get scanToastHiddenHint;
 }
 
 class _AppLocalizationsDelegate

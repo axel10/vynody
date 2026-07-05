@@ -1166,5 +1166,8 @@
   "onboardingAndroidBatteryButton": "Go to Settings",
   "onboardingAndroidBatteryStatusOptimized": "Status: Restricted (playback may stop in background)",
   "onboardingAndroidBatteryStatusUnrestricted": "Status: Unrestricted (recommended, playback protected)",
-  "exitApp": "Exit"
+  "exitApp": "Exit",
+  "showScanProgressToastSetting": "Show Scanning Status Toast",
+  "showScanProgressToastSettingDescription": "Display real-time scanning progress at the top of the screen when scanning folders.",
+  "scanToastHiddenHint": "Scanning status toast hidden. You can re-enable it in Settings - Interface."
 }

@@ -20,10 +20,12 @@ class ScanProgressToast extends StatelessWidget {
     super.key,
     required this.label,
     required this.stateListenable,
+    this.onClose,
   });
 
   final String label;
   final ValueListenable<ScanToastState?> stateListenable;
+  final VoidCallback? onClose;
 
   @override
   Widget build(BuildContext context) {
@@ -118,6 +120,20 @@ class ScanProgressToast extends StatelessWidget {
                     ],
                   ),
                 ),
+                if (onClose != null) ...[
+                  const SizedBox(width: 8),
+                  IconButton(
+                    icon: const Icon(Icons.close, size: 16),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(
+                      minWidth: 24,
+                      minHeight: 24,
+                    ),
+                    splashRadius: 16,
+                    color: onSurface.withValues(alpha: 0.6),
+                    onPressed: onClose,
+                  ),
+                ],
               ],
             ),
           ),

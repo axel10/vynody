@@ -1623,5 +1623,8 @@
   "onboardingAndroidBatteryButton": "去设置",
   "onboardingAndroidBatteryStatusOptimized": "当前状态：已限制（可能导致后台播放中断）",
   "onboardingAndroidBatteryStatusUnrestricted": "当前状态：无限制（推荐，后台播放已保护）",
-  "exitApp": "退出"
+  "exitApp": "退出",
+  "showScanProgressToastSetting": "显示扫描状态提示",
+  "showScanProgressToastSettingDescription": "在添加文件夹并进行文件扫描时，在顶部显示实时的扫描进度提示",
+  "scanToastHiddenHint": "扫描状态提示已隐藏，可在“设置 - 界面”中重新打开"
 }

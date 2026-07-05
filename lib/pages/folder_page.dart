@@ -233,6 +233,7 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
   }
 
   void _ensureScanToastVisible() {
+    if (!ref.read(settingsServiceProvider).showScanProgressToast) return;
     if (_scanToast?.mounted == true) return;
 
     final l10n = _l10n;
@@ -247,11 +248,26 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
       ScanProgressToast(
         stateListenable: _scanToastState,
         label: l10n.scanningDirectory,
+        onClose: () {
+          _dismissScanToast();
+          ref.read(settingsServiceProvider).showScanProgressToast = false;
+          final currentL10n = AppLocalizations.of(context);
+          if (currentL10n != null) {
+            AppSnackBar.show(
+              context,
+              ref,
+              SnackBar(
+                content: Text(currentL10n.scanToastHiddenHint),
+              ),
+            );
+          }
+        },
       ),
       position: ToastPosition.top.copyWith(offset: 28),
       duration: const Duration(days: 1),
       dismissOtherToast: true,
       animationDuration: const Duration(milliseconds: 180),
+      handleTouch: true,
     );
   }
 
@@ -281,6 +297,7 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
 
   void _showScanProgressToast(ScanProgress progress) {
     if (!mounted) return;
+    if (!ref.read(settingsServiceProvider).showScanProgressToast) return;
 
     _pendingScanProgress = progress;
 

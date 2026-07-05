@@ -1068,6 +1068,14 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           },
         ),
         SwitchListTile(
+          title: Text(l10n.showScanProgressToastSetting),
+          subtitle: Text(l10n.showScanProgressToastSettingDescription),
+          value: settings.showScanProgressToast,
+          onChanged: (value) {
+            settings.showScanProgressToast = value;
+          },
+        ),
+        SwitchListTile(
           title: Text(l10n.enableWaveformProgressBar),
           subtitle: Text(l10n.enableWaveformProgressBarDescription),
           value: settings.isWaveformProgressBarEnabled,
