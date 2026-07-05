@@ -1059,7 +1059,7 @@ abstract class AppLocalizations {
   /// No description provided for @dynamicMesh.
   ///
   /// In zh, this message translates to:
-  /// **'动态流变 (Apple Music 效果)'**
+  /// **'动态流变'**
   String get dynamicMesh;
 
   /// No description provided for @solidColor.
@@ -2265,7 +2265,7 @@ abstract class AppLocalizations {
   /// No description provided for @lyricsStyleApple.
   ///
   /// In zh, this message translates to:
-  /// **'苹果样式'**
+  /// **'逐行聚焦'**
   String get lyricsStyleApple;
 
   /// No description provided for @resumeLyricsSync.

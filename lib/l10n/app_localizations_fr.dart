@@ -519,7 +519,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get blurredArtwork => 'Pochette floutée (défaut)';
 
   @override
-  String get dynamicMesh => 'Maillage dynamique (style Apple Music)';
+  String get dynamicMesh => 'Maillage dynamique';
 
   @override
   String get solidColor => 'Couleur unie';
@@ -1193,7 +1193,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get lyricsStyleTraditional => 'Traditionnel';
 
   @override
-  String get lyricsStyleApple => 'Style Apple';
+  String get lyricsStyleApple => 'Focus ligne par ligne';
 
   @override
   String get resumeLyricsSync => 'Reprendre la synchronisation';

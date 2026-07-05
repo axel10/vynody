@@ -507,7 +507,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get blurredArtwork => 'ブラーアートワーク（デフォルト）';
 
   @override
-  String get dynamicMesh => 'ダイナミックメッシュ（Apple Music風）';
+  String get dynamicMesh => 'ダイナミックメッシュ';
 
   @override
   String get solidColor => '単色';
@@ -1146,7 +1146,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get lyricsStyleTraditional => 'デフォルト';
 
   @override
-  String get lyricsStyleApple => 'Appleスタイル';
+  String get lyricsStyleApple => '行ごとフォーカス';
 
   @override
   String get resumeLyricsSync => '歌詞の同期を再開';

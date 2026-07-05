@@ -508,7 +508,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get blurredArtwork => '블러 처리된 아트워크 (기본값)';
 
   @override
-  String get dynamicMesh => '다이나믹 메시 (Apple Music 스타일)';
+  String get dynamicMesh => '다이나믹 메시';
 
   @override
   String get solidColor => '단색';
@@ -1150,7 +1150,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get lyricsStyleTraditional => '기본 스크롤';
 
   @override
-  String get lyricsStyleApple => '애플 스타일';
+  String get lyricsStyleApple => '줄 단위 포커스';
 
   @override
   String get resumeLyricsSync => '가사 동기화 재개';

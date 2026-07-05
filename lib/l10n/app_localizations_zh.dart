@@ -506,7 +506,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get blurredArtwork => '模糊封面 (默认)';
 
   @override
-  String get dynamicMesh => '动态流变 (Apple Music 效果)';
+  String get dynamicMesh => '动态流变';
 
   @override
   String get solidColor => '纯色';
@@ -1137,7 +1137,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get lyricsStyleTraditional => '传统滚动';
 
   @override
-  String get lyricsStyleApple => '苹果样式';
+  String get lyricsStyleApple => '逐行聚焦';
 
   @override
   String get resumeLyricsSync => '恢复歌词同步';
