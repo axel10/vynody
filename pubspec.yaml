@@ -230,7 +230,6 @@ msix_config:
     - .ogg
     - .opus
     - .wav
-    - .webm
 
 dependency_overrides:
   permission_handler_windows:

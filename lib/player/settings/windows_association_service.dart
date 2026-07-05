@@ -50,7 +50,7 @@ class WindowsAssociationService {
     if (!Platform.isWindows) return;
 
     final exePath = Platform.resolvedExecutable;
-    final extensions = MusicFileUtils.supportedAudioExtensions;
+    final extensions = MusicFileUtils.supportedAudioExtensions.where((ext) => ext != '.webm');
 
     // 1. Register ProgID and its shell open command
     await _runReg(['add', r'HKCU\Software\Classes\Vynody.AssocFile', '/ve', '/t', 'REG_SZ', '/d', 'Vynody Music File', '/f']);

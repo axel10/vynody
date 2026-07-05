@@ -96,8 +96,6 @@ Root: HKA; Subkey: "Software\Classes\.opus\OpenWithProgids"; ValueType: string; 
 Root: HKA; Subkey: "Software\Vynody\Capabilities\FileAssociations"; ValueType: string; ValueName: ".wav"; ValueData: "Vynody.AssocFile"; Flags: uninsdeletevalue
 Root: HKA; Subkey: "Software\Classes\.wav\OpenWithProgids"; ValueType: string; ValueName: "Vynody.AssocFile"; ValueData: ""; Flags: uninsdeletevalue
 
-Root: HKA; Subkey: "Software\Vynody\Capabilities\FileAssociations"; ValueType: string; ValueName: ".webm"; ValueData: "Vynody.AssocFile"; Flags: uninsdeletevalue
-Root: HKA; Subkey: "Software\Classes\.webm\OpenWithProgids"; ValueType: string; ValueName: "Vynody.AssocFile"; ValueData: ""; Flags: uninsdeletevalue
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
