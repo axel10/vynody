@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -585,22 +584,6 @@ class _CoverItemState extends State<_CoverItem> {
   }
 
   Widget _buildCoverImage(bool isCentered) {
-    final double devicePixelRatio = MediaQuery.of(context).devicePixelRatio;
-    final isPc = Platform.isWindows || Platform.isMacOS || Platform.isLinux;
-    final int limit = isPc ? 1200 : 800;
-
-    // Use exact physical pixels when not animating for maximum sharpness.
-    // During animation, use a slightly coarser rounding to avoid constant re-decoding.
-    final bool isAnimating = widget.animation.isAnimating;
-    final double rawSize = (widget.displaySize ?? 400) * devicePixelRatio;
-    final int cacheSize = isAnimating
-        ? (rawSize / 20).round() * 20
-        : rawSize.round();
-
-    final int? finalCacheWidth = cacheSize >= 40
-        ? math.min(cacheSize, limit)
-        : null;
-
     final String? artworkPath = _artworkPath ?? widget.musicFile.artworkPath;
     if (artworkPath != null) {
       final file = File(artworkPath);
@@ -611,7 +594,6 @@ class _CoverItemState extends State<_CoverItem> {
           width: double.infinity,
           height: double.infinity,
           gaplessPlayback: true,
-          cacheWidth: finalCacheWidth,
           filterQuality: isCentered ? FilterQuality.low : FilterQuality.medium,
         );
       }
@@ -627,7 +609,6 @@ class _CoverItemState extends State<_CoverItem> {
           width: double.infinity,
           height: double.infinity,
           gaplessPlayback: true,
-          cacheWidth: finalCacheWidth,
           filterQuality: isCentered ? FilterQuality.low : FilterQuality.medium,
         );
       }
