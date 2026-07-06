@@ -1464,25 +1464,70 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                 final currentMusic = ref.watch(audioCurrentMusicProvider);
                 final songPath = currentMusic?.path;
                 final songKey = songPath ?? 'empty';
-                final bytes = songPath != null ? _getArtworkBytes(songPath) : null;
 
-                if (bytes != null) {
+                final metadata = songPath != null
+                    ? ref.read(scannerServiceProvider).metadataMap[songPath]
+                    : null;
+                final String? artworkPath =
+                    metadata?.artworkPath ?? currentMusic?.artworkPath;
+                final Uint8List? cachedBytes = songPath != null
+                    ? (currentMusic?.artworkBytes ??
+                        ref.read(audioServiceProvider).getCachedArtwork(songPath))
+                    : null;
+                final String? thumbnailPath =
+                    metadata?.thumbnailPath ?? currentMusic?.thumbnailPath;
+
+                Widget? imageWidget;
+
+                if (artworkPath != null &&
+                    artworkPath.isNotEmpty &&
+                    File(artworkPath).existsSync()) {
+                  imageWidget = Image.file(
+                    File(artworkPath),
+                    width: double.infinity,
+                    height: double.infinity,
+                    cacheWidth: 1500,
+                    cacheHeight: 1500,
+                    fit: BoxFit.cover,
+                    filterQuality: FilterQuality.low,
+                    gaplessPlayback: true,
+                    excludeFromSemantics: true,
+                  );
+                } else if (cachedBytes != null && cachedBytes.isNotEmpty) {
+                  imageWidget = Image.memory(
+                    cachedBytes,
+                    width: double.infinity,
+                    height: double.infinity,
+                    cacheWidth: 1500,
+                    cacheHeight: 1500,
+                    fit: BoxFit.cover,
+                    filterQuality: FilterQuality.low,
+                    gaplessPlayback: true,
+                    excludeFromSemantics: true,
+                  );
+                } else if (thumbnailPath != null &&
+                    thumbnailPath.isNotEmpty &&
+                    File(thumbnailPath).existsSync()) {
+                  imageWidget = Image.file(
+                    File(thumbnailPath),
+                    width: double.infinity,
+                    height: double.infinity,
+                    cacheWidth: 1500,
+                    cacheHeight: 1500,
+                    fit: BoxFit.cover,
+                    filterQuality: FilterQuality.low,
+                    gaplessPlayback: true,
+                    excludeFromSemantics: true,
+                  );
+                }
+
+                if (imageWidget != null) {
                   content = ImageFiltered(
                     key: ValueKey('${songKey}_$finalSuffix'),
                     imageFilter: ui.ImageFilter.blur(sigmaX: 0.0, sigmaY: 0.0),
                     child: Transform.scale(
                       scale: 1.2,
-                      child: Image.memory(
-                        bytes,
-                        width: double.infinity,
-                        height: double.infinity,
-                        cacheWidth: 800,
-                        cacheHeight: 800,
-                        fit: BoxFit.cover,
-                        filterQuality: FilterQuality.low,
-                        gaplessPlayback: true,
-                        excludeFromSemantics: true,
-                      ),
+                      child: imageWidget,
                     ),
                   );
                 } else {
