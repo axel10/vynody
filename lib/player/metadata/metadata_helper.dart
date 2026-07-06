@@ -575,14 +575,46 @@ class MetadataHelper {
     int thumbnailSize = vynodyArtworkThumbnailSize,
   }) async {
     try {
+      final md5Hex = await calculateMd5(bytes: data);
+      final db = MetadataDatabase();
+      final cached = await db.getArtworkCache(md5Hex);
+      if (cached != null) {
+        final hasThumb = cached.thumbnailPath != null && File(cached.thumbnailPath!).existsSync();
+        final hasArt = cached.artworkPath != null && File(cached.artworkPath!).existsSync();
+        if (hasThumb && (!saveLarge || hasArt)) {
+          return {
+            'artworkPath': cached.artworkPath,
+            'thumbnailPath': cached.thumbnailPath,
+            'width': cached.artworkWidth,
+            'height': cached.artworkHeight,
+            'themeColorsBlob': cached.themeColorsBlob,
+          };
+        }
+      }
+
       final supportDir = await getApplicationSupportDirectory();
-      return _buildArtworkFiles(
+      final artworkInfo = await _buildArtworkFiles(
         songPath: songPath,
         data: data,
         supportDirPath: supportDir.path,
         saveLarge: saveLarge,
         thumbnailSize: thumbnailSize,
       );
+
+      if (artworkInfo != null) {
+        final record = ArtworkCacheRecord(
+          md5: md5Hex,
+          artworkPath: artworkInfo['artworkPath'] as String?,
+          thumbnailPath: artworkInfo['thumbnailPath'] as String?,
+          artworkWidth: artworkInfo['width'] as int?,
+          artworkHeight: artworkInfo['height'] as int?,
+          themeColorsBlob: artworkInfo['themeColorsBlob'] as Uint8List?,
+          updatedAtMillis: DateTime.now().millisecondsSinceEpoch,
+        );
+        await db.insertOrUpdateArtworkCache(record);
+      }
+
+      return artworkInfo;
     } catch (e) {
       debugPrint('Error saving artwork: $e');
       return null;

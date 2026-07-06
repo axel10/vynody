@@ -10,6 +10,7 @@ part of 'metadata_database.dart';
     LyricsTranslationCaches,
     ArtistCaches,
     ArtistImageCaches,
+    ArtworkCaches,
   ],
 )
 class MetadataDriftDatabase extends _$MetadataDriftDatabase {
@@ -1197,6 +1198,29 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
     return row == null ? null : _releaseCoverCacheFromRow(row);
   }
 
+  Future<void> insertOrUpdateArtworkCache(ArtworkCacheRecord record) async {
+    await into(artworkCaches).insert(
+      ArtworkCachesCompanion(
+        md5: Value(record.md5),
+        artworkPath: Value(record.artworkPath),
+        thumbnailPath: Value(record.thumbnailPath),
+        artworkWidth: Value(record.artworkWidth),
+        artworkHeight: Value(record.artworkHeight),
+        themeColorsBlob: Value(record.themeColorsBlob),
+        updatedAtMillis: Value(record.updatedAtMillis),
+      ),
+      mode: InsertMode.insertOrReplace,
+    );
+  }
+
+  Future<ArtworkCacheRecord?> getArtworkCache(String md5) async {
+    final row = await (select(artworkCaches)
+          ..where((t) => t.md5.equals(md5))
+          ..limit(1))
+        .getSingleOrNull();
+    return row == null ? null : _artworkCacheFromRow(row);
+  }
+
   Future<void> insertOrUpdateArtistCache(ArtistCacheRecord record) async {
     final normalizedKey = _normalizeArtistCacheKey(record.queryKey);
     final companion = ArtistCachesCompanion(
@@ -1427,6 +1451,19 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       releaseId: row.releaseId,
       largeUrl: row.largeUrl,
       thumbnailUrl: row.thumbnailUrl,
+      updatedAtMillis: row.updatedAtMillis,
+    );
+  }
+
+  ArtworkCacheRecord _artworkCacheFromRow(ArtworkCache row) {
+    return ArtworkCacheRecord(
+      id: row.id,
+      md5: row.md5,
+      artworkPath: row.artworkPath,
+      thumbnailPath: row.thumbnailPath,
+      artworkWidth: row.artworkWidth,
+      artworkHeight: row.artworkHeight,
+      themeColorsBlob: row.themeColorsBlob,
       updatedAtMillis: row.updatedAtMillis,
     );
   }
@@ -1940,6 +1977,23 @@ class LyricsTranslationCaches extends Table {
   List<String> get customConstraints => const [
     'UNIQUE(cacheKey, languageCode)',
   ];
+}
+
+class ArtworkCaches extends Table {
+  @override
+  String get tableName => 'artwork_cache';
+
+  IntColumn get id => integer().autoIncrement().named('id')();
+  TextColumn get md5 => text().named('md5')();
+  TextColumn get artworkPath => text().nullable().named('artworkPath')();
+  TextColumn get thumbnailPath => text().nullable().named('thumbnailPath')();
+  IntColumn get artworkWidth => integer().nullable().named('artworkWidth')();
+  IntColumn get artworkHeight => integer().nullable().named('artworkHeight')();
+  BlobColumn get themeColorsBlob => blob().nullable().named('themeColorsBlob')();
+  IntColumn get updatedAtMillis => integer().named('updatedAtMillis')();
+
+  @override
+  List<String> get customConstraints => const ['UNIQUE(md5)'];
 }
 
 LazyDatabase _openConnection() {

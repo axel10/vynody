@@ -1,5 +1,7 @@
 import 'dart:typed_data';
-
+import 'dart:io';
+import 'package:audio_core/audio_core.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 
@@ -169,10 +171,10 @@ class ProxyNetworkImage extends StatefulWidget {
 }
 
 class _ProxyNetworkImageState extends State<ProxyNetworkImage> {
-  static final Map<String, Uint8List> _imageCache = {};
-  static final Map<String, Future<Uint8List?>> _inFlight = {};
+  static final Map<String, String> _imageCache = {};
+  static final Map<String, Future<String?>> _inFlight = {};
 
-  Uint8List? _bytes;
+  String? _filePath;
   Object? _error;
   bool _isLoading = true;
 
@@ -186,7 +188,7 @@ class _ProxyNetworkImageState extends State<ProxyNetworkImage> {
   void didUpdateWidget(covariant ProxyNetworkImage oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.url != widget.url) {
-      _bytes = null;
+      _filePath = null;
       _error = null;
       _isLoading = true;
       _load();
@@ -198,24 +200,24 @@ class _ProxyNetworkImageState extends State<ProxyNetworkImage> {
     if (cached != null) {
       if (!mounted) return;
       setState(() {
-        _bytes = cached;
+        _filePath = cached;
         _isLoading = false;
       });
       return;
     }
 
     final inFlight = _inFlight[widget.url];
-    final future = inFlight ?? _fetchBytes(widget.url);
+    final future = inFlight ?? _fetchFilePath(widget.url);
     _inFlight[widget.url] = future;
 
     try {
-      final bytes = await future;
+      final path = await future;
       if (!mounted) return;
       setState(() {
-        _bytes = bytes;
+        _filePath = path;
         _isLoading = false;
-        if (bytes != null && bytes.isNotEmpty) {
-          _imageCache[widget.url] = bytes;
+        if (path != null && path.isNotEmpty) {
+          _imageCache[widget.url] = path;
         }
       });
     } catch (error) {
@@ -231,14 +233,21 @@ class _ProxyNetworkImageState extends State<ProxyNetworkImage> {
     }
   }
 
-  Future<Uint8List?> _fetchBytes(String url) async {
+  Future<String?> _fetchFilePath(String url) async {
     final response = await NetworkClient.instance.get<List<int>>(
       url,
       options: Options(responseType: ResponseType.bytes),
     );
     final data = response.data ?? const <int>[];
     if (data.isEmpty) return null;
-    return Uint8List.fromList(data);
+    final bytes = Uint8List.fromList(data);
+    final md5Hex = await calculateMd5(bytes: bytes);
+    final tempDir = await getTemporaryDirectory();
+    final file = File('${tempDir.path}/$md5Hex.jpg');
+    if (!file.existsSync()) {
+      await file.writeAsBytes(bytes);
+    }
+    return file.path;
   }
 
   @override
@@ -261,9 +270,9 @@ class _ProxyNetworkImageState extends State<ProxyNetworkImage> {
       );
     }
 
-    final bytes = _bytes;
-    if (bytes == null || bytes.isEmpty) {
-      final error = _error ?? StateError('Failed to load image bytes.');
+    final path = _filePath;
+    if (path == null || path.isEmpty) {
+      final error = _error ?? StateError('Failed to load image.');
       return widget.errorBuilder?.call(context, error, null) ??
           Icon(Icons.image_not_supported_outlined, color: isDark ? Colors.white24 : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3));
     }
@@ -272,7 +281,7 @@ class _ProxyNetworkImageState extends State<ProxyNetworkImage> {
       opacity: 1,
       duration: widget.frameDuration,
       curve: Curves.easeOut,
-      child: Image.memory(bytes, fit: widget.fit, gaplessPlayback: true),
+      child: Image.file(File(path), fit: widget.fit, gaplessPlayback: true),
     );
   }
 }

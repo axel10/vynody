@@ -5061,6 +5061,551 @@ class ArtistImageCachesCompanion extends UpdateCompanion<ArtistImageCache> {
   }
 }
 
+class $ArtworkCachesTable extends ArtworkCaches
+    with TableInfo<$ArtworkCachesTable, ArtworkCache> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ArtworkCachesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _md5Meta = const VerificationMeta('md5');
+  @override
+  late final GeneratedColumn<String> md5 = GeneratedColumn<String>(
+    'md5',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _artworkPathMeta = const VerificationMeta(
+    'artworkPath',
+  );
+  @override
+  late final GeneratedColumn<String> artworkPath = GeneratedColumn<String>(
+    'artworkPath',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _thumbnailPathMeta = const VerificationMeta(
+    'thumbnailPath',
+  );
+  @override
+  late final GeneratedColumn<String> thumbnailPath = GeneratedColumn<String>(
+    'thumbnailPath',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _artworkWidthMeta = const VerificationMeta(
+    'artworkWidth',
+  );
+  @override
+  late final GeneratedColumn<int> artworkWidth = GeneratedColumn<int>(
+    'artworkWidth',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _artworkHeightMeta = const VerificationMeta(
+    'artworkHeight',
+  );
+  @override
+  late final GeneratedColumn<int> artworkHeight = GeneratedColumn<int>(
+    'artworkHeight',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _themeColorsBlobMeta = const VerificationMeta(
+    'themeColorsBlob',
+  );
+  @override
+  late final GeneratedColumn<Uint8List> themeColorsBlob =
+      GeneratedColumn<Uint8List>(
+        'themeColorsBlob',
+        aliasedName,
+        true,
+        type: DriftSqlType.blob,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _updatedAtMillisMeta = const VerificationMeta(
+    'updatedAtMillis',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAtMillis = GeneratedColumn<int>(
+    'updatedAtMillis',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    md5,
+    artworkPath,
+    thumbnailPath,
+    artworkWidth,
+    artworkHeight,
+    themeColorsBlob,
+    updatedAtMillis,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'artwork_cache';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ArtworkCache> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('md5')) {
+      context.handle(
+        _md5Meta,
+        md5.isAcceptableOrUnknown(data['md5']!, _md5Meta),
+      );
+    } else if (isInserting) {
+      context.missing(_md5Meta);
+    }
+    if (data.containsKey('artworkPath')) {
+      context.handle(
+        _artworkPathMeta,
+        artworkPath.isAcceptableOrUnknown(
+          data['artworkPath']!,
+          _artworkPathMeta,
+        ),
+      );
+    }
+    if (data.containsKey('thumbnailPath')) {
+      context.handle(
+        _thumbnailPathMeta,
+        thumbnailPath.isAcceptableOrUnknown(
+          data['thumbnailPath']!,
+          _thumbnailPathMeta,
+        ),
+      );
+    }
+    if (data.containsKey('artworkWidth')) {
+      context.handle(
+        _artworkWidthMeta,
+        artworkWidth.isAcceptableOrUnknown(
+          data['artworkWidth']!,
+          _artworkWidthMeta,
+        ),
+      );
+    }
+    if (data.containsKey('artworkHeight')) {
+      context.handle(
+        _artworkHeightMeta,
+        artworkHeight.isAcceptableOrUnknown(
+          data['artworkHeight']!,
+          _artworkHeightMeta,
+        ),
+      );
+    }
+    if (data.containsKey('themeColorsBlob')) {
+      context.handle(
+        _themeColorsBlobMeta,
+        themeColorsBlob.isAcceptableOrUnknown(
+          data['themeColorsBlob']!,
+          _themeColorsBlobMeta,
+        ),
+      );
+    }
+    if (data.containsKey('updatedAtMillis')) {
+      context.handle(
+        _updatedAtMillisMeta,
+        updatedAtMillis.isAcceptableOrUnknown(
+          data['updatedAtMillis']!,
+          _updatedAtMillisMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMillisMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ArtworkCache map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ArtworkCache(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      md5: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}md5'],
+      )!,
+      artworkPath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}artworkPath'],
+      ),
+      thumbnailPath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}thumbnailPath'],
+      ),
+      artworkWidth: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}artworkWidth'],
+      ),
+      artworkHeight: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}artworkHeight'],
+      ),
+      themeColorsBlob: attachedDatabase.typeMapping.read(
+        DriftSqlType.blob,
+        data['${effectivePrefix}themeColorsBlob'],
+      ),
+      updatedAtMillis: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updatedAtMillis'],
+      )!,
+    );
+  }
+
+  @override
+  $ArtworkCachesTable createAlias(String alias) {
+    return $ArtworkCachesTable(attachedDatabase, alias);
+  }
+}
+
+class ArtworkCache extends DataClass implements Insertable<ArtworkCache> {
+  final int id;
+  final String md5;
+  final String? artworkPath;
+  final String? thumbnailPath;
+  final int? artworkWidth;
+  final int? artworkHeight;
+  final Uint8List? themeColorsBlob;
+  final int updatedAtMillis;
+  const ArtworkCache({
+    required this.id,
+    required this.md5,
+    this.artworkPath,
+    this.thumbnailPath,
+    this.artworkWidth,
+    this.artworkHeight,
+    this.themeColorsBlob,
+    required this.updatedAtMillis,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['md5'] = Variable<String>(md5);
+    if (!nullToAbsent || artworkPath != null) {
+      map['artworkPath'] = Variable<String>(artworkPath);
+    }
+    if (!nullToAbsent || thumbnailPath != null) {
+      map['thumbnailPath'] = Variable<String>(thumbnailPath);
+    }
+    if (!nullToAbsent || artworkWidth != null) {
+      map['artworkWidth'] = Variable<int>(artworkWidth);
+    }
+    if (!nullToAbsent || artworkHeight != null) {
+      map['artworkHeight'] = Variable<int>(artworkHeight);
+    }
+    if (!nullToAbsent || themeColorsBlob != null) {
+      map['themeColorsBlob'] = Variable<Uint8List>(themeColorsBlob);
+    }
+    map['updatedAtMillis'] = Variable<int>(updatedAtMillis);
+    return map;
+  }
+
+  ArtworkCachesCompanion toCompanion(bool nullToAbsent) {
+    return ArtworkCachesCompanion(
+      id: Value(id),
+      md5: Value(md5),
+      artworkPath: artworkPath == null && nullToAbsent
+          ? const Value.absent()
+          : Value(artworkPath),
+      thumbnailPath: thumbnailPath == null && nullToAbsent
+          ? const Value.absent()
+          : Value(thumbnailPath),
+      artworkWidth: artworkWidth == null && nullToAbsent
+          ? const Value.absent()
+          : Value(artworkWidth),
+      artworkHeight: artworkHeight == null && nullToAbsent
+          ? const Value.absent()
+          : Value(artworkHeight),
+      themeColorsBlob: themeColorsBlob == null && nullToAbsent
+          ? const Value.absent()
+          : Value(themeColorsBlob),
+      updatedAtMillis: Value(updatedAtMillis),
+    );
+  }
+
+  factory ArtworkCache.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ArtworkCache(
+      id: serializer.fromJson<int>(json['id']),
+      md5: serializer.fromJson<String>(json['md5']),
+      artworkPath: serializer.fromJson<String?>(json['artworkPath']),
+      thumbnailPath: serializer.fromJson<String?>(json['thumbnailPath']),
+      artworkWidth: serializer.fromJson<int?>(json['artworkWidth']),
+      artworkHeight: serializer.fromJson<int?>(json['artworkHeight']),
+      themeColorsBlob: serializer.fromJson<Uint8List?>(json['themeColorsBlob']),
+      updatedAtMillis: serializer.fromJson<int>(json['updatedAtMillis']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'md5': serializer.toJson<String>(md5),
+      'artworkPath': serializer.toJson<String?>(artworkPath),
+      'thumbnailPath': serializer.toJson<String?>(thumbnailPath),
+      'artworkWidth': serializer.toJson<int?>(artworkWidth),
+      'artworkHeight': serializer.toJson<int?>(artworkHeight),
+      'themeColorsBlob': serializer.toJson<Uint8List?>(themeColorsBlob),
+      'updatedAtMillis': serializer.toJson<int>(updatedAtMillis),
+    };
+  }
+
+  ArtworkCache copyWith({
+    int? id,
+    String? md5,
+    Value<String?> artworkPath = const Value.absent(),
+    Value<String?> thumbnailPath = const Value.absent(),
+    Value<int?> artworkWidth = const Value.absent(),
+    Value<int?> artworkHeight = const Value.absent(),
+    Value<Uint8List?> themeColorsBlob = const Value.absent(),
+    int? updatedAtMillis,
+  }) => ArtworkCache(
+    id: id ?? this.id,
+    md5: md5 ?? this.md5,
+    artworkPath: artworkPath.present ? artworkPath.value : this.artworkPath,
+    thumbnailPath: thumbnailPath.present
+        ? thumbnailPath.value
+        : this.thumbnailPath,
+    artworkWidth: artworkWidth.present ? artworkWidth.value : this.artworkWidth,
+    artworkHeight: artworkHeight.present
+        ? artworkHeight.value
+        : this.artworkHeight,
+    themeColorsBlob: themeColorsBlob.present
+        ? themeColorsBlob.value
+        : this.themeColorsBlob,
+    updatedAtMillis: updatedAtMillis ?? this.updatedAtMillis,
+  );
+  ArtworkCache copyWithCompanion(ArtworkCachesCompanion data) {
+    return ArtworkCache(
+      id: data.id.present ? data.id.value : this.id,
+      md5: data.md5.present ? data.md5.value : this.md5,
+      artworkPath: data.artworkPath.present
+          ? data.artworkPath.value
+          : this.artworkPath,
+      thumbnailPath: data.thumbnailPath.present
+          ? data.thumbnailPath.value
+          : this.thumbnailPath,
+      artworkWidth: data.artworkWidth.present
+          ? data.artworkWidth.value
+          : this.artworkWidth,
+      artworkHeight: data.artworkHeight.present
+          ? data.artworkHeight.value
+          : this.artworkHeight,
+      themeColorsBlob: data.themeColorsBlob.present
+          ? data.themeColorsBlob.value
+          : this.themeColorsBlob,
+      updatedAtMillis: data.updatedAtMillis.present
+          ? data.updatedAtMillis.value
+          : this.updatedAtMillis,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ArtworkCache(')
+          ..write('id: $id, ')
+          ..write('md5: $md5, ')
+          ..write('artworkPath: $artworkPath, ')
+          ..write('thumbnailPath: $thumbnailPath, ')
+          ..write('artworkWidth: $artworkWidth, ')
+          ..write('artworkHeight: $artworkHeight, ')
+          ..write('themeColorsBlob: $themeColorsBlob, ')
+          ..write('updatedAtMillis: $updatedAtMillis')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    md5,
+    artworkPath,
+    thumbnailPath,
+    artworkWidth,
+    artworkHeight,
+    $driftBlobEquality.hash(themeColorsBlob),
+    updatedAtMillis,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ArtworkCache &&
+          other.id == this.id &&
+          other.md5 == this.md5 &&
+          other.artworkPath == this.artworkPath &&
+          other.thumbnailPath == this.thumbnailPath &&
+          other.artworkWidth == this.artworkWidth &&
+          other.artworkHeight == this.artworkHeight &&
+          $driftBlobEquality.equals(
+            other.themeColorsBlob,
+            this.themeColorsBlob,
+          ) &&
+          other.updatedAtMillis == this.updatedAtMillis);
+}
+
+class ArtworkCachesCompanion extends UpdateCompanion<ArtworkCache> {
+  final Value<int> id;
+  final Value<String> md5;
+  final Value<String?> artworkPath;
+  final Value<String?> thumbnailPath;
+  final Value<int?> artworkWidth;
+  final Value<int?> artworkHeight;
+  final Value<Uint8List?> themeColorsBlob;
+  final Value<int> updatedAtMillis;
+  const ArtworkCachesCompanion({
+    this.id = const Value.absent(),
+    this.md5 = const Value.absent(),
+    this.artworkPath = const Value.absent(),
+    this.thumbnailPath = const Value.absent(),
+    this.artworkWidth = const Value.absent(),
+    this.artworkHeight = const Value.absent(),
+    this.themeColorsBlob = const Value.absent(),
+    this.updatedAtMillis = const Value.absent(),
+  });
+  ArtworkCachesCompanion.insert({
+    this.id = const Value.absent(),
+    required String md5,
+    this.artworkPath = const Value.absent(),
+    this.thumbnailPath = const Value.absent(),
+    this.artworkWidth = const Value.absent(),
+    this.artworkHeight = const Value.absent(),
+    this.themeColorsBlob = const Value.absent(),
+    required int updatedAtMillis,
+  }) : md5 = Value(md5),
+       updatedAtMillis = Value(updatedAtMillis);
+  static Insertable<ArtworkCache> custom({
+    Expression<int>? id,
+    Expression<String>? md5,
+    Expression<String>? artworkPath,
+    Expression<String>? thumbnailPath,
+    Expression<int>? artworkWidth,
+    Expression<int>? artworkHeight,
+    Expression<Uint8List>? themeColorsBlob,
+    Expression<int>? updatedAtMillis,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (md5 != null) 'md5': md5,
+      if (artworkPath != null) 'artworkPath': artworkPath,
+      if (thumbnailPath != null) 'thumbnailPath': thumbnailPath,
+      if (artworkWidth != null) 'artworkWidth': artworkWidth,
+      if (artworkHeight != null) 'artworkHeight': artworkHeight,
+      if (themeColorsBlob != null) 'themeColorsBlob': themeColorsBlob,
+      if (updatedAtMillis != null) 'updatedAtMillis': updatedAtMillis,
+    });
+  }
+
+  ArtworkCachesCompanion copyWith({
+    Value<int>? id,
+    Value<String>? md5,
+    Value<String?>? artworkPath,
+    Value<String?>? thumbnailPath,
+    Value<int?>? artworkWidth,
+    Value<int?>? artworkHeight,
+    Value<Uint8List?>? themeColorsBlob,
+    Value<int>? updatedAtMillis,
+  }) {
+    return ArtworkCachesCompanion(
+      id: id ?? this.id,
+      md5: md5 ?? this.md5,
+      artworkPath: artworkPath ?? this.artworkPath,
+      thumbnailPath: thumbnailPath ?? this.thumbnailPath,
+      artworkWidth: artworkWidth ?? this.artworkWidth,
+      artworkHeight: artworkHeight ?? this.artworkHeight,
+      themeColorsBlob: themeColorsBlob ?? this.themeColorsBlob,
+      updatedAtMillis: updatedAtMillis ?? this.updatedAtMillis,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (md5.present) {
+      map['md5'] = Variable<String>(md5.value);
+    }
+    if (artworkPath.present) {
+      map['artworkPath'] = Variable<String>(artworkPath.value);
+    }
+    if (thumbnailPath.present) {
+      map['thumbnailPath'] = Variable<String>(thumbnailPath.value);
+    }
+    if (artworkWidth.present) {
+      map['artworkWidth'] = Variable<int>(artworkWidth.value);
+    }
+    if (artworkHeight.present) {
+      map['artworkHeight'] = Variable<int>(artworkHeight.value);
+    }
+    if (themeColorsBlob.present) {
+      map['themeColorsBlob'] = Variable<Uint8List>(themeColorsBlob.value);
+    }
+    if (updatedAtMillis.present) {
+      map['updatedAtMillis'] = Variable<int>(updatedAtMillis.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ArtworkCachesCompanion(')
+          ..write('id: $id, ')
+          ..write('md5: $md5, ')
+          ..write('artworkPath: $artworkPath, ')
+          ..write('thumbnailPath: $thumbnailPath, ')
+          ..write('artworkWidth: $artworkWidth, ')
+          ..write('artworkHeight: $artworkHeight, ')
+          ..write('themeColorsBlob: $themeColorsBlob, ')
+          ..write('updatedAtMillis: $updatedAtMillis')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$MetadataDriftDatabase extends GeneratedDatabase {
   _$MetadataDriftDatabase(QueryExecutor e) : super(e);
   $MetadataDriftDatabaseManager get managers =>
@@ -5077,6 +5622,7 @@ abstract class _$MetadataDriftDatabase extends GeneratedDatabase {
   late final $ArtistCachesTable artistCaches = $ArtistCachesTable(this);
   late final $ArtistImageCachesTable artistImageCaches =
       $ArtistImageCachesTable(this);
+  late final $ArtworkCachesTable artworkCaches = $ArtworkCachesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -5090,6 +5636,7 @@ abstract class _$MetadataDriftDatabase extends GeneratedDatabase {
     lyricsTranslationCaches,
     artistCaches,
     artistImageCaches,
+    artworkCaches,
   ];
 }
 
@@ -7565,6 +8112,279 @@ typedef $$ArtistImageCachesTableProcessedTableManager =
       ArtistImageCache,
       PrefetchHooks Function()
     >;
+typedef $$ArtworkCachesTableCreateCompanionBuilder =
+    ArtworkCachesCompanion Function({
+      Value<int> id,
+      required String md5,
+      Value<String?> artworkPath,
+      Value<String?> thumbnailPath,
+      Value<int?> artworkWidth,
+      Value<int?> artworkHeight,
+      Value<Uint8List?> themeColorsBlob,
+      required int updatedAtMillis,
+    });
+typedef $$ArtworkCachesTableUpdateCompanionBuilder =
+    ArtworkCachesCompanion Function({
+      Value<int> id,
+      Value<String> md5,
+      Value<String?> artworkPath,
+      Value<String?> thumbnailPath,
+      Value<int?> artworkWidth,
+      Value<int?> artworkHeight,
+      Value<Uint8List?> themeColorsBlob,
+      Value<int> updatedAtMillis,
+    });
+
+class $$ArtworkCachesTableFilterComposer
+    extends Composer<_$MetadataDriftDatabase, $ArtworkCachesTable> {
+  $$ArtworkCachesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get md5 => $composableBuilder(
+    column: $table.md5,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get artworkPath => $composableBuilder(
+    column: $table.artworkPath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get thumbnailPath => $composableBuilder(
+    column: $table.thumbnailPath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get artworkWidth => $composableBuilder(
+    column: $table.artworkWidth,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get artworkHeight => $composableBuilder(
+    column: $table.artworkHeight,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<Uint8List> get themeColorsBlob => $composableBuilder(
+    column: $table.themeColorsBlob,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAtMillis => $composableBuilder(
+    column: $table.updatedAtMillis,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ArtworkCachesTableOrderingComposer
+    extends Composer<_$MetadataDriftDatabase, $ArtworkCachesTable> {
+  $$ArtworkCachesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get md5 => $composableBuilder(
+    column: $table.md5,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get artworkPath => $composableBuilder(
+    column: $table.artworkPath,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get thumbnailPath => $composableBuilder(
+    column: $table.thumbnailPath,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get artworkWidth => $composableBuilder(
+    column: $table.artworkWidth,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get artworkHeight => $composableBuilder(
+    column: $table.artworkHeight,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<Uint8List> get themeColorsBlob => $composableBuilder(
+    column: $table.themeColorsBlob,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get updatedAtMillis => $composableBuilder(
+    column: $table.updatedAtMillis,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ArtworkCachesTableAnnotationComposer
+    extends Composer<_$MetadataDriftDatabase, $ArtworkCachesTable> {
+  $$ArtworkCachesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get md5 =>
+      $composableBuilder(column: $table.md5, builder: (column) => column);
+
+  GeneratedColumn<String> get artworkPath => $composableBuilder(
+    column: $table.artworkPath,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get thumbnailPath => $composableBuilder(
+    column: $table.thumbnailPath,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get artworkWidth => $composableBuilder(
+    column: $table.artworkWidth,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get artworkHeight => $composableBuilder(
+    column: $table.artworkHeight,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<Uint8List> get themeColorsBlob => $composableBuilder(
+    column: $table.themeColorsBlob,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get updatedAtMillis => $composableBuilder(
+    column: $table.updatedAtMillis,
+    builder: (column) => column,
+  );
+}
+
+class $$ArtworkCachesTableTableManager
+    extends
+        RootTableManager<
+          _$MetadataDriftDatabase,
+          $ArtworkCachesTable,
+          ArtworkCache,
+          $$ArtworkCachesTableFilterComposer,
+          $$ArtworkCachesTableOrderingComposer,
+          $$ArtworkCachesTableAnnotationComposer,
+          $$ArtworkCachesTableCreateCompanionBuilder,
+          $$ArtworkCachesTableUpdateCompanionBuilder,
+          (
+            ArtworkCache,
+            BaseReferences<
+              _$MetadataDriftDatabase,
+              $ArtworkCachesTable,
+              ArtworkCache
+            >,
+          ),
+          ArtworkCache,
+          PrefetchHooks Function()
+        > {
+  $$ArtworkCachesTableTableManager(
+    _$MetadataDriftDatabase db,
+    $ArtworkCachesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ArtworkCachesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ArtworkCachesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ArtworkCachesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> md5 = const Value.absent(),
+                Value<String?> artworkPath = const Value.absent(),
+                Value<String?> thumbnailPath = const Value.absent(),
+                Value<int?> artworkWidth = const Value.absent(),
+                Value<int?> artworkHeight = const Value.absent(),
+                Value<Uint8List?> themeColorsBlob = const Value.absent(),
+                Value<int> updatedAtMillis = const Value.absent(),
+              }) => ArtworkCachesCompanion(
+                id: id,
+                md5: md5,
+                artworkPath: artworkPath,
+                thumbnailPath: thumbnailPath,
+                artworkWidth: artworkWidth,
+                artworkHeight: artworkHeight,
+                themeColorsBlob: themeColorsBlob,
+                updatedAtMillis: updatedAtMillis,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String md5,
+                Value<String?> artworkPath = const Value.absent(),
+                Value<String?> thumbnailPath = const Value.absent(),
+                Value<int?> artworkWidth = const Value.absent(),
+                Value<int?> artworkHeight = const Value.absent(),
+                Value<Uint8List?> themeColorsBlob = const Value.absent(),
+                required int updatedAtMillis,
+              }) => ArtworkCachesCompanion.insert(
+                id: id,
+                md5: md5,
+                artworkPath: artworkPath,
+                thumbnailPath: thumbnailPath,
+                artworkWidth: artworkWidth,
+                artworkHeight: artworkHeight,
+                themeColorsBlob: themeColorsBlob,
+                updatedAtMillis: updatedAtMillis,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ArtworkCachesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$MetadataDriftDatabase,
+      $ArtworkCachesTable,
+      ArtworkCache,
+      $$ArtworkCachesTableFilterComposer,
+      $$ArtworkCachesTableOrderingComposer,
+      $$ArtworkCachesTableAnnotationComposer,
+      $$ArtworkCachesTableCreateCompanionBuilder,
+      $$ArtworkCachesTableUpdateCompanionBuilder,
+      (
+        ArtworkCache,
+        BaseReferences<
+          _$MetadataDriftDatabase,
+          $ArtworkCachesTable,
+          ArtworkCache
+        >,
+      ),
+      ArtworkCache,
+      PrefetchHooks Function()
+    >;
 
 class $MetadataDriftDatabaseManager {
   final _$MetadataDriftDatabase _db;
@@ -7588,4 +8408,6 @@ class $MetadataDriftDatabaseManager {
       $$ArtistCachesTableTableManager(_db, _db.artistCaches);
   $$ArtistImageCachesTableTableManager get artistImageCaches =>
       $$ArtistImageCachesTableTableManager(_db, _db.artistImageCaches);
+  $$ArtworkCachesTableTableManager get artworkCaches =>
+      $$ArtworkCachesTableTableManager(_db, _db.artworkCaches);
 }

@@ -72,7 +72,7 @@ class PlaybackQueueProcessor {
     required List<MusicFile> playlist,
     required String? currentFilePath,
     required Function(String path, Map<String, dynamic> updates) onUpdate,
-    Function(String path, Uint8List bytes)? onHdArtworkLoaded,
+    Function(String path, String artworkPath)? onHdArtworkLoaded,
   }) async {
     if (_disposed) return;
     final artworkThemeService = TrackArtworkThemeService(db: db);
@@ -178,39 +178,11 @@ class PlaybackQueueProcessor {
           continue;
         }
 
-        // Skip if already has artwork bytes in memory
-        if (song.artworkBytes != null) continue;
-
         try {
           final existing = await db.getSongMetadata(song.path);
-          Uint8List? finalBytes;
-
-          // Try external artwork path first (usually higher quality from online match)
-          if (existing?.artworkPath != null &&
-              existing!.artworkPath!.isNotEmpty) {
-            try {
-              final coverFile = File(existing.artworkPath!);
-              if (await coverFile.exists()) {
-                finalBytes = await coverFile.readAsBytes();
-              }
-            } catch (e) {
-              debugPrint(
-                'Failed to read external artwork for ${song.path}: $e',
-              );
-            }
-          }
-
-          // Fallback to embedded artwork
-          if (finalBytes == null) {
-            try {
-              finalBytes = await MetadataHelper.decodeEmbeddedArtwork(song.path);
-            } catch (e) {
-              // Ignore failure
-            }
-          }
-
-          if (finalBytes != null && onHdArtworkLoaded != null) {
-            onHdArtworkLoaded(song.path, finalBytes);
+          final path = existing?.artworkPath ?? existing?.thumbnailPath;
+          if (path != null && onHdArtworkLoaded != null) {
+            onHdArtworkLoaded(song.path, path);
           }
         } catch (e) {
           debugPrint('Error loading HD artwork in fast pass: $e');

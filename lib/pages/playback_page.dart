@@ -1384,31 +1384,10 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
 
               if (isSmallWinValue) {
                 final currentMusic = ref.watch(audioCurrentMusicProvider);
-                final originalBytes = currentMusic?.artworkBytes;
                 final originalPath = currentMusic?.artworkPath;
                 final songKey = currentMusic?.path ?? 'empty';
 
-                if (originalBytes != null && originalBytes.isNotEmpty) {
-                  content = ImageFiltered(
-                    key: ValueKey('${songKey}_$finalSuffix'),
-                    imageFilter: ui.ImageFilter.blur(sigmaX: 0.0, sigmaY: 0.0),
-                    child: Transform.scale(
-                      scale: 1.2,
-                      child: Image.memory(
-                        originalBytes,
-                        width: double.infinity,
-                        height: double.infinity,
-                        cacheWidth: (Platform.isAndroid || Platform.isIOS)
-                            ? 300
-                            : 600,
-                        fit: BoxFit.cover,
-                        filterQuality: FilterQuality.low,
-                        gaplessPlayback: true,
-                        excludeFromSemantics: true,
-                      ),
-                    ),
-                  );
-                } else if (originalPath != null &&
+                if (originalPath != null &&
                     originalPath.isNotEmpty &&
                     File(originalPath).existsSync()) {
                   content = ImageFiltered(
@@ -1439,26 +1418,16 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                   );
                 }
               } else {
-                final bytes = _pendingArtworkBytes;
-                if (bytes == null || bytes.isEmpty) {
-                  // 如果封面字节尚未准备好（或不存在），则显示纯黑背景。
-                  content = Container(
-                    key: ValueKey(
-                      'bg_empty_${_pendingArtworkPath}_$finalSuffix',
-                    ),
-                    color: Colors.black,
-                  );
-                } else {
-                  // 使用 Image.memory 的高性能解码缩放：
-                  // 对于 Android 和 iOS，通过设置 cacheWidth (300px) 在解码阶段完成缩小，以降低内存并加速滤镜运算；
-                  // 对于桌面端，使用原图（cacheWidth 为 null）以提供更清晰的背景。
-                  final currentMusic = ref.watch(audioCurrentMusicProvider);
-                  final String songKey =
-                      _pendingArtworkPath ??
-                      currentMusic?.path ??
-                      bytes.hashCode.toString();
-                  final imageProvider = Image.memory(
-                    bytes,
+                final currentMusic = ref.watch(audioCurrentMusicProvider);
+                final String? imagePath =
+                    _pendingArtworkPath ?? currentMusic?.artworkPath;
+                final String songKey = imagePath ?? 'empty';
+
+                if (imagePath != null &&
+                    imagePath.isNotEmpty &&
+                    File(imagePath).existsSync()) {
+                  final imageProvider = Image.file(
+                    File(imagePath),
                     width: double.infinity,
                     height: double.infinity,
                     cacheWidth: (Platform.isAndroid || Platform.isIOS)
@@ -1471,14 +1440,19 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                   );
 
                   content = ImageFiltered(
-                    // 使用歌曲路径或哈希值作为 Key，确保切歌时触发过渡动画，但封面精度提升时不触发
                     key: ValueKey('${songKey}_$finalSuffix'),
-                    // 减小模糊强度并增加缩放以更好地覆盖边缘
                     imageFilter: ui.ImageFilter.blur(
                       sigmaX: settings.playbackBlurredArtworkBlurSigma,
                       sigmaY: settings.playbackBlurredArtworkBlurSigma,
                     ),
                     child: Transform.scale(scale: 1.2, child: imageProvider),
+                  );
+                } else {
+                  content = Container(
+                    key: ValueKey('bg_empty_${songKey}_$finalSuffix'),
+                    color: Colors.black,
+                    width: double.infinity,
+                    height: double.infinity,
                   );
                 }
               }

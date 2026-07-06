@@ -18,10 +18,10 @@ class MiniArtwork extends ConsumerWidget {
       height: 36,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(6),
-        image: currentMusic?.artworkBytes != null
+        image: (currentMusic?.thumbnailPath != null && File(currentMusic!.thumbnailPath!).existsSync())
             ? DecorationImage(
                 image: ResizeImage(
-                  MemoryImage(currentMusic!.artworkBytes!),
+                  FileImage(File(currentMusic.thumbnailPath!)),
                   width: 120,
                   height: 120,
                   allowUpscaling: false,
@@ -29,10 +29,10 @@ class MiniArtwork extends ConsumerWidget {
                 fit: BoxFit.cover,
                 filterQuality: FilterQuality.low,
               )
-            : currentMusic?.artworkPath != null
+            : (currentMusic?.artworkPath != null && File(currentMusic!.artworkPath!).existsSync())
             ? DecorationImage(
                 image: ResizeImage(
-                  FileImage(File(currentMusic!.artworkPath!)),
+                  FileImage(File(currentMusic.artworkPath!)),
                   width: 120,
                   height: 120,
                   allowUpscaling: false,
@@ -46,8 +46,8 @@ class MiniArtwork extends ConsumerWidget {
             : Colors.grey[200],
       ),
       child:
-          (currentMusic?.artworkBytes == null &&
-              currentMusic?.artworkPath == null)
+          (currentMusic?.artworkPath == null &&
+              currentMusic?.thumbnailPath == null)
           ? Icon(
               Icons.music_note,
               color: Theme.of(context).brightness == Brightness.dark

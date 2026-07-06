@@ -10,6 +10,8 @@ import 'package:oktoast/oktoast.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/player/metadata/metadata_helper.dart';
+import 'package:audio_core/audio_core.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:vynody/utils/app_snack_bar.dart';
 
 class SongTagEditResult {
@@ -54,6 +56,7 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
   bool _isSaving = false;
   String? _errorMessage;
   Uint8List? _artworkBytes;
+  String? _artworkPath;
   bool _isArtworkModified = false;
   bool _isLoadingArtwork = false;
 
@@ -81,32 +84,31 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
     setState(() {
       _isLoadingArtwork = true;
     });
-    Uint8List? bytes = widget.song.artworkBytes;
+    String? path = widget.song.artworkPath ?? widget.song.thumbnailPath;
+    Uint8List? bytes;
+    if (path != null && path.isNotEmpty) {
+      final file = File(path);
+      if (await file.exists()) {
+        try {
+          bytes = await file.readAsBytes();
+        } catch (_) {}
+      }
+    }
     if (bytes == null) {
-      if (widget.song.artworkPath != null && widget.song.artworkPath!.isNotEmpty) {
-        final file = File(widget.song.artworkPath!);
-        if (await file.exists()) {
-          try {
-            bytes = await file.readAsBytes();
-          } catch (e) {
-            debugPrint('Error loading artwork path: $e');
-          }
+      bytes = await MetadataHelper.decodeEmbeddedArtwork(widget.song.path);
+      if (bytes != null && bytes.isNotEmpty) {
+        final md5Hex = await calculateMd5(bytes: bytes);
+        final tempDir = await getTemporaryDirectory();
+        final tempFile = File('${tempDir.path}/$md5Hex.jpg');
+        if (!tempFile.existsSync()) {
+          await tempFile.writeAsBytes(bytes);
         }
+        path = tempFile.path;
       }
-      if (bytes == null && widget.song.thumbnailPath != null && widget.song.thumbnailPath!.isNotEmpty) {
-        final file = File(widget.song.thumbnailPath!);
-        if (await file.exists()) {
-          try {
-            bytes = await file.readAsBytes();
-          } catch (e) {
-            debugPrint('Error loading thumbnail path: $e');
-          }
-        }
-      }
-      bytes ??= await MetadataHelper.decodeEmbeddedArtwork(widget.song.path);
     }
     if (mounted) {
       setState(() {
+        _artworkPath = path;
         _artworkBytes = bytes;
         _isLoadingArtwork = false;
       });
@@ -120,9 +122,11 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
         allowMultiple: false,
       );
       if (result != null && result.files.single.path != null) {
-        final file = File(result.files.single.path!);
+        final path = result.files.single.path!;
+        final file = File(path);
         final bytes = await file.readAsBytes();
         setState(() {
+          _artworkPath = path;
           _artworkBytes = bytes;
           _isArtworkModified = true;
         });
@@ -372,9 +376,9 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
                                               child: CircularProgressIndicator(strokeWidth: 2),
                                             ),
                                           )
-                                        : _artworkBytes != null && _artworkBytes!.isNotEmpty
-                                            ? Image.memory(
-                                                _artworkBytes!,
+                                        : _artworkPath != null && _artworkPath!.isNotEmpty
+                                            ? Image.file(
+                                                File(_artworkPath!),
                                                 fit: BoxFit.cover,
                                               )
                                             : Icon(

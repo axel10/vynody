@@ -172,6 +172,55 @@ class AcoustIDCacheRecord {
   }
 }
 
+class ArtworkCacheRecord {
+  final int? id;
+  final String md5;
+  final String? artworkPath;
+  final String? thumbnailPath;
+  final int? artworkWidth;
+  final int? artworkHeight;
+  final Uint8List? themeColorsBlob;
+  final int updatedAtMillis;
+
+  const ArtworkCacheRecord({
+    this.id,
+    required this.md5,
+    this.artworkPath,
+    this.thumbnailPath,
+    this.artworkWidth,
+    this.artworkHeight,
+    this.themeColorsBlob,
+    required this.updatedAtMillis,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'md5': md5,
+      'artworkPath': artworkPath,
+      'thumbnailPath': thumbnailPath,
+      'artworkWidth': artworkWidth,
+      'artworkHeight': artworkHeight,
+      'themeColorsBlob': themeColorsBlob,
+      'updatedAtMillis': updatedAtMillis,
+    };
+  }
+
+  factory ArtworkCacheRecord.fromMap(Map<String, dynamic> map) {
+    return ArtworkCacheRecord(
+      id: map['id'] as int?,
+      md5: map['md5'] as String? ?? '',
+      artworkPath: map['artworkPath'] as String?,
+      thumbnailPath: map['thumbnailPath'] as String?,
+      artworkWidth: map['artworkWidth'] as int?,
+      artworkHeight: map['artworkHeight'] as int?,
+      themeColorsBlob: map['themeColorsBlob'] as Uint8List?,
+      updatedAtMillis:
+          (map['updatedAtMillis'] as int?) ??
+          DateTime.now().millisecondsSinceEpoch,
+    );
+  }
+}
+
 class ReleaseCoverCacheRecord {
   final int? id;
   final String releaseId;
@@ -459,6 +508,12 @@ class MetadataDatabase {
 
   Future<ReleaseCoverCacheRecord?> getReleaseCoverCache(String releaseId) =>
       _db.getReleaseCoverCache(releaseId);
+
+  Future<void> insertOrUpdateArtworkCache(ArtworkCacheRecord record) =>
+      _db.insertOrUpdateArtworkCache(record);
+
+  Future<ArtworkCacheRecord?> getArtworkCache(String md5) =>
+      _db.getArtworkCache(md5);
 
   Future<void> insertOrUpdateArtistCache(ArtistCacheRecord record) =>
       _db.insertOrUpdateArtistCache(record);

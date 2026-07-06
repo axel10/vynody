@@ -1097,7 +1097,6 @@ class AudioService extends Notifier<AudioSnapshot> {
         return;
       }
 
-      Uint8List? artworkBytes = song.artworkBytes;
       String? artworkPath = song.artworkPath;
       String? thumbnailPath = song.thumbnailPath;
       Uint8List? themeColorsBlob = song.themeColorsBlob;
@@ -1108,30 +1107,9 @@ class AudioService extends Notifier<AudioSnapshot> {
         artworkPath ??= dbMetadata.artworkPath;
         thumbnailPath ??= dbMetadata.thumbnailPath;
         themeColorsBlob ??= dbMetadata.themeColorsBlob;
-
-        final dbArtworkPath = dbMetadata.artworkPath;
-        if (dbArtworkPath != null && dbArtworkPath.trim().isNotEmpty) {
-          artworkPath = dbArtworkPath;
-          try {
-            final file = File(dbArtworkPath);
-            if (await file.exists()) {
-              final swRead = Stopwatch()..start();
-              artworkBytes = await file.readAsBytes();
-              debugPrint('[PERF] Read artwork file took ${swRead.elapsedMilliseconds}ms, size=${artworkBytes.length} bytes');
-            }
-          } catch (_) {}
-        }
       }
 
-      if (artworkBytes == null) {
-        final swDecode = Stopwatch()..start();
-        artworkBytes = await MetadataHelper.decodeEmbeddedArtwork(song.path);
-        debugPrint('[PERF] decodeEmbeddedArtwork took ${swDecode.elapsedMilliseconds}ms, size=${artworkBytes?.length ?? 0} bytes');
-      }
-
-      if (artworkPath == null ||
-          thumbnailPath == null ||
-          themeColorsBlob == null) {
+      if (thumbnailPath == null || themeColorsBlob == null) {
         final supportDir = await getApplicationSupportDirectory();
         final swTheme = Stopwatch()..start();
         final artworkTheme = await artworkThemeService.getTrackArtworkTheme(
@@ -1142,49 +1120,36 @@ class AudioService extends Notifier<AudioSnapshot> {
         );
         debugPrint('[PERF] getTrackArtworkTheme took ${swTheme.elapsedMilliseconds}ms');
         if (artworkTheme != null) {
-          artworkPath ??=
-              artworkTheme.artworkPath ?? artworkTheme.thumbnailPath;
-          thumbnailPath ??= artworkTheme.thumbnailPath;
-          themeColorsBlob ??= artworkTheme.themeColorsBlob;
+          artworkPath = artworkTheme.artworkPath ?? artworkTheme.thumbnailPath;
+          thumbnailPath = artworkTheme.thumbnailPath;
+          themeColorsBlob = artworkTheme.themeColorsBlob;
         }
       }
 
-      if (artworkBytes != null && artworkBytes.isNotEmpty) {
-        if (_currentIndex >= 0 && _currentIndex < _queue.length) {
-          final currentSong = _queue[_currentIndex];
-          if (currentSong.path == song.path) {
-            _queue[_currentIndex] = currentSong.copyWith(
-              artworkBytes: artworkBytes,
-              artworkPath: artworkPath,
-              thumbnailPath: thumbnailPath,
-              themeColorsBlob: themeColorsBlob ?? currentSong.themeColorsBlob,
-            );
-            notifyListeners();
-            _logPlaybackTrace(
-              '_prepareCurrentPlaybackArtwork applied -> '
-              'current=${_debugSongLabel(currentMusic)}',
-            );
-          }
+      if (_currentIndex >= 0 && _currentIndex < _queue.length) {
+        final currentSong = _queue[_currentIndex];
+        if (currentSong.path == song.path) {
+          _queue[_currentIndex] = currentSong.copyWith(
+            artworkPath: artworkPath,
+            thumbnailPath: thumbnailPath,
+            themeColorsBlob: themeColorsBlob ?? currentSong.themeColorsBlob,
+          );
+          notifyListeners();
+          _logPlaybackTrace(
+            '_prepareCurrentPlaybackArtwork applied -> '
+            'current=${_debugSongLabel(currentMusic)}',
+          );
         }
-
-        // Keep the hero destination image sharp without allowing a full-size
-        // decode to block the transition.
-        // Existing desktop/mobile limits stay in place:
-        // 1200px on desktop, 800px on mobile.
-        final isPc = Platform.isWindows || Platform.isMacOS || Platform.isLinux;
-        final int limit = isPc ? 1200 : 800;
-        final provider = ResizeImage(
-          MemoryImage(artworkBytes),
-          width: limit,
-          height: limit,
-          allowUpscaling: false,
-        );
-        provider.resolve(ImageConfiguration.empty);
       }
 
       if (themeColorsBlob != null && themeColorsBlob.isNotEmpty) {
         _applyThemeColors(ThemeColorHelper.blobToColors(themeColorsBlob));
         notifyListeners();
+      }
+
+      // Trigger asynchronous large WebP generation in background
+      if (artworkPath == null || artworkPath.isEmpty || !File(artworkPath).existsSync()) {
+        unawaited(_generateLargeArtworkBackground(_queue[_currentIndex]));
       }
     } catch (e) {
       debugPrint('AudioService: hero artwork prep failed for ${song.path}: $e');
@@ -1198,6 +1163,70 @@ class AudioService extends Notifier<AudioSnapshot> {
         },
       );
       debugPrint('[PERF] _prepareCurrentPlaybackArtwork TOTAL took ${sw.elapsedMilliseconds}ms');
+    }
+  }
+
+  Future<void> _generateLargeArtworkBackground(MusicFile song) async {
+    try {
+      if (song.path.isEmpty || !File(song.path).existsSync()) return;
+      final artworkBytes = await MetadataHelper.decodeEmbeddedArtwork(song.path);
+      if (artworkBytes == null || artworkBytes.isEmpty) return;
+
+      final md5Hex = await calculateMd5(bytes: artworkBytes);
+      final db = MetadataDatabase();
+      final cached = await db.getArtworkCache(md5Hex);
+      String? largeArtworkPath;
+
+      if (cached != null && cached.artworkPath != null && File(cached.artworkPath!).existsSync()) {
+        largeArtworkPath = cached.artworkPath;
+      } else {
+        final supportDir = await getApplicationSupportDirectory();
+        largeArtworkPath = await generateLargeArtwork(
+          artworkBytes: artworkBytes,
+          cacheRootPath: supportDir.path,
+        );
+
+        final record = ArtworkCacheRecord(
+          md5: md5Hex,
+          artworkPath: largeArtworkPath,
+          thumbnailPath: cached?.thumbnailPath ?? song.thumbnailPath,
+          artworkWidth: 1000,
+          artworkHeight: 1000,
+          themeColorsBlob: cached?.themeColorsBlob ?? song.themeColorsBlob,
+          updatedAtMillis: DateTime.now().millisecondsSinceEpoch,
+        );
+        await db.insertOrUpdateArtworkCache(record);
+      }
+
+      final dbSong = await db.getSongMetadata(song.path);
+      if (dbSong != null) {
+        final updatedDbSong = dbSong.copyWith(
+          artworkPath: largeArtworkPath,
+          artworkWidth: 1000,
+          artworkHeight: 1000,
+        );
+        await db.insertOrUpdateSong(updatedDbSong);
+      }
+
+      if (_currentIndex >= 0 && _currentIndex < _queue.length) {
+        final currentSong = _queue[_currentIndex];
+        if (currentSong.path == song.path) {
+          _queue[_currentIndex] = currentSong.copyWith(
+            artworkPath: largeArtworkPath,
+            artworkWidth: 1000,
+            artworkHeight: 1000,
+          );
+          notifyListeners();
+
+          final updatedSong = _queue[_currentIndex];
+          _windowsIntegration?.updateMetadata(updatedSong);
+          _androidIntegration?.updateMetadata(updatedSong);
+          _darwinIntegration?.updateMetadata(updatedSong);
+          _linuxIntegration?.updateMetadata(updatedSong);
+        }
+      }
+    } catch (e) {
+      debugPrint('Background WebP artwork generation failed for ${song.path}: $e');
     }
   }
 
@@ -1952,29 +1981,21 @@ class AudioService extends Notifier<AudioSnapshot> {
         '_updateCurrentMetadata artwork hydrate scheduled -> '
         'song=${_debugSongLabel(song)}',
       );
-      Uint8List? highResBytes;
-      String? highResPath;
+      String? artworkPath;
+      String? thumbnailPath;
 
       final dbMetadata = await _db.getSongMetadata(path);
-      if (dbMetadata != null && dbMetadata.artworkPath != null) {
-        highResPath = dbMetadata.artworkPath;
-        try {
-          highResBytes = await File(highResPath!).readAsBytes();
-        } catch (_) {}
-      }
-
-      final swDecode = Stopwatch()..start();
-      highResBytes ??= await MetadataHelper.decodeEmbeddedArtwork(path);
-      if (highResBytes != null) {
-        debugPrint('[PERF] _updateCurrentMetadata decodeEmbeddedArtwork took ${swDecode.elapsedMilliseconds}ms, size=${highResBytes.length} bytes');
+      if (dbMetadata != null) {
+        artworkPath = dbMetadata.artworkPath;
+        thumbnailPath = dbMetadata.thumbnailPath;
       }
 
       if (_currentIndex >= 0 &&
           _currentIndex < _queue.length &&
           _queue[_currentIndex].path == path) {
         _queue[_currentIndex] = _queue[_currentIndex].copyWith(
-          artworkBytes: highResBytes,
-          artworkPath: highResPath,
+          artworkPath: artworkPath,
+          thumbnailPath: thumbnailPath,
         );
 
         notifyListeners();
@@ -1992,10 +2013,13 @@ class AudioService extends Notifier<AudioSnapshot> {
         // If we already have cached theme colors from the database, keep them
         // as the final source of truth to avoid a second visual color change.
         if (!hasCachedThemeColors) {
-          // Recompute the palette only after the artwork bytes have been updated.
           final swPalette = Stopwatch()..start();
           await _updatePalette();
           debugPrint('[PERF] _updateCurrentMetadata _updatePalette took ${swPalette.elapsedMilliseconds}ms');
+        }
+
+        if (artworkPath == null || artworkPath.isEmpty || !File(artworkPath).existsSync()) {
+          unawaited(_generateLargeArtworkBackground(updatedSong));
         }
       }
       debugPrint('[PERF] _updateCurrentMetadata artwork hydrate TOTAL took ${swHydrate.elapsedMilliseconds}ms');
@@ -2034,7 +2058,6 @@ class AudioService extends Notifier<AudioSnapshot> {
     // if artwork bytes/path are still missing here, keep the UI color state in
     // sync with whatever is currently available.
     if (!hasCachedThemeColors &&
-        currentMusic?.artworkBytes == null &&
         currentMusic?.artworkPath == null) {
       await _updatePalette();
     }
@@ -2906,35 +2929,16 @@ class AudioService extends Notifier<AudioSnapshot> {
           final bool inArtwork = artworkPriorityPaths.contains(song.path);
           final bool inWaveform = waveformMemoryPaths.contains(song.path);
 
-          if ((inArtwork && song.artworkBytes == null) ||
-              (inWaveform && song.waveformBlob == null)) {
+          final bool needsDbSync = song.thumbnailPath == null || (inWaveform && song.waveformBlob == null);
+          if (needsDbSync) {
             final existing = await _db.getSongMetadata(song.path);
             if (existing != null) {
-              Uint8List? newArtworkBytes = song.artworkBytes;
               Uint8List? newWaveformBlob = song.waveformBlob;
               String? newThumbnailPath = song.thumbnailPath;
               String? newArtworkPath = song.artworkPath;
               int? newArtworkWidth = song.artworkWidth;
               int? newArtworkHeight = song.artworkHeight;
               Uint8List? newThemeColorsBlob = song.themeColorsBlob;
-
-              if (inArtwork && song.artworkBytes == null) {
-                Uint8List? bytes;
-                if (existing.artworkPath != null && existing.artworkPath!.isNotEmpty) {
-                  try {
-                    final file = File(existing.artworkPath!);
-                    if (await file.exists()) {
-                      bytes = await file.readAsBytes();
-                    }
-                  } catch (_) {}
-                }
-                if (bytes == null) {
-                  try {
-                    bytes = await MetadataHelper.decodeEmbeddedArtwork(song.path);
-                  } catch (_) {}
-                }
-                newArtworkBytes = bytes;
-              }
 
               if (inWaveform && song.waveformBlob == null) {
                 newWaveformBlob = existing.waveformBlob;
@@ -2948,7 +2952,6 @@ class AudioService extends Notifier<AudioSnapshot> {
 
               if (i < _queue.length && _queue[i].path == song.path) {
                 _queue[i] = _queue[i].copyWith(
-                  artworkBytes: newArtworkBytes,
                   waveformBlob: newWaveformBlob,
                   thumbnailPath: newThumbnailPath,
                   artworkPath: newArtworkPath,
@@ -3029,16 +3032,16 @@ class AudioService extends Notifier<AudioSnapshot> {
           }
         },
 
-        onHdArtworkLoaded: (path, bytes) {
+        onHdArtworkLoaded: (path, artworkPath) {
           _logPlaybackTrace(
-            '_queueProcessor onHdArtworkLoaded path=$path bytes=${bytes.length} '
+            '_queueProcessor onHdArtworkLoaded path=$path artworkPath=$artworkPath '
             'current=${_debugSongLabel(currentMusic)}',
           );
           MemoryTrace.snapshot(
             'audio:queueBackground:artworkLoaded',
             details: <String, Object?>{
               'path': path,
-              'bytes': bytes.length,
+              'artworkPath': artworkPath,
               'queue': _queue.length,
             },
           );
@@ -3061,7 +3064,7 @@ class AudioService extends Notifier<AudioSnapshot> {
             // 1. 同步到队列记录中
             for (int i = 0; i < _queue.length; i++) {
               if (_queue[i].path == path) {
-                _queue[i] = _queue[i].copyWith(artworkBytes: bytes);
+                _queue[i] = _queue[i].copyWith(artworkPath: artworkPath);
               }
             }
 
@@ -3075,7 +3078,7 @@ class AudioService extends Notifier<AudioSnapshot> {
             final int limit = isPc ? 1200 : 800;
 
             final provider = ResizeImage(
-              MemoryImage(bytes),
+              FileImage(File(artworkPath)),
               width: limit,
               height: limit,
               allowUpscaling: false,

@@ -1,10 +1,12 @@
 import 'dart:collection';
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
+import 'package:audio_core/audio_core.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/utils/memory_trace.dart';
 
 class SongThumbnail extends ConsumerStatefulWidget {
@@ -30,11 +32,11 @@ class SongThumbnail extends ConsumerStatefulWidget {
 class _SongThumbnailState extends ConsumerState<SongThumbnail> {
   bool _loadTriggered = false;
 
-  // Android/iOS: cache artwork bytes so parent rebuilds don't retrigger fetch.
-  Uint8List? _artworkBytes;
+  // Android/iOS: cache artwork file paths so parent rebuilds don't retrigger fetch.
+  String? _artworkFilePath;
   bool _artworkQueried = false;
 
-  static final LinkedHashMap<String, Uint8List> _artworkCache = LinkedHashMap<String, Uint8List>();
+  static final LinkedHashMap<String, String> _artworkCache = LinkedHashMap<String, String>();
 
   @override
   void initState() {
@@ -43,7 +45,7 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
       if (widget.id != null) {
         final cacheKey = '${widget.id}_$_bucketedSize';
         if (_artworkCache.containsKey(cacheKey)) {
-          _artworkBytes = _artworkCache[cacheKey];
+          _artworkFilePath = _artworkCache[cacheKey];
           _artworkQueried = true;
         } else {
           _queryArtwork(widget.id!);
@@ -75,9 +77,30 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
         ArtworkType.AUDIO,
         size: targetSize > 200 ? targetSize : 200,
       );
+      String? savedPath;
       if (bytes != null && bytes.isNotEmpty) {
+        final md5Hex = await calculateMd5(bytes: bytes);
+        final supportDir = await getApplicationSupportDirectory();
+        final thumbnailsDir = Directory('${supportDir.path}/thumbnails');
+        if (!thumbnailsDir.existsSync()) {
+          await thumbnailsDir.create(recursive: true);
+        }
+        final file = File('${thumbnailsDir.path}/${md5Hex}_thumb.jpg');
+        if (!file.existsSync()) {
+          await file.writeAsBytes(bytes);
+        }
+        savedPath = file.path;
+
+        final db = MetadataDatabase();
+        final record = ArtworkCacheRecord(
+          md5: md5Hex,
+          thumbnailPath: savedPath,
+          updatedAtMillis: DateTime.now().millisecondsSinceEpoch,
+        );
+        await db.insertOrUpdateArtworkCache(record);
+
         final cacheKey = '${id}_$_bucketedSize';
-        _artworkCache[cacheKey] = bytes;
+        _artworkCache[cacheKey] = savedPath;
         if (_artworkCache.length > 100) {
           _artworkCache.remove(_artworkCache.keys.first);
         }
@@ -86,17 +109,17 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
           details: <String, Object?>{
             'id': id,
             'bucket': _bucketedSize,
-            'bytes': bytes.length,
+            'path': savedPath,
             'cache': _artworkCache.length,
           },
         );
       }
       if (mounted) {
         setState(() {
-          _artworkBytes = bytes;
+          _artworkFilePath = savedPath;
           _artworkQueried = true;
         });
-        if (bytes == null || bytes.isEmpty) {
+        if (savedPath == null) {
           _triggerLoad();
         }
       }
@@ -128,12 +151,12 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
     // Reset so we retry if the path/id changes (e.g. list recycling).
     if (oldWidget.path != widget.path || oldWidget.id != widget.id) {
       _loadTriggered = false;
-      _artworkBytes = null;
+      _artworkFilePath = null;
       _artworkQueried = false;
       if ((Platform.isAndroid || Platform.isIOS) && widget.id != null) {
         final cacheKey = '${widget.id}_$_bucketedSize';
         if (_artworkCache.containsKey(cacheKey)) {
-          _artworkBytes = _artworkCache[cacheKey];
+          _artworkFilePath = _artworkCache[cacheKey];
           _artworkQueried = true;
         } else {
           _queryArtwork(widget.id!);
@@ -177,11 +200,11 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
     }
 
     if (Platform.isAndroid || Platform.isIOS) {
-      if (_artworkQueried && _artworkBytes != null) {
+      if (_artworkQueried && _artworkFilePath != null) {
         return ClipRRect(
           borderRadius: BorderRadius.circular(4),
-          child: Image.memory(
-            _artworkBytes!,
+          child: Image.file(
+            File(_artworkFilePath!),
             width: layoutWidth,
             height: layoutHeight,
             fit: BoxFit.cover,
