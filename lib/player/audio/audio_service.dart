@@ -2831,6 +2831,32 @@ class AudioService extends Notifier<AudioSnapshot> {
 
   void _startQueueBackgroundProcessing({String? priorityPath}) {
     if (_queue.isEmpty) return;
+
+    // 清理非优先窗口内的歌曲的封面字节，防止内存持续上涨
+    final String? currentPath = priorityPath ?? currentMusic?.path;
+    final Set<String> priorityPaths = <String>{};
+    if (currentPath != null) {
+      final int currIdx = _queue.indexWhere((s) => s.path == currentPath);
+      if (currIdx != -1) {
+        // 优先窗口：当前播放的前后范围（这里与 PlaybackQueueProcessor 中的 3 和 2 对应）
+        for (int i = -2; i <= 3; i++) {
+          final idx = (currIdx + i) % _queue.length;
+          final safeIdx = idx < 0 ? idx + _queue.length : idx;
+          priorityPaths.add(_queue[safeIdx].path);
+        }
+      }
+    }
+    bool changed = false;
+    for (int i = 0; i < _queue.length; i++) {
+      if (!priorityPaths.contains(_queue[i].path) && _queue[i].artworkBytes != null) {
+        _queue[i] = _queue[i].copyWith(artworkBytes: null);
+        changed = true;
+      }
+    }
+    if (changed) {
+      notifyListeners();
+    }
+
     _logPlaybackTrace(
       '_startQueueBackgroundProcessing priority=${priorityPath ?? currentMusic?.path ?? '-'} '
       'current=${_debugSongLabel(currentMusic)}',

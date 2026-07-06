@@ -106,8 +106,8 @@ class PlaybackQueueProcessor {
             }
           }
 
-          // 1 & 2: Next 15 songs (even more than before to avoid gaps)
-          for (int i = 0; i <= 15; i++) {
+          // 1 & 2: Next 3 songs
+          for (int i = 0; i <= 3; i++) {
             addIfUnique(currentIndex + i);
           }
           // 3: Previous 2 songs
@@ -138,8 +138,8 @@ class PlaybackQueueProcessor {
 
       // Phase 1: FAST PASS - Immediately load HD artwork for prioritized songs
       // This ensures that when skipping fast, covers are already in memory.
-      // We look at the top 15 songs from our sorted list (which includes current and upcoming).
-      final int topCount = math.min(15, sortedList.length);
+      // We look at the top 6 songs from our sorted list (which includes current, next 3 and previous 2).
+      final int topCount = math.min(6, sortedList.length);
       for (int i = 0; i < topCount; i++) {
         if (_disposed || myId != _currentProcessId) return;
         final song = sortedList[i];
