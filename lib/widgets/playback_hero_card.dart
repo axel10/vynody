@@ -191,8 +191,10 @@ class PlaybackHeroCard extends ConsumerWidget {
     final overlay = Overlay.of(context).context.findRenderObject() as RenderBox?;
     if (overlay == null) return;
     final l10n = AppLocalizations.of(context)!;
+    final audioService = ref.read(audioServiceProvider);
+    final bytes = currentMusic.artworkBytes ?? audioService.getCachedArtwork(currentMusic.path);
     final String? path = currentMusic.artworkPath ?? currentMusic.thumbnailPath;
-    final bool hasCover = path != null && File(path).existsSync();
+    final bool hasCover = (bytes != null && bytes.isNotEmpty) || (path != null && File(path).existsSync());
 
     final selected = await showMenu<String>(
       context: context,
@@ -215,7 +217,16 @@ class PlaybackHeroCard extends ConsumerWidget {
 
     if (selected == 'copy_cover') {
       try {
-        if (path != null) {
+        if (bytes != null && bytes.isNotEmpty) {
+          await Pasteboard.writeImage(bytes);
+          if (context.mounted) {
+            AppSnackBar.show(
+              context,
+              ref,
+              SnackBar(content: Text(l10n.copyCoverSuccess)),
+            );
+          }
+        } else if (path != null) {
           final file = File(path);
           if (file.existsSync()) {
             final fileBytes = await file.readAsBytes();

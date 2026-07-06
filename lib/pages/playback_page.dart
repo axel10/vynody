@@ -55,6 +55,8 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
   String? _pendingArtworkPath;
   Timer? _heroWarmupTimer;
   Timer? _volumeSliderTimer;
+  final Map<String, Uint8List> _fileArtworkBytesCache = {};
+  final Set<String> _loadingPaths = {};
 
   void _startVolumeSliderTimer() {
     _volumeSliderTimer?.cancel();
@@ -123,6 +125,8 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
   void dispose() {
     _heroWarmupTimer?.cancel();
     _volumeSliderTimer?.cancel();
+    _fileArtworkBytesCache.clear();
+    _loadingPaths.clear();
     // 延迟重置，避免在 dispose 过程中触发 notifyListeners 导致的 "locked" 错误
     final settings = _settingsService;
     if (settings != null) {
@@ -189,6 +193,56 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
     });
   }
 
+  Uint8List? _getArtworkBytes(String songPath) {
+    if (_pendingArtworkPath == songPath && _pendingArtworkBytes != null) {
+      return _pendingArtworkBytes;
+    }
+    if (_fileArtworkBytesCache.containsKey(songPath)) {
+      return _fileArtworkBytesCache[songPath];
+    }
+    final currentMusic = ref.read(audioCurrentMusicProvider);
+    if (currentMusic?.path == songPath && currentMusic?.artworkBytes != null) {
+      return currentMusic!.artworkBytes;
+    }
+    final cached = _audioService?.getCachedArtwork(songPath);
+    if (cached != null) {
+      return cached;
+    }
+    _asyncLoadFileBytes(songPath);
+    return null;
+  }
+
+  void _asyncLoadFileBytes(String songPath) async {
+    if (_loadingPaths.contains(songPath)) return;
+    _loadingPaths.add(songPath);
+    try {
+      final currentMusic = ref.read(audioCurrentMusicProvider);
+      final metadata = ref.read(scannerServiceProvider).metadataMap[songPath];
+      String? imagePath = metadata?.thumbnailPath ?? metadata?.artworkPath;
+      if (imagePath == null || imagePath.isEmpty) {
+        if (songPath == currentMusic?.path) {
+          imagePath = currentMusic?.thumbnailPath ?? currentMusic?.artworkPath;
+        }
+      }
+      if (imagePath != null && imagePath.isNotEmpty) {
+        final file = File(imagePath);
+        if (await file.exists()) {
+          final bytes = await file.readAsBytes();
+          if (mounted) {
+            setState(() {
+              _fileArtworkBytesCache.clear();
+              _fileArtworkBytesCache[songPath] = bytes;
+            });
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error reading artwork file: $e');
+    } finally {
+      _loadingPaths.remove(songPath);
+    }
+  }
+
   /// 当用户点击专辑封面时触发，切换歌词模式显示状态。
   ///
   /// 此函数的执行流程如下：
@@ -221,7 +275,11 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
     });
   }
 
-  void _adjustVolumeFromDrag(AudioService audio, double dragDelta, {bool showVolumeHud = true}) {
+  void _adjustVolumeFromDrag(
+    AudioService audio,
+    double dragDelta, {
+    bool showVolumeHud = true,
+  }) {
     if (showVolumeHud) {
       _ui.setVolumeHudVisible(true);
     }
@@ -231,7 +289,11 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
     );
   }
 
-  void _adjustVolumeFromScroll(AudioService audio, double scrollDeltaY, {bool showVolumeHud = true}) {
+  void _adjustVolumeFromScroll(
+    AudioService audio,
+    double scrollDeltaY, {
+    bool showVolumeHud = true,
+  }) {
     if (showVolumeHud) {
       _ui.setVolumeHudVisible(true);
     }
@@ -355,6 +417,11 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
     if (mounted) {
       setState(() {
         _pendingArtworkBytes = artworkBytes;
+        if (artworkBytes != null) {
+          _fileArtworkBytesCache[metadata.path] = artworkBytes;
+        } else {
+          _fileArtworkBytesCache.remove(metadata.path);
+        }
       });
     }
 
@@ -1172,7 +1239,10 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                         onVolumeChanged: (val) {
                           _handleInteraction();
                           _startVolumeSliderTimer();
-                          audio.setVolume(val.roundToDouble(), showVolumeHud: false);
+                          audio.setVolume(
+                            val.roundToDouble(),
+                            showVolumeHud: false,
+                          );
                         },
                         onDismiss: () {
                           _cancelVolumeSliderTimer();
@@ -1182,11 +1252,19 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                         getVolumeIcon: getVolumeIcon,
                         onDrag: (delta) {
                           _startVolumeSliderTimer();
-                          _adjustVolumeFromDrag(audio, delta, showVolumeHud: false);
+                          _adjustVolumeFromDrag(
+                            audio,
+                            delta,
+                            showVolumeHud: false,
+                          );
                         },
                         onScroll: (deltaY) {
                           _startVolumeSliderTimer();
-                          _adjustVolumeFromScroll(audio, deltaY, showVolumeHud: false);
+                          _adjustVolumeFromScroll(
+                            audio,
+                            deltaY,
+                            showVolumeHud: false,
+                          );
                         },
                         onInteraction: () {
                           _handleInteraction();
@@ -1384,24 +1462,22 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
 
               if (isSmallWinValue) {
                 final currentMusic = ref.watch(audioCurrentMusicProvider);
-                final originalPath = currentMusic?.artworkPath;
-                final songKey = currentMusic?.path ?? 'empty';
+                final songPath = currentMusic?.path;
+                final songKey = songPath ?? 'empty';
+                final bytes = songPath != null ? _getArtworkBytes(songPath) : null;
 
-                if (originalPath != null &&
-                    originalPath.isNotEmpty &&
-                    File(originalPath).existsSync()) {
+                if (bytes != null) {
                   content = ImageFiltered(
                     key: ValueKey('${songKey}_$finalSuffix'),
                     imageFilter: ui.ImageFilter.blur(sigmaX: 0.0, sigmaY: 0.0),
                     child: Transform.scale(
                       scale: 1.2,
-                      child: Image.file(
-                        File(originalPath),
+                      child: Image.memory(
+                        bytes,
                         width: double.infinity,
                         height: double.infinity,
-                        cacheWidth: (Platform.isAndroid || Platform.isIOS)
-                            ? 300
-                            : 600,
+                        cacheWidth: 800,
+                        cacheHeight: 800,
                         fit: BoxFit.cover,
                         filterQuality: FilterQuality.low,
                         gaplessPlayback: true,
@@ -1419,20 +1495,17 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                 }
               } else {
                 final currentMusic = ref.watch(audioCurrentMusicProvider);
-                final String? imagePath =
-                    _pendingArtworkPath ?? currentMusic?.artworkPath;
-                final String songKey = imagePath ?? 'empty';
+                final songPath = _pendingArtworkPath ?? currentMusic?.path;
+                final songKey = songPath ?? 'empty';
+                final bytes = songPath != null ? _getArtworkBytes(songPath) : null;
 
-                if (imagePath != null &&
-                    imagePath.isNotEmpty &&
-                    File(imagePath).existsSync()) {
-                  final imageProvider = Image.file(
-                    File(imagePath),
+                if (bytes != null) {
+                  final imageProvider = Image.memory(
+                    bytes,
                     width: double.infinity,
                     height: double.infinity,
-                    cacheWidth: (Platform.isAndroid || Platform.isIOS)
-                        ? 300
-                        : 600,
+                    cacheWidth: 800,
+                    cacheHeight: 800,
                     fit: BoxFit.cover,
                     filterQuality: FilterQuality.low,
                     gaplessPlayback: true,
@@ -1520,13 +1593,11 @@ class _SafeBackgroundSwitcher extends StatefulWidget {
   final Widget child;
   final Duration duration;
 
-  const _SafeBackgroundSwitcher({
-    required this.child,
-    required this.duration,
-  });
+  const _SafeBackgroundSwitcher({required this.child, required this.duration});
 
   @override
-  State<_SafeBackgroundSwitcher> createState() => _SafeBackgroundSwitcherState();
+  State<_SafeBackgroundSwitcher> createState() =>
+      _SafeBackgroundSwitcherState();
 }
 
 class _SafeBackgroundSwitcherState extends State<_SafeBackgroundSwitcher>
@@ -1565,10 +1636,7 @@ class _SafeBackgroundSwitcherState extends State<_SafeBackgroundSwitcher>
     final item = _SwitcherItem(
       child: child,
       controller: controller,
-      animation: CurvedAnimation(
-        parent: controller,
-        curve: Curves.easeOut,
-      ),
+      animation: CurvedAnimation(parent: controller, curve: Curves.easeOut),
     );
 
     setState(() {
@@ -1624,10 +1692,7 @@ class _SafeBackgroundSwitcherState extends State<_SafeBackgroundSwitcher>
             child: item.child,
           );
         } else {
-          return KeyedSubtree(
-            key: ObjectKey(item),
-            child: item.child,
-          );
+          return KeyedSubtree(key: ObjectKey(item), child: item.child);
         }
       }).toList(),
     );
@@ -1645,4 +1710,3 @@ class _SwitcherItem {
     required this.animation,
   });
 }
-

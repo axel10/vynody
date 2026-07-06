@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -6,8 +7,6 @@ import 'package:on_audio_query/on_audio_query.dart';
 import 'package:vynody/player/audio/audio_service.dart';
 import 'package:vynody/player/metadata/metadata_helper.dart';
 import 'package:vynody/models/music_file.dart';
-import 'package:audio_core/audio_core.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:vynody/utils/memory_trace.dart';
 
 class CoverCarousel extends StatefulWidget {
@@ -161,13 +160,22 @@ class _CoverCarouselState extends State<CoverCarousel>
 
   void _notifyAnimationComplete(int page) {
     final currentSong = widget.playlist[page];
-    final loadedPath = _loadedCovers[page]?.path ?? currentSong.artworkPath ?? currentSong.thumbnailPath;
+    final loadedBytes = _loadedCovers[page]?.bytes ?? currentSong.artworkBytes;
     _logCarouselTrace(
       '_notifyAnimationComplete page=$page song=${currentSong.path} '
-      'loadedPath=$loadedPath',
+      'loadedBytes=${loadedBytes?.length ?? 0} '
+      'artBytes=${currentSong.artworkBytes?.length ?? 0} '
+      'artPath=${currentSong.artworkPath ?? '-'}',
     );
 
-    widget.onAnimationComplete?.call(null, loadedPath);
+    if (loadedBytes != null) {
+      widget.onAnimationComplete?.call(loadedBytes, currentSong.path);
+      return;
+    }
+
+    if (currentSong.artworkBytes == null && currentSong.artworkPath == null) {
+      widget.onAnimationComplete?.call(null, currentSong.path);
+    }
   }
 
   @override
@@ -281,7 +289,7 @@ class _CoverCarouselState extends State<CoverCarousel>
               _logCarouselTrace(
                 'onArtworkLoaded slot=$index actual=$actualIndex '
                 'path=${widget.playlist[actualIndex].path} '
-                'sourcePath=${path ?? '-'} '
+                'bytes=${bytes?.length ?? 0} sourcePath=${path ?? '-'} '
                 'currentIndex=${widget.currentIndex}',
               );
               // 如果是当前播放曲目的封面加载完成，且轮播动画已静止，通知背景更新
@@ -289,10 +297,10 @@ class _CoverCarouselState extends State<CoverCarousel>
               final isSettled = (_animationController.value - index).abs() < 0.01 &&
                   !_animationController.isAnimating &&
                   !_isDragging;
-              if (actualIndex == widget.currentIndex && path != null && isSettled) {
+              if (actualIndex == widget.currentIndex && bytes != null && isSettled) {
                 widget.onAnimationComplete?.call(
-                  null,
-                  path,
+                  bytes,
+                  widget.playlist[actualIndex].path,
                 );
               }
             },
@@ -327,11 +335,9 @@ class _CoverItem extends StatefulWidget {
 }
 
 class _CoverItemState extends State<_CoverItem> {
-  String? _artworkPath;
+  Uint8List? _artworkBytes;
   bool _isLoaded = false;
   bool _hasLoadedHighRes = false;
-
-
 
   bool get _isSettled {
     final double pageOffset = widget.animation.value - widget.itemIndex;
@@ -361,14 +367,15 @@ class _CoverItemState extends State<_CoverItem> {
     }
     // If the path changed, we must reset everything
     if (oldWidget.musicFile.path != widget.musicFile.path) {
-      _artworkPath = null;
+      _artworkBytes = null;
       _isLoaded = false;
       _hasLoadedHighRes = false;
       _loadArtwork();
     }
-    // If the path is the same but artworkPath appeared, we should update.
+    // If the path is the same but artworkBytes or artworkPath appeared, we should update.
     // This happens when background processing completes.
-    else if (widget.musicFile.artworkPath != oldWidget.musicFile.artworkPath) {
+    else if (widget.musicFile.artworkBytes != oldWidget.musicFile.artworkBytes ||
+        widget.musicFile.artworkPath != oldWidget.musicFile.artworkPath) {
       if (_isSettled) {
         _loadArtwork();
       }
@@ -397,38 +404,58 @@ class _CoverItemState extends State<_CoverItem> {
       },
     );
 
-    // 1. Try large artworkPath first
-    final artworkPath = widget.musicFile.artworkPath;
-    if (artworkPath != null && File(artworkPath).existsSync()) {
+    // 1. If we have original HD bytes in cache, use them.
+    final cachedBytes = widget.audioService.getCachedArtwork(
+      widget.musicFile.path,
+    );
+    if (cachedBytes != null) {
       if (!mounted) return;
       setState(() {
-        _artworkPath = artworkPath;
+        _artworkBytes = cachedBytes;
         _hasLoadedHighRes = true;
       });
-      widget.onArtworkLoaded?.call(null, artworkPath);
+      widget.onArtworkLoaded?.call(cachedBytes, null);
       return;
     }
 
-    // 2. Try thumbnailPath next
+    // 2. If currentMusic has artworkBytes, use them.
+    if (widget.audioService.currentMusic?.path == widget.musicFile.path &&
+        widget.audioService.currentMusic?.artworkBytes != null) {
+      if (!mounted) return;
+      final bytes = widget.audioService.currentMusic!.artworkBytes!;
+      setState(() {
+        _artworkBytes = bytes;
+        _hasLoadedHighRes = true;
+      });
+      widget.onArtworkLoaded?.call(bytes, null);
+      return;
+    }
+
+    // 3. Try thumbnailPath next
     final thumbPath = widget.musicFile.thumbnailPath;
     if (thumbPath != null && File(thumbPath).existsSync()) {
-      if (!mounted) return;
-      setState(() {
-        _artworkPath = thumbPath;
-      });
-      widget.onArtworkLoaded?.call(null, thumbPath);
-
-      if (_isSettled) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted && _isSettled && !_hasLoadedHighRes) {
-            _loadHighResArtwork();
-          }
+      try {
+        final bytes = await File(thumbPath).readAsBytes();
+        if (!mounted) return;
+        setState(() {
+          _artworkBytes = bytes;
         });
+        widget.onArtworkLoaded?.call(bytes, null);
+
+        if (_isSettled) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted && _isSettled && !_hasLoadedHighRes) {
+              _loadHighResArtwork();
+            }
+          });
+        }
+        return;
+      } catch (e) {
+        debugPrint('Error loading thumbnail from $thumbPath: $e');
       }
-      return;
     }
 
-    // 3. If no thumbnail exists, trigger high-res load immediately
+    // 4. If no thumbnail exists, trigger high-res load immediately
     _loadHighResArtwork();
   }
 
@@ -438,12 +465,17 @@ class _CoverItemState extends State<_CoverItem> {
 
     final highResPath = widget.musicFile.artworkPath;
     if (highResPath != null && File(highResPath).existsSync()) {
-      if (!mounted) return;
-      setState(() {
-        _artworkPath = highResPath;
-      });
-      widget.onArtworkLoaded?.call(null, highResPath);
-      return;
+      try {
+        final bytes = await File(highResPath).readAsBytes();
+        if (!mounted) return;
+        setState(() {
+          _artworkBytes = bytes;
+        });
+        widget.onArtworkLoaded?.call(bytes, null);
+        return;
+      } catch (e) {
+        debugPrint('Error loading high res artwork from $highResPath: $e');
+      }
     }
 
     // Try system query (on_audio_query)
@@ -455,24 +487,10 @@ class _CoverItemState extends State<_CoverItem> {
           size: 800,
         );
         if (!mounted || bytes == null) return;
-
-        final md5Hex = await calculateMd5(bytes: bytes);
-        final supportDir = await getApplicationSupportDirectory();
-        final thumbnailsDir = Directory('${supportDir.path}/thumbnails');
-        if (!thumbnailsDir.existsSync()) {
-          await thumbnailsDir.create(recursive: true);
-        }
-        final file = File('${thumbnailsDir.path}/${md5Hex}_thumb.jpg');
-        if (!file.existsSync()) {
-          await file.writeAsBytes(bytes);
-        }
-        final savedPath = file.path;
-
-        if (!mounted) return;
         setState(() {
-          _artworkPath = savedPath;
+          _artworkBytes = bytes;
         });
-        widget.onArtworkLoaded?.call(null, savedPath);
+        widget.onArtworkLoaded?.call(bytes, null);
         return;
       }
     }
@@ -483,23 +501,10 @@ class _CoverItemState extends State<_CoverItem> {
     );
     if (embeddedBytes != null) {
       if (!mounted) return;
-      final md5Hex = await calculateMd5(bytes: embeddedBytes);
-      final supportDir = await getApplicationSupportDirectory();
-      final thumbnailsDir = Directory('${supportDir.path}/thumbnails');
-      if (!thumbnailsDir.existsSync()) {
-        await thumbnailsDir.create(recursive: true);
-      }
-      final file = File('${thumbnailsDir.path}/${md5Hex}_thumb.jpg');
-      if (!file.existsSync()) {
-        await file.writeAsBytes(embeddedBytes);
-      }
-      final savedPath = file.path;
-
-      if (!mounted) return;
       setState(() {
-        _artworkPath = savedPath;
+        _artworkBytes = embeddedBytes;
       });
-      widget.onArtworkLoaded?.call(null, savedPath);
+      widget.onArtworkLoaded?.call(embeddedBytes, null);
       return;
     }
   }
@@ -584,33 +589,98 @@ class _CoverItemState extends State<_CoverItem> {
   }
 
   Widget _buildCoverImage(bool isCentered) {
-    final String? artworkPath = _artworkPath ?? widget.musicFile.artworkPath;
-    if (artworkPath != null) {
-      final file = File(artworkPath);
-      if (file.existsSync()) {
-        return Image.file(
-          file,
-          fit: BoxFit.contain,
-          width: double.infinity,
-          height: double.infinity,
-          gaplessPlayback: true,
-          filterQuality: isCentered ? FilterQuality.low : FilterQuality.medium,
-        );
-      }
+    final isPc = Platform.isWindows || Platform.isMacOS || Platform.isLinux;
+
+    final int? finalCacheWidth;
+    if (isPc) {
+      // For PC/desktop, use a fixed cache size of 1500 to completely avoid re-decoding when resizing the window.
+      // Since ResizeImage has allowUpscaling = false by default, images smaller than 1500
+      // will be decoded at their original size, and larger ones will be capped at 1500.
+      finalCacheWidth = 1500;
+    } else {
+      final double devicePixelRatio = MediaQuery.of(context).devicePixelRatio;
+      final int limit = 800;
+      final bool isAnimating = widget.animation.isAnimating;
+      final double rawSize = (widget.displaySize ?? 400) * devicePixelRatio;
+      final int cacheSize = isAnimating
+          ? (rawSize / 20).round() * 20
+          : rawSize.round();
+      finalCacheWidth = cacheSize >= 40 ? math.min(cacheSize, limit) : null;
     }
 
-    final thumbPath = widget.musicFile.thumbnailPath;
-    if (thumbPath != null) {
-      final file = File(thumbPath);
-      if (file.existsSync()) {
-        return Image.file(
-          file,
-          fit: BoxFit.contain,
-          width: double.infinity,
-          height: double.infinity,
-          gaplessPlayback: true,
-          filterQuality: isCentered ? FilterQuality.low : FilterQuality.medium,
-        );
+    final cachedBytes = widget.audioService.getCachedArtwork(
+      widget.musicFile.path,
+    );
+    if (cachedBytes != null) {
+      return Image.memory(
+        cachedBytes,
+        fit: BoxFit.contain,
+        width: double.infinity,
+        height: double.infinity,
+        gaplessPlayback: true,
+        cacheWidth: finalCacheWidth,
+        filterQuality: isCentered ? FilterQuality.low : FilterQuality.medium,
+      );
+    }
+
+    if (widget.audioService.currentMusic?.path == widget.musicFile.path &&
+        widget.audioService.currentMusic?.artworkBytes != null) {
+      return Image.memory(
+        widget.audioService.currentMusic!.artworkBytes!,
+        fit: BoxFit.contain,
+        width: double.infinity,
+        height: double.infinity,
+        gaplessPlayback: true,
+        cacheWidth: finalCacheWidth,
+        filterQuality: isCentered ? FilterQuality.low : FilterQuality.medium,
+      );
+    }
+
+    if (_artworkBytes != null) {
+      return Image.memory(
+        _artworkBytes!,
+        fit: BoxFit.contain,
+        width: double.infinity,
+        height: double.infinity,
+        gaplessPlayback: true,
+        cacheWidth: finalCacheWidth,
+        filterQuality: isCentered ? FilterQuality.low : FilterQuality.medium,
+      );
+    } else {
+      final thumbPath = widget.musicFile.thumbnailPath;
+      if (thumbPath != null) {
+        final file = File(thumbPath);
+        if (file.existsSync()) {
+          return Image.file(
+            file,
+            fit: BoxFit.contain,
+            width: double.infinity,
+            height: double.infinity,
+            gaplessPlayback: true,
+            cacheWidth: finalCacheWidth,
+            filterQuality: isCentered
+                ? FilterQuality.low
+                : FilterQuality.medium,
+          );
+        }
+      }
+
+      final imagePath = widget.musicFile.artworkPath;
+      if (imagePath != null) {
+        final file = File(imagePath);
+        if (file.existsSync()) {
+          return Image.file(
+            file,
+            fit: BoxFit.contain,
+            width: double.infinity,
+            height: double.infinity,
+            gaplessPlayback: true,
+            cacheWidth: finalCacheWidth,
+            filterQuality: isCentered
+                ? FilterQuality.low
+                : FilterQuality.medium,
+          );
+        }
       }
     }
 
