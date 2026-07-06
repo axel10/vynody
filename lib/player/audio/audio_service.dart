@@ -2832,29 +2832,113 @@ class AudioService extends Notifier<AudioSnapshot> {
   void _startQueueBackgroundProcessing({String? priorityPath}) {
     if (_queue.isEmpty) return;
 
-    // 清理非优先窗口内的歌曲的封面字节，防止内存持续上涨
+    // 清理非优先窗口内的歌曲的封面字节与波形数据，防止内存持续上涨
     final String? currentPath = priorityPath ?? currentMusic?.path;
-    final Set<String> priorityPaths = <String>{};
+    final Set<String> artworkPriorityPaths = <String>{};
+    final Set<String> waveformMemoryPaths = <String>{};
+
     if (currentPath != null) {
       final int currIdx = _queue.indexWhere((s) => s.path == currentPath);
       if (currIdx != -1) {
-        // 优先窗口：当前播放的前后范围（这里与 PlaybackQueueProcessor 中的 3 和 2 对应）
-        for (int i = -2; i <= 3; i++) {
+        // 封面图内存与预解码窗口：前 1 首、当前首、后 1 首
+        for (int i = -1; i <= 1; i++) {
           final idx = (currIdx + i) % _queue.length;
           final safeIdx = idx < 0 ? idx + _queue.length : idx;
-          priorityPaths.add(_queue[safeIdx].path);
+          artworkPriorityPaths.add(_queue[safeIdx].path);
+        }
+        // 波形数据内存窗口：前 1 首、当前首、后 1 首
+        for (int i = -1; i <= 1; i++) {
+          final idx = (currIdx + i) % _queue.length;
+          final safeIdx = idx < 0 ? idx + _queue.length : idx;
+          waveformMemoryPaths.add(_queue[safeIdx].path);
         }
       }
     }
+
     bool changed = false;
     for (int i = 0; i < _queue.length; i++) {
-      if (!priorityPaths.contains(_queue[i].path) && _queue[i].artworkBytes != null) {
+      final song = _queue[i];
+      if (!artworkPriorityPaths.contains(song.path) && song.artworkBytes != null) {
         _queue[i] = _queue[i].copyWith(artworkBytes: null);
+        changed = true;
+      }
+      if (!waveformMemoryPaths.contains(song.path) && song.waveformBlob != null) {
+        _queue[i] = _queue[i].copyWith(waveformBlob: null);
         changed = true;
       }
     }
     if (changed) {
       notifyListeners();
+    }
+
+    // 异步加载优先窗口中缺失的封面与波形数据
+    if (artworkPriorityPaths.isNotEmpty || waveformMemoryPaths.isNotEmpty) {
+      unawaited(() async {
+        bool asyncChanged = false;
+        for (int i = 0; i < _queue.length; i++) {
+          final song = _queue[i];
+          final bool inArtwork = artworkPriorityPaths.contains(song.path);
+          final bool inWaveform = waveformMemoryPaths.contains(song.path);
+
+          if ((inArtwork && song.artworkBytes == null) ||
+              (inWaveform && song.waveformBlob == null)) {
+            final existing = await _db.getSongMetadata(song.path);
+            if (existing != null) {
+              Uint8List? newArtworkBytes = song.artworkBytes;
+              Uint8List? newWaveformBlob = song.waveformBlob;
+              String? newThumbnailPath = song.thumbnailPath;
+              String? newArtworkPath = song.artworkPath;
+              int? newArtworkWidth = song.artworkWidth;
+              int? newArtworkHeight = song.artworkHeight;
+              Uint8List? newThemeColorsBlob = song.themeColorsBlob;
+
+              if (inArtwork && song.artworkBytes == null) {
+                Uint8List? bytes;
+                if (existing.artworkPath != null && existing.artworkPath!.isNotEmpty) {
+                  try {
+                    final file = File(existing.artworkPath!);
+                    if (await file.exists()) {
+                      bytes = await file.readAsBytes();
+                    }
+                  } catch (_) {}
+                }
+                if (bytes == null) {
+                  try {
+                    bytes = await MetadataHelper.decodeEmbeddedArtwork(song.path);
+                  } catch (_) {}
+                }
+                newArtworkBytes = bytes;
+              }
+
+              if (inWaveform && song.waveformBlob == null) {
+                newWaveformBlob = existing.waveformBlob;
+              }
+
+              if (existing.thumbnailPath != null) newThumbnailPath = existing.thumbnailPath;
+              if (existing.artworkPath != null) newArtworkPath = existing.artworkPath;
+              if (existing.artworkWidth != null) newArtworkWidth = existing.artworkWidth;
+              if (existing.artworkHeight != null) newArtworkHeight = existing.artworkHeight;
+              if (existing.themeColorsBlob != null) newThemeColorsBlob = existing.themeColorsBlob;
+
+              if (i < _queue.length && _queue[i].path == song.path) {
+                _queue[i] = _queue[i].copyWith(
+                  artworkBytes: newArtworkBytes,
+                  waveformBlob: newWaveformBlob,
+                  thumbnailPath: newThumbnailPath,
+                  artworkPath: newArtworkPath,
+                  artworkWidth: newArtworkWidth,
+                  artworkHeight: newArtworkHeight,
+                  themeColorsBlob: newThemeColorsBlob,
+                );
+                asyncChanged = true;
+              }
+            }
+          }
+        }
+        if (asyncChanged && !_disposed) {
+          notifyListeners();
+        }
+      }());
     }
 
     _logPlaybackTrace(
@@ -2871,16 +2955,32 @@ class AudioService extends Notifier<AudioSnapshot> {
             '_queueProcessor onUpdate path=$path keys=${updates.keys.toList()} '
             'current=${_debugSongLabel(currentMusic)}',
           );
+
+          // 计算当前最新的波形内存窗口
+          final String? currentPath = currentMusic?.path;
+          final Set<String> waveformMemPaths = <String>{};
+          if (currentPath != null) {
+            final int currIdx = _queue.indexWhere((s) => s.path == currentPath);
+            if (currIdx != -1) {
+              for (int i = -1; i <= 1; i++) {
+                final idx = (currIdx + i) % _queue.length;
+                final safeIdx = idx < 0 ? idx + _queue.length : idx;
+                waveformMemPaths.add(_queue[safeIdx].path);
+              }
+            }
+          }
+
           // 1. 同步更新播放队列中的 MusicFile 对象
           for (int i = 0; i < _queue.length; i++) {
             if (_queue[i].path == path) {
+              final bool inWaveformMemoryRange = waveformMemPaths.contains(path);
               _queue[i] = _queue[i].copyWith(
                 themeColorsBlob:
                     updates['themeColorsBlob'] as Uint8List? ??
                     _queue[i].themeColorsBlob,
-                waveformBlob:
-                    updates['waveformBlob'] as Uint8List? ??
-                    _queue[i].waveformBlob,
+                waveformBlob: inWaveformMemoryRange
+                    ? (updates['waveformBlob'] as Uint8List? ?? _queue[i].waveformBlob)
+                    : null,
                 thumbnailPath:
                     updates['thumbnailPath'] as String? ??
                     _queue[i].thumbnailPath,
@@ -2899,8 +2999,6 @@ class AudioService extends Notifier<AudioSnapshot> {
             if (updates.containsKey('themeColors')) {
               _applyThemeColors(updates['themeColors'] as Map<String, Color>);
             }
-            // 已经在第一步中通过 _queue[i] = _queue[i].copyWith 更新了 waveformBlob 和 thumbnailPath
-            // 这里的 currentMusic 通过 getter 已经能获取到最新的内容
             notifyListeners();
           }
         },
@@ -2910,33 +3008,46 @@ class AudioService extends Notifier<AudioSnapshot> {
             '_queueProcessor onHdArtworkLoaded path=$path bytes=${bytes.length} '
             'current=${_debugSongLabel(currentMusic)}',
           );
-          // 1. 同步到队列记录中：由于 MusicFile 是不可变的，我们通过 copyWith 更新对应项的字节
-          // 这样当滑动播放列表或重新加载该项 UI 时，可以直接从内存读取封面字节
-          for (int i = 0; i < _queue.length; i++) {
-            if (_queue[i].path == path) {
-              _queue[i] = _queue[i].copyWith(artworkBytes: bytes);
+
+          // 计算当前最新的封面优先窗口
+          final String? currentPath = currentMusic?.path;
+          final Set<String> artworkPriority = <String>{};
+          if (currentPath != null) {
+            final int currIdx = _queue.indexWhere((s) => s.path == currentPath);
+            if (currIdx != -1) {
+              for (int i = -1; i <= 1; i++) {
+                final idx = (currIdx + i) % _queue.length;
+                final safeIdx = idx < 0 ? idx + _queue.length : idx;
+                artworkPriority.add(_queue[safeIdx].path);
+              }
             }
           }
 
-          if (path == currentMusic?.path) {
-            notifyListeners();
+          if (artworkPriority.contains(path)) {
+            // 1. 同步到队列记录中
+            for (int i = 0; i < _queue.length; i++) {
+              if (_queue[i].path == path) {
+                _queue[i] = _queue[i].copyWith(artworkBytes: bytes);
+              }
+            }
+
+            if (path == currentMusic?.path) {
+              notifyListeners();
+            }
+
+            // 3. 核心方案：提前触发解码并载入 Flutter 图像缓存
+            final isPc =
+                Platform.isWindows || Platform.isMacOS || Platform.isLinux;
+            final int limit = isPc ? 1200 : 800;
+
+            final provider = ResizeImage(
+              MemoryImage(bytes),
+              width: limit,
+              height: limit,
+              allowUpscaling: false,
+            );
+            provider.resolve(ImageConfiguration.empty);
           }
-
-          // 3. 核心方案：提前触发解码并载入 Flutter 图像缓存
-          // 如果在播放页使用 Image.memory 载入数 MB 的原始字节，主线程在解码瞬间会出现掉帧。
-          // 这里通过 ResizeImage 并在后台调用 resolve 来提前完成图片的异步解码工作并放入内存缓存。
-          // 限制最大尺寸：PC端 1200, 移动端 800, 既能保证背景清晰度，也能极大降低内存开销。
-          final isPc =
-              Platform.isWindows || Platform.isMacOS || Platform.isLinux;
-          final int limit = isPc ? 1200 : 800;
-
-          final provider = ResizeImage(
-            MemoryImage(bytes),
-            width: limit,
-            height: limit,
-            allowUpscaling: false,
-          );
-          provider.resolve(ImageConfiguration.empty);
         },
       ),
     );

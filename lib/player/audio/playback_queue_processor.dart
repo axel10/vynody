@@ -1,9 +1,9 @@
-import 'dart:math' as math;
-
 /// 播放队列后台处理器
 ///
 /// 负责在后台异步处理播放列表中的歌曲。
 /// 包括：解析元数据、从封面提取配色方案、生成全曲波形图等耗时操作，不干扰主线程播放。
+library;
+
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
@@ -91,6 +91,8 @@ class PlaybackQueueProcessor {
       // 1. Sort the processing list to prioritize current and upcoming songs
       final List<MusicFile> sortedList = List.from(playlist);
       int currentIndex = -1;
+      final Set<String> dbPriorityPaths = <String>{};
+
       if (currentFilePath != null) {
         if (_disposed) return;
         currentIndex = playlist.indexWhere((s) => s.path == currentFilePath);
@@ -106,14 +108,20 @@ class PlaybackQueueProcessor {
             }
           }
 
-          // 1 & 2: Next 3 songs
+          // DB check & calculate range: current, prev 2, next 3
+          // This range is what we calculate and store in DB
           for (int i = 0; i <= 3; i++) {
             addIfUnique(currentIndex + i);
           }
-          // 3: Previous 2 songs
           for (int i = 1; i <= 2; i++) {
             addIfUnique(currentIndex - i);
           }
+
+          // Save the priority paths for DB calculations
+          for (final song in prioritized) {
+            dbPriorityPaths.add(song.path);
+          }
+
           // 4: Everything else
           for (int i = 0; i < playlist.length; i++) {
             addIfUnique(i);
@@ -136,13 +144,25 @@ class PlaybackQueueProcessor {
         );
       }
 
-      // Phase 1: FAST PASS - Immediately load HD artwork for prioritized songs
+      // Phase 1: FAST PASS - Immediately load HD artwork for prioritized songs (prev 1, current, next 1)
       // This ensures that when skipping fast, covers are already in memory.
-      // We look at the top 6 songs from our sorted list (which includes current, next 3 and previous 2).
-      final int topCount = math.min(6, sortedList.length);
-      for (int i = 0; i < topCount; i++) {
+      final List<MusicFile> artworkPrioritySongs = [];
+      if (currentFilePath != null && currentIndex != -1) {
+        artworkPrioritySongs.add(playlist[currentIndex]);
+        if (playlist.length > 1) {
+          final idx = (currentIndex + 1) % playlist.length;
+          artworkPrioritySongs.add(playlist[idx]);
+        }
+        if (playlist.length > 2) {
+          final idx = (currentIndex - 1 + playlist.length) % playlist.length;
+          if (!artworkPrioritySongs.any((s) => s.path == playlist[idx].path)) {
+            artworkPrioritySongs.add(playlist[idx]);
+          }
+        }
+      }
+
+      for (final song in artworkPrioritySongs) {
         if (_disposed || myId != _currentProcessId) return;
-        final song = sortedList[i];
         if (song.isMissing ||
             song.path.isEmpty ||
             !File(song.path).existsSync()) {
@@ -189,6 +209,7 @@ class PlaybackQueueProcessor {
       }
 
       // Phase 2: SLOW PASS - Process thumbnails, colors and waveforms
+      // Only process songs within dbPriorityPaths (prev 2 to next 3) to save CPU
       for (final song in sortedList) {
         // Check if we've been superseded by a newer request
         if (_disposed || myId != _currentProcessId) {
@@ -196,6 +217,10 @@ class PlaybackQueueProcessor {
             'Background process $myId superseded by $_currentProcessId, exiting.',
           );
           return;
+        }
+
+        if (dbPriorityPaths.isNotEmpty && !dbPriorityPaths.contains(song.path)) {
+          continue;
         }
 
         await _processSongHeavyData(
@@ -230,6 +255,36 @@ class PlaybackQueueProcessor {
 
       final existing = await db.getSongMetadata(song.path);
       final bool showWaveform = settingsService.isWaveformProgressBarEnabled;
+
+      // Sync existing database values to memory if missing on the in-memory song object
+      if (existing != null) {
+        final Map<String, dynamic> updates = {};
+        if (song.waveformBlob == null && existing.waveformBlob != null) {
+          updates['waveformBlob'] = existing.waveformBlob;
+          updates['waveform'] = waveformService.waveformFromBlob(existing.waveformBlob);
+        }
+        if (song.themeColorsBlob == null && existing.themeColorsBlob != null) {
+          updates['themeColorsBlob'] = existing.themeColorsBlob;
+          updates['themeColors'] = ThemeColorHelper.blobToColors(
+            existing.themeColorsBlob!,
+          );
+        }
+        if (song.thumbnailPath == null && existing.thumbnailPath != null) {
+          updates['thumbnailPath'] = existing.thumbnailPath;
+        }
+        if (song.artworkPath == null && existing.artworkPath != null) {
+          updates['artworkPath'] = existing.artworkPath;
+        }
+        if (song.artworkWidth == null && existing.artworkWidth != null) {
+          updates['artworkWidth'] = existing.artworkWidth;
+        }
+        if (song.artworkHeight == null && existing.artworkHeight != null) {
+          updates['artworkHeight'] = existing.artworkHeight;
+        }
+        if (updates.isNotEmpty) {
+          onUpdate(song.path, updates);
+        }
+      }
 
       // Decide what needs to be done
       final lastModified = existing?.lastModifiedTime ??
