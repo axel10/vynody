@@ -666,7 +666,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
     scrollBody = CustomScrollView(
       key: ValueKey(folder.path),
       controller: _localScrollController,
-      scrollCacheExtent: const ScrollCacheExtent.pixels(1000.0),
+      cacheExtent: 1000.0,
       slivers: [
         SliverPersistentHeader(
           delegate: _BreadcrumbsHeaderDelegate(

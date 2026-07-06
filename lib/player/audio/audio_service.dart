@@ -33,6 +33,7 @@ import 'package:vynody/player/platform/desktop_tray_service.dart';
 import 'package:vynody/player/scanner/scanner_service.dart';
 import 'package:vynody/player/library/playlist_service.dart';
 import 'package:vynody/player/metadata/metadata_helper.dart';
+import 'package:vynody/utils/memory_trace.dart';
 import 'package:vynody/player/lyrics/lyrics_controller.dart';
 import 'package:vynody/player/lyrics/lyrics_controller_state.dart';
 import 'package:vynody/player/lyrics/lyrics_controller_dependencies.dart';
@@ -1076,6 +1077,15 @@ class AudioService extends Notifier<AudioSnapshot> {
 
   Future<void> _prepareCurrentPlaybackArtwork(MusicFile song) async {
     final sw = Stopwatch()..start();
+    MemoryTrace.snapshot(
+      'audio:prepareArtwork:start',
+      details: <String, Object?>{
+        'path': song.path,
+        'queue': _queue.length,
+        'artBytes': song.artworkBytes?.length ?? 0,
+        'thumb': song.thumbnailPath ?? '-',
+      },
+    );
     try {
       _logPlaybackTrace(
         '_prepareCurrentPlaybackArtwork start -> ${_debugSongLabel(song)} '
@@ -1179,6 +1189,14 @@ class AudioService extends Notifier<AudioSnapshot> {
     } catch (e) {
       debugPrint('AudioService: hero artwork prep failed for ${song.path}: $e');
     } finally {
+      MemoryTrace.snapshot(
+        'audio:prepareArtwork:end',
+        details: <String, Object?>{
+          'path': song.path,
+          'queue': _queue.length,
+          'current': currentMusic?.path ?? '-',
+        },
+      );
       debugPrint('[PERF] _prepareCurrentPlaybackArtwork TOTAL took ${sw.elapsedMilliseconds}ms');
     }
   }
@@ -2831,6 +2849,14 @@ class AudioService extends Notifier<AudioSnapshot> {
 
   void _startQueueBackgroundProcessing({String? priorityPath}) {
     if (_queue.isEmpty) return;
+    MemoryTrace.snapshot(
+      'audio:queueBackground:start',
+      details: <String, Object?>{
+        'priority': priorityPath ?? currentMusic?.path ?? '-',
+        'queue': _queue.length,
+        'current': currentMusic?.path ?? '-',
+      },
+    );
 
     // 清理非优先窗口内的歌曲的封面字节与波形数据，防止内存持续上涨
     final String? currentPath = priorityPath ?? currentMusic?.path;
@@ -3007,6 +3033,14 @@ class AudioService extends Notifier<AudioSnapshot> {
           _logPlaybackTrace(
             '_queueProcessor onHdArtworkLoaded path=$path bytes=${bytes.length} '
             'current=${_debugSongLabel(currentMusic)}',
+          );
+          MemoryTrace.snapshot(
+            'audio:queueBackground:artworkLoaded',
+            details: <String, Object?>{
+              'path': path,
+              'bytes': bytes.length,
+              'queue': _queue.length,
+            },
           );
 
           // 计算当前最新的封面优先窗口

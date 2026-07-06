@@ -27,6 +27,7 @@ import '../dialogs/song_tag_edit_dialog.dart';
 import '../dialogs/song_tag_completion_dialog.dart';
 import '../dialogs/sleep_timer_sheet.dart';
 import '../dialogs/playlist_mode_sheet.dart';
+import 'package:vynody/utils/memory_trace.dart';
 import '../widgets/equalizer_panel.dart';
 import '../widgets/lyrics_task_status_banner.dart';
 import '../widgets/playback_ui_tuning.dart';
@@ -91,6 +92,13 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
       if (!mounted) return;
       _pendingArtworkBytes = ref.read(audioCurrentMusicProvider)?.artworkBytes;
       _pendingArtworkPath = ref.read(audioCurrentMusicProvider)?.path;
+      MemoryTrace.snapshot(
+        'playbackPage:init',
+        details: <String, Object?>{
+          'pendingBytes': _pendingArtworkBytes?.length ?? 0,
+          'pendingPath': _pendingArtworkPath ?? '-',
+        },
+      );
       ref.read(settingsServiceProvider).resetInactivity();
       if (mounted) {
         setState(() {});
@@ -167,6 +175,13 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
         _pendingArtworkBytes = artworkBytes;
         _pendingArtworkPath = sourcePath;
       });
+      MemoryTrace.snapshot(
+        'playbackPage:carouselComplete',
+        details: <String, Object?>{
+          'source': sourcePath ?? '-',
+          'bytes': artworkBytes?.length ?? 0,
+        },
+      );
       _logPlaybackPageTrace(
         'pending artwork updated from carousel | source=$sourcePath '
         'bytes=${artworkBytes?.length ?? 0}',

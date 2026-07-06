@@ -18,6 +18,7 @@ import 'package:vynody/player/library/music_file_utils.dart';
 import 'package:vynody/player/settings/settings_service.dart';
 import 'package:smtc_windows/smtc_windows.dart';
 import 'utils/app_log.dart';
+import 'utils/memory_trace.dart';
 import 'utils/linux_mount_helper.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -120,6 +121,9 @@ Future<void> _handleFileOpenArgs(
         '[external-open] navigateToMainTab(1) begin path=$path',
         mirrorToConsole: true,
       );
+      if (!context.mounted) {
+        return;
+      }
       await navigateToMainTab(context, index: 1);
       AppLog.log(
         '[external-open] navigateToMainTab(1) done path=$path',
@@ -164,6 +168,14 @@ void main(List<String> args) async {
         SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
       }
       AppLog.log('main start args=$args', mirrorToConsole: true);
+      final traceMemory =
+          args.any((arg) => arg == '--trace-memory' || arg == '--memory-trace') ||
+          Platform.environment['VYNODY_TRACE_MEMORY'] == '1';
+      MemoryTrace.configure(enabled: traceMemory);
+      MemoryTrace.snapshot(
+        'main:start',
+        details: <String, Object?>{'args': args.length},
+      );
 
       if (Platform.isWindows) {
         AppLog.log(
@@ -198,6 +210,7 @@ void main(List<String> args) async {
         );
         windowManager.waitUntilReadyToShow(windowOptions, () async {
           AppLog.log('window ready to show', mirrorToConsole: true);
+          MemoryTrace.snapshot('main:window-ready');
           await windowManager.show();
           await windowManager.focus();
         });
@@ -210,6 +223,7 @@ void main(List<String> args) async {
 
       AppLog.log('initializing settings service', mirrorToConsole: true);
       final settingsService = await SettingsService.init();
+      MemoryTrace.snapshot('main:settings-ready');
 
       if (Platform.isWindows) {
         try {
@@ -229,6 +243,7 @@ void main(List<String> args) async {
       unawaited(workerManager.init(isolatesCount: 8));
 
       AppLog.log('calling runApp', mirrorToConsole: true);
+      MemoryTrace.snapshot('main:runApp');
       runApp(
         ProviderScope(
           overrides: [

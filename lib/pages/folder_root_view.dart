@@ -117,7 +117,7 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
         key: const ValueKey('root_folders_list'),
         buildDefaultDragHandles: false,
         scrollController: _localScrollController,
-        scrollCacheExtent: const ScrollCacheExtent.pixels(1000.0),
+        cacheExtent: 1000.0,
         padding: EdgeInsets.only(bottom: rootListBottomPadding),
         itemCount: rootFolders.length,
         onReorder: (oldIndex, newIndex) {
@@ -206,7 +206,7 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
             return GridView.builder(
               key: const ValueKey('root_folders_grid'),
               controller: _localScrollController,
-              scrollCacheExtent: const ScrollCacheExtent.pixels(1000.0),
+              cacheExtent: 1000.0,
               padding: EdgeInsets.only(bottom: rootListBottomPadding, left: 16, right: 16),
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: crossAxisCount,
@@ -241,7 +241,7 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
         rootList = ListView.builder(
           key: const ValueKey('root_folders_list_normal'),
           controller: _localScrollController,
-          scrollCacheExtent: const ScrollCacheExtent.pixels(1000.0),
+          cacheExtent: 1000.0,
           padding: EdgeInsets.only(bottom: rootListBottomPadding),
           itemCount: rootFolders.length,
           itemBuilder: (context, index) {

@@ -7,6 +7,7 @@ import 'package:on_audio_query/on_audio_query.dart';
 import 'package:vynody/player/audio/audio_service.dart';
 import 'package:vynody/player/metadata/metadata_helper.dart';
 import 'package:vynody/models/music_file.dart';
+import 'package:vynody/utils/memory_trace.dart';
 
 class CoverCarousel extends StatefulWidget {
   const CoverCarousel({
@@ -401,6 +402,13 @@ class _CoverItemState extends State<_CoverItem> {
         'currentMusic=${widget.audioService.currentMusic?.path ?? '-'}',
       );
     }
+    MemoryTrace.snapshot(
+      'coverCarousel:loadArtwork:start',
+      details: <String, Object?>{
+        'path': widget.musicFile.path,
+        'slot': widget.itemIndex,
+      },
+    );
 
     // 1. If we have original HD bytes in cache, use them.
     final cachedBytes = widget.audioService.getCachedArtwork(
@@ -413,6 +421,13 @@ class _CoverItemState extends State<_CoverItem> {
         _hasLoadedHighRes = true;
       });
       widget.onArtworkLoaded?.call(cachedBytes, null);
+      MemoryTrace.snapshot(
+        'coverCarousel:loadArtwork:cacheHit',
+        details: <String, Object?>{
+          'path': widget.musicFile.path,
+          'bytes': cachedBytes.length,
+        },
+      );
       _logCarouselTrace(
         '_loadArtwork used cached bytes path=${widget.musicFile.path} '
         'bytes=${cachedBytes.length}',
@@ -430,6 +445,13 @@ class _CoverItemState extends State<_CoverItem> {
         _hasLoadedHighRes = true;
       });
       widget.onArtworkLoaded?.call(bytes, null);
+      MemoryTrace.snapshot(
+        'coverCarousel:loadArtwork:currentMusic',
+        details: <String, Object?>{
+          'path': widget.musicFile.path,
+          'bytes': bytes.length,
+        },
+      );
       _logCarouselTrace(
         '_loadArtwork used currentMusic bytes path=${widget.musicFile.path} '
         'bytes=${bytes.length}',
@@ -449,6 +471,13 @@ class _CoverItemState extends State<_CoverItem> {
             _artworkBytes = bytes;
           });
           widget.onArtworkLoaded?.call(bytes, null);
+          MemoryTrace.snapshot(
+            'coverCarousel:loadArtwork:thumbnail',
+            details: <String, Object?>{
+              'path': widget.musicFile.path,
+              'bytes': bytes.length,
+            },
+          );
           _logCarouselTrace(
             '_loadArtwork used thumbnailPath path=${widget.musicFile.path} '
             'bytes=${bytes.length}',
@@ -487,6 +516,13 @@ class _CoverItemState extends State<_CoverItem> {
             _artworkBytes = bytes;
           });
           widget.onArtworkLoaded?.call(bytes, null);
+          MemoryTrace.snapshot(
+            'coverCarousel:loadArtwork:highRes',
+            details: <String, Object?>{
+              'path': widget.musicFile.path,
+              'bytes': bytes.length,
+            },
+          );
           _logCarouselTrace(
             '_loadHighResArtwork used highResPath path=${widget.musicFile.path} '
             'bytes=${bytes.length}',
@@ -511,6 +547,13 @@ class _CoverItemState extends State<_CoverItem> {
           _artworkBytes = bytes;
         });
         widget.onArtworkLoaded?.call(bytes, null);
+        MemoryTrace.snapshot(
+          'coverCarousel:loadArtwork:onAudioQuery',
+          details: <String, Object?>{
+            'path': widget.musicFile.path,
+            'bytes': bytes.length,
+          },
+        );
         _logCarouselTrace(
           '_loadHighResArtwork used on_audio_query path=${widget.musicFile.path} '
           'bytes=${bytes.length}',
@@ -529,6 +572,13 @@ class _CoverItemState extends State<_CoverItem> {
         _artworkBytes = embeddedBytes;
       });
       widget.onArtworkLoaded?.call(embeddedBytes, null);
+      MemoryTrace.snapshot(
+        'coverCarousel:loadArtwork:embedded',
+        details: <String, Object?>{
+          'path': widget.musicFile.path,
+          'bytes': embeddedBytes.length,
+        },
+      );
       _logCarouselTrace(
         '_loadHighResArtwork used embedded path=${widget.musicFile.path} '
         'bytes=${embeddedBytes.length}',

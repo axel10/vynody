@@ -16,6 +16,7 @@ import 'package:vynody/player/settings/settings_service.dart';
 import 'package:vynody/player/settings/theme_color_helper.dart';
 import 'package:vynody/player/settings/track_artwork_theme_service.dart';
 import 'package:vynody/player/audio/waveform_service.dart';
+import 'package:vynody/utils/memory_trace.dart';
 
 /// Handles background processing of the playback queue (waveforms, colors, etc.)
 class PlaybackQueueProcessor {
@@ -78,6 +79,14 @@ class PlaybackQueueProcessor {
     // If already processing, we signal to stop the current one and start fresh with new priority
     _currentProcessId++;
     final int myId = _currentProcessId;
+    MemoryTrace.snapshot(
+      'queueProcessor:start',
+      details: <String, Object?>{
+        'id': myId,
+        'playlist': playlist.length,
+        'current': currentFilePath ?? '-',
+      },
+    );
 
     if (_isProcessing) {
       debugPrint('Signaling background processor to re-prioritize');
@@ -232,6 +241,13 @@ class PlaybackQueueProcessor {
       }
     } finally {
       _isProcessing = false;
+      MemoryTrace.snapshot(
+        'queueProcessor:end',
+        details: <String, Object?>{
+          'id': myId,
+          'playlist': playlist.length,
+        },
+      );
       debugPrint('Background queue processing finished');
     }
   }
@@ -335,16 +351,24 @@ class PlaybackQueueProcessor {
             if (_disposed || myId != _currentProcessId) return;
             didScanImg = true;
 
-            if (artworkTheme != null &&
-                (artworkTheme.hasArtworkPath || artworkTheme.hasThemeColors)) {
-              meta = artworkTheme.toSongMetadata(base: meta);
-              meta = meta.copyWith(metadataImgScanned: lastModified);
-              await db.insertOrUpdateSong(meta);
+          if (artworkTheme != null &&
+              (artworkTheme.hasArtworkPath || artworkTheme.hasThemeColors)) {
+            meta = artworkTheme.toSongMetadata(base: meta);
+            meta = meta.copyWith(metadataImgScanned: lastModified);
+            await db.insertOrUpdateSong(meta);
+            MemoryTrace.snapshot(
+              'queueProcessor:artworkTheme',
+              details: <String, Object?>{
+                'path': song.path,
+                'thumb': artworkTheme.thumbnailPath ?? '-',
+                'theme': artworkTheme.themeColorsBlob?.length ?? 0,
+              },
+            );
 
-              final updates = <String, dynamic>{
-                'thumbnailPath': artworkTheme.thumbnailPath ?? meta.thumbnailPath,
-                'artworkPath': artworkTheme.artworkPath ?? meta.artworkPath,
-                'artworkWidth': meta.artworkWidth,
+            final updates = <String, dynamic>{
+              'thumbnailPath': artworkTheme.thumbnailPath ?? meta.thumbnailPath,
+              'artworkPath': artworkTheme.artworkPath ?? meta.artworkPath,
+              'artworkWidth': meta.artworkWidth,
                 'artworkHeight': meta.artworkHeight,
               };
               if (meta.themeColorsBlob != null) {

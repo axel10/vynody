@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
+import 'package:vynody/utils/memory_trace.dart';
 
 class SongThumbnail extends ConsumerStatefulWidget {
   final String path;
@@ -80,6 +81,15 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
         if (_artworkCache.length > 100) {
           _artworkCache.remove(_artworkCache.keys.first);
         }
+        MemoryTrace.snapshot(
+          'songThumbnail:queryArtwork',
+          details: <String, Object?>{
+            'id': id,
+            'bucket': _bucketedSize,
+            'bytes': bytes.length,
+            'cache': _artworkCache.length,
+          },
+        );
       }
       if (mounted) {
         setState(() {
