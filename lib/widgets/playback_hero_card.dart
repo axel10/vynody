@@ -1859,6 +1859,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                 onScrubbing: onScrubbing,
                 onSeek: onSeek,
                 isLandscape: effectiveIsLandscape,
+                playButtonRowWidth: unifiedWidth,
               ),
               // 3. 播放控制按钮叠在上面，不跟随缩放 (Playback controls on top, no scaling)
               mainControlsRow,
@@ -2221,6 +2222,7 @@ class PlaybackOverlayProgressTimeLayer extends ConsumerWidget {
   final ValueChanged<double>? onScrubbing;
   final ValueChanged<double>? onSeek;
   final bool isLandscape;
+  final double? playButtonRowWidth;
 
   const PlaybackOverlayProgressTimeLayer({
     super.key,
@@ -2233,6 +2235,7 @@ class PlaybackOverlayProgressTimeLayer extends ConsumerWidget {
     this.overrideWaveform,
     this.onScrubbing,
     this.onSeek,
+    this.playButtonRowWidth,
   });
 
   @override
@@ -2313,7 +2316,13 @@ class PlaybackOverlayProgressTimeLayer extends ConsumerWidget {
             final cardWidth = screenWidth - (pagePadding * 2);
             final fittedScale = cardWidth / totalWidth;
 
-            final rawShift = (PlaybackHeroCardUiTuning.waveformOverlayTimeSide - totalWidth / 2) *
+            final double limitWidth = isLandscape
+                ? totalWidth
+                : ((playButtonRowWidth ?? totalWidth) + 60.0 * controlsScale);
+            final double timeTextRowWidth = math.min(totalWidth, limitWidth);
+            final double leftOffset = (totalWidth - timeTextRowWidth) / 2;
+
+            final rawShift = (PlaybackHeroCardUiTuning.waveformOverlayTimeSide - timeTextRowWidth / 2) *
                 (overflowScale - 1) * 0.8;
 
             final safeFittedScale = (fittedScale.isFinite && fittedScale > 0) ? fittedScale : 1.0;
@@ -2332,7 +2341,7 @@ class PlaybackOverlayProgressTimeLayer extends ConsumerWidget {
               child: Stack(
                 children: [
                   Positioned(
-                    left: PlaybackHeroCardUiTuning.waveformOverlayTimeSide,
+                    left: leftOffset + PlaybackHeroCardUiTuning.waveformOverlayTimeSide,
                     bottom: PlaybackHeroCardUiTuning.waveformOverlayTimeBottom,
                     child: Transform.translate(
                       offset: Offset(safeShift, 0),
@@ -2373,7 +2382,7 @@ class PlaybackOverlayProgressTimeLayer extends ConsumerWidget {
                     ),
                   ),
                   Positioned(
-                    right: PlaybackHeroCardUiTuning.waveformOverlayTimeSide,
+                    right: leftOffset + PlaybackHeroCardUiTuning.waveformOverlayTimeSide,
                     bottom: PlaybackHeroCardUiTuning.waveformOverlayTimeBottom,
                     child: Transform.translate(
                       offset: Offset(-safeShift, 0),
