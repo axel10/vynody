@@ -273,14 +273,21 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     final anchorCenters = <double>[];
     double currentTop = 0.0;
 
+    final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
+    final isApplePortrait = isPortrait && lyricsStyle == LyricsStyle.apple;
     final double layoutMaxWidth;
     final double translationLayoutMaxWidth;
-    if (lyricsStyle == LyricsStyle.apple) {
-      layoutMaxWidth = maxWidth - 48.0;
+    if (isApplePortrait) {
+      layoutMaxWidth = maxWidth - 24.0;
       translationLayoutMaxWidth = layoutMaxWidth - 12.0;
     } else {
-      layoutMaxWidth = maxWidth - 48.0;
-      translationLayoutMaxWidth = maxWidth - 72.0;
+      if (lyricsStyle == LyricsStyle.apple) {
+        layoutMaxWidth = maxWidth - 48.0;
+        translationLayoutMaxWidth = layoutMaxWidth - 12.0;
+      } else {
+        layoutMaxWidth = maxWidth - 48.0;
+        translationLayoutMaxWidth = maxWidth - 72.0;
+      }
     }
 
     for (int i = 0; i < lines.length; i++) {

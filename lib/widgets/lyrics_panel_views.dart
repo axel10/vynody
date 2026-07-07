@@ -189,6 +189,8 @@ class _LyricsPanelTimedLyricsViewState extends State<LyricsPanelTimedLyricsView>
     final targetLang = widget.lyricsState.lyricsTranslationLanguageCode;
     final effectiveLang = widget.lyrics?.getEffectiveTranslationLanguage(targetLang) ?? targetLang;
     final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
+    final isLeftAligned = widget.lyricsStyle == LyricsStyle.apple;
+    final isApplePortrait = isPortrait && widget.lyricsStyle == LyricsStyle.apple;
 
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
@@ -285,33 +287,30 @@ class _LyricsPanelTimedLyricsViewState extends State<LyricsPanelTimedLyricsView>
                                 leadingDistribution: TextLeadingDistribution.even,
                               );
 
-                        final double layoutMaxWidth;
-                        if (widget.lyricsStyle == LyricsStyle.apple) {
-                          layoutMaxWidth = widget.maxWidth - 48.0;
-                        } else {
-                          layoutMaxWidth = widget.maxWidth - 48.0;
-                        }
+                        final double layoutMaxWidth = isApplePortrait
+                            ? widget.maxWidth - 24.0
+                            : widget.maxWidth - 48.0;
 
                         final animatedScaleChild = AnimatedScale(
                           duration: const Duration(milliseconds: 220),
                           curve: Curves.easeOutCubic,
                           scale: targetScale,
-                          alignment: widget.lyricsStyle == LyricsStyle.apple ? Alignment.centerLeft : Alignment.center,
+                          alignment: isLeftAligned ? Alignment.centerLeft : Alignment.center,
                           child: SizedBox(
                             width: layoutMaxWidth,
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: widget.lyricsStyle == LyricsStyle.apple ? CrossAxisAlignment.start : CrossAxisAlignment.center,
+                              crossAxisAlignment: isLeftAligned ? CrossAxisAlignment.start : CrossAxisAlignment.center,
                               children: [
                                 Row(
-                                  mainAxisAlignment: widget.lyricsStyle == LyricsStyle.apple ? MainAxisAlignment.start : MainAxisAlignment.center,
+                                  mainAxisAlignment: isLeftAligned ? MainAxisAlignment.start : MainAxisAlignment.center,
                                   children: [
                                     Expanded(
                                       child: AnimatedDefaultTextStyle(
                                         duration: const Duration(milliseconds: 300),
                                         curve: Curves.easeOutCubic,
                                         style: lineStyle,
-                                        textAlign: widget.lyricsStyle == LyricsStyle.apple ? TextAlign.left : TextAlign.center,
+                                        textAlign: isLeftAligned ? TextAlign.left : TextAlign.center,
                                         child: Text(line.text),
                                       ),
                                     ),
@@ -321,7 +320,7 @@ class _LyricsPanelTimedLyricsViewState extends State<LyricsPanelTimedLyricsView>
                                     translated.isNotEmpty) ...[
                                   SizedBox(height: translatedSpacing),
                                   Padding(
-                                    padding: widget.lyricsStyle == LyricsStyle.apple
+                                    padding: isLeftAligned
                                         ? const EdgeInsets.only(right: 12)
                                         : const EdgeInsets.symmetric(horizontal: 12),
                                     child: AnimatedDefaultTextStyle(
@@ -341,7 +340,7 @@ class _LyricsPanelTimedLyricsViewState extends State<LyricsPanelTimedLyricsView>
                                         leadingDistribution:
                                             TextLeadingDistribution.even,
                                       ),
-                                      textAlign: widget.lyricsStyle == LyricsStyle.apple ? TextAlign.left : TextAlign.center,
+                                      textAlign: isLeftAligned ? TextAlign.left : TextAlign.center,
                                       child: Text(translated),
                                     ),
                                   ),
@@ -369,12 +368,14 @@ class _LyricsPanelTimedLyricsViewState extends State<LyricsPanelTimedLyricsView>
                         );
 
                         final lineContent = Padding(
-                          padding: EdgeInsets.symmetric(
-                            vertical: verticalItemPadding,
-                            horizontal: 24.0,
+                          padding: EdgeInsets.only(
+                            top: verticalItemPadding,
+                            bottom: verticalItemPadding,
+                            left: isApplePortrait ? 0.0 : 24.0,
+                            right: 24.0,
                           ),
                           child: Align(
-                            alignment: widget.lyricsStyle == LyricsStyle.apple ? Alignment.centerLeft : Alignment.center,
+                            alignment: isLeftAligned ? Alignment.centerLeft : Alignment.center,
                             child: blurredChild,
                           ),
                         );
