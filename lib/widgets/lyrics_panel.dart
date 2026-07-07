@@ -1654,8 +1654,13 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
 
         double panelWidthFactor;
         if (effectivePanelWidth >= PlaybackPageUiTuning.lyricsPanelWidthReference) {
-          panelWidthFactor = 1.0 + (effectivePanelWidth - PlaybackPageUiTuning.lyricsPanelWidthReference) *
-                  PlaybackPageUiTuning.lyricsPanelWidthGrowFactor;
+          if (effectiveLyricsStyle == LyricsStyle.traditional) {
+            // Traditional scrolling lyrics should not increase in font size as width increases
+            panelWidthFactor = 1.0;
+          } else {
+            panelWidthFactor = 1.0 + (effectivePanelWidth - PlaybackPageUiTuning.lyricsPanelWidthReference) *
+                    PlaybackPageUiTuning.lyricsPanelWidthGrowFactor;
+          }
         } else {
           panelWidthFactor = 1.0 - (PlaybackPageUiTuning.lyricsPanelWidthReference - effectivePanelWidth) *
                   PlaybackPageUiTuning.lyricsPanelWidthShrinkFactor;
@@ -1681,6 +1686,25 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
                   PlaybackPageUiTuning.appleLyricsHighResSlope;
           baseAdaptiveScale *= highResFactor;
           effectiveMaxFontScale *= highResFactor;
+        }
+
+        // Apply portrait / tablet adjustments
+        if (isPortrait) {
+          if (effectiveLyricsStyle == LyricsStyle.apple) {
+            if (screenWidth >= 600) {
+              // Apple-style lyrics on iPad (tablet) portrait mode scaled by 1.5x
+              baseAdaptiveScale *= 1.5;
+              effectiveMaxFontScale *= 1.5;
+            } else {
+              // Apple-style lyrics on mobile (phone) portrait mode scaled by 1.2x
+              baseAdaptiveScale *= 1.2;
+              effectiveMaxFontScale *= 1.2;
+            }
+          } else {
+            // Traditional lyrics in portrait mode scaled by 1.2x
+            baseAdaptiveScale *= 1.2;
+            effectiveMaxFontScale *= 1.2;
+          }
         }
 
         // Apply a 1.5x scale factor for Apple-style lyrics in landscape orientation (not in small window mode)
