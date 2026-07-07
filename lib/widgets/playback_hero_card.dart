@@ -441,7 +441,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                     (s) => s.isWaveformProgressBarEnabled,
                   ),
                 );
-                final useOverlayStyle = !effectiveIsLandscape && !effectiveIsLyricsMode && isWaveformEnabled;
+                final useOverlayStyle = !effectiveIsLandscape && isWaveformEnabled;
 
                 final layout = _buildPlaybackCardLayout(
                   context,
@@ -528,7 +528,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                               child: Consumer(
                                 builder: (context, ref, child) {
                                   return SizedBox(
-                                    key: ValueKey('controls_sizing_box_${useOverlayStyle ? 'overlay' : 'default'}'),
+                                    key: const ValueKey('controls_sizing_box'),
                                     width:
                                         (effectiveIsLandscape
                                             ? layout.controls.width
@@ -1440,7 +1440,7 @@ class PlaybackHeroCard extends ConsumerWidget {
         topButtonsCount * singleButtonWidth + topButtonsGaps * gapWidth;
 
     // 竖屏模式下如果启用波形进度条，则使用叠层布局 (Overlay layout in portrait if waveform is enabled)
-    final useOverlayStyle = !effectiveIsLandscape && !effectiveIsLyricsMode && isWaveformEnabled;
+    final useOverlayStyle = !effectiveIsLandscape && isWaveformEnabled;
 
     final widthFactor = effectiveIsLandscape
         ? (lerpDouble(
