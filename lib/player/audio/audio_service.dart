@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:collection/collection.dart';
 
 import 'dart:io';
@@ -38,268 +37,12 @@ import 'package:vynody/player/lyrics/lyrics_controller.dart';
 import 'package:vynody/player/lyrics/lyrics_controller_state.dart';
 import 'package:vynody/player/lyrics/lyrics_controller_dependencies.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
+import 'package:vynody/player/audio/playback_session_manager.dart';
+import 'package:vynody/player/audio/queue_background_processor.dart';
 import 'package:vynody/player/library/library_insights_service.dart';
 import 'package:vynody/player/lyrics/lyrics_riverpod.dart';
-import 'package:vynody/utils/linux_mount_helper.dart';
-
-class _PlaybackSessionState {
-  const _PlaybackSessionState({
-    required this.version,
-    required this.queue,
-    required this.currentIndex,
-    required this.positionMs,
-    required this.playbackMode,
-    required this.randomPlayback,
-    this.source,
-  });
-
-  final int version;
-  final List<MusicFile> queue;
-  final int currentIndex;
-  final int positionMs;
-  final AppPlaybackMode playbackMode;
-  final _RandomPlaybackSessionState randomPlayback;
-  final PlaybackSource? source;
-
-  Map<String, Object?> toJson() {
-    return <String, Object?>{
-      'version': version,
-      'queue': queue.map(_musicFileToSessionJson).toList(growable: false),
-      'currentIndex': currentIndex,
-      'positionMs': positionMs,
-      'playbackMode': playbackMode.name,
-      'randomPlayback': randomPlayback.toJson(),
-      'source': source?.toJson(),
-    };
-  }
-
-  factory _PlaybackSessionState.fromJson(Map<String, dynamic> json) {
-    final rawQueue = json['queue'];
-    final queue = <MusicFile>[];
-    if (rawQueue is List) {
-      for (final item in rawQueue) {
-        if (item is Map<String, dynamic>) {
-          queue.add(_musicFileFromSessionJson(item));
-        } else if (item is Map) {
-          queue.add(
-            _musicFileFromSessionJson(
-              item.map((key, value) => MapEntry(key.toString(), value)),
-            ),
-          );
-        }
-      }
-    }
-
-    final sourceJson = json['source'];
-    final source = sourceJson != null
-        ? PlaybackSource.fromJson(sourceJson as Map<String, dynamic>)
-        : null;
-
-    return _PlaybackSessionState(
-      version: (json['version'] as num?)?.toInt() ?? 1,
-      queue: queue,
-      currentIndex: (json['currentIndex'] as num?)?.toInt() ?? -1,
-      positionMs: (json['positionMs'] as num?)?.toInt() ?? 0,
-      playbackMode: _playbackModeFromStorage(json['playbackMode'] as String?),
-      randomPlayback: _RandomPlaybackSessionState.fromJson(
-        (json['randomPlayback'] as Map? ?? const {}).map(
-          (key, value) => MapEntry(key.toString(), value),
-        ),
-      ),
-      source: source,
-    );
-  }
-}
-
-Map<String, Object?> _musicFileToSessionJson(MusicFile song) {
-  return <String, Object?>{
-    'path': song.path,
-    'name': song.name,
-    'title': song.title,
-    'artist': song.artist,
-    'album': song.album,
-    'trackNumber': song.trackNumber,
-    'id': song.id,
-    'mediaUri': song.mediaUri,
-    'thumbnailPath': song.thumbnailPath,
-    'artworkPath': song.artworkPath,
-    'artworkWidth': song.artworkWidth,
-    'artworkHeight': song.artworkHeight,
-    'durationMillis': song.durationMillis,
-    'themeColorsBlob': song.themeColorsBlob == null
-        ? null
-        : base64Encode(song.themeColorsBlob!),
-    'lastModifiedTime': song.lastModifiedTime,
-    'isMissing': song.isMissing,
-  };
-}
-
-MusicFile _musicFileFromSessionJson(Map<String, dynamic> json) {
-  Uint8List? themeColorsBlob;
-  final rawThemeColorsBlob = json['themeColorsBlob'];
-  if (rawThemeColorsBlob is String && rawThemeColorsBlob.isNotEmpty) {
-    themeColorsBlob = base64Decode(rawThemeColorsBlob);
-  }
-
-  return MusicFile(
-    path: json['path'] as String? ?? '',
-    name: json['name'] as String? ?? '',
-    title: json['title'] as String?,
-    artist: json['artist'] as String?,
-    album: json['album'] as String?,
-    trackNumber: (json['trackNumber'] as num?)?.toInt(),
-    id: (json['id'] as num?)?.toInt(),
-    mediaUri: json['mediaUri'] as String?,
-    thumbnailPath: json['thumbnailPath'] as String?,
-    artworkPath: json['artworkPath'] as String?,
-    artworkWidth: (json['artworkWidth'] as num?)?.toInt(),
-    artworkHeight: (json['artworkHeight'] as num?)?.toInt(),
-    durationMillis: (json['durationMillis'] as num?)?.toInt(),
-    themeColorsBlob: themeColorsBlob,
-    lastModifiedTime: (json['lastModifiedTime'] as num?)?.toInt(),
-    isMissing: json['isMissing'] as bool? ?? false,
-  );
-}
-
-AppPlaybackMode _playbackModeFromStorage(String? value) {
-  switch (value) {
-    case 'single':
-      return AppPlaybackMode.single;
-    case 'singleLoop':
-      return AppPlaybackMode.singleLoop;
-    case 'queueLoop':
-      return AppPlaybackMode.queueLoop;
-    case 'autoQueueLoop':
-      return AppPlaybackMode.autoQueueLoop;
-    case 'queue':
-    default:
-      return AppPlaybackMode.queue;
-  }
-}
-
-class _RandomHistoryEntryState {
-  const _RandomHistoryEntryState({
-    required this.trackId,
-    required this.playlistId,
-    required this.trackIndex,
-    required this.generatedAtMillis,
-    required this.policyKey,
-  });
-
-  final String trackId;
-  final String? playlistId;
-  final int trackIndex;
-  final int generatedAtMillis;
-  final String policyKey;
-
-  Map<String, Object?> toJson() {
-    return <String, Object?>{
-      'trackId': trackId,
-      'playlistId': playlistId,
-      'trackIndex': trackIndex,
-      'generatedAtMillis': generatedAtMillis,
-      'policyKey': policyKey,
-    };
-  }
-
-  factory _RandomHistoryEntryState.fromJson(Map<String, dynamic> json) {
-    return _RandomHistoryEntryState(
-      trackId: json['trackId'] as String? ?? '',
-      playlistId: json['playlistId'] as String?,
-      trackIndex: (json['trackIndex'] as num?)?.toInt() ?? -1,
-      generatedAtMillis: (json['generatedAtMillis'] as num?)?.toInt() ?? 0,
-      policyKey: json['policyKey'] as String? ?? '',
-    );
-  }
-
-  RandomHistoryEntry toDomain() {
-    return RandomHistoryEntry(
-      trackId: trackId,
-      playlistId: playlistId,
-      trackIndex: trackIndex,
-      generatedAt: DateTime.fromMillisecondsSinceEpoch(generatedAtMillis),
-      policyKey: policyKey,
-    );
-  }
-}
-
-class _RandomPlaybackSessionState {
-  const _RandomPlaybackSessionState({
-    required this.enabled,
-    required this.history,
-    required this.historyCursor,
-    required this.deck,
-    required this.deckCursor,
-    required this.deckSignature,
-    required this.stashedNextTrackId,
-    required this.stashedForTrackId,
-  });
-
-  final bool enabled;
-  final List<_RandomHistoryEntryState> history;
-  final int? historyCursor;
-  final List<String> deck;
-  final int? deckCursor;
-  final String? deckSignature;
-  final String? stashedNextTrackId;
-  final String? stashedForTrackId;
-
-  Map<String, Object?> toJson() {
-    return <String, Object?>{
-      'enabled': enabled,
-      'history': history.map((entry) => entry.toJson()).toList(growable: false),
-      'historyCursor': historyCursor,
-      'deck': deck,
-      'deckCursor': deckCursor,
-      'deckSignature': deckSignature,
-      'stashedNextTrackId': stashedNextTrackId,
-      'stashedForTrackId': stashedForTrackId,
-    };
-  }
-
-  factory _RandomPlaybackSessionState.fromJson(Map<String, dynamic> json) {
-    final rawHistory = json['history'];
-    final history = <_RandomHistoryEntryState>[];
-    if (rawHistory is List) {
-      for (final item in rawHistory) {
-        if (item is Map<String, dynamic>) {
-          history.add(_RandomHistoryEntryState.fromJson(item));
-        } else if (item is Map) {
-          history.add(
-            _RandomHistoryEntryState.fromJson(
-              item.map((key, value) => MapEntry(key.toString(), value)),
-            ),
-          );
-        }
-      }
-    }
-
-    final rawDeck = json['deck'];
-    final deck = <String>[];
-    if (rawDeck is List) {
-      for (final item in rawDeck) {
-        if (item is String && item.isNotEmpty) {
-          deck.add(item);
-        }
-      }
-    }
-
-    return _RandomPlaybackSessionState(
-      enabled: json['enabled'] as bool? ?? false,
-      history: history,
-      historyCursor: (json['historyCursor'] as num?)?.toInt(),
-      deck: deck,
-      deckCursor: (json['deckCursor'] as num?)?.toInt(),
-      deckSignature: json['deckSignature'] as String?,
-      stashedNextTrackId: json['stashedNextTrackId'] as String?,
-      stashedForTrackId: json['stashedForTrackId'] as String?,
-    );
-  }
-}
 
 class AudioService extends Notifier<AudioSnapshot> {
-  static const String _playbackSessionStorageKey = 'playback_session_v1';
-  static const Duration _playbackSessionAutoSaveInterval = Duration(seconds: 2);
   static const String _volumeStorageKey = 'player_volume';
   static const String _previousVolumeStorageKey = 'player_previous_volume';
   static const String _isMutedStorageKey = 'player_is_muted';
@@ -340,7 +83,8 @@ class AudioService extends Notifier<AudioSnapshot> {
   bool _disposed = false;
   bool _restoringPlaybackSession = false;
   bool _playbackSessionReady = false;
-  Timer? _playbackSessionAutoSaveTimer;
+  late final PlaybackSessionManager _sessionManager;
+  late final QueueBackgroundProcessor _queueBackgroundProcessor;
   bool _userVisualizerEnabled = true;
   bool _isWindowMinimized = false;
   bool _isAppBackgrounded = false;
@@ -438,6 +182,12 @@ class AudioService extends Notifier<AudioSnapshot> {
     );
     _lastWaveformChunks = settingsService.waveformChunks;
 
+    _sessionManager = PlaybackSessionManager();
+    _queueBackgroundProcessor = QueueBackgroundProcessor(
+      db: _db,
+      queueProcessor: _queueProcessor,
+    );
+
     _windowsIntegration = Platform.isWindows
         ? WindowsIntegrationService(this)
         : null;
@@ -498,25 +248,8 @@ class AudioService extends Notifier<AudioSnapshot> {
       if (Platform.isIOS || Platform.isMacOS) {
         await ref.read(scannerServiceProvider).ready;
       }
-      final prefs = settingsService.prefs;
-      final rawSession = prefs.getString(_playbackSessionStorageKey);
-      if (rawSession == null || rawSession.trim().isEmpty) {
-        _playbackSessionReady = true;
-        return;
-      }
-
-      final decoded = jsonDecode(rawSession);
-      if (decoded is! Map) {
-        await prefs.remove(_playbackSessionStorageKey);
-        _playbackSessionReady = true;
-        return;
-      }
-
-      final session = _PlaybackSessionState.fromJson(
-        decoded.map((key, value) => MapEntry(key.toString(), value)),
-      );
-      if (session.version != 1 || session.queue.isEmpty) {
-        await prefs.remove(_playbackSessionStorageKey);
+      final session = await _sessionManager.loadFromPrefs(settingsService.prefs);
+      if (session == null) {
         _playbackSessionReady = true;
         return;
       }
@@ -548,7 +281,8 @@ class AudioService extends Notifier<AudioSnapshot> {
       _currentSource = session.source;
       _player.playlist.setMode(_playbackMode.toCoreMode());
 
-      final restoredIndex = await _resolveRestoredQueueIndex(session);
+      final restoredIndex =
+          await PlaybackSessionManager.resolveRestoredQueueIndex(session);
       if (restoredIndex >= 0) {
         _currentIndex = restoredIndex;
         await _player.playlist.setActivePlaylist(
@@ -594,8 +328,6 @@ class AudioService extends Notifier<AudioSnapshot> {
         _linuxIntegration?.updateTimeline(_position, duration);
         unawaited(_updateCurrentMetadata(currentSong));
       } else {
-        // No restored track still exists, so discard the stale session and
-        // leave the player empty instead of restoring a deleted file.
         _queue.clear();
         _currentIndex = -1;
         _position = Duration.zero;
@@ -606,7 +338,7 @@ class AudioService extends Notifier<AudioSnapshot> {
         _isTransitioning = false;
         _resetPlaybackTrackingForSong(null);
         await _player.playlist.clear();
-        await prefs.remove(_playbackSessionStorageKey);
+        await _sessionManager.clearFromPrefs(settingsService.prefs);
       }
 
       await _restoreRandomPlaybackSession(session.randomPlayback);
@@ -623,9 +355,9 @@ class AudioService extends Notifier<AudioSnapshot> {
   }
 
   Future<void> _restoreRandomPlaybackSession(
-    _RandomPlaybackSessionState session,
+    RandomPlaybackData random,
   ) async {
-    if (!session.enabled) {
+    if (!random.enabled) {
       _player.playlist.setRandomPolicy(null);
       return;
     }
@@ -634,13 +366,13 @@ class AudioService extends Notifier<AudioSnapshot> {
 
     _player.playlist.restoreRandomPlaybackState(
       policy: _player.playlist.randomPolicy,
-      history: session.history.map((entry) => entry.toDomain()).toList(),
-      historyCursor: session.historyCursor,
-      deck: session.deck,
-      deckCursor: session.deckCursor,
-      deckSignature: session.deckSignature,
-      stashedNextTrackId: session.stashedNextTrackId,
-      stashedForTrackId: session.stashedForTrackId,
+      history: random.history,
+      historyCursor: random.historyCursor,
+      deck: random.deck,
+      deckCursor: random.deckCursor,
+      deckSignature: random.deckSignature,
+      stashedNextTrackId: random.stashedNextTrackId,
+      stashedForTrackId: random.stashedForTrackId,
     );
   }
 
@@ -664,49 +396,21 @@ class AudioService extends Notifier<AudioSnapshot> {
     await _updatePalette();
   }
 
-  Future<int> _resolveRestoredQueueIndex(_PlaybackSessionState session) async {
-    if (session.queue.isEmpty) return -1;
-
-    final preferredIndex = session.currentIndex.clamp(
-      0,
-      session.queue.length - 1,
-    );
-    final preferredSong = session.queue[preferredIndex];
-    if (await _songExists(preferredSong.path)) {
-      return preferredIndex;
-    }
-
-    for (var i = preferredIndex + 1; i < session.queue.length; i++) {
-      if (await _songExists(session.queue[i].path)) {
-        return i;
-      }
-    }
-    for (var i = 0; i < preferredIndex; i++) {
-      if (await _songExists(session.queue[i].path)) {
-        return i;
-      }
-    }
-
-    return -1;
-  }
-
   void _updatePlaybackSessionAutoSaveTimer() {
     if (!_playbackSessionReady || _disposed) return;
 
     final shouldRun = _queue.isNotEmpty && _isPlaying;
     if (shouldRun) {
-      _playbackSessionAutoSaveTimer ??= Timer.periodic(
-        _playbackSessionAutoSaveInterval,
-        (_) => unawaited(_persistPlaybackSession()),
+      _sessionManager.ensureAutoSaveTimer(
+        () => _persistPlaybackSession(),
       );
     } else {
-      _stopPlaybackSessionAutoSaveTimer();
+      _sessionManager.stopAutoSaveTimer();
     }
   }
 
   void _stopPlaybackSessionAutoSaveTimer() {
-    _playbackSessionAutoSaveTimer?.cancel();
-    _playbackSessionAutoSaveTimer = null;
+    _sessionManager.stopAutoSaveTimer();
   }
 
   Future<void> _persistPlaybackSession({bool allowWhenDisposed = false}) async {
@@ -718,13 +422,12 @@ class AudioService extends Notifier<AudioSnapshot> {
 
     final prefs = settingsService.prefs;
     if (_queue.isEmpty || _currentIndex < 0 || _currentIndex >= _queue.length) {
-      await prefs.remove(_playbackSessionStorageKey);
+      await _sessionManager.clearFromPrefs(prefs);
       return;
     }
 
-    final session = _PlaybackSessionState(
-      version: 1,
-      queue: List<MusicFile>.unmodifiable(_queue),
+    final data = PlaybackSessionData(
+      queue: _queue,
       currentIndex: _currentIndex,
       positionMs: _position.inMilliseconds,
       playbackMode: _playbackMode,
@@ -732,27 +435,14 @@ class AudioService extends Notifier<AudioSnapshot> {
       source: _currentSource,
     );
 
-    await prefs.setString(
-      _playbackSessionStorageKey,
-      jsonEncode(session.toJson()),
-    );
+    await _sessionManager.saveToPrefs(prefs, data);
     _updatePlaybackSessionAutoSaveTimer();
   }
 
-  _RandomPlaybackSessionState _captureRandomPlaybackSession() {
-    return _RandomPlaybackSessionState(
+  RandomPlaybackData _captureRandomPlaybackSession() {
+    return RandomPlaybackData(
       enabled: isRandomMode,
-      history: _player.playlist.randomHistory
-          .map(
-            (entry) => _RandomHistoryEntryState(
-              trackId: entry.trackId,
-              playlistId: entry.playlistId,
-              trackIndex: entry.trackIndex,
-              generatedAtMillis: entry.generatedAt.millisecondsSinceEpoch,
-              policyKey: entry.policyKey,
-            ),
-          )
-          .toList(growable: false),
+      history: _player.playlist.randomHistory.toList(),
       historyCursor: _player.playlist.historyCursor,
       deck: List<String>.unmodifiable(_player.playlist.currentDeck),
       deckCursor: _player.playlist.deckCursor,
@@ -858,11 +548,7 @@ class AudioService extends Notifier<AudioSnapshot> {
   }
 
   Future<bool> _songExists(String path) async {
-    if (path.trim().isEmpty) return false;
-    if (Platform.isLinux) {
-      await LinuxMountHelper.ensureMounted(path);
-    }
-    return File(path).exists();
+    return PlaybackSessionManager.songExists(path);
   }
 
   Future<void> _skipMissingCurrentTrack() async {
@@ -2867,221 +2553,14 @@ class AudioService extends Notifier<AudioSnapshot> {
   }
 
   void _startQueueBackgroundProcessing({String? priorityPath}) {
-    if (_queue.isEmpty) return;
-    MemoryTrace.snapshot(
-      'audio:queueBackground:start',
-      details: <String, Object?>{
-        'priority': priorityPath ?? currentMusic?.path ?? '-',
-        'queue': _queue.length,
-        'current': currentMusic?.path ?? '-',
-      },
-    );
-
-    // 清理非优先窗口内的歌曲的封面字节与波形数据，防止内存持续上涨
-    final String? currentPath = priorityPath ?? currentMusic?.path;
-    final Set<String> artworkPriorityPaths = <String>{};
-    final Set<String> waveformMemoryPaths = <String>{};
-
-    if (currentPath != null) {
-      final int currIdx = _queue.indexWhere((s) => s.path == currentPath);
-      if (currIdx != -1) {
-        // 封面图内存与预解码窗口：前 1 首、当前首、后 1 首
-        for (int i = -1; i <= 1; i++) {
-          final idx = (currIdx + i) % _queue.length;
-          final safeIdx = idx < 0 ? idx + _queue.length : idx;
-          artworkPriorityPaths.add(_queue[safeIdx].path);
-        }
-        // 波形数据内存窗口：前 1 首、当前首、后 1 首
-        for (int i = -1; i <= 1; i++) {
-          final idx = (currIdx + i) % _queue.length;
-          final safeIdx = idx < 0 ? idx + _queue.length : idx;
-          waveformMemoryPaths.add(_queue[safeIdx].path);
-        }
-      }
-    }
-
-    bool changed = false;
-    for (int i = 0; i < _queue.length; i++) {
-      final song = _queue[i];
-      if (!artworkPriorityPaths.contains(song.path) && song.artworkBytes != null) {
-        _queue[i] = _queue[i].copyWith(artworkBytes: null);
-        changed = true;
-      }
-      if (!waveformMemoryPaths.contains(song.path) && song.waveformBlob != null) {
-        _queue[i] = _queue[i].copyWith(waveformBlob: null);
-        changed = true;
-      }
-    }
-    if (changed) {
-      notifyListeners();
-    }
-
-    // 异步加载优先窗口中缺失的封面与波形数据
-    if (artworkPriorityPaths.isNotEmpty || waveformMemoryPaths.isNotEmpty) {
-      unawaited(() async {
-        bool asyncChanged = false;
-        for (int i = 0; i < _queue.length; i++) {
-          final song = _queue[i];
-          final bool inWaveform = waveformMemoryPaths.contains(song.path);
-
-          final bool needsDbSync = song.thumbnailPath == null || (inWaveform && song.waveformBlob == null);
-          if (needsDbSync) {
-            final existing = await _db.getSongMetadata(song.path);
-            if (existing != null) {
-              Uint8List? newWaveformBlob = song.waveformBlob;
-              String? newThumbnailPath = song.thumbnailPath;
-              String? newArtworkPath = song.artworkPath;
-              int? newArtworkWidth = song.artworkWidth;
-              int? newArtworkHeight = song.artworkHeight;
-              Uint8List? newThemeColorsBlob = song.themeColorsBlob;
-
-              if (inWaveform && song.waveformBlob == null) {
-                newWaveformBlob = existing.waveformBlob;
-              }
-
-              if (existing.thumbnailPath != null) newThumbnailPath = existing.thumbnailPath;
-              if (existing.artworkPath != null) newArtworkPath = existing.artworkPath;
-              if (existing.artworkWidth != null) newArtworkWidth = existing.artworkWidth;
-              if (existing.artworkHeight != null) newArtworkHeight = existing.artworkHeight;
-              if (existing.themeColorsBlob != null) newThemeColorsBlob = existing.themeColorsBlob;
-
-              if (i < _queue.length && _queue[i].path == song.path) {
-                _queue[i] = _queue[i].copyWith(
-                  waveformBlob: newWaveformBlob,
-                  thumbnailPath: newThumbnailPath,
-                  artworkPath: newArtworkPath,
-                  artworkWidth: newArtworkWidth,
-                  artworkHeight: newArtworkHeight,
-                  themeColorsBlob: newThemeColorsBlob,
-                );
-                asyncChanged = true;
-              }
-            }
-          }
-        }
-        if (asyncChanged && !_disposed) {
-          notifyListeners();
-        }
-      }());
-    }
-
-    _logPlaybackTrace(
-      '_startQueueBackgroundProcessing priority=${priorityPath ?? currentMusic?.path ?? '-'} '
-      'current=${_debugSongLabel(currentMusic)}',
-    );
-
-    unawaited(
-      _queueProcessor.processQueue(
-        playlist: List.from(_queue),
-        currentFilePath: priorityPath ?? currentMusic?.path,
-        onUpdate: (path, updates) {
-          _logPlaybackTrace(
-            '_queueProcessor onUpdate path=$path keys=${updates.keys.toList()} '
-            'current=${_debugSongLabel(currentMusic)}',
-          );
-
-          // 计算当前最新的波形内存窗口
-          final String? currentPath = currentMusic?.path;
-          final Set<String> waveformMemPaths = <String>{};
-          if (currentPath != null) {
-            final int currIdx = _queue.indexWhere((s) => s.path == currentPath);
-            if (currIdx != -1) {
-              for (int i = -1; i <= 1; i++) {
-                final idx = (currIdx + i) % _queue.length;
-                final safeIdx = idx < 0 ? idx + _queue.length : idx;
-                waveformMemPaths.add(_queue[safeIdx].path);
-              }
-            }
-          }
-
-          // 1. 同步更新播放队列中的 MusicFile 对象
-          for (int i = 0; i < _queue.length; i++) {
-            if (_queue[i].path == path) {
-              final bool inWaveformMemoryRange = waveformMemPaths.contains(path);
-              _queue[i] = _queue[i].copyWith(
-                themeColorsBlob:
-                    updates['themeColorsBlob'] as Uint8List? ??
-                    _queue[i].themeColorsBlob,
-                waveformBlob: inWaveformMemoryRange
-                    ? (updates['waveformBlob'] as Uint8List? ?? _queue[i].waveformBlob)
-                    : null,
-                thumbnailPath:
-                    updates['thumbnailPath'] as String? ??
-                    _queue[i].thumbnailPath,
-                artworkPath:
-                    updates['artworkPath'] as String? ?? _queue[i].artworkPath,
-                artworkWidth:
-                    updates['artworkWidth'] as int? ?? _queue[i].artworkWidth,
-                artworkHeight:
-                    updates['artworkHeight'] as int? ?? _queue[i].artworkHeight,
-              );
-            }
-          }
-
-          // 2. 如果是当前播放，立即反馈到 UI
-          if (path == currentMusic?.path) {
-            if (updates.containsKey('themeColors')) {
-              _applyThemeColors(updates['themeColors'] as Map<String, Color>);
-            }
-            notifyListeners();
-          }
-        },
-
-        onHdArtworkLoaded: (path, artworkPath) {
-          _logPlaybackTrace(
-            '_queueProcessor onHdArtworkLoaded path=$path artworkPath=$artworkPath '
-            'current=${_debugSongLabel(currentMusic)}',
-          );
-          MemoryTrace.snapshot(
-            'audio:queueBackground:artworkLoaded',
-            details: <String, Object?>{
-              'path': path,
-              'artworkPath': artworkPath,
-              'queue': _queue.length,
-            },
-          );
-
-          // 计算当前最新的封面优先窗口
-          final String? currentPath = currentMusic?.path;
-          final Set<String> artworkPriority = <String>{};
-          if (currentPath != null) {
-            final int currIdx = _queue.indexWhere((s) => s.path == currentPath);
-            if (currIdx != -1) {
-              for (int i = -1; i <= 1; i++) {
-                final idx = (currIdx + i) % _queue.length;
-                final safeIdx = idx < 0 ? idx + _queue.length : idx;
-                artworkPriority.add(_queue[safeIdx].path);
-              }
-            }
-          }
-
-          if (artworkPriority.contains(path)) {
-            // 1. 同步到队列记录中
-            for (int i = 0; i < _queue.length; i++) {
-              if (_queue[i].path == path) {
-                _queue[i] = _queue[i].copyWith(artworkPath: artworkPath);
-              }
-            }
-
-            if (path == currentMusic?.path) {
-              notifyListeners();
-            }
-
-            // 3. 核心方案：提前触发解码并载入 Flutter 图像缓存
-            final isPc =
-                Platform.isWindows || Platform.isMacOS || Platform.isLinux;
-            final int limit = isPc ? 1200 : 800;
-
-            final provider = ResizeImage(
-              FileImage(File(artworkPath)),
-              width: limit,
-              height: limit,
-              allowUpscaling: false,
-            );
-            provider.resolve(ImageConfiguration.empty);
-          }
-        },
-      ),
+    _queueBackgroundProcessor.start(
+      queue: _queue,
+      priorityPath: priorityPath,
+      onChanged: notifyListeners,
+      onThemeChanged: _applyThemeColors,
+      currentMusic: () => currentMusic,
+      logTrace: _logPlaybackTrace,
+      debugSongLabel: _debugSongLabel,
     );
   }
 
@@ -3108,6 +2587,7 @@ class AudioService extends Notifier<AudioSnapshot> {
     _stopPlaybackSessionAutoSaveTimer();
     unawaited(_persistPlaybackSession(allowWhenDisposed: true));
     _disposed = true;
+    _sessionManager.dispose();
     _sleepTimer?.cancel();
     _player.removeListener(_handlePlayerChanges);
     settingsService.removeListener(_settingsListener);
