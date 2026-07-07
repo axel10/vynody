@@ -553,7 +553,11 @@ class _CoverItemState extends State<_CoverItem> {
                   aspectRatio: 1,
                   child: Container(
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(24),
+                      borderRadius: BorderRadius.circular(
+                        widget.displaySize != null
+                            ? math.min(24.0, widget.displaySize! * 0.2)
+                            : 24.0,
+                      ),
                       color: Colors.black26,
                       boxShadow: [
                         // Deep soft ambient shadow

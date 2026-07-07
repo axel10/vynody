@@ -694,12 +694,12 @@ class PlaybackHeroCard extends ConsumerWidget {
     }
 
     // ---------------- Portrait Lyrics ----------------
-    final pLyricsCoverSide = 120.0;
-    const pLyricsCoverTop = 16.0;
-    const pLyricsCoverLeft = 16.0;
+    final pLyricsCoverSide = PlaybackHeroCardUiTuning.pLyricsCoverSide;
+    final pLyricsCoverTop = PlaybackHeroCardUiTuning.pLyricsCoverTop;
+    final pLyricsCoverLeft = PlaybackHeroCardUiTuning.pLyricsCoverLeft;
 
     final pLyricsInfoHeight = pLyricsCoverSide;
-    const pLyricsInfoTop = pLyricsCoverTop;
+    final pLyricsInfoTop = pLyricsCoverTop;
     final pLyricsInfoLeft = pLyricsCoverLeft + pLyricsCoverSide + 16.0;
 
     // ---------------- Landscape Normal ----------------
@@ -1190,7 +1190,7 @@ class PlaybackHeroCard extends ConsumerWidget {
           width: currentSize * 0.8,
           height: currentSize * 0.8,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(math.min(24.0, currentSize * 0.2)),
             color: Colors.black87,
             boxShadow: [
               // Deep soft ambient shadow

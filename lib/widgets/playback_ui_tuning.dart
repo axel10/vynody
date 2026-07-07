@@ -93,6 +93,9 @@ class PlaybackHeroCardUiTuning {
   static const double portraitControlsWidthFactor =
       1.0; // 竖屏控件区宽度比例 (0.0 - 1.0)
   static const double pControlsHeightFactor = 0.58; // 竖屏控件区最大高度比例 (相对于屏幕高度)
+  static const double pLyricsCoverSide = 80.0;
+  static const double pLyricsCoverTop = 16.0;
+  static const double pLyricsCoverLeft = 16.0;
 
   // 横屏参数 (Landscape parameters)
   static const double lControlsMinWidth = 440.0;
