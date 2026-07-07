@@ -1072,7 +1072,10 @@ class PlaybackHeroCard extends ConsumerWidget {
         top: height,
         left: 16.0,
         width: math.max(0.0, width - 32.0),
-        height: math.max(0.0, height - pNormalInfoTop),
+        height: math.max(
+          0.0,
+          height - (pLyricsCoverTop + pLyricsCoverSide + 16.0),
+        ),
         opacity: 0.0,
       ),
       pLyrics: _PlaybackPaneLayout(

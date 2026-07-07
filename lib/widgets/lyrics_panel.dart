@@ -135,6 +135,15 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
   bool? _lastBuiltIsSmallWin;
   bool? _lastBuiltIsGenerating;
 
+  List<LyricLine>? _lastMeasuredLines;
+  MusicLyric? _lastMeasuredLyrics;
+  double? _lastMeasuredMaxWidth;
+  double? _lastMeasuredFontScale;
+  bool? _lastMeasuredHasTimedLyrics;
+  LyricsStyle? _lastMeasuredLyricsStyle;
+  String? _lastMeasuredLang;
+  ({List<double> heights, List<double> itemCenters, List<double> anchorCenters})? _cachedLineMetrics;
+
   Widget? _cachedLyricsView;
   int? _lastBuiltActiveIndex;
   List<LyricLine>? _lastBuiltDisplayLines;
@@ -212,6 +221,20 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     required BuildContext context,
     required LyricsStyle lyricsStyle,
   }) {
+    final targetLang = ref.read(lyricsControllerProvider).lyricsTranslationLanguageCode;
+    final effectiveLang = lyrics?.getEffectiveTranslationLanguage(targetLang) ?? targetLang;
+
+    if (listEquals(_lastMeasuredLines, lines) &&
+        _lastMeasuredLyrics == lyrics &&
+        _lastMeasuredMaxWidth == maxWidth &&
+        _lastMeasuredFontScale == lyricsFontScale &&
+        _lastMeasuredHasTimedLyrics == hasTimedLyrics &&
+        _lastMeasuredLyricsStyle == lyricsStyle &&
+        _lastMeasuredLang == effectiveLang &&
+        _cachedLineMetrics != null) {
+      return _cachedLineMetrics!;
+    }
+
     final timedLyricFontSize = 16 * lyricsFontScale;
     final plainLyricFontSize = 18 * lyricsFontScale;
     final translationFontSize = 13 * lyricsFontScale;
@@ -249,9 +272,6 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     final itemCenters = <double>[];
     final anchorCenters = <double>[];
     double currentTop = 0.0;
-
-    final targetLang = ref.read(lyricsControllerProvider).lyricsTranslationLanguageCode;
-    final effectiveLang = lyrics?.getEffectiveTranslationLanguage(targetLang) ?? targetLang;
 
     final double layoutMaxWidth;
     final double translationLayoutMaxWidth;
@@ -303,11 +323,22 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       currentTop += itemHeight;
     }
 
-    return (
+    final result = (
       heights: heights,
       itemCenters: itemCenters,
       anchorCenters: anchorCenters,
     );
+
+    _lastMeasuredLines = lines;
+    _lastMeasuredLyrics = lyrics;
+    _lastMeasuredMaxWidth = maxWidth;
+    _lastMeasuredFontScale = lyricsFontScale;
+    _lastMeasuredHasTimedLyrics = hasTimedLyrics;
+    _lastMeasuredLyricsStyle = lyricsStyle;
+    _lastMeasuredLang = effectiveLang;
+    _cachedLineMetrics = result;
+
+    return result;
   }
 
   int _findClosestLineIndex(double targetCenter, List<double> centers) {
