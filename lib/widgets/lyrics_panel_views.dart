@@ -374,14 +374,16 @@ class _LyricsPanelTimedLyricsViewState extends State<LyricsPanelTimedLyricsView>
                             widget.isFocusMode &&
                             !isActive &&
                             !isHovered &&
-                            distance <= 10;
+                            distance <= 10 &&
+                            !widget.isTransitioning;
                         final Widget blurredChild;
                         if (widget.hasTimedLyrics &&
                             widget.lyricsStyle == LyricsStyle.apple &&
                             widget.isFocusMode &&
-                            distance <= 12) {
+                            distance <= 12 &&
+                            !widget.isTransitioning) {
                           blurredChild = TweenAnimationBuilder<double>(
-                            tween: Tween<double>(end: shouldBlur ? 1.5 : 0.0),
+                            tween: Tween<double>(begin: 0.0, end: shouldBlur ? 1.5 : 0.0),
                             duration: const Duration(milliseconds: 300),
                             curve: Curves.easeOutCubic,
                             builder: (context, blurSigma, child) {

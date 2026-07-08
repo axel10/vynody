@@ -422,6 +422,13 @@ class PlaybackHeroCard extends ConsumerWidget {
     final bool effectiveIsLandscape = isLandscape && !isSmallWindow;
     final bool effectiveIsLyricsMode = isLyricsMode && !isSmallWindow;
 
+    final isTransitioningNotifier = ValueNotifier<bool>(false);
+    final lyricsPanelWidget = _LyricsPanelTransitionWrapper(
+      isTransitioning: isTransitioningNotifier,
+      lyricsBottomSpacerHeight: lyricsBottomSpacerHeight,
+      lyricsBottomTabBarHeight: lyricsBottomTabBarHeight,
+    );
+
     // 核心动画容器：使用 TweenAnimationBuilder 对 2D 平面上的多个布局变量（尺寸、位置、不透明度）进行线性插值处理。
     // 这使得点击封面切换 `isLyricsMode` 后，UI 元素能平滑移动/缩放，例如：
     // - 封面从大变小并挪到角落
@@ -431,12 +438,14 @@ class PlaybackHeroCard extends ConsumerWidget {
       duration: animDuration,
       curve: animCurve,
       tween: Tween<double>(end: effectiveIsLandscape ? 1.0 : 0.0),
-      builder: (context, tLand, _) {
+      child: lyricsPanelWidget,
+      builder: (context, tLand, child) {
         return TweenAnimationBuilder<double>(
           duration: animDuration,
           curve: animCurve,
           tween: Tween<double>(end: effectiveIsLyricsMode ? 1.0 : 0.0),
-          builder: (context, tLyrics, _) {
+          child: child,
+          builder: (context, tLyrics, child) {
             return LayoutBuilder(
               builder: (context, constraints) {
                 final width = constraints.maxWidth.roundToDouble();
@@ -450,6 +459,18 @@ class PlaybackHeroCard extends ConsumerWidget {
                 final bool isTransitioning =
                     (tLyrics > 0.0 && tLyrics < 1.0) ||
                     (tLand > 0.0 && tLand < 1.0);
+
+                final double targetTLyrics = effectiveIsLyricsMode ? 1.0 : 0.0;
+                final targetLayout = _buildPlaybackCardLayout(
+                  context,
+                  width: width,
+                  height: height,
+                  tLyrics: targetTLyrics,
+                  tLand: tLand,
+                  isWaveformEnabled: isWaveformEnabled,
+                  isSmallWindow: isSmallWindow,
+                  lyricsStyle: settings.lyricsStyle,
+                );
 
                 final layout = _buildPlaybackCardLayout(
                   context,
@@ -511,15 +532,16 @@ class PlaybackHeroCard extends ConsumerWidget {
                                 ignoring: layout.lyrics.opacity < 0.5,
                                 child: RepaintBoundary(
                                   child: Consumer(
-                                    builder: (context, ref, child) {
+                                    builder: (context, ref, childWidget) {
                                       if (layout.lyrics.opacity == 0.0) {
                                         return const SizedBox.shrink();
                                       }
-                                      return _buildLyricsPanelWidget(
-                                        context,
-                                        ref,
-                                        isTransitioning: isTransitioning,
-                                      );
+                                      if (isTransitioningNotifier.value != isTransitioning) {
+                                        Future.microtask(() {
+                                          isTransitioningNotifier.value = isTransitioning;
+                                        });
+                                      }
+                                      return child!;
                                     },
                                   ),
                                 ),
@@ -576,10 +598,13 @@ class PlaybackHeroCard extends ConsumerWidget {
                             alignment: Alignment.center,
                             child: Consumer(
                               builder: (context, ref, child) {
+                                final double layoutWidth = isTransitioning
+                                    ? targetLayout.controls.width
+                                    : layout.controls.width;
                                 return SizedBox(
                                   key: const ValueKey('controls_sizing_box'),
                                   width: (effectiveIsLandscape
-                                      ? layout.controls.width
+                                      ? layoutWidth
                                       : width *
                                             PlaybackHeroCardUiTuning
                                                 .portraitControlsWidthFactor),
@@ -587,9 +612,13 @@ class PlaybackHeroCard extends ConsumerWidget {
                                     context,
                                     ref,
                                     width: width,
-                                    layoutWidth: layout.controls.width,
-                                    controlsScale: layout.controlsScale,
-                                    tLyrics: tLyrics,
+                                    layoutWidth: layoutWidth,
+                                    controlsScale: isTransitioning
+                                        ? targetLayout.controlsScale
+                                        : layout.controlsScale,
+                                    tLyrics: isTransitioning
+                                        ? targetTLyrics
+                                        : tLyrics,
                                   ),
                                 );
                               },
@@ -605,12 +634,26 @@ class PlaybackHeroCard extends ConsumerWidget {
                           height: layout.cover.height,
                           child: Consumer(
                             builder: (context, ref, child) {
-                              return _buildAlbumArtCore(
+                              final double currentSize = isTransitioning
+                                  ? coverNormalLayout.cover.width
+                                  : layout.cover.width;
+                              final Widget coverWidget = _buildAlbumArtCore(
                                 context,
                                 ref,
-                                layout.cover.width,
+                                currentSize,
                                 cacheWidthSize: coverNormalLayout.cover.width,
                               );
+                              if (isTransitioning) {
+                                return FittedBox(
+                                  fit: BoxFit.fill,
+                                  child: SizedBox(
+                                    width: coverNormalLayout.cover.width,
+                                    height: coverNormalLayout.cover.width,
+                                    child: coverWidget,
+                                  ),
+                                );
+                              }
+                              return coverWidget;
                             },
                           ),
                         ),
@@ -631,13 +674,17 @@ class PlaybackHeroCard extends ConsumerWidget {
                             tLand,
                           )!,
                           child: SizedBox(
-                            width: layout.info.width,
+                            width: isTransitioning
+                                ? targetLayout.info.width
+                                : layout.info.width,
                             child: _buildTrackInfo(
                               context,
                               currentMusic,
                               layout.trackInfoAlign,
-                              tLyrics,
-                              layout.controlsScale,
+                              isTransitioning ? targetTLyrics : tLyrics,
+                              isTransitioning
+                                  ? targetLayout.controlsScale
+                                  : layout.controlsScale,
                             ),
                           ),
                         ),
@@ -2028,30 +2075,6 @@ class PlaybackHeroCard extends ConsumerWidget {
     );
   }
 
-  Widget _buildLyricsPanelWidget(
-    BuildContext context,
-    WidgetRef ref, {
-    required bool isTransitioning,
-  }) {
-    final currentIndex = ref.watch(audioCurrentIndexProvider);
-    final currentMusic = ref.watch(audioCurrentMusicProvider);
-    final position = ref.watch(audioPositionProvider);
-    final currentThemeColorsMap = ref.watch(audioCurrentThemeColorsMapProvider);
-    final accent =
-        currentThemeColorsMap['darkVibrant'] ??
-        currentThemeColorsMap['darkMuted'] ??
-        Colors.white;
-
-    return LyricsPanel(
-      key: ValueKey('$currentIndex:${currentMusic?.path ?? 'no-track'}'),
-      lyrics: currentMusic?.lyrics,
-      position: position,
-      accentColor: accent,
-      bottomSpacerHeight: lyricsBottomSpacerHeight,
-      bottomTabBarHeight: lyricsBottomTabBarHeight,
-      isTransitioning: isTransitioning,
-    );
-  }
 }
 
 class _ZeroPaddingTrackShape extends RoundedRectSliderTrackShape {
@@ -2803,6 +2826,84 @@ class _MiniPlayerProgressInfoState
           ),
         ),
       ],
+    );
+  }
+}
+
+class _LyricsPanelTransitionWrapper extends StatefulWidget {
+  final ValueNotifier<bool> isTransitioning;
+  final double lyricsBottomSpacerHeight;
+  final double lyricsBottomTabBarHeight;
+
+  const _LyricsPanelTransitionWrapper({
+    required this.isTransitioning,
+    required this.lyricsBottomSpacerHeight,
+    required this.lyricsBottomTabBarHeight,
+  });
+
+  @override
+  State<_LyricsPanelTransitionWrapper> createState() =>
+      _LyricsPanelTransitionWrapperState();
+}
+
+class _LyricsPanelTransitionWrapperState
+    extends State<_LyricsPanelTransitionWrapper> {
+  late bool _isTransitioning;
+
+  @override
+  void initState() {
+    super.initState();
+    _isTransitioning = widget.isTransitioning.value;
+    widget.isTransitioning.addListener(_handleTransitionChange);
+  }
+
+  @override
+  void didUpdateWidget(_LyricsPanelTransitionWrapper oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.isTransitioning != widget.isTransitioning) {
+      oldWidget.isTransitioning.removeListener(_handleTransitionChange);
+      widget.isTransitioning.addListener(_handleTransitionChange);
+      _isTransitioning = widget.isTransitioning.value;
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.isTransitioning.removeListener(_handleTransitionChange);
+    super.dispose();
+  }
+
+  void _handleTransitionChange() {
+    if (mounted && _isTransitioning != widget.isTransitioning.value) {
+      setState(() {
+        _isTransitioning = widget.isTransitioning.value;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer(
+      builder: (context, ref, child) {
+        final currentIndex = ref.watch(audioCurrentIndexProvider);
+        final currentMusic = ref.watch(audioCurrentMusicProvider);
+        final position = ref.watch(audioPositionProvider);
+        final currentThemeColorsMap = ref.watch(audioCurrentThemeColorsMapProvider);
+        final accent =
+            currentThemeColorsMap['darkVibrant'] ??
+            currentThemeColorsMap['darkMuted'] ??
+            Colors.white;
+
+        return LyricsPanel(
+          key: ValueKey('$currentIndex:${currentMusic?.path ?? 'no-track'}'),
+          lyrics: currentMusic?.lyrics,
+          position: position,
+          accentColor: accent,
+          bottomSpacerHeight: widget.lyricsBottomSpacerHeight,
+          bottomTabBarHeight: widget.lyricsBottomTabBarHeight,
+          isTransitioning: _isTransitioning,
+        );
+      },
     );
   }
 }
