@@ -1091,7 +1091,7 @@ class PlaybackHeroCard extends ConsumerWidget {
       lNormal: _PlaybackPaneLayout(
         top: 16.0,
         left: width,
-        width: lLyricsColumnWidth,
+        width: lLyricsLyricsWidth,
         height: math.max(0.0, height - 32.0),
         opacity: 0.0,
       ),
