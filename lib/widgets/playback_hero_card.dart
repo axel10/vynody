@@ -474,6 +474,18 @@ class PlaybackHeroCard extends ConsumerWidget {
                   lyricsStyle: settings.lyricsStyle,
                 );
 
+                // Stable normal layout to get the maximum cover size for decoding caching
+                final coverNormalLayout = _buildPlaybackCardLayout(
+                  context,
+                  width: width,
+                  height: height,
+                  tLyrics: 0.0,
+                  tLand: tLand,
+                  isWaveformEnabled: isWaveformEnabled,
+                  isSmallWindow: isSmallWindow,
+                  lyricsStyle: settings.lyricsStyle,
+                );
+
                 final double translationX =
                     layout.lyrics.left - endLayout.lyrics.left;
                 final double translationY =
@@ -597,6 +609,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                                 context,
                                 ref,
                                 layout.cover.width,
+                                cacheWidthSize: coverNormalLayout.cover.width,
                               );
                             },
                           ),
@@ -1239,8 +1252,9 @@ class PlaybackHeroCard extends ConsumerWidget {
   Widget _buildAlbumArtCore(
     BuildContext context,
     WidgetRef ref,
-    double currentSize,
-  ) {
+    double currentSize, {
+    double? cacheWidthSize,
+  }) {
     final playlist = ref.watch(audioPlaybackQueueProvider);
     final currentIndex = ref.watch(audioCurrentIndexProvider);
     if (playlist.isEmpty) {
@@ -1282,6 +1296,7 @@ class PlaybackHeroCard extends ConsumerWidget {
         audioService: ref.read(audioServiceProvider),
         isNext: isNext,
         displaySize: currentSize,
+        cacheWidthSize: cacheWidthSize,
         onPageChanged: (page) {
           final audio = ref.read(audioServiceProvider);
           if (page >= 0 && page < playlist.length && page != currentIndex) {

@@ -20,6 +20,7 @@ class CoverCarousel extends StatefulWidget {
     this.isLandscape = false,
     this.isNext,
     this.displaySize,
+    this.cacheWidthSize,
   });
 
   final List<MusicFile> playlist;
@@ -31,6 +32,7 @@ class CoverCarousel extends StatefulWidget {
   final bool isLandscape;
   final bool? isNext;
   final double? displaySize;
+  final double? cacheWidthSize;
 
   @override
   State<CoverCarousel> createState() => _CoverCarouselState();
@@ -284,6 +286,7 @@ class _CoverCarouselState extends State<CoverCarousel>
             itemIndex: index,
             width: width,
             displaySize: widget.displaySize,
+            cacheWidthSize: widget.cacheWidthSize,
             onArtworkLoaded: (bytes, path) {
               _loadedCovers[index] = (bytes: bytes, path: path);
               _logCarouselTrace(
@@ -319,6 +322,7 @@ class _CoverItem extends StatefulWidget {
     required this.itemIndex,
     required this.width,
     this.displaySize,
+    this.cacheWidthSize,
     this.onArtworkLoaded,
   });
 
@@ -328,6 +332,7 @@ class _CoverItem extends StatefulWidget {
   final int itemIndex;
   final double width;
   final double? displaySize;
+  final double? cacheWidthSize;
   final void Function(Uint8List? bytes, String? path)? onArtworkLoaded;
 
   @override
@@ -605,7 +610,7 @@ class _CoverItemState extends State<_CoverItem> {
       final double devicePixelRatio = MediaQuery.of(context).devicePixelRatio;
       final int limit = 800;
       final bool isAnimating = widget.animation.isAnimating;
-      final double rawSize = (widget.displaySize ?? 400) * devicePixelRatio;
+      final double rawSize = ((widget.cacheWidthSize ?? widget.displaySize) ?? 400) * devicePixelRatio;
       final int cacheSize = isAnimating
           ? (rawSize / 20).round() * 20
           : rawSize.round();
