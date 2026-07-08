@@ -195,6 +195,7 @@ class _LyricsPanelTimedLyricsViewState extends State<LyricsPanelTimedLyricsView>
     final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
     final isLeftAligned = widget.lyricsStyle == LyricsStyle.apple;
     final isApplePortrait = isPortrait && widget.lyricsStyle == LyricsStyle.apple;
+    final isAndroid = Theme.of(context).platform == TargetPlatform.android;
 
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
@@ -374,7 +375,7 @@ class _LyricsPanelTimedLyricsViewState extends State<LyricsPanelTimedLyricsView>
                             widget.isFocusMode &&
                             !isActive &&
                             !isHovered &&
-                            !widget.isTransitioning &&
+                            (!isAndroid || !widget.isTransitioning) &&
                             distance <= 10;
                         final blurredChild = TweenAnimationBuilder<double>(
                           tween: Tween<double>(end: shouldBlur ? 1.5 : 0.0),
