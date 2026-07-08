@@ -442,8 +442,7 @@ class _LyricsPanelTimedLyricsViewState extends State<LyricsPanelTimedLyricsView>
                         final Widget resultWidget;
                         if (widget.lyricsStyle == LyricsStyle.apple &&
                             widget.isFocusMode &&
-                            !widget.isGenerating &&
-                            !widget.isTransitioning) {
+                            !widget.isGenerating) {
                           resultWidget = StaggeredAppleLyricsScrollWrapper(
                             index: index,
                             activeIndex: widget.activeIndex,
@@ -451,6 +450,7 @@ class _LyricsPanelTimedLyricsViewState extends State<LyricsPanelTimedLyricsView>
                             scrollTriggerTime: widget.scrollTriggerTime,
                             isEnteringFocusMode: widget.isEnteringFocusMode,
                             firstVisibleIndex: widget.firstVisibleIndex,
+                            isTransitioning: widget.isTransitioning,
                             child: wrappedItemWidget,
                           );
                         } else {
@@ -580,6 +580,7 @@ class StaggeredAppleLyricsScrollWrapper extends StatefulWidget {
   final int scrollTriggerTime;
   final bool isEnteringFocusMode;
   final int firstVisibleIndex;
+  final bool isTransitioning;
 
   const StaggeredAppleLyricsScrollWrapper({
     super.key,
@@ -590,6 +591,7 @@ class StaggeredAppleLyricsScrollWrapper extends StatefulWidget {
     required this.scrollTriggerTime,
     required this.isEnteringFocusMode,
     required this.firstVisibleIndex,
+    required this.isTransitioning,
   });
 
   @override
@@ -618,7 +620,7 @@ class _StaggeredAppleLyricsScrollWrapperState
       curve: Curves.easeOutCubic,
     );
 
-    if (widget.scrollTriggerTime > 0) {
+    if (widget.scrollTriggerTime > 0 && !widget.isTransitioning) {
       _startOffset = widget.scrollDelta;
       _currentOffset = widget.scrollDelta;
 
@@ -645,6 +647,14 @@ class _StaggeredAppleLyricsScrollWrapperState
   @override
   void didUpdateWidget(StaggeredAppleLyricsScrollWrapper oldWidget) {
     super.didUpdateWidget(oldWidget);
+
+    if (widget.isTransitioning) {
+      _delayTimer?.cancel();
+      _controller.stop();
+      _currentOffset = 0.0;
+      _startOffset = 0.0;
+      return;
+    }
 
     if (widget.scrollTriggerTime != oldWidget.scrollTriggerTime &&
         widget.scrollTriggerTime > 0) {
@@ -689,7 +699,12 @@ class _StaggeredAppleLyricsScrollWrapperState
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _animation,
+      child: widget.child,
       builder: (context, child) {
+        if (widget.isTransitioning) {
+          return child!;
+        }
+
         if (_controller.isAnimating) {
           _currentOffset = _startOffset * (1.0 - _animation.value);
         } else if (_delayTimer?.isActive ?? false) {
@@ -699,12 +714,12 @@ class _StaggeredAppleLyricsScrollWrapperState
         }
 
         if (_currentOffset == 0.0) {
-          return widget.child;
+          return child!;
         }
 
         return Transform.translate(
           offset: Offset(0.0, _currentOffset),
-          child: widget.child,
+          child: child,
         );
       },
     );
