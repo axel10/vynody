@@ -441,7 +441,6 @@ class PlaybackHeroCard extends ConsumerWidget {
                     (s) => s.isWaveformProgressBarEnabled,
                   ),
                 );
-                final useOverlayStyle = !effectiveIsLandscape && isWaveformEnabled;
 
                 final layout = _buildPlaybackCardLayout(
                   context,
@@ -1008,7 +1007,7 @@ class PlaybackHeroCard extends ConsumerWidget {
       pLyrics: _PlaybackPaneLayout(
         top: pLyricsInfoTop,
         left: pLyricsInfoLeft,
-        width: math.max(0.0, width - pLyricsInfoLeft - 16.0),
+        width: math.max(0.0, width - pLyricsInfoLeft - 24.0),
         height: pLyricsInfoHeight,
         opacity: 1.0,
       ),
@@ -1042,8 +1041,8 @@ class PlaybackHeroCard extends ConsumerWidget {
       ),
       pLyrics: _PlaybackPaneLayout(
         top: height,
-        left: 16.0,
-        width: math.max(0.0, width - 32.0),
+        left: 24.0,
+        width: math.max(0.0, width - 48.0),
         height: pNormalControlsHeight,
         opacity: 0.0,
       ),
@@ -1070,8 +1069,8 @@ class PlaybackHeroCard extends ConsumerWidget {
       context,
       pNormal: _PlaybackPaneLayout(
         top: height,
-        left: 16.0,
-        width: math.max(0.0, width - 32.0),
+        left: 24.0,
+        width: math.max(0.0, width - 48.0),
         height: math.max(
           0.0,
           height - (pLyricsCoverTop + pLyricsCoverSide + 16.0),
@@ -1080,8 +1079,8 @@ class PlaybackHeroCard extends ConsumerWidget {
       ),
       pLyrics: _PlaybackPaneLayout(
         top: pLyricsCoverTop + pLyricsCoverSide + 16.0,
-        left: 16.0,
-        width: math.max(0.0, width - 32.0),
+        left: 24.0,
+        width: math.max(0.0, width - 48.0),
         height: math.max(
           0.0,
           height - (pLyricsCoverTop + pLyricsCoverSide + 16.0),
@@ -1431,7 +1430,6 @@ class PlaybackHeroCard extends ConsumerWidget {
       isSmallWindowMode: settings.isSmallWindowMode,
     );
     final bool effectiveIsLandscape = isLandscape && !isSmallWindow;
-    final bool effectiveIsLyricsMode = isLyricsMode && !isSmallWindow;
 
     final topButtonsCount = 7;
     final topButtonsGaps = topButtonsCount - 1;

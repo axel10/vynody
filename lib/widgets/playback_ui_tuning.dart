@@ -19,11 +19,11 @@ class PlaybackPageUiTuning {
   static const double statusBannerTop = 12.0;
 
   static const double lyricsLandscapeLeftPadding = 40.0;
-  static const double lyricsPortraitLeftPadding = 16.0;
+  static const double lyricsPortraitLeftPadding = 8.0;
   static const double normalLandscapeHorizontalPadding = 32.0;
   static const double normalPortraitHorizontalPadding = 8.0;
   static const double lyricsLandscapeRightPadding = 24.0;
-  static const double lyricsPortraitRightPadding = 16.0;
+  static const double lyricsPortraitRightPadding = 8.0;
   static const double landscapeTopPadding = 32.0;
   static const double landscapeBottomPadding = 32.0;
   static const double portraitTopPadding = 12.0;
@@ -95,7 +95,7 @@ class PlaybackHeroCardUiTuning {
   static const double pControlsHeightFactor = 0.58; // 竖屏控件区最大高度比例 (相对于屏幕高度)
   static const double pLyricsCoverSide = 80.0;
   static const double pLyricsCoverTop = 16.0;
-  static const double pLyricsCoverLeft = 16.0;
+  static const double pLyricsCoverLeft = 24.0;
 
   // 横屏参数 (Landscape parameters)
   static const double lControlsMinWidth = 440.0;
