@@ -146,6 +146,7 @@ class LyricsPanelTimedLyricsView extends StatefulWidget {
     required this.isSmallWin,
     required this.maxWidth,
     required this.isGenerating,
+    required this.isTransitioning,
   });
 
   final MusicLyric? lyrics;
@@ -176,6 +177,7 @@ class LyricsPanelTimedLyricsView extends StatefulWidget {
   final bool isSmallWin;
   final double maxWidth;
   final bool isGenerating;
+  final bool isTransitioning;
 
   @override
   State<LyricsPanelTimedLyricsView> createState() => _LyricsPanelTimedLyricsViewState();
@@ -350,7 +352,13 @@ class _LyricsPanelTimedLyricsViewState extends State<LyricsPanelTimedLyricsView>
                           ),
                         );
 
-                        final bool shouldBlur = widget.hasTimedLyrics && widget.lyricsStyle == LyricsStyle.apple && widget.isFocusMode && !isActive && !isHovered;
+                        final bool shouldBlur = widget.hasTimedLyrics &&
+                            widget.lyricsStyle == LyricsStyle.apple &&
+                            widget.isFocusMode &&
+                            !isActive &&
+                            !isHovered &&
+                            !widget.isTransitioning &&
+                            distance <= 10;
                         final blurredChild = TweenAnimationBuilder<double>(
                           tween: Tween<double>(end: shouldBlur ? 1.5 : 0.0),
                           duration: const Duration(milliseconds: 300),

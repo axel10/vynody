@@ -67,6 +67,7 @@ class LyricsPanel extends rpod.ConsumerStatefulWidget {
     this.bottomSpacerHeight = 0.0,
     this.bottomTabBarHeight = 0.0,
     this.onActiveLyricTopChanged,
+    this.isTransitioning = false,
   });
 
   final MusicLyric? lyrics;
@@ -77,6 +78,7 @@ class LyricsPanel extends rpod.ConsumerStatefulWidget {
   final double bottomSpacerHeight;
   final double bottomTabBarHeight;
   final ValueChanged<double?>? onActiveLyricTopChanged;
+  final bool isTransitioning;
 
   @override
   rpod.ConsumerState<LyricsPanel> createState() => _LyricsPanelState();
@@ -134,6 +136,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
   bool? _lastBuiltIsEnteringFocusMode;
   bool? _lastBuiltIsSmallWin;
   bool? _lastBuiltIsGenerating;
+  bool? _lastBuiltIsTransitioning;
 
   List<LyricLine>? _lastMeasuredLines;
   MusicLyric? _lastMeasuredLyrics;
@@ -1833,7 +1836,8 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
             _isEnteringFocusMode != _lastBuiltIsEnteringFocusMode ||
             _firstVisibleIndex != _lastBuiltFirstVisibleIndex ||
             isSmallWin != _lastBuiltIsSmallWin ||
-            isGenerating != _lastBuiltIsGenerating;
+            isGenerating != _lastBuiltIsGenerating ||
+            widget.isTransitioning != _lastBuiltIsTransitioning;
 
         if (needsRebuild) {
           _lastBuiltActiveIndex = focusedIndex;
@@ -1853,6 +1857,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
           _lastBuiltFirstVisibleIndex = _firstVisibleIndex;
           _lastBuiltIsSmallWin = isSmallWin;
           _lastBuiltIsGenerating = isGenerating;
+          _lastBuiltIsTransitioning = widget.isTransitioning;
 
           _cachedLyricsView = LyricsPanelTimedLyricsView(
             lyrics: lyrics,
@@ -1909,6 +1914,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
             isSmallWin: isSmallWin,
             maxWidth: constraints.maxWidth,
             isGenerating: isGenerating,
+            isTransitioning: widget.isTransitioning,
           );
         }
 
