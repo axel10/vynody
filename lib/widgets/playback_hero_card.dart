@@ -457,6 +457,21 @@ class PlaybackHeroCard extends ConsumerWidget {
                   lyricsStyle: settings.lyricsStyle,
                 );
 
+                // Stable target end layout to prevent Positioned resizing during lyrics toggle transition
+                final endLayout = _buildPlaybackCardLayout(
+                  context,
+                  width: width,
+                  height: height,
+                  tLyrics: 1.0,
+                  tLand: tLand,
+                  isWaveformEnabled: isWaveformEnabled,
+                  isSmallWindow: isSmallWindow,
+                  lyricsStyle: settings.lyricsStyle,
+                );
+
+                final double translationX = layout.lyrics.left - endLayout.lyrics.left;
+                final double translationY = layout.lyrics.top - endLayout.lyrics.top;
+
                 return SizedBox(
                   width: width,
                   height: height,
@@ -464,25 +479,30 @@ class PlaybackHeroCard extends ConsumerWidget {
                     clipBehavior: Clip.none,
                     children: [
                       Positioned(
-                        top: layout.lyrics.top,
-                        left: layout.lyrics.left,
-                        width: layout.lyrics.width,
-                        height: layout.lyrics.height,
-                        child: Opacity(
-                          opacity: layout.lyrics.opacity.clamp(0.0, 1.0),
-                          child: IgnorePointer(
-                            ignoring: layout.lyrics.opacity < 0.5,
-                            child: Consumer(
-                              builder: (context, ref, child) {
-                                if (layout.lyrics.opacity == 0.0) {
-                                  return const SizedBox.shrink();
-                                }
-                                return _buildLyricsPanelWidget(
-                                  context,
-                                  ref,
-                                  isTransitioning: isTransitioning,
-                                );
-                              },
+                        top: endLayout.lyrics.top,
+                        left: endLayout.lyrics.left,
+                        width: endLayout.lyrics.width,
+                        height: endLayout.lyrics.height,
+                        child: Transform.translate(
+                          offset: Offset(translationX, translationY),
+                          child: RepaintBoundary(
+                            child: Opacity(
+                              opacity: layout.lyrics.opacity.clamp(0.0, 1.0),
+                              child: IgnorePointer(
+                                ignoring: layout.lyrics.opacity < 0.5,
+                                child: Consumer(
+                                  builder: (context, ref, child) {
+                                    if (layout.lyrics.opacity == 0.0) {
+                                      return const SizedBox.shrink();
+                                    }
+                                    return _buildLyricsPanelWidget(
+                                      context,
+                                      ref,
+                                      isTransitioning: isTransitioning,
+                                    );
+                                  },
+                                ),
+                              ),
                             ),
                           ),
                         ),
@@ -527,35 +547,32 @@ class PlaybackHeroCard extends ConsumerWidget {
                         left: layout.controls.left,
                         width: layout.controls.width,
                         height: layout.controls.height,
-                        child: Opacity(
-                          opacity: layout.controls.opacity.clamp(0.0, 1.0),
-                          child: IgnorePointer(
-                            ignoring: layout.controls.opacity < 0.5,
-                            child: FittedBox(
-                              // 控件区
-                              fit: BoxFit.scaleDown,
-                              alignment: Alignment.center,
-                              child: Consumer(
-                                builder: (context, ref, child) {
-                                  return SizedBox(
-                                    key: const ValueKey('controls_sizing_box'),
-                                    width:
-                                        (effectiveIsLandscape
-                                            ? layout.controls.width
-                                            : width *
-                                                  PlaybackHeroCardUiTuning
-                                                      .portraitControlsWidthFactor),
-                                    child: _buildPlaybackControlsWidget(
-                                      context,
-                                      ref,
-                                      width: width,
-                                      layoutWidth: layout.controls.width,
-                                      controlsScale: layout.controlsScale,
-                                      tLyrics: tLyrics,
-                                    ),
-                                  );
-                                },
-                              ),
+                        child: IgnorePointer(
+                          ignoring: layout.controls.opacity < 0.5,
+                          child: FittedBox(
+                            // 控件区
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.center,
+                            child: Consumer(
+                              builder: (context, ref, child) {
+                                return SizedBox(
+                                  key: const ValueKey('controls_sizing_box'),
+                                  width:
+                                      (effectiveIsLandscape
+                                          ? layout.controls.width
+                                          : width *
+                                                PlaybackHeroCardUiTuning
+                                                    .portraitControlsWidthFactor),
+                                  child: _buildPlaybackControlsWidget(
+                                    context,
+                                    ref,
+                                    width: width,
+                                    layoutWidth: layout.controls.width,
+                                    controlsScale: layout.controlsScale,
+                                    tLyrics: tLyrics,
+                                  ),
+                                );
+                              },
                             ),
                           ),
                         ),
