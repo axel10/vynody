@@ -1272,9 +1272,9 @@ class PlaybackHeroCard extends ConsumerWidget {
     final bool hasArtist = !isUnknown(rawArtist);
     final bool hasAlbum = !isUnknown(rawAlbum);
     final transition = lyricsModeT.clamp(0.0, 1.0);
-    final titleAlignment = align == TextAlign.left
-        ? Alignment.lerp(Alignment.center, Alignment.centerLeft, transition)!
-        : Alignment.center;
+    final titleAlignment = isLandscape
+        ? Alignment.center
+        : Alignment.lerp(Alignment.center, Alignment.centerLeft, transition)!;
 
     final titleSize = (isLandscape
             ? PlaybackHeroCardUiTuning.trackTitleStandardFont
