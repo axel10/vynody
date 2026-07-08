@@ -121,6 +121,7 @@ class LyricsPanelTimedLyricsView extends StatefulWidget {
     required this.lyrics,
     required this.lyricsState,
     required this.displayLines,
+    required this.lineHeights,
     required this.hasTimedLyrics,
     required this.activeIndex,
     required this.isAutoScrollPaused,
@@ -152,6 +153,7 @@ class LyricsPanelTimedLyricsView extends StatefulWidget {
   final MusicLyric? lyrics;
   final LyricsControllerState lyricsState;
   final List<LyricLine> displayLines;
+  final List<double> lineHeights;
   final bool hasTimedLyrics;
   final int activeIndex;
   final bool isAutoScrollPaused;
@@ -240,6 +242,21 @@ class _LyricsPanelTimedLyricsViewState extends State<LyricsPanelTimedLyricsView>
                         ),
                     child: Column(
                       children: List.generate(widget.displayLines.length, (index) {
+                        final bool isFar = widget.isTransitioning &&
+                            widget.hasTimedLyrics &&
+                            (index - widget.activeIndex).abs() > 8;
+
+                        if (isFar) {
+                          double itemHeight = 40.0;
+                          if (index < widget.lineHeights.length) {
+                            itemHeight = widget.lineHeights[index];
+                          }
+                          return SizedBox(
+                            key: ValueKey('lyric_placeholder_$index'),
+                            height: itemHeight,
+                          );
+                        }
+
                         final line = widget.displayLines[index];
                         final translated =
                             widget.lyrics
@@ -421,10 +438,12 @@ class _LyricsPanelTimedLyricsViewState extends State<LyricsPanelTimedLyricsView>
                           child: itemWidget,
                         );
 
+                        final Widget resultWidget;
                         if (widget.lyricsStyle == LyricsStyle.apple &&
                             widget.isFocusMode &&
-                            !widget.isGenerating) {
-                          return StaggeredAppleLyricsScrollWrapper(
+                            !widget.isGenerating &&
+                            !widget.isTransitioning) {
+                          resultWidget = StaggeredAppleLyricsScrollWrapper(
                             index: index,
                             activeIndex: widget.activeIndex,
                             scrollDelta: widget.scrollDelta,
@@ -433,8 +452,14 @@ class _LyricsPanelTimedLyricsViewState extends State<LyricsPanelTimedLyricsView>
                             firstVisibleIndex: widget.firstVisibleIndex,
                             child: wrappedItemWidget,
                           );
+                        } else {
+                          resultWidget = wrappedItemWidget;
                         }
-                        return wrappedItemWidget;
+
+                        return KeyedSubtree(
+                          key: ValueKey('lyric_active_$index'),
+                          child: resultWidget,
+                        );
                       }),
                     ),
                       ),

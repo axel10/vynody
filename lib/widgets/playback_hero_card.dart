@@ -474,6 +474,9 @@ class PlaybackHeroCard extends ConsumerWidget {
                             ignoring: layout.lyrics.opacity < 0.5,
                             child: Consumer(
                               builder: (context, ref, child) {
+                                if (layout.lyrics.opacity == 0.0) {
+                                  return const SizedBox.shrink();
+                                }
                                 return _buildLyricsPanelWidget(
                                   context,
                                   ref,
