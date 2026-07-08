@@ -123,7 +123,7 @@ post_install do |installer|
 DEST="${BUILT_PRODUCTS_DIR}/${FRAMEWORKS_FOLDER_PATH}"
 echo "Embedding SPM binary frameworks into ${DEST}"
 mkdir -p "${DEST}"
-for fw in lame tta-cpp opus FLAC mpc wavpack ogg sndfile vorbis; do
+for fw in lame tta-cpp opus FLAC mpc wavpack ogg sndfile vorbis SFBAudioEngine; do
   SRC_PATH=""
   if [ -d "${BUILT_PRODUCTS_DIR}/${fw}.framework" ]; then
     SRC_PATH="${BUILT_PRODUCTS_DIR}/${fw}.framework"
@@ -131,6 +131,8 @@ for fw in lame tta-cpp opus FLAC mpc wavpack ogg sndfile vorbis; do
     SRC_PATH="${PODS_CONFIGURATION_BUILD_DIR}/${fw}.framework"
   elif [ -d "${BUILT_PRODUCTS_DIR}/audio_core/${fw}.framework" ]; then
     SRC_PATH="${BUILT_PRODUCTS_DIR}/audio_core/${fw}.framework"
+  elif [ -d "${BUILT_PRODUCTS_DIR}/PackageFrameworks/${fw}.framework" ]; then
+    SRC_PATH="${BUILT_PRODUCTS_DIR}/PackageFrameworks/${fw}.framework"
   fi
   
   if [ -n "${SRC_PATH}" ]; then
