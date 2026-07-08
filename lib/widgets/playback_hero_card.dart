@@ -129,7 +129,8 @@ class PlaybackHeroCard extends ConsumerWidget {
   final ValueChanged<double>? onVolumeDrag;
   final ValueChanged<double>? onVolumeScroll;
   final VoidCallback? onCoverTap;
-  final void Function(Uint8List? artworkBytes, String? sourcePath)? onCarouselAnimationComplete;
+  final void Function(Uint8List? artworkBytes, String? sourcePath)?
+  onCarouselAnimationComplete;
   final double lyricsBottomSpacerHeight;
   final double lyricsBottomTabBarHeight;
 
@@ -188,13 +189,18 @@ class PlaybackHeroCard extends ConsumerWidget {
   ) async {
     if (currentMusic == null) return;
 
-    final overlay = Overlay.of(context).context.findRenderObject() as RenderBox?;
+    final overlay =
+        Overlay.of(context).context.findRenderObject() as RenderBox?;
     if (overlay == null) return;
     final l10n = AppLocalizations.of(context)!;
     final audioService = ref.read(audioServiceProvider);
-    final bytes = currentMusic.artworkBytes ?? audioService.getCachedArtwork(currentMusic.path);
+    final bytes =
+        currentMusic.artworkBytes ??
+        audioService.getCachedArtwork(currentMusic.path);
     final String? path = currentMusic.artworkPath ?? currentMusic.thumbnailPath;
-    final bool hasCover = (bytes != null && bytes.isNotEmpty) || (path != null && File(path).existsSync());
+    final bool hasCover =
+        (bytes != null && bytes.isNotEmpty) ||
+        (path != null && File(path).existsSync());
 
     final selected = await showMenu<String>(
       context: context,
@@ -366,7 +372,8 @@ class PlaybackHeroCard extends ConsumerWidget {
                               : Colors.black87,
                           size: 24,
                           padding: const EdgeInsets.all(6.0),
-                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          materialTapTargetSize:
+                              MaterialTapTargetSize.shrinkWrap,
                           tooltip: isPlaying
                               ? AppLocalizations.of(context)!.pause
                               : AppLocalizations.of(context)!.play,
@@ -406,8 +413,6 @@ class PlaybackHeroCard extends ConsumerWidget {
 
     final size = MediaQuery.of(context).size;
     final settings = ref.watch(settingsServiceProvider);
-
-
 
     final bool isSmallWindow = PlaybackPageUiTuning.isSmallWindow(
       size,
@@ -469,8 +474,10 @@ class PlaybackHeroCard extends ConsumerWidget {
                   lyricsStyle: settings.lyricsStyle,
                 );
 
-                final double translationX = layout.lyrics.left - endLayout.lyrics.left;
-                final double translationY = layout.lyrics.top - endLayout.lyrics.top;
+                final double translationX =
+                    layout.lyrics.left - endLayout.lyrics.left;
+                final double translationY =
+                    layout.lyrics.top - endLayout.lyrics.top;
 
                 return SizedBox(
                   width: width,
@@ -557,12 +564,11 @@ class PlaybackHeroCard extends ConsumerWidget {
                               builder: (context, ref, child) {
                                 return SizedBox(
                                   key: const ValueKey('controls_sizing_box'),
-                                  width:
-                                      (effectiveIsLandscape
-                                          ? layout.controls.width
-                                          : width *
-                                                PlaybackHeroCardUiTuning
-                                                    .portraitControlsWidthFactor),
+                                  width: (effectiveIsLandscape
+                                      ? layout.controls.width
+                                      : width *
+                                            PlaybackHeroCardUiTuning
+                                                .portraitControlsWidthFactor),
                                   child: _buildPlaybackControlsWidget(
                                     context,
                                     ref,
@@ -664,7 +670,7 @@ class PlaybackHeroCard extends ConsumerWidget {
         width * PlaybackHeroCardUiTuning.portraitControlsWidthFactor;
     final pNormalScale =
         (width / PlaybackHeroCardUiTuning.pControlsScaleBase).clamp(0.9, 1.15) *
-            scaleFactor;
+        scaleFactor;
 
     final double maxControlsHeightFactor = isSmallWindow
         ? 0.85
@@ -674,7 +680,8 @@ class PlaybackHeroCard extends ConsumerWidget {
         (pNormalControlsBaseIdealHeight * pNormalScale)
             .clamp(0.0, height * maxControlsHeightFactor)
             .ceilToDouble();
-    final pNormalInfoHeight = PlaybackHeroCardUiTuning.pInfoHeight * pNormalScale;
+    final pNormalInfoHeight =
+        PlaybackHeroCardUiTuning.pInfoHeight * pNormalScale;
 
     // 避让底部 Tab 栏高度 (Avoid bottom tab bar height)
     final pNormalBottomLimit =
@@ -691,14 +698,14 @@ class PlaybackHeroCard extends ConsumerWidget {
     final pNormalCoverSide = isSmallWindow
         ? 0.0
         : math
-            .min(
-              width,
-              pNormalBottomLimit -
-                  pNormalTotalContentHeight -
-                  PlaybackHeroCardUiTuning.pNormalCoverInfoMinGap,
-            )
-            .clamp(0.0, PlaybackHeroCardUiTuning.pCoverMaxSide)
-            .toDouble();
+              .min(
+                width,
+                pNormalBottomLimit -
+                    pNormalTotalContentHeight -
+                    PlaybackHeroCardUiTuning.pNormalCoverInfoMinGap,
+              )
+              .clamp(0.0, PlaybackHeroCardUiTuning.pCoverMaxSide)
+              .toDouble();
 
     final double pNormalInfoTop;
     final double pNormalControlsTop;
@@ -707,7 +714,8 @@ class PlaybackHeroCard extends ConsumerWidget {
       // 紧贴窗口底部 (Position right up against the bottom of the window)
       // 留出 12 像素底边距 (Leave 12px padding at the bottom)
       const double bottomPadding = 12.0;
-      pNormalControlsTop = pNormalBottomLimit - pNormalControlsHeight - bottomPadding;
+      pNormalControlsTop =
+          pNormalBottomLimit - pNormalControlsHeight - bottomPadding;
       pNormalInfoTop = pNormalControlsTop - pNormalInfoHeight - 4.0;
     } else {
       // 在封面底部到 Tab 栏顶部之间的剩余空间内居中放置标题和控件区
@@ -766,23 +774,34 @@ class PlaybackHeroCard extends ConsumerWidget {
     final lNormalControlsLeft =
         lNormalCoverRightEdge + (lRemainingSpace - lNormalControlsWidth) / 2;
 
-    final double lNormalControlsScale = (lNormalControlsWidth / PlaybackHeroCardUiTuning.lControlsScaleBase)
-        .clamp(0.85, 1.8);
-    final double lNormalSingleButtonWidth = PlaybackHeroCardUiTuning.controlsTopButtonsHeight * lNormalControlsScale;
-    final double lNormalGapWidth = PlaybackHeroCardUiTuning.topButtonsInnerGap * lNormalControlsScale;
-    final double lNormalButtonsRowWidth = 7 * lNormalSingleButtonWidth + 6 * lNormalGapWidth;
+    final double lNormalControlsScale =
+        (lNormalControlsWidth / PlaybackHeroCardUiTuning.lControlsScaleBase)
+            .clamp(0.85, 1.8);
+    final double lNormalSingleButtonWidth =
+        PlaybackHeroCardUiTuning.controlsTopButtonsHeight *
+        lNormalControlsScale;
+    final double lNormalGapWidth =
+        PlaybackHeroCardUiTuning.topButtonsInnerGap * lNormalControlsScale;
+    final double lNormalButtonsRowWidth =
+        7 * lNormalSingleButtonWidth + 6 * lNormalGapWidth;
 
     // When the gap between controls and cover is >= 80.0, the title area is at full width (lNormalControlsWidth).
     // As the gap shrinks from 80.0 to 0.0, the title area width gradually shrinks to align with the button area (lNormalButtonsRowWidth).
     const double gapStartShrink = 80.0;
     const double gapEndShrink = 0.0;
     final double gap = lNormalControlsLeft - lNormalCoverRightEdge;
-    final double lNormalInfoWidthFactor = ((gap - gapEndShrink) / (gapStartShrink - gapEndShrink))
-        .clamp(0.0, 1.0);
-    final double lNormalInfoWidthAdjusted = lNormalButtonsRowWidth +
-        (lNormalControlsWidth - lNormalButtonsRowWidth) * lNormalInfoWidthFactor;
+    final double lNormalInfoWidthFactor =
+        ((gap - gapEndShrink) / (gapStartShrink - gapEndShrink)).clamp(
+          0.0,
+          1.0,
+        );
+    final double lNormalInfoWidthAdjusted =
+        lNormalButtonsRowWidth +
+        (lNormalControlsWidth - lNormalButtonsRowWidth) *
+            lNormalInfoWidthFactor;
 
-    final double lNormalInfoLeftAdjusted = lNormalControlsLeft +
+    final double lNormalInfoLeftAdjusted =
+        lNormalControlsLeft +
         (lNormalControlsWidth - lNormalInfoWidthAdjusted) / 2;
 
     // Snap the normal landscape panes to whole pixels to avoid 1px overflow
@@ -845,7 +864,8 @@ class PlaybackHeroCard extends ConsumerWidget {
     final double lLyricsScale;
 
     if (lyricsStyle == LyricsStyle.apple) {
-      final double rightRatio = PlaybackHeroCardUiTuning.appleLyricsRightPanelRatio;
+      final double rightRatio =
+          PlaybackHeroCardUiTuning.appleLyricsRightPanelRatio;
       final double leftRatio = 1.0 - rightRatio;
       lLyricsColumnWidth = width * leftRatio;
       lLyricsLyricsLeft = width * leftRatio + 24.0;
@@ -856,11 +876,11 @@ class PlaybackHeroCard extends ConsumerWidget {
         math.min(380.0, lLyricsMaxColumnWidth),
         lLyricsMaxColumnWidth,
       );
-      lLyricsLyricsLeft = lLyricsOuterLeftPadding + lLyricsColumnWidth + lLyricsInnerLeftPadding;
-      lLyricsLyricsWidth = math.max(
-        0.0,
-        width - lLyricsLyricsLeft - 32.0,
-      );
+      lLyricsLyricsLeft =
+          lLyricsOuterLeftPadding +
+          lLyricsColumnWidth +
+          lLyricsInnerLeftPadding;
+      lLyricsLyricsWidth = math.max(0.0, width - lLyricsLyricsLeft - 32.0);
     }
 
     final double lLyricsWidthScale = (lLyricsColumnWidth / 400.0).clamp(
@@ -883,8 +903,10 @@ class PlaybackHeroCard extends ConsumerWidget {
       // For Apple Style: must fit both vertically and horizontally within the left column
       // Height adaptation: 0.75 of the screen height acts as the maximum control height limit.
       // It only starts shrinking together with the window when the window is small enough to require compression.
-      final double constantHeight = lLyricsCoverInfoSpacing + lLyricsInfoControlsSpacing;
-      final double scalableHeight = lLyricsPreferredTotalHeight - constantHeight;
+      final double constantHeight =
+          lLyricsCoverInfoSpacing + lLyricsInfoControlsSpacing;
+      final double scalableHeight =
+          lLyricsPreferredTotalHeight - constantHeight;
 
       double screenHeight = 0.0;
       try {
@@ -900,25 +922,28 @@ class PlaybackHeroCard extends ConsumerWidget {
       }
 
       final double maxControlsHeight = screenHeight * 0.75;
-      final double targetOccupiedHeight = math.min(maxControlsHeight, lLyricsAvailableHeight);
+      final double targetOccupiedHeight = math.min(
+        maxControlsHeight,
+        lLyricsAvailableHeight,
+      );
 
-      final double heightScale = targetOccupiedHeight >= lLyricsPreferredTotalHeight
+      final double heightScale =
+          targetOccupiedHeight >= lLyricsPreferredTotalHeight
           ? 1.0
           : (scalableHeight <= 0.0
-              ? 1.0
-              : math.max(0.0, targetOccupiedHeight - constantHeight) / scalableHeight);
+                ? 1.0
+                : math.max(0.0, targetOccupiedHeight - constantHeight) /
+                      scalableHeight);
 
-      final double maxHorizontalSpace = math.max(120.0, lLyricsColumnWidth - 64.0);
-      final double lLyricsWidthFitScale = maxHorizontalSpace / (lLyricsPreferredCoverSide * lLyricsWidthScale);
+      final double maxHorizontalSpace = math.max(
+        120.0,
+        lLyricsColumnWidth - 64.0,
+      );
+      final double lLyricsWidthFitScale =
+          maxHorizontalSpace / (lLyricsPreferredCoverSide * lLyricsWidthScale);
       lLyricsScale = lLyricsPreferredTotalHeight <= 0.0
           ? 1.0
-          : math.min(
-              1.0,
-              math.min(
-                heightScale,
-                lLyricsWidthFitScale,
-              ),
-            );
+          : math.min(1.0, math.min(heightScale, lLyricsWidthFitScale));
     } else {
       lLyricsScale = lLyricsPreferredTotalHeight <= 0.0
           ? 1.0
@@ -934,7 +959,8 @@ class PlaybackHeroCard extends ConsumerWidget {
         lLyricsControlsBaseHeight * lLyricsWidthScale * lLyricsScale;
     final double lLyricsCoverTop;
     if (lyricsStyle == LyricsStyle.apple) {
-      final double lLyricsActualTotalHeight = lLyricsCoverSide +
+      final double lLyricsActualTotalHeight =
+          lLyricsCoverSide +
           lLyricsCoverInfoSpacing +
           lLyricsInfoHeight +
           lLyricsInfoControlsSpacing +
@@ -948,18 +974,23 @@ class PlaybackHeroCard extends ConsumerWidget {
     // Centering logic: cover, info and controls are centered within the column and aligned in width
     // 移除离散的 isLarge 逻辑，改用连续的百分比缩放
     // Remove discrete isLarge logic, use continuous percentage scaling
-    final currentControlsScale = _lerp2DSmooth(
-      // 竖屏：基于宽度进行缩放，稍微增加基准，让按钮在标准屏幕上保持舒适大小
-      (width / PlaybackHeroCardUiTuning.pControlsScaleBase).clamp(0.9, 1.15),
-      1.0,
-      // 横屏普通模式：基于列宽进行缩放，放宽最小缩放限制以允许在小窗口下更自然的布局
-      (lNormalControlsWidth / PlaybackHeroCardUiTuning.lControlsScaleBase)
-          .clamp(0.85, 1.8),
-      // 横屏歌词模式：结合宽度基准和高度缩放系数
-      (lLyricsWidthScale * lLyricsScale).clamp(0.4, 2.0),
-      tLyrics,
-      tLand,
-    ) * scaleFactor;
+    final currentControlsScale =
+        _lerp2DSmooth(
+          // 竖屏：基于宽度进行缩放，稍微增加基准，让按钮在标准屏幕上保持舒适大小
+          (width / PlaybackHeroCardUiTuning.pControlsScaleBase).clamp(
+            0.9,
+            1.15,
+          ),
+          1.0,
+          // 横屏普通模式：基于列宽进行缩放，放宽最小缩放限制以允许在小窗口下更自然的布局
+          (lNormalControlsWidth / PlaybackHeroCardUiTuning.lControlsScaleBase)
+              .clamp(0.85, 1.8),
+          // 横屏歌词模式：结合宽度基准和高度缩放系数
+          (lLyricsWidthScale * lLyricsScale).clamp(0.4, 2.0),
+          tLyrics,
+          tLand,
+        ) *
+        scaleFactor;
 
     final double lLyricsCoverLeft;
     final double lLyricsInfoLeft;
@@ -984,7 +1015,6 @@ class PlaybackHeroCard extends ConsumerWidget {
 
     final lLyricsControlsTop =
         lLyricsInfoTop + lLyricsInfoHeight + lLyricsInfoControlsSpacing;
-
 
     // Build the Panes
     // Cover
@@ -1217,7 +1247,9 @@ class PlaybackHeroCard extends ConsumerWidget {
           width: currentSize * 0.8,
           height: currentSize * 0.8,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(math.min(24.0, currentSize * 0.2)),
+            borderRadius: BorderRadius.circular(
+              math.min(24.0, currentSize * 0.2),
+            ),
             color: Colors.black87,
             boxShadow: [
               // Deep soft ambient shadow
@@ -1264,11 +1296,21 @@ class PlaybackHeroCard extends ConsumerWidget {
       behavior: HitTestBehavior.opaque,
       onTap: onCoverTap,
       onSecondaryTapDown: (details) {
-        _showCoverContextMenu(context, ref, details.globalPosition, currentMusic);
+        _showCoverContextMenu(
+          context,
+          ref,
+          details.globalPosition,
+          currentMusic,
+        );
       },
       onLongPressStart: (details) {
         HapticFeedback.mediumImpact();
-        _showCoverContextMenu(context, ref, details.globalPosition, currentMusic);
+        _showCoverContextMenu(
+          context,
+          ref,
+          details.globalPosition,
+          currentMusic,
+        );
       },
       child: cover,
     );
@@ -1303,7 +1345,8 @@ class PlaybackHeroCard extends ConsumerWidget {
         ? Alignment.center
         : Alignment.lerp(Alignment.center, Alignment.centerLeft, transition)!;
 
-    final titleSize = (isLandscape
+    final titleSize =
+        (isLandscape
             ? PlaybackHeroCardUiTuning.trackTitleStandardFont
             : lerpDouble(
                 PlaybackHeroCardUiTuning.trackTitleStandardFont,
@@ -1312,7 +1355,8 @@ class PlaybackHeroCard extends ConsumerWidget {
               )!) *
         controlsScale;
 
-    final artistSize = (isLandscape
+    final artistSize =
+        (isLandscape
             ? PlaybackHeroCardUiTuning.trackArtistStandardFont
             : lerpDouble(
                 PlaybackHeroCardUiTuning.trackArtistStandardFont,
@@ -1491,10 +1535,7 @@ class PlaybackHeroCard extends ConsumerWidget {
           child: FittedBox(
             fit: BoxFit.scaleDown,
             alignment: Alignment.center,
-            child: SizedBox(
-              width: buttonsRowWidth,
-              child: child,
-            ),
+            child: SizedBox(width: buttonsRowWidth, child: child),
           ),
         );
       }
@@ -1568,8 +1609,7 @@ class PlaybackHeroCard extends ConsumerWidget {
               icon: Icon(
                 getPlaylistModeIcon(playbackMode),
                 size:
-                    PlaybackHeroCardUiTuning.topButtonsIconSize *
-                    controlsScale,
+                    PlaybackHeroCardUiTuning.topButtonsIconSize * controlsScale,
                 color: Colors.white70,
               ),
               onPressed: onCyclePlaylistMode,
@@ -1588,8 +1628,7 @@ class PlaybackHeroCard extends ConsumerWidget {
               icon: Icon(
                 Icons.shuffle_rounded,
                 size:
-                    PlaybackHeroCardUiTuning.topButtonsIconSize *
-                    controlsScale,
+                    PlaybackHeroCardUiTuning.topButtonsIconSize * controlsScale,
                 color: isRandomMode
                     ? Theme.of(context).colorScheme.primary
                     : Colors.white70,
@@ -1710,7 +1749,8 @@ class PlaybackHeroCard extends ConsumerWidget {
       ),
     );
 
-    final controlIconColor = currentThemeColorsMap['darkVibrant'] ??
+    final controlIconColor =
+        currentThemeColorsMap['darkVibrant'] ??
         currentThemeColorsMap['darkMuted'] ??
         Colors.black;
 
@@ -1775,7 +1815,9 @@ class PlaybackHeroCard extends ConsumerWidget {
             iconBuilder: (color, isWhiteBg) => Icon(
               showVisualizerToggle ? Icons.analytics : Icons.analytics_outlined,
               size: (isWhiteBg ? 22 : 24) * controlsScale,
-              color: showVisualizerToggle ? color : color.withValues(alpha: 0.6),
+              color: showVisualizerToggle
+                  ? color
+                  : color.withValues(alpha: 0.6),
             ),
             onPressed: onToggleVisualizer,
             tooltip: AppLocalizations.of(context)!.visualizer,
@@ -2008,7 +2050,8 @@ class _ZeroPaddingTrackShape extends RoundedRectSliderTrackShape {
   }) {
     final double trackHeight = sliderTheme.trackHeight ?? 4.0;
     final double trackLeft = offset.dx;
-    final double trackTop = offset.dy + (parentBox.size.height - trackHeight) / 2;
+    final double trackTop =
+        offset.dy + (parentBox.size.height - trackHeight) / 2;
     final double trackWidth = parentBox.size.width;
     return Rect.fromLTWH(trackLeft, trackTop, trackWidth, trackHeight);
   }
@@ -2050,7 +2093,8 @@ class PlaybackProgressSection extends ConsumerWidget {
       settingsServiceProvider.select((s) => s.isWaveformProgressBarEnabled),
     );
     final currentThemeColorsMap = ref.watch(audioCurrentThemeColorsMapProvider);
-    final controlIconColor = currentThemeColorsMap['darkVibrant'] ??
+    final controlIconColor =
+        currentThemeColorsMap['darkVibrant'] ??
         currentThemeColorsMap['darkMuted'] ??
         Colors.black;
 
@@ -2063,15 +2107,18 @@ class PlaybackProgressSection extends ConsumerWidget {
     // We choose 11.0 * controlsScale to align with the visual boundaries of the outermost icons.
     final double horizontalPadding = isLandscape ? 11.0 * controlsScale : 0.0;
 
-    Widget buildStandardSlider(BuildContext context, double displayProgress, double controlsScale, {bool noPadding = false}) {
+    Widget buildStandardSlider(
+      BuildContext context,
+      double displayProgress,
+      double controlsScale, {
+      bool noPadding = false,
+    }) {
       final double pad = noPadding
           ? horizontalPadding
           : PlaybackHeroCardUiTuning.waveformStandardHorizontalPadding;
 
       return Padding(
-        padding: EdgeInsets.symmetric(
-          horizontal: pad,
-        ),
+        padding: EdgeInsets.symmetric(horizontal: pad),
         child: SliderTheme(
           data: SliderTheme.of(context).copyWith(
             trackHeight: 4 * controlsScale,
@@ -2111,19 +2158,24 @@ class PlaybackProgressSection extends ConsumerWidget {
                     final size = MediaQuery.of(context).size;
                     final settings = ref.watch(settingsServiceProvider);
                     final isMinimized = ref.watch(isWindowMinimizedProvider);
-                    final bool isSmallWindow = PlaybackPageUiTuning.isSmallWindow(
-                      size,
-                      isWaveformEnabled: settings.isWaveformProgressBarEnabled,
-                      isSmallWindowMode: settings.isSmallWindowMode,
-                    );
+                    final bool isSmallWindow =
+                        PlaybackPageUiTuning.isSmallWindow(
+                          size,
+                          isWaveformEnabled:
+                              settings.isWaveformProgressBarEnabled,
+                          isSmallWindowMode: settings.isSmallWindowMode,
+                        );
                     final double overflowScale = isLandscape
                         ? 1.0
                         : (isSmallWindow
-                            ? 1.0
-                            : PlaybackHeroCardUiTuning.portraitWaveformOverflowScale);
+                              ? 1.0
+                              : PlaybackHeroCardUiTuning
+                                    .portraitWaveformOverflowScale);
 
                     final widget = Padding(
-                      padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: horizontalPadding,
+                      ),
                       child: WaveformProgressBar(
                         waveform: waveform,
                         progress: displayProgress,
@@ -2132,16 +2184,23 @@ class PlaybackProgressSection extends ConsumerWidget {
                         onScrubbing: onScrubbing ?? (_) {},
                         onSeek: onSeek ?? (_) {},
                         isWindowMinimized: isMinimized,
-                        height: (isLandscape
-                                ? PlaybackHeroCardUiTuning.waveformLandscapeHeight
-                                : PlaybackHeroCardUiTuning.waveformPortraitLyricsHeight) *
+                        height:
+                            (isLandscape
+                                ? PlaybackHeroCardUiTuning
+                                      .waveformLandscapeHeight
+                                : PlaybackHeroCardUiTuning
+                                      .waveformPortraitLyricsHeight) *
                             controlsScale,
-                        barWidth: (isLandscape
-                                ? PlaybackHeroCardUiTuning.waveformBarWidthLandscape
+                        barWidth:
+                            (isLandscape
+                                ? PlaybackHeroCardUiTuning
+                                      .waveformBarWidthLandscape
                                 : PlaybackHeroCardUiTuning.waveformBarWidth) /
                             overflowScale,
-                        barGap: (isLandscape
-                                ? PlaybackHeroCardUiTuning.waveformBarGapLandscape
+                        barGap:
+                            (isLandscape
+                                ? PlaybackHeroCardUiTuning
+                                      .waveformBarGapLandscape
                                 : PlaybackHeroCardUiTuning.waveformBarGap) /
                             overflowScale,
                       ),
@@ -2166,7 +2225,9 @@ class PlaybackProgressSection extends ConsumerWidget {
             },
           ),
           SizedBox(
-            height: (isLandscape ? PlaybackHeroCardUiTuning.controlsTimeGap : 8.0) * controlsScale,
+            height:
+                (isLandscape ? PlaybackHeroCardUiTuning.controlsTimeGap : 8.0) *
+                controlsScale,
           ),
           Padding(
             padding: EdgeInsets.symmetric(
@@ -2180,12 +2241,18 @@ class PlaybackProgressSection extends ConsumerWidget {
                     formatDuration(overridePosition ?? position),
                     style: TextStyle(
                       color: Colors.white70,
-                      fontSize: math.max(PlaybackHeroCardUiTuning.minProgressTimeFontSize, 12 * controlsScale),
+                      fontSize: math.max(
+                        PlaybackHeroCardUiTuning.minProgressTimeFontSize,
+                        12 * controlsScale,
+                      ),
                     ),
                   )
                 else
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(100),
@@ -2201,7 +2268,10 @@ class PlaybackProgressSection extends ConsumerWidget {
                       formatDuration(overridePosition ?? position),
                       style: TextStyle(
                         color: controlIconColor,
-                        fontSize: math.max(PlaybackHeroCardUiTuning.minProgressTimeFontSize, 11 * controlsScale),
+                        fontSize: math.max(
+                          PlaybackHeroCardUiTuning.minProgressTimeFontSize,
+                          11 * controlsScale,
+                        ),
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -2211,12 +2281,18 @@ class PlaybackProgressSection extends ConsumerWidget {
                     formatDuration(duration),
                     style: TextStyle(
                       color: Colors.white70,
-                      fontSize: math.max(PlaybackHeroCardUiTuning.minProgressTimeFontSize, 12 * controlsScale),
+                      fontSize: math.max(
+                        PlaybackHeroCardUiTuning.minProgressTimeFontSize,
+                        12 * controlsScale,
+                      ),
                     ),
                   )
                 else
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(100),
@@ -2232,7 +2308,10 @@ class PlaybackProgressSection extends ConsumerWidget {
                       formatDuration(duration),
                       style: TextStyle(
                         color: controlIconColor,
-                        fontSize: math.max(PlaybackHeroCardUiTuning.minProgressTimeFontSize, 11 * controlsScale),
+                        fontSize: math.max(
+                          PlaybackHeroCardUiTuning.minProgressTimeFontSize,
+                          11 * controlsScale,
+                        ),
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -2281,7 +2360,8 @@ class PlaybackOverlayProgressTimeLayer extends ConsumerWidget {
     final waveform = overrideWaveform ?? currentMusic?.waveform ?? const [];
     final displayProgress = overrideProgress ?? progress.clamp(0.0, 1.0);
     final currentThemeColorsMap = ref.watch(audioCurrentThemeColorsMapProvider);
-    final controlIconColor = currentThemeColorsMap['darkVibrant'] ??
+    final controlIconColor =
+        currentThemeColorsMap['darkVibrant'] ??
         currentThemeColorsMap['darkMuted'] ??
         Colors.black;
 
@@ -2315,12 +2395,16 @@ class PlaybackOverlayProgressTimeLayer extends ConsumerWidget {
                   onScrubbing: onScrubbing ?? (_) {},
                   onSeek: onSeek ?? (_) {},
                   isWindowMinimized: isMinimized,
-                  height: PlaybackHeroCardUiTuning.waveformOverlayHeight * controlsScale,
-                  barWidth: (isLandscape
+                  height:
+                      PlaybackHeroCardUiTuning.waveformOverlayHeight *
+                      controlsScale,
+                  barWidth:
+                      (isLandscape
                           ? PlaybackHeroCardUiTuning.waveformBarWidthLandscape
                           : PlaybackHeroCardUiTuning.waveformBarWidth) /
                       overflowScale,
-                  barGap: (isLandscape
+                  barGap:
+                      (isLandscape
                           ? PlaybackHeroCardUiTuning.waveformBarGapLandscape
                           : PlaybackHeroCardUiTuning.waveformBarGap) /
                       overflowScale,
@@ -2344,7 +2428,8 @@ class PlaybackOverlayProgressTimeLayer extends ConsumerWidget {
                 : PlaybackHeroCardUiTuning.portraitWaveformOverflowScale;
 
             final screenWidth = MediaQuery.of(context).size.width;
-            final pagePadding = PlaybackPageUiTuning.normalPortraitHorizontalPadding;
+            final pagePadding =
+                PlaybackPageUiTuning.normalPortraitHorizontalPadding;
             const minScreenMargin = 32.0;
 
             final cardWidth = screenWidth - (pagePadding * 2);
@@ -2356,26 +2441,38 @@ class PlaybackOverlayProgressTimeLayer extends ConsumerWidget {
             final double timeTextRowWidth = math.min(totalWidth, limitWidth);
             final double leftOffset = (totalWidth - timeTextRowWidth) / 2;
 
-            final rawShift = (PlaybackHeroCardUiTuning.waveformOverlayTimeSide - timeTextRowWidth / 2) *
-                (overflowScale - 1) * 0.8;
+            final rawShift =
+                (PlaybackHeroCardUiTuning.waveformOverlayTimeSide -
+                    timeTextRowWidth / 2) *
+                (overflowScale - 1) *
+                0.8;
 
-            final safeFittedScale = (fittedScale.isFinite && fittedScale > 0) ? fittedScale : 1.0;
-            final minAllowedShift = (minScreenMargin - pagePadding) / safeFittedScale -
+            final safeFittedScale = (fittedScale.isFinite && fittedScale > 0)
+                ? fittedScale
+                : 1.0;
+            final minAllowedShift =
+                (minScreenMargin - pagePadding) / safeFittedScale -
                 PlaybackHeroCardUiTuning.waveformOverlayTimeSide;
 
             final lowerBound = math.min(
               minAllowedShift.isFinite ? minAllowedShift : 0.0,
               0.0,
             );
-            final safeShift = rawShift.isFinite ? rawShift.clamp(lowerBound, 0.0) : 0.0;
+            final safeShift = rawShift.isFinite
+                ? rawShift.clamp(lowerBound, 0.0)
+                : 0.0;
 
             return SizedBox(
               width: totalWidth,
-              height: PlaybackHeroCardUiTuning.waveformOverlayHeight * controlsScale,
+              height:
+                  PlaybackHeroCardUiTuning.waveformOverlayHeight *
+                  controlsScale,
               child: Stack(
                 children: [
                   Positioned(
-                    left: leftOffset + PlaybackHeroCardUiTuning.waveformOverlayTimeSide,
+                    left:
+                        leftOffset +
+                        PlaybackHeroCardUiTuning.waveformOverlayTimeSide,
                     bottom: PlaybackHeroCardUiTuning.waveformOverlayTimeBottom,
                     child: Transform.translate(
                       offset: Offset(safeShift, 0),
@@ -2384,7 +2481,11 @@ class PlaybackOverlayProgressTimeLayer extends ConsumerWidget {
                               formatDuration(overridePosition ?? position),
                               style: TextStyle(
                                 color: Colors.white,
-                                fontSize: math.max(PlaybackHeroCardUiTuning.minProgressTimeFontSize, 12 * controlsScale),
+                                fontSize: math.max(
+                                  PlaybackHeroCardUiTuning
+                                      .minProgressTimeFontSize,
+                                  12 * controlsScale,
+                                ),
                                 fontWeight: FontWeight.bold,
                                 shadows: const [
                                   Shadow(color: Colors.black45, blurRadius: 4),
@@ -2392,7 +2493,10 @@ class PlaybackOverlayProgressTimeLayer extends ConsumerWidget {
                               ),
                             )
                           : Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(100),
@@ -2408,7 +2512,11 @@ class PlaybackOverlayProgressTimeLayer extends ConsumerWidget {
                                 formatDuration(overridePosition ?? position),
                                 style: TextStyle(
                                   color: controlIconColor,
-                                  fontSize: math.max(PlaybackHeroCardUiTuning.minProgressTimeFontSize, 11 * controlsScale),
+                                  fontSize: math.max(
+                                    PlaybackHeroCardUiTuning
+                                        .minProgressTimeFontSize,
+                                    11 * controlsScale,
+                                  ),
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -2416,7 +2524,9 @@ class PlaybackOverlayProgressTimeLayer extends ConsumerWidget {
                     ),
                   ),
                   Positioned(
-                    right: leftOffset + PlaybackHeroCardUiTuning.waveformOverlayTimeSide,
+                    right:
+                        leftOffset +
+                        PlaybackHeroCardUiTuning.waveformOverlayTimeSide,
                     bottom: PlaybackHeroCardUiTuning.waveformOverlayTimeBottom,
                     child: Transform.translate(
                       offset: Offset(-safeShift, 0),
@@ -2425,7 +2535,11 @@ class PlaybackOverlayProgressTimeLayer extends ConsumerWidget {
                               formatDuration(duration),
                               style: TextStyle(
                                 color: Colors.white,
-                                fontSize: math.max(PlaybackHeroCardUiTuning.minProgressTimeFontSize, 12 * controlsScale),
+                                fontSize: math.max(
+                                  PlaybackHeroCardUiTuning
+                                      .minProgressTimeFontSize,
+                                  12 * controlsScale,
+                                ),
                                 fontWeight: FontWeight.bold,
                                 shadows: const [
                                   Shadow(color: Colors.black45, blurRadius: 4),
@@ -2433,7 +2547,10 @@ class PlaybackOverlayProgressTimeLayer extends ConsumerWidget {
                               ),
                             )
                           : Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(100),
@@ -2449,7 +2566,11 @@ class PlaybackOverlayProgressTimeLayer extends ConsumerWidget {
                                 formatDuration(duration),
                                 style: TextStyle(
                                   color: controlIconColor,
-                                  fontSize: math.max(PlaybackHeroCardUiTuning.minProgressTimeFontSize, 11 * controlsScale),
+                                  fontSize: math.max(
+                                    PlaybackHeroCardUiTuning
+                                        .minProgressTimeFontSize,
+                                    11 * controlsScale,
+                                  ),
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),

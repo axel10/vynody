@@ -377,21 +377,29 @@ class _LyricsPanelTimedLyricsViewState extends State<LyricsPanelTimedLyricsView>
                             !isHovered &&
                             (!isAndroid || !widget.isTransitioning) &&
                             distance <= 10;
-                        final blurredChild = TweenAnimationBuilder<double>(
-                          tween: Tween<double>(end: shouldBlur ? 1.5 : 0.0),
-                          duration: const Duration(milliseconds: 300),
-                          curve: Curves.easeOutCubic,
-                          builder: (context, blurSigma, child) {
-                            if (blurSigma == 0.0) {
-                              return child!;
-                            }
-                            return ImageFiltered(
-                              imageFilter: ui.ImageFilter.blur(sigmaX: blurSigma, sigmaY: blurSigma),
-                              child: child,
-                            );
-                          },
-                          child: animatedScaleChild,
-                        );
+                        final Widget blurredChild;
+                        if (widget.hasTimedLyrics &&
+                            widget.lyricsStyle == LyricsStyle.apple &&
+                            widget.isFocusMode &&
+                            distance <= 12) {
+                          blurredChild = TweenAnimationBuilder<double>(
+                            tween: Tween<double>(end: shouldBlur ? 1.5 : 0.0),
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeOutCubic,
+                            builder: (context, blurSigma, child) {
+                              if (blurSigma == 0.0) {
+                                return child!;
+                              }
+                              return ImageFiltered(
+                                imageFilter: ui.ImageFilter.blur(sigmaX: blurSigma, sigmaY: blurSigma),
+                                child: child,
+                              );
+                            },
+                            child: animatedScaleChild,
+                          );
+                        } else {
+                          blurredChild = animatedScaleChild;
+                        }
 
                         final lineContent = Padding(
                           padding: EdgeInsets.only(
@@ -440,9 +448,13 @@ class _LyricsPanelTimedLyricsViewState extends State<LyricsPanelTimedLyricsView>
                         );
 
                         final Widget resultWidget;
-                        if (widget.lyricsStyle == LyricsStyle.apple &&
+                        final bool isInStaggerRange = widget.lyricsStyle == LyricsStyle.apple &&
                             widget.isFocusMode &&
-                            !widget.isGenerating) {
+                            !widget.isGenerating &&
+                            index >= widget.firstVisibleIndex - 5 &&
+                            index <= widget.firstVisibleIndex + 25;
+
+                        if (isInStaggerRange) {
                           resultWidget = StaggeredAppleLyricsScrollWrapper(
                             index: index,
                             activeIndex: widget.activeIndex,
@@ -620,7 +632,8 @@ class _StaggeredAppleLyricsScrollWrapperState
       curve: Curves.easeOutCubic,
     );
 
-    if (widget.scrollTriggerTime > 0 && !widget.isTransitioning) {
+    final timePassed = DateTime.now().millisecondsSinceEpoch - widget.scrollTriggerTime;
+    if (widget.scrollTriggerTime > 0 && !widget.isTransitioning && timePassed < 700) {
       _startOffset = widget.scrollDelta;
       _currentOffset = widget.scrollDelta;
 
@@ -679,7 +692,6 @@ class _StaggeredAppleLyricsScrollWrapperState
     if (delayMs == 0) {
       _controller.forward(from: 0.0);
     } else {
-      setState(() {});
       _delayTimer = Timer(Duration(milliseconds: delayMs), () {
         if (mounted) {
           _controller.forward(from: 0.0);
@@ -711,10 +723,6 @@ class _StaggeredAppleLyricsScrollWrapperState
           _currentOffset = _startOffset;
         } else {
           _currentOffset = 0.0;
-        }
-
-        if (_currentOffset == 0.0) {
-          return child!;
         }
 
         return Transform.translate(
