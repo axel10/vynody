@@ -490,24 +490,26 @@ class PlaybackHeroCard extends ConsumerWidget {
                         left: endLayout.lyrics.left,
                         width: endLayout.lyrics.width,
                         height: endLayout.lyrics.height,
-                        child: Transform.translate(
-                          offset: Offset(translationX, translationY),
-                          child: RepaintBoundary(
+                        child: RepaintBoundary(
+                          child: Transform.translate(
+                            offset: Offset(translationX, translationY),
                             child: Opacity(
                               opacity: layout.lyrics.opacity.clamp(0.0, 1.0),
                               child: IgnorePointer(
                                 ignoring: layout.lyrics.opacity < 0.5,
-                                child: Consumer(
-                                  builder: (context, ref, child) {
-                                    if (layout.lyrics.opacity == 0.0) {
-                                      return const SizedBox.shrink();
-                                    }
-                                    return _buildLyricsPanelWidget(
-                                      context,
-                                      ref,
-                                      isTransitioning: isTransitioning,
-                                    );
-                                  },
+                                child: RepaintBoundary(
+                                  child: Consumer(
+                                    builder: (context, ref, child) {
+                                      if (layout.lyrics.opacity == 0.0) {
+                                        return const SizedBox.shrink();
+                                      }
+                                      return _buildLyricsPanelWidget(
+                                        context,
+                                        ref,
+                                        isTransitioning: isTransitioning,
+                                      );
+                                    },
+                                  ),
                                 ),
                               ),
                             ),
