@@ -421,7 +421,9 @@ class _LyricsPanelTimedLyricsViewState extends State<LyricsPanelTimedLyricsView>
                           child: itemWidget,
                         );
 
-                        if (widget.lyricsStyle == LyricsStyle.apple && widget.isFocusMode && !widget.isGenerating) {
+                        if (widget.lyricsStyle == LyricsStyle.apple &&
+                            widget.isFocusMode &&
+                            !widget.isGenerating) {
                           return StaggeredAppleLyricsScrollWrapper(
                             index: index,
                             activeIndex: widget.activeIndex,

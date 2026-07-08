@@ -1397,8 +1397,13 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
         final firstVisible = _findClosestLineIndex(target, itemCenters);
         if (mounted) {
           setState(() {
-            _lastScrollDelta = delta;
-            _scrollTriggerTime = DateTime.now().millisecondsSinceEpoch;
+            if (widget.isTransitioning) {
+              _lastScrollDelta = 0.0;
+              _scrollTriggerTime = 0;
+            } else {
+              _lastScrollDelta = delta;
+              _scrollTriggerTime = DateTime.now().millisecondsSinceEpoch;
+            }
             _isEnteringFocusMode = isEntering;
             _firstVisibleIndex = firstVisible;
           });
