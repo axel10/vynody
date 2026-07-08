@@ -414,6 +414,9 @@ class PlaybackHeroCard extends ConsumerWidget {
     final size = MediaQuery.of(context).size;
     final settings = ref.watch(settingsServiceProvider);
 
+    final isLowMidEndAsync = ref.watch(isLowMidEndDeviceProvider);
+    final bool isLowMidEnd = isLowMidEndAsync.asData?.value ?? true;
+
     final bool isSmallWindow = PlaybackPageUiTuning.isSmallWindow(
       size,
       isWaveformEnabled: settings.isWaveformProgressBarEnabled,
@@ -459,6 +462,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                 final bool isTransitioning =
                     (tLyrics > 0.0 && tLyrics < 1.0) ||
                     (tLand > 0.0 && tLand < 1.0);
+                final bool optimize = isTransitioning && isLowMidEnd;
 
                 final double targetTLyrics = effectiveIsLyricsMode ? 1.0 : 0.0;
                 final targetLayout = _buildPlaybackCardLayout(
@@ -598,7 +602,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                             alignment: Alignment.center,
                             child: Consumer(
                               builder: (context, ref, child) {
-                                final double layoutWidth = isTransitioning
+                                final double layoutWidth = optimize
                                     ? targetLayout.controls.width
                                     : layout.controls.width;
                                 return SizedBox(
@@ -613,10 +617,10 @@ class PlaybackHeroCard extends ConsumerWidget {
                                     ref,
                                     width: width,
                                     layoutWidth: layoutWidth,
-                                    controlsScale: isTransitioning
+                                    controlsScale: optimize
                                         ? targetLayout.controlsScale
                                         : layout.controlsScale,
-                                    tLyrics: isTransitioning
+                                    tLyrics: optimize
                                         ? targetTLyrics
                                         : tLyrics,
                                   ),
@@ -634,7 +638,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                           height: layout.cover.height,
                           child: Consumer(
                             builder: (context, ref, child) {
-                              final double currentSize = isTransitioning
+                              final double currentSize = optimize
                                   ? coverNormalLayout.cover.width
                                   : layout.cover.width;
                               final Widget coverWidget = _buildAlbumArtCore(
@@ -643,7 +647,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                                 currentSize,
                                 cacheWidthSize: coverNormalLayout.cover.width,
                               );
-                              if (isTransitioning) {
+                              if (optimize) {
                                 return FittedBox(
                                   fit: BoxFit.fill,
                                   child: SizedBox(
@@ -674,15 +678,15 @@ class PlaybackHeroCard extends ConsumerWidget {
                             tLand,
                           )!,
                           child: SizedBox(
-                            width: isTransitioning
+                            width: optimize
                                 ? targetLayout.info.width
                                 : layout.info.width,
                             child: _buildTrackInfo(
                               context,
                               currentMusic,
                               layout.trackInfoAlign,
-                              isTransitioning ? targetTLyrics : tLyrics,
-                              isTransitioning
+                              optimize ? targetTLyrics : tLyrics,
+                              optimize
                                   ? targetLayout.controlsScale
                                   : layout.controlsScale,
                             ),

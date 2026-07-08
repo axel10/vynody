@@ -15,11 +15,16 @@ import 'package:vynody/player/ai/openrouter_api_key_service.dart';
 import 'package:vynody/player/library/playlist_service.dart';
 import 'package:vynody/player/scanner/scanner_service.dart';
 import 'package:vynody/player/settings/settings_service.dart';
+import 'package:vynody/utils/device_info_utils.dart';
 
 final settingsServiceProvider = ChangeNotifierProvider<SettingsService>((ref) {
   throw UnimplementedError(
     'settingsServiceProvider must be overridden before use',
   );
+});
+
+final isLowMidEndDeviceProvider = FutureProvider<bool>((ref) async {
+  return DevicePerformanceHelper.isLowMidEndDevice();
 });
 
 final audioServiceStateProvider = NotifierProvider<AudioService, AudioSnapshot>(
