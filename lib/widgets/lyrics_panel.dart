@@ -1809,7 +1809,11 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
               itemCenters: itemCenters,
             );
           } else {
+            final bool transitionEnded =
+                _lastBuiltIsTransitioning == true && widget.isTransitioning == false;
             _scheduleScrollIfNeeded(
+              force: transitionEnded,
+              animate: !transitionEnded,
               displayLines: displayLines,
               itemCenters: itemCenters,
             );

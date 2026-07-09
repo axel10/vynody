@@ -245,6 +245,7 @@ class _LyricsPanelTimedLyricsViewState extends State<LyricsPanelTimedLyricsView>
                     child: Column(
                       children: List.generate(widget.displayLines.length, (index) {
                         final bool isFar = widget.isTransitioning &&
+                            widget.isLowMidEnd &&
                             widget.hasTimedLyrics &&
                             (index - widget.activeIndex).abs() > 8;
 
