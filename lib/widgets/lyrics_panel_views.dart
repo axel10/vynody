@@ -194,7 +194,7 @@ class _LyricsPanelTimedLyricsViewState extends State<LyricsPanelTimedLyricsView>
   Widget build(BuildContext context) {
     final targetLang = widget.lyricsState.lyricsTranslationLanguageCode;
     final effectiveLang = widget.lyrics?.getEffectiveTranslationLanguage(targetLang) ?? targetLang;
-    final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
+    final isPortrait = (MediaQuery.of(context).orientation == Orientation.portrait) || widget.isSmallWin;
     final isLeftAligned = widget.lyricsStyle == LyricsStyle.apple;
     final isApplePortrait = isPortrait && widget.lyricsStyle == LyricsStyle.apple;
 
@@ -214,6 +214,7 @@ class _LyricsPanelTimedLyricsViewState extends State<LyricsPanelTimedLyricsView>
           Expanded(
             child: _LyricsFadeShaderMask(
               bottomSpacerHeight: widget.bottomSpacerHeight + widget.bottomTabBarHeight,
+              isSmallWin: widget.isSmallWin,
               child: ClipRect(
                 clipper: const _VerticalOnlyClipper(),
                 child: LayoutBuilder(
@@ -316,9 +317,11 @@ class _LyricsPanelTimedLyricsViewState extends State<LyricsPanelTimedLyricsView>
                                 leadingDistribution: TextLeadingDistribution.even,
                               );
 
-                        final double layoutMaxWidth = isApplePortrait
-                            ? widget.maxWidth - 24.0
-                            : widget.maxWidth - 48.0;
+                        final double effectiveLeftPadding = isApplePortrait
+                            ? (widget.isSmallWin ? 16.0 : 0.0)
+                            : 24.0;
+                        final double effectiveRightPadding = 24.0;
+                        final double layoutMaxWidth = widget.maxWidth - (effectiveLeftPadding + effectiveRightPadding);
 
                         final animatedScaleChild = AnimatedScale(
                           duration: const Duration(milliseconds: 220),
@@ -415,8 +418,8 @@ class _LyricsPanelTimedLyricsViewState extends State<LyricsPanelTimedLyricsView>
                           padding: EdgeInsets.only(
                             top: verticalItemPadding,
                             bottom: verticalItemPadding,
-                            left: isApplePortrait ? 0.0 : 24.0,
-                            right: 24.0,
+                            left: effectiveLeftPadding,
+                            right: effectiveRightPadding,
                           ),
                           child: Align(
                             alignment: isLeftAligned ? Alignment.centerLeft : Alignment.center,
@@ -519,10 +522,12 @@ class _VerticalOnlyClipper extends CustomClipper<Rect> {
 class _LyricsFadeShaderMask extends StatelessWidget {
   const _LyricsFadeShaderMask({
     required this.bottomSpacerHeight,
+    required this.isSmallWin,
     required this.child,
   });
 
   final double bottomSpacerHeight;
+  final bool isSmallWin;
   final Widget child;
 
   @override
@@ -542,7 +547,7 @@ class _LyricsFadeShaderMask extends StatelessWidget {
           final topFadeEnd = (topFadeHeight / height).clamp(0.0, 1.0);
 
           final isPortrait =
-              MediaQuery.of(context).orientation == Orientation.portrait;
+              (MediaQuery.of(context).orientation == Orientation.portrait) || isSmallWin;
 
           final double bottomFadeEndHeight;
           final double bottomFadeStartHeight;

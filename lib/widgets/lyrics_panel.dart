@@ -239,7 +239,8 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       return _cachedLineMetrics!;
     }
 
-    final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
+    final isSmallWin = ref.read(settingsServiceProvider).isSmallWindowMode;
+    final isPortrait = (MediaQuery.of(context).orientation == Orientation.portrait) || isSmallWin;
     final timedLyricFontSize = 16 * lyricsFontScale;
     final plainLyricFontSize = 18 * lyricsFontScale;
     final translationFontSize = (lyricsStyle == LyricsStyle.apple
@@ -287,7 +288,8 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     final double layoutMaxWidth;
     final double translationLayoutMaxWidth;
     if (isApplePortrait) {
-      layoutMaxWidth = maxWidth - 24.0;
+      final double effectiveLeftPadding = isSmallWin ? 16.0 : 0.0;
+      layoutMaxWidth = maxWidth - (effectiveLeftPadding + 24.0);
       translationLayoutMaxWidth = layoutMaxWidth - 12.0;
     } else {
       if (lyricsStyle == LyricsStyle.apple) {
@@ -1353,10 +1355,10 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     final maxExtent = _scrollController.position.maxScrollExtent;
     final bottomPadding = MediaQuery.of(context).padding.bottom;
     final bottomSpacers = widget.bottomSpacerHeight + widget.bottomTabBarHeight + bottomPadding;
-    final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
     final isSmallWin = ref.read(settingsServiceProvider).isSmallWindowMode;
+    final isPortrait = (MediaQuery.of(context).orientation == Orientation.portrait) || isSmallWin;
     // 考虑上下渐变区域不对称带来的视觉中心偏移 (15.0) 以及安全区域遮挡
-    final fadeAsymmetryShift = (isPortrait || isSmallWin) ? 15.0 : 0.0;
+    final fadeAsymmetryShift = isPortrait ? 15.0 : 0.0;
     // 计算可见区域的中心（避开底部遮挡/渐变区/安全区）
     final visibleCenter = (viewportHeight - bottomSpacers) / 2 - fadeAsymmetryShift;
 
@@ -1646,7 +1648,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       builder: (context, constraints) {
         _writeLog('LayoutBuilder: maxWidth=${constraints.maxWidth} maxHeight=${constraints.maxHeight}');
         final double screenWidth = MediaQuery.sizeOf(context).width;
-        final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
+        final isPortrait = (MediaQuery.of(context).orientation == Orientation.portrait) || isSmallWin;
         final double panelWidth = constraints.maxWidth;
 
         // Base scale based on screen width/resolution
