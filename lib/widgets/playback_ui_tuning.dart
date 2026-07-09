@@ -34,6 +34,14 @@ class PlaybackPageUiTuning {
   static const double appleLyricsTranslationFontSizePortrait = 11.0; // 苹果样式歌词翻译在竖屏模式下的字体大小
   static const double appleLyricsTranslationFontSizeLandscape = 11.0; // 苹果样式歌词翻译在横屏模式下的字体大小
 
+  static const double appleLyricsTopPaddingPortrait = 50.0; // 苹果样式歌词竖屏顶部边距
+  static const double appleLyricsTopPaddingLandscape = 50.0; // 苹果样式歌词横屏顶部边距 (原为120.0，调整为与竖屏一致)
+  static const double appleLyricsTopPaddingSmallWin = 30.0; // 苹果样式歌词小窗顶部边距
+
+  static const double appleLyricsScrollOffsetPortrait = 25.0; // 苹果样式歌词竖屏滚动偏移量
+  static const double appleLyricsScrollOffsetLandscape = 25.0; // 苹果样式歌词横屏滚动偏移量 (原为100.0，调整为与竖屏一致)
+  static const double appleLyricsScrollOffsetSmallWin = 25.0; // 苹果样式歌词小窗滚动偏移量
+
   // 歌词自适应字体大小配置参数
   static const double lyricsMinFontScale = 1.3;
   static const double lyricsMaxFontScale = 3.0;
