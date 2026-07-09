@@ -277,7 +277,12 @@ class _LyricsPanelTimedLyricsViewState extends State<LyricsPanelTimedLyricsView>
                         final targetScale = isActive && widget.lyricsStyle != LyricsStyle.apple ? 1.12 : 1.0;
                         final timedLyricFontSize = 16 * widget.lyricsFontScale;
                         final plainLyricFontSize = 18 * widget.lyricsFontScale;
-                        final translationFontSize = 13 * widget.lyricsFontScale;
+                        final translationFontSize = (widget.lyricsStyle == LyricsStyle.apple
+                                ? (isPortrait
+                                    ? PlaybackPageUiTuning.appleLyricsTranslationFontSizePortrait
+                                    : PlaybackPageUiTuning.appleLyricsTranslationFontSizeLandscape)
+                                : 13.0) *
+                            widget.lyricsFontScale;
                         final basePadding = widget.lyricsStyle == LyricsStyle.apple
                             ? PlaybackPageUiTuning.appleLyricsVerticalPadding
                             : PlaybackPageUiTuning.traditionalLyricsVerticalPadding;

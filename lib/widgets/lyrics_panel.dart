@@ -239,9 +239,15 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       return _cachedLineMetrics!;
     }
 
+    final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
     final timedLyricFontSize = 16 * lyricsFontScale;
     final plainLyricFontSize = 18 * lyricsFontScale;
-    final translationFontSize = 13 * lyricsFontScale;
+    final translationFontSize = (lyricsStyle == LyricsStyle.apple
+            ? (isPortrait
+                ? PlaybackPageUiTuning.appleLyricsTranslationFontSizePortrait
+                : PlaybackPageUiTuning.appleLyricsTranslationFontSizeLandscape)
+            : 13.0) *
+        lyricsFontScale;
     final basePadding = lyricsStyle == LyricsStyle.apple
         ? PlaybackPageUiTuning.appleLyricsVerticalPadding
         : PlaybackPageUiTuning.traditionalLyricsVerticalPadding;
@@ -277,7 +283,6 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     final anchorCenters = <double>[];
     double currentTop = 0.0;
 
-    final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
     final isApplePortrait = isPortrait && lyricsStyle == LyricsStyle.apple;
     final double layoutMaxWidth;
     final double translationLayoutMaxWidth;
