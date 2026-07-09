@@ -59,54 +59,6 @@ class _WaveformProgressBarState extends State<WaveformProgressBar> with TickerPr
   bool _isDragging = false;
   bool _suspendedForBackground = false;
 
-  // Cached shaders to optimize drawing performance
-  Shader? _cachedActiveShader;
-  Shader? _cachedInactiveShader;
-  double? _lastShaderWidth;
-  double? _lastShaderHeight;
-  Color? _lastActiveColor;
-  Color? _lastInactiveColor;
-
-  void _updateShaders(double width, double height, Color activeColor, Color inactiveColor) {
-    if (_cachedActiveShader != null &&
-        _cachedInactiveShader != null &&
-        _lastShaderWidth == width &&
-        _lastShaderHeight == height &&
-        _lastActiveColor == activeColor &&
-        _lastInactiveColor == inactiveColor) {
-      return;
-    }
-
-    final double centerY = height / 2;
-    final double maxBarHeight = height * 0.9;
-    final Rect rect = Rect.fromLTWH(0, centerY - maxBarHeight / 2, width, maxBarHeight);
-
-    _cachedActiveShader = LinearGradient(
-      begin: Alignment.topCenter,
-      end: Alignment.bottomCenter,
-      colors: [
-        activeColor.withValues(alpha: 0.7),
-        activeColor,
-        activeColor.withValues(alpha: 0.7),
-      ],
-    ).createShader(rect);
-
-    _cachedInactiveShader = LinearGradient(
-      begin: Alignment.topCenter,
-      end: Alignment.bottomCenter,
-      colors: [
-        inactiveColor.withValues(alpha: 0.7),
-        inactiveColor,
-        inactiveColor.withValues(alpha: 0.7),
-      ],
-    ).createShader(rect);
-
-    _lastShaderWidth = width;
-    _lastShaderHeight = height;
-    _lastActiveColor = activeColor;
-    _lastInactiveColor = inactiveColor;
-  }
-
   @override
   void initState() {
     super.initState();
@@ -355,24 +307,19 @@ class _WaveformProgressBarState extends State<WaveformProgressBar> with TickerPr
                       alignment: Alignment.center,
                       children: [
                         // 波形显示
-                        Builder(
-                          builder: (context) {
-                            _updateShaders(width, widget.height, widget.activeColor, widget.inactiveColor);
-                            return RepaintBoundary(
-                              child: CustomPaint(
-                                size: Size(width, widget.height),
-                                painter: WaveformPainter(
-                                  waveform: _animatedWaveform,
-                                  progress: _smoothProgress,
-                                  activeShader: _cachedActiveShader!,
-                                  inactiveShader: _cachedInactiveShader!,
-                                  isScrolling: widget.isScrolling,
-                                  barWidth: barWidth,
-                                  barGap: barGap,
-                                ),
-                              ),
-                            );
-                          }
+                        RepaintBoundary(
+                          child: CustomPaint(
+                            size: Size(width, widget.height),
+                            painter: WaveformPainter(
+                              waveform: _animatedWaveform,
+                              progress: _smoothProgress,
+                              activeColor: widget.activeColor,
+                              inactiveColor: widget.inactiveColor,
+                              isScrolling: widget.isScrolling,
+                              barWidth: barWidth,
+                              barGap: barGap,
+                            ),
+                          ),
                         ),
                         
                         if (widget.showTooltip && _hoverProgress != null)
@@ -401,8 +348,8 @@ class _WaveformProgressBarState extends State<WaveformProgressBar> with TickerPr
 class WaveformPainter extends CustomPainter {
   final List<double> waveform;
   final double progress;
-  final Shader activeShader;
-  final Shader inactiveShader;
+  final Color activeColor;
+  final Color inactiveColor;
   final bool isScrolling;
   final double barWidth;
   final double barGap;
@@ -410,8 +357,8 @@ class WaveformPainter extends CustomPainter {
   WaveformPainter({
     required this.waveform,
     required this.progress,
-    required this.activeShader,
-    required this.inactiveShader,
+    required this.activeColor,
+    required this.inactiveColor,
     required this.isScrolling,
     required this.barWidth,
     required this.barGap,
@@ -439,7 +386,7 @@ class WaveformPainter extends CustomPainter {
       maxBarHeight,
       totalBarWidth,
       currentIdx,
-      inactiveShader,
+      inactiveColor,
     );
 
     // 2. 绘制激活层 (使用裁剪实现像素级颜色平滑过渡，并通过 maxExclusiveX 限制绘制的索引范围)
@@ -452,7 +399,7 @@ class WaveformPainter extends CustomPainter {
       maxBarHeight,
       totalBarWidth,
       currentIdx,
-      activeShader,
+      activeColor,
       maxExclusiveX: centerX,
     );
     canvas.restore();
@@ -465,13 +412,13 @@ class WaveformPainter extends CustomPainter {
     double maxBarHeight,
     double totalBarWidth,
     double currentIdx,
-    Shader shader, {
+    Color color, {
     double? maxExclusiveX,
   }) {
     final double viewCenterX = size.width / 2;
     final paint = Paint()
       ..style = PaintingStyle.fill
-      ..shader = shader;
+      ..color = color;
 
     final double stepWidth = isScrolling ? totalBarWidth : (size.width / math.max(1, waveform.length));
 
@@ -528,8 +475,8 @@ class WaveformPainter extends CustomPainter {
   bool shouldRepaint(covariant WaveformPainter oldDelegate) {
     return !listEquals(oldDelegate.waveform, waveform) ||
         oldDelegate.progress != progress ||
-        oldDelegate.activeShader != activeShader ||
-        oldDelegate.inactiveShader != inactiveShader ||
+        oldDelegate.activeColor != activeColor ||
+        oldDelegate.inactiveColor != inactiveColor ||
         oldDelegate.isScrolling != isScrolling;
   }
 }
