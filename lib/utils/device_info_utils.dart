@@ -46,8 +46,18 @@ class DevicePerformanceHelper {
         }
       }
 
-      // 3. Chipset check via hardware string in AndroidDeviceInfo
-      if (_isLowMidEndOr8sChip(hardware)) {
+      // 3. Chipset check via hardware, board or ro.soc.model property
+      String? socModel;
+      try {
+        final result = await Process.run('/system/bin/getprop', ['ro.soc.model']);
+        if (result.exitCode == 0) {
+          socModel = result.stdout.toString().trim();
+        }
+      } catch (_) {}
+
+      if (_isLowMidEndOr8sChip(hardware) ||
+          _isLowMidEndOr8sChip(board) ||
+          (socModel != null && _isLowMidEndOr8sChip(socModel))) {
         _isLowMidEndCache = true;
         return true;
       }
