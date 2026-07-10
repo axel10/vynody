@@ -1595,19 +1595,29 @@ class LyricsAiService {
     final outputFile = File(outputPath);
 
     bool isWithin = p.isWithin(tempDir.path, outputFile.path);
+    debugPrint('[LyricsAi] isWithin first check: $isWithin (tempDir: ${tempDir.path}, outputFile: ${outputFile.path})');
+
+    String resolvedOutputPath = outputFile.path;
+    String resolvedTempPath = tempDir.path;
     if (!isWithin) {
-      String resolvedOutputPath = outputFile.path;
-      String resolvedTempPath = tempDir.path;
       try {
         resolvedOutputPath = outputFile.resolveSymbolicLinksSync();
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('[LyricsAi] resolveSymbolicLinksSync failed for output: $e');
+      }
       try {
         resolvedTempPath = tempDir.resolveSymbolicLinksSync();
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('[LyricsAi] resolveSymbolicLinksSync failed for temp: $e');
+      }
       isWithin = p.isWithin(resolvedTempPath, resolvedOutputPath);
+      debugPrint('[LyricsAi] isWithin second check: $isWithin (resolvedTempDir: $resolvedTempPath, resolvedOutputFile: $resolvedOutputPath)');
     }
 
     if (!isWithin) {
+      debugPrint('[LyricsAi] validation failed: final isWithin = false. '
+          'tempDir: ${tempDir.path}, outputFile: ${outputFile.path}, '
+          'resolvedTempDir: $resolvedTempPath, resolvedOutputFile: $resolvedOutputPath');
       throw Exception(
         _l10n().tempTranscodeNotInTempDir,
       );
