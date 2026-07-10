@@ -31,17 +31,22 @@ abstract class MusicFile with _$MusicFile {
     @Default(false) bool isMissing,
   }) = _MusicFile;
 
-  static final Expando<List<double>> _waveformCache = Expando<List<double>>();
+  static final Map<String, List<double>> _waveformMemoryCache = {};
+  static final List<String> _waveformMemoryCacheKeys = [];
+  static const int _maxCacheSize = 8;
+
+  static void clearCache() {
+    _waveformMemoryCache.clear();
+    _waveformMemoryCacheKeys.clear();
+  }
 
   List<double> get waveform {
-    final cached = _waveformCache[this];
+    final cached = _waveformMemoryCache[path];
     if (cached != null) return cached;
 
     final blob = waveformBlob;
     if (blob == null || blob.isEmpty) {
-      const empty = <double>[];
-      _waveformCache[this] = empty;
-      return empty;
+      return const <double>[];
     }
     final alignedBlob = (blob.offsetInBytes % 4 == 0)
         ? blob
@@ -51,7 +56,14 @@ abstract class MusicFile with _$MusicFile {
       alignedBlob.length ~/ 4,
     );
     final result = list.map((e) => e.toDouble()).toList();
-    _waveformCache[this] = result;
+
+    if (_waveformMemoryCacheKeys.length >= _maxCacheSize) {
+      final oldestKey = _waveformMemoryCacheKeys.removeAt(0);
+      _waveformMemoryCache.remove(oldestKey);
+    }
+    _waveformMemoryCache[path] = result;
+    _waveformMemoryCacheKeys.add(path);
+
     return result;
   }
 

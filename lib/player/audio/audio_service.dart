@@ -1424,6 +1424,7 @@ class AudioService extends Notifier<AudioSnapshot> {
   }
 
   void _clearInMemoryWaveformCache() {
+    MusicFile.clearCache();
     bool changed = false;
     for (var i = 0; i < _queue.length; i++) {
       if (_queue[i].waveformBlob != null) {
