@@ -29,6 +29,7 @@ Future<String?> _showApiKeyDialog(
   required String getKeyButtonLabel,
   String initialApiKey = '',
   String? getKeyUrl,
+  String? Function(String apiKey)? validator,
 }) async {
   return showDialog<String?>(
     context: context,
@@ -46,6 +47,7 @@ Future<String?> _showApiKeyDialog(
         initialApiKey: initialApiKey,
         testConnection: testConnection,
         getKeyUrl: getKeyUrl,
+        validator: validator,
       );
     },
   );
@@ -65,6 +67,7 @@ class _ApiKeyDialog extends StatefulWidget {
     required this.initialApiKey,
     required this.testConnection,
     this.getKeyUrl,
+    this.validator,
   });
 
   final String title;
@@ -79,6 +82,7 @@ class _ApiKeyDialog extends StatefulWidget {
   final String initialApiKey;
   final Future<_ApiKeyDialogResult> Function(String apiKey) testConnection;
   final String? getKeyUrl;
+  final String? Function(String apiKey)? validator;
 
   @override
   State<_ApiKeyDialog> createState() => _ApiKeyDialogState();
@@ -114,6 +118,15 @@ class _ApiKeyDialogState extends State<_ApiKeyDialog> {
       return;
     }
 
+    final validationError = widget.validator?.call(apiKey);
+    if (validationError != null) {
+      setState(() {
+        _statusText = validationError;
+        _statusType = _StatusType.error;
+      });
+      return;
+    }
+
     setState(() {
       _isTesting = true;
       _statusText = AppLocalizations.of(context)!.testingConnection;
@@ -141,7 +154,8 @@ class _ApiKeyDialogState extends State<_ApiKeyDialog> {
   @override
   Widget build(BuildContext context) {
     final apiKey = _controller.text.trim();
-    final canSave = apiKey.isNotEmpty && !_isTesting;
+    final validationError = widget.validator?.call(apiKey);
+    final canSave = apiKey.isNotEmpty && validationError == null && !_isTesting;
     final theme = Theme.of(context);
 
     final statusColor = switch (_statusType) {
@@ -178,6 +192,7 @@ class _ApiKeyDialogState extends State<_ApiKeyDialog> {
                 decoration: InputDecoration(
                   labelText: widget.fieldLabel,
                   hintText: widget.hintText,
+                  errorText: apiKey.isEmpty ? null : validationError,
                 ),
                 onChanged: (_) {
                   setState(() {
@@ -207,7 +222,7 @@ class _ApiKeyDialogState extends State<_ApiKeyDialog> {
           child: Text(AppLocalizations.of(context)!.clear),
         ),
         TextButton(
-          onPressed: _isTesting ? null : _runTest,
+          onPressed: _isTesting || (apiKey.isNotEmpty && validationError != null) ? null : _runTest,
           child: Text(
             _isTesting
                 ? AppLocalizations.of(context)!.testingConnection
@@ -285,6 +300,15 @@ Future<String?> showOpenRouterApiKeyDialog(
         message: result.message,
       );
     },
+    validator: (apiKey) {
+      if (apiKey.isNotEmpty && !apiKey.startsWith('sk-or-v1-')) {
+        if (l10n.localeName.startsWith('zh')) {
+          return 'OpenRouter API Key 格式不正确，应以 sk-or-v1- 开头';
+        }
+        return 'Invalid OpenRouter API Key format, must start with sk-or-v1-';
+      }
+      return null;
+    },
   );
 }
 
@@ -326,6 +350,15 @@ Future<String?> showDoubaoApiKeyDialog(
         return _ApiKeyDialogResult(success: false, message: l10n.connectionTestException(e));
       }
     },
+    validator: (apiKey) {
+      if (apiKey.isNotEmpty && !apiKey.startsWith('ark-')) {
+        if (l10n.localeName.startsWith('zh')) {
+          return '豆包 API Key 格式不正确，应以 ark- 开头';
+        }
+        return 'Invalid Doubao API Key format, must start with ark-';
+      }
+      return null;
+    },
   );
 }
 
@@ -365,6 +398,15 @@ Future<String?> showDeepSeekApiKeyDialog(
       } catch (e) {
         return _ApiKeyDialogResult(success: false, message: l10n.connectionTestException(e));
       }
+    },
+    validator: (apiKey) {
+      if (apiKey.isNotEmpty && !apiKey.startsWith('sk-')) {
+        if (l10n.localeName.startsWith('zh')) {
+          return 'DeepSeek API Key 格式不正确，应以 sk- 开头';
+        }
+        return 'Invalid DeepSeek API Key format, must start with sk-';
+      }
+      return null;
     },
   );
 }
