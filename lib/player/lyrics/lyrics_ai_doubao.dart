@@ -276,16 +276,20 @@ class LyricsAiDoubaoClient {
     final outputPath = result.result.outputPath!;
     final outputFile = File(outputPath);
 
-    String resolvedOutputPath = outputFile.path;
-    String resolvedTempPath = tempDir.path;
-    try {
-      resolvedOutputPath = outputFile.resolveSymbolicLinksSync();
-    } catch (_) {}
-    try {
-      resolvedTempPath = tempDir.resolveSymbolicLinksSync();
-    } catch (_) {}
+    bool isWithin = p.isWithin(tempDir.path, outputFile.path);
+    if (!isWithin) {
+      String resolvedOutputPath = outputFile.path;
+      String resolvedTempPath = tempDir.path;
+      try {
+        resolvedOutputPath = outputFile.resolveSymbolicLinksSync();
+      } catch (_) {}
+      try {
+        resolvedTempPath = tempDir.resolveSymbolicLinksSync();
+      } catch (_) {}
+      isWithin = p.isWithin(resolvedTempPath, resolvedOutputPath);
+    }
 
-    if (!p.isWithin(resolvedTempPath, resolvedOutputPath)) {
+    if (!isWithin) {
       throw Exception(
         _l10n().doubaoTempTranscodeNotInTempDir,
       );
