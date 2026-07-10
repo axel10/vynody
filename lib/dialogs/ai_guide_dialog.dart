@@ -95,6 +95,7 @@ class _ApiKeyDialogState extends State<_ApiKeyDialog> {
   bool _isTesting = false;
   String _statusText = '';
   _StatusType _statusType = _StatusType.none;
+  bool _obscureText = true;
 
   @override
   void initState() {
@@ -186,13 +187,25 @@ class _ApiKeyDialogState extends State<_ApiKeyDialog> {
               TextField(
                 controller: _controller,
                 autofocus: true,
-                obscureText: true,
+                obscureText: _obscureText,
                 enableSuggestions: false,
                 autocorrect: false,
                 decoration: InputDecoration(
                   labelText: widget.fieldLabel,
                   hintText: widget.hintText,
                   errorText: apiKey.isEmpty ? null : validationError,
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscureText
+                          ? Icons.visibility_off_rounded
+                          : Icons.visibility_rounded,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _obscureText = !_obscureText;
+                      });
+                    },
+                  ),
                 ),
                 onChanged: (_) {
                   setState(() {
@@ -200,6 +213,35 @@ class _ApiKeyDialogState extends State<_ApiKeyDialog> {
                     _statusType = _StatusType.none;
                   });
                 },
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  if (widget.getKeyUrl != null)
+                    TextButton.icon(
+                      onPressed: () => launchUrlString(widget.getKeyUrl!),
+                      icon: const Icon(Icons.open_in_new_rounded, size: 16),
+                      label: Text(widget.getKeyButtonLabel),
+                    )
+                  else
+                    const SizedBox.shrink(),
+                  ElevatedButton.icon(
+                    onPressed: _isTesting || (apiKey.isNotEmpty && validationError != null) ? null : _runTest,
+                    icon: _isTesting
+                        ? const SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.network_check_rounded, size: 16),
+                    label: Text(
+                      _isTesting
+                          ? AppLocalizations.of(context)!.testingConnection
+                          : widget.testButtonLabel,
+                    ),
+                  ),
+                ],
               ),
               if (_statusText.isNotEmpty) ...[
                 const SizedBox(height: 12),
@@ -221,19 +263,6 @@ class _ApiKeyDialogState extends State<_ApiKeyDialog> {
           onPressed: _isTesting ? null : _clearAndSave,
           child: Text(AppLocalizations.of(context)!.clear),
         ),
-        TextButton(
-          onPressed: _isTesting || (apiKey.isNotEmpty && validationError != null) ? null : _runTest,
-          child: Text(
-            _isTesting
-                ? AppLocalizations.of(context)!.testingConnection
-                : widget.testButtonLabel,
-          ),
-        ),
-        if (widget.getKeyUrl != null)
-          TextButton(
-            onPressed: () => launchUrlString(widget.getKeyUrl!),
-            child: Text(widget.getKeyButtonLabel),
-          ),
         FilledButton(
           onPressed: canSave ? _saveCurrentValue : null,
           child: Text(widget.saveButtonLabel),
