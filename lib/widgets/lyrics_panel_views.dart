@@ -656,8 +656,13 @@ class _StaggeredAppleLyricsScrollWrapperState
       if (widget.isEnteringFocusMode) {
         delayMs = math.min(350, math.max(0, widget.index - widget.firstVisibleIndex) * 15);
       } else {
-        final distance = (widget.index - widget.activeIndex).abs();
-        delayMs = math.min(100, distance * 8);
+        if (widget.index > widget.activeIndex) {
+          delayMs = math.min(300, (widget.index - widget.activeIndex) * 24);
+        } else if (widget.index < widget.activeIndex) {
+          delayMs = math.min(120, (widget.activeIndex - widget.index) * 12);
+        } else {
+          delayMs = 0;
+        }
       }
 
       if (delayMs == 0) {
@@ -698,8 +703,13 @@ class _StaggeredAppleLyricsScrollWrapperState
     if (widget.isEnteringFocusMode) {
       delayMs = math.min(350, math.max(0, widget.index - widget.firstVisibleIndex) * 15);
     } else {
-      final distance = (widget.index - widget.activeIndex).abs();
-      delayMs = math.min(100, distance * 8);
+      if (widget.index > widget.activeIndex) {
+        delayMs = math.min(300, (widget.index - widget.activeIndex) * 24);
+      } else if (widget.index < widget.activeIndex) {
+        delayMs = math.min(120, (widget.activeIndex - widget.index) * 12);
+      } else {
+        delayMs = 0;
+      }
     }
     
     _startOffset = widget.scrollDelta + _currentOffset;
