@@ -1650,8 +1650,6 @@ class _SafeBackgroundSwitcher extends StatefulWidget {
 class _SafeBackgroundSwitcherState extends State<_SafeBackgroundSwitcher>
     with TickerProviderStateMixin {
   final List<_SwitcherItem> _items = [];
-  Timer? _debounceTimer;
-  Widget? _pendingChild;
 
   void _log(String message) {
     if (kDebugMode) {
@@ -1669,15 +1667,7 @@ class _SafeBackgroundSwitcherState extends State<_SafeBackgroundSwitcher>
   void didUpdateWidget(_SafeBackgroundSwitcher oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.child.key != oldWidget.child.key) {
-      _debounceTimer?.cancel();
-      _pendingChild = widget.child;
-      _debounceTimer = Timer(const Duration(milliseconds: 150), () {
-        if (!mounted) return;
-        if (_pendingChild != null) {
-          _addNewChild(_pendingChild!, animate: true);
-          _pendingChild = null;
-        }
-      });
+      _addNewChild(widget.child, animate: true);
     }
   }
 
@@ -1735,7 +1725,6 @@ class _SafeBackgroundSwitcherState extends State<_SafeBackgroundSwitcher>
 
   @override
   void dispose() {
-    _debounceTimer?.cancel();
     for (final item in _items) {
       item.controller.dispose();
     }
