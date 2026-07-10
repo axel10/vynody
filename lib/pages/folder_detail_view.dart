@@ -15,6 +15,7 @@ import 'package:vynody/player/scanner/scanner_path_utils.dart';
 import 'package:vynody/utils/song_context_menu_utils.dart';
 import '../widgets/song_tile.dart';
 import '../widgets/library_selection_panel.dart';
+import '../widgets/folder_header_banner.dart';
 import '../widgets/song_thumbnail.dart';
 import '../widgets/folder_grid_card.dart';
 import '../widgets/folder_list_tile.dart';
@@ -280,6 +281,11 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
     final selectionPanelHeight = showSelectionPanel ? 220.0 : 0.0;
 
     final representativeSong = findRepresentativeSong(folder);
+
+    final totalDurationMs = folder.allSongs.fold<int>(
+      0,
+      (sum, song) => sum + (song.durationMillis ?? 0),
+    );
 
     Widget scrollBody;
 
@@ -677,28 +683,103 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
           floating: Platform.isAndroid || Platform.isIOS,
         ),
         SliverToBoxAdapter(
-          child: _buildFolderHeaderBanner(
-            context: context,
-            folder: folder,
-            representativeSong: representativeSong,
+          child: FolderHeaderBanner(
+            title: folder.name,
+            subtitle: ScannerPathUtils.cleanDisplayPath(folder.path),
             songsCount: folder.allSongs.length,
-            displayPath: ScannerPathUtils.cleanDisplayPath(folder.path),
-            onPlayAll: () => audio.playPlaylist(
-              folder.allSongs,
-              source: PlaybackSource(
-                type: PlaybackSourceType.folder,
-                id: folder.path,
-                name: folder.name,
+            totalDuration: Duration(milliseconds: totalDurationMs),
+            coverWidget: representativeSong != null
+                ? SongThumbnail(
+                    path: representativeSong.path,
+                    id: representativeSong.id,
+                    size: 100,
+                    width: 100,
+                    height: 100,
+                  )
+                : Container(
+                    width: 100,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          HSLColor.fromAHSL(1.0, (folder.path.hashCode.abs() % 360).toDouble(), 0.65, 0.45).toColor(),
+                          HSLColor.fromAHSL(1.0, ((folder.path.hashCode.abs() % 360 + 40) % 360).toDouble(), 0.75, 0.35).toColor(),
+                        ],
+                      ),
+                    ),
+                    child: const Center(
+                      child: Icon(Icons.folder_rounded, size: 40, color: Colors.white70),
+                    ),
+                  ),
+            actionButtons: [
+              FilledButton.icon(
+                onPressed: () => audio.playPlaylist(
+                  folder.allSongs,
+                  source: PlaybackSource(
+                    type: PlaybackSourceType.folder,
+                    id: folder.path,
+                    name: folder.name,
+                  ),
+                ),
+                icon: const Icon(Icons.play_arrow_rounded, size: 16),
+                label: Text(l10n.playAll),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size(0, 32),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  visualDensity: VisualDensity.compact,
+                  textStyle: const TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
-            ),
-            onShuffle: () => audio.playPlaylist(
-              List.of(folder.allSongs)..shuffle(),
-              source: PlaybackSource(
-                type: PlaybackSourceType.folder,
-                id: folder.path,
-                name: folder.name,
+              const SizedBox(width: 8),
+              FilledButton.tonalIcon(
+                onPressed: () => audio.playPlaylist(
+                  List.of(folder.allSongs)..shuffle(),
+                  source: PlaybackSource(
+                    type: PlaybackSourceType.folder,
+                    id: folder.path,
+                    name: folder.name,
+                  ),
+                ),
+                icon: const Icon(Icons.shuffle_rounded, size: 16),
+                label: Text(l10n.shuffle),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size(0, 32),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  visualDensity: VisualDensity.compact,
+                  textStyle: const TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
-            ),
+            ],
+            actionButtonsScrollable: false,
+            isSearching: _isSearching,
+            searchController: _searchController,
+            searchQuery: _searchQuery,
+            searchHintText: l10n.searchInFolderAndSubfolders,
+            onSearchQueryChanged: (val) {
+              setState(() {
+                _searchQuery = val.trim();
+              });
+            },
+            onToggleSearch: (val) {
+              setState(() {
+                _isSearching = val;
+                if (!val) {
+                  _searchQuery = '';
+                }
+              });
+            },
+            heroTag: 'folder-cover-${folder.path}',
+            isHeroModeEnabled: _isCoverVisible,
           ),
         ),
         if (folder.path == 'system' && !hasPermission)
@@ -1256,224 +1337,6 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
     );
   }
 
-  Widget _buildFolderHeaderBanner({
-    required BuildContext context,
-    required MusicFolder folder,
-    required MusicFile? representativeSong,
-    required int songsCount,
-    required String displayPath,
-    required VoidCallback onPlayAll,
-    required VoidCallback onShuffle,
-  }) {
-    final theme = Theme.of(context);
-    final l10n = AppLocalizations.of(context)!;
-
-    final int hash = folder.path.hashCode;
-    final double hue = (hash.abs() % 360).toDouble();
-    final Color startColor = HSLColor.fromAHSL(1.0, hue, 0.65, 0.45).toColor();
-    final Color endColor = HSLColor.fromAHSL(1.0, (hue + 40) % 360, 0.75, 0.35).toColor();
-
-    Widget coverWidget;
-    if (representativeSong != null) {
-      coverWidget = SongThumbnail(
-        path: representativeSong.path,
-        id: representativeSong.id,
-        size: 100,
-        width: 100,
-        height: 100,
-      );
-    } else {
-      coverWidget = Container(
-        width: 100,
-        height: 100,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [startColor, endColor],
-          ),
-        ),
-        child: const Center(
-          child: Icon(Icons.folder_rounded, size: 40, color: Colors.white70),
-        ),
-      );
-    }
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        color: theme.colorScheme.surfaceContainer.withValues(alpha: 0.5),
-        border: Border.all(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              HeroMode(
-                enabled: _isCoverVisible,
-                child: Hero(
-                  tag: 'folder-cover-${folder.path}',
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
-                    child: coverWidget,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      folder.name,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      displayPath,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      l10n.songCount(songsCount),
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.primary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          const Divider(height: 1),
-          const SizedBox(height: 12),
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 200),
-            child: _isSearching
-                ? Row(
-                    key: const ValueKey('search-active-row'),
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _searchController,
-                          autofocus: true,
-                          style: theme.textTheme.bodyMedium,
-                          decoration: InputDecoration(
-                            hintText: l10n.searchInFolderAndSubfolders,
-                            prefixIcon: const Icon(Icons.search_rounded, size: 20),
-                            suffixIcon: _searchQuery.isNotEmpty
-                                ? IconButton(
-                                    icon: const Icon(Icons.clear_rounded, size: 20),
-                                    onPressed: () {
-                                      _searchController.clear();
-                                      setState(() {
-                                        _searchQuery = '';
-                                      });
-                                    },
-                                  )
-                                : null,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide.none,
-                            ),
-                            filled: true,
-                            fillColor: theme.colorScheme.surfaceContainerHigh.withValues(alpha: 0.8),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            isDense: true,
-                          ),
-                          onChanged: (val) {
-                            setState(() {
-                              _searchQuery = val.trim();
-                            });
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      IconButton(
-                        icon: const Icon(Icons.close_rounded),
-                        onPressed: () {
-                          _searchController.clear();
-                          setState(() {
-                            _isSearching = false;
-                            _searchQuery = '';
-                          });
-                        },
-                      ),
-                    ],
-                  )
-                : Row(
-                    key: const ValueKey('actions-normal-row'),
-                    children: [
-                      FilledButton.icon(
-                        onPressed: onPlayAll,
-                        icon: const Icon(Icons.play_arrow_rounded, size: 16),
-                        label: Text(l10n.playAll),
-                        style: FilledButton.styleFrom(
-                          minimumSize: const Size(0, 32),
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          visualDensity: VisualDensity.compact,
-                          textStyle: const TextStyle(
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      FilledButton.tonalIcon(
-                        onPressed: onShuffle,
-                        icon: const Icon(Icons.shuffle_rounded, size: 16),
-                        label: Text(l10n.shuffle),
-                        style: FilledButton.styleFrom(
-                          minimumSize: const Size(0, 32),
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          visualDensity: VisualDensity.compact,
-                          textStyle: const TextStyle(
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                      const Spacer(),
-                      IconButton(
-                        onPressed: () {
-                          setState(() {
-                            _isSearching = true;
-                          });
-                        },
-                        icon: const Icon(Icons.search_rounded, size: 16),
-                        tooltip: l10n.search,
-                        style: IconButton.styleFrom(
-                          minimumSize: const Size(32, 32),
-                          padding: EdgeInsets.zero,
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          visualDensity: VisualDensity.compact,
-                        ),
-                      ),
-                    ],
-                  ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class _BreadcrumbsHeaderDelegate extends SliverPersistentHeaderDelegate {
