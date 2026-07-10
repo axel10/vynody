@@ -46,6 +46,8 @@ class _CoverCarouselState extends State<CoverCarousel>
   bool _isDragging = false;
   final Map<int, int> _indexOverrides = {};
   final Map<int, ({Uint8List? bytes, String? path})> _loadedCovers = {};
+  MusicFile? _oldSongBeforePlaylistChange;
+  double? _oldPageBeforePlaylistChange;
 
   static const double _swipeThreshold = 0.2;
   static const double _resistanceFactor = 0.2;
@@ -68,6 +70,14 @@ class _CoverCarouselState extends State<CoverCarousel>
     );
   }
 
+  bool _isPlaylistSame(List<MusicFile> list1, List<MusicFile> list2) {
+    if (list1.length != list2.length) return false;
+    for (int i = 0; i < list1.length; i++) {
+      if (list1[i].path != list2[i].path) return false;
+    }
+    return true;
+  }
+
   @override
   void didUpdateWidget(CoverCarousel oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -75,10 +85,28 @@ class _CoverCarouselState extends State<CoverCarousel>
       'didUpdateWidget currentIndex ${oldWidget.currentIndex} -> ${widget.currentIndex} '
       'currentPage=$_currentPage animValue=${_animationController.value}',
     );
+
+    final bool playlistChanged = !_isPlaylistSame(oldWidget.playlist, widget.playlist);
+
     if (widget.currentIndex != oldWidget.currentIndex &&
         widget.currentIndex != _currentPage) {
+      if (playlistChanged &&
+          oldWidget.playlist.isNotEmpty &&
+          oldWidget.currentIndex >= 0 &&
+          oldWidget.currentIndex < oldWidget.playlist.length) {
+        _oldSongBeforePlaylistChange = oldWidget.playlist[oldWidget.currentIndex];
+        _oldPageBeforePlaylistChange = _animationController.value;
+      } else {
+        _oldSongBeforePlaylistChange = null;
+        _oldPageBeforePlaylistChange = null;
+      }
       _currentPage = widget.currentIndex;
       _animateToPage(widget.currentIndex, forceStepDirection: true);
+    } else if (playlistChanged) {
+      _oldSongBeforePlaylistChange = null;
+      _oldPageBeforePlaylistChange = null;
+      _currentPage = widget.currentIndex;
+      _animationController.value = widget.currentIndex.toDouble();
     }
   }
 
@@ -123,6 +151,8 @@ class _CoverCarouselState extends State<CoverCarousel>
               );
               _animationController.value = targetPage.toDouble();
               _indexOverrides.clear();
+              _oldSongBeforePlaylistChange = null;
+              _oldPageBeforePlaylistChange = null;
               if (_currentPage != targetPage) {
                 setState(() {
                   _currentPage = targetPage;
@@ -149,6 +179,8 @@ class _CoverCarouselState extends State<CoverCarousel>
                 '_animateToPage complete -> page=$page '
                 'currentVal=${_animationController.value}',
               );
+              _oldSongBeforePlaylistChange = null;
+              _oldPageBeforePlaylistChange = null;
               if (_currentPage != page) {
                 setState(() {
                   _currentPage = page;
@@ -278,15 +310,26 @@ class _CoverCarouselState extends State<CoverCarousel>
 
     return uniqueIndices
         .where((idx) {
+          if (_oldSongBeforePlaylistChange != null &&
+              _oldPageBeforePlaylistChange != null &&
+              idx == _oldPageBeforePlaylistChange!.round()) {
+            return true;
+          }
           final actualIdx = _indexOverrides[idx] ?? idx;
           return actualIdx >= 0 && actualIdx < widget.playlist.length;
         })
         .map((index) {
           final actualIndex = _indexOverrides[index] ?? index;
+          final bool isOldSongSlot = _oldSongBeforePlaylistChange != null &&
+              _oldPageBeforePlaylistChange != null &&
+              index == _oldPageBeforePlaylistChange!.round();
+          final musicFile = isOldSongSlot
+              ? _oldSongBeforePlaylistChange!
+              : widget.playlist[actualIndex];
           return _CoverItem(
-            key: ValueKey('track_${actualIndex}_slot_$index'),
+            key: ValueKey('track_${musicFile.path}_slot_$index'),
             audioService: widget.audioService,
-            musicFile: widget.playlist[actualIndex],
+            musicFile: musicFile,
             animation: _animationController,
             itemIndex: index,
             width: width,
@@ -296,7 +339,7 @@ class _CoverCarouselState extends State<CoverCarousel>
               _loadedCovers[index] = (bytes: bytes, path: path);
               _logCarouselTrace(
                 'onArtworkLoaded slot=$index actual=$actualIndex '
-                'path=${widget.playlist[actualIndex].path} '
+                'path=${musicFile.path} '
                 'bytes=${bytes?.length ?? 0} sourcePath=${path ?? '-'} '
                 'currentIndex=${widget.currentIndex}',
               );
@@ -305,10 +348,10 @@ class _CoverCarouselState extends State<CoverCarousel>
               final isSettled = (_animationController.value - index).abs() < 0.01 &&
                   !_animationController.isAnimating &&
                   !_isDragging;
-              if (actualIndex == widget.currentIndex && bytes != null && isSettled) {
+              if (musicFile.path == widget.playlist[widget.currentIndex].path && bytes != null && isSettled) {
                 widget.onAnimationComplete?.call(
                   bytes,
-                  widget.playlist[actualIndex].path,
+                  musicFile.path,
                 );
               }
             },
