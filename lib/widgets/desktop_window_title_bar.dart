@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'app_tooltip.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
 import '../player/audio/audio_riverpod.dart';
@@ -151,7 +152,7 @@ class _DesktopWindowTitleBarState extends ConsumerState<DesktopWindowTitleBar>
                         Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Tooltip(
+                            AppTooltip(
                               message: AppLocalizations.of(context)?.alwaysOnTop ??
                                   'Always on Top',
                               child: _MacosSmallWindowButton(
@@ -603,7 +604,7 @@ class _WindowsCapsuleButtonState extends State<_WindowsCapsuleButton> {
     );
 
     if (widget.data.tooltip != null) {
-      buttonWidget = Tooltip(
+      buttonWidget = AppTooltip(
         message: widget.data.tooltip!,
         child: buttonWidget,
       );

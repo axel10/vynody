@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:vynody/widgets/app_tooltip.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:audio_core/audio_core.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
@@ -79,7 +80,7 @@ class MiniControlButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return IconButton(
+    final Widget buttonWidget = IconButton(
       icon: Icon(icon, color: isDark ? Colors.white : Colors.black87, size: iconSize),
       padding: padding,
       constraints: const BoxConstraints(),
@@ -87,10 +88,19 @@ class MiniControlButton extends StatelessWidget {
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
       ),
       onPressed: onPressed,
-      tooltip: tooltip,
     );
+
+    if (tooltip != null && tooltip!.isNotEmpty) {
+      return AppTooltip(
+        message: tooltip!,
+        child: buttonWidget,
+      );
+    }
+
+    return buttonWidget;
   }
 }
+
 
 class MiniInlineVolumeControl extends StatelessWidget {
   const MiniInlineVolumeControl({

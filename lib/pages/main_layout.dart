@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import '../widgets/app_tooltip.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
@@ -413,7 +414,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
     Color? color,
     double? size,
   }) {
-    return Tooltip(
+    return AppTooltip(
       message: message,
       child: Icon(icon, color: color, size: size),
     );

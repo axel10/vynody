@@ -23,6 +23,7 @@ import '../widgets/animated_play_pause_button.dart';
 import '../widgets/playback_ui_tuning.dart';
 import '../widgets/waveform_progress_bar.dart';
 import 'marquee_text.dart';
+import 'app_tooltip.dart';
 
 const String playbackHeroTag = 'player_capsule';
 double _maxWindowHeightSeen = 0.0;
@@ -1620,125 +1621,135 @@ class PlaybackHeroCard extends ConsumerWidget {
           mainAxisSize: MainAxisSize.max,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            IconButton(
-              padding: EdgeInsets.zero,
-              constraints: BoxConstraints.tightFor(
-                width: singleButtonWidth,
-                height: singleButtonWidth,
+            AppTooltip(
+              message: l10n.more,
+              child: IconButton(
+                padding: EdgeInsets.zero,
+                constraints: BoxConstraints.tightFor(
+                  width: singleButtonWidth,
+                  height: singleButtonWidth,
+                ),
+                style: IconButton.styleFrom(
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                icon: Icon(
+                  Icons.more_horiz,
+                  size:
+                      PlaybackHeroCardUiTuning.topButtonsIconSize * controlsScale,
+                  color: Colors.white70,
+                ),
+                onPressed: onShowMoreMenu,
               ),
-              style: IconButton.styleFrom(
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-              icon: Icon(
-                Icons.more_horiz,
-                size:
-                    PlaybackHeroCardUiTuning.topButtonsIconSize * controlsScale,
-                color: Colors.white70,
-              ),
-              onPressed: onShowMoreMenu,
-              tooltip: l10n.more,
             ),
-            IconButton(
-              padding: EdgeInsets.zero,
-              constraints: BoxConstraints.tightFor(
-                width: singleButtonWidth,
-                height: singleButtonWidth,
-              ),
-              style: IconButton.styleFrom(
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-              icon: Icon(
-                isFavorite
-                    ? Icons.favorite_rounded
-                    : Icons.favorite_border_rounded,
-                size:
-                    PlaybackHeroCardUiTuning.topButtonsIconSize * controlsScale,
-                color: isFavorite ? Colors.redAccent : Colors.white70,
-              ),
-              onPressed: currentMusic == null
-                  ? null
-                  : () async {
-                      final playlistService = ref.read(playlistServiceProvider);
-                      await playlistService.toggleFavoriteSong(currentMusic);
-                    },
-              tooltip: isFavorite
+            AppTooltip(
+              message: isFavorite
                   ? l10n.removeFromFavorites
                   : l10n.addToFavorites,
+              child: IconButton(
+                padding: EdgeInsets.zero,
+                constraints: BoxConstraints.tightFor(
+                  width: singleButtonWidth,
+                  height: singleButtonWidth,
+                ),
+                style: IconButton.styleFrom(
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                icon: Icon(
+                  isFavorite
+                      ? Icons.favorite_rounded
+                      : Icons.favorite_border_rounded,
+                  size:
+                      PlaybackHeroCardUiTuning.topButtonsIconSize * controlsScale,
+                  color: isFavorite ? Colors.redAccent : Colors.white70,
+                ),
+                onPressed: currentMusic == null
+                    ? null
+                    : () async {
+                        final playlistService = ref.read(playlistServiceProvider);
+                        await playlistService.toggleFavoriteSong(currentMusic);
+                      },
+              ),
             ),
-            IconButton(
-              padding: EdgeInsets.zero,
-              constraints: BoxConstraints.tightFor(
-                width: singleButtonWidth,
-                height: singleButtonWidth,
+            AppTooltip(
+              message: getPlaylistModeName(playbackMode, l10n),
+              child: IconButton(
+                padding: EdgeInsets.zero,
+                constraints: BoxConstraints.tightFor(
+                  width: singleButtonWidth,
+                  height: singleButtonWidth,
+                ),
+                style: IconButton.styleFrom(
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                icon: Icon(
+                  getPlaylistModeIcon(playbackMode),
+                  size:
+                      PlaybackHeroCardUiTuning.topButtonsIconSize * controlsScale,
+                  color: Colors.white70,
+                ),
+                onPressed: onCyclePlaylistMode,
+                onLongPress: onShowPlaylistModeSelector,
               ),
-              style: IconButton.styleFrom(
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-              icon: Icon(
-                getPlaylistModeIcon(playbackMode),
-                size:
-                    PlaybackHeroCardUiTuning.topButtonsIconSize * controlsScale,
-                color: Colors.white70,
-              ),
-              onPressed: onCyclePlaylistMode,
-              onLongPress: onShowPlaylistModeSelector,
-              tooltip: getPlaylistModeName(playbackMode, l10n),
             ),
-            IconButton(
-              padding: EdgeInsets.zero,
-              constraints: BoxConstraints.tightFor(
-                width: singleButtonWidth,
-                height: singleButtonWidth,
-              ),
-              style: IconButton.styleFrom(
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-              icon: Icon(
-                Icons.shuffle_rounded,
-                size:
-                    PlaybackHeroCardUiTuning.topButtonsIconSize * controlsScale,
-                color: isRandomMode
-                    ? Theme.of(context).colorScheme.primary
-                    : Colors.white70,
-              ),
-              onPressed: () {
-                final audio = ref.read(audioServiceProvider);
-                if (audio.settingsService.randomRange == 1 && !isRandomMode) {
-                  final playlistService = ref.read(playlistServiceProvider);
-                  final List<MusicFile> allSongs = [];
-                  final pathSet = <String>{};
-                  for (final p in playlistService.playlists) {
-                    for (final s in p.songs) {
-                      if (pathSet.add(s.path)) allSongs.add(s);
+            AppTooltip(
+              message: l10n.randomMode,
+              child: IconButton(
+                padding: EdgeInsets.zero,
+                constraints: BoxConstraints.tightFor(
+                  width: singleButtonWidth,
+                  height: singleButtonWidth,
+                ),
+                style: IconButton.styleFrom(
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                icon: Icon(
+                  Icons.shuffle_rounded,
+                  size:
+                      PlaybackHeroCardUiTuning.topButtonsIconSize * controlsScale,
+                  color: isRandomMode
+                      ? Theme.of(context).colorScheme.primary
+                      : Colors.white70,
+                ),
+                onPressed: () {
+                  final audio = ref.read(audioServiceProvider);
+                  if (audio.settingsService.randomRange == 1 && !isRandomMode) {
+                    final playlistService = ref.read(playlistServiceProvider);
+                    final List<MusicFile> allSongs = [];
+                    final pathSet = <String>{};
+                    for (final p in playlistService.playlists) {
+                      for (final s in p.songs) {
+                        if (pathSet.add(s.path)) allSongs.add(s);
+                      }
                     }
+                    audio.toggleRandomMode(globalSongs: allSongs);
+                  } else {
+                    audio.toggleRandomMode();
                   }
-                  audio.toggleRandomMode(globalSongs: allSongs);
-                } else {
-                  audio.toggleRandomMode();
-                }
-              },
-              tooltip: l10n.randomMode,
+                },
+              ),
             ),
-            IconButton(
-              padding: EdgeInsets.zero,
-              constraints: BoxConstraints.tightFor(
-                width: singleButtonWidth,
-                height: singleButtonWidth,
+            AppTooltip(
+              message: l10n.tagCompletion,
+              child: IconButton(
+                padding: EdgeInsets.zero,
+                constraints: BoxConstraints.tightFor(
+                  width: singleButtonWidth,
+                  height: singleButtonWidth,
+                ),
+                style: IconButton.styleFrom(
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                icon: Icon(
+                  Icons.auto_fix_high_rounded,
+                  size:
+                      PlaybackHeroCardUiTuning.topButtonsIconSize * controlsScale,
+                  color: Colors.white70,
+                ),
+                onPressed: onTagCompletionTap,
+                onLongPress: onTagCompletionLongPress,
               ),
-              style: IconButton.styleFrom(
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-              icon: Icon(
-                Icons.auto_fix_high_rounded,
-                size:
-                    PlaybackHeroCardUiTuning.topButtonsIconSize * controlsScale,
-                color: Colors.white70,
-              ),
-              onPressed: onTagCompletionTap,
-              onLongPress: onTagCompletionLongPress,
-              tooltip: l10n.tagCompletion,
             ),
-            Tooltip(
+            AppTooltip(
               message: sleepTimerRemaining != null
                   ? l10n.sleepTimerRemaining(
                       _formatSleepTimer(sleepTimerRemaining),
@@ -1794,23 +1805,25 @@ class PlaybackHeroCard extends ConsumerWidget {
                 ),
               ),
             ),
-            IconButton(
-              padding: EdgeInsets.zero,
-              constraints: BoxConstraints.tightFor(
-                width: singleButtonWidth,
-                height: singleButtonWidth,
+            AppTooltip(
+              message: l10n.equalizer,
+              child: IconButton(
+                padding: EdgeInsets.zero,
+                constraints: BoxConstraints.tightFor(
+                  width: singleButtonWidth,
+                  height: singleButtonWidth,
+                ),
+                style: IconButton.styleFrom(
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                icon: Icon(
+                  Icons.tune_rounded,
+                  size:
+                      PlaybackHeroCardUiTuning.topButtonsIconSize * controlsScale,
+                  color: Colors.white70,
+                ),
+                onPressed: onEqualizerTap,
               ),
-              style: IconButton.styleFrom(
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-              icon: Icon(
-                Icons.tune_rounded,
-                size:
-                    PlaybackHeroCardUiTuning.topButtonsIconSize * controlsScale,
-                color: Colors.white70,
-              ),
-              onPressed: onEqualizerTap,
-              tooltip: l10n.equalizer,
             ),
           ],
         ),
@@ -1829,8 +1842,9 @@ class PlaybackHeroCard extends ConsumerWidget {
       required double circleSize,
       String? tooltip,
     }) {
+      Widget buttonWidget;
       if (useOverlayStyle) {
-        return Container(
+        buttonWidget = Container(
           width: circleSize * controlsScale,
           height: circleSize * controlsScale,
           decoration: BoxDecoration(
@@ -1852,12 +1866,11 @@ class PlaybackHeroCard extends ConsumerWidget {
             ),
             icon: iconBuilder(controlIconColor, true),
             onPressed: onPressed,
-            tooltip: tooltip,
           ),
         );
       } else {
         // 其他情况一律都是原来的白色图标 (Original white icon style)
-        return IconButton(
+        buttonWidget = IconButton(
           constraints: BoxConstraints.tightFor(
             width: circleSize * controlsScale,
             height: circleSize * controlsScale,
@@ -1868,9 +1881,17 @@ class PlaybackHeroCard extends ConsumerWidget {
           ),
           icon: iconBuilder(Colors.white, false),
           onPressed: onPressed,
-          tooltip: tooltip,
         );
       }
+
+      if (tooltip != null && tooltip.isNotEmpty) {
+        return AppTooltip(
+          message: tooltip,
+          child: buttonWidget,
+        );
+      }
+
+      return buttonWidget;
     }
 
     final mainControlsRow = wrapWithMaybeFitted(

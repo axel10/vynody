@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:vynody/widgets/app_tooltip.dart';
 
 class AnimatedPlayPauseButton extends StatefulWidget {
   final bool isPlaying;
@@ -58,9 +59,8 @@ class _AnimatedPlayPauseButtonState extends State<AnimatedPlayPauseButton>
 
   @override
   Widget build(BuildContext context) {
-    return IconButton(
+    final Widget buttonWidget = IconButton(
       onPressed: widget.onPressed,
-      tooltip: widget.tooltip,
       padding: widget.padding,
       constraints: const BoxConstraints(),
       style: widget.materialTapTargetSize != null
@@ -73,5 +73,14 @@ class _AnimatedPlayPauseButtonState extends State<AnimatedPlayPauseButton>
         size: widget.size,
       ),
     );
+
+    if (widget.tooltip != null && widget.tooltip!.isNotEmpty) {
+      return AppTooltip(
+        message: widget.tooltip!,
+        child: buttonWidget,
+      );
+    }
+
+    return buttonWidget;
   }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/app_tooltip.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/app_localizations.dart';
 import '../player/audio/audio_riverpod.dart';
@@ -53,7 +54,7 @@ Future<void> showLyricsFontScaleDialog(
                     return Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        Tooltip(
+                        AppTooltip(
                           message: l10n.restoreDefaultSize,
                           child: IconButton(
                             icon: const Icon(Icons.format_size_rounded, color: Colors.white, size: 20),
