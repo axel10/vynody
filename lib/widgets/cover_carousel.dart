@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
 
@@ -258,6 +259,10 @@ class _CoverCarouselState extends State<CoverCarousel>
   List<Widget> _buildItems(double width) {
     final double value = _animationController.value;
     final int center = value.round();
+
+    // Prune _loadedCovers to release memory of non-visible/adjacent covers
+    _loadedCovers.removeWhere((key, _) => (key - center).abs() > 2);
+
     final List<int> indices = [];
 
     indices.add(center);
@@ -343,6 +348,7 @@ class _CoverItemState extends State<_CoverItem> {
   Uint8List? _artworkBytes;
   bool _isLoaded = false;
   bool _hasLoadedHighRes = false;
+  Timer? _loadTimer;
 
   bool get _isSettled {
     final double pageOffset = widget.animation.value - widget.itemIndex;
@@ -390,14 +396,35 @@ class _CoverItemState extends State<_CoverItem> {
   @override
   void dispose() {
     widget.animation.removeListener(_handleAnimationUpdate);
+    _loadTimer?.cancel();
     super.dispose();
   }
 
-  Future<void> _loadArtwork() async {
+  void _loadArtwork() {
+    _loadTimer?.cancel();
+
+    // Check if we can load instantly (already in cache or available)
+    final cachedBytes = widget.audioService.getCachedArtwork(
+      widget.musicFile.path,
+    );
+    final hasPriorityBytes = widget.audioService.currentMusic?.path == widget.musicFile.path &&
+        widget.audioService.currentMusic?.artworkBytes != null;
+
+    if (cachedBytes != null || hasPriorityBytes) {
+      _loadArtworkAsync();
+    } else {
+      _loadTimer = Timer(const Duration(milliseconds: 150), () {
+        if (!mounted) return;
+        _loadArtworkAsync();
+      });
+    }
+  }
+
+  Future<void> _loadArtworkAsync() async {
     _isLoaded = true;
     if (kDebugMode) {
       debugPrint(
-        '[CoverCarousel][Trace] _loadArtwork start path=${widget.musicFile.path} '
+        '[CoverCarousel][Trace] _loadArtworkAsync start path=${widget.musicFile.path} '
         'currentMusic=${widget.audioService.currentMusic?.path ?? '-'}',
       );
     }
@@ -602,10 +629,10 @@ class _CoverItemState extends State<_CoverItem> {
 
     final int? finalCacheWidth;
     if (isPc) {
-      // For PC/desktop, use a fixed cache size of 1500 to completely avoid re-decoding when resizing the window.
-      // Since ResizeImage has allowUpscaling = false by default, images smaller than 1500
-      // will be decoded at their original size, and larger ones will be capped at 1500.
-      finalCacheWidth = 1500;
+      // For PC/desktop, use a fixed cache size of 1200 to completely avoid re-decoding when resizing the window.
+      // Since ResizeImage has allowUpscaling = false by default, images smaller than 1200
+      // will be decoded at their original size, and larger ones will be capped at 1200.
+      finalCacheWidth = 1200;
     } else {
       final double devicePixelRatio = MediaQuery.of(context).devicePixelRatio;
       final int limit = 800;

@@ -1464,6 +1464,8 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                 final currentMusic = ref.watch(audioCurrentMusicProvider);
                 final songPath = currentMusic?.path;
                 final songKey = songPath ?? 'empty';
+                final isPc = Platform.isWindows || Platform.isMacOS || Platform.isLinux;
+                final bgCacheSize = isPc ? 1200 : 500;
 
                 final metadata = songPath != null
                     ? ref.read(scannerServiceProvider).metadataMap[songPath]
@@ -1486,8 +1488,8 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                     File(artworkPath),
                     width: double.infinity,
                     height: double.infinity,
-                    cacheWidth: 1500,
-                    cacheHeight: 1500,
+                    cacheWidth: bgCacheSize,
+                    cacheHeight: bgCacheSize,
                     fit: BoxFit.cover,
                     filterQuality: FilterQuality.low,
                     gaplessPlayback: true,
@@ -1498,8 +1500,8 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                     cachedBytes,
                     width: double.infinity,
                     height: double.infinity,
-                    cacheWidth: 1500,
-                    cacheHeight: 1500,
+                    cacheWidth: bgCacheSize,
+                    cacheHeight: bgCacheSize,
                     fit: BoxFit.cover,
                     filterQuality: FilterQuality.low,
                     gaplessPlayback: true,
@@ -1512,8 +1514,8 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                     File(thumbnailPath),
                     width: double.infinity,
                     height: double.infinity,
-                    cacheWidth: 1500,
-                    cacheHeight: 1500,
+                    cacheWidth: bgCacheSize,
+                    cacheHeight: bgCacheSize,
                     fit: BoxFit.cover,
                     filterQuality: FilterQuality.low,
                     gaplessPlayback: true,
@@ -1648,6 +1650,8 @@ class _SafeBackgroundSwitcher extends StatefulWidget {
 class _SafeBackgroundSwitcherState extends State<_SafeBackgroundSwitcher>
     with TickerProviderStateMixin {
   final List<_SwitcherItem> _items = [];
+  Timer? _debounceTimer;
+  Widget? _pendingChild;
 
   void _log(String message) {
     if (kDebugMode) {
@@ -1665,7 +1669,15 @@ class _SafeBackgroundSwitcherState extends State<_SafeBackgroundSwitcher>
   void didUpdateWidget(_SafeBackgroundSwitcher oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.child.key != oldWidget.child.key) {
-      _addNewChild(widget.child, animate: true);
+      _debounceTimer?.cancel();
+      _pendingChild = widget.child;
+      _debounceTimer = Timer(const Duration(milliseconds: 150), () {
+        if (!mounted) return;
+        if (_pendingChild != null) {
+          _addNewChild(_pendingChild!, animate: true);
+          _pendingChild = null;
+        }
+      });
     }
   }
 
@@ -1686,6 +1698,11 @@ class _SafeBackgroundSwitcherState extends State<_SafeBackgroundSwitcher>
 
     setState(() {
       _items.add(item);
+      // Immediately remove and dispose any background switcher items older than the last 2 items
+      while (_items.length > 2) {
+        final removed = _items.removeAt(0);
+        removed.controller.dispose();
+      }
     });
 
     if (animate) {
@@ -1693,7 +1710,7 @@ class _SafeBackgroundSwitcherState extends State<_SafeBackgroundSwitcher>
         if (mounted) {
           _cleanUpPreviousItems();
         }
-      });
+      }).catchError((_) {});
     } else {
       controller.value = 1.0;
     }
@@ -1718,6 +1735,7 @@ class _SafeBackgroundSwitcherState extends State<_SafeBackgroundSwitcher>
 
   @override
   void dispose() {
+    _debounceTimer?.cancel();
     for (final item in _items) {
       item.controller.dispose();
     }
