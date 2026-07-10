@@ -807,6 +807,29 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
             ),
           ),
         subfoldersSliver,
+        if (matchedFolders.isNotEmpty && matchedSongs.isNotEmpty)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.songsCountFormat(matchedSongs.length),
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Divider(
+                    height: 1,
+                    color: Theme.of(context).dividerColor.withValues(alpha: 0.05),
+                  ),
+                ],
+              ),
+            ),
+          ),
         songsSliver,
         SliverPadding(
           padding: EdgeInsets.only(bottom: 160 + selectionPanelHeight),
