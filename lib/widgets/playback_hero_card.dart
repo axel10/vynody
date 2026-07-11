@@ -26,7 +26,6 @@ import 'marquee_text.dart';
 import 'app_tooltip.dart';
 
 const String playbackHeroTag = 'player_capsule';
-double _maxWindowHeightSeen = 0.0;
 
 enum _TrackInfoMenuTarget { title, artistAlbum }
 
@@ -968,27 +967,16 @@ class PlaybackHeroCard extends ConsumerWidget {
 
     if (lyricsStyle == LyricsStyle.apple) {
       // For Apple Style: must fit both vertically and horizontally within the left column
-      // Height adaptation: 0.75 of the screen height acts as the maximum control height limit.
-      // It only starts shrinking together with the window when the window is small enough to require compression.
+      // Height adaptation: limit the maximum control height to a reasonable constant of 810 logical pixels
+      // (which corresponds to 0.75 of a standard 1080p screen height) or 75% of the window height if it's larger.
+      // This avoids querying the unreliable display/screen APIs on desktop platforms, which can return
+      // incorrect or physical-pixel values leading to extremely small controls on desktop (especially Linux).
       final double constantHeight =
           lLyricsCoverInfoSpacing + lLyricsInfoControlsSpacing;
       final double scalableHeight =
           lLyricsPreferredTotalHeight - constantHeight;
 
-      double screenHeight = 0.0;
-      try {
-        final view = View.of(context);
-        screenHeight = view.display.size.height / view.display.devicePixelRatio;
-      } catch (_) {
-        // Fallback if view query fails
-      }
-
-      _maxWindowHeightSeen = math.max(_maxWindowHeightSeen, height);
-      if (screenHeight <= 0.0) {
-        screenHeight = _maxWindowHeightSeen;
-      }
-
-      final double maxControlsHeight = screenHeight * 0.75;
+      final double maxControlsHeight = math.max(810.0, height * 0.75);
       final double targetOccupiedHeight = math.min(
         maxControlsHeight,
         lLyricsAvailableHeight,
