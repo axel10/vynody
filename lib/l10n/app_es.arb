@@ -355,6 +355,7 @@
   "sleepTimerDescription": "Elige una cuenta regresiva. Al terminar, la reproducción se pausará.",
   "sleepTimerRunningTitle": "Temporizador de sueño activo",
   "sleepTimerRunningDescription": "La reproducción se pausará automáticamente cuando termine la cuenta regresiva.",
+  "sleepTimerStopAfterCurrentSong": "Detener después de la canción actual",
   "remainingTime": "Tiempo restante",
   "startCountdown": "Iniciar cuenta regresiva",
   "end": "Fin",

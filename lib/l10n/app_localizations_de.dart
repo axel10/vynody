@@ -917,6 +917,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Die Wiedergabe wird nach Ablauf des Countdowns automatisch pausiert.';
 
   @override
+  String get sleepTimerStopAfterCurrentSong =>
+      'Nach dem aktuellen Titel stoppen';
+
+  @override
   String get remainingTime => 'Verbleibende Zeit';
 
   @override

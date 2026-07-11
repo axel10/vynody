@@ -921,6 +921,10 @@ class AppLocalizationsEs extends AppLocalizations {
       'La reproducción se pausará automáticamente cuando termine la cuenta regresiva.';
 
   @override
+  String get sleepTimerStopAfterCurrentSong =>
+      'Detener después de la canción actual';
+
+  @override
   String get remainingTime => 'Tiempo restante';
 
   @override

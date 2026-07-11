@@ -355,6 +355,7 @@
   "sleepTimerDescription": "Choose a countdown and playback will pause when time is up.",
   "sleepTimerRunningTitle": "Sleep Timer Running",
   "sleepTimerRunningDescription": "Playback will pause automatically when the countdown ends.",
+  "sleepTimerStopAfterCurrentSong": "Stop after the current song finishes",
   "remainingTime": "Remaining time",
   "startCountdown": "Start Countdown",
   "end": "End",

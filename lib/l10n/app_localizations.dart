@@ -1788,6 +1788,12 @@ abstract class AppLocalizations {
   /// **'倒计时结束后会自动暂停当前播放。'**
   String get sleepTimerRunningDescription;
 
+  /// No description provided for @sleepTimerStopAfterCurrentSong.
+  ///
+  /// In zh, this message translates to:
+  /// **'播放完当前歌曲后停止'**
+  String get sleepTimerStopAfterCurrentSong;
+
   /// No description provided for @remainingTime.
   ///
   /// In zh, this message translates to:

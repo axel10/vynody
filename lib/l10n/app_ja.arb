@@ -355,6 +355,7 @@
   "sleepTimerDescription": "カウントダウンを選択すると、時間経過後に再生が一時停止します。",
   "sleepTimerRunningTitle": "スリープタイマー動作中",
   "sleepTimerRunningDescription": "カウントダウン終了時に自動的に再生を一時停止します。",
+  "sleepTimerStopAfterCurrentSong": "現在の曲の終了後に停止",
   "remainingTime": "残り時間",
   "startCountdown": "カウントダウン開始",
   "end": "終了",

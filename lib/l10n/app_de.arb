@@ -355,6 +355,7 @@
   "sleepTimerDescription": "Countdown auswählen. Die Wiedergabe wird nach Ablauf pausiert.",
   "sleepTimerRunningTitle": "Sleep-Timer läuft",
   "sleepTimerRunningDescription": "Die Wiedergabe wird nach Ablauf des Countdowns automatisch pausiert.",
+  "sleepTimerStopAfterCurrentSong": "Nach dem aktuellen Titel stoppen",
   "remainingTime": "Verbleibende Zeit",
   "startCountdown": "Countdown starten",
   "end": "Ende",

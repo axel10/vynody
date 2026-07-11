@@ -21,6 +21,7 @@ class _SleepTimerSheetState extends ConsumerState<SleepTimerSheet> {
 
   late _SleepTimerSheetMode _mode;
   late Duration _selectedDuration;
+  bool _stopAfterCurrentSong = false;
 
   @override
   void initState() {
@@ -32,6 +33,7 @@ class _SleepTimerSheetState extends ConsumerState<SleepTimerSheet> {
     _selectedDuration =
         audio.sleepTimerDuration ??
         ref.read(audioDurationProvider) - ref.read(audioPositionProvider);
+    _stopAfterCurrentSong = audio.sleepTimerStopAfterCurrentSong;
     if (_selectedDuration <= Duration.zero) {
       _selectedDuration = _defaultDuration;
     }
@@ -51,7 +53,10 @@ class _SleepTimerSheetState extends ConsumerState<SleepTimerSheet> {
 
   Future<void> _startCustomTimer() async {
     final audio = ref.read(audioServiceProvider);
-    await audio.startSleepTimer(_selectedDuration);
+    await audio.startSleepTimer(
+      _selectedDuration,
+      stopAfterCurrentSong: _stopAfterCurrentSong,
+    );
     if (!mounted) return;
     Navigator.of(context).pop();
   }
@@ -87,10 +92,14 @@ class _SleepTimerSheetState extends ConsumerState<SleepTimerSheet> {
       filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
       child: Container(
         decoration: BoxDecoration(
-          color: isDark ? Colors.black.withValues(alpha: 0.78) : theme.colorScheme.surface.withValues(alpha: 0.9),
+          color: isDark
+              ? Colors.black.withValues(alpha: 0.78)
+              : theme.colorScheme.surface.withValues(alpha: 0.9),
           borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
           border: Border.all(
-            color: isDark ? Colors.white.withValues(alpha: 0.1) : theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.1)
+                : theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
             width: 1,
           ),
         ),
@@ -148,10 +157,14 @@ class _SleepTimerSheetState extends ConsumerState<SleepTimerSheet> {
         const SizedBox(height: 18),
         Container(
           decoration: BoxDecoration(
-            color: isDark ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.03),
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.04)
+                : Colors.black.withValues(alpha: 0.03),
             borderRadius: BorderRadius.circular(24),
             border: Border.all(
-              color: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.black.withValues(alpha: 0.06),
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.06)
+                  : Colors.black.withValues(alpha: 0.06),
             ),
           ),
           padding: const EdgeInsets.symmetric(vertical: 12),
@@ -171,7 +184,9 @@ class _SleepTimerSheetState extends ConsumerState<SleepTimerSheet> {
                   brightness: theme.brightness,
                   textTheme: CupertinoTextThemeData(
                     dateTimePickerTextStyle: TextStyle(
-                      color: isDark ? Colors.white : theme.colorScheme.onSurface,
+                      color: isDark
+                          ? Colors.white
+                          : theme.colorScheme.onSurface,
                       fontSize: 22,
                     ),
                   ),
@@ -191,6 +206,17 @@ class _SleepTimerSheetState extends ConsumerState<SleepTimerSheet> {
               ),
             ),
           ),
+        ),
+        CheckboxListTile(
+          contentPadding: EdgeInsets.zero,
+          value: _stopAfterCurrentSong,
+          onChanged: (value) {
+            setState(() {
+              _stopAfterCurrentSong = value ?? false;
+            });
+          },
+          title: Text(l10n.sleepTimerStopAfterCurrentSong),
+          controlAffinity: ListTileControlAffinity.leading,
         ),
         const SizedBox(height: 10),
         Row(
@@ -250,7 +276,9 @@ class _SleepTimerSheetState extends ConsumerState<SleepTimerSheet> {
           child: Text(
             l10n.remainingTime,
             style: TextStyle(
-              color: isDark ? Colors.white.withValues(alpha: 0.65) : theme.colorScheme.onSurfaceVariant,
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.65)
+                  : theme.colorScheme.onSurfaceVariant,
               fontSize: 13,
             ),
           ),

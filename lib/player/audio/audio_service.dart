@@ -79,6 +79,9 @@ class AudioService extends Notifier<AudioSnapshot> {
   Timer? _sleepTimer;
   DateTime? _sleepTimerEndAt;
   Duration? _sleepTimerDuration;
+  bool _sleepTimerStopAfterCurrentSong = false;
+  bool _sleepTimerWaitingForTrackEnd = false;
+  String? _sleepTimerWaitingTrackPath;
   int _lastWaveformChunks = -1;
   bool _disposed = false;
   bool _restoringPlaybackSession = false;
@@ -124,7 +127,9 @@ class AudioService extends Notifier<AudioSnapshot> {
   bool get lyricsSearchAttempted => _lyricsState.lyricsSearchAttempted;
   Duration? get sleepTimerRemaining {
     final endAt = _sleepTimerEndAt;
-    if (endAt == null) return null;
+    if (endAt == null) {
+      return _sleepTimerWaitingForTrackEnd ? Duration.zero : null;
+    }
 
     final remaining = endAt.difference(DateTime.now());
     if (remaining <= Duration.zero) {
@@ -134,7 +139,9 @@ class AudioService extends Notifier<AudioSnapshot> {
   }
 
   Duration? get sleepTimerDuration => _sleepTimerDuration;
-  bool get hasSleepTimer => _sleepTimerEndAt != null;
+  bool get hasSleepTimer =>
+      _sleepTimerEndAt != null || _sleepTimerWaitingForTrackEnd;
+  bool get sleepTimerStopAfterCurrentSong => _sleepTimerStopAfterCurrentSong;
 
   @override
   AudioSnapshot build() {
@@ -154,7 +161,9 @@ class AudioService extends Notifier<AudioSnapshot> {
 
     _lifecycleListener = AppLifecycleListener(
       onStateChange: (state) {
-        final nextBackgrounded = (state == AppLifecycleState.paused || state == AppLifecycleState.hidden);
+        final nextBackgrounded =
+            (state == AppLifecycleState.paused ||
+            state == AppLifecycleState.hidden);
         if (_isAppBackgrounded != nextBackgrounded) {
           _isAppBackgrounded = nextBackgrounded;
           _updateEffectiveVisualizerState();
@@ -197,11 +206,13 @@ class AudioService extends Notifier<AudioSnapshot> {
     _darwinIntegration = (Platform.isIOS || Platform.isMacOS)
         ? DarwinIntegrationService(this)
         : null;
-    _linuxIntegration = Platform.isLinux
-        ? LinuxIntegrationService(this)
-        : null;
-    _desktopTrayIntegration = !kIsWeb && (Platform.isWindows || Platform.isLinux)
-        ? DesktopTrayService(audioService: this, settingsService: settingsService)
+    _linuxIntegration = Platform.isLinux ? LinuxIntegrationService(this) : null;
+    _desktopTrayIntegration =
+        !kIsWeb && (Platform.isWindows || Platform.isLinux)
+        ? DesktopTrayService(
+            audioService: this,
+            settingsService: settingsService,
+          )
         : null;
     _player.addListener(_handlePlayerChanges);
     _settingsListener = () {
@@ -249,11 +260,15 @@ class AudioService extends Notifier<AudioSnapshot> {
         await ref.read(scannerServiceProvider).ready;
       }
       if (_queue.isNotEmpty || _currentSource != null) {
-        debugPrint('AudioService: queue is already occupied, skipping restorePlaybackSession');
+        debugPrint(
+          'AudioService: queue is already occupied, skipping restorePlaybackSession',
+        );
         _playbackSessionReady = true;
         return;
       }
-      final session = await _sessionManager.loadFromPrefs(settingsService.prefs);
+      final session = await _sessionManager.loadFromPrefs(
+        settingsService.prefs,
+      );
       if (session == null) {
         _playbackSessionReady = true;
         return;
@@ -359,9 +374,7 @@ class AudioService extends Notifier<AudioSnapshot> {
     }
   }
 
-  Future<void> _restoreRandomPlaybackSession(
-    RandomPlaybackData random,
-  ) async {
+  Future<void> _restoreRandomPlaybackSession(RandomPlaybackData random) async {
     if (!random.enabled) {
       _player.playlist.setRandomPolicy(null);
       return;
@@ -406,9 +419,7 @@ class AudioService extends Notifier<AudioSnapshot> {
 
     final shouldRun = _queue.isNotEmpty && _isPlaying;
     if (shouldRun) {
-      _sessionManager.ensureAutoSaveTimer(
-        () => _persistPlaybackSession(),
-      );
+      _sessionManager.ensureAutoSaveTimer(() => _persistPlaybackSession());
     } else {
       _sessionManager.stopAutoSaveTimer();
     }
@@ -808,7 +819,9 @@ class AudioService extends Notifier<AudioSnapshot> {
             if (await file.exists()) {
               final swRead = Stopwatch()..start();
               artworkBytes = await file.readAsBytes();
-              debugPrint('[PERF] Read artwork file took ${swRead.elapsedMilliseconds}ms, size=${artworkBytes.length} bytes');
+              debugPrint(
+                '[PERF] Read artwork file took ${swRead.elapsedMilliseconds}ms, size=${artworkBytes.length} bytes',
+              );
             }
           } catch (_) {}
         }
@@ -817,7 +830,9 @@ class AudioService extends Notifier<AudioSnapshot> {
       if (artworkBytes == null) {
         final swDecode = Stopwatch()..start();
         artworkBytes = await MetadataHelper.decodeEmbeddedArtwork(song.path);
-        debugPrint('[PERF] decodeEmbeddedArtwork took ${swDecode.elapsedMilliseconds}ms, size=${artworkBytes?.length ?? 0} bytes');
+        debugPrint(
+          '[PERF] decodeEmbeddedArtwork took ${swDecode.elapsedMilliseconds}ms, size=${artworkBytes?.length ?? 0} bytes',
+        );
       }
 
       if (thumbnailPath == null || themeColorsBlob == null) {
@@ -829,9 +844,12 @@ class AudioService extends Notifier<AudioSnapshot> {
           cacheRootPath: supportDir.path,
           saveLargeArtwork: false,
         );
-        debugPrint('[PERF] getTrackArtworkTheme took ${swTheme.elapsedMilliseconds}ms');
+        debugPrint(
+          '[PERF] getTrackArtworkTheme took ${swTheme.elapsedMilliseconds}ms',
+        );
         if (artworkTheme != null) {
-          artworkPath ??= artworkTheme.artworkPath ?? artworkTheme.thumbnailPath;
+          artworkPath ??=
+              artworkTheme.artworkPath ?? artworkTheme.thumbnailPath;
           thumbnailPath = artworkTheme.thumbnailPath;
           themeColorsBlob = artworkTheme.themeColorsBlob;
         }
@@ -893,7 +911,9 @@ class AudioService extends Notifier<AudioSnapshot> {
           'current': currentMusic?.path ?? '-',
         },
       );
-      debugPrint('[PERF] _prepareCurrentPlaybackArtwork TOTAL took ${sw.elapsedMilliseconds}ms');
+      debugPrint(
+        '[PERF] _prepareCurrentPlaybackArtwork TOTAL took ${sw.elapsedMilliseconds}ms',
+      );
     }
   }
 
@@ -940,6 +960,18 @@ class AudioService extends Notifier<AudioSnapshot> {
     }
     _logPositionDebug();
 
+    if (_sleepTimerWaitingForTrackEnd &&
+        _player.player.currentState == PlayerState.completed &&
+        currentMusic?.path == _sleepTimerWaitingTrackPath) {
+      _sleepTimerWaitingForTrackEnd = false;
+      _sleepTimerWaitingTrackPath = null;
+      _sleepTimerStopAfterCurrentSong = false;
+      _sleepTimerDuration = null;
+      unawaited(_stopPlaybackForSleepTimer());
+      notifyListeners();
+      return;
+    }
+
     if (_player.player.currentState == PlayerState.completed &&
         !_player.playlist.hasNext &&
         _playbackMode == AppPlaybackMode.autoQueueLoop &&
@@ -950,6 +982,16 @@ class AudioService extends Notifier<AudioSnapshot> {
 
     final int newIndex = _player.playlist.currentIndex ?? -1;
     if (newIndex != _currentIndex && !_isTransitioning) {
+      if (_sleepTimerWaitingForTrackEnd &&
+          _sleepTimerWaitingTrackPath != null &&
+          (newIndex < 0 ||
+              newIndex >= _queue.length ||
+              _queue[newIndex].path != _sleepTimerWaitingTrackPath)) {
+        _player.cancelStopAfterCurrentTrack();
+        _sleepTimerWaitingForTrackEnd = false;
+        _sleepTimerWaitingTrackPath = null;
+        _sleepTimerStopAfterCurrentSong = false;
+      }
       // 检测到歌曲切换
       if (_currentIndex >= 0) {
         _lastActionNext = true; // 记录为自动切歌
@@ -1096,7 +1138,8 @@ class AudioService extends Notifier<AudioSnapshot> {
   EqualizerConfig get equalizerConfig => _player.equalizerConfig;
 
   void _updateEffectiveVisualizerState() {
-    final bool effectiveEnabled = _userVisualizerEnabled && !_isAppBackgrounded && !_isWindowMinimized;
+    final bool effectiveEnabled =
+        _userVisualizerEnabled && !_isAppBackgrounded && !_isWindowMinimized;
     _player.visualizer.setEnabled(effectiveEnabled);
     notifyListeners();
   }
@@ -1148,6 +1191,10 @@ class AudioService extends Notifier<AudioSnapshot> {
     _sleepTimer = null;
     _sleepTimerEndAt = null;
     _sleepTimerDuration = null;
+    _player.cancelStopAfterCurrentTrack();
+    _sleepTimerStopAfterCurrentSong = false;
+    _sleepTimerWaitingForTrackEnd = false;
+    _sleepTimerWaitingTrackPath = null;
     if (notify) {
       notifyListeners();
     }
@@ -1162,7 +1209,25 @@ class AudioService extends Notifier<AudioSnapshot> {
       return;
     }
 
-    _cancelSleepTimer(notify: false);
+    final shouldWaitForCurrentSong =
+        _sleepTimerStopAfterCurrentSong &&
+        _isPlaying &&
+        _player.player.currentState != PlayerState.completed;
+
+    _sleepTimer?.cancel();
+    _sleepTimer = null;
+    _sleepTimerEndAt = null;
+    if (shouldWaitForCurrentSong) {
+      _player.armStopAfterCurrentTrack();
+      _sleepTimerWaitingForTrackEnd = true;
+      _sleepTimerWaitingTrackPath = currentMusic?.path;
+      notifyListeners();
+      return;
+    }
+
+    _sleepTimerStopAfterCurrentSong = false;
+    _sleepTimerWaitingForTrackEnd = false;
+    _sleepTimerWaitingTrackPath = null;
     unawaited(_stopPlaybackForSleepTimer());
     notifyListeners();
   }
@@ -1173,7 +1238,10 @@ class AudioService extends Notifier<AudioSnapshot> {
     }
   }
 
-  Future<void> startSleepTimer(Duration duration) async {
+  Future<void> startSleepTimer(
+    Duration duration, {
+    bool stopAfterCurrentSong = false,
+  }) async {
     final normalized = Duration(
       milliseconds: duration.inMilliseconds < 0 ? 0 : duration.inMilliseconds,
     );
@@ -1183,6 +1251,10 @@ class AudioService extends Notifier<AudioSnapshot> {
     }
 
     _sleepTimer?.cancel();
+    _player.cancelStopAfterCurrentTrack();
+    _sleepTimerWaitingForTrackEnd = false;
+    _sleepTimerWaitingTrackPath = null;
+    _sleepTimerStopAfterCurrentSong = stopAfterCurrentSong;
     _sleepTimerDuration = normalized;
     _sleepTimerEndAt = DateTime.now().add(normalized);
     _sleepTimer = Timer.periodic(const Duration(seconds: 1), (_) {
@@ -1667,7 +1739,9 @@ class AudioService extends Notifier<AudioSnapshot> {
       final swDecode = Stopwatch()..start();
       highResBytes ??= await MetadataHelper.decodeEmbeddedArtwork(path);
       if (highResBytes != null) {
-        debugPrint('[PERF] _updateCurrentMetadata decodeEmbeddedArtwork took ${swDecode.elapsedMilliseconds}ms, size=${highResBytes.length} bytes');
+        debugPrint(
+          '[PERF] _updateCurrentMetadata decodeEmbeddedArtwork took ${swDecode.elapsedMilliseconds}ms, size=${highResBytes.length} bytes',
+        );
       }
 
       // Fallback to thumbnail bytes if needed
@@ -1706,10 +1780,14 @@ class AudioService extends Notifier<AudioSnapshot> {
         if (!hasCachedThemeColors) {
           final swPalette = Stopwatch()..start();
           await _updatePalette();
-          debugPrint('[PERF] _updateCurrentMetadata _updatePalette took ${swPalette.elapsedMilliseconds}ms');
+          debugPrint(
+            '[PERF] _updateCurrentMetadata _updatePalette took ${swPalette.elapsedMilliseconds}ms',
+          );
         }
       }
-      debugPrint('[PERF] _updateCurrentMetadata artwork hydrate TOTAL took ${swHydrate.elapsedMilliseconds}ms');
+      debugPrint(
+        '[PERF] _updateCurrentMetadata artwork hydrate TOTAL took ${swHydrate.elapsedMilliseconds}ms',
+      );
     }());
 
     // Prefer the latest current queue item here rather than the async input
@@ -2108,11 +2186,15 @@ class AudioService extends Notifier<AudioSnapshot> {
     try {
       final source = _currentSource;
       if (source == null) {
-        debugPrint('[AudioService] _handleQueueFinished: currentSource is null');
+        debugPrint(
+          '[AudioService] _handleQueueFinished: currentSource is null',
+        );
         return;
       }
 
-      debugPrint('[AudioService] _handleQueueFinished: type=${source.type} id=${source.id}');
+      debugPrint(
+        '[AudioService] _handleQueueFinished: type=${source.type} id=${source.id}',
+      );
 
       switch (source.type) {
         case PlaybackSourceType.playlist:
@@ -2138,7 +2220,9 @@ class AudioService extends Notifier<AudioSnapshot> {
 
         case PlaybackSourceType.folder:
           if (_scannerService == null) return;
-          final nextFolder = _scannerService!.findNextFolderWithMusic(source.id);
+          final nextFolder = _scannerService!.findNextFolderWithMusic(
+            source.id,
+          );
           if (nextFolder == null || nextFolder.allSongs.isEmpty) return;
           await playPlaylist(
             nextFolder.allSongs,
@@ -2153,7 +2237,9 @@ class AudioService extends Notifier<AudioSnapshot> {
         case PlaybackSourceType.album:
           final allSongs = await _db.getAllSongMetadata();
           final albums = buildAlbumSummaries(allSongs);
-          final playableAlbums = albums.where((a) => a.songs.isNotEmpty).toList();
+          final playableAlbums = albums
+              .where((a) => a.songs.isNotEmpty)
+              .toList();
           if (playableAlbums.isEmpty) return;
           int idx = playableAlbums.indexWhere((a) => a.id == source.id);
           if (idx == -1) {
@@ -2175,7 +2261,9 @@ class AudioService extends Notifier<AudioSnapshot> {
         case PlaybackSourceType.artist:
           final repository = ArtistLibraryRepository(database: _db);
           final artists = await repository.watchArtistSummaries().first;
-          final playableArtists = artists.where((a) => a.songs.isNotEmpty).toList();
+          final playableArtists = artists
+              .where((a) => a.songs.isNotEmpty)
+              .toList();
           if (playableArtists.isEmpty) return;
           int idx = playableArtists.indexWhere((a) => a.queryKey == source.id);
           if (idx == -1) {
@@ -2290,11 +2378,15 @@ class AudioService extends Notifier<AudioSnapshot> {
     try {
       final source = _currentSource;
       if (source == null) {
-        debugPrint('[AudioService] _handleQueuePrevious: currentSource is null');
+        debugPrint(
+          '[AudioService] _handleQueuePrevious: currentSource is null',
+        );
         return;
       }
 
-      debugPrint('[AudioService] _handleQueuePrevious: type=${source.type} id=${source.id}');
+      debugPrint(
+        '[AudioService] _handleQueuePrevious: type=${source.type} id=${source.id}',
+      );
 
       switch (source.type) {
         case PlaybackSourceType.playlist:
@@ -2321,7 +2413,9 @@ class AudioService extends Notifier<AudioSnapshot> {
 
         case PlaybackSourceType.folder:
           if (_scannerService == null) return;
-          final nextFolder = _scannerService!.findPreviousFolderWithMusic(source.id);
+          final nextFolder = _scannerService!.findPreviousFolderWithMusic(
+            source.id,
+          );
           if (nextFolder == null || nextFolder.allSongs.isEmpty) return;
           await playPlaylist(
             nextFolder.allSongs,
@@ -2337,7 +2431,9 @@ class AudioService extends Notifier<AudioSnapshot> {
         case PlaybackSourceType.album:
           final allSongs = await _db.getAllSongMetadata();
           final albums = buildAlbumSummaries(allSongs);
-          final playableAlbums = albums.where((a) => a.songs.isNotEmpty).toList();
+          final playableAlbums = albums
+              .where((a) => a.songs.isNotEmpty)
+              .toList();
           if (playableAlbums.isEmpty) return;
           int idx = playableAlbums.indexWhere((a) => a.id == source.id);
           if (idx == -1) {
@@ -2360,7 +2456,9 @@ class AudioService extends Notifier<AudioSnapshot> {
         case PlaybackSourceType.artist:
           final repository = ArtistLibraryRepository(database: _db);
           final artists = await repository.watchArtistSummaries().first;
-          final playableArtists = artists.where((a) => a.songs.isNotEmpty).toList();
+          final playableArtists = artists
+              .where((a) => a.songs.isNotEmpty)
+              .toList();
           if (playableArtists.isEmpty) return;
           int idx = playableArtists.indexWhere((a) => a.queryKey == source.id);
           if (idx == -1) {

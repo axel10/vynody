@@ -920,6 +920,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'La lecture se mettra automatiquement en pause à la fin du compte à rebours.';
 
   @override
+  String get sleepTimerStopAfterCurrentSong =>
+      'Arrêter après la chanson actuelle';
+
+  @override
   String get remainingTime => 'Temps restant';
 
   @override

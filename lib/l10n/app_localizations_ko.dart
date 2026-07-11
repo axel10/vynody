@@ -895,6 +895,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get sleepTimerRunningDescription => '카운트다운이 종료되면 재생이 자동으로 일시 정지됩니다.';
 
   @override
+  String get sleepTimerStopAfterCurrentSong => '현재 곡이 끝난 후 중지';
+
+  @override
   String get remainingTime => '남은 시간';
 
   @override
