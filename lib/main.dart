@@ -20,6 +20,7 @@ import 'package:smtc_windows/smtc_windows.dart';
 import 'utils/app_log.dart';
 import 'utils/memory_trace.dart';
 import 'utils/linux_mount_helper.dart';
+import 'package:vynody/player/metadata/metadata_database.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 final List<String> _pendingFileOpenArgs = <String>[];
@@ -322,7 +323,7 @@ class MyApp extends ConsumerStatefulWidget {
   ConsumerState<MyApp> createState() => _MyAppState();
 }
 
-class _MyAppState extends ConsumerState<MyApp> with WindowListener {
+class _MyAppState extends ConsumerState<MyApp> with WindowListener, WidgetsBindingObserver {
   bool _isMaximized = false;
   bool _isFullScreen = false;
 
@@ -332,6 +333,7 @@ class _MyAppState extends ConsumerState<MyApp> with WindowListener {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     if (Platform.isLinux) {
       windowManager.addListener(this);
       _syncWindowState();
@@ -340,10 +342,23 @@ class _MyAppState extends ConsumerState<MyApp> with WindowListener {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     if (Platform.isLinux) {
       windowManager.removeListener(this);
     }
     super.dispose();
+  }
+
+  @override
+  Future<AppExitResponse> didRequestAppExit() async {
+    AppLog.log('AppExit request received, closing database cleanly...', mirrorToConsole: true);
+    try {
+      await MetadataDatabase().close();
+      AppLog.log('Database closed cleanly.', mirrorToConsole: true);
+    } catch (e, s) {
+      AppLog.log('Error closing database during exit: $e', mirrorToConsole: true, stackTrace: s);
+    }
+    return AppExitResponse.exit;
   }
 
   Future<void> _syncWindowState() async {

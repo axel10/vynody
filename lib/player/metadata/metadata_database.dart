@@ -450,6 +450,8 @@ class MetadataDatabase {
 
   Future<void> ensureOpen() => _db.customSelect('SELECT 1').get();
 
+  Future<void> close() => _db.close();
+
   Stream<List<SongMetadata>> watchAllSongMetadata() =>
       _db.watchAllSongMetadata();
 
