@@ -202,7 +202,12 @@ class _MainLayoutState extends ConsumerState<MainLayout>
   @override
   void initState() {
     super.initState();
-    _currentIndex = widget.initialIndex;
+    final settings = ref.read(settingsServiceProvider);
+    if (!settings.hasShownOnboarding) {
+      _currentIndex = 0;
+    } else {
+      _currentIndex = widget.initialIndex;
+    }
     _lastVolume = ref.read(audioVolumeProvider);
     _audioService = ref.read(audioServiceProvider);
     _uiController = ref.read(mainLayoutUiControllerProvider.notifier);
@@ -677,21 +682,16 @@ class _MainLayoutState extends ConsumerState<MainLayout>
     if (_isOnboardingAnimatingOut) return;
     setState(() {
       _isOnboardingAnimatingOut = true;
+      _currentIndex = 0;
     });
     _onboardingAnimController?.forward().then((_) {
       final settings = ref.read(settingsServiceProvider);
       settings.hasShownOnboarding = true;
-      final hasRootFolders = ref
-          .read(scannerServiceProvider)
-          .rootPaths
-          .isNotEmpty;
       if (mounted) {
         setState(() {
           _isOnboardingAnimatingOut = false;
         });
-        if (hasRootFolders) {
-          _onDestinationSelected(0);
-        }
+        _onDestinationSelected(0);
       }
     });
   }
