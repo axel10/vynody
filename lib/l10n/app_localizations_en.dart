@@ -2954,6 +2954,12 @@ class AppLocalizationsEn extends AppLocalizations {
       'Display real-time scanning progress at the top of the screen when scanning folders.';
 
   @override
+  String get tapCoverToEnterLyricsMode => 'Tap cover to enter lyrics mode';
+
+  @override
+  String get gotIt => 'Got it';
+
+  @override
   String get scanToastHiddenHint =>
       'Scanning status toast hidden. You can re-enable it in Settings - Interface.';
 }

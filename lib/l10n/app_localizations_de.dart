@@ -2987,6 +2987,13 @@ class AppLocalizationsDe extends AppLocalizations {
       'Zeigt den Echtzeit-Scan-Fortschritt am oberen Bildschirmrand an, wenn Ordner gescannt werden.';
 
   @override
+  String get tapCoverToEnterLyricsMode =>
+      'Cover antippen, um den Textmodus zu öffnen';
+
+  @override
+  String get gotIt => 'Verstanden';
+
+  @override
   String get scanToastHiddenHint =>
       'Scan-Status-Toast ausgeblendet. Sie können ihn in Einstellungen - Oberfläche wieder aktivieren.';
 }

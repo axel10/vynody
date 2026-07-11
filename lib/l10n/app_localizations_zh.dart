@@ -2817,5 +2817,11 @@ class AppLocalizationsZh extends AppLocalizations {
       '在添加文件夹并进行文件扫描时，在顶部显示实时的扫描进度提示';
 
   @override
+  String get tapCoverToEnterLyricsMode => '点击封面可以进入歌词模式';
+
+  @override
+  String get gotIt => '我知道了';
+
+  @override
   String get scanToastHiddenHint => '扫描状态提示已隐藏，可在“设置 - 界面”中重新打开';
 }

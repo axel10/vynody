@@ -1656,10 +1656,9 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
   }
 
   Widget _buildTipCard(BuildContext context, SettingsService settings) {
-    final locale = Localizations.localeOf(context).languageCode;
-    final isZh = locale == 'zh';
-    final tipText = isZh ? '点击封面可以进入歌词模式' : 'Tap cover to enter lyrics mode';
-    final dismissText = isZh ? '我知道了' : 'Got it';
+    final l10n = AppLocalizations.of(context)!;
+    final tipText = l10n.tapCoverToEnterLyricsMode;
+    final dismissText = l10n.gotIt;
 
     return GestureDetector(
       onTap: () {

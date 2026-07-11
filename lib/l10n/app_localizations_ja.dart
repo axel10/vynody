@@ -2858,6 +2858,12 @@ class AppLocalizationsJa extends AppLocalizations {
       'フォルダのスキャン時に画面上部にリアルタイムのスキャン進行状況を表示します。';
 
   @override
+  String get tapCoverToEnterLyricsMode => 'カバーをタップして歌詞モードに入る';
+
+  @override
+  String get gotIt => '了解';
+
+  @override
   String get scanToastHiddenHint =>
       'スキャン状態トーストが非表示になりました。「設定 - インターフェース」で再有効化できます。';
 }

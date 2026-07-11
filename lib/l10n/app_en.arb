@@ -1171,5 +1171,13 @@
   "exitApp": "Exit",
   "showScanProgressToastSetting": "Show Scanning Status Toast",
   "showScanProgressToastSettingDescription": "Display real-time scanning progress at the top of the screen when scanning folders.",
-  "scanToastHiddenHint": "Scanning status toast hidden. You can re-enable it in Settings - Interface."
+  "scanToastHiddenHint": "Scanning status toast hidden. You can re-enable it in Settings - Interface.",
+  "tapCoverToEnterLyricsMode": "Tap cover to enter lyrics mode",
+  "@tapCoverToEnterLyricsMode": {
+    "description": "Tip shown on the playback page to inform users they can tap the album cover to enter lyrics mode"
+  },
+  "gotIt": "Got it",
+  "@gotIt": {
+    "description": "Dismiss button text for tips and guides"
+  }
 }

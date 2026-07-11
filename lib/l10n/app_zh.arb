@@ -1628,5 +1628,7 @@
   "exitApp": "退出",
   "showScanProgressToastSetting": "显示扫描状态提示",
   "showScanProgressToastSettingDescription": "在添加文件夹并进行文件扫描时，在顶部显示实时的扫描进度提示",
+  "tapCoverToEnterLyricsMode": "点击封面可以进入歌词模式",
+  "gotIt": "我知道了",
   "scanToastHiddenHint": "扫描状态提示已隐藏，可在“设置 - 界面”中重新打开"
 }

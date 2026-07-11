@@ -1176,5 +1176,7 @@
   "exitApp": "Beenden",
   "showScanProgressToastSetting": "Scan-Status-Toast anzeigen",
   "showScanProgressToastSettingDescription": "Zeigt den Echtzeit-Scan-Fortschritt am oberen Bildschirmrand an, wenn Ordner gescannt werden.",
-  "scanToastHiddenHint": "Scan-Status-Toast ausgeblendet. Sie können ihn in Einstellungen - Oberfläche wieder aktivieren."
+  "scanToastHiddenHint": "Scan-Status-Toast ausgeblendet. Sie können ihn in Einstellungen - Oberfläche wieder aktivieren.",
+  "tapCoverToEnterLyricsMode": "Cover antippen, um den Textmodus zu öffnen",
+  "gotIt": "Verstanden"
 }

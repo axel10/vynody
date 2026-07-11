@@ -1176,5 +1176,7 @@
   "exitApp": "Salir",
   "showScanProgressToastSetting": "Mostrar toast de estado de escaneo",
   "showScanProgressToastSettingDescription": "Muestra el progreso de escaneo en tiempo real en la parte superior de la pantalla al escanear carpetas.",
-  "scanToastHiddenHint": "Toast de estado de escaneo oculto. Puede volver a habilitarlo en Ajustes - Interfaz."
+  "scanToastHiddenHint": "Toast de estado de escaneo oculto. Puede volver a habilitarlo en Ajustes - Interfaz.",
+  "tapCoverToEnterLyricsMode": "Toca la portada para entrar en modo letras",
+  "gotIt": "Entendido"
 }

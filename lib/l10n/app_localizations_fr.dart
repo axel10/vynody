@@ -2997,6 +2997,13 @@ class AppLocalizationsFr extends AppLocalizations {
       'Affiche la progression du scan en temps réel en haut de l\'écran lors du scan des dossiers.';
 
   @override
+  String get tapCoverToEnterLyricsMode =>
+      'Appuyez sur la pochette pour passer en mode paroles';
+
+  @override
+  String get gotIt => 'J\'ai compris';
+
+  @override
   String get scanToastHiddenHint =>
       'Le toast d\'état du scan a été masqué. Vous pouvez le réactiver dans Paramètres - Interface.';
 }

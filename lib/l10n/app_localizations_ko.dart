@@ -2861,6 +2861,12 @@ class AppLocalizationsKo extends AppLocalizations {
       '폴더 스캔 시 화면 상단에 실시간 스캔 진행 상황을 표시합니다.';
 
   @override
+  String get tapCoverToEnterLyricsMode => '커버를 탭하여 가사 모드로 전환';
+
+  @override
+  String get gotIt => '확인';
+
+  @override
   String get scanToastHiddenHint =>
       '스캔 상태 토스트가 숨겨졌습니다. \'설정 - 인터페이스\'에서 다시 활성화할 수 있습니다.';
 }

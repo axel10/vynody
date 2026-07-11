@@ -2995,6 +2995,13 @@ class AppLocalizationsEs extends AppLocalizations {
       'Muestra el progreso de escaneo en tiempo real en la parte superior de la pantalla al escanear carpetas.';
 
   @override
+  String get tapCoverToEnterLyricsMode =>
+      'Toca la portada para entrar en modo letras';
+
+  @override
+  String get gotIt => 'Entendido';
+
+  @override
   String get scanToastHiddenHint =>
       'Toast de estado de escaneo oculto. Puede volver a habilitarlo en Ajustes - Interfaz.';
 }

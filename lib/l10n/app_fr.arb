@@ -1176,5 +1176,7 @@
   "exitApp": "Quitter",
   "showScanProgressToastSetting": "Afficher le toast d'état du scan",
   "showScanProgressToastSettingDescription": "Affiche la progression du scan en temps réel en haut de l'écran lors du scan des dossiers.",
-  "scanToastHiddenHint": "Le toast d'état du scan a été masqué. Vous pouvez le réactiver dans Paramètres - Interface."
+  "scanToastHiddenHint": "Le toast d'état du scan a été masqué. Vous pouvez le réactiver dans Paramètres - Interface.",
+  "tapCoverToEnterLyricsMode": "Appuyez sur la pochette pour passer en mode paroles",
+  "gotIt": "J'ai compris"
 }

@@ -5334,6 +5334,18 @@ abstract class AppLocalizations {
   /// **'在添加文件夹并进行文件扫描时，在顶部显示实时的扫描进度提示'**
   String get showScanProgressToastSettingDescription;
 
+  /// No description provided for @tapCoverToEnterLyricsMode.
+  ///
+  /// In zh, this message translates to:
+  /// **'点击封面可以进入歌词模式'**
+  String get tapCoverToEnterLyricsMode;
+
+  /// No description provided for @gotIt.
+  ///
+  /// In zh, this message translates to:
+  /// **'我知道了'**
+  String get gotIt;
+
   /// No description provided for @scanToastHiddenHint.
   ///
   /// In zh, this message translates to:
