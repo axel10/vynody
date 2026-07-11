@@ -111,6 +111,7 @@ class MiniInlineVolumeControl extends StatelessWidget {
     required this.onChanged,
     this.onScroll,
     this.tooltip,
+    this.iconSize = 18.0,
   });
 
   final double volume;
@@ -119,6 +120,7 @@ class MiniInlineVolumeControl extends StatelessWidget {
   final ValueChanged<double>? onChanged;
   final ValueChanged<double>? onScroll;
   final String? tooltip;
+  final double iconSize;
 
   @override
   Widget build(BuildContext context) {
@@ -135,7 +137,7 @@ class MiniInlineVolumeControl extends StatelessWidget {
             icon: getVolumeIcon(volume),
             onPressed: onTap,
             tooltip: tooltip,
-            iconSize: 18.0,
+            iconSize: iconSize,
           ),
         AnimatedSwitcher(
           duration: const Duration(milliseconds: 180),

@@ -289,6 +289,10 @@ class PlaybackHeroCard extends ConsumerWidget {
     final currentMusic = ref.watch(audioCurrentMusicProvider);
     final isPlaying = ref.watch(audioIsPlayingProvider);
     final progress = ref.watch(audioProgressProvider);
+    final playlistService = ref.watch(playlistServiceProvider);
+    final isFavorite =
+        currentMusic != null && playlistService.isFavoriteSong(currentMusic);
+    final l10n = AppLocalizations.of(context)!;
     return MouseRegion(
       onExit: (_) => onMiniMouseExit?.call(),
       child: Container(
@@ -329,33 +333,6 @@ class PlaybackHeroCard extends ConsumerWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Flexible(
-                      child: GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: onMiniTap,
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const MiniArtwork(),
-                            const SizedBox(width: 14),
-                            Flexible(
-                              child: ConstrainedBox(
-                                constraints: const BoxConstraints(
-                                  maxWidth: 160,
-                                ),
-                                child: _MiniPlayerProgressInfo(
-                                  currentMusic: currentMusic,
-                                  progress: progress,
-                                  onScrubbing: onScrubbing,
-                                  onSeek: onSeek,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 14),
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -385,8 +362,72 @@ class PlaybackHeroCard extends ConsumerWidget {
                           onPressed: onNext,
                           tooltip: AppLocalizations.of(context)!.next,
                         ),
-                        if (isLandscape) const SizedBox(width: 10),
-                        if (isLandscape)
+                      ],
+                    ),
+                    const SizedBox(width: 14),
+                    Flexible(
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: onMiniTap,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const MiniArtwork(),
+                            const SizedBox(width: 14),
+                            Flexible(
+                              child: ConstrainedBox(
+                                constraints: const BoxConstraints(
+                                  maxWidth: 160,
+                                ),
+                                child: _MiniPlayerProgressInfo(
+                                  currentMusic: currentMusic,
+                                  progress: progress,
+                                  onScrubbing: onScrubbing,
+                                  onSeek: onSeek,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    if (isLandscape) ...[
+                      const SizedBox(width: 14),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          AppTooltip(
+                            message: isFavorite
+                                ? l10n.removeFromFavorites
+                                : l10n.addToFavorites,
+                            child: IconButton(
+                              icon: Icon(
+                                isFavorite
+                                    ? Icons.favorite_rounded
+                                    : Icons.favorite_border_rounded,
+                                color: isFavorite
+                                    ? Colors.redAccent
+                                    : (Theme.of(context).brightness ==
+                                              Brightness.dark
+                                          ? Colors.white
+                                          : Colors.black87),
+                                size: 18,
+                              ),
+                              padding: const EdgeInsets.all(6),
+                              constraints: const BoxConstraints(),
+                              style: IconButton.styleFrom(
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                              onPressed: currentMusic == null
+                                  ? null
+                                  : () async {
+                                      await playlistService.toggleFavoriteSong(
+                                        currentMusic,
+                                      );
+                                    },
+                            ),
+                          ),
+                          const SizedBox(width: 4),
                           MiniInlineVolumeControl(
                             volume: ref.watch(audioVolumeProvider),
                             showSlider: showMiniVolumeSlider,
@@ -395,8 +436,9 @@ class PlaybackHeroCard extends ConsumerWidget {
                             onScroll: onVolumeScroll,
                             tooltip: AppLocalizations.of(context)!.volume,
                           ),
-                      ],
-                    ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),
