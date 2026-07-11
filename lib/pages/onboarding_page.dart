@@ -643,6 +643,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
             ),
           ),
           const SizedBox(height: 16),
+          _buildWarningBanner(theme, l10n),
+          const SizedBox(height: 16),
           Expanded(
             child: Container(
               padding: const EdgeInsets.all(16),
@@ -687,6 +689,45 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
                     color: theme.colorScheme.onSurface.withOpacity(0.15),
                   ),
                 ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWarningBanner(ThemeData theme, AppLocalizations l10n) {
+    final isDark = theme.brightness == Brightness.dark;
+    final warningColor = isDark ? Colors.amberAccent : Colors.orange.shade900;
+    final warningBgColor = isDark ? Colors.amber.withOpacity(0.08) : Colors.orange.withOpacity(0.08);
+    final warningBorderColor = isDark ? Colors.amber.withOpacity(0.2) : Colors.orange.withOpacity(0.2);
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: warningBgColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: warningBorderColor,
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.warning_amber_rounded,
+            color: warningColor,
+            size: 20,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              l10n.linuxMountGuideWarning,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: warningColor,
+                height: 1.4,
+                fontWeight: FontWeight.bold,
               ),
             ),
           ),

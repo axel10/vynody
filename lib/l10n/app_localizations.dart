@@ -5214,6 +5214,12 @@ abstract class AppLocalizations {
   /// **'在 Linux 系统中，未配置自动挂载的内部硬盘分区在开机后需要输入管理员密码才能访问。\n\n为了避免每次打开 Vynody 时都需要输入密码挂载硬盘，推荐设置自动挂载：'**
   String get linuxMountGuideDescription;
 
+  /// No description provided for @linuxMountGuideWarning.
+  ///
+  /// In zh, this message translates to:
+  /// **'注意：如果您的音乐位于需要挂载才能使用的外置/内部硬盘分区内，务必将该分区设置为「开机自动挂载」。否则，每次重启系统后可能会出现找不到音乐目录，或者需要输入密码授权才能访问的问题。'**
+  String get linuxMountGuideWarning;
+
   /// No description provided for @linuxMountGuideStep1.
   ///
   /// In zh, this message translates to:

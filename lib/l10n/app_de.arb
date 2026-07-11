@@ -1156,6 +1156,7 @@
   "gnomeDisksNotInstalled": "gnome-disks ist nicht installiert. Bitte öffnen Sie Ihr Festplatten-Dienstprogramm, um zu konfigurieren.",
   "linuxMountGuideTitle": "Automatische Festplatteneinbindung konfigurieren",
   "linuxMountGuideDescription": "Unter Linux erfordern interne Festplattenpartitionen, die nicht für die automatische Einbindung konfiguriert sind, nach dem Booten ein Administratorpasswort.\n\nUm zu vermeiden, dass Sie jedes Mal beim Öffnen von Vynody ein Passwort eingeben müssen, empfehlen wir die automatische Einbindung:",
+  "linuxMountGuideWarning": "Achtung: Wenn sich Ihre Musik auf einer externen oder internen Partition befindet, die eingehängt werden muss, MÜSSEN Sie diese auf \"Beim Systemstart automatisch einhängen\" konfigurieren. Andernfalls wird das Musikverzeichnis nach einem Neustart möglicherweise nicht gefunden oder Sie müssen ein Passwort eingeben, um darauf zuzugreifen.",
   "linuxMountGuideStep1": "1. Öffnen Sie das \"Disks\"-Dienstprogramm des Systems",
   "linuxMountGuideStep2": "2. Wählen Sie Ihre Musikpartition aus und klicken Sie auf das ⚙️ Zahnradsymbol (Zusätzliche Partitionsoptionen)",
   "linuxMountGuideStep3": "3. Wählen Sie \"Mount-Optionen bearbeiten\", deaktivieren Sie \"Benutzersitzungs-Standardwerte\" und aktivieren Sie \"Beim Systemstart einbinden\"",

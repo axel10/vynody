@@ -2914,6 +2914,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Unter Linux erfordern interne Festplattenpartitionen, die nicht für die automatische Einbindung konfiguriert sind, nach dem Booten ein Administratorpasswort.\n\nUm zu vermeiden, dass Sie jedes Mal beim Öffnen von Vynody ein Passwort eingeben müssen, empfehlen wir die automatische Einbindung:';
 
   @override
+  String get linuxMountGuideWarning =>
+      'Achtung: Wenn sich Ihre Musik auf einer externen oder internen Partition befindet, die eingehängt werden muss, MÜSSEN Sie diese auf \"Beim Systemstart automatisch einhängen\" konfigurieren. Andernfalls wird das Musikverzeichnis nach einem Neustart möglicherweise nicht gefunden oder Sie müssen ein Passwort eingeben, um darauf zuzugreifen.';
+
+  @override
   String get linuxMountGuideStep1 =>
       '1. Öffnen Sie das \"Disks\"-Dienstprogramm des Systems';
 

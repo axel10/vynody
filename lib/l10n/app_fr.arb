@@ -1156,6 +1156,7 @@
   "gnomeDisksNotInstalled": "gnome-disks n'est pas installé. Veuillez ouvrir l'utilitaire de disque de votre système pour configurer.",
   "linuxMountGuideTitle": "Configurer le montage automatique du disque",
   "linuxMountGuideDescription": "Sous Linux, les partitions de disque interne non configurées pour le montage automatique nécessitent un mot de passe administrateur après le démarrage.\n\nPour éviter de saisir un mot de passe chaque fois que vous ouvrez Vynody, nous recommandons de configurer le montage automatique :",
+  "linuxMountGuideWarning": "Attention : Si votre musique est située sur une partition de disque externe ou interne qui nécessite un montage, vous DEVEZ la configurer sur \"montage automatique au démarrage du système\". Sinon, le répertoire de musique risque de ne pas être trouvé après un redémarrage, ou vous devez saisir un mot de passe pour y accéder.",
   "linuxMountGuideStep1": "1. Ouvrez l'utilitaire \"Disques\" du système",
   "linuxMountGuideStep2": "2. Sélectionnez la partition musicale, cliquez sur l'icône d'engrenage ⚙️ (Options supplémentaires de partition)",
   "linuxMountGuideStep3": "3. Sélectionnez \"Modifier les options de montage\", désactivez \"Valeurs par défaut de la session utilisateur\" et cochez \"Monter au démarrage du système\"",

@@ -2883,6 +2883,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'On Linux, internal drive partitions that are not configured for auto-mount require an administrator password to access after booting.\n\nTo avoid entering a password every time you open Vynody, we recommend setting up auto-mount:';
 
   @override
+  String get linuxMountGuideWarning =>
+      'Warning: If your music is located on an external or internal drive partition that requires mounting, you MUST configure it to \"auto-mount at system startup\". Otherwise, the music directory may not be found after a restart, or you may be required to enter a password to access it.';
+
+  @override
   String get linuxMountGuideStep1 => '1. Open the system \"Disks\" utility';
 
   @override

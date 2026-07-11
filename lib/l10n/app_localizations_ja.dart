@@ -2789,6 +2789,10 @@ class AppLocalizationsJa extends AppLocalizations {
       'Linuxでは、自動マウントが設定されていない内蔵ディスクパーティションは、起動後に管理者パスワードが必要です。\n\nVynodyを開くたびにパスワードを入力しなくて済むように、自動マウントの設定をお勧めします：';
 
   @override
+  String get linuxMountGuideWarning =>
+      '注意：音楽がマウントの必要な外付けまたは内蔵パーティションにある場合は、必ず「起動時に自動マウント」するように設定してください。そうしないと、再起動後に音楽ディレクトリが見つからなくなったり、アクセスするためにパスワードの入力が必要になったりする可能性があります。';
+
+  @override
   String get linuxMountGuideStep1 => '1. システムの「Disks」ユーティリティを開く';
 
   @override
