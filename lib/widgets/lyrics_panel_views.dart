@@ -220,9 +220,33 @@ class _LyricsPanelTimedLyricsViewState extends State<LyricsPanelTimedLyricsView>
                 child: LayoutBuilder(
                   builder: (context, constraints) {
                     final viewportHeight = constraints.maxHeight;
-                    final extraBottomPadding = widget.lyricsStyle == LyricsStyle.apple
-                        ? math.max(500.0, viewportHeight - (isPortrait ? 25.0 : 100.0))
-                        : 500.0;
+                    final double extraBottomPadding;
+                    if (widget.lyricsStyle == LyricsStyle.apple && widget.lineHeights.isNotEmpty) {
+                      final topPadding = widget.isSmallWin
+                          ? PlaybackPageUiTuning.appleLyricsTopPaddingSmallWin
+                          : (isPortrait
+                              ? PlaybackPageUiTuning.appleLyricsTopPaddingPortrait
+                              : PlaybackPageUiTuning.appleLyricsTopPaddingLandscape);
+                      final offset = widget.isSmallWin
+                          ? PlaybackPageUiTuning.appleLyricsScrollOffsetSmallWin
+                          : (isPortrait
+                              ? PlaybackPageUiTuning.appleLyricsScrollOffsetPortrait
+                              : PlaybackPageUiTuning.appleLyricsScrollOffsetLandscape);
+                      final lastLineHeight = widget.lineHeights.last;
+                      extraBottomPadding = math.max(
+                        0.0,
+                        viewportHeight -
+                            topPadding -
+                            offset -
+                            lastLineHeight -
+                            widget.bottomSpacerHeight -
+                            widget.bottomTabBarHeight,
+                      );
+                    } else {
+                      extraBottomPadding = widget.lyricsStyle == LyricsStyle.apple
+                          ? math.max(500.0, viewportHeight - (isPortrait ? 25.0 : 100.0))
+                          : 500.0;
+                    }
                     return ScrollConfiguration(
                       behavior: widget.scrollBehavior,
                       child: SingleChildScrollView(
