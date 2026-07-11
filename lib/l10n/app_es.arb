@@ -1155,7 +1155,7 @@
   "gnomeDisksOpenFailed": "No se pudo abrir la Utilidad de Discos automáticamente. Abra \"Discos\" manualmente desde el menú de aplicaciones.",
   "gnomeDisksNotInstalled": "gnome-disks no está instalado. Abra la utilidad de discos de su sistema para configurar.",
   "linuxMountGuideTitle": "Configurar montaje automático de disco",
-  "linuxMountGuideDescription": "En Linux, las particiones de discos internos no configuradas para montaje automático requieren una contraseña de administrador después del inicio.\n\nPara evitar tener que introducir una contraseña cada vez que abra Vynody, recomendamos configurar el montaje automático:",
+  "linuxMountGuideDescription": "Por defecto, Linux no monta automáticamente las particiones externas. Si no configura el montaje al inicio, la ruta de las particiones externas puede cambiar tras cada reinicio, impidiendo que el reproductor acceda al directorio de música. Para evitarlo, configure la partición que contiene su música para que se monte automáticamente al inicio.",
   "linuxMountGuideWarning": "Advertencia: Si su música se encuentra en una partición de disco externa o interna que requiere montaje, DEBE configurarla para \"montarse automáticamente al inicio del sistema\". De lo contrario, es posible que no se encuentre el directorio de música después de reiniciar o que se le solicite ingresar una contraseña para acceder a él.",
   "linuxMountGuideStep1": "1. Abra la utilidad \"Discos\" del sistema",
   "linuxMountGuideStep2": "2. Seleccione la partición de música, haga clic en el icono de engranaje ⚙️ (Opciones adicionales de partición)",

@@ -2917,7 +2917,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get linuxMountGuideDescription =>
-      'En Linux, las particiones de discos internos no configuradas para montaje automático requieren una contraseña de administrador después del inicio.\n\nPara evitar tener que introducir una contraseña cada vez que abra Vynody, recomendamos configurar el montaje automático:';
+      'Por defecto, Linux no monta automáticamente las particiones externas. Si no configura el montaje al inicio, la ruta de las particiones externas puede cambiar tras cada reinicio, impidiendo que el reproductor acceda al directorio de música. Para evitarlo, configure la partición que contiene su música para que se monte automáticamente al inicio.';
 
   @override
   String get linuxMountGuideWarning =>

@@ -1607,7 +1607,7 @@
   "gnomeDisksOpenFailed": "无法自动打开磁盘管理器，请在应用菜单中手动搜索并打开「磁盘 (Disks)」",
   "gnomeDisksNotInstalled": "系统未安装 gnome-disks，请手动打开系统磁盘管理工具进行配置。",
   "linuxMountGuideTitle": "配置硬盘自动挂载",
-  "linuxMountGuideDescription": "在 Linux 系统中，未配置自动挂载的内部硬盘分区在开机后需要输入管理员密码才能访问。\n\n为了避免每次打开 Vynody 时都需要输入密码挂载硬盘，推荐设置自动挂载：",
+  "linuxMountGuideDescription": "Linux默认设置下不会挂载外置分区，如果没有设置启动时挂载分区则每次重启时外置分区的路径可能发生变化，从而导致播放器访问不到音乐目录。为了避免这种情况，请将存放音乐的分区设置成启动时自动挂载。",
   "linuxMountGuideWarning": "注意：如果您的音乐位于需要挂载才能使用的外置/内部硬盘分区内，务必将该分区设置为「开机自动挂载」。否则，每次重启系统后可能会出现找不到音乐目录，或者需要输入密码授权才能访问的问题。",
   "linuxMountGuideStep1": "1. 打开系统的「磁盘 (Disks)」管理器",
   "linuxMountGuideStep2": "2. 选中包含音乐的分区，点击 ⚙️ 齿轮图标（附加分区选项）",

@@ -1150,7 +1150,7 @@
   "gnomeDisksOpenFailed": "Failed to open Disk Utility automatically. Please open \"Disks\" manually from your application menu.",
   "gnomeDisksNotInstalled": "gnome-disks is not installed. Please open your system's disk utility to configure.",
   "linuxMountGuideTitle": "Configure Disk Auto-Mount",
-  "linuxMountGuideDescription": "On Linux, internal drive partitions that are not configured for auto-mount require an administrator password to access after booting.\n\nTo avoid entering a password every time you open Vynody, we recommend setting up auto-mount:",
+  "linuxMountGuideDescription": "By default, Linux does not auto-mount external partitions. If you don't configure mount-on-boot, the mount path of external partitions may change after each reboot, preventing the player from accessing the music directory. To avoid this, please set the partition containing your music to auto-mount on boot.",
   "linuxMountGuideWarning": "Warning: If your music is located on an external or internal drive partition that requires mounting, you MUST configure it to \"auto-mount at system startup\". Otherwise, the music directory may not be found after a restart, or you may be required to enter a password to access it.",
   "linuxMountGuideStep1": "1. Open the system \"Disks\" utility",
   "linuxMountGuideStep2": "2. Select your music partition, click the ⚙️ gear icon (Additional partition options)",

@@ -2789,7 +2789,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get linuxMountGuideDescription =>
-      'Linux에서 자동 마운트가 설정되지 않은 내부 디스크 파티션은 부팅 후 관리자 비밀번호가 필요합니다.\n\nVynody를 열 때마다 비밀번호를 입력하지 않도록 자동 마운트 설정을 권장합니다:';
+      'Linux는 기본적으로 외부 파티션을 마운트하지 않습니다. 부팅 시 마운트를 설정하지 않으면 재부팅할 때마다 외부 파티션의 경로가 변경되어 플레이어가 음악 디렉토리에 접근할 수 없게 됩니다. 이를 방지하려면 음악이 저장된 파티션을 부팅 시 자동 마운트하도록 설정하세요.';
 
   @override
   String get linuxMountGuideWarning =>

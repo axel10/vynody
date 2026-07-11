@@ -2748,7 +2748,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get linuxMountGuideDescription =>
-      '在 Linux 系统中，未配置自动挂载的内部硬盘分区在开机后需要输入管理员密码才能访问。\n\n为了避免每次打开 Vynody 时都需要输入密码挂载硬盘，推荐设置自动挂载：';
+      'Linux默认设置下不会挂载外置分区，如果没有设置启动时挂载分区则每次重启时外置分区的路径可能发生变化，从而导致播放器访问不到音乐目录。为了避免这种情况，请将存放音乐的分区设置成启动时自动挂载。';
 
   @override
   String get linuxMountGuideWarning =>
