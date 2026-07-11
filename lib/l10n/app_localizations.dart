@@ -1791,7 +1791,7 @@ abstract class AppLocalizations {
   /// No description provided for @sleepTimerStopAfterCurrentSong.
   ///
   /// In zh, this message translates to:
-  /// **'播放完当前歌曲后停止'**
+  /// **'播放完最后一首歌曲后停止'**
   String get sleepTimerStopAfterCurrentSong;
 
   /// No description provided for @remainingTime.

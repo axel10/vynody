@@ -921,7 +921,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get sleepTimerStopAfterCurrentSong =>
-      'Arrêter après la chanson actuelle';
+      'Arrêter après la dernière chanson';
 
   @override
   String get remainingTime => 'Temps restant';

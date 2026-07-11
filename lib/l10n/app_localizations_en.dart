@@ -909,7 +909,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get sleepTimerStopAfterCurrentSong =>
-      'Stop after the current song finishes';
+      'Stop after the last song finishes';
 
   @override
   String get remainingTime => 'Remaining time';

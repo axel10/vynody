@@ -795,7 +795,7 @@
   "sleepTimerDescription": "选择倒计时，时间到后会暂停播放。",
   "sleepTimerRunningTitle": "睡眠定时器运行中",
   "sleepTimerRunningDescription": "倒计时结束后会自动暂停当前播放。",
-  "sleepTimerStopAfterCurrentSong": "播放完当前歌曲后停止",
+  "sleepTimerStopAfterCurrentSong": "播放完最后一首歌曲后停止",
   "remainingTime": "剩余时间",
   "startCountdown": "开始倒计时",
   "end": "结束",

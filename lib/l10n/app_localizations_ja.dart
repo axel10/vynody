@@ -891,7 +891,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get sleepTimerRunningDescription => 'カウントダウン終了時に自動的に再生を一時停止します。';
 
   @override
-  String get sleepTimerStopAfterCurrentSong => '現在の曲の終了後に停止';
+  String get sleepTimerStopAfterCurrentSong => '最後の曲の終了後に停止';
 
   @override
   String get remainingTime => '残り時間';

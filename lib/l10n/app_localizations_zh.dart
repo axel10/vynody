@@ -890,7 +890,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get sleepTimerRunningDescription => '倒计时结束后会自动暂停当前播放。';
 
   @override
-  String get sleepTimerStopAfterCurrentSong => '播放完当前歌曲后停止';
+  String get sleepTimerStopAfterCurrentSong => '播放完最后一首歌曲后停止';
 
   @override
   String get remainingTime => '剩余时间';

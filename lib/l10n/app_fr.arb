@@ -355,7 +355,7 @@
   "sleepTimerDescription": "Choisissez un compte à rebours. La lecture se mettra en pause à la fin.",
   "sleepTimerRunningTitle": "Minuteur de sommeil en cours",
   "sleepTimerRunningDescription": "La lecture se mettra automatiquement en pause à la fin du compte à rebours.",
-  "sleepTimerStopAfterCurrentSong": "Arrêter après la chanson actuelle",
+  "sleepTimerStopAfterCurrentSong": "Arrêter après la dernière chanson",
   "remainingTime": "Temps restant",
   "startCountdown": "Démarrer le compte à rebours",
   "end": "Fin",
