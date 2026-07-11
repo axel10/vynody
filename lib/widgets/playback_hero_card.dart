@@ -99,6 +99,7 @@ class PlaybackHeroCard extends ConsumerWidget {
     this.overrideWaveform,
     this.lyricsBottomSpacerHeight = 0.0,
     this.lyricsBottomTabBarHeight = 0.0,
+    this.coverKey,
   });
 
   final bool isMini;
@@ -134,6 +135,7 @@ class PlaybackHeroCard extends ConsumerWidget {
   onCarouselAnimationComplete;
   final double lyricsBottomSpacerHeight;
   final double lyricsBottomTabBarHeight;
+  final GlobalKey? coverKey;
 
   double _lerp2D(
     BuildContext context,
@@ -690,17 +692,20 @@ class PlaybackHeroCard extends ConsumerWidget {
                                 currentSize,
                                 cacheWidthSize: coverNormalLayout.cover.width,
                               );
-                              if (optimize) {
-                                return FittedBox(
-                                  fit: BoxFit.fill,
-                                  child: SizedBox(
-                                    width: coverNormalLayout.cover.width,
-                                    height: coverNormalLayout.cover.width,
-                                    child: coverWidget,
-                                  ),
-                                );
-                              }
-                              return coverWidget;
+                              final Widget result = optimize
+                                  ? FittedBox(
+                                      fit: BoxFit.fill,
+                                      child: SizedBox(
+                                        width: coverNormalLayout.cover.width,
+                                        height: coverNormalLayout.cover.width,
+                                        child: coverWidget,
+                                      ),
+                                    )
+                                  : coverWidget;
+                              return KeyedSubtree(
+                                key: coverKey,
+                                child: result,
+                              );
                             },
                           ),
                         ),

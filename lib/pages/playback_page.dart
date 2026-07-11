@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
+import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
@@ -47,6 +48,7 @@ class PlaybackPage extends ConsumerStatefulWidget {
 }
 
 class _PlaybackPageState extends ConsumerState<PlaybackPage> {
+  final GlobalKey _coverKey = GlobalKey();
   bool _showVolumeSlider = false;
   bool _isScrubbingProgress = false;
   double _scrubProgress = 0.0; // Added missing declaration
@@ -253,6 +255,10 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
   /// 5. 动画根据 `isLyricsMode` 线性插值计算封面、歌曲信息、控制栏及歌词面板的位置和尺寸，
   ///    实现从“普通模式”到“歌词模式”的平滑过渡效果（封面缩小并移至左上角，歌词面板从屏幕下方滑入并变亮）。
   void _toggleLyricsMode() {
+    final settings = ref.read(settingsServiceProvider);
+    if (!settings.hasShownCoverTapLyricTip) {
+      settings.hasShownCoverTapLyricTip = true;
+    }
     final nextLyricsMode = !ref.read(audioIsLyricsActiveProvider);
     _audioService?.setLyricsActive(nextLyricsMode);
   }
@@ -840,6 +846,10 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
           _flushLyricsTranslationsAfterSmallWindowExit(isSmallWin);
           final isLandscape =
               !isSmallWin && (orientation == Orientation.landscape);
+          final bool showTip = !settings.hasShownCoverTapLyricTip &&
+              !isLyricsMode &&
+              !isSmallWin &&
+              currentMusic != null;
 
           if (_lastOrientation != orientation) {
             _lastOrientation = orientation;
@@ -889,6 +899,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                 );
 
                 return PlaybackHeroCard(
+                  coverKey: _coverKey,
                   isMini: false,
                   isLandscape: isLandscape,
                   isLyricsMode: isLyricsMode,
@@ -1273,6 +1284,15 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                       );
                     },
                   ),
+                if (showTip)
+                  _CoverTipOverlay(
+                    coverKey: _coverKey,
+                    isLandscape: isLandscape,
+                    onDismiss: () {
+                      settings.hasShownCoverTapLyricTip = true;
+                    },
+                    tipCard: _buildTipCard(context, settings),
+                  ),
               ],
             ),
           );
@@ -1634,6 +1654,94 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
       ),
     );
   }
+
+  Widget _buildTipCard(BuildContext context, SettingsService settings) {
+    final locale = Localizations.localeOf(context).languageCode;
+    final isZh = locale == 'zh';
+    final tipText = isZh ? '点击封面可以进入歌词模式' : 'Tap cover to enter lyrics mode';
+    final dismissText = isZh ? '我知道了' : 'Got it';
+
+    return GestureDetector(
+      onTap: () {
+        settings.hasShownCoverTapLyricTip = true;
+      },
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Theme.of(context).brightness == Brightness.dark
+              ? Colors.grey[900]!.withValues(alpha: 0.9)
+              : Colors.white.withValues(alpha: 0.95),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.white.withValues(alpha: 0.1)
+                : Colors.black.withValues(alpha: 0.08),
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.15),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.touch_app_rounded,
+                  color: Theme.of(context).colorScheme.primary,
+                  size: 24,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    tipText,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white
+                          : Colors.black87,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                onPressed: () {
+                  settings.hasShownCoverTapLyricTip = true;
+                },
+                child: Text(
+                  dismissText,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _SafeBackgroundSwitcher extends StatefulWidget {
@@ -1761,4 +1869,162 @@ class _SwitcherItem {
     required this.controller,
     required this.animation,
   });
+}
+
+class _CoverCutoutClipper extends CustomClipper<Path> {
+  final Rect coverRect;
+  final double borderRadius;
+
+  _CoverCutoutClipper({required this.coverRect, required this.borderRadius});
+
+  @override
+  Path getClip(Size size) {
+    final path = Path()
+      ..addRect(Rect.fromLTWH(0, 0, size.width, size.height));
+    final cutoutPath = Path()
+      ..addRRect(RRect.fromRectAndRadius(
+        coverRect,
+        Radius.circular(borderRadius),
+      ));
+    return Path.combine(PathOperation.difference, path, cutoutPath);
+  }
+
+  @override
+  bool shouldReclip(covariant _CoverCutoutClipper oldClipper) {
+    return oldClipper.coverRect != coverRect || oldClipper.borderRadius != borderRadius;
+  }
+}
+
+class _CoverTipOverlay extends StatefulWidget {
+  final GlobalKey coverKey;
+  final bool isLandscape;
+  final VoidCallback onDismiss;
+  final Widget tipCard;
+
+  const _CoverTipOverlay({
+    required this.coverKey,
+    required this.isLandscape,
+    required this.onDismiss,
+    required this.tipCard,
+  });
+
+  @override
+  State<_CoverTipOverlay> createState() => _CoverTipOverlayState();
+}
+
+class _CoverTipOverlayState extends State<_CoverTipOverlay> with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _opacityAnimation;
+  Timer? _delayTimer;
+  Rect? _coverRect;
+  double _coverRadius = 24.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 350),
+    );
+    _opacityAnimation = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeIn,
+    );
+    
+    _delayTimer = Timer(const Duration(milliseconds: 600), () {
+      if (!mounted) return;
+      _measureCover();
+    });
+  }
+
+  void _measureCover() {
+    final contextCover = widget.coverKey.currentContext;
+    if (contextCover == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _measureCover();
+      });
+      return;
+    }
+
+    final RenderBox? renderBox = contextCover.findRenderObject() as RenderBox?;
+    if (renderBox != null && renderBox.hasSize) {
+      final size = renderBox.size;
+      final overlayRenderBox = context.findRenderObject() as RenderBox?;
+      if (overlayRenderBox != null) {
+        final position = renderBox.localToGlobal(Offset.zero, ancestor: overlayRenderBox);
+        setState(() {
+          _coverRect = position & size;
+          _coverRadius = math.min(24.0, size.width * 0.2);
+        });
+        _controller.forward();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _delayTimer?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _opacityAnimation,
+      builder: (context, child) {
+        final rect = _coverRect;
+        if (_opacityAnimation.value == 0.0 || rect == null) {
+          return const SizedBox.shrink();
+        }
+        
+        final size = MediaQuery.of(context).size;
+        final double screenWidth = size.width;
+        
+        final double cardWidth = 260.0;
+        final double left = widget.isLandscape
+            ? (rect.right + 24).clamp(16.0, math.max(16.0, screenWidth - cardWidth - 16))
+            : (rect.left + (rect.width - cardWidth) / 2).clamp(16.0, math.max(16.0, screenWidth - cardWidth - 16));
+            
+        final double top = widget.isLandscape
+            ? rect.top + (rect.height - 110) / 2
+            : rect.bottom + 24;
+
+        return Positioned.fill(
+          child: IgnorePointer(
+            ignoring: _opacityAnimation.value < 0.1,
+            child: FadeTransition(
+              opacity: _opacityAnimation,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Positioned.fill(
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: widget.onDismiss,
+                      child: ClipPath(
+                        clipper: _CoverCutoutClipper(
+                          coverRect: rect,
+                          borderRadius: _coverRadius,
+                        ),
+                        child: Container(
+                          color: Colors.black.withValues(alpha: 0.6),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    top: top,
+                    left: left,
+                    width: cardWidth,
+                    child: widget.tipCard,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
 }
