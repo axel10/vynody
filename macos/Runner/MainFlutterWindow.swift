@@ -10,6 +10,15 @@ class MainFlutterWindow: NSWindow {
 
     RegisterGeneratedPlugins(registry: flutterViewController)
 
+    // Setup method channel for file opening on macOS
+    let channel = FlutterMethodChannel(
+      name: "vynody/file_opener",
+      binaryMessenger: flutterViewController.engine.binaryMessenger
+    )
+    if let appDelegate = NSApp.delegate as? AppDelegate {
+      appDelegate.setupMethodChannel(channel)
+    }
+
     super.awakeFromNib()
   }
 }

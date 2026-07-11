@@ -196,6 +196,52 @@ void main(List<String> args) async {
         });
       }
 
+      if (Platform.isMacOS) {
+        AppLog.log(
+          '[macOS-Dart] registering macOS file opener channel',
+          mirrorToConsole: true,
+        );
+        const fileOpenerChannel = MethodChannel('vynody/file_opener');
+        fileOpenerChannel.setMethodCallHandler((call) async {
+          AppLog.log(
+            '[macOS-Dart] received method call: method=${call.method} args=${call.arguments}',
+            mirrorToConsole: true,
+          );
+          if (call.method == 'onOpenFiles') {
+            final List<dynamic> rawArgs = call.arguments;
+            final argsList = rawArgs.cast<String>();
+            AppLog.log(
+              '[macOS-Dart] onOpenFiles processing args=$argsList count=${argsList.length}',
+              mirrorToConsole: true,
+            );
+            queueFileOpen(argsList);
+          }
+        });
+
+        try {
+          AppLog.log(
+            '[macOS-Dart] invoking getPendingFiles...',
+            mirrorToConsole: true,
+          );
+          final List<dynamic>? pending =
+              await fileOpenerChannel.invokeMethod('getPendingFiles');
+          AppLog.log(
+            '[macOS-Dart] getPendingFiles returned: $pending',
+            mirrorToConsole: true,
+          );
+          if (pending != null && pending.isNotEmpty) {
+            final argsList = pending.cast<String>();
+            AppLog.log(
+              '[macOS-Dart] queueing pending files=$argsList',
+              mirrorToConsole: true,
+            );
+            queueFileOpen(argsList);
+          }
+        } catch (e) {
+          AppLog.log('[macOS-Dart] failed to get macOS pending files: $e', mirrorToConsole: true);
+        }
+      }
+
       if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
         AppLog.log('initializing window manager', mirrorToConsole: true);
         await windowManager.ensureInitialized();

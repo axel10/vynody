@@ -248,6 +248,11 @@ class AudioService extends Notifier<AudioSnapshot> {
       if (Platform.isIOS || Platform.isMacOS) {
         await ref.read(scannerServiceProvider).ready;
       }
+      if (_queue.isNotEmpty || _currentSource != null) {
+        debugPrint('AudioService: queue is already occupied, skipping restorePlaybackSession');
+        _playbackSessionReady = true;
+        return;
+      }
       final session = await _sessionManager.loadFromPrefs(settingsService.prefs);
       if (session == null) {
         _playbackSessionReady = true;
