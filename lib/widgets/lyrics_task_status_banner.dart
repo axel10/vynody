@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -28,6 +29,38 @@ class LyricsTaskStatusBanner extends ConsumerStatefulWidget {
 
 class _LyricsTaskStatusBannerState extends ConsumerState<LyricsTaskStatusBanner> {
   bool _isHovered = false;
+  Timer? _hideTimer;
+
+  void _showCancelWithTimer() {
+    _hideTimer?.cancel();
+    setState(() {
+      _isHovered = true;
+    });
+    _hideTimer = Timer(const Duration(seconds: 3), () {
+      if (mounted) {
+        setState(() {
+          _isHovered = false;
+        });
+      }
+    });
+  }
+
+  void _handleTap() {
+    if (_isHovered) {
+      _hideTimer?.cancel();
+      setState(() {
+        _isHovered = false;
+      });
+    } else {
+      _showCancelWithTimer();
+    }
+  }
+
+  @override
+  void dispose() {
+    _hideTimer?.cancel();
+    super.dispose();
+  }
 
   LyricsTaskQueueSummary _readSummary() {
     final queue = ref.read(audioPlaybackQueueProvider);
@@ -75,6 +108,7 @@ class _LyricsTaskStatusBannerState extends ConsumerState<LyricsTaskStatusBanner>
     super.didUpdateWidget(oldWidget);
     final summary = _readSummary();
     if (!summary.isBusy) {
+      _hideTimer?.cancel();
       _isHovered = false;
     }
   }
@@ -170,57 +204,67 @@ class _LyricsTaskStatusBannerState extends ConsumerState<LyricsTaskStatusBanner>
                     child: MouseRegion(
                       onEnter: (_) => setState(() => _isHovered = true),
                       onExit: (_) => setState(() => _isHovered = false),
-                      child: Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 16),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 12,
-                        ),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              colorScheme.surfaceContainerHighest.withValues(
-                                alpha: 0.98,
-                              ),
-                              colorScheme.surface.withValues(alpha: 0.95),
-                            ],
-                          ),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: accent.withValues(alpha: 0.18),
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.12),
-                              blurRadius: 22,
-                              offset: const Offset(0, 10),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: _handleTap,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 12,
                             ),
-                          ],
-                        ),
-                        child: _BusyBannerBody(
-                          summary: summary,
-                          taskLabel: taskLabel,
-                          activeSong: activeSong,
-                          showPhaseLabel: showPhaseLabel,
-                          showProgress: showProgress,
-                          progress: progress,
-                          phaseLabel: phaseLabel,
-                          providerLabel: providerLabel,
-                          modelNameLabel: modelNameLabel,
-                          retryLabel: generationState.retryLabel,
-                          l10n: l10n,
-                          theme: theme,
-                          colorScheme: colorScheme,
-                          accent: accent,
-                          shimmerDuration: LyricsTaskStatusBanner._shimmerDuration,
-                          isHovered: _isHovered,
-                          onCancel: () {
-                            ref
-                                .read(lyricsControllerProvider.notifier)
-                                .cancelActiveAiTask();
-                          },
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  colorScheme.surfaceContainerHighest.withValues(
+                                    alpha: 0.98,
+                                  ),
+                                  colorScheme.surface.withValues(alpha: 0.95),
+                                ],
+                              ),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: accent.withValues(alpha: 0.18),
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.12),
+                                  blurRadius: 22,
+                                  offset: const Offset(0, 10),
+                                ),
+                              ],
+                            ),
+                            child: _BusyBannerBody(
+                              summary: summary,
+                              taskLabel: taskLabel,
+                              activeSong: activeSong,
+                              showPhaseLabel: showPhaseLabel,
+                              showProgress: showProgress,
+                              progress: progress,
+                              phaseLabel: phaseLabel,
+                              providerLabel: providerLabel,
+                              modelNameLabel: modelNameLabel,
+                              retryLabel: generationState.retryLabel,
+                              l10n: l10n,
+                              theme: theme,
+                              colorScheme: colorScheme,
+                              accent: accent,
+                              shimmerDuration: LyricsTaskStatusBanner._shimmerDuration,
+                              isHovered: _isHovered,
+                              onCancel: () {
+                                _hideTimer?.cancel();
+                                setState(() {
+                                  _isHovered = false;
+                                });
+                                ref
+                                    .read(lyricsControllerProvider.notifier)
+                                    .cancelActiveAiTask();
+                              },
+                            ),
+                          ),
                         ),
                       ),
                     ),
