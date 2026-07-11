@@ -106,11 +106,13 @@ class _SleepTimerSheetState extends ConsumerState<SleepTimerSheet> {
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
         child: SafeArea(
           top: false,
-          child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 220),
-            child: _mode == _SleepTimerSheetMode.active
-                ? _buildActiveView(context, remaining, l10n)
-                : _buildConfigureView(context, l10n),
+          child: SingleChildScrollView(
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 220),
+              child: _mode == _SleepTimerSheetMode.active
+                  ? _buildActiveView(context, remaining, l10n)
+                  : _buildConfigureView(context, l10n),
+            ),
           ),
         ),
       ),
@@ -207,16 +209,19 @@ class _SleepTimerSheetState extends ConsumerState<SleepTimerSheet> {
             ),
           ),
         ),
-        CheckboxListTile(
-          contentPadding: EdgeInsets.zero,
-          value: _stopAfterCurrentSong,
-          onChanged: (value) {
-            setState(() {
-              _stopAfterCurrentSong = value ?? false;
-            });
-          },
-          title: Text(l10n.sleepTimerStopAfterCurrentSong),
-          controlAffinity: ListTileControlAffinity.leading,
+        Material(
+          color: Colors.transparent,
+          child: CheckboxListTile(
+            contentPadding: EdgeInsets.zero,
+            value: _stopAfterCurrentSong,
+            onChanged: (value) {
+              setState(() {
+                _stopAfterCurrentSong = value ?? false;
+              });
+            },
+            title: Text(l10n.sleepTimerStopAfterCurrentSong),
+            controlAffinity: ListTileControlAffinity.leading,
+          ),
         ),
         const SizedBox(height: 10),
         Row(

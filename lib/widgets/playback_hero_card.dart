@@ -1824,9 +1824,12 @@ class PlaybackHeroCard extends ConsumerWidget {
                       controlsScale,
                   alignment: Alignment.topCenter,
                   padding: EdgeInsets.only(
-                    top:
-                        (PlaybackHeroCardUiTuning.controlsTopButtonsHeight -
-                            PlaybackHeroCardUiTuning.topButtonsIconSize) /
+                    top: (sleepTimerRemaining != null
+                            ? (PlaybackHeroCardUiTuning.controlsTopButtonsHeight -
+                                    PlaybackHeroCardUiTuning.topButtonsIconSize -
+                                    12)
+                            : (PlaybackHeroCardUiTuning.controlsTopButtonsHeight -
+                                PlaybackHeroCardUiTuning.topButtonsIconSize)) /
                         2 *
                         controlsScale,
                   ),
