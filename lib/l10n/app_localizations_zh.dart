@@ -2281,6 +2281,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get nativeLanguageZh => '简体中文';
 
   @override
+  String get nativeLanguageZhHant => '繁體中文';
+
+  @override
   String get nativeLanguageEn => 'English';
 
   @override
@@ -2824,4 +2827,2829 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get scanToastHiddenHint => '扫描状态提示已隐藏，可在“设置 - 界面”中重新打开';
+}
+
+/// The translations for Chinese, using the Han script (`zh_Hant`).
+class AppLocalizationsZhHant extends AppLocalizationsZh {
+  AppLocalizationsZhHant() : super('zh_Hant');
+
+  @override
+  String get appTitle => 'Vynody';
+
+  @override
+  String get alwaysOnTop => '置頂';
+
+  @override
+  String get systemMediaLibrary => '系統媒體庫';
+
+  @override
+  String get scanningDirectory => '正在掃描目錄...';
+
+  @override
+  String filesPreprocessed(Object count) {
+    return '已預處理 $count';
+  }
+
+  @override
+  String filesDiscovered(Object count) {
+    return '已發現 $count';
+  }
+
+  @override
+  String filesFullyProcessed(Object count) {
+    return '已完整處理 $count';
+  }
+
+  @override
+  String get directoryAddedSuccess => '目錄新增成功';
+
+  @override
+  String get directoryAddedNoMusic => '目錄已新增，但未發現可播放的音訊檔案';
+
+  @override
+  String get scanDirectory => '掃描目錄';
+
+  @override
+  String get sort => '排序';
+
+  @override
+  String get addRootDirectory => '新增根目錄';
+
+  @override
+  String get goBack => '返回上一層';
+
+  @override
+  String get noMediaLibraryPermission => '未取得媒體庫存取權限';
+
+  @override
+  String get grantPermission => '授予權限';
+
+  @override
+  String get needPermissionToScan => '需授予權限以掃描本地音樂';
+
+  @override
+  String get rebuildTagDatabase => '重建標籤資料庫';
+
+  @override
+  String get rebuildDatabase => '重建資料庫';
+
+  @override
+  String get confirmRebuildDatabase =>
+      '確定要手動重新整理所有歌曲的標籤資訊嗎？這可能需要一些時間來重新載入封面和中繼資料。';
+
+  @override
+  String get cancel => '取消';
+
+  @override
+  String get confirm => '確定';
+
+  @override
+  String get rebuildingDatabase => '正在重建歌曲標籤資料庫...';
+
+  @override
+  String get sortBy => '排序方式';
+
+  @override
+  String get sortScope => '作用範圍';
+
+  @override
+  String get sortOrder => '排序順序';
+
+  @override
+  String get title => '標題';
+
+  @override
+  String get fileName => '檔案名稱';
+
+  @override
+  String get trackNumber => '曲目號碼';
+
+  @override
+  String get ascending => '遞增';
+
+  @override
+  String get descending => '遞減';
+
+  @override
+  String get currentFolderScope => '目前目錄';
+
+  @override
+  String get globalScope => '全域';
+
+  @override
+  String get visualizerSettings => '播放頁設定';
+
+  @override
+  String get algorithm => '頻譜';
+
+  @override
+  String get appearance => '外觀';
+
+  @override
+  String get spectrumAppearanceGroup => '頻譜外觀';
+
+  @override
+  String get spectrumAdvancedOptions => '頻譜進階選項';
+
+  @override
+  String get resetAlgorithm => '重設演算法';
+
+  @override
+  String get resetAppearance => '重設外觀';
+
+  @override
+  String get smoothing => '平滑係數 (Smoothing)';
+
+  @override
+  String get gravity => '重力係數 (Gravity)';
+
+  @override
+  String get logScale => '對數縮放 (Log Scale)';
+
+  @override
+  String get contrast => '對比度 (Contrast)';
+
+  @override
+  String get normalization => '正規化 (Normalization)';
+
+  @override
+  String get multiplier => '增益 (Multiplier)';
+
+  @override
+  String get skipHighFrequency => '略過高頻';
+
+  @override
+  String get frequencyGroups => '頻率分組 (Frequency Groups)';
+
+  @override
+  String get aggregationMode => '聚合模式 (Aggregation Mode)';
+
+  @override
+  String get opacity => '不透明度 (Opacity)';
+
+  @override
+  String get enableGradient => '啟用漸層色';
+
+  @override
+  String get startColor => '起始顏色';
+
+  @override
+  String get endColor => '結束顏色';
+
+  @override
+  String get gradientRangeStop1 => '漸層範圍 Stop 1';
+
+  @override
+  String get gradientRangeStop2 => '漸層範圍 Stop 2';
+
+  @override
+  String get gradientRepeatMode => '漸層重複模式 (TileMode)';
+
+  @override
+  String get color => '顏色';
+
+  @override
+  String get followCoverColor => '跟隨封面變色';
+
+  @override
+  String get selectColor => '選擇顏色';
+
+  @override
+  String get volume => '音量';
+
+  @override
+  String get clearQueue => '清空佇列';
+
+  @override
+  String get confirmClearQueue => '確定要清空目前的佇列嗎？';
+
+  @override
+  String get queueCleared => '佇列已清空';
+
+  @override
+  String get locateCurrentSong => '定位目前播放';
+
+  @override
+  String get songNotInScannedFolders => '目前歌曲不在掃描的目錄中';
+
+  @override
+  String get queue => '佇列';
+
+  @override
+  String get queueEmpty => '佇列為空';
+
+  @override
+  String selectedSongs(int count) {
+    return '已選擇 $count 首';
+  }
+
+  @override
+  String get unknownArtist => '未知藝術家';
+
+  @override
+  String deletedSongs(int count) {
+    return '已刪除 $count 首歌曲';
+  }
+
+  @override
+  String get delete => '刪除';
+
+  @override
+  String get createPlaylist => '建立播放清單';
+
+  @override
+  String get playlistName => '播放清單名稱';
+
+  @override
+  String get enterPlaylistName => '請輸入播放清單名稱';
+
+  @override
+  String get playlistNameExists => '播放清單名稱已存在';
+
+  @override
+  String get renamePlaylist => '重新命名播放清單';
+
+  @override
+  String get deletePlaylist => '刪除播放清單';
+
+  @override
+  String confirmDeletePlaylist(String name) {
+    return '確定要刪除播放清單「$name」嗎？';
+  }
+
+  @override
+  String get addToPlaylist => '新增到播放清單';
+
+  @override
+  String get selectAll => '全選';
+
+  @override
+  String get addToQueue => '新增到佇列';
+
+  @override
+  String get addedToQueue => '已新增到佇列';
+
+  @override
+  String songCount(int count) {
+    return '$count 首歌曲';
+  }
+
+  @override
+  String addedToPlaylist(int count, String playlist) {
+    return '已新增 $count 首歌曲到 $playlist';
+  }
+
+  @override
+  String get createNewList => '新增清單';
+
+  @override
+  String createdPlaylist(String name, int count) {
+    return '已建立播放清單「$name」並新增 $count 首歌曲';
+  }
+
+  @override
+  String get rename => '重新命名';
+
+  @override
+  String get playlist => '播放清單';
+
+  @override
+  String get mostPlayed => '最多播放';
+
+  @override
+  String get recentlyAdded => '最近新增';
+
+  @override
+  String get albums => '專輯';
+
+  @override
+  String get artists => '藝術家';
+
+  @override
+  String get mostPlayedDescription => '依有效播放次數排序';
+
+  @override
+  String get recentlyAddedDescription => '依進入媒體庫的時間排序';
+
+  @override
+  String get allTime => '所有時間';
+
+  @override
+  String get pastWeek => '過去一週';
+
+  @override
+  String get pastMonth => '過去一個月';
+
+  @override
+  String get past90Days => '過去三個月';
+
+  @override
+  String get noPlayHistory => '還沒有播放記錄';
+
+  @override
+  String get noPlayHistoryInRange => '這個時間範圍內還沒有播放記錄';
+
+  @override
+  String get noRecentlyAddedSongs => '媒體庫中還沒有歌曲';
+
+  @override
+  String get noRecentlyAddedInRange => '這個時間範圍內沒有新新增的歌曲';
+
+  @override
+  String get addedOn => '新增時間';
+
+  @override
+  String get lastPlayed => '最近播放';
+
+  @override
+  String playCountLabel(int count) {
+    return '$count 次';
+  }
+
+  @override
+  String get playAll => '播放全部';
+
+  @override
+  String get shufflePlay => '隨機播放';
+
+  @override
+  String get noAlbums => '還沒有可顯示的專輯';
+
+  @override
+  String get noArtists => '還沒有可顯示的藝術家';
+
+  @override
+  String get searchAlbums => '搜尋專輯或藝術家';
+
+  @override
+  String get searchArtists => '搜尋藝術家';
+
+  @override
+  String get albumSort => '排序';
+
+  @override
+  String get sortArtistAsc => '藝術家 A-Z';
+
+  @override
+  String get sortTitleAsc => '專輯名稱 A-Z';
+
+  @override
+  String get sortTrackCount => '歌曲數量';
+
+  @override
+  String get sortDuration => '總時長';
+
+  @override
+  String get sortRecentAdded => '最近新增';
+
+  @override
+  String get sortAscending => '遞增';
+
+  @override
+  String get sortDescending => '遞減';
+
+  @override
+  String get playNext => '下一首播放';
+
+  @override
+  String get addToFavorites => '加入收藏';
+
+  @override
+  String get removeFromFavorites => '取消收藏';
+
+  @override
+  String get viewAlbumDetails => '檢視專輯詳情';
+
+  @override
+  String get viewArtistDetails => '檢視藝術家詳情';
+
+  @override
+  String get openFileLocation => '開啟檔案所在位置';
+
+  @override
+  String get copyAlbumTitle => '複製專輯名稱';
+
+  @override
+  String get copyArtistName => '複製藝術家名稱';
+
+  @override
+  String albumCount(int count) {
+    return '$count 張專輯';
+  }
+
+  @override
+  String get emptyList => '清單為空';
+
+  @override
+  String get dragToAddMusic => '拖入檔案或資料夾以新增音樂';
+
+  @override
+  String get unknownAlbum => '未知專輯';
+
+  @override
+  String get managePlaylists => '管理播放清單';
+
+  @override
+  String get createNewPlaylist => '建立新的播放清單';
+
+  @override
+  String get defaultList => '預設清單';
+
+  @override
+  String get playbackMode => '播放模式';
+
+  @override
+  String get playbackOptions => '播放選項';
+
+  @override
+  String get setVisualizerDisplay => '設定頻譜顯示';
+
+  @override
+  String get noPlaybackContent => '目前沒有播放內容';
+
+  @override
+  String get file => '檔案';
+
+  @override
+  String get play => '播放';
+
+  @override
+  String get list => '媒體庫';
+
+  @override
+  String get queueTab => '佇列';
+
+  @override
+  String get more => '更多';
+
+  @override
+  String get settings => '設定';
+
+  @override
+  String get themeMode => '主題';
+
+  @override
+  String get themeModeSystem => '跟隨系統';
+
+  @override
+  String get themeModeLight => '亮色';
+
+  @override
+  String get themeModeDark => '暗色';
+
+  @override
+  String get immersiveTabBar => '沉浸式標籤列';
+
+  @override
+  String get immersiveTabBarDescription => '滑鼠移動時顯示導覽列，3 秒無操作後隱藏';
+
+  @override
+  String get sampleStride => '取樣步長';
+
+  @override
+  String get sampleStrideDescription => '值越大掃描越快但波形精度越低（預設：4）';
+
+  @override
+  String get waveformSegments => '波形分段';
+
+  @override
+  String get waveformSegmentsDescription => '要顯示的波形柱數量（預設：80）';
+
+  @override
+  String get showDeveloperOptions => '顯示開發人員選項';
+
+  @override
+  String get playbackBackground => '播放頁背景';
+
+  @override
+  String get playbackRadialGradient => '中心暗色漸層';
+
+  @override
+  String get blurIntensity => '模糊強度';
+
+  @override
+  String get blurredArtwork => '模糊封面（預設）';
+
+  @override
+  String get dynamicMesh => '動態流變';
+
+  @override
+  String get solidColor => '純色';
+
+  @override
+  String get customImage => '自訂圖片';
+
+  @override
+  String get presetColors => '預設顏色';
+
+  @override
+  String get customColor => '自訂顏色';
+
+  @override
+  String get uploadImage => '選擇圖片';
+
+  @override
+  String get normalOpacity => '一般暗色層不透明度';
+
+  @override
+  String get lyricsOpacity => '歌詞暗色層不透明度';
+
+  @override
+  String get chooseImageError => '選擇圖片失敗';
+
+  @override
+  String get noImageSelected => '未選擇圖片';
+
+  @override
+  String get unknown => '未知';
+
+  @override
+  String get playlistModeSingle => '單曲播放';
+
+  @override
+  String get playlistModeSingleLoop => '單曲循環';
+
+  @override
+  String get playlistModeQueue => '播放清單';
+
+  @override
+  String get playlistModeQueueLoop => '清單循環';
+
+  @override
+  String get playlistModeAutoQueueLoop => '自動清單循環';
+
+  @override
+  String get visualizer => '視覺化';
+
+  @override
+  String get previous => '上一首';
+
+  @override
+  String get next => '下一首';
+
+  @override
+  String get pause => '暫停';
+
+  @override
+  String get autoMode => '自動模式';
+
+  @override
+  String get advancedOptions => '進階選項';
+
+  @override
+  String get spectrumQuantity => '頻譜數量';
+
+  @override
+  String get speed => '速度';
+
+  @override
+  String get quantityHigh => '多';
+
+  @override
+  String get quantityMedium => '中';
+
+  @override
+  String get quantityLow => '少';
+
+  @override
+  String get speedFast => '快';
+
+  @override
+  String get speedMedium => '中';
+
+  @override
+  String get speedSlow => '慢';
+
+  @override
+  String get portraitFrequencyGroups => '直向頻譜數量';
+
+  @override
+  String get landscapeFrequencyGroups => '橫向頻譜數量';
+
+  @override
+  String get portraitGap => '直向頻譜間距';
+
+  @override
+  String get landscapeGap => '橫向頻譜間距';
+
+  @override
+  String get enableWaveformProgressBar => '啟用波形進度列';
+
+  @override
+  String get enableWaveformProgressBarDescription => '使用整首歌曲的波形圖代替標準滑桿';
+
+  @override
+  String get randomMode => '隨機模式';
+
+  @override
+  String get randomHistory => '隨機歷史';
+
+  @override
+  String get randomRange => '隨機範圍';
+
+  @override
+  String get randomMethod => '隨機方式';
+
+  @override
+  String get currentQueue => '目前佇列';
+
+  @override
+  String get globalRange => '全域（包含所有清單歌曲）';
+
+  @override
+  String get completeRandom => '完全隨機';
+
+  @override
+  String get shuffleRandom => '洗牌隨機';
+
+  @override
+  String get randomQueue => '隨機佇列';
+
+  @override
+  String get notSelected => '未選擇音樂';
+
+  @override
+  String get saveTagsToFile => '儲存標籤至檔案';
+
+  @override
+  String get saveCurrentTagsToFile => '儲存目前歌曲標籤至檔案';
+
+  @override
+  String get saveQueueTagsToFile => '儲存佇列中所有標籤至檔案';
+
+  @override
+  String get tagsSaved => '標籤儲存成功';
+
+  @override
+  String tagsSavedCount(Object count) {
+    return '標籤已儲存（$count 首）';
+  }
+
+  @override
+  String get tagsSaveFailed => '儲存標籤失敗';
+
+  @override
+  String tagsSaveFailedCount(Object count) {
+    return '$count 首儲存失敗';
+  }
+
+  @override
+  String unsupportedFormat(Object count) {
+    return '$count 首歌曲格式不支援儲存標籤（OGG/Opus）';
+  }
+
+  @override
+  String get unsupportedFormatSingle => '此格式（OGG/Opus）不支援儲存標籤';
+
+  @override
+  String get savingTags => '正在儲存標籤...';
+
+  @override
+  String get noModifiedTagsToSave => '沒有需要儲存的已修改標籤';
+
+  @override
+  String get clearPlaylist => '清空清單';
+
+  @override
+  String get copyTitle => '複製標題';
+
+  @override
+  String get transcodeAction => '轉碼';
+
+  @override
+  String get transcodeSectionTitle => '音訊轉碼';
+
+  @override
+  String get transcodeSectionDescription => '設定預設輸出格式與品質預設值。';
+
+  @override
+  String get transcodeDefaultFormat => '預設輸出格式';
+
+  @override
+  String get transcodeDefaultQuality => '預設品質設定';
+
+  @override
+  String get transcodeTitle => '音訊轉碼';
+
+  @override
+  String transcodeSongCount(int count) {
+    return '$count 首歌曲';
+  }
+
+  @override
+  String transcodeCompletedCount(int count) {
+    return '已完成 $count 個轉碼任務';
+  }
+
+  @override
+  String transcodeCompletedWithFailures(int success, int total, int failed) {
+    return '已完成 $success/$total 個轉碼任務，失敗 $failed 個';
+  }
+
+  @override
+  String get transcodeFailedGeneric => '轉碼失敗';
+
+  @override
+  String get transcodePreparing => '正在準備轉碼...';
+
+  @override
+  String transcodeProgress(int current, int total) {
+    return '正在轉碼 $current/$total';
+  }
+
+  @override
+  String get transcoding => '轉碼中...';
+
+  @override
+  String get startTranscode => '開始轉碼';
+
+  @override
+  String transcodeEngine(Object engine) {
+    return '引擎：$engine';
+  }
+
+  @override
+  String get transcodeUsingSystemFfmpeg => '使用系統 PATH 中的 ffmpeg。';
+
+  @override
+  String transcodeUsingCustomFfmpeg(Object path) {
+    return '使用自訂 ffmpeg：$path';
+  }
+
+  @override
+  String get transcodeFormat => '輸出格式';
+
+  @override
+  String get transcodeQualityPreset => '品質預設值';
+
+  @override
+  String get transcodeQualityLow => '低';
+
+  @override
+  String get transcodeQualityMedium => '中';
+
+  @override
+  String get transcodeQualityHigh => '高';
+
+  @override
+  String get transcodeQualityExtreme => '最高';
+
+  @override
+  String get transcodeLosslessPresetHint => '目前的無損格式不使用品質檔位和位元率控制模式。';
+
+  @override
+  String get transcodeAdvancedOptions => '進階選項';
+
+  @override
+  String get transcodeAdvancedCustomized => '進階參數已被手動修改';
+
+  @override
+  String get transcodeAdvancedFollowingPreset => '進階參數跟隨目前預設值';
+
+  @override
+  String get transcodeLosslessAdvancedHint => '目前的無損格式僅保留與來源檔案相關的進階選項。';
+
+  @override
+  String get transcodeBitRateInvalid => '請輸入有效的位元率';
+
+  @override
+  String get transcodeBitRate => '位元率';
+
+  @override
+  String get transcodeBitRateMode => '位元率控制模式';
+
+  @override
+  String get transcodeEncodingEngine => '編碼引擎';
+
+  @override
+  String get transcodeSystemEncoder => 'Media3（系統）';
+
+  @override
+  String get transcodeFfmpegRustEncoder => 'FFmpeg（Rust）';
+
+  @override
+  String get transcodeAacEncoder => 'AAC 編碼器';
+
+  @override
+  String get transcodeSampleRate => '取樣率';
+
+  @override
+  String get transcodeChannels => '聲道';
+
+  @override
+  String get transcodeResetToPreset => '重設為目前預設值';
+
+  @override
+  String get transcodeResetLosslessOptions => '重設無損選項';
+
+  @override
+  String get transcodeOutputDirectory => '輸出目錄';
+
+  @override
+  String get transcodeOutputPreview => '預覽';
+
+  @override
+  String get transcodeChooseDirectory => '選擇目錄';
+
+  @override
+  String get transcodeUseSourceDirectory => '使用來源檔案目錄';
+
+  @override
+  String get transcodeKeepSource => '保留來源檔案';
+
+  @override
+  String get transcodeMono => '單聲道';
+
+  @override
+  String get transcodeStereo => '雙聲道';
+
+  @override
+  String get openFolderLocation => '開啟資料夾所在位置';
+
+  @override
+  String get songTagsSavedToSourceFileAndApp => '歌曲標籤已儲存至來源檔案和 App';
+
+  @override
+  String get songTagsSavedToApp => '歌曲標籤已儲存至 App';
+
+  @override
+  String get durationZero => '0:00';
+
+  @override
+  String get generateLyrics => '生成歌詞';
+
+  @override
+  String get generateTimeline => '生成時間軸';
+
+  @override
+  String get queueGenerateLyrics => '排隊生成';
+
+  @override
+  String get pauseAutoScroll => '暫停自動捲動';
+
+  @override
+  String get resumeAutoScroll => '恢復自動捲動';
+
+  @override
+  String get translateLyrics => '翻譯歌詞';
+
+  @override
+  String get clearLyricsCache => '清除目前歌詞快取';
+
+  @override
+  String get clearTranslationCache => '清除目前翻譯快取';
+
+  @override
+  String get requery => '重新查詢';
+
+  @override
+  String get sleepTimerTitle => '睡眠定時器';
+
+  @override
+  String get sleepTimerDescription => '選擇倒數計時，時間到後會暫停播放。';
+
+  @override
+  String get sleepTimerRunningTitle => '睡眠定時器執行中';
+
+  @override
+  String get sleepTimerRunningDescription => '倒數結束後會自動暫停目前播放。';
+
+  @override
+  String get sleepTimerStopAfterCurrentSong => '播放完最後一首歌曲後停止';
+
+  @override
+  String get remainingTime => '剩餘時間';
+
+  @override
+  String get startCountdown => '開始倒數';
+
+  @override
+  String get end => '結束';
+
+  @override
+  String get equalizer => '等化器';
+
+  @override
+  String get equalizerEnabledStatus => '已啟用高保真調整';
+
+  @override
+  String get equalizerDisabledStatus => '已停用';
+
+  @override
+  String get bassBoost => '低音增強';
+
+  @override
+  String get preampGain => '前置增益';
+
+  @override
+  String get reset => '重設';
+
+  @override
+  String get close => '關閉';
+
+  @override
+  String get timelineAdjustmentTitle => '手動調整時間軸';
+
+  @override
+  String get timelineAdjustmentDescription => '向右拖曳會讓歌詞整體延後，向左拖曳會讓歌詞整體提前。';
+
+  @override
+  String timelineOffsetEarlier(Object seconds) {
+    return '提前 $seconds 秒';
+  }
+
+  @override
+  String timelineOffsetLater(Object seconds) {
+    return '延後 $seconds 秒';
+  }
+
+  @override
+  String get timelineOffsetCurrent => '目前偏移：0.0 秒';
+
+  @override
+  String get enterAcoustidApiKeyTitle => '填寫 AcoustID API Key';
+
+  @override
+  String get acoustidApiKeyDescription => '用於音訊指紋辨識。留空後會恢復使用應用程式內建的預設 key。';
+
+  @override
+  String get acoustidApiKeyHint => '貼上你的 AcoustID API Key';
+
+  @override
+  String get apiKey => 'API Key';
+
+  @override
+  String get save => '儲存';
+
+  @override
+  String get enterLyricsTitle => '填寫歌詞';
+
+  @override
+  String get lyricsInputHint => '在這裡貼上或輸入歌詞，支援多行文字';
+
+  @override
+  String get enterGoogleAiStudioApiKeyTitle => '填寫 Google AI Studio API Key';
+
+  @override
+  String get googleAiStudioApiKeyDescription =>
+      '用於 Google AI Studio 的歌詞生成、時間軸生成和翻譯。';
+
+  @override
+  String get pasteGoogleAiStudioApiKey => '貼上 Google AI Studio API Key';
+
+  @override
+  String get enterOpenRouterApiKeyTitle => '填寫 OpenRouter API Key';
+
+  @override
+  String get openRouterApiKeyDescription =>
+      '用於 OpenRouter 的歌詞生成和時間軸生成，翻譯始終使用 Gemini。';
+
+  @override
+  String get pasteOpenRouterApiKey => '貼上 OpenRouter API Key';
+
+  @override
+  String get enterGeminiApiKeyTitle => '填寫 Gemini API Key';
+
+  @override
+  String get geminiApiKeyDescription => '用於歌詞翻譯。';
+
+  @override
+  String get pasteGeminiApiKey => '貼上 Gemini API Key';
+
+  @override
+  String get testConnection => '測試連線';
+
+  @override
+  String get enterApiKey => '請輸入 API key。';
+
+  @override
+  String get testingConnection => '正在測試連線...';
+
+  @override
+  String get getKey => '取得 key';
+
+  @override
+  String get editSongTagsTitle => '編輯歌曲標籤';
+
+  @override
+  String get changeArtwork => '更換封面';
+
+  @override
+  String get clearArtwork => '清除封面';
+
+  @override
+  String get editSongTagsDescription => '修改後可以只儲存到 App，也可以同步寫回來源檔案。';
+
+  @override
+  String get artistLabel => '藝術家';
+
+  @override
+  String get albumLabel => '專輯';
+
+  @override
+  String get trackNumberLabel => '曲目號碼';
+
+  @override
+  String get trackNumberMustBeInteger => '曲目號碼必須是整數';
+
+  @override
+  String get leaveBlankKeepsCurrentValue => '留空則清空該項';
+
+  @override
+  String get currentFileFormatCannotWriteBack => '目前檔案格式不支援寫回來源檔案，只能儲存到 App。';
+
+  @override
+  String get leaveBlankDoesNotClearOriginalValue => '提示：留空會清空對應標籤的值。';
+
+  @override
+  String get saveToApp => '儲存到 App';
+
+  @override
+  String get saveToSourceFileAndApp => '儲存到來源檔案和 App';
+
+  @override
+  String get saveToSourceFileFailed => '儲存到來源檔案失敗，請確認檔案格式支援寫入且檔案未被佔用';
+
+  @override
+  String get fileOccupiedByOtherApp => '檔案被其他 App 佔用，無法寫入';
+
+  @override
+  String get saveFailed => '儲存失敗，請稍後重試';
+
+  @override
+  String apiKeySaved(Object provider) {
+    return '$provider API Key 已儲存';
+  }
+
+  @override
+  String get apiKeySavedAcoustid => 'AcoustID API Key 已儲存';
+
+  @override
+  String get generalSectionTitle => '介面';
+
+  @override
+  String get generalSectionDescription => '這些選項會影響頁面和播放介面的整體顯示方式。';
+
+  @override
+  String get interfaceLanguage => '介面語言';
+
+  @override
+  String get interfaceLanguageDescription => '選擇軟體的介面顯示語言。';
+
+  @override
+  String get scanSectionTitle => '掃描';
+
+  @override
+  String get scanSectionDescription => '這些選項會控制媒體庫掃描如何處理音訊檔案。';
+
+  @override
+  String get skipShortAudioDuringScan => '掃描時略過短音訊';
+
+  @override
+  String get skipShortAudioDuringScanDescription => '短於閾值的音訊不會加入媒體庫。';
+
+  @override
+  String get shortAudioScanThreshold => '短音訊閾值';
+
+  @override
+  String get shortAudioScanThresholdDescription => '短於此時長的檔案會被略過。';
+
+  @override
+  String shortAudioScanThresholdValue(Object seconds) {
+    return '$seconds 秒';
+  }
+
+  @override
+  String get shortcutSettingsTitle => '自訂快捷鍵';
+
+  @override
+  String get shortcutSettingsDescription => '點選後可以為播放器操作重新錄製快捷鍵並儲存。';
+
+  @override
+  String get edit => '編輯';
+
+  @override
+  String get lyricsSectionTitle => '歌詞';
+
+  @override
+  String get lyricsSectionDescription => '這裡的設定只影響歌詞生成和時間軸生成。';
+
+  @override
+  String get lyricsTranslationTargetLanguageLabel => '翻譯目標語言';
+
+  @override
+  String get lyricsTranslationTargetLanguageDescription => '預設跟隨系統語言，也可以單獨指定。';
+
+  @override
+  String get lyricsSaveMethodLabel => '歌詞儲存位置';
+
+  @override
+  String get lyricsSaveMethodDescription => '選擇將歌詞寫入檔案時的儲存位置。';
+
+  @override
+  String get lyricsSaveMethodOriginal => '原處';
+
+  @override
+  String get lyricsSaveMethodEmbedded => '內嵌';
+
+  @override
+  String get lyricsSaveMethodLrcFile => 'LRC 檔案';
+
+  @override
+  String get lyricsStyleLabel => '歌詞面板樣式';
+
+  @override
+  String get lyricsStyleDescription => '選擇歌詞面板的展示和互動樣式。';
+
+  @override
+  String get lyricsStyleTraditional => '傳統捲動';
+
+  @override
+  String get lyricsStyleApple => '逐行聚焦';
+
+  @override
+  String get resumeLyricsSync => '恢復歌詞同步';
+
+  @override
+  String get followSystemLanguage => '跟隨系統';
+
+  @override
+  String get autoSwitchLyricsProvider => '自動切換歌詞供應商';
+
+  @override
+  String get autoSwitchLyricsProviderEnabledDesc =>
+      '開啟後會先請求 Google AI Studio；主要模型和備用模型都因 429 或 5xx 失敗時，再自動切換到 OpenRouter 繼續請求。';
+
+  @override
+  String get autoSwitchLyricsProviderDisabledDesc =>
+      '請先同時填寫 Google AI Studio 和 OpenRouter 的 API Key，才可以開啟自動切換。';
+
+  @override
+  String get lyricsAiProviderTitle => '歌詞生成 AI 提供方';
+
+  @override
+  String get lyricsAiProviderDescription =>
+      '這裡只影響歌詞生成和時間軸生成。翻譯始終使用 Google AI Studio。';
+
+  @override
+  String get googleAiStudioApiKeySaved => 'Google AI Studio API Key 已儲存';
+
+  @override
+  String get googleAiStudioApiKeyMissing =>
+      '目前未儲存 Google AI Studio key，歌詞生成和時間軸生成會先彈窗提示。';
+
+  @override
+  String get openRouterApiKeySaved => 'OpenRouter API Key 已儲存';
+
+  @override
+  String get openRouterApiKeyMissing =>
+      '目前未儲存 OpenRouter key，歌詞生成和時間軸生成會先彈窗提示。';
+
+  @override
+  String get apiKeySavedStatus => '已儲存';
+
+  @override
+  String get apiKeyMissingStatus => '未填寫';
+
+  @override
+  String get platformApiKeysSectionTitle => '平台 API Key';
+
+  @override
+  String get fill => '填寫';
+
+  @override
+  String get modify => '修改';
+
+  @override
+  String get geminiModelsSectionTitle => '選擇模型';
+
+  @override
+  String get geminiModelsSectionDescription =>
+      '這些模型會用於 Google AI Studio 的歌詞生成、時間軸生成以及歌詞翻譯。';
+
+  @override
+  String get primaryModelLabel => '主要模型';
+
+  @override
+  String get backupModelLabel => '備用模型';
+
+  @override
+  String get translationModelLabel => '翻譯模型';
+
+  @override
+  String get fetching => '取得中...';
+
+  @override
+  String get fetchModelList => '取得模型清單';
+
+  @override
+  String get restoreDefault => '恢復預設';
+
+  @override
+  String get acoustidSectionTitle => '聽歌辨識';
+
+  @override
+  String get acoustidApiKeyTitle => 'AcoustID API Key';
+
+  @override
+  String get acoustidApiKeyHelp => 'AcoustID 用於聽歌辨識，建議使用你自己的 API Key。';
+
+  @override
+  String get acoustidApiKeySaved => 'AcoustID API Key 已儲存';
+
+  @override
+  String get acoustidApiKeyDefault => '目前使用應用程式內建的預設 key，建議申請你自己的 key 後替換。';
+
+  @override
+  String get applyForApiKey =>
+      '申請 API key: https://acoustid.org/new-application';
+
+  @override
+  String get queueTabBarFavoriteAdded => '已加入收藏';
+
+  @override
+  String get queueTabBarFavoriteRemoved => '已取消收藏';
+
+  @override
+  String get tagCompletion => '歌曲標籤補全';
+
+  @override
+  String get tagCompletionDescription => '根據 AcoustID 和 MusicBrainz 結果比對標籤';
+
+  @override
+  String get goToSettings => '前往設定頁';
+
+  @override
+  String get searchReleaseTitles => '搜尋 release 標題';
+
+  @override
+  String get closeSearch => '關閉搜尋';
+
+  @override
+  String get refreshResults => '重新整理結果';
+
+  @override
+  String get filterMusicBrainzReleaseTitle => '篩選 MusicBrainz release 標題';
+
+  @override
+  String get clearSearch => '清空搜尋';
+
+  @override
+  String get localTitle => '本地標題';
+
+  @override
+  String get queryConditions => '查詢條件';
+
+  @override
+  String get musicBrainzLoading => '正在查詢 MusicBrainz';
+
+  @override
+  String get musicBrainzLoadingWithResults => '現有結果會先保留在面板裡';
+
+  @override
+  String get musicBrainzLoadingHint => '請稍候';
+
+  @override
+  String get musicBrainzQueryFailed => 'MusicBrainz 查詢失敗';
+
+  @override
+  String get musicBrainzNetworkErrorHint =>
+      'MusicBrainz 請求失敗，通常是網路連線不穩定、逾時或被伺服器端拒絕。可以稍後重試。';
+
+  @override
+  String get musicBrainzFilteredEmptyHint => '目前篩選條件下沒有包含該關鍵字的 release 標題。';
+
+  @override
+  String get musicBrainzEmptyHint =>
+      'MusicBrainz 沒有傳回可用結果。可以放寬標題、藝人或專輯條件後再試一次。';
+
+  @override
+  String get musicBrainzEmptyMoreCompleteHint => '可以稍後重試，或者確認目前歌曲標題／藝人資訊是否更完整。';
+
+  @override
+  String get retry => '重試';
+
+  @override
+  String get noMatchingRelease => '沒有找到符合的 release';
+
+  @override
+  String get noMatchingResults => '沒有找到符合結果';
+
+  @override
+  String get networkConnectionFailed => '網路連線失敗';
+
+  @override
+  String get searchAgain => '重新搜尋';
+
+  @override
+  String get acoustidRecognitionRecords => 'AcoustID 辨識記錄';
+
+  @override
+  String get musicBrainzRecordings => 'MusicBrainz 錄音';
+
+  @override
+  String get noExpandableReleaseGroups => '沒有可展開的發行版分組';
+
+  @override
+  String get noExpandableReleases => '沒有可展開的發行版';
+
+  @override
+  String get noMatchingResultHint => '可以稍後重試，或者確認目前歌曲標題／藝人資訊是否更完整。';
+
+  @override
+  String releaseCountLabel(int count) {
+    return '$count 個發行版';
+  }
+
+  @override
+  String recordingCountLabel(int count) {
+    return '$count 條錄音';
+  }
+
+  @override
+  String trackCountShort(int count) {
+    return '$count 首';
+  }
+
+  @override
+  String scoreLabel(int score) {
+    return '評分 $score';
+  }
+
+  @override
+  String matchScoreLabel(int score) {
+    return '符合度 $score%';
+  }
+
+  @override
+  String get editQueryCondition => '編輯查詢條件';
+
+  @override
+  String get enterNewQueryText => '輸入新的查詢文字';
+
+  @override
+  String get durationLabel => '時長';
+
+  @override
+  String get customShortcuts => '自訂快捷鍵';
+
+  @override
+  String get pressShortcutCombo => '請按下組合鍵';
+
+  @override
+  String get clickToRecord => '點選錄製';
+
+  @override
+  String get searchingLyrics => '正在尋找歌詞';
+
+  @override
+  String get noLyrics => '暫無歌詞';
+
+  @override
+  String get providerLabel => '供應商';
+
+  @override
+  String get modelLabel => '模型';
+
+  @override
+  String get unspecified => '未指定';
+
+  @override
+  String targetTimeLabel(String duration) {
+    return '目標時間 $duration';
+  }
+
+  @override
+  String get songDeletedSkipped => '歌曲已刪除，已略過';
+
+  @override
+  String get songDeleted => '歌曲已刪除';
+
+  @override
+  String get lyricsTaskUploading => '上傳中';
+
+  @override
+  String get lyricsTaskWaiting => '等待就緒';
+
+  @override
+  String get lyricsTaskRequesting => '請求中';
+
+  @override
+  String get lyricsTaskGenerating => '生成中';
+
+  @override
+  String get lyricsTaskRetrying => '重試中';
+
+  @override
+  String get lyricsTaskProcessing => '正在處理';
+
+  @override
+  String get unknownModel => '未知模型';
+
+  @override
+  String selectedFolders(int count) {
+    return '已選取 $count 個目錄';
+  }
+
+  @override
+  String foldersDeleted(int count) {
+    return '已刪除 $count 個目錄';
+  }
+
+  @override
+  String get persistentAccessDenied => '無法儲存該目錄的存取權限，請重新選擇一次';
+
+  @override
+  String get folderAddFailed => '目錄新增失敗';
+
+  @override
+  String get sleepTimer => '睡眠定時器';
+
+  @override
+  String sleepTimerRemaining(Object duration) {
+    return '睡眠定時器 $duration';
+  }
+
+  @override
+  String get unknownArtistOrAlbum => '未知';
+
+  @override
+  String get pressAgainToExit => '再按一次離開應用程式';
+
+  @override
+  String get tagCompletionSuccessWithCover => '標籤已補全並儲存，封面已下載到暫存目錄';
+
+  @override
+  String get tagCompletionSuccess => '標籤已補全並儲存';
+
+  @override
+  String get selectOnlineLyrics => '選擇線上歌詞';
+
+  @override
+  String get increaseLyricsFont => '增大歌詞文字';
+
+  @override
+  String get decreaseLyricsFont => '減小歌詞文字';
+
+  @override
+  String get restoreDefaultSize => '恢復預設大小';
+
+  @override
+  String get adjustLyricsFont => '調整文字大小';
+
+  @override
+  String get searchingOnlineLyrics => '正在查詢線上歌詞';
+
+  @override
+  String get onlineLyricsResults => '線上歌詞結果';
+
+  @override
+  String get untitledLyrics => '未命名歌詞';
+
+  @override
+  String get hasTimeline => '附時間軸';
+
+  @override
+  String get viewLyricsDetails => '檢視歌詞詳情';
+
+  @override
+  String get lyricsDetails => '歌詞詳情';
+
+  @override
+  String get lyricsContent => '歌詞內容';
+
+  @override
+  String get noLyricsContent => '無歌詞內容';
+
+  @override
+  String get queryContentLabel => '內容';
+
+  @override
+  String get yes => '是';
+
+  @override
+  String get no => '否';
+
+  @override
+  String dropAddedSongs(int addedCount) {
+    return '已新增 $addedCount 首歌曲';
+  }
+
+  @override
+  String dropAddedSongsWithExisting(int addedCount, int existingCount) {
+    return '已新增 $addedCount 首歌曲，$existingCount 首已存在';
+  }
+
+  @override
+  String get copyCover => '複製封面到剪貼簿';
+
+  @override
+  String get copyCoverSuccess => '已成功複製封面';
+
+  @override
+  String get searchLyricsPlaceholder => '輸入歌名、歌手或歌詞進行搜尋';
+
+  @override
+  String get share => '共用';
+
+  @override
+  String get windowsSettingsTitle => 'Windows 專屬設定';
+
+  @override
+  String get fileAssociationTitle => '檔案開啟方式關聯';
+
+  @override
+  String get fileAssociationDescription =>
+      '將常見的音樂格式（mp3、flac、wav 等）關聯到此應用程式，支援按兩下直接開啟播放。';
+
+  @override
+  String get associateButton => '一鍵關聯';
+
+  @override
+  String get disassociateButton => '移除關聯';
+
+  @override
+  String get associationSuccess =>
+      '關聯成功！若按兩下檔案未生效，請在 Windows 系統設定的【預設應用程式】中選擇 Vynody。';
+
+  @override
+  String get disassociationSuccess => '已成功清除檔案關聯。';
+
+  @override
+  String associationFailed(Object error) {
+    return '關聯失敗：$error';
+  }
+
+  @override
+  String get onboardingTitle => '歡迎使用 Vynody';
+
+  @override
+  String get onboardingSubtitle => '只需幾個簡單步驟，即可開始你的音樂之旅。';
+
+  @override
+  String get onboardingStepFileAssociation => '關聯檔案開啟方式';
+
+  @override
+  String get onboardingFileAssociationDesc =>
+      '將常見的音樂格式（mp3、flac、wav 等）與 Vynody 關聯，在檔案總管中按兩下即可直接播放。';
+
+  @override
+  String get onboardingFileAssociationTip =>
+      '關聯後，系統可能會彈出選擇預設開啟程式的對話方塊。請務必在清單中選擇「Vynody」並設為始終使用。';
+
+  @override
+  String get onboardingStepRootDirectory => '新增音樂根目錄';
+
+  @override
+  String get onboardingRootDirectoryDesc =>
+      '選擇存放音樂檔案的資料夾。Vynody 會自動掃描並建立你的本地音樂庫。';
+
+  @override
+  String get onboardingSelectDirectory => '選擇資料夾';
+
+  @override
+  String get onboardingSuccessTitle => '一切準備就緒！';
+
+  @override
+  String get onboardingSuccessDesc => '已成功新增媒體庫。讓我們開始享受音樂吧！';
+
+  @override
+  String get onboardingStartButton => '進入 Vynody';
+
+  @override
+  String get onboardingSkip => '稍後設定';
+
+  @override
+  String get onboardingNext => '下一步';
+
+  @override
+  String get onboardingBack => '上一步';
+
+  @override
+  String get resetOnboarding => '重設新手引導';
+
+  @override
+  String get resetOnboardingDesc => '清除首次啟動引導狀態，下次啟動應用程式時重新顯示新手引導。';
+
+  @override
+  String get songProperties => '歌曲屬性';
+
+  @override
+  String get failedToLoadDetails => '無法取得詳細資訊';
+
+  @override
+  String get noPropertiesAvailable => '暫無歌曲詳細屬性';
+
+  @override
+  String get detailFilePath => '檔案路徑';
+
+  @override
+  String get detailFormat => '格式';
+
+  @override
+  String get detailCodec => '編碼';
+
+  @override
+  String get detailDuration => '時長';
+
+  @override
+  String get detailFileSize => '檔案大小';
+
+  @override
+  String get detailBitrate => '位元率';
+
+  @override
+  String get detailSampleRate => '取樣率';
+
+  @override
+  String get detailChannels => '聲道數';
+
+  @override
+  String get detailBitDepth => '取樣深度';
+
+  @override
+  String get detailMono => '單聲道 (Mono)';
+
+  @override
+  String get detailStereo => '立體聲 (Stereo)';
+
+  @override
+  String detailChannelsCount(int count) {
+    return '$count 聲道';
+  }
+
+  @override
+  String get localNetworkPermissionDeniedTitle => '區域網路存取受限';
+
+  @override
+  String get localNetworkPermissionDeniedMessage =>
+      '未偵測到可用的區域網路 IP 位址，或區域網路存取權限被拒絕。\n\n請按照以下步驟操作：\n1. 確保您的裝置已連線到 Wi-Fi 或區域網路。\n2. 確保在系統設定中允許本應用程式存取區域網路：\n   - iOS/macOS：請前往系統的「設定 > 隱私權與安全性 > 區域網路」，開啟「Vynody」的開關。\n   - Windows：請確保已連線到網路，並檢查 Windows 防火牆設定是否允許「Vynody」通過。';
+
+  @override
+  String get localNetworkPermissionWindowsMessage =>
+      '未偵測到可用的區域網路 IP 位址。\n\n請按照以下步驟操作：\n1. 確保您的裝置已連線到區域網路（Wi-Fi 或乙太網路）。\n2. 如果已連線但仍提示此錯誤，請檢查 Windows 防火牆設定，確保允許「Vynody」通過防火牆存取網路。';
+
+  @override
+  String get openSettingsButton => '前往設定';
+
+  @override
+  String get closeButton => '關閉';
+
+  @override
+  String get copyTranslationResults => '複製翻譯結果';
+
+  @override
+  String get writeLyricsToFile => '將歌詞寫入檔案';
+
+  @override
+  String get selectLyricSource => '選擇歌詞來源';
+
+  @override
+  String get regenerateLyrics => '重新生成歌詞';
+
+  @override
+  String get regenerateLyricsConfirmation => '將清空目前歌詞並重新生成，是否繼續？';
+
+  @override
+  String get regenerateTimeline => '重新生成時間軸';
+
+  @override
+  String get regenerateTimelineConfirmation => '將清空目前時間軸並重新生成，是否繼續？';
+
+  @override
+  String get retranslateLyrics => '重新翻譯歌詞';
+
+  @override
+  String get retranslateLyricsConfirmation => '將清空目前翻譯並重新翻譯，是否繼續？';
+
+  @override
+  String get translationCopiedToClipboard => '已複製翻譯結果到剪貼簿';
+
+  @override
+  String get writingLyrics => '正在寫入歌詞...';
+
+  @override
+  String get lyricsWrittenToFile => '歌詞寫入檔案成功';
+
+  @override
+  String get writeLyricsFailed => '寫入歌詞失敗';
+
+  @override
+  String get externalLrcFile => '同名外置 LRC 檔案';
+
+  @override
+  String get embeddedLyrics => '音訊內嵌歌詞';
+
+  @override
+  String get manuallyAdjustedLyrics => '手動修改的歌詞';
+
+  @override
+  String get lrclibOnlineLyrics => 'LrcLib 線上歌詞';
+
+  @override
+  String get aiGeneratedLyrics => 'AI 生成的歌詞';
+
+  @override
+  String get matchScore => '符合度';
+
+  @override
+  String get untitledRelease => '未命名發行版';
+
+  @override
+  String get localSongFileNotFoundForGeneration => '本機歌曲檔案不存在，無法生成歌詞。';
+
+  @override
+  String get localSongFileNotFoundForTimeline => '本機歌曲檔案不存在，無法生成時間軸。';
+
+  @override
+  String get noLyricsForTimelineGeneration => '沒有可用歌詞，無法生成時間軸。';
+
+  @override
+  String get noLyricsAvailableForTranslation => '沒有可用於翻譯的歌詞。';
+
+  @override
+  String get noCurrentSongAvailable => '沒有可用的目前歌曲。';
+
+  @override
+  String get invalidTargetLanguage => '目標語言無效。';
+
+  @override
+  String get songAlreadyQueuedForTranslation => '目前歌曲的歌詞任務已在排隊或翻譯中。';
+
+  @override
+  String get songAlreadyQueuedForGeneration => '目前歌曲的歌詞任務已在排隊或生成中。';
+
+  @override
+  String get songNoLongerExistsForTranslation => '目前歌曲已不存在，無法翻譯歌詞。';
+
+  @override
+  String get generationFailed => '生成失敗。';
+
+  @override
+  String get generatingLyrics => '正在生成歌詞';
+
+  @override
+  String get generatingTimeline => '正在生成時間軸';
+
+  @override
+  String get regeneratingLyrics => '正在重新生成歌詞';
+
+  @override
+  String get translatingLyrics => '正在翻譯歌詞';
+
+  @override
+  String get transcodingSongFile => '正在轉碼歌曲檔案';
+
+  @override
+  String get uploadingSongFile => '正在上傳歌曲檔案';
+
+  @override
+  String get fileUploadedWaitingForReadiness => '檔案已上傳，正在等待檔案就緒';
+
+  @override
+  String get waitingForFileReadiness => '正在等待檔案就緒';
+
+  @override
+  String get requestingModelResponse => '正在請求模型回應';
+
+  @override
+  String retryingTaskKindGeneration(Object taskKind) {
+    return '正在重試生成 $taskKind';
+  }
+
+  @override
+  String get retrying => '正在重試';
+
+  @override
+  String get processing => '正在處理';
+
+  @override
+  String get timeline => '時間軸';
+
+  @override
+  String get lyrics => '歌詞';
+
+  @override
+  String lyricGenerationError(Object error) {
+    return '生成歌詞時發生錯誤：$error';
+  }
+
+  @override
+  String timelineGenerationError(Object error) {
+    return '生成時間軸時發生錯誤：$error';
+  }
+
+  @override
+  String get unknownGenerationError => '生成歌詞時發生未知錯誤。';
+
+  @override
+  String get unknownTimelineGenerationError => '生成時間軸時發生未知錯誤。';
+
+  @override
+  String get unknownTranslationError => '翻譯歌詞時發生未知錯誤。';
+
+  @override
+  String get unknownError => '未知錯誤';
+
+  @override
+  String get modelRefusedToGenerateLyrics => '模型拒絕生成歌詞。';
+
+  @override
+  String get modelRefusedToGenerateTimeline => '模型拒絕生成時間軸。';
+
+  @override
+  String get doubaoPreUploadTranscodingFailed => '豆包上傳前音訊轉碼失敗。';
+
+  @override
+  String get doubaoTempTranscodeNotInTempDir => '豆包暫存轉碼檔案未產生在暫存目錄。';
+
+  @override
+  String get doubaoEmptyStreamingResponse => '豆包傳回了空串流回應。';
+
+  @override
+  String get doubaoEmptyResponse => '豆包傳回了空回應。';
+
+  @override
+  String get geminiEmptyStreamingResponse => 'Gemini 傳回了空串流回應。';
+
+  @override
+  String get geminiEmptyResponse => 'Gemini 傳回了空回應。';
+
+  @override
+  String get openRouterEmptyStreamingResponse => 'OpenRouter 傳回了空串流回應。';
+
+  @override
+  String get openRouterEmptyResponse => 'OpenRouter 傳回了空回應。';
+
+  @override
+  String get deepseekEmptyStreamingResponse => 'DeepSeek 傳回了空串流回應。';
+
+  @override
+  String get deepseekEmptyResponse => 'DeepSeek 傳回了空回應。';
+
+  @override
+  String get customProviderEmptyStreamingResponse => '自訂供應商傳回了空串流回應。';
+
+  @override
+  String get customProviderEmptyResponse => '自訂供應商傳回了空回應。';
+
+  @override
+  String get fileUploadFailed => '檔案上傳失敗，請重試。';
+
+  @override
+  String get uploadedFileNotReady => '上傳後的檔案未能就緒，請稍後重試。';
+
+  @override
+  String get audioTranscodingFailed => '音訊轉碼失敗。';
+
+  @override
+  String get tempTranscodeNotInTempDir => '暫存轉碼檔案未產生在暫存目錄。';
+
+  @override
+  String get networkRequestFailedCheckProxy => '網路請求失敗，請檢查網路及代理狀態。';
+
+  @override
+  String get quotaExhaustedToday => '今日額度已用完，請等待明日額度恢復再試';
+
+  @override
+  String get googleAiHeavyLoad => 'Google AI 服務承載大量請求，暫時無法使用';
+
+  @override
+  String lyricsGenerationFailedWithError(Object error) {
+    return '生成歌詞失敗：$error';
+  }
+
+  @override
+  String missingApiKeyForAction(Object action, Object providerName) {
+    return '找不到 $providerName API Key，無法$action。';
+  }
+
+  @override
+  String get googleServerFlaky => 'Google 伺服器暫時有點狀況，重試一下或許就會成功';
+
+  @override
+  String get translateLyricsAction => '翻譯歌詞';
+
+  @override
+  String get generateLyricsAction => '生成歌詞';
+
+  @override
+  String get generateTimelineAction => '生成時間軸';
+
+  @override
+  String get deepseekOnlyTranslation => 'DeepSeek 僅支援歌詞翻譯。';
+
+  @override
+  String get customProviderOnlyTranslation => '自訂供應商僅支援歌詞翻譯。';
+
+  @override
+  String get customProviderNoBaseUrl => '未設定自訂供應商的 Base URL。';
+
+  @override
+  String get pleaseEnterApiKey => '請輸入 API key。';
+
+  @override
+  String get connectionSuccessVerificationPassed => '連線成功，已通過驗證。';
+
+  @override
+  String connectionSuccessDetectedModels(Object count) {
+    return '連線成功，偵測到 $count 個模型。';
+  }
+
+  @override
+  String testFailedWithStatus(Object message, Object statusCode) {
+    return '測試失敗（$statusCode）：$message';
+  }
+
+  @override
+  String get testFailedCheckNetworkOrApiKey => '測試失敗，請檢查網路或 API key。';
+
+  @override
+  String testFailedStatusCheckApiKey(Object statusCode) {
+    return '測試失敗（$statusCode），請檢查 API key 是否有效。';
+  }
+
+  @override
+  String get enterGoogleAiStudioApiKeyFirst => '請先填寫 Google AI Studio API Key。';
+
+  @override
+  String get enterDoubaoApiKeyFirst => '請先填寫豆包 API Key。';
+
+  @override
+  String get enterDeepseekApiKeyFirst => '請先填寫 DeepSeek API Key。';
+
+  @override
+  String get enterCustomApiKeyAndBaseUrl => '請先填寫自訂 API Key 和 Base URL。';
+
+  @override
+  String fetchedCountModels(Object count) {
+    return '已取得 $count 個模型。';
+  }
+
+  @override
+  String requestFailedWithStatus(Object message, Object statusCode) {
+    return '請求失敗（$statusCode）：$message';
+  }
+
+  @override
+  String get requestFailedCheckNetwork => '請求失敗，請檢查網路。';
+
+  @override
+  String requestFailedStatus(Object statusCode) {
+    return '請求失敗（$statusCode）。';
+  }
+
+  @override
+  String get doubao => '豆包';
+
+  @override
+  String get custom => '自訂';
+
+  @override
+  String get noModelSelected => '未選擇模型';
+
+  @override
+  String get acoustidRequestFailed => 'AcoustID 請求失敗';
+
+  @override
+  String acoustidRequestReturnedStatus(Object statusCode) {
+    return 'AcoustID 請求傳回 $statusCode。請申請你自己的 AcoustID API key 並填入設定頁。';
+  }
+
+  @override
+  String get writeTagDatabaseFailed => '寫入標籤資料庫失敗';
+
+  @override
+  String get playPause => '播放／暫停';
+
+  @override
+  String get nextTrack => '下一首';
+
+  @override
+  String get previousTrack => '上一首';
+
+  @override
+  String get volumeUp => '音量增加';
+
+  @override
+  String get volumeDown => '音量減少';
+
+  @override
+  String get toggleMute => '切換靜音';
+
+  @override
+  String get seekForward5s => '快轉 5 秒';
+
+  @override
+  String get seekBackward5s => '倒轉 5 秒';
+
+  @override
+  String get toggleFullScreen => '切換全螢幕';
+
+  @override
+  String get playPauseDescription => '控制目前播放狀態。';
+
+  @override
+  String get nextDescription => '切換到下一首歌曲。';
+
+  @override
+  String get previousDescription => '切換到上一首歌曲。';
+
+  @override
+  String get volumeUpDescription => '每次增加 5% 音量。';
+
+  @override
+  String get volumeDownDescription => '每次減少 5% 音量。';
+
+  @override
+  String get toggleMuteDescription => '切換靜音。';
+
+  @override
+  String get seekForward5sDescription => '向前快轉 5 秒。';
+
+  @override
+  String get seekBackward5sDescription => '向後倒轉 5 秒。';
+
+  @override
+  String get toggleFullScreenDescription => '在視窗模式和全螢幕模式之間切換。';
+
+  @override
+  String get unknownKey => '未知按鍵';
+
+  @override
+  String get removeFromQueue => '從佇列中移除';
+
+  @override
+  String get removeFromPlaylist => '從歌單中移除';
+
+  @override
+  String get alreadyLatestVersion => '目前已經是最新版本。';
+
+  @override
+  String get updateAvailable => '發現新版本';
+
+  @override
+  String newVersionAvailable(Object version) {
+    return '偵測到新版本 v$version，前往 GitHub Release 頁面下載更新。';
+  }
+
+  @override
+  String get openRelease => '前往 Release';
+
+  @override
+  String get checkUpdateFailedNetwork => '檢查更新失敗，可能是網路問題或 GitHub 限流。';
+
+  @override
+  String get tags => '標籤';
+
+  @override
+  String get about => '關於';
+
+  @override
+  String get rebuildIndex => '重建索引';
+
+  @override
+  String get rebuildIndexDescription => '清空除外部來源以外的所有歌曲記錄並重新掃描所有根目錄。';
+
+  @override
+  String get rebuildIndexConfirmation =>
+      '確認清空除外部來源以外的所有歌曲記錄並重新掃描所有根目錄嗎？此操作需要一些時間。';
+
+  @override
+  String get rebuildIndexStarted => '重建索引已啟動';
+
+  @override
+  String get rebuild => '重建';
+
+  @override
+  String get advanced => '進階';
+
+  @override
+  String get advancedOptionsDescription => '偏向偵錯和行為控制的選項。';
+
+  @override
+  String get showDeveloperOptionsDescription => '顯示更多偏向偵錯用途的進階選項。';
+
+  @override
+  String get onboardingReset => '已重設新手引導狀態，下次啟動時生效。';
+
+  @override
+  String get tagsSectionDescription => '關於音訊檔案中繼資料和自動補全的設定。';
+
+  @override
+  String get autoSaveToSourceFile => '自動寫入來源檔案';
+
+  @override
+  String get autoSaveToSourceFileDescription => '補全或更新歌曲標籤時，預設同步寫入實體音訊檔案。';
+
+  @override
+  String get aboutSectionDescription => '版本資訊、專案連結和相關資料。';
+
+  @override
+  String get checkForUpdates => '檢查更新';
+
+  @override
+  String get lyricsGenerationModel => '歌詞生成模型';
+
+  @override
+  String get lyricsGenerationModelDescription =>
+      '用於 AI 聽歌生成歌詞，以及為現有歌詞生成／修正時間軸。';
+
+  @override
+  String get lyricsTranslationModel => '歌詞翻譯模型';
+
+  @override
+  String get lyricsTranslationModelDescription => '用於將歌詞翻譯到目標語言。';
+
+  @override
+  String get onlyForLyricTranslation => '僅用於歌詞翻譯';
+
+  @override
+  String get fillApiKeyFirstEnablesModels => '請先填寫至少一個 API Key，模型選擇才會啟用。';
+
+  @override
+  String get customApiProvider => '自訂 API 供應商';
+
+  @override
+  String get clearedGoogleAiStudioApiKey => '已清空 Google AI Studio API Key';
+
+  @override
+  String get clearedOpenRouterApiKey => '已清空 OpenRouter API Key';
+
+  @override
+  String get clearedDoubaoApiKey => '已清空豆包 API Key';
+
+  @override
+  String get clearedDeepseekApiKey => '已清空 DeepSeek API Key';
+
+  @override
+  String get clearedCustomProviderConfig => '已清空自訂供應商設定';
+
+  @override
+  String get savedDoubaoApiKey => '已儲存豆包 API Key';
+
+  @override
+  String get savedDeepseekApiKey => '已儲存 DeepSeek API Key';
+
+  @override
+  String get savedCustomProviderConfig => '已儲存自訂供應商設定';
+
+  @override
+  String get noMatchingFoldersOrSongs => '找不到符合的資料夾或歌曲';
+
+  @override
+  String get listView => '清單檢視';
+
+  @override
+  String get gridView => '格線檢視';
+
+  @override
+  String get hybridView => '混合檢視';
+
+  @override
+  String songsCountFormat(Object count) {
+    return '$count 首歌曲';
+  }
+
+  @override
+  String get searchInFolderAndSubfolders => '在目前目錄及子目錄下搜尋...';
+
+  @override
+  String get shuffle => '隨機播放';
+
+  @override
+  String get search => '搜尋';
+
+  @override
+  String get selectFolders => '選擇目錄';
+
+  @override
+  String get removeDirectory => '移除目錄';
+
+  @override
+  String removeRootDirectoryConfirmation(Object name) {
+    return '確定要移除根目錄「$name」嗎？此操作不會刪除磁碟上的實體檔案。';
+  }
+
+  @override
+  String get deselectAll => '取消全選';
+
+  @override
+  String get favorites => '收藏';
+
+  @override
+  String get aggregationPeak => '峰值';
+
+  @override
+  String get aggregationMean => '平均值';
+
+  @override
+  String get aggregationRms => '均方根';
+
+  @override
+  String get filesToTranscode => '待轉碼檔案';
+
+  @override
+  String get chooseAndroidOutputDirectoryFirst => '請先選擇一個 Android 輸出目錄。';
+
+  @override
+  String currentSongProgressPercent(Object percent) {
+    return '目前歌曲 $percent%';
+  }
+
+  @override
+  String overallProgressPercent(Object percent) {
+    return '整體 $percent%';
+  }
+
+  @override
+  String get pleaseChooseOutputDirectory => '請先選擇一個輸出目錄。';
+
+  @override
+  String selectedArtistsCount(Object count) {
+    return '已選擇 $count 位藝術家';
+  }
+
+  @override
+  String selectedAlbumsCount(Object count) {
+    return '已選擇 $count 張專輯';
+  }
+
+  @override
+  String get simplifiedChinese => '簡體中文';
+
+  @override
+  String get traditionalChinese => '繁體中文';
+
+  @override
+  String get chineseLanguage => '中文';
+
+  @override
+  String get englishLanguage => '英文';
+
+  @override
+  String get japaneseLanguage => '日文';
+
+  @override
+  String get koreanLanguage => '韓文';
+
+  @override
+  String get frenchLanguage => '法文';
+
+  @override
+  String get germanLanguage => '德文';
+
+  @override
+  String get spanishLanguage => '西班牙文';
+
+  @override
+  String get nativeLanguageZh => '简体中文';
+
+  @override
+  String get nativeLanguageZhHant => '繁體中文';
+
+  @override
+  String get nativeLanguageEn => 'English';
+
+  @override
+  String get nativeLanguageJa => '日本語';
+
+  @override
+  String get nativeLanguageKo => '한국어';
+
+  @override
+  String get nativeLanguageFr => 'Français';
+
+  @override
+  String get nativeLanguageDe => 'Deutsch';
+
+  @override
+  String get nativeLanguageEs => 'Español';
+
+  @override
+  String get portugueseLanguage => '葡萄牙文';
+
+  @override
+  String get russianLanguage => '俄文';
+
+  @override
+  String get systemLanguage => '系統語言';
+
+  @override
+  String get targetLanguage => '目標語言';
+
+  @override
+  String get whatAreAiLyrics => '什麼是 AI 歌詞？';
+
+  @override
+  String get whatIsAiLyricTranslation => '什麼是 AI 歌詞翻譯？';
+
+  @override
+  String get aiLyricsIntroGeneration => 'AI 可以根據歌曲內容生成歌詞，並自動比對時間軸。';
+
+  @override
+  String get aiLyricsIntroTranslation => 'AI 可以將歌詞翻譯成你熟悉的語言，方便理解歌曲內容。';
+
+  @override
+  String get whyNeedApiKey => '為什麼需要 API Key？';
+
+  @override
+  String get apiKeyExplanation =>
+      'API Key 相當於你在 AI 服務商那裡的存取憑證。應用程式會用它直接向服務商發起請求，完成歌詞生成、時間軸調整或翻譯。';
+
+  @override
+  String get apiKeyLocalOnly => 'API Key 只儲存在你的本機裝置，不會上傳到 Vynody 開發者伺服器。';
+
+  @override
+  String get chooseAnAiProvider => '選擇一個 AI 服務商：';
+
+  @override
+  String get googleProviderPros => 'Google 官方管道，Gemini 模型能力強，免費額度較多。';
+
+  @override
+  String get googleProviderCons =>
+      '中國大陸直連受限，需要穩定的 VPN／代理。請求人數較多時可能回報 429，遇到 429 請切換到其他管道。';
+
+  @override
+  String get openRouterProviderPros => '海外大模型聚合平台，可使用多個模型，也有部分免費模型。';
+
+  @override
+  String get openRouterProviderCons => '儲值需支付手續費，網頁只有英文。';
+
+  @override
+  String get doubaoProviderPros =>
+      '字節跳動出品，國內存取快速，中文效果好。新使用者每個模型有 50 萬免費 token。';
+
+  @override
+  String get doubaoProviderCons => '註冊步驟相對繁瑣，需要實名認證。';
+
+  @override
+  String get deepseekProviderPros => '中文理解好，價格便宜，適合歌詞翻譯。';
+
+  @override
+  String get deepseekProviderCons => '僅支援文字輸入。如需歌詞生成、時間軸調整，需要填入其他管道 API Key。';
+
+  @override
+  String get highlights => '【特點】';
+
+  @override
+  String get notes => '【注意事項】';
+
+  @override
+  String enterProviderApiKey(Object provider) {
+    return '請輸入 $provider 的 API Key：';
+  }
+
+  @override
+  String get pasteYourApiKey => '在此貼上你的 API Key';
+
+  @override
+  String get getApiKey => '取得 API Key';
+
+  @override
+  String get testConnectionButton => '測試連線';
+
+  @override
+  String get enableAiLyricGeneration => '啟用 AI 歌詞生成';
+
+  @override
+  String get enableAiLyricTranslation => '啟用 AI 歌詞翻譯';
+
+  @override
+  String get notNow => '暫不啟用';
+
+  @override
+  String get startSetup => '開始設定';
+
+  @override
+  String get chooseAiProvider => '選擇 AI 服務商';
+
+  @override
+  String get backStep => '上一步';
+
+  @override
+  String get continueAction => '繼續';
+
+  @override
+  String get nextStep => '下一步';
+
+  @override
+  String get configureApiKey => '設定 API Key';
+
+  @override
+  String get saveAndFinish => '儲存並完成';
+
+  @override
+  String get testing => '正在測試...';
+
+  @override
+  String get noteTitle => '提示';
+
+  @override
+  String get deepseekTextInputOnlyNote =>
+      'DeepSeek 僅支援文字輸入。如需歌詞生成、時間軸調整，需要填入其他管道 API Key。';
+
+  @override
+  String retryAttemptOfMax(Object attempt, Object maxRetry) {
+    return '重試第 $attempt 次／共 $maxRetry 次';
+  }
+
+  @override
+  String generatingTaskKind(Object taskKind) {
+    return '正在生成 $taskKind';
+  }
+
+  @override
+  String connectionTestException(Object error) {
+    return '連線測試異常：$error';
+  }
+
+  @override
+  String get testingConnectionProgress => '正在測試連線...';
+
+  @override
+  String get clear => '清空';
+
+  @override
+  String get enterDoubaoApiKey => '輸入豆包 API Key';
+
+  @override
+  String get doubaoApiKeyDescription => '請輸入火山方舟／豆包的 API Key，用於歌詞生成和翻譯。';
+
+  @override
+  String get enterDeepseekApiKey => '輸入 DeepSeek API Key';
+
+  @override
+  String get deepseekApiKeyDescription => '請輸入 DeepSeek 的 API Key，僅用於歌詞翻譯。';
+
+  @override
+  String get pleaseEnterApiKeyHint => '請輸入 API Key';
+
+  @override
+  String get platform => '平台';
+
+  @override
+  String get showRecommendedOnly => '僅顯示推薦模型';
+
+  @override
+  String get noAvailableChannels => '暫無可用管道';
+
+  @override
+  String get noMatchingModels => '找不到符合的模型';
+
+  @override
+  String get leaveEmpty => '留空';
+
+  @override
+  String get leaveEmptyFallbackDescription => '不設定備用模型時可選擇此項。';
+
+  @override
+  String get modelSearchHint => '輸入模型名稱、ID';
+
+  @override
+  String sendFilesFailed(Object error) {
+    return '傳送檔案失敗: $error';
+  }
+
+  @override
+  String get scanningFolderMusic => '正在掃描資料夾中的音樂檔案...';
+
+  @override
+  String scanFolderFailed(Object error) {
+    return '掃描資料夾失敗: $error';
+  }
+
+  @override
+  String get noMusicFilesFound => '未在此資料夾中找到支援的音樂檔案';
+
+  @override
+  String sendFolderFailed(Object error) {
+    return '傳送資料夾失敗: $error';
+  }
+
+  @override
+  String get lanSharingStartFailed => '區域網路共用啟動失敗，請檢查本機網路權限是否已開啟';
+
+  @override
+  String syncingLyricsToDevice(Object deviceName) {
+    return '正在向 $deviceName 同步歌詞...';
+  }
+
+  @override
+  String syncLyricsSuccess(Object matched, Object overwritten, Object skipped) {
+    return '同步成功: 符合 $matched 首、更新 $overwritten 首、忽略 $skipped 首';
+  }
+
+  @override
+  String syncLyricsFailed(Object error) {
+    return '同步歌詞失敗: $error';
+  }
+
+  @override
+  String syncingLyricsFromDevice(Object deviceName) {
+    return '正在從 $deviceName 同步歌詞...';
+  }
+
+  @override
+  String get transferInProgressDoNotLeave => '正在傳輸檔案，請勿離開共用頁面';
+
+  @override
+  String get lanSharingTitle => '區域網路檔案共用';
+
+  @override
+  String get lanSharingEnabledStatus => '區域網路共用已開啟';
+
+  @override
+  String get lanSharingDisabledStatus => '區域網路共用未開啟';
+
+  @override
+  String lanSharingRunningStatus(Object ip, Object port) {
+    return '本機 IP: $ip（連接埠: $port）';
+  }
+
+  @override
+  String get lanSharingDefaultOffHint => '預設關閉，開啟後會請求區域網路權限';
+
+  @override
+  String get receiveDirectoryNotSetWarning => '未設定接收檔案儲存目錄時將無法接收檔案，建議先設定。';
+
+  @override
+  String receiveDirectoryUpdated(Object path) {
+    return '接收目錄已更新為: $path';
+  }
+
+  @override
+  String get receiveDirectoryTitle => '接收檔案儲存目錄';
+
+  @override
+  String get webShareTitle => '瀏覽器網頁傳輸 (Web Share)';
+
+  @override
+  String get webShareDescription => '同一區域網路的手機／電腦可透過瀏覽器開啟下方連結，直接向本裝置上傳或下載音樂：';
+
+  @override
+  String get linkCopiedToClipboard => '連結已複製到剪貼簿';
+
+  @override
+  String get nearbyDevices => '附近的裝置';
+
+  @override
+  String get searchingDevices => '正在尋找區域網路內其他裝置...';
+
+  @override
+  String get startSharingToFindDevices => '開啟共用後開始尋找裝置';
+
+  @override
+  String get deviceOnline => '線上';
+
+  @override
+  String get deviceOffline => '已中斷';
+
+  @override
+  String get sendMusicFiles => '傳送音樂檔案';
+
+  @override
+  String get sendFolder => '傳送資料夾';
+
+  @override
+  String get syncLyricsToDeviceAction => '同步歌詞至該裝置';
+
+  @override
+  String get syncLyricsFromDeviceAction => '從該裝置同步歌詞';
+
+  @override
+  String loadDevicesError(Object error) {
+    return '載入裝置時出錯: $error';
+  }
+
+  @override
+  String incomingFilesFormat(Object name1, Object name2, Object count) {
+    return '$name1、$name2 等共 $count 個檔案';
+  }
+
+  @override
+  String get incomingTransferRequestTitle => '收到檔案共用請求';
+
+  @override
+  String incomingTransferFrom(Object senderName) {
+    return '來自「$senderName」的傳送請求：';
+  }
+
+  @override
+  String fileSizeMb(Object sizeMb) {
+    return '檔案大小: $sizeMb MB';
+  }
+
+  @override
+  String get receiveFileHint => '提示：接收後檔案將自動儲存至本機音樂資料夾並加入媒體庫。';
+
+  @override
+  String get reject => '拒絕';
+
+  @override
+  String get accept => '接收';
+
+  @override
+  String sendCompleted(Object fileName) {
+    return '「$fileName」傳送完畢';
+  }
+
+  @override
+  String receiveCompleted(int count) {
+    return '成功接收了 $count 首歌曲';
+  }
+
+  @override
+  String transferCancelledWithReason(Object direction, Object reason) {
+    return '$direction已取消（$reason）';
+  }
+
+  @override
+  String transferFailedFormat(Object direction, Object fileName) {
+    return '$direction「$fileName」失敗';
+  }
+
+  @override
+  String sendingToDevice(Object deviceName) {
+    return '正在傳送到 $deviceName';
+  }
+
+  @override
+  String receivingFromDevice(Object deviceName) {
+    return '正在從 $deviceName 接收';
+  }
+
+  @override
+  String progressFormat(Object percent) {
+    return '進度: $percent%';
+  }
+
+  @override
+  String get currentlyTransferring => '目前正在傳輸';
+
+  @override
+  String get fileConflictTitle => '檔案衝突';
+
+  @override
+  String get fileConflictMessage => '目標裝置已存在同名檔案：';
+
+  @override
+  String get fileConflictChooseAction => '請選擇您要執行的操作：';
+
+  @override
+  String get skipAction => '略過';
+
+  @override
+  String get overwriteAction => '覆寫';
+
+  @override
+  String get skipAllAction => '全部略過';
+
+  @override
+  String get overwriteAllAction => '全部覆寫';
+
+  @override
+  String get sendDirection => '傳送';
+
+  @override
+  String get receiveDirection => '接收';
+
+  @override
+  String get fileAssociationEnabled => '已開啟關聯';
+
+  @override
+  String get fileAssociationDisabled => '未開啟關聯';
+
+  @override
+  String get windowsAutoRepairShortcut => '自動修復開始功能表捷徑';
+
+  @override
+  String get windowsAutoRepairShortcutDescription =>
+      '每次啟動時自動檢查並建立開始功能表捷徑，以正確顯示媒體控制項名稱與圖示';
+
+  @override
+  String get confirmDisableShortcutRepair => '確定關閉此功能嗎？';
+
+  @override
+  String get confirmDisableShortcutRepairContent =>
+      '如果缺少開始功能表捷徑，Windows 媒體控制中心（音量調整彈窗）將會把軟體顯示為「未知應用程式」，並且無法展示應用程式圖示。是否確定關閉此功能？';
+
+  @override
+  String get confirmDisable => '確定關閉';
+
+  @override
+  String get enableSystemTray => '啟用系統匣';
+
+  @override
+  String get enableSystemTrayDescription => '在系統工作列匣中顯示圖示，方便快速控制播放';
+
+  @override
+  String get googleAiStudioApiKey => 'Google AI Studio API Key';
+
+  @override
+  String get openRouterApiKey => 'OpenRouter API Key';
+
+  @override
+  String get doubaoApiKey => '豆包 API Key';
+
+  @override
+  String get deepseekApiKey => 'DeepSeek API Key';
+
+  @override
+  String get unexpectedResponseFormat => '非預期的回應格式。';
+
+  @override
+  String get baseUrl => 'Base URL';
+
+  @override
+  String get openaiCompatibleEndpoint => '相容 OpenAI 的 API 端點';
+
+  @override
+  String onboardingAddedDirectoriesCount(Object count) {
+    return '已新增的目錄（$count）：';
+  }
+
+  @override
+  String get gnomeDisksOpenFailed => '無法自動開啟磁碟管理員，請在應用程式選單中手動搜尋並開啟「磁碟 (Disks)」';
+
+  @override
+  String get gnomeDisksNotInstalled => '系統未安裝 gnome-disks，請手動開啟系統磁碟管理工具進行設定。';
+
+  @override
+  String get linuxMountGuideTitle => '設定硬碟自動掛載';
+
+  @override
+  String get linuxMountGuideDescription =>
+      'Linux 預設設定下不會掛載外接分割區，如果沒有設定啟動時掛載分割區則每次重新啟動時外接分割區的路徑可能發生變化，從而導致播放器存取不到音樂目錄。為了避免這種情況，請將存放音樂的分割區設定為啟動時自動掛載。';
+
+  @override
+  String get linuxMountGuideWarning =>
+      '注意：如果您的音樂位於需要掛載才能使用的外接／內部硬碟分割區內，請務必將該分割區設定為「開機自動掛載」。否則，每次重新啟動系統後可能會出現找不到音樂目錄，或者需要輸入密碼授權才能存取的問題。';
+
+  @override
+  String get linuxMountGuideStep1 => '1. 開啟系統的「磁碟 (Disks)」管理員';
+
+  @override
+  String get linuxMountGuideStep2 => '2. 選取包含音樂的分割區，點選 ⚙️ 齒輪圖示（附加分割區選項）';
+
+  @override
+  String get linuxMountGuideStep3 => '3. 選擇「編輯掛載選項」，關閉「使用者工作階段預設值」並勾選「系統啟動時掛載」';
+
+  @override
+  String get linuxMountGuideOpenButton => '開啟磁碟管理員 (Disks)';
+
+  @override
+  String get unmute => '取消靜音';
+
+  @override
+  String get mute => '靜音';
+
+  @override
+  String get disableSystemTray => '停用系統匣';
+
+  @override
+  String get onboardingAndroidBatteryTitle => '背景播放防誤殺設定';
+
+  @override
+  String get onboardingAndroidBatteryDescription =>
+      '由於 Android 系統的電池管理策略非常嚴格，為了防止音樂在背景播放時被系統強制關閉，建議將 Vynody 的電池使用限制設定為「無限制」（Unrestricted）。';
+
+  @override
+  String get onboardingAndroidBatteryStep1 => '1. 點選下方的「前往設定」按鈕。';
+
+  @override
+  String get onboardingAndroidBatteryStep2 => '2. 在系統彈窗中允許忽略電池最佳化，或者跳轉到電池設定頁面。';
+
+  @override
+  String get onboardingAndroidBatteryStep3 =>
+      '3. 如果跳轉至設定清單，選擇「無限制」或「允許背景活動／不限制電池使用」。';
+
+  @override
+  String get onboardingAndroidBatteryButton => '前往設定';
+
+  @override
+  String get onboardingAndroidBatteryStatusOptimized => '目前狀態：已限制（可能導致背景播放中斷）';
+
+  @override
+  String get onboardingAndroidBatteryStatusUnrestricted =>
+      '目前狀態：無限制（建議，背景播放已保護）';
+
+  @override
+  String get exitApp => '離開';
+
+  @override
+  String get showScanProgressToastSetting => '顯示掃描狀態提示';
+
+  @override
+  String get showScanProgressToastSettingDescription =>
+      '在新增資料夾並進行檔案掃描時，在頂部顯示即時的掃描進度提示';
+
+  @override
+  String get tapCoverToEnterLyricsMode => '點選封面可以進入歌詞模式';
+
+  @override
+  String get gotIt => '我知道了';
+
+  @override
+  String get scanToastHiddenHint => '掃描狀態提示已隱藏，可在「設定 - 介面」中重新開啟';
 }

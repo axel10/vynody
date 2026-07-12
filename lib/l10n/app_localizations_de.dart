@@ -2417,6 +2417,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get nativeLanguageZh => '简体中文';
 
   @override
+  String get nativeLanguageZhHant => '繁體中文';
+
+  @override
   String get nativeLanguageEn => 'English';
 
   @override

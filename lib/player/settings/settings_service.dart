@@ -1150,6 +1150,9 @@ class SettingsService extends ChangeNotifier {
     if (stored == 'system' || stored.isEmpty) {
       return null;
     }
+    if (stored == 'zh_Hant') {
+      return const Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant');
+    }
     return Locale(stored);
   }
 

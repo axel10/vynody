@@ -13,6 +13,11 @@ AppLocalizations get currentAppL10n {
       ? code
       : PlatformDispatcher.instance.locale.languageCode;
   try {
+    if (langCode == 'zh_Hant') {
+      return lookupAppLocalizations(
+        const Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant'),
+      );
+    }
     return lookupAppLocalizations(Locale(langCode));
   } catch (_) {
     return lookupAppLocalizations(const Locale('en'));
