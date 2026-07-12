@@ -199,7 +199,7 @@ class LyricsController extends Notifier<LyricsControllerState> {
   void setTranslationLanguageCode(String languageCode) {
     final normalized = LanguageCodeUtils.normalizeLanguageCode(languageCode);
     final effective = normalized.isEmpty
-        ? LanguageCodeUtils.currentSystemLanguageCode()
+        ? LanguageCodeUtils.currentAppLanguageCode()
         : normalized;
 
     if (_settingsService.lyricsTranslationTargetLanguageCode != normalized) {

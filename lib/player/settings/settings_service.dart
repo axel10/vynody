@@ -1196,8 +1196,9 @@ class SettingsService extends ChangeNotifier {
     if (stored.isNotEmpty) {
       return stored;
     }
-    return LanguageCodeUtils.currentSystemLanguageCode();
+    return LanguageCodeUtils.currentAppLanguageCode();
   }
+
 
   LyricsSaveMethod get lyricsSaveMethod {
     return LyricsSaveMethod.values.firstWhere(

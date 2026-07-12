@@ -535,7 +535,7 @@ class LyricsControllerSupport {
       if (cachedTranslations.isEmpty) return;
 
       final preferredLanguageCode =
-          LanguageCodeUtils.currentSystemLanguageCode();
+          LanguageCodeUtils.currentAppLanguageCode();
       cachedTranslations.sort((a, b) {
         final aPreferred = a.languageCode == preferredLanguageCode;
         final bPreferred = b.languageCode == preferredLanguageCode;

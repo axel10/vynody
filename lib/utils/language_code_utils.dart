@@ -25,6 +25,16 @@ class LanguageCodeUtils {
     return normalized.isEmpty ? fallbackLanguageCode : normalized;
   }
 
+  static String currentAppLanguageCode() {
+    final code = LocalizedText.overrideLanguageCode;
+    final normalized = normalizeLanguageCode(
+      (code != null && code != 'system' && code.isNotEmpty)
+          ? code
+          : _localeToRawCode(PlatformDispatcher.instance.locale),
+    );
+    return normalized.isEmpty ? fallbackLanguageCode : normalized;
+  }
+
   static String normalizeLanguageCode(String? languageCode) {
     final text = languageCode?.trim().replaceAll('_', '-').toLowerCase() ?? '';
     if (text.isEmpty) return '';
