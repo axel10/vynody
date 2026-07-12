@@ -2013,6 +2013,24 @@ class _CoverTipOverlayState extends State<_CoverTipOverlay> with SingleTickerPro
                     ),
                   ),
                   Positioned(
+                    left: rect.left,
+                    top: rect.top,
+                    width: rect.width,
+                    height: rect.height,
+                    child: IgnorePointer(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(_coverRadius),
+                          border: Border.all(
+                            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.8),
+                            width: 2.5,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
                     top: top,
                     left: left,
                     width: cardWidth,
