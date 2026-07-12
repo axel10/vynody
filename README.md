@@ -24,6 +24,16 @@ The project currently targets the following platforms:
 - iOS
 - Android
 
+## Screenshots
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/axel10/vynody/refs/heads/main/assets/readme/pc.jpg" alt="PC screenshot">
+  <img src="https://raw.githubusercontent.com/axel10/vynody/refs/heads/main/assets/readme/mobile.jpg" alt="Mobile screenshot">
+  <img src="https://raw.githubusercontent.com/axel10/vynody/refs/heads/main/assets/readme/folder.jpg" alt="Folder screenshot">
+  <img src="https://raw.githubusercontent.com/axel10/vynody/refs/heads/main/assets/readme/album.jpg" alt="Album screenshot">
+  <img src="https://raw.githubusercontent.com/axel10/vynody/refs/heads/main/assets/readme/eq.jpg" alt="Equalizer screenshot">
+</p>
+
 ## Features Overview
 
 - **Cross-Platform Local Music Player**: Supports both desktop and mobile platforms.
@@ -202,6 +212,16 @@ Vynody 是一款以本地音乐播放为核心的跨平台播放器，使用 Flu
 - macOS
 - iOS
 - Android
+
+## 截图
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/axel10/vynody/refs/heads/main/assets/readme/pc.jpg" alt="电脑端截图">
+  <img src="https://raw.githubusercontent.com/axel10/vynody/refs/heads/main/assets/readme/mobile.jpg" alt="移动端截图">
+  <img src="https://raw.githubusercontent.com/axel10/vynody/refs/heads/main/assets/readme/folder.jpg" alt="文件夹截图">
+  <img src="https://raw.githubusercontent.com/axel10/vynody/refs/heads/main/assets/readme/album.jpg" alt="专辑截图">
+  <img src="https://raw.githubusercontent.com/axel10/vynody/refs/heads/main/assets/readme/eq.jpg" alt="均衡器截图">
+</p>
 
 ## 特性概览
 
