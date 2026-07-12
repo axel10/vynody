@@ -12,6 +12,7 @@ import '../widgets/song_tile.dart';
 import 'package:vynody/utils/song_context_menu_utils.dart';
 import 'package:vynody/utils/deleted_song_snack.dart';
 import 'package:vynody/utils/app_snack_bar.dart';
+import 'package:vynody/utils/playlist_name.dart';
 import '../widgets/library_selection_panel.dart';
 import '../widgets/library_selection_scope.dart';
 import '../widgets/scroll_to_top_wrapper.dart';
@@ -31,8 +32,9 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
   @override
   void initState() {
     super.initState();
-    _librarySelectionScopeController =
-        ref.read(librarySelectionScopeProvider.notifier);
+    _librarySelectionScopeController = ref.read(
+      librarySelectionScopeProvider.notifier,
+    );
   }
 
   @override
@@ -124,7 +126,7 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
               final playlist = playlistService.playlists[index];
               return ListTile(
                 leading: const Icon(Icons.playlist_play),
-                title: Text(playlist.name),
+                title: Text(localizedPlaylistName(context, playlist)),
                 subtitle: Text(
                   AppLocalizations.of(
                     context,
@@ -141,9 +143,10 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
                     ref,
                     SnackBar(
                       content: Text(
-                        AppLocalizations.of(
-                          context,
-                        )!.addedToPlaylist(selectedSongs.length, playlist.name),
+                        AppLocalizations.of(context)!.addedToPlaylist(
+                          selectedSongs.length,
+                          localizedPlaylistName(context, playlist),
+                        ),
                       ),
                     ),
                   );
@@ -210,7 +213,9 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
                   final playlistService = ref.read(playlistServiceProvider);
                   if (playlistService.playlistExists(name)) {
                     setState(() {
-                      errorText = AppLocalizations.of(context)!.playlistNameExists;
+                      errorText = AppLocalizations.of(
+                        context,
+                      )!.playlistNameExists;
                     });
                     return;
                   }
@@ -284,7 +289,9 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
                   final playlistService = ref.read(playlistServiceProvider);
                   if (playlistService.playlistExists(name)) {
                     setState(() {
-                      errorText = AppLocalizations.of(context)!.playlistNameExists;
+                      errorText = AppLocalizations.of(
+                        context,
+                      )!.playlistNameExists;
                     });
                     return;
                   }
@@ -336,9 +343,14 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
                 final name = controller.text.trim();
                 if (name.isNotEmpty) {
                   final playlistService = ref.read(playlistServiceProvider);
-                  if (playlistService.playlistExists(name, excludeId: playlist.id)) {
+                  if (playlistService.playlistExists(
+                    name,
+                    excludeId: playlist.id,
+                  )) {
                     setState(() {
-                      errorText = AppLocalizations.of(context)!.playlistNameExists;
+                      errorText = AppLocalizations.of(
+                        context,
+                      )!.playlistNameExists;
                     });
                     return;
                   }
@@ -443,13 +455,14 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
                               ? Colors.redAccent
                               : null,
                         ),
-                        title: Text(playlist.name),
+                        title: Text(localizedPlaylistName(context, playlist)),
                         subtitle: Text(
                           AppLocalizations.of(
                             context,
                           )!.songCount(playlist.songs.length),
                         ),
-                        trailing: playlist.id == playlistService.currentPlaylist?.id
+                        trailing:
+                            playlist.id == playlistService.currentPlaylist?.id
                             ? const Icon(Icons.check, color: Colors.blue)
                             : null,
                         onTap: () {
@@ -512,7 +525,7 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
                               ? Colors.redAccent
                               : null,
                         ),
-                        title: Text(playlist.name),
+                        title: Text(localizedPlaylistName(context, playlist)),
                         subtitle: Text(
                           '${AppLocalizations.of(context)!.songCount(playlist.songs.length)} · ${_formatDate(playlist.updatedAt)}',
                         ),
@@ -549,10 +562,18 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
     final hasSongs = currentPlaylist?.songs.isNotEmpty == true;
-    final horizontalPadding = MediaQuery.of(context).orientation == Orientation.portrait ? 12.0 : 16.0;
+    final horizontalPadding =
+        MediaQuery.of(context).orientation == Orientation.portrait
+        ? 12.0
+        : 16.0;
 
     return Container(
-      padding: EdgeInsets.fromLTRB(horizontalPadding, 16, horizontalPadding + 16, 12),
+      padding: EdgeInsets.fromLTRB(
+        horizontalPadding,
+        16,
+        horizontalPadding + 16,
+        12,
+      ),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         border: Border(
@@ -587,7 +608,12 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
                       children: [
                         Flexible(
                           child: Text(
-                            currentPlaylist?.name ?? l10n.emptyList,
+                            currentPlaylist == null
+                                ? l10n.emptyList
+                                : localizedPlaylistName(
+                                    context,
+                                    currentPlaylist,
+                                  ),
                             overflow: TextOverflow.ellipsis,
                             style: theme.textTheme.bodyMedium?.copyWith(
                               color: theme.colorScheme.onSurfaceVariant,
@@ -711,14 +737,17 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
           _selectedIndices.clear();
         } else {
           _selectedIndices.clear();
-          _selectedIndices.addAll(List.generate(activePlaylist.songs.length, (i) => i));
+          _selectedIndices.addAll(
+            List.generate(activePlaylist.songs.length, (i) => i),
+          );
         }
       });
     }
 
     return ScrollToTopWrapper(
       scrollController: _scrollController,
-      bottomOffset: (currentMusic != null ? 140.0 : 40.0) +
+      bottomOffset:
+          (currentMusic != null ? 140.0 : 40.0) +
           (isSelectionMode ? 220.0 : 0.0),
       child: Stack(
         children: [
@@ -726,12 +755,11 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
             controller: _scrollController,
             cacheExtent: 1000,
             slivers: [
-              SliverToBoxAdapter(
-                child: _buildHeader(context, activePlaylist),
-              ),
+              SliverToBoxAdapter(child: _buildHeader(context, activePlaylist)),
               SliverPadding(
                 padding: EdgeInsets.only(
-                  bottom: (currentMusic != null ? 140.0 : 40.0) +
+                  bottom:
+                      (currentMusic != null ? 140.0 : 40.0) +
                       (isSelectionMode ? 220.0 : 0.0),
                 ),
                 sliver: SliverReorderableList(
@@ -751,143 +779,168 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab> {
                     final song = activePlaylist.songs[index];
                     final isMissing = song.isMissing;
                     final isCurrent =
-                        currentIndex == index && currentMusic?.path == song.path;
+                        currentIndex == index &&
+                        currentMusic?.path == song.path;
                     final isSelected = _selectedIndices.contains(index);
 
-                      void handleShowMenu(BuildContext menuContext, Offset position) {
-                        final songsToAdd = _selectedIndices.isNotEmpty
-                            ? _selectedIndices.map((i) => activePlaylist.songs[i]).toList()
-                            : <MusicFile>[song];
+                    void handleShowMenu(
+                      BuildContext menuContext,
+                      Offset position,
+                    ) {
+                      final songsToAdd = _selectedIndices.isNotEmpty
+                          ? _selectedIndices
+                                .map((i) => activePlaylist.songs[i])
+                                .toList()
+                          : <MusicFile>[song];
 
-                        showSongContextMenu(
-                          menuContext,
-                          position,
-                          song: song,
-                          songs: songsToAdd,
-                          mode: SongContextMenuMode.full,
-                          onAddToPlaylist: () async {
-                            _showAddToPlaylistDialog(
-                              menuContext,
-                              songsToAdd,
-                            );
-                          },
-                          onPlayNext: () => ref.read(audioServiceProvider).enqueueNext(songsToAdd),
-                          onAddToQueue: () => ref.read(audioServiceProvider).appendToQueue(songsToAdd),
-                          onRemoveFromPlaylist: isSelectionMode ? null : () {
-                            playlistService.removeSongsFromPlaylist(
-                              activePlaylist.id,
-                              [index],
-                            );
-                          },
-                        );
-                      }
-
-                      return Padding(
-                        key: ObjectKey(song),
-                        padding: EdgeInsets.symmetric(
-                          horizontal: MediaQuery.of(context).orientation == Orientation.portrait ? 8 : 16,
-                          vertical: 4,
-                        ),
-                        child: SongTile(
-                          song: song,
-                          isCurrent: isCurrent,
-                          isSelected: isSelected,
-                          isSelectionMode: isSelectionMode,
-                          dragHandle: ReorderableDragStartListener(
-                            index: index,
-                            child: const Icon(Icons.drag_handle),
-                          ),
-                          onTap: isSelectionMode
-                              ? () {
-                                  if (isMissing) {
-                                    showDeletedSongSnack(context, ref, skipped: false);
-                                    return;
-                                  }
-                                  _toggleSelection(index);
-                                }
-                              : () {
-                                  if (isMissing) {
-                                    showDeletedSongSnack(context, ref, skipped: false);
-                                    return;
-                                  }
-                                   audio.playPlaylist(
-                                     activePlaylist.songs,
-                                     initialIndex: index,
-                                     source: PlaybackSource(
-                                       type: PlaybackSourceType.playlist,
-                                       id: activePlaylist.id,
-                                       name: activePlaylist.name,
-                                     ),
-                                   );
-                                },
-                          onLongPress: () {
-                            if (!isSelectionMode) {
-                              _toggleSelectionMode();
-                              _toggleSelection(index);
-                            }
-                          },
-                          onSecondaryTapDown: (details) {
-                            handleShowMenu(context, details.globalPosition);
-                          },
-                          onMorePressed: (buttonContext) {
-                            final renderObject = buttonContext.findRenderObject();
-                            final renderBox = renderObject is RenderBox ? renderObject : null;
-                            if (renderBox == null) return;
-                            final Offset offset = renderBox.localToGlobal(Offset.zero);
-                            handleShowMenu(buttonContext, offset);
-                          },
-                        ),
+                      showSongContextMenu(
+                        menuContext,
+                        position,
+                        song: song,
+                        songs: songsToAdd,
+                        mode: SongContextMenuMode.full,
+                        onAddToPlaylist: () async {
+                          _showAddToPlaylistDialog(menuContext, songsToAdd);
+                        },
+                        onPlayNext: () => ref
+                            .read(audioServiceProvider)
+                            .enqueueNext(songsToAdd),
+                        onAddToQueue: () => ref
+                            .read(audioServiceProvider)
+                            .appendToQueue(songsToAdd),
+                        onRemoveFromPlaylist: isSelectionMode
+                            ? null
+                            : () {
+                                playlistService.removeSongsFromPlaylist(
+                                  activePlaylist.id,
+                                  [index],
+                                );
+                              },
                       );
+                    }
+
+                    return Padding(
+                      key: ObjectKey(song),
+                      padding: EdgeInsets.symmetric(
+                        horizontal:
+                            MediaQuery.of(context).orientation ==
+                                Orientation.portrait
+                            ? 8
+                            : 16,
+                        vertical: 4,
+                      ),
+                      child: SongTile(
+                        song: song,
+                        isCurrent: isCurrent,
+                        isSelected: isSelected,
+                        isSelectionMode: isSelectionMode,
+                        dragHandle: ReorderableDragStartListener(
+                          index: index,
+                          child: const Icon(Icons.drag_handle),
+                        ),
+                        onTap: isSelectionMode
+                            ? () {
+                                if (isMissing) {
+                                  showDeletedSongSnack(
+                                    context,
+                                    ref,
+                                    skipped: false,
+                                  );
+                                  return;
+                                }
+                                _toggleSelection(index);
+                              }
+                            : () {
+                                if (isMissing) {
+                                  showDeletedSongSnack(
+                                    context,
+                                    ref,
+                                    skipped: false,
+                                  );
+                                  return;
+                                }
+                                audio.playPlaylist(
+                                  activePlaylist.songs,
+                                  initialIndex: index,
+                                  source: PlaybackSource(
+                                    type: PlaybackSourceType.playlist,
+                                    id: activePlaylist.id,
+                                    name: activePlaylist.name,
+                                  ),
+                                );
+                              },
+                        onLongPress: () {
+                          if (!isSelectionMode) {
+                            _toggleSelectionMode();
+                            _toggleSelection(index);
+                          }
+                        },
+                        onSecondaryTapDown: (details) {
+                          handleShowMenu(context, details.globalPosition);
+                        },
+                        onMorePressed: (buttonContext) {
+                          final renderObject = buttonContext.findRenderObject();
+                          final renderBox = renderObject is RenderBox
+                              ? renderObject
+                              : null;
+                          if (renderBox == null) return;
+                          final Offset offset = renderBox.localToGlobal(
+                            Offset.zero,
+                          );
+                          handleShowMenu(buttonContext, offset);
+                        },
+                      ),
+                    );
                   },
                 ),
               ),
             ],
           ),
-        Positioned(
-          left: 0,
-          right: 0,
-          bottom: 0,
-          child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 250),
-            reverseDuration: const Duration(milliseconds: 200),
-            switchInCurve: Curves.easeOutCubic,
-            switchOutCurve: Curves.easeInCubic,
-            transitionBuilder: (child, animation) {
-              final offsetAnimation = Tween<Offset>(
-                begin: const Offset(0, 1.0),
-                end: Offset.zero,
-              ).animate(animation);
-              return SlideTransition(position: offsetAnimation, child: child);
-            },
-            child: isSelectionMode
-                ? LibrarySelectionPanel(
-                    key: const ValueKey('library-selection-panel'),
-                    selectedSongs: selectedSongs,
-                    allSongs: activePlaylist.songs,
-                    onToggleSelectAll: toggleSelectAll,
-                    onCancel: _cancelSelection,
-                    replaceFavoritesWithSongDetails: true,
-                    onDelete: () {
-                      final indices = _selectedIndices.toList()..sort();
-                      playlistService.removeSongsFromPlaylist(
-                        activePlaylist.id,
-                        indices,
-                      );
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            l10n.deletedSongs(indices.length),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 250),
+              reverseDuration: const Duration(milliseconds: 200),
+              switchInCurve: Curves.easeOutCubic,
+              switchOutCurve: Curves.easeInCubic,
+              transitionBuilder: (child, animation) {
+                final offsetAnimation = Tween<Offset>(
+                  begin: const Offset(0, 1.0),
+                  end: Offset.zero,
+                ).animate(animation);
+                return SlideTransition(position: offsetAnimation, child: child);
+              },
+              child: isSelectionMode
+                  ? LibrarySelectionPanel(
+                      key: const ValueKey('library-selection-panel'),
+                      selectedSongs: selectedSongs,
+                      allSongs: activePlaylist.songs,
+                      onToggleSelectAll: toggleSelectAll,
+                      onCancel: _cancelSelection,
+                      replaceFavoritesWithSongDetails: true,
+                      onDelete: () {
+                        final indices = _selectedIndices.toList()..sort();
+                        playlistService.removeSongsFromPlaylist(
+                          activePlaylist.id,
+                          indices,
+                        );
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(l10n.deletedSongs(indices.length)),
                           ),
-                        ),
-                      );
-                      _cancelSelection();
-                    },
-                  )
-                : const SizedBox.shrink(key: ValueKey('library-selection-panel-hidden')),
+                        );
+                        _cancelSelection();
+                      },
+                    )
+                  : const SizedBox.shrink(
+                      key: ValueKey('library-selection-panel-hidden'),
+                    ),
+            ),
           ),
-        ),
-      ],
-    ),
-  );
+        ],
+      ),
+    );
   }
 }

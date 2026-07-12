@@ -13,6 +13,7 @@ import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/widgets/song_thumbnail.dart';
 import 'app_snack_bar.dart';
 import 'linux_mount_helper.dart';
+import 'playlist_name.dart';
 
 enum SongContextMenuMode { full, title, artistAlbum }
 
@@ -182,12 +183,14 @@ Future<void> showSongContextMenu(
     );
   }
 
-  final hasPlaybackActions = onPlayNext != null ||
+  final hasPlaybackActions =
+      onPlayNext != null ||
       onAddToQueue != null ||
       onRemoveFromQueue != null ||
       onRemoveFromPlaylist != null;
 
-  final hasStandardActions = mode != SongContextMenuMode.full ||
+  final hasStandardActions =
+      mode != SongContextMenuMode.full ||
       canOpenLocation ||
       hasTitle ||
       hasArtist ||
@@ -381,9 +384,10 @@ Future<void> showAddSongsToPlaylistDialog(
       null,
       SnackBar(
         content: Text(
-          AppLocalizations.of(
-            context,
-          )!.addedToPlaylist(songs.length, playlist.name),
+          AppLocalizations.of(context)!.addedToPlaylist(
+            songs.length,
+            localizedPlaylistName(context, playlist),
+          ),
         ),
         duration: const Duration(seconds: 4),
       ),
@@ -427,7 +431,9 @@ Future<void> showAddSongsToPlaylistDialog(
 
                 if (playlistService.playlistExists(name)) {
                   setState(() {
-                    errorText = AppLocalizations.of(dialogContext)!.playlistNameExists;
+                    errorText = AppLocalizations.of(
+                      dialogContext,
+                    )!.playlistNameExists;
                   });
                   return;
                 }
@@ -473,7 +479,7 @@ Future<void> showAddSongsToPlaylistDialog(
             final playlist = playlistService.playlists[index];
             return ListTile(
               leading: const Icon(Icons.playlist_play),
-              title: Text(playlist.name),
+              title: Text(localizedPlaylistName(itemContext, playlist)),
               subtitle: Text(
                 AppLocalizations.of(
                   itemContext,
@@ -609,7 +615,8 @@ Future<void> showSongBottomSheet(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 680),
               child: GestureDetector(
-                onTap: () {}, // Prevent taps on the card itself from closing the sheet
+                onTap:
+                    () {}, // Prevent taps on the card itself from closing the sheet
                 child: Material(
                   elevation: 16,
                   color: theme.colorScheme.surface,
@@ -646,9 +653,8 @@ Future<void> showSongBottomSheet(
                                     song.displayName,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: theme.textTheme.titleMedium?.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                    style: theme.textTheme.titleMedium
+                                        ?.copyWith(fontWeight: FontWeight.bold),
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
@@ -745,11 +751,7 @@ Future<void> showSongBottomSheet(
       await audio.appendToQueue([song]);
       break;
     case 'add_to_playlist':
-      await showAddSongsToPlaylistDialog(
-        context,
-        playlistService,
-        [song],
-      );
+      await showAddSongsToPlaylistDialog(context, playlistService, [song]);
       break;
     case 'add_to_favorites':
       await playlistService.addSongToFavorite(song);
@@ -797,9 +799,7 @@ Widget _buildBottomSheetItem({
         color: iconColor ?? theme.colorScheme.onSurface,
       ),
     ),
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(12),
-    ),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
     onTap: () => Navigator.pop(context, value),
   );
 }
