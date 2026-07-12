@@ -208,8 +208,10 @@ flutter_launcher_icons:
 
 msix_config:
   display_name: Vynody
-  publisher_display_name: Vynody
-  identity_name: app.vynody.player
+  publisher_display_name: "Vynody Studio" 
+  identity_name: VynodyStudio.Vynody
+  publisher: "CN=B7B226EF-AAE5-43BA-8F9E-880DB742EFD0"
+  store: true
   logo_path: assets/images/icon-windows-and-linux.png
   output_name: Vynody
   output_path: build/windows/msix
