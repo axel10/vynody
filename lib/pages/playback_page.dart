@@ -1543,9 +1543,24 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                   );
                 }
 
+                final Object artworkKey;
+                if (artworkPath != null &&
+                    artworkPath.isNotEmpty &&
+                    File(artworkPath).existsSync()) {
+                  artworkKey = artworkPath;
+                } else if (cachedBytes != null && cachedBytes.isNotEmpty) {
+                  artworkKey = identityHashCode(cachedBytes);
+                } else if (thumbnailPath != null &&
+                    thumbnailPath.isNotEmpty &&
+                    File(thumbnailPath).existsSync()) {
+                  artworkKey = thumbnailPath;
+                } else {
+                  artworkKey = 'empty';
+                }
+
                 if (imageWidget != null) {
                   content = ImageFiltered(
-                    key: ValueKey('${songKey}_$finalSuffix'),
+                    key: ValueKey('${songKey}_${artworkKey}_$finalSuffix'),
                     imageFilter: ui.ImageFilter.blur(sigmaX: 0.0, sigmaY: 0.0),
                     child: Transform.scale(
                       scale: 1.2,
@@ -1554,7 +1569,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                   );
                 } else {
                   content = Container(
-                    key: ValueKey('bg_empty_$finalSuffix'),
+                    key: ValueKey('bg_empty_${songKey}_$finalSuffix'),
                     color: Colors.black,
                     width: double.infinity,
                     height: double.infinity,
@@ -1580,7 +1595,9 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                   );
 
                   content = ImageFiltered(
-                    key: ValueKey('${songKey}_$finalSuffix'),
+                    key: ValueKey(
+                      '${songKey}_${identityHashCode(bytes)}_$finalSuffix',
+                    ),
                     imageFilter: ui.ImageFilter.blur(
                       sigmaX: settings.playbackBlurredArtworkBlurSigma,
                       sigmaY: settings.playbackBlurredArtworkBlurSigma,
@@ -1775,6 +1792,19 @@ class _SafeBackgroundSwitcherState extends State<_SafeBackgroundSwitcher>
     super.didUpdateWidget(oldWidget);
     if (widget.child.key != oldWidget.child.key) {
       _addNewChild(widget.child, animate: true);
+    } else {
+      if (_items.isNotEmpty) {
+        final last = _items.last;
+        if (last.child != widget.child) {
+          setState(() {
+            _items[_items.length - 1] = _SwitcherItem(
+              child: widget.child,
+              controller: last.controller,
+              animation: last.animation,
+            );
+          });
+        }
+      }
     }
   }
 
