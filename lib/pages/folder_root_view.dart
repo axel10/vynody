@@ -693,7 +693,7 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
                       ? null
                       : Text(
                           AppLocalizations.of(context)!.needPermissionToScan,
-                          style: const TextStyle(color: Colors.red, fontSize: 12),
+                          style: const TextStyle(color: Colors.grey, fontSize: 12),
                         ),
                   onTap: () async {
                     if (!hasPermission) {
