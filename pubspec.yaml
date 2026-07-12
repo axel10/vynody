@@ -216,7 +216,7 @@ msix_config:
   output_name: Vynody
   output_path: build/windows/msix
   install_certificate: false
-  capabilities: "broadFileSystemAccess, rescap:runFullTrust"
+  capabilities: "rescap:runFullTrust"
   languages: de-de, en-us, es-es, fr-fr, ja-jp, ko-kr, zh-cn, zh-hant
   file_extensions:
     - .aac
