@@ -1736,6 +1736,13 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
           // Keep effectiveMinFontScale at 0.8 in landscape so manual adjustment can scale down properly.
         }
 
+        // Scale Apple lyrics base font sizes up by 1.2x in landscape orientation as requested (making original 120% the new 100%)
+        if (effectiveLyricsStyle == LyricsStyle.apple && !isPortrait) {
+          baseAdaptiveScale *= 1.2;
+          effectiveMaxFontScale *= 1.2;
+          effectiveMinFontScale *= 1.2;
+        }
+
         final double calculatedFontScale = (baseAdaptiveScale * userFontScale).clamp(
           effectiveMinFontScale,
           effectiveMaxFontScale,
