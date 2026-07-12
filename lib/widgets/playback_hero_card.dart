@@ -295,6 +295,109 @@ class PlaybackHeroCard extends ConsumerWidget {
     final isFavorite =
         currentMusic != null && playlistService.isFavoriteSong(currentMusic);
     final l10n = AppLocalizations.of(context)!;
+
+    final windowWidth = MediaQuery.of(context).size.width;
+    // Volume button expanded needs 568 logical pixels.
+    // If the window width is smaller than 568, we collapse the volume and favorite controls.
+    final showVolumeAndFavorite = windowWidth >= 568.0;
+
+    final playControls = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        MiniControlButton(
+          icon: Icons.skip_previous_rounded,
+          onPressed: onPrevious,
+          tooltip: l10n.previous,
+        ),
+        const SizedBox(width: 4),
+        AnimatedPlayPauseButton(
+          isPlaying: isPlaying,
+          onPressed: onPlayPause,
+          color: Theme.of(context).brightness == Brightness.dark
+              ? Colors.white
+              : Colors.black87,
+          size: 24,
+          padding: const EdgeInsets.all(6.0),
+          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          tooltip: isPlaying ? l10n.pause : l10n.play,
+        ),
+        const SizedBox(width: 4),
+        MiniControlButton(
+          icon: Icons.skip_next_rounded,
+          onPressed: onNext,
+          tooltip: l10n.next,
+        ),
+      ],
+    );
+
+    final trackInfo = Flexible(
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onMiniTap,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const MiniArtwork(),
+            const SizedBox(width: 14),
+            Flexible(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(
+                  maxWidth: 160,
+                ),
+                child: _MiniPlayerProgressInfo(
+                  currentMusic: currentMusic,
+                  progress: progress,
+                  onScrubbing: onScrubbing,
+                  onSeek: onSeek,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    final rightControls = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        AppTooltip(
+          message: isFavorite ? l10n.removeFromFavorites : l10n.addToFavorites,
+          child: IconButton(
+            icon: Icon(
+              isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+              color: isFavorite
+                  ? Colors.redAccent
+                  : (Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white
+                      : Colors.black87),
+              size: 18,
+            ),
+            padding: const EdgeInsets.all(6),
+            constraints: const BoxConstraints(),
+            style: IconButton.styleFrom(
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            onPressed: currentMusic == null
+                ? null
+                : () async {
+                    await playlistService.toggleFavoriteSong(
+                      currentMusic,
+                    );
+                  },
+          ),
+        ),
+        const SizedBox(width: 4),
+        MiniInlineVolumeControl(
+          volume: ref.watch(audioVolumeProvider),
+          showSlider: showMiniVolumeSlider,
+          onTap: onVolumeTap,
+          onChanged: onVolumeChanged,
+          onScroll: onVolumeScroll,
+          tooltip: l10n.volume,
+        ),
+      ],
+    );
+
     return MouseRegion(
       onExit: (_) => onMiniMouseExit?.call(),
       child: Container(
@@ -305,11 +408,10 @@ class PlaybackHeroCard extends ConsumerWidget {
           borderRadius: BorderRadius.circular(100),
           boxShadow: [
             BoxShadow(
-              color:
-                  (Theme.of(context).brightness == Brightness.dark
-                          ? Colors.black
-                          : Colors.grey[400]!)
-                      .withValues(alpha: 0.3),
+              color: (Theme.of(context).brightness == Brightness.dark
+                      ? Colors.black
+                      : Colors.grey[400]!)
+                  .withValues(alpha: 0.3),
               blurRadius: 10,
               spreadRadius: 2,
             ),
@@ -334,114 +436,19 @@ class PlaybackHeroCard extends ConsumerWidget {
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        MiniControlButton(
-                          icon: Icons.skip_previous_rounded,
-                          onPressed: onPrevious,
-                          tooltip: AppLocalizations.of(context)!.previous,
-                        ),
-                        const SizedBox(width: 4),
-                        AnimatedPlayPauseButton(
-                          isPlaying: isPlaying,
-                          onPressed: onPlayPause,
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? Colors.white
-                              : Colors.black87,
-                          size: 24,
-                          padding: const EdgeInsets.all(6.0),
-                          materialTapTargetSize:
-                              MaterialTapTargetSize.shrinkWrap,
-                          tooltip: isPlaying
-                              ? AppLocalizations.of(context)!.pause
-                              : AppLocalizations.of(context)!.play,
-                        ),
-                        const SizedBox(width: 4),
-                        MiniControlButton(
-                          icon: Icons.skip_next_rounded,
-                          onPressed: onNext,
-                          tooltip: AppLocalizations.of(context)!.next,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(width: 14),
-                    Flexible(
-                      child: GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: onMiniTap,
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const MiniArtwork(),
-                            const SizedBox(width: 14),
-                            Flexible(
-                              child: ConstrainedBox(
-                                constraints: const BoxConstraints(
-                                  maxWidth: 160,
-                                ),
-                                child: _MiniPlayerProgressInfo(
-                                  currentMusic: currentMusic,
-                                  progress: progress,
-                                  onScrubbing: onScrubbing,
-                                  onSeek: onSeek,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    if (isLandscape) ...[
-                      const SizedBox(width: 14),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          AppTooltip(
-                            message: isFavorite
-                                ? l10n.removeFromFavorites
-                                : l10n.addToFavorites,
-                            child: IconButton(
-                              icon: Icon(
-                                isFavorite
-                                    ? Icons.favorite_rounded
-                                    : Icons.favorite_border_rounded,
-                                color: isFavorite
-                                    ? Colors.redAccent
-                                    : (Theme.of(context).brightness ==
-                                              Brightness.dark
-                                          ? Colors.white
-                                          : Colors.black87),
-                                size: 18,
-                              ),
-                              padding: const EdgeInsets.all(6),
-                              constraints: const BoxConstraints(),
-                              style: IconButton.styleFrom(
-                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              ),
-                              onPressed: currentMusic == null
-                                  ? null
-                                  : () async {
-                                      await playlistService.toggleFavoriteSong(
-                                        currentMusic,
-                                      );
-                                    },
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          MiniInlineVolumeControl(
-                            volume: ref.watch(audioVolumeProvider),
-                            showSlider: showMiniVolumeSlider,
-                            onTap: onVolumeTap,
-                            onChanged: onVolumeChanged,
-                            onScroll: onVolumeScroll,
-                            tooltip: AppLocalizations.of(context)!.volume,
-                          ),
+                  children: showVolumeAndFavorite
+                      ? [
+                          playControls,
+                          const SizedBox(width: 14),
+                          trackInfo,
+                          const SizedBox(width: 14),
+                          rightControls,
+                        ]
+                      : [
+                          trackInfo,
+                          const SizedBox(width: 14),
+                          playControls,
                         ],
-                      ),
-                    ],
-                  ],
                 ),
               ),
             ],

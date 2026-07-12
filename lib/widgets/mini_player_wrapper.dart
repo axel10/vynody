@@ -49,7 +49,10 @@ class _MiniPlayerWrapperState extends ConsumerState<MiniPlayerWrapper> {
                       return Container(
                         key: const ValueKey('dynamic-island-detail'),
                         constraints: BoxConstraints(
-                          maxWidth: MediaQuery.of(context).size.width * 0.9,
+                          maxWidth: MediaQuery.of(context).size.width >= 568.0
+                              ? (MediaQuery.of(context).size.width * 0.9)
+                                  .clamp(568.0, double.infinity)
+                              : MediaQuery.of(context).size.width * 0.9,
                         ),
                         child: PlaybackHeroCard(
                           isMini: true,
