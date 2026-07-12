@@ -15,6 +15,7 @@ class FolderGridCard extends StatelessWidget {
     this.onTap,
     this.onLongPress,
     this.onSecondaryTapDown,
+    this.subtitle,
   });
 
   final MusicFolder folder;
@@ -25,6 +26,7 @@ class FolderGridCard extends StatelessWidget {
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
   final void Function(TapDownDetails)? onSecondaryTapDown;
+  final String? subtitle;
 
   @override
   Widget build(BuildContext context) {
@@ -47,17 +49,23 @@ class FolderGridCard extends StatelessWidget {
         height: double.infinity,
       );
     } else {
+      final isSystem = folder.path == 'system';
       coverWidget = Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [startColor, endColor],
+            colors: isSystem
+                ? [
+                    Colors.purple.shade700,
+                    Colors.deepPurple.shade900,
+                  ]
+                : [startColor, endColor],
           ),
         ),
         child: Center(
           child: Icon(
-            Icons.folder_rounded,
+            isSystem ? Icons.library_music_rounded : Icons.folder_rounded,
             size: 48,
             color: Colors.white.withValues(alpha: 0.85),
           ),
@@ -135,7 +143,7 @@ class FolderGridCard extends StatelessWidget {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          l10n.songsCountFormat(songsCount),
+                          subtitle ?? l10n.songsCountFormat(songsCount),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: (isPortrait

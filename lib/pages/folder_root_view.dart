@@ -288,6 +288,9 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
             final itemWidth = (width - 32 - (crossAxisCount - 1) * 16) / crossAxisCount;
             final childAspectRatio = itemWidth / (itemWidth + textHeight);
 
+            final showSystemMedia = Platform.isAndroid && _searchQuery.isEmpty;
+            final itemCount = matchedRootFolders.length + (showSystemMedia ? 1 : 0);
+
             return SliverPadding(
               padding: EdgeInsets.only(bottom: foldersBottomPadding, left: 16, right: 16),
               sliver: SliverGrid(
@@ -299,7 +302,45 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
                 ),
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {
-                    final folder = matchedRootFolders[index];
+                    if (showSystemMedia && index == 0) {
+                      final systemFolder = scanner.systemMediaFolder ??
+                          MusicFolder(
+                            path: 'system',
+                            name: l10n.systemMediaLibrary,
+                          );
+                      final songsCount = systemFolder.allSongs.length;
+                      final representativeSong = findRepresentativeSong(systemFolder);
+                      
+                      return AnimatedOpacity(
+                        opacity: 1.0,
+                        duration: const Duration(milliseconds: 180),
+                        child: HoverableCard(
+                          child: FolderGridCard(
+                            folder: systemFolder,
+                            songsCount: songsCount,
+                            representativeSong: representativeSong,
+                            subtitle: hasPermission ? null : l10n.needPermissionToScan,
+                            onTap: () async {
+                              if (!hasPermission) {
+                                await scanner.checkAndRequestPermissions();
+                              }
+                              if (context.mounted) {
+                                widget.onNavigateTo(
+                                  scanner.systemMediaFolder ??
+                                      MusicFolder(
+                                        path: 'system',
+                                        name: l10n.systemMediaLibrary,
+                                      ),
+                                );
+                              }
+                            },
+                          ),
+                        ),
+                      );
+                    }
+
+                    final folderIndex = showSystemMedia ? index - 1 : index;
+                    final folder = matchedRootFolders[folderIndex];
                     final isRootAvailable = scanner.isRootPathAvailable(folder.path);
                     final representativeSong = findRepresentativeSong(folder);
                     return AnimatedOpacity(
@@ -317,7 +358,7 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
                       ),
                     );
                   },
-                  childCount: matchedRootFolders.length,
+                  childCount: itemCount,
                 ),
               ),
             );
@@ -672,7 +713,7 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
               },
             ),
           ),
-          if (Platform.isAndroid && _searchQuery.isEmpty)
+          if (Platform.isAndroid && _searchQuery.isEmpty && !isGrid)
             SliverToBoxAdapter(
               child: Padding(
                 padding: EdgeInsets.symmetric(
