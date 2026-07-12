@@ -1,8 +1,197 @@
 # Vynody
 
-[![Flutter](https://img.shields.io/badge/Flutter-3.x-02569B?logo=flutter&logoColor=white)](https://flutter.dev)
-[![Rust](https://img.shields.io/badge/Rust-Core-000000?logo=rust&logoColor=white)](https://www.rust-lang.org)
-[![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](LICENSE)
+<p align="center">
+  <img src="https://raw.githubusercontent.com/axel10/vynody/refs/heads/main/assets/readme/logo_with_text.jpg" alt="Vynody Logo" width="600">
+</p>
+
+<p align="center">
+  <a href="#vynody">English</a> | <a href="#简体中文">简体中文</a>
+</p>
+
+<p align="center">
+  <a href="https://flutter.dev"><img src="https://img.shields.io/badge/Flutter-3.x-02569B?logo=flutter&logoColor=white" alt="Flutter"></a>
+  <a href="https://www.rust-lang.org"><img src="https://img.shields.io/badge/Rust-Core-000000?logo=rust&logoColor=white" alt="Rust"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-GPL%20v3-blue.svg" alt="License: GPL v3"></a>
+</p>
+
+Vynody is a cross-platform, local music player designed with a focus on local playback. It features a Flutter-based user interface and integrates platform-specific native audio engines, combining a unified user experience with deep native capabilities.
+
+The project currently targets the following platforms:
+
+- Windows
+- Linux
+- macOS
+- iOS
+- Android
+
+## Features Overview
+
+- **Cross-Platform Local Music Player**: Supports both desktop and mobile platforms.
+- **Platform-Specific Native Audio Engines**: Integrates native audio backends optimized for each platform.
+- **Local Media Library**: Supports scanning local folders, incremental library updates, and song management.
+- **Online Tag Metadata Completion**: Supports fetching missing track metadata via audio fingerprinting.
+- **Online Lyrics Fetching**: Integrates with LRCLIB to search and fetch lyrics.
+- **Song Recognition**: Identifies songs using audio fingerprinting.
+- **Local LAN Sharing**: Easily share lyrics and music files across devices on the same local network.
+- **Sleep Timer**: Built-in countdown timer for automatic playback stop.
+- **Enhanced Lyric Features**: Supports online search, local caching, and lyric timeline adjustments.
+- **Visual Enhancements**: Features audio spectrum, waveform display, cover art color extraction, and more.
+
+## Platform Audio Engines
+
+Vynody does not use a single shared audio backend across all platforms. Instead, it utilizes the most suitable engine for each operating system:
+
+| Platform | Audio Engine / Backend |
+| :--- | :--- |
+| Windows | Rust-based Audio Core |
+| Linux | Rust-based Audio Core |
+| Android | ExoPlayer |
+| macOS | SFBAudioEngine |
+| iOS | SFBAudioEngine |
+
+This design achieves a consistent cross-platform UI while fully leveraging the mature, low-level audio capabilities of each platform.
+
+## Core Capabilities
+
+### 1. Local Playback & Media Library
+
+- Scans local directories to build a media library.
+- Supports incremental updates on folder changes.
+- Organizes tracks by albums, artists, songs, and more.
+- Tailored for offline music playback with a focus on stability and metadata organization.
+
+### 2. Online Metadata & Tag Completion
+
+For audio files with incomplete tags or missing metadata, Vynody supports online completion:
+
+- Uses audio fingerprinting to identify tracks.
+- Matches tracks against AcoustID and MusicBrainz.
+- Fills in missing details like title, artist, album, and covers.
+- Perfect for organizing local music libraries with mixed sources and poor metadata quality.
+
+### 3. Online Lyrics Fetching
+
+The player includes built-in lyrics search and retrieval, currently integrated with:
+
+- LRCLIB
+
+Features include:
+- Searching online lyrics matching the current track.
+- Fetching plain text or synced (timestamped) lyrics.
+- Associating and caching fetched lyrics with local songs.
+- Editing and aligning lyric timelines.
+
+### 4. Song Recognition
+
+Built-in audio fingerprinting enables identifying unknown audio files:
+
+- Identifies tracks from local audio fragments.
+- Offers metadata candidates for tag editing.
+- Helps organize legacy files with missing names or tags.
+
+### 5. Sleep Timer
+
+A built-in countdown timer designed for bedtime listening:
+
+- Configurable countdown timer to stop playback.
+- Displays remaining time.
+- Allows manual cancellation at any time.
+
+### 6. LAN Sharing (Music & Lyrics)
+
+Vynody includes built-in local area network sharing capabilities to transfer music and lyrics between devices on the same subnet:
+
+- Automatically discovers running Vynody instances on the local network.
+- Sends individual music files.
+- Sends entire music folders while preserving the relative folder structures.
+- Bi-directionally syncs lyric caches and translation caches between devices.
+- Provides a web-based portal accessible via any browser for uploading and downloading files.
+
+Perfect for syncing or migrating your local library between computers and mobile devices.
+
+## Architecture
+
+The project follows a "Flutter UI + Platform Native Audio Backend" architecture:
+
+- **Flutter**: Handles the cross-platform UI and user interactions.
+- **Rust**: Powers the core audio engine on Windows and Linux, along with low-level utilities.
+- **ExoPlayer**: Powers Android playback.
+- **SFBAudioEngine**: Powers macOS and iOS playback.
+- **SQLite / Drift**: Manages the local media library database and cache.
+
+Online services and libraries used:
+- **LRCLIB**: Online lyrics source.
+- **AcoustID**: Audio fingerprinting.
+- **MusicBrainz**: Metadata matching.
+
+LAN sharing capabilities:
+- **UDP Broadcast**: Peer discovery on the local network.
+- **Embedded HTTP Server**: Hosts the sharing service and web UI.
+- **Web-based File Transfer**: Browser interface for uploading/downloading tracks.
+- **Conflict Resolution**: Logic for merging and importing lyric caches.
+
+## Development & Setup
+
+### Prerequisites
+
+- Flutter SDK
+- Rust toolchain
+- Build tools corresponding to your target platform
+
+Platform-specific setup requirements:
+- **Android**: Android Studio / SDK / NDK.
+- **iOS / macOS**: Xcode and Apple development environment.
+- **Windows**: Visual Studio C++ Build Tools.
+- **Linux**: Flutter Desktop requirements and development libraries.
+
+### Cloning the Project
+
+```bash
+git clone https://github.com/axel10/vynody
+cd vynody
+```
+
+### Running the App
+
+```bash
+flutter pub get
+flutter run -d <device-id>
+```
+
+When building for a desktop platform for the first time, ensure that both the Flutter Desktop environment and the Rust toolchain are correctly configured.
+
+## Configuration
+
+The player supports various user settings, including:
+
+- Playback behaviors.
+- Lyrics sources and processing adjustments.
+- AcoustID API Key.
+- Visual themes, skins, and spectrum visualizers.
+- Hotkeys and shortcuts.
+
+> [!TIP]
+> If you plan to heavily use audio fingerprinting and metadata completion, we recommend getting and configuring your own AcoustID API Key.
+
+## Contributing
+
+Issues and Pull Requests are welcome!
+
+Before contributing code, please run the tests and ensure they pass:
+
+```bash
+flutter test
+```
+
+Please adhere to the existing code style and structure.
+
+## License
+
+This project is open-source and licensed under the [GPL-3.0 License](LICENSE).
+
+---
+
+## 简体中文
 
 Vynody 是一款以本地音乐播放为核心的跨平台播放器，使用 Flutter 构建界面，并根据不同平台接入对应的原生音频内核，兼顾统一体验与底层能力。
 
@@ -124,7 +313,6 @@ Vynody 内置局域网共享能力，可在同一网络下与其他设备交换�
 - 内置 HTTP 共享服务
 - 浏览器网页传输入口
 - 歌词缓存导入、导出与冲突处理
-
 
 ## 开发与运行
 
