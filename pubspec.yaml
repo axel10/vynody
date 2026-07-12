@@ -92,8 +92,8 @@ dependencies:
 
   worker_manager: ^7.2.9
   shimmer: ^3.0.0
-  drift: ^2.32.1
-  drift_dev: ^2.32.1
+  drift: 2.31.0
+  drift_dev: 2.31.0
 
   audio_core:
     # path: audio_core

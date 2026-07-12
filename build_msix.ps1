@@ -1,0 +1,1 @@
+Remove-Item -Recurse -Force build/flutter_assets, build/windows/x64/runner/Release/data/flutter_assets; dart run msix:create

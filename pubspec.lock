@@ -93,7 +93,7 @@ packages:
     description:
       path: "packages/bonsoir"
       ref: main
-      resolved-ref: b9b600ff1fd40a270f935f477804a3f743b2faad
+      resolved-ref: ef784d54c893913fd87417ee408b5931a78e073c
       url: "https://github.com/axel10/Bonsoir"
     source: git
     version: "7.1.2"
@@ -134,7 +134,7 @@ packages:
     description:
       path: "packages/bonsoir_windows"
       ref: main
-      resolved-ref: b9b600ff1fd40a270f935f477804a3f743b2faad
+      resolved-ref: ef784d54c893913fd87417ee408b5931a78e073c
       url: "https://github.com/axel10/Bonsoir"
     source: git
     version: "7.1.1"
@@ -382,18 +382,18 @@ packages:
     dependency: "direct main"
     description:
       name: drift
-      sha256: c21b9af62e78f86837638dda6c33506bd9444ca8a32cad2b99c07369cf9e2462
+      sha256: "970cd188fddb111b26ea6a9b07a62bf5c2432d74147b8122c67044ae3b97e99e"
       url: "https://pub.flutter-io.cn"
     source: hosted
-    version: "2.34.1"
+    version: "2.31.0"
   drift_dev:
     dependency: "direct main"
     description:
       name: drift_dev
-      sha256: "9cfff1576b49725da0d32c040651a41ae195e8c4af8d8da301593e41d7abc2f7"
+      sha256: "917184b2fb867b70a548a83bf0d36268423b38d39968c06cce4905683da49587"
       url: "https://pub.flutter-io.cn"
     source: hosted
-    version: "2.34.0"
+    version: "2.31.0"
   fake_async:
     dependency: transitive
     description:
@@ -869,7 +869,7 @@ packages:
     description:
       path: "."
       ref: master
-      resolved-ref: bf5cf54305190dacbce06a72d029f80896b3bff4
+      resolved-ref: "4aa23cc8d84b784d62befb6f39cf3bd963c6acb7"
       url: "https://github.com/axel10/mobile_storage_listener"
     source: git
     version: "1.0.0"
@@ -1438,10 +1438,10 @@ packages:
     dependency: transitive
     description:
       name: sqlite3
-      sha256: "752d9d746052359a2022f588bb979f2e7c4e0f9e4b6a1c3121f7626a1574974b"
+      sha256: "3145bd74dcdb4fd6f5c6dda4d4e4490a8087d7f286a14dee5d37087290f0f8a2"
       url: "https://pub.flutter-io.cn"
     source: hosted
-    version: "3.3.4"
+    version: "2.9.4"
   sqlite3_flutter_libs:
     dependency: "direct main"
     description:
@@ -1454,10 +1454,10 @@ packages:
     dependency: transitive
     description:
       name: sqlparser
-      sha256: d5edca6c3e5d04cb621463051b86b0a9df5dfecce13b975a2810126eca0cc78b
+      sha256: "337e9997f7141ffdd054259128553c348635fa318f7ca492f07a4ab76f850d19"
       url: "https://pub.flutter-io.cn"
     source: hosted
-    version: "0.44.6"
+    version: "0.43.1"
   stack_trace:
     dependency: transitive
     description:
