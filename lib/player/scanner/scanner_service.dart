@@ -3015,7 +3015,9 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
         _metadataStore.getMetadata(path) ??
         await MetadataDatabase().getSongMetadata(path);
     if (cached != null && (cached.thumbnailPath?.trim().isNotEmpty ?? false)) {
-      return;
+      if (await File(cached.thumbnailPath!).exists()) {
+        return;
+      }
     }
     final updated = await _recoverThumbnailCacheWithAudioCore(path, existingMetadata: cached);
     if (updated == null || updated.thumbnailPath == null || updated.thumbnailPath!.trim().isEmpty) {

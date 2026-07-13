@@ -137,17 +137,31 @@ class ScannerScanPipeline {
       final textScanned = existing?.metadataTextScanned;
       final imgScanned = existing?.metadataImgScanned;
 
+      var thumbnailMissing = false;
+      if (existing != null &&
+          existing.thumbnailPath != null &&
+          existing.thumbnailPath!.trim().isNotEmpty) {
+        try {
+          if (!File(existing.thumbnailPath!).existsSync()) {
+            thumbnailMissing = true;
+          }
+        } catch (_) {
+          thumbnailMissing = true;
+        }
+      }
+
       if (existing != null && existing.isModified) {
         stageByPath[path] = ScanFileStage.unchanged;
       } else if (existing != null &&
           currentLastModified != null &&
           textScanned == currentLastModified &&
-          imgScanned == currentLastModified) {
+          imgScanned == currentLastModified &&
+          !thumbnailMissing) {
         stageByPath[path] = ScanFileStage.unchanged;
       } else if (existing != null &&
           currentLastModified != null &&
           textScanned == currentLastModified &&
-          imgScanned != currentLastModified) {
+          (imgScanned != currentLastModified || thumbnailMissing)) {
         stageByPath[path] = ScanFileStage.imageOnly;
       } else {
         stageByPath[path] = ScanFileStage.full;
