@@ -136,8 +136,8 @@ jobs:
           FFMPEG_DIR: ${{ github.workspace }}\audio_core\windows\third_party\ffmpeg
         run: flutter build windows --release -v
 
-      - name: Build Windows MSIX
-        run: dart run msix:create --build-windows false
+      # - name: Build Windows MSIX
+      #   run: dart run msix:create --build-windows false
 
       - name: Install Inno Setup
         shell: pwsh
@@ -167,16 +167,16 @@ jobs:
             Write-Error "Windows runner executable not found."
             exit 1
           }
-          if (-not (Test-Path "build/windows/msix")) {
-            Write-Error "MSIX output directory not found."
-            exit 1
-          }
-          $msixFiles = Get-ChildItem "build/windows/msix" -Filter "*.msix" -Recurse -ErrorAction SilentlyContinue
-          if (-not $msixFiles) {
-            Write-Error "No .msix package was generated."
-            exit 1
-          }
-          $msixFiles | ForEach-Object { Write-Host "Found MSIX: $($_.FullName)" }
+          # if (-not (Test-Path "build/windows/msix")) {
+          #   Write-Error "MSIX output directory not found."
+          #   exit 1
+          # }
+          # $msixFiles = Get-ChildItem "build/windows/msix" -Filter "*.msix" -Recurse -ErrorAction SilentlyContinue
+          # if (-not $msixFiles) {
+          #   Write-Error "No .msix package was generated."
+          #   exit 1
+          # }
+          # $msixFiles | ForEach-Object { Write-Host "Found MSIX: $($_.FullName)" }
           $installerFiles = Get-ChildItem "build/windows/installer" -Filter "*.exe" -Recurse -ErrorAction SilentlyContinue
           if (-not $installerFiles) {
             Write-Error "No Inno Setup installer was generated."
@@ -199,11 +199,11 @@ jobs:
           Compress-Archive -Path "build/windows/x64/runner/Release/*" -DestinationPath $zipOutput
 
           # 2. Rename MSIX files with version
-          Get-ChildItem "build/windows/msix" -Filter "*.msix" -Recurse | ForEach-Object {
-              $newName = "vynody-windows-$appVersion.msix"
-              $newPath = Join-Path $_.DirectoryName $newName
-              Move-Item $_.FullName $newPath -Force
-          }
+          # Get-ChildItem "build/windows/msix" -Filter "*.msix" -Recurse | ForEach-Object {
+          #     $newName = "vynody-windows-$appVersion.msix"
+          #     $newPath = Join-Path $_.DirectoryName $newName
+          #     Move-Item $_.FullName $newPath -Force
+          # }
 
           # 3. Rename Inno Setup installer with version
           Get-ChildItem "build/windows/installer" -Filter "*.exe" -Recurse | ForEach-Object {
@@ -218,7 +218,6 @@ jobs:
           name: windows-package
           path: |
             vynody-windows-*.zip
-            build/windows/msix/**/*.msix
             build/windows/installer/*.exe
 
   linux:
