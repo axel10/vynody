@@ -938,6 +938,15 @@ class AppLocalizationsDe extends AppLocalizations {
   String get equalizerDisabledStatus => 'Deaktiviert';
 
   @override
+  String get effects => 'Effekte';
+
+  @override
+  String get playbackSpeed => 'Wiedergabegeschwindigkeit';
+
+  @override
+  String get normal => 'Normal';
+
+  @override
   String get bassBoost => 'Bass-Anhebung';
 
   @override

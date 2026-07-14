@@ -1873,7 +1873,7 @@ class PlaybackHeroCard extends ConsumerWidget {
               ),
             ),
             AppTooltip(
-              message: l10n.equalizer,
+              message: l10n.effects,
               child: IconButton(
                 padding: EdgeInsets.zero,
                 constraints: BoxConstraints.tightFor(

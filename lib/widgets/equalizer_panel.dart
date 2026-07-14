@@ -70,7 +70,7 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
               color: isDark ? Colors.white10 : theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
             ),
             const SizedBox(height: 24),
-            _buildSpeedControl(audio, playbackSpeed, accentColor),
+            _buildSpeedControl(audio, playbackSpeed, accentColor, l10n),
           ],
         ),
       ),
@@ -81,6 +81,7 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
     AudioService audio,
     double playbackSpeed,
     Color accentColor,
+    AppLocalizations l10n,
   ) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
@@ -92,7 +93,7 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'Playback Speed',
+              l10n.playbackSpeed,
               style: TextStyle(
                 color: isDark ? Colors.white70 : theme.colorScheme.onSurfaceVariant,
                 fontSize: 14,
@@ -143,7 +144,7 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
               child: Text(
-                'Reset',
+                l10n.reset,
                 style: TextStyle(
                   fontSize: 12,
                   color: playbackSpeed == 1.0
@@ -164,7 +165,7 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
                 padding: const EdgeInsets.only(right: 8.0),
                 child: ChoiceChip(
                   label: Text(
-                    speed == 1.0 ? '1.0x (Normal)' : '${speed}x',
+                    speed == 1.0 ? '1.0x (${l10n.normal})' : '${speed}x',
                     style: TextStyle(
                       fontSize: 11,
                       color: isSelected

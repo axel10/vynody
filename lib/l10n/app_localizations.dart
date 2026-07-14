@@ -1831,6 +1831,24 @@ abstract class AppLocalizations {
   /// **'已禁用'**
   String get equalizerDisabledStatus;
 
+  /// No description provided for @effects.
+  ///
+  /// In zh, this message translates to:
+  /// **'特效'**
+  String get effects;
+
+  /// No description provided for @playbackSpeed.
+  ///
+  /// In zh, this message translates to:
+  /// **'播放速度'**
+  String get playbackSpeed;
+
+  /// No description provided for @normal.
+  ///
+  /// In zh, this message translates to:
+  /// **'正常'**
+  String get normal;
+
   /// No description provided for @bassBoost.
   ///
   /// In zh, this message translates to:

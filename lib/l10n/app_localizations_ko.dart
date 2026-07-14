@@ -916,6 +916,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get equalizerDisabledStatus => '비활성화됨';
 
   @override
+  String get effects => '효과';
+
+  @override
+  String get playbackSpeed => '재생 속도';
+
+  @override
+  String get normal => '일반';
+
+  @override
   String get bassBoost => '베이스 부스트';
 
   @override

@@ -911,6 +911,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get equalizerDisabledStatus => '已禁用';
 
   @override
+  String get effects => '特效';
+
+  @override
+  String get playbackSpeed => '播放速度';
+
+  @override
+  String get normal => '正常';
+
+  @override
   String get bassBoost => '低音增强';
 
   @override
@@ -3734,6 +3743,15 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get equalizerDisabledStatus => '已停用';
+
+  @override
+  String get effects => '特效';
+
+  @override
+  String get playbackSpeed => '播放速度';
+
+  @override
+  String get normal => '正常';
 
   @override
   String get bassBoost => '低音增強';

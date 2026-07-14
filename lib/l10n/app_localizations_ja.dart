@@ -912,6 +912,15 @@ class AppLocalizationsJa extends AppLocalizations {
   String get equalizerDisabledStatus => '無効';
 
   @override
+  String get effects => 'エフェクト';
+
+  @override
+  String get playbackSpeed => '再生速度';
+
+  @override
+  String get normal => '通常';
+
+  @override
   String get bassBoost => 'バスブースト';
 
   @override
