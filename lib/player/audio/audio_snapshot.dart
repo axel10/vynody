@@ -38,6 +38,7 @@ abstract class AudioSnapshot with _$AudioSnapshot {
     required bool isLyricsActive,
     required Duration? sleepTimerRemaining,
     required Duration? sleepTimerDuration,
+    @Default(1.0) double playbackSpeed,
   }) = _AudioSnapshot;
 
   double get progress =>

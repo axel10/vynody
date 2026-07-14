@@ -1375,6 +1375,7 @@ class AudioService extends Notifier<AudioSnapshot> {
     isLyricsActive: isLyricsActive,
     sleepTimerRemaining: sleepTimerRemaining,
     sleepTimerDuration: sleepTimerDuration,
+    playbackSpeed: _player.player.playbackSpeed,
   );
 
   Uint8List? getCachedArtwork(String? path) {
@@ -2557,6 +2558,11 @@ class AudioService extends Notifier<AudioSnapshot> {
     unawaited(prefs.setDouble(_volumeStorageKey, _volume));
     unawaited(prefs.setBool(_isMutedStorageKey, _isMuted));
 
+    notifyListeners();
+  }
+
+  Future<void> setPlaybackSpeed(double speed) async {
+    await _player.player.setPlaybackSpeed(speed);
     notifyListeners();
   }
 

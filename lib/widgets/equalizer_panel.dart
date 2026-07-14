@@ -35,7 +35,9 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
   @override
   Widget build(BuildContext context) {
     final audio = ref.read(audioServiceProvider);
-    final config = ref.watch(audioSnapshotProvider).equalizerConfig;
+    final snapshot = ref.watch(audioSnapshotProvider);
+    final config = snapshot.equalizerConfig;
+    final playbackSpeed = snapshot.playbackSpeed;
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
@@ -62,9 +64,131 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
             _buildEqSliders(audio, config, accentColor),
             const SizedBox(height: 32),
             _buildBottomControls(audio, config, accentColor, l10n),
+            const SizedBox(height: 24),
+            Divider(
+              height: 1,
+              color: isDark ? Colors.white10 : theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+            ),
+            const SizedBox(height: 24),
+            _buildSpeedControl(audio, playbackSpeed, accentColor),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildSpeedControl(
+    AudioService audio,
+    double playbackSpeed,
+    Color accentColor,
+  ) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Playback Speed',
+              style: TextStyle(
+                color: isDark ? Colors.white70 : theme.colorScheme.onSurfaceVariant,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            Text(
+              '${playbackSpeed.toStringAsFixed(2)}x',
+              style: TextStyle(
+                color: accentColor,
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: SliderTheme(
+                data: SliderTheme.of(context).copyWith(
+                  trackHeight: 4,
+                  thumbShape: const RoundSliderThumbShape(
+                    enabledThumbRadius: 6,
+                  ),
+                  overlayShape: const RoundSliderOverlayShape(
+                    overlayRadius: 14,
+                  ),
+                ),
+                child: Slider(
+                  value: playbackSpeed.clamp(0.5, 2.0),
+                  min: 0.5,
+                  max: 2.0,
+                  divisions: 30,
+                  activeColor: accentColor,
+                  inactiveColor: isDark ? Colors.white12 : theme.colorScheme.outlineVariant,
+                  onChanged: (val) => audio.setPlaybackSpeed(val),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            TextButton(
+              onPressed: playbackSpeed == 1.0 ? null : () => audio.setPlaybackSpeed(1.0),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: Text(
+                'Reset',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: playbackSpeed == 1.0
+                      ? (isDark ? Colors.white30 : Colors.black26)
+                      : accentColor,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [0.5, 0.75, 1.0, 1.25, 1.5, 2.0].map((speed) {
+              final isSelected = (playbackSpeed - speed).abs() < 0.01;
+              return Padding(
+                padding: const EdgeInsets.only(right: 8.0),
+                child: ChoiceChip(
+                  label: Text(
+                    speed == 1.0 ? '1.0x (Normal)' : '${speed}x',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: isSelected
+                          ? (isDark ? Colors.black : Colors.white)
+                          : (isDark ? Colors.white70 : Colors.black87),
+                    ),
+                  ),
+                  selected: isSelected,
+                  onSelected: (selected) {
+                    if (selected) {
+                      audio.setPlaybackSpeed(speed);
+                    }
+                  },
+                  showCheckmark: false,
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  selectedColor: accentColor,
+                  backgroundColor: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.04),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+      ],
     );
   }
 
