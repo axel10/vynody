@@ -408,7 +408,7 @@ class SettingsService extends ChangeNotifier {
 
   late final _folderViewModeProperty = SettingProperty<FolderViewMode>(
     key: _keyFolderViewMode,
-    defaultValue: FolderViewMode.hybrid,
+    defaultValue: FolderViewMode.grid,
     prefs: _prefs,
     onChanged: notifyListeners,
     customRead: (prefs, key, def) =>
