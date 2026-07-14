@@ -410,6 +410,19 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
     }
 
     try {
+      // 避免当同一首歌曲在多个根目录里有副本时，因其中一个副本被清理而导致共用的缩略图文件被删掉。
+      // 仅当没有其他有效（未被彻底删除）的歌曲记录引用该缩略图时，才物理删除文件。
+      final query = select(songs)
+        ..where((t) => t.thumbnailPath.equals(normalizedPath) & t.deletedAt.isNull());
+      final count = await query.get().then((rows) => rows.length);
+      if (count > 0) {
+        return;
+      }
+    } catch (e) {
+      debugPrint('[Database] Failed to query thumbnail reference count: $e');
+    }
+
+    try {
       final file = File(normalizedPath);
       if (await file.exists()) {
         await file.delete();
