@@ -66,6 +66,7 @@ class FolderDetailView extends ConsumerStatefulWidget {
 class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
   late final ScrollController _localScrollController;
   late final TextEditingController _searchController;
+  final ScrollController _breadcrumbsScrollController = ScrollController();
   bool _isSearching = false;
   String _searchQuery = '';
   String? _lastHighlightedPath;
@@ -92,6 +93,14 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
       _lastHighlightedPath = widget.highlightedSongPath;
       WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToHighlightedSong());
     }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_breadcrumbsScrollController.hasClients) {
+        _breadcrumbsScrollController.jumpTo(
+          _breadcrumbsScrollController.position.maxScrollExtent,
+        );
+      }
+    });
   }
 
   @override
@@ -145,6 +154,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
     _searchController.dispose();
     _localScrollController.removeListener(_onScroll);
     _localScrollController.dispose();
+    _breadcrumbsScrollController.dispose();
     super.dispose();
   }
 
@@ -979,36 +989,32 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
     final theme = Theme.of(context);
     final currentMusic = ref.watch(audioCurrentMusicProvider);
 
-    List<Widget> breadcrumbItems = [];
-
-    breadcrumbItems.add(
-      Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(8),
-          onTap: widget.onGoBack,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
-            child: Icon(
-              Icons.arrow_back_rounded,
-              size: 20,
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-            ),
+    final backButton = Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: widget.onGoBack,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+          child: Icon(
+            Icons.arrow_back_rounded,
+            size: 20,
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
           ),
         ),
       ),
     );
 
-    breadcrumbItems.add(
-      Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 2),
-        child: Icon(
-          Icons.chevron_right_rounded,
-          size: 16,
-          color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
-        ),
+    final backChevron = Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      child: Icon(
+        Icons.chevron_right_rounded,
+        size: 16,
+        color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
       ),
     );
+
+    List<Widget> breadcrumbItems = [];
 
     breadcrumbItems.add(
       Material(
@@ -1119,8 +1125,11 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
       ),
       child: Row(
         children: [
+          backButton,
+          backChevron,
           Expanded(
             child: SingleChildScrollView(
+              controller: _breadcrumbsScrollController,
               scrollDirection: Axis.horizontal,
               child: Row(children: breadcrumbItems),
             ),
