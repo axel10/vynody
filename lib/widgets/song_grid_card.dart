@@ -15,6 +15,7 @@ class SongGridCard extends ConsumerWidget {
     required this.isPlaying,
     this.isSelected = false,
     this.isSelectionMode = false,
+    this.isHighlighted = false,
     this.onTap,
     this.onLongPress,
     this.onSecondaryTapDown,
@@ -25,6 +26,7 @@ class SongGridCard extends ConsumerWidget {
   final bool isPlaying;
   final bool isSelected;
   final bool isSelectionMode;
+  final bool isHighlighted;
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
   final void Function(TapDownDetails)? onSecondaryTapDown;
@@ -65,12 +67,19 @@ class SongGridCard extends ConsumerWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
         onTap: onTap,
-        child: Container(
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
-            color: theme.colorScheme.surfaceContainerLow.withValues(alpha: 0.6),
+            color: isHighlighted
+                ? theme.colorScheme.primary.withValues(alpha: 0.15)
+                : theme.colorScheme.surfaceContainerLow.withValues(alpha: 0.6),
             border: Border.all(
-              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.25),
+              color: isHighlighted
+                  ? theme.colorScheme.primary
+                  : theme.colorScheme.outlineVariant.withValues(alpha: 0.25),
+              width: isHighlighted ? 1.5 : 1.0,
             ),
           ),
           child: ClipRRect(

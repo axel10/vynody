@@ -190,17 +190,34 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
     return results;
   }
 
+  int _getCrossAxisCount(double width) {
+    return switch (width) {
+      >= 1350 => 6,
+      >= 1100 => 5,
+      >= 850 => 4,
+      >= 650 => 3,
+      _ => 2,
+    };
+  }
+
   void _scrollToHighlightedSong() {
     if (!mounted) return;
     final songPath = widget.highlightedSongPath;
     if (songPath == null) return;
 
     final folder = _effectiveFolder;
-    final fileIndex = folder.files.indexWhere((file) => p.equals(file.path, songPath));
+    final matchedFolders = _searchQuery.isNotEmpty
+        ? _findMatchingFolders(folder, _searchQuery)
+        : folder.subFolders;
+    final matchedSongs = _searchQuery.isNotEmpty
+        ? _findMatchingSongs(folder, _searchQuery)
+        : folder.files;
+    final fileIndex = matchedSongs.indexWhere((file) => p.equals(file.path, songPath));
     if (fileIndex == -1) return;
 
     final hasPermission = ref.read(scannerServiceProvider).hasPermission;
     final showPermissionWarning = folder.path == 'system' && !hasPermission;
+    final settings = ref.read(settingsServiceProvider);
 
     double fileOffset = 48.0;
     fileOffset += 190.0;
@@ -211,18 +228,37 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
 
     final screenWidth = MediaQuery.of(context).size.width;
     final double crossAxisExtent = screenWidth - 32;
-    final int crossAxisCount = ((crossAxisExtent + 16) / 236).ceil().clamp(2, 6);
-    final double cardWidth = (crossAxisExtent - (crossAxisCount - 1) * 16) / crossAxisCount;
-    final double cardHeight = cardWidth / 0.72;
+    final int crossAxisCount = _getCrossAxisCount(crossAxisExtent);
 
-    final totalGridItems = folder.subFolders.length;
-    final int rows = (totalGridItems / crossAxisCount).ceil();
-    fileOffset += rows * (cardHeight + 16);
-    fileOffset += fileIndex * 80.0;
+    final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
+    final textScale = MediaQuery.textScalerOf(context).scale(10) / 10;
+    final clampedScale = textScale.clamp(1.0, 1.3);
+    final double textHeight = (isPortrait ? 72.0 : 84.0) * clampedScale;
+    final double cardWidth = (crossAxisExtent - (crossAxisCount - 1) * 16) / crossAxisCount;
+    final double cardHeight = cardWidth + textHeight;
+
+    final isFolderGrid = settings.folderViewMode == FolderViewMode.hybrid ||
+        settings.folderViewMode == FolderViewMode.grid;
+    final isSongGrid = settings.folderViewMode == FolderViewMode.grid;
+
+    if (isFolderGrid) {
+      final totalGridItems = matchedFolders.length;
+      final int rows = (totalGridItems / crossAxisCount).ceil();
+      fileOffset += rows * (cardHeight + 16);
+    } else {
+      fileOffset += matchedFolders.length * 80.0;
+    }
+
+    if (isSongGrid) {
+      final int songRows = (fileIndex / crossAxisCount).floor();
+      fileOffset += songRows * (cardHeight + 16);
+    } else {
+      fileOffset += fileIndex * 80.0;
+    }
 
     if (_localScrollController.hasClients) {
       final double viewportHeight = _localScrollController.position.viewportDimension;
-      double targetOffset = fileOffset - (viewportHeight / 2) + 40.0;
+      double targetOffset = fileOffset - (viewportHeight / 2) + (isSongGrid ? cardHeight / 2 : 40.0);
       final maxScroll = _localScrollController.position.maxScrollExtent;
       targetOffset = targetOffset.clamp(0.0, maxScroll);
 
@@ -298,13 +334,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
           ? SliverLayoutBuilder(
               builder: (context, constraints) {
                 final width = constraints.crossAxisExtent;
-                final crossAxisCount = switch (width) {
-                  >= 1350 => 6,
-                  >= 1100 => 5,
-                  >= 850 => 4,
-                  >= 650 => 3,
-                  _ => 2,
-                };
+                final crossAxisCount = _getCrossAxisCount(width);
 
                 final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
                 final textScale = MediaQuery.textScalerOf(context).scale(10) / 10;
@@ -442,13 +472,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
           ? SliverLayoutBuilder(
               builder: (context, constraints) {
                 final width = constraints.crossAxisExtent;
-                final crossAxisCount = switch (width) {
-                  >= 1350 => 6,
-                  >= 1100 => 5,
-                  >= 850 => 4,
-                  >= 650 => 3,
-                  _ => 2,
-                };
+                final crossAxisCount = _getCrossAxisCount(width);
 
                 final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
                 final textScale = MediaQuery.textScalerOf(context).scale(10) / 10;
@@ -508,6 +532,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
                             isPlaying: isPlaying,
                             isSelected: isSelected,
                             isSelectionMode: widget.isSelectionMode,
+                            isHighlighted: widget.highlightedSongPath == file.path,
                             onTap: widget.isSelectionMode
                                 ? () => widget.onToggleSelection(file.path)
                                 : () async {
