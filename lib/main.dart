@@ -398,16 +398,20 @@ class _MyAppState extends ConsumerState<MyApp> with WindowListener, WidgetsBindi
   }
 
   ThemeData _buildTheme(Brightness brightness) {
+    final isDark = brightness == Brightness.dark;
     final colorScheme = ColorScheme.fromSeed(
       seedColor: appPrimaryColor,
       brightness: brightness,
-    ).copyWith(primary: appPrimaryColor);
-    final isDark = brightness == Brightness.dark;
+    ).copyWith(
+      primary: appPrimaryColor,
+      surface: isDark ? Colors.black : null,
+    );
     final snackBarBackground = isDark ? const Color(0xFF1F1F1F) : Colors.white;
     final snackBarForeground = isDark ? Colors.white : Colors.black;
 
     return ThemeData(
       colorScheme: colorScheme,
+      scaffoldBackgroundColor: isDark ? Colors.black : null,
       useMaterial3: true,
       fontFamily: 'Segoe UI',
       fontFamilyFallback: const [
