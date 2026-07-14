@@ -1478,26 +1478,33 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
           // 在解码阶段即完成缩小，从而替代之前手动生成的低清图逻辑。
           Builder(
             builder: (context) {
+              final currentMusic = ref.watch(audioCurrentMusicProvider);
+              final String? songPath = isSmallWinValue
+                  ? currentMusic?.path
+                  : (_pendingArtworkPath ?? currentMusic?.path);
+              final songKey = songPath ?? 'empty';
+
+              final metadata = songPath != null
+                  ? ref.read(scannerServiceProvider).metadataMap[songPath]
+                  : null;
+              final String? artworkPath =
+                  metadata?.artworkPath ??
+                  (songPath == currentMusic?.path ? currentMusic?.artworkPath : null);
+              final String? thumbnailPath =
+                  metadata?.thumbnailPath ??
+                  (songPath == currentMusic?.path ? currentMusic?.thumbnailPath : null);
+              final Uint8List? cachedBytes = songPath != null
+                  ? ((songPath == currentMusic?.path
+                          ? currentMusic?.artworkBytes
+                          : null) ??
+                      ref.read(audioServiceProvider).getCachedArtwork(songPath))
+                  : null;
+
               final Widget content;
 
               if (isSmallWinValue) {
-                final currentMusic = ref.watch(audioCurrentMusicProvider);
-                final songPath = currentMusic?.path;
-                final songKey = songPath ?? 'empty';
                 final isPc = Platform.isWindows || Platform.isMacOS || Platform.isLinux;
                 final bgCacheSize = isPc ? 1200 : 500;
-
-                final metadata = songPath != null
-                    ? ref.read(scannerServiceProvider).metadataMap[songPath]
-                    : null;
-                final String? artworkPath =
-                    metadata?.artworkPath ?? currentMusic?.artworkPath;
-                final Uint8List? cachedBytes = songPath != null
-                    ? (currentMusic?.artworkBytes ??
-                        ref.read(audioServiceProvider).getCachedArtwork(songPath))
-                    : null;
-                final String? thumbnailPath =
-                    metadata?.thumbnailPath ?? currentMusic?.thumbnailPath;
 
                 Widget? imageWidget;
 
@@ -1576,33 +1583,62 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                   );
                 }
               } else {
-                final currentMusic = ref.watch(audioCurrentMusicProvider);
-                final songPath = _pendingArtworkPath ?? currentMusic?.path;
-                final songKey = songPath ?? 'empty';
-                final bytes = songPath != null ? _getArtworkBytes(songPath) : null;
+                Widget? imageWidget;
+                Object artworkKey = 'empty';
 
-                if (bytes != null) {
-                  final imageProvider = Image.memory(
-                    bytes,
+                if (thumbnailPath != null &&
+                    thumbnailPath.isNotEmpty &&
+                    File(thumbnailPath).existsSync()) {
+                  imageWidget = Image.file(
+                    File(thumbnailPath),
                     width: double.infinity,
                     height: double.infinity,
-                    cacheWidth: 800,
-                    cacheHeight: 800,
+                    cacheWidth: 300,
+                    cacheHeight: 300,
                     fit: BoxFit.cover,
                     filterQuality: FilterQuality.low,
                     gaplessPlayback: true,
                     excludeFromSemantics: true,
                   );
+                  artworkKey = thumbnailPath;
+                } else if (cachedBytes != null && cachedBytes.isNotEmpty) {
+                  imageWidget = Image.memory(
+                    cachedBytes,
+                    width: double.infinity,
+                    height: double.infinity,
+                    cacheWidth: 300,
+                    cacheHeight: 300,
+                    fit: BoxFit.cover,
+                    filterQuality: FilterQuality.low,
+                    gaplessPlayback: true,
+                    excludeFromSemantics: true,
+                  );
+                  artworkKey = identityHashCode(cachedBytes);
+                } else if (artworkPath != null &&
+                    artworkPath.isNotEmpty &&
+                    File(artworkPath).existsSync()) {
+                  imageWidget = Image.file(
+                    File(artworkPath),
+                    width: double.infinity,
+                    height: double.infinity,
+                    cacheWidth: 300,
+                    cacheHeight: 300,
+                    fit: BoxFit.cover,
+                    filterQuality: FilterQuality.low,
+                    gaplessPlayback: true,
+                    excludeFromSemantics: true,
+                  );
+                  artworkKey = artworkPath;
+                }
 
+                if (imageWidget != null) {
                   content = ImageFiltered(
-                    key: ValueKey(
-                      '${songKey}_${identityHashCode(bytes)}_$finalSuffix',
-                    ),
+                    key: ValueKey('${songKey}_${artworkKey}_$finalSuffix'),
                     imageFilter: ui.ImageFilter.blur(
                       sigmaX: settings.playbackBlurredArtworkBlurSigma,
                       sigmaY: settings.playbackBlurredArtworkBlurSigma,
                     ),
-                    child: Transform.scale(scale: 1.2, child: imageProvider),
+                    child: Transform.scale(scale: 1.2, child: imageWidget),
                   );
                 } else {
                   content = Container(
@@ -1617,6 +1653,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
               // 过渡动画逻辑：新封面直接淡入盖在旧封面之上。
               // 这种方式避免了传统的“双向淡入淡出（Cross-fade）”可能导致的背景短暂变暗或跳动。
               return _SafeBackgroundSwitcher(
+                songKey: songKey,
                 duration: const Duration(milliseconds: 1000),
                 child: content,
               );
@@ -1763,8 +1800,13 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
 class _SafeBackgroundSwitcher extends StatefulWidget {
   final Widget child;
   final Duration duration;
+  final Object songKey;
 
-  const _SafeBackgroundSwitcher({required this.child, required this.duration});
+  const _SafeBackgroundSwitcher({
+    required this.child,
+    required this.duration,
+    required this.songKey,
+  });
 
   @override
   State<_SafeBackgroundSwitcher> createState() =>
@@ -1790,12 +1832,12 @@ class _SafeBackgroundSwitcherState extends State<_SafeBackgroundSwitcher>
   @override
   void didUpdateWidget(_SafeBackgroundSwitcher oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.child.key != oldWidget.child.key) {
+    if (widget.songKey != oldWidget.songKey) {
       _addNewChild(widget.child, animate: true);
     } else {
       if (_items.isNotEmpty) {
         final last = _items.last;
-        if (last.child != widget.child) {
+        if (last.child.key != widget.child.key) {
           setState(() {
             _items[_items.length - 1] = _SwitcherItem(
               child: widget.child,
