@@ -1088,6 +1088,15 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           },
         ),
         if (settings.isWaveformProgressBarEnabled)
+          SwitchListTile(
+            title: Text(l10n.enableWaveformLongPressSeek),
+            subtitle: Text(l10n.enableWaveformLongPressSeekDescription),
+            value: settings.enableWaveformLongPressSeek,
+            onChanged: (value) {
+              settings.enableWaveformLongPressSeek = value;
+            },
+          ),
+        if (settings.isWaveformProgressBarEnabled)
           ListTile(
             title: Text(l10n.waveformLongPressSeekSpeed),
             subtitle: Text(l10n.waveformLongPressSeekSpeedDescription),
@@ -1120,15 +1129,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               ),
             ),
           ),
-          if (settings.isWaveformProgressBarEnabled)
-            SwitchListTile(
-              title: Text(l10n.enableWaveformLongPressSeek),
-              subtitle: Text(l10n.enableWaveformLongPressSeekDescription),
-              value: settings.enableWaveformLongPressSeek,
-              onChanged: (value) {
-                settings.enableWaveformLongPressSeek = value;
-              },
-            ),
         SwitchListTile(
           title: Text(l10n.showDeveloperOptions),
           subtitle: Text(l10n.showDeveloperOptionsDescription),
