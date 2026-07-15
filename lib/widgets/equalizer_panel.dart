@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:audio_core/audio_core.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/audio/audio_service.dart';
+import 'package:vynody/player/settings/settings_service.dart';
 import '../l10n/app_localizations.dart';
 
 class EqualizerPanel extends ConsumerStatefulWidget {
@@ -85,6 +86,13 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
   ) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final SettingsService settings = ref.watch(settingsServiceProvider);
+    final limit5x = settings.playbackSpeedLimit5x;
+    final maxLimit = limit5x ? 5.0 : 2.0;
+
+    final locale = Localizations.localeOf(context);
+    final isChinese = locale.languageCode == 'zh';
+    final switchLabel = isChinese ? '5倍速上限' : '5x Speed Limit';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -100,12 +108,15 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
                 fontWeight: FontWeight.w600,
               ),
             ),
-            Text(
-              '${playbackSpeed.toStringAsFixed(2)}x',
-              style: TextStyle(
-                color: accentColor,
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
+            Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: Text(
+                '${playbackSpeed.toStringAsFixed(2)}x',
+                style: TextStyle(
+                  color: accentColor,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ],
@@ -125,10 +136,10 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
                   ),
                 ),
                 child: Slider(
-                  value: playbackSpeed.clamp(0.5, 5.0),
+                  value: playbackSpeed.clamp(0.5, maxLimit),
                   min: 0.5,
-                  max: 5.0,
-                  divisions: 90,
+                  max: maxLimit,
+                  divisions: limit5x ? 90 : 30,
                   activeColor: accentColor,
                   inactiveColor: isDark ? Colors.white12 : theme.colorScheme.outlineVariant,
                   onChanged: (val) => audio.setPlaybackSpeed(val),
@@ -159,7 +170,9 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: Row(
-            children: [0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 5.0].map((speed) {
+            children: [0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 5.0]
+                .where((speed) => speed <= maxLimit)
+                .map((speed) {
               final isSelected = (playbackSpeed - speed).abs() < 0.01;
               return Padding(
                 padding: const EdgeInsets.only(right: 8.0),
@@ -188,6 +201,41 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
               );
             }).toList(),
           ),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              switchLabel,
+              style: TextStyle(
+                color: isDark ? Colors.white70 : theme.colorScheme.onSurfaceVariant,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: SizedBox(
+                height: 24,
+                child: Transform.scale(
+                  scale: 0.8,
+                  child: Switch(
+                    value: limit5x,
+                    activeThumbColor: accentColor,
+                    activeTrackColor: accentColor.withValues(alpha: 0.5),
+                    onChanged: (val) {
+                      settings.playbackSpeedLimit5x = val;
+                      final nextMax = val ? 5.0 : 2.0;
+                      if (playbackSpeed > nextMax) {
+                        audio.setPlaybackSpeed(nextMax);
+                      }
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ],
     );

@@ -342,6 +342,7 @@ class SettingsService extends ChangeNotifier {
   static const double defaultWaveformLongPressSeekSpeed = 2.0;
   static const double minWaveformLongPressSeekSpeed = 1.1;
   static const double maxWaveformLongPressSeekSpeed = 5.0;
+  static const String _keyPlaybackSpeedLimit5x = 'playback_speed_limit_5x';
   static const String _keyShowDeveloperOptions = 'show_developer_options';
   static const String skipShortAudioScanEnabledStorageKey =
       'scan_skip_short_audio_enabled';
@@ -988,6 +989,13 @@ class SettingsService extends ChangeNotifier {
         ),
       );
     },
+  );
+
+  late final _playbackSpeedLimit5xProperty = SettingProperty<bool>(
+    key: _keyPlaybackSpeedLimit5x,
+    defaultValue: false,
+    prefs: _prefs,
+    onChanged: notifyListeners,
   );
 
   late final _showDeveloperOptionsProperty = SettingProperty<bool>(
@@ -1666,6 +1674,11 @@ class SettingsService extends ChangeNotifier {
       _waveformLongPressSeekSpeedProperty.value;
   set waveformLongPressSeekSpeed(double value) =>
       _waveformLongPressSeekSpeedProperty.value = value;
+
+  bool get playbackSpeedLimit5x =>
+      _playbackSpeedLimit5xProperty.value;
+  set playbackSpeedLimit5x(bool value) =>
+      _playbackSpeedLimit5xProperty.value = value;
 
   bool get showDeveloperOptions => _showDeveloperOptionsProperty.value;
   set showDeveloperOptions(bool value) =>
