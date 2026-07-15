@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/widgets.dart';
 import 'package:flutter/services.dart';
 import 'package:vynody/utils/localized_text.dart';
@@ -53,40 +54,50 @@ extension AppShortcutActionX on AppShortcutAction {
     AppShortcutAction.toggleFullScreen => _l10n.toggleFullScreenDescription,
   };
 
-  ShortcutBinding get defaultBinding => switch (this) {
-    AppShortcutAction.playPause => ShortcutBinding(
-      keyId: LogicalKeyboardKey.space.keyId,
-    ),
-    AppShortcutAction.next => ShortcutBinding(
-      keyId: LogicalKeyboardKey.arrowRight.keyId,
-      control: true,
-    ),
-    AppShortcutAction.previous => ShortcutBinding(
-      keyId: LogicalKeyboardKey.arrowLeft.keyId,
-      control: true,
-    ),
-    AppShortcutAction.volumeUp => ShortcutBinding(
-      keyId: LogicalKeyboardKey.arrowUp.keyId,
-      control: true,
-    ),
-    AppShortcutAction.volumeDown => ShortcutBinding(
-      keyId: LogicalKeyboardKey.arrowDown.keyId,
-      control: true,
-    ),
-    AppShortcutAction.mute => ShortcutBinding(
-      keyId: LogicalKeyboardKey.audioVolumeMute.keyId,
-    ),
-    AppShortcutAction.seekForward => ShortcutBinding(
-      keyId: LogicalKeyboardKey.arrowRight.keyId,
-      alt: true,
-    ),
-    AppShortcutAction.seekBackward => ShortcutBinding(
-      keyId: LogicalKeyboardKey.arrowLeft.keyId,
-    ),
-    AppShortcutAction.toggleFullScreen => ShortcutBinding(
-      keyId: LogicalKeyboardKey.f11.keyId,
-    ),
-  };
+  ShortcutBinding get defaultBinding {
+    final isMac = Platform.isMacOS;
+    return switch (this) {
+      AppShortcutAction.playPause => ShortcutBinding(
+          keyId: LogicalKeyboardKey.space.keyId,
+        ),
+      AppShortcutAction.next => ShortcutBinding(
+          keyId: LogicalKeyboardKey.arrowRight.keyId,
+          control: !isMac,
+          meta: isMac,
+        ),
+      AppShortcutAction.previous => ShortcutBinding(
+          keyId: LogicalKeyboardKey.arrowLeft.keyId,
+          control: !isMac,
+          meta: isMac,
+        ),
+      AppShortcutAction.volumeUp => ShortcutBinding(
+          keyId: LogicalKeyboardKey.arrowUp.keyId,
+          control: !isMac,
+          meta: isMac,
+        ),
+      AppShortcutAction.volumeDown => ShortcutBinding(
+          keyId: LogicalKeyboardKey.arrowDown.keyId,
+          control: !isMac,
+          meta: isMac,
+        ),
+      AppShortcutAction.mute => ShortcutBinding(
+          keyId: LogicalKeyboardKey.audioVolumeMute.keyId,
+        ),
+      AppShortcutAction.seekForward => ShortcutBinding(
+          keyId: LogicalKeyboardKey.arrowRight.keyId,
+          alt: true,
+        ),
+      AppShortcutAction.seekBackward => ShortcutBinding(
+          keyId: LogicalKeyboardKey.arrowLeft.keyId,
+          alt: true,
+        ),
+      AppShortcutAction.toggleFullScreen => ShortcutBinding(
+          keyId: isMac ? LogicalKeyboardKey.keyF.keyId : LogicalKeyboardKey.f11.keyId,
+          control: isMac,
+          meta: isMac,
+        ),
+    };
+  }
 
   static AppShortcutAction fromStorageKey(String key) {
     final normalized = key.trim().toLowerCase();
@@ -210,11 +221,12 @@ class ShortcutBinding {
 
   String get displayLabel {
     final key = logicalKey;
+    final isMac = Platform.isMacOS;
     final parts = <String>[
       if (control) 'Ctrl',
       if (shift) 'Shift',
-      if (alt) 'Alt',
-      if (meta) 'Meta',
+      if (alt) (isMac ? 'Opt' : 'Alt'),
+      if (meta) (isMac ? 'Cmd' : 'Meta'),
       _formatKeyLabel(key),
     ];
     return parts.join(' + ');
