@@ -457,6 +457,7 @@ class _AlbumCard extends ConsumerWidget {
                             size: 250,
                             width: double.infinity,
                             height: double.infinity,
+                            borderRadius: BorderRadius.zero,
                           ),
                           if (isSelectionMode)
                             Positioned.fill(
@@ -627,6 +628,7 @@ class _AlbumCard extends ConsumerWidget {
                                     path: album.representativeSong.path,
                                     id: album.representativeSong.id,
                                     size: 52,
+                                    borderRadius: BorderRadius.zero,
                                   ),
                                 ),
                               ),

@@ -524,6 +524,7 @@ class _AlbumSectionCard extends StatelessWidget {
                     path: section.representativeSong.path,
                     id: section.representativeSong.id,
                     size: 104,
+                    borderRadius: BorderRadius.zero,
                   ),
                 );
                 final info = Column(

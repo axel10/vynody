@@ -102,6 +102,7 @@ class SongGridCard extends ConsumerWidget {
                             size: 200,
                             width: double.infinity,
                             height: double.infinity,
+                            borderRadius: BorderRadius.zero,
                           ),
                           // Capsule in bottom-left corner
                           Positioned(

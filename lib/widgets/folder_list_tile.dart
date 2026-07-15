@@ -45,6 +45,7 @@ class FolderListTile extends StatelessWidget {
         path: representativeSong!.path,
         id: representativeSong!.id,
         size: 56.0,
+        borderRadius: BorderRadius.zero,
       );
     } else {
       coverWidget = Container(

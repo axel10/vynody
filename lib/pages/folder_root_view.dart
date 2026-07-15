@@ -562,6 +562,7 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
                       size: 100,
                       width: 100,
                       height: 100,
+                      borderRadius: BorderRadius.zero,
                     )
                   : Container(
                       width: 100,

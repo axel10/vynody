@@ -149,6 +149,7 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage> {
                               size: isWide
                                   ? 220
                                   : math.min(220, constraints.maxWidth),
+                              borderRadius: BorderRadius.zero,
                             ),
                           ),
                         ),

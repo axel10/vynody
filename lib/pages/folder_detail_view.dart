@@ -730,6 +730,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
                     size: 100,
                     width: 100,
                     height: 100,
+                    borderRadius: BorderRadius.zero,
                   )
                 : Container(
                     width: 100,

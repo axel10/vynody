@@ -640,6 +640,7 @@ Future<void> showSongBottomSheet(
                                   path: song.path,
                                   id: song.id,
                                   size: 52,
+                                  borderRadius: BorderRadius.zero,
                                 ),
                               ),
                             ),

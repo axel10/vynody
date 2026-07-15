@@ -192,6 +192,7 @@ class _SongDetailsDialogState extends ConsumerState<_SongDetailsDialog> {
                             path: widget.song.path,
                             id: widget.song.id,
                             size: 64,
+                            borderRadius: BorderRadius.zero,
                           ),
                         ),
                       ),

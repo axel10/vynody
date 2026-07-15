@@ -47,6 +47,7 @@ class FolderGridCard extends StatelessWidget {
         size: 200,
         width: double.infinity,
         height: double.infinity,
+        borderRadius: BorderRadius.zero,
       );
     } else {
       final isSystem = folder.path == 'system';
