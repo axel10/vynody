@@ -2836,6 +2836,15 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get scanToastHiddenHint => '扫描状态提示已隐藏，可在“设置 - 界面”中重新打开';
+
+  @override
+  String get doubleSpeedPlayingSwipeUpToLock => '双倍速播放中... 往上滑动锁定';
+
+  @override
+  String get doubleSpeedLockedSwipeDownToUnlock => '已锁定双倍速播放。长按并向下滑动解锁';
+
+  @override
+  String get doubleSpeedUnlocked => '已解除双倍速锁定';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -5670,4 +5679,13 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get scanToastHiddenHint => '掃描狀態提示已隱藏，可在「設定 - 介面」中重新開啟';
+
+  @override
+  String get doubleSpeedPlayingSwipeUpToLock => '雙倍速播放中... 往上滑動鎖定';
+
+  @override
+  String get doubleSpeedLockedSwipeDownToUnlock => '已鎖定雙倍速播放。長按並向下滑動解鎖';
+
+  @override
+  String get doubleSpeedUnlocked => '已解除雙倍速鎖定';
 }

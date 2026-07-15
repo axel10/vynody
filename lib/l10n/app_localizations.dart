@@ -5376,6 +5376,24 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'扫描状态提示已隐藏，可在“设置 - 界面”中重新打开'**
   String get scanToastHiddenHint;
+
+  /// No description provided for @doubleSpeedPlayingSwipeUpToLock.
+  ///
+  /// In zh, this message translates to:
+  /// **'双倍速播放中... 往上滑动锁定'**
+  String get doubleSpeedPlayingSwipeUpToLock;
+
+  /// No description provided for @doubleSpeedLockedSwipeDownToUnlock.
+  ///
+  /// In zh, this message translates to:
+  /// **'已锁定双倍速播放。长按并向下滑动解锁'**
+  String get doubleSpeedLockedSwipeDownToUnlock;
+
+  /// No description provided for @doubleSpeedUnlocked.
+  ///
+  /// In zh, this message translates to:
+  /// **'已解除双倍速锁定'**
+  String get doubleSpeedUnlocked;
 }
 
 class _AppLocalizationsDelegate

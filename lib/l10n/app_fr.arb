@@ -1182,5 +1182,8 @@
   "showScanProgressToastSettingDescription": "Affiche la progression du scan en temps réel en haut de l'écran lors du scan des dossiers.",
   "scanToastHiddenHint": "Le toast d'état du scan a été masqué. Vous pouvez le réactiver dans Paramètres - Interface.",
   "tapCoverToEnterLyricsMode": "Appuyez sur la pochette pour passer en mode paroles",
-  "gotIt": "J'ai compris"
+  "gotIt": "J'ai compris",
+  "doubleSpeedPlayingSwipeUpToLock": "Lecture à vitesse 2x... Balayez vers le haut pour verrouiller",
+  "doubleSpeedLockedSwipeDownToUnlock": "Vitesse 2x verrouillée. Maintenez et balayez vers le bas pour déverrouiller",
+  "doubleSpeedUnlocked": "Vitesse 2x déverrouillée"
 }

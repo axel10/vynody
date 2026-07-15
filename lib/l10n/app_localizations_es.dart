@@ -3016,4 +3016,15 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get scanToastHiddenHint =>
       'Toast de estado de escaneo oculto. Puede volver a habilitarlo en Ajustes - Interfaz.';
+
+  @override
+  String get doubleSpeedPlayingSwipeUpToLock =>
+      'Reproduciendo a 2x... Desliza hacia arriba para bloquear';
+
+  @override
+  String get doubleSpeedLockedSwipeDownToUnlock =>
+      'Velocidad 2x bloqueada. Mantén presionado y desliza hacia abajo para desbloquear';
+
+  @override
+  String get doubleSpeedUnlocked => 'Velocidad 2x desbloqueada';
 }

@@ -3,8 +3,12 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart' show Ticker;
 import 'dart:math' as math;
 import 'dart:ui';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oktoast/oktoast.dart';
+import 'package:vynody/l10n/app_localizations.dart';
+import 'package:vynody/player/audio/audio_riverpod.dart';
 
-class WaveformProgressBar extends StatefulWidget {
+class WaveformProgressBar extends ConsumerStatefulWidget {
   final List<double> waveform;
   final double progress;
   final Duration duration;
@@ -39,10 +43,10 @@ class WaveformProgressBar extends StatefulWidget {
   });
 
   @override
-  State<WaveformProgressBar> createState() => _WaveformProgressBarState();
+  ConsumerState<WaveformProgressBar> createState() => _WaveformProgressBarState();
 }
 
-class _WaveformProgressBarState extends State<WaveformProgressBar> with TickerProviderStateMixin, WidgetsBindingObserver {
+class _WaveformProgressBarState extends ConsumerState<WaveformProgressBar> with TickerProviderStateMixin, WidgetsBindingObserver {
   double? _hoverProgress;
   double _dragStartX = 0;
   double _dragStartProgress = 0;
@@ -58,6 +62,12 @@ class _WaveformProgressBarState extends State<WaveformProgressBar> with TickerPr
   Duration? _lastFrameTime;
   bool _isDragging = false;
   bool _suspendedForBackground = false;
+
+  // Double speed fast forward states
+  bool _isDoubleSpeedLocked = false;
+  bool _isDoubleSpeedActive = false;
+  Offset? _longPressStartOffset;
+  double _originalSpeed = 1.0;
 
   @override
   void initState() {
@@ -88,6 +98,11 @@ class _WaveformProgressBarState extends State<WaveformProgressBar> with TickerPr
     WidgetsBinding.instance.removeObserver(this);
     _animationController.dispose();
     _ticker?.dispose();
+    if (_isDoubleSpeedActive || _isDoubleSpeedLocked) {
+      try {
+        ref.read(audioServiceProvider).setPlaybackSpeed(_originalSpeed);
+      } catch (_) {}
+    }
     super.dispose();
   }
 
@@ -292,6 +307,62 @@ class _WaveformProgressBarState extends State<WaveformProgressBar> with TickerPr
                 widget.onSeek(newProgress);
                 setState(() {
                   _smoothProgress = newProgress;
+                });
+              }
+            },
+            onLongPressStart: (details) {
+              if (details.localPosition.dx > width / 2) {
+                final audioService = ref.read(audioServiceProvider);
+                if (!_isDoubleSpeedLocked) {
+                  _originalSpeed = ref.read(audioServiceStateProvider).playbackSpeed;
+                  audioService.setPlaybackSpeed(2.0);
+                  setState(() {
+                    _isDoubleSpeedActive = true;
+                    _longPressStartOffset = details.localPosition;
+                  });
+                  showToast(AppLocalizations.of(context)!.doubleSpeedPlayingSwipeUpToLock, dismissOtherToast: true);
+                } else {
+                  setState(() {
+                    _isDoubleSpeedActive = true;
+                    _longPressStartOffset = details.localPosition;
+                  });
+                  showToast(AppLocalizations.of(context)!.doubleSpeedLockedSwipeDownToUnlock, dismissOtherToast: true);
+                }
+              }
+            },
+            onLongPressMoveUpdate: (details) {
+              if (!_isDoubleSpeedActive || _longPressStartOffset == null) return;
+              final double deltaY = details.localPosition.dy - _longPressStartOffset!.dy;
+              if (!_isDoubleSpeedLocked) {
+                if (deltaY < -30) {
+                  setState(() {
+                    _isDoubleSpeedLocked = true;
+                    _longPressStartOffset = details.localPosition;
+                  });
+                  showToast(AppLocalizations.of(context)!.doubleSpeedLockedSwipeDownToUnlock, dismissOtherToast: true);
+                }
+              } else {
+                if (deltaY > 30) {
+                  final audioService = ref.read(audioServiceProvider);
+                  audioService.setPlaybackSpeed(_originalSpeed);
+                  setState(() {
+                    _isDoubleSpeedLocked = false;
+                    _isDoubleSpeedActive = false;
+                    _longPressStartOffset = null;
+                  });
+                  showToast(AppLocalizations.of(context)!.doubleSpeedUnlocked, dismissOtherToast: true);
+                }
+              }
+            },
+            onLongPressEnd: (details) {
+              if (_isDoubleSpeedActive) {
+                if (!_isDoubleSpeedLocked) {
+                  final audioService = ref.read(audioServiceProvider);
+                  audioService.setPlaybackSpeed(_originalSpeed);
+                }
+                setState(() {
+                  _isDoubleSpeedActive = false;
+                  _longPressStartOffset = null;
                 });
               }
             },

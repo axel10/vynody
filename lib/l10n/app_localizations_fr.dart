@@ -3018,4 +3018,15 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get scanToastHiddenHint =>
       'Le toast d\'état du scan a été masqué. Vous pouvez le réactiver dans Paramètres - Interface.';
+
+  @override
+  String get doubleSpeedPlayingSwipeUpToLock =>
+      'Lecture à vitesse 2x... Balayez vers le haut pour verrouiller';
+
+  @override
+  String get doubleSpeedLockedSwipeDownToUnlock =>
+      'Vitesse 2x verrouillée. Maintenez et balayez vers le bas pour déverrouiller';
+
+  @override
+  String get doubleSpeedUnlocked => 'Vitesse 2x déverrouillée';
 }

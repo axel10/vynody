@@ -3008,4 +3008,15 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get scanToastHiddenHint =>
       'Scan-Status-Toast ausgeblendet. Sie können ihn in Einstellungen - Oberfläche wieder aktivieren.';
+
+  @override
+  String get doubleSpeedPlayingSwipeUpToLock =>
+      'Doppelte Geschwindigkeit aktiv... Nach oben wischen zum Sperren';
+
+  @override
+  String get doubleSpeedLockedSwipeDownToUnlock =>
+      'Doppelte Geschwindigkeit gesperrt. Lange drücken und nach unten wischen zum Entsperren';
+
+  @override
+  String get doubleSpeedUnlocked => 'Doppelte Geschwindigkeit entsperrt';
 }

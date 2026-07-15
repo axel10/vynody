@@ -2974,4 +2974,15 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get scanToastHiddenHint =>
       'Scanning status toast hidden. You can re-enable it in Settings - Interface.';
+
+  @override
+  String get doubleSpeedPlayingSwipeUpToLock =>
+      'Playing at 2x speed... Swipe up to lock';
+
+  @override
+  String get doubleSpeedLockedSwipeDownToUnlock =>
+      '2x speed locked. Long press and swipe down to unlock';
+
+  @override
+  String get doubleSpeedUnlocked => '2x speed unlocked';
 }
