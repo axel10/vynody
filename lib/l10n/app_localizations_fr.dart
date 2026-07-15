@@ -3028,12 +3028,12 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get doubleSpeedPlayingSwipeUpToLock =>
-      'Lecture à vitesse 2x... Balayez vers le haut pour verrouiller';
+      'Avance rapide... Balayez vers le haut pour verrouiller';
 
   @override
   String get doubleSpeedLockedSwipeDownToUnlock =>
-      'Vitesse 2x verrouillée. Maintenez et balayez vers le bas pour déverrouiller';
+      'Avance rapide verrouillée. Maintenez et balayez vers le bas pour déverrouiller';
 
   @override
-  String get doubleSpeedUnlocked => 'Vitesse 2x déverrouillée';
+  String get doubleSpeedUnlocked => 'Avance rapide déverrouillée';
 }

@@ -880,7 +880,7 @@
   "tapCoverToEnterLyricsMode": "點選封面可以進入歌詞模式",
   "gotIt": "我知道了",
   "scanToastHiddenHint": "掃描狀態提示已隱藏，可在「設定 - 介面」中重新開啟",
-  "doubleSpeedPlayingSwipeUpToLock": "雙倍速播放中... 往上滑動鎖定",
-  "doubleSpeedLockedSwipeDownToUnlock": "已鎖定雙倍速播放。長按並向下滑動解鎖",
-  "doubleSpeedUnlocked": "已解除雙倍速鎖定"
+  "doubleSpeedPlayingSwipeUpToLock": "快進播放中... 往上滑動鎖定",
+  "doubleSpeedLockedSwipeDownToUnlock": "已鎖定快進播放。長按並向下滑動解鎖",
+  "doubleSpeedUnlocked": "已解除快進鎖定"
 }

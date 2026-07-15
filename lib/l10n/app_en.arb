@@ -1186,16 +1186,16 @@
   "@gotIt": {
     "description": "Dismiss button text for tips and guides"
   },
-  "doubleSpeedPlayingSwipeUpToLock": "Playing at 2x speed... Swipe up to lock",
+  "doubleSpeedPlayingSwipeUpToLock": "Fast forwarding... Swipe up to lock",
   "@doubleSpeedPlayingSwipeUpToLock": {
-    "description": "Toast when double speed is active, telling user to swipe up to lock"
+    "description": "Toast when fast forward is active, telling user to swipe up to lock"
   },
-  "doubleSpeedLockedSwipeDownToUnlock": "2x speed locked. Long press and swipe down to unlock",
+  "doubleSpeedLockedSwipeDownToUnlock": "Fast forward locked. Long press and swipe down to unlock",
   "@doubleSpeedLockedSwipeDownToUnlock": {
-    "description": "Toast when double speed is locked, telling user to long press and swipe down to unlock"
+    "description": "Toast when fast forward is locked, telling user to long press and swipe down to unlock"
   },
-  "doubleSpeedUnlocked": "2x speed unlocked",
+  "doubleSpeedUnlocked": "Fast forward unlocked",
   "@doubleSpeedUnlocked": {
-    "description": "Toast when double speed lock is released"
+    "description": "Toast when fast forward lock is released"
   }
 }

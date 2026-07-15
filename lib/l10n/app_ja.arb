@@ -1284,7 +1284,7 @@
   "scanToastHiddenHint": "スキャン状態トーストが非表示になりました。「設定 - インターフェース」で再有効化できます。",
   "tapCoverToEnterLyricsMode": "カバーをタップして歌詞モードに入る",
   "gotIt": "了解",
-  "doubleSpeedPlayingSwipeUpToLock": "2倍速再生中... 上にスワイプしてロック",
-  "doubleSpeedLockedSwipeDownToUnlock": "2倍速ロック済み。長押しして下にスワイプで解除",
-  "doubleSpeedUnlocked": "2倍速ロックを解除しました"
+  "doubleSpeedPlayingSwipeUpToLock": "早送り中... 上にスワイプしてロック",
+  "doubleSpeedLockedSwipeDownToUnlock": "早送りロック済み。長押しして下にスワイプで解除",
+  "doubleSpeedUnlocked": "早送りロックを解除しました"
 }

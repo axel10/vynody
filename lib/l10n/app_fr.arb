@@ -1185,7 +1185,7 @@
   "scanToastHiddenHint": "Le toast d'état du scan a été masqué. Vous pouvez le réactiver dans Paramètres - Interface.",
   "tapCoverToEnterLyricsMode": "Appuyez sur la pochette pour passer en mode paroles",
   "gotIt": "J'ai compris",
-  "doubleSpeedPlayingSwipeUpToLock": "Lecture à vitesse 2x... Balayez vers le haut pour verrouiller",
-  "doubleSpeedLockedSwipeDownToUnlock": "Vitesse 2x verrouillée. Maintenez et balayez vers le bas pour déverrouiller",
-  "doubleSpeedUnlocked": "Vitesse 2x déverrouillée"
+  "doubleSpeedPlayingSwipeUpToLock": "Avance rapide... Balayez vers le haut pour verrouiller",
+  "doubleSpeedLockedSwipeDownToUnlock": "Avance rapide verrouillée. Maintenez et balayez vers le bas pour déverrouiller",
+  "doubleSpeedUnlocked": "Avance rapide déverrouillée"
 }

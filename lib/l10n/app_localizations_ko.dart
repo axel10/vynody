@@ -2890,12 +2890,12 @@ class AppLocalizationsKo extends AppLocalizations {
       '스캔 상태 토스트가 숨겨졌습니다. \'설정 - 인터페이스\'에서 다시 활성화할 수 있습니다.';
 
   @override
-  String get doubleSpeedPlayingSwipeUpToLock => '2배속 재생 중... 위로 스와이프하여 잠금';
+  String get doubleSpeedPlayingSwipeUpToLock => '빨리 감기 중... 위로 스와이프하여 잠금';
 
   @override
   String get doubleSpeedLockedSwipeDownToUnlock =>
-      '2배속 잠금됨. 길게 누르고 아래로 스와이프하여 해제';
+      '빨리 감기 잠금됨. 길게 누르고 아래로 스와이프하여 해제';
 
   @override
-  String get doubleSpeedUnlocked => '2배속 잠금 해제됨';
+  String get doubleSpeedUnlocked => '빨리 감기 잠금 해제됨';
 }

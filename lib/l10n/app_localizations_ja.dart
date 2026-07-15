@@ -2887,11 +2887,11 @@ class AppLocalizationsJa extends AppLocalizations {
       'スキャン状態トーストが非表示になりました。「設定 - インターフェース」で再有効化できます。';
 
   @override
-  String get doubleSpeedPlayingSwipeUpToLock => '2倍速再生中... 上にスワイプしてロック';
+  String get doubleSpeedPlayingSwipeUpToLock => '早送り中... 上にスワイプしてロック';
 
   @override
-  String get doubleSpeedLockedSwipeDownToUnlock => '2倍速ロック済み。長押しして下にスワイプで解除';
+  String get doubleSpeedLockedSwipeDownToUnlock => '早送りロック済み。長押しして下にスワイプで解除';
 
   @override
-  String get doubleSpeedUnlocked => '2倍速ロックを解除しました';
+  String get doubleSpeedUnlocked => '早送りロックを解除しました';
 }

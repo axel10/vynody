@@ -1185,7 +1185,7 @@
   "scanToastHiddenHint": "Toast de estado de escaneo oculto. Puede volver a habilitarlo en Ajustes - Interfaz.",
   "tapCoverToEnterLyricsMode": "Toca la portada para entrar en modo letras",
   "gotIt": "Entendido",
-  "doubleSpeedPlayingSwipeUpToLock": "Reproduciendo a 2x... Desliza hacia arriba para bloquear",
-  "doubleSpeedLockedSwipeDownToUnlock": "Velocidad 2x bloqueada. Mantén presionado y desliza hacia abajo para desbloquear",
-  "doubleSpeedUnlocked": "Velocidad 2x desbloqueada"
+  "doubleSpeedPlayingSwipeUpToLock": "Avance rápido... Desliza hacia arriba para bloquear",
+  "doubleSpeedLockedSwipeDownToUnlock": "Avance rápido bloqueado. Mantén presionado y desliza hacia abajo para desbloquear",
+  "doubleSpeedUnlocked": "Avance rápido desbloqueado"
 }

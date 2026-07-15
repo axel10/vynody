@@ -3019,12 +3019,12 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get doubleSpeedPlayingSwipeUpToLock =>
-      'Doppelte Geschwindigkeit aktiv... Nach oben wischen zum Sperren';
+      'Schnellvorlauf aktiv... Nach oben wischen zum Sperren';
 
   @override
   String get doubleSpeedLockedSwipeDownToUnlock =>
-      'Doppelte Geschwindigkeit gesperrt. Lange drücken und nach unten wischen zum Entsperren';
+      'Schnellvorlauf gesperrt. Lange drücken und nach unten wischen zum Entsperren';
 
   @override
-  String get doubleSpeedUnlocked => 'Doppelte Geschwindigkeit entsperrt';
+  String get doubleSpeedUnlocked => 'Schnellvorlauf entsperrt';
 }

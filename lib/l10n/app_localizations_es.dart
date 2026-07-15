@@ -3027,12 +3027,12 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get doubleSpeedPlayingSwipeUpToLock =>
-      'Reproduciendo a 2x... Desliza hacia arriba para bloquear';
+      'Avance rápido... Desliza hacia arriba para bloquear';
 
   @override
   String get doubleSpeedLockedSwipeDownToUnlock =>
-      'Velocidad 2x bloqueada. Mantén presionado y desliza hacia abajo para desbloquear';
+      'Avance rápido bloqueado. Mantén presionado y desliza hacia abajo para desbloquear';
 
   @override
-  String get doubleSpeedUnlocked => 'Velocidad 2x desbloqueada';
+  String get doubleSpeedUnlocked => 'Avance rápido desbloqueado';
 }

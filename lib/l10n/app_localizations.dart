@@ -5392,19 +5392,19 @@ abstract class AppLocalizations {
   /// No description provided for @doubleSpeedPlayingSwipeUpToLock.
   ///
   /// In zh, this message translates to:
-  /// **'双倍速播放中... 往上滑动锁定'**
+  /// **'快进播放中... 往上滑动锁定'**
   String get doubleSpeedPlayingSwipeUpToLock;
 
   /// No description provided for @doubleSpeedLockedSwipeDownToUnlock.
   ///
   /// In zh, this message translates to:
-  /// **'已锁定双倍速播放。长按并向下滑动解锁'**
+  /// **'已锁定快进播放。长按并向下滑动解锁'**
   String get doubleSpeedLockedSwipeDownToUnlock;
 
   /// No description provided for @doubleSpeedUnlocked.
   ///
   /// In zh, this message translates to:
-  /// **'已解除双倍速锁定'**
+  /// **'已解除快进锁定'**
   String get doubleSpeedUnlocked;
 }
 

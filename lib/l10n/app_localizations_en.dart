@@ -2984,12 +2984,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get doubleSpeedPlayingSwipeUpToLock =>
-      'Playing at 2x speed... Swipe up to lock';
+      'Fast forwarding... Swipe up to lock';
 
   @override
   String get doubleSpeedLockedSwipeDownToUnlock =>
-      '2x speed locked. Long press and swipe down to unlock';
+      'Fast forward locked. Long press and swipe down to unlock';
 
   @override
-  String get doubleSpeedUnlocked => '2x speed unlocked';
+  String get doubleSpeedUnlocked => 'Fast forward unlocked';
 }
