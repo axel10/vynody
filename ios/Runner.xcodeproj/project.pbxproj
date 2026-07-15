@@ -201,7 +201,6 @@
 				9705A1C41CF9048500538489 /* Embed Frameworks */,
 				3B06AD1E1E4923F5004D2608 /* Thin Binary */,
 				49F8E7E76BD054CE117EB77D /* [CP] Embed Pods Frameworks */,
-				EEADE9027CF2290041008E5A /* Embed and Sign SPM Frameworks */,
 				809D84DE9F1C328AC1ED26E6 /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
@@ -242,9 +241,6 @@
 				Base,
 			);
 			mainGroup = 97C146E51CF9000F007C117D;
-			packageReferences = (
-				FA0B0DBA129F6C871FB0493A /* XCLocalSwiftPackageReference "SFBAudioEngine" */,
-			);
 			productRefGroup = 97C146EF1CF9000F007C117D /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -385,24 +381,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "/bin/sh \"$FLUTTER_ROOT/packages/flutter_tools/bin/xcode_backend.sh\" build";
-		};
-		EEADE9027CF2290041008E5A /* Embed and Sign SPM Frameworks */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-			);
-			name = "Embed and Sign SPM Frameworks";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "DEST=\"${BUILT_PRODUCTS_DIR}/${FRAMEWORKS_FOLDER_PATH}\"\necho \"Embedding SPM binary frameworks into ${DEST}\"\nmkdir -p \"${DEST}\"\nfor fw in lame tta-cpp opus FLAC mpc wavpack ogg sndfile vorbis SFBAudioEngine; do\n  SRC_PATH=\"\"\n  if [ -d \"${BUILT_PRODUCTS_DIR}/${fw}.framework\" ]; then\n    SRC_PATH=\"${BUILT_PRODUCTS_DIR}/${fw}.framework\"\n  elif [ -d \"${PODS_CONFIGURATION_BUILD_DIR}/${fw}.framework\" ]; then\n    SRC_PATH=\"${PODS_CONFIGURATION_BUILD_DIR}/${fw}.framework\"\n  elif [ -d \"${BUILT_PRODUCTS_DIR}/audio_core/${fw}.framework\" ]; then\n    SRC_PATH=\"${BUILT_PRODUCTS_DIR}/audio_core/${fw}.framework\"\n  elif [ -d \"${BUILT_PRODUCTS_DIR}/PackageFrameworks/${fw}.framework\" ]; then\n    SRC_PATH=\"${BUILT_PRODUCTS_DIR}/PackageFrameworks/${fw}.framework\"\n  fi\n  \n  if [ -n \"${SRC_PATH}\" ]; then\n    echo \"Copying ${fw}.framework from ${SRC_PATH} to ${DEST}\"\n    cp -af \"${SRC_PATH}\" \"${DEST}/\"\n    if [ -n \"${EXPANDED_CODE_SIGN_IDENTITY}\" ]; then\n      echo \"Codesigning ${fw}.framework with identity: ${EXPANDED_CODE_SIGN_IDENTITY}\"\n      /usr/bin/codesign --force --sign \"${EXPANDED_CODE_SIGN_IDENTITY}\" --timestamp=none --preserve-metadata=identifier,entitlements,flags \"${DEST}/${fw}.framework\"\n    else\n      echo \"Codesigning ${fw}.framework with ad-hoc identity\"\n      /usr/bin/codesign --force --sign - --timestamp=none --preserve-metadata=identifier,entitlements,flags \"${DEST}/${fw}.framework\"\n    fi\n  fi\ndone\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -782,12 +760,6 @@
 		};
 /* End XCConfigurationList section */
 
-/* Begin XCLocalSwiftPackageReference section */
-		FA0B0DBA129F6C871FB0493A /* XCLocalSwiftPackageReference "SFBAudioEngine" */ = {
-			isa = XCLocalSwiftPackageReference;
-			relativePath = ../audio_core/SFBAudioEngine;
-		};
-/* End XCLocalSwiftPackageReference section */
 	};
 	rootObject = 97C146E61CF9000F007C117D /* Project object */;
 }

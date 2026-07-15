@@ -36,22 +36,7 @@ target 'Runner' do
 end
 
 post_install do |installer|
-  # 1. Update user project (Runner.xcodeproj) to register the local package
   user_project = installer.aggregate_targets.first.user_project
-  package_ref_user = user_project.root_object.package_references.find { |ref|
-    (ref.respond_to?(:repositoryURL) && ref.repositoryURL.include?('SFBAudioEngine')) ||
-    (ref.respond_to?(:relative_path) && ref.relative_path.include?('SFBAudioEngine'))
-  }
-  if !package_ref_user.nil? && package_ref_user.isa != 'XCLocalSwiftPackageReference'
-    user_project.root_object.package_references.delete(package_ref_user)
-    package_ref_user.remove_from_project
-    package_ref_user = nil
-  end
-  if package_ref_user.nil?
-    package_ref_user = user_project.new(Xcodeproj::Project::Object::XCLocalSwiftPackageReference)
-    user_project.root_object.package_references << package_ref_user
-  end
-  package_ref_user.relative_path = '../audio_core/SFBAudioEngine'
   user_project.targets.each do |target|
     target.build_configurations.each do |config|
       config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'x86_64'
@@ -59,23 +44,7 @@ post_install do |installer|
   end
   user_project.save
 
-  # 2. Update Pods.xcodeproj to register the local package
   pods_project = installer.pods_project
-  package_ref_pods = pods_project.root_object.package_references.find { |ref|
-    (ref.respond_to?(:repositoryURL) && ref.repositoryURL.include?('SFBAudioEngine')) ||
-    (ref.respond_to?(:relative_path) && ref.relative_path.include?('SFBAudioEngine'))
-  }
-  if !package_ref_pods.nil? && package_ref_pods.isa != 'XCLocalSwiftPackageReference'
-    pods_project.root_object.package_references.delete(package_ref_pods)
-    package_ref_pods.remove_from_project
-    package_ref_pods = nil
-  end
-  if package_ref_pods.nil?
-    package_ref_pods = pods_project.new(Xcodeproj::Project::Object::XCLocalSwiftPackageReference)
-    pods_project.root_object.package_references << package_ref_pods
-  end
-  package_ref_pods.relative_path = '../../audio_core/SFBAudioEngine'
-
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
     target.build_configurations.each do |config|
@@ -85,85 +54,5 @@ post_install do |installer|
       config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'x86_64'
     end
 
-    if target.name == 'audio_core'
-      product_dep = target.package_product_dependencies.find { |dep| dep.product_name == 'SFBAudioEngine' }
-      if product_dep.nil?
-        product_dep = pods_project.new(Xcodeproj::Project::Object::XCSwiftPackageProductDependency)
-        product_dep.product_name = 'SFBAudioEngine'
-        target.package_product_dependencies << product_dep
-      end
-      product_dep.package = package_ref_pods
-
-      # Add library search path and linker flag for local FFmpeg static library on iOS
-      sfb_ffmpeg_device_path = File.expand_path('../../audio_core/SFBAudioEngine/macos/Frameworks/FFmpeg.xcframework/ios-arm64', __FILE__)
-      sfb_ffmpeg_sim_path = File.expand_path('../../audio_core/SFBAudioEngine/macos/Frameworks/FFmpeg.xcframework/ios-arm64-simulator', __FILE__)
-      target.build_configurations.each do |config|
-        config.build_settings['LIBRARY_SEARCH_PATHS[sdk=iphonesimulator*]'] = "$(inherited) \"#{sfb_ffmpeg_sim_path}\""
-        config.build_settings['LIBRARY_SEARCH_PATHS[sdk=iphoneos*]'] = "$(inherited) \"#{sfb_ffmpeg_device_path}\""
-
-        flags = config.build_settings['OTHER_LDFLAGS']
-        if flags.nil?
-          config.build_settings['OTHER_LDFLAGS'] = ['$(inherited)', '-lffmpeg']
-        elsif flags.is_a?(Array)
-          flags << '-lffmpeg' unless flags.include?('-lffmpeg')
-        else
-          config.build_settings['OTHER_LDFLAGS'] = "#{flags} -lffmpeg"
-        end
-      end
-    end
-  end
-
-  # 3. Add a build phase to the Runner target to embed and sign the SPM frameworks at the app bundle level
-  runner_target = user_project.targets.find { |t| t.name == 'Runner' }
-  if runner_target
-    phase_name = 'Embed and Sign SPM Frameworks'
-    existing_phase = runner_target.shell_script_build_phases.find { |p| p.name == phase_name }
-    
-    script_content = <<-'SH'
-DEST="${BUILT_PRODUCTS_DIR}/${FRAMEWORKS_FOLDER_PATH}"
-echo "Embedding SPM binary frameworks into ${DEST}"
-mkdir -p "${DEST}"
-for fw in lame tta-cpp opus FLAC mpc wavpack ogg sndfile vorbis SFBAudioEngine; do
-  SRC_PATH=""
-  if [ -d "${BUILT_PRODUCTS_DIR}/${fw}.framework" ]; then
-    SRC_PATH="${BUILT_PRODUCTS_DIR}/${fw}.framework"
-  elif [ -d "${PODS_CONFIGURATION_BUILD_DIR}/${fw}.framework" ]; then
-    SRC_PATH="${PODS_CONFIGURATION_BUILD_DIR}/${fw}.framework"
-  elif [ -d "${BUILT_PRODUCTS_DIR}/audio_core/${fw}.framework" ]; then
-    SRC_PATH="${BUILT_PRODUCTS_DIR}/audio_core/${fw}.framework"
-  elif [ -d "${BUILT_PRODUCTS_DIR}/PackageFrameworks/${fw}.framework" ]; then
-    SRC_PATH="${BUILT_PRODUCTS_DIR}/PackageFrameworks/${fw}.framework"
-  fi
-  
-  if [ -n "${SRC_PATH}" ]; then
-    echo "Copying ${fw}.framework from ${SRC_PATH} to ${DEST}"
-    cp -af "${SRC_PATH}" "${DEST}/"
-    if [ -n "${EXPANDED_CODE_SIGN_IDENTITY}" ]; then
-      echo "Codesigning ${fw}.framework with identity: ${EXPANDED_CODE_SIGN_IDENTITY}"
-      /usr/bin/codesign --force --sign "${EXPANDED_CODE_SIGN_IDENTITY}" --timestamp=none --preserve-metadata=identifier,entitlements,flags "${DEST}/${fw}.framework"
-    else
-      echo "Codesigning ${fw}.framework with ad-hoc identity"
-      /usr/bin/codesign --force --sign - --timestamp=none --preserve-metadata=identifier,entitlements,flags "${DEST}/${fw}.framework"
-    fi
-  fi
-done
-SH
-
-    if existing_phase
-      existing_phase.shell_script = script_content
-    else
-      phase = runner_target.new_shell_script_build_phase(phase_name)
-      phase.shell_script = script_content
-      
-      # Move this build phase to run after the "[CP] Embed Pods Frameworks" phase
-      runner_target.build_phases.delete(phase)
-      embed_phase_index = runner_target.build_phases.index { |p| p.respond_to?(:name) && p.name =~ /Embed Pods Frameworks/ }
-      if embed_phase_index
-        runner_target.build_phases.insert(embed_phase_index + 1, phase)
-      else
-        runner_target.build_phases << phase
-      end
-    end
-    user_project.save
   end
 end
