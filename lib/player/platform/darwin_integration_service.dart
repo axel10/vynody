@@ -109,15 +109,22 @@ class DarwinIntegrationService {
 
     if (Platform.isIOS) {
       final player = audioService.playbackController.player;
-      player.isAudioSessionTransitioning = true;
-      AudioSession.instance.then((session) {
-        return session.setActive(isPlaying);
-      }).then((_) {
+      if (isPlaying) {
+        player.isAudioSessionTransitioning = true;
+        AudioSession.instance.then((session) {
+          return session.setActive(true);
+        }).then((_) {
+          player.isAudioSessionTransitioning = false;
+        }).catchError((Object error) {
+          debugPrint('Failed to update iOS audio session active state: $error');
+          player.isAudioSessionTransitioning = false;
+        });
+      } else {
+        // Do not call session.setActive(false) on pause on iOS.
+        // The Rust audio engine (cpal) maintains an active AudioUnit stream.
+        // Deactivating the session while the stream is active can deadlock the CoreAudio and main threads.
         player.isAudioSessionTransitioning = false;
-      }).catchError((Object error) {
-        debugPrint('Failed to update iOS audio session active state: $error');
-        player.isAudioSessionTransitioning = false;
-      });
+      }
     }
   }
 
