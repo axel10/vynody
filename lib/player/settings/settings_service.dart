@@ -337,6 +337,11 @@ class SettingsService extends ChangeNotifier {
   static const String _keyLandscapeGap = 'visualizer_landscape_gap';
   static const String _keyIsWaveformProgressBarEnabled =
       'waveform_progress_bar_enabled';
+  static const String _keyWaveformLongPressSeekSpeed =
+      'waveform_long_press_seek_speed';
+  static const double defaultWaveformLongPressSeekSpeed = 2.0;
+  static const double minWaveformLongPressSeekSpeed = 1.1;
+  static const double maxWaveformLongPressSeekSpeed = 5.0;
   static const String _keyShowDeveloperOptions = 'show_developer_options';
   static const String skipShortAudioScanEnabledStorageKey =
       'scan_skip_short_audio_enabled';
@@ -967,6 +972,22 @@ class SettingsService extends ChangeNotifier {
     defaultValue: true,
     prefs: _prefs,
     onChanged: notifyListeners,
+  );
+
+  late final _waveformLongPressSeekSpeedProperty = SettingProperty<double>(
+    key: _keyWaveformLongPressSeekSpeed,
+    defaultValue: defaultWaveformLongPressSeekSpeed,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+    customWrite: (prefs, key, val) {
+      prefs.setDouble(
+        key,
+        val.clamp(
+          minWaveformLongPressSeekSpeed,
+          maxWaveformLongPressSeekSpeed,
+        ),
+      );
+    },
   );
 
   late final _showDeveloperOptionsProperty = SettingProperty<bool>(
@@ -1640,6 +1661,11 @@ class SettingsService extends ChangeNotifier {
       _isWaveformProgressBarEnabledProperty.value;
   set isWaveformProgressBarEnabled(bool value) =>
       _isWaveformProgressBarEnabledProperty.value = value;
+
+  double get waveformLongPressSeekSpeed =>
+      _waveformLongPressSeekSpeedProperty.value;
+  set waveformLongPressSeekSpeed(double value) =>
+      _waveformLongPressSeekSpeedProperty.value = value;
 
   bool get showDeveloperOptions => _showDeveloperOptionsProperty.value;
   set showDeveloperOptions(bool value) =>

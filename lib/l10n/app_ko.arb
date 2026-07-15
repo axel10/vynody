@@ -222,6 +222,8 @@
   "landscapeGap": "가로 간격",
   "enableWaveformProgressBar": "파형 진행 표시줄 사용",
   "enableWaveformProgressBarDescription": "표준 슬라이더 대신 전체 곡 파형 사용",
+  "waveformLongPressSeekSpeed": "파형 길게 누르기 빨리감기 속도",
+  "waveformLongPressSeekSpeedDescription": "파형 진행 표시줄 오른쪽을 길게 누를 때 빨리감기 재생 속도(×)",
   "randomMode": "랜덤 모드",
   "randomHistory": "랜덤 기록",
   "randomRange": "랜덤 범위",

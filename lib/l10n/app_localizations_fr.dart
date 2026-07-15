@@ -629,6 +629,13 @@ class AppLocalizationsFr extends AppLocalizations {
       'Utiliser la forme d\'onde complète au lieu du curseur standard';
 
   @override
+  String get waveformLongPressSeekSpeed => 'Vitesse d\'avance appui long';
+
+  @override
+  String get waveformLongPressSeekSpeedDescription =>
+      'Vitesse de lecture en maintenant le côté droit de la barre d\'onde (×)';
+
+  @override
   String get randomMode => 'Mode aléatoire';
 
   @override

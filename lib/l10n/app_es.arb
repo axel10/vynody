@@ -222,6 +222,8 @@
   "landscapeGap": "Espaciado horizontal del espectro",
   "enableWaveformProgressBar": "Activar barra de progreso de forma de onda",
   "enableWaveformProgressBarDescription": "Usar la forma de onda completa de la canción en lugar del control deslizante estándar",
+  "waveformLongPressSeekSpeed": "Velocidad de avance con pulsación larga",
+  "waveformLongPressSeekSpeedDescription": "Velocidad de reproducción al mantener pulsado el lado derecho de la barra de onda (×)",
   "randomMode": "Modo aleatorio",
   "randomHistory": "Historial aleatorio",
   "randomRange": "Rango aleatorio",

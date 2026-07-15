@@ -222,6 +222,8 @@
   "landscapeGap": "横画面のギャップ",
   "enableWaveformProgressBar": "波形プログレスバーを有効化",
   "enableWaveformProgressBarDescription": "標準スライダーの代わりに全曲波形を使用",
+  "waveformLongPressSeekSpeed": "波形長押し早送り速度",
+  "waveformLongPressSeekSpeedDescription": "波形プログレスバーの右側を長押しした時の早送り再生速度（×）",
   "randomMode": "ランダムモード",
   "randomHistory": "ランダム履歴",
   "randomRange": "ランダム範囲",

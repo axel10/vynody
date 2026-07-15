@@ -627,6 +627,14 @@ class AppLocalizationsDe extends AppLocalizations {
       'Gesamte Song-Wellenform anstelle des Standardschiebereglers verwenden';
 
   @override
+  String get waveformLongPressSeekSpeed =>
+      'Spulgeschwindigkeit bei langem Drücken';
+
+  @override
+  String get waveformLongPressSeekSpeedDescription =>
+      'Wiedergabegeschwindigkeit beim Gedrückthalten der rechten Seite der Wellenform-Leiste (×)';
+
+  @override
   String get randomMode => 'Zufallsmodus';
 
   @override

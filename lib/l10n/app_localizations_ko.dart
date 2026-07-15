@@ -616,6 +616,13 @@ class AppLocalizationsKo extends AppLocalizations {
   String get enableWaveformProgressBarDescription => '표준 슬라이더 대신 전체 곡 파형 사용';
 
   @override
+  String get waveformLongPressSeekSpeed => '파형 길게 누르기 빨리감기 속도';
+
+  @override
+  String get waveformLongPressSeekSpeedDescription =>
+      '파형 진행 표시줄 오른쪽을 길게 누를 때 빨리감기 재생 속도(×)';
+
+  @override
   String get randomMode => '랜덤 모드';
 
   @override

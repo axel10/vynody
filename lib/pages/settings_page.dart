@@ -1087,6 +1087,39 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             settings.isWaveformProgressBarEnabled = value;
           },
         ),
+        if (settings.isWaveformProgressBarEnabled)
+          ListTile(
+            title: Text(l10n.waveformLongPressSeekSpeed),
+            subtitle: Text(l10n.waveformLongPressSeekSpeedDescription),
+            trailing: SizedBox(
+              width: 200,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Slider(
+                      value: settings.waveformLongPressSeekSpeed.clamp(
+                        SettingsService.minWaveformLongPressSeekSpeed,
+                        SettingsService.maxWaveformLongPressSeekSpeed,
+                      ),
+                      min: SettingsService.minWaveformLongPressSeekSpeed,
+                      max: SettingsService.maxWaveformLongPressSeekSpeed,
+                      divisions: ((SettingsService.maxWaveformLongPressSeekSpeed -
+                                  SettingsService.minWaveformLongPressSeekSpeed) /
+                              0.1)
+                          .round(),
+                      onChanged: (value) {
+                        settings.waveformLongPressSeekSpeed = value;
+                      },
+                    ),
+                  ),
+                  Text(
+                    '${settings.waveformLongPressSeekSpeed.toStringAsFixed(1)}×',
+                    style: Theme.of(context).textTheme.labelMedium,
+                  ),
+                ],
+              ),
+            ),
+          ),
         SwitchListTile(
           title: Text(l10n.showDeveloperOptions),
           subtitle: Text(l10n.showDeveloperOptionsDescription),

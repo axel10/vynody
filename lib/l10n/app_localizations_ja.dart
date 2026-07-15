@@ -615,6 +615,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get enableWaveformProgressBarDescription => '標準スライダーの代わりに全曲波形を使用';
 
   @override
+  String get waveformLongPressSeekSpeed => '波形長押し早送り速度';
+
+  @override
+  String get waveformLongPressSeekSpeedDescription =>
+      '波形プログレスバーの右側を長押しした時の早送り再生速度（×）';
+
+  @override
   String get randomMode => 'ランダムモード';
 
   @override

@@ -222,6 +222,8 @@
   "landscapeGap": "Abstand Querformat",
   "enableWaveformProgressBar": "Wellenform-Fortschrittsbalken aktivieren",
   "enableWaveformProgressBarDescription": "Gesamte Song-Wellenform anstelle des Standardschiebereglers verwenden",
+  "waveformLongPressSeekSpeed": "Spulgeschwindigkeit bei langem Drücken",
+  "waveformLongPressSeekSpeedDescription": "Wiedergabegeschwindigkeit beim Gedrückthalten der rechten Seite der Wellenform-Leiste (×)",
   "randomMode": "Zufallsmodus",
   "randomHistory": "Zufallsverlauf",
   "randomRange": "Zufallsbereich",

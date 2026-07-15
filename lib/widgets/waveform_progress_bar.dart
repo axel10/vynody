@@ -315,7 +315,9 @@ class _WaveformProgressBarState extends ConsumerState<WaveformProgressBar> with 
                 final audioService = ref.read(audioServiceProvider);
                 if (!_isDoubleSpeedLocked) {
                   _originalSpeed = ref.read(audioServiceStateProvider).playbackSpeed;
-                  audioService.setPlaybackSpeed(2.0);
+                  audioService.setPlaybackSpeed(
+                    ref.read(settingsServiceProvider).waveformLongPressSeekSpeed,
+                  );
                   setState(() {
                     _isDoubleSpeedActive = true;
                     _longPressStartOffset = details.localPosition;

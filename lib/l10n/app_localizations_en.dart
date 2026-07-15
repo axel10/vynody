@@ -622,6 +622,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Use full-song waveform instead of standard slider';
 
   @override
+  String get waveformLongPressSeekSpeed => 'Long-press Waveform Seek Speed';
+
+  @override
+  String get waveformLongPressSeekSpeedDescription =>
+      'Playback speed when holding the right side of the waveform progress bar (×)';
+
+  @override
   String get randomMode => 'Random Mode';
 
   @override

@@ -630,6 +630,14 @@ class AppLocalizationsEs extends AppLocalizations {
       'Usar la forma de onda completa de la canción en lugar del control deslizante estándar';
 
   @override
+  String get waveformLongPressSeekSpeed =>
+      'Velocidad de avance con pulsación larga';
+
+  @override
+  String get waveformLongPressSeekSpeedDescription =>
+      'Velocidad de reproducción al mantener pulsado el lado derecho de la barra de onda (×)';
+
+  @override
   String get randomMode => 'Modo aleatorio';
 
   @override

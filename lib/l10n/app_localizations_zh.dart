@@ -614,6 +614,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get enableWaveformProgressBarDescription => '使用整首歌的波形图代替标准滑块';
 
   @override
+  String get waveformLongPressSeekSpeed => '长按波形快进速度';
+
+  @override
+  String get waveformLongPressSeekSpeedDescription => '长按波形进度条右侧时快进的播放速度（×）';
+
+  @override
   String get randomMode => '随机模式';
 
   @override
@@ -3455,6 +3461,12 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get enableWaveformProgressBarDescription => '使用整首歌曲的波形圖代替標準滑桿';
+
+  @override
+  String get waveformLongPressSeekSpeed => '長按波形快進速度';
+
+  @override
+  String get waveformLongPressSeekSpeedDescription => '長按波形進度條右側時快進的播放速度（×）';
 
   @override
   String get randomMode => '隨機模式';

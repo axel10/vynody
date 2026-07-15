@@ -1273,6 +1273,18 @@ abstract class AppLocalizations {
   /// **'使用整首歌的波形图代替标准滑块'**
   String get enableWaveformProgressBarDescription;
 
+  /// Long-press waveform progress bar fast-forward speed label
+  ///
+  /// In zh, this message translates to:
+  /// **'长按波形快进速度'**
+  String get waveformLongPressSeekSpeed;
+
+  /// No description provided for @waveformLongPressSeekSpeedDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'长按波形进度条右侧时快进的播放速度（×）'**
+  String get waveformLongPressSeekSpeedDescription;
+
   /// No description provided for @randomMode.
   ///
   /// In zh, this message translates to:

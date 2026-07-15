@@ -125,10 +125,10 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
                   ),
                 ),
                 child: Slider(
-                  value: playbackSpeed.clamp(0.5, 2.0),
+                  value: playbackSpeed.clamp(0.5, 5.0),
                   min: 0.5,
-                  max: 2.0,
-                  divisions: 30,
+                  max: 5.0,
+                  divisions: 90,
                   activeColor: accentColor,
                   inactiveColor: isDark ? Colors.white12 : theme.colorScheme.outlineVariant,
                   onChanged: (val) => audio.setPlaybackSpeed(val),
@@ -159,7 +159,7 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: Row(
-            children: [0.5, 0.75, 1.0, 1.25, 1.5, 2.0].map((speed) {
+            children: [0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 5.0].map((speed) {
               final isSelected = (playbackSpeed - speed).abs() < 0.01;
               return Padding(
                 padding: const EdgeInsets.only(right: 8.0),

@@ -222,6 +222,8 @@
   "landscapeGap": "Landscape Gap",
   "enableWaveformProgressBar": "Enable Waveform Progress Bar",
   "enableWaveformProgressBarDescription": "Use full-song waveform instead of standard slider",
+  "waveformLongPressSeekSpeed": "Long-press Waveform Seek Speed",
+  "waveformLongPressSeekSpeedDescription": "Playback speed when holding the right side of the waveform progress bar (×)",
   "randomMode": "Random Mode",
   "randomHistory": "Random History",
   "randomRange": "Random Range",
