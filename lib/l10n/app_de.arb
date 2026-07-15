@@ -224,6 +224,8 @@
   "enableWaveformProgressBarDescription": "Gesamte Song-Wellenform anstelle des Standardschiebereglers verwenden",
   "waveformLongPressSeekSpeed": "Spulgeschwindigkeit bei langem Drücken",
   "waveformLongPressSeekSpeedDescription": "Wiedergabegeschwindigkeit beim Gedrückthalten der rechten Seite der Wellenform-Leiste (×)",
+  "enableWaveformLongPressSeek": "Wellenform-Vorspulen per langem Drücken aktivieren",
+  "enableWaveformLongPressSeekDescription": "Zum Vorspulen die rechte Seite der Wellenform-Leiste gedrückt halten",
   "randomMode": "Zufallsmodus",
   "randomHistory": "Zufallsverlauf",
   "randomRange": "Zufallsbereich",

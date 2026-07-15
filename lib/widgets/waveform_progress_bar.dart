@@ -311,6 +311,7 @@ class _WaveformProgressBarState extends ConsumerState<WaveformProgressBar> with 
               }
             },
             onLongPressStart: (details) {
+              if (!ref.read(settingsServiceProvider).enableWaveformLongPressSeek) return;
               if (details.localPosition.dx > width / 2) {
                 final audioService = ref.read(audioServiceProvider);
                 if (!_isDoubleSpeedLocked) {

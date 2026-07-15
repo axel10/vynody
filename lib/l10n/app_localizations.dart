@@ -1285,6 +1285,18 @@ abstract class AppLocalizations {
   /// **'长按波形进度条右侧时快进的播放速度（×）'**
   String get waveformLongPressSeekSpeedDescription;
 
+  /// No description provided for @enableWaveformLongPressSeek.
+  ///
+  /// In zh, this message translates to:
+  /// **'启用长按波形快进'**
+  String get enableWaveformLongPressSeek;
+
+  /// No description provided for @enableWaveformLongPressSeekDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'长按波形进度条右侧区域启用快进播放'**
+  String get enableWaveformLongPressSeekDescription;
+
   /// No description provided for @randomMode.
   ///
   /// In zh, this message translates to:

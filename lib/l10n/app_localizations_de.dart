@@ -635,6 +635,14 @@ class AppLocalizationsDe extends AppLocalizations {
       'Wiedergabegeschwindigkeit beim Gedrückthalten der rechten Seite der Wellenform-Leiste (×)';
 
   @override
+  String get enableWaveformLongPressSeek =>
+      'Wellenform-Vorspulen per langem Drücken aktivieren';
+
+  @override
+  String get enableWaveformLongPressSeekDescription =>
+      'Zum Vorspulen die rechte Seite der Wellenform-Leiste gedrückt halten';
+
+  @override
   String get randomMode => 'Zufallsmodus';
 
   @override

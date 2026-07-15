@@ -339,6 +339,8 @@ class SettingsService extends ChangeNotifier {
       'waveform_progress_bar_enabled';
   static const String _keyWaveformLongPressSeekSpeed =
       'waveform_long_press_seek_speed';
+  static const String _keyEnableWaveformLongPressSeek =
+      'enable_waveform_long_press_seek';
   static const double defaultWaveformLongPressSeekSpeed = 2.0;
   static const double minWaveformLongPressSeekSpeed = 1.1;
   static const double maxWaveformLongPressSeekSpeed = 5.0;
@@ -989,6 +991,13 @@ class SettingsService extends ChangeNotifier {
         ),
       );
     },
+  );
+
+  late final _enableWaveformLongPressSeekProperty = SettingProperty<bool>(
+    key: _keyEnableWaveformLongPressSeek,
+    defaultValue: true,
+    prefs: _prefs,
+    onChanged: notifyListeners,
   );
 
   late final _playbackSpeedLimit5xProperty = SettingProperty<bool>(
@@ -1674,6 +1683,11 @@ class SettingsService extends ChangeNotifier {
       _waveformLongPressSeekSpeedProperty.value;
   set waveformLongPressSeekSpeed(double value) =>
       _waveformLongPressSeekSpeedProperty.value = value;
+
+  bool get enableWaveformLongPressSeek =>
+      _enableWaveformLongPressSeekProperty.value;
+  set enableWaveformLongPressSeek(bool value) =>
+      _enableWaveformLongPressSeekProperty.value = value;
 
   bool get playbackSpeedLimit5x =>
       _playbackSpeedLimit5xProperty.value;

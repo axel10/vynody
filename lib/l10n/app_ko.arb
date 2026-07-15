@@ -224,6 +224,8 @@
   "enableWaveformProgressBarDescription": "표준 슬라이더 대신 전체 곡 파형 사용",
   "waveformLongPressSeekSpeed": "파형 길게 누르기 빨리감기 속도",
   "waveformLongPressSeekSpeedDescription": "파형 진행 표시줄 오른쪽을 길게 누를 때 빨리감기 재생 속도(×)",
+  "enableWaveformLongPressSeek": "파형 길게 누르기 빨리감기 사용",
+  "enableWaveformLongPressSeekDescription": "파형 진행 표시줄 오른쪽을 길게 눌러 빨리감기 재생을 사용합니다",
   "randomMode": "랜덤 모드",
   "randomHistory": "랜덤 기록",
   "randomRange": "랜덤 범위",

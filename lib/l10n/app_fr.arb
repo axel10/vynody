@@ -224,6 +224,8 @@
   "enableWaveformProgressBarDescription": "Utiliser la forme d'onde complète au lieu du curseur standard",
   "waveformLongPressSeekSpeed": "Vitesse d'avance appui long",
   "waveformLongPressSeekSpeedDescription": "Vitesse de lecture en maintenant le côté droit de la barre d'onde (×)",
+  "enableWaveformLongPressSeek": "Activer l'avance rapide par appui long",
+  "enableWaveformLongPressSeekDescription": "Maintenez le côté droit de la barre d'onde pour une lecture accélérée",
   "randomMode": "Mode aléatoire",
   "randomHistory": "Historique aléatoire",
   "randomRange": "Plage aléatoire",

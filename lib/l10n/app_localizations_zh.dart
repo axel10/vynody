@@ -620,6 +620,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get waveformLongPressSeekSpeedDescription => '长按波形进度条右侧时快进的播放速度（×）';
 
   @override
+  String get enableWaveformLongPressSeek => '启用长按波形快进';
+
+  @override
+  String get enableWaveformLongPressSeekDescription => '长按波形进度条右侧区域启用快进播放';
+
+  @override
   String get randomMode => '随机模式';
 
   @override
@@ -3467,6 +3473,12 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get waveformLongPressSeekSpeedDescription => '長按波形進度條右側時快進的播放速度（×）';
+
+  @override
+  String get enableWaveformLongPressSeek => '啟用長按波形快進';
+
+  @override
+  String get enableWaveformLongPressSeekDescription => '長按波形進度條右側區域啟用快進播放';
 
   @override
   String get randomMode => '隨機模式';

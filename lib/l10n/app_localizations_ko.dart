@@ -623,6 +623,13 @@ class AppLocalizationsKo extends AppLocalizations {
       '파형 진행 표시줄 오른쪽을 길게 누를 때 빨리감기 재생 속도(×)';
 
   @override
+  String get enableWaveformLongPressSeek => '파형 길게 누르기 빨리감기 사용';
+
+  @override
+  String get enableWaveformLongPressSeekDescription =>
+      '파형 진행 표시줄 오른쪽을 길게 눌러 빨리감기 재생을 사용합니다';
+
+  @override
   String get randomMode => '랜덤 모드';
 
   @override

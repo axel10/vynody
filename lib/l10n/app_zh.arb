@@ -667,6 +667,8 @@
     "description": "Long-press waveform progress bar fast-forward speed label"
   },
   "waveformLongPressSeekSpeedDescription": "长按波形进度条右侧时快进的播放速度（×）",
+  "enableWaveformLongPressSeek": "启用长按波形快进",
+  "enableWaveformLongPressSeekDescription": "长按波形进度条右侧区域启用快进播放",
   "randomMode": "随机模式",
   "randomHistory": "随机历史",
   "randomRange": "随机范围",

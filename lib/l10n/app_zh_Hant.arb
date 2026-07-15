@@ -196,6 +196,8 @@
   "enableWaveformProgressBarDescription": "使用整首歌曲的波形圖代替標準滑桿",
   "waveformLongPressSeekSpeed": "長按波形快進速度",
   "waveformLongPressSeekSpeedDescription": "長按波形進度條右側時快進的播放速度（×）",
+  "enableWaveformLongPressSeek": "啟用長按波形快進",
+  "enableWaveformLongPressSeekDescription": "長按波形進度條右側區域啟用快進播放",
   "randomMode": "隨機模式",
   "randomHistory": "隨機歷史",
   "randomRange": "隨機範圍",

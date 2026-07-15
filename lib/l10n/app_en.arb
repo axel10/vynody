@@ -224,6 +224,8 @@
   "enableWaveformProgressBarDescription": "Use full-song waveform instead of standard slider",
   "waveformLongPressSeekSpeed": "Long-press Waveform Seek Speed",
   "waveformLongPressSeekSpeedDescription": "Playback speed when holding the right side of the waveform progress bar (×)",
+  "enableWaveformLongPressSeek": "Enable Long-press Waveform Seek",
+  "enableWaveformLongPressSeekDescription": "Hold the right side of the waveform progress bar to fast-forward playback",
   "randomMode": "Random Mode",
   "randomHistory": "Random History",
   "randomRange": "Random Range",

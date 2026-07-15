@@ -636,6 +636,14 @@ class AppLocalizationsFr extends AppLocalizations {
       'Vitesse de lecture en maintenant le côté droit de la barre d\'onde (×)';
 
   @override
+  String get enableWaveformLongPressSeek =>
+      'Activer l\'avance rapide par appui long';
+
+  @override
+  String get enableWaveformLongPressSeekDescription =>
+      'Maintenez le côté droit de la barre d\'onde pour une lecture accélérée';
+
+  @override
   String get randomMode => 'Mode aléatoire';
 
   @override

@@ -224,6 +224,8 @@
   "enableWaveformProgressBarDescription": "Usar la forma de onda completa de la canción en lugar del control deslizante estándar",
   "waveformLongPressSeekSpeed": "Velocidad de avance con pulsación larga",
   "waveformLongPressSeekSpeedDescription": "Velocidad de reproducción al mantener pulsado el lado derecho de la barra de onda (×)",
+  "enableWaveformLongPressSeek": "Activar avance con pulsación larga en onda",
+  "enableWaveformLongPressSeekDescription": "Mantén pulsado el lado derecho de la barra de onda para avanzar rápido",
   "randomMode": "Modo aleatorio",
   "randomHistory": "Historial aleatorio",
   "randomRange": "Rango aleatorio",
