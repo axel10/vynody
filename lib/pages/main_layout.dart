@@ -21,6 +21,9 @@ import 'package:vynody/dialogs/transfer_dialogs.dart';
 import 'package:vynody/player/library/music_file_utils.dart';
 import 'package:vynody/player/settings/settings_service.dart';
 import 'package:vynody/player/settings/shortcut_bindings.dart';
+import 'package:vynody/models/music_file.dart';
+import 'package:vynody/player/metadata/metadata_database.dart';
+import 'package:vynody/player/audio/playback_source.dart';
 import 'package:vynody/utils/linux_mount_helper.dart';
 import 'main_layout_riverpod.dart';
 import 'onboarding_page.dart';
@@ -203,7 +206,10 @@ class _MainLayoutState extends ConsumerState<MainLayout>
   void initState() {
     super.initState();
     final settings = ref.read(settingsServiceProvider);
-    if (!settings.hasShownOnboarding) {
+    final isStressTest = widget.args.any((arg) => arg == '--stress-test' || arg == '--audio-stress-test');
+    if (isStressTest) {
+      _currentIndex = 0;
+    } else if (!settings.hasShownOnboarding) {
       _currentIndex = 0;
     } else {
       _currentIndex = widget.initialIndex;
@@ -222,6 +228,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         _handleArgs();
+        _checkAndRunStressTestAutomation();
       });
     }
   }
@@ -370,6 +377,115 @@ class _MainLayoutState extends ConsumerState<MainLayout>
     }
 
     debugPrint('[external-open] _handleArgs end');
+  }
+
+  Future<void> _checkAndRunStressTestAutomation() async {
+    final isStressTest = widget.args.any((arg) => arg == '--stress-test' || arg == '--audio-stress-test');
+    if (!isStressTest) return;
+
+    debugPrint('[stress-test] Stress test flag detected, starting root folders playback automation...');
+
+    // Wait for the scanner service to finish loading/initializing.
+    final scanner = ref.read(scannerServiceProvider);
+    await scanner.ready;
+
+    // Poll for up to 10 seconds (50 * 200ms) until root folders are loaded and we can retrieve allRootSongs.
+    AudioService? audioService;
+    final allRootSongs = <MusicFile>[];
+    final seenAll = <String>{};
+
+    for (int i = 0; i < 50; i++) {
+      if (!mounted) return;
+      audioService = ref.read(audioServiceProvider);
+
+      final rootFolders = scanner.rootFolders;
+      seenAll.clear();
+      allRootSongs.clear();
+      for (final folder in rootFolders) {
+        for (final song in folder.allSongs) {
+          if (seenAll.add(song.path)) {
+            allRootSongs.add(song);
+          }
+        }
+      }
+
+      if (allRootSongs.isNotEmpty) {
+        debugPrint('[stress-test] Found ${allRootSongs.length} root folder songs to play.');
+        break;
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+    }
+
+    if (!mounted || audioService == null) return;
+
+    // Fallback: If no root songs are scanned yet, try reading non-external songs from MetadataDatabase
+    if (allRootSongs.isEmpty) {
+      debugPrint('[stress-test] Root folders empty. Checking database for non-external songs...');
+      try {
+        final db = MetadataDatabase();
+        final songs = await db.getAllSongMetadata();
+        final filtered = songs.where((song) {
+          final flags = song.sourceFlags ?? 0;
+          return (flags & SongSourceFlags.external) == 0;
+        });
+
+        for (final firstMetadata in filtered) {
+          allRootSongs.add(MusicFile(
+            path: firstMetadata.path,
+            name: p.basename(firstMetadata.path),
+            title: firstMetadata.title,
+            artist: firstMetadata.artist,
+            album: firstMetadata.album,
+            trackNumber: firstMetadata.trackNumber,
+            id: firstMetadata.id,
+            artworkPath: firstMetadata.artworkPath,
+            thumbnailPath: firstMetadata.thumbnailPath,
+            artworkWidth: firstMetadata.artworkWidth,
+            artworkHeight: firstMetadata.artworkHeight,
+            durationMillis: firstMetadata.duration,
+            lastModifiedTime: firstMetadata.lastModifiedTime,
+          ));
+        }
+        debugPrint('[stress-test] Fallback database query found ${allRootSongs.length} non-external songs.');
+      } catch (e) {
+        debugPrint('[stress-test] Fallback database query failed: $e');
+      }
+    }
+
+    if (allRootSongs.isNotEmpty) {
+      debugPrint('[stress-test] Triggering "Play All" on root directory and seeking first song to 0ms...');
+      await audioService.playPlaylist(
+        allRootSongs,
+        source: PlaybackSource(
+          type: PlaybackSourceType.folder,
+          id: 'root',
+          name: 'Directory',
+        ),
+      );
+
+      // Wait a bit for playback to be initialized
+      await Future<void>.delayed(const Duration(milliseconds: 400));
+      if (!mounted) return;
+
+      // Seek to 0ms and ensure playback is started
+      await audioService.seek(Duration.zero);
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      if (!mounted) return;
+
+      final isPlaying = ref.read(audioIsPlayingProvider);
+      if (!isPlaying) {
+        debugPrint('[stress-test] Starting playback...');
+        await audioService.togglePlay();
+      }
+
+      // Automatically navigate to the PlaybackPage (index 1) after clicking Play All
+      debugPrint('[stress-test] Navigating to playback page...');
+      await _onDestinationSelected(1);
+    } else {
+      debugPrint('[stress-test] WARNING: No music files available to run Play All in stress test.');
+      // Still navigate to PlaybackPage so the UI is on the correct page
+      await _onDestinationSelected(1);
+    }
   }
 
   Future<void> _onDestinationSelected(int index) async {
