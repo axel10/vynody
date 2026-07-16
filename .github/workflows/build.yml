@@ -595,11 +595,16 @@ jobs:
           ls -l release_assets
 
       - name: Generate Release Body
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          OPENROUTER_MODEL: "google/gemini-3.1-flash-lite"
         run: |
           TAG_NAME="${{ github.event.inputs.tag_name || github.ref_name }}"
           REPO="${{ github.repository }}"
           
-          echo "## 📦 Downloads / 下载" > release_notes.md
+          python3 scripts/translate_release_notes.py "$TAG_NAME"
+          
+          echo "## 📦 Downloads / 下载" >> release_notes.md
           echo "" >> release_notes.md
           
           if ls release_assets/vynody-android-* >/dev/null 2>&1; then
