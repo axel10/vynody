@@ -320,13 +320,13 @@ class _LyricsPanelTimedLyricsViewState extends State<LyricsPanelTimedLyricsView>
                         final translatedSpacing = 3 * widget.lyricsFontScale;
                         final lineStyle = widget.hasTimedLyrics
                             ? Theme.of(context).textTheme.bodyLarge!.copyWith(
-                                color: isActive
-                                    ? widget.textColor
-                                    : (isHovered
-                                        ? widget.textColor.withValues(alpha: 1.0)
-                                        : widget.textColor.withValues(
-                                            alpha: (isNear && widget.lyricsStyle != LyricsStyle.apple) ? 0.72 : 0.46,
-                                          )),
+                                        color: isActive
+                                            ? widget.textColor
+                                            : (isHovered
+                                                ? widget.textColor.withValues(alpha: 1.0)
+                                                : widget.textColor.withValues(
+                                                    alpha: (isNear && widget.lyricsStyle != LyricsStyle.apple) ? 0.72 : PlaybackPageUiTuning.appleLyricsInactiveOpacity,
+                                                  )),
                                 fontSize: timedLyricFontSize,
                                 fontWeight: (isActive || widget.lyricsStyle == LyricsStyle.apple)
                                     ? FontWeight.w700
@@ -375,7 +375,7 @@ class _LyricsPanelTimedLyricsViewState extends State<LyricsPanelTimedLyricsView>
                                                 words: line.words!,
                                                 lineStyle: lineStyle,
                                                 activeColor: widget.textColor,
-                                                inactiveColor: widget.textColor.withValues(alpha: 0.46),
+                                                inactiveColor: widget.textColor.withValues(alpha: PlaybackPageUiTuning.appleLyricsInactiveOpacity),
                                                 isLeftAligned: isLeftAligned,
                                               )
                                             : Text(line.text),
@@ -394,7 +394,10 @@ class _LyricsPanelTimedLyricsViewState extends State<LyricsPanelTimedLyricsView>
                                       duration: const Duration(milliseconds: 300),
                                       curve: Curves.easeOutCubic,
                                       style: TextStyle(
-                                        color: isActive
+                                        color: (isActive &&
+                                                !(widget.lyricsStyle == LyricsStyle.apple &&
+                                                    line.words != null &&
+                                                    line.words!.isNotEmpty))
                                             ? widget.secondaryTextColor.withValues(alpha: 1.0)
                                             : (isHovered
                                                 ? widget.secondaryTextColor.withValues(alpha: 1.0)

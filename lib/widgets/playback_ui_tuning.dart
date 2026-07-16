@@ -31,6 +31,7 @@ class PlaybackPageUiTuning {
 
   static const double traditionalLyricsVerticalPadding = 20.0; // 传统歌词面板每行歌词之间的间距
   static const double appleLyricsVerticalPadding = 10.0; // 苹果样式歌词面板每行歌词之间的间距
+  static const double appleLyricsInactiveOpacity = 0.65; // 苹果样式歌词非当前行不透明度（包含翻译及逐字歌词未唱到部分）
   static const double appleLyricsTranslationFontSizePortrait = 11.0; // 苹果样式歌词翻译在竖屏模式下的字体大小
   static const double appleLyricsTranslationFontSizeLandscape = 11.0; // 苹果样式歌词翻译在横屏模式下的字体大小
 

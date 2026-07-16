@@ -1596,7 +1596,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     );
     final textColor = widget.textColor ?? Colors.white;
     final secondaryTextColor =
-        widget.secondaryTextColor ?? textColor.withValues(alpha: 0.62);
+        widget.secondaryTextColor ?? textColor.withValues(alpha: PlaybackPageUiTuning.appleLyricsInactiveOpacity);
 
     if (!hasRenderableLyrics) {
       final canGenerateLyrics = shouldShowGenerateLyricsButton(
