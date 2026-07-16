@@ -446,7 +446,7 @@ class SettingsService extends ChangeNotifier {
 
   late final _isImmersiveTabBarEnabledProperty = SettingProperty<bool>(
     key: _keyImmersiveTabBar,
-    defaultValue: false,
+    defaultValue: true,
     prefs: _prefs,
     onChanged: notifyListeners,
   );
