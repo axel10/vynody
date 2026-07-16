@@ -19,7 +19,7 @@ class LrcUtils {
       final line = normalizeLrcLine(rawLine);
       if (line == null || line.isEmpty) continue;
 
-      final timestamps = <Duration>[];
+      final lineTimestamps = <Duration>[];
       var index = 0;
       while (index < line.length) {
         final end = line.indexOf(']', index);
@@ -31,17 +31,97 @@ class LrcUtils {
         if (parsed == null) {
           break;
         }
-        timestamps.add(parsed);
+        lineTimestamps.add(parsed);
         index = end + 1;
       }
 
-      final text = line.substring(index).trim();
-      if (timestamps.isEmpty || text.isEmpty) {
+      if (lineTimestamps.isEmpty) {
         continue;
       }
 
-      for (final timestamp in timestamps) {
-        lines.add(LyricLine(timestamp: timestamp, text: text, isTimed: true));
+      final remainingContent = line.substring(index);
+      final wordMatches = _timestampLinePattern.allMatches(remainingContent).toList();
+
+      if (wordMatches.isEmpty) {
+        final text = remainingContent.trim();
+        if (text.isEmpty) continue;
+        for (final timestamp in lineTimestamps) {
+          lines.add(LyricLine(timestamp: timestamp, text: text, isTimed: true));
+        }
+      } else {
+        // Parse word-by-word lyrics
+        final baseTimestamp = lineTimestamps.first;
+        final wordTokens = <_ParsedWordToken>[];
+
+        final firstWordEnd = wordMatches.first.start;
+        final firstWordText = remainingContent.substring(0, firstWordEnd);
+        if (firstWordText.isNotEmpty) {
+          wordTokens.add(_ParsedWordToken(baseTimestamp, firstWordText));
+        }
+
+        Duration? trailingTimestamp;
+        for (int i = 0; i < wordMatches.length; i++) {
+          final match = wordMatches[i];
+          final token = match.group(0)!;
+          final timestampStr = token.substring(1, token.length - 1);
+          final timestamp = parseTimestampToken(timestampStr);
+          if (timestamp == null) continue;
+
+          final startIdx = match.end;
+          final endIdx = (i + 1 < wordMatches.length) ? wordMatches[i + 1].start : remainingContent.length;
+          final wordText = remainingContent.substring(startIdx, endIdx);
+
+          if (wordText.isNotEmpty) {
+            wordTokens.add(_ParsedWordToken(timestamp, wordText));
+          } else if (i == wordMatches.length - 1) {
+            trailingTimestamp = timestamp;
+          }
+        }
+
+        if (wordTokens.isNotEmpty) {
+          final relativeWords = <_RelativeWord>[];
+          final cleanTextBuffer = StringBuffer();
+
+          for (int i = 0; i < wordTokens.length; i++) {
+            final token = wordTokens[i];
+            final Duration duration;
+            if (i + 1 < wordTokens.length) {
+              duration = wordTokens[i + 1].timestamp - token.timestamp;
+            } else if (trailingTimestamp != null && trailingTimestamp > token.timestamp) {
+              duration = trailingTimestamp - token.timestamp;
+            } else {
+              duration = const Duration(milliseconds: 1000);
+            }
+
+            final relativeOffset = token.timestamp - baseTimestamp;
+            relativeWords.add(_RelativeWord(
+              offset: relativeOffset,
+              durationMs: duration.inMilliseconds,
+              text: token.text,
+            ));
+            cleanTextBuffer.write(token.text);
+          }
+
+          final cleanText = cleanTextBuffer.toString().trim();
+          if (cleanText.isNotEmpty) {
+            for (final t in lineTimestamps) {
+              final wordsList = relativeWords.map((rw) {
+                return LyricWord(
+                  timestamp: t + rw.offset,
+                  durationMs: rw.durationMs,
+                  text: rw.text,
+                );
+              }).toList();
+
+              lines.add(LyricLine(
+                timestamp: t,
+                text: cleanText,
+                isTimed: true,
+                words: wordsList,
+              ));
+            }
+          }
+        }
       }
     }
 
@@ -188,4 +268,21 @@ class LrcUtils {
     emitGroup(normalized.substring(lastTimestampEnd));
     return expandedLines;
   }
+}
+
+class _ParsedWordToken {
+  final Duration timestamp;
+  final String text;
+  _ParsedWordToken(this.timestamp, this.text);
+}
+
+class _RelativeWord {
+  final Duration offset;
+  final int durationMs;
+  final String text;
+  _RelativeWord({
+    required this.offset,
+    required this.durationMs,
+    required this.text,
+  });
 }

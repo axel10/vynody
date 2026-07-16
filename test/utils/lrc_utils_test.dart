@@ -34,4 +34,43 @@ void main() {
       expect(parsed[1].text, '副歌');
     });
   });
+
+  group('LrcUtils.parseTimedLyrics word-by-word', () {
+    test('parses interspersed word-by-word timestamps', () {
+      const lrc = '[00:48.940]我[00:49.370]爱[00:50.030]你';
+      final parsed = LrcUtils.parseTimedLyrics(lrc);
+      
+      expect(parsed.length, 1);
+      final line = parsed[0];
+      expect(line.timestamp, const Duration(milliseconds: 48940));
+      expect(line.text, '我爱你');
+      expect(line.words, isNotNull);
+      expect(line.words!.length, 3);
+      
+      expect(line.words![0].text, '我');
+      expect(line.words![0].timestamp, const Duration(milliseconds: 48940));
+      expect(line.words![0].durationMs, 430); // 49370 - 48940 = 430
+      
+      expect(line.words![1].text, '爱');
+      expect(line.words![1].timestamp, const Duration(milliseconds: 49370));
+      expect(line.words![1].durationMs, 660); // 50030 - 49370 = 660
+      
+      expect(line.words![2].text, '你');
+      expect(line.words![2].timestamp, const Duration(milliseconds: 50030));
+      expect(line.words![2].durationMs, 1000); // default
+    });
+
+    test('parses word-by-word with trailing timestamp', () {
+      const lrc = '[00:48.940]我[00:49.370]爱[00:50.030]你[00:50.800]';
+      final parsed = LrcUtils.parseTimedLyrics(lrc);
+      
+      expect(parsed.length, 1);
+      final line = parsed[0];
+      expect(line.text, '我爱你');
+      expect(line.words!.length, 3);
+      expect(line.words![2].text, '你');
+      expect(line.words![2].timestamp, const Duration(milliseconds: 50030));
+      expect(line.words![2].durationMs, 770); // 50800 - 50030 = 770
+    });
+  });
 }

@@ -3,10 +3,13 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:vynody/models/lyric_line.dart';
 import 'package:vynody/models/music_lyric.dart';
+import 'package:vynody/player/audio/audio_riverpod.dart';
 import '../l10n/app_localizations.dart';
 import 'package:vynody/player/lyrics/lyrics_controller_state.dart';
 import 'package:vynody/player/settings/settings_service.dart';
@@ -367,7 +370,15 @@ class _LyricsPanelTimedLyricsViewState extends State<LyricsPanelTimedLyricsView>
                                         curve: Curves.easeOutCubic,
                                         style: lineStyle,
                                         textAlign: isLeftAligned ? TextAlign.left : TextAlign.center,
-                                        child: Text(line.text),
+                                        child: (line.words != null && line.words!.isNotEmpty && isActive && widget.lyricsStyle == LyricsStyle.apple)
+                                            ? WordWordLyricsWidget(
+                                                words: line.words!,
+                                                lineStyle: lineStyle,
+                                                activeColor: widget.textColor,
+                                                inactiveColor: widget.textColor.withValues(alpha: 0.46),
+                                                isLeftAligned: isLeftAligned,
+                                              )
+                                            : Text(line.text),
                                       ),
                                     ),
                                   ],
@@ -779,6 +790,149 @@ class _StaggeredAppleLyricsScrollWrapperState
           child: child,
         );
       },
+    );
+  }
+}
+
+class WordWordLyricsWidget extends ConsumerStatefulWidget {
+  const WordWordLyricsWidget({
+    super.key,
+    required this.words,
+    required this.lineStyle,
+    required this.activeColor,
+    required this.inactiveColor,
+    required this.isLeftAligned,
+  });
+
+  final List<LyricWord> words;
+  final TextStyle lineStyle;
+  final Color activeColor;
+  final Color inactiveColor;
+  final bool isLeftAligned;
+
+  @override
+  ConsumerState<WordWordLyricsWidget> createState() => _WordWordLyricsWidgetState();
+}
+
+class _WordWordLyricsWidgetState extends ConsumerState<WordWordLyricsWidget> with SingleTickerProviderStateMixin {
+  late final Ticker _ticker;
+  Duration _lastObservedPosition = Duration.zero;
+  DateTime _lastObservedAt = DateTime.now();
+  bool _isPlaying = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _ticker = createTicker((_) {
+      if (mounted && _isPlaying) {
+        setState(() {});
+      }
+    });
+    _ticker.start();
+  }
+
+  @override
+  void dispose() {
+    _ticker.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final position = ref.watch(audioPositionProvider);
+    final isPlaying = ref.watch(audioIsPlayingProvider);
+
+    if (position != _lastObservedPosition || isPlaying != _isPlaying) {
+      _lastObservedPosition = position;
+      _lastObservedAt = DateTime.now();
+      _isPlaying = isPlaying;
+    }
+
+    final Duration currentPosition;
+    if (_isPlaying) {
+      final elapsed = DateTime.now().difference(_lastObservedAt);
+      currentPosition = _lastObservedPosition + elapsed;
+    } else {
+      currentPosition = _lastObservedPosition;
+    }
+
+    return Wrap(
+      alignment: widget.isLeftAligned ? WrapAlignment.start : WrapAlignment.center,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: widget.words.map((word) {
+        final startMs = word.timestamp.inMilliseconds;
+        final durationMs = word.durationMs;
+        final currentMs = currentPosition.inMilliseconds;
+
+        double progress = 0.0;
+        if (currentMs >= startMs + durationMs) {
+          progress = 1.0;
+        } else if (currentMs >= startMs && durationMs > 0) {
+          progress = (currentMs - startMs) / durationMs;
+        }
+
+        return WordHighlightText(
+          text: word.text,
+          progress: progress,
+          style: widget.lineStyle,
+          activeColor: widget.activeColor,
+          inactiveColor: widget.inactiveColor,
+        );
+      }).toList(),
+    );
+  }
+}
+
+class WordHighlightText extends StatelessWidget {
+  const WordHighlightText({
+    super.key,
+    required this.text,
+    required this.progress,
+    required this.style,
+    required this.activeColor,
+    required this.inactiveColor,
+  });
+
+  final String text;
+  final double progress;
+  final TextStyle style;
+  final Color activeColor;
+  final Color inactiveColor;
+
+  @override
+  Widget build(BuildContext context) {
+    if (progress <= 0.0) {
+      return Text(
+        text,
+        style: style.copyWith(color: inactiveColor),
+      );
+    }
+    if (progress >= 1.0) {
+      return Text(
+        text,
+        style: style.copyWith(color: activeColor),
+      );
+    }
+
+    // Smooth transition from left to right with a soft edge
+    final double softEdge = 0.15;
+    final double start = (progress - softEdge).clamp(0.0, 1.0);
+    final double end = (progress + softEdge).clamp(0.0, 1.0);
+
+    return ShaderMask(
+      blendMode: BlendMode.srcIn,
+      shaderCallback: (bounds) {
+        return LinearGradient(
+          colors: [activeColor, activeColor, inactiveColor, inactiveColor],
+          stops: [0.0, start, end, 1.0],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ).createShader(bounds);
+      },
+      child: Text(
+        text,
+        style: style.copyWith(color: Colors.white),
+      ),
     );
   }
 }
