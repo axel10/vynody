@@ -19,6 +19,7 @@ import '../widgets/scan_progress_toast.dart';
 import '../widgets/folder_bottom_sheet.dart';
 import 'folder_root_view.dart';
 import 'folder_detail_view.dart';
+import 'package:linux_directory_access/linux_directory_access.dart';
 
 class FoldersPage extends ConsumerStatefulWidget {
   final Future<void> Function()? onOpenPlayback;
@@ -203,13 +204,17 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
     }
 
     if (foundHistory == null && scanner.systemMediaFolder != null) {
-      foundHistory = _findFolderHistory(scanner.systemMediaFolder!, currentMusic.path);
+      foundHistory = _findFolderHistory(
+        scanner.systemMediaFolder!,
+        currentMusic.path,
+      );
     }
 
     if (foundHistory != null && foundHistory.isNotEmpty) {
       final targetFolder = foundHistory.last;
       final history = foundHistory.sublist(0, foundHistory.length - 1);
-      final alreadyInFolder = scanner.navigationCurrentFolder?.path == targetFolder.path;
+      final alreadyInFolder =
+          scanner.navigationCurrentFolder?.path == targetFolder.path;
 
       if (!alreadyInFolder) {
         scanner.setNavigationState(targetFolder, history);
@@ -256,9 +261,7 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
             AppSnackBar.show(
               context,
               ref,
-              SnackBar(
-                content: Text(currentL10n.scanToastHiddenHint),
-              ),
+              SnackBar(content: Text(currentL10n.scanToastHiddenHint)),
             );
           }
         },
@@ -483,11 +486,18 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
     } catch (_) {}
 
     String? selectedDirectory;
+    String? persistentDocumentId;
     AndroidOutputDirectory? androidOutputDirectory;
 
     if (Platform.isAndroid) {
-      androidOutputDirectory = await ref.read(transcodeServiceProvider).pickAndroidOutputDirectory();
+      androidOutputDirectory = await ref
+          .read(transcodeServiceProvider)
+          .pickAndroidOutputDirectory();
       selectedDirectory = androidOutputDirectory?.displayPath;
+    } else if (Platform.isLinux && await LinuxDirectoryAccess().isFlatpak) {
+      final grant = await LinuxDirectoryAccess().pickDirectory();
+      selectedDirectory = grant?.path;
+      persistentDocumentId = grant?.documentId;
     } else {
       selectedDirectory = await _getDirectoryPath();
     }
@@ -518,7 +528,10 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
       }
 
       debugPrint('[FoldersPage] adding selected root path=$selectedDirectory');
-      final result = await scanner.addRootPath(selectedDirectory);
+      final result = await scanner.addRootPath(
+        selectedDirectory,
+        persistentDocumentId: persistentDocumentId,
+      );
       debugPrint(
         '[FoldersPage] add root path completed status=${result.status}',
       );
@@ -544,7 +557,8 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
     }
   }
 
-  final GlobalKey<NavigatorState> _nestedNavigatorKey = GlobalKey<NavigatorState>();
+  final GlobalKey<NavigatorState> _nestedNavigatorKey =
+      GlobalKey<NavigatorState>();
 
   @override
   Widget build(BuildContext context) {
@@ -553,7 +567,9 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
       scannerServiceProvider.select((scanner) => scanner.navigationHistory),
     );
     final currentFolder = ref.watch(
-      scannerServiceProvider.select((scanner) => scanner.navigationCurrentFolder),
+      scannerServiceProvider.select(
+        (scanner) => scanner.navigationCurrentFolder,
+      ),
     );
 
     if (Platform.isAndroid &&
@@ -580,15 +596,22 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
           onPickFolder: () => _pickFolder(scanner),
           onToggleRootSelection: _toggleRootSelection,
           onToggleRootSelectionMode: _toggleRootSelectionMode,
-          onDeleteSelectedRootFolders: () => _deleteSelectedRootFolders(scanner),
+          onDeleteSelectedRootFolders: () =>
+              _deleteSelectedRootFolders(scanner),
           onNavigateTo: (folder) => _navigateTo(folder, scanner),
           onLocateCurrentSong: _locateCurrentSong,
           onShowFolderBottomSheet: (folder, {required isRoot}) =>
-              showFolderBottomSheet(context, ref, folder, isRoot: isRoot, onMultiSelect: (path) {
-                setState(() {
-                  _selectedRootPaths.add(path);
-                });
-              }),
+              showFolderBottomSheet(
+                context,
+                ref,
+                folder,
+                isRoot: isRoot,
+                onMultiSelect: (path) {
+                  setState(() {
+                    _selectedRootPaths.add(path);
+                  });
+                },
+              ),
         ),
       ),
       for (int i = 0; i < navigationHistory.length; i++)
@@ -609,11 +632,17 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
             onClearAllSelection: _clearAllSelection,
             onLocateCurrentSong: _locateCurrentSong,
             onShowFolderBottomSheet: (folder, {required isRoot}) =>
-                showFolderBottomSheet(context, ref, folder, isRoot: isRoot, onMultiSelect: (path) {
-                  setState(() {
-                    _selectedRootPaths.add(path);
-                  });
-                }),
+                showFolderBottomSheet(
+                  context,
+                  ref,
+                  folder,
+                  isRoot: isRoot,
+                  onMultiSelect: (path) {
+                    setState(() {
+                      _selectedRootPaths.add(path);
+                    });
+                  },
+                ),
             highlightedSongPath: _highlightedSongPath,
           ),
         ),
@@ -635,11 +664,17 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
             onClearAllSelection: _clearAllSelection,
             onLocateCurrentSong: _locateCurrentSong,
             onShowFolderBottomSheet: (folder, {required isRoot}) =>
-                showFolderBottomSheet(context, ref, folder, isRoot: isRoot, onMultiSelect: (path) {
-                  setState(() {
-                    _selectedRootPaths.add(path);
-                  });
-                }),
+                showFolderBottomSheet(
+                  context,
+                  ref,
+                  folder,
+                  isRoot: isRoot,
+                  onMultiSelect: (path) {
+                    setState(() {
+                      _selectedRootPaths.add(path);
+                    });
+                  },
+                ),
             highlightedSongPath: _highlightedSongPath,
           ),
         ),

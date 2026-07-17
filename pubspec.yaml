@@ -116,6 +116,8 @@ dependencies:
       url: https://github.com/axel10/flutter_tray
       ref: main
   dbus: ^0.7.14
+  linux_directory_access:
+    path: ./linux_directory_access
 
 dev_dependencies:
   flutter_test:
@@ -267,4 +269,3 @@ dependency_overrides:
 
   #   mobile_storage_listener:
   #     path: ./mobile_storage_listener
-

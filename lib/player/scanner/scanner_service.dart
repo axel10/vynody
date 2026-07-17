@@ -37,6 +37,7 @@ import 'package:vynody/player/settings/settings_service.dart';
 import 'package:vynody/player/settings/track_artwork_theme_service.dart';
 import 'package:vynody/utils/localized_text.dart';
 import 'package:vynody/utils/linux_mount_helper.dart';
+import 'package:linux_directory_access/linux_directory_access.dart';
 
 export 'package:vynody/player/scanner/scanner_scan_support.dart';
 
@@ -53,6 +54,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
   StreamSubscription? _mediaObserverSubscription;
   bool _mediaObserverPaused = false;
   final MobileStorageListener _mobileStorageListener = MobileStorageListener();
+  final LinuxDirectoryAccess _linuxDirectoryAccess = LinuxDirectoryAccess();
   StreamSubscription<MobileStorageEvent>? _mobileStorageSubscription;
   final StreamController<ScanProgress> _scanProgressController =
       StreamController<ScanProgress>.broadcast();
@@ -87,6 +89,8 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
   int _albumLibraryRevision = 0;
   bool _skipShortAudioScanEnabled = false;
   int _skipShortAudioScanThresholdSeconds = _defaultShortAudioThresholdSeconds;
+  bool _linuxFlatpak = false;
+  final Map<String, String> _linuxDocumentIds = {};
 
   static const String _keyGlobalSortCriteria = 'folder_sort_global_criteria';
   static const String _keyGlobalSortOrder = 'folder_sort_global_order';
@@ -108,7 +112,8 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
   bool get skipShortAudioScanEnabled => _skipShortAudioScanEnabled;
   int get skipShortAudioScanThresholdSeconds =>
       _skipShortAudioScanThresholdSeconds;
-  bool get _supportsPersistentAccess => Platform.isMacOS || Platform.isIOS;
+  bool get _supportsPersistentAccess =>
+      Platform.isMacOS || Platform.isIOS || _linuxFlatpak;
 
   List<String> get rootPaths => _roots.rootPaths;
   List<MusicFolder> get rootFolders => List.unmodifiable(_rootFolders);
@@ -340,7 +345,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
 
     if (Platform.isAndroid) {
       unawaited(checkPermissionStatus());
-    } else if (_supportsPersistentAccess) {
+    } else if (_supportsPersistentAccess && !Platform.isLinux) {
       unawaited(_syncAppleScopedAccessState());
     }
   }
@@ -437,11 +442,19 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> _init() async {
     final totalStopwatch = Stopwatch()..start();
     try {
+      if (Platform.isLinux) {
+        try {
+          _linuxFlatpak = await _linuxDirectoryAccess.isFlatpak;
+        } catch (e) {
+          debugPrint('[ScannerService] Linux directory access unavailable: $e');
+        }
+      }
       // Force database open to run path migrations first (critical for iOS sandbox UUID changes)
       await _repository.ensureOpen();
 
       final canUsePersistentAccess =
-          _supportsPersistentAccess && _playerController != null;
+          _supportsPersistentAccess &&
+          (Platform.isLinux || _playerController != null);
       if (Platform.isLinux) {
         await _timeInitStep('resolve and mount linux roots', () async {
           try {
@@ -455,6 +468,12 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
             debugPrint('Error during pre-initialization linux mount: $e\n$st');
           }
         });
+      }
+      if (_linuxFlatpak) {
+        await _timeInitStep(
+          'restore Linux portal roots',
+          _restoreLinuxPortalRoots,
+        );
       }
       await _timeInitStep('load root paths', () {
         return _roots.loadRootPaths(
@@ -601,8 +620,15 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     return updatedPaths;
   }
 
-  Future<RootPathAddResult> addRootPath(String path) async {
+  Future<RootPathAddResult> addRootPath(
+    String path, {
+    String? persistentDocumentId,
+  }) async {
     final normalizedPath = _normalizePath(path);
+    if (Platform.isLinux && _linuxFlatpak && persistentDocumentId != null) {
+      _linuxDocumentIds[normalizedPath] = persistentDocumentId;
+      await _saveLinuxDocumentIds();
+    }
     final existingRoot = _roots.rootPaths.firstWhereOrNull(
       (existing) => _pathsEqual(existing, normalizedPath),
     );
@@ -739,6 +765,9 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<bool> _registerPersistentAccess(String path) async {
+    if (Platform.isLinux && _linuxFlatpak) {
+      return _linuxDocumentIds.containsKey(_normalizePath(path));
+    }
     final controller = _playerController;
     if (controller == null) return true;
     try {
@@ -752,6 +781,18 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> _forgetPersistentAccess(String path) async {
+    if (Platform.isLinux && _linuxFlatpak) {
+      final documentId = _linuxDocumentIds.remove(_normalizePath(path));
+      await _saveLinuxDocumentIds();
+      if (documentId != null) {
+        try {
+          await _linuxDirectoryAccess.revokeDirectory(documentId);
+        } catch (e) {
+          debugPrint('[ScannerService] revoke Linux portal access failed: $e');
+        }
+      }
+      return;
+    }
     final controller = _playerController;
     if (controller == null) return;
     try {
@@ -954,6 +995,9 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<bool> _hasPersistentAccess(String path) async {
+    if (Platform.isLinux && _linuxFlatpak) {
+      return _linuxDocumentIds.containsKey(_normalizePath(path));
+    }
     final controller = _playerController;
     if (controller == null) return true;
     try {
@@ -962,6 +1006,61 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       debugPrint('[ScannerService] hasPersistentAccess failed for $path: $e');
       return false;
     }
+  }
+
+  Future<void> _saveLinuxDocumentIds() async {
+    if (!_linuxFlatpak) return;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      'linux_portal_document_ids',
+      jsonEncode(_linuxDocumentIds),
+    );
+  }
+
+  Future<void> _restoreLinuxPortalRoots() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString('linux_portal_document_ids');
+    if (raw == null || raw.isEmpty) return;
+
+    final decoded = jsonDecode(raw);
+    if (decoded is! Map) return;
+    _linuxDocumentIds
+      ..clear()
+      ..addAll(
+        decoded.map((key, value) => MapEntry(key.toString(), value.toString())),
+      );
+
+    final savedRoots = prefs.getStringList('root_paths') ?? <String>[];
+    final restoredRoots = <String>[];
+    final restoredDocumentIds = <String, String>{};
+    for (final savedRoot in savedRoots) {
+      final documentId = _linuxDocumentIds[savedRoot];
+      if (documentId == null) {
+        restoredRoots.add(savedRoot);
+        continue;
+      }
+
+      try {
+        final grant = await _linuxDirectoryAccess.restoreDirectory(documentId);
+        if (grant == null) continue;
+        final restoredPath = _normalizePath(grant.path);
+        if (restoredPath != savedRoot) {
+          await _repository.migrateLinuxRootPath(savedRoot, restoredPath);
+        }
+        restoredRoots.add(restoredPath);
+        restoredDocumentIds[restoredPath] = documentId;
+      } catch (e) {
+        debugPrint(
+          '[ScannerService] failed to restore Linux portal root $savedRoot: $e',
+        );
+      }
+    }
+
+    _linuxDocumentIds
+      ..clear()
+      ..addAll(restoredDocumentIds);
+    await prefs.setStringList('root_paths', restoredRoots);
+    await _saveLinuxDocumentIds();
   }
 
   Future<void> _syncAppleScopedAccessState() async {
@@ -982,6 +1081,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<bool> _ensureScopedRootAccess(String path) async {
+    if (Platform.isLinux && _linuxFlatpak) return true;
     if (!_supportsPersistentAccess) return true;
 
     final controller = _playerController;
@@ -1008,6 +1108,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> _syncActiveScopedRootAccess() async {
+    if (Platform.isLinux && _linuxFlatpak) return;
     if (!_supportsPersistentAccess) return;
 
     final controller = _playerController;

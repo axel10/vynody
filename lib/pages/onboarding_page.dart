@@ -13,6 +13,7 @@ import 'package:vynody/transcode/transcode_riverpod.dart';
 import 'package:vynody/player/metadata/metadata_helper.dart';
 import 'package:audio_core/audio_core.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:linux_directory_access/linux_directory_access.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
   final VoidCallback onComplete;
@@ -23,7 +24,8 @@ class OnboardingScreen extends ConsumerStatefulWidget {
   ConsumerState<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
-class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with WidgetsBindingObserver {
+class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
+    with WidgetsBindingObserver {
   final PageController _pageController = PageController();
   int _currentPage = 0;
   bool _isBatteryExempted = false;
@@ -78,10 +80,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
   }
 
   Future<void> _requestBatteryExemption() async {
-    debugPrint('[Onboarding] _requestBatteryExemption called. _isBatteryExempted = $_isBatteryExempted');
+    debugPrint(
+      '[Onboarding] _requestBatteryExemption called. _isBatteryExempted = $_isBatteryExempted',
+    );
     const channel = MethodChannel('app.vynody.player/battery');
     try {
-      debugPrint('[Onboarding] Invoking requestIgnoreBatteryOptimizations via channel...');
+      debugPrint(
+        '[Onboarding] Invoking requestIgnoreBatteryOptimizations via channel...',
+      );
       await channel.invokeMethod('requestIgnoreBatteryOptimizations');
       debugPrint('[Onboarding] requestIgnoreBatteryOptimizations success.');
     } catch (e) {
@@ -93,7 +99,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
       } catch (e2) {
         debugPrint('[Onboarding] openBatterySettings failed: $e2');
         try {
-          debugPrint('[Onboarding] Invoking openAppSettings via permission_handler...');
+          debugPrint(
+            '[Onboarding] Invoking openAppSettings via permission_handler...',
+          );
           final opened = await openAppSettings();
           debugPrint('[Onboarding] openAppSettings result: $opened');
         } catch (e3) {
@@ -102,7 +110,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
       }
     }
   }
-
 
   Future<String?> _getDirectoryPath() {
     if (Platform.isWindows || Platform.isLinux) {
@@ -120,11 +127,18 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
     } catch (_) {}
 
     String? selectedDirectory;
+    String? persistentDocumentId;
     AndroidOutputDirectory? androidOutputDirectory;
 
     if (Platform.isAndroid) {
-      androidOutputDirectory = await ref.read(transcodeServiceProvider).pickAndroidOutputDirectory();
+      androidOutputDirectory = await ref
+          .read(transcodeServiceProvider)
+          .pickAndroidOutputDirectory();
       selectedDirectory = androidOutputDirectory?.displayPath;
+    } else if (Platform.isLinux && await LinuxDirectoryAccess().isFlatpak) {
+      final grant = await LinuxDirectoryAccess().pickDirectory();
+      selectedDirectory = grant?.path;
+      persistentDocumentId = grant?.documentId;
     } else {
       selectedDirectory = await _getDirectoryPath();
     }
@@ -149,7 +163,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
         );
       }
 
-      final result = await scanner.addRootPath(selectedDirectory);
+      final result = await scanner.addRootPath(
+        selectedDirectory,
+        persistentDocumentId: persistentDocumentId,
+      );
       if (!mounted) return;
 
       String message;
@@ -172,7 +189,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -180,7 +196,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
     final isDark = theme.brightness == Brightness.dark;
     final showLinuxGuide = Platform.isLinux;
     final showAndroidBatteryGuide = Platform.isAndroid;
-    final totalPages = 2 + (showLinuxGuide ? 1 : 0) + (showAndroidBatteryGuide ? 1 : 0);
+    final totalPages =
+        2 + (showLinuxGuide ? 1 : 0) + (showAndroidBatteryGuide ? 1 : 0);
 
     return Scaffold(
       body: Container(
@@ -209,7 +226,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
               Expanded(
                 child: Center(
                   child: Container(
-                    constraints: const BoxConstraints(maxWidth: 500, maxHeight: 600),
+                    constraints: const BoxConstraints(
+                      maxWidth: 500,
+                      maxHeight: 600,
+                    ),
                     margin: const EdgeInsets.symmetric(horizontal: 24),
                     decoration: BoxDecoration(
                       color: isDark
@@ -227,7 +247,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
                           color: Colors.black.withOpacity(isDark ? 0.25 : 0.05),
                           blurRadius: 24,
                           offset: const Offset(0, 8),
-                        )
+                        ),
                       ],
                     ),
                     clipBehavior: Clip.antiAlias,
@@ -292,7 +312,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
                   color: const Color(0xFF39C5BB).withOpacity(0.4),
                   blurRadius: 24,
                   offset: const Offset(0, 10),
-                )
+                ),
               ],
             ),
             child: const Icon(
@@ -323,7 +343,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
       ),
     );
   }
-
 
   Widget _buildMusicDirectoryPage(AppLocalizations l10n, ThemeData theme) {
     final scanner = ref.watch(scannerServiceProvider);
@@ -412,7 +431,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
                   ),
                 ),
                 child: ListView.separated(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                   itemCount: rootFolders.length,
                   separatorBuilder: (context, index) => Divider(
                     height: 1,
@@ -420,7 +442,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
                   ),
                   itemBuilder: (context, index) {
                     final folder = rootFolders[index];
-                    final isAvailable = scanner.isRootPathAvailable(folder.path);
+                    final isAvailable = scanner.isRootPathAvailable(
+                      folder.path,
+                    );
                     return AnimatedOpacity(
                       opacity: isAvailable ? 1.0 : 0.45,
                       duration: const Duration(milliseconds: 180),
@@ -428,7 +452,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
                         padding: const EdgeInsets.symmetric(vertical: 8),
                         child: Row(
                           children: [
-                            const Icon(Icons.folder, color: Colors.amber, size: 20),
+                            const Icon(
+                              Icons.folder,
+                              color: Colors.amber,
+                              size: 20,
+                            ),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
@@ -443,7 +471,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
                             ),
                             const SizedBox(width: 8),
                             Icon(
-                              isAvailable ? Icons.check_circle : Icons.error_outline,
+                              isAvailable
+                                  ? Icons.check_circle
+                                  : Icons.error_outline,
                               color: isAvailable
                                   ? theme.colorScheme.primary
                                   : theme.colorScheme.error,
@@ -548,7 +578,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
                   backgroundColor: const Color(0xFF39C5BB),
                   foregroundColor: Colors.white,
                   elevation: 0,
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
+                  ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -574,9 +607,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
           AppSnackBar.show(
             context,
             ref,
-            SnackBar(
-              content: Text(l10n.gnomeDisksOpenFailed),
-            ),
+            SnackBar(content: Text(l10n.gnomeDisksOpenFailed)),
           );
         }
       }
@@ -586,9 +617,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
         AppSnackBar.show(
           context,
           ref,
-          SnackBar(
-            content: Text(l10n.gnomeDisksNotInstalled),
-          ),
+          SnackBar(content: Text(l10n.gnomeDisksNotInstalled)),
         );
       }
     }
@@ -700,26 +729,24 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
   Widget _buildWarningBanner(ThemeData theme, AppLocalizations l10n) {
     final isDark = theme.brightness == Brightness.dark;
     final warningColor = isDark ? Colors.amberAccent : Colors.orange.shade900;
-    final warningBgColor = isDark ? Colors.amber.withOpacity(0.08) : Colors.orange.withOpacity(0.08);
-    final warningBorderColor = isDark ? Colors.amber.withOpacity(0.2) : Colors.orange.withOpacity(0.2);
+    final warningBgColor = isDark
+        ? Colors.amber.withOpacity(0.08)
+        : Colors.orange.withOpacity(0.08);
+    final warningBorderColor = isDark
+        ? Colors.amber.withOpacity(0.2)
+        : Colors.orange.withOpacity(0.2);
 
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: warningBgColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: warningBorderColor,
-        ),
+        border: Border.all(color: warningBorderColor),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            Icons.warning_amber_rounded,
-            color: warningColor,
-            size: 20,
-          ),
+          Icon(Icons.warning_amber_rounded, color: warningColor, size: 20),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
@@ -842,7 +869,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
                           _isBatteryExempted
                               ? Icons.check_circle_rounded
                               : Icons.warning_amber_rounded,
-                          color: _isBatteryExempted ? Colors.green : Colors.amber,
+                          color: _isBatteryExempted
+                              ? Colors.green
+                              : Colors.amber,
                           size: 20,
                         ),
                         const SizedBox(width: 8),
@@ -851,7 +880,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
                             statusText,
                             style: theme.textTheme.bodyMedium?.copyWith(
                               fontWeight: FontWeight.bold,
-                              color: _isBatteryExempted ? Colors.green : Colors.amber,
+                              color: _isBatteryExempted
+                                  ? Colors.green
+                                  : Colors.amber,
                               fontSize: 13.5,
                             ),
                           ),
