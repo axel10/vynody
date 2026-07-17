@@ -11,6 +11,7 @@ finish-args:
   - --share=ipc
   - --socket=x11
   - --socket=wayland
+  - --device=dri
   - --socket=pulseaudio
   - --share=network
   - --filesystem=xdg-music
@@ -25,6 +26,7 @@ modules:
     build-options:
       append-path: /usr/lib/sdk/rust-stable/bin
 
+  - flutter-sdk-3.44.6.json
   - flutter-sdk-3.44.6.json
   - name: vynody
     buildsystem: simple
@@ -45,16 +47,15 @@ modules:
       - cp io.github.axel10.vynody.metainfo.xml /app/share/metainfo/io.github.axel10.vynody.metainfo.xml
       - cp assets/images/icon-windows-and-linux.png /app/share/icons/hicolor/512x512/apps/io.github.axel10.vynody.png
     sources:
-      - type: dir
-        path: ../../..
-        skip:
-          - ^\.git$
-          - ^\.flatpak-builder$
-          - ^build$
+      - type: git
+        url: https://github.com/axel10/vynody.git
+        tag: f8516f79eeb7f02c6d75c37d03bfe0e8b0a83d43
+        commit: f8516f79eeb7f02c6d75c37d03bfe0e8b0a83d43
       - type: file
         url: https://github.com/axel10/audio_core/releases/download/0.6/ffmpeg_lib_linux.tar.gz
         sha256: 256593a6acaf54b6e0252aae96051246a0d400bc673cf02e32fafd2d24880d6c
         dest-filename: ffmpeg_lib_linux.tar.gz
       - cargo-sources.json
       - pub-sources.json
+      - pubspec-sources.json
       - pubspec-sources.json
