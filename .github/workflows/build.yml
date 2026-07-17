@@ -256,12 +256,17 @@ jobs:
       - name: Install fpm
         run: sudo gem install --no-document fpm
 
+      - name: Install appimagetool
+        run: |
+          sudo wget -O /usr/local/bin/appimagetool https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
+          sudo chmod +x /usr/local/bin/appimagetool
+
       - name: Package Linux bundle
         run: |
           VERSION=$(grep '^version: ' pubspec.yaml | cut -d ' ' -f 2 | tr '+' '-')
           tar -czf vynody-linux-$VERSION.tar.gz -C build/linux/x64/release bundle
 
-      - name: Package Linux deb and rpm
+      - name: Package Linux deb, rpm and AppImage
         run: bash scripts/package_linux.sh
 
       - name: Verify Linux package artifacts
@@ -269,6 +274,7 @@ jobs:
           ls -l build/linux/packages
           compgen -G "build/linux/packages/vynody-linux-*.deb" > /dev/null
           compgen -G "build/linux/packages/vynody-linux-*.rpm" > /dev/null
+          compgen -G "build/linux/packages/vynody-linux-*.AppImage" > /dev/null
 
       - name: Validate deb install on clean Ubuntu
         run: |
@@ -305,6 +311,7 @@ jobs:
             vynody-linux-*.tar.gz
             build/linux/packages/vynody-linux-*.deb
             build/linux/packages/vynody-linux-*.rpm
+            build/linux/packages/vynody-linux-*.AppImage
 
   macos:
     name: Build macOS Package (Xcode ${{ matrix.xcode }})

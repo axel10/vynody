@@ -129,5 +129,52 @@ fpm \
   --package "$OUTPUT_DIR/${APP_SLUG}-linux-${VERSION}-${RPM_ARCH}.rpm" \
   .
 
+if command -v appimagetool >/dev/null 2>&1; then
+  echo "Building AppImage..."
+  APPIMAGE_STAGE_DIR="$OUTPUT_DIR/vynody.AppDir"
+  rm -rf "$APPIMAGE_STAGE_DIR"
+  mkdir -p "$APPIMAGE_STAGE_DIR"
+  
+  # Copy Flutter bundle contents to the root of the AppDir stage
+  cp -a "$BUNDLE_DIR/." "$APPIMAGE_STAGE_DIR/"
+  
+  # Copy icon to the root of the AppDir stage
+  cp "$ICON_SOURCE" "$APPIMAGE_STAGE_DIR/$APP_SLUG.png"
+  
+  # Create AppRun script at the root
+  cat > "$APPIMAGE_STAGE_DIR/AppRun" <<EOF
+#!/bin/sh
+cd "\$(dirname "\$0")"
+exec ./$BINARY_NAME "\$@"
+EOF
+  chmod 0755 "$APPIMAGE_STAGE_DIR/AppRun"
+  
+  # Create desktop file at the root
+  cat > "$APPIMAGE_STAGE_DIR/$APP_ID.desktop" <<EOF
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=$APP_NAME
+Comment=$APP_DESCRIPTION
+Exec=$BINARY_NAME
+Icon=$APP_SLUG
+Terminal=false
+StartupNotify=true
+Categories=AudioVideo;Audio;Player;
+StartupWMClass=$APP_ID
+EOF
+  chmod 0644 "$APPIMAGE_STAGE_DIR/$APP_ID.desktop"
+  
+  # Build AppImage using appimagetool
+  export APPIMAGE_EXTRACT_AND_RUN=1
+  ARCH="$RPM_ARCH" appimagetool "$APPIMAGE_STAGE_DIR" "$OUTPUT_DIR/${APP_SLUG}-linux-${VERSION}-${RPM_ARCH}.AppImage"
+  
+  # Clean up staging directory
+  rm -rf "$APPIMAGE_STAGE_DIR"
+else
+  echo "appimagetool not found, skipping AppImage packaging."
+fi
+
 echo "Linux packages created:"
-ls -1 "$OUTPUT_DIR"/*.deb "$OUTPUT_DIR"/*.rpm
+ls -1 "$OUTPUT_DIR"/*.deb "$OUTPUT_DIR"/*.rpm "$OUTPUT_DIR"/*.AppImage 2>/dev/null || ls -1 "$OUTPUT_DIR"/*.deb "$OUTPUT_DIR"/*.rpm
+
