@@ -105,7 +105,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
 
 
   Future<String?> _getDirectoryPath() {
-    if (Platform.isWindows) {
+    if (Platform.isWindows || Platform.isLinux) {
       debugPrint('[Onboarding] picking directory with file_selector');
       return file_selector.getDirectoryPath();
     }

@@ -467,7 +467,7 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
   }
 
   Future<String?> _getDirectoryPath() {
-    if (Platform.isWindows) {
+    if (Platform.isWindows || Platform.isLinux) {
       debugPrint('[FoldersPage] picking directory with file_selector');
       return file_selector.getDirectoryPath();
     }

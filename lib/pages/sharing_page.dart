@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:file_selector/file_selector.dart' as file_selector;
 import 'package:oktoast/oktoast.dart';
 import 'package:path/path.dart' as p;
 import 'package:vynody/player/library/music_file_utils.dart';
@@ -28,6 +29,13 @@ class _SharingPageState extends ConsumerState<SharingPage> {
   bool _didSyncInitialSharingState = false;
   final Set<String> _shownDialogSessionIds = {};
 
+  Future<String?> _getDirectoryPath() {
+    if (Platform.isWindows || Platform.isLinux) {
+      return file_selector.getDirectoryPath();
+    }
+    return FilePicker.getDirectoryPath();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -48,17 +56,28 @@ class _SharingPageState extends ConsumerState<SharingPage> {
 
   Future<void> _handleSendFiles(LanDevice device) async {
     try {
-      final result = await FilePicker.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: const ['mp3', 'wav', 'flac', 'm4a', 'aac', 'ogg'],
-        allowMultiple: true,
-      );
-
-      if (result == null || result.files.isEmpty) {
-        return;
+      List<String> filePaths;
+      if (Platform.isLinux) {
+        final typeGroup = file_selector.XTypeGroup(
+          label: 'Audio Files',
+          extensions: const ['mp3', 'wav', 'flac', 'm4a', 'aac', 'ogg'],
+        );
+        final files = await file_selector.openFiles(
+          acceptedTypeGroups: [typeGroup],
+        );
+        filePaths = files.map((file) => file.path).toList();
+      } else {
+        final result = await FilePicker.pickFiles(
+          type: FileType.custom,
+          allowedExtensions: const ['mp3', 'wav', 'flac', 'm4a', 'aac', 'ogg'],
+          allowMultiple: true,
+        );
+        if (result == null || result.files.isEmpty) {
+          return;
+        }
+        filePaths = result.files.map((f) => f.path).whereType<String>().toList();
       }
 
-      final filePaths = result.files.map((f) => f.path).whereType<String>().toList();
       if (filePaths.isEmpty) {
         return;
       }
@@ -120,7 +139,7 @@ class _SharingPageState extends ConsumerState<SharingPage> {
 
   Future<void> _handleSendFolder(LanDevice device) async {
     try {
-      final dirPath = await FilePicker.getDirectoryPath();
+      final dirPath = await _getDirectoryPath();
 
       if (dirPath == null) {
         return;
@@ -488,7 +507,7 @@ class _SharingPageState extends ConsumerState<SharingPage> {
                       setState(() {});
                     }
                   } else {
-                    final dirPath = await FilePicker.getDirectoryPath();
+                    final dirPath = await _getDirectoryPath();
                     if (dirPath != null) {
                       await ref.read(sharingServiceProvider).updateSharingFolderPath(dirPath);
                       showToast(l10n.receiveDirectoryUpdated(dirPath));

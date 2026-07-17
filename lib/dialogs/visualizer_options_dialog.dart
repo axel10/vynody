@@ -4,6 +4,7 @@ import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:audio_core/audio_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:file_selector/file_selector.dart' as file_selector;
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import '../l10n/app_localizations.dart';
@@ -1269,12 +1270,25 @@ class VisualizerOptionsDialog extends ConsumerWidget {
     StateSetter setDialogState,
   ) async {
     try {
-      final result = await FilePicker.pickFiles(
-        type: FileType.image,
-        allowMultiple: false,
-      );
-      if (result != null && result.files.single.path != null) {
-        final originalPath = result.files.single.path!;
+      String? originalPath;
+      if (Platform.isLinux) {
+        final typeGroup = file_selector.XTypeGroup(
+          label: 'Images',
+          extensions: const ['jpg', 'jpeg', 'png', 'webp', 'bmp'],
+        );
+        final file = await file_selector.openFile(
+          acceptedTypeGroups: [typeGroup],
+        );
+        originalPath = file?.path;
+      } else {
+        final result = await FilePicker.pickFiles(
+          type: FileType.image,
+          allowMultiple: false,
+        );
+        originalPath = result?.files.single.path;
+      }
+
+      if (originalPath != null) {
         final appSupportDir = await getApplicationSupportDirectory();
         
         // Create custom_backgrounds directory under Application Support
