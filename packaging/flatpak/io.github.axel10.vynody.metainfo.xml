@@ -23,9 +23,17 @@
   <screenshots>
     <screenshot type="default">
       <caption>Vynody Player Main Interface</caption>
-      <image>https://axel10.github.io/vynody_site/assets/screenshot.png</image>
+      <image>https://raw.githubusercontent.com/axel10/vynody/main/assets/readme/pc.jpg</image>
+    </screenshot>
+    <screenshot>
+      <caption>Vynody Player Folder View</caption>
+      <image>https://raw.githubusercontent.com/axel10/vynody/main/assets/readme/folder.jpg</image>
     </screenshot>
   </screenshots>
+
+  <developer id="io.github.axel10">
+    <name>axel10</name>
+  </developer>
 
   <releases>
     <release version="1.7.0" date="2026-07-17" />

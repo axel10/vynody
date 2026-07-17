@@ -26,6 +26,7 @@ modules:
     build-options:
       append-path: /usr/lib/sdk/rust-stable/bin
 
+  - flutter-sdk-3.44.6.json
   - name: vynody
     buildsystem: simple
     build-options:
@@ -57,12 +58,13 @@ modules:
     sources:
       - type: git
         url: https://github.com/axel10/vynody.git
-        tag: v1.7.0 # Replace with the latest tag or commit hash when releasing
+        tag: 1.7.0 # Replace with the latest tag or commit hash when releasing
       - type: file
         url: https://github.com/axel10/audio_core/releases/download/0.6/ffmpeg_lib_linux.tar.gz
-        sha256: 9bb973e5911edfe718008bbb33921f1f9e4f448067cfdb26cc8035f72dbb49fb
+        sha256: 256593a6acaf54b6e0252aae96051246a0d400bc673cf02e32fafd2d24880d6c
         dest-filename: ffmpeg_lib_linux.tar.gz
       
       # Include pub-sources.json and cargo-sources.json generated via the helper script
       - cargo-sources.json
       - pub-sources.json
+      - pubspec-sources.json
