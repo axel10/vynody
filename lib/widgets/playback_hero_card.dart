@@ -341,9 +341,7 @@ class PlaybackHeroCard extends ConsumerWidget {
             const SizedBox(width: 14),
             Flexible(
               child: ConstrainedBox(
-                constraints: const BoxConstraints(
-                  maxWidth: 160,
-                ),
+                constraints: const BoxConstraints(maxWidth: 160),
                 child: _MiniPlayerProgressInfo(
                   currentMusic: currentMusic,
                   progress: progress,
@@ -364,12 +362,14 @@ class PlaybackHeroCard extends ConsumerWidget {
           message: isFavorite ? l10n.removeFromFavorites : l10n.addToFavorites,
           child: IconButton(
             icon: Icon(
-              isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+              isFavorite
+                  ? Icons.favorite_rounded
+                  : Icons.favorite_border_rounded,
               color: isFavorite
                   ? Colors.redAccent
                   : (Theme.of(context).brightness == Brightness.dark
-                      ? Colors.white
-                      : Colors.black87),
+                        ? Colors.white
+                        : Colors.black87),
               size: 18,
             ),
             padding: const EdgeInsets.all(6),
@@ -380,9 +380,7 @@ class PlaybackHeroCard extends ConsumerWidget {
             onPressed: currentMusic == null
                 ? null
                 : () async {
-                    await playlistService.toggleFavoriteSong(
-                      currentMusic,
-                    );
+                    await playlistService.toggleFavoriteSong(currentMusic);
                   },
           ),
         ),
@@ -408,10 +406,11 @@ class PlaybackHeroCard extends ConsumerWidget {
           borderRadius: BorderRadius.circular(100),
           boxShadow: [
             BoxShadow(
-              color: (Theme.of(context).brightness == Brightness.dark
-                      ? Colors.black
-                      : Colors.grey[400]!)
-                  .withValues(alpha: 0.3),
+              color:
+                  (Theme.of(context).brightness == Brightness.dark
+                          ? Colors.black
+                          : Colors.grey[400]!)
+                      .withValues(alpha: 0.3),
               blurRadius: 10,
               spreadRadius: 2,
             ),
@@ -444,11 +443,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                           const SizedBox(width: 14),
                           rightControls,
                         ]
-                      : [
-                          trackInfo,
-                          const SizedBox(width: 14),
-                          playControls,
-                        ],
+                      : [trackInfo, const SizedBox(width: 14), playControls],
                 ),
               ),
             ],
@@ -592,9 +587,11 @@ class PlaybackHeroCard extends ConsumerWidget {
                                       if (layout.lyrics.opacity == 0.0) {
                                         return const SizedBox.shrink();
                                       }
-                                      if (isTransitioningNotifier.value != isTransitioning) {
+                                      if (isTransitioningNotifier.value !=
+                                          isTransitioning) {
                                         Future.microtask(() {
-                                          isTransitioningNotifier.value = isTransitioning;
+                                          isTransitioningNotifier.value =
+                                              isTransitioning;
                                         });
                                       }
                                       return child!;
@@ -672,9 +669,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                                     controlsScale: optimize
                                         ? targetLayout.controlsScale
                                         : layout.controlsScale,
-                                    tLyrics: optimize
-                                        ? targetTLyrics
-                                        : tLyrics,
+                                    tLyrics: optimize ? targetTLyrics : tLyrics,
                                   ),
                                 );
                               },
@@ -709,10 +704,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                                       ),
                                     )
                                   : coverWidget;
-                              return KeyedSubtree(
-                                key: coverKey,
-                                child: result,
-                              );
+                              return KeyedSubtree(key: coverKey, child: result);
                             },
                           ),
                         ),
@@ -727,7 +719,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                             Alignment.center,
                             Alignment.lerp(
                               Alignment.center,
-                              Alignment.topCenter,
+                              Alignment.centerLeft,
                               tLyrics,
                             )!,
                             tLand,
@@ -738,9 +730,11 @@ class PlaybackHeroCard extends ConsumerWidget {
                                 : layout.info.width,
                             child: _buildTrackInfo(
                               context,
+                              ref,
                               currentMusic,
                               layout.trackInfoAlign,
                               optimize ? targetTLyrics : tLyrics,
+                              tLand,
                               optimize
                                   ? targetLayout.controlsScale
                                   : layout.controlsScale,
@@ -1010,8 +1004,16 @@ class PlaybackHeroCard extends ConsumerWidget {
     );
 
     final lLyricsInfoBaseHeight =
-        PlaybackHeroCardUiTuning.landscapeInfoHeightBase;
-    final lLyricsControlsBaseHeight = lNormalControlsBaseIdealHeight;
+        PlaybackHeroCardUiTuning.landscapeInfoHeightBase + 8.0;
+    final double lLyricsControlsBaseIdealHeight =
+        (isWaveformEnabled
+            ? PlaybackHeroCardUiTuning.waveformLandscapeHeight
+            : 48.0) +
+        PlaybackHeroCardUiTuning.controlsTimeGap +
+        PlaybackHeroCardUiTuning.controlsTimeRowHeight +
+        PlaybackHeroCardUiTuning.controlsRowLandscapeGap +
+        PlaybackHeroCardUiTuning.controlsMainButtonsHeight;
+    final lLyricsControlsBaseHeight = lLyricsControlsBaseIdealHeight;
 
     final lLyricsPreferredTotalHeight =
         (lLyricsPreferredCoverSide * lLyricsWidthScale) +
@@ -1451,9 +1453,11 @@ class PlaybackHeroCard extends ConsumerWidget {
 
   Widget _buildTrackInfo(
     BuildContext context,
+    WidgetRef ref,
     MusicFile? currentMusic,
     TextAlign align,
     double lyricsModeT,
+    double landscapeT,
     double controlsScale,
   ) {
     final l10n = AppLocalizations.of(context)!;
@@ -1474,31 +1478,37 @@ class PlaybackHeroCard extends ConsumerWidget {
     final bool hasArtist = !isUnknown(rawArtist);
     final bool hasAlbum = !isUnknown(rawAlbum);
     final transition = lyricsModeT.clamp(0.0, 1.0);
-    final titleAlignment = isLandscape
-        ? Alignment.center
-        : Alignment.lerp(Alignment.center, Alignment.centerLeft, transition)!;
+    final double simplifiedT = landscapeT * transition;
 
-    final titleSize =
-        (isLandscape
-            ? PlaybackHeroCardUiTuning.trackTitleStandardFont
-            : lerpDouble(
-                PlaybackHeroCardUiTuning.trackTitleStandardFont,
-                PlaybackHeroCardUiTuning.trackTitlePortraitLyricsFont,
-                transition,
-              )!) *
-        controlsScale;
+    final titleAlignment = Alignment.lerp(
+      Alignment.center,
+      Alignment.centerLeft,
+      transition,
+    )!;
 
-    final artistSize =
-        (isLandscape
-            ? PlaybackHeroCardUiTuning.trackArtistStandardFont
-            : lerpDouble(
-                PlaybackHeroCardUiTuning.trackArtistStandardFont,
-                PlaybackHeroCardUiTuning.trackArtistPortraitLyricsFont,
-                transition,
-              )!) *
-        controlsScale;
+    final double baseTitleSize = lerpDouble(
+      lerpDouble(
+        PlaybackHeroCardUiTuning.trackTitleStandardFont,
+        PlaybackHeroCardUiTuning.trackTitlePortraitLyricsFont,
+        transition,
+      )!,
+      PlaybackHeroCardUiTuning.trackTitleStandardFont,
+      landscapeT,
+    )!;
+    final titleSize = baseTitleSize * controlsScale;
 
-    return Column(
+    final double baseArtistSize = lerpDouble(
+      lerpDouble(
+        PlaybackHeroCardUiTuning.trackArtistStandardFont,
+        PlaybackHeroCardUiTuning.trackArtistPortraitLyricsFont,
+        transition,
+      )!,
+      PlaybackHeroCardUiTuning.trackArtistStandardFont,
+      landscapeT,
+    )!;
+    final artistSize = baseArtistSize * controlsScale;
+
+    final textContent = Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisAlignment: MainAxisAlignment.center,
@@ -1532,7 +1542,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                   color: Colors.white,
                   fontSize: titleSize,
                   fontWeight: FontWeight.bold,
-                  height: 1.2,
+                  height: lerpDouble(1.2, 1.1, simplifiedT),
                 ),
                 child: Builder(
                   builder: (context) {
@@ -1550,7 +1560,7 @@ class PlaybackHeroCard extends ConsumerWidget {
         ),
         if (showArtistAlbum)
           Padding(
-            padding: const EdgeInsets.only(top: 6),
+            padding: EdgeInsets.only(top: lerpDouble(6.0, 2.0, simplifiedT)!),
             child: SizedBox(
               width: double.infinity,
               child: Align(
@@ -1579,7 +1589,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                     style: Theme.of(context).textTheme.bodyMedium!.copyWith(
                       color: Colors.white70,
                       fontSize: artistSize,
-                      height: 1.3,
+                      height: lerpDouble(1.3, 1.1, simplifiedT),
                     ),
                     child: Builder(
                       builder: (context) {
@@ -1602,6 +1612,191 @@ class PlaybackHeroCard extends ConsumerWidget {
           ),
       ],
     );
+
+    if (simplifiedT > 0.0) {
+      final playlistService = ref.watch(playlistServiceProvider);
+      final isFavorite =
+          currentMusic != null && playlistService.isFavoriteSong(currentMusic);
+      final isRandomMode = ref.watch(audioIsRandomModeProvider);
+      final sleepTimerRemaining = ref.watch(audioSleepTimerRemainingProvider);
+
+      final double horizontalPadding = 11.0 * controlsScale * simplifiedT;
+
+      return Padding(
+        padding: EdgeInsets.only(
+          left: horizontalPadding,
+          right: horizontalPadding - 4.0 * controlsScale * simplifiedT,
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(child: textContent),
+            SizedBox(width: 8 * simplifiedT),
+            Opacity(
+              opacity: simplifiedT,
+              child: SizedBox(
+                width: 32 * controlsScale * simplifiedT,
+                height: 32 * controlsScale,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: AppTooltip(
+                    message: isFavorite
+                        ? l10n.removeFromFavorites
+                        : l10n.addToFavorites,
+                    child: SizedBox(
+                      width: 32 * controlsScale,
+                      height: 32 * controlsScale,
+                      child: IconButton(
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        style: IconButton.styleFrom(
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        icon: Icon(
+                          isFavorite
+                              ? Icons.favorite_rounded
+                              : Icons.favorite_border_rounded,
+                          size: 24 * controlsScale,
+                          color: isFavorite ? Colors.redAccent : Colors.white70,
+                        ),
+                        onPressed: currentMusic == null
+                            ? null
+                            : () async {
+                                await playlistService.toggleFavoriteSong(
+                                  currentMusic,
+                                );
+                              },
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(width: 8 * simplifiedT),
+            Opacity(
+              opacity: simplifiedT,
+              child: SizedBox(
+                width: 32 * controlsScale * simplifiedT,
+                height: 32 * controlsScale,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: PopupMenuButton<String>(
+                    tooltip: l10n.more,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    onSelected: (value) async {
+                      final audio = ref.read(audioServiceProvider);
+                      switch (value) {
+                        case 'settings':
+                          onShowMoreMenu?.call();
+                          break;
+                        case 'visualizer':
+                          onToggleVisualizer?.call();
+                          break;
+                        case 'random':
+                          if (audio.settingsService.randomRange == 1 &&
+                              !isRandomMode) {
+                            final playlistService = ref.read(
+                              playlistServiceProvider,
+                            );
+                            final List<MusicFile> allSongs = [];
+                            final pathSet = <String>{};
+                            for (final p in playlistService.playlists) {
+                              for (final s in p.songs) {
+                                if (pathSet.add(s.path)) allSongs.add(s);
+                              }
+                            }
+                            audio.toggleRandomMode(globalSongs: allSongs);
+                          } else {
+                            audio.toggleRandomMode();
+                          }
+                          break;
+                        case 'tag':
+                          onTagCompletionTap?.call();
+                          break;
+                        case 'sleep':
+                          onSleepTimerTap?.call();
+                          break;
+                        case 'effects':
+                          onEqualizerTap?.call();
+                          break;
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      buildContextMenuItem<String>(
+                        value: 'settings',
+                        label: l10n.visualizerSettings,
+                        icon: Icons.settings_outlined,
+                        context: context,
+                      ),
+                      buildContextMenuItem<String>(
+                        value: 'visualizer',
+                        label: l10n.visualizer,
+                        icon: showVisualizerToggle
+                            ? Icons.analytics
+                            : Icons.analytics_outlined,
+                        context: context,
+                        iconColor: showVisualizerToggle
+                            ? Theme.of(context).colorScheme.primary
+                            : null,
+                      ),
+                      buildContextMenuItem<String>(
+                        value: 'random',
+                        label: l10n.randomMode,
+                        icon: Icons.shuffle_rounded,
+                        context: context,
+                        iconColor: isRandomMode
+                            ? Theme.of(context).colorScheme.primary
+                            : null,
+                      ),
+                      buildContextMenuItem<String>(
+                        value: 'tag',
+                        label: l10n.tagCompletion,
+                        icon: Icons.auto_fix_high_rounded,
+                        context: context,
+                        enabled: currentMusic != null,
+                      ),
+                      buildContextMenuItem<String>(
+                        value: 'sleep',
+                        label: sleepTimerRemaining != null
+                            ? l10n.sleepTimerRemaining(
+                                _formatSleepTimer(sleepTimerRemaining),
+                              )
+                            : l10n.sleepTimer,
+                        icon: Icons.bedtime_rounded,
+                        context: context,
+                        iconColor: sleepTimerRemaining != null
+                            ? Theme.of(context).colorScheme.primary
+                            : null,
+                      ),
+                      buildContextMenuItem<String>(
+                        value: 'effects',
+                        label: l10n.effects,
+                        icon: Icons.tune_rounded,
+                        context: context,
+                      ),
+                    ],
+                    child: SizedBox(
+                      width: 32 * controlsScale,
+                      height: 32 * controlsScale,
+                      child: Center(
+                        child: Icon(
+                          Icons.more_horiz,
+                          size: 24 * controlsScale,
+                          color: Colors.white70,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return textContent;
   }
 
   Widget _buildPlaybackControlsWidget(
@@ -1699,7 +1894,8 @@ class PlaybackHeroCard extends ConsumerWidget {
                 icon: Icon(
                   Icons.more_horiz,
                   size:
-                      PlaybackHeroCardUiTuning.topButtonsIconSize * controlsScale,
+                      PlaybackHeroCardUiTuning.topButtonsIconSize *
+                      controlsScale,
                   color: Colors.white70,
                 ),
                 onPressed: onShowMoreMenu,
@@ -1723,13 +1919,16 @@ class PlaybackHeroCard extends ConsumerWidget {
                       ? Icons.favorite_rounded
                       : Icons.favorite_border_rounded,
                   size:
-                      PlaybackHeroCardUiTuning.topButtonsIconSize * controlsScale,
+                      PlaybackHeroCardUiTuning.topButtonsIconSize *
+                      controlsScale,
                   color: isFavorite ? Colors.redAccent : Colors.white70,
                 ),
                 onPressed: currentMusic == null
                     ? null
                     : () async {
-                        final playlistService = ref.read(playlistServiceProvider);
+                        final playlistService = ref.read(
+                          playlistServiceProvider,
+                        );
                         await playlistService.toggleFavoriteSong(currentMusic);
                       },
               ),
@@ -1746,9 +1945,12 @@ class PlaybackHeroCard extends ConsumerWidget {
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
                 icon: Icon(
-                  showVisualizerToggle ? Icons.analytics : Icons.analytics_outlined,
+                  showVisualizerToggle
+                      ? Icons.analytics
+                      : Icons.analytics_outlined,
                   size:
-                      PlaybackHeroCardUiTuning.topButtonsIconSize * controlsScale,
+                      PlaybackHeroCardUiTuning.topButtonsIconSize *
+                      controlsScale,
                   color: showVisualizerToggle
                       ? Colors.white70
                       : Colors.white70.withValues(alpha: 0.6),
@@ -1770,7 +1972,8 @@ class PlaybackHeroCard extends ConsumerWidget {
                 icon: Icon(
                   Icons.shuffle_rounded,
                   size:
-                      PlaybackHeroCardUiTuning.topButtonsIconSize * controlsScale,
+                      PlaybackHeroCardUiTuning.topButtonsIconSize *
+                      controlsScale,
                   color: isRandomMode
                       ? Theme.of(context).colorScheme.primary
                       : Colors.white70,
@@ -1807,7 +2010,8 @@ class PlaybackHeroCard extends ConsumerWidget {
                 icon: Icon(
                   Icons.auto_fix_high_rounded,
                   size:
-                      PlaybackHeroCardUiTuning.topButtonsIconSize * controlsScale,
+                      PlaybackHeroCardUiTuning.topButtonsIconSize *
+                      controlsScale,
                   color: Colors.white70,
                 ),
                 onPressed: onTagCompletionTap,
@@ -1832,12 +2036,16 @@ class PlaybackHeroCard extends ConsumerWidget {
                       controlsScale,
                   alignment: Alignment.topCenter,
                   padding: EdgeInsets.only(
-                    top: (sleepTimerRemaining != null
-                            ? (PlaybackHeroCardUiTuning.controlsTopButtonsHeight -
-                                    PlaybackHeroCardUiTuning.topButtonsIconSize -
-                                    12)
-                            : (PlaybackHeroCardUiTuning.controlsTopButtonsHeight -
-                                PlaybackHeroCardUiTuning.topButtonsIconSize)) /
+                    top:
+                        (sleepTimerRemaining != null
+                            ? (PlaybackHeroCardUiTuning
+                                      .controlsTopButtonsHeight -
+                                  PlaybackHeroCardUiTuning.topButtonsIconSize -
+                                  12)
+                            : (PlaybackHeroCardUiTuning
+                                      .controlsTopButtonsHeight -
+                                  PlaybackHeroCardUiTuning
+                                      .topButtonsIconSize)) /
                         2 *
                         controlsScale,
                   ),
@@ -1887,7 +2095,8 @@ class PlaybackHeroCard extends ConsumerWidget {
                 icon: Icon(
                   Icons.tune_rounded,
                   size:
-                      PlaybackHeroCardUiTuning.topButtonsIconSize * controlsScale,
+                      PlaybackHeroCardUiTuning.topButtonsIconSize *
+                      controlsScale,
                   color: Colors.white70,
                 ),
                 onPressed: onEqualizerTap,
@@ -1956,10 +2165,7 @@ class PlaybackHeroCard extends ConsumerWidget {
       }
 
       if (tooltip != null && tooltip.isNotEmpty) {
-        return AppTooltip(
-          message: tooltip,
-          child: buttonWidget,
-        );
+        return AppTooltip(message: tooltip, child: buttonWidget);
       }
 
       return buttonWidget;
@@ -2107,11 +2313,25 @@ class PlaybackHeroCard extends ConsumerWidget {
         mainAxisAlignment: MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          topButtonsRow,
-          SizedBox(
-            height:
-                PlaybackHeroCardUiTuning.controlsRowLandscapeGap *
-                controlsScale,
+          ClipRect(
+            child: Align(
+              heightFactor: 1.0 - tLyrics,
+              alignment: Alignment.topCenter,
+              child: Opacity(
+                opacity: (1.0 - tLyrics).clamp(0.0, 1.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    topButtonsRow,
+                    SizedBox(
+                      height:
+                          PlaybackHeroCardUiTuning.controlsRowLandscapeGap *
+                          controlsScale,
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
           PlaybackProgressSection(
             key: const ValueKey('playback_progress_section_landscape'),
@@ -2169,7 +2389,6 @@ class PlaybackHeroCard extends ConsumerWidget {
       ],
     );
   }
-
 }
 
 class _ZeroPaddingTrackShape extends RoundedRectSliderTrackShape {
@@ -2983,7 +3202,9 @@ class _LyricsPanelTransitionWrapperState
         final currentIndex = ref.watch(audioCurrentIndexProvider);
         final currentMusic = ref.watch(audioCurrentMusicProvider);
         final position = ref.watch(audioPositionProvider);
-        final currentThemeColorsMap = ref.watch(audioCurrentThemeColorsMapProvider);
+        final currentThemeColorsMap = ref.watch(
+          audioCurrentThemeColorsMapProvider,
+        );
         final accent =
             currentThemeColorsMap['darkVibrant'] ??
             currentThemeColorsMap['darkMuted'] ??
