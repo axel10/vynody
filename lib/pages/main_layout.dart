@@ -24,7 +24,6 @@ import 'package:vynody/player/settings/shortcut_bindings.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/player/audio/playback_source.dart';
-import 'package:vynody/utils/linux_mount_helper.dart';
 import 'main_layout_riverpod.dart';
 import 'onboarding_page.dart';
 import '../widgets/desktop_window_title_bar.dart';
@@ -127,7 +126,8 @@ class _MainLayoutState extends ConsumerState<MainLayout>
   DateTime? _ignoreResizeEventsUntil;
   late final MainLayoutUiController _uiController;
   late final AppShortcutManager _shortcutManager;
-  final GlobalKey<FoldersPageState> _foldersPageKey = GlobalKey<FoldersPageState>();
+  final GlobalKey<FoldersPageState> _foldersPageKey =
+      GlobalKey<FoldersPageState>();
 
   AnimationController? _onboardingAnimController;
   bool _isOnboardingAnimatingOut = false;
@@ -206,7 +206,9 @@ class _MainLayoutState extends ConsumerState<MainLayout>
   void initState() {
     super.initState();
     final settings = ref.read(settingsServiceProvider);
-    final isStressTest = widget.args.any((arg) => arg == '--stress-test' || arg == '--audio-stress-test');
+    final isStressTest = widget.args.any(
+      (arg) => arg == '--stress-test' || arg == '--audio-stress-test',
+    );
     if (isStressTest) {
       _currentIndex = 0;
     } else if (!settings.hasShownOnboarding) {
@@ -335,9 +337,6 @@ class _MainLayoutState extends ConsumerState<MainLayout>
       }
 
       // 文件存在性校验
-      if (Platform.isLinux) {
-        await LinuxMountHelper.ensureMounted(path);
-      }
       final exists = File(path).existsSync();
       final isMusic = MusicFileUtils.isMusicFilePath(path);
       debugPrint(
@@ -380,10 +379,14 @@ class _MainLayoutState extends ConsumerState<MainLayout>
   }
 
   Future<void> _checkAndRunStressTestAutomation() async {
-    final isStressTest = widget.args.any((arg) => arg == '--stress-test' || arg == '--audio-stress-test');
+    final isStressTest = widget.args.any(
+      (arg) => arg == '--stress-test' || arg == '--audio-stress-test',
+    );
     if (!isStressTest) return;
 
-    debugPrint('[stress-test] Stress test flag detected, starting root folders playback automation...');
+    debugPrint(
+      '[stress-test] Stress test flag detected, starting root folders playback automation...',
+    );
 
     // Wait for the scanner service to finish loading/initializing.
     final scanner = ref.read(scannerServiceProvider);
@@ -410,7 +413,9 @@ class _MainLayoutState extends ConsumerState<MainLayout>
       }
 
       if (allRootSongs.isNotEmpty) {
-        debugPrint('[stress-test] Found ${allRootSongs.length} root folder songs to play.');
+        debugPrint(
+          '[stress-test] Found ${allRootSongs.length} root folder songs to play.',
+        );
         break;
       }
       await Future<void>.delayed(const Duration(milliseconds: 200));
@@ -420,7 +425,9 @@ class _MainLayoutState extends ConsumerState<MainLayout>
 
     // Fallback: If no root songs are scanned yet, try reading non-external songs from MetadataDatabase
     if (allRootSongs.isEmpty) {
-      debugPrint('[stress-test] Root folders empty. Checking database for non-external songs...');
+      debugPrint(
+        '[stress-test] Root folders empty. Checking database for non-external songs...',
+      );
       try {
         final db = MetadataDatabase();
         final songs = await db.getAllSongMetadata();
@@ -430,30 +437,36 @@ class _MainLayoutState extends ConsumerState<MainLayout>
         });
 
         for (final firstMetadata in filtered) {
-          allRootSongs.add(MusicFile(
-            path: firstMetadata.path,
-            name: p.basename(firstMetadata.path),
-            title: firstMetadata.title,
-            artist: firstMetadata.artist,
-            album: firstMetadata.album,
-            trackNumber: firstMetadata.trackNumber,
-            id: firstMetadata.id,
-            artworkPath: firstMetadata.artworkPath,
-            thumbnailPath: firstMetadata.thumbnailPath,
-            artworkWidth: firstMetadata.artworkWidth,
-            artworkHeight: firstMetadata.artworkHeight,
-            durationMillis: firstMetadata.duration,
-            lastModifiedTime: firstMetadata.lastModifiedTime,
-          ));
+          allRootSongs.add(
+            MusicFile(
+              path: firstMetadata.path,
+              name: p.basename(firstMetadata.path),
+              title: firstMetadata.title,
+              artist: firstMetadata.artist,
+              album: firstMetadata.album,
+              trackNumber: firstMetadata.trackNumber,
+              id: firstMetadata.id,
+              artworkPath: firstMetadata.artworkPath,
+              thumbnailPath: firstMetadata.thumbnailPath,
+              artworkWidth: firstMetadata.artworkWidth,
+              artworkHeight: firstMetadata.artworkHeight,
+              durationMillis: firstMetadata.duration,
+              lastModifiedTime: firstMetadata.lastModifiedTime,
+            ),
+          );
         }
-        debugPrint('[stress-test] Fallback database query found ${allRootSongs.length} non-external songs.');
+        debugPrint(
+          '[stress-test] Fallback database query found ${allRootSongs.length} non-external songs.',
+        );
       } catch (e) {
         debugPrint('[stress-test] Fallback database query failed: $e');
       }
     }
 
     if (allRootSongs.isNotEmpty) {
-      debugPrint('[stress-test] Triggering "Play All" on root directory and seeking first song to 0ms...');
+      debugPrint(
+        '[stress-test] Triggering "Play All" on root directory and seeking first song to 0ms...',
+      );
       await audioService.playPlaylist(
         allRootSongs,
         source: PlaybackSource(
@@ -482,7 +495,9 @@ class _MainLayoutState extends ConsumerState<MainLayout>
       debugPrint('[stress-test] Navigating to playback page...');
       await _onDestinationSelected(1);
     } else {
-      debugPrint('[stress-test] WARNING: No music files available to run Play All in stress test.');
+      debugPrint(
+        '[stress-test] WARNING: No music files available to run Play All in stress test.',
+      );
       // Still navigate to PlaybackPage so the UI is on the correct page
       await _onDestinationSelected(1);
     }
@@ -1536,7 +1551,9 @@ class AppShortcutManager extends ShortcutManager {
     if (context == null) return false;
 
     final widget = context.widget;
-    if (widget is EditableText || widget is TextField || widget is TextFormField) {
+    if (widget is EditableText ||
+        widget is TextField ||
+        widget is TextFormField) {
       return true;
     }
     return context.findAncestorWidgetOfExactType<EditableText>() != null ||
@@ -1544,4 +1561,3 @@ class AppShortcutManager extends ShortcutManager {
         context.findAncestorWidgetOfExactType<TextFormField>() != null;
   }
 }
-

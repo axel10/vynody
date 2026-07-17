@@ -9,7 +9,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/audio/app_playback_mode.dart';
 import 'package:vynody/player/audio/playback_source.dart';
-import 'package:vynody/utils/linux_mount_helper.dart';
 
 class RandomPlaybackData {
   const RandomPlaybackData({
@@ -110,13 +109,12 @@ class PlaybackSessionManager {
 
   static Future<bool> songExists(String path) async {
     if (path.trim().isEmpty) return false;
-    if (Platform.isLinux) {
-      await LinuxMountHelper.ensureMounted(path);
-    }
     return File(path).exists();
   }
 
-  static Future<int> resolveRestoredQueueIndex(PlaybackSessionData session) async {
+  static Future<int> resolveRestoredQueueIndex(
+    PlaybackSessionData session,
+  ) async {
     if (session.queue.isEmpty) return -1;
 
     final preferredIndex = session.currentIndex.clamp(

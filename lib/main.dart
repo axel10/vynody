@@ -19,7 +19,6 @@ import 'package:vynody/player/settings/settings_service.dart';
 import 'package:smtc_windows/smtc_windows.dart';
 import 'utils/app_log.dart';
 import 'utils/memory_trace.dart';
-import 'utils/linux_mount_helper.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -59,10 +58,7 @@ void _tryDrainPendingFileOpenArgs() {
   _pendingFileOpenRetryTimer?.cancel();
   _pendingFileOpenRetryTimer = null;
 
-  AppLog.log(
-    '[external-open] draining args=$args',
-    mirrorToConsole: true,
-  );
+  AppLog.log('[external-open] draining args=$args', mirrorToConsole: true);
 
   unawaited(_handleFileOpenArgs(context, args));
 }
@@ -91,9 +87,6 @@ Future<void> _handleFileOpenArgs(
     }
 
     // 检查文件是否存在
-    if (Platform.isLinux) {
-      await LinuxMountHelper.ensureMounted(path);
-    }
     final exists = File(path).existsSync();
     AppLog.log(
       '[external-open] inspect path=$path exists=$exists isMusic=${MusicFileUtils.isMusicFilePath(path)}',
@@ -136,10 +129,7 @@ Future<void> _handleFileOpenArgs(
     }
   }
 
-  AppLog.log(
-    '[external-open] handleFileOpenArgs end',
-    mirrorToConsole: true,
-  );
+  AppLog.log('[external-open] handleFileOpenArgs end', mirrorToConsole: true);
 }
 
 void main(List<String> args) async {
@@ -170,7 +160,9 @@ void main(List<String> args) async {
       }
       AppLog.log('main start args=$args', mirrorToConsole: true);
       final traceMemory =
-          args.any((arg) => arg == '--trace-memory' || arg == '--memory-trace') ||
+          args.any(
+            (arg) => arg == '--trace-memory' || arg == '--memory-trace',
+          ) ||
           Platform.environment['VYNODY_TRACE_MEMORY'] == '1';
       MemoryTrace.configure(enabled: traceMemory);
       MemoryTrace.snapshot(
@@ -224,8 +216,9 @@ void main(List<String> args) async {
             '[macOS-Dart] invoking getPendingFiles...',
             mirrorToConsole: true,
           );
-          final List<dynamic>? pending =
-              await fileOpenerChannel.invokeMethod('getPendingFiles');
+          final List<dynamic>? pending = await fileOpenerChannel.invokeMethod(
+            'getPendingFiles',
+          );
           AppLog.log(
             '[macOS-Dart] getPendingFiles returned: $pending',
             mirrorToConsole: true,
@@ -239,7 +232,10 @@ void main(List<String> args) async {
             queueFileOpen(argsList);
           }
         } catch (e) {
-          AppLog.log('[macOS-Dart] failed to get macOS pending files: $e', mirrorToConsole: true);
+          AppLog.log(
+            '[macOS-Dart] failed to get macOS pending files: $e',
+            mirrorToConsole: true,
+          );
         }
       }
 
@@ -275,10 +271,15 @@ void main(List<String> args) async {
       if (Platform.isWindows) {
         try {
           if (settingsService.windowsAutoRepairShortcut) {
-            const MethodChannel('vynody/single_instance').invokeMethod('registerShortcut');
+            const MethodChannel(
+              'vynody/single_instance',
+            ).invokeMethod('registerShortcut');
           }
         } catch (e) {
-          AppLog.log('failed to trigger registerShortcut: $e', mirrorToConsole: true);
+          AppLog.log(
+            'failed to trigger registerShortcut: $e',
+            mirrorToConsole: true,
+          );
         }
       }
       AppLog.log(
@@ -323,7 +324,8 @@ class MyApp extends ConsumerStatefulWidget {
   ConsumerState<MyApp> createState() => _MyAppState();
 }
 
-class _MyAppState extends ConsumerState<MyApp> with WindowListener, WidgetsBindingObserver {
+class _MyAppState extends ConsumerState<MyApp>
+    with WindowListener, WidgetsBindingObserver {
   bool _isMaximized = false;
   bool _isFullScreen = false;
 
@@ -351,12 +353,19 @@ class _MyAppState extends ConsumerState<MyApp> with WindowListener, WidgetsBindi
 
   @override
   Future<AppExitResponse> didRequestAppExit() async {
-    AppLog.log('AppExit request received, closing database cleanly...', mirrorToConsole: true);
+    AppLog.log(
+      'AppExit request received, closing database cleanly...',
+      mirrorToConsole: true,
+    );
     try {
       await MetadataDatabase().close();
       AppLog.log('Database closed cleanly.', mirrorToConsole: true);
     } catch (e, s) {
-      AppLog.log('Error closing database during exit: $e', mirrorToConsole: true, stackTrace: s);
+      AppLog.log(
+        'Error closing database during exit: $e',
+        mirrorToConsole: true,
+        stackTrace: s,
+      );
     }
     return AppExitResponse.exit;
   }
@@ -402,10 +411,7 @@ class _MyAppState extends ConsumerState<MyApp> with WindowListener, WidgetsBindi
     final colorScheme = ColorScheme.fromSeed(
       seedColor: appPrimaryColor,
       brightness: brightness,
-    ).copyWith(
-      primary: appPrimaryColor,
-      surface: isDark ? Colors.black : null,
-    );
+    ).copyWith(primary: appPrimaryColor, surface: isDark ? Colors.black : null);
     final snackBarBackground = isDark ? const Color(0xFF1F1F1F) : Colors.white;
     final snackBarForeground = isDark ? Colors.white : Colors.black;
 
@@ -467,10 +473,14 @@ class _MyAppState extends ConsumerState<MyApp> with WindowListener, WidgetsBindi
           return AnnotatedRegion<SystemUiOverlayStyle>(
             value: SystemUiOverlayStyle(
               statusBarColor: Colors.transparent,
-              statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+              statusBarIconBrightness: isDark
+                  ? Brightness.light
+                  : Brightness.dark,
               statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
               systemNavigationBarColor: Colors.transparent,
-              systemNavigationBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+              systemNavigationBarIconBrightness: isDark
+                  ? Brightness.light
+                  : Brightness.dark,
               systemNavigationBarDividerColor: Colors.transparent,
             ),
             child: ColoredBox(
@@ -492,11 +502,10 @@ class _MyAppState extends ConsumerState<MyApp> with WindowListener, WidgetsBindi
     );
 
     if (Platform.isLinux) {
-      final double radius = (_isMaximized || _isFullScreen) ? 0.0 : _linuxWindowCornerRadius;
-      app = ClipRRect(
-        borderRadius: BorderRadius.circular(radius),
-        child: app,
-      );
+      final double radius = (_isMaximized || _isFullScreen)
+          ? 0.0
+          : _linuxWindowCornerRadius;
+      app = ClipRRect(borderRadius: BorderRadius.circular(radius), child: app);
     }
 
     return app;

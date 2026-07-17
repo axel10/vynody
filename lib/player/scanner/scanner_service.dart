@@ -443,21 +443,18 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       final canUsePersistentAccess =
           _supportsPersistentAccess && _playerController != null;
       if (Platform.isLinux) {
-        await _timeInitStep(
-          'resolve and mount linux roots',
-          () async {
-            try {
-              final prefs = await SharedPreferences.getInstance();
-              final paths = prefs.getStringList('root_paths') ?? [];
-              if (paths.isNotEmpty) {
-                final updatedPaths = await _resolveAndMigrateLinuxRoots(paths);
-                await prefs.setStringList('root_paths', updatedPaths);
-              }
-            } catch (e, st) {
-              debugPrint('Error during pre-initialization linux mount: $e\n$st');
+        await _timeInitStep('resolve and mount linux roots', () async {
+          try {
+            final prefs = await SharedPreferences.getInstance();
+            final paths = prefs.getStringList('root_paths') ?? [];
+            if (paths.isNotEmpty) {
+              final updatedPaths = await _resolveAndMigrateLinuxRoots(paths);
+              await prefs.setStringList('root_paths', updatedPaths);
             }
-          },
-        );
+          } catch (e, st) {
+            debugPrint('Error during pre-initialization linux mount: $e\n$st');
+          }
+        });
       }
       await _timeInitStep('load root paths', () {
         return _roots.loadRootPaths(
@@ -505,13 +502,10 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       });
       // Auto scan on startup
       await _timeInitStep('startup scan', scan);
-      _rootAvailabilityTimer = Timer.periodic(
-        const Duration(seconds: 4),
-        (_) {
-          _pendingRootAvailabilityRescan = true;
-          _scheduleRootAvailabilityRefresh();
-        },
-      );
+      _rootAvailabilityTimer = Timer.periodic(const Duration(seconds: 4), (_) {
+        _pendingRootAvailabilityRescan = true;
+        _scheduleRootAvailabilityRefresh();
+      });
     } finally {
       totalStopwatch.stop();
       _logInitTiming('init total', totalStopwatch);
@@ -527,7 +521,9 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
           .receiveBroadcastStream()
           .listen(
             (event) {
-              if (event == 'media_changed' && !isScanning && !_mediaObserverPaused) {
+              if (event == 'media_changed' &&
+                  !isScanning &&
+                  !_mediaObserverPaused) {
                 debugPrint(
                   'Media library change detected, re-scanning system media...',
                 );
@@ -547,7 +543,9 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   void resumeMediaObserver({bool triggerScan = false}) {
-    debugPrint('[ScannerService] Resuming media observer (triggerScan=$triggerScan)');
+    debugPrint(
+      '[ScannerService] Resuming media observer (triggerScan=$triggerScan)',
+    );
     _mediaObserverPaused = false;
     if (triggerScan) {
       unawaited(scan(clearScannedRoots: false));
@@ -915,7 +913,9 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     if (rescanRestoredRoots && restoredRoots.isNotEmpty) {
       _scanCoordinator.requestRescan();
       if (!_scanCoordinator.isScanning) {
-        unawaited(_scanRootsWithFullFlow(restoredRoots, clearScannedRoots: false));
+        unawaited(
+          _scanRootsWithFullFlow(restoredRoots, clearScannedRoots: false),
+        );
       }
     }
   }
@@ -926,7 +926,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
 
     if (Platform.isLinux &&
         (normalizedPath.startsWith('/run/media/') ||
-         normalizedPath.startsWith('/media/'))) {
+            normalizedPath.startsWith('/media/'))) {
       return true;
     }
 
@@ -1676,10 +1676,6 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       return;
     }
 
-    if (Platform.isLinux) {
-      await LinuxMountHelper.ensureMounted(normalizedDirectory);
-    }
-
     if (_scanCoordinator.isScanning) {
       _scanCoordinator.requestRescan();
       return;
@@ -1812,7 +1808,9 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     }
 
     final hasMatchingRoot = _roots.rootPaths.any(
-      (root) => _pathContains(root, normalizedPath) || _pathsEqual(root, normalizedPath),
+      (root) =>
+          _pathContains(root, normalizedPath) ||
+          _pathsEqual(root, normalizedPath),
     );
     if (!hasMatchingRoot) {
       return;
@@ -2697,7 +2695,10 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
 
   Future<void> scan({bool clearScannedRoots = true}) async {
     _failedThumbnailPaths.clear();
-    await _scanRootsWithFullFlow(_roots.rootPaths, clearScannedRoots: clearScannedRoots);
+    await _scanRootsWithFullFlow(
+      _roots.rootPaths,
+      clearScannedRoots: clearScannedRoots,
+    );
   }
 
   Future<void> rebuildIndex() async {
@@ -2726,7 +2727,9 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     } finally {
       stopwatch.stop();
       if (kDebugMode) {
-        debugPrint('[ScannerService] rebuildIndex completed in ${stopwatch.elapsedMilliseconds} ms');
+        debugPrint(
+          '[ScannerService] rebuildIndex completed in ${stopwatch.elapsedMilliseconds} ms',
+        );
       }
     }
   }
@@ -2737,15 +2740,6 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
   }) async {
     await _loadScanSettings();
     final requestedRoots = _computeScanRoots(rootsToScan);
-    if (Platform.isLinux) {
-      for (final root in requestedRoots) {
-        try {
-          await LinuxMountHelper.ensureMounted(root);
-        } catch (e) {
-          debugPrint('Error auto-mounting root $root: $e');
-        }
-      }
-    }
     if (requestedRoots.isEmpty) {
       if (clearScannedRoots) {
         _scannedRootFolders.clear();
@@ -3019,8 +3013,13 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
         return;
       }
     }
-    final updated = await _recoverThumbnailCacheWithAudioCore(path, existingMetadata: cached);
-    if (updated == null || updated.thumbnailPath == null || updated.thumbnailPath!.trim().isEmpty) {
+    final updated = await _recoverThumbnailCacheWithAudioCore(
+      path,
+      existingMetadata: cached,
+    );
+    if (updated == null ||
+        updated.thumbnailPath == null ||
+        updated.thumbnailPath!.trim().isEmpty) {
       _failedThumbnailPaths.add(path);
     }
   }
@@ -3071,12 +3070,16 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       }
 
       int? resolvedFlags = existingMetadata?.sourceFlags;
-      final isInsideRoot = _roots.rootPaths.any((root) => _pathContains(root, path));
+      final isInsideRoot = _roots.rootPaths.any(
+        (root) => _pathContains(root, path),
+      );
       if (isInsideRoot) {
         if (resolvedFlags == null) {
           resolvedFlags = SongSourceFlags.rootScan;
         } else {
-          resolvedFlags = (resolvedFlags & ~SongSourceFlags.external) | SongSourceFlags.rootScan;
+          resolvedFlags =
+              (resolvedFlags & ~SongSourceFlags.external) |
+              SongSourceFlags.rootScan;
         }
       } else if (resolvedFlags == null) {
         resolvedFlags = SongSourceFlags.external;
@@ -3324,8 +3327,13 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     }
 
     if (resolvedCurrentFolder == null && currentFolder != null) {
-      final isStillValid = currentFolder.path == 'system' ||
-          _roots.rootPaths.any((root) => _pathsEqual(root, currentFolder.path) || _pathContains(root, currentFolder.path));
+      final isStillValid =
+          currentFolder.path == 'system' ||
+          _roots.rootPaths.any(
+            (root) =>
+                _pathsEqual(root, currentFolder.path) ||
+                _pathContains(root, currentFolder.path),
+          );
       if (!isStillValid) {
         _navigationState.setState(null, const []);
       }
@@ -3370,7 +3378,9 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
 
     if (list.isEmpty) return null;
 
-    final index = list.indexWhere((f) => _pathsEqual(f.path, currentFolderPath));
+    final index = list.indexWhere(
+      (f) => _pathsEqual(f.path, currentFolderPath),
+    );
     if (index == -1) {
       return list.first;
     }
@@ -3400,7 +3410,9 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
 
     if (list.isEmpty) return null;
 
-    final index = list.indexWhere((f) => _pathsEqual(f.path, currentFolderPath));
+    final index = list.indexWhere(
+      (f) => _pathsEqual(f.path, currentFolderPath),
+    );
     if (index == -1) {
       return list.last;
     }
@@ -3489,7 +3501,9 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      debugPrint('[ScannerService] App resumed, triggering root availability check');
+      debugPrint(
+        '[ScannerService] App resumed, triggering root availability check',
+      );
       _pendingRootAvailabilityRescan = true;
       _scheduleRootAvailabilityRefresh();
     }
