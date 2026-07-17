@@ -1,0 +1,60 @@
+id: io.github.axel10.vynody
+runtime: org.gnome.Platform
+runtime-version: '46'
+sdk: org.gnome.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.rust-stable
+command: vynody
+rename-icon: io.github.axel10.vynody
+
+finish-args:
+  - --share=ipc
+  - --socket=x11
+  - --socket=wayland
+  - --socket=pulseaudio
+  - --share=network
+  - --filesystem=xdg-music
+  - --talk-name=org.mpris.MediaPlayer2.Player
+  - --talk-name=org.freedesktop.Notifications
+
+modules:
+  - name: rust-env
+    buildsystem: simple
+    build-commands:
+      - echo "Setting up Rust build environment"
+    build-options:
+      append-path: /usr/lib/sdk/rust-stable/bin
+
+  - flutter-sdk-3.44.6.json
+  - name: vynody
+    buildsystem: simple
+    build-options:
+      append-path: /usr/lib/sdk/rust-stable/bin
+      env:
+        CARGO_HOME: /run/build/vynody/cargo
+        CARGO_NET_OFFLINE: "true"
+        PUB_CACHE: /run/build/vynody/pub-cache
+    build-commands:
+      - mkdir -p audio_core/build/ffmpeg-linux/install
+      - tar -xzf ffmpeg_lib_linux.tar.gz -C audio_core/build/ffmpeg-linux/install
+      - dart run build_runner build --delete-conflicting-outputs
+      - flutter build linux --release --offline
+      - mkdir -p /app/bin /app/lib /app/share/applications /app/share/metainfo /app/share/icons/hicolor/512x512/apps
+      - cp -r build/linux/x64/release/bundle/* /app/
+      - cp io.github.axel10.vynody.desktop /app/share/applications/io.github.axel10.vynody.desktop
+      - cp io.github.axel10.vynody.metainfo.xml /app/share/metainfo/io.github.axel10.vynody.metainfo.xml
+      - cp assets/images/icon-windows-and-linux.png /app/share/icons/hicolor/512x512/apps/io.github.axel10.vynody.png
+    sources:
+      - type: dir
+        path: ../../..
+        skip:
+          - ^\.git$
+          - ^\.flatpak-builder$
+          - ^build$
+      - type: file
+        url: https://github.com/axel10/audio_core/releases/download/0.6/ffmpeg_lib_linux.tar.gz
+        sha256: 256593a6acaf54b6e0252aae96051246a0d400bc673cf02e32fafd2d24880d6c
+        dest-filename: ffmpeg_lib_linux.tar.gz
+      - cargo-sources.json
+      - pub-sources.json
+      - pubspec-sources.json

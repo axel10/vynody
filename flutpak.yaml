@@ -1,0 +1,24 @@
+app-id: io.github.axel10.vynody
+output: packaging/flatpak
+runtime-version: '46'
+command: vynody
+repo-url: https://github.com/axel10/vynody.git
+metainfo-path: packaging/flatpak/io.github.axel10.vynody.metainfo.xml
+desktop-entry-path: packaging/flatpak/io.github.axel10.vynody.desktop
+
+icons:
+  - size: 256x256
+    path: assets/images/icon-windows-and-linux.png
+  - size: 512x512
+    path: assets/images/icon-windows-and-linux.png
+
+flutter:
+  ref: stable
+
+rust:
+  version: 1.85.0
+
+finish-args:
+  - --filesystem=xdg-music
+  - --talk-name=org.mpris.MediaPlayer2.Player
+  - --talk-name=org.freedesktop.Notifications

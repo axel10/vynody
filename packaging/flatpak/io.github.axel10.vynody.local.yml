@@ -1,0 +1,43 @@
+id: io.github.axel10.vynody
+runtime: org.gnome.Platform
+runtime-version: '46'
+sdk: org.gnome.Sdk
+command: vynody
+rename-icon: io.github.axel10.vynody
+
+finish-args:
+  - --share=ipc
+  - --socket=x11
+  - --socket=wayland
+  - --socket=pulseaudio
+  - --share=network
+  - --filesystem=xdg-music
+  - --talk-name=org.mpris.MediaPlayer2.Player
+  - --talk-name=org.freedesktop.Notifications
+
+modules:
+  - name: vynody
+    buildsystem: simple
+    build-commands:
+      # Copy final build bundle to Flatpak app directory
+      - mkdir -p /app/share/vynody
+      - cp -r bundle/* /app/share/vynody/
+      - mkdir -p /app/bin
+      - ln -s /app/share/vynody/vynody /app/bin/vynody
+      
+      # Install integration files
+      - mkdir -p /app/share/applications /app/share/metainfo /app/share/icons/hicolor/512x512/apps
+      - cp io.github.axel10.vynody.desktop /app/share/applications/io.github.axel10.vynody.desktop
+      - cp io.github.axel10.vynody.metainfo.xml /app/share/metainfo/io.github.axel10.vynody.metainfo.xml
+      - cp icon.png /app/share/icons/hicolor/512x512/apps/io.github.axel10.vynody.png
+    sources:
+      - type: dir
+        path: ../../build/linux/x64/release/bundle
+        dest: bundle
+      - type: file
+        path: io.github.axel10.vynody.desktop
+      - type: file
+        path: io.github.axel10.vynody.metainfo.xml
+      - type: file
+        path: io.github.axel10.vynody.png
+        dest-filename: icon.png
