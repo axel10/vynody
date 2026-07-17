@@ -625,6 +625,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     String? persistentDocumentId,
   }) async {
     final normalizedPath = _normalizePath(path);
+    debugPrint('[ScannerService] addRootPath: path=$path, normalizedPath=$normalizedPath, persistentDocumentId=$persistentDocumentId, _linuxFlatpak=$_linuxFlatpak');
     if (Platform.isLinux && _linuxFlatpak && persistentDocumentId != null) {
       _linuxDocumentIds[normalizedPath] = persistentDocumentId;
       await _saveLinuxDocumentIds();
@@ -765,6 +766,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<bool> _registerPersistentAccess(String path) async {
+    debugPrint('[ScannerService] _registerPersistentAccess: path=$path, keys=${_linuxDocumentIds.keys.toList()}');
     if (Platform.isLinux && _linuxFlatpak) {
       return _linuxDocumentIds.containsKey(_normalizePath(path));
     }
