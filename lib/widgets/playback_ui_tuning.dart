@@ -43,6 +43,13 @@ class PlaybackPageUiTuning {
   static const double appleLyricsScrollOffsetLandscape = 25.0; // 苹果样式歌词横屏滚动偏移量 (原为100.0，调整为与竖屏一致)
   static const double appleLyricsScrollOffsetSmallWin = 25.0; // 苹果样式歌词小窗滚动偏移量
 
+  // 苹果样式歌词高斯模糊相关参数
+  static const double appleLyricsBaseBlurSigma = 1.8; // 苹果样式歌词基础模糊强度
+  static const double appleLyricsBlurGradientFactor = 0.25; // 苹果样式歌词模糊强度随位置变化系数（从上到下逐渐增强）
+  static const double appleLyricsMinBlurSigma = 0.4; // 苹果样式歌词最小模糊强度
+  static const double appleLyricsMaxBlurSigma = 4.5; // 苹果样式歌词最大模糊强度
+
+
   // 歌词自适应字体大小配置参数
   static const double lyricsMinFontScale = 1.3;
   static const double lyricsMaxFontScale = 3.0;
