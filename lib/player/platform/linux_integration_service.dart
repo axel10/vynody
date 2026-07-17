@@ -21,7 +21,7 @@ class CustomMprisObject extends OrgMprisMediaPlayer2 {
 
   @override
   DBusString getDesktopEntry() {
-    return const DBusString('app.vynody.player');
+    return const DBusString('io.github.axel10.vynody');
   }
 
   @override
