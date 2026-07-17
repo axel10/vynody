@@ -4,6 +4,9 @@ analyzer:
     - "**/*.freezed.dart"
     - "tray_manager/**"
     - "flutter-media-session/**"
+    - "build-flatpak/**"
+    - "build/**"
+    - ".dart_tool/**"
 
 # This file configures the analyzer, which statically analyzes Dart code to
 # check for errors, warnings, and lints.

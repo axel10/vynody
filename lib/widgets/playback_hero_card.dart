@@ -1735,7 +1735,7 @@ class PlaybackHeroCard extends ConsumerWidget {
               ),
             ),
             AppTooltip(
-              message: getPlaylistModeName(playbackMode, l10n),
+              message: l10n.visualizer,
               child: IconButton(
                 padding: EdgeInsets.zero,
                 constraints: BoxConstraints.tightFor(
@@ -1746,13 +1746,14 @@ class PlaybackHeroCard extends ConsumerWidget {
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
                 icon: Icon(
-                  getPlaylistModeIcon(playbackMode),
+                  showVisualizerToggle ? Icons.analytics : Icons.analytics_outlined,
                   size:
                       PlaybackHeroCardUiTuning.topButtonsIconSize * controlsScale,
-                  color: Colors.white70,
+                  color: showVisualizerToggle
+                      ? Colors.white70
+                      : Colors.white70.withValues(alpha: 0.6),
                 ),
-                onPressed: onCyclePlaylistMode,
-                onLongPress: onShowPlaylistModeSelector,
+                onPressed: onToggleVisualizer,
               ),
             ),
             AppTooltip(
@@ -1906,6 +1907,7 @@ class PlaybackHeroCard extends ConsumerWidget {
     Widget buildSecondaryControl({
       required Widget Function(Color color, bool isWhiteBg) iconBuilder,
       required VoidCallback? onPressed,
+      VoidCallback? onLongPress,
       required double circleSize,
       String? tooltip,
     }) {
@@ -1933,6 +1935,7 @@ class PlaybackHeroCard extends ConsumerWidget {
             ),
             icon: iconBuilder(controlIconColor, true),
             onPressed: onPressed,
+            onLongPress: onLongPress,
           ),
         );
       } else {
@@ -1948,6 +1951,7 @@ class PlaybackHeroCard extends ConsumerWidget {
           ),
           icon: iconBuilder(Colors.white, false),
           onPressed: onPressed,
+          onLongPress: onLongPress,
         );
       }
 
@@ -1969,14 +1973,13 @@ class PlaybackHeroCard extends ConsumerWidget {
           buildSecondaryControl(
             circleSize: (useOverlayStyle ? 42 : 40),
             iconBuilder: (color, isWhiteBg) => Icon(
-              showVisualizerToggle ? Icons.analytics : Icons.analytics_outlined,
+              getPlaylistModeIcon(playbackMode),
               size: (isWhiteBg ? 22 : 24) * controlsScale,
-              color: showVisualizerToggle
-                  ? color
-                  : color.withValues(alpha: 0.6),
+              color: color,
             ),
-            onPressed: onToggleVisualizer,
-            tooltip: AppLocalizations.of(context)!.visualizer,
+            onPressed: onCyclePlaylistMode,
+            onLongPress: onShowPlaylistModeSelector,
+            tooltip: getPlaylistModeName(playbackMode, l10n),
           ),
           buildSecondaryControl(
             circleSize: (useOverlayStyle ? 56 : 60),
