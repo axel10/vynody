@@ -884,5 +884,90 @@
   "scanToastHiddenHint": "掃描狀態提示已隱藏，可在「設定 - 介面」中重新開啟",
   "doubleSpeedPlayingSwipeUpToLock": "快進播放中... 往上滑動鎖定",
   "doubleSpeedLockedSwipeDownToUnlock": "已鎖定快進播放。長按並向下滑動解鎖",
-  "doubleSpeedUnlocked": "已解除快進鎖定"
+  "doubleSpeedUnlocked": "已解除快進鎖定",
+  "conflictExistingLabel": "現有歌詞",
+  "conflictImportedLabel": "匯入歌詞",
+  "conflictResolutionTitle": "解決衝突（{current}/{total}）",
+  "conflictSourceLabel": "來源：{source}",
+  "conflictTimeLabel": "時間：{time}",
+  "decideOneByOne": "逐一決定",
+  "exportAction": "匯出",
+  "exportFailed": "匯出失敗：{error}",
+  "exportLyricsDescription": "將所有快取和已調整的歌詞匯出為 JSON 檔案",
+  "exportLyricsLabel": "匯出歌詞備份",
+  "exportSuccess": "成功匯出 {count} 首歌詞。",
+  "importAction": "匯入",
+  "importConflictsMessage": "備份中發現 {conflictCount} 首歌詞存在衝突（本地存在但內容不同）。請選擇處理方式：",
+  "importConflictsTitle": "匯入衝突",
+  "importFailed": "匯入失敗：{error}",
+  "importLyricsDescription": "從匯出的 JSON 檔案匯入歌詞快取",
+  "importLyricsLabel": "匯入歌詞備份",
+  "importSuccess": "匯入完成！成功匯入 {count} 首歌詞。",
+  "invalidBackupFile": "無效的備份檔案",
+  "lyricsImportExportHeader": "匯入與匯出",
+  "overwriteAll": "全部覆寫",
+  "overwriteRemaining": "覆寫所有剩餘項目",
+  "overwriteThis": "覆寫",
+  "skipAllConflicts": "跳過衝突",
+  "skipRemaining": "跳過所有剩餘項目",
+  "skipThis": "跳過",
+  "@conflictResolutionTitle": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "@conflictSourceLabel": {
+    "placeholders": {
+      "source": {
+        "type": "String"
+      }
+    }
+  },
+  "@conflictTimeLabel": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@exportFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@exportSuccess": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@importConflictsMessage": {
+    "placeholders": {
+      "conflictCount": {
+        "type": "int"
+      }
+    }
+  },
+  "@importFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@importSuccess": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

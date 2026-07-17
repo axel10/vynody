@@ -1189,5 +1189,90 @@
   "gotIt": "Verstanden",
   "doubleSpeedPlayingSwipeUpToLock": "Schnellvorlauf aktiv... Nach oben wischen zum Sperren",
   "doubleSpeedLockedSwipeDownToUnlock": "Schnellvorlauf gesperrt. Lange drücken und nach unten wischen zum Entsperren",
-  "doubleSpeedUnlocked": "Schnellvorlauf entsperrt"
+  "doubleSpeedUnlocked": "Schnellvorlauf entsperrt",
+  "conflictExistingLabel": "Vorhandene Songtexte",
+  "conflictImportedLabel": "Importierte Songtexte",
+  "conflictResolutionTitle": "Konflikt lösen ({current}/{total})",
+  "conflictSourceLabel": "Quelle: {source}",
+  "conflictTimeLabel": "Zeit: {time}",
+  "decideOneByOne": "Einzeln entscheiden",
+  "exportAction": "Exportieren",
+  "exportFailed": "Export fehlgeschlagen: {error}",
+  "exportLyricsDescription": "Alle zwischengespeicherten und angepassten Songtexte als JSON-Datei exportieren",
+  "exportLyricsLabel": "Songtext-Sicherung exportieren",
+  "exportSuccess": "{count} Songtexte erfolgreich exportiert.",
+  "importAction": "Importieren",
+  "importConflictsMessage": "{conflictCount} widersprüchliche Songtexte in der Sicherung gefunden (existieren lokal, sind aber unterschiedlich). Bitte wählen Sie eine Vorgehensweise:",
+  "importConflictsTitle": "Import-Konflikte",
+  "importFailed": "Import fehlgeschlagen: {error}",
+  "importLyricsDescription": "Songtext-Cache aus einer exportierten JSON-Datei importieren",
+  "importLyricsLabel": "Songtext-Sicherung importieren",
+  "importSuccess": "Import abgeschlossen! {count} Songtexte erfolgreich importiert.",
+  "invalidBackupFile": "Ungültige Sicherungsdatei",
+  "lyricsImportExportHeader": "Import & Export",
+  "overwriteAll": "Alle überschreiben",
+  "overwriteRemaining": "Alle verbleibenden überschreiben",
+  "overwriteThis": "Überschreiben",
+  "skipAllConflicts": "Konflikte überspringen",
+  "skipRemaining": "Alle verbleibenden überspringen",
+  "skipThis": "Überspringen",
+  "@conflictResolutionTitle": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "@conflictSourceLabel": {
+    "placeholders": {
+      "source": {
+        "type": "String"
+      }
+    }
+  },
+  "@conflictTimeLabel": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@exportFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@exportSuccess": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@importConflictsMessage": {
+    "placeholders": {
+      "conflictCount": {
+        "type": "int"
+      }
+    }
+  },
+  "@importFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@importSuccess": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

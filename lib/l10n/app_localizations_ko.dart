@@ -2905,4 +2905,98 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get doubleSpeedUnlocked => '빨리 감기 잠금 해제됨';
+
+  @override
+  String get lyricsImportExportHeader => '가져오기 및 내보내기';
+
+  @override
+  String get exportAction => '내보내기';
+
+  @override
+  String get importAction => '가져오기';
+
+  @override
+  String get exportLyricsLabel => '가사 백업 내보내기';
+
+  @override
+  String get exportLyricsDescription => '모든 캐시 및 조정된 가사를 JSON 파일로 내보내기';
+
+  @override
+  String get importLyricsLabel => '가사 백업 가져오기';
+
+  @override
+  String get importLyricsDescription => '내보낸 JSON 파일에서 가사 캐시 가져오기';
+
+  @override
+  String exportSuccess(int count) {
+    return '$count개의 가사를 성공적으로 내보냈습니다.';
+  }
+
+  @override
+  String exportFailed(String error) {
+    return '내보내기 실패: $error';
+  }
+
+  @override
+  String importSuccess(int count) {
+    return '가져오기 완료! $count개의 가사를 성공적으로 가져왔습니다.';
+  }
+
+  @override
+  String importFailed(String error) {
+    return '가져오기 실패: $error';
+  }
+
+  @override
+  String get importConflictsTitle => '가져오기 충돌';
+
+  @override
+  String importConflictsMessage(int conflictCount) {
+    return '백업에서 $conflictCount개의 충돌하는 가사를 발견했습니다(로컬에 존재하지만 내용이 다름). 처리 방법을 선택하세요:';
+  }
+
+  @override
+  String get overwriteAll => '모두 덮어쓰기';
+
+  @override
+  String get skipAllConflicts => '충돌 건너뛰기';
+
+  @override
+  String get decideOneByOne => '하나씩 결정';
+
+  @override
+  String conflictResolutionTitle(int current, int total) {
+    return '충돌 해결 ($current/$total)';
+  }
+
+  @override
+  String get conflictExistingLabel => '기존 가사';
+
+  @override
+  String get conflictImportedLabel => '가져온 가사';
+
+  @override
+  String conflictSourceLabel(String source) {
+    return '출처: $source';
+  }
+
+  @override
+  String conflictTimeLabel(String time) {
+    return '시간: $time';
+  }
+
+  @override
+  String get overwriteThis => '덮어쓰기';
+
+  @override
+  String get skipThis => '건너뛰기';
+
+  @override
+  String get overwriteRemaining => '나머지 모두 덮어쓰기';
+
+  @override
+  String get skipRemaining => '나머지 모두 건너뛰기';
+
+  @override
+  String get invalidBackupFile => '유효하지 않은 백업 파일';
 }

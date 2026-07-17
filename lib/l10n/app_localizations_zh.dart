@@ -2857,6 +2857,100 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get doubleSpeedUnlocked => '已解除快进锁定';
+
+  @override
+  String get lyricsImportExportHeader => '导入与导出';
+
+  @override
+  String get exportAction => '导出';
+
+  @override
+  String get importAction => '导入';
+
+  @override
+  String get exportLyricsLabel => '导出歌词备份';
+
+  @override
+  String get exportLyricsDescription => '将所有缓存与调整过的歌词导出为 JSON 文件';
+
+  @override
+  String get importLyricsLabel => '导入歌词备份';
+
+  @override
+  String get importLyricsDescription => '从导出的 JSON 文件导入歌词缓存';
+
+  @override
+  String exportSuccess(int count) {
+    return '成功导出 $count 条歌词';
+  }
+
+  @override
+  String exportFailed(String error) {
+    return '导出失败: $error';
+  }
+
+  @override
+  String importSuccess(int count) {
+    return '导入完成！成功导入 $count 条歌词。';
+  }
+
+  @override
+  String importFailed(String error) {
+    return '导入失败: $error';
+  }
+
+  @override
+  String get importConflictsTitle => '导入冲突';
+
+  @override
+  String importConflictsMessage(int conflictCount) {
+    return '在备份中发现了 $conflictCount 条冲突的歌词（已有内容但与导入的不一致），请选择处理方式：';
+  }
+
+  @override
+  String get overwriteAll => '全部覆盖';
+
+  @override
+  String get skipAllConflicts => '跳过冲突';
+
+  @override
+  String get decideOneByOne => '逐条确认';
+
+  @override
+  String conflictResolutionTitle(int current, int total) {
+    return '解决冲突 ($current/$total)';
+  }
+
+  @override
+  String get conflictExistingLabel => '现有歌词';
+
+  @override
+  String get conflictImportedLabel => '导入歌词';
+
+  @override
+  String conflictSourceLabel(String source) {
+    return '来源: $source';
+  }
+
+  @override
+  String conflictTimeLabel(String time) {
+    return '时间: $time';
+  }
+
+  @override
+  String get overwriteThis => '覆盖';
+
+  @override
+  String get skipThis => '跳过';
+
+  @override
+  String get overwriteRemaining => '覆盖后续所有';
+
+  @override
+  String get skipRemaining => '跳过后续所有';
+
+  @override
+  String get invalidBackupFile => '无效的备份文件';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -5712,4 +5806,98 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get doubleSpeedUnlocked => '已解除快進鎖定';
+
+  @override
+  String get lyricsImportExportHeader => '匯入與匯出';
+
+  @override
+  String get exportAction => '匯出';
+
+  @override
+  String get importAction => '匯入';
+
+  @override
+  String get exportLyricsLabel => '匯出歌詞備份';
+
+  @override
+  String get exportLyricsDescription => '將所有快取和已調整的歌詞匯出為 JSON 檔案';
+
+  @override
+  String get importLyricsLabel => '匯入歌詞備份';
+
+  @override
+  String get importLyricsDescription => '從匯出的 JSON 檔案匯入歌詞快取';
+
+  @override
+  String exportSuccess(int count) {
+    return '成功匯出 $count 首歌詞。';
+  }
+
+  @override
+  String exportFailed(String error) {
+    return '匯出失敗：$error';
+  }
+
+  @override
+  String importSuccess(int count) {
+    return '匯入完成！成功匯入 $count 首歌詞。';
+  }
+
+  @override
+  String importFailed(String error) {
+    return '匯入失敗：$error';
+  }
+
+  @override
+  String get importConflictsTitle => '匯入衝突';
+
+  @override
+  String importConflictsMessage(int conflictCount) {
+    return '備份中發現 $conflictCount 首歌詞存在衝突（本地存在但內容不同）。請選擇處理方式：';
+  }
+
+  @override
+  String get overwriteAll => '全部覆寫';
+
+  @override
+  String get skipAllConflicts => '跳過衝突';
+
+  @override
+  String get decideOneByOne => '逐一決定';
+
+  @override
+  String conflictResolutionTitle(int current, int total) {
+    return '解決衝突（$current/$total）';
+  }
+
+  @override
+  String get conflictExistingLabel => '現有歌詞';
+
+  @override
+  String get conflictImportedLabel => '匯入歌詞';
+
+  @override
+  String conflictSourceLabel(String source) {
+    return '來源：$source';
+  }
+
+  @override
+  String conflictTimeLabel(String time) {
+    return '時間：$time';
+  }
+
+  @override
+  String get overwriteThis => '覆寫';
+
+  @override
+  String get skipThis => '跳過';
+
+  @override
+  String get overwriteRemaining => '覆寫所有剩餘項目';
+
+  @override
+  String get skipRemaining => '跳過所有剩餘項目';
+
+  @override
+  String get invalidBackupFile => '無效的備份檔案';
 }

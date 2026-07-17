@@ -1644,5 +1644,90 @@
   "scanToastHiddenHint": "扫描状态提示已隐藏，可在\u201c设置 - 界面\u201d中重新打开",
   "doubleSpeedPlayingSwipeUpToLock": "快进播放中... 往上滑动锁定",
   "doubleSpeedLockedSwipeDownToUnlock": "已锁定快进播放。长按并向下滑动解锁",
-  "doubleSpeedUnlocked": "已解除快进锁定"
+  "doubleSpeedUnlocked": "已解除快进锁定",
+  "lyricsImportExportHeader": "导入与导出",
+  "exportAction": "导出",
+  "importAction": "导入",
+  "exportLyricsLabel": "导出歌词备份",
+  "exportLyricsDescription": "将所有缓存与调整过的歌词导出为 JSON 文件",
+  "importLyricsLabel": "导入歌词备份",
+  "importLyricsDescription": "从导出的 JSON 文件导入歌词缓存",
+  "exportSuccess": "成功导出 {count} 条歌词",
+  "@exportSuccess": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "exportFailed": "导出失败: {error}",
+  "@exportFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "importSuccess": "导入完成！成功导入 {count} 条歌词。",
+  "@importSuccess": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "importFailed": "导入失败: {error}",
+  "@importFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "importConflictsTitle": "导入冲突",
+  "importConflictsMessage": "在备份中发现了 {conflictCount} 条冲突的歌词（已有内容但与导入的不一致），请选择处理方式：",
+  "@importConflictsMessage": {
+    "placeholders": {
+      "conflictCount": {
+        "type": "int"
+      }
+    }
+  },
+  "overwriteAll": "全部覆盖",
+  "skipAllConflicts": "跳过冲突",
+  "decideOneByOne": "逐条确认",
+  "conflictResolutionTitle": "解决冲突 ({current}/{total})",
+  "@conflictResolutionTitle": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "conflictExistingLabel": "现有歌词",
+  "conflictImportedLabel": "导入歌词",
+  "conflictSourceLabel": "来源: {source}",
+  "@conflictSourceLabel": {
+    "placeholders": {
+      "source": {
+        "type": "String"
+      }
+    }
+  },
+  "conflictTimeLabel": "时间: {time}",
+  "@conflictTimeLabel": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "overwriteThis": "覆盖",
+  "skipThis": "跳过",
+  "overwriteRemaining": "覆盖后续所有",
+  "skipRemaining": "跳过后续所有",
+  "invalidBackupFile": "无效的备份文件"
 }

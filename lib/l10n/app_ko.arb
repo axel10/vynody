@@ -1189,5 +1189,90 @@
   "gotIt": "확인",
   "doubleSpeedPlayingSwipeUpToLock": "빨리 감기 중... 위로 스와이프하여 잠금",
   "doubleSpeedLockedSwipeDownToUnlock": "빨리 감기 잠금됨. 길게 누르고 아래로 스와이프하여 해제",
-  "doubleSpeedUnlocked": "빨리 감기 잠금 해제됨"
+  "doubleSpeedUnlocked": "빨리 감기 잠금 해제됨",
+  "conflictExistingLabel": "기존 가사",
+  "conflictImportedLabel": "가져온 가사",
+  "conflictResolutionTitle": "충돌 해결 ({current}/{total})",
+  "conflictSourceLabel": "출처: {source}",
+  "conflictTimeLabel": "시간: {time}",
+  "decideOneByOne": "하나씩 결정",
+  "exportAction": "내보내기",
+  "exportFailed": "내보내기 실패: {error}",
+  "exportLyricsDescription": "모든 캐시 및 조정된 가사를 JSON 파일로 내보내기",
+  "exportLyricsLabel": "가사 백업 내보내기",
+  "exportSuccess": "{count}개의 가사를 성공적으로 내보냈습니다.",
+  "importAction": "가져오기",
+  "importConflictsMessage": "백업에서 {conflictCount}개의 충돌하는 가사를 발견했습니다(로컬에 존재하지만 내용이 다름). 처리 방법을 선택하세요:",
+  "importConflictsTitle": "가져오기 충돌",
+  "importFailed": "가져오기 실패: {error}",
+  "importLyricsDescription": "내보낸 JSON 파일에서 가사 캐시 가져오기",
+  "importLyricsLabel": "가사 백업 가져오기",
+  "importSuccess": "가져오기 완료! {count}개의 가사를 성공적으로 가져왔습니다.",
+  "invalidBackupFile": "유효하지 않은 백업 파일",
+  "lyricsImportExportHeader": "가져오기 및 내보내기",
+  "overwriteAll": "모두 덮어쓰기",
+  "overwriteRemaining": "나머지 모두 덮어쓰기",
+  "overwriteThis": "덮어쓰기",
+  "skipAllConflicts": "충돌 건너뛰기",
+  "skipRemaining": "나머지 모두 건너뛰기",
+  "skipThis": "건너뛰기",
+  "@conflictResolutionTitle": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "@conflictSourceLabel": {
+    "placeholders": {
+      "source": {
+        "type": "String"
+      }
+    }
+  },
+  "@conflictTimeLabel": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@exportFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@exportSuccess": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@importConflictsMessage": {
+    "placeholders": {
+      "conflictCount": {
+        "type": "int"
+      }
+    }
+  },
+  "@importFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@importSuccess": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

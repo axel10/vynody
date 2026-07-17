@@ -1189,5 +1189,90 @@
   "gotIt": "Entendido",
   "doubleSpeedPlayingSwipeUpToLock": "Avance rápido... Desliza hacia arriba para bloquear",
   "doubleSpeedLockedSwipeDownToUnlock": "Avance rápido bloqueado. Mantén presionado y desliza hacia abajo para desbloquear",
-  "doubleSpeedUnlocked": "Avance rápido desbloqueado"
+  "doubleSpeedUnlocked": "Avance rápido desbloqueado",
+  "conflictExistingLabel": "Letras existentes",
+  "conflictImportedLabel": "Letras importadas",
+  "conflictResolutionTitle": "Resolver conflicto ({current}/{total})",
+  "conflictSourceLabel": "Origen: {source}",
+  "conflictTimeLabel": "Tiempo: {time}",
+  "decideOneByOne": "Decidir uno por uno",
+  "exportAction": "Exportar",
+  "exportFailed": "Error al exportar: {error}",
+  "exportLyricsDescription": "Exportar todas las letras en caché y ajustadas a un archivo JSON",
+  "exportLyricsLabel": "Exportar copia de letras",
+  "exportSuccess": "{count} letras exportadas exitosamente.",
+  "importAction": "Importar",
+  "importConflictsMessage": "Se encontraron {conflictCount} letras conflictivas en la copia de seguridad (existen localmente pero son diferentes). Selecciona cómo proceder:",
+  "importConflictsTitle": "Conflictos de importación",
+  "importFailed": "Error al importar: {error}",
+  "importLyricsDescription": "Importar caché de letras desde un archivo JSON exportado",
+  "importLyricsLabel": "Importar copia de letras",
+  "importSuccess": "¡Importación completa! {count} letras importadas exitosamente.",
+  "invalidBackupFile": "Archivo de respaldo no válido",
+  "lyricsImportExportHeader": "Importar y exportar",
+  "overwriteAll": "Sobrescribir todo",
+  "overwriteRemaining": "Sobrescribir restantes",
+  "overwriteThis": "Sobrescribir",
+  "skipAllConflicts": "Omitir conflictos",
+  "skipRemaining": "Omitir restantes",
+  "skipThis": "Omitir",
+  "@conflictResolutionTitle": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "@conflictSourceLabel": {
+    "placeholders": {
+      "source": {
+        "type": "String"
+      }
+    }
+  },
+  "@conflictTimeLabel": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@exportFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@exportSuccess": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@importConflictsMessage": {
+    "placeholders": {
+      "conflictCount": {
+        "type": "int"
+      }
+    }
+  },
+  "@importFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@importSuccess": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

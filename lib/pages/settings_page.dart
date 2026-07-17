@@ -1,6 +1,12 @@
 import 'dart:io';
+import 'dart:convert';
 import 'dart:async';
 import 'package:flutter/services.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:file_selector/file_selector.dart' as file_selector;
+import 'package:vynody/player/lyrics/lyrics_cache_models.dart';
+import 'package:vynody/player/lyrics/lyrics_cache_repository.dart';
+import 'package:vynody/player/lyrics/lyrics_import_export_service.dart';
 
 import 'package:audio_core/audio_core.dart';
 import 'package:dio/dio.dart';
@@ -911,6 +917,424 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     );
   }
 
+  Widget _buildLyricsImportExportSection(
+    BuildContext context,
+    SettingsService settings,
+  ) {
+    final l10n = AppLocalizations.of(context)!;
+    return Column(
+      children: [
+        ListTile(
+          leading: const Icon(Icons.download_rounded),
+          title: Text(l10n.importLyricsLabel),
+          subtitle: Text(l10n.importLyricsDescription),
+          trailing: FilledButton.tonal(
+            onPressed: () => _importLyrics(context),
+            child: Text(l10n.importAction),
+          ),
+        ),
+        const Divider(height: 1),
+        ListTile(
+          leading: const Icon(Icons.upload_rounded),
+          title: Text(l10n.exportLyricsLabel),
+          subtitle: Text(l10n.exportLyricsDescription),
+          trailing: FilledButton.tonal(
+            onPressed: () => _exportLyrics(context),
+            child: Text(l10n.exportAction),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<String?> _pickSaveJsonPath() async {
+    if (Platform.isLinux || Platform.isMacOS || Platform.isWindows) {
+      const typeGroup = file_selector.XTypeGroup(
+        label: 'JSON',
+        extensions: ['json'],
+      );
+      final fileSaveLocation = await file_selector.getSaveLocation(
+        suggestedName: 'vynody_lyrics_backup.json',
+        acceptedTypeGroups: [typeGroup],
+      );
+      return fileSaveLocation?.path;
+    } else {
+      final path = await FilePicker.saveFile(
+        dialogTitle: 'Export Lyrics',
+        fileName: 'vynody_lyrics_backup.json',
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+      );
+      return path;
+    }
+  }
+
+  Future<String?> _pickOpenJsonPath() async {
+    if (Platform.isLinux) {
+      const typeGroup = file_selector.XTypeGroup(
+        label: 'JSON',
+        extensions: ['json'],
+      );
+      final file = await file_selector.openFile(
+        acceptedTypeGroups: [typeGroup],
+      );
+      return file?.path;
+    } else {
+      final result = await FilePicker.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+        allowMultiple: false,
+      );
+      return result?.files.single.path;
+    }
+  }
+
+  Future<void> _exportLyrics(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
+    try {
+      final path = await _pickSaveJsonPath();
+      if (path == null) return;
+
+      final service = const LyricsImportExportService();
+      final repository = LyricsCacheRepository();
+
+      final jsonStr = await service.exportLyrics(repository);
+      final file = File(path);
+      await file.writeAsString(jsonStr);
+
+      final count = (jsonDecode(jsonStr)['lyricsCaches'] as List).length;
+
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.exportSuccess(count))),
+      );
+    } catch (e) {
+      debugPrint('Export error: $e');
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.exportFailed(e.toString()))),
+      );
+    }
+  }
+
+  Future<void> _importLyrics(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
+    try {
+      final path = await _pickOpenJsonPath();
+      if (path == null) return;
+
+      final file = File(path);
+      final jsonStr = await file.readAsString();
+
+      // Basic validation
+      final parsed = jsonDecode(jsonStr);
+      if (parsed is! Map || !parsed.containsKey('lyricsCaches')) {
+        throw Exception(l10n.invalidBackupFile);
+      }
+
+      final service = const LyricsImportExportService();
+      final repository = LyricsCacheRepository();
+
+      // Show a loading indicator dialog
+      if (!context.mounted) return;
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) => const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+
+      final result = await service.scanBackup(jsonStr, repository);
+
+      if (!context.mounted) return;
+      Navigator.of(context).pop(); // Dismiss loading indicator
+
+      if (result.conflicts.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.importSuccess(result.autoImportedCount))),
+        );
+        return;
+      }
+
+      // We have conflicts! Show dialog
+      await _resolveConflicts(context, result.conflicts, repository);
+    } catch (e) {
+      debugPrint('Import error: $e');
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.importFailed(e.toString()))),
+      );
+    }
+  }
+
+  Future<void> _resolveConflicts(
+    BuildContext context,
+    List<LyricsConflict> conflicts,
+    LyricsCacheRepository repository,
+  ) async {
+    final l10n = AppLocalizations.of(context)!;
+    final choice = await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: Text(l10n.importConflictsTitle),
+          content: Text(l10n.importConflictsMessage(conflicts.length)),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, 'skip'),
+              child: Text(l10n.skipAllConflicts),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, 'one_by_one'),
+              child: Text(l10n.decideOneByOne),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, 'overwrite'),
+              child: Text(l10n.overwriteAll),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (choice == null) return;
+
+    final service = const LyricsImportExportService();
+
+    if (choice == 'overwrite') {
+      for (final conflict in conflicts) {
+        await service.importRecord(
+          conflict.imported,
+          conflict.importedTranslations,
+          repository,
+        );
+      }
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.importSuccess(conflicts.length))),
+      );
+    } else if (choice == 'one_by_one') {
+      int importedCount = 0;
+      bool overwriteRemaining = false;
+      bool skipRemaining = false;
+
+      for (int i = 0; i < conflicts.length; i++) {
+        if (overwriteRemaining) {
+          final conflict = conflicts[i];
+          await service.importRecord(
+            conflict.imported,
+            conflict.importedTranslations,
+            repository,
+          );
+          importedCount++;
+          continue;
+        }
+
+        if (skipRemaining) {
+          continue;
+        }
+
+        final conflict = conflicts[i];
+        final resolution = await _showConflictCompareDialog(
+          context,
+          conflict,
+          i + 1,
+          conflicts.length,
+        );
+
+        if (resolution == 'overwrite') {
+          await service.importRecord(
+            conflict.imported,
+            conflict.importedTranslations,
+            repository,
+          );
+          importedCount++;
+        } else if (resolution == 'overwrite_remaining') {
+          overwriteRemaining = true;
+          await service.importRecord(
+            conflict.imported,
+            conflict.importedTranslations,
+            repository,
+          );
+          importedCount++;
+        } else if (resolution == 'skip_remaining') {
+          skipRemaining = true;
+        } else if (resolution == 'cancel') {
+          break; // Abort rest of import
+        }
+        // If resolution is 'skip', do nothing
+      }
+
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.importSuccess(importedCount))),
+      );
+    }
+  }
+
+  String _getLyricsPreview(LyricsCacheRecord record) {
+    if (record.syncedLines.isEmpty) {
+      return record.syncedLyrics ?? '';
+    }
+    return record.syncedLines
+        .take(4)
+        .map((line) => line.text)
+        .join('\n');
+  }
+
+  Future<String?> _showConflictCompareDialog(
+    BuildContext context,
+    LyricsConflict conflict,
+    int current,
+    int total,
+  ) async {
+    final l10n = AppLocalizations.of(context)!;
+    final meta = LyricsImportExportService.parseCacheKey(conflict.imported.cacheKey);
+    final title = meta['title'] ?? 'Unknown';
+    final artist = meta['artist'] ?? 'Unknown';
+
+    final existingPreview = _getLyricsPreview(conflict.existing);
+    final importedPreview = _getLyricsPreview(conflict.imported);
+
+    return showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        final theme = Theme.of(dialogContext);
+        return AlertDialog(
+          title: Text(l10n.conflictResolutionTitle(current, total)),
+          content: SizedBox(
+            width: 600,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '$title - $artist',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Existing column
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: theme.dividerColor),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                l10n.conflictExistingLabel,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: theme.colorScheme.primary,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                l10n.conflictSourceLabel(conflict.existing.source.name),
+                                style: theme.textTheme.bodySmall,
+                              ),
+                              const Divider(),
+                              Text(
+                                existingPreview.isEmpty ? '(Empty)' : existingPreview,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  fontFamily: 'monospace',
+                                ),
+                                maxLines: 5,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      // Imported column
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: theme.dividerColor),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                l10n.conflictImportedLabel,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: theme.colorScheme.secondary,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                l10n.conflictSourceLabel(conflict.imported.source.name),
+                                style: theme.textTheme.bodySmall,
+                              ),
+                              const Divider(),
+                              Text(
+                                importedPreview.isEmpty ? '(Empty)' : importedPreview,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  fontFamily: 'monospace',
+                                ),
+                                maxLines: 5,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              alignment: WrapAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext, 'cancel'),
+                  child: Text(l10n.cancel),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext, 'skip'),
+                  child: Text(l10n.skipThis),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext, 'skip_remaining'),
+                  child: Text(l10n.skipRemaining),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext, 'overwrite'),
+                  child: Text(l10n.overwriteThis),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.pop(dialogContext, 'overwrite_remaining'),
+                  child: Text(l10n.overwriteRemaining),
+                ),
+              ],
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Widget _buildTranscodeSection(
     BuildContext context,
     SettingsService settings,
@@ -1284,6 +1708,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         _buildLyricsSaveMethodSection(context, settings),
         const SizedBox(height: 16),
         _buildLyricsStyleSection(context, settings),
+        const SizedBox(height: 16),
+        _buildSectionHeader(l10n.lyricsImportExportHeader),
+        _buildLyricsImportExportSection(context, settings),
         _buildSectionHeader(l10n.platformApiKeysSectionTitle),
         ListTile(
           leading: _buildProviderIcon(LyricsAiProvider.googleAiStudio),

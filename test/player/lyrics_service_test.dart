@@ -228,4 +228,10 @@ class _NoopLyricsCacheRepository implements LyricsCacheRepository {
   Future<void> saveLyricsTranslationCache(
     LyricsTranslationCacheRecord record,
   ) async {}
+
+  @override
+  Future<List<LyricsCacheRecord>> getAllLyricsCaches() async => const [];
+
+  @override
+  Future<List<LyricsTranslationCacheRecord>> getAllLyricsTranslationCaches() async => const [];
 }

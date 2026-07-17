@@ -1199,5 +1199,90 @@
   "doubleSpeedUnlocked": "Fast forward unlocked",
   "@doubleSpeedUnlocked": {
     "description": "Toast when fast forward lock is released"
-  }
+  },
+  "lyricsImportExportHeader": "Import & Export",
+  "exportAction": "Export",
+  "importAction": "Import",
+  "exportLyricsLabel": "Export Lyrics Backup",
+  "exportLyricsDescription": "Export all cached and adjusted lyrics to a JSON file",
+  "importLyricsLabel": "Import Lyrics Backup",
+  "importLyricsDescription": "Import lyrics cache from an exported JSON file",
+  "exportSuccess": "Successfully exported {count} lyrics.",
+  "@exportSuccess": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "exportFailed": "Export failed: {error}",
+  "@exportFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "importSuccess": "Import complete! Successfully imported {count} lyrics.",
+  "@importSuccess": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "importFailed": "Import failed: {error}",
+  "@importFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "importConflictsTitle": "Import Conflicts",
+  "importConflictsMessage": "Found {conflictCount} conflicting lyrics in the backup (exists locally but different). Please select how to proceed:",
+  "@importConflictsMessage": {
+    "placeholders": {
+      "conflictCount": {
+        "type": "int"
+      }
+    }
+  },
+  "overwriteAll": "Overwrite All",
+  "skipAllConflicts": "Skip Conflicts",
+  "decideOneByOne": "Decide One by One",
+  "conflictResolutionTitle": "Resolve Conflict ({current}/{total})",
+  "@conflictResolutionTitle": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "conflictExistingLabel": "Existing Lyrics",
+  "conflictImportedLabel": "Imported Lyrics",
+  "conflictSourceLabel": "Source: {source}",
+  "@conflictSourceLabel": {
+    "placeholders": {
+      "source": {
+        "type": "String"
+      }
+    }
+  },
+  "conflictTimeLabel": "Time: {time}",
+  "@conflictTimeLabel": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "overwriteThis": "Overwrite",
+  "skipThis": "Skip",
+  "overwriteRemaining": "Overwrite All Remaining",
+  "skipRemaining": "Skip All Remaining",
+  "invalidBackupFile": "Invalid backup file"
 }

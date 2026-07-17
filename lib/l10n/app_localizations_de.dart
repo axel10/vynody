@@ -3035,4 +3035,100 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get doubleSpeedUnlocked => 'Schnellvorlauf entsperrt';
+
+  @override
+  String get lyricsImportExportHeader => 'Import & Export';
+
+  @override
+  String get exportAction => 'Exportieren';
+
+  @override
+  String get importAction => 'Importieren';
+
+  @override
+  String get exportLyricsLabel => 'Songtext-Sicherung exportieren';
+
+  @override
+  String get exportLyricsDescription =>
+      'Alle zwischengespeicherten und angepassten Songtexte als JSON-Datei exportieren';
+
+  @override
+  String get importLyricsLabel => 'Songtext-Sicherung importieren';
+
+  @override
+  String get importLyricsDescription =>
+      'Songtext-Cache aus einer exportierten JSON-Datei importieren';
+
+  @override
+  String exportSuccess(int count) {
+    return '$count Songtexte erfolgreich exportiert.';
+  }
+
+  @override
+  String exportFailed(String error) {
+    return 'Export fehlgeschlagen: $error';
+  }
+
+  @override
+  String importSuccess(int count) {
+    return 'Import abgeschlossen! $count Songtexte erfolgreich importiert.';
+  }
+
+  @override
+  String importFailed(String error) {
+    return 'Import fehlgeschlagen: $error';
+  }
+
+  @override
+  String get importConflictsTitle => 'Import-Konflikte';
+
+  @override
+  String importConflictsMessage(int conflictCount) {
+    return '$conflictCount widersprüchliche Songtexte in der Sicherung gefunden (existieren lokal, sind aber unterschiedlich). Bitte wählen Sie eine Vorgehensweise:';
+  }
+
+  @override
+  String get overwriteAll => 'Alle überschreiben';
+
+  @override
+  String get skipAllConflicts => 'Konflikte überspringen';
+
+  @override
+  String get decideOneByOne => 'Einzeln entscheiden';
+
+  @override
+  String conflictResolutionTitle(int current, int total) {
+    return 'Konflikt lösen ($current/$total)';
+  }
+
+  @override
+  String get conflictExistingLabel => 'Vorhandene Songtexte';
+
+  @override
+  String get conflictImportedLabel => 'Importierte Songtexte';
+
+  @override
+  String conflictSourceLabel(String source) {
+    return 'Quelle: $source';
+  }
+
+  @override
+  String conflictTimeLabel(String time) {
+    return 'Zeit: $time';
+  }
+
+  @override
+  String get overwriteThis => 'Überschreiben';
+
+  @override
+  String get skipThis => 'Überspringen';
+
+  @override
+  String get overwriteRemaining => 'Alle verbleibenden überschreiben';
+
+  @override
+  String get skipRemaining => 'Alle verbleibenden überspringen';
+
+  @override
+  String get invalidBackupFile => 'Ungültige Sicherungsdatei';
 }

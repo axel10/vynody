@@ -3044,4 +3044,100 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get doubleSpeedUnlocked => 'Avance rapide déverrouillée';
+
+  @override
+  String get lyricsImportExportHeader => 'Importer et exporter';
+
+  @override
+  String get exportAction => 'Exporter';
+
+  @override
+  String get importAction => 'Importer';
+
+  @override
+  String get exportLyricsLabel => 'Exporter la sauvegarde des paroles';
+
+  @override
+  String get exportLyricsDescription =>
+      'Exporter toutes les paroles mises en cache et ajustées dans un fichier JSON';
+
+  @override
+  String get importLyricsLabel => 'Importer la sauvegarde des paroles';
+
+  @override
+  String get importLyricsDescription =>
+      'Importer le cache de paroles depuis un fichier JSON exporté';
+
+  @override
+  String exportSuccess(int count) {
+    return '$count paroles exportées avec succès.';
+  }
+
+  @override
+  String exportFailed(String error) {
+    return 'Échec de l\'exportation : $error';
+  }
+
+  @override
+  String importSuccess(int count) {
+    return 'Importation terminée ! $count paroles importées avec succès.';
+  }
+
+  @override
+  String importFailed(String error) {
+    return 'Échec de l\'importation : $error';
+  }
+
+  @override
+  String get importConflictsTitle => 'Conflits d\'importation';
+
+  @override
+  String importConflictsMessage(int conflictCount) {
+    return '$conflictCount paroles conflictuelles trouvées dans la sauvegarde (existent localement mais sont différentes). Veuillez choisir comment procéder :';
+  }
+
+  @override
+  String get overwriteAll => 'Tout remplacer';
+
+  @override
+  String get skipAllConflicts => 'Ignorer les conflits';
+
+  @override
+  String get decideOneByOne => 'Décider un par un';
+
+  @override
+  String conflictResolutionTitle(int current, int total) {
+    return 'Résoudre le conflit ($current/$total)';
+  }
+
+  @override
+  String get conflictExistingLabel => 'Paroles existantes';
+
+  @override
+  String get conflictImportedLabel => 'Paroles importées';
+
+  @override
+  String conflictSourceLabel(String source) {
+    return 'Source : $source';
+  }
+
+  @override
+  String conflictTimeLabel(String time) {
+    return 'Temps : $time';
+  }
+
+  @override
+  String get overwriteThis => 'Remplacer';
+
+  @override
+  String get skipThis => 'Ignorer';
+
+  @override
+  String get overwriteRemaining => 'Remplacer tous les restants';
+
+  @override
+  String get skipRemaining => 'Ignorer tous les restants';
+
+  @override
+  String get invalidBackupFile => 'Fichier de sauvegarde invalide';
 }

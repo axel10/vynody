@@ -5418,6 +5418,162 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'已解除快进锁定'**
   String get doubleSpeedUnlocked;
+
+  /// No description provided for @lyricsImportExportHeader.
+  ///
+  /// In zh, this message translates to:
+  /// **'导入与导出'**
+  String get lyricsImportExportHeader;
+
+  /// No description provided for @exportAction.
+  ///
+  /// In zh, this message translates to:
+  /// **'导出'**
+  String get exportAction;
+
+  /// No description provided for @importAction.
+  ///
+  /// In zh, this message translates to:
+  /// **'导入'**
+  String get importAction;
+
+  /// No description provided for @exportLyricsLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'导出歌词备份'**
+  String get exportLyricsLabel;
+
+  /// No description provided for @exportLyricsDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'将所有缓存与调整过的歌词导出为 JSON 文件'**
+  String get exportLyricsDescription;
+
+  /// No description provided for @importLyricsLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'导入歌词备份'**
+  String get importLyricsLabel;
+
+  /// No description provided for @importLyricsDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'从导出的 JSON 文件导入歌词缓存'**
+  String get importLyricsDescription;
+
+  /// No description provided for @exportSuccess.
+  ///
+  /// In zh, this message translates to:
+  /// **'成功导出 {count} 条歌词'**
+  String exportSuccess(int count);
+
+  /// No description provided for @exportFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'导出失败: {error}'**
+  String exportFailed(String error);
+
+  /// No description provided for @importSuccess.
+  ///
+  /// In zh, this message translates to:
+  /// **'导入完成！成功导入 {count} 条歌词。'**
+  String importSuccess(int count);
+
+  /// No description provided for @importFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'导入失败: {error}'**
+  String importFailed(String error);
+
+  /// No description provided for @importConflictsTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'导入冲突'**
+  String get importConflictsTitle;
+
+  /// No description provided for @importConflictsMessage.
+  ///
+  /// In zh, this message translates to:
+  /// **'在备份中发现了 {conflictCount} 条冲突的歌词（已有内容但与导入的不一致），请选择处理方式：'**
+  String importConflictsMessage(int conflictCount);
+
+  /// No description provided for @overwriteAll.
+  ///
+  /// In zh, this message translates to:
+  /// **'全部覆盖'**
+  String get overwriteAll;
+
+  /// No description provided for @skipAllConflicts.
+  ///
+  /// In zh, this message translates to:
+  /// **'跳过冲突'**
+  String get skipAllConflicts;
+
+  /// No description provided for @decideOneByOne.
+  ///
+  /// In zh, this message translates to:
+  /// **'逐条确认'**
+  String get decideOneByOne;
+
+  /// No description provided for @conflictResolutionTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'解决冲突 ({current}/{total})'**
+  String conflictResolutionTitle(int current, int total);
+
+  /// No description provided for @conflictExistingLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'现有歌词'**
+  String get conflictExistingLabel;
+
+  /// No description provided for @conflictImportedLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'导入歌词'**
+  String get conflictImportedLabel;
+
+  /// No description provided for @conflictSourceLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'来源: {source}'**
+  String conflictSourceLabel(String source);
+
+  /// No description provided for @conflictTimeLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'时间: {time}'**
+  String conflictTimeLabel(String time);
+
+  /// No description provided for @overwriteThis.
+  ///
+  /// In zh, this message translates to:
+  /// **'覆盖'**
+  String get overwriteThis;
+
+  /// No description provided for @skipThis.
+  ///
+  /// In zh, this message translates to:
+  /// **'跳过'**
+  String get skipThis;
+
+  /// No description provided for @overwriteRemaining.
+  ///
+  /// In zh, this message translates to:
+  /// **'覆盖后续所有'**
+  String get overwriteRemaining;
+
+  /// No description provided for @skipRemaining.
+  ///
+  /// In zh, this message translates to:
+  /// **'跳过后续所有'**
+  String get skipRemaining;
+
+  /// No description provided for @invalidBackupFile.
+  ///
+  /// In zh, this message translates to:
+  /// **'无效的备份文件'**
+  String get invalidBackupFile;
 }
 
 class _AppLocalizationsDelegate

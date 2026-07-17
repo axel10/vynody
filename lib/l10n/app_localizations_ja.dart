@@ -2901,4 +2901,98 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get doubleSpeedUnlocked => '早送りロックを解除しました';
+
+  @override
+  String get lyricsImportExportHeader => 'インポートとエクスポート';
+
+  @override
+  String get exportAction => 'エクスポート';
+
+  @override
+  String get importAction => 'インポート';
+
+  @override
+  String get exportLyricsLabel => '歌詞バックアップをエクスポート';
+
+  @override
+  String get exportLyricsDescription => 'すべてのキャッシュおよび調整済みの歌詞をJSONファイルにエクスポート';
+
+  @override
+  String get importLyricsLabel => '歌詞バックアップをインポート';
+
+  @override
+  String get importLyricsDescription => 'エクスポートされたJSONファイルから歌詞キャッシュをインポート';
+
+  @override
+  String exportSuccess(int count) {
+    return '$count件の歌詞をエクスポートしました。';
+  }
+
+  @override
+  String exportFailed(String error) {
+    return 'エクスポートに失敗しました: $error';
+  }
+
+  @override
+  String importSuccess(int count) {
+    return 'インポート完了！$count件の歌詞をインポートしました。';
+  }
+
+  @override
+  String importFailed(String error) {
+    return 'インポートに失敗しました: $error';
+  }
+
+  @override
+  String get importConflictsTitle => 'インポートの競合';
+
+  @override
+  String importConflictsMessage(int conflictCount) {
+    return 'バックアップに $conflictCount 件の競合する歌詞が見つかりました（ローカルに存在しますが内容が異なります）。処理方法を選択してください:';
+  }
+
+  @override
+  String get overwriteAll => 'すべて上書き';
+
+  @override
+  String get skipAllConflicts => '競合をスキップ';
+
+  @override
+  String get decideOneByOne => '1つずつ決定';
+
+  @override
+  String conflictResolutionTitle(int current, int total) {
+    return '競合を解決（$current/$total）';
+  }
+
+  @override
+  String get conflictExistingLabel => '既存の歌詞';
+
+  @override
+  String get conflictImportedLabel => 'インポートされた歌詞';
+
+  @override
+  String conflictSourceLabel(String source) {
+    return 'ソース: $source';
+  }
+
+  @override
+  String conflictTimeLabel(String time) {
+    return '時間: $time';
+  }
+
+  @override
+  String get overwriteThis => '上書き';
+
+  @override
+  String get skipThis => 'スキップ';
+
+  @override
+  String get overwriteRemaining => '残りをすべて上書き';
+
+  @override
+  String get skipRemaining => '残りをすべてスキップ';
+
+  @override
+  String get invalidBackupFile => '無効なバックアップファイル';
 }

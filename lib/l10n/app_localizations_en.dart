@@ -2999,4 +2999,100 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get doubleSpeedUnlocked => 'Fast forward unlocked';
+
+  @override
+  String get lyricsImportExportHeader => 'Import & Export';
+
+  @override
+  String get exportAction => 'Export';
+
+  @override
+  String get importAction => 'Import';
+
+  @override
+  String get exportLyricsLabel => 'Export Lyrics Backup';
+
+  @override
+  String get exportLyricsDescription =>
+      'Export all cached and adjusted lyrics to a JSON file';
+
+  @override
+  String get importLyricsLabel => 'Import Lyrics Backup';
+
+  @override
+  String get importLyricsDescription =>
+      'Import lyrics cache from an exported JSON file';
+
+  @override
+  String exportSuccess(int count) {
+    return 'Successfully exported $count lyrics.';
+  }
+
+  @override
+  String exportFailed(String error) {
+    return 'Export failed: $error';
+  }
+
+  @override
+  String importSuccess(int count) {
+    return 'Import complete! Successfully imported $count lyrics.';
+  }
+
+  @override
+  String importFailed(String error) {
+    return 'Import failed: $error';
+  }
+
+  @override
+  String get importConflictsTitle => 'Import Conflicts';
+
+  @override
+  String importConflictsMessage(int conflictCount) {
+    return 'Found $conflictCount conflicting lyrics in the backup (exists locally but different). Please select how to proceed:';
+  }
+
+  @override
+  String get overwriteAll => 'Overwrite All';
+
+  @override
+  String get skipAllConflicts => 'Skip Conflicts';
+
+  @override
+  String get decideOneByOne => 'Decide One by One';
+
+  @override
+  String conflictResolutionTitle(int current, int total) {
+    return 'Resolve Conflict ($current/$total)';
+  }
+
+  @override
+  String get conflictExistingLabel => 'Existing Lyrics';
+
+  @override
+  String get conflictImportedLabel => 'Imported Lyrics';
+
+  @override
+  String conflictSourceLabel(String source) {
+    return 'Source: $source';
+  }
+
+  @override
+  String conflictTimeLabel(String time) {
+    return 'Time: $time';
+  }
+
+  @override
+  String get overwriteThis => 'Overwrite';
+
+  @override
+  String get skipThis => 'Skip';
+
+  @override
+  String get overwriteRemaining => 'Overwrite All Remaining';
+
+  @override
+  String get skipRemaining => 'Skip All Remaining';
+
+  @override
+  String get invalidBackupFile => 'Invalid backup file';
 }

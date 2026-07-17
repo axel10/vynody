@@ -71,4 +71,12 @@ class LyricsCacheRepository {
     await clearLyricsCacheByKey(cacheKey);
     await clearLyricsTranslationCacheByKey(cacheKey);
   }
+
+  Future<List<LyricsCacheRecord>> getAllLyricsCaches() {
+    return _db.getAllLyricsCaches();
+  }
+
+  Future<List<LyricsTranslationCacheRecord>> getAllLyricsTranslationCaches() {
+    return _db.getAllLyricsTranslationCaches();
+  }
 }
