@@ -106,6 +106,26 @@ class ToggleFullScreenIntent extends Intent {
   const ToggleFullScreenIntent();
 }
 
+class ExitFullScreenIntent extends Intent {
+  const ExitFullScreenIntent();
+}
+
+class ExitFullScreenAction extends Action<ExitFullScreenIntent> {
+  final _MainLayoutState state;
+  ExitFullScreenAction(this.state);
+
+  @override
+  bool isEnabled(Intent intent) {
+    return state._isFullScreen;
+  }
+
+  @override
+  Object? invoke(ExitFullScreenIntent intent) {
+    state._setFullScreen(false);
+    return null;
+  }
+}
+
 class MainLayout extends ConsumerStatefulWidget {
   final List<String> args;
   final int initialIndex;
@@ -122,6 +142,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
   double? _lastVolume;
   bool _showMiniVolumeSlider = false;
   late final AudioService _audioService;
+  bool _isFullScreen = false;
   DateTime? _lastBackPressedAt;
   DateTime? _ignoreResizeEventsUntil;
   late final MainLayoutUiController _uiController;
@@ -224,6 +245,13 @@ class _MainLayoutState extends ConsumerState<MainLayout>
 
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
       windowManager.addListener(this);
+      windowManager.isFullScreen().then((isFull) {
+        if (mounted) {
+          setState(() {
+            _isFullScreen = isFull;
+          });
+        }
+      });
     }
 
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
@@ -276,6 +304,22 @@ class _MainLayoutState extends ConsumerState<MainLayout>
   }
 
   @override
+  void onWindowEnterFullScreen() {
+    setState(() {
+      _isFullScreen = true;
+    });
+    debugPrint('[main_layout] Window entered full screen');
+  }
+
+  @override
+  void onWindowLeaveFullScreen() {
+    setState(() {
+      _isFullScreen = false;
+    });
+    debugPrint('[main_layout] Window left full screen');
+  }
+
+  @override
   void onWindowResized() async {
     if (_ignoreResizeEventsUntil != null &&
         DateTime.now().isBefore(_ignoreResizeEventsUntil!)) {
@@ -312,6 +356,9 @@ class _MainLayoutState extends ConsumerState<MainLayout>
       } else {
         await windowManager.setFullScreen(false);
       }
+      setState(() {
+        _isFullScreen = enable;
+      });
     }
   }
 
@@ -541,6 +588,8 @@ class _MainLayoutState extends ConsumerState<MainLayout>
       }
       shortcuts[activator] = entry.value;
     }
+    shortcuts[const SingleActivator(LogicalKeyboardKey.escape)] =
+        const ExitFullScreenIntent();
     return shortcuts;
   }
 
@@ -1151,6 +1200,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
               return null;
             },
           ),
+          ExitFullScreenIntent: ExitFullScreenAction(this),
         },
         child: Focus(
           autofocus: true,
