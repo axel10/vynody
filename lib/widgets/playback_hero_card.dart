@@ -1503,7 +1503,11 @@ class PlaybackHeroCard extends ConsumerWidget {
         PlaybackHeroCardUiTuning.trackArtistPortraitLyricsFont,
         transition,
       )!,
-      PlaybackHeroCardUiTuning.trackArtistStandardFont,
+      lerpDouble(
+        PlaybackHeroCardUiTuning.trackArtistStandardFont,
+        PlaybackHeroCardUiTuning.trackArtistLandscapeLyricsFont,
+        transition,
+      )!,
       landscapeT,
     )!;
     final artistSize = baseArtistSize * controlsScale;
@@ -1542,7 +1546,11 @@ class PlaybackHeroCard extends ConsumerWidget {
                   color: Colors.white,
                   fontSize: titleSize,
                   fontWeight: FontWeight.bold,
-                  height: lerpDouble(1.2, 1.1, simplifiedT),
+                  height: lerpDouble(
+                    lerpDouble(1.2, 1.1, transition),
+                    lerpDouble(1.2, 1.25, transition),
+                    landscapeT,
+                  ),
                 ),
                 child: Builder(
                   builder: (context) {
@@ -1560,7 +1568,13 @@ class PlaybackHeroCard extends ConsumerWidget {
         ),
         if (showArtistAlbum)
           Padding(
-            padding: EdgeInsets.only(top: lerpDouble(6.0, 2.0, simplifiedT)!),
+            padding: EdgeInsets.only(
+              top: lerpDouble(
+                6.0,
+                PlaybackHeroCardUiTuning.trackInfoLandscapeLyricsGap,
+                simplifiedT,
+              )!,
+            ),
             child: SizedBox(
               width: double.infinity,
               child: Align(
@@ -1589,7 +1603,11 @@ class PlaybackHeroCard extends ConsumerWidget {
                     style: Theme.of(context).textTheme.bodyMedium!.copyWith(
                       color: Colors.white70,
                       fontSize: artistSize,
-                      height: lerpDouble(1.3, 1.1, simplifiedT),
+                      height: lerpDouble(
+                        lerpDouble(1.3, 1.1, transition),
+                        lerpDouble(1.3, 1.25, transition),
+                        landscapeT,
+                      ),
                     ),
                     child: Builder(
                       builder: (context) {
@@ -1632,11 +1650,71 @@ class PlaybackHeroCard extends ConsumerWidget {
           children: [
             Expanded(child: textContent),
             SizedBox(width: 8 * simplifiedT),
+            if (sleepTimerRemaining != null) ...[
+              Opacity(
+                opacity: simplifiedT,
+                child: SizedBox(
+                  width: PlaybackHeroCardUiTuning.lLyricsSleepTimerButtonWidth *
+                      controlsScale *
+                      simplifiedT,
+                  height: PlaybackHeroCardUiTuning.lLyricsSleepTimerButtonHeight *
+                      controlsScale,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: AppTooltip(
+                      message: l10n.sleepTimerRemaining(
+                        _formatSleepTimer(sleepTimerRemaining),
+                      ),
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: onSleepTimerTap,
+                        child: SizedBox(
+                          width: PlaybackHeroCardUiTuning.lLyricsSleepTimerButtonWidth *
+                              controlsScale,
+                          height: PlaybackHeroCardUiTuning.lLyricsSleepTimerButtonHeight *
+                              controlsScale,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.bedtime_rounded,
+                                size: PlaybackHeroCardUiTuning.lLyricsTitleIconSize *
+                                    controlsScale,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                _formatSleepTimer(sleepTimerRemaining),
+                                maxLines: 1,
+                                overflow: TextOverflow.visible,
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.primary,
+                                  fontSize: PlaybackHeroCardUiTuning.lLyricsSleepTimerFontSize *
+                                      controlsScale,
+                                  height: 1.0,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(width: 8 * simplifiedT),
+            ],
             Opacity(
               opacity: simplifiedT,
               child: SizedBox(
-                width: 32 * controlsScale * simplifiedT,
-                height: 32 * controlsScale,
+                width: PlaybackHeroCardUiTuning.lLyricsTitleButtonHeight *
+                    controlsScale *
+                    simplifiedT,
+                height: PlaybackHeroCardUiTuning.lLyricsTitleButtonHeight *
+                    controlsScale,
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
                   child: AppTooltip(
@@ -1644,8 +1722,10 @@ class PlaybackHeroCard extends ConsumerWidget {
                         ? l10n.removeFromFavorites
                         : l10n.addToFavorites,
                     child: SizedBox(
-                      width: 32 * controlsScale,
-                      height: 32 * controlsScale,
+                      width: PlaybackHeroCardUiTuning.lLyricsTitleButtonHeight *
+                          controlsScale,
+                      height: PlaybackHeroCardUiTuning.lLyricsTitleButtonHeight *
+                          controlsScale,
                       child: IconButton(
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),
@@ -1656,7 +1736,8 @@ class PlaybackHeroCard extends ConsumerWidget {
                           isFavorite
                               ? Icons.favorite_rounded
                               : Icons.favorite_border_rounded,
-                          size: 24 * controlsScale,
+                          size: PlaybackHeroCardUiTuning.lLyricsTitleIconSize *
+                              controlsScale,
                           color: isFavorite ? Colors.redAccent : Colors.white70,
                         ),
                         onPressed: currentMusic == null
@@ -1676,8 +1757,11 @@ class PlaybackHeroCard extends ConsumerWidget {
             Opacity(
               opacity: simplifiedT,
               child: SizedBox(
-                width: 32 * controlsScale * simplifiedT,
-                height: 32 * controlsScale,
+                width: PlaybackHeroCardUiTuning.lLyricsTitleButtonHeight *
+                    controlsScale *
+                    simplifiedT,
+                height: PlaybackHeroCardUiTuning.lLyricsTitleButtonHeight *
+                    controlsScale,
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
                   child: PopupMenuButton<String>(
@@ -1777,12 +1861,15 @@ class PlaybackHeroCard extends ConsumerWidget {
                       ),
                     ],
                     child: SizedBox(
-                      width: 32 * controlsScale,
-                      height: 32 * controlsScale,
+                      width: PlaybackHeroCardUiTuning.lLyricsTitleButtonHeight *
+                          controlsScale,
+                      height: PlaybackHeroCardUiTuning.lLyricsTitleButtonHeight *
+                          controlsScale,
                       child: Center(
                         child: Icon(
                           Icons.more_horiz,
-                          size: 24 * controlsScale,
+                          size: PlaybackHeroCardUiTuning.lLyricsTitleIconSize *
+                              controlsScale,
                           color: Colors.white70,
                         ),
                       ),
