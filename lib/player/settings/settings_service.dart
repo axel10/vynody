@@ -288,7 +288,7 @@ class SettingsService extends ChangeNotifier {
   static const String _builtInAcoustidApiKey = 'raGXgwxqws';
   static const int defaultSampleStride = 1;
   static const double defaultLyricsFontScale = 1.0;
-  static const double minLyricsFontScale = 0.8;
+  static const double minLyricsFontScale = 0.5;
   static const double maxLyricsFontScale = 1.5;
   static const double lyricsFontScaleStep = 0.1;
 

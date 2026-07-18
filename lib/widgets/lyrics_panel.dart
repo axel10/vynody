@@ -1692,7 +1692,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
         // so that userFontScale can scale the font size up and down linearly without being prematurely clamped.
         final double minScaleLimit = effectiveLyricsStyle == LyricsStyle.traditional
             ? 1.0
-            : ((isPortrait || isSmallWin) ? PlaybackPageUiTuning.lyricsMinFontScale : 0.8);
+            : ((isPortrait || isSmallWin) ? PlaybackPageUiTuning.lyricsMinFontScale : SettingsService.minLyricsFontScale);
         double baseAdaptiveScale = (baseScale * panelWidthFactor).clamp(
           minScaleLimit,
           PlaybackPageUiTuning.lyricsMaxFontScale,
@@ -1700,7 +1700,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
 
         // Adapt for high resolution screens in Apple lyrics mode, scaling up smoothly
         double effectiveMaxFontScale = PlaybackPageUiTuning.lyricsMaxFontScale;
-        double effectiveMinFontScale = 0.8;
+        double effectiveMinFontScale = SettingsService.minLyricsFontScale;
         if (effectiveLyricsStyle == LyricsStyle.apple &&
             screenWidth > PlaybackPageUiTuning.appleLyricsBaseScreenWidth) {
           final double highResFactor = 1.0 +
@@ -1733,7 +1733,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
         if (effectiveLyricsStyle == LyricsStyle.apple && !isPortrait && !isSmallWin) {
           baseAdaptiveScale *= 1.5;
           effectiveMaxFontScale *= 1.5;
-          // Keep effectiveMinFontScale at 0.8 in landscape so manual adjustment can scale down properly.
+          // Keep effectiveMinFontScale at SettingsService.minLyricsFontScale in landscape so manual adjustment can scale down properly.
         }
 
         // Scale Apple lyrics base font sizes up by 1.1x in landscape orientation as requested (making original 110% the new 100%)
