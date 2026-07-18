@@ -545,6 +545,27 @@ class MetadataDatabase {
 
   Future<List<SongMetadata>> getAllSongMetadata() => _db.getAllSongMetadata();
 
+  Future<List<SongMetadata>> getSongsUnderPath(String rootPath) =>
+      _db.getSongsUnderPath(rootPath);
+
+  Future<int> getSongCountUnderPath(String rootPath) =>
+      _db.getSongCountUnderPath(rootPath);
+
+  Future<int> getSongDurationUnderPath(String rootPath) =>
+      _db.getSongDurationUnderPath(rootPath);
+
+  Future<SongMetadata?> getRepresentativeSongUnderPath(String rootPath) =>
+      _db.getRepresentativeSongUnderPath(rootPath);
+
+  Future<int> getSystemMediaSongCount() => _db.getSystemMediaSongCount();
+
+  Future<int> getSystemMediaSongDuration() => _db.getSystemMediaSongDuration();
+
+  Future<SongMetadata?> getSystemMediaRepresentativeSong() =>
+      _db.getSystemMediaRepresentativeSong();
+
+  Future<List<SongMetadata>> searchSongs(String query) => _db.searchSongs(query);
+
   Future<Map<String, SongMetadata>> getSongMetadataByPaths(
     Iterable<String> paths,
   ) => _db.getSongMetadataByPaths(paths);

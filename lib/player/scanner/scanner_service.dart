@@ -17,6 +17,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mobile_storage_listener/mobile_storage_event.dart';
 import 'package:mobile_storage_listener/mobile_storage_listener.dart';
 import 'package:vynody/models/music_folder.dart';
+import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/scanner/scanner_navigation_state.dart';
 import 'package:vynody/player/scanner/scanner_path_utils.dart';
 import 'package:vynody/player/scanner/scanner_sorting.dart';
@@ -91,6 +92,13 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
   int _skipShortAudioScanThresholdSeconds = _defaultShortAudioThresholdSeconds;
   bool _linuxFlatpak = false;
   final Map<String, String> _linuxDocumentIds = {};
+  final Map<String, int> _rootSongCounts = {};
+  final Map<String, int> _rootSongDurations = {};
+  final Map<String, SongMetadata?> _rootRepresentativeSongs = {};
+  int _systemSongCount = 0;
+  int _systemSongDuration = 0;
+  SongMetadata? _systemRepresentativeSong;
+  final Set<String> _loadedRootPaths = {};
 
   static const String _keyGlobalSortCriteria = 'folder_sort_global_criteria';
   static const String _keyGlobalSortOrder = 'folder_sort_global_order';
@@ -135,6 +143,152 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       );
     }
     _navigationState.setState(current, history);
+
+    if (current != null) {
+      final normalizedPath = _normalizePath(current.path);
+      if (normalizedPath == 'system') {
+        unawaited(loadSystemMediaFolderSongs());
+      } else {
+        final rootPath = _roots.rootPaths.firstWhereOrNull(
+          (root) => _pathsEqual(root, normalizedPath) || _pathContains(root, normalizedPath),
+        );
+        if (rootPath != null) {
+          unawaited(loadRootFolderSongs(rootPath));
+        }
+      }
+    } else {
+      unloadAllRootFolders();
+    }
+  }
+
+  Future<void> loadRootFolderSongs(String rootPath) async {
+    final normalized = _normalizePath(rootPath);
+    if (_loadedRootPaths.contains(normalized)) return;
+
+    final songs = await _repository.getSongsUnderPath(normalized);
+    final cachedFolder = _buildCachedFolderTree(
+      songs: songs,
+      rootPath: normalized,
+      rootName: _displayNameForPath(normalized),
+    );
+    if (cachedFolder != null) {
+      _folderSorter.sortFolderRecursiveForTree(
+        cachedFolder,
+        resolveSettings: _resolveSortSettingsForFolder,
+      );
+      _upsertScannedRootFolder(cachedFolder);
+      _seedMetadataCache(songs);
+      _loadedRootPaths.add(normalized);
+      _rebuildDisplayedRootFolders();
+      _syncNavigationStateToLatestTree();
+      notifyListeners();
+    }
+  }
+
+  Future<void> loadSystemMediaFolderSongs() async {
+    if (_loadedRootPaths.contains('system')) return;
+
+    await _loadCachedSystemMediaFolderFromDatabase();
+    if (_systemMediaFolder != null) {
+      _loadedRootPaths.add('system');
+      _rebuildDisplayedRootFolders();
+      _syncNavigationStateToLatestTree();
+      notifyListeners();
+    }
+  }
+
+  void unloadAllRootFolders() {
+    if (_loadedRootPaths.isEmpty) return;
+    _scannedRootFolders.clear();
+    _systemMediaFolder = null;
+    _loadedRootPaths.clear();
+    _rebuildDisplayedRootFolders();
+    _syncNavigationStateToLatestTree();
+    notifyListeners();
+  }
+
+  int getSongCountForFolder(MusicFolder folder) {
+    if (folder.path == 'system') {
+      return _systemSongCount;
+    }
+    final normalized = _normalizePath(folder.path);
+    if (_roots.rootPaths.contains(normalized)) {
+      return _rootSongCounts[normalized] ?? 0;
+    }
+    return folder.allSongs.length;
+  }
+
+  int getSongDurationForFolder(MusicFolder folder) {
+    if (folder.path == 'system') {
+      return _systemSongDuration;
+    }
+    final normalized = _normalizePath(folder.path);
+    if (_roots.rootPaths.contains(normalized)) {
+      return _rootSongDurations[normalized] ?? 0;
+    }
+    return folder.allSongs.fold<int>(0, (sum, song) => sum + (song.durationMillis ?? 0));
+  }
+
+  MusicFile? getRepresentativeSongForFolder(MusicFolder folder) {
+    if (folder.path == 'system') {
+      if (_systemRepresentativeSong == null) return null;
+      return _treeBuilder.musicFileFromSongMetadata(_systemRepresentativeSong!);
+    }
+    final normalized = _normalizePath(folder.path);
+    if (_roots.rootPaths.contains(normalized)) {
+      final rep = _rootRepresentativeSongs[normalized];
+      if (rep == null) return null;
+      return _treeBuilder.musicFileFromSongMetadata(rep);
+    }
+    // Fallback: search in memory
+    for (final file in folder.files) {
+      if (file.thumbnailPath != null || file.id != null) {
+        return file;
+      }
+    }
+    for (final song in folder.allSongs) {
+      if (song.thumbnailPath != null || song.id != null) {
+        return song;
+      }
+    }
+    if (folder.files.isNotEmpty) {
+      return folder.files.first;
+    }
+    if (folder.allSongs.isNotEmpty) {
+      return folder.allSongs.first;
+    }
+    return null;
+  }
+
+  Future<List<MusicFile>> getAllRootSongs() async {
+    final allSongs = <MusicFile>[];
+    final seen = <String>{};
+    // 1. Get all root path songs
+    for (final root in _roots.rootPaths) {
+      final songs = await _repository.getSongsUnderPath(root);
+      for (final song in songs) {
+        if (seen.add(song.path)) {
+          allSongs.add(_treeBuilder.musicFileFromSongMetadata(song));
+        }
+      }
+    }
+    // 2. Get system songs
+    if (Platform.isAndroid) {
+      final sysSongs = await _repository.getAllSongMetadata();
+      for (final song in sysSongs) {
+        if (((song.sourceFlags ?? 0) & SongSourceFlags.systemMedia) != 0) {
+          if (seen.add(song.path)) {
+            allSongs.add(_treeBuilder.musicFileFromSongMetadata(song));
+          }
+        }
+      }
+    }
+    return allSongs;
+  }
+
+  Future<List<MusicFile>> searchSongs(String query) async {
+    final songs = await _repository.searchSongs(query);
+    return songs.map(_treeBuilder.musicFileFromSongMetadata).toList();
   }
 
   void pushNavigationHistory(MusicFolder folder) {
@@ -1416,64 +1570,19 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
           .where(_isRootPathAvailable)
           .toList(growable: false);
       if (availableRoots.isEmpty) return;
-      availableRoots.sort((a, b) {
-        final lengthCompare = b.length.compareTo(a.length);
-        if (lengthCompare != 0) return lengthCompare;
-        return _compareNaturally(a, b);
-      });
 
-      final songs = cachedSongs ?? await _loadCachedSongsFromDatabase();
-      final cachedSongGroups = <String, List<SongMetadata>>{
-        for (final root in availableRoots) root: <SongMetadata>[],
-      };
-
-      for (final song in songs) {
-        if (!_songMatchesSource(
-          song,
-          SongSourceFlags.rootScan,
-          includeLegacy: true,
-        )) {
-          continue;
-        }
-        if (!_shouldKeepSongMetadata(song)) {
-          continue;
-        }
-        final normalizedPath = _normalizePath(song.path);
-        if (normalizedPath.isEmpty) continue;
-
-        for (final root in availableRoots) {
-          if (_pathContains(root, normalizedPath)) {
-            cachedSongGroups[root]!.add(song);
-            break;
-          }
-        }
-      }
-
-      var loadedCount = 0;
       for (final root in availableRoots) {
-        final songs = cachedSongGroups[root]!;
-        if (songs.isEmpty) continue;
+        final count = await _repository.getSongCountUnderPath(root);
+        final duration = await _repository.getSongDurationUnderPath(root);
+        final repSong = await _repository.getRepresentativeSongUnderPath(root);
 
-        final cachedFolder = _buildCachedFolderTree(
-          songs: songs,
-          rootPath: root,
-          rootName: _displayNameForPath(root),
-        );
-        if (cachedFolder == null) {
-          continue;
-        }
-        _upsertScannedRootFolder(cachedFolder);
-        if (seedMetadataCache) {
-          _seedMetadataCache(songs);
-        }
-        loadedCount += songs.length;
-      }
+        _rootSongCounts[root] = count;
+        _rootSongDurations[root] = duration;
+        _rootRepresentativeSongs[root] = repSong;
 
-      if (loadedCount > 0) {
-        debugPrint(
-          '[ScannerService] Loaded cached root folders from songs table '
-          'entries=$loadedCount roots=${availableRoots.length}',
-        );
+        if (repSong != null && seedMetadataCache) {
+          _metadataStore.cacheMetadata(repSong);
+        }
       }
     } catch (e) {
       debugPrint('[ScannerService] Failed to load cached root folders: $e');
@@ -1487,53 +1596,21 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     if (!Platform.isAndroid) return;
 
     try {
-      final songs = cachedSongs ?? await _loadCachedSongsFromDatabase();
-      final filteredSongs = songs.where(
-        (song) =>
-            _songMatchesSource(
-              song,
-              SongSourceFlags.systemMedia,
-              includeLegacy: true,
-            ) &&
-            _shouldKeepSongMetadata(song),
-      );
-      if (filteredSongs.isEmpty) {
-        return;
-      }
+      final count = await _repository.getSystemMediaSongCount();
+      final duration = await _repository.getSystemMediaSongDuration();
+      final repSong = await _repository.getSystemMediaRepresentativeSong();
 
-      _systemMediaFolder = _buildCachedFolderTree(
-        songs: filteredSongs,
-        rootPath: 'system',
-        rootName: _l10n().systemMediaLibrary,
-      );
-      if (_systemMediaFolder != null) {
-        _folderSorter.sortFolderRecursiveForTree(
-          _systemMediaFolder!,
-          resolveSettings: _resolveSortSettingsForFolder,
-        );
-      }
-      if (seedMetadataCache) {
-        _seedMetadataCache(filteredSongs);
-      }
+      _systemSongCount = count;
+      _systemSongDuration = duration;
+      _systemRepresentativeSong = repSong;
 
-      debugPrint(
-        '[ScannerService] Loaded cached system media folder from songs table '
-        'entries=${filteredSongs.length}',
-      );
+      if (repSong != null && seedMetadataCache) {
+        _metadataStore.cacheMetadata(repSong);
+      }
     } catch (e) {
       debugPrint(
         '[ScannerService] Failed to load cached system media folder: $e',
       );
-    }
-  }
-
-  Future<List<SongMetadata>> _loadCachedSongsFromDatabase() async {
-    final stopwatch = Stopwatch()..start();
-    try {
-      return await _repository.getAllSongMetadata();
-    } finally {
-      stopwatch.stop();
-      _logInitTiming('load cached songs helper', stopwatch);
     }
   }
 

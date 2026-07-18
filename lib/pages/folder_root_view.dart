@@ -56,6 +56,27 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
   bool _isSearching = false;
   String _searchQuery = '';
 
+  List<MusicFile> _matchedSongs = [];
+  Timer? _searchDebounce;
+
+  void _performSearch(String query) {
+    _searchDebounce?.cancel();
+    if (query.isEmpty) {
+      setState(() {
+        _matchedSongs = [];
+      });
+      return;
+    }
+    _searchDebounce = Timer(const Duration(milliseconds: 300), () async {
+      final results = await ref.read(scannerServiceProvider).searchSongs(query);
+      if (mounted) {
+        setState(() {
+          _matchedSongs = results;
+        });
+      }
+    });
+  }
+
   @override
   void initState() {
     super.initState();
@@ -74,6 +95,7 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _searchController.dispose();
     _localScrollController.removeListener(_onScroll);
     _localScrollController.dispose();
@@ -126,31 +148,18 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
     final selectionLabel = l10n.selectedFolders(widget.selectedRootPaths.length);
     final rootListBottomPadding = isRootSelectionMode ? 224.0 : 160.0;
 
-    final selectedRootSongs = <MusicFile>[];
-    final seenSelected = <String>{};
-    for (final folder in rootFolders) {
-      if (widget.selectedRootPaths.contains(folder.path)) {
-        for (final song in folder.allSongs) {
-          if (seenSelected.add(song.path)) {
-            selectedRootSongs.add(song);
-          }
-        }
-      }
-    }
-    final allRootSongs = <MusicFile>[];
-    final seenAll = <String>{};
-    for (final folder in rootFolders) {
-      for (final song in folder.allSongs) {
-        if (seenAll.add(song.path)) {
-          allRootSongs.add(song);
-        }
-      }
-    }
-
-    final totalDurationMs = allRootSongs.fold<int>(
+    final totalSongsCount = rootFolders.fold<int>(
       0,
-      (sum, song) => sum + (song.durationMillis ?? 0),
+      (sum, folder) => sum + scanner.getSongCountForFolder(folder),
     );
+    final totalDurationMs = rootFolders.fold<int>(
+      0,
+      (sum, folder) => sum + scanner.getSongDurationForFolder(folder),
+    );
+
+    // We pass stub lists to satisfy LibrarySelectionPanel length checks.
+    final selectedRootSongs = List.filled(widget.selectedRootPaths.length, MusicFile(path: '', name: ''));
+    final allRootSongs = List.filled(rootFolders.length, MusicFile(path: '', name: ''));
 
     Widget rootList;
     if (isRootSelectionMode) {
@@ -227,16 +236,20 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
       final isGrid = settings.folderViewMode == FolderViewMode.hybrid ||
           settings.folderViewMode == FolderViewMode.grid;
 
-      final representativeSong = allRootSongs.isNotEmpty
-          ? _findRepresentativeSongForRoots(rootFolders)
-          : null;
+      final representativeSong = () {
+        for (final folder in rootFolders) {
+          final song = scanner.getRepresentativeSongForFolder(folder);
+          if (song != null) return song;
+        }
+        return null;
+      }();
 
       final matchedRootFolders = _searchQuery.isNotEmpty
           ? _findMatchingFolders(rootFolders, _searchQuery)
           : rootFolders;
 
       final matchedSongs = _searchQuery.isNotEmpty
-          ? _findMatchingSongs(rootFolders, _searchQuery)
+          ? _matchedSongs
           : <MusicFile>[];
 
       final noResults = _searchQuery.isNotEmpty && matchedRootFolders.isEmpty && matchedSongs.isEmpty;
@@ -308,8 +321,8 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
                             path: 'system',
                             name: l10n.systemMediaLibrary,
                           );
-                      final songsCount = systemFolder.allSongs.length;
-                      final representativeSong = findRepresentativeSong(systemFolder);
+                      final songsCount = scanner.getSongCountForFolder(systemFolder);
+                      final representativeSong = scanner.getRepresentativeSongForFolder(systemFolder);
                       
                       return AnimatedOpacity(
                         opacity: 1.0,
@@ -342,14 +355,14 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
                     final folderIndex = showSystemMedia ? index - 1 : index;
                     final folder = matchedRootFolders[folderIndex];
                     final isRootAvailable = scanner.isRootPathAvailable(folder.path);
-                    final representativeSong = findRepresentativeSong(folder);
+                    final representativeSong = scanner.getRepresentativeSongForFolder(folder);
                     return AnimatedOpacity(
                       opacity: isRootAvailable ? 1.0 : 0.45,
                       duration: const Duration(milliseconds: 180),
                       child: HoverableCard(
                         child: FolderGridCard(
                           folder: folder,
-                          songsCount: folder.allSongs.length,
+                          songsCount: scanner.getSongCountForFolder(folder),
                           representativeSong: representativeSong,
                           onTap: isRootAvailable ? () => widget.onNavigateTo(folder) : null,
                           onLongPress: () => widget.onShowFolderBottomSheet(folder, isRoot: true),
@@ -372,7 +385,7 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
               (context, index) {
                 final folder = matchedRootFolders[index];
                 final isRootAvailable = scanner.isRootPathAvailable(folder.path);
-                final representativeSong = findRepresentativeSong(folder);
+                final representativeSong = scanner.getRepresentativeSongForFolder(folder);
                 return AnimatedOpacity(
                   opacity: isRootAvailable ? 1.0 : 0.45,
                   duration: const Duration(milliseconds: 180),
@@ -383,7 +396,7 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
                     ),
                     child: FolderListTile(
                       folder: folder,
-                      songsCount: folder.allSongs.length,
+                      songsCount: scanner.getSongCountForFolder(folder),
                       representativeSong: representativeSong,
                       onTap: isRootAvailable ? () => widget.onNavigateTo(folder) : null,
                       onLongPress: () => widget.onShowFolderBottomSheet(folder, isRoot: true),
@@ -553,7 +566,7 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
             child: FolderHeaderBanner(
               title: l10n.scanDirectory,
               subtitle: '',
-              songsCount: allRootSongs.length,
+              songsCount: totalSongsCount,
               totalDuration: Duration(milliseconds: totalDurationMs),
               coverWidget: representativeSong != null
                   ? SongThumbnail(
@@ -600,16 +613,21 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
                 const SizedBox(width: 8),
                 MediaQuery.of(context).size.width > 480
                     ? FilledButton.tonalIcon(
-                        onPressed: allRootSongs.isEmpty
+                        onPressed: totalSongsCount == 0
                             ? null
-                            : () => audio.playPlaylist(
-                                  allRootSongs,
-                                  source: PlaybackSource(
-                                    type: PlaybackSourceType.folder,
-                                    id: 'root',
-                                    name: l10n.scanDirectory,
-                                  ),
-                                ),
+                            : () async {
+                                final songs = await scanner.getAllRootSongs();
+                                if (songs.isNotEmpty) {
+                                  await audio.playPlaylist(
+                                    songs,
+                                    source: PlaybackSource(
+                                      type: PlaybackSourceType.folder,
+                                      id: 'root',
+                                      name: l10n.scanDirectory,
+                                    ),
+                                  );
+                                }
+                              },
                         icon: const Icon(Icons.play_arrow_rounded, size: 16),
                         label: Text(l10n.playAll),
                         style: FilledButton.styleFrom(
@@ -626,16 +644,21 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
                     : Tooltip(
                         message: l10n.playAll,
                         child: FilledButton.tonal(
-                          onPressed: allRootSongs.isEmpty
+                          onPressed: totalSongsCount == 0
                               ? null
-                              : () => audio.playPlaylist(
-                                    allRootSongs,
-                                    source: PlaybackSource(
-                                      type: PlaybackSourceType.folder,
-                                      id: 'root',
-                                      name: l10n.scanDirectory,
-                                    ),
-                                  ),
+                              : () async {
+                                  final songs = await scanner.getAllRootSongs();
+                                  if (songs.isNotEmpty) {
+                                    await audio.playPlaylist(
+                                      songs,
+                                      source: PlaybackSource(
+                                        type: PlaybackSourceType.folder,
+                                        id: 'root',
+                                        name: l10n.scanDirectory,
+                                      ),
+                                    );
+                                  }
+                                },
                           style: FilledButton.styleFrom(
                             minimumSize: const Size(32, 32),
                             padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -648,16 +671,21 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
                 const SizedBox(width: 8),
                 MediaQuery.of(context).size.width > 480
                     ? FilledButton.tonalIcon(
-                        onPressed: allRootSongs.isEmpty
+                        onPressed: totalSongsCount == 0
                             ? null
-                            : () => audio.playPlaylist(
-                                  List.of(allRootSongs)..shuffle(),
-                                  source: PlaybackSource(
-                                    type: PlaybackSourceType.folder,
-                                    id: 'root',
-                                    name: l10n.scanDirectory,
-                                  ),
-                                ),
+                            : () async {
+                                final songs = await scanner.getAllRootSongs();
+                                if (songs.isNotEmpty) {
+                                  await audio.playPlaylist(
+                                    List.of(songs)..shuffle(),
+                                    source: PlaybackSource(
+                                      type: PlaybackSourceType.folder,
+                                      id: 'root',
+                                      name: l10n.scanDirectory,
+                                    ),
+                                  );
+                                }
+                              },
                         icon: const Icon(Icons.shuffle_rounded, size: 16),
                         label: Text(l10n.shuffle),
                         style: FilledButton.styleFrom(
@@ -674,16 +702,21 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
                     : Tooltip(
                         message: l10n.shuffle,
                         child: FilledButton.tonal(
-                          onPressed: allRootSongs.isEmpty
+                          onPressed: totalSongsCount == 0
                               ? null
-                              : () => audio.playPlaylist(
-                                    List.of(allRootSongs)..shuffle(),
-                                    source: PlaybackSource(
-                                      type: PlaybackSourceType.folder,
-                                      id: 'root',
-                                      name: l10n.scanDirectory,
-                                    ),
-                                  ),
+                              : () async {
+                                  final songs = await scanner.getAllRootSongs();
+                                  if (songs.isNotEmpty) {
+                                    await audio.playPlaylist(
+                                      List.of(songs)..shuffle(),
+                                      source: PlaybackSource(
+                                        type: PlaybackSourceType.folder,
+                                        id: 'root',
+                                        name: l10n.scanDirectory,
+                                      ),
+                                    );
+                                  }
+                                },
                           style: FilledButton.styleFrom(
                             minimumSize: const Size(32, 32),
                             padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -703,12 +736,14 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
                 setState(() {
                   _searchQuery = val.trim();
                 });
+                _performSearch(val.trim());
               },
               onToggleSearch: (val) {
                 setState(() {
                   _isSearching = val;
                   if (!val) {
                     _searchQuery = '';
+                    _matchedSongs = [];
                   }
                 });
               },

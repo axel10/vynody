@@ -18,6 +18,38 @@ class ScannerRepository {
     return _database.getAllSongMetadata();
   }
 
+  Future<List<SongMetadata>> getSongsUnderPath(String rootPath) {
+    return _database.getSongsUnderPath(rootPath);
+  }
+
+  Future<int> getSongCountUnderPath(String rootPath) {
+    return _database.getSongCountUnderPath(rootPath);
+  }
+
+  Future<int> getSongDurationUnderPath(String rootPath) {
+    return _database.getSongDurationUnderPath(rootPath);
+  }
+
+  Future<SongMetadata?> getRepresentativeSongUnderPath(String rootPath) {
+    return _database.getRepresentativeSongUnderPath(rootPath);
+  }
+
+  Future<int> getSystemMediaSongCount() {
+    return _database.getSystemMediaSongCount();
+  }
+
+  Future<int> getSystemMediaSongDuration() {
+    return _database.getSystemMediaSongDuration();
+  }
+
+  Future<SongMetadata?> getSystemMediaRepresentativeSong() {
+    return _database.getSystemMediaRepresentativeSong();
+  }
+
+  Future<List<SongMetadata>> searchSongs(String query) {
+    return _database.searchSongs(query);
+  }
+
   Future<SongMetadata?> getSongMetadata(String path) {
     return _database.getSongMetadata(path);
   }

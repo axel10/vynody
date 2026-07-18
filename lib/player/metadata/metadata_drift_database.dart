@@ -461,6 +461,175 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
     return rows.map(_songFromQueryRow).toList(growable: false);
   }
 
+  Future<List<SongMetadata>> getSongsUnderPath(String rootPath) async {
+    final normalized = _normalizePath(rootPath);
+    if (normalized.isEmpty) return const [];
+    final separator = Platform.isWindows ? '\\' : '/';
+    final prefixPattern = normalized.endsWith(separator) ? '$normalized%' : '$normalized$separator%';
+    final rows = await customSelect(
+      '''
+      SELECT *
+      FROM songs
+      WHERE (path = ? OR path LIKE ?)
+        AND deletedAt IS NULL
+      ORDER BY LOWER(path) ASC
+      ''',
+      variables: [Variable(normalized), Variable(prefixPattern)],
+      readsFrom: {songs},
+    ).get();
+    return rows.map(_songFromQueryRow).toList(growable: false);
+  }
+
+  Future<int> getSongCountUnderPath(String rootPath) async {
+    final normalized = _normalizePath(rootPath);
+    if (normalized.isEmpty) return 0;
+    final separator = Platform.isWindows ? '\\' : '/';
+    final prefixPattern = normalized.endsWith(separator) ? '$normalized%' : '$normalized$separator%';
+    final row = await customSelect(
+      '''
+      SELECT COUNT(*) AS c
+      FROM songs
+      WHERE (path = ? OR path LIKE ?)
+        AND deletedAt IS NULL
+      ''',
+      variables: [Variable(normalized), Variable(prefixPattern)],
+      readsFrom: {songs},
+    ).getSingle();
+    return row.read<int>('c');
+  }
+
+  Future<int> getSongDurationUnderPath(String rootPath) async {
+    final normalized = _normalizePath(rootPath);
+    if (normalized.isEmpty) return 0;
+    final separator = Platform.isWindows ? '\\' : '/';
+    final prefixPattern = normalized.endsWith(separator) ? '$normalized%' : '$normalized$separator%';
+    final row = await customSelect(
+      '''
+      SELECT SUM(duration) AS s
+      FROM songs
+      WHERE (path = ? OR path LIKE ?)
+        AND deletedAt IS NULL
+      ''',
+      variables: [Variable(normalized), Variable(prefixPattern)],
+      readsFrom: {songs},
+    ).getSingle();
+    return row.read<int?>('s') ?? 0;
+  }
+
+  Future<SongMetadata?> getRepresentativeSongUnderPath(String rootPath) async {
+    final normalized = _normalizePath(rootPath);
+    if (normalized.isEmpty) return null;
+    final separator = Platform.isWindows ? '\\' : '/';
+    final prefixPattern = normalized.endsWith(separator) ? '$normalized%' : '$normalized$separator%';
+
+    // 1. Try with artwork
+    var row = await customSelect(
+      '''
+      SELECT *
+      FROM songs
+      WHERE (path = ? OR path LIKE ?)
+        AND deletedAt IS NULL
+        AND artworkPath IS NOT NULL
+      LIMIT 1
+      ''',
+      variables: [Variable(normalized), Variable(prefixPattern)],
+      readsFrom: {songs},
+    ).getSingleOrNull();
+
+    // 2. Try without artwork
+    row ??= await customSelect(
+      '''
+      SELECT *
+      FROM songs
+      WHERE (path = ? OR path LIKE ?)
+        AND deletedAt IS NULL
+      LIMIT 1
+      ''',
+      variables: [Variable(normalized), Variable(prefixPattern)],
+      readsFrom: {songs},
+    ).getSingleOrNull();
+
+    return row == null ? null : _songFromQueryRow(row);
+  }
+
+  Future<int> getSystemMediaSongCount() async {
+    final row = await customSelect(
+      '''
+      SELECT COUNT(*) AS c
+      FROM songs
+      WHERE (sourceFlags & ?) != 0
+        AND deletedAt IS NULL
+      ''',
+      variables: [Variable(SongSourceFlags.systemMedia)],
+      readsFrom: {songs},
+    ).getSingle();
+    return row.read<int>('c');
+  }
+
+  Future<int> getSystemMediaSongDuration() async {
+    final row = await customSelect(
+      '''
+      SELECT SUM(duration) AS s
+      FROM songs
+      WHERE (sourceFlags & ?) != 0
+        AND deletedAt IS NULL
+      ''',
+      variables: [Variable(SongSourceFlags.systemMedia)],
+      readsFrom: {songs},
+    ).getSingle();
+    return row.read<int?>('s') ?? 0;
+  }
+
+  Future<SongMetadata?> getSystemMediaRepresentativeSong() async {
+    var row = await customSelect(
+      '''
+      SELECT *
+      FROM songs
+      WHERE (sourceFlags & ?) != 0
+        AND deletedAt IS NULL
+        AND artworkPath IS NOT NULL
+      LIMIT 1
+      ''',
+      variables: [Variable(SongSourceFlags.systemMedia)],
+      readsFrom: {songs},
+    ).getSingleOrNull();
+
+    row ??= await customSelect(
+      '''
+      SELECT *
+      FROM songs
+      WHERE (sourceFlags & ?) != 0
+        AND deletedAt IS NULL
+      LIMIT 1
+      ''',
+      variables: [Variable(SongSourceFlags.systemMedia)],
+      readsFrom: {songs},
+    ).getSingleOrNull();
+
+    return row == null ? null : _songFromQueryRow(row);
+  }
+
+  Future<List<SongMetadata>> searchSongs(String query) async {
+    final pattern = '%$query%';
+    final rows = await customSelect(
+      '''
+      SELECT *
+      FROM songs
+      WHERE (title LIKE ? OR artist LIKE ? OR album LIKE ? OR path LIKE ?)
+        AND deletedAt IS NULL
+      ORDER BY LOWER(path) ASC
+      ''',
+      variables: [
+        Variable(pattern),
+        Variable(pattern),
+        Variable(pattern),
+        Variable(pattern),
+      ],
+      readsFrom: {songs},
+    ).get();
+    return rows.map(_songFromQueryRow).toList(growable: false);
+  }
+
   Stream<SongMetadata?> watchSongMetadata(String path) {
     final normalizedPath = _normalizePath(path);
     if (normalizedPath.isEmpty) {

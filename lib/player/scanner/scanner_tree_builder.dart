@@ -156,7 +156,7 @@ class ScannerTreeBuilder {
 
       items.add(
         _FolderItem(
-          file: _musicFileFromSongMetadata(song.copyWith(path: normalizedPath)),
+          file: musicFileFromSongMetadata(song.copyWith(path: normalizedPath)),
           folderPath: folderPath,
         ),
       );
@@ -189,7 +189,7 @@ class ScannerTreeBuilder {
     }
   }
 
-  MusicFile _musicFileFromSongMetadata(SongMetadata song) {
+  MusicFile musicFileFromSongMetadata(SongMetadata song) {
     return MusicFile(
       path: song.path,
       name: p.basename(song.path),
