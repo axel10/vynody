@@ -7,6 +7,16 @@ analyzer:
     - "build-flatpak/**"
     - "build/**"
     - ".dart_tool/**"
+    - "Bonsoir/**"
+    - "audio_core/**"
+    - "audio_metadata_reader/**"
+    - "flutter_taglib/**"
+    - "flutter_tray/**"
+    - "linux_directory_access/**"
+    - "mesh-gradient/**"
+    - "mobile_storage_listener/**"
+    - "proxy_getter/**"
+    - "window_manager/**"
 
 # This file configures the analyzer, which statically analyzes Dart code to
 # check for errors, warnings, and lints.
