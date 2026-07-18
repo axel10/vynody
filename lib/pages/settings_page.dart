@@ -224,6 +224,33 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     };
   }
 
+  List<_SettingsSection> get _sidebarSections => [
+        _SettingsSection.general,
+        _SettingsSection.scanning,
+        _SettingsSection.tags,
+        _SettingsSection.transcode,
+        _SettingsSection.lyrics,
+        _SettingsSection.acoustid,
+        _SettingsSection.shortcuts,
+        if (Platform.isWindows) _SettingsSection.windows,
+        _SettingsSection.about,
+      ];
+
+  IconData _sectionIcon(_SettingsSection section) {
+    return switch (section) {
+      _SettingsSection.home => Icons.settings,
+      _SettingsSection.general => Icons.tune_rounded,
+      _SettingsSection.scanning => Icons.search_rounded,
+      _SettingsSection.tags => Icons.label_outline_rounded,
+      _SettingsSection.transcode => Icons.swap_horiz_rounded,
+      _SettingsSection.lyrics => Icons.auto_awesome_rounded,
+      _SettingsSection.acoustid => Icons.graphic_eq_rounded,
+      _SettingsSection.shortcuts => Icons.keyboard_rounded,
+      _SettingsSection.windows => Icons.open_in_new_rounded,
+      _SettingsSection.about => Icons.info_outline_rounded,
+    };
+  }
+
   Widget _buildWindowsSection(BuildContext context) {
     if (!Platform.isWindows) return const SizedBox.shrink();
 
@@ -2095,24 +2122,156 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     );
   }
 
-  Widget _buildRootScaffold(BuildContext context, SettingsService settings) {
-    final title = _sectionTitle(context, _currentSection);
+  Widget _buildSidebar(BuildContext context, _SettingsSection activeSection) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
 
-    return Scaffold(
-      appBar: AppBar(
-        scrolledUnderElevation: 0,
-        surfaceTintColor: Colors.transparent,
-        notificationPredicate: (_) => false,
-        title: Text(title),
-        leading: _currentSection == _SettingsSection.home
-            ? null
-            : IconButton(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 20, 24, 16),
+          child: Row(
+            children: [
+              IconButton(
                 icon: const Icon(Icons.arrow_back),
-                onPressed: _goHome,
+                onPressed: () => Navigator.of(context).pop(),
               ),
-      ),
-      body: _buildBody(context, settings),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  l10n.settings,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: ListView.builder(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            itemCount: _sidebarSections.length,
+            itemBuilder: (context, index) {
+              final section = _sidebarSections[index];
+              final isSelected = section == activeSection;
+              final icon = _sectionIcon(section);
+              final title = _sectionTitle(context, section);
+
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 2),
+                child: ListTile(
+                  horizontalTitleGap: 12,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  selected: isSelected,
+                  selectedTileColor: theme.colorScheme.primaryContainer.withValues(alpha: 0.4),
+                  selectedColor: theme.colorScheme.primary,
+                  textColor: theme.colorScheme.onSurfaceVariant,
+                  iconColor: theme.colorScheme.onSurfaceVariant,
+                  leading: Icon(icon, size: 20),
+                  title: Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                    ),
+                  ),
+                  onTap: () => _openSection(section),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
+  }
+
+  Widget _buildDetailPane(
+    BuildContext context,
+    SettingsService settings,
+    _SettingsSection activeSection,
+  ) {
+    final currentBody = switch (activeSection) {
+      _SettingsSection.home => _buildGeneralPage(context, settings),
+      _SettingsSection.general => _buildGeneralPage(context, settings),
+      _SettingsSection.scanning => _buildScanningPage(context, settings),
+      _SettingsSection.tags => _buildTagsPage(context, settings),
+      _SettingsSection.transcode => _buildTranscodePage(context, settings),
+      _SettingsSection.lyrics => _buildLyricsPage(context, settings),
+      _SettingsSection.acoustid => _buildAcoustidPage(context, settings),
+      _SettingsSection.shortcuts => _buildShortcutsPage(context),
+      _SettingsSection.windows => _buildWindowsPage(context),
+      _SettingsSection.about => _buildAboutPage(context),
+    };
+
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 180),
+      child: KeyedSubtree(
+        key: ValueKey(activeSection),
+        child: Align(
+          alignment: Alignment.topLeft,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1000),
+            child: currentBody,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRootScaffold(BuildContext context, SettingsService settings) {
+    final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+
+    if (isLandscape) {
+      final activeSection = _currentSection == _SettingsSection.home
+          ? _SettingsSection.general
+          : _currentSection;
+
+      return Scaffold(
+        body: Row(
+          children: [
+            Container(
+              width: 280,
+              decoration: BoxDecoration(
+                border: Border(
+                  right: BorderSide(
+                    color: Theme.of(context).dividerColor.withValues(alpha: 0.5),
+                    width: 1,
+                  ),
+                ),
+              ),
+              child: _buildSidebar(context, activeSection),
+            ),
+            Expanded(
+              child: _buildDetailPane(context, settings, activeSection),
+            ),
+          ],
+        ),
+      );
+    } else {
+      final title = _sectionTitle(context, _currentSection);
+
+      return Scaffold(
+        appBar: AppBar(
+          scrolledUnderElevation: 0,
+          surfaceTintColor: Colors.transparent,
+          notificationPredicate: (_) => false,
+          title: Text(title),
+          leading: _currentSection == _SettingsSection.home
+              ? null
+              : IconButton(
+                  icon: const Icon(Icons.arrow_back),
+                  onPressed: _goHome,
+                ),
+        ),
+        body: _buildBody(context, settings),
+      );
+    }
   }
 
   @override
