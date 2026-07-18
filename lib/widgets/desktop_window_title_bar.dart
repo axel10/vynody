@@ -31,7 +31,6 @@ class DesktopWindowTitleBar extends ConsumerStatefulWidget {
 
 class _DesktopWindowTitleBarState extends ConsumerState<DesktopWindowTitleBar>
     with WindowListener {
-  bool _isFullScreen = false;
   bool _isMaximized = false;
 
   @override
@@ -55,9 +54,9 @@ class _DesktopWindowTitleBarState extends ConsumerState<DesktopWindowTitleBar>
     if (!mounted) return;
 
     setState(() {
-      _isFullScreen = isFull;
       _isMaximized = isMax;
     });
+    ref.read(isWindowFullScreenProvider.notifier).state = isFull;
   }
 
   @override
@@ -96,11 +95,13 @@ class _DesktopWindowTitleBarState extends ConsumerState<DesktopWindowTitleBar>
     } else {
       await windowManager.setFullScreen(false);
     }
+    ref.read(isWindowFullScreenProvider.notifier).state = enable;
     await _syncWindowState();
   }
 
   @override
   Widget build(BuildContext context) {
+    final isFullScreen = ref.watch(isWindowFullScreenProvider);
     final isMacOS = Platform.isMacOS;
     final isWindowsOrLinux = Platform.isWindows || Platform.isLinux;
     final settings = ref.watch(settingsServiceProvider);
@@ -117,7 +118,7 @@ class _DesktopWindowTitleBarState extends ConsumerState<DesktopWindowTitleBar>
         windowManager.startDragging();
       },
       onDoubleTap: () async {
-        if (_isFullScreen) return;
+        if (isFullScreen) return;
         if (isSmallWindowMode) return;
         if (_isMaximized) {
           await windowManager.unmaximize();
@@ -271,19 +272,19 @@ class _DesktopWindowTitleBarState extends ConsumerState<DesktopWindowTitleBar>
                       ],
                       if (!isSmallWindowMode) ...[
                         _CapsuleButtonData(
-                          icon: _isFullScreen
+                          icon: isFullScreen
                               ? Icons.fullscreen_exit
                               : Icons.fullscreen,
                           iconSize: 16,
                           onPressed: () async {
-                            await _setFullScreen(!_isFullScreen);
+                            await _setFullScreen(!isFullScreen);
                           },
                         ),
                         _CapsuleButtonData(
                           icon: Icons.remove,
                           iconSize: 16,
                           onPressed: () async {
-                            if (_isFullScreen) {
+                            if (isFullScreen) {
                               await _setFullScreen(false);
                             }
                             await windowManager.minimize();
@@ -295,7 +296,7 @@ class _DesktopWindowTitleBarState extends ConsumerState<DesktopWindowTitleBar>
                               : Icons.crop_square,
                           iconSize: 12,
                           onPressed: () async {
-                            if (_isFullScreen) {
+                            if (isFullScreen) {
                               await _setFullScreen(false);
                             } else if (_isMaximized) {
                               await windowManager.unmaximize();

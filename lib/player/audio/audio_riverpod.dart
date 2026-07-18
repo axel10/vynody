@@ -37,6 +37,8 @@ final audioServiceProvider = Provider<AudioService>((ref) {
 
 final isWindowMinimizedProvider = StateProvider<bool>((ref) => false);
 
+final isWindowFullScreenProvider = StateProvider<bool>((ref) => false);
+
 final scannerServiceProvider = ChangeNotifierProvider<ScannerService>((ref) {
   return ScannerService();
 });

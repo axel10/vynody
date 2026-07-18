@@ -250,6 +250,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
           setState(() {
             _isFullScreen = isFull;
           });
+          ref.read(isWindowFullScreenProvider.notifier).state = isFull;
         }
       });
     }
@@ -308,6 +309,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
     setState(() {
       _isFullScreen = true;
     });
+    ref.read(isWindowFullScreenProvider.notifier).state = true;
     debugPrint('[main_layout] Window entered full screen');
   }
 
@@ -316,6 +318,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
     setState(() {
       _isFullScreen = false;
     });
+    ref.read(isWindowFullScreenProvider.notifier).state = false;
     debugPrint('[main_layout] Window left full screen');
   }
 
@@ -359,6 +362,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
       setState(() {
         _isFullScreen = enable;
       });
+      ref.read(isWindowFullScreenProvider.notifier).state = enable;
     }
   }
 
