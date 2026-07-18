@@ -358,6 +358,8 @@ class SettingsService extends ChangeNotifier {
   static const String _keyTranscodeDefaultQualityTier =
       'transcode_default_quality_tier';
 
+  static const String _keyRegularWindowWidth = 'regular_window_width';
+  static const String _keyRegularWindowHeight = 'regular_window_height';
   static const String _keySmallWindowWidth = 'small_window_width';
   static const String _keySmallWindowHeight = 'small_window_height';
   static const String _keySmallWindowBottomPanelMode =
@@ -379,6 +381,20 @@ class SettingsService extends ChangeNotifier {
   Map<String, ShortcutBinding> _shortcutBindings;
 
   // SettingProperty definitions for all configuration options
+  late final _regularWindowWidthProperty = SettingProperty<double>(
+    key: _keyRegularWindowWidth,
+    defaultValue: 1280.0,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
+  late final _regularWindowHeightProperty = SettingProperty<double>(
+    key: _keyRegularWindowHeight,
+    defaultValue: 720.0,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
   late final _hasShownOnboardingProperty = SettingProperty<bool>(
     key: _keyHasShownOnboarding,
     defaultValue: false,
@@ -2062,7 +2078,15 @@ class SettingsService extends ChangeNotifier {
   bool get isSmallWindowBottomPanelExpanded =>
       smallWindowBottomPanelMode != SmallWindowBottomPanelMode.collapsed;
 
-  Size? savedRegularWindowSize;
+  Size get savedRegularWindowSize => Size(
+        _regularWindowWidthProperty.value.clamp(400.0, 99999.0),
+        _regularWindowHeightProperty.value.clamp(650.0, 99999.0),
+      );
+
+  set savedRegularWindowSize(Size size) {
+    _regularWindowWidthProperty.value = size.width.clamp(400.0, 99999.0);
+    _regularWindowHeightProperty.value = size.height.clamp(650.0, 99999.0);
+  }
 }
 
 abstract final class LyricsModelRecommendation {

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -145,6 +146,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
   bool _isFullScreen = false;
   DateTime? _lastBackPressedAt;
   DateTime? _ignoreResizeEventsUntil;
+  Timer? _windowResizeDebounceTimer;
   late final MainLayoutUiController _uiController;
   late final AppShortcutManager _shortcutManager;
   final GlobalKey<FoldersPageState> _foldersPageKey =
@@ -267,6 +269,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
   @override
   void dispose() {
     _onboardingAnimController?.dispose();
+    _windowResizeDebounceTimer?.cancel();
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
       windowManager.removeListener(this);
     }
@@ -323,7 +326,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
   }
 
   @override
-  void onWindowResized() async {
+  void onWindowResized() {
     if (_ignoreResizeEventsUntil != null &&
         DateTime.now().isBefore(_ignoreResizeEventsUntil!)) {
       debugPrint(
@@ -331,25 +334,36 @@ class _MainLayoutState extends ConsumerState<MainLayout>
       );
       return;
     }
-    final settings = ref.read(settingsServiceProvider);
-    if (settings.isSmallWindowMode) {
-      final size = await windowManager.getSize();
-      debugPrint(
-        '[vynody] onWindowResized: size=$size, mode=${settings.smallWindowBottomPanelMode}',
-      );
-      if (settings.smallWindowBottomPanelMode !=
-          SmallWindowBottomPanelMode.collapsed) {
-        settings.savedSmallWindowQueueSize = size;
-        debugPrint('[vynody] savedSmallWindowQueueSize updated to $size');
+    _windowResizeDebounceTimer?.cancel();
+    _windowResizeDebounceTimer = Timer(const Duration(milliseconds: 300), () async {
+      if (!mounted) return;
+      final settings = ref.read(settingsServiceProvider);
+      if (settings.isSmallWindowMode) {
+        final size = await windowManager.getSize();
+        debugPrint(
+          '[vynody] onWindowResized (debounced): size=$size, mode=${settings.smallWindowBottomPanelMode}',
+        );
+        if (settings.smallWindowBottomPanelMode !=
+            SmallWindowBottomPanelMode.collapsed) {
+          settings.savedSmallWindowQueueSize = size;
+          debugPrint('[vynody] savedSmallWindowQueueSize updated to $size');
+        } else {
+          settings.savedSmallWindowSize = size;
+          debugPrint('[vynody] savedSmallWindowSize updated to $size');
+        }
       } else {
-        settings.savedSmallWindowSize = size;
-        debugPrint('[vynody] savedSmallWindowSize updated to $size');
+        final isMaximized = await windowManager.isMaximized();
+        final isFullScreen = await windowManager.isFullScreen();
+        final isMinimized = await windowManager.isMinimized();
+        if (!isMaximized && !isFullScreen && !isMinimized) {
+          final size = await windowManager.getSize();
+          if (size.width >= 400 && size.height >= 650) {
+            settings.savedRegularWindowSize = size;
+            debugPrint('[vynody] savedRegularWindowSize updated to $size');
+          }
+        }
       }
-    } else {
-      debugPrint(
-        '[vynody] onWindowResized: ignored because isSmallWindowMode is false',
-      );
-    }
+    });
   }
 
   Future<void> _setFullScreen(bool enable) async {
@@ -914,10 +928,13 @@ class _MainLayoutState extends ConsumerState<MainLayout>
           );
           if (nextSmallMode) {
             // Enter small window mode or update small window dimensions
-            if (await windowManager.isFullScreen()) {
+            final isFullScreen = await windowManager.isFullScreen();
+            final isMaximized = await windowManager.isMaximized();
+
+            if (isFullScreen) {
               await windowManager.setFullScreen(false);
             }
-            if (await windowManager.isMaximized()) {
+            if (isMaximized) {
               await windowManager.unmaximize();
             }
             await windowManager.setAlwaysOnTop(
@@ -925,7 +942,8 @@ class _MainLayoutState extends ConsumerState<MainLayout>
             );
 
             // Only save regular size if transitioning from regular mode to small window mode
-            if (!prevSmallMode) {
+            // AND only if the window was in a normal state (not maximized and not fullscreen)
+            if (!prevSmallMode && !isFullScreen && !isMaximized) {
               final currentSize = await windowManager.getSize();
               debugPrint(
                 '[vynody] transitioning from regular to small. currentSize=$currentSize',
@@ -1004,8 +1022,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
 
             await windowManager.setMinimumSize(const Size(400, 650));
             await windowManager.setMaximumSize(const Size(99999, 99999));
-            final savedSize =
-                settings.savedRegularWindowSize ?? const Size(1280, 720);
+            final savedSize = settings.savedRegularWindowSize;
             debugPrint(
               '[vynody] restoring regular window size: savedSize=$savedSize',
             );

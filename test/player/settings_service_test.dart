@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vynody/player/settings/settings_service.dart';
@@ -111,6 +112,32 @@ void main() {
       settingsService.lanSharingFolderPath = '/tmp/vynody-share';
 
       expect(settingsService.hasLanSharingFolderPath, isTrue);
+    });
+  });
+
+  group('SettingsService - Regular Window Size Persistence', () {
+    test('default value is 1280x720', () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final settingsService = SettingsService(prefs);
+
+      expect(settingsService.savedRegularWindowSize.width, 1280.0);
+      expect(settingsService.savedRegularWindowSize.height, 720.0);
+    });
+
+    test('saves and restores size with clamping', () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final settingsService = SettingsService(prefs);
+
+      settingsService.savedRegularWindowSize = const Size(1024, 768);
+      expect(settingsService.savedRegularWindowSize.width, 1024.0);
+      expect(settingsService.savedRegularWindowSize.height, 768.0);
+
+      // Verify clamping limits (minimum width 400, height 650)
+      settingsService.savedRegularWindowSize = const Size(300, 500);
+      expect(settingsService.savedRegularWindowSize.width, 400.0);
+      expect(settingsService.savedRegularWindowSize.height, 650.0);
     });
   });
 }

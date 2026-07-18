@@ -239,12 +239,16 @@ void main(List<String> args) async {
         }
       }
 
+      AppLog.log('initializing settings service', mirrorToConsole: true);
+      final settingsService = await SettingsService.init();
+      MemoryTrace.snapshot('main:settings-ready');
+
       if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
         AppLog.log('initializing window manager', mirrorToConsole: true);
         await windowManager.ensureInitialized();
-        WindowOptions windowOptions = const WindowOptions(
-          size: Size(1280, 720),
-          minimumSize: Size(400, 650),
+        WindowOptions windowOptions = WindowOptions(
+          size: settingsService.savedRegularWindowSize,
+          minimumSize: const Size(400, 650),
           center: true,
           backgroundColor: Colors.transparent,
           skipTaskbar: false,
@@ -263,10 +267,6 @@ void main(List<String> args) async {
         AppLog.log('initializing SMTCWindows', mirrorToConsole: true);
         await SMTCWindows.initialize();
       }
-
-      AppLog.log('initializing settings service', mirrorToConsole: true);
-      final settingsService = await SettingsService.init();
-      MemoryTrace.snapshot('main:settings-ready');
 
       if (Platform.isWindows) {
         try {
