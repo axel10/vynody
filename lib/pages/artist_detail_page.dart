@@ -585,11 +585,12 @@ class _AlbumSectionCard extends StatelessWidget {
               },
             ),
             const SizedBox(height: 16),
-            Container(
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surface,
+            Material(
+              color: theme.colorScheme.surface,
+              clipBehavior: Clip.antiAlias,
+              shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(
+                side: BorderSide(
                   color: theme.colorScheme.outlineVariant.withValues(
                     alpha: 0.35,
                   ),
@@ -618,6 +619,16 @@ class _AlbumSectionCard extends StatelessWidget {
                       onLongPress: () => onSongLongPress(section.songs[i]),
                       isSelectionMode: isSelectionMode,
                       isSelected: selectedSongPaths.contains(section.songs[i].path),
+                      borderRadius: BorderRadius.only(
+                        topLeft: i == 0 ? const Radius.circular(18) : Radius.zero,
+                        topRight: i == 0 ? const Radius.circular(18) : Radius.zero,
+                        bottomLeft: i == section.songs.length - 1
+                            ? const Radius.circular(18)
+                            : Radius.zero,
+                        bottomRight: i == section.songs.length - 1
+                            ? const Radius.circular(18)
+                            : Radius.zero,
+                      ),
                     ),
                   ],
                 ],
@@ -640,6 +651,7 @@ class _AlbumSongTile extends StatelessWidget {
     required this.onLongPress,
     this.isSelectionMode = false,
     this.isSelected = false,
+    this.borderRadius,
   });
 
   final MusicFile song;
@@ -650,6 +662,7 @@ class _AlbumSongTile extends StatelessWidget {
   final VoidCallback onLongPress;
   final bool isSelectionMode;
   final bool isSelected;
+  final BorderRadius? borderRadius;
 
   @override
   Widget build(BuildContext context) {
@@ -661,6 +674,9 @@ class _AlbumSongTile extends StatelessWidget {
       child: Material(
         type: MaterialType.transparency,
         child: ListTile(
+          shape: borderRadius != null
+              ? RoundedRectangleBorder(borderRadius: borderRadius!)
+              : null,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           selected: isSelectionMode ? isSelected : isCurrent,
           selectedTileColor: theme.colorScheme.primaryContainer.withValues(

@@ -1768,6 +1768,15 @@ class PlaybackHeroCard extends ConsumerWidget {
                     tooltip: l10n.more,
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
+                    style: IconButton.styleFrom(
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    icon: Icon(
+                      Icons.more_horiz,
+                      size: PlaybackHeroCardUiTuning.lLyricsTitleIconSize *
+                          controlsScale,
+                      color: Colors.white70,
+                    ),
                     onSelected: (value) async {
                       final audio = ref.read(audioServiceProvider);
                       switch (value) {
@@ -1860,20 +1869,6 @@ class PlaybackHeroCard extends ConsumerWidget {
                         context: context,
                       ),
                     ],
-                    child: SizedBox(
-                      width: PlaybackHeroCardUiTuning.lLyricsTitleButtonHeight *
-                          controlsScale,
-                      height: PlaybackHeroCardUiTuning.lLyricsTitleButtonHeight *
-                          controlsScale,
-                      child: Center(
-                        child: Icon(
-                          Icons.more_horiz,
-                          size: PlaybackHeroCardUiTuning.lLyricsTitleIconSize *
-                              controlsScale,
-                          color: Colors.white70,
-                        ),
-                      ),
-                    ),
                   ),
                 ),
               ),
