@@ -497,10 +497,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       );
       await _timeInitStep('load sort settings', _loadSortSettings);
       await _timeInitStep('load scan settings', _loadScanSettings);
-      final cachedSongs = await _timeInitStep(
-        'load cached songs from database',
-        _loadCachedSongsFromDatabase,
-      );
+      final cachedSongs = const <SongMetadata>[];
       await _timeInitStep(
         'load cached root folders from database',
         () => _loadCachedRootFoldersFromDatabase(cachedSongs: cachedSongs),
