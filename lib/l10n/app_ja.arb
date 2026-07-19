@@ -1373,5 +1373,10 @@
         "type": "int"
       }
     }
-  }
+  },
+  "exportLogs": "ログをエクスポート",
+  "exportLogsSuccess": "ログのエクスポートに成功しました",
+  "exportLogsFailed": "ログのエクスポートに失敗しました",
+  "noLogFileFound": "ログファイルが見つかりません"
 }
+

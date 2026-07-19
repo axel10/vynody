@@ -2995,4 +2995,16 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get invalidBackupFile => '無効なバックアップファイル';
+
+  @override
+  String get exportLogs => 'ログをエクスポート';
+
+  @override
+  String get exportLogsSuccess => 'ログのエクスポートに成功しました';
+
+  @override
+  String get exportLogsFailed => 'ログのエクスポートに失敗しました';
+
+  @override
+  String get noLogFileFound => 'ログファイルが見つかりません';
 }

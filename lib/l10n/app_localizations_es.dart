@@ -3139,4 +3139,16 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get invalidBackupFile => 'Archivo de respaldo no válido';
+
+  @override
+  String get exportLogs => 'Exportar registros';
+
+  @override
+  String get exportLogsSuccess => 'Registros exportados con éxito';
+
+  @override
+  String get exportLogsFailed => 'Error al exportar registros';
+
+  @override
+  String get noLogFileFound => 'No se encontró el archivo de registro';
 }

@@ -3131,4 +3131,16 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get invalidBackupFile => 'Ungültige Sicherungsdatei';
+
+  @override
+  String get exportLogs => 'Protokolle exportieren';
+
+  @override
+  String get exportLogsSuccess => 'Protokolle erfolgreich exportiert';
+
+  @override
+  String get exportLogsFailed => 'Exportieren der Protokolle fehlgeschlagen';
+
+  @override
+  String get noLogFileFound => 'Keine Protokolldatei gefunden';
 }

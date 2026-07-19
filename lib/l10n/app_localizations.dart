@@ -5574,6 +5574,30 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'无效的备份文件'**
   String get invalidBackupFile;
+
+  /// No description provided for @exportLogs.
+  ///
+  /// In zh, this message translates to:
+  /// **'导出日志'**
+  String get exportLogs;
+
+  /// No description provided for @exportLogsSuccess.
+  ///
+  /// In zh, this message translates to:
+  /// **'日志已成功导出'**
+  String get exportLogsSuccess;
+
+  /// No description provided for @exportLogsFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'导出日志失败'**
+  String get exportLogsFailed;
+
+  /// No description provided for @noLogFileFound.
+  ///
+  /// In zh, this message translates to:
+  /// **'未找到日志文件'**
+  String get noLogFileFound;
 }
 
 class _AppLocalizationsDelegate

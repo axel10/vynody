@@ -2999,4 +2999,16 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get invalidBackupFile => '유효하지 않은 백업 파일';
+
+  @override
+  String get exportLogs => '로그 내보내기';
+
+  @override
+  String get exportLogsSuccess => '로그를 성공적으로 내보냈습니다';
+
+  @override
+  String get exportLogsFailed => '로그 내보내기 실패';
+
+  @override
+  String get noLogFileFound => '로그 파일을 찾을 수 없습니다';
 }

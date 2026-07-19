@@ -3095,4 +3095,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get invalidBackupFile => 'Invalid backup file';
+
+  @override
+  String get exportLogs => 'Export Logs';
+
+  @override
+  String get exportLogsSuccess => 'Logs exported successfully';
+
+  @override
+  String get exportLogsFailed => 'Failed to export logs';
+
+  @override
+  String get noLogFileFound => 'No log file found';
 }

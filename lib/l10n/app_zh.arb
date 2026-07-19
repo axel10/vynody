@@ -1729,5 +1729,10 @@
   "skipThis": "跳过",
   "overwriteRemaining": "覆盖后续所有",
   "skipRemaining": "跳过后续所有",
-  "invalidBackupFile": "无效的备份文件"
+  "invalidBackupFile": "无效的备份文件",
+  "exportLogs": "导出日志",
+  "exportLogsSuccess": "日志已成功导出",
+  "exportLogsFailed": "导出日志失败",
+  "noLogFileFound": "未找到日志文件"
 }
+

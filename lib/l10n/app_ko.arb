@@ -1274,5 +1274,10 @@
         "type": "int"
       }
     }
-  }
+  },
+  "exportLogs": "로그 내보내기",
+  "exportLogsSuccess": "로그를 성공적으로 내보냈습니다",
+  "exportLogsFailed": "로그 내보내기 실패",
+  "noLogFileFound": "로그 파일을 찾을 수 없습니다"
 }
+

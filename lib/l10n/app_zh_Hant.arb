@@ -969,5 +969,10 @@
         "type": "int"
       }
     }
-  }
+  },
+  "exportLogs": "匯出日誌",
+  "exportLogsSuccess": "日誌已成功匯出",
+  "exportLogsFailed": "匯出日誌失敗",
+  "noLogFileFound": "未找到日誌檔案"
 }
+

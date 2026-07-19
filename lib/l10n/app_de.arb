@@ -1274,5 +1274,10 @@
         "type": "int"
       }
     }
-  }
+  },
+  "exportLogs": "Protokolle exportieren",
+  "exportLogsSuccess": "Protokolle erfolgreich exportiert",
+  "exportLogsFailed": "Exportieren der Protokolle fehlgeschlagen",
+  "noLogFileFound": "Keine Protokolldatei gefunden"
 }
+

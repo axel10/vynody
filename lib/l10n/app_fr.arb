@@ -1274,5 +1274,10 @@
         "type": "int"
       }
     }
-  }
+  },
+  "exportLogs": "Exporter les journaux",
+  "exportLogsSuccess": "Journaux exportés avec succès",
+  "exportLogsFailed": "Échec de l'exportation des journaux",
+  "noLogFileFound": "Aucun fichier journal trouvé"
 }
+

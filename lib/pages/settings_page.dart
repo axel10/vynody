@@ -3,11 +3,12 @@ import 'dart:convert';
 import 'dart:async';
 import 'package:flutter/services.dart';
 import '../utils/file_selector_helper.dart';
+import '../utils/app_log.dart';
 import 'package:vynody/player/lyrics/lyrics_cache_models.dart';
 import 'package:vynody/player/lyrics/lyrics_cache_repository.dart';
 import 'package:vynody/player/lyrics/lyrics_import_export_service.dart';
 
-import 'package:audio_core/audio_core.dart';
+import 'package:audio_core/audio_core.dart' hide AppLog;
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -52,6 +53,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   String _appVersion = '';
   bool _isAssociated = false;
   bool _isCheckingUpdates = false;
+  bool _isExportingLogs = false;
   _SettingsSection _currentSection = _SettingsSection.home;
 
   @override
@@ -190,6 +192,73 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       if (mounted) {
         setState(() {
           _isCheckingUpdates = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _exportLogs() async {
+    if (_isExportingLogs) return;
+
+    final logPath = AppLog.logFilePath;
+    if (logPath == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context)!.noLogFileFound)),
+        );
+      }
+      return;
+    }
+
+    final logFile = File(logPath);
+    if (!await logFile.exists()) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context)!.noLogFileFound)),
+        );
+      }
+      return;
+    }
+
+    setState(() {
+      _isExportingLogs = true;
+    });
+
+    try {
+      await AppLog.flush();
+
+      final suggestedName = 'vynody_${DateTime.now().millisecondsSinceEpoch}.log';
+      final path = await FileSelectorHelper.saveFile(
+        suggestedName: suggestedName,
+        label: 'Log',
+        extensions: const ['log'],
+        dialogTitle: 'Export Logs',
+      );
+
+      if (path != null) {
+        await logFile.copy(path);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(AppLocalizations.of(context)!.exportLogsSuccess),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '${AppLocalizations.of(context)!.exportLogsFailed}: $e',
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isExportingLogs = false;
         });
       }
     }
@@ -2067,6 +2136,18 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                         )
                       : const Icon(Icons.system_update_alt_rounded),
                   label: Text(l10n.checkForUpdates),
+                ),
+                const SizedBox(height: 12),
+                FilledButton.tonalIcon(
+                  onPressed: _isExportingLogs ? null : _exportLogs,
+                  icon: _isExportingLogs
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.description_rounded),
+                  label: Text(l10n.exportLogs),
                 ),
               ],
             ),

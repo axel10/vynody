@@ -1274,5 +1274,10 @@
         "type": "int"
       }
     }
-  }
+  },
+  "exportLogs": "Exportar registros",
+  "exportLogsSuccess": "Registros exportados con éxito",
+  "exportLogsFailed": "Error al exportar registros",
+  "noLogFileFound": "No se encontró el archivo de registro"
 }
+

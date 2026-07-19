@@ -2,6 +2,8 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:file_selector/file_selector.dart' as file_selector;
 
+export 'package:file_picker/file_picker.dart' show FileType;
+
 class FileSelectorHelper {
   FileSelectorHelper._();
 

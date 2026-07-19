@@ -2951,6 +2951,18 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get invalidBackupFile => '无效的备份文件';
+
+  @override
+  String get exportLogs => '导出日志';
+
+  @override
+  String get exportLogsSuccess => '日志已成功导出';
+
+  @override
+  String get exportLogsFailed => '导出日志失败';
+
+  @override
+  String get noLogFileFound => '未找到日志文件';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -5900,4 +5912,16 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get invalidBackupFile => '無效的備份檔案';
+
+  @override
+  String get exportLogs => '匯出日誌';
+
+  @override
+  String get exportLogsSuccess => '日誌已成功匯出';
+
+  @override
+  String get exportLogsFailed => '匯出日誌失敗';
+
+  @override
+  String get noLogFileFound => '未找到日誌檔案';
 }

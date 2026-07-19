@@ -1284,5 +1284,10 @@
   "skipThis": "Skip",
   "overwriteRemaining": "Overwrite All Remaining",
   "skipRemaining": "Skip All Remaining",
-  "invalidBackupFile": "Invalid backup file"
+  "invalidBackupFile": "Invalid backup file",
+  "exportLogs": "Export Logs",
+  "exportLogsSuccess": "Logs exported successfully",
+  "exportLogsFailed": "Failed to export logs",
+  "noLogFileFound": "No log file found"
 }
+

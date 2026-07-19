@@ -3140,4 +3140,16 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get invalidBackupFile => 'Fichier de sauvegarde invalide';
+
+  @override
+  String get exportLogs => 'Exporter les journaux';
+
+  @override
+  String get exportLogsSuccess => 'Journaux exportés avec succès';
+
+  @override
+  String get exportLogsFailed => 'Échec de l\'exportation des journaux';
+
+  @override
+  String get noLogFileFound => 'Aucun fichier journal trouvé';
 }
