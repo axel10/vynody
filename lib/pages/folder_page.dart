@@ -2,9 +2,8 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:file_picker/file_picker.dart';
-import 'package:file_selector/file_selector.dart' as file_selector;
 import 'package:oktoast/oktoast.dart';
+import '../utils/file_selector_helper.dart';
 import 'package:path/path.dart' as p;
 import '../l10n/app_localizations.dart';
 import 'package:vynody/models/music_folder.dart';
@@ -470,13 +469,7 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
   }
 
   Future<String?> _getDirectoryPath() {
-    if (Platform.isWindows || Platform.isLinux) {
-      debugPrint('[FoldersPage] picking directory with file_selector');
-      return file_selector.getDirectoryPath();
-    }
-
-    debugPrint('[FoldersPage] picking directory with file_picker');
-    return FilePicker.getDirectoryPath(lockParentWindow: true);
+    return FileSelectorHelper.pickDirectory();
   }
 
   Future<void> _pickFolder(ScannerService scanner) async {

@@ -3,8 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:file_picker/file_picker.dart';
-import 'package:file_selector/file_selector.dart' as file_selector;
+import '../utils/file_selector_helper.dart';
 import 'package:vynody/player/scanner/scanner_service.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/utils/app_snack_bar.dart';
@@ -112,12 +111,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
   }
 
   Future<String?> _getDirectoryPath() {
-    if (Platform.isWindows || Platform.isLinux) {
-      debugPrint('[Onboarding] picking directory with file_selector');
-      return file_selector.getDirectoryPath();
-    }
-    debugPrint('[Onboarding] picking directory with file_picker');
-    return FilePicker.getDirectoryPath(lockParentWindow: true);
+    return FileSelectorHelper.pickDirectory();
   }
 
   Future<void> _pickFolder(ScannerService scanner) async {

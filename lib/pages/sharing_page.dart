@@ -2,9 +2,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:file_picker/file_picker.dart';
-import 'package:file_selector/file_selector.dart' as file_selector;
 import 'package:oktoast/oktoast.dart';
+import '../utils/file_selector_helper.dart';
 import 'package:path/path.dart' as p;
 import 'package:vynody/player/library/music_file_utils.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
@@ -30,10 +29,7 @@ class _SharingPageState extends ConsumerState<SharingPage> {
   final Set<String> _shownDialogSessionIds = {};
 
   Future<String?> _getDirectoryPath() {
-    if (Platform.isWindows || Platform.isLinux) {
-      return file_selector.getDirectoryPath();
-    }
-    return FilePicker.getDirectoryPath();
+    return FileSelectorHelper.pickDirectory(lockParentWindow: false);
   }
 
   @override
@@ -56,29 +52,13 @@ class _SharingPageState extends ConsumerState<SharingPage> {
 
   Future<void> _handleSendFiles(LanDevice device) async {
     try {
-      List<String> filePaths;
-      if (Platform.isLinux) {
-        final typeGroup = file_selector.XTypeGroup(
-          label: 'Audio Files',
-          extensions: const ['mp3', 'wav', 'flac', 'm4a', 'aac', 'ogg'],
-        );
-        final files = await file_selector.openFiles(
-          acceptedTypeGroups: [typeGroup],
-        );
-        filePaths = files.map((file) => file.path).toList();
-      } else {
-        final result = await FilePicker.pickFiles(
-          type: FileType.custom,
-          allowedExtensions: const ['mp3', 'wav', 'flac', 'm4a', 'aac', 'ogg'],
-          allowMultiple: true,
-        );
-        if (result == null || result.files.isEmpty) {
-          return;
-        }
-        filePaths = result.files.map((f) => f.path).whereType<String>().toList();
-      }
+      final filePaths = await FileSelectorHelper.pickFiles(
+        label: 'Audio Files',
+        extensions: const ['mp3', 'wav', 'flac', 'm4a', 'aac', 'ogg'],
+        fileType: FileType.audio,
+      );
 
-      if (filePaths.isEmpty) {
+      if (filePaths == null || filePaths.isEmpty) {
         return;
       }
 

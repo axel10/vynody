@@ -2,9 +2,8 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui';
 
-import 'package:file_picker/file_picker.dart';
-import 'package:file_selector/file_selector.dart' as file_selector;
 import 'package:flutter/material.dart';
+import '../utils/file_selector_helper.dart';
 
 import '../l10n/app_localizations.dart';
 import 'package:oktoast/oktoast.dart';
@@ -118,23 +117,11 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
 
   Future<void> _pickArtwork() async {
     try {
-      String? path;
-      if (Platform.isLinux) {
-        final typeGroup = file_selector.XTypeGroup(
-          label: 'Images',
-          extensions: const ['jpg', 'jpeg', 'png', 'webp', 'bmp'],
-        );
-        final file = await file_selector.openFile(
-          acceptedTypeGroups: [typeGroup],
-        );
-        path = file?.path;
-      } else {
-        final result = await FilePicker.pickFiles(
-          type: FileType.image,
-          allowMultiple: false,
-        );
-        path = result?.files.single.path;
-      }
+      final path = await FileSelectorHelper.pickFile(
+        label: 'Images',
+        extensions: const ['jpg', 'jpeg', 'png', 'webp', 'bmp'],
+        fileType: FileType.image,
+      );
 
       if (path != null) {
         final file = File(path);

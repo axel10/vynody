@@ -3,8 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:audio_core/audio_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:file_picker/file_picker.dart';
-import 'package:file_selector/file_selector.dart' as file_selector;
+import '../utils/file_selector_helper.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import '../l10n/app_localizations.dart';
@@ -1270,23 +1269,11 @@ class VisualizerOptionsDialog extends ConsumerWidget {
     StateSetter setDialogState,
   ) async {
     try {
-      String? originalPath;
-      if (Platform.isLinux) {
-        final typeGroup = file_selector.XTypeGroup(
-          label: 'Images',
-          extensions: const ['jpg', 'jpeg', 'png', 'webp', 'bmp'],
-        );
-        final file = await file_selector.openFile(
-          acceptedTypeGroups: [typeGroup],
-        );
-        originalPath = file?.path;
-      } else {
-        final result = await FilePicker.pickFiles(
-          type: FileType.image,
-          allowMultiple: false,
-        );
-        originalPath = result?.files.single.path;
-      }
+      final originalPath = await FileSelectorHelper.pickFile(
+        label: 'Images',
+        extensions: const ['jpg', 'jpeg', 'png', 'webp', 'bmp'],
+        fileType: FileType.image,
+      );
 
       if (originalPath != null) {
         final appSupportDir = await getApplicationSupportDirectory();

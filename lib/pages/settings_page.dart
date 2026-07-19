@@ -2,8 +2,7 @@ import 'dart:io';
 import 'dart:convert';
 import 'dart:async';
 import 'package:flutter/services.dart';
-import 'package:file_picker/file_picker.dart';
-import 'package:file_selector/file_selector.dart' as file_selector;
+import '../utils/file_selector_helper.dart';
 import 'package:vynody/player/lyrics/lyrics_cache_models.dart';
 import 'package:vynody/player/lyrics/lyrics_cache_repository.dart';
 import 'package:vynody/player/lyrics/lyrics_import_export_service.dart';
@@ -975,45 +974,20 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   }
 
   Future<String?> _pickSaveJsonPath() async {
-    if (Platform.isLinux || Platform.isMacOS || Platform.isWindows) {
-      const typeGroup = file_selector.XTypeGroup(
-        label: 'JSON',
-        extensions: ['json'],
-      );
-      final fileSaveLocation = await file_selector.getSaveLocation(
-        suggestedName: 'vynody_lyrics_backup.json',
-        acceptedTypeGroups: [typeGroup],
-      );
-      return fileSaveLocation?.path;
-    } else {
-      final path = await FilePicker.saveFile(
-        dialogTitle: 'Export Lyrics',
-        fileName: 'vynody_lyrics_backup.json',
-        type: FileType.custom,
-        allowedExtensions: ['json'],
-      );
-      return path;
-    }
+    return FileSelectorHelper.saveFile(
+      suggestedName: 'vynody_lyrics_backup.json',
+      label: 'JSON',
+      extensions: const ['json'],
+      dialogTitle: 'Export Lyrics',
+    );
   }
 
   Future<String?> _pickOpenJsonPath() async {
-    if (Platform.isLinux) {
-      const typeGroup = file_selector.XTypeGroup(
-        label: 'JSON',
-        extensions: ['json'],
-      );
-      final file = await file_selector.openFile(
-        acceptedTypeGroups: [typeGroup],
-      );
-      return file?.path;
-    } else {
-      final result = await FilePicker.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['json'],
-        allowMultiple: false,
-      );
-      return result?.files.single.path;
-    }
+    return FileSelectorHelper.pickFile(
+      label: 'JSON',
+      extensions: const ['json'],
+      fileType: FileType.custom,
+    );
   }
 
   Future<void> _exportLyrics(BuildContext context) async {
