@@ -313,9 +313,17 @@ class ScannerDirectoryScanner {
     }
 
     const yieldEvery = 256;
-    final pendingDirectories = ListQueue<String>()..add(path);
+    final pendingDirectories = ListQueue<(String, int)>()..add((path, 0));
     final discoveredPaths = <String>[];
     var processedEntries = 0;
+    final visited = <String>{};
+    String rootCanonical;
+    try {
+      rootCanonical = Directory(path).resolveSymbolicLinksSync();
+    } catch (_) {
+      rootCanonical = path;
+    }
+    visited.add(rootCanonical);
 
     while (pendingDirectories.isNotEmpty) {
       if (shouldCancel?.call() ?? false) {
@@ -325,7 +333,13 @@ class ScannerDirectoryScanner {
         );
         break;
       }
-      final currentPath = pendingDirectories.removeFirst();
+      final (currentPath, currentDepth) = pendingDirectories.removeFirst();
+      if (currentDepth > 64) {
+        debugPrint(
+          '[ScannerDirectoryScanner] Max directory depth reached, skipping: $currentPath',
+        );
+        continue;
+      }
       final dir = Directory(currentPath);
       try {
         await for (final entity in dir.list(followLinks: false)) {
@@ -341,7 +355,15 @@ class ScannerDirectoryScanner {
             if (_shouldSkipDirectory(entity.path)) {
               continue;
             }
-            pendingDirectories.add(entity.path);
+            String canonicalPath;
+            try {
+              canonicalPath = entity.resolveSymbolicLinksSync();
+            } catch (_) {
+              canonicalPath = entity.path;
+            }
+            if (visited.add(canonicalPath)) {
+              pendingDirectories.add((entity.path, currentDepth + 1));
+            }
           } else if (entity is File &&
               !_shouldSkipAppleDoubleFile(entity.path) &&
               MusicFileUtils.isMusicFilePath(entity.path)) {
@@ -450,11 +472,25 @@ Future<void> _discoverMusicFilesIsolateEntry(
   }
 
   const batchSize = 128;
-  final pendingDirectories = ListQueue<String>()..add(request.rootPath);
+  final pendingDirectories = ListQueue<(String, int)>()..add((request.rootPath, 0));
   final batch = <String>[];
+  final visited = <String>{};
+  String rootCanonical;
+  try {
+    rootCanonical = Directory(request.rootPath).resolveSymbolicLinksSync();
+  } catch (_) {
+    rootCanonical = request.rootPath;
+  }
+  visited.add(rootCanonical);
 
   while (pendingDirectories.isNotEmpty && !cancelled) {
-    final currentPath = pendingDirectories.removeFirst();
+    final (currentPath, currentDepth) = pendingDirectories.removeFirst();
+    if (currentDepth > 64) {
+      debugPrint(
+        '[ScannerDirectoryScanner] Max directory depth reached, skipping: $currentPath',
+      );
+      continue;
+    }
     final dir = Directory(currentPath);
     try {
       await for (final entity in dir.list(followLinks: false)) {
@@ -465,7 +501,15 @@ Future<void> _discoverMusicFilesIsolateEntry(
           if (_shouldSkipDirectory(entity.path)) {
             continue;
           }
-          pendingDirectories.add(entity.path);
+          String canonicalPath;
+          try {
+            canonicalPath = entity.resolveSymbolicLinksSync();
+          } catch (_) {
+            canonicalPath = entity.path;
+          }
+          if (visited.add(canonicalPath)) {
+            pendingDirectories.add((entity.path, currentDepth + 1));
+          }
         } else if (entity is File &&
             !_shouldSkipAppleDoubleFile(entity.path) &&
             MusicFileUtils.isMusicFilePath(entity.path)) {
