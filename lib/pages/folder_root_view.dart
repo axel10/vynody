@@ -611,122 +611,37 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                MediaQuery.of(context).size.width > 480
-                    ? FilledButton.tonalIcon(
-                        onPressed: totalSongsCount == 0
-                            ? null
-                            : () async {
-                                final songs = await scanner.getAllRootSongs();
-                                if (songs.isNotEmpty) {
-                                  await audio.playPlaylist(
-                                    songs,
-                                    source: PlaybackSource(
-                                      type: PlaybackSourceType.folder,
-                                      id: 'root',
-                                      name: l10n.scanDirectory,
-                                    ),
-                                  );
-                                }
-                              },
-                        icon: const Icon(Icons.play_arrow_rounded, size: 16),
-                        label: Text(l10n.playAll),
-                        style: FilledButton.styleFrom(
-                          minimumSize: const Size(0, 32),
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          visualDensity: VisualDensity.compact,
-                          textStyle: const TextStyle(
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w600,
-                          ),
+                FolderPlayActionButtons(
+                  totalSongsCount: totalSongsCount,
+                  onPlayAll: () async {
+                    final songs = await scanner.getAllRootSongs();
+                    if (songs.isNotEmpty) {
+                      await audio.playPlaylist(
+                        songs,
+                        source: PlaybackSource(
+                          type: PlaybackSourceType.folder,
+                          id: 'root',
+                          name: l10n.scanDirectory,
                         ),
-                      )
-                    : Tooltip(
-                        message: l10n.playAll,
-                        child: FilledButton.tonal(
-                          onPressed: totalSongsCount == 0
-                              ? null
-                              : () async {
-                                  final songs = await scanner.getAllRootSongs();
-                                  if (songs.isNotEmpty) {
-                                    await audio.playPlaylist(
-                                      songs,
-                                      source: PlaybackSource(
-                                        type: PlaybackSourceType.folder,
-                                        id: 'root',
-                                        name: l10n.scanDirectory,
-                                      ),
-                                    );
-                                  }
-                                },
-                          style: FilledButton.styleFrom(
-                            minimumSize: const Size(32, 32),
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            visualDensity: VisualDensity.compact,
-                          ),
-                          child: const Icon(Icons.play_arrow_rounded, size: 16),
+                      );
+                    }
+                  },
+                  onShufflePlay: () async {
+                    final songs = await scanner.getAllRootSongs();
+                    if (songs.isNotEmpty) {
+                      await audio.playPlaylist(
+                        List.of(songs)..shuffle(),
+                        source: PlaybackSource(
+                          type: PlaybackSourceType.folder,
+                          id: 'root',
+                          name: l10n.scanDirectory,
                         ),
-                      ),
-                const SizedBox(width: 8),
-                MediaQuery.of(context).size.width > 480
-                    ? FilledButton.tonalIcon(
-                        onPressed: totalSongsCount == 0
-                            ? null
-                            : () async {
-                                final songs = await scanner.getAllRootSongs();
-                                if (songs.isNotEmpty) {
-                                  await audio.playPlaylist(
-                                    List.of(songs)..shuffle(),
-                                    source: PlaybackSource(
-                                      type: PlaybackSourceType.folder,
-                                      id: 'root',
-                                      name: l10n.scanDirectory,
-                                    ),
-                                  );
-                                }
-                              },
-                        icon: const Icon(Icons.shuffle_rounded, size: 16),
-                        label: Text(l10n.shuffle),
-                        style: FilledButton.styleFrom(
-                          minimumSize: const Size(0, 32),
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          visualDensity: VisualDensity.compact,
-                          textStyle: const TextStyle(
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      )
-                    : Tooltip(
-                        message: l10n.shuffle,
-                        child: FilledButton.tonal(
-                          onPressed: totalSongsCount == 0
-                              ? null
-                              : () async {
-                                  final songs = await scanner.getAllRootSongs();
-                                  if (songs.isNotEmpty) {
-                                    await audio.playPlaylist(
-                                      List.of(songs)..shuffle(),
-                                      source: PlaybackSource(
-                                        type: PlaybackSourceType.folder,
-                                        id: 'root',
-                                        name: l10n.scanDirectory,
-                                      ),
-                                    );
-                                  }
-                                },
-                          style: FilledButton.styleFrom(
-                            minimumSize: const Size(32, 32),
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            visualDensity: VisualDensity.compact,
-                          ),
-                          child: const Icon(Icons.shuffle_rounded, size: 16),
-                        ),
-                      ),
+                      );
+                    }
+                  },
+                ),
               ],
+
               actionButtonsScrollable: true,
               isSearching: _isSearching,
               searchController: _searchController,

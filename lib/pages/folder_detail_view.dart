@@ -750,8 +750,9 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
                     ),
                   ),
             actionButtons: [
-              FilledButton.icon(
-                onPressed: () => audio.playPlaylist(
+              FolderPlayActionButtons(
+                totalSongsCount: folder.allSongs.length,
+                onPlayAll: () => audio.playPlaylist(
                   folder.allSongs,
                   source: PlaybackSource(
                     type: PlaybackSourceType.folder,
@@ -759,39 +760,12 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
                     name: folder.name,
                   ),
                 ),
-                icon: const Icon(Icons.play_arrow_rounded, size: 16),
-                label: Text(l10n.playAll),
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size(0, 32),
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  visualDensity: VisualDensity.compact,
-                  textStyle: const TextStyle(
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              FilledButton.tonalIcon(
-                onPressed: () => audio.playPlaylist(
+                onShufflePlay: () => audio.playPlaylist(
                   List.of(folder.allSongs)..shuffle(),
                   source: PlaybackSource(
                     type: PlaybackSourceType.folder,
                     id: folder.path,
                     name: folder.name,
-                  ),
-                ),
-                icon: const Icon(Icons.shuffle_rounded, size: 16),
-                label: Text(l10n.shuffle),
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size(0, 32),
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  visualDensity: VisualDensity.compact,
-                  textStyle: const TextStyle(
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:vynody/l10n/app_localizations.dart';
 
@@ -222,6 +223,95 @@ class FolderHeaderBanner extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class FolderPlayActionButtons extends StatelessWidget {
+  const FolderPlayActionButtons({
+    super.key,
+    required this.onPlayAll,
+    required this.onShufflePlay,
+    required this.totalSongsCount,
+  });
+
+  final FutureOr<void> Function()? onPlayAll;
+  final FutureOr<void> Function()? onShufflePlay;
+  final int totalSongsCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final isWiderScreen = MediaQuery.of(context).size.width > 480;
+    final isDisabled = totalSongsCount == 0 || (onPlayAll == null && onShufflePlay == null);
+
+    final playAllButton = isWiderScreen
+        ? FilledButton.tonalIcon(
+            onPressed: isDisabled ? null : () => onPlayAll?.call(),
+            icon: const Icon(Icons.play_arrow_rounded, size: 16),
+            label: Text(l10n.playAll),
+            style: FilledButton.styleFrom(
+              minimumSize: const Size(0, 32),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              visualDensity: VisualDensity.compact,
+              textStyle: const TextStyle(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          )
+        : Tooltip(
+            message: l10n.playAll,
+            child: FilledButton.tonal(
+              onPressed: isDisabled ? null : () => onPlayAll?.call(),
+              style: FilledButton.styleFrom(
+                minimumSize: const Size(32, 32),
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                visualDensity: VisualDensity.compact,
+              ),
+              child: const Icon(Icons.play_arrow_rounded, size: 16),
+            ),
+          );
+
+    final shuffleButton = isWiderScreen
+        ? FilledButton.tonalIcon(
+            onPressed: isDisabled ? null : () => onShufflePlay?.call(),
+            icon: const Icon(Icons.shuffle_rounded, size: 16),
+            label: Text(l10n.shuffle),
+            style: FilledButton.styleFrom(
+              minimumSize: const Size(0, 32),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              visualDensity: VisualDensity.compact,
+              textStyle: const TextStyle(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          )
+        : Tooltip(
+            message: l10n.shuffle,
+            child: FilledButton.tonal(
+              onPressed: isDisabled ? null : () => onShufflePlay?.call(),
+              style: FilledButton.styleFrom(
+                minimumSize: const Size(32, 32),
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                visualDensity: VisualDensity.compact,
+              ),
+              child: const Icon(Icons.shuffle_rounded, size: 16),
+            ),
+          );
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        playAllButton,
+        const SizedBox(width: 8),
+        shuffleButton,
+      ],
     );
   }
 }
