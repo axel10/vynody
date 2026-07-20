@@ -1029,7 +1029,9 @@ class PlaybackHeroCard extends ConsumerWidget {
     }
 
     final double lLyricsInfoHeight =
-        PlaybackHeroCardUiTuning.landscapeLyricsInfoHeightBase *
+        (collapseButtonsInLandscapeLyrics
+            ? PlaybackHeroCardUiTuning.landscapeLyricsInfoHeightBase
+            : PlaybackHeroCardUiTuning.landscapeInfoHeightBase) *
         lLyricsSpaceControlsScale;
 
     final double lLyricsControlsBaseIdealHeight =
@@ -1472,7 +1474,7 @@ class PlaybackHeroCard extends ConsumerWidget {
 
     final titleAlignment = Alignment.lerp(
       Alignment.center,
-      Alignment.centerLeft,
+      shouldCollapse ? Alignment.centerLeft : Alignment.center,
       transition,
     )!;
 
@@ -1484,7 +1486,9 @@ class PlaybackHeroCard extends ConsumerWidget {
       )!,
       lerpDouble(
         PlaybackHeroCardUiTuning.trackTitleStandardFont,
-        PlaybackHeroCardUiTuning.trackTitleLandscapeLyricsFont,
+        shouldCollapse
+            ? PlaybackHeroCardUiTuning.trackTitleLandscapeLyricsFont
+            : PlaybackHeroCardUiTuning.trackTitleStandardFont,
         transition,
       )!,
       landscapeT,
@@ -1507,7 +1511,9 @@ class PlaybackHeroCard extends ConsumerWidget {
       )!,
       lerpDouble(
         PlaybackHeroCardUiTuning.trackArtistStandardFont,
-        PlaybackHeroCardUiTuning.trackArtistLandscapeLyricsFont,
+        shouldCollapse
+            ? PlaybackHeroCardUiTuning.trackArtistLandscapeLyricsFont
+            : PlaybackHeroCardUiTuning.trackArtistStandardFont,
         transition,
       )!,
       landscapeT,
