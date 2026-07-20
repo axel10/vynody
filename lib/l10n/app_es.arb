@@ -177,6 +177,8 @@
   "themeModeDark": "Oscuro",
   "immersiveTabBar": "Barra de pestañas inmersiva",
   "immersiveTabBarDescription": "Muestra la barra de navegación al mover el mouse, la oculta tras 3 segundos sin actividad",
+  "collapseButtonsInLandscapeLyrics": "Colapsar botones en modo letras horizontal",
+  "collapseButtonsInLandscapeLyricsDescription": "Colapsa la fila de 7 botones, alinea el título a la izquierda y añade botones de acción a la derecha en modo letras horizontal",
   "sampleStride": "Paso de muestreo",
   "sampleStrideDescription": "Valores más grandes escanean más rápido pero con menor precisión de forma de onda (predeterminado: 4)",
   "waveformSegments": "Segmentos de forma de onda",

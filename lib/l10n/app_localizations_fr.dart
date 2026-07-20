@@ -490,6 +490,14 @@ class AppLocalizationsFr extends AppLocalizations {
       'Affiche la barre au mouvement de la souris, la cache après 3 secondes d\'inactivité';
 
   @override
+  String get collapseButtonsInLandscapeLyrics =>
+      'Réduire les boutons en mode paroles paysage';
+
+  @override
+  String get collapseButtonsInLandscapeLyricsDescription =>
+      'Réduit les 7 boutons, aligne le titre à gauche et ajoute des boutons à droite en mode paroles paysage';
+
+  @override
   String get sampleStride => 'Pas d\'échantillonnage';
 
   @override

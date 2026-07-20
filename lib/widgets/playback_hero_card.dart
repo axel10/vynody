@@ -505,6 +505,11 @@ class PlaybackHeroCard extends ConsumerWidget {
                     (s) => s.isWaveformProgressBarEnabled,
                   ),
                 );
+                final collapseButtonsInLandscapeLyrics = ref.watch(
+                  settingsServiceProvider.select(
+                    (s) => s.collapseButtonsInLandscapeLyrics,
+                  ),
+                );
 
                 final bool isTransitioning =
                     (tLyrics > 0.0 && tLyrics < 1.0) ||
@@ -521,6 +526,8 @@ class PlaybackHeroCard extends ConsumerWidget {
                   isWaveformEnabled: isWaveformEnabled,
                   isSmallWindow: isSmallWindow,
                   lyricsStyle: settings.lyricsStyle,
+                  collapseButtonsInLandscapeLyrics:
+                      collapseButtonsInLandscapeLyrics,
                 );
 
                 final layout = _buildPlaybackCardLayout(
@@ -532,6 +539,8 @@ class PlaybackHeroCard extends ConsumerWidget {
                   isWaveformEnabled: isWaveformEnabled,
                   isSmallWindow: isSmallWindow,
                   lyricsStyle: settings.lyricsStyle,
+                  collapseButtonsInLandscapeLyrics:
+                      collapseButtonsInLandscapeLyrics,
                 );
 
                 // Stable target end layout to prevent Positioned resizing during lyrics toggle transition
@@ -544,6 +553,8 @@ class PlaybackHeroCard extends ConsumerWidget {
                   isWaveformEnabled: isWaveformEnabled,
                   isSmallWindow: isSmallWindow,
                   lyricsStyle: settings.lyricsStyle,
+                  collapseButtonsInLandscapeLyrics:
+                      collapseButtonsInLandscapeLyrics,
                 );
 
                 // Stable normal layout to get the maximum cover size for decoding caching
@@ -556,6 +567,8 @@ class PlaybackHeroCard extends ConsumerWidget {
                   isWaveformEnabled: isWaveformEnabled,
                   isSmallWindow: isSmallWindow,
                   lyricsStyle: settings.lyricsStyle,
+                  collapseButtonsInLandscapeLyrics:
+                      collapseButtonsInLandscapeLyrics,
                 );
 
                 final double translationX =
@@ -762,6 +775,7 @@ class PlaybackHeroCard extends ConsumerWidget {
     required bool isWaveformEnabled,
     required bool isSmallWindow,
     required LyricsStyle lyricsStyle,
+    bool collapseButtonsInLandscapeLyrics = true,
   }) {
     // ---------------- Portrait Normal ----------------
     final double scaleFactor = isSmallWindow ? 0.82 : 1.0;
@@ -1006,13 +1020,15 @@ class PlaybackHeroCard extends ConsumerWidget {
     final lLyricsInfoBaseHeight =
         PlaybackHeroCardUiTuning.landscapeInfoHeightBase + 8.0;
     final double lLyricsControlsBaseIdealHeight =
-        (isWaveformEnabled
-            ? PlaybackHeroCardUiTuning.waveformLandscapeHeight
-            : 48.0) +
-        PlaybackHeroCardUiTuning.controlsTimeGap +
-        PlaybackHeroCardUiTuning.controlsTimeRowHeight +
-        PlaybackHeroCardUiTuning.controlsRowLandscapeGap +
-        PlaybackHeroCardUiTuning.controlsMainButtonsHeight;
+        collapseButtonsInLandscapeLyrics
+            ? ((isWaveformEnabled
+                    ? PlaybackHeroCardUiTuning.waveformLandscapeHeight
+                    : 48.0) +
+                PlaybackHeroCardUiTuning.controlsTimeGap +
+                PlaybackHeroCardUiTuning.controlsTimeRowHeight +
+                PlaybackHeroCardUiTuning.controlsRowLandscapeGap +
+                PlaybackHeroCardUiTuning.controlsMainButtonsHeight)
+            : lNormalControlsBaseIdealHeight;
     final lLyricsControlsBaseHeight = lLyricsControlsBaseIdealHeight;
 
     final lLyricsPreferredTotalHeight =
@@ -1479,17 +1495,30 @@ class PlaybackHeroCard extends ConsumerWidget {
 
     final bool hasArtist = !isUnknown(rawArtist);
     final bool hasAlbum = !isUnknown(rawAlbum);
+    final shouldCollapse = ref.watch(
+      settingsServiceProvider.select(
+        (s) => s.collapseButtonsInLandscapeLyrics,
+      ),
+    );
     final transition = lyricsModeT.clamp(0.0, 1.0);
-    final double simplifiedT = landscapeT * transition;
+    final double simplifiedT = shouldCollapse ? (landscapeT * transition) : 0.0;
 
     final double buttonControlsScale =
         lerpDouble(controlsScale, 1.0, simplifiedT)!;
 
-    final titleAlignment = Alignment.lerp(
-      Alignment.center,
-      Alignment.centerLeft,
-      transition,
-    )!;
+    final titleAlignment = landscapeT > 0.0
+        ? (shouldCollapse
+            ? Alignment.lerp(
+                Alignment.center,
+                Alignment.centerLeft,
+                transition,
+              )!
+            : Alignment.center)
+        : Alignment.lerp(
+            Alignment.center,
+            Alignment.centerLeft,
+            transition,
+          )!;
 
     final double baseTitleSize = lerpDouble(
       lerpDouble(
@@ -2404,6 +2433,13 @@ class PlaybackHeroCard extends ConsumerWidget {
 
     // 默认布局 (Default layout)
     if (effectiveIsLandscape) {
+      final shouldCollapse = ref.watch(
+        settingsServiceProvider.select(
+          (s) => s.collapseButtonsInLandscapeLyrics,
+        ),
+      );
+      final double buttonCollapseT = shouldCollapse ? tLyrics : 0.0;
+
       return Column(
         key: const ValueKey('default_controls_column'),
         mainAxisSize: MainAxisSize.min,
@@ -2412,10 +2448,10 @@ class PlaybackHeroCard extends ConsumerWidget {
         children: [
           ClipRect(
             child: Align(
-              heightFactor: 1.0 - tLyrics,
+              heightFactor: 1.0 - buttonCollapseT,
               alignment: Alignment.topCenter,
               child: Opacity(
-                opacity: (1.0 - tLyrics).clamp(0.0, 1.0),
+                opacity: (1.0 - buttonCollapseT).clamp(0.0, 1.0),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [

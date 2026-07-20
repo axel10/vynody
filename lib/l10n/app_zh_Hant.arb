@@ -149,6 +149,8 @@
   "themeModeDark": "暗色",
   "immersiveTabBar": "沉浸式標籤列",
   "immersiveTabBarDescription": "滑鼠移動時顯示導覽列，3 秒無操作後隱藏",
+  "collapseButtonsInLandscapeLyrics": "進入橫屏歌詞模式後收起按鈕",
+  "collapseButtonsInLandscapeLyricsDescription": "進入橫屏歌詞模式時收起 7 按鈕列、標題左對齊並在右側顯示快捷按鈕",
   "sampleStride": "取樣步長",
   "sampleStrideDescription": "值越大掃描越快但波形精度越低（預設：4）",
   "waveformSegments": "波形分段",

@@ -484,6 +484,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'Show the navigation bar when the mouse moves, then hide it after 3 seconds of inactivity';
 
   @override
+  String get collapseButtonsInLandscapeLyrics =>
+      'Collapse buttons in landscape lyrics mode';
+
+  @override
+  String get collapseButtonsInLandscapeLyricsDescription =>
+      'Collapse the 7-button row, left-align title, and add action buttons in landscape lyrics mode';
+
+  @override
   String get sampleStride => 'Sample Stride';
 
   @override

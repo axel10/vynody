@@ -1566,6 +1566,14 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           },
         ),
         SwitchListTile(
+          title: Text(l10n.collapseButtonsInLandscapeLyrics),
+          subtitle: Text(l10n.collapseButtonsInLandscapeLyricsDescription),
+          value: settings.collapseButtonsInLandscapeLyrics,
+          onChanged: (value) {
+            settings.collapseButtonsInLandscapeLyrics = value;
+          },
+        ),
+        SwitchListTile(
           title: Text(l10n.showScanProgressToastSetting),
           subtitle: Text(l10n.showScanProgressToastSettingDescription),
           value: settings.showScanProgressToast,

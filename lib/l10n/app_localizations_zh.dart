@@ -479,6 +479,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get immersiveTabBarDescription => '鼠标移动时显示导航栏，3 秒无操作后隐藏';
 
   @override
+  String get collapseButtonsInLandscapeLyrics => '进入横屏歌词模式后收起按钮';
+
+  @override
+  String get collapseButtonsInLandscapeLyricsDescription =>
+      '进入横屏歌词模式时收起 7 按钮行、标题左对齐并在右侧显示快捷按钮';
+
+  @override
   String get sampleStride => '采样步长';
 
   @override
@@ -3438,6 +3445,13 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get immersiveTabBarDescription => '滑鼠移動時顯示導覽列，3 秒無操作後隱藏';
+
+  @override
+  String get collapseButtonsInLandscapeLyrics => '進入橫屏歌詞模式後收起按鈕';
+
+  @override
+  String get collapseButtonsInLandscapeLyricsDescription =>
+      '進入橫屏歌詞模式時收起 7 按鈕列、標題左對齊並在右側顯示快捷按鈕';
 
   @override
   String get sampleStride => '取樣步長';

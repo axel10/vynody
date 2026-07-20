@@ -177,6 +177,8 @@
   "themeModeDark": "Dark",
   "immersiveTabBar": "Immersive Tab Bar",
   "immersiveTabBarDescription": "Show the navigation bar when the mouse moves, then hide it after 3 seconds of inactivity",
+  "collapseButtonsInLandscapeLyrics": "Collapse buttons in landscape lyrics mode",
+  "collapseButtonsInLandscapeLyricsDescription": "Collapse the 7-button row, left-align title, and add action buttons in landscape lyrics mode",
   "sampleStride": "Sample Stride",
   "sampleStrideDescription": "Larger values scan faster but with lower waveform precision (default: 4)",
   "waveformSegments": "Waveform Segments",

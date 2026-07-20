@@ -480,6 +480,13 @@ class AppLocalizationsKo extends AppLocalizations {
       '마우스를 움직이면 탐색 모음을 표시하고, 3초 동안 활동이 없으면 숨깁니다';
 
   @override
+  String get collapseButtonsInLandscapeLyrics => '가로 가사 모드에서 버튼 접기';
+
+  @override
+  String get collapseButtonsInLandscapeLyricsDescription =>
+      '가로 가사 모드에서 7개 버튼 행을 접고 제목을 왼쪽으로 정렬하며 오른쪽에 작업 버튼을 추가합니다';
+
+  @override
   String get sampleStride => '샘플 간격';
 
   @override

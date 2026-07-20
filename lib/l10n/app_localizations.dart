@@ -1003,6 +1003,18 @@ abstract class AppLocalizations {
   /// **'鼠标移动时显示导航栏，3 秒无操作后隐藏'**
   String get immersiveTabBarDescription;
 
+  /// Collapse buttons in landscape lyrics mode label
+  ///
+  /// In zh, this message translates to:
+  /// **'进入横屏歌词模式后收起按钮'**
+  String get collapseButtonsInLandscapeLyrics;
+
+  /// Collapse buttons in landscape lyrics mode description
+  ///
+  /// In zh, this message translates to:
+  /// **'进入横屏歌词模式时收起 7 按钮行、标题左对齐并在右侧显示快捷按钮'**
+  String get collapseButtonsInLandscapeLyricsDescription;
+
   /// Sample Stride label
   ///
   /// In zh, this message translates to:

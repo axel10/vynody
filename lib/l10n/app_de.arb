@@ -177,6 +177,8 @@
   "themeModeDark": "Dunkel",
   "immersiveTabBar": "Immersive Tab-Leiste",
   "immersiveTabBarDescription": "Navigationsleiste bei Mausbewegung anzeigen, nach 3 s Inaktivität ausblenden",
+  "collapseButtonsInLandscapeLyrics": "Schaltflächen im Querformat-Songtext-Modus einklappen",
+  "collapseButtonsInLandscapeLyricsDescription": "Klappt die 7-Schaltflächen-Zeile ein, richtet den Titel links aus und fügt rechte Aktionstasten im Querformat-Songtext-Modus hinzu",
   "sampleStride": "Abtastschritt",
   "sampleStrideDescription": "Größere Werte scannen schneller, aber mit geringerer Wellenformgenauigkeit (Standard: 4)",
   "waveformSegments": "Wellenform-Segmente",

@@ -599,6 +599,14 @@
   "@immersiveTabBarDescription": {
     "description": "Immersive Tab Bar description"
   },
+  "collapseButtonsInLandscapeLyrics": "进入横屏歌词模式后收起按钮",
+  "@collapseButtonsInLandscapeLyrics": {
+    "description": "Collapse buttons in landscape lyrics mode label"
+  },
+  "collapseButtonsInLandscapeLyricsDescription": "进入横屏歌词模式时收起 7 按钮行、标题左对齐并在右侧显示快捷按钮",
+  "@collapseButtonsInLandscapeLyricsDescription": {
+    "description": "Collapse buttons in landscape lyrics mode description"
+  },
   "sampleStride": "采样步长",
   "@sampleStride": {
     "description": "Sample Stride label"

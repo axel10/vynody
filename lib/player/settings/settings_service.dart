@@ -242,6 +242,8 @@ class SettingsService extends ChangeNotifier {
   static const String _keyWindowsAutoRepairShortcut = 'windows_auto_repair_shortcut';
   static const String _keyEnableSystemTray = 'enable_system_tray';
   static const String _keyImmersiveTabBar = 'immersive_tab_bar_enabled';
+  static const String _keyCollapseButtonsInLandscapeLyrics =
+      'collapse_buttons_in_landscape_lyrics';
   static const String _keyShowScanProgressToast = 'show_scan_progress_toast';
   static const String _keySampleStride = 'sample_stride';
   static const String _keyWaveformChunks = 'waveform_chunks';
@@ -462,6 +464,13 @@ class SettingsService extends ChangeNotifier {
 
   late final _isImmersiveTabBarEnabledProperty = SettingProperty<bool>(
     key: _keyImmersiveTabBar,
+    defaultValue: true,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
+  late final _collapseButtonsInLandscapeLyricsProperty = SettingProperty<bool>(
+    key: _keyCollapseButtonsInLandscapeLyrics,
     defaultValue: true,
     prefs: _prefs,
     onChanged: notifyListeners,
@@ -1213,6 +1222,11 @@ class SettingsService extends ChangeNotifier {
   bool get isImmersiveTabBarEnabled => _isImmersiveTabBarEnabledProperty.value;
   set isImmersiveTabBarEnabled(bool value) =>
       _isImmersiveTabBarEnabledProperty.value = value;
+
+  bool get collapseButtonsInLandscapeLyrics =>
+      _collapseButtonsInLandscapeLyricsProperty.value;
+  set collapseButtonsInLandscapeLyrics(bool value) =>
+      _collapseButtonsInLandscapeLyricsProperty.value = value;
 
   bool get showScanProgressToast => _showScanProgressToastProperty.value;
   set showScanProgressToast(bool value) =>

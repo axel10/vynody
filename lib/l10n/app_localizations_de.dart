@@ -488,6 +488,14 @@ class AppLocalizationsDe extends AppLocalizations {
       'Navigationsleiste bei Mausbewegung anzeigen, nach 3 s Inaktivität ausblenden';
 
   @override
+  String get collapseButtonsInLandscapeLyrics =>
+      'Schaltflächen im Querformat-Songtext-Modus einklappen';
+
+  @override
+  String get collapseButtonsInLandscapeLyricsDescription =>
+      'Klappt die 7-Schaltflächen-Zeile ein, richtet den Titel links aus und fügt rechte Aktionstasten im Querformat-Songtext-Modus hinzu';
+
+  @override
   String get sampleStride => 'Abtastschritt';
 
   @override

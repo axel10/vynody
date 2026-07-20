@@ -491,6 +491,14 @@ class AppLocalizationsEs extends AppLocalizations {
       'Muestra la barra de navegación al mover el mouse, la oculta tras 3 segundos sin actividad';
 
   @override
+  String get collapseButtonsInLandscapeLyrics =>
+      'Colapsar botones en modo letras horizontal';
+
+  @override
+  String get collapseButtonsInLandscapeLyricsDescription =>
+      'Colapsa la fila de 7 botones, alinea el título a la izquierda y añade botones de acción a la derecha en modo letras horizontal';
+
+  @override
   String get sampleStride => 'Paso de muestreo';
 
   @override

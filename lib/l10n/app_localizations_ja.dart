@@ -480,6 +480,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get immersiveTabBarDescription => 'マウス移動時にナビゲーションバーを表示し、3秒無操作で非表示';
 
   @override
+  String get collapseButtonsInLandscapeLyrics => '横画面歌詞モードでボタンを折りたたむ';
+
+  @override
+  String get collapseButtonsInLandscapeLyricsDescription =>
+      '横画面歌詞モードで7つのボタン行を折りたたみ、タイトルを左揃えにして右側にアクションボタンを追加します';
+
+  @override
   String get sampleStride => 'サンプルストライド';
 
   @override
