@@ -126,13 +126,16 @@ class PlaybackHeroCardUiTuning {
 
   static const double trackTitlePortraitLyricsFont = 20.0;
   static const double trackTitleStandardFont = 24.0;
+  static const double trackTitleLandscapeLyricsFont = 16.0;
+  static const double minTrackTitleFontSize = 14.0;
   static const double trackArtistPortraitLyricsFont = 14.0;
   static const double trackArtistStandardFont = 16.0;
   static const double trackArtistLandscapeLyricsFont = 12.0;
+  static const double minTrackArtistFontSize = 11.0;
   static const double trackInfoLandscapeLyricsGap = 10.0;
 
   // 横屏歌词模式下标题按钮区尺寸基准参数 (Base dimension for title button area in landscape lyrics mode)
-  static const double lLyricsTitleButtonSize = 24.0;
+  static const double lLyricsTitleButtonSize = 32.0;
 
   // 以下参数均基于 lLyricsTitleButtonSize 自动等比例缩放 (The following parameters scale proportionally based on lLyricsTitleButtonSize)
   static const double lLyricsTitleButtonHeight = lLyricsTitleButtonSize;
