@@ -26,7 +26,6 @@ import 'marquee_text.dart';
 import 'app_tooltip.dart';
 
 const String playbackHeroTag = 'player_capsule';
-double _maxWindowHeightSeen = 0.0;
 
 enum _TrackInfoMenuTarget { title, artistAlbum }
 
@@ -973,16 +972,33 @@ class PlaybackHeroCard extends ConsumerWidget {
     final lNormalControlsTop = lNormalInfoTop + lNormalInfoHeight + lNormalGap;
 
     // ---------------- Landscape Lyrics ----------------
-    // 左侧列的目标宽度在普通歌词模式下只跟高度相关，在苹果歌词模式下为1:1宽度比。
+    // 高分辨率屏幕适配系数（4K 显示屏适度放大，1080p 显示屏保持 1.0 紧凑基准）
+    // High-DPI adaptation factor: scale up smoothly on 4K screens (> 1920 logical width), keep 1.0 on 1080p screens
+    final double highResControlsScale = width > 1920.0
+        ? (1.0 + (width - 1920.0) * 0.00018).clamp(1.0, 1.35)
+        : 1.0;
+
+    // 当窗口宽度与高度充足时，通过 PlaybackHeroCardUiTuning 中的统一参数按比例放大封面与控件区
+    final double spaceFactor = ((width - 960.0) / 720.0 + (height - 580.0) / 420.0)
+        .clamp(0.0, 1.0);
+    final double lLyricsPreferredCoverSide =
+        (PlaybackHeroCardUiTuning.lLyricsPreferredCoverSide +
+                spaceFactor * PlaybackHeroCardUiTuning.lLyricsMaxCoverExpansion) *
+        highResControlsScale;
+    final double lLyricsSpaceControlsScale =
+        highResControlsScale *
+        (PlaybackHeroCardUiTuning.lLyricsBaseControlsScale +
+            spaceFactor * PlaybackHeroCardUiTuning.lLyricsMaxControlsExpansion);
+
     const lLyricsTopPadding = 16.0;
     const lLyricsOuterLeftPadding = 48.0;
     const lLyricsInnerLeftPadding = 16.0;
-    const lLyricsCoverInfoSpacingBase =
-        PlaybackHeroCardUiTuning.landscapeLyricsCoverInfoGapBase;
+    final lLyricsCoverInfoSpacing =
+        PlaybackHeroCardUiTuning.landscapeLyricsCoverInfoGapBase *
+        lLyricsSpaceControlsScale;
     final lLyricsInfoControlsSpacing =
-        PlaybackHeroCardUiTuning.landscapeInfoControlsGap;
-    const lLyricsPreferredCoverSide =
-        PlaybackHeroCardUiTuning.lLyricsPreferredCoverSide;
+        PlaybackHeroCardUiTuning.landscapeInfoControlsGap *
+        lLyricsSpaceControlsScale;
     final lLyricsAvailableHeight = math.max(
       0.0,
       height - (lLyricsTopPadding * 2),
@@ -991,7 +1007,6 @@ class PlaybackHeroCard extends ConsumerWidget {
     final double lLyricsColumnWidth;
     final double lLyricsLyricsLeft;
     final double lLyricsLyricsWidth;
-    final double lLyricsScale;
 
     if (lyricsStyle == LyricsStyle.apple) {
       final double rightRatio =
@@ -1013,13 +1028,10 @@ class PlaybackHeroCard extends ConsumerWidget {
       lLyricsLyricsWidth = math.max(0.0, width - lLyricsLyricsLeft - 32.0);
     }
 
-    final double lLyricsWidthScale = (lLyricsColumnWidth / 400.0).clamp(
-      1.0,
-      1.8,
-    );
+    final double lLyricsInfoHeight =
+        PlaybackHeroCardUiTuning.landscapeLyricsInfoHeightBase *
+        lLyricsSpaceControlsScale;
 
-    const lLyricsInfoBaseHeight =
-        PlaybackHeroCardUiTuning.landscapeLyricsInfoHeightBase;
     final double lLyricsControlsBaseIdealHeight =
         collapseButtonsInLandscapeLyrics
             ? ((isWaveformEnabled
@@ -1030,100 +1042,50 @@ class PlaybackHeroCard extends ConsumerWidget {
                 PlaybackHeroCardUiTuning.controlsRowLandscapeGap +
                 PlaybackHeroCardUiTuning.controlsMainButtonsHeight)
             : lNormalControlsBaseIdealHeight;
-    final lLyricsControlsBaseHeight = lLyricsControlsBaseIdealHeight;
-
-    final lLyricsPreferredTotalHeight =
-        (lLyricsPreferredCoverSide +
-                lLyricsCoverInfoSpacingBase +
-                lLyricsInfoBaseHeight +
-                lLyricsInfoControlsSpacing +
-                lLyricsControlsBaseHeight) *
-            lLyricsWidthScale;
-
-    if (lyricsStyle == LyricsStyle.apple) {
-      // For Apple Style: must fit both vertically and horizontally within the left column
-      // Height adaptation: 0.75 of the screen height acts as the maximum control height limit.
-      // It scales smoothly together with the window when the window is small enough to require compression.
-      double screenHeight = 0.0;
-      try {
-        final view = View.of(context);
-        final rawHeight = view.display.size.height;
-        final dpr = view.display.devicePixelRatio;
-
-        // If rawHeight divided by dpr is smaller than the current window height,
-        // it indicates that view.display.size is already in logical pixels (common on Linux/some desktop environments)
-        // or the API returned invalid logical dimensions. In that case, use rawHeight directly.
-        if (dpr > 0.0 && (rawHeight / dpr) >= height) {
-          screenHeight = rawHeight / dpr;
-        } else {
-          screenHeight = rawHeight;
-        }
-      } catch (_) {
-        // Fallback if view query fails
-      }
-
-      _maxWindowHeightSeen = math.max(_maxWindowHeightSeen, height);
-      if (screenHeight <= 0.0) {
-        screenHeight = _maxWindowHeightSeen;
-      }
-
-      final double maxControlsHeight = screenHeight * 0.75;
-      final double targetOccupiedHeight = math.min(
-        maxControlsHeight,
-        lLyricsAvailableHeight,
-      );
-
-      final double heightScale = lLyricsPreferredTotalHeight <= 0.0
-          ? 1.0
-          : (targetOccupiedHeight >= lLyricsPreferredTotalHeight
-                ? 1.0
-                : math.max(0.0, targetOccupiedHeight) /
-                      lLyricsPreferredTotalHeight);
-
-      final double maxHorizontalSpace = math.max(
-        120.0,
-        lLyricsColumnWidth - 64.0,
-      );
-      final double lLyricsWidthFitScale =
-          maxHorizontalSpace / (lLyricsPreferredCoverSide * lLyricsWidthScale);
-      lLyricsScale = lLyricsPreferredTotalHeight <= 0.0
-          ? 1.0
-          : math.min(1.0, math.min(heightScale, lLyricsWidthFitScale));
-    } else {
-      lLyricsScale = lLyricsPreferredTotalHeight <= 0.0
-          ? 1.0
-          : math.min(1.0, lLyricsAvailableHeight / lLyricsPreferredTotalHeight);
-    }
-
-    final lLyricsCoverSide =
-        lLyricsPreferredCoverSide * lLyricsWidthScale * lLyricsScale;
-    final double lLyricsItemWidth = lLyricsCoverSide;
-    final lLyricsCoverInfoSpacing =
-        lLyricsCoverInfoSpacingBase * lLyricsScale;
-    final lLyricsInfoHeight =
-        (lLyricsInfoBaseHeight * lLyricsWidthScale * lLyricsScale).clamp(
-      32.0,
-      100.0,
-    );
     final lLyricsControlsHeight =
-        lLyricsControlsBaseHeight * lLyricsWidthScale * lLyricsScale;
-    final double lLyricsCoverTop;
-    if (lyricsStyle == LyricsStyle.apple) {
-      final double lLyricsActualTotalHeight =
-          lLyricsCoverSide +
-          lLyricsCoverInfoSpacing +
-          lLyricsInfoHeight +
-          lLyricsInfoControlsSpacing +
-          lLyricsControlsHeight;
-      lLyricsCoverTop = math.max(16.0, (height - lLyricsActualTotalHeight) / 2);
-    } else {
-      lLyricsCoverTop = lLyricsTopPadding;
-    }
+        lLyricsControlsBaseIdealHeight * lLyricsSpaceControlsScale;
+
+    // Apple Music 布局逻辑：控件大小根据可用窗口空间舒适设定，仅封面轮播图与间距根据可用高度/宽度动态收缩或展开
+    final double maxHorizontalSpace =
+        lyricsStyle == LyricsStyle.apple
+            ? math.max(120.0, lLyricsColumnWidth - 64.0)
+            : lLyricsColumnWidth;
+    final double maxCoverSide = math.min(
+      lLyricsPreferredCoverSide,
+      maxHorizontalSpace,
+    );
+    final double availableCoverHeight =
+        lLyricsAvailableHeight -
+        lLyricsInfoHeight -
+        lLyricsControlsHeight -
+        lLyricsCoverInfoSpacing -
+        lLyricsInfoControlsSpacing;
+
+    final double lLyricsCoverSide = availableCoverHeight.clamp(
+      math.min(140.0, maxCoverSide),
+      maxCoverSide,
+    );
+    // 控件区与标题区宽度保持不小于基准封面宽度（避免当窗口高度极小时封面缩小导致控件区宽度也缩窄引发按钮溢出）
+    final double lLyricsItemWidth = math.min(
+      maxHorizontalSpace,
+      math.max(lLyricsPreferredCoverSide, lLyricsCoverSide),
+    );
+
+    final double lLyricsTotalContentHeight =
+        lLyricsCoverSide +
+        lLyricsCoverInfoSpacing +
+        lLyricsInfoHeight +
+        lLyricsInfoControlsSpacing +
+        lLyricsControlsHeight;
+
+    final double lLyricsCoverTop = math.max(
+      16.0,
+      (height - lLyricsTotalContentHeight) / 2,
+    );
 
     // 居中对齐逻辑：封面、信息区和控制区在列宽内统一居中对齐
     // Centering logic: cover, info and controls are centered within the column and aligned in width
-    // 移除离散的 isLarge 逻辑，改用连续的百分比缩放
-    // Remove discrete isLarge logic, use continuous percentage scaling
+    // 横屏歌词模式控件尺寸在当前窗口分辨率下固定，不随窗口拖拽连续剧烈改变尺寸
     final currentControlsScale =
         _lerp2DSmooth(
           // 竖屏：基于宽度进行缩放，稍微增加基准，让按钮在标准屏幕上保持舒适大小
@@ -1135,8 +1097,8 @@ class PlaybackHeroCard extends ConsumerWidget {
           // 横屏普通模式：基于列宽进行缩放，放宽最小缩放限制以允许在小窗口下更自然的布局
           (lNormalControlsWidth / PlaybackHeroCardUiTuning.lControlsScaleBase)
               .clamp(0.85, 1.8),
-          // 横屏歌词模式：结合宽度基准和高度缩放系数
-          (lLyricsWidthScale * lLyricsScale).clamp(0.4, 2.0),
+          // 横屏歌词模式：控件大小在充足空间下舒适放大
+          lLyricsSpaceControlsScale,
           tLyrics,
           tLand,
         ) *
@@ -1152,8 +1114,12 @@ class PlaybackHeroCard extends ConsumerWidget {
         32.0,
         math.max(32.0, lLyricsColumnWidth - lLyricsCoverSide - 24.0),
       );
-      lLyricsInfoLeft = lLyricsCoverLeft;
-      lLyricsControlsLeft = lLyricsCoverLeft;
+      final double itemLeft = (leftAreaCenter - lLyricsItemWidth / 2).clamp(
+        24.0,
+        math.max(24.0, lLyricsColumnWidth - lLyricsItemWidth - 24.0),
+      );
+      lLyricsInfoLeft = itemLeft;
+      lLyricsControlsLeft = itemLeft;
     } else {
       lLyricsCoverLeft = lLyricsOuterLeftPadding;
       lLyricsInfoLeft = lLyricsOuterLeftPadding;
@@ -1165,22 +1131,6 @@ class PlaybackHeroCard extends ConsumerWidget {
 
     final lLyricsControlsTop =
         lLyricsInfoTop + lLyricsInfoHeight + lLyricsInfoControlsSpacing;
-
-    final double lLyricsButtonsRowBaseWidth = 7 *
-            PlaybackHeroCardUiTuning.controlsTopButtonsHeight +
-        6 * PlaybackHeroCardUiTuning.topButtonsInnerGap;
-    final double lLyricsTargetBaseWidth = collapseButtonsInLandscapeLyrics
-        ? (lLyricsButtonsRowBaseWidth - 22.0)
-        : lLyricsButtonsRowBaseWidth;
-    final double lLyricsCoverVisualSide =
-        (lLyricsTargetBaseWidth * lLyricsWidthScale * lLyricsScale).clamp(
-      0.0,
-      lLyricsCoverSide,
-    );
-    final double lLyricsCoverVisualLeft =
-        lLyricsCoverLeft + (lLyricsCoverSide - lLyricsCoverVisualSide) / 2;
-    final double lLyricsCoverVisualTop =
-        lLyricsCoverTop + (lLyricsCoverSide - lLyricsCoverVisualSide) / 2;
 
     // Build the Panes
     // Cover
@@ -1208,10 +1158,10 @@ class PlaybackHeroCard extends ConsumerWidget {
         opacity: 1.0,
       ),
       lLyrics: _PlaybackPaneLayout(
-        top: lLyricsCoverVisualTop,
-        left: lLyricsCoverVisualLeft,
-        width: lLyricsCoverVisualSide,
-        height: lLyricsCoverVisualSide,
+        top: lLyricsCoverTop,
+        left: lLyricsCoverLeft,
+        width: lLyricsCoverSide,
+        height: lLyricsCoverSide,
         opacity: 1.0,
       ),
       tLyrics: tLyrics,
@@ -1520,19 +1470,11 @@ class PlaybackHeroCard extends ConsumerWidget {
 
     final double buttonControlsScale = controlsScale;
 
-    final titleAlignment = landscapeT > 0.0
-        ? (shouldCollapse
-            ? Alignment.lerp(
-                Alignment.center,
-                Alignment.centerLeft,
-                transition,
-              )!
-            : Alignment.center)
-        : Alignment.lerp(
-            Alignment.center,
-            Alignment.centerLeft,
-            transition,
-          )!;
+    final titleAlignment = Alignment.lerp(
+      Alignment.center,
+      Alignment.centerLeft,
+      transition,
+    )!;
 
     final double baseTitleSize = lerpDouble(
       lerpDouble(
@@ -1706,16 +1648,9 @@ class PlaybackHeroCard extends ConsumerWidget {
       final isRandomMode = ref.watch(audioIsRandomModeProvider);
       final sleepTimerRemaining = ref.watch(audioSleepTimerRemainingProvider);
 
-      final double horizontalPadding = 11.0 * controlsScale * simplifiedT;
-
-      return Padding(
-        padding: EdgeInsets.only(
-          left: horizontalPadding,
-          right: horizontalPadding - 4.0 * controlsScale * simplifiedT,
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
             Expanded(child: textContent),
             SizedBox(width: 8 * buttonControlsScale * simplifiedT),
             if (sleepTimerRemaining != null) ...[
@@ -1942,9 +1877,8 @@ class PlaybackHeroCard extends ConsumerWidget {
               ),
             ),
           ],
-        ),
-      );
-    }
+        );
+      }
 
     return textContent;
   }
@@ -2321,104 +2255,121 @@ class PlaybackHeroCard extends ConsumerWidget {
       return buttonWidget;
     }
 
-    final mainControlsRow = wrapWithMaybeFitted(
-      Row(
-        mainAxisSize: MainAxisSize.max,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          buildSecondaryControl(
-            circleSize: (useOverlayStyle ? 42 : 40),
-            iconBuilder: (color, isWhiteBg) => Icon(
-              getPlaylistModeIcon(playbackMode),
-              size: (isWhiteBg ? 22 : 24) * controlsScale,
-              color: color,
-            ),
-            onPressed: onCyclePlaylistMode,
-            onLongPress: onShowPlaylistModeSelector,
-            tooltip: getPlaylistModeName(playbackMode, l10n),
+    final mainControlsRowInner = Row(
+      mainAxisSize: MainAxisSize.max,
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        buildSecondaryControl(
+          circleSize: (useOverlayStyle ? 42 : 40),
+          iconBuilder: (color, isWhiteBg) => Icon(
+            getPlaylistModeIcon(playbackMode),
+            size: (isWhiteBg ? 22 : 24) * controlsScale,
+            color: color,
           ),
-          buildSecondaryControl(
-            circleSize: (useOverlayStyle ? 56 : 60),
-            iconBuilder: (color, isWhiteBg) => Icon(
-              Icons.skip_previous_rounded,
-              size: (isWhiteBg ? 34 : 52) * controlsScale,
-              color: color,
-            ),
-            onPressed: onPrevious,
-            tooltip: l10n.previous,
+          onPressed: onCyclePlaylistMode,
+          onLongPress: onShowPlaylistModeSelector,
+          tooltip: getPlaylistModeName(playbackMode, l10n),
+        ),
+        buildSecondaryControl(
+          circleSize: (useOverlayStyle ? 56 : 60),
+          iconBuilder: (color, isWhiteBg) => Icon(
+            Icons.skip_previous_rounded,
+            size: (isWhiteBg ? 34 : 52) * controlsScale,
+            color: color,
           ),
-          useOverlayStyle
-              ? Container(
-                  width: 72 * controlsScale,
-                  height: 72 * controlsScale,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.white,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.12),
-                        blurRadius: 10 * controlsScale,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: AnimatedPlayPauseButton(
-                    isPlaying: isPlaying,
-                    onPressed: onPlayPause,
-                    color: controlIconColor,
-                    size: 42 * controlsScale,
-                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    tooltip: isPlaying ? l10n.pause : l10n.play,
-                  ),
-                )
-              : SizedBox(
-                  width: 60 * controlsScale,
-                  height: 60 * controlsScale,
-                  child: AnimatedPlayPauseButton(
-                    isPlaying: isPlaying,
-                    onPressed: onPlayPause,
-                    color: Colors.white,
-                    size: 52 * controlsScale,
-                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    tooltip: isPlaying ? l10n.pause : l10n.play,
-                  ),
+          onPressed: onPrevious,
+          tooltip: l10n.previous,
+        ),
+        useOverlayStyle
+            ? Container(
+                width: 72 * controlsScale,
+                height: 72 * controlsScale,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.12),
+                      blurRadius: 10 * controlsScale,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
                 ),
-          buildSecondaryControl(
-            circleSize: (useOverlayStyle ? 56 : 60),
-            iconBuilder: (color, isWhiteBg) => Icon(
-              Icons.skip_next_rounded,
-              size: (isWhiteBg ? 34 : 48) * controlsScale,
-              color: color,
-            ),
-            onPressed: onNext,
-            tooltip: l10n.next,
-          ),
-          buildSecondaryControl(
-            circleSize: (useOverlayStyle ? 42 : 40),
-            iconBuilder: (color, isWhiteBg) => GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onVerticalDragUpdate: (details) {
-                onVolumeDrag?.call(details.primaryDelta ?? 0);
-              },
-              child: Listener(
-                onPointerSignal: (pointerSignal) {
-                  if (pointerSignal is PointerScrollEvent) {
-                    onVolumeScroll?.call(pointerSignal.scrollDelta.dy);
-                  }
-                },
-                child: Icon(
-                  getVolumeIcon(ref.watch(audioVolumeProvider)),
-                  size: (isWhiteBg ? 22 : 24) * controlsScale,
-                  color: color,
+                child: AnimatedPlayPauseButton(
+                  isPlaying: isPlaying,
+                  onPressed: onPlayPause,
+                  color: controlIconColor,
+                  size: 42 * controlsScale,
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  tooltip: isPlaying ? l10n.pause : l10n.play,
+                ),
+              )
+            : SizedBox(
+                width: 60 * controlsScale,
+                height: 60 * controlsScale,
+                child: AnimatedPlayPauseButton(
+                  isPlaying: isPlaying,
+                  onPressed: onPlayPause,
+                  color: Colors.white,
+                  size: 52 * controlsScale,
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  tooltip: isPlaying ? l10n.pause : l10n.play,
                 ),
               ),
-            ),
-            onPressed: onVolumeTap,
-            tooltip: l10n.volume,
+        buildSecondaryControl(
+          circleSize: (useOverlayStyle ? 56 : 60),
+          iconBuilder: (color, isWhiteBg) => Icon(
+            Icons.skip_next_rounded,
+            size: (isWhiteBg ? 34 : 48) * controlsScale,
+            color: color,
           ),
-        ],
-      ),
+          onPressed: onNext,
+          tooltip: l10n.next,
+        ),
+        buildSecondaryControl(
+          circleSize: (useOverlayStyle ? 42 : 40),
+          iconBuilder: (color, isWhiteBg) => GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onVerticalDragUpdate: (details) {
+              onVolumeDrag?.call(details.primaryDelta ?? 0);
+            },
+            child: Listener(
+              onPointerSignal: (pointerSignal) {
+                if (pointerSignal is PointerScrollEvent) {
+                  onVolumeScroll?.call(pointerSignal.scrollDelta.dy);
+                }
+              },
+              child: Icon(
+                getVolumeIcon(ref.watch(audioVolumeProvider)),
+                size: (isWhiteBg ? 22 : 24) * controlsScale,
+                color: color,
+              ),
+            ),
+          ),
+          onPressed: onVolumeTap,
+          tooltip: l10n.volume,
+        ),
+      ],
     );
+
+    final Widget mainControlsRow;
+    if (effectiveIsLandscape) {
+      final double overflowOffset = 8.0 * controlsScale;
+      final double rowHeight = (useOverlayStyle ? 72.0 : 60.0) * controlsScale;
+      mainControlsRow = SizedBox(
+        width: unifiedWidth,
+        height: rowHeight,
+        child: OverflowBox(
+          minWidth: unifiedWidth + overflowOffset * 2,
+          maxWidth: unifiedWidth + overflowOffset * 2,
+          minHeight: rowHeight,
+          maxHeight: rowHeight,
+          child: mainControlsRowInner,
+        ),
+      );
+    } else {
+      mainControlsRow = wrapWithMaybeFitted(mainControlsRowInner);
+    }
 
     if (useOverlayStyle) {
       return Column(
@@ -2616,7 +2567,7 @@ class PlaybackProgressSection extends ConsumerWidget {
     // Top button size: 44 * controlsScale, icon size: 22 * controlsScale (margin is 11 * controlsScale)
     // Bottom button size: 40 * controlsScale, icon size: 24 * controlsScale (margin is 8 * controlsScale)
     // We choose 11.0 * controlsScale to align with the visual boundaries of the outermost icons.
-    final double horizontalPadding = isLandscape ? 11.0 * controlsScale : 0.0;
+    final double horizontalPadding = 0.0;
 
     Widget buildStandardSlider(
       BuildContext context,

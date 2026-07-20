@@ -121,7 +121,13 @@ class PlaybackHeroCardUiTuning {
   static const double lCoverMinSide = 240.0;
   static const double lCoverMaxSide = 1800.0;
   static const double lNormalCoverSideFactor = 0.72; // 横屏普通模式封面尺寸系数
-  static const double lLyricsPreferredCoverSide = 344.0;
+
+  // 横屏歌词模式统一调节入口 (Unified tuning entry for landscape lyrics mode)
+  static const double lLyricsPreferredCoverSide = 420.0; // 横屏歌词封面基础尺寸 (默认 440.0，空间充足时更大)
+  static const double lLyricsBaseControlsScale = 0.9; // 横屏歌词控件区基础缩放倍率 (默认 1.22，包含按钮、图标、字体)
+  static const double lLyricsMaxCoverExpansion = 120.0; // 窗口空间充裕时封面最大额外扩大尺寸
+  static const double lLyricsMaxControlsExpansion = 0.25; // 窗口空间充裕时控件区最大额外放大倍率
+
   static const double appleLyricsRightPanelRatio = 0.5; // 苹果样式下歌词模式占比
 
   static const double trackTitlePortraitLyricsFont = 20.0;
@@ -176,8 +182,10 @@ class PlaybackHeroCardUiTuning {
   static const double progressBarWidthFactor = 1.0; // 进度条宽度比例（相对于按钮区）
   static const double portraitProgressBarWidthFactor = 1.0; // 竖屏进度条宽度比例
   static const double landscapeInfoControlsGap = 0.0; // 横屏下标题区到控件区的距离
-  static const double landscapeInfoHeightBase = 48.0;
-  static const double landscapeLyricsInfoHeightBase = 42.0;
+  static const double landscapeInfoHeightBase = 52.0;
+  static const double landscapeLyricsInfoHeightBase = 54.0;
+  static const double landscapeLyricsInfoHeightSmall = 46.0;
+  static const double landscapeLyricsTitleScaleSmall = 0.85;
   static const double landscapeLyricsCoverInfoGapBase = 24.0;
   static const double controlsRowLandscapeGap = 12.0;
 
