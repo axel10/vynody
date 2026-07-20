@@ -23,6 +23,7 @@ import '../widgets/song_grid_card.dart';
 import 'package:vynody/player/settings/settings_service.dart';
 import 'package:vynody/utils/folder_helpers.dart';
 import '../widgets/folder_layout_utils.dart';
+import '../widgets/folder_content_slivers.dart';
 
 class FolderDetailView extends ConsumerStatefulWidget {
   const FolderDetailView({
@@ -325,374 +326,9 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
       (sum, song) => sum + (song.durationMillis ?? 0),
     );
 
-    Widget scrollBody;
-
-    final isFolderGrid = settings.folderViewMode == FolderViewMode.hybrid ||
-        settings.folderViewMode == FolderViewMode.grid;
-    Widget subfoldersSliver;
-    if (isFolderGrid) {
-      final gridItemsCount = matchedFolders.length;
-      subfoldersSliver = gridItemsCount > 0
-          ? SliverLayoutBuilder(
-              builder: (context, constraints) {
-                final width = constraints.crossAxisExtent;
-                final crossAxisCount = getFolderGridCrossAxisCount(width);
-                final childAspectRatio = calculateFolderGridChildAspectRatio(
-                  context,
-                  width,
-                  crossAxisCount,
-                );
-
-                return SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  sliver: SliverGrid(
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: crossAxisCount,
-                      crossAxisSpacing: 16,
-                      mainAxisSpacing: 16,
-                      childAspectRatio: childAspectRatio,
-                    ),
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final folder = matchedFolders[index];
-                        final isSelected = widget.selectedFolderPaths.contains(folder.path);
-                        final folderRepSong = scanner.getRepresentativeSongForFolder(folder);
-                        return HoverableCard(
-                          child: FolderGridCard(
-                            folder: folder,
-                            songsCount: folder.allSongs.length,
-                            representativeSong: folderRepSong,
-                            isSelected: isSelected,
-                            isSelectionMode: widget.isSelectionMode,
-                            onTap: widget.isSelectionMode
-                                ? () => widget.onToggleFolderSelection(folder.path)
-                                : () => widget.onNavigateTo(folder),
-                            onLongPress: () {
-                              if (!widget.isSelectionMode) {
-                                widget.onToggleSelectionMode();
-                                widget.onToggleFolderSelection(folder.path);
-                              } else {
-                                widget.onToggleFolderSelection(folder.path);
-                              }
-                            },
-                            onSecondaryTapDown: (details) {
-                              if (!widget.isSelectionMode) {
-                                widget.onShowFolderBottomSheet(folder, isRoot: false);
-                              }
-                            },
-                          ),
-                        );
-                      },
-                      childCount: gridItemsCount,
-                    ),
-                  ),
-                );
-              },
-            )
-          : const SliverToBoxAdapter(child: SizedBox.shrink());
-    } else {
-      final listItemsCount = matchedFolders.length;
-      subfoldersSliver = listItemsCount > 0
-          ? SliverPadding(
-              padding: const EdgeInsets.only(top: 8),
-              sliver: SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    final folder = matchedFolders[index];
-                    final isSelected = widget.selectedFolderPaths.contains(folder.path);
-                    final representativeSong = scanner.getRepresentativeSongForFolder(folder);
-                    return Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: MediaQuery.of(context).orientation == Orientation.portrait ? 8 : 16,
-                        vertical: 4,
-                      ),
-                      child: FolderListTile(
-                        folder: folder,
-                        songsCount: folder.allSongs.length,
-                        representativeSong: representativeSong,
-                        isSelected: isSelected,
-                        isSelectionMode: widget.isSelectionMode,
-                        onTap: widget.isSelectionMode
-                            ? () => widget.onToggleFolderSelection(folder.path)
-                            : () => widget.onNavigateTo(folder),
-                        onLongPress: () {
-                          if (!widget.isSelectionMode) {
-                            widget.onToggleSelectionMode();
-                            widget.onToggleFolderSelection(folder.path);
-                          } else {
-                            widget.onToggleFolderSelection(folder.path);
-                          }
-                        },
-                        onSecondaryTapDown: (details) {
-                          if (!widget.isSelectionMode) {
-                            widget.onShowFolderBottomSheet(folder, isRoot: false);
-                          }
-                        },
-                      ),
-                    );
-                  },
-                  childCount: listItemsCount,
-                ),
-              ),
-            )
-          : const SliverToBoxAdapter(child: SizedBox.shrink());
-    }
-
-    Widget songsSliver;
     final noResults = _searchQuery.isNotEmpty && matchedFolders.isEmpty && matchedSongs.isEmpty;
-    final isSongGrid = settings.folderViewMode == FolderViewMode.grid;
-    if (noResults) {
-      songsSliver = SliverToBoxAdapter(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 64.0),
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.search_off_rounded,
-                  size: 64,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  l10n.noMatchingFoldersOrSongs,
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    } else if (isSongGrid) {
-      final gridItemsCount = matchedSongs.length;
-      songsSliver = gridItemsCount > 0
-          ? SliverLayoutBuilder(
-              builder: (context, constraints) {
-                final width = constraints.crossAxisExtent;
-                final crossAxisCount = getFolderGridCrossAxisCount(width);
-                final childAspectRatio = calculateFolderGridChildAspectRatio(
-                  context,
-                  width,
-                  crossAxisCount,
-                );
 
-                return SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  sliver: SliverGrid(
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: crossAxisCount,
-                      crossAxisSpacing: 16,
-                      mainAxisSpacing: 16,
-                      childAspectRatio: childAspectRatio,
-                    ),
-                    delegate: SliverChildBuilderDelegate(
-                      (context, fileIndex) {
-                        final file = matchedSongs[fileIndex];
-                        final isCurrent = currentMusic?.path == file.path;
-                        final isSelected = widget.selectedSongPaths.contains(file.path);
-                        final songsToAdd =
-                            (widget.selectedSongPaths.isNotEmpty ||
-                                widget.selectedFolderPaths.isNotEmpty)
-                            ? _getSelectedSongs()
-                            : <MusicFile>[file];
-
-                        void handleShowMenu(
-                          BuildContext menuContext,
-                          Offset position,
-                        ) {
-                          showSongContextMenu(
-                            menuContext,
-                            position,
-                            song: file,
-                            songs: songsToAdd,
-                            mode: SongContextMenuMode.full,
-                            onAddToPlaylist: () => showAddSongsToPlaylistDialog(
-                              menuContext,
-                              ref.read(playlistServiceProvider),
-                              songsToAdd,
-                            ),
-                            onPlayNext: () => ref
-                                .read(audioServiceProvider)
-                                .enqueueNext(songsToAdd),
-                            onAddToQueue: () => ref
-                                .read(audioServiceProvider)
-                                .appendToQueue(songsToAdd),
-                          );
-                        }
-
-                        return HoverableCard(
-                          child: SongGridCard(
-                            song: file,
-                            isCurrent: isCurrent,
-                            isPlaying: isPlaying,
-                            isSelected: isSelected,
-                            isSelectionMode: widget.isSelectionMode,
-                            isHighlighted: widget.highlightedSongPath == file.path,
-                            onTap: widget.isSelectionMode
-                                ? () => widget.onToggleSelection(file.path)
-                                : () async {
-                                    unawaited(() async {
-                                      try {
-                                         await audio.playPlaylist(
-                                           matchedSongs,
-                                           initialIndex: fileIndex,
-                                           source: PlaybackSource(
-                                             type: PlaybackSourceType.folder,
-                                             id: folder.path,
-                                             name: folder.name,
-                                           ),
-                                         );
-                                      } catch (e, st) {
-                                        debugPrint(
-                                          'FoldersPage: failed to start folder playback for ${file.path}: $e',
-                                        );
-                                        debugPrintStack(stackTrace: st);
-                                      }
-                                    }());
-
-                                    if (mounted) {
-                                      widget.onClearAllSelection();
-                                      await widget.onOpenPlayback?.call();
-                                    }
-                                  },
-                            onLongPress: () {
-                              if (!widget.isSelectionMode) {
-                                widget.onToggleSelectionMode();
-                                widget.onToggleSelection(file.path);
-                              } else {
-                                widget.onToggleSelection(file.path);
-                              }
-                            },
-                            onSecondaryTapDown: (details) {
-                              handleShowMenu(context, details.globalPosition);
-                            },
-                          ),
-                        );
-                      },
-                      childCount: gridItemsCount,
-                    ),
-                  ),
-                );
-              },
-            )
-          : const SliverToBoxAdapter(child: SizedBox.shrink());
-    } else {
-      songsSliver = SliverPadding(
-        padding: const EdgeInsets.only(top: 8),
-        sliver: SliverList(
-          delegate: SliverChildBuilderDelegate(
-            (context, fileIndex) {
-              final file = matchedSongs[fileIndex];
-              final isCurrent = currentMusic?.path == file.path;
-              final isSelected = widget.selectedSongPaths.contains(file.path);
-              final songsToAdd =
-                  (widget.selectedSongPaths.isNotEmpty ||
-                      widget.selectedFolderPaths.isNotEmpty)
-                  ? _getSelectedSongs()
-                  : <MusicFile>[file];
-
-              void handleShowMenu(
-                BuildContext menuContext,
-                Offset position,
-              ) {
-                showSongContextMenu(
-                  menuContext,
-                  position,
-                  song: file,
-                  songs: songsToAdd,
-                  mode: SongContextMenuMode.full,
-                  onAddToPlaylist: () => showAddSongsToPlaylistDialog(
-                    menuContext,
-                    ref.read(playlistServiceProvider),
-                    songsToAdd,
-                  ),
-                  onPlayNext: () => ref
-                      .read(audioServiceProvider)
-                      .enqueueNext(songsToAdd),
-                  onAddToQueue: () => ref
-                      .read(audioServiceProvider)
-                      .appendToQueue(songsToAdd),
-                );
-              }
-
-              return GestureDetector(
-                key: ValueKey(file.path),
-                behavior: HitTestBehavior.opaque,
-                onSecondaryTapDown: (details) {
-                  handleShowMenu(context, details.globalPosition);
-                },
-                child: Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal:
-                        MediaQuery.of(context).orientation ==
-                            Orientation.portrait
-                        ? 8
-                        : 16,
-                    vertical: 4,
-                  ),
-                  child: SongTile(
-                    song: file,
-                    isCurrent: isCurrent,
-                    isSelected: isSelected,
-                    isSelectionMode: widget.isSelectionMode,
-                    isHighlighted: widget.highlightedSongPath == file.path,
-                    onTap: widget.isSelectionMode
-                        ? () => widget.onToggleSelection(file.path)
-                        : () async {
-                            unawaited(() async {
-                              try {
-                                 await audio.playPlaylist(
-                                   matchedSongs,
-                                   initialIndex: fileIndex,
-                                   source: PlaybackSource(
-                                     type: PlaybackSourceType.folder,
-                                     id: folder.path,
-                                     name: folder.name,
-                                   ),
-                                 );
-                              } catch (e, st) {
-                                debugPrint(
-                                  'FoldersPage: failed to start folder playback for ${file.path}: $e',
-                                );
-                                debugPrintStack(stackTrace: st);
-                              }
-                            }());
-
-                            if (mounted) {
-                              widget.onClearAllSelection();
-                              await widget.onOpenPlayback?.call();
-                            }
-                          },
-                    onLongPress: () {
-                      if (!widget.isSelectionMode) {
-                        widget.onToggleSelectionMode();
-                        widget.onToggleSelection(file.path);
-                      }
-                    },
-                    onSecondaryTapDown: (details) {
-                      handleShowMenu(context, details.globalPosition);
-                    },
-                    onMorePressed: (buttonContext) {
-                      final renderObject = buttonContext.findRenderObject();
-                      final renderBox = renderObject is RenderBox ? renderObject : null;
-                      if (renderBox == null) return;
-                      final Offset offset = renderBox.localToGlobal(Offset.zero);
-                      handleShowMenu(buttonContext, offset);
-                    },
-                  ),
-                ),
-              );
-            },
-            childCount: matchedSongs.length,
-          ),
-        ),
-      );
-    }
-
-    scrollBody = CustomScrollView(
+    final Widget scrollBody = CustomScrollView(
       key: ValueKey(folder.path),
       controller: _localScrollController,
       cacheExtent: 1000.0,
@@ -806,31 +442,124 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
               ),
             ),
           ),
-        subfoldersSliver,
-        if (matchedFolders.isNotEmpty && matchedSongs.isNotEmpty)
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    l10n.songsCountFormat(matchedSongs.length),
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Divider(
-                    height: 1,
-                    color: Theme.of(context).dividerColor.withValues(alpha: 0.05),
-                  ),
-                ],
-              ),
-            ),
+        if (noResults)
+          FolderEmptySearchResultsSliver(
+            message: l10n.noMatchingFoldersOrSongs,
+          )
+        else ...[
+          FolderSubfoldersSliver(
+            folders: matchedFolders,
+            viewMode: settings.folderViewMode,
+            scanner: scanner,
+            isSelectionMode: widget.isSelectionMode,
+            selectedFolderPaths: widget.selectedFolderPaths,
+            isRoot: false,
+            onNavigateTo: widget.onNavigateTo,
+            onToggleFolderSelection: widget.onToggleFolderSelection,
+            onToggleSelectionMode: widget.onToggleSelectionMode,
+            onShowFolderBottomSheet: widget.onShowFolderBottomSheet,
           ),
-        songsSliver,
+          if (matchedFolders.isNotEmpty && matchedSongs.isNotEmpty)
+            FolderSectionHeaderSliver(
+              title: l10n.songsCountFormat(matchedSongs.length),
+            ),
+          FolderSongsSliver(
+            songs: matchedSongs,
+            viewMode: settings.folderViewMode,
+            currentSongPath: currentMusic?.path,
+            isPlaying: isPlaying,
+            isSelectionMode: widget.isSelectionMode,
+            selectedSongPaths: widget.selectedSongPaths,
+            highlightedSongPath: widget.highlightedSongPath,
+            onSongTap: (file, fileIndex) async {
+              if (widget.isSelectionMode) {
+                widget.onToggleSelection(file.path);
+              } else {
+                unawaited(() async {
+                  try {
+                    await audio.playPlaylist(
+                      matchedSongs,
+                      initialIndex: fileIndex,
+                      source: PlaybackSource(
+                        type: PlaybackSourceType.folder,
+                        id: folder.path,
+                        name: folder.name,
+                      ),
+                    );
+                  } catch (e, st) {
+                    debugPrint(
+                      'FoldersPage: failed to start folder playback for ${file.path}: $e',
+                    );
+                    debugPrintStack(stackTrace: st);
+                  }
+                }());
+
+                if (mounted) {
+                  widget.onClearAllSelection();
+                  await widget.onOpenPlayback?.call();
+                }
+              }
+            },
+            onSongLongPress: (file) {
+              if (!widget.isSelectionMode) {
+                widget.onToggleSelectionMode();
+                widget.onToggleSelection(file.path);
+              } else {
+                widget.onToggleSelection(file.path);
+              }
+            },
+            onSongSecondaryTapDown: (file, details) {
+              final songsToAdd = (widget.selectedSongPaths.isNotEmpty ||
+                      widget.selectedFolderPaths.isNotEmpty)
+                  ? _getSelectedSongs()
+                  : <MusicFile>[file];
+              showSongContextMenu(
+                context,
+                details.globalPosition,
+                song: file,
+                songs: songsToAdd,
+                mode: SongContextMenuMode.full,
+                onAddToPlaylist: () => showAddSongsToPlaylistDialog(
+                  context,
+                  ref.read(playlistServiceProvider),
+                  songsToAdd,
+                ),
+                onPlayNext: () =>
+                    ref.read(audioServiceProvider).enqueueNext(songsToAdd),
+                onAddToQueue: () =>
+                    ref.read(audioServiceProvider).appendToQueue(songsToAdd),
+              );
+            },
+            onSongMorePressed: (file, buttonContext) {
+              final renderObject = buttonContext.findRenderObject();
+              final renderBox =
+                  renderObject is RenderBox ? renderObject : null;
+              if (renderBox == null) return;
+              final Offset offset = renderBox.localToGlobal(Offset.zero);
+              final songsToAdd = (widget.selectedSongPaths.isNotEmpty ||
+                      widget.selectedFolderPaths.isNotEmpty)
+                  ? _getSelectedSongs()
+                  : <MusicFile>[file];
+              showSongContextMenu(
+                buttonContext,
+                offset,
+                song: file,
+                songs: songsToAdd,
+                mode: SongContextMenuMode.full,
+                onAddToPlaylist: () => showAddSongsToPlaylistDialog(
+                  buttonContext,
+                  ref.read(playlistServiceProvider),
+                  songsToAdd,
+                ),
+                onPlayNext: () =>
+                    ref.read(audioServiceProvider).enqueueNext(songsToAdd),
+                onAddToQueue: () =>
+                    ref.read(audioServiceProvider).appendToQueue(songsToAdd),
+              );
+            },
+            bottomPadding: 0,
+          ),
+        ],
         SliverPadding(
           padding: EdgeInsets.only(bottom: 160 + selectionPanelHeight),
         ),

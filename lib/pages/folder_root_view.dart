@@ -20,6 +20,7 @@ import 'package:vynody/player/settings/settings_service.dart';
 import 'package:vynody/utils/song_context_menu_utils.dart';
 import 'package:vynody/utils/folder_helpers.dart';
 import '../widgets/folder_layout_utils.dart';
+import '../widgets/folder_content_slivers.dart';
 
 class FolderRootView extends ConsumerStatefulWidget {
   const FolderRootView({
@@ -239,9 +240,6 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
         },
       );
     } else {
-      final isGrid = settings.folderViewMode == FolderViewMode.hybrid ||
-          settings.folderViewMode == FolderViewMode.grid;
-
       final representativeSong = () {
         for (final folder in rootFolders) {
           final song = scanner.getRepresentativeSongForFolder(folder);
@@ -261,291 +259,6 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
       final noResults = _searchQuery.isNotEmpty && matchedRootFolders.isEmpty && matchedSongs.isEmpty;
 
       final double foldersBottomPadding = matchedSongs.isEmpty ? 160.0 : 16.0;
-
-      Widget rootFoldersSliver;
-      if (noResults) {
-        rootFoldersSliver = SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 64.0),
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.search_off_rounded,
-                    size: 64,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    l10n.noMatchingFoldersOrSongs,
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      } else if (isGrid) {
-        rootFoldersSliver = SliverLayoutBuilder(
-          builder: (context, constraints) {
-            final width = constraints.crossAxisExtent;
-            final crossAxisCount = getFolderGridCrossAxisCount(width);
-            final childAspectRatio = calculateFolderGridChildAspectRatio(
-              context,
-              width,
-              crossAxisCount,
-            );
-
-            final showSystemMedia = Platform.isAndroid && _searchQuery.isEmpty;
-            final itemCount = matchedRootFolders.length + (showSystemMedia ? 1 : 0);
-
-            return SliverPadding(
-              padding: EdgeInsets.only(bottom: foldersBottomPadding, left: 16, right: 16),
-              sliver: SliverGrid(
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: crossAxisCount,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
-                  childAspectRatio: childAspectRatio,
-                ),
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    if (showSystemMedia && index == 0) {
-                      final systemFolder = scanner.systemMediaFolder ??
-                          MusicFolder(
-                            path: 'system',
-                            name: l10n.systemMediaLibrary,
-                          );
-                      final songsCount = scanner.getSongCountForFolder(systemFolder);
-                      final representativeSong = scanner.getRepresentativeSongForFolder(systemFolder);
-                      
-                      return AnimatedOpacity(
-                        opacity: 1.0,
-                        duration: const Duration(milliseconds: 180),
-                        child: HoverableCard(
-                          child: FolderGridCard(
-                            folder: systemFolder,
-                            songsCount: songsCount,
-                            representativeSong: representativeSong,
-                            subtitle: hasPermission ? null : l10n.needPermissionToScan,
-                            onTap: () async {
-                              if (!hasPermission) {
-                                await scanner.checkAndRequestPermissions();
-                              }
-                              if (context.mounted) {
-                                widget.onNavigateTo(
-                                  scanner.systemMediaFolder ??
-                                      MusicFolder(
-                                        path: 'system',
-                                        name: l10n.systemMediaLibrary,
-                                      ),
-                                );
-                              }
-                            },
-                          ),
-                        ),
-                      );
-                    }
-
-                    final folderIndex = showSystemMedia ? index - 1 : index;
-                    final folder = matchedRootFolders[folderIndex];
-                    final isRootAvailable = scanner.isRootPathAvailable(folder.path);
-                    final representativeSong = scanner.getRepresentativeSongForFolder(folder);
-                    return AnimatedOpacity(
-                      opacity: isRootAvailable ? 1.0 : 0.45,
-                      duration: const Duration(milliseconds: 180),
-                      child: HoverableCard(
-                        child: FolderGridCard(
-                          folder: folder,
-                          songsCount: scanner.getSongCountForFolder(folder),
-                          representativeSong: representativeSong,
-                          onTap: isRootAvailable ? () => widget.onNavigateTo(folder) : null,
-                          onLongPress: () => widget.onShowFolderBottomSheet(folder, isRoot: true),
-                          onSecondaryTapDown: (details) => widget.onShowFolderBottomSheet(folder, isRoot: true),
-                        ),
-                      ),
-                    );
-                  },
-                  childCount: itemCount,
-                ),
-              ),
-            );
-          },
-        );
-      } else {
-        rootFoldersSliver = SliverPadding(
-          padding: EdgeInsets.only(bottom: foldersBottomPadding),
-          sliver: SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                final folder = matchedRootFolders[index];
-                final isRootAvailable = scanner.isRootPathAvailable(folder.path);
-                final representativeSong = scanner.getRepresentativeSongForFolder(folder);
-                return AnimatedOpacity(
-                  opacity: isRootAvailable ? 1.0 : 0.45,
-                  duration: const Duration(milliseconds: 180),
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: MediaQuery.of(context).orientation == Orientation.portrait ? 8 : 16,
-                      vertical: 4,
-                    ),
-                    child: FolderListTile(
-                      folder: folder,
-                      songsCount: scanner.getSongCountForFolder(folder),
-                      representativeSong: representativeSong,
-                      onTap: isRootAvailable ? () => widget.onNavigateTo(folder) : null,
-                      onLongPress: () => widget.onShowFolderBottomSheet(folder, isRoot: true),
-                      onSecondaryTapDown: (details) => widget.onShowFolderBottomSheet(folder, isRoot: true),
-                    ),
-                  ),
-                );
-              },
-              childCount: matchedRootFolders.length,
-            ),
-          ),
-        );
-      }
-
-      Widget songsSliver;
-      final isSongGrid = settings.folderViewMode == FolderViewMode.grid;
-      if (matchedSongs.isEmpty) {
-        songsSliver = const SliverToBoxAdapter(child: SizedBox.shrink());
-      } else if (isSongGrid) {
-        songsSliver = SliverLayoutBuilder(
-          builder: (context, constraints) {
-            final width = constraints.crossAxisExtent;
-            final crossAxisCount = getFolderGridCrossAxisCount(width);
-            final childAspectRatio = calculateFolderGridChildAspectRatio(
-              context,
-              width,
-              crossAxisCount,
-            );
-
-            return SliverPadding(
-              padding: const EdgeInsets.only(bottom: 160, left: 16, right: 16),
-              sliver: SliverGrid(
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: crossAxisCount,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
-                  childAspectRatio: childAspectRatio,
-                ),
-                delegate: SliverChildBuilderDelegate(
-                  (context, fileIndex) {
-                    final file = matchedSongs[fileIndex];
-                    final isCurrent = currentMusic?.path == file.path;
-                    return HoverableCard(
-                      child: SongGridCard(
-                        song: file,
-                        isCurrent: isCurrent,
-                        isPlaying: ref.watch(audioIsPlayingProvider),
-                        isSelected: false,
-                        isSelectionMode: false,
-                        onTap: () async {
-                          unawaited(() async {
-                            try {
-                               await audio.playPlaylist(
-                                 matchedSongs,
-                                 initialIndex: fileIndex,
-                                 source: PlaybackSource(
-                                   type: PlaybackSourceType.folder,
-                                   id: 'search_results',
-                                   name: l10n.search,
-                                 ),
-                               );
-                            } catch (e, st) {
-                              debugPrint(
-                                'FolderRootView: failed to start matched song playback: $e',
-                              );
-                              debugPrintStack(stackTrace: st);
-                            }
-                          }());
-
-                          await widget.onOpenPlayback?.call();
-                        },
-                        onLongPress: () {},
-                        onSecondaryTapDown: (details) {
-                          _handleShowMenu(context, details.globalPosition, file);
-                        },
-                      ),
-                    );
-                  },
-                  childCount: matchedSongs.length,
-                ),
-              ),
-            );
-          },
-        );
-      } else {
-        songsSliver = SliverPadding(
-          padding: const EdgeInsets.only(top: 8, bottom: 160),
-          sliver: SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (context, fileIndex) {
-                final file = matchedSongs[fileIndex];
-                final isCurrent = currentMusic?.path == file.path;
-                return GestureDetector(
-                  key: ValueKey(file.path),
-                  behavior: HitTestBehavior.opaque,
-                  onSecondaryTapDown: (details) {
-                    _handleShowMenu(context, details.globalPosition, file);
-                  },
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: MediaQuery.of(context).orientation == Orientation.portrait ? 8 : 16,
-                      vertical: 4,
-                    ),
-                    child: SongTile(
-                      song: file,
-                      isCurrent: isCurrent,
-                      isSelected: false,
-                      isSelectionMode: false,
-                      isHighlighted: false,
-                      onTap: () async {
-                        unawaited(() async {
-                          try {
-                             await audio.playPlaylist(
-                               matchedSongs,
-                               initialIndex: fileIndex,
-                               source: PlaybackSource(
-                                 type: PlaybackSourceType.folder,
-                                 id: 'search_results',
-                                 name: l10n.search,
-                               ),
-                             );
-                          } catch (e, st) {
-                            debugPrint(
-                              'FolderRootView: failed to start matched song playback: $e',
-                            );
-                            debugPrintStack(stackTrace: st);
-                          }
-                        }());
-
-                        await widget.onOpenPlayback?.call();
-                      },
-                      onLongPress: () {},
-                      onSecondaryTapDown: (details) {
-                        _handleShowMenu(context, details.globalPosition, file);
-                      },
-                      onMorePressed: (buttonContext) {
-                        final renderObject = buttonContext.findRenderObject();
-                        final renderBox = renderObject is RenderBox ? renderObject : null;
-                        if (renderBox == null) return;
-                        final Offset offset = renderBox.localToGlobal(Offset.zero);
-                        _handleShowMenu(buttonContext, offset, file);
-                      },
-                    ),
-                  ),
-                );
-              },
-              childCount: matchedSongs.length,
-            ),
-          ),
-        );
-      }
 
       rootList = CustomScrollView(
         key: const ValueKey('root_folders_scroll_view'),
@@ -631,7 +344,6 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
                   },
                 ),
               ],
-
               actionButtonsScrollable: true,
               isSearching: _isSearching,
               searchController: _searchController,
@@ -657,80 +369,68 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
               isHeroModeEnabled: true,
             ),
           ),
-          if (Platform.isAndroid && _searchQuery.isEmpty && !isGrid)
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: MediaQuery.of(context).orientation == Orientation.portrait ? 8 : 16,
-                  vertical: 4,
-                ),
-                child: ListTile(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  hoverColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.06),
-                  leading: const Icon(
-                    Icons.library_music,
-                    color: Colors.purple,
-                  ),
-                  title: Text(AppLocalizations.of(context)!.systemMediaLibrary),
-                  subtitle: hasPermission
-                      ? null
-                      : Text(
-                          AppLocalizations.of(context)!.needPermissionToScan,
-                          style: const TextStyle(color: Colors.grey, fontSize: 12),
-                        ),
-                  onTap: () async {
-                    if (!hasPermission) {
-                      await scanner.checkAndRequestPermissions();
-                    }
-                    if (context.mounted) {
-                      widget.onNavigateTo(
-                        scanner.systemMediaFolder ??
-                            MusicFolder(
-                              path: 'system',
-                              name: AppLocalizations.of(context)!.systemMediaLibrary,
-                            ),
-                      );
-                    }
-                  },
-                ),
-              ),
+          if (noResults)
+            FolderEmptySearchResultsSliver(
+              message: l10n.noMatchingFoldersOrSongs,
+            )
+          else ...[
+            FolderSubfoldersSliver(
+              folders: matchedRootFolders,
+              viewMode: settings.folderViewMode,
+              scanner: scanner,
+              isRoot: true,
+              showSystemMedia: Platform.isAndroid && _searchQuery.isEmpty,
+              hasPermission: hasPermission,
+              systemMediaTitle: l10n.systemMediaLibrary,
+              systemMediaSubtitle: l10n.needPermissionToScan,
+              onNavigateTo: widget.onNavigateTo,
+              onShowFolderBottomSheet: widget.onShowFolderBottomSheet,
+              bottomPadding: foldersBottomPadding,
             ),
-          rootFoldersSliver,
-          if (matchedRootFolders.isNotEmpty && matchedSongs.isNotEmpty)
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.only(
-                  left: 16,
-                  right: 16,
-                  top: 16,
-                  bottom: 8,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      l10n.songsCountFormat(matchedSongs.length),
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-                        fontWeight: FontWeight.bold,
+            if (matchedRootFolders.isNotEmpty && matchedSongs.isNotEmpty)
+              FolderSectionHeaderSliver(
+                title: l10n.songsCountFormat(matchedSongs.length),
+              ),
+            FolderSongsSliver(
+              songs: matchedSongs,
+              viewMode: settings.folderViewMode,
+              currentSongPath: currentMusic?.path,
+              isPlaying: ref.watch(audioIsPlayingProvider),
+              onSongTap: (file, fileIndex) async {
+                unawaited(() async {
+                  try {
+                    await audio.playPlaylist(
+                      matchedSongs,
+                      initialIndex: fileIndex,
+                      source: PlaybackSource(
+                        type: PlaybackSourceType.folder,
+                        id: 'search_results',
+                        name: l10n.search,
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Divider(
-                      height: 1,
-                      color: Theme.of(
-                        context,
-                      ).dividerColor.withValues(alpha: 0.05),
-                    ),
-                  ],
-                ),
-              ),
+                    );
+                  } catch (e, st) {
+                    debugPrint(
+                      'FolderRootView: failed to start matched song playback: $e',
+                    );
+                    debugPrintStack(stackTrace: st);
+                  }
+                }());
+
+                await widget.onOpenPlayback?.call();
+              },
+              onSongSecondaryTapDown: (file, details) {
+                _handleShowMenu(context, details.globalPosition, file);
+              },
+              onSongMorePressed: (file, buttonContext) {
+                final renderObject = buttonContext.findRenderObject();
+                final renderBox =
+                    renderObject is RenderBox ? renderObject : null;
+                if (renderBox == null) return;
+                final Offset offset = renderBox.localToGlobal(Offset.zero);
+                _handleShowMenu(buttonContext, offset, file);
+              },
             ),
-          songsSliver,
+          ],
         ],
       );
     }
@@ -933,61 +633,4 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
       ),
     );
   }
-
-  MusicFile? _findRepresentativeSongForRoots(List<MusicFolder> folders) {
-    for (final folder in folders) {
-      final song = findRepresentativeSong(folder);
-      if (song != null) {
-        return song;
-      }
-    }
-    return null;
-  }
-
-
-
-  List<MusicFolder> _findMatchingFolders(List<MusicFolder> roots, String query) {
-    final results = <MusicFolder>[];
-    final lowercaseQuery = query.toLowerCase();
-
-    void search(MusicFolder folder) {
-      if (folder.name.toLowerCase().contains(lowercaseQuery)) {
-        results.add(folder);
-      }
-      for (final sub in folder.subFolders) {
-        search(sub);
-      }
-    }
-
-    for (final root in roots) {
-      search(root);
-    }
-    return results;
-  }
-
-  List<MusicFile> _findMatchingSongs(List<MusicFolder> roots, String query) {
-    final results = <MusicFile>[];
-    final lowercaseQuery = query.toLowerCase();
-
-    void search(MusicFolder folder) {
-      for (final file in folder.files) {
-        final matchesName = file.name.toLowerCase().contains(lowercaseQuery);
-        final matchesTitle = file.title?.toLowerCase().contains(lowercaseQuery) ?? false;
-        final matchesArtist = file.artist?.toLowerCase().contains(lowercaseQuery) ?? false;
-        final matchesAlbum = file.album?.toLowerCase().contains(lowercaseQuery) ?? false;
-        if (matchesName || matchesTitle || matchesArtist || matchesAlbum) {
-          results.add(file);
-        }
-      }
-      for (final sub in folder.subFolders) {
-        search(sub);
-      }
-    }
-
-    for (final root in roots) {
-      search(root);
-    }
-    return results;
-  }
-
 }
