@@ -2291,12 +2291,15 @@ class ArtworkCaches extends Table {
 void _setupSqliteInIsolate([Object? db]) {
   if (Platform.isLinux) {
     open.overrideFor(OperatingSystem.linux, () {
+      final exeDir = p.dirname(Platform.resolvedExecutable);
+      final bundleLibPath = p.join(exeDir, 'lib', 'libsqlite3_flutter_libs_plugin.so');
       final candidates = [
-        '/usr/lib/x86_64-linux-gnu/libsqlite3.so.0',
+        bundleLibPath,
+        'libsqlite3_flutter_libs_plugin.so',
         'libsqlite3.so.0',
-        '/usr/lib/libsqlite3.so.0',
-        'build/linux/packages/stage/opt/vynody/lib/libsqlite3.so',
         'libsqlite3.so',
+        '/usr/lib/x86_64-linux-gnu/libsqlite3.so.0',
+        '/usr/lib/libsqlite3.so.0',
       ];
       for (final candidate in candidates) {
         try {
