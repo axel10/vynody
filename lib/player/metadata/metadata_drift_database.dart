@@ -2182,11 +2182,36 @@ class ArtworkCaches extends Table {
   List<String> get customConstraints => const ['UNIQUE(md5)'];
 }
 
+void _setupSqliteInIsolate([Object? db]) {
+  if (Platform.isLinux) {
+    open.overrideFor(OperatingSystem.linux, () {
+      final candidates = [
+        '/usr/lib/x86_64-linux-gnu/libsqlite3.so.0',
+        'libsqlite3.so.0',
+        '/usr/lib/libsqlite3.so.0',
+        'build/linux/packages/stage/opt/vynody/lib/libsqlite3.so',
+        'libsqlite3.so',
+      ];
+      for (final candidate in candidates) {
+        try {
+          return DynamicLibrary.open(candidate);
+        } catch (_) {}
+      }
+      return DynamicLibrary.open('libsqlite3.so');
+    });
+  }
+}
+
 LazyDatabase _openConnection() {
   return LazyDatabase(() async {
+    _setupSqliteInIsolate();
     final directory = await getApplicationSupportDirectory();
     final file = File(p.join(directory.path, 'metadata.db'));
-    return NativeDatabase.createInBackground(file);
+    return NativeDatabase.createInBackground(
+      file,
+      isolateSetup: _setupSqliteInIsolate,
+      setup: _setupSqliteInIsolate,
+    );
   });
 }
 
