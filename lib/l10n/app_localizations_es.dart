@@ -3035,6 +3035,10 @@ class AppLocalizationsEs extends AppLocalizations {
       'Toca la portada para entrar en modo letras';
 
   @override
+  String get longPressLyricsPanelToOpenMenu =>
+      'Mantén presionado el panel de letras para abrir el menú';
+
+  @override
   String get gotIt => 'Entendido';
 
   @override

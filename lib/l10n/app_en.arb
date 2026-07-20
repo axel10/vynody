@@ -1186,6 +1186,10 @@
   "@tapCoverToEnterLyricsMode": {
     "description": "Tip shown on the playback page to inform users they can tap the album cover to enter lyrics mode"
   },
+  "longPressLyricsPanelToOpenMenu": "Long press lyrics panel to open menu",
+  "@longPressLyricsPanelToOpenMenu": {
+    "description": "Tip shown in lyrics mode to inform users they can long press the lyrics panel to open the menu"
+  },
   "gotIt": "Got it",
   "@gotIt": {
     "description": "Dismiss button text for tips and guides"

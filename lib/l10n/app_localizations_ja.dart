@@ -2894,6 +2894,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get tapCoverToEnterLyricsMode => 'カバーをタップして歌詞モードに入る';
 
   @override
+  String get longPressLyricsPanelToOpenMenu => '歌詞パネルを長押ししてメニューを表示';
+
+  @override
   String get gotIt => '了解';
 
   @override

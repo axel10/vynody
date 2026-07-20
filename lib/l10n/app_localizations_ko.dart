@@ -2897,6 +2897,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get tapCoverToEnterLyricsMode => '커버를 탭하여 가사 모드로 전환';
 
   @override
+  String get longPressLyricsPanelToOpenMenu => '가사 패널을 길게 누르면 메뉴가 나타납니다';
+
+  @override
   String get gotIt => '확인';
 
   @override

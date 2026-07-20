@@ -49,6 +49,7 @@ class PlaybackPage extends ConsumerStatefulWidget {
 
 class _PlaybackPageState extends ConsumerState<PlaybackPage> {
   final GlobalKey _coverKey = GlobalKey();
+  final GlobalKey _lyricsKey = GlobalKey();
   bool _showVolumeSlider = false;
   bool _isScrubbingProgress = false;
   double _scrubProgress = 0.0; // Added missing declaration
@@ -837,6 +838,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
       child: OrientationBuilder(
         builder: (context, orientation) {
           final size = MediaQuery.of(context).size;
+          final l10n = AppLocalizations.of(context)!;
           final settings = ref.watch(settingsServiceProvider);
           final bool isSmallWin = PlaybackPageUiTuning.isSmallWindow(
             size,
@@ -846,8 +848,12 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
           _flushLyricsTranslationsAfterSmallWindowExit(isSmallWin);
           final isLandscape =
               !isSmallWin && (orientation == Orientation.landscape);
-          final bool showTip = !settings.hasShownCoverTapLyricTip &&
+          final bool showCoverTip = !settings.hasShownCoverTapLyricTip &&
               !isLyricsMode &&
+              !isSmallWin &&
+              currentMusic != null;
+          final bool showLyricsTip = !settings.hasShownLyricsMenuTip &&
+              isLyricsMode &&
               !isSmallWin &&
               currentMusic != null;
 
@@ -900,6 +906,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
 
                 return PlaybackHeroCard(
                   coverKey: _coverKey,
+                  lyricsKey: _lyricsKey,
                   isMini: false,
                   isLandscape: isLandscape,
                   isLyricsMode: isLyricsMode,
@@ -1284,14 +1291,37 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                       );
                     },
                   ),
-                if (showTip)
-                  _CoverTipOverlay(
-                    coverKey: _coverKey,
+                if (showCoverTip)
+                  _TipOverlay(
+                    targetKey: _coverKey,
                     isLandscape: isLandscape,
+                    isLyricsMode: false,
                     onDismiss: () {
                       settings.hasShownCoverTapLyricTip = true;
                     },
-                    tipCard: _buildTipCard(context, settings),
+                    tipCard: _buildTipCard(
+                      context,
+                      tipText: l10n.tapCoverToEnterLyricsMode,
+                      onDismiss: () {
+                        settings.hasShownCoverTapLyricTip = true;
+                      },
+                    ),
+                  )
+                else if (showLyricsTip)
+                  _TipOverlay(
+                    targetKey: _lyricsKey,
+                    isLandscape: isLandscape,
+                    isLyricsMode: true,
+                    onDismiss: () {
+                      settings.hasShownLyricsMenuTip = true;
+                    },
+                    tipCard: _buildTipCard(
+                      context,
+                      tipText: l10n.longPressLyricsPanelToOpenMenu,
+                      onDismiss: () {
+                        settings.hasShownLyricsMenuTip = true;
+                      },
+                    ),
                   ),
               ],
             ),
@@ -1709,15 +1739,16 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
     );
   }
 
-  Widget _buildTipCard(BuildContext context, SettingsService settings) {
+  Widget _buildTipCard(
+    BuildContext context, {
+    required String tipText,
+    required VoidCallback onDismiss,
+  }) {
     final l10n = AppLocalizations.of(context)!;
-    final tipText = l10n.tapCoverToEnterLyricsMode;
     final dismissText = l10n.gotIt;
 
     return GestureDetector(
-      onTap: () {
-        settings.hasShownCoverTapLyricTip = true;
-      },
+      onTap: onDismiss,
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -1777,9 +1808,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
-                onPressed: () {
-                  settings.hasShownCoverTapLyricTip = true;
-                },
+                onPressed: onDismiss,
                 child: Text(
                   dismissText,
                   style: TextStyle(
@@ -1966,29 +1995,30 @@ class _CoverCutoutClipper extends CustomClipper<Path> {
   }
 }
 
-class _CoverTipOverlay extends StatefulWidget {
-  final GlobalKey coverKey;
+class _TipOverlay extends StatefulWidget {
+  final GlobalKey targetKey;
   final bool isLandscape;
+  final bool isLyricsMode;
   final VoidCallback onDismiss;
   final Widget tipCard;
 
-  const _CoverTipOverlay({
-    required this.coverKey,
+  const _TipOverlay({
+    required this.targetKey,
     required this.isLandscape,
+    required this.isLyricsMode,
     required this.onDismiss,
     required this.tipCard,
   });
 
   @override
-  State<_CoverTipOverlay> createState() => _CoverTipOverlayState();
+  State<_TipOverlay> createState() => _TipOverlayState();
 }
 
-class _CoverTipOverlayState extends State<_CoverTipOverlay> with SingleTickerProviderStateMixin {
+class _TipOverlayState extends State<_TipOverlay> with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
   late final Animation<double> _opacityAnimation;
-  Timer? _delayTimer;
-  Rect? _coverRect;
-  double _coverRadius = 24.0;
+  Rect? _targetRect;
+  double _targetRadius = 24.0;
 
   @override
   void initState() {
@@ -2002,39 +2032,46 @@ class _CoverTipOverlayState extends State<_CoverTipOverlay> with SingleTickerPro
       curve: Curves.easeIn,
     );
     
-    _delayTimer = Timer(const Duration(milliseconds: 600), () {
-      if (!mounted) return;
-      _measureCover();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _scheduleMeasurement();
     });
   }
 
-  void _measureCover() {
-    final contextCover = widget.coverKey.currentContext;
-    if (contextCover == null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _measureCover();
-      });
-      return;
-    }
+  void _scheduleMeasurement() {
+    if (!mounted) return;
+    _measureTarget();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _scheduleMeasurement();
+    });
+  }
 
-    final RenderBox? renderBox = contextCover.findRenderObject() as RenderBox?;
-    if (renderBox != null && renderBox.hasSize) {
-      final size = renderBox.size;
+  void _measureTarget() {
+    final contextTarget = widget.targetKey.currentContext;
+    if (contextTarget == null) return;
+
+    final RenderBox? renderBox = contextTarget.findRenderObject() as RenderBox?;
+    if (renderBox != null && renderBox.hasSize && renderBox.size.width > 0 && renderBox.size.height > 0) {
       final overlayRenderBox = context.findRenderObject() as RenderBox?;
-      if (overlayRenderBox != null) {
+      if (overlayRenderBox != null && overlayRenderBox.hasSize) {
         final position = renderBox.localToGlobal(Offset.zero, ancestor: overlayRenderBox);
-        setState(() {
-          _coverRect = position & size;
-          _coverRadius = math.min(24.0, size.width * 0.2);
-        });
-        _controller.forward();
+        final rect = position & renderBox.size;
+        if (_targetRect != rect) {
+          setState(() {
+            _targetRect = rect;
+            _targetRadius = widget.isLyricsMode
+                ? math.min(24.0, math.min(renderBox.size.width, renderBox.size.height) * 0.08)
+                : math.min(24.0, renderBox.size.width * 0.2);
+          });
+        }
+        if (_controller.status == AnimationStatus.dismissed) {
+          _controller.forward();
+        }
       }
     }
   }
 
   @override
   void dispose() {
-    _delayTimer?.cancel();
     _controller.dispose();
     super.dispose();
   }
@@ -2044,22 +2081,38 @@ class _CoverTipOverlayState extends State<_CoverTipOverlay> with SingleTickerPro
     return AnimatedBuilder(
       animation: _opacityAnimation,
       builder: (context, child) {
-        final rect = _coverRect;
+        final rect = _targetRect;
         if (_opacityAnimation.value == 0.0 || rect == null) {
           return const SizedBox.shrink();
         }
         
         final size = MediaQuery.of(context).size;
         final double screenWidth = size.width;
+        final double screenHeight = size.height;
         
-        final double cardWidth = 260.0;
-        final double left = widget.isLandscape
-            ? (rect.right + 24).clamp(16.0, math.max(16.0, screenWidth - cardWidth - 16))
-            : (rect.left + (rect.width - cardWidth) / 2).clamp(16.0, math.max(16.0, screenWidth - cardWidth - 16));
-            
-        final double top = widget.isLandscape
-            ? rect.top + (rect.height - 110) / 2
-            : rect.bottom + 24;
+        final double cardWidth = math.min(280.0, screenWidth - 32.0);
+        
+        final double left;
+        final double top;
+
+        if (widget.isLyricsMode) {
+          left = (rect.left + (rect.width - cardWidth) / 2)
+              .clamp(16.0, math.max(16.0, screenWidth - cardWidth - 16));
+          top = widget.isLandscape
+              ? (rect.top + (rect.height - 110) / 2)
+                  .clamp(16.0, math.max(16.0, screenHeight - 130))
+              : (rect.top + 48.0)
+                  .clamp(rect.top + 16.0, math.max(rect.top + 16.0, rect.bottom - 130.0));
+        } else {
+          left = widget.isLandscape
+              ? (rect.right + 24)
+                  .clamp(16.0, math.max(16.0, screenWidth - cardWidth - 16))
+              : (rect.left + (rect.width - cardWidth) / 2)
+                  .clamp(16.0, math.max(16.0, screenWidth - cardWidth - 16));
+          top = widget.isLandscape
+              ? rect.top + (rect.height - 110) / 2
+              : rect.bottom + 24;
+        }
 
         return Positioned.fill(
           child: IgnorePointer(
@@ -2076,7 +2129,7 @@ class _CoverTipOverlayState extends State<_CoverTipOverlay> with SingleTickerPro
                       child: ClipPath(
                         clipper: _CoverCutoutClipper(
                           coverRect: rect,
-                          borderRadius: _coverRadius,
+                          borderRadius: _targetRadius,
                         ),
                         child: Container(
                           color: Colors.black.withValues(alpha: 0.6),
@@ -2093,7 +2146,7 @@ class _CoverTipOverlayState extends State<_CoverTipOverlay> with SingleTickerPro
                       child: Container(
                         decoration: BoxDecoration(
                           color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(_coverRadius),
+                          borderRadius: BorderRadius.circular(_targetRadius),
                           border: Border.all(
                             color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.8),
                             width: 2.5,

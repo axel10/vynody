@@ -1656,6 +1656,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             onPressed: () {
               settings.hasShownOnboarding = false;
               settings.hasShownCoverTapLyricTip = false;
+              settings.hasShownLyricsMenuTip = false;
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text(l10n.onboardingReset)),
               );

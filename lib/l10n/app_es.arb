@@ -1188,6 +1188,7 @@
   "showScanProgressToastSettingDescription": "Muestra el progreso de escaneo en tiempo real en la parte superior de la pantalla al escanear carpetas.",
   "scanToastHiddenHint": "Toast de estado de escaneo oculto. Puede volver a habilitarlo en Ajustes - Interfaz.",
   "tapCoverToEnterLyricsMode": "Toca la portada para entrar en modo letras",
+  "longPressLyricsPanelToOpenMenu": "Mantén presionado el panel de letras para abrir el menú",
   "gotIt": "Entendido",
   "doubleSpeedPlayingSwipeUpToLock": "Avance rápido... Desliza hacia arriba para bloquear",
   "doubleSpeedLockedSwipeDownToUnlock": "Avance rápido bloqueado. Mantén presionado y desliza hacia abajo para desbloquear",

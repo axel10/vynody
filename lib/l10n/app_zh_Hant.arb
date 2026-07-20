@@ -882,6 +882,7 @@
   "showScanProgressToastSetting": "顯示掃描狀態提示",
   "showScanProgressToastSettingDescription": "在新增資料夾並進行檔案掃描時，在頂部顯示即時的掃描進度提示",
   "tapCoverToEnterLyricsMode": "點選封面可以進入歌詞模式",
+  "longPressLyricsPanelToOpenMenu": "長按歌詞面板可以調出選單",
   "gotIt": "我知道了",
   "scanToastHiddenHint": "掃描狀態提示已隱藏，可在「設定 - 介面」中重新開啟",
   "doubleSpeedPlayingSwipeUpToLock": "快進播放中... 往上滑動鎖定",

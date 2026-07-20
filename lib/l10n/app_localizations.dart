@@ -5401,6 +5401,12 @@ abstract class AppLocalizations {
   /// **'点击封面可以进入歌词模式'**
   String get tapCoverToEnterLyricsMode;
 
+  /// No description provided for @longPressLyricsPanelToOpenMenu.
+  ///
+  /// In zh, this message translates to:
+  /// **'长按歌词面板可以调出菜单'**
+  String get longPressLyricsPanelToOpenMenu;
+
   /// No description provided for @gotIt.
   ///
   /// In zh, this message translates to:

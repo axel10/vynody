@@ -99,6 +99,7 @@ class PlaybackHeroCard extends ConsumerWidget {
     this.lyricsBottomSpacerHeight = 0.0,
     this.lyricsBottomTabBarHeight = 0.0,
     this.coverKey,
+    this.lyricsKey,
   });
 
   final bool isMini;
@@ -135,6 +136,7 @@ class PlaybackHeroCard extends ConsumerWidget {
   final double lyricsBottomSpacerHeight;
   final double lyricsBottomTabBarHeight;
   final GlobalKey? coverKey;
+  final GlobalKey? lyricsKey;
 
   double _lerp2D(
     BuildContext context,
@@ -605,6 +607,12 @@ class PlaybackHeroCard extends ConsumerWidget {
                                           isTransitioningNotifier.value =
                                               isTransitioning;
                                         });
+                                      }
+                                      if (lyricsKey != null) {
+                                        return KeyedSubtree(
+                                          key: lyricsKey,
+                                          child: child!,
+                                        );
                                       }
                                       return child!;
                                     },

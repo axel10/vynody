@@ -2851,6 +2851,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get tapCoverToEnterLyricsMode => '点击封面可以进入歌词模式';
 
   @override
+  String get longPressLyricsPanelToOpenMenu => '长按歌词面板可以调出菜单';
+
+  @override
   String get gotIt => '我知道了';
 
   @override
@@ -5817,6 +5820,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get tapCoverToEnterLyricsMode => '點選封面可以進入歌詞模式';
+
+  @override
+  String get longPressLyricsPanelToOpenMenu => '長按歌詞面板可以調出選單';
 
   @override
   String get gotIt => '我知道了';

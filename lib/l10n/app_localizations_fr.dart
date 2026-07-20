@@ -3036,6 +3036,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Appuyez sur la pochette pour passer en mode paroles';
 
   @override
+  String get longPressLyricsPanelToOpenMenu =>
+      'Appuie longuement sur le panneau de paroles pour ouvrir le menu';
+
+  @override
   String get gotIt => 'J\'ai compris';
 
   @override

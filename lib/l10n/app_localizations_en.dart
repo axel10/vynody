@@ -2991,6 +2991,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tapCoverToEnterLyricsMode => 'Tap cover to enter lyrics mode';
 
   @override
+  String get longPressLyricsPanelToOpenMenu =>
+      'Long press lyrics panel to open menu';
+
+  @override
   String get gotIt => 'Got it';
 
   @override

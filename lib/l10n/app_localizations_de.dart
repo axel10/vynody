@@ -3027,6 +3027,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Cover antippen, um den Textmodus zu öffnen';
 
   @override
+  String get longPressLyricsPanelToOpenMenu =>
+      'Lange auf das Songtext-Panel drücken, um das Menü zu öffnen';
+
+  @override
   String get gotIt => 'Verstanden';
 
   @override

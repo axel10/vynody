@@ -1188,6 +1188,7 @@
   "showScanProgressToastSettingDescription": "Zeigt den Echtzeit-Scan-Fortschritt am oberen Bildschirmrand an, wenn Ordner gescannt werden.",
   "scanToastHiddenHint": "Scan-Status-Toast ausgeblendet. Sie können ihn in Einstellungen - Oberfläche wieder aktivieren.",
   "tapCoverToEnterLyricsMode": "Cover antippen, um den Textmodus zu öffnen",
+  "longPressLyricsPanelToOpenMenu": "Lange auf das Songtext-Panel drücken, um das Menü zu öffnen",
   "gotIt": "Verstanden",
   "doubleSpeedPlayingSwipeUpToLock": "Schnellvorlauf aktiv... Nach oben wischen zum Sperren",
   "doubleSpeedLockedSwipeDownToUnlock": "Schnellvorlauf gesperrt. Lange drücken und nach unten wischen zum Entsperren",
