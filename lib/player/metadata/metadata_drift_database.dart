@@ -516,11 +516,29 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
     return row.read<int?>('s') ?? 0;
   }
 
-  Future<SongMetadata?> getRepresentativeSongUnderPath(String rootPath) async {
+  Future<SongMetadata?> getRepresentativeSongUnderPath(
+    String rootPath, {
+    SortCriteria criteria = SortCriteria.filename,
+    SortOrder order = SortOrder.ascending,
+  }) async {
     final normalized = _normalizePath(rootPath);
     if (normalized.isEmpty) return null;
     final separator = Platform.isWindows ? '\\' : '/';
     final prefixPattern = normalized.endsWith(separator) ? '$normalized%' : '$normalized$separator%';
+
+    final isDesc = order == SortOrder.descending;
+    final dir = isDesc ? 'DESC' : 'ASC';
+
+    final String orderByClause = switch (criteria) {
+      SortCriteria.title =>
+        'COALESCE(NULLIF(title, \'\'), path) $dir, path $dir',
+      SortCriteria.trackNumber =>
+        isDesc
+            ? 'CASE WHEN trackNumber IS NOT NULL THEN 0 ELSE 1 END, trackNumber DESC, path DESC'
+            : 'CASE WHEN trackNumber IS NOT NULL THEN 0 ELSE 1 END, trackNumber ASC, path ASC',
+      SortCriteria.filename =>
+        'path $dir',
+    };
 
     // 1. Try with artwork
     var row = await customSelect(
@@ -530,7 +548,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       WHERE (path = ? OR path LIKE ?)
         AND deletedAt IS NULL
         AND artworkPath IS NOT NULL
-      ORDER BY path ASC
+      ORDER BY $orderByClause
       LIMIT 1
       ''',
       variables: [Variable(normalized), Variable(prefixPattern)],
@@ -544,7 +562,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       FROM songs
       WHERE (path = ? OR path LIKE ?)
         AND deletedAt IS NULL
-      ORDER BY path ASC
+      ORDER BY $orderByClause
       LIMIT 1
       ''',
       variables: [Variable(normalized), Variable(prefixPattern)],

@@ -311,8 +311,12 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     for (final path in matchingPaths) {
       if (seenPaths.add(path)) {
         final count = await _repository.getSongCountUnderPath(path);
-        final repSongMeta =
-            await _repository.getRepresentativeSongUnderPath(path);
+        final sortSettings = _resolveSortSettingsForFolder(path);
+        final repSongMeta = await _repository.getRepresentativeSongUnderPath(
+          path,
+          criteria: sortSettings.criteria,
+          order: sortSettings.order,
+        );
 
         final normalized = _normalizePath(path);
         _rootSongCounts[normalized] = count;
@@ -625,6 +629,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       _timeScanStepSync('stage sortAndNotify sync navigation state', () {
         _syncNavigationStateToLatestTree();
       });
+      unawaited(_refreshRootRepresentativeSongs());
       _timeScanStepSync('stage sortAndNotify notify listeners', () {
         notifyListeners();
       });
@@ -632,6 +637,37 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       totalStopwatch.stop();
       _logScanTiming('stage sortAndNotify total', totalStopwatch);
     }
+  }
+
+  Future<void> _refreshRootRepresentativeSongs() async {
+    for (final root in _roots.rootPaths) {
+      final normalized = _normalizePath(root);
+      final sortSettings = _resolveSortSettingsForFolder(normalized);
+
+      final scanned = _scannedRootFolders.firstWhereOrNull(
+        (f) => ScannerPathUtils.pathsEqual(f.path, normalized),
+      );
+      if (scanned != null) {
+        final repFile = findRepresentativeSong(scanned);
+        if (repFile != null) {
+          final songMeta = await _repository.getSongMetadata(repFile.path);
+          if (songMeta != null) {
+            _rootRepresentativeSongs[normalized] = songMeta;
+            continue;
+          }
+        }
+      }
+
+      final repSong = await _repository.getRepresentativeSongUnderPath(
+        normalized,
+        criteria: sortSettings.criteria,
+        order: sortSettings.order,
+      );
+      if (repSong != null) {
+        _rootRepresentativeSongs[normalized] = repSong;
+      }
+    }
+    notifyListeners();
   }
 
   Future<void> _init() async {
@@ -1615,7 +1651,12 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       for (final root in availableRoots) {
         final count = await _repository.getSongCountUnderPath(root);
         final duration = await _repository.getSongDurationUnderPath(root);
-        final repSong = await _repository.getRepresentativeSongUnderPath(root);
+        final sortSettings = _resolveSortSettingsForFolder(root);
+        final repSong = await _repository.getRepresentativeSongUnderPath(
+          root,
+          criteria: sortSettings.criteria,
+          order: sortSettings.order,
+        );
 
         _rootSongCounts[root] = count;
         _rootSongDurations[root] = duration;

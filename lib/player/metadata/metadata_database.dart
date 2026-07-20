@@ -12,6 +12,7 @@ import 'package:sqlite3/open.dart';
 
 import 'package:vynody/models/lyric_line.dart';
 import 'package:vynody/player/lyrics/lyrics_cache_models.dart';
+import 'package:vynody/player/scanner/scanner_sorting.dart';
 export 'package:vynody/player/lyrics/lyrics_cache_models.dart';
 
 part 'metadata_database.freezed.dart';
@@ -556,8 +557,16 @@ class MetadataDatabase {
   Future<int> getSongDurationUnderPath(String rootPath) =>
       _db.getSongDurationUnderPath(rootPath);
 
-  Future<SongMetadata?> getRepresentativeSongUnderPath(String rootPath) =>
-      _db.getRepresentativeSongUnderPath(rootPath);
+  Future<SongMetadata?> getRepresentativeSongUnderPath(
+    String rootPath, {
+    SortCriteria criteria = SortCriteria.filename,
+    SortOrder order = SortOrder.ascending,
+  }) =>
+      _db.getRepresentativeSongUnderPath(
+        rootPath,
+        criteria: criteria,
+        order: order,
+      );
 
   Future<int> getSystemMediaSongCount() => _db.getSystemMediaSongCount();
 

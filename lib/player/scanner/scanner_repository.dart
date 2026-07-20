@@ -1,4 +1,5 @@
 import 'package:vynody/player/metadata/metadata_database.dart';
+import 'package:vynody/player/scanner/scanner_sorting.dart';
 
 class ScannerRepository {
   ScannerRepository({MetadataDatabase? database})
@@ -30,8 +31,16 @@ class ScannerRepository {
     return _database.getSongDurationUnderPath(rootPath);
   }
 
-  Future<SongMetadata?> getRepresentativeSongUnderPath(String rootPath) {
-    return _database.getRepresentativeSongUnderPath(rootPath);
+  Future<SongMetadata?> getRepresentativeSongUnderPath(
+    String rootPath, {
+    SortCriteria criteria = SortCriteria.filename,
+    SortOrder order = SortOrder.ascending,
+  }) {
+    return _database.getRepresentativeSongUnderPath(
+      rootPath,
+      criteria: criteria,
+      order: order,
+    );
   }
 
   Future<int> getSystemMediaSongCount() {
