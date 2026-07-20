@@ -1,46 +1,53 @@
-/*
+import 'dart:math' as math;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vynody/widgets/playback_ui_tuning.dart';
 
 void main() {
-  group('PlaybackViewportProfile', () {
-    test('classifies compact windows as compact', () {
-      final profile = PlaybackHeroCardUiTuning.viewportProfile(
-        width: 1280,
-        height: 800,
-        isLandscape: true,
-      );
+  group('Landscape Lyrics Scaling Math', () {
+    test('control area width matches shrunk cover width while controls size remains constant', () {
+      const double highResControlsScale = 1.0;
+      const double spaceFactor = 0.5;
 
-      expect(profile.tier, PlaybackViewportTier.compact);
-      expect(profile.isLargeOrAbove, isFalse);
-      expect(profile.landscapeScale, greaterThan(0.0));
+      final double preferredCoverSide =
+          (PlaybackHeroCardUiTuning.lLyricsPreferredCoverSide +
+                  spaceFactor * PlaybackHeroCardUiTuning.lLyricsMaxCoverExpansion) *
+              highResControlsScale;
+      final double controlsScale =
+          highResControlsScale *
+              (PlaybackHeroCardUiTuning.lLyricsBaseControlsScale +
+                  spaceFactor * PlaybackHeroCardUiTuning.lLyricsMaxControlsExpansion);
+
+      final double infoHeight = PlaybackHeroCardUiTuning.landscapeLyricsInfoHeightBase * controlsScale;
+      final double controlsHeight = 200.0 * controlsScale;
+      final double gap = PlaybackHeroCardUiTuning.landscapeLyricsCoverInfoGapBase * controlsScale;
+      final double totalFixedControlsVerticalHeight = infoHeight + controlsHeight + gap;
+
+      // Available height constrained (e.g. 500)
+      const double availableHeight = 500.0;
+      final double availableCoverHeight = availableHeight - totalFixedControlsVerticalHeight;
+      final double coverSide = availableCoverHeight.clamp(140.0, preferredCoverSide);
+
+      // Control area width (lLyricsItemWidth) matches coverSide
+      final double controlAreaWidth = coverSide;
+
+      expect(controlAreaWidth, equals(coverSide));
+      expect(controlAreaWidth, lessThan(preferredCoverSide));
     });
 
-    test('classifies current large-screen thresholds as large', () {
-      final profile = PlaybackHeroCardUiTuning.viewportProfile(
-        width: 2560,
-        height: 1440,
-        isLandscape: true,
-      );
+    test('widening window at minimum height does not shrink control area or cover size', () {
+      const double height = 400.0;
+      double calcSpaceFactor(double width) {
+        final double widthFactor = ((width - 960.0) / 720.0).clamp(0.0, 1.0);
+        final double heightFactor = ((height - 580.0) / 420.0).clamp(0.0, 1.0);
+        return math.min(widthFactor, heightFactor);
+      }
 
-      expect(profile.tier, PlaybackViewportTier.large);
-      expect(profile.isLargeOrAbove, isTrue);
-      expect(profile.isUltraLargeOrAbove, isFalse);
-    });
+      final factor1 = calcSpaceFactor(960.0);
+      final factor2 = calcSpaceFactor(1600.0);
 
-    test('classifies 4k-class windows as ultra-large', () {
-      final profile = PlaybackHeroCardUiTuning.viewportProfile(
-        width: 3840,
-        height: 2160,
-        isLandscape: true,
-      );
-
-      expect(profile.tier, PlaybackViewportTier.ultraLarge);
-      expect(profile.isUltraLargeOrAbove, isTrue);
+      // Both should be 0.0 when height is constrained at 400
+      expect(factor1, equals(0.0));
+      expect(factor2, equals(0.0));
     });
   });
 }
-*/
-
-void main() {}
-

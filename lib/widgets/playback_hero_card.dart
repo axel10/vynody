@@ -972,15 +972,17 @@ class PlaybackHeroCard extends ConsumerWidget {
     final lNormalControlsTop = lNormalInfoTop + lNormalInfoHeight + lNormalGap;
 
     // ---------------- Landscape Lyrics ----------------
-    // 高分辨率屏幕适配系数（4K 显示屏适度放大，1080p 显示屏保持 1.0 紧凑基准）
-    // High-DPI adaptation factor: scale up smoothly on 4K screens (> 1920 logical width), keep 1.0 on 1080p screens
-    final double highResControlsScale = width > 1920.0
+    // 高分辨率屏幕适配系数（4K 显示屏且高度充足时适度放大，1080p 显示屏保持 1.0 紧凑基准）
+    // High-DPI adaptation factor: scale up smoothly on 4K screens (> 1920 logical width) when height is sufficient
+    final double highResControlsScale = (width > 1920.0 && height > 600.0)
         ? (1.0 + (width - 1920.0) * 0.00018).clamp(1.0, 1.35)
         : 1.0;
 
-    // 当窗口宽度与高度充足时，通过 PlaybackHeroCardUiTuning 中的统一参数按比例放大封面与控件区
-    final double spaceFactor = ((width - 960.0) / 720.0 + (height - 580.0) / 420.0)
-        .clamp(0.0, 1.0);
+    // 当窗口宽度与高度均充足时，通过 PlaybackHeroCardUiTuning 中的统一参数按比例放大封面与控件区
+    final double widthFactor = ((width - 960.0) / 720.0).clamp(0.0, 1.0);
+    final double heightFactor = ((height - 580.0) / 420.0).clamp(0.0, 1.0);
+    final double spaceFactor = math.min(widthFactor, heightFactor);
+
     final double lLyricsPreferredCoverSide =
         (PlaybackHeroCardUiTuning.lLyricsPreferredCoverSide +
                 spaceFactor * PlaybackHeroCardUiTuning.lLyricsMaxCoverExpansion) *
@@ -993,12 +995,6 @@ class PlaybackHeroCard extends ConsumerWidget {
     const lLyricsTopPadding = 16.0;
     const lLyricsOuterLeftPadding = 48.0;
     const lLyricsInnerLeftPadding = 16.0;
-    final lLyricsCoverInfoSpacing =
-        PlaybackHeroCardUiTuning.landscapeLyricsCoverInfoGapBase *
-        lLyricsSpaceControlsScale;
-    final lLyricsInfoControlsSpacing =
-        PlaybackHeroCardUiTuning.landscapeInfoControlsGap *
-        lLyricsSpaceControlsScale;
     final lLyricsAvailableHeight = math.max(
       0.0,
       height - (lLyricsTopPadding * 2),
@@ -1047,7 +1043,14 @@ class PlaybackHeroCard extends ConsumerWidget {
     final lLyricsControlsHeight =
         lLyricsControlsBaseIdealHeight * lLyricsSpaceControlsScale;
 
-    // Apple Music 布局逻辑：控件大小根据可用窗口空间舒适设定，仅封面轮播图与间距根据可用高度/宽度动态收缩或展开
+    final lLyricsCoverInfoSpacing =
+        PlaybackHeroCardUiTuning.landscapeLyricsCoverInfoGapBase *
+        lLyricsSpaceControlsScale;
+    final lLyricsInfoControlsSpacing =
+        PlaybackHeroCardUiTuning.landscapeInfoControlsGap *
+        lLyricsSpaceControlsScale;
+
+    // Apple Music 布局逻辑：控件大小保持舒适设定，高度不足时封面收缩，控件区宽度同步收缩至与封面同宽，控件间距自动紧密
     final double maxHorizontalSpace =
         lyricsStyle == LyricsStyle.apple
             ? math.max(120.0, lLyricsColumnWidth - 64.0)
@@ -1067,10 +1070,11 @@ class PlaybackHeroCard extends ConsumerWidget {
       math.min(140.0, maxCoverSide),
       maxCoverSide,
     );
-    // 控件区与标题区宽度保持不小于基准封面宽度（避免当窗口高度极小时封面缩小导致控件区宽度也缩窄引发按钮溢出）
+
+    // 控件区与标题区宽度收缩至与封面保持一致，控件大小不变，按钮间距自动收缩
     final double lLyricsItemWidth = math.min(
       maxHorizontalSpace,
-      math.max(lLyricsPreferredCoverSide, lLyricsCoverSide),
+      lLyricsCoverSide,
     );
 
     final double lLyricsTotalContentHeight =
@@ -1087,7 +1091,7 @@ class PlaybackHeroCard extends ConsumerWidget {
 
     // 居中对齐逻辑：封面、信息区和控制区在列宽内统一居中对齐
     // Centering logic: cover, info and controls are centered within the column and aligned in width
-    // 横屏歌词模式控件尺寸在当前窗口分辨率下固定，不随窗口拖拽连续剧烈改变尺寸
+    // 横屏歌词模式控件尺寸保持舒适，横向间距随控件区宽度（同封面宽）动态调整
     final currentControlsScale =
         _lerp2DSmooth(
           // 竖屏：基于宽度进行缩放，稍微增加基准，让按钮在标准屏幕上保持舒适大小
@@ -1099,7 +1103,7 @@ class PlaybackHeroCard extends ConsumerWidget {
           // 横屏普通模式：基于列宽进行缩放，放宽最小缩放限制以允许在小窗口下更自然的布局
           (lNormalControlsWidth / PlaybackHeroCardUiTuning.lControlsScaleBase)
               .clamp(0.85, 1.8),
-          // 横屏歌词模式：控件大小在充足空间下舒适放大
+          // 横屏歌词模式：控件大小保持舒适设定
           lLyricsSpaceControlsScale,
           tLyrics,
           tLand,
