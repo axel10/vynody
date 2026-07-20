@@ -255,22 +255,24 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
   Future<List<MusicFile>> getAllRootSongs() async {
     final allSongs = <MusicFile>[];
     final seen = <String>{};
-    // 1. Get all root path songs
+    // 1. Load and traverse root folder trees in natural directory order
     for (final root in _roots.rootPaths) {
-      final songs = await _repository.getSongsUnderPath(root);
-      for (final song in songs) {
+      await loadRootFolderSongs(root);
+    }
+    for (final rootFolder in _rootFolders) {
+      for (final song in rootFolder.allSongs) {
         if (seen.add(song.path)) {
-          allSongs.add(_treeBuilder.musicFileFromSongMetadata(song));
+          allSongs.add(song);
         }
       }
     }
-    // 2. Get system songs
+    // 2. Get system media songs
     if (Platform.isAndroid) {
-      final sysSongs = await _repository.getAllSongMetadata();
-      for (final song in sysSongs) {
-        if (((song.sourceFlags ?? 0) & SongSourceFlags.systemMedia) != 0) {
+      await loadSystemMediaFolderSongs();
+      if (_systemMediaFolder != null) {
+        for (final song in _systemMediaFolder!.allSongs) {
           if (seen.add(song.path)) {
-            allSongs.add(_treeBuilder.musicFileFromSongMetadata(song));
+            allSongs.add(song);
           }
         }
       }
