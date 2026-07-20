@@ -121,7 +121,7 @@ class PlaybackHeroCardUiTuning {
   static const double lCoverMinSide = 240.0;
   static const double lCoverMaxSide = 1800.0;
   static const double lNormalCoverSideFactor = 0.72; // 横屏普通模式封面尺寸系数
-  static const double lLyricsPreferredCoverSide = 360.0;
+  static const double lLyricsPreferredCoverSide = 344.0;
   static const double appleLyricsRightPanelRatio = 0.5; // 苹果样式下歌词模式占比
 
   static const double trackTitlePortraitLyricsFont = 20.0;
@@ -177,6 +177,8 @@ class PlaybackHeroCardUiTuning {
   static const double portraitProgressBarWidthFactor = 1.0; // 竖屏进度条宽度比例
   static const double landscapeInfoControlsGap = 0.0; // 横屏下标题区到控件区的距离
   static const double landscapeInfoHeightBase = 48.0;
+  static const double landscapeLyricsInfoHeightBase = 42.0;
+  static const double landscapeLyricsCoverInfoGapBase = 24.0;
   static const double controlsRowLandscapeGap = 12.0;
 
   static const double portraitBottomReservedSpace = 0;

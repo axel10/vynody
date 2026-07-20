@@ -977,7 +977,8 @@ class PlaybackHeroCard extends ConsumerWidget {
     const lLyricsTopPadding = 16.0;
     const lLyricsOuterLeftPadding = 48.0;
     const lLyricsInnerLeftPadding = 16.0;
-    const lLyricsCoverInfoSpacing = 24.0;
+    const lLyricsCoverInfoSpacingBase =
+        PlaybackHeroCardUiTuning.landscapeLyricsCoverInfoGapBase;
     final lLyricsInfoControlsSpacing =
         PlaybackHeroCardUiTuning.landscapeInfoControlsGap;
     const lLyricsPreferredCoverSide =
@@ -1017,8 +1018,8 @@ class PlaybackHeroCard extends ConsumerWidget {
       1.8,
     );
 
-    final lLyricsInfoBaseHeight =
-        PlaybackHeroCardUiTuning.landscapeInfoHeightBase + 8.0;
+    const lLyricsInfoBaseHeight =
+        PlaybackHeroCardUiTuning.landscapeLyricsInfoHeightBase;
     final double lLyricsControlsBaseIdealHeight =
         collapseButtonsInLandscapeLyrics
             ? ((isWaveformEnabled
@@ -1032,23 +1033,17 @@ class PlaybackHeroCard extends ConsumerWidget {
     final lLyricsControlsBaseHeight = lLyricsControlsBaseIdealHeight;
 
     final lLyricsPreferredTotalHeight =
-        (lLyricsPreferredCoverSide * lLyricsWidthScale) +
-        lLyricsCoverInfoSpacing +
-        (lLyricsInfoBaseHeight * lLyricsWidthScale) +
-        lLyricsInfoControlsSpacing +
-        (lLyricsControlsBaseHeight * lLyricsWidthScale);
+        (lLyricsPreferredCoverSide +
+                lLyricsCoverInfoSpacingBase +
+                lLyricsInfoBaseHeight +
+                lLyricsInfoControlsSpacing +
+                lLyricsControlsBaseHeight) *
+            lLyricsWidthScale;
 
     if (lyricsStyle == LyricsStyle.apple) {
       // For Apple Style: must fit both vertically and horizontally within the left column
       // Height adaptation: 0.75 of the screen height acts as the maximum control height limit.
-      // It only starts shrinking together with the window when the window is small enough to require compression.
-      final double constantHeight =
-          (lLyricsInfoBaseHeight * lLyricsWidthScale) +
-          lLyricsCoverInfoSpacing +
-          lLyricsInfoControlsSpacing;
-      final double scalableHeight =
-          lLyricsPreferredTotalHeight - constantHeight;
-
+      // It scales smoothly together with the window when the window is small enough to require compression.
       double screenHeight = 0.0;
       try {
         final view = View.of(context);
@@ -1078,13 +1073,12 @@ class PlaybackHeroCard extends ConsumerWidget {
         lLyricsAvailableHeight,
       );
 
-      final double heightScale =
-          targetOccupiedHeight >= lLyricsPreferredTotalHeight
+      final double heightScale = lLyricsPreferredTotalHeight <= 0.0
           ? 1.0
-          : (scalableHeight <= 0.0
+          : (targetOccupiedHeight >= lLyricsPreferredTotalHeight
                 ? 1.0
-                : math.max(0.0, targetOccupiedHeight - constantHeight) /
-                      scalableHeight);
+                : math.max(0.0, targetOccupiedHeight) /
+                      lLyricsPreferredTotalHeight);
 
       final double maxHorizontalSpace = math.max(
         120.0,
@@ -1104,8 +1098,13 @@ class PlaybackHeroCard extends ConsumerWidget {
     final lLyricsCoverSide =
         lLyricsPreferredCoverSide * lLyricsWidthScale * lLyricsScale;
     final double lLyricsItemWidth = lLyricsCoverSide;
+    final lLyricsCoverInfoSpacing =
+        lLyricsCoverInfoSpacingBase * lLyricsScale;
     final lLyricsInfoHeight =
-        lLyricsInfoBaseHeight * lLyricsWidthScale;
+        (lLyricsInfoBaseHeight * lLyricsWidthScale * lLyricsScale).clamp(
+      32.0,
+      100.0,
+    );
     final lLyricsControlsHeight =
         lLyricsControlsBaseHeight * lLyricsWidthScale * lLyricsScale;
     final double lLyricsCoverTop;
@@ -1157,8 +1156,8 @@ class PlaybackHeroCard extends ConsumerWidget {
       lLyricsControlsLeft = lLyricsCoverLeft;
     } else {
       lLyricsCoverLeft = lLyricsOuterLeftPadding;
-      lLyricsInfoLeft = lLyricsCoverLeft;
-      lLyricsControlsLeft = lLyricsCoverLeft;
+      lLyricsInfoLeft = lLyricsOuterLeftPadding;
+      lLyricsControlsLeft = lLyricsOuterLeftPadding;
     }
 
     final lLyricsInfoTop =
@@ -1166,6 +1165,22 @@ class PlaybackHeroCard extends ConsumerWidget {
 
     final lLyricsControlsTop =
         lLyricsInfoTop + lLyricsInfoHeight + lLyricsInfoControlsSpacing;
+
+    final double lLyricsButtonsRowBaseWidth = 7 *
+            PlaybackHeroCardUiTuning.controlsTopButtonsHeight +
+        6 * PlaybackHeroCardUiTuning.topButtonsInnerGap;
+    final double lLyricsTargetBaseWidth = collapseButtonsInLandscapeLyrics
+        ? (lLyricsButtonsRowBaseWidth - 22.0)
+        : lLyricsButtonsRowBaseWidth;
+    final double lLyricsCoverVisualSide =
+        (lLyricsTargetBaseWidth * lLyricsWidthScale * lLyricsScale).clamp(
+      0.0,
+      lLyricsCoverSide,
+    );
+    final double lLyricsCoverVisualLeft =
+        lLyricsCoverLeft + (lLyricsCoverSide - lLyricsCoverVisualSide) / 2;
+    final double lLyricsCoverVisualTop =
+        lLyricsCoverTop + (lLyricsCoverSide - lLyricsCoverVisualSide) / 2;
 
     // Build the Panes
     // Cover
@@ -1193,10 +1208,10 @@ class PlaybackHeroCard extends ConsumerWidget {
         opacity: 1.0,
       ),
       lLyrics: _PlaybackPaneLayout(
-        top: lLyricsCoverTop,
-        left: lLyricsCoverLeft,
-        width: lLyricsCoverSide,
-        height: lLyricsCoverSide,
+        top: lLyricsCoverVisualTop,
+        left: lLyricsCoverVisualLeft,
+        width: lLyricsCoverVisualSide,
+        height: lLyricsCoverVisualSide,
         opacity: 1.0,
       ),
       tLyrics: tLyrics,
@@ -1503,8 +1518,7 @@ class PlaybackHeroCard extends ConsumerWidget {
     final transition = lyricsModeT.clamp(0.0, 1.0);
     final double simplifiedT = shouldCollapse ? (landscapeT * transition) : 0.0;
 
-    final double buttonControlsScale =
-        lerpDouble(controlsScale, 1.0, simplifiedT)!;
+    final double buttonControlsScale = controlsScale;
 
     final titleAlignment = landscapeT > 0.0
         ? (shouldCollapse
@@ -1533,8 +1547,13 @@ class PlaybackHeroCard extends ConsumerWidget {
       )!,
       landscapeT,
     )!;
-    final titleSize = math.max(
+    final double minTitleFont = lerpDouble(
       PlaybackHeroCardUiTuning.minTrackTitleFontSize,
+      PlaybackHeroCardUiTuning.minTrackTitleFontSize * controlsScale,
+      simplifiedT,
+    )!.clamp(9.0, PlaybackHeroCardUiTuning.minTrackTitleFontSize);
+    final titleSize = math.max(
+      minTitleFont,
       baseTitleSize * controlsScale,
     );
 
@@ -1551,8 +1570,13 @@ class PlaybackHeroCard extends ConsumerWidget {
       )!,
       landscapeT,
     )!;
-    final artistSize = math.max(
+    final double minArtistFont = lerpDouble(
       PlaybackHeroCardUiTuning.minTrackArtistFontSize,
+      PlaybackHeroCardUiTuning.minTrackArtistFontSize * controlsScale,
+      simplifiedT,
+    )!.clamp(8.0, PlaybackHeroCardUiTuning.minTrackArtistFontSize);
+    final artistSize = math.max(
+      minArtistFont,
       baseArtistSize * controlsScale,
     );
 
@@ -1693,7 +1717,7 @@ class PlaybackHeroCard extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Expanded(child: textContent),
-            SizedBox(width: 8 * simplifiedT),
+            SizedBox(width: 8 * buttonControlsScale * simplifiedT),
             if (sleepTimerRemaining != null) ...[
               Opacity(
                 opacity: simplifiedT,
@@ -1749,7 +1773,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                   ),
                 ),
               ),
-              SizedBox(width: 8 * simplifiedT),
+              SizedBox(width: 8 * buttonControlsScale * simplifiedT),
             ],
             Opacity(
               opacity: simplifiedT,
@@ -1797,7 +1821,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                 ),
               ),
             ),
-            SizedBox(width: 8 * simplifiedT),
+            SizedBox(width: 8 * buttonControlsScale * simplifiedT),
             Opacity(
               opacity: simplifiedT,
               child: SizedBox(
