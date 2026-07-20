@@ -5,9 +5,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oktoast/oktoast.dart';
 import '../utils/file_selector_helper.dart';
 import 'package:path/path.dart' as p;
+import 'package:collection/collection.dart';
 import '../l10n/app_localizations.dart';
 import 'package:vynody/models/music_folder.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
+import 'package:vynody/player/scanner/scanner_path_utils.dart';
 import 'package:vynody/player/scanner/scanner_service.dart';
 import '../widgets/library_selection_scope.dart';
 import 'package:vynody/utils/app_snack_bar.dart';
@@ -188,15 +190,16 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
     return recurse(root);
   }
 
-  void _locateCurrentSong() {
+  Future<void> _locateCurrentSong() async {
     final currentMusic = ref.read(audioCurrentMusicProvider);
     if (currentMusic == null) return;
 
     final scanner = ref.read(scannerServiceProvider);
     List<MusicFolder>? foundHistory;
+    final songPath = currentMusic.path;
 
     for (final root in scanner.rootFolders) {
-      foundHistory = _findFolderHistory(root, currentMusic.path);
+      foundHistory = _findFolderHistory(root, songPath);
       if (foundHistory != null) {
         break;
       }
@@ -205,9 +208,39 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
     if (foundHistory == null && scanner.systemMediaFolder != null) {
       foundHistory = _findFolderHistory(
         scanner.systemMediaFolder!,
-        currentMusic.path,
+        songPath,
       );
     }
+
+    if (foundHistory == null) {
+      final matchingRootPath = scanner.rootPaths.firstWhereOrNull(
+        (root) => ScannerPathUtils.pathContains(root, songPath),
+      );
+      if (matchingRootPath != null) {
+        await scanner.loadRootFolderSongs(matchingRootPath);
+      } else {
+        for (final rootPath in scanner.rootPaths) {
+          await scanner.loadRootFolderSongs(rootPath);
+        }
+        await scanner.loadSystemMediaFolderSongs();
+      }
+
+      for (final root in scanner.rootFolders) {
+        foundHistory = _findFolderHistory(root, songPath);
+        if (foundHistory != null) {
+          break;
+        }
+      }
+
+      if (foundHistory == null && scanner.systemMediaFolder != null) {
+        foundHistory = _findFolderHistory(
+          scanner.systemMediaFolder!,
+          songPath,
+        );
+      }
+    }
+
+    if (!mounted) return;
 
     if (foundHistory != null && foundHistory.isNotEmpty) {
       final targetFolder = foundHistory.last;
