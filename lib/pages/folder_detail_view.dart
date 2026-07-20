@@ -326,7 +326,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
         );
     final selectionPanelHeight = showSelectionPanel ? 220.0 : 0.0;
 
-    final representativeSong = findRepresentativeSong(folder);
+    final representativeSong = scanner.getRepresentativeSongForFolder(folder);
 
     final totalDurationMs = folder.allSongs.fold<int>(
       0,
@@ -366,7 +366,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
                       (context, index) {
                         final folder = matchedFolders[index];
                         final isSelected = widget.selectedFolderPaths.contains(folder.path);
-                        final folderRepSong = findRepresentativeSong(folder);
+                        final folderRepSong = scanner.getRepresentativeSongForFolder(folder);
                         return HoverableCard(
                           child: FolderGridCard(
                             folder: folder,
@@ -410,7 +410,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
                   (context, index) {
                     final folder = matchedFolders[index];
                     final isSelected = widget.selectedFolderPaths.contains(folder.path);
-                    final representativeSong = findRepresentativeSong(folder);
+                    final representativeSong = scanner.getRepresentativeSongForFolder(folder);
                     return Padding(
                       padding: EdgeInsets.symmetric(
                         horizontal: MediaQuery.of(context).orientation == Orientation.portrait ? 8 : 16,
