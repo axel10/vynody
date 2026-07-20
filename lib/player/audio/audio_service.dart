@@ -2014,27 +2014,32 @@ class AudioService extends Notifier<AudioSnapshot> {
     _queueProcessor.pause();
     _scannerService?.pauseBackgroundTasks();
 
-    // 2. 清除并重新填充本地播放队列
-    _queue.clear();
-    _queue.addAll(songs);
-    _currentIndex = safeIndex;
-    notifyListeners();
+    try {
+      // 2. 清除并重新填充本地播放队列
+      _queue.clear();
+      _queue.addAll(songs);
+      _currentIndex = safeIndex;
+      notifyListeners();
 
-    final current = _queue[safeIndex];
+      final current = _queue[safeIndex];
 
-    unawaited(
-      _playQueueTracks(
+      await _playQueueTracks(
         songs: _queue,
         startIndex: safeIndex,
         clearPlayerQueue: true,
         startBackgroundProcessing: false,
-      ).catchError((e) {
-        debugPrint('AudioService: failed to start playlist playback: $e');
-      }),
-    );
+      );
 
-    await _prepareCurrentPlaybackArtwork(current);
-    unawaited(_persistPlaybackSession());
+      await _prepareCurrentPlaybackArtwork(current);
+      unawaited(_persistPlaybackSession());
+    } catch (e) {
+      debugPrint('AudioService: failed to start playlist playback: $e');
+    } finally {
+      _isTransitioning = false;
+      _queueProcessor.resume();
+      _scannerService?.resumeBackgroundTasks();
+      notifyListeners();
+    }
   }
 
   Future<void> addToPlaylist(List<MusicFile> songs) async {
