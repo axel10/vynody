@@ -530,6 +530,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       WHERE (path = ? OR path LIKE ?)
         AND deletedAt IS NULL
         AND artworkPath IS NOT NULL
+      ORDER BY path ASC
       LIMIT 1
       ''',
       variables: [Variable(normalized), Variable(prefixPattern)],
@@ -543,6 +544,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       FROM songs
       WHERE (path = ? OR path LIKE ?)
         AND deletedAt IS NULL
+      ORDER BY path ASC
       LIMIT 1
       ''',
       variables: [Variable(normalized), Variable(prefixPattern)],
@@ -588,6 +590,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       WHERE (sourceFlags & ?) != 0
         AND deletedAt IS NULL
         AND artworkPath IS NOT NULL
+      ORDER BY path ASC
       LIMIT 1
       ''',
       variables: [Variable(SongSourceFlags.systemMedia)],
@@ -600,6 +603,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       FROM songs
       WHERE (sourceFlags & ?) != 0
         AND deletedAt IS NULL
+      ORDER BY path ASC
       LIMIT 1
       ''',
       variables: [Variable(SongSourceFlags.systemMedia)],

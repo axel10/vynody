@@ -38,6 +38,7 @@ import 'package:vynody/player/settings/settings_service.dart';
 import 'package:vynody/player/settings/track_artwork_theme_service.dart';
 import 'package:vynody/utils/localized_text.dart';
 import 'package:vynody/utils/linux_mount_helper.dart';
+import 'package:vynody/utils/folder_helpers.dart';
 import 'package:linux_directory_access/linux_directory_access.dart';
 
 export 'package:vynody/player/scanner/scanner_scan_support.dart';
@@ -230,6 +231,10 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   MusicFile? getRepresentativeSongForFolder(MusicFolder folder) {
+    final memoryRep = findRepresentativeSong(folder);
+    if (memoryRep != null) {
+      return memoryRep;
+    }
     if (folder.path == 'system') {
       if (_systemRepresentativeSong == null) return null;
       return _treeBuilder.musicFileFromSongMetadata(_systemRepresentativeSong!);
@@ -239,23 +244,6 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       final rep = _rootRepresentativeSongs[normalized];
       if (rep == null) return null;
       return _treeBuilder.musicFileFromSongMetadata(rep);
-    }
-    // Fallback: search in memory
-    for (final file in folder.files) {
-      if (file.thumbnailPath != null || file.id != null) {
-        return file;
-      }
-    }
-    for (final song in folder.allSongs) {
-      if (song.thumbnailPath != null || song.id != null) {
-        return song;
-      }
-    }
-    if (folder.files.isNotEmpty) {
-      return folder.files.first;
-    }
-    if (folder.allSongs.isNotEmpty) {
-      return folder.allSongs.first;
     }
     return null;
   }
