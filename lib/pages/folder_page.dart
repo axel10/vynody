@@ -14,6 +14,7 @@ import 'package:vynody/player/scanner/scanner_service.dart';
 import '../widgets/library_selection_scope.dart';
 import 'package:vynody/utils/app_snack_bar.dart';
 import 'package:vynody/transcode/transcode_riverpod.dart';
+import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/player/metadata/metadata_helper.dart';
 import 'package:audio_core/audio_core.dart';
 import '../widgets/scan_progress_toast.dart';
@@ -91,7 +92,69 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
     return false;
   }
 
-  void _navigateTo(MusicFolder folder, ScannerService scanner) {
+  List<MusicFolder>? _findFolderHistoryByFolderPath(
+    MusicFolder root,
+    String targetFolderPath,
+  ) {
+    List<MusicFolder>? recurse(MusicFolder folder) {
+      if (ScannerPathUtils.pathsEqual(folder.path, targetFolderPath)) {
+        return [folder];
+      }
+      for (final sub in folder.subFolders) {
+        final res = recurse(sub);
+        if (res != null) {
+          return [folder, ...res];
+        }
+      }
+      return null;
+    }
+
+    return recurse(root);
+  }
+
+  Future<void> _navigateTo(MusicFolder folder, ScannerService scanner) async {
+    final rootPath = scanner.rootPaths.firstWhereOrNull(
+      (root) => ScannerPathUtils.pathContains(root, folder.path),
+    );
+
+    if (rootPath != null) {
+      await scanner.loadRootFolderSongs(rootPath);
+      final rootFolder = scanner.rootFolders.firstWhereOrNull(
+        (r) => ScannerPathUtils.pathsEqual(r.path, rootPath),
+      );
+      if (rootFolder != null) {
+        final foundHistory = _findFolderHistoryByFolderPath(
+          rootFolder,
+          folder.path,
+        );
+        if (foundHistory != null && foundHistory.isNotEmpty) {
+          final targetFolder = foundHistory.last;
+          final history = foundHistory.sublist(0, foundHistory.length - 1);
+          scanner.setNavigationState(targetFolder, history);
+          _clearAllSelection();
+          _setFolderSelectionMode(false);
+          return;
+        }
+      }
+    } else if (folder.path == 'system' ||
+        ScannerPathUtils.pathContains('system', folder.path)) {
+      await scanner.loadSystemMediaFolderSongs();
+      if (scanner.systemMediaFolder != null) {
+        final foundHistory = _findFolderHistoryByFolderPath(
+          scanner.systemMediaFolder!,
+          folder.path,
+        );
+        if (foundHistory != null && foundHistory.isNotEmpty) {
+          final targetFolder = foundHistory.last;
+          final history = foundHistory.sublist(0, foundHistory.length - 1);
+          scanner.setNavigationState(targetFolder, history);
+          _clearAllSelection();
+          _setFolderSelectionMode(false);
+          return;
+        }
+      }
+    }
+
     final history = List<MusicFolder>.from(scanner.navigationHistory);
     if (scanner.navigationCurrentFolder != null) {
       history.add(scanner.navigationCurrentFolder!);
@@ -213,16 +276,24 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
     }
 
     if (foundHistory == null) {
-      final matchingRootPath = scanner.rootPaths.firstWhereOrNull(
-        (root) => ScannerPathUtils.pathContains(root, songPath),
-      );
-      if (matchingRootPath != null) {
-        await scanner.loadRootFolderSongs(matchingRootPath);
-      } else {
-        for (final rootPath in scanner.rootPaths) {
-          await scanner.loadRootFolderSongs(rootPath);
-        }
+      final songMeta = await scanner.getSongMetadata(songPath);
+      final isSystemMedia = songMeta != null &&
+          ((songMeta.sourceFlags ?? 0) & SongSourceFlags.systemMedia) != 0;
+
+      if (isSystemMedia) {
         await scanner.loadSystemMediaFolderSongs();
+      } else {
+        final matchingRootPath = scanner.rootPaths.firstWhereOrNull(
+          (root) => ScannerPathUtils.pathContains(root, songPath),
+        );
+        if (matchingRootPath != null) {
+          await scanner.loadRootFolderSongs(matchingRootPath);
+        } else {
+          for (final rootPath in scanner.rootPaths) {
+            await scanner.loadRootFolderSongs(rootPath);
+          }
+          await scanner.loadSystemMediaFolderSongs();
+        }
       }
 
       for (final root in scanner.rootFolders) {

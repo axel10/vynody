@@ -19,6 +19,7 @@ import '../widgets/song_grid_card.dart';
 import 'package:vynody/player/settings/settings_service.dart';
 import 'package:vynody/utils/song_context_menu_utils.dart';
 import 'package:vynody/utils/folder_helpers.dart';
+import '../widgets/folder_layout_utils.dart';
 
 class FolderRootView extends ConsumerStatefulWidget {
   const FolderRootView({
@@ -57,6 +58,7 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
   String _searchQuery = '';
 
   List<MusicFile> _matchedSongs = [];
+  List<MusicFolder> _matchedFolders = [];
   Timer? _searchDebounce;
 
   void _performSearch(String query) {
@@ -64,14 +66,18 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
     if (query.isEmpty) {
       setState(() {
         _matchedSongs = [];
+        _matchedFolders = [];
       });
       return;
     }
     _searchDebounce = Timer(const Duration(milliseconds: 300), () async {
-      final results = await ref.read(scannerServiceProvider).searchSongs(query);
+      final songs = await ref.read(scannerServiceProvider).searchSongs(query);
+      final folders =
+          await ref.read(scannerServiceProvider).searchFolders(query);
       if (mounted) {
         setState(() {
-          _matchedSongs = results;
+          _matchedSongs = songs;
+          _matchedFolders = folders;
         });
       }
     });
@@ -245,7 +251,7 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
       }();
 
       final matchedRootFolders = _searchQuery.isNotEmpty
-          ? _findMatchingFolders(rootFolders, _searchQuery)
+          ? _matchedFolders
           : rootFolders;
 
       final matchedSongs = _searchQuery.isNotEmpty
@@ -286,20 +292,12 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
         rootFoldersSliver = SliverLayoutBuilder(
           builder: (context, constraints) {
             final width = constraints.crossAxisExtent;
-            final crossAxisCount = switch (width) {
-              >= 1350 => 6,
-              >= 1100 => 5,
-              >= 850 => 4,
-              >= 650 => 3,
-              _ => 2,
-            };
-
-            final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
-            final textScale = MediaQuery.textScalerOf(context).scale(10) / 10;
-            final clampedScale = textScale.clamp(1.0, 1.3);
-            final double textHeight = (isPortrait ? 72.0 : 84.0) * clampedScale;
-            final itemWidth = (width - 32 - (crossAxisCount - 1) * 16) / crossAxisCount;
-            final childAspectRatio = itemWidth / (itemWidth + textHeight);
+            final crossAxisCount = getFolderGridCrossAxisCount(width);
+            final childAspectRatio = calculateFolderGridChildAspectRatio(
+              context,
+              width,
+              crossAxisCount,
+            );
 
             final showSystemMedia = Platform.isAndroid && _searchQuery.isEmpty;
             final itemCount = matchedRootFolders.length + (showSystemMedia ? 1 : 0);
@@ -419,20 +417,12 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
         songsSliver = SliverLayoutBuilder(
           builder: (context, constraints) {
             final width = constraints.crossAxisExtent;
-            final crossAxisCount = switch (width) {
-              >= 1350 => 6,
-              >= 1100 => 5,
-              >= 850 => 4,
-              >= 650 => 3,
-              _ => 2,
-            };
-
-            final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
-            final textScale = MediaQuery.textScalerOf(context).scale(10) / 10;
-            final clampedScale = textScale.clamp(1.0, 1.3);
-            final double textHeight = (isPortrait ? 72.0 : 84.0) * clampedScale;
-            final itemWidth = (width - 32 - (crossAxisCount - 1) * 16) / crossAxisCount;
-            final childAspectRatio = itemWidth / (itemWidth + textHeight);
+            final crossAxisCount = getFolderGridCrossAxisCount(width);
+            final childAspectRatio = calculateFolderGridChildAspectRatio(
+              context,
+              width,
+              crossAxisCount,
+            );
 
             return SliverPadding(
               padding: const EdgeInsets.only(bottom: 160, left: 16, right: 16),
@@ -659,9 +649,12 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
                   if (!val) {
                     _searchQuery = '';
                     _matchedSongs = [];
+                    _matchedFolders = [];
                   }
                 });
               },
+              heroTag: 'folder-cover-root',
+              isHeroModeEnabled: true,
             ),
           ),
           if (Platform.isAndroid && _searchQuery.isEmpty && !isGrid)
@@ -705,6 +698,38 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
               ),
             ),
           rootFoldersSliver,
+          if (matchedRootFolders.isNotEmpty && matchedSongs.isNotEmpty)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.only(
+                  left: 16,
+                  right: 16,
+                  top: 16,
+                  bottom: 8,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.songsCountFormat(matchedSongs.length),
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Divider(
+                      height: 1,
+                      color: Theme.of(
+                        context,
+                      ).dividerColor.withValues(alpha: 0.05),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           songsSliver,
         ],
       );

@@ -566,7 +566,11 @@ class MetadataDatabase {
   Future<SongMetadata?> getSystemMediaRepresentativeSong() =>
       _db.getSystemMediaRepresentativeSong();
 
-  Future<List<SongMetadata>> searchSongs(String query) => _db.searchSongs(query);
+  Future<List<SongMetadata>> searchSongs(String query, {String? folderPath}) =>
+      _db.searchSongs(query, folderPath: folderPath);
+
+  Future<List<String>> searchFolderPaths(String query) =>
+      _db.searchFolderPaths(query);
 
   Future<Map<String, SongMetadata>> getSongMetadataByPaths(
     Iterable<String> paths,

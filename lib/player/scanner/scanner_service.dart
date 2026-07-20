@@ -212,22 +212,25 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     if (folder.path == 'system') {
       return _systemSongCount;
     }
-    final normalized = _normalizePath(folder.path);
-    if (_roots.rootPaths.contains(normalized)) {
-      return _rootSongCounts[normalized] ?? 0;
+    if (folder.allSongs.isNotEmpty) {
+      return folder.allSongs.length;
     }
-    return folder.allSongs.length;
+    final normalized = _normalizePath(folder.path);
+    return _rootSongCounts[normalized] ?? 0;
   }
 
   int getSongDurationForFolder(MusicFolder folder) {
     if (folder.path == 'system') {
       return _systemSongDuration;
     }
-    final normalized = _normalizePath(folder.path);
-    if (_roots.rootPaths.contains(normalized)) {
-      return _rootSongDurations[normalized] ?? 0;
+    if (folder.allSongs.isNotEmpty) {
+      return folder.allSongs.fold<int>(
+        0,
+        (sum, song) => sum + (song.durationMillis ?? 0),
+      );
     }
-    return folder.allSongs.fold<int>(0, (sum, song) => sum + (song.durationMillis ?? 0));
+    final normalized = _normalizePath(folder.path);
+    return _rootSongDurations[normalized] ?? 0;
   }
 
   MusicFile? getRepresentativeSongForFolder(MusicFolder folder) {
@@ -237,12 +240,13 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     }
     if (folder.path == 'system') {
       if (_systemRepresentativeSong == null) return null;
-      return _treeBuilder.musicFileFromSongMetadata(_systemRepresentativeSong!);
+      return _treeBuilder.musicFileFromSongMetadata(
+        _systemRepresentativeSong!,
+      );
     }
     final normalized = _normalizePath(folder.path);
-    if (_roots.rootPaths.contains(normalized)) {
-      final rep = _rootRepresentativeSongs[normalized];
-      if (rep == null) return null;
+    final rep = _rootRepresentativeSongs[normalized];
+    if (rep != null) {
       return _treeBuilder.musicFileFromSongMetadata(rep);
     }
     return null;
@@ -274,9 +278,56 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     return allSongs;
   }
 
-  Future<List<MusicFile>> searchSongs(String query) async {
-    final songs = await _repository.searchSongs(query);
+  Future<List<MusicFile>> searchSongs(
+    String query, {
+    String? folderPath,
+  }) async {
+    final songs = await _repository.searchSongs(query, folderPath: folderPath);
     return songs.map(_treeBuilder.musicFileFromSongMetadata).toList();
+  }
+
+  Future<SongMetadata?> getSongMetadata(String path) =>
+      _repository.getSongMetadata(path);
+
+  Future<List<MusicFolder>> searchFolders(String query) async {
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) return const [];
+    final matchingPaths = await _repository.searchFolderPaths(trimmed);
+
+    final results = <MusicFolder>[];
+    final seenPaths = <String>{};
+
+    final lowercaseQuery = trimmed.toLowerCase();
+    for (final root in _rootFolders) {
+      if (root.name.toLowerCase().contains(lowercaseQuery)) {
+        if (seenPaths.add(root.path)) {
+          results.add(root);
+        }
+      }
+    }
+
+    for (final path in matchingPaths) {
+      if (seenPaths.add(path)) {
+        final count = await _repository.getSongCountUnderPath(path);
+        final repSongMeta =
+            await _repository.getRepresentativeSongUnderPath(path);
+
+        final normalized = _normalizePath(path);
+        _rootSongCounts[normalized] = count;
+        if (repSongMeta != null) {
+          _rootRepresentativeSongs[normalized] = repSongMeta;
+        }
+
+        results.add(
+          MusicFolder(
+            path: path,
+            name: p.basename(path),
+          ),
+        );
+      }
+    }
+
+    return results;
   }
 
   void pushNavigationHistory(MusicFolder folder) {

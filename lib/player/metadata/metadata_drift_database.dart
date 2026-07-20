@@ -613,8 +613,61 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
     return row == null ? null : _songFromQueryRow(row);
   }
 
-  Future<List<SongMetadata>> searchSongs(String query) async {
+  Future<List<SongMetadata>> searchSongs(
+    String query, {
+    String? folderPath,
+  }) async {
     final pattern = '%$query%';
+    if (folderPath != null && folderPath.isNotEmpty) {
+      final normalizedFolder = _normalizePath(folderPath);
+      if (normalizedFolder == 'system') {
+        final rows = await customSelect(
+          '''
+          SELECT *
+          FROM songs
+          WHERE (sourceFlags & ?) != 0
+            AND (title LIKE ? OR artist LIKE ? OR album LIKE ? OR path LIKE ?)
+            AND deletedAt IS NULL
+          ORDER BY LOWER(path) ASC
+          ''',
+          variables: [
+            Variable(SongSourceFlags.systemMedia),
+            Variable(pattern),
+            Variable(pattern),
+            Variable(pattern),
+            Variable(pattern),
+          ],
+          readsFrom: {songs},
+        ).get();
+        return rows.map(_songFromQueryRow).toList(growable: false);
+      } else {
+        final separator = Platform.isWindows ? '\\' : '/';
+        final prefixPattern = normalizedFolder.endsWith(separator)
+            ? '$normalizedFolder%'
+            : '$normalizedFolder$separator%';
+        final rows = await customSelect(
+          '''
+          SELECT *
+          FROM songs
+          WHERE (path = ? OR path LIKE ?)
+            AND (title LIKE ? OR artist LIKE ? OR album LIKE ? OR path LIKE ?)
+            AND deletedAt IS NULL
+          ORDER BY LOWER(path) ASC
+          ''',
+          variables: [
+            Variable(normalizedFolder),
+            Variable(prefixPattern),
+            Variable(pattern),
+            Variable(pattern),
+            Variable(pattern),
+            Variable(pattern),
+          ],
+          readsFrom: {songs},
+        ).get();
+        return rows.map(_songFromQueryRow).toList(growable: false);
+      }
+    }
+
     final rows = await customSelect(
       '''
       SELECT *
@@ -632,6 +685,41 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       readsFrom: {songs},
     ).get();
     return rows.map(_songFromQueryRow).toList(growable: false);
+  }
+
+  Future<List<String>> searchFolderPaths(String query) async {
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) return const [];
+    final pattern = '%$trimmed%';
+    final rows = await customSelect(
+      '''
+      SELECT DISTINCT path
+      FROM songs
+      WHERE path LIKE ?
+        AND deletedAt IS NULL
+      ORDER BY LOWER(path) ASC
+      ''',
+      variables: [Variable(pattern)],
+      readsFrom: {songs},
+    ).get();
+
+    final distinctDirs = <String>{};
+    final lowercaseQuery = trimmed.toLowerCase();
+
+    for (final row in rows) {
+      final filePath = row.read<String>('path');
+      var dirPath = p.dirname(filePath);
+      while (dirPath.isNotEmpty && dirPath != p.rootPrefix(dirPath)) {
+        final dirName = p.basename(dirPath);
+        if (dirName.toLowerCase().contains(lowercaseQuery)) {
+          distinctDirs.add(dirPath);
+        }
+        final parent = p.dirname(dirPath);
+        if (parent == dirPath) break;
+        dirPath = parent;
+      }
+    }
+    return distinctDirs.toList(growable: false);
   }
 
   Stream<SongMetadata?> watchSongMetadata(String path) {

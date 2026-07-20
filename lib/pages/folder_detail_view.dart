@@ -22,6 +22,7 @@ import '../widgets/folder_list_tile.dart';
 import '../widgets/song_grid_card.dart';
 import 'package:vynody/player/settings/settings_service.dart';
 import 'package:vynody/utils/folder_helpers.dart';
+import '../widgets/folder_layout_utils.dart';
 
 class FolderDetailView extends ConsumerStatefulWidget {
   const FolderDetailView({
@@ -69,9 +70,32 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
   final ScrollController _breadcrumbsScrollController = ScrollController();
   bool _isSearching = false;
   String _searchQuery = '';
+  List<MusicFile> _matchedSongs = [];
+  Timer? _searchDebounce;
   String? _lastHighlightedPath;
   bool _isCoverVisible = true;
   bool _showStatusBarOverlay = false;
+
+  void _performSearch(String query) {
+    _searchDebounce?.cancel();
+    if (query.isEmpty) {
+      setState(() {
+        _matchedSongs = [];
+      });
+      return;
+    }
+    _searchDebounce = Timer(const Duration(milliseconds: 300), () async {
+      final results = await ref.read(scannerServiceProvider).searchSongs(
+        query,
+        folderPath: _effectiveFolder.path,
+      );
+      if (mounted) {
+        setState(() {
+          _matchedSongs = results;
+        });
+      }
+    });
+  }
 
   MusicFolder get _effectiveFolder {
     if (widget.folder.path == 'system') {
@@ -151,6 +175,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _searchController.dispose();
     _localScrollController.removeListener(_onScroll);
     _localScrollController.dispose();
@@ -177,39 +202,6 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
     return results;
   }
 
-  List<MusicFile> _findMatchingSongs(MusicFolder root, String query) {
-    final results = <MusicFile>[];
-    final lowercaseQuery = query.toLowerCase();
-
-    void search(MusicFolder folder) {
-      for (final file in folder.files) {
-        final matchesName = file.name.toLowerCase().contains(lowercaseQuery);
-        final matchesTitle = file.title?.toLowerCase().contains(lowercaseQuery) ?? false;
-        final matchesArtist = file.artist?.toLowerCase().contains(lowercaseQuery) ?? false;
-        final matchesAlbum = file.album?.toLowerCase().contains(lowercaseQuery) ?? false;
-        if (matchesName || matchesTitle || matchesArtist || matchesAlbum) {
-          results.add(file);
-        }
-      }
-      for (final sub in folder.subFolders) {
-        search(sub);
-      }
-    }
-
-    search(root);
-    return results;
-  }
-
-  int _getCrossAxisCount(double width) {
-    return switch (width) {
-      >= 1350 => 6,
-      >= 1100 => 5,
-      >= 850 => 4,
-      >= 650 => 3,
-      _ => 2,
-    };
-  }
-
   void _scrollToHighlightedSong() {
     if (!mounted) return;
     final songPath = widget.highlightedSongPath;
@@ -220,7 +212,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
         ? _findMatchingFolders(folder, _searchQuery)
         : folder.subFolders;
     final matchedSongs = _searchQuery.isNotEmpty
-        ? _findMatchingSongs(folder, _searchQuery)
+        ? _matchedSongs
         : folder.files;
     final fileIndex = matchedSongs.indexWhere((file) => p.equals(file.path, songPath));
     if (fileIndex == -1) return;
@@ -238,7 +230,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
 
     final screenWidth = MediaQuery.of(context).size.width;
     final double crossAxisExtent = screenWidth - 32;
-    final int crossAxisCount = _getCrossAxisCount(crossAxisExtent);
+    final int crossAxisCount = getFolderGridCrossAxisCount(crossAxisExtent);
 
     final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
     final textScale = MediaQuery.textScalerOf(context).scale(10) / 10;
@@ -314,7 +306,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
         ? _findMatchingFolders(folder, _searchQuery)
         : folder.subFolders;
     final matchedSongs = _searchQuery.isNotEmpty
-        ? _findMatchingSongs(folder, _searchQuery)
+        ? _matchedSongs
         : folder.files;
 
     final showSelectionPanel =
@@ -344,14 +336,12 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
           ? SliverLayoutBuilder(
               builder: (context, constraints) {
                 final width = constraints.crossAxisExtent;
-                final crossAxisCount = _getCrossAxisCount(width);
-
-                final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
-                final textScale = MediaQuery.textScalerOf(context).scale(10) / 10;
-                final clampedScale = textScale.clamp(1.0, 1.3);
-                final double textHeight = (isPortrait ? 72.0 : 84.0) * clampedScale;
-                final itemWidth = (width - 32 - (crossAxisCount - 1) * 16) / crossAxisCount;
-                final childAspectRatio = itemWidth / (itemWidth + textHeight);
+                final crossAxisCount = getFolderGridCrossAxisCount(width);
+                final childAspectRatio = calculateFolderGridChildAspectRatio(
+                  context,
+                  width,
+                  crossAxisCount,
+                );
 
                 return SliverPadding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -482,14 +472,12 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
           ? SliverLayoutBuilder(
               builder: (context, constraints) {
                 final width = constraints.crossAxisExtent;
-                final crossAxisCount = _getCrossAxisCount(width);
-
-                final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
-                final textScale = MediaQuery.textScalerOf(context).scale(10) / 10;
-                final clampedScale = textScale.clamp(1.0, 1.3);
-                final double textHeight = (isPortrait ? 72.0 : 84.0) * clampedScale;
-                final itemWidth = (width - 32 - (crossAxisCount - 1) * 16) / crossAxisCount;
-                final childAspectRatio = itemWidth / (itemWidth + textHeight);
+                final crossAxisCount = getFolderGridCrossAxisCount(width);
+                final childAspectRatio = calculateFolderGridChildAspectRatio(
+                  context,
+                  width,
+                  crossAxisCount,
+                );
 
                 return SliverPadding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -779,12 +767,14 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
               setState(() {
                 _searchQuery = val.trim();
               });
+              _performSearch(val.trim());
             },
             onToggleSearch: (val) {
               setState(() {
                 _isSearching = val;
                 if (!val) {
                   _searchQuery = '';
+                  _matchedSongs = [];
                 }
               });
             },
