@@ -5,16 +5,6 @@ import 'package:vynody/player/scanner/scanner_service.dart';
 const double folderPageMaxWidth = 1700.0;
 
 MusicFile? findRepresentativeSong(MusicFolder folder) {
-  for (final file in folder.files) {
-    if (file.thumbnailPath != null || file.id != null) {
-      return file;
-    }
-  }
-  for (final song in folder.allSongs) {
-    if (song.thumbnailPath != null || song.id != null) {
-      return song;
-    }
-  }
   if (folder.files.isNotEmpty) {
     return folder.files.first;
   }
