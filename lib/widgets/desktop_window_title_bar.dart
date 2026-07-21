@@ -108,8 +108,7 @@ class _DesktopWindowTitleBarState extends ConsumerState<DesktopWindowTitleBar>
     final isSmallWindowMode = settings.isSmallWindowMode;
     final showMiniButton = widget.showSmallWindowButton || isSmallWindowMode;
     final hideButtons =
-        widget.hideButtonsWhenInactive &&
-        isSmallWindowMode &&
+        (widget.hideButtonsWhenInactive || isSmallWindowMode) &&
         settings.isUserInactive;
 
     final Widget titleBarContent = GestureDetector(
