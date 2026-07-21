@@ -17,6 +17,7 @@ import flutter_tray
 import mobile_storage_listener
 import package_info_plus
 import pasteboard
+import proxy_getter
 import screen_retriever_macos
 import shared_preferences_foundation
 import sqflite_darwin
@@ -37,6 +38,7 @@ func RegisterGeneratedPlugins(registry: FlutterPluginRegistry) {
   MobileStorageListenerPlugin.register(with: registry.registrar(forPlugin: "MobileStorageListenerPlugin"))
   FPPPackageInfoPlusPlugin.register(with: registry.registrar(forPlugin: "FPPPackageInfoPlusPlugin"))
   PasteboardPlugin.register(with: registry.registrar(forPlugin: "PasteboardPlugin"))
+  ProxyGetterPlugin.register(with: registry.registrar(forPlugin: "ProxyGetterPlugin"))
   ScreenRetrieverMacosPlugin.register(with: registry.registrar(forPlugin: "ScreenRetrieverMacosPlugin"))
   SharedPreferencesPlugin.register(with: registry.registrar(forPlugin: "SharedPreferencesPlugin"))
   SqflitePlugin.register(with: registry.registrar(forPlugin: "SqflitePlugin"))

@@ -280,6 +280,43 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     return allSongs;
   }
 
+  MusicFolder? resolveFolderForPath(String path) {
+    if (path == 'system') return _systemMediaFolder;
+    return _treeBuilder.resolveFolderForPath(
+      path,
+      _scannedRootFolders,
+      _systemMediaFolder,
+    );
+  }
+
+  Future<List<MusicFile>> getSongsForFolder(MusicFolder folder) async {
+    if (folder.path == 'system') {
+      await loadSystemMediaFolderSongs();
+      return _systemMediaFolder?.allSongs ?? const [];
+    }
+
+    if (folder.allSongs.isNotEmpty) {
+      return folder.allSongs;
+    }
+
+    final normalizedPath = _normalizePath(folder.path);
+    final rootPath = _roots.rootPaths.firstWhereOrNull(
+      (root) => _pathsEqual(root, normalizedPath) || _pathContains(root, normalizedPath),
+    );
+
+    if (rootPath != null) {
+      await loadRootFolderSongs(rootPath);
+      final resolved = resolveFolderForPath(folder.path);
+      if (resolved != null && resolved.allSongs.isNotEmpty) {
+        return resolved.allSongs;
+      }
+    }
+
+    final songsFromRepo = await _repository.getSongsUnderPath(normalizedPath);
+    return songsFromRepo.map(_treeBuilder.musicFileFromSongMetadata).toList();
+  }
+
+
   Future<List<MusicFile>> searchSongs(
     String query, {
     String? folderPath,

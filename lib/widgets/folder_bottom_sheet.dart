@@ -19,10 +19,11 @@ Future<String?> showFolderBottomSheet(
 }) async {
   final l10n = AppLocalizations.of(context)!;
   final theme = Theme.of(context);
-  final songs = folder.allSongs;
   final audio = ref.read(audioServiceProvider);
   final playlistService = ref.read(playlistServiceProvider);
   final scanner = ref.read(scannerServiceProvider);
+  final songs = await scanner.getSongsForFolder(folder);
+  if (!context.mounted) return null;
 
   final canOpenLocation =
       (Platform.isWindows || Platform.isMacOS || Platform.isLinux) &&

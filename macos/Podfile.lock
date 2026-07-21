@@ -150,7 +150,7 @@ SPEC CHECKSUMS:
   mobile_storage_listener: 7894760322d7fb5121e315b81806dbddfceef26e
   package_info_plus: f0052d280d17aa382b932f399edf32507174e870
   pasteboard: b594eaf838d930b276d7a35a44a32b4f489170cb
-  proxy_getter: 5687a846a29858a5af86bc93bfbd51b8c3cac101
+  proxy_getter: d667015969f8fc62ec2f8f4a014d8bb5dbf20a32
   screen_retriever_macos: c5508cc3c66ff0d4db650480cf0ab691e220d933
   shared_preferences_foundation: 7036424c3d8ec98dfe75ff1667cb0cd531ec82bb
   sqflite_darwin: 20b2a3a3b70e43edae938624ce550a3cbf66a3d0
