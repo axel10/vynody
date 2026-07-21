@@ -586,6 +586,22 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
     return row.read<int>('c');
   }
 
+  Future<List<SongMetadata>> getSystemMediaSongs() async {
+    final rows = await customSelect(
+      '''
+      SELECT *
+      FROM songs
+      WHERE (sourceFlags & ?) != 0
+        AND deletedAt IS NULL
+      ORDER BY path ASC
+      ''',
+      variables: [Variable(SongSourceFlags.systemMedia)],
+      readsFrom: {songs},
+    ).get();
+    return rows.map(_songFromQueryRow).toList();
+  }
+
+
   Future<int> getSystemMediaSongDuration() async {
     final row = await customSelect(
       '''
@@ -2288,28 +2304,7 @@ class ArtworkCaches extends Table {
   List<String> get customConstraints => const ['UNIQUE(md5)'];
 }
 
-void _setupSqliteInIsolate([Object? db]) {
-  if (Platform.isLinux) {
-    open.overrideFor(OperatingSystem.linux, () {
-      final exeDir = p.dirname(Platform.resolvedExecutable);
-      final bundleLibPath = p.join(exeDir, 'lib', 'libsqlite3_flutter_libs_plugin.so');
-      final candidates = [
-        bundleLibPath,
-        'libsqlite3_flutter_libs_plugin.so',
-        'libsqlite3.so.0',
-        'libsqlite3.so',
-        '/usr/lib/x86_64-linux-gnu/libsqlite3.so.0',
-        '/usr/lib/libsqlite3.so.0',
-      ];
-      for (final candidate in candidates) {
-        try {
-          return DynamicLibrary.open(candidate);
-        } catch (_) {}
-      }
-      return DynamicLibrary.open('libsqlite3.so');
-    });
-  }
-}
+void _setupSqliteInIsolate([Object? db]) {}
 
 LazyDatabase _openConnection() {
   return LazyDatabase(() async {

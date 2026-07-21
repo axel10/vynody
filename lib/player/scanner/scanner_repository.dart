@@ -51,6 +51,10 @@ class ScannerRepository {
     return _database.getSystemMediaSongDuration();
   }
 
+  Future<List<SongMetadata>> getSystemMediaSongs() {
+    return _database.getSystemMediaSongs();
+  }
+
   Future<SongMetadata?> getSystemMediaRepresentativeSong() {
     return _database.getSystemMediaRepresentativeSong();
   }

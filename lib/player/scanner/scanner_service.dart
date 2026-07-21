@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'dart:async';
 import 'dart:convert';
-import 'dart:ui';
 import 'package:audio_core/audio_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -187,9 +186,9 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> loadSystemMediaFolderSongs() async {
-    if (_loadedRootPaths.contains('system')) return;
-
-    await _loadCachedSystemMediaFolderFromDatabase();
+    if (_systemMediaFolder == null) {
+      await _loadCachedSystemMediaFolderFromDatabase();
+    }
     if (_systemMediaFolder != null) {
       _loadedRootPaths.add('system');
       _rebuildDisplayedRootFolders();
@@ -210,7 +209,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
 
   int getSongCountForFolder(MusicFolder folder) {
     if (folder.path == 'system') {
-      return _systemSongCount;
+      return _systemMediaFolder?.allSongs.length ?? _systemSongCount;
     }
     if (folder.allSongs.isNotEmpty) {
       return folder.allSongs.length;
@@ -849,9 +848,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     );
     notifyListeners();
     if (_hasPermission) {
-      // 系统媒体库扫描可能比本地目录扫描慢很多，启动时不要把
-      // 根目录初始化卡在这里。
-      unawaited(scanSystemMedia());
+      await scanSystemMedia();
     }
   }
 
@@ -1723,7 +1720,28 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       _systemSongDuration = duration;
       _systemRepresentativeSong = repSong;
 
-      if (repSong != null && seedMetadataCache) {
+      if (count > 0) {
+        final systemSongs = await _repository.getSystemMediaSongs();
+        if (systemSongs.isNotEmpty) {
+          _systemMediaFolder = _treeBuilder.buildFolderTreeFromMetadata(
+            systemSongs,
+            _compareNaturally,
+            rootPath: 'system',
+            rootName: _l10n().systemMediaLibrary,
+          );
+          if (_systemMediaFolder != null) {
+            _folderSorter.sortFolderRecursiveForTree(
+              _systemMediaFolder!,
+              resolveSettings: _resolveSortSettingsForFolder,
+            );
+          }
+          if (seedMetadataCache) {
+            for (final song in systemSongs) {
+              _metadataStore.cacheMetadata(song);
+            }
+          }
+        }
+      } else if (repSong != null && seedMetadataCache) {
         _metadataStore.cacheMetadata(repSong);
       }
     } catch (e) {
@@ -1742,6 +1760,8 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     } else {
       _scannedRootFolders.add(folder);
     }
+    final normalized = _normalizePath(folder.path);
+    _rootSongCounts[normalized] = folder.allSongs.length;
   }
 
   MusicFolder? _buildCachedFolderTree({
@@ -3075,6 +3095,13 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
         return;
       }
 
+      if (Platform.isAndroid && hasPermission) {
+        _hasPermission = true;
+        if (_systemMediaFolder == null) {
+          unawaited(scanSystemMedia());
+        }
+      }
+
       final scanState = ScanProgressState(
         metadataConcurrency: 4,
         comparePaths: _compareNaturally,
@@ -3091,6 +3118,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
 
       if (clearScannedRoots) {
         _scannedRootFolders.clear();
+        _loadedRootPaths.removeWhere((path) => path != 'system');
       }
       _rebuildDisplayedRootFolders();
       _syncNavigationStateToLatestTree();
