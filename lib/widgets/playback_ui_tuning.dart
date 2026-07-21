@@ -154,7 +154,7 @@ class PlaybackHeroCardUiTuning {
   static const double controlsRowPortraitGap = 8.0;
   static const double topButtonsHorizontalPadding = 0.0; // 顶部按钮行的水平内边距
   static const double topButtonsIconSize = 22.0; // 顶部按钮图标的基础大小
-  static const double topButtonsInnerGap = 6.0; // 减小按钮之间的间距
+  static const double topButtonsInnerGap = 8.0; // 按钮之间的间距
 
   static const double waveformOverlayHeight = 200.0;
   static const double waveformOverlayTimeSide = 20.0;
@@ -181,13 +181,15 @@ class PlaybackHeroCardUiTuning {
   static const double controlsTimeGap = 8.0;
   static const double progressBarWidthFactor = 1.0; // 进度条宽度比例（相对于按钮区）
   static const double portraitProgressBarWidthFactor = 1.0; // 竖屏进度条宽度比例
-  static const double landscapeInfoControlsGap = 0.0; // 横屏下标题区到控件区的距离
+  static const double landscapeInfoControlsGap = 14.0; // 横屏普通模式下标题区到控件区的距离
+  static const double landscapeLyricsInfoControlsGap = 0.0; // 横屏歌词模式下标题区到控件区的距离 (保持紧凑)
   static const double landscapeInfoHeightBase = 52.0;
   static const double landscapeLyricsInfoHeightBase = 54.0;
   static const double landscapeLyricsInfoHeightSmall = 46.0;
   static const double landscapeLyricsTitleScaleSmall = 0.85;
   static const double landscapeLyricsCoverInfoGapBase = 24.0;
-  static const double controlsRowLandscapeGap = 12.0;
+  static const double controlsRowLandscapeGap = 12.0; // 顶部按钮到进度条的间距
+  static const double controlsRowLandscapeMainGap = 16.0; // 进度条/时间行到主播放控制行的间距 (横屏普通模式)
 
   static const double portraitBottomReservedSpace = 0;
 }

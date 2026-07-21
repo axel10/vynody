@@ -960,7 +960,7 @@ class PlaybackHeroCard extends ConsumerWidget {
             : 48.0) + // Use smaller height when waveform is disabled
         PlaybackHeroCardUiTuning.controlsTimeGap +
         PlaybackHeroCardUiTuning.controlsTimeRowHeight +
-        PlaybackHeroCardUiTuning.controlsRowLandscapeGap +
+        PlaybackHeroCardUiTuning.controlsRowLandscapeMainGap +
         PlaybackHeroCardUiTuning.controlsMainButtonsHeight;
 
     final lNormalControlsHeight =
@@ -1055,7 +1055,7 @@ class PlaybackHeroCard extends ConsumerWidget {
         PlaybackHeroCardUiTuning.landscapeLyricsCoverInfoGapBase *
         lLyricsSpaceControlsScale;
     final lLyricsInfoControlsSpacing =
-        PlaybackHeroCardUiTuning.landscapeInfoControlsGap *
+        PlaybackHeroCardUiTuning.landscapeLyricsInfoControlsGap *
         lLyricsSpaceControlsScale;
 
     // Apple Music 布局逻辑：控件大小保持舒适设定，高度不足时封面收缩，控件区宽度同步收缩至与封面同宽，控件间距自动紧密
@@ -2472,7 +2472,11 @@ class PlaybackHeroCard extends ConsumerWidget {
           ),
           SizedBox(
             height:
-                PlaybackHeroCardUiTuning.controlsRowLandscapeGap *
+                lerpDouble(
+                  PlaybackHeroCardUiTuning.controlsRowLandscapeMainGap,
+                  PlaybackHeroCardUiTuning.controlsRowLandscapeGap,
+                  tLyrics,
+                )! *
                 controlsScale,
           ),
           mainControlsRow,
