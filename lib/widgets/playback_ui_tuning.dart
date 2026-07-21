@@ -174,7 +174,7 @@ class PlaybackHeroCardUiTuning {
   // 控件区理想高度计算及缩放基准 (Ideal height calculation and scaling base)
   // 减小此值会让按钮和文字在相同屏幕宽度下显得更大
   static const double pControlsScaleBase = 375.0; // 竖屏缩放基准
-  static const double lControlsScaleBase = 480.0; // 横屏缩放基准
+  static const double lControlsScaleBase = 550.0; // 横屏缩放基准
   static const double controlsTopButtonsHeight = 44.0; // 减小顶部按钮高度
   static const double controlsMainButtonsHeight = 72.0;
   static const double controlsTimeRowHeight = 24.0;
