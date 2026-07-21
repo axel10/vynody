@@ -165,6 +165,11 @@ class ScannerTreeBuilder {
     return items;
   }
 
+  static final RegExp _androidStorageRootRegExp = RegExp(
+    r'^/(storage/emulated/\d+|sdcard|mnt/sdcard|storage/[^/]+)(/|$)',
+    caseSensitive: false,
+  );
+
   String _folderPathFromMetadataPath(
     String normalizedPath, {
     required String rootPath,
@@ -172,7 +177,12 @@ class ScannerTreeBuilder {
   }) {
     final dir = p.dirname(normalizedPath);
     if (isSystem) {
-      return dir;
+      final normalizedDir = dir.replaceAll('\\', '/');
+      var cleaned = normalizedDir.replaceFirst(_androidStorageRootRegExp, '');
+      if (cleaned.startsWith('/')) {
+        cleaned = cleaned.substring(1);
+      }
+      return cleaned;
     }
 
     if (_pathsEqual(dir, rootPath)) {
