@@ -10,7 +10,6 @@ list(APPEND FLUTTER_PLUGIN_LIST
   mobile_storage_listener
   pasteboard
   screen_retriever_linux
-  sqlite3_flutter_libs
   url_launcher_linux
   window_manager
 )

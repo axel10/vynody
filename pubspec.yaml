@@ -51,7 +51,7 @@ dependencies:
   path_provider: ^2.1.5
   device_info_plus: ^10.1.0
   dio: ^5.7.0
-  sqlite3_flutter_libs: ^0.5.24
+  sqlite3: ^3.5.0
   shared_preferences: ^2.5.2
   url_launcher: ^6.3.1
 
@@ -92,8 +92,8 @@ dependencies:
 
   worker_manager: ^7.2.9
   shimmer: ^3.0.0
-  drift: 2.31.0
-  drift_dev: 2.31.0
+  drift: ^2.34.1
+
 
   audio_core:
     # path: audio_core
@@ -140,7 +140,7 @@ dev_dependencies:
   freezed: ^3.2.5
   json_serializable: ^6.9.5
   dmg: ^0.1.10
-
+  drift_dev: 2.34.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
