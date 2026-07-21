@@ -654,9 +654,6 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
     }
   }
 
-  final GlobalKey<NavigatorState> _nestedNavigatorKey =
-      GlobalKey<NavigatorState>();
-
   @override
   Widget build(BuildContext context) {
     final scanner = ref.read(scannerServiceProvider);
@@ -683,6 +680,7 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
       });
     }
 
+    final seenPaths = <String>{};
     final pages = <Page<dynamic>>[
       MaterialPage(
         key: const ValueKey('folder-root-page'),
@@ -711,39 +709,49 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
               ),
         ),
       ),
-      for (int i = 0; i < navigationHistory.length; i++)
-        MaterialPage(
-          key: ValueKey('folder-page-${navigationHistory[i].path}'),
-          child: FolderDetailView(
-            folder: navigationHistory[i],
-            onOpenPlayback: widget.onOpenPlayback,
-            isSelectionMode: _isSelectionMode,
-            selectedSongPaths: _selectedSongPaths,
-            selectedFolderPaths: _selectedFolderPaths,
-            onNavigateTo: (folder) => _navigateTo(folder, scanner),
-            onGoBack: () => _goBack(scanner),
-            onToggleSelectionMode: _toggleSelectionMode,
-            onToggleFolderSelection: _toggleFolderSelection,
-            onToggleSelection: _toggleSelection,
-            onSelectAllVisible: () => _selectAllVisible(navigationHistory[i]),
-            onClearAllSelection: _clearAllSelection,
-            onLocateCurrentSong: _locateCurrentSong,
-            onShowFolderBottomSheet: (folder, {required isRoot}) =>
-                showFolderBottomSheet(
-                  context,
-                  ref,
-                  folder,
-                  isRoot: isRoot,
-                  onMultiSelect: (path) {
-                    setState(() {
-                      _selectedRootPaths.add(path);
-                    });
-                  },
-                ),
-            highlightedSongPath: _highlightedSongPath,
+    ];
+
+    for (int i = 0; i < navigationHistory.length; i++) {
+      final folder = navigationHistory[i];
+      if (seenPaths.add(folder.path)) {
+        pages.add(
+          MaterialPage(
+            key: ValueKey('folder-page-${folder.path}'),
+            child: FolderDetailView(
+              folder: folder,
+              onOpenPlayback: widget.onOpenPlayback,
+              isSelectionMode: _isSelectionMode,
+              selectedSongPaths: _selectedSongPaths,
+              selectedFolderPaths: _selectedFolderPaths,
+              onNavigateTo: (folder) => _navigateTo(folder, scanner),
+              onGoBack: () => _goBack(scanner),
+              onToggleSelectionMode: _toggleSelectionMode,
+              onToggleFolderSelection: _toggleFolderSelection,
+              onToggleSelection: _toggleSelection,
+              onSelectAllVisible: () => _selectAllVisible(folder),
+              onClearAllSelection: _clearAllSelection,
+              onLocateCurrentSong: _locateCurrentSong,
+              onShowFolderBottomSheet: (folder, {required isRoot}) =>
+                  showFolderBottomSheet(
+                    context,
+                    ref,
+                    folder,
+                    isRoot: isRoot,
+                    onMultiSelect: (path) {
+                      setState(() {
+                        _selectedRootPaths.add(path);
+                      });
+                    },
+                  ),
+              highlightedSongPath: _highlightedSongPath,
+            ),
           ),
-        ),
-      if (currentFolder != null)
+        );
+      }
+    }
+
+    if (currentFolder != null && seenPaths.add(currentFolder.path)) {
+      pages.add(
         MaterialPage(
           key: ValueKey('folder-page-${currentFolder.path}'),
           child: FolderDetailView(
@@ -775,10 +783,10 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
             highlightedSongPath: _highlightedSongPath,
           ),
         ),
-    ];
+      );
+    }
 
     return Navigator(
-      key: _nestedNavigatorKey,
       pages: pages,
       observers: [_heroController],
       onDidRemovePage: (page) {
