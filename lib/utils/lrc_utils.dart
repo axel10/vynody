@@ -2,7 +2,7 @@ import 'package:vynody/models/lyric_line.dart';
 
 class LrcUtils {
   static final RegExp _timestampLinePattern = RegExp(
-    r'\[\s*\d{1,3}:\d{2}(?:[.:]\d{1,3})?\s*\]',
+    r'[\[<\(]\s*\d{1,3}:\d{2}(?:[.:]\d{1,3})?\s*[\]>\)]',
   );
 
   static final RegExp _timestampTokenPattern = RegExp(
@@ -14,119 +14,281 @@ class LrcUtils {
       return const [];
     }
 
-    final lines = <LyricLine>[];
-    for (final rawLine in lyrics.split(RegExp(r'\r?\n'))) {
+    final rawLines = lyrics.split(RegExp(r'\r?\n'));
+    final blocks = <List<String>>[];
+    var currentBlock = <String>[];
+
+    for (final rawLine in rawLines) {
       final line = normalizeLrcLine(rawLine);
-      if (line == null || line.isEmpty) continue;
-
-      final lineTimestamps = <Duration>[];
-      var index = 0;
-      while (index < line.length) {
-        final end = line.indexOf(']', index);
-        if (index >= line.length || line[index] != '[' || end == -1) {
-          break;
+      if (line == null || line.isEmpty) {
+        if (currentBlock.isNotEmpty) {
+          blocks.add(currentBlock);
+          currentBlock = <String>[];
         }
-        final token = line.substring(index + 1, end);
-        final parsed = parseTimestampToken(token);
-        if (parsed == null) {
-          break;
-        }
-        lineTimestamps.add(parsed);
-        index = end + 1;
-      }
-
-      if (lineTimestamps.isEmpty) {
         continue;
       }
+      currentBlock.add(line);
+    }
+    if (currentBlock.isNotEmpty) {
+      blocks.add(currentBlock);
+    }
 
-      final remainingContent = line.substring(index);
-      final wordMatches = _timestampLinePattern.allMatches(remainingContent).toList();
+    final result = <LyricLine>[];
 
-      if (wordMatches.isEmpty) {
-        final text = remainingContent.trim();
-        if (text.isEmpty) continue;
-        for (final timestamp in lineTimestamps) {
-          lines.add(LyricLine(timestamp: timestamp, text: text, isTimed: true));
+    for (final block in blocks) {
+      final blockLines = <LyricLine>[];
+      for (final line in block) {
+        _parseSingleNormalizedLine(line, blockLines);
+      }
+
+      if (blockLines.isEmpty) continue;
+
+      result.addAll(_groupWordPerLineIfNeeded(blockLines));
+    }
+
+    result.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+    return result;
+  }
+
+  static void _parseSingleNormalizedLine(String line, List<LyricLine> targetList) {
+    final lineTimestamps = <Duration>[];
+    var index = 0;
+    while (index < line.length) {
+      final startChar = line[index];
+      if (startChar != '[' && startChar != '<' && startChar != '(') {
+        break;
+      }
+      final closingChar = startChar == '['
+          ? ']'
+          : (startChar == '<' ? '>' : ')');
+      final end = line.indexOf(closingChar, index);
+      if (end == -1) {
+        break;
+      }
+      final token = line.substring(index + 1, end);
+      final parsed = parseTimestampToken(token);
+      if (parsed == null) {
+        break;
+      }
+      lineTimestamps.add(parsed);
+      index = end + 1;
+    }
+
+    if (lineTimestamps.isEmpty) {
+      return;
+    }
+
+    final remainingContent = line.substring(index);
+    final wordMatches = _timestampLinePattern.allMatches(remainingContent).toList();
+
+    if (wordMatches.isEmpty) {
+      final text = remainingContent.trim();
+      for (final timestamp in lineTimestamps) {
+        targetList.add(LyricLine(timestamp: timestamp, text: text, isTimed: true));
+      }
+    } else {
+      // Parse word-by-word lyrics
+      final baseTimestamp = lineTimestamps.first;
+      final wordTokens = <_ParsedWordToken>[];
+
+      final firstWordEnd = wordMatches.first.start;
+      final firstWordText = remainingContent.substring(0, firstWordEnd);
+      if (firstWordText.isNotEmpty) {
+        wordTokens.add(_ParsedWordToken(baseTimestamp, firstWordText));
+      }
+
+      Duration? trailingTimestamp;
+      for (int i = 0; i < wordMatches.length; i++) {
+        final match = wordMatches[i];
+        final token = match.group(0)!;
+        final timestamp = parseTimestampToken(token);
+        if (timestamp == null) continue;
+
+        final startIdx = match.end;
+        final endIdx = (i + 1 < wordMatches.length) ? wordMatches[i + 1].start : remainingContent.length;
+        final wordText = remainingContent.substring(startIdx, endIdx);
+
+        if (wordText.isNotEmpty) {
+          wordTokens.add(_ParsedWordToken(timestamp, wordText));
+        } else if (i == wordMatches.length - 1) {
+          trailingTimestamp = timestamp;
         }
-      } else {
-        // Parse word-by-word lyrics
-        final baseTimestamp = lineTimestamps.first;
-        final wordTokens = <_ParsedWordToken>[];
+      }
 
-        final firstWordEnd = wordMatches.first.start;
-        final firstWordText = remainingContent.substring(0, firstWordEnd);
-        if (firstWordText.isNotEmpty) {
-          wordTokens.add(_ParsedWordToken(baseTimestamp, firstWordText));
-        }
+      if (wordTokens.isNotEmpty) {
+        final relativeWords = <_RelativeWord>[];
+        final cleanTextBuffer = StringBuffer();
 
-        Duration? trailingTimestamp;
-        for (int i = 0; i < wordMatches.length; i++) {
-          final match = wordMatches[i];
-          final token = match.group(0)!;
-          final timestampStr = token.substring(1, token.length - 1);
-          final timestamp = parseTimestampToken(timestampStr);
-          if (timestamp == null) continue;
-
-          final startIdx = match.end;
-          final endIdx = (i + 1 < wordMatches.length) ? wordMatches[i + 1].start : remainingContent.length;
-          final wordText = remainingContent.substring(startIdx, endIdx);
-
-          if (wordText.isNotEmpty) {
-            wordTokens.add(_ParsedWordToken(timestamp, wordText));
-          } else if (i == wordMatches.length - 1) {
-            trailingTimestamp = timestamp;
+        for (int i = 0; i < wordTokens.length; i++) {
+          final token = wordTokens[i];
+          final Duration duration;
+          if (i + 1 < wordTokens.length) {
+            duration = wordTokens[i + 1].timestamp - token.timestamp;
+          } else if (trailingTimestamp != null && trailingTimestamp > token.timestamp) {
+            duration = trailingTimestamp - token.timestamp;
+          } else {
+            duration = const Duration(milliseconds: 1000);
           }
+
+          final relativeOffset = token.timestamp - baseTimestamp;
+          relativeWords.add(_RelativeWord(
+            offset: relativeOffset,
+            durationMs: duration.inMilliseconds,
+            text: token.text,
+          ));
+          cleanTextBuffer.write(token.text);
         }
 
-        if (wordTokens.isNotEmpty) {
-          final relativeWords = <_RelativeWord>[];
-          final cleanTextBuffer = StringBuffer();
+        final cleanText = cleanTextBuffer.toString().trim();
+        if (cleanText.isNotEmpty) {
+          for (final t in lineTimestamps) {
+            final wordsList = relativeWords.map((rw) {
+              return LyricWord(
+                timestamp: t + rw.offset,
+                durationMs: rw.durationMs,
+                text: rw.text,
+              );
+            }).toList();
 
-          for (int i = 0; i < wordTokens.length; i++) {
-            final token = wordTokens[i];
-            final Duration duration;
-            if (i + 1 < wordTokens.length) {
-              duration = wordTokens[i + 1].timestamp - token.timestamp;
-            } else if (trailingTimestamp != null && trailingTimestamp > token.timestamp) {
-              duration = trailingTimestamp - token.timestamp;
-            } else {
-              duration = const Duration(milliseconds: 1000);
-            }
-
-            final relativeOffset = token.timestamp - baseTimestamp;
-            relativeWords.add(_RelativeWord(
-              offset: relativeOffset,
-              durationMs: duration.inMilliseconds,
-              text: token.text,
+            targetList.add(LyricLine(
+              timestamp: t,
+              text: cleanText,
+              isTimed: true,
+              words: wordsList,
             ));
-            cleanTextBuffer.write(token.text);
-          }
-
-          final cleanText = cleanTextBuffer.toString().trim();
-          if (cleanText.isNotEmpty) {
-            for (final t in lineTimestamps) {
-              final wordsList = relativeWords.map((rw) {
-                return LyricWord(
-                  timestamp: t + rw.offset,
-                  durationMs: rw.durationMs,
-                  text: rw.text,
-                );
-              }).toList();
-
-              lines.add(LyricLine(
-                timestamp: t,
-                text: cleanText,
-                isTimed: true,
-                words: wordsList,
-              ));
-            }
           }
         }
       }
     }
+  }
 
-    lines.sort((a, b) => a.timestamp.compareTo(b.timestamp));
-    return lines;
+  static List<LyricLine> _groupWordPerLineIfNeeded(List<LyricLine> initialLines) {
+    if (initialLines.length <= 1) return initialLines;
+
+    final result = <LyricLine>[];
+    int i = 0;
+
+    while (i < initialLines.length) {
+      final current = initialLines[i];
+
+      if (current.text.trim().isEmpty) {
+        i++;
+        continue;
+      }
+
+      final isCandidate = current.isTimed &&
+          (current.words == null || current.words!.isEmpty || current.words!.length == 1) &&
+          current.text.trim().length <= 4 &&
+          !current.text.contains('\n');
+
+      if (!isCandidate) {
+        result.add(current);
+        i++;
+        continue;
+      }
+
+      final group = <LyricLine>[current];
+      Duration? trailingTimestamp;
+      int j = i + 1;
+      while (j < initialLines.length) {
+        final next = initialLines[j];
+        final prev = group.last;
+
+        if (next.isTimed && next.text.trim().isEmpty) {
+          if (next.timestamp > prev.timestamp) {
+            trailingTimestamp = next.timestamp;
+          }
+          j++;
+          break;
+        }
+
+        final isNextCandidate = next.isTimed &&
+            (next.words == null || next.words!.isEmpty || next.words!.length == 1) &&
+            next.text.trim().length <= 4 &&
+            !next.text.contains('\n') &&
+            next.text.trim() != prev.text.trim();
+
+        if (!isNextCandidate) break;
+
+        final gap = next.timestamp - prev.timestamp;
+        if (gap <= Duration.zero || gap > const Duration(milliseconds: 3000)) {
+          break;
+        }
+
+        group.add(next);
+        j++;
+      }
+
+      if (group.length >= 2) {
+        final baseTimestamp = group.first.timestamp;
+        final mergedWords = <LyricWord>[];
+        final sb = StringBuffer();
+
+        for (int k = 0; k < group.length; k++) {
+          final gLine = group[k];
+          final String wordText = gLine.text;
+
+          final int durationMs;
+          if (k + 1 < group.length) {
+            durationMs = (group[k + 1].timestamp - gLine.timestamp).inMilliseconds;
+          } else if (trailingTimestamp != null && trailingTimestamp > gLine.timestamp) {
+            durationMs = (trailingTimestamp - gLine.timestamp).inMilliseconds;
+          } else {
+            durationMs = 1000;
+          }
+
+          if (k > 0 && _needsSpace(group[k - 1].text, wordText)) {
+            sb.write(' ');
+            mergedWords.add(LyricWord(
+              timestamp: gLine.timestamp,
+              durationMs: durationMs,
+              text: ' $wordText',
+            ));
+          } else {
+            mergedWords.add(LyricWord(
+              timestamp: gLine.timestamp,
+              durationMs: durationMs,
+              text: wordText,
+            ));
+          }
+          sb.write(wordText);
+        }
+
+        result.add(LyricLine(
+          timestamp: baseTimestamp,
+          text: sb.toString().trim(),
+          isTimed: true,
+          words: mergedWords,
+        ));
+
+        i = j;
+      } else {
+        result.add(current);
+        i++;
+      }
+    }
+
+    return result;
+  }
+
+  static bool _needsSpace(String text1, String text2) {
+    if (text1.isEmpty || text2.isEmpty) return false;
+    final lastChar = text1.trimRight().codeUnitAt(text1.trimRight().length - 1);
+    final firstChar = text2.trimLeft().codeUnitAt(0);
+
+    final isCJK1 = _isCJKCodeUnit(lastChar);
+    final isCJK2 = _isCJKCodeUnit(firstChar);
+
+    if (isCJK1 || isCJK2) return false;
+    return true;
+  }
+
+  static bool _isCJKCodeUnit(int codeUnit) {
+    return (codeUnit >= 0x4e00 && codeUnit <= 0x9fa5) ||
+        (codeUnit >= 0x3040 && codeUnit <= 0x30ff) ||
+        (codeUnit >= 0x31f0 && codeUnit <= 0x31ff) ||
+        (codeUnit >= 0x1100 && codeUnit <= 0x11ff) ||
+        (codeUnit >= 0xac00 && codeUnit <= 0xd7af);
   }
 
   static String? normalizeLrcLine(String rawLine) {
@@ -142,7 +304,16 @@ class LrcUtils {
     return line.substring(timestampMatch.start).trimLeft();
   }
 
-  static Duration? parseTimestampToken(String token) {
+  static Duration? parseTimestampToken(String rawToken) {
+    var token = rawToken.trim();
+    if (token.startsWith('[') || token.startsWith('<') || token.startsWith('(')) {
+      token = token.substring(1);
+    }
+    if (token.endsWith(']') || token.endsWith('>') || token.endsWith(')')) {
+      token = token.substring(0, token.length - 1);
+    }
+    token = token.trim();
+
     final match = _timestampTokenPattern.firstMatch(token);
     if (match == null) return null;
 

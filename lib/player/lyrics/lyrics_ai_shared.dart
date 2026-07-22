@@ -143,7 +143,7 @@ final class LyricsAiTranslationTextHelper {
 
   static final RegExp _lineSplitPattern = RegExp(r'\r?\n');
   static final RegExp _timestampLinePattern = RegExp(
-    r'\[\s*\d{1,3}:\d{2}(?:[.:]\d{1,3})?\s*\]',
+    r'[\[<\(]\s*\d{1,3}:\d{2}(?:[.:]\d{1,3})?\s*[\]>\)]',
   );
 
   static LyricsAiTranslationPreparation prepareSourceLyrics(String lyrics) {
