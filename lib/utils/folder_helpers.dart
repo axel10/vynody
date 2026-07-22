@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/models/music_folder.dart';
 import 'package:vynody/player/scanner/scanner_service.dart';
@@ -5,6 +6,22 @@ import 'package:vynody/player/scanner/scanner_service.dart';
 const double folderPageMaxWidth = 1700.0;
 
 MusicFile? findRepresentativeSong(MusicFolder folder) {
+  final fileWithArtwork = folder.files.firstWhereOrNull(
+    (s) =>
+        (s.artworkPath != null && s.artworkPath!.isNotEmpty) ||
+        (s.thumbnailPath != null && s.thumbnailPath!.isNotEmpty) ||
+        (s.artworkBytes != null && s.artworkBytes!.isNotEmpty),
+  );
+  if (fileWithArtwork != null) return fileWithArtwork;
+
+  final allSongWithArtwork = folder.allSongs.firstWhereOrNull(
+    (s) =>
+        (s.artworkPath != null && s.artworkPath!.isNotEmpty) ||
+        (s.thumbnailPath != null && s.thumbnailPath!.isNotEmpty) ||
+        (s.artworkBytes != null && s.artworkBytes!.isNotEmpty),
+  );
+  if (allSongWithArtwork != null) return allSongWithArtwork;
+
   if (folder.files.isNotEmpty) {
     return folder.files.first;
   }
@@ -13,6 +30,7 @@ MusicFile? findRepresentativeSong(MusicFolder folder) {
   }
   return null;
 }
+
 
 bool isUserRootSelectionContext(
   ScannerService scanner,
