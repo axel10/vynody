@@ -443,7 +443,7 @@ class _LyricsPanelTimedLyricsViewState extends State<LyricsPanelTimedLyricsView>
                                 )
                               : 0.0;
                           blurredChild = TweenAnimationBuilder<double>(
-                            tween: Tween<double>(begin: 0.0, end: targetBlur),
+                            tween: Tween<double>(begin: targetBlur, end: targetBlur),
                             duration: const Duration(milliseconds: 300),
                             curve: Curves.easeOutCubic,
                             builder: (context, blurSigma, child) {

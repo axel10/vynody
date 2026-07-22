@@ -1575,8 +1575,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     final displayLines = displayLyrics?.syncedLines ?? const [];
     final displayPlainLyrics = displayLyrics?.plainText ?? '';
     final layoutRevision = ref.watch(lyricsLayoutRevisionProvider);
-    final isLowMidEndAsync = ref.watch(isLowMidEndDeviceProvider);
-    final bool isLowMidEnd = isLowMidEndAsync.asData?.value ?? true;
+    final bool isLowMidEnd = ref.watch(isLowMidEndDeviceProvider);
     final hasRenderableLyrics =
         lyricsState.hasLyrics &&
         displayLyrics != null &&

@@ -54,7 +54,7 @@ class _CoverCarouselState extends State<CoverCarousel>
 
   void _logCarouselTrace(String message) {
     if (!kDebugMode) return;
-    debugPrint('[CoverCarousel][Trace] $message');
+    // debugPrint('[CoverCarousel][Trace] $message');
   }
 
   @override

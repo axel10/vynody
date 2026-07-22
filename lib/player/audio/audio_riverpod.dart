@@ -23,8 +23,15 @@ final settingsServiceProvider = ChangeNotifierProvider<SettingsService>((ref) {
   );
 });
 
-final isLowMidEndDeviceProvider = FutureProvider<bool>((ref) async {
+final _asyncLowMidEndDeviceProvider = FutureProvider<bool>((ref) async {
   return DevicePerformanceHelper.isLowMidEndDevice();
+});
+
+final isLowMidEndDeviceProvider = Provider<bool>((ref) {
+  if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) {
+    return false;
+  }
+  return ref.watch(_asyncLowMidEndDeviceProvider).asData?.value ?? true;
 });
 
 final audioServiceStateProvider = NotifierProvider<AudioService, AudioSnapshot>(

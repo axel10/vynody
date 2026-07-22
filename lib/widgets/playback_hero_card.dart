@@ -462,8 +462,7 @@ class PlaybackHeroCard extends ConsumerWidget {
     final size = MediaQuery.of(context).size;
     final settings = ref.watch(settingsServiceProvider);
 
-    final isLowMidEndAsync = ref.watch(isLowMidEndDeviceProvider);
-    final bool isLowMidEnd = isLowMidEndAsync.asData?.value ?? true;
+    final bool isLowMidEnd = ref.watch(isLowMidEndDeviceProvider);
 
     final bool isSmallWindow = PlaybackPageUiTuning.isSmallWindow(
       size,
