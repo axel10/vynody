@@ -31,6 +31,7 @@ abstract class SongMetadata with _$SongMetadata {
 
   const factory SongMetadata({
     int? id,
+    int? mediaId,
     required String path,
     required String title,
     required String album,
@@ -57,6 +58,7 @@ abstract class SongMetadata with _$SongMetadata {
 
   Map<String, dynamic> toMap() {
     return {
+      'mediaId': mediaId,
       'path': path,
       'title': title,
       'album': album,
@@ -573,8 +575,14 @@ class MetadataDatabase {
 
   Future<int> getSystemMediaSongDuration() => _db.getSystemMediaSongDuration();
 
-  Future<SongMetadata?> getSystemMediaRepresentativeSong() =>
-      _db.getSystemMediaRepresentativeSong();
+  Future<SongMetadata?> getSystemMediaRepresentativeSong({
+    SortCriteria criteria = SortCriteria.filename,
+    SortOrder order = SortOrder.ascending,
+  }) =>
+      _db.getSystemMediaRepresentativeSong(
+        criteria: criteria,
+        order: order,
+      );
 
   Future<List<SongMetadata>> searchSongs(String query, {String? folderPath}) =>
       _db.searchSongs(query, folderPath: folderPath);

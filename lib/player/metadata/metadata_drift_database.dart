@@ -19,7 +19,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   static final MetadataDriftDatabase instance = MetadataDriftDatabase._();
 
   @override
-  int get schemaVersion => 29;
+  int get schemaVersion => 30;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -337,6 +337,9 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
         ''');
         await m.database.customStatement('DROP TABLE lyrics_cache_old;');
       }
+      if (from < 30) {
+        await _addColumnIfMissing(m, 'songs', 'mediaId', 'INTEGER');
+      }
     },
   );
 
@@ -464,6 +467,34 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   Future<List<SongMetadata>> getSongsUnderPath(String rootPath) async {
     final normalized = _normalizePath(rootPath);
     if (normalized.isEmpty) return const [];
+    if (normalized == 'system') {
+      return getSystemMediaSongs();
+    }
+    if (normalized.startsWith('system/')) {
+      final relativePath = normalized.substring('system/'.length);
+      final separator = Platform.isWindows ? '\\' : '/';
+      final prefixPattern = relativePath.endsWith(separator) ? '$relativePath%' : '$relativePath$separator%';
+      final rows = await customSelect(
+        '''
+        SELECT *
+        FROM songs
+        WHERE (sourceFlags & ?) != 0
+          AND (path = ? OR path LIKE ? OR path = ? OR path LIKE ?)
+          AND deletedAt IS NULL
+        ORDER BY LOWER(path) ASC
+        ''',
+        variables: [
+          Variable(SongSourceFlags.systemMedia),
+          Variable(relativePath),
+          Variable(prefixPattern),
+          Variable(normalized),
+          Variable('$normalized%'),
+        ],
+        readsFrom: {songs},
+      ).get();
+      return rows.map(_songFromQueryRow).toList(growable: false);
+    }
+
     final separator = Platform.isWindows ? '\\' : '/';
     final prefixPattern = normalized.endsWith(separator) ? '$normalized%' : '$normalized$separator%';
     final rows = await customSelect(
@@ -483,6 +514,33 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   Future<int> getSongCountUnderPath(String rootPath) async {
     final normalized = _normalizePath(rootPath);
     if (normalized.isEmpty) return 0;
+    if (normalized == 'system') {
+      return getSystemMediaSongCount();
+    }
+    if (normalized.startsWith('system/')) {
+      final relativePath = normalized.substring('system/'.length);
+      final separator = Platform.isWindows ? '\\' : '/';
+      final prefixPattern = relativePath.endsWith(separator) ? '$relativePath%' : '$relativePath$separator%';
+      final row = await customSelect(
+        '''
+        SELECT COUNT(*) AS c
+        FROM songs
+        WHERE (sourceFlags & ?) != 0
+          AND (path = ? OR path LIKE ? OR path = ? OR path LIKE ?)
+          AND deletedAt IS NULL
+        ''',
+        variables: [
+          Variable(SongSourceFlags.systemMedia),
+          Variable(relativePath),
+          Variable(prefixPattern),
+          Variable(normalized),
+          Variable('$normalized%'),
+        ],
+        readsFrom: {songs},
+      ).getSingle();
+      return row.read<int>('c');
+    }
+
     final separator = Platform.isWindows ? '\\' : '/';
     final prefixPattern = normalized.endsWith(separator) ? '$normalized%' : '$normalized$separator%';
     final row = await customSelect(
@@ -501,6 +559,33 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   Future<int> getSongDurationUnderPath(String rootPath) async {
     final normalized = _normalizePath(rootPath);
     if (normalized.isEmpty) return 0;
+    if (normalized == 'system') {
+      return getSystemMediaSongDuration();
+    }
+    if (normalized.startsWith('system/')) {
+      final relativePath = normalized.substring('system/'.length);
+      final separator = Platform.isWindows ? '\\' : '/';
+      final prefixPattern = relativePath.endsWith(separator) ? '$relativePath%' : '$relativePath$separator%';
+      final row = await customSelect(
+        '''
+        SELECT SUM(duration) AS s
+        FROM songs
+        WHERE (sourceFlags & ?) != 0
+          AND (path = ? OR path LIKE ? OR path = ? OR path LIKE ?)
+          AND deletedAt IS NULL
+        ''',
+        variables: [
+          Variable(SongSourceFlags.systemMedia),
+          Variable(relativePath),
+          Variable(prefixPattern),
+          Variable(normalized),
+          Variable('$normalized%'),
+        ],
+        readsFrom: {songs},
+      ).getSingle();
+      return row.read<int?>('s') ?? 0;
+    }
+
     final separator = Platform.isWindows ? '\\' : '/';
     final prefixPattern = normalized.endsWith(separator) ? '$normalized%' : '$normalized$separator%';
     final row = await customSelect(
@@ -523,8 +608,13 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   }) async {
     final normalized = _normalizePath(rootPath);
     if (normalized.isEmpty) return null;
-    final separator = Platform.isWindows ? '\\' : '/';
-    final prefixPattern = normalized.endsWith(separator) ? '$normalized%' : '$normalized$separator%';
+
+    if (normalized == 'system') {
+      return getSystemMediaRepresentativeSong(
+        criteria: criteria,
+        order: order,
+      );
+    }
 
     final isDesc = order == SortOrder.descending;
     final dir = isDesc ? 'DESC' : 'ASC';
@@ -540,18 +630,82 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
         'path $dir',
     };
 
-    // 1. Try with artwork
+    if (normalized.startsWith('system/')) {
+      final relativePath = normalized.substring('system/'.length);
+      final separator = Platform.isWindows ? '\\' : '/';
+      final prefixPattern = relativePath.endsWith(separator) ? '$relativePath%' : '$relativePath$separator%';
+      final subPrefixPattern = relativePath.endsWith(separator) ? '$relativePath%$separator%' : '$relativePath$separator%$separator%';
+
+      final depthOrder = 'CASE WHEN (path = ? OR path = ? OR (path LIKE ? AND path NOT LIKE ?)) THEN 0 ELSE 1 END, $orderByClause';
+      final vars = [
+        Variable(relativePath),
+        Variable(normalized),
+        Variable(prefixPattern),
+        Variable(subPrefixPattern),
+        Variable(SongSourceFlags.systemMedia),
+        Variable(relativePath),
+        Variable(prefixPattern),
+        Variable(normalized),
+        Variable('$normalized%'),
+      ];
+
+      var row = await customSelect(
+        '''
+        SELECT *
+        FROM songs
+        WHERE (sourceFlags & ?) != 0
+          AND (path = ? OR path LIKE ? OR path = ? OR path LIKE ?)
+          AND deletedAt IS NULL
+          AND (artworkPath IS NOT NULL OR thumbnailPath IS NOT NULL OR mediaId IS NOT NULL)
+        ORDER BY $depthOrder
+        LIMIT 1
+        ''',
+        variables: vars,
+        readsFrom: {songs},
+      ).getSingleOrNull();
+
+      row ??= await customSelect(
+        '''
+        SELECT *
+        FROM songs
+        WHERE (sourceFlags & ?) != 0
+          AND (path = ? OR path LIKE ? OR path = ? OR path LIKE ?)
+          AND deletedAt IS NULL
+        ORDER BY $depthOrder
+        LIMIT 1
+        ''',
+        variables: vars,
+        readsFrom: {songs},
+      ).getSingleOrNull();
+
+      return row == null ? null : _songFromQueryRow(row);
+    }
+
+    final separator = Platform.isWindows ? '\\' : '/';
+    final prefixPattern = normalized.endsWith(separator) ? '$normalized%' : '$normalized$separator%';
+    final subPrefixPattern = normalized.endsWith(separator) ? '$normalized%$separator%' : '$normalized$separator%$separator%';
+
+    final depthOrder = 'CASE WHEN (path = ? OR (path LIKE ? AND path NOT LIKE ?)) THEN 0 ELSE 1 END, $orderByClause';
+    final vars = [
+      Variable(normalized),
+      Variable(prefixPattern),
+      Variable(subPrefixPattern),
+      Variable(normalized),
+      Variable(prefixPattern),
+    ];
+
+    // 1. Try with artwork / thumbnail / mediaId
     var row = await customSelect(
       '''
       SELECT *
       FROM songs
       WHERE (path = ? OR path LIKE ?)
         AND deletedAt IS NULL
-        AND artworkPath IS NOT NULL
-      ORDER BY $orderByClause
+        AND (artworkPath IS NOT NULL OR thumbnailPath IS NOT NULL OR mediaId IS NOT NULL)
+      ORDER BY $depthOrder
       LIMIT 1
       ''',
-      variables: [Variable(normalized), Variable(prefixPattern)],
+      variables: vars,
       readsFrom: {songs},
     ).getSingleOrNull();
 
@@ -562,10 +716,10 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       FROM songs
       WHERE (path = ? OR path LIKE ?)
         AND deletedAt IS NULL
-      ORDER BY $orderByClause
+      ORDER BY $depthOrder
       LIMIT 1
       ''',
-      variables: [Variable(normalized), Variable(prefixPattern)],
+      variables: vars,
       readsFrom: {songs},
     ).getSingleOrNull();
 
@@ -616,15 +770,32 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
     return row.read<int?>('s') ?? 0;
   }
 
-  Future<SongMetadata?> getSystemMediaRepresentativeSong() async {
+  Future<SongMetadata?> getSystemMediaRepresentativeSong({
+    SortCriteria criteria = SortCriteria.filename,
+    SortOrder order = SortOrder.ascending,
+  }) async {
+    final isDesc = order == SortOrder.descending;
+    final dir = isDesc ? 'DESC' : 'ASC';
+
+    final String orderByClause = switch (criteria) {
+      SortCriteria.title =>
+        'COALESCE(NULLIF(title, \'\'), path) $dir, path $dir',
+      SortCriteria.trackNumber =>
+        isDesc
+            ? 'CASE WHEN trackNumber IS NOT NULL THEN 0 ELSE 1 END, trackNumber DESC, path DESC'
+            : 'CASE WHEN trackNumber IS NOT NULL THEN 0 ELSE 1 END, trackNumber ASC, path ASC',
+      SortCriteria.filename =>
+        'path $dir',
+    };
+
     var row = await customSelect(
       '''
       SELECT *
       FROM songs
       WHERE (sourceFlags & ?) != 0
         AND deletedAt IS NULL
-        AND artworkPath IS NOT NULL
-      ORDER BY path ASC
+        AND (artworkPath IS NOT NULL OR thumbnailPath IS NOT NULL OR mediaId IS NOT NULL)
+      ORDER BY $orderByClause
       LIMIT 1
       ''',
       variables: [Variable(SongSourceFlags.systemMedia)],
@@ -637,7 +808,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       FROM songs
       WHERE (sourceFlags & ?) != 0
         AND deletedAt IS NULL
-      ORDER BY path ASC
+      ORDER BY $orderByClause
       LIMIT 1
       ''',
       variables: [Variable(SongSourceFlags.systemMedia)],
@@ -666,6 +837,36 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
           ''',
           variables: [
             Variable(SongSourceFlags.systemMedia),
+            Variable(pattern),
+            Variable(pattern),
+            Variable(pattern),
+            Variable(pattern),
+          ],
+          readsFrom: {songs},
+        ).get();
+        return rows.map(_songFromQueryRow).toList(growable: false);
+      } else if (normalizedFolder.startsWith('system/')) {
+        final relativePath = normalizedFolder.substring('system/'.length);
+        final separator = Platform.isWindows ? '\\' : '/';
+        final prefixPattern = relativePath.endsWith(separator)
+            ? '$relativePath%'
+            : '$relativePath$separator%';
+        final rows = await customSelect(
+          '''
+          SELECT *
+          FROM songs
+          WHERE (sourceFlags & ?) != 0
+            AND (path = ? OR path LIKE ? OR path = ? OR path LIKE ?)
+            AND (title LIKE ? OR artist LIKE ? OR album LIKE ? OR path LIKE ?)
+            AND deletedAt IS NULL
+          ORDER BY LOWER(path) ASC
+          ''',
+          variables: [
+            Variable(SongSourceFlags.systemMedia),
+            Variable(relativePath),
+            Variable(prefixPattern),
+            Variable(normalizedFolder),
+            Variable('$normalizedFolder%'),
             Variable(pattern),
             Variable(pattern),
             Variable(pattern),
@@ -1649,6 +1850,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   SongMetadata _songFromQueryRow(QueryRow row) {
     return SongMetadata(
       id: row.read<int?>('id'),
+      mediaId: row.read<int?>('mediaId'),
       path: row.read<String>('path'),
       title: row.read<String?>('title') ?? 'Unknown',
       album: row.read<String?>('album') ?? 'Unknown',
@@ -1675,6 +1877,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   SongMetadata _songFromTableRow(Song row) {
     return SongMetadata(
       id: row.id,
+      mediaId: row.mediaId,
       path: row.path,
       title: row.title ?? 'Unknown',
       album: row.album ?? 'Unknown',
@@ -1704,6 +1907,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   }) {
     return SongsCompanion(
       path: Value(song.path),
+      mediaId: Value(song.mediaId),
       title: Value(song.title),
       album: Value(song.album),
       artist: Value(song.artist),
@@ -2131,6 +2335,7 @@ class Songs extends Table {
   String get tableName => 'songs';
 
   IntColumn get id => integer().autoIncrement().named('id')();
+  IntColumn get mediaId => integer().nullable().named('mediaId')();
   TextColumn get path => text().named('path')();
   TextColumn get title => text().nullable().named('title')();
   TextColumn get album => text().nullable().named('album')();

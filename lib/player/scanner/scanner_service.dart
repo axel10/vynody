@@ -232,23 +232,61 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     return _rootSongDurations[normalized] ?? 0;
   }
 
+  final Set<String> _pendingRepresentativeSongFetches = {};
+
   MusicFile? getRepresentativeSongForFolder(MusicFolder folder) {
     final memoryRep = findRepresentativeSong(folder);
     if (memoryRep != null) {
       return memoryRep;
     }
-    if (folder.path == 'system') {
-      if (_systemRepresentativeSong == null) return null;
-      return _treeBuilder.musicFileFromSongMetadata(
-        _systemRepresentativeSong!,
-      );
-    }
+
     final normalized = _normalizePath(folder.path);
-    final rep = _rootRepresentativeSongs[normalized];
-    if (rep != null) {
-      return _treeBuilder.musicFileFromSongMetadata(rep);
+    final cached = _rootRepresentativeSongs[normalized];
+    if (cached != null) {
+      return _treeBuilder.musicFileFromSongMetadata(cached);
     }
+
+    if (!_pendingRepresentativeSongFetches.contains(normalized)) {
+      _pendingRepresentativeSongFetches.add(normalized);
+      unawaited(_loadRepresentativeSongForPath(normalized));
+    }
+
+    if (folder.path == 'system' && _systemRepresentativeSong != null) {
+      return _treeBuilder.musicFileFromSongMetadata(_systemRepresentativeSong!);
+    }
+
     return null;
+  }
+
+  Future<void> _loadRepresentativeSongForPath(String normalizedPath) async {
+    try {
+      final sortSettings = _resolveSortSettingsForFolder(normalizedPath);
+      SongMetadata? songMeta;
+      if (normalizedPath == 'system') {
+        songMeta = await _repository.getSystemMediaRepresentativeSong(
+          criteria: sortSettings.criteria,
+          order: sortSettings.order,
+        );
+        if (songMeta != null) {
+          _systemRepresentativeSong = songMeta;
+        }
+      } else {
+        songMeta = await _repository.getRepresentativeSongUnderPath(
+          normalizedPath,
+          criteria: sortSettings.criteria,
+          order: sortSettings.order,
+        );
+      }
+      _rootRepresentativeSongs[normalizedPath] = songMeta;
+      if (songMeta != null) {
+        _metadataStore.cacheMetadata(songMeta);
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('[ScannerService] Failed to load representative song for $normalizedPath: $e');
+    } finally {
+      _pendingRepresentativeSongFetches.remove(normalizedPath);
+    }
   }
 
   Future<List<MusicFile>> getAllRootSongs() async {
@@ -665,6 +703,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       _timeScanStepSync('stage sortAndNotify sync navigation state', () {
         _syncNavigationStateToLatestTree();
       });
+      _rootRepresentativeSongs.clear();
       unawaited(_refreshRootRepresentativeSongs());
       _timeScanStepSync('stage sortAndNotify notify listeners', () {
         notifyListeners();
@@ -676,6 +715,27 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> _refreshRootRepresentativeSongs() async {
+    final systemSortSettings = _resolveSortSettingsForFolder('system');
+    if (_systemMediaFolder != null) {
+      final repFile = findRepresentativeSong(_systemMediaFolder!);
+      if (repFile != null) {
+        final songMeta = await _repository.getSongMetadata(repFile.path);
+        if (songMeta != null) {
+          _systemRepresentativeSong = songMeta;
+          _rootRepresentativeSongs['system'] = songMeta;
+        }
+      }
+    } else {
+      final systemRepSong = await _repository.getSystemMediaRepresentativeSong(
+        criteria: systemSortSettings.criteria,
+        order: systemSortSettings.order,
+      );
+      if (systemRepSong != null) {
+        _systemRepresentativeSong = systemRepSong;
+        _rootRepresentativeSongs['system'] = systemRepSong;
+      }
+    }
+
     for (final root in _roots.rootPaths) {
       final normalized = _normalizePath(root);
       final sortSettings = _resolveSortSettingsForFolder(normalized);
@@ -1908,6 +1968,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
         filePath,
         result,
         existing: existing,
+        mediaId: songIdOf(entry),
         fallbackTitle: fallbackTitleOf(entry),
         fallbackAlbum: fallbackAlbumOf(entry),
         fallbackArtist: fallbackArtistOf(entry),
@@ -2990,6 +3051,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     Map<String, dynamic> result, {
     SongMetadata? existing,
     int? sourceFlags,
+    int? mediaId,
     String? fallbackTitle,
     String? fallbackAlbum,
     String? fallbackArtist,
@@ -3001,6 +3063,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       result,
       existing: existing,
       sourceFlags: sourceFlags,
+      mediaId: mediaId,
       fallbackTitle: fallbackTitle,
       fallbackAlbum: fallbackAlbum,
       fallbackArtist: fallbackArtist,

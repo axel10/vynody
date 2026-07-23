@@ -55,8 +55,14 @@ class ScannerRepository {
     return _database.getSystemMediaSongs();
   }
 
-  Future<SongMetadata?> getSystemMediaRepresentativeSong() {
-    return _database.getSystemMediaRepresentativeSong();
+  Future<SongMetadata?> getSystemMediaRepresentativeSong({
+    SortCriteria criteria = SortCriteria.filename,
+    SortOrder order = SortOrder.ascending,
+  }) {
+    return _database.getSystemMediaRepresentativeSong(
+      criteria: criteria,
+      order: order,
+    );
   }
 
   Future<List<SongMetadata>> searchSongs(String query, {String? folderPath}) {

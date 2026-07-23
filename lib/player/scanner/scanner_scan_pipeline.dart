@@ -183,6 +183,7 @@ class ScannerScanPipeline {
     Map<String, dynamic> result, {
     SongMetadata? existing,
     int? sourceFlags,
+    int? mediaId,
     String? fallbackTitle,
     String? fallbackAlbum,
     String? fallbackArtist,
@@ -199,6 +200,7 @@ class ScannerScanPipeline {
 
     return SongMetadata(
       path: filePath,
+      mediaId: mediaId ?? existing?.mediaId,
       title:
           _cleanText(result['title'] as String?) ??
           (hasError ? _cleanText(existing?.title) : null) ??

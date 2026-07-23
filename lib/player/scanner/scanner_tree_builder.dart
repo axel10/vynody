@@ -208,6 +208,7 @@ class ScannerTreeBuilder {
       album: _cleanText(song.album),
       trackNumber: song.trackNumber,
       durationMillis: song.duration,
+      id: song.mediaId ?? song.id,
       thumbnailPath: song.thumbnailPath,
       artworkPath: song.artworkPath,
       artworkWidth: song.artworkWidth,
@@ -262,7 +263,7 @@ class ScannerTreeBuilder {
             : '$currentRelativePath/$segment';
         final nextFolder = nodes.putIfAbsent(currentRelativePath, () {
           final fullPath = isSystem
-              ? currentRelativePath
+              ? 'system/$currentRelativePath'
               : p.join(
                   rootPath,
                   currentRelativePath.replaceAll('/', p.separator),
@@ -339,7 +340,7 @@ class ScannerTreeBuilder {
       trackNumber: resolvedMetadata?.trackNumber,
       durationMillis:
           resolvedMetadata?.duration ?? entry.duration.inMilliseconds,
-      id: parsedId,
+      id: parsedId ?? resolvedMetadata?.mediaId ?? resolvedMetadata?.id,
       mediaUri: entry.uri,
       thumbnailPath: resolvedMetadata?.thumbnailPath,
       artworkPath: resolvedMetadata?.artworkPath,
