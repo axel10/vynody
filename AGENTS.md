@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Vynody — cross-platform local music player (Flutter + Rust/ExoPlayer/SFBAudioEngine audio kernels).
+Vynody — cross-platform local music player (Flutter + Audio Core/ExoPlayer audio kernels).
 
 ## Build & dev commands
 
@@ -24,9 +24,8 @@ flutter run -d <device-id>               # dev run on a device
 - **State management:** Riverpod (`flutter_riverpod` v3). Providers live co-located with their domain code (e.g., `lib/player/audio/` has audio providers).
 - **Database:** Drift (SQLite). Schema defined via Dart annotations in `lib/player/metadata/`. After changing a table, run `build_runner`.
 - **Audio kernels are platform-specific.** Do NOT assume one audio API works everywhere:
-  - Windows/Linux: Rust audio kernel (`audio_core` submodule)
-  - Android: ExoPlayer (`lib/player/platform/`)
-  - macOS/iOS: SFBAudioEngine (`lib/player/platform/`)
+  - Windows/Linux/macOS/iOS: Rust/Native audio kernel (`audio_core` submodule; Apple platforms integrate AVFoundation + FFmpeg fallback)
+  - Android: ExoPlayer (`lib/player/platform/` & `audio_core`)
 - **Key directories:**
   - `lib/player/` — core player logic (audio engine, lyrics, metadata, scanner, settings, sharing)
   - `lib/pages/` — UI pages/tabs
