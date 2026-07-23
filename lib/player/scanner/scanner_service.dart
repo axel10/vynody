@@ -3155,7 +3155,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     final totalStopwatch = Stopwatch()..start();
     try {
       final permissionsStopwatch = Stopwatch()..start();
-      final hasPermission = await _checkPermissions();
+      final hasPermission = await _checkPermissions(request: false);
       permissionsStopwatch.stop();
       _logScanTiming('stage 0 permissions', permissionsStopwatch);
 
