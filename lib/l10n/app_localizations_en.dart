@@ -2988,6 +2988,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'Display real-time scanning progress at the top of the screen when scanning folders.';
 
   @override
+  String get openPlaybackOnDirectorySongTap =>
+      'Open playback page when tapping a song';
+
+  @override
+  String get openPlaybackOnDirectorySongTapDescription =>
+      'Automatically open the playback page when tapping a song in directory view.';
+
+  @override
   String get tapCoverToEnterLyricsMode => 'Tap cover to enter lyrics mode';
 
   @override

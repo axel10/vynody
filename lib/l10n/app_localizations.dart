@@ -5395,6 +5395,18 @@ abstract class AppLocalizations {
   /// **'在添加文件夹并进行文件扫描时，在顶部显示实时的扫描进度提示'**
   String get showScanProgressToastSettingDescription;
 
+  /// No description provided for @openPlaybackOnDirectorySongTap.
+  ///
+  /// In zh, this message translates to:
+  /// **'点击歌曲后跳转到播放页'**
+  String get openPlaybackOnDirectorySongTap;
+
+  /// No description provided for @openPlaybackOnDirectorySongTapDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'在目录页点击歌曲播放时，自动跳转至全屏播放界面'**
+  String get openPlaybackOnDirectorySongTapDescription;
+
   /// No description provided for @tapCoverToEnterLyricsMode.
   ///
   /// In zh, this message translates to:

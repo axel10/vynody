@@ -1186,6 +1186,8 @@
   "exitApp": "Quitter",
   "showScanProgressToastSetting": "Afficher le toast d'état du scan",
   "showScanProgressToastSettingDescription": "Affiche la progression du scan en temps réel en haut de l'écran lors du scan des dossiers.",
+  "openPlaybackOnDirectorySongTap": "Ouvrir la page de lecture lors d'un appui sur un morceau",
+  "openPlaybackOnDirectorySongTapDescription": "Ouvre automatiquement la page de lecture lors d'un appui sur un morceau dans la vue des dossiers.",
   "scanToastHiddenHint": "Le toast d'état du scan a été masqué. Vous pouvez le réactiver dans Paramètres - Interface.",
   "tapCoverToEnterLyricsMode": "Appuyez sur la pochette pour passer en mode paroles",
   "longPressLyricsPanelToOpenMenu": "Appuie longuement sur le panneau de paroles pour ouvrir le menu",

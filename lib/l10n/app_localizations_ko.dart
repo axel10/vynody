@@ -2894,6 +2894,13 @@ class AppLocalizationsKo extends AppLocalizations {
       '폴더 스캔 시 화면 상단에 실시간 스캔 진행 상황을 표시합니다.';
 
   @override
+  String get openPlaybackOnDirectorySongTap => '곡을 탭할 때 재생 페이지로 이동';
+
+  @override
+  String get openPlaybackOnDirectorySongTapDescription =>
+      '폴더 뷰에서 곡을 탭하여 재생할 때 자동으로 재생 페이지로 이동합니다.';
+
+  @override
   String get tapCoverToEnterLyricsMode => '커버를 탭하여 가사 모드로 전환';
 
   @override

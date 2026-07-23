@@ -2891,6 +2891,13 @@ class AppLocalizationsJa extends AppLocalizations {
       'フォルダのスキャン時に画面上部にリアルタイムのスキャン進行状況を表示します。';
 
   @override
+  String get openPlaybackOnDirectorySongTap => '曲をタップした時に再生ページに移動';
+
+  @override
+  String get openPlaybackOnDirectorySongTapDescription =>
+      'フォルダビューで曲をタップして再生した時、自動的に再生ページに移動します。';
+
+  @override
   String get tapCoverToEnterLyricsMode => 'カバーをタップして歌詞モードに入る';
 
   @override

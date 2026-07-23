@@ -3031,6 +3031,14 @@ class AppLocalizationsEs extends AppLocalizations {
       'Muestra el progreso de escaneo en tiempo real en la parte superior de la pantalla al escanear carpetas.';
 
   @override
+  String get openPlaybackOnDirectorySongTap =>
+      'Ir a la página de reproducción al tocar una canción';
+
+  @override
+  String get openPlaybackOnDirectorySongTapDescription =>
+      'Abre automáticamente la página de reproducción al tocar una canción en la vista de carpetas.';
+
+  @override
   String get tapCoverToEnterLyricsMode =>
       'Toca la portada para entrar en modo letras';
 

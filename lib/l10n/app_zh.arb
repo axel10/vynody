@@ -1647,6 +1647,8 @@
   "exitApp": "退出",
   "showScanProgressToastSetting": "显示扫描状态提示",
   "showScanProgressToastSettingDescription": "在添加文件夹并进行文件扫描时，在顶部显示实时的扫描进度提示",
+  "openPlaybackOnDirectorySongTap": "点击歌曲后跳转到播放页",
+  "openPlaybackOnDirectorySongTapDescription": "在目录页点击歌曲播放时，自动跳转至全屏播放界面",
   "tapCoverToEnterLyricsMode": "点击封面可以进入歌词模式",
   "longPressLyricsPanelToOpenMenu": "长按歌词面板可以调出菜单",
   "gotIt": "我知道了",

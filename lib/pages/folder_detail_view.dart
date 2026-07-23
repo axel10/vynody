@@ -496,7 +496,9 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
 
                 if (mounted) {
                   widget.onClearAllSelection();
-                  await widget.onOpenPlayback?.call();
+                  if (settings.openPlaybackOnDirectorySongTap) {
+                    await widget.onOpenPlayback?.call();
+                  }
                 }
               }
             },

@@ -428,7 +428,9 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
                   }
                 }());
 
-                await widget.onOpenPlayback?.call();
+                if (settings.openPlaybackOnDirectorySongTap) {
+                  await widget.onOpenPlayback?.call();
+                }
               },
               onSongSecondaryTapDown: (file, details) {
                 _handleShowMenu(context, details.globalPosition, file);

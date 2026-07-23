@@ -2848,6 +2848,13 @@ class AppLocalizationsZh extends AppLocalizations {
       '在添加文件夹并进行文件扫描时，在顶部显示实时的扫描进度提示';
 
   @override
+  String get openPlaybackOnDirectorySongTap => '点击歌曲后跳转到播放页';
+
+  @override
+  String get openPlaybackOnDirectorySongTapDescription =>
+      '在目录页点击歌曲播放时，自动跳转至全屏播放界面';
+
+  @override
   String get tapCoverToEnterLyricsMode => '点击封面可以进入歌词模式';
 
   @override
@@ -5817,6 +5824,13 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   @override
   String get showScanProgressToastSettingDescription =>
       '在新增資料夾並進行檔案掃描時，在頂部顯示即時的掃描進度提示';
+
+  @override
+  String get openPlaybackOnDirectorySongTap => '點擊歌曲後跳轉到播放頁';
+
+  @override
+  String get openPlaybackOnDirectorySongTapDescription =>
+      '在目錄頁點擊歌曲播放時，自動跳轉至全螢幕播放介面';
 
   @override
   String get tapCoverToEnterLyricsMode => '點選封面可以進入歌詞模式';
