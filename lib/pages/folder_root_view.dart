@@ -140,6 +140,7 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
     final scanner = ref.watch(scannerServiceProvider);
     final settings = ref.watch(settingsServiceProvider);
     final l10n = AppLocalizations.of(context)!;
+    final isLargeScreen = MediaQuery.of(context).size.width >= 1000;
     final isRootSelectionMode =
         ref.watch(librarySelectionScopeProvider) ==
         LibrarySelectionScope.folderRoot;
@@ -312,15 +313,15 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
               actionButtons: [
                 FilledButton.icon(
                   onPressed: widget.onPickFolder,
-                  icon: const Icon(Icons.add_circle_outline, size: 16),
+                  icon: Icon(Icons.add_circle_outline, size: isLargeScreen ? 18 : 16),
                   label: Text(l10n.addRootDirectory),
                   style: FilledButton.styleFrom(
-                    minimumSize: const Size(0, 32),
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    minimumSize: Size(0, isLargeScreen ? 38 : 32),
+                    padding: EdgeInsets.symmetric(horizontal: isLargeScreen ? 16 : 12),
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     visualDensity: VisualDensity.compact,
-                    textStyle: const TextStyle(
-                      fontSize: 11.5,
+                    textStyle: TextStyle(
+                      fontSize: isLargeScreen ? 13.0 : 11.5,
                       fontWeight: FontWeight.w600,
                     ),
                   ),

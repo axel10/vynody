@@ -85,144 +85,242 @@ class FolderHeaderBanner extends StatelessWidget {
       );
     }
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        color: theme.colorScheme.surfaceContainer.withValues(alpha: 0.5),
-        border: Border.all(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2),
-        ),
-      ),
-      child: Column(
+    Widget buildInfoColumn() {
+      return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            children: [
-              resolvedCover,
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    if (subtitle.isNotEmpty) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        subtitle,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                    const SizedBox(height: 8),
-                    Text(
-                      '${l10n.songCount(songsCount)} | $durationText',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.primary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
+          Text(
+            title,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          if (subtitle.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textDirection: TextDirection.rtl,
+              textAlign: TextAlign.left,
+            ),
+          ],
+          const SizedBox(height: 8),
+          Text(
+            '${l10n.songCount(songsCount)} | $durationText',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.primary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      );
+    }
+
+    Widget buildSearchTextField({bool compact = false}) {
+      return TextField(
+        controller: searchController,
+        autofocus: true,
+        style: theme.textTheme.bodyMedium,
+        decoration: InputDecoration(
+          hintText: searchHintText,
+          prefixIcon: const Icon(Icons.search_rounded, size: 20),
+          suffixIcon: searchQuery.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.clear_rounded, size: 20),
+                  onPressed: () {
+                    searchController.clear();
+                    onSearchQueryChanged('');
+                  },
+                )
+              : null,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+          filled: true,
+          fillColor: theme.colorScheme.surfaceContainerHigh.withValues(alpha: 0.8),
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: compact ? 6 : 8,
+          ),
+          isDense: true,
+        ),
+        onChanged: onSearchQueryChanged,
+      );
+    }
+
+    Widget buildSearchIconButton() {
+      final isLargeScreen = MediaQuery.of(context).size.width >= 1000;
+      return IconButton(
+        onPressed: () {
+          onToggleSearch(true);
+        },
+        icon: Icon(Icons.search_rounded, size: isLargeScreen ? 18 : 16),
+        tooltip: l10n.search,
+        style: IconButton.styleFrom(
+          minimumSize: Size(isLargeScreen ? 38 : 32, isLargeScreen ? 38 : 32),
+          padding: EdgeInsets.zero,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          visualDensity: VisualDensity.compact,
+        ),
+      );
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWideScreen = constraints.maxWidth >= 540 && MediaQuery.of(context).size.width >= 900;
+
+        if (isWideScreen) {
+          return Container(
+            padding: const EdgeInsets.all(16),
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              color: theme.colorScheme.surfaceContainer.withValues(alpha: 0.5),
+              border: Border.all(
+                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2),
+              ),
+            ),
+            child: Row(
+              children: [
+                resolvedCover,
+                const SizedBox(width: 16),
+                Expanded(
+                  child: buildInfoColumn(),
                 ),
+                const SizedBox(width: 16),
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 200),
+                  child: isSearching
+                      ? Row(
+                          key: const ValueKey('wide-search-active'),
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            SizedBox(
+                              width: 260,
+                              child: buildSearchTextField(compact: true),
+                            ),
+                            const SizedBox(width: 8),
+                            IconButton(
+                              icon: const Icon(Icons.close_rounded, size: 20),
+                              onPressed: () {
+                                searchController.clear();
+                                onSearchQueryChanged('');
+                                onToggleSearch(false);
+                              },
+                              style: IconButton.styleFrom(
+                                minimumSize: const Size(32, 32),
+                                padding: EdgeInsets.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                visualDensity: VisualDensity.compact,
+                              ),
+                            ),
+                          ],
+                        )
+                      : Row(
+                          key: const ValueKey('wide-actions-normal'),
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (actionButtonsScrollable)
+                              Flexible(
+                                child: SingleChildScrollView(
+                                  scrollDirection: Axis.horizontal,
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: actionButtons,
+                                  ),
+                                ),
+                              )
+                            else
+                              ...actionButtons,
+                            const SizedBox(width: 8),
+                            buildSearchIconButton(),
+                          ],
+                        ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return Container(
+          padding: const EdgeInsets.all(16),
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            color: theme.colorScheme.surfaceContainer.withValues(alpha: 0.5),
+            border: Border.all(
+              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  resolvedCover,
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: buildInfoColumn(),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              const Divider(height: 1),
+              const SizedBox(height: 12),
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                child: isSearching
+                    ? Row(
+                        key: const ValueKey('search-active-row'),
+                        children: [
+                          Expanded(
+                            child: buildSearchTextField(),
+                          ),
+                          const SizedBox(width: 8),
+                          IconButton(
+                            icon: const Icon(Icons.close_rounded),
+                            onPressed: () {
+                              searchController.clear();
+                              onSearchQueryChanged('');
+                              onToggleSearch(false);
+                            },
+                          ),
+                        ],
+                      )
+                    : Row(
+                        key: const ValueKey('actions-normal-row'),
+                        children: [
+                          if (actionButtonsScrollable)
+                            Expanded(
+                              child: SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                child: Row(
+                                  children: actionButtons,
+                                ),
+                              ),
+                            )
+                          else ...[
+                            ...actionButtons,
+                            const Spacer(),
+                          ],
+                          const SizedBox(width: 8),
+                          buildSearchIconButton(),
+                        ],
+                      ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          const Divider(height: 1),
-          const SizedBox(height: 12),
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 200),
-            child: isSearching
-                ? Row(
-                    key: const ValueKey('search-active-row'),
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: searchController,
-                          autofocus: true,
-                          style: theme.textTheme.bodyMedium,
-                          decoration: InputDecoration(
-                            hintText: searchHintText,
-                            prefixIcon: const Icon(Icons.search_rounded, size: 20),
-                            suffixIcon: searchQuery.isNotEmpty
-                                ? IconButton(
-                                    icon: const Icon(Icons.clear_rounded, size: 20),
-                                    onPressed: () {
-                                      searchController.clear();
-                                      onSearchQueryChanged('');
-                                    },
-                                  )
-                                : null,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide.none,
-                            ),
-                            filled: true,
-                            fillColor: theme.colorScheme.surfaceContainerHigh.withValues(alpha: 0.8),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            isDense: true,
-                          ),
-                          onChanged: onSearchQueryChanged,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      IconButton(
-                        icon: const Icon(Icons.close_rounded),
-                        onPressed: () {
-                          searchController.clear();
-                          onSearchQueryChanged('');
-                          onToggleSearch(false);
-                        },
-                      ),
-                    ],
-                  )
-                : Row(
-                    key: const ValueKey('actions-normal-row'),
-                    children: [
-                      if (actionButtonsScrollable)
-                        Expanded(
-                          child: SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            child: Row(
-                              children: actionButtons,
-                            ),
-                          ),
-                        )
-                      else ...[
-                        ...actionButtons,
-                        const Spacer(),
-                      ],
-                      const SizedBox(width: 8),
-                      IconButton(
-                        onPressed: () {
-                          onToggleSearch(true);
-                        },
-                        icon: const Icon(Icons.search_rounded, size: 16),
-                        tooltip: l10n.search,
-                        style: IconButton.styleFrom(
-                          minimumSize: const Size(32, 32),
-                          padding: EdgeInsets.zero,
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          visualDensity: VisualDensity.compact,
-                        ),
-                      ),
-                    ],
-                  ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -242,21 +340,23 @@ class FolderPlayActionButtons extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final isWiderScreen = MediaQuery.of(context).size.width > 480;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isWiderScreen = screenWidth > 480;
+    final isLargeScreen = screenWidth >= 1000;
     final isDisabled = totalSongsCount == 0 || (onPlayAll == null && onShufflePlay == null);
 
     final playAllButton = isWiderScreen
         ? FilledButton.tonalIcon(
             onPressed: isDisabled ? null : () => onPlayAll?.call(),
-            icon: const Icon(Icons.play_arrow_rounded, size: 16),
+            icon: Icon(Icons.play_arrow_rounded, size: isLargeScreen ? 18 : 16),
             label: Text(l10n.playAll),
             style: FilledButton.styleFrom(
-              minimumSize: const Size(0, 32),
-              padding: const EdgeInsets.symmetric(horizontal: 12),
+              minimumSize: Size(0, isLargeScreen ? 38 : 32),
+              padding: EdgeInsets.symmetric(horizontal: isLargeScreen ? 16 : 12),
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               visualDensity: VisualDensity.compact,
-              textStyle: const TextStyle(
-                fontSize: 11.5,
+              textStyle: TextStyle(
+                fontSize: isLargeScreen ? 13.0 : 11.5,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -278,15 +378,15 @@ class FolderPlayActionButtons extends StatelessWidget {
     final shuffleButton = isWiderScreen
         ? FilledButton.tonalIcon(
             onPressed: isDisabled ? null : () => onShufflePlay?.call(),
-            icon: const Icon(Icons.shuffle_rounded, size: 16),
+            icon: Icon(Icons.shuffle_rounded, size: isLargeScreen ? 18 : 16),
             label: Text(l10n.shuffle),
             style: FilledButton.styleFrom(
-              minimumSize: const Size(0, 32),
-              padding: const EdgeInsets.symmetric(horizontal: 12),
+              minimumSize: Size(0, isLargeScreen ? 38 : 32),
+              padding: EdgeInsets.symmetric(horizontal: isLargeScreen ? 16 : 12),
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               visualDensity: VisualDensity.compact,
-              textStyle: const TextStyle(
-                fontSize: 11.5,
+              textStyle: TextStyle(
+                fontSize: isLargeScreen ? 13.0 : 11.5,
                 fontWeight: FontWeight.w600,
               ),
             ),
