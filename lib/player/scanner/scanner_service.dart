@@ -220,6 +220,12 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
 
   int getSongDurationForFolder(MusicFolder folder) {
     if (folder.path == 'system') {
+      if (_systemMediaFolder != null && _systemMediaFolder!.allSongs.isNotEmpty) {
+        return _systemMediaFolder!.allSongs.fold<int>(
+          0,
+          (sum, song) => sum + (song.durationMillis ?? 0),
+        );
+      }
       return _systemSongDuration;
     }
     if (folder.allSongs.isNotEmpty) {

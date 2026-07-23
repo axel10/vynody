@@ -155,12 +155,20 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
     final selectionLabel = l10n.selectedFolders(widget.selectedRootPaths.length);
     final rootListBottomPadding = isRootSelectionMode ? 224.0 : 160.0;
 
+    final systemFolder = MusicFolder(path: 'system', name: '');
+    final systemSongCount = Platform.isAndroid
+        ? scanner.getSongCountForFolder(systemFolder)
+        : 0;
+    final systemDurationMs = Platform.isAndroid
+        ? scanner.getSongDurationForFolder(systemFolder)
+        : 0;
+
     final totalSongsCount = rootFolders.fold<int>(
-      0,
+      systemSongCount,
       (sum, folder) => sum + scanner.getSongCountForFolder(folder),
     );
     final totalDurationMs = rootFolders.fold<int>(
-      0,
+      systemDurationMs,
       (sum, folder) => sum + scanner.getSongDurationForFolder(folder),
     );
 
@@ -241,6 +249,10 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
       );
     } else {
       final representativeSong = () {
+        if (Platform.isAndroid) {
+          final systemRep = scanner.getRepresentativeSongForFolder(systemFolder);
+          if (systemRep != null) return systemRep;
+        }
         for (final folder in rootFolders) {
           final song = scanner.getRepresentativeSongForFolder(folder);
           if (song != null) return song;
