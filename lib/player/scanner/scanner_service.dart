@@ -198,6 +198,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   void unloadAllRootFolders() {
+    if (Platform.isAndroid) return;
     if (_loadedRootPaths.isEmpty) return;
     _scannedRootFolders.clear();
     _systemMediaFolder = null;
@@ -954,6 +955,9 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
   }) async {
     final normalizedPath = _normalizePath(path);
     debugPrint('[ScannerService] addRootPath: path=$path, normalizedPath=$normalizedPath, persistentDocumentId=$persistentDocumentId, _linuxFlatpak=$_linuxFlatpak');
+    if (Platform.isAndroid && !_hasPermission) {
+      await checkAndRequestPermissions();
+    }
     if (Platform.isLinux && _linuxFlatpak && persistentDocumentId != null) {
       _linuxDocumentIds[normalizedPath] = persistentDocumentId;
       await _saveLinuxDocumentIds();
@@ -1748,22 +1752,28 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
           .toList(growable: false);
       if (availableRoots.isEmpty) return;
 
-      for (final root in availableRoots) {
-        final count = await _repository.getSongCountUnderPath(root);
-        final duration = await _repository.getSongDurationUnderPath(root);
-        final sortSettings = _resolveSortSettingsForFolder(root);
-        final repSong = await _repository.getRepresentativeSongUnderPath(
-          root,
-          criteria: sortSettings.criteria,
-          order: sortSettings.order,
-        );
+      if (Platform.isAndroid) {
+        for (final root in availableRoots) {
+          await loadRootFolderSongs(root);
+        }
+      } else {
+        for (final root in availableRoots) {
+          final count = await _repository.getSongCountUnderPath(root);
+          final duration = await _repository.getSongDurationUnderPath(root);
+          final sortSettings = _resolveSortSettingsForFolder(root);
+          final repSong = await _repository.getRepresentativeSongUnderPath(
+            root,
+            criteria: sortSettings.criteria,
+            order: sortSettings.order,
+          );
 
-        _rootSongCounts[root] = count;
-        _rootSongDurations[root] = duration;
-        _rootRepresentativeSongs[root] = repSong;
+          _rootSongCounts[root] = count;
+          _rootSongDurations[root] = duration;
+          _rootRepresentativeSongs[root] = repSong;
 
-        if (repSong != null && seedMetadataCache) {
-          _metadataStore.cacheMetadata(repSong);
+          if (repSong != null && seedMetadataCache) {
+            _metadataStore.cacheMetadata(repSong);
+          }
         }
       }
     } catch (e) {
@@ -1806,6 +1816,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
               _metadataStore.cacheMetadata(song);
             }
           }
+          _loadedRootPaths.add('system');
         }
       } else if (repSong != null && seedMetadataCache) {
         _metadataStore.cacheMetadata(repSong);
@@ -3158,11 +3169,6 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       final hasPermission = await _checkPermissions(request: false);
       permissionsStopwatch.stop();
       _logScanTiming('stage 0 permissions', permissionsStopwatch);
-
-      if (!(hasPermission || requestedRoots.isEmpty)) {
-        debugPrint('Scan aborted: Permission not granted.');
-        return;
-      }
 
       if (Platform.isAndroid && hasPermission) {
         _hasPermission = true;
