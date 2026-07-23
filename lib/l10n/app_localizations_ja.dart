@@ -2230,6 +2230,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get noMatchingFoldersOrSongs => '一致するフォルダまたは曲が見つかりません';
 
   @override
+  String get searching => '検索中...';
+
+  @override
   String get listView => 'リスト表示';
 
   @override

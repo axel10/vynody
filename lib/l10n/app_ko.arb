@@ -861,6 +861,7 @@
   "savedDeepseekApiKey": "DeepSeek API 키가 저장되었습니다",
   "savedCustomProviderConfig": "사용자 지정 제공자 구성이 저장되었습니다",
   "noMatchingFoldersOrSongs": "일치하는 폴더 또는 노래가 없습니다",
+  "searching": "검색 중...",
   "listView": "목록 보기",
   "gridView": "격자 보기",
   "hybridView": "하이브리드 보기",

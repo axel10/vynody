@@ -2341,6 +2341,9 @@ class AppLocalizationsEs extends AppLocalizations {
       'No se encontraron carpetas o canciones que coincidan';
 
   @override
+  String get searching => 'Buscando...';
+
+  @override
   String get listView => 'Vista de lista';
 
   @override

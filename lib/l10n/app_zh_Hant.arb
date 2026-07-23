@@ -690,6 +690,7 @@
   "savedDeepseekApiKey": "已儲存 DeepSeek API Key",
   "savedCustomProviderConfig": "已儲存自訂供應商設定",
   "noMatchingFoldersOrSongs": "找不到符合的資料夾或歌曲",
+  "searching": "正在搜尋...",
   "listView": "清單檢視",
   "gridView": "格線檢視",
   "hybridView": "混合檢視",

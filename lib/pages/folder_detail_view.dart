@@ -13,13 +13,9 @@ import 'package:vynody/player/scanner/scanner_sorting.dart';
 import 'package:vynody/player/scanner/scanner_service.dart';
 import 'package:vynody/player/scanner/scanner_path_utils.dart';
 import 'package:vynody/utils/song_context_menu_utils.dart';
-import '../widgets/song_tile.dart';
 import '../widgets/library_selection_panel.dart';
 import '../widgets/folder_header_banner.dart';
 import '../widgets/song_thumbnail.dart';
-import '../widgets/folder_grid_card.dart';
-import '../widgets/folder_list_tile.dart';
-import '../widgets/song_grid_card.dart';
 import 'package:vynody/player/settings/settings_service.dart';
 import 'package:vynody/utils/folder_helpers.dart';
 import '../widgets/folder_layout_utils.dart';
@@ -70,6 +66,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
   late final TextEditingController _searchController;
   final ScrollController _breadcrumbsScrollController = ScrollController();
   bool _isSearching = false;
+  bool _isSearchLoading = false;
   String _searchQuery = '';
   List<MusicFile> _matchedSongs = [];
   Timer? _searchDebounce;
@@ -82,9 +79,13 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
     if (query.isEmpty) {
       setState(() {
         _matchedSongs = [];
+        _isSearchLoading = false;
       });
       return;
     }
+    setState(() {
+      _isSearchLoading = true;
+    });
     _searchDebounce = Timer(const Duration(milliseconds: 300), () async {
       final results = await ref.read(scannerServiceProvider).searchSongs(
         query,
@@ -93,6 +94,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
       if (mounted) {
         setState(() {
           _matchedSongs = results;
+          _isSearchLoading = false;
         });
       }
     });
@@ -326,7 +328,8 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
       (sum, song) => sum + (song.durationMillis ?? 0),
     );
 
-    final noResults = _searchQuery.isNotEmpty && matchedFolders.isEmpty && matchedSongs.isEmpty;
+    final showSearchLoading = _searchQuery.isNotEmpty && _isSearchLoading && matchedFolders.isEmpty && matchedSongs.isEmpty;
+    final noResults = _searchQuery.isNotEmpty && matchedFolders.isEmpty && matchedSongs.isEmpty && !_isSearchLoading;
 
     final Widget scrollBody = CustomScrollView(
       key: ValueKey(folder.path),
@@ -411,6 +414,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
                 if (!val) {
                   _searchQuery = '';
                   _matchedSongs = [];
+                  _isSearchLoading = false;
                 }
               });
             },
@@ -442,9 +446,15 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
               ),
             ),
           ),
-        if (noResults)
+        if (showSearchLoading)
+          FolderEmptySearchResultsSliver(
+            message: l10n.searching,
+            isSearching: true,
+          )
+        else if (noResults)
           FolderEmptySearchResultsSliver(
             message: l10n.noMatchingFoldersOrSongs,
+            isSearching: false,
           )
         else ...[
           FolderSubfoldersSliver(

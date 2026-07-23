@@ -914,6 +914,7 @@
   "savedDeepseekApiKey": "DeepSeek APIキーを保存しました",
   "savedCustomProviderConfig": "カスタムプロバイダ設定を保存しました",
   "noMatchingFoldersOrSongs": "一致するフォルダまたは曲が見つかりません",
+  "searching": "検索中...",
   "listView": "リスト表示",
   "gridView": "グリッド表示",
   "hybridView": "ハイブリッド表示",

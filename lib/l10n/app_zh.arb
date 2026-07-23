@@ -1327,6 +1327,7 @@
   "savedDeepseekApiKey": "已保存 DeepSeek API Key",
   "savedCustomProviderConfig": "已保存自定义供应商配置",
   "noMatchingFoldersOrSongs": "未找到匹配的文件夹或歌曲",
+  "searching": "正在搜索...",
   "listView": "列表视图",
   "gridView": "网格视图",
   "hybridView": "混合视图",

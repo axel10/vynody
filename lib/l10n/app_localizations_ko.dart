@@ -2233,6 +2233,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get noMatchingFoldersOrSongs => '일치하는 폴더 또는 노래가 없습니다';
 
   @override
+  String get searching => '검색 중...';
+
+  @override
   String get listView => '목록 보기';
 
   @override

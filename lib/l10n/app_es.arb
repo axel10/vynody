@@ -861,6 +861,7 @@
   "savedDeepseekApiKey": "Clave API de DeepSeek guardada",
   "savedCustomProviderConfig": "Configuración de proveedor personalizado guardada",
   "noMatchingFoldersOrSongs": "No se encontraron carpetas o canciones que coincidan",
+  "searching": "Buscando...",
   "listView": "Vista de lista",
   "gridView": "Vista de cuadrícula",
   "hybridView": "Vista híbrida",

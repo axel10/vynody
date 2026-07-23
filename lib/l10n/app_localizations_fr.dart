@@ -2344,6 +2344,9 @@ class AppLocalizationsFr extends AppLocalizations {
       'Aucun dossier ou chanson correspondant trouvé';
 
   @override
+  String get searching => 'Recherche...';
+
+  @override
   String get listView => 'Vue en liste';
 
   @override

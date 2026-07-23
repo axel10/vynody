@@ -861,6 +861,7 @@
   "savedDeepseekApiKey": "DeepSeek-API-Schlüssel gespeichert",
   "savedCustomProviderConfig": "Benutzerdefinierte Anbieterkonfiguration gespeichert",
   "noMatchingFoldersOrSongs": "Keine passenden Ordner oder Songs gefunden",
+  "searching": "Suchen...",
   "listView": "Listenansicht",
   "gridView": "Rasteransicht",
   "hybridView": "Hybridansicht",

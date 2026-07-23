@@ -2201,6 +2201,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get noMatchingFoldersOrSongs => '未找到匹配的文件夹或歌曲';
 
   @override
+  String get searching => '正在搜索...';
+
+  @override
   String get listView => '列表视图';
 
   @override
@@ -5177,6 +5180,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get noMatchingFoldersOrSongs => '找不到符合的資料夾或歌曲';
+
+  @override
+  String get searching => '正在搜尋...';
 
   @override
   String get listView => '清單檢視';

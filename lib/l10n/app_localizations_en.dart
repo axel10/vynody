@@ -2310,6 +2310,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noMatchingFoldersOrSongs => 'No matching folders or songs found';
 
   @override
+  String get searching => 'Searching...';
+
+  @override
   String get listView => 'List View';
 
   @override

@@ -861,6 +861,7 @@
   "savedDeepseekApiKey": "Saved DeepSeek API Key",
   "savedCustomProviderConfig": "Saved custom provider configuration",
   "noMatchingFoldersOrSongs": "No matching folders or songs found",
+  "searching": "Searching...",
   "listView": "List View",
   "gridView": "Grid View",
   "hybridView": "Hybrid View",

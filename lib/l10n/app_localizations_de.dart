@@ -2339,6 +2339,9 @@ class AppLocalizationsDe extends AppLocalizations {
       'Keine passenden Ordner oder Songs gefunden';
 
   @override
+  String get searching => 'Suchen...';
+
+  @override
   String get listView => 'Listenansicht';
 
   @override

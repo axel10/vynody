@@ -4249,6 +4249,12 @@ abstract class AppLocalizations {
   /// **'未找到匹配的文件夹或歌曲'**
   String get noMatchingFoldersOrSongs;
 
+  /// No description provided for @searching.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在搜索...'**
+  String get searching;
+
   /// No description provided for @listView.
   ///
   /// In zh, this message translates to:

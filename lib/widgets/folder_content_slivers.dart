@@ -12,10 +12,12 @@ import 'folder_layout_utils.dart';
 /// Renders an empty search results placeholder sliver.
 class FolderEmptySearchResultsSliver extends StatelessWidget {
   final String message;
+  final bool isSearching;
 
   const FolderEmptySearchResultsSliver({
     super.key,
     required this.message,
+    this.isSearching = false,
   });
 
   @override
@@ -27,14 +29,21 @@ class FolderEmptySearchResultsSliver extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                Icons.search_off_rounded,
-                size: 64,
-                color: Theme.of(context)
-                    .colorScheme
-                    .onSurfaceVariant
-                    .withValues(alpha: 0.5),
-              ),
+              if (isSearching)
+                const SizedBox(
+                  width: 48,
+                  height: 48,
+                  child: CircularProgressIndicator(strokeWidth: 3),
+                )
+              else
+                Icon(
+                  Icons.search_off_rounded,
+                  size: 64,
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurfaceVariant
+                      .withValues(alpha: 0.5),
+                ),
               const SizedBox(height: 16),
               Text(
                 message,
