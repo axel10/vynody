@@ -514,9 +514,6 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   Future<int> getSongCountUnderPath(String rootPath) async {
     final normalized = _normalizePath(rootPath);
     if (normalized.isEmpty) return 0;
-    if (normalized == 'system') {
-      return getSystemMediaSongCount();
-    }
     if (normalized.startsWith('system/')) {
       final relativePath = normalized.substring('system/'.length);
       final separator = Platform.isWindows ? '\\' : '/';
@@ -559,9 +556,6 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   Future<int> getSongDurationUnderPath(String rootPath) async {
     final normalized = _normalizePath(rootPath);
     if (normalized.isEmpty) return 0;
-    if (normalized == 'system') {
-      return getSystemMediaSongDuration();
-    }
     if (normalized.startsWith('system/')) {
       final relativePath = normalized.substring('system/'.length);
       final separator = Platform.isWindows ? '\\' : '/';
@@ -608,13 +602,6 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   }) async {
     final normalized = _normalizePath(rootPath);
     if (normalized.isEmpty) return null;
-
-    if (normalized == 'system') {
-      return getSystemMediaRepresentativeSong(
-        criteria: criteria,
-        order: order,
-      );
-    }
 
     final isDesc = order == SortOrder.descending;
     final dir = isDesc ? 'DESC' : 'ASC';
@@ -726,20 +713,6 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
     return row == null ? null : _songFromQueryRow(row);
   }
 
-  Future<int> getSystemMediaSongCount() async {
-    final row = await customSelect(
-      '''
-      SELECT COUNT(*) AS c
-      FROM songs
-      WHERE (sourceFlags & ?) != 0
-        AND deletedAt IS NULL
-      ''',
-      variables: [Variable(SongSourceFlags.systemMedia)],
-      readsFrom: {songs},
-    ).getSingle();
-    return row.read<int>('c');
-  }
-
   Future<List<SongMetadata>> getSystemMediaSongs() async {
     final rows = await customSelect(
       '''
@@ -753,69 +726,6 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       readsFrom: {songs},
     ).get();
     return rows.map(_songFromQueryRow).toList();
-  }
-
-
-  Future<int> getSystemMediaSongDuration() async {
-    final row = await customSelect(
-      '''
-      SELECT SUM(duration) AS s
-      FROM songs
-      WHERE (sourceFlags & ?) != 0
-        AND deletedAt IS NULL
-      ''',
-      variables: [Variable(SongSourceFlags.systemMedia)],
-      readsFrom: {songs},
-    ).getSingle();
-    return row.read<int?>('s') ?? 0;
-  }
-
-  Future<SongMetadata?> getSystemMediaRepresentativeSong({
-    SortCriteria criteria = SortCriteria.filename,
-    SortOrder order = SortOrder.ascending,
-  }) async {
-    final isDesc = order == SortOrder.descending;
-    final dir = isDesc ? 'DESC' : 'ASC';
-
-    final String orderByClause = switch (criteria) {
-      SortCriteria.title =>
-        'COALESCE(NULLIF(title, \'\'), path) $dir, path $dir',
-      SortCriteria.trackNumber =>
-        isDesc
-            ? 'CASE WHEN trackNumber IS NOT NULL THEN 0 ELSE 1 END, trackNumber DESC, path DESC'
-            : 'CASE WHEN trackNumber IS NOT NULL THEN 0 ELSE 1 END, trackNumber ASC, path ASC',
-      SortCriteria.filename =>
-        'path $dir',
-    };
-
-    var row = await customSelect(
-      '''
-      SELECT *
-      FROM songs
-      WHERE (sourceFlags & ?) != 0
-        AND deletedAt IS NULL
-        AND (artworkPath IS NOT NULL OR thumbnailPath IS NOT NULL OR mediaId IS NOT NULL)
-      ORDER BY $orderByClause
-      LIMIT 1
-      ''',
-      variables: [Variable(SongSourceFlags.systemMedia)],
-      readsFrom: {songs},
-    ).getSingleOrNull();
-
-    row ??= await customSelect(
-      '''
-      SELECT *
-      FROM songs
-      WHERE (sourceFlags & ?) != 0
-        AND deletedAt IS NULL
-      ORDER BY $orderByClause
-      LIMIT 1
-      ''',
-      variables: [Variable(SongSourceFlags.systemMedia)],
-      readsFrom: {songs},
-    ).getSingleOrNull();
-
-    return row == null ? null : _songFromQueryRow(row);
   }
 
   Future<List<SongMetadata>> searchSongs(

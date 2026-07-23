@@ -568,21 +568,8 @@ class MetadataDatabase {
         order: order,
       );
 
-  Future<int> getSystemMediaSongCount() => _db.getSystemMediaSongCount();
-
   Future<List<SongMetadata>> getSystemMediaSongs() =>
       _db.getSystemMediaSongs();
-
-  Future<int> getSystemMediaSongDuration() => _db.getSystemMediaSongDuration();
-
-  Future<SongMetadata?> getSystemMediaRepresentativeSong({
-    SortCriteria criteria = SortCriteria.filename,
-    SortOrder order = SortOrder.ascending,
-  }) =>
-      _db.getSystemMediaRepresentativeSong(
-        criteria: criteria,
-        order: order,
-      );
 
   Future<List<SongMetadata>> searchSongs(String query, {String? folderPath}) =>
       _db.searchSongs(query, folderPath: folderPath);

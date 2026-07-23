@@ -227,6 +227,7 @@ class ScannerFolderSorter {
   }
 
   int _compareNaturally(String left, String right) {
+    if (identical(left, right) || left == right) return 0;
     return compareNatural(left.toLowerCase(), right.toLowerCase());
   }
 }

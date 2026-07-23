@@ -45,39 +45,41 @@ class OrderedTaskRunner {
 
   Future<T> run<T>(String path, Future<T> Function() task) {
     final completer = Completer<T>();
-    _queue.add(
-      QueuedTask<T>(
-        path: path,
-        sequence: _sequence++,
-        completer: completer,
-        task: task,
-      ),
+    final entry = QueuedTask<T>(
+      path: path,
+      sequence: _sequence++,
+      completer: completer,
+      task: task,
     );
+
+    // Maintain _queue in sorted order using binary search insertion
+    int low = 0;
+    int high = _queue.length - 1;
+    while (low <= high) {
+      final mid = (low + high) >> 1;
+      final midItem = _queue[mid];
+      final pathCmp = comparePaths(entry.path, midItem.path);
+      final finalCmp = pathCmp != 0
+          ? pathCmp
+          : entry.sequence.compareTo(midItem.sequence);
+      if (finalCmp < 0) {
+        high = mid - 1;
+      } else {
+        low = mid + 1;
+      }
+    }
+    _queue.insert(low, entry);
+
     _pump();
     return completer.future;
   }
 
   void _pump() {
     while (_running < maxConcurrent && _queue.isNotEmpty) {
-      final nextIndex = _selectNextIndex();
-      final next = _queue.removeAt(nextIndex);
+      final next = _queue.removeAt(0);
       _running++;
       unawaited(_execute(next));
     }
-  }
-
-  int _selectNextIndex() {
-    var bestIndex = 0;
-    for (var i = 1; i < _queue.length; i++) {
-      final candidate = _queue[i];
-      final best = _queue[bestIndex];
-      final pathCompare = comparePaths(candidate.path, best.path);
-      if (pathCompare < 0 ||
-          (pathCompare == 0 && candidate.sequence < best.sequence)) {
-        bestIndex = i;
-      }
-    }
-    return bestIndex;
   }
 
   Future<void> _execute<T>(QueuedTask<T> entry) async {

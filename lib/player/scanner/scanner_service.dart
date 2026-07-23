@@ -95,9 +95,6 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
   final Map<String, int> _rootSongCounts = {};
   final Map<String, int> _rootSongDurations = {};
   final Map<String, SongMetadata?> _rootRepresentativeSongs = {};
-  int _systemSongCount = 0;
-  int _systemSongDuration = 0;
-  SongMetadata? _systemRepresentativeSong;
   final Set<String> _loadedRootPaths = {};
 
   static const String _keyGlobalSortCriteria = 'folder_sort_global_criteria';
@@ -146,9 +143,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
 
     if (current != null) {
       final normalizedPath = _normalizePath(current.path);
-      if (normalizedPath == 'system') {
-        unawaited(loadSystemMediaFolderSongs());
-      } else {
+      if (normalizedPath != 'system') {
         final rootPath = _roots.rootPaths.firstWhereOrNull(
           (root) => _pathsEqual(root, normalizedPath) || _pathContains(root, normalizedPath),
         );
@@ -185,18 +180,6 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
-  Future<void> loadSystemMediaFolderSongs() async {
-    if (_systemMediaFolder == null) {
-      await _loadCachedSystemMediaFolderFromDatabase();
-    }
-    if (_systemMediaFolder != null) {
-      _loadedRootPaths.add('system');
-      _rebuildDisplayedRootFolders();
-      _syncNavigationStateToLatestTree();
-      notifyListeners();
-    }
-  }
-
   void unloadAllRootFolders() {
     if (Platform.isAndroid) return;
     if (_loadedRootPaths.isEmpty) return;
@@ -210,7 +193,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
 
   int getSongCountForFolder(MusicFolder folder) {
     if (folder.path == 'system') {
-      return _systemMediaFolder?.allSongs.length ?? _systemSongCount;
+      return _systemMediaFolder?.allSongs.length ?? 0;
     }
     if (folder.allSongs.isNotEmpty) {
       return folder.allSongs.length;
@@ -221,13 +204,10 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
 
   int getSongDurationForFolder(MusicFolder folder) {
     if (folder.path == 'system') {
-      if (_systemMediaFolder != null && _systemMediaFolder!.allSongs.isNotEmpty) {
-        return _systemMediaFolder!.allSongs.fold<int>(
-          0,
-          (sum, song) => sum + (song.durationMillis ?? 0),
-        );
-      }
-      return _systemSongDuration;
+      return _systemMediaFolder?.allSongs.fold<int>(
+        0,
+        (sum, song) => sum + (song.durationMillis ?? 0),
+      ) ?? 0;
     }
     if (folder.allSongs.isNotEmpty) {
       return folder.allSongs.fold<int>(
@@ -258,32 +238,17 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       unawaited(_loadRepresentativeSongForPath(normalized));
     }
 
-    if (folder.path == 'system' && _systemRepresentativeSong != null) {
-      return _treeBuilder.musicFileFromSongMetadata(_systemRepresentativeSong!);
-    }
-
     return null;
   }
 
   Future<void> _loadRepresentativeSongForPath(String normalizedPath) async {
     try {
       final sortSettings = _resolveSortSettingsForFolder(normalizedPath);
-      SongMetadata? songMeta;
-      if (normalizedPath == 'system') {
-        songMeta = await _repository.getSystemMediaRepresentativeSong(
-          criteria: sortSettings.criteria,
-          order: sortSettings.order,
-        );
-        if (songMeta != null) {
-          _systemRepresentativeSong = songMeta;
-        }
-      } else {
-        songMeta = await _repository.getRepresentativeSongUnderPath(
-          normalizedPath,
-          criteria: sortSettings.criteria,
-          order: sortSettings.order,
-        );
-      }
+      final songMeta = await _repository.getRepresentativeSongUnderPath(
+        normalizedPath,
+        criteria: sortSettings.criteria,
+        order: sortSettings.order,
+      );
       _rootRepresentativeSongs[normalizedPath] = songMeta;
       if (songMeta != null) {
         _metadataStore.cacheMetadata(songMeta);
@@ -312,7 +277,6 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     }
     // 2. Get system media songs
     if (Platform.isAndroid) {
-      await loadSystemMediaFolderSongs();
       if (_systemMediaFolder != null) {
         for (final song in _systemMediaFolder!.allSongs) {
           if (seen.add(song.path)) {
@@ -335,7 +299,6 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
 
   Future<List<MusicFile>> getSongsForFolder(MusicFolder folder) async {
     if (folder.path == 'system') {
-      await loadSystemMediaFolderSongs();
       return _systemMediaFolder?.allSongs ?? const [];
     }
 
@@ -722,24 +685,13 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> _refreshRootRepresentativeSongs() async {
-    final systemSortSettings = _resolveSortSettingsForFolder('system');
     if (_systemMediaFolder != null) {
       final repFile = findRepresentativeSong(_systemMediaFolder!);
       if (repFile != null) {
         final songMeta = await _repository.getSongMetadata(repFile.path);
         if (songMeta != null) {
-          _systemRepresentativeSong = songMeta;
           _rootRepresentativeSongs['system'] = songMeta;
         }
-      }
-    } else {
-      final systemRepSong = await _repository.getSystemMediaRepresentativeSong(
-        criteria: systemSortSettings.criteria,
-        order: systemSortSettings.order,
-      );
-      if (systemRepSong != null) {
-        _systemRepresentativeSong = systemRepSong;
-        _rootRepresentativeSongs['system'] = systemRepSong;
       }
     }
 
@@ -1788,38 +1740,26 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     if (!Platform.isAndroid) return;
 
     try {
-      final count = await _repository.getSystemMediaSongCount();
-      final duration = await _repository.getSystemMediaSongDuration();
-      final repSong = await _repository.getSystemMediaRepresentativeSong();
-
-      _systemSongCount = count;
-      _systemSongDuration = duration;
-      _systemRepresentativeSong = repSong;
-
-      if (count > 0) {
-        final systemSongs = await _repository.getSystemMediaSongs();
-        if (systemSongs.isNotEmpty) {
-          _systemMediaFolder = _treeBuilder.buildFolderTreeFromMetadata(
-            systemSongs,
-            _compareNaturally,
-            rootPath: 'system',
-            rootName: _l10n().systemMediaLibrary,
+      final systemSongs = cachedSongs ?? await _repository.getSystemMediaSongs();
+      if (systemSongs.isNotEmpty) {
+        _systemMediaFolder = _treeBuilder.buildFolderTreeFromMetadata(
+          systemSongs,
+          _compareNaturally,
+          rootPath: 'system',
+          rootName: _l10n().systemMediaLibrary,
+        );
+        if (_systemMediaFolder != null) {
+          _folderSorter.sortFolderRecursiveForTree(
+            _systemMediaFolder!,
+            resolveSettings: _resolveSortSettingsForFolder,
           );
-          if (_systemMediaFolder != null) {
-            _folderSorter.sortFolderRecursiveForTree(
-              _systemMediaFolder!,
-              resolveSettings: _resolveSortSettingsForFolder,
-            );
-          }
-          if (seedMetadataCache) {
-            for (final song in systemSongs) {
-              _metadataStore.cacheMetadata(song);
-            }
-          }
-          _loadedRootPaths.add('system');
         }
-      } else if (repSong != null && seedMetadataCache) {
-        _metadataStore.cacheMetadata(repSong);
+        if (seedMetadataCache) {
+          for (final song in systemSongs) {
+            _metadataStore.cacheMetadata(song);
+          }
+        }
+        _loadedRootPaths.add('system');
       }
     } catch (e) {
       debugPrint(
@@ -3528,6 +3468,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   int _compareNaturally(String a, String b) {
+    if (identical(a, b) || a == b) return 0;
     return compareNatural(a.toLowerCase(), b.toLowerCase());
   }
 

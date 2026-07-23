@@ -138,7 +138,6 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
       }
     } else if (folder.path == 'system' ||
         ScannerPathUtils.pathContains('system', folder.path)) {
-      await scanner.loadSystemMediaFolderSongs();
       if (scanner.systemMediaFolder != null) {
         final foundHistory = _findFolderHistoryByFolderPath(
           scanner.systemMediaFolder!,
@@ -280,9 +279,7 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
       final isSystemMedia = songMeta != null &&
           ((songMeta.sourceFlags ?? 0) & SongSourceFlags.systemMedia) != 0;
 
-      if (isSystemMedia) {
-        await scanner.loadSystemMediaFolderSongs();
-      } else {
+      if (!isSystemMedia) {
         final matchingRootPath = scanner.rootPaths.firstWhereOrNull(
           (root) => ScannerPathUtils.pathContains(root, songPath),
         );
@@ -292,7 +289,6 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
           for (final rootPath in scanner.rootPaths) {
             await scanner.loadRootFolderSongs(rootPath);
           }
-          await scanner.loadSystemMediaFolderSongs();
         }
       }
 

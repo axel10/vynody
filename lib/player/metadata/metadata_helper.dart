@@ -422,6 +422,8 @@ class MetadataHelper {
     '.gif',
   };
 
+  static final Map<String, String?> _globalDirCoverCache = {};
+
   /// Searches for cover.xxx (case-insensitive) in the same directory as songPath
   static String? findDirectoryCover(
     String songPath, {
@@ -431,19 +433,48 @@ class MetadataHelper {
     if (dirCache != null && dirCache.containsKey(dirPath)) {
       return dirCache[dirPath];
     }
+    if (_globalDirCoverCache.containsKey(dirPath)) {
+      final cachedResult = _globalDirCoverCache[dirPath];
+      if (dirCache != null) {
+        dirCache[dirPath] = cachedResult;
+      }
+      return cachedResult;
+    }
 
     String? result;
     try {
-      final dir = Directory(dirPath);
-      if (dir.existsSync()) {
-        final entries = dir.listSync(followLinks: false);
-        for (final entry in entries) {
-          if (entry is File) {
-            final baseName = p.basenameWithoutExtension(entry.path).toLowerCase();
-            final ext = p.extension(entry.path).toLowerCase();
-            if (baseName == 'cover' && validCoverExtensions.contains(ext)) {
-              result = entry.path;
-              break;
+      // 1. Fast path: test common candidate file names directly to avoid expensive directory listing
+      const candidateNames = [
+        'cover.jpg',
+        'cover.png',
+        'cover.jpeg',
+        'cover.webp',
+        'folder.jpg',
+        'folder.png',
+      ];
+      bool candidateFound = false;
+      for (final name in candidateNames) {
+        if (File(p.join(dirPath, name)).existsSync()) {
+          candidateFound = true;
+          break;
+        }
+      }
+
+      // 2. Only list directory if candidate check found a potential cover file or as a fallback
+      if (candidateFound) {
+        final dir = Directory(dirPath);
+        if (dir.existsSync()) {
+          final entries = dir.listSync(followLinks: false);
+          for (final entry in entries) {
+            if (entry is File) {
+              final baseName =
+                  p.basenameWithoutExtension(entry.path).toLowerCase();
+              final ext = p.extension(entry.path).toLowerCase();
+              if ((baseName == 'cover' || baseName == 'folder') &&
+                  validCoverExtensions.contains(ext)) {
+                result = entry.path;
+                break;
+              }
             }
           }
         }
@@ -452,6 +483,7 @@ class MetadataHelper {
       debugPrint('findDirectoryCover error for $dirPath: $e');
     }
 
+    _globalDirCoverCache[dirPath] = result;
     if (dirCache != null) {
       dirCache[dirPath] = result;
     }

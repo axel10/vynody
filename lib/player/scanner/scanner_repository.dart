@@ -43,26 +43,8 @@ class ScannerRepository {
     );
   }
 
-  Future<int> getSystemMediaSongCount() {
-    return _database.getSystemMediaSongCount();
-  }
-
-  Future<int> getSystemMediaSongDuration() {
-    return _database.getSystemMediaSongDuration();
-  }
-
   Future<List<SongMetadata>> getSystemMediaSongs() {
     return _database.getSystemMediaSongs();
-  }
-
-  Future<SongMetadata?> getSystemMediaRepresentativeSong({
-    SortCriteria criteria = SortCriteria.filename,
-    SortOrder order = SortOrder.ascending,
-  }) {
-    return _database.getSystemMediaRepresentativeSong(
-      criteria: criteria,
-      order: order,
-    );
   }
 
   Future<List<SongMetadata>> searchSongs(String query, {String? folderPath}) {
