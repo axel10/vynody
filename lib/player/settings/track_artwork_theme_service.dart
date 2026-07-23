@@ -136,8 +136,14 @@ class TrackArtworkThemeService {
 
     if (cached != null) {
       final lastModified = cached.lastModifiedTime;
+      final hasArtwork =
+          (cached.artworkPath?.isNotEmpty ?? false) ||
+          (cached.thumbnailPath?.isNotEmpty ?? false);
+      final dirCover = MetadataHelper.findDirectoryCover(normalizedPath);
+      final hasDirCover = dirCover != null;
       if (cached.metadataImgScanned != null &&
-          cached.metadataImgScanned == lastModified) {
+          cached.metadataImgScanned == lastModified &&
+          (hasArtwork || !hasDirCover)) {
         return cachedResult;
       }
     }
@@ -197,7 +203,17 @@ class TrackArtworkThemeService {
             : DateTime.now().millisecondsSinceEpoch);
 
     try {
-      final artworkBytes = await MetadataHelper.decodeEmbeddedArtwork(path);
+      var artworkBytes = await MetadataHelper.decodeEmbeddedArtwork(path);
+      if (artworkBytes == null || artworkBytes.isEmpty) {
+        final dirCoverPath = MetadataHelper.findDirectoryCover(path);
+        if (dirCoverPath != null) {
+          try {
+            artworkBytes = await File(dirCoverPath).readAsBytes();
+          } catch (e) {
+            debugPrint('Failed to read directory cover $dirCoverPath: $e');
+          }
+        }
+      }
       final resolvedBytes = artworkBytes ?? Uint8List(0);
 
       final artwork = await controller.generateTrackArtwork(

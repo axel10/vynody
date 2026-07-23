@@ -413,6 +413,51 @@ class MetadataHelper {
     }
   }
 
+  static const Set<String> validCoverExtensions = {
+    '.jpg',
+    '.jpeg',
+    '.png',
+    '.webp',
+    '.bmp',
+    '.gif',
+  };
+
+  /// Searches for cover.xxx (case-insensitive) in the same directory as songPath
+  static String? findDirectoryCover(
+    String songPath, {
+    Map<String, String?>? dirCache,
+  }) {
+    final dirPath = p.dirname(songPath);
+    if (dirCache != null && dirCache.containsKey(dirPath)) {
+      return dirCache[dirPath];
+    }
+
+    String? result;
+    try {
+      final dir = Directory(dirPath);
+      if (dir.existsSync()) {
+        final entries = dir.listSync(followLinks: false);
+        for (final entry in entries) {
+          if (entry is File) {
+            final baseName = p.basenameWithoutExtension(entry.path).toLowerCase();
+            final ext = p.extension(entry.path).toLowerCase();
+            if (baseName == 'cover' && validCoverExtensions.contains(ext)) {
+              result = entry.path;
+              break;
+            }
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('findDirectoryCover error for $dirPath: $e');
+    }
+
+    if (dirCache != null) {
+      dirCache[dirPath] = result;
+    }
+    return result;
+  }
+
   /// 深度解析音频文件的元数据和封面信息
   ///
   /// 该方法耗时较长，通常在后台线程（Isolate）中执行，结果会存入数据库以便下次秒开。
@@ -422,6 +467,7 @@ class MetadataHelper {
     bool generateThumbnail = true,
     bool forceRefresh = false,
     int? sourceFlags,
+    Map<String, String?>? dirCache,
   }) async {
     final db = MetadataDatabase();
     final file = File(filePath);
@@ -443,7 +489,9 @@ class MetadataHelper {
           (existing.artworkPath?.isNotEmpty ?? false) ||
           (existing.thumbnailPath?.isNotEmpty ?? false);
       final hasImageScanned = existing.metadataImgScanned == lastModified;
-      if (!generateThumbnail || hasArtwork || hasImageScanned) {
+      final dirCover = findDirectoryCover(filePath, dirCache: dirCache);
+      final hasDirCover = dirCover != null;
+      if (!generateThumbnail || hasArtwork || (hasImageScanned && !hasDirCover)) {
         return (existing, null);
       }
     }
@@ -501,6 +549,28 @@ class MetadataHelper {
         artworkWidth = artworkInfo?['width'] as int?;
         artworkHeight = artworkInfo?['height'] as int?;
         themeColorsBlob = artworkInfo?['themeColorsBlob'] as Uint8List?;
+      } else if (generateThumbnail) {
+        final coverPath = findDirectoryCover(filePath, dirCache: dirCache);
+        if (coverPath != null) {
+          try {
+            final coverBytes = await File(coverPath).readAsBytes();
+            if (coverBytes.isNotEmpty) {
+              final artworkInfo = await saveArtworkAndThumbnail(
+                filePath,
+                coverBytes,
+                saveLarge: false,
+              );
+
+              artworkPath = artworkInfo?['artworkPath'] as String?;
+              thumbnailPath = artworkInfo?['thumbnailPath'] as String?;
+              artworkWidth = artworkInfo?['width'] as int?;
+              artworkHeight = artworkInfo?['height'] as int?;
+              themeColorsBlob = artworkInfo?['themeColorsBlob'] as Uint8List?;
+            }
+          } catch (e) {
+            debugPrint('Failed to process directory cover $coverPath: $e');
+          }
+        }
       } else if (!generateThumbnail && existing != null) {
         artworkPath = existingArtworkPath;
         thumbnailPath = existingThumbnailPath;

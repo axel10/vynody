@@ -150,7 +150,7 @@ class ScannerMetadataStore {
 
   Future<void> loadThumbnailForPath(String path) async {
     final cached = _metadataMap[path];
-    if (cached != null) {
+    if (cached != null && (cached.thumbnailPath?.isNotEmpty ?? false)) {
       return;
     }
 
@@ -164,12 +164,12 @@ class ScannerMetadataStore {
 
     final db = MetadataDatabase();
     SongMetadata? metadata = await db.getSongMetadata(path);
-    if (metadata == null) {
+    if (metadata == null || (metadata.thumbnailPath?.isEmpty ?? true)) {
       final result = await MetadataHelper.processMetadata(
         path,
-        generateThumbnail: false,
+        generateThumbnail: true,
       );
-      metadata = result?.$1;
+      metadata = result?.$1 ?? metadata;
     }
 
     if (metadata != null) {

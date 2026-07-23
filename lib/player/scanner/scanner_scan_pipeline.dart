@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:path/path.dart' as p;
 
 import 'package:vynody/player/metadata/metadata_database.dart';
+import 'package:vynody/player/metadata/metadata_helper.dart';
 import 'package:vynody/player/scanner/scanner_metadata_store.dart';
 import 'package:vynody/player/scanner/scanner_scan_support.dart';
 
@@ -122,6 +123,7 @@ class ScannerScanPipeline {
     final stageByPath = <String, ScanFileStage>{};
     final seen = <String>{};
     final classifyStopwatch = Stopwatch()..start();
+    final dirCache = <String, String?>{};
 
     for (final path in filePaths) {
       if (shouldCancel?.call() ?? false) {
@@ -150,18 +152,25 @@ class ScannerScanPipeline {
         }
       }
 
+      final hasArtwork =
+          (existing?.artworkPath?.isNotEmpty ?? false) ||
+          (existing?.thumbnailPath?.isNotEmpty ?? false);
+      final dirCover = MetadataHelper.findDirectoryCover(path, dirCache: dirCache);
+      final hasDirCover = dirCover != null;
+
       if (existing != null && existing.isModified) {
         stageByPath[path] = ScanFileStage.unchanged;
       } else if (existing != null &&
           currentLastModified != null &&
           textScanned == currentLastModified &&
           imgScanned == currentLastModified &&
-          !thumbnailMissing) {
+          !thumbnailMissing &&
+          (hasArtwork || !hasDirCover)) {
         stageByPath[path] = ScanFileStage.unchanged;
       } else if (existing != null &&
           currentLastModified != null &&
           textScanned == currentLastModified &&
-          (imgScanned != currentLastModified || thumbnailMissing)) {
+          (imgScanned != currentLastModified || thumbnailMissing || (!hasArtwork && hasDirCover))) {
         stageByPath[path] = ScanFileStage.imageOnly;
       } else {
         stageByPath[path] = ScanFileStage.full;
