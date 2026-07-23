@@ -1480,12 +1480,17 @@ class PlaybackHeroCard extends ConsumerWidget {
     );
     final transition = lyricsModeT.clamp(0.0, 1.0);
     final double simplifiedT = shouldCollapse ? (landscapeT * transition) : 0.0;
+    final double portraitLyricsT = (1.0 - landscapeT) * transition;
+    final double rightButtonsFactor = math.max(simplifiedT, portraitLyricsT);
+    final bool showFavoriteIconButton = simplifiedT > 0.0;
 
     final double buttonControlsScale = controlsScale;
 
     final titleAlignment = Alignment.lerp(
       Alignment.center,
-      shouldCollapse ? Alignment.centerLeft : Alignment.center,
+      (shouldCollapse || landscapeT == 0.0)
+          ? Alignment.centerLeft
+          : Alignment.center,
       transition,
     )!;
 
@@ -1658,7 +1663,7 @@ class PlaybackHeroCard extends ConsumerWidget {
       ],
     );
 
-    if (simplifiedT > 0.0) {
+    if (rightButtonsFactor > 0.0) {
       final playlistService = ref.watch(playlistServiceProvider);
       final isFavorite =
           currentMusic != null && playlistService.isFavoriteSong(currentMusic);
@@ -1668,71 +1673,72 @@ class PlaybackHeroCard extends ConsumerWidget {
       return Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-            Expanded(child: textContent),
-            SizedBox(width: 8 * buttonControlsScale * simplifiedT),
-            if (sleepTimerRemaining != null) ...[
-              Opacity(
-                opacity: simplifiedT,
-                child: SizedBox(
-                  width: PlaybackHeroCardUiTuning.lLyricsSleepTimerButtonWidth *
-                      buttonControlsScale *
-                      simplifiedT,
-                  height: PlaybackHeroCardUiTuning.lLyricsSleepTimerButtonHeight *
-                      buttonControlsScale,
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: AppTooltip(
-                      message: l10n.sleepTimerRemaining(
-                        _formatSleepTimer(sleepTimerRemaining),
-                      ),
-                      child: GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: onSleepTimerTap,
-                        child: SizedBox(
-                          width: PlaybackHeroCardUiTuning.lLyricsSleepTimerButtonWidth *
-                              buttonControlsScale,
-                          height: PlaybackHeroCardUiTuning.lLyricsSleepTimerButtonHeight *
-                              buttonControlsScale,
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.bedtime_rounded,
-                                size: PlaybackHeroCardUiTuning.lLyricsTitleIconSize *
-                                    buttonControlsScale,
+          Expanded(child: textContent),
+          SizedBox(width: 8 * buttonControlsScale * rightButtonsFactor),
+          if (sleepTimerRemaining != null) ...[
+            Opacity(
+              opacity: rightButtonsFactor,
+              child: SizedBox(
+                width: PlaybackHeroCardUiTuning.lLyricsSleepTimerButtonWidth *
+                    buttonControlsScale *
+                    rightButtonsFactor,
+                height: PlaybackHeroCardUiTuning.lLyricsSleepTimerButtonHeight *
+                    buttonControlsScale,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: AppTooltip(
+                    message: l10n.sleepTimerRemaining(
+                      _formatSleepTimer(sleepTimerRemaining),
+                    ),
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: onSleepTimerTap,
+                      child: SizedBox(
+                        width: PlaybackHeroCardUiTuning.lLyricsSleepTimerButtonWidth *
+                            buttonControlsScale,
+                        height: PlaybackHeroCardUiTuning.lLyricsSleepTimerButtonHeight *
+                            buttonControlsScale,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.bedtime_rounded,
+                              size: PlaybackHeroCardUiTuning.lLyricsTitleIconSize *
+                                  buttonControlsScale,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              _formatSleepTimer(sleepTimerRemaining),
+                              maxLines: 1,
+                              overflow: TextOverflow.visible,
+                              style: TextStyle(
                                 color: Theme.of(context).colorScheme.primary,
+                                fontSize: PlaybackHeroCardUiTuning.lLyricsSleepTimerFontSize *
+                                    buttonControlsScale,
+                                height: 1.0,
+                                fontWeight: FontWeight.w600,
                               ),
-                              const SizedBox(height: 2),
-                              Text(
-                                _formatSleepTimer(sleepTimerRemaining),
-                                maxLines: 1,
-                                overflow: TextOverflow.visible,
-                                style: TextStyle(
-                                  color: Theme.of(context).colorScheme.primary,
-                                  fontSize: PlaybackHeroCardUiTuning.lLyricsSleepTimerFontSize *
-                                      buttonControlsScale,
-                                  height: 1.0,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
                   ),
                 ),
               ),
-              SizedBox(width: 8 * buttonControlsScale * simplifiedT),
-            ],
+            ),
+            SizedBox(width: 8 * buttonControlsScale * rightButtonsFactor),
+          ],
+          if (showFavoriteIconButton) ...[
             Opacity(
-              opacity: simplifiedT,
+              opacity: rightButtonsFactor,
               child: SizedBox(
                 width: PlaybackHeroCardUiTuning.lLyricsTitleButtonHeight *
                     buttonControlsScale *
-                    simplifiedT,
+                    rightButtonsFactor,
                 height: PlaybackHeroCardUiTuning.lLyricsTitleButtonHeight *
                     buttonControlsScale,
                 child: FittedBox(
@@ -1773,129 +1779,146 @@ class PlaybackHeroCard extends ConsumerWidget {
                 ),
               ),
             ),
-            SizedBox(width: 8 * buttonControlsScale * simplifiedT),
-            Opacity(
-              opacity: simplifiedT,
-              child: SizedBox(
-                width: PlaybackHeroCardUiTuning.lLyricsTitleButtonHeight *
-                    buttonControlsScale *
-                    simplifiedT,
-                height: PlaybackHeroCardUiTuning.lLyricsTitleButtonHeight *
-                    buttonControlsScale,
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: PopupMenuButton<String>(
-                    tooltip: l10n.more,
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                    style: IconButton.styleFrom(
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                    icon: Icon(
-                      Icons.more_horiz,
-                      size: PlaybackHeroCardUiTuning.lLyricsTitleIconSize *
-                          buttonControlsScale,
-                      color: Colors.white70,
-                    ),
-                    onSelected: (value) async {
-                      final audio = ref.read(audioServiceProvider);
-                      switch (value) {
-                        case 'settings':
-                          onShowMoreMenu?.call();
-                          break;
-                        case 'visualizer':
-                          onToggleVisualizer?.call();
-                          break;
-                        case 'random':
-                          if (audio.settingsService.randomRange == 1 &&
-                              !isRandomMode) {
-                            final playlistService = ref.read(
-                              playlistServiceProvider,
-                            );
-                            final List<MusicFile> allSongs = [];
-                            final pathSet = <String>{};
-                            for (final p in playlistService.playlists) {
-                              for (final s in p.songs) {
-                                if (pathSet.add(s.path)) allSongs.add(s);
-                              }
-                            }
-                            audio.toggleRandomMode(globalSongs: allSongs);
-                          } else {
-                            audio.toggleRandomMode();
-                          }
-                          break;
-                        case 'tag':
-                          onTagCompletionTap?.call();
-                          break;
-                        case 'sleep':
-                          onSleepTimerTap?.call();
-                          break;
-                        case 'effects':
-                          onEqualizerTap?.call();
-                          break;
-                      }
-                    },
-                    itemBuilder: (context) => [
-                      buildContextMenuItem<String>(
-                        value: 'settings',
-                        label: l10n.visualizerSettings,
-                        icon: Icons.settings_outlined,
-                        context: context,
-                      ),
-                      buildContextMenuItem<String>(
-                        value: 'visualizer',
-                        label: l10n.visualizer,
-                        icon: showVisualizerToggle
-                            ? Icons.analytics
-                            : Icons.analytics_outlined,
-                        context: context,
-                        iconColor: showVisualizerToggle
-                            ? Theme.of(context).colorScheme.primary
-                            : null,
-                      ),
-                      buildContextMenuItem<String>(
-                        value: 'random',
-                        label: l10n.randomMode,
-                        icon: Icons.shuffle_rounded,
-                        context: context,
-                        iconColor: isRandomMode
-                            ? Theme.of(context).colorScheme.primary
-                            : null,
-                      ),
-                      buildContextMenuItem<String>(
-                        value: 'tag',
-                        label: l10n.tagCompletion,
-                        icon: Icons.auto_fix_high_rounded,
-                        context: context,
-                        enabled: currentMusic != null,
-                      ),
-                      buildContextMenuItem<String>(
-                        value: 'sleep',
-                        label: sleepTimerRemaining != null
-                            ? l10n.sleepTimerRemaining(
-                                _formatSleepTimer(sleepTimerRemaining),
-                              )
-                            : l10n.sleepTimer,
-                        icon: Icons.bedtime_rounded,
-                        context: context,
-                        iconColor: sleepTimerRemaining != null
-                            ? Theme.of(context).colorScheme.primary
-                            : null,
-                      ),
-                      buildContextMenuItem<String>(
-                        value: 'effects',
-                        label: l10n.effects,
-                        icon: Icons.tune_rounded,
-                        context: context,
-                      ),
-                    ],
+            SizedBox(width: 8 * buttonControlsScale * rightButtonsFactor),
+          ],
+          Opacity(
+            opacity: rightButtonsFactor,
+            child: SizedBox(
+              width: PlaybackHeroCardUiTuning.lLyricsTitleButtonHeight *
+                  buttonControlsScale *
+                  rightButtonsFactor,
+              height: PlaybackHeroCardUiTuning.lLyricsTitleButtonHeight *
+                  buttonControlsScale,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: PopupMenuButton<String>(
+                  tooltip: l10n.more,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  style: IconButton.styleFrom(
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
+                  icon: Icon(
+                    Icons.more_horiz,
+                    size: PlaybackHeroCardUiTuning.lLyricsTitleIconSize *
+                        buttonControlsScale,
+                    color: Colors.white70,
+                  ),
+                  onSelected: (value) async {
+                    final audio = ref.read(audioServiceProvider);
+                    switch (value) {
+                      case 'favorite':
+                        if (currentMusic != null) {
+                          await playlistService.toggleFavoriteSong(currentMusic);
+                        }
+                        break;
+                      case 'settings':
+                        onShowMoreMenu?.call();
+                        break;
+                      case 'visualizer':
+                        onToggleVisualizer?.call();
+                        break;
+                      case 'random':
+                        if (audio.settingsService.randomRange == 1 &&
+                            !isRandomMode) {
+                          final playlistService = ref.read(
+                            playlistServiceProvider,
+                          );
+                          final List<MusicFile> allSongs = [];
+                          final pathSet = <String>{};
+                          for (final p in playlistService.playlists) {
+                            for (final s in p.songs) {
+                              if (pathSet.add(s.path)) allSongs.add(s);
+                            }
+                          }
+                          audio.toggleRandomMode(globalSongs: allSongs);
+                        } else {
+                          audio.toggleRandomMode();
+                        }
+                        break;
+                      case 'tag':
+                        onTagCompletionTap?.call();
+                        break;
+                      case 'sleep':
+                        onSleepTimerTap?.call();
+                        break;
+                      case 'effects':
+                        onEqualizerTap?.call();
+                        break;
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    buildContextMenuItem<String>(
+                      value: 'favorite',
+                      label: isFavorite
+                          ? l10n.removeFromFavorites
+                          : l10n.addToFavorites,
+                      icon: isFavorite
+                          ? Icons.favorite_rounded
+                          : Icons.favorite_border_rounded,
+                      context: context,
+                      iconColor: isFavorite ? Colors.redAccent : null,
+                    ),
+                    buildContextMenuItem<String>(
+                      value: 'settings',
+                      label: l10n.visualizerSettings,
+                      icon: Icons.settings_outlined,
+                      context: context,
+                    ),
+                    buildContextMenuItem<String>(
+                      value: 'visualizer',
+                      label: l10n.visualizer,
+                      icon: showVisualizerToggle
+                          ? Icons.analytics
+                          : Icons.analytics_outlined,
+                      context: context,
+                      iconColor: showVisualizerToggle
+                          ? Theme.of(context).colorScheme.primary
+                          : null,
+                    ),
+                    buildContextMenuItem<String>(
+                      value: 'random',
+                      label: l10n.randomMode,
+                      icon: Icons.shuffle_rounded,
+                      context: context,
+                      iconColor: isRandomMode
+                          ? Theme.of(context).colorScheme.primary
+                          : null,
+                    ),
+                    buildContextMenuItem<String>(
+                      value: 'tag',
+                      label: l10n.tagCompletion,
+                      icon: Icons.auto_fix_high_rounded,
+                      context: context,
+                      enabled: currentMusic != null,
+                    ),
+                    buildContextMenuItem<String>(
+                      value: 'sleep',
+                      label: sleepTimerRemaining != null
+                          ? l10n.sleepTimerRemaining(
+                              _formatSleepTimer(sleepTimerRemaining),
+                            )
+                          : l10n.sleepTimer,
+                      icon: Icons.bedtime_rounded,
+                      context: context,
+                      iconColor: sleepTimerRemaining != null
+                          ? Theme.of(context).colorScheme.primary
+                          : null,
+                    ),
+                    buildContextMenuItem<String>(
+                      value: 'effects',
+                      label: l10n.effects,
+                      icon: Icons.tune_rounded,
+                      context: context,
+                    ),
+                  ],
                 ),
               ),
             ),
-          ],
-        );
-      }
+          ),
+        ],
+      );
+    }
 
     return textContent;
   }
