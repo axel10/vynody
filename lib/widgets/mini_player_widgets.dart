@@ -27,7 +27,7 @@ class MiniArtwork extends ConsumerWidget {
                   height: 120,
                   allowUpscaling: false,
                 ),
-                fit: BoxFit.cover,
+                fit: BoxFit.contain,
                 filterQuality: FilterQuality.low,
               )
             : (currentMusic?.artworkPath != null && File(currentMusic!.artworkPath!).existsSync())
@@ -38,7 +38,7 @@ class MiniArtwork extends ConsumerWidget {
                   height: 120,
                   allowUpscaling: false,
                 ),
-                fit: BoxFit.cover,
+                fit: BoxFit.contain,
                 filterQuality: FilterQuality.low,
               )
             : null,
