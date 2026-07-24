@@ -144,7 +144,6 @@ class _MainLayoutState extends ConsumerState<MainLayout>
   bool _showMiniVolumeSlider = false;
   late final AudioService _audioService;
   bool _isFullScreen = false;
-  DateTime? _lastBackPressedAt;
   DateTime? _ignoreResizeEventsUntil;
   Timer? _windowResizeDebounceTimer;
   late final MainLayoutUiController _uiController;
@@ -197,25 +196,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
       }
     }
 
-    final now = DateTime.now();
-    final lastBackPressedAt = _lastBackPressedAt;
-    final shouldExit =
-        lastBackPressedAt != null &&
-        now.difference(lastBackPressedAt) < const Duration(seconds: 2);
-
-    if (shouldExit) {
-      await SystemNavigator.pop();
-      return;
-    }
-
-    _lastBackPressedAt = now;
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context).clearSnackBars();
-    final l10n = AppLocalizations.of(context)!;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(l10n.pressAgainToExit)));
+    await SystemNavigator.pop();
   }
 
   void _syncDeletedSongNoticeHandler() {
