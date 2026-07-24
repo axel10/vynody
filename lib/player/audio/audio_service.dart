@@ -1000,7 +1000,9 @@ class AudioService extends Notifier<AudioSnapshot> {
       _lastMissingCurrentTrackPathHandled = null;
       if (_currentIndex >= 0 && _currentIndex < _queue.length) {
         final song = _queue[_currentIndex];
-        if (song.path.isNotEmpty && !File(song.path).existsSync()) {
+        if (song.path.isNotEmpty &&
+            !song.path.startsWith('content://') &&
+            !File(song.path).existsSync()) {
           unawaited(_skipMissingCurrentTrack());
           return;
         }
@@ -1027,6 +1029,7 @@ class AudioService extends Notifier<AudioSnapshot> {
         _currentIndex >= 0 &&
         _currentIndex < _queue.length &&
         _queue[_currentIndex].path.isNotEmpty &&
+        !_queue[_currentIndex].path.startsWith('content://') &&
         !(File(_queue[_currentIndex].path).existsSync())) {
       unawaited(_skipMissingCurrentTrack());
       return;

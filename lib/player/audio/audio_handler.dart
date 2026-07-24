@@ -1,10 +1,25 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:audio_service/audio_service.dart';
 import 'package:vynody/player/audio/audio_service.dart' as app; // To distinguish from package:audio_service
 
 class MyAudioHandler extends BaseAudioHandler with SeekHandler {
   final app.AudioService appAudio;
   MyAudioHandler(this.appAudio);
+
+  String? _getOrCacheArtworkPath(String trackPath, Uint8List bytes) {
+    try {
+      final tempDir = Directory.systemTemp;
+      final fileName = 'vynody_art_${trackPath.hashCode}.jpg';
+      final file = File('${tempDir.path}/$fileName');
+      if (!file.existsSync()) {
+        file.writeAsBytesSync(bytes);
+      }
+      return file.path;
+    } catch (_) {
+      return null;
+    }
+  }
 
   void onMetadataChanged() {
     final music = appAudio.currentMusic;
@@ -17,8 +32,24 @@ class MyAudioHandler extends BaseAudioHandler with SeekHandler {
         duration: appAudio.duration,
         artUri: () {
           final artPath = music?.artworkPath ?? music?.thumbnailPath;
-          if (artPath != null && File(artPath).existsSync()) {
-            return Uri.file(artPath);
+          if (artPath != null && artPath.isNotEmpty) {
+            if (artPath.startsWith('content://')) {
+              return Uri.parse(artPath);
+            }
+            if (File(artPath).existsSync()) {
+              return Uri.file(artPath);
+            }
+          }
+          if (music?.artworkBytes != null &&
+              music!.artworkBytes!.isNotEmpty &&
+              music.path.isNotEmpty) {
+            final cachedPath = _getOrCacheArtworkPath(
+              music.path,
+              music.artworkBytes!,
+            );
+            if (cachedPath != null && File(cachedPath).existsSync()) {
+              return Uri.file(cachedPath);
+            }
           }
           return null;
         }(),
@@ -27,14 +58,11 @@ class MyAudioHandler extends BaseAudioHandler with SeekHandler {
   }
 
   void onPlaybackStatusChanged(bool isPlaying) {
-    _lastPositionUpdateTime = DateTime.now();
-    _lastPositionValue = appAudio.position;
-
     playbackState.add(
       playbackState.value.copyWith(
         playing: isPlaying,
         speed: isPlaying ? 1.0 : 0.0,
-        updatePosition: _lastPositionValue,
+        updatePosition: appAudio.position,
         androidCompactActionIndices: const [0, 1, 2],
         controls: [
           MediaControl.skipToPrevious,
@@ -56,38 +84,29 @@ class MyAudioHandler extends BaseAudioHandler with SeekHandler {
     );
   }
 
-  DateTime _lastPositionUpdateTime = DateTime.fromMillisecondsSinceEpoch(0);
-  Duration _lastPositionValue = Duration.zero;
-
   void onPositionChanged(Duration position, Duration duration) {
-    final now = DateTime.now();
-    final timeSinceLastUpdate = now.difference(_lastPositionUpdateTime);
-
-    final expectedPosition =
-        _lastPositionValue +
-        (appAudio.isPlaying ? timeSinceLastUpdate : Duration.zero);
-    final drift = (position - expectedPosition).abs().inMilliseconds;
-
-    if (drift > 1000 || timeSinceLastUpdate.inSeconds > 10) {
-      _lastPositionUpdateTime = now;
-      _lastPositionValue = position;
-      playbackState.add(
-        playbackState.value.copyWith(
-          updatePosition: position,
-          bufferedPosition: position,
-        ),
-      );
-    }
+    playbackState.add(
+      playbackState.value.copyWith(
+        updatePosition: position,
+        bufferedPosition: position,
+        playing: appAudio.isPlaying,
+        speed: appAudio.isPlaying ? 1.0 : 0.0,
+      ),
+    );
   }
 
   @override
   Future<void> play() async {
-    await appAudio.playbackController.player.play();
+    if (!appAudio.isPlaying) {
+      await appAudio.togglePlay();
+    }
   }
 
   @override
   Future<void> pause() async {
-    await appAudio.playbackController.player.pause();
+    if (appAudio.isPlaying) {
+      await appAudio.togglePlay();
+    }
   }
 
   @override
@@ -101,7 +120,9 @@ class MyAudioHandler extends BaseAudioHandler with SeekHandler {
 
   @override
   Future<void> stop() async {
-    await appAudio.playbackController.player.pause();
+    if (appAudio.isPlaying) {
+      await appAudio.togglePlay();
+    }
     playbackState.add(
       playbackState.value.copyWith(
         playing: false,

@@ -72,13 +72,14 @@ class AndroidIntegrationService {
   void updateMetadata(MusicFile? song) {
     if (!Platform.isAndroid || !_initialized) return;
 
+    final targetSong = song ?? audioService.currentMusic;
     final metadataKey = [
-      song?.path ?? audioService.currentMusic?.path,
-      audioService.currentMusic?.displayName,
-      audioService.currentMusic?.artist,
-      audioService.currentMusic?.album,
-      audioService.currentMusic?.artworkPath ??
-          audioService.currentMusic?.thumbnailPath,
+      targetSong?.path,
+      targetSong?.displayName ?? targetSong?.name,
+      targetSong?.artist,
+      targetSong?.album,
+      targetSong?.artworkPath ?? targetSong?.thumbnailPath,
+      targetSong?.artworkBytes?.length,
       audioService.duration.inMilliseconds.toString(),
     ].join('|');
     if (_lastMetadataKey == metadataKey) return;
@@ -89,9 +90,9 @@ class AndroidIntegrationService {
 
   bool? _lastIsPlaying;
 
-  void updatePlaybackStatus(bool isPlaying) {
+  void updatePlaybackStatus(bool isPlaying, {bool force = false}) {
     if (!Platform.isAndroid || !_initialized) return;
-    if (_lastIsPlaying == isPlaying) return;
+    if (!force && _lastIsPlaying == isPlaying) return;
     _lastIsPlaying = isPlaying;
 
     _handler.onPlaybackStatusChanged(isPlaying);
