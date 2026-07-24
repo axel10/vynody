@@ -576,6 +576,11 @@ class PlaybackHeroCard extends ConsumerWidget {
                 final double translationY =
                     layout.lyrics.top - endLayout.lyrics.top;
 
+                final double infoTranslationX =
+                    layout.info.left - targetLayout.info.left;
+                final double infoTranslationY =
+                    layout.info.top - targetLayout.info.top;
+
                 return SizedBox(
                   width: width,
                   height: height,
@@ -728,35 +733,52 @@ class PlaybackHeroCard extends ConsumerWidget {
                           ),
                         ),
                       Positioned(
-                        top: layout.info.top,
-                        left: layout.info.left,
-                        width: layout.info.width,
-                        height: layout.info.height,
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          alignment: Alignment.lerp(
-                            Alignment.center,
-                            Alignment.lerp(
-                              Alignment.center,
-                              Alignment.centerLeft,
-                              tLyrics,
-                            )!,
-                            tLand,
-                          )!,
-                          child: SizedBox(
-                            width: optimize
-                                ? targetLayout.info.width
-                                : layout.info.width,
-                            child: _buildTrackInfo(
-                              context,
-                              ref,
-                              currentMusic,
-                              layout.trackInfoAlign,
-                              optimize ? targetTLyrics : tLyrics,
-                              tLand,
-                              optimize
-                                  ? targetLayout.controlsScale
-                                  : layout.controlsScale,
+                        top: optimize ? targetLayout.info.top : layout.info.top,
+                        left: optimize ? targetLayout.info.left : layout.info.left,
+                        width: optimize ? targetLayout.info.width : layout.info.width,
+                        height: optimize ? targetLayout.info.height : layout.info.height,
+                        child: Transform.translate(
+                          offset: optimize
+                              ? Offset(infoTranslationX, infoTranslationY)
+                              : Offset.zero,
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: optimize
+                                ? Alignment.lerp(
+                                    Alignment.center,
+                                    Alignment.lerp(
+                                      Alignment.center,
+                                      Alignment.centerLeft,
+                                      targetTLyrics,
+                                    )!,
+                                    tLand,
+                                  )!
+                                : Alignment.lerp(
+                                    Alignment.center,
+                                    Alignment.lerp(
+                                      Alignment.center,
+                                      Alignment.centerLeft,
+                                      tLyrics,
+                                    )!,
+                                    tLand,
+                                  )!,
+                            child: SizedBox(
+                              width: optimize
+                                  ? targetLayout.info.width
+                                  : layout.info.width,
+                              child: _buildTrackInfo(
+                                context,
+                                ref,
+                                currentMusic,
+                                optimize
+                                    ? targetLayout.trackInfoAlign
+                                    : layout.trackInfoAlign,
+                                optimize ? targetTLyrics : tLyrics,
+                                tLand,
+                                optimize
+                                    ? targetLayout.controlsScale
+                                    : layout.controlsScale,
+                              ),
                             ),
                           ),
                         ),
