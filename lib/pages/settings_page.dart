@@ -2371,7 +2371,18 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       );
     }
 
-    return content;
+    final isLandscape =
+        MediaQuery.of(context).orientation == Orientation.landscape;
+    final canPop = isLandscape || _currentSection == _SettingsSection.home;
+
+    return PopScope(
+      canPop: canPop,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _goHome();
+      },
+      child: content,
+    );
   }
 }
 
