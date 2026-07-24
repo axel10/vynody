@@ -1628,6 +1628,10 @@ class AppLocalizationsKo extends AppLocalizations {
       '음악 파일이 저장된 폴더를 선택하세요. Vynody가 자동으로 스캔하여 개인 음악 라이브러리를 구축합니다.';
 
   @override
+  String get onboardingAndroidPermissionTip =>
+      '참고: Android에서 로컬 음악을 가져오고 스캔하려면 미디어 라이브러리 접근 권한이 필요합니다. [폴더 선택]을 누르면 권한 요청이 표시되므로 허용해 주세요.';
+
+  @override
   String get onboardingSelectDirectory => '폴더 선택';
 
   @override

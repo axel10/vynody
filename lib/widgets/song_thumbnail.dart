@@ -72,6 +72,34 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
   }
 
   Future<void> _queryArtwork(int id) async {
+    final scanner = ref.read(scannerServiceProvider);
+    
+    // Check system permission on Android
+    if (Platform.isAndroid && !scanner.hasPermission) {
+      debugPrint('[SongThumbnail] Skip queryArtwork: no system permission for path=${widget.path}');
+      if (mounted) {
+        setState(() {
+          _artworkQueried = true;
+        });
+        _triggerLoad();
+      }
+      return;
+    }
+
+    // Check if the song is from system MediaStore
+    final metadata = scanner.metadataMap[widget.path];
+    final isSystemMedia = (metadata != null && ((metadata.sourceFlags ?? 0) & SongSourceFlags.systemMedia) != 0) || widget.path.startsWith('content://');
+    if (!isSystemMedia) {
+      debugPrint('[SongThumbnail] Skip queryArtwork: not a system media song for path=${widget.path}');
+      if (mounted) {
+        setState(() {
+          _artworkQueried = true;
+        });
+        _triggerLoad();
+      }
+      return;
+    }
+
     try {
       final double dpr = WidgetsBinding.instance.platformDispatcher.implicitView?.devicePixelRatio ?? 2.0;
       final int targetSize = (_bucketedSize * dpr).round();

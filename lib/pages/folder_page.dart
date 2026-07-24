@@ -583,6 +583,7 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
     AndroidOutputDirectory? androidOutputDirectory;
 
     if (Platform.isAndroid) {
+      await scanner.checkAndRequestPermissions();
       androidOutputDirectory = await ref
           .read(transcodeServiceProvider)
           .pickAndroidOutputDirectory();
@@ -634,7 +635,11 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
       switch (result.status) {
         case RootPathAddStatus.added:
         case RootPathAddStatus.alreadyAdded:
-          message = AppLocalizations.of(context)!.directoryAddedSuccess;
+          if (Platform.isAndroid && !scanner.hasPermission) {
+            message = '${AppLocalizations.of(context)!.directoryAddedSuccess}（未授予媒体库权限，已启用存储访问框架进行兼容扫描，速度可能较慢）';
+          } else {
+            message = AppLocalizations.of(context)!.directoryAddedSuccess;
+          }
           break;
         case RootPathAddStatus.noMusic:
           message = AppLocalizations.of(context)!.directoryAddedNoMusic;

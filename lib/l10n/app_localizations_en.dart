@@ -1662,6 +1662,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Select the folder where your music files are stored. Vynody will scan and build your personal music library automatically.';
 
   @override
+  String get onboardingAndroidPermissionTip =>
+      'Note: On Android, importing and scanning local music requires granting media library access permission. Tapping [Select Folder] will prompt for permission, please allow it.';
+
+  @override
   String get onboardingSelectDirectory => 'Select Folder';
 
   @override

@@ -1680,11 +1680,15 @@ class AppLocalizationsEs extends AppLocalizations {
       'Después de asociar, el sistema puede mostrar un menú de selección. Asegúrate de elegir \'Vynody\' y seleccionar \'Usar siempre\'.';
 
   @override
-  String get onboardingStepRootDirectory => 'Agregar directorio raíz de música';
+  String get onboardingStepRootDirectory => 'Añadir directorio de música';
 
   @override
   String get onboardingRootDirectoryDesc =>
       'Selecciona la carpeta donde están tus archivos de música. Vynody escaneará y creará tu biblioteca automáticamente.';
+
+  @override
+  String get onboardingAndroidPermissionTip =>
+      'Nota: En Android, la importación y escaneo de música local requiere conceder permiso de acceso a la biblioteca multimedia. Al pulsar [Seleccionar carpeta] se solicitará el permiso, por favor permítalo.';
 
   @override
   String get onboardingSelectDirectory => 'Seleccionar carpeta';

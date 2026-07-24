@@ -9,6 +9,8 @@ import 'package:vynody/player/audio/audio_service.dart';
 import 'package:vynody/player/metadata/metadata_helper.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/utils/memory_trace.dart';
+import 'package:device_info_plus/device_info_plus.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class CoverCarousel extends StatefulWidget {
   const CoverCarousel({
@@ -556,17 +558,42 @@ class _CoverItemState extends State<_CoverItem> {
     // Try system query (on_audio_query)
     if (Platform.isAndroid || Platform.isIOS) {
       if (widget.musicFile.id != null) {
-        final bytes = await OnAudioQuery().queryArtwork(
-          widget.musicFile.id!,
-          ArtworkType.AUDIO,
-          size: 800,
-        );
-        if (!mounted || bytes == null) return;
-        setState(() {
-          _artworkBytes = bytes;
-        });
-        widget.onArtworkLoaded?.call(bytes, null);
-        return;
+        var hasPermission = true;
+        if (Platform.isAndroid) {
+          try {
+            final deviceInfo = DeviceInfoPlugin();
+            final androidInfo = await deviceInfo.androidInfo;
+            if (androidInfo.version.sdkInt >= 33) {
+              hasPermission = await Permission.audio.isGranted;
+            } else {
+              hasPermission = await Permission.storage.isGranted;
+            }
+          } catch (_) {
+            hasPermission = false;
+          }
+        }
+
+        final isSystemMedia = widget.musicFile.mediaUri != null || widget.musicFile.path.startsWith('content://');
+
+        if (hasPermission && isSystemMedia) {
+          try {
+            final bytes = await OnAudioQuery().queryArtwork(
+              widget.musicFile.id!,
+              ArtworkType.AUDIO,
+              size: 800,
+            );
+            if (bytes != null) {
+              if (!mounted) return;
+              setState(() {
+                _artworkBytes = bytes;
+              });
+              widget.onArtworkLoaded?.call(bytes, null);
+              return;
+            }
+          } catch (e) {
+            debugPrint('[CoverCarousel] Error querying system artwork: $e');
+          }
+        }
       }
     }
 

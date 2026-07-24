@@ -1624,6 +1624,10 @@ class AppLocalizationsJa extends AppLocalizations {
       '音楽ファイルが保存されているフォルダを選択してください。Vynodyが自動的にスキャンしてあなたの音楽ライブラリを構築します。';
 
   @override
+  String get onboardingAndroidPermissionTip =>
+      '注意：Androidでローカル曲のインポートとスキャンを行うには、メディアライブラリのアクセス権限が必要です。【フォルダを選択】をタップすると権限が要求されますので、許可してください。';
+
+  @override
   String get onboardingSelectDirectory => 'フォルダを選択';
 
   @override

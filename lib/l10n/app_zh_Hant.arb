@@ -503,6 +503,7 @@
   "onboardingFileAssociationTip": "關聯後，系統可能會彈出選擇預設開啟程式的對話方塊。請務必在清單中選擇「Vynody」並設為始終使用。",
   "onboardingStepRootDirectory": "新增音樂根目錄",
   "onboardingRootDirectoryDesc": "選擇存放音樂檔案的資料夾。Vynody 會自動掃描並建立你的本地音樂庫。",
+  "onboardingAndroidPermissionTip": "注意：Android 系統在匯入與掃描本地歌曲時需要授予媒體庫存取權限。點擊【選擇資料夾】時將觸發權限請求，請予以允許。",
   "onboardingSelectDirectory": "選擇資料夾",
   "onboardingSuccessTitle": "一切準備就緒！",
   "onboardingSuccessDesc": "已成功新增媒體庫。讓我們開始享受音樂吧！",

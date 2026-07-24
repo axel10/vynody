@@ -3127,6 +3127,12 @@ abstract class AppLocalizations {
   /// **'选择存储音乐文件的文件夹。Vynody 会自动扫描并建立你的本地音乐库。'**
   String get onboardingRootDirectoryDesc;
 
+  /// No description provided for @onboardingAndroidPermissionTip.
+  ///
+  /// In zh, this message translates to:
+  /// **'注意：Android 系统在导入与扫描本地歌曲时需要授予媒体库访问权限。点击【选择文件夹】时将触发权限请求，请予以允许。'**
+  String get onboardingAndroidPermissionTip;
+
   /// No description provided for @onboardingSelectDirectory.
   ///
   /// In zh, this message translates to:

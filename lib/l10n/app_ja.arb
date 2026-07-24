@@ -667,6 +667,7 @@
   "onboardingFileAssociationTip": "関連付け後、システムが「開くアプリの選択」メニューを表示する場合があります。リストから「Vynody」を選択し、「常にこのアプリを使う」にチェックを入れてください。",
   "onboardingStepRootDirectory": "音楽ルートディレクトリを追加",
   "onboardingRootDirectoryDesc": "音楽ファイルが保存されているフォルダを選択してください。Vynodyが自動的にスキャンしてあなたの音楽ライブラリを構築します。",
+  "onboardingAndroidPermissionTip": "注意：Androidでローカル曲のインポートとスキャンを行うには、メディアライブラリのアクセス権限が必要です。【フォルダを選択】をタップすると権限が要求されますので、許可してください。",
   "onboardingSelectDirectory": "フォルダを選択",
   "onboardingSuccessTitle": "準備完了！",
   "onboardingSuccessDesc": "メディアライブラリを追加しました。音楽をお楽しみください！",

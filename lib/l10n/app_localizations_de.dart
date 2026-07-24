@@ -1673,11 +1673,15 @@ class AppLocalizationsDe extends AppLocalizations {
       'Nach der Zuordnung fordert das System Sie möglicherweise auf, eine Standard-App auszuwählen. Bitte wählen Sie \'Vynody\' aus der Liste und aktivieren Sie \'Immer diese App verwenden\'.';
 
   @override
-  String get onboardingStepRootDirectory => 'Musik-Stammverzeichnis hinzufügen';
+  String get onboardingStepRootDirectory => 'Musikverzeichnis hinzufügen';
 
   @override
   String get onboardingRootDirectoryDesc =>
       'Wählen Sie den Ordner mit Ihrer Musik. Vynody erstellt automatisch Ihre Mediathek.';
+
+  @override
+  String get onboardingAndroidPermissionTip =>
+      'Hinweis: Unter Android ist der Zugriff auf die Medienbibliothek erforderlich, um lokale Musik zu importieren und zu scannen. Beim Tippen auf [Ordner auswählen] wird nach der Berechtigung gefragt, bitte erlauben Sie diese.';
 
   @override
   String get onboardingSelectDirectory => 'Ordner auswählen';

@@ -9,6 +9,9 @@ import 'package:path/path.dart' as p;
 import 'package:vynody/player/library/music_file_utils.dart';
 import 'package:vynody/player/scanner/scanner_path_utils.dart';
 import 'package:vynody/player/scanner/scanner_scan_support.dart';
+import 'package:device_info_plus/device_info_plus.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:vynody/player/metadata/metadata_helper.dart';
 
 const Set<String> _windowsProtectedDirectoryNames = {
   r'$recycle.bin',
@@ -28,12 +31,63 @@ class ScannerDirectoryScanner {
       Platform.isIOS ||
       ScannerPathUtils.isLikelyPackagedWindowsApp();
 
+  Future<bool> _hasAndroidPermissions() async {
+    if (!Platform.isAndroid) return true;
+    try {
+      final deviceInfo = DeviceInfoPlugin();
+      final androidInfo = await deviceInfo.androidInfo;
+      if (androidInfo.version.sdkInt >= 33) {
+        return await Permission.audio.isGranted;
+      } else {
+        return await Permission.storage.isGranted;
+      }
+    } catch (e) {
+      debugPrint('[ScannerDirectoryScanner] _hasAndroidPermissions check failed: $e');
+      return false;
+    }
+  }
+
   Future<List<String>> discoverMusicFiles(
     String path,
     ScanProgressState scanState, {
     bool Function()? shouldCancel,
   }) async {
     debugPrint('[ScannerDirectoryScanner] discoverMusicFiles start path=$path');
+    if (Platform.isAndroid) {
+      final hasPermission = await _hasAndroidPermissions();
+      if (!hasPermission) {
+        debugPrint('[ScannerDirectoryScanner] Android system permission not granted. Checking SAF mapping for path=$path');
+        final mapping = await AndroidSafStorageHelper.findBestMapping(path);
+        if (mapping != null) {
+          final treeUri = mapping.value;
+          final displayPath = mapping.key;
+          final relativeSubPath = p.relative(path, from: displayPath);
+          debugPrint(
+            '[ScannerDirectoryScanner] SAF mapping found: displayPath=$displayPath, '
+            'treeUri=$treeUri, relativeSubPath=$relativeSubPath',
+          );
+          
+          final relativePaths = await AndroidSafStorageHelper.listMusicFilesRecursively(
+            treeUri,
+            relativeSubPath: relativeSubPath == '.' ? '' : relativeSubPath,
+          );
+          
+          final absolutePaths = relativePaths.map((rel) => p.join(displayPath, relativeSubPath == '.' ? '' : relativeSubPath, rel)).toList();
+          debugPrint(
+            '[ScannerDirectoryScanner] SAF discovery completed. Found ${absolutePaths.length} music files',
+          );
+          
+          scanState.discoveredCount += absolutePaths.length;
+          for (final file in absolutePaths) {
+            _emitScanProgress(scanState, file);
+          }
+          return absolutePaths;
+        } else {
+          debugPrint('[ScannerDirectoryScanner] No SAF mapping found for path=$path');
+        }
+      }
+    }
+
     if (_useInlineDiscovery) {
       debugPrint('[ScannerDirectoryScanner] using inline discovery path=$path');
       final discoveredPaths = await _discoverMusicFilesInline(

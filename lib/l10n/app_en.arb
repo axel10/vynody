@@ -667,6 +667,7 @@
   "onboardingFileAssociationTip": "After associating, the system may pop up an 'Open with' selection menu. Please make sure to choose 'Vynody' from the list and select 'Always use this app'.",
   "onboardingStepRootDirectory": "Add Music Root Directory",
   "onboardingRootDirectoryDesc": "Select the folder where your music files are stored. Vynody will scan and build your personal music library automatically.",
+  "onboardingAndroidPermissionTip": "Note: On Android, importing and scanning local music requires granting media library access permission. Tapping [Select Folder] will prompt for permission, please allow it.",
   "onboardingSelectDirectory": "Select Folder",
   "onboardingSuccessTitle": "All Set!",
   "onboardingSuccessDesc": "Successfully added your media library. Let's start enjoying music!",

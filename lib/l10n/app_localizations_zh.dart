@@ -1608,6 +1608,10 @@ class AppLocalizationsZh extends AppLocalizations {
       '选择存储音乐文件的文件夹。Vynody 会自动扫描并建立你的本地音乐库。';
 
   @override
+  String get onboardingAndroidPermissionTip =>
+      '注意：Android 系统在导入与扫描本地歌曲时需要授予媒体库访问权限。点击【选择文件夹】时将触发权限请求，请予以允许。';
+
+  @override
   String get onboardingSelectDirectory => '选择文件夹';
 
   @override
@@ -4587,6 +4591,10 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   @override
   String get onboardingRootDirectoryDesc =>
       '選擇存放音樂檔案的資料夾。Vynody 會自動掃描並建立你的本地音樂庫。';
+
+  @override
+  String get onboardingAndroidPermissionTip =>
+      '注意：Android 系統在匯入與掃描本地歌曲時需要授予媒體庫存取權限。點擊【選擇資料夾】時將觸發權限請求，請予以允許。';
 
   @override
   String get onboardingSelectDirectory => '選擇資料夾';

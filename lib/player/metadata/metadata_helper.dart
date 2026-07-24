@@ -1322,5 +1322,25 @@ class AndroidSafStorageHelper {
       return false;
     }
   }
+
+  static Future<List<String>> listMusicFilesRecursively(
+    String treeUri, {
+    String relativeSubPath = '',
+  }) async {
+    try {
+      final methodChannel = const MethodChannel('com.example.audio_converter/saf');
+      final result = await methodChannel.invokeListMethod<String>(
+        'listMusicFilesInDirectory',
+        <String, Object?>{
+          'treeUri': treeUri,
+          'relativeSubPath': relativeSubPath,
+        },
+      );
+      return result ?? const <String>[];
+    } catch (e) {
+      debugPrint('[AndroidSafStorageHelper] listMusicFilesRecursively error: $e');
+      return const <String>[];
+    }
+  }
 }
 
