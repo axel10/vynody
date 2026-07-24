@@ -2985,6 +2985,36 @@ class AppLocalizationsEn extends AppLocalizations {
       'Status: Unrestricted (recommended, playback protected)';
 
   @override
+  String get onboardingAndroidMediaTitle => 'Audio Library & Fast Scan Setup';
+
+  @override
+  String get onboardingAndroidMediaDescription =>
+      'Granting audio library permission enables hardware-level fast scanning and automatic music discovery. If not granted, you can still select specific folders via SAF.';
+
+  @override
+  String get onboardingAndroidMediaStep1 =>
+      '1. Fast Scan: Millisecond-level music indexing and tag parsing';
+
+  @override
+  String get onboardingAndroidMediaStep2 =>
+      '2. Full Library: Automatically discover music files across device';
+
+  @override
+  String get onboardingAndroidMediaStep3 =>
+      '3. Privacy Safe: Strictly used for local audio playback, no network upload';
+
+  @override
+  String get onboardingAndroidMediaButton => 'Enable Fast Scan Mode';
+
+  @override
+  String get onboardingAndroidMediaStatusGranted =>
+      'Status: Fast Scan Enabled (Recommended)';
+
+  @override
+  String get onboardingAndroidMediaStatusNotGranted =>
+      'Status: SAF Compatibility Mode (Optional)';
+
+  @override
   String get exitApp => 'Exit';
 
   @override
