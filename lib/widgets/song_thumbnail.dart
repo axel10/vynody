@@ -49,7 +49,8 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
 
   void _checkOrQueryArtwork() {
     if (Platform.isAndroid || Platform.isIOS) {
-      final existingPath = ref.read(scannerServiceProvider).metadataMap[widget.path]?.thumbnailPath;
+      final scanner = ref.read(scannerServiceProvider);
+      final existingPath = scanner.metadataMap[widget.path]?.thumbnailPath;
       if (existingPath != null && existingPath.isNotEmpty) {
         _artworkFilePath = existingPath;
         _artworkQueried = true;
@@ -58,8 +59,12 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
       if (widget.id != null) {
         final cacheKey = '${widget.id}_$_bucketedSize';
         if (_artworkCache.containsKey(cacheKey)) {
-          _artworkFilePath = _artworkCache[cacheKey];
+          final cachedPath = _artworkCache[cacheKey];
+          _artworkFilePath = cachedPath;
           _artworkQueried = true;
+          if (cachedPath != null && cachedPath.isNotEmpty) {
+            scanner.updateSongThumbnailPath(widget.path, cachedPath);
+          }
         } else {
           _queryArtwork(widget.id!);
         }
@@ -154,6 +159,10 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
             'cache': _artworkCache.length,
           },
         );
+
+        if (savedPath.isNotEmpty) {
+          scanner.updateSongThumbnailPath(widget.path, savedPath);
+        }
       }
       if (mounted) {
         setState(() {

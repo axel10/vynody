@@ -4,7 +4,11 @@ import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:on_audio_query/on_audio_query.dart';
+import 'package:audio_core/audio_core.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/audio/audio_service.dart';
 import 'package:vynody/player/metadata/metadata_helper.dart';
 import 'package:vynody/models/music_file.dart';
@@ -363,7 +367,7 @@ class _CoverCarouselState extends State<CoverCarousel>
   }
 }
 
-class _CoverItem extends StatefulWidget {
+class _CoverItem extends ConsumerStatefulWidget {
   const _CoverItem({
     super.key,
     required this.audioService,
@@ -386,10 +390,10 @@ class _CoverItem extends StatefulWidget {
   final void Function(Uint8List? bytes, String? path)? onArtworkLoaded;
 
   @override
-  State<_CoverItem> createState() => _CoverItemState();
+  ConsumerState<_CoverItem> createState() => _CoverItemState();
 }
 
-class _CoverItemState extends State<_CoverItem> {
+class _CoverItemState extends ConsumerState<_CoverItem> {
   Uint8List? _artworkBytes;
   bool _isLoaded = false;
   bool _hasLoadedHighRes = false;
@@ -509,7 +513,9 @@ class _CoverItemState extends State<_CoverItem> {
     }
 
     // 3. Try thumbnailPath next
-    final thumbPath = widget.musicFile.thumbnailPath;
+    final scanner = ref.read(scannerServiceProvider);
+    final thumbPath = widget.musicFile.thumbnailPath ??
+        scanner.metadataMap[widget.musicFile.path]?.thumbnailPath;
     if (thumbPath != null && File(thumbPath).existsSync()) {
       try {
         final bytes = await File(thumbPath).readAsBytes();
@@ -582,12 +588,30 @@ class _CoverItemState extends State<_CoverItem> {
               ArtworkType.AUDIO,
               size: 800,
             );
-            if (bytes != null) {
+            if (bytes != null && bytes.isNotEmpty) {
               if (!mounted) return;
               setState(() {
                 _artworkBytes = bytes;
               });
               widget.onArtworkLoaded?.call(bytes, null);
+
+              final scanner = ref.read(scannerServiceProvider);
+              final existingMeta = scanner.metadataMap[widget.musicFile.path];
+              if (existingMeta?.thumbnailPath == null ||
+                  existingMeta!.thumbnailPath!.isEmpty ||
+                  !File(existingMeta.thumbnailPath!).existsSync()) {
+                final md5Hex = await calculateMd5(bytes: bytes);
+                final supportDir = await getApplicationSupportDirectory();
+                final thumbnailsDir = Directory('${supportDir.path}/thumbnails');
+                if (!thumbnailsDir.existsSync()) {
+                  await thumbnailsDir.create(recursive: true);
+                }
+                final file = File('${thumbnailsDir.path}/${md5Hex}_thumb.jpg');
+                if (!file.existsSync()) {
+                  await file.writeAsBytes(bytes);
+                }
+                unawaited(scanner.updateSongThumbnailPath(widget.musicFile.path, file.path));
+              }
               return;
             }
           } catch (e) {

@@ -261,6 +261,36 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
+  Future<void> updateSongThumbnailPath(String path, String thumbnailPath) async {
+    final existingMeta = _metadataStore.getMetadata(path);
+    if (existingMeta != null) {
+      if (existingMeta.thumbnailPath != null &&
+          existingMeta.thumbnailPath!.isNotEmpty &&
+          File(existingMeta.thumbnailPath!).existsSync()) {
+        return;
+      }
+      final updated = existingMeta.copyWith(thumbnailPath: thumbnailPath);
+      _metadataStore.cacheMetadata(updated);
+      await MetadataDatabase().insertOrUpdateSong(updated);
+      notifyListeners();
+    } else {
+      final db = MetadataDatabase();
+      final dbMetadata = await db.getSongMetadata(path);
+      if (dbMetadata != null) {
+        if (dbMetadata.thumbnailPath != null &&
+            dbMetadata.thumbnailPath!.isNotEmpty &&
+            File(dbMetadata.thumbnailPath!).existsSync()) {
+          return;
+        }
+        final updated = dbMetadata.copyWith(thumbnailPath: thumbnailPath);
+        _metadataStore.cacheMetadata(updated);
+        await db.insertOrUpdateSong(updated);
+        notifyListeners();
+      }
+    }
+  }
+
+
   Future<List<MusicFile>> getAllRootSongs() async {
     final allSongs = <MusicFile>[];
     final seen = <String>{};
