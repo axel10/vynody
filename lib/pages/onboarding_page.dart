@@ -216,7 +216,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
           child: Column(
             children: [
               // Spacer to push the card down slightly, taking custom title bar into account
-              const SizedBox(height: 48),
+              const SizedBox(height: 24),
               Expanded(
                 child: Center(
                   child: Container(
@@ -277,7 +277,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                   ),
                 ),
               ),
-              const SizedBox(height: 48),
+              const SizedBox(height: 24),
             ],
           ),
         ),
@@ -784,6 +784,56 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
     );
   }
 
+  Widget _buildBatteryStatusBanner(ThemeData theme) {
+    final l10n = AppLocalizations.of(context)!;
+    final isDark = theme.brightness == Brightness.dark;
+
+    final statusText = _isBatteryExempted
+        ? l10n.onboardingAndroidBatteryStatusUnrestricted
+        : l10n.onboardingAndroidBatteryStatusOptimized;
+
+    final statusColor = _isBatteryExempted
+        ? (isDark ? Colors.greenAccent : Colors.green.shade800)
+        : (isDark ? Colors.amberAccent : Colors.orange.shade900);
+    final statusBgColor = _isBatteryExempted
+        ? Colors.green.withOpacity(isDark ? 0.12 : 0.08)
+        : Colors.orange.withOpacity(isDark ? 0.12 : 0.08);
+    final statusBorderColor = _isBatteryExempted
+        ? Colors.green.withOpacity(0.25)
+        : Colors.orange.withOpacity(0.25);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: statusBgColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: statusBorderColor),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            _isBatteryExempted
+                ? Icons.check_circle_rounded
+                : Icons.warning_amber_rounded,
+            color: statusColor,
+            size: 20,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              statusText,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: statusColor,
+                fontSize: 13.5,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildAndroidBatteryGuidePage(ThemeData theme) {
     final l10n = AppLocalizations.of(context)!;
     final title = l10n.onboardingAndroidBatteryTitle;
@@ -792,12 +842,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
     final step2 = l10n.onboardingAndroidBatteryStep2;
     final step3 = l10n.onboardingAndroidBatteryStep3;
     final openButtonText = l10n.onboardingAndroidBatteryButton;
-    final statusText = _isBatteryExempted
-        ? l10n.onboardingAndroidBatteryStatusUnrestricted
-        : l10n.onboardingAndroidBatteryStatusOptimized;
 
     return Padding(
-      padding: const EdgeInsets.all(32.0),
+      padding: const EdgeInsets.all(24.0),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -827,7 +874,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
           Text(
             desc,
             style: theme.textTheme.bodyMedium?.copyWith(
@@ -835,10 +882,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
               height: 1.4,
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
+          _buildBatteryStatusBanner(theme),
+          const SizedBox(height: 14),
           Expanded(
             child: Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
                 color: theme.colorScheme.onSurface.withOpacity(0.03),
                 borderRadius: BorderRadius.circular(14),
@@ -851,45 +900,16 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildStepRow(step1, theme),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
                     _buildStepRow(step2, theme),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
                     _buildStepRow(step3, theme),
-                    const SizedBox(height: 16),
-                    const Divider(),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Icon(
-                          _isBatteryExempted
-                              ? Icons.check_circle_rounded
-                              : Icons.warning_amber_rounded,
-                          color: _isBatteryExempted
-                              ? Colors.green
-                              : Colors.amber,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            statusText,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: _isBatteryExempted
-                                  ? Colors.green
-                                  : Colors.amber,
-                              fontSize: 13.5,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
                   ],
                 ),
               ),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
           Center(
             child: SizedBox(
               width: double.infinity,
