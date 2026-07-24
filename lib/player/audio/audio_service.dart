@@ -1976,14 +1976,13 @@ class AudioService extends Notifier<AudioSnapshot> {
       await _player.playlist.clear();
     }
 
-    await _player.playPaths(paths, autoPlayFirst: false);
-
-    final current = songs[safeIndex];
-    await _player.playTrack(
-      _audioTrackForSong(current),
-      preferredPlaylistId: _player.playlist.queuePlaylistId,
+    await _player.playPaths(
+      paths,
+      startIndex: safeIndex,
+      autoPlayFirst: true,
     );
 
+    final current = songs[safeIndex];
     _currentIndex = safeIndex;
     await _syncCurrentPlaybackSong(current);
     await _player.player.setVolume(_volume / 100.0);
@@ -2042,27 +2041,30 @@ class AudioService extends Notifier<AudioSnapshot> {
   }) async {
     if (songs.isEmpty) return;
     final safeIndex = initialIndex.clamp(0, songs.length - 1);
-    if (!await _songExists(songs[safeIndex].path)) {
-      setSongMissingStateByPath(songs[safeIndex].path, true);
-      _showMissingSongNotice(skipped: false);
-      return;
-    }
 
     _currentSource = source;
 
-    // 1. 设置正在切换状态并通知 UI
+    // 1. 同步设置正在切换状态与播放队列并通知 UI
     _isTransitioning = true;
-    notifyListeners();
     _queueProcessor.pause();
     _scannerService?.pauseBackgroundTasks();
 
-    try {
-      // 2. 清除并重新填充本地播放队列
-      _queue.clear();
-      _queue.addAll(songs);
-      _currentIndex = safeIndex;
-      notifyListeners();
+    _queue.clear();
+    _queue.addAll(songs);
+    _currentIndex = safeIndex;
+    notifyListeners();
 
+    if (!await _songExists(songs[safeIndex].path)) {
+      setSongMissingStateByPath(songs[safeIndex].path, true);
+      _showMissingSongNotice(skipped: false);
+      _isTransitioning = false;
+      _queueProcessor.resume();
+      _scannerService?.resumeBackgroundTasks();
+      notifyListeners();
+      return;
+    }
+
+    try {
       final current = _queue[safeIndex];
 
       await _playQueueTracks(

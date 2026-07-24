@@ -297,12 +297,7 @@ void main(List<String> args) async {
           overrides: [
             settingsServiceProvider.overrideWith((ref) => settingsService),
           ],
-          child: Consumer(
-            builder: (context, ref, _) {
-              ref.watch(audioServiceWiringProvider);
-              return MyApp(args: args);
-            },
-          ),
+          child: MyApp(args: args),
         ),
       );
     },
@@ -335,6 +330,7 @@ class _MyAppState extends ConsumerState<MyApp>
   @override
   void initState() {
     super.initState();
+    ref.read(audioServiceWiringProvider);
     WidgetsBinding.instance.addObserver(this);
     if (Platform.isLinux) {
       windowManager.addListener(this);

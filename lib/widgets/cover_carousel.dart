@@ -94,37 +94,36 @@ class _CoverCarouselState extends State<CoverCarousel>
 
     final bool playlistChanged = !_isPlaylistSame(oldWidget.playlist, widget.playlist);
 
-    if (widget.currentIndex != oldWidget.currentIndex &&
-        widget.currentIndex != _currentPage) {
-      if (playlistChanged &&
-          oldWidget.playlist.isNotEmpty &&
-          oldWidget.currentIndex >= 0 &&
-          oldWidget.currentIndex < oldWidget.playlist.length) {
-        _oldSongBeforePlaylistChange = oldWidget.playlist[oldWidget.currentIndex];
-        _oldPageBeforePlaylistChange = _animationController.value;
-      } else {
+    if (widget.currentIndex != oldWidget.currentIndex || playlistChanged) {
+      if (playlistChanged) {
         _oldSongBeforePlaylistChange = null;
         _oldPageBeforePlaylistChange = null;
+        _indexOverrides.clear();
+        _currentPage = widget.currentIndex;
+        _animationController.value = widget.currentIndex.toDouble();
+        _notifyAnimationComplete(widget.currentIndex);
+      } else if (widget.currentIndex != _currentPage) {
+        final diff = (widget.currentIndex - _currentPage).abs();
+        if (diff == 1) {
+          _currentPage = widget.currentIndex;
+          _animateToPage(widget.currentIndex);
+        } else {
+          _indexOverrides.clear();
+          _currentPage = widget.currentIndex;
+          _animationController.value = widget.currentIndex.toDouble();
+          _notifyAnimationComplete(widget.currentIndex);
+        }
       }
-      _currentPage = widget.currentIndex;
-      _animateToPage(widget.currentIndex, forceStepDirection: true);
-    } else if (playlistChanged) {
-      _oldSongBeforePlaylistChange = null;
-      _oldPageBeforePlaylistChange = null;
-      _currentPage = widget.currentIndex;
-      _animationController.value = widget.currentIndex.toDouble();
     }
   }
 
   void _animateToPage(
     int page, {
     double? velocity,
-    bool forceStepDirection = false,
   }) {
     _logCarouselTrace(
-      '_animateToPage page=$page forceStepDirection=$forceStepDirection '
-      'velocity=$velocity currentVal=${_animationController.value} '
-      'currentPage=$_currentPage isNext=${widget.isNext}',
+      '_animateToPage page=$page velocity=$velocity '
+      'currentVal=${_animationController.value} currentPage=$_currentPage',
     );
     final double currentVal = _animationController.value;
     final int targetPage = page;
@@ -132,71 +131,41 @@ class _CoverCarouselState extends State<CoverCarousel>
 
     if (diff == 0) return;
 
-    if (forceStepDirection || diff.abs() > 1.5) {
-      final bool isForward = widget.isNext ?? (diff > 0);
-      final int direction = isForward ? 1 : -1;
-      final int virtualTarget = currentVal.round() + direction;
-
-      _indexOverrides[virtualTarget] = targetPage;
-
-      _animationController
-          .animateTo(
-            virtualTarget.toDouble(),
-            duration: Duration(
-              milliseconds: velocity != null && velocity.abs() > 500
-                  ? 250
-                  : 400,
-            ),
-            curve: Curves.easeOutCubic,
-          )
-          .then((_) {
-            if (mounted) {
-              _logCarouselTrace(
-                '_animateToPage virtual complete -> targetPage=$targetPage '
-                'virtualTarget=$virtualTarget currentVal=${_animationController.value}',
-              );
-              _animationController.value = targetPage.toDouble();
-              _indexOverrides.clear();
-              _oldSongBeforePlaylistChange = null;
-              _oldPageBeforePlaylistChange = null;
-              if (_currentPage != targetPage) {
-                setState(() {
-                  _currentPage = targetPage;
-                });
-                widget.onPageChanged?.call(targetPage);
-              }
-              _notifyAnimationComplete(targetPage);
-            }
-          });
-    } else {
-      _animationController
-          .animateTo(
-            page.toDouble(),
-            duration: Duration(
-              milliseconds: velocity != null && velocity.abs() > 500
-                  ? 250
-                  : 400,
-            ),
-            curve: Curves.easeOutCubic,
-          )
-          .then((_) {
-            if (mounted) {
-              _logCarouselTrace(
-                '_animateToPage complete -> page=$page '
-                'currentVal=${_animationController.value}',
-              );
-              _oldSongBeforePlaylistChange = null;
-              _oldPageBeforePlaylistChange = null;
-              if (_currentPage != page) {
-                setState(() {
-                  _currentPage = page;
-                });
-                widget.onPageChanged?.call(page);
-              }
-              _notifyAnimationComplete(page);
-            }
-          });
+    if (diff.abs() > 1.5) {
+      _indexOverrides.clear();
+      _currentPage = targetPage;
+      _animationController.value = targetPage.toDouble();
+      _notifyAnimationComplete(targetPage);
+      return;
     }
+
+    _animationController
+        .animateTo(
+          targetPage.toDouble(),
+          duration: Duration(
+            milliseconds: velocity != null && velocity.abs() > 500
+                ? 250
+                : 400,
+          ),
+          curve: Curves.easeOutCubic,
+        )
+        .then((_) {
+          if (mounted) {
+            _logCarouselTrace(
+              '_animateToPage complete -> page=$targetPage '
+              'currentVal=${_animationController.value}',
+            );
+            _oldSongBeforePlaylistChange = null;
+            _oldPageBeforePlaylistChange = null;
+            if (_currentPage != targetPage) {
+              setState(() {
+                _currentPage = targetPage;
+              });
+              widget.onPageChanged?.call(targetPage);
+            }
+            _notifyAnimationComplete(targetPage);
+          }
+        });
   }
 
   void _notifyAnimationComplete(int page) {

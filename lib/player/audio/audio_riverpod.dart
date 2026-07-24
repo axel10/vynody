@@ -77,9 +77,9 @@ final acoustidServiceProvider = Provider<AcoustIDService>((ref) {
 });
 
 final audioServiceWiringProvider = Provider<void>((ref) {
-  final audio = ref.watch(audioServiceProvider);
-  final scanner = ref.watch(scannerServiceProvider);
-  final playlist = ref.watch(playlistServiceProvider);
+  final audio = ref.read(audioServiceProvider);
+  final scanner = ref.read(scannerServiceProvider);
+  final playlist = ref.read(playlistServiceProvider);
   audio.setScannerService(scanner);
   audio.setPlaylistService(playlist);
   scanner.setPlayerController(audio.playbackController);
