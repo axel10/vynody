@@ -481,33 +481,37 @@ class _CoverItemState extends ConsumerState<_CoverItem> {
       return;
     }
 
-    // 3. Try thumbnailPath next
-    final scanner = ref.read(scannerServiceProvider);
-    final thumbPath = widget.musicFile.thumbnailPath ??
-        scanner.metadataMap[widget.musicFile.path]?.thumbnailPath;
-    if (thumbPath != null && File(thumbPath).existsSync()) {
-      try {
-        final bytes = await File(thumbPath).readAsBytes();
-        if (!mounted) return;
-        setState(() {
-          _artworkBytes = bytes;
-        });
-        widget.onArtworkLoaded?.call(bytes, null);
+    final bool isLowMidEnd = ref.read(isLowMidEndDeviceProvider);
 
-        if (_isSettled) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted && _isSettled && !_hasLoadedHighRes) {
-              _loadHighResArtwork();
-            }
+    // 3. Try thumbnailPath next ONLY on Android low/mid-end devices to smooth Hero transitions
+    if (isLowMidEnd) {
+      final scanner = ref.read(scannerServiceProvider);
+      final thumbPath = widget.musicFile.thumbnailPath ??
+          scanner.metadataMap[widget.musicFile.path]?.thumbnailPath;
+      if (thumbPath != null && File(thumbPath).existsSync()) {
+        try {
+          final bytes = await File(thumbPath).readAsBytes();
+          if (!mounted) return;
+          setState(() {
+            _artworkBytes = bytes;
           });
+          widget.onArtworkLoaded?.call(bytes, null);
+
+          if (_isSettled) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted && _isSettled && !_hasLoadedHighRes) {
+                _loadHighResArtwork();
+              }
+            });
+          }
+          return;
+        } catch (e) {
+          debugPrint('Error loading thumbnail from $thumbPath: $e');
         }
-        return;
-      } catch (e) {
-        debugPrint('Error loading thumbnail from $thumbPath: $e');
       }
     }
 
-    // 4. If no thumbnail exists, trigger high-res load immediately
+    // 4. On non-Android low-mid devices or if no thumbnail exists, trigger high-res load immediately
     _loadHighResArtwork();
   }
 
@@ -601,6 +605,25 @@ class _CoverItemState extends ConsumerState<_CoverItem> {
       });
       widget.onArtworkLoaded?.call(embeddedBytes, null);
       return;
+    }
+
+    // Fallback: If high-res artwork failed or is missing, try thumbnailPath if present
+    if (_artworkBytes == null) {
+      final scanner = ref.read(scannerServiceProvider);
+      final thumbPath = widget.musicFile.thumbnailPath ??
+          scanner.metadataMap[widget.musicFile.path]?.thumbnailPath;
+      if (thumbPath != null && File(thumbPath).existsSync()) {
+        try {
+          final bytes = await File(thumbPath).readAsBytes();
+          if (!mounted) return;
+          setState(() {
+            _artworkBytes = bytes;
+          });
+          widget.onArtworkLoaded?.call(bytes, null);
+        } catch (e) {
+          debugPrint('Error loading fallback thumbnail from $thumbPath: $e');
+        }
+      }
     }
   }
 
