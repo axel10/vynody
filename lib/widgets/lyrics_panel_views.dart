@@ -275,9 +275,9 @@ class _LyricsPanelTimedLyricsViewState extends State<LyricsPanelTimedLyricsView>
                     child: Column(
                       children: List.generate(widget.displayLines.length, (index) {
                         final bool isFar = widget.isTransitioning &&
-                            widget.isLowMidEnd &&
-                            widget.hasTimedLyrics &&
-                            (index - widget.activeIndex).abs() > 8;
+                            (widget.hasTimedLyrics
+                                ? (index - widget.activeIndex).abs() > 8
+                                : index > 15);
 
                         if (isFar) {
                           double itemHeight = 40.0;
@@ -426,13 +426,13 @@ class _LyricsPanelTimedLyricsViewState extends State<LyricsPanelTimedLyricsView>
                             !isActive &&
                             !isHovered &&
                             distance <= 10 &&
-                            !(widget.isTransitioning && widget.isLowMidEnd);
+                            !widget.isTransitioning;
                         final Widget blurredChild;
                         if (widget.hasTimedLyrics &&
                             widget.lyricsStyle == LyricsStyle.apple &&
                             widget.isFocusMode &&
                             distance <= 12 &&
-                            !(widget.isTransitioning && widget.isLowMidEnd)) {
+                            !widget.isTransitioning) {
                           final int diff = index - widget.activeIndex;
                           final double targetBlur = shouldBlur
                               ? (PlaybackPageUiTuning.appleLyricsBaseBlurSigma +

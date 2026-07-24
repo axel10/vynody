@@ -167,6 +167,38 @@ class PlaybackHeroCard extends ConsumerWidget {
     return lerpDouble(p, l, tLand) ?? p;
   }
 
+  _PlaybackPaneLayout _lerpPaneLayout(
+    _PlaybackPaneLayout a,
+    _PlaybackPaneLayout b,
+    double t,
+  ) {
+    return _PlaybackPaneLayout(
+      top: lerpDouble(a.top, b.top, t) ?? a.top,
+      left: lerpDouble(a.left, b.left, t) ?? a.left,
+      width: lerpDouble(a.width, b.width, t) ?? a.width,
+      height: lerpDouble(a.height, b.height, t) ?? a.height,
+      opacity: lerpDouble(a.opacity, b.opacity, t) ?? a.opacity,
+    );
+  }
+
+  _PlaybackCardLayout _lerpPlaybackCardLayout(
+    _PlaybackCardLayout start,
+    _PlaybackCardLayout end,
+    double t,
+  ) {
+    if (t <= 0.0) return start;
+    if (t >= 1.0) return end;
+    return _PlaybackCardLayout(
+      cover: _lerpPaneLayout(start.cover, end.cover, t),
+      info: _lerpPaneLayout(start.info, end.info, t),
+      controls: _lerpPaneLayout(start.controls, end.controls, t),
+      lyrics: _lerpPaneLayout(start.lyrics, end.lyrics, t),
+      trackInfoAlign: t < 0.5 ? start.trackInfoAlign : end.trackInfoAlign,
+      controlsScale: lerpDouble(start.controlsScale, end.controlsScale, t) ??
+          start.controlsScale,
+    );
+  }
+
   // Removed viewportProfile
 
   Future<void> _showTrackInfoContextMenu(
@@ -517,11 +549,13 @@ class PlaybackHeroCard extends ConsumerWidget {
                 final bool optimize = isTransitioning && isLowMidEnd;
 
                 final double targetTLyrics = effectiveIsLyricsMode ? 1.0 : 0.0;
-                final targetLayout = _buildPlaybackCardLayout(
+
+                // Stable normal layout (tLyrics = 0.0)
+                final coverNormalLayout = _buildPlaybackCardLayout(
                   context,
                   width: width,
                   height: height,
-                  tLyrics: targetTLyrics,
+                  tLyrics: 0.0,
                   tLand: tLand,
                   isWaveformEnabled: isWaveformEnabled,
                   isSmallWindow: isSmallWindow,
@@ -530,20 +564,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                       collapseButtonsInLandscapeLyrics,
                 );
 
-                final layout = _buildPlaybackCardLayout(
-                  context,
-                  width: width,
-                  height: height,
-                  tLyrics: tLyrics,
-                  tLand: tLand,
-                  isWaveformEnabled: isWaveformEnabled,
-                  isSmallWindow: isSmallWindow,
-                  lyricsStyle: settings.lyricsStyle,
-                  collapseButtonsInLandscapeLyrics:
-                      collapseButtonsInLandscapeLyrics,
-                );
-
-                // Stable target end layout to prevent Positioned resizing during lyrics toggle transition
+                // Stable target end layout (tLyrics = 1.0)
                 final endLayout = _buildPlaybackCardLayout(
                   context,
                   width: width,
@@ -557,19 +578,15 @@ class PlaybackHeroCard extends ConsumerWidget {
                       collapseButtonsInLandscapeLyrics,
                 );
 
-                // Stable normal layout to get the maximum cover size for decoding caching
-                final coverNormalLayout = _buildPlaybackCardLayout(
-                  context,
-                  width: width,
-                  height: height,
-                  tLyrics: 0.0,
-                  tLand: tLand,
-                  isWaveformEnabled: isWaveformEnabled,
-                  isSmallWindow: isSmallWindow,
-                  lyricsStyle: settings.lyricsStyle,
-                  collapseButtonsInLandscapeLyrics:
-                      collapseButtonsInLandscapeLyrics,
+                // Interpolated current layout for smooth animation without re-evaluating full layout rules
+                final layout = _lerpPlaybackCardLayout(
+                  coverNormalLayout,
+                  endLayout,
+                  tLyrics,
                 );
+
+                final targetLayout =
+                    targetTLyrics == 1.0 ? endLayout : coverNormalLayout;
 
                 final double translationX =
                     layout.lyrics.left - endLayout.lyrics.left;
@@ -592,17 +609,18 @@ class PlaybackHeroCard extends ConsumerWidget {
                         left: endLayout.lyrics.left,
                         width: endLayout.lyrics.width,
                         height: endLayout.lyrics.height,
-                        child: RepaintBoundary(
-                          child: Transform.translate(
-                            offset: Offset(translationX, translationY),
-                            child: Opacity(
-                              opacity: layout.lyrics.opacity.clamp(0.0, 1.0),
+                        child: ExcludeSemantics(
+                          excluding: isTransitioning,
+                          child: RepaintBoundary(
+                            child: Transform.translate(
+                              offset: Offset(translationX, translationY),
                               child: IgnorePointer(
                                 ignoring: layout.lyrics.opacity < 0.5,
                                 child: RepaintBoundary(
                                   child: Consumer(
                                     builder: (context, ref, childWidget) {
-                                      if (layout.lyrics.opacity == 0.0) {
+                                      if (tLyrics == 0.0 &&
+                                          !effectiveIsLyricsMode) {
                                         return const SizedBox.shrink();
                                       }
                                       if (isTransitioningNotifier.value !=
@@ -1277,7 +1295,7 @@ class PlaybackHeroCard extends ConsumerWidget {
     final lyrics = _lerpPane(
       context,
       pNormal: _PlaybackPaneLayout(
-        top: height,
+        top: height + 80.0,
         left: 24.0,
         width: math.max(0.0, width - 48.0),
         height: math.max(
@@ -1298,7 +1316,7 @@ class PlaybackHeroCard extends ConsumerWidget {
       ),
       lNormal: _PlaybackPaneLayout(
         top: 16.0,
-        left: width,
+        left: width + 80.0,
         width: lLyricsLyricsWidth,
         height: math.max(0.0, height - 32.0),
         opacity: 0.0,

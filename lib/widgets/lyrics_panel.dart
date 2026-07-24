@@ -992,7 +992,8 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     if (lines.isEmpty ||
         !_hasTimedLyrics(lines) ||
         _isAutoScrollPaused ||
-        _isDraggingLyrics) {
+        _isDraggingLyrics ||
+        (widget.isTransitioning && !force)) {
       return;
     }
 
