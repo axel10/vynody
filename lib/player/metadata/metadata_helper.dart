@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart' show MethodChannel;
+import 'package:flutter/services.dart' show MethodChannel, RootIsolateToken, BackgroundIsolateBinaryMessenger;
 import 'package:audio_core/audio_core.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -545,9 +545,12 @@ class MetadataHelper {
         // 2. 在 Isolate 中读取文件标签；只有需要缩略图时才取封面字节
         final metadata = await compute(
           generateThumbnail
-              ? readMetadataWithImageIsolate
-              : readMetadataIsolate,
-          filePath,
+              ? _readMetadataWithImageIsolateEntryPoint
+              : _readMetadataIsolateEntryPoint,
+          <String, dynamic>{
+            'path': filePath,
+            'token': RootIsolateToken.instance,
+          },
         );
         title = metadata.title;
         album = metadata.album;
@@ -739,7 +742,10 @@ class MetadataHelper {
   /// 从文件直接读取原始标签，不请求网络，不存入数据库
   static Future<SongMetadata?> readMetadataFromFile(String filePath) async {
     try {
-      final metadata = await compute(readMetadataIsolate, filePath);
+      final metadata = await compute(_readMetadataIsolateEntryPoint, <String, dynamic>{
+        'path': filePath,
+        'token': RootIsolateToken.instance,
+      });
       return SongMetadata(
         path: filePath,
         title: metadata.title ?? p.basenameWithoutExtension(filePath),
@@ -782,7 +788,10 @@ class MetadataHelper {
   /// 解码文件内嵌封面，分辨率限制在 [maxWidth] * [maxHeight]
   static Future<Uint8List?> decodeEmbeddedArtwork(String filePath) async {
     try {
-      final metadata = await compute(readMetadataWithImageIsolate, filePath);
+      final metadata = await compute(_readMetadataWithImageIsolateEntryPoint, <String, dynamic>{
+        'path': filePath,
+        'token': RootIsolateToken.instance,
+      });
       if (metadata.pictures.isEmpty) return null;
 
       return metadata.pictures.first.bytes;
@@ -795,7 +804,10 @@ class MetadataHelper {
   /// 探测文件内是否存在内嵌封面，不生成任何缓存文件。
   static Future<bool> hasEmbeddedArtwork(String filePath) async {
     try {
-      final metadata = readMetadataIsolate(filePath);
+      final metadata = await compute(_readMetadataIsolateEntryPoint, <String, dynamic>{
+        'path': filePath,
+        'token': RootIsolateToken.instance,
+      });
       return metadata.hasArtwork;
     } catch (_) {
       // Probe-only API: tagless or slightly malformed files should behave like
@@ -865,6 +877,85 @@ class MetadataHelper {
     }
   }
 
+  static Future<TagLibMetadata> _readMetadataIsolateEntryPoint(
+    Map<String, dynamic> args,
+  ) async {
+    final path = args['path'] as String;
+    final token = args['token'] as RootIsolateToken?;
+
+    if (Platform.isAndroid && token != null) {
+      BackgroundIsolateBinaryMessenger.ensureInitialized(token);
+    }
+
+    if (!taglib.TagLibFile.isSupported) {
+      throw UnsupportedError('TagLib is not supported.');
+    }
+    final tagFile = await taglib.TagLibFile.openAsync(path);
+    if (tagFile == null) {
+      throw Exception('Failed to open file via TagLib.');
+    }
+    try {
+      final title = tagFile.title;
+      final artist = tagFile.artist;
+      final album = tagFile.album;
+      final duration = tagFile.duration;
+      final trackNumber = tagFile.track;
+      final hasArtwork = tagFile.hasCover;
+
+      return TagLibMetadata(
+        title: title.isNotEmpty ? title : null,
+        album: album.isNotEmpty ? album : null,
+        artist: artist.isNotEmpty ? artist : null,
+        duration: duration.inMilliseconds > 0 ? duration : null,
+        trackNumber: trackNumber > 0 ? trackNumber : null,
+        hasArtwork: hasArtwork,
+        pictures: const [],
+      );
+    } finally {
+      tagFile.close();
+    }
+  }
+
+  static Future<TagLibMetadata> _readMetadataWithImageIsolateEntryPoint(
+    Map<String, dynamic> args,
+  ) async {
+    final path = args['path'] as String;
+    final token = args['token'] as RootIsolateToken?;
+
+    if (Platform.isAndroid && token != null) {
+      BackgroundIsolateBinaryMessenger.ensureInitialized(token);
+    }
+
+    if (!taglib.TagLibFile.isSupported) {
+      throw UnsupportedError('TagLib is not supported.');
+    }
+    final tagFile = await taglib.TagLibFile.openAsync(path);
+    if (tagFile == null) {
+      throw Exception('Failed to open file via TagLib.');
+    }
+    try {
+      final title = tagFile.title;
+      final artist = tagFile.artist;
+      final album = tagFile.album;
+      final duration = tagFile.duration;
+      final trackNumber = tagFile.track;
+      final hasArtwork = tagFile.hasCover;
+      final pictures = tagFile.pictures;
+
+      return TagLibMetadata(
+        title: title.isNotEmpty ? title : null,
+        album: album.isNotEmpty ? album : null,
+        artist: artist.isNotEmpty ? artist : null,
+        duration: duration.inMilliseconds > 0 ? duration : null,
+        trackNumber: trackNumber > 0 ? trackNumber : null,
+        hasArtwork: hasArtwork,
+        pictures: pictures,
+      );
+    } finally {
+      tagFile.close();
+    }
+  }
+
   static Future<List<Map<String, dynamic>>> readMetadataBatch(
     List<String> filePaths, {
     bool getImage = false,
@@ -876,67 +967,74 @@ class MetadataHelper {
     return compute(_readMetadataBatchIsolate, <String, dynamic>{
       'paths': filePaths,
       'getImage': getImage,
+      'token': RootIsolateToken.instance,
     });
   }
 
-  static List<Map<String, dynamic>> _readMetadataBatchIsolate(
+  static Future<List<Map<String, dynamic>>> _readMetadataBatchIsolate(
     Map<String, dynamic> args,
-  ) {
+  ) async {
     final paths = (args['paths'] as List).cast<String>();
     final getImage = args['getImage'] as bool? ?? false;
-    return paths
-        .map((path) {
-          final file = File(path);
-          try {
-            if (!taglib.TagLibFile.isSupported) {
-              throw UnsupportedError('TagLib is not supported.');
-            }
-            final tagFile = taglib.TagLibFile.open(path);
-            if (tagFile == null) {
-              throw Exception('Failed to open file via TagLib.');
-            }
-            try {
-              final title = tagFile.title;
-              final artist = tagFile.artist;
-              final album = tagFile.album;
-              final duration = tagFile.duration.inMilliseconds;
-              final trackNumber = tagFile.track;
-              final hasArtwork = tagFile.hasCover;
-              final artworkBytes = getImage && hasArtwork ? tagFile.coverData : null;
-              final lastModified = file.lastModifiedSync().millisecondsSinceEpoch;
+    final token = args['token'] as RootIsolateToken?;
 
-              return <String, dynamic>{
-                'path': path,
-                'title': title.isNotEmpty ? title : null,
-                'album': album.isNotEmpty ? album : null,
-                'artist': artist.isNotEmpty ? artist : null,
-                'duration': duration > 0 ? duration : null,
-                'trackNumber': trackNumber > 0 ? trackNumber : null,
-                'lastModifiedTime': lastModified,
-                'hasArtwork': hasArtwork,
-                'artworkBytes': artworkBytes,
-                'error': null,
-              };
-            } finally {
-              tagFile.close();
-            }
-          } catch (e) {
-            final lastModified = _safeLastModifiedMillis(file);
-            return <String, dynamic>{
-              'path': path,
-              'title': null,
-              'album': null,
-              'artist': null,
-              'duration': null,
-              'trackNumber': null,
-              'lastModifiedTime': lastModified,
-              'hasArtwork': false,
-              'artworkBytes': null,
-              'error': e.toString(),
-            };
-          }
-        })
-        .toList(growable: false);
+    if (Platform.isAndroid && token != null) {
+      BackgroundIsolateBinaryMessenger.ensureInitialized(token);
+    }
+
+    final results = <Map<String, dynamic>>[];
+    for (final path in paths) {
+      final file = File(path);
+      try {
+        if (!taglib.TagLibFile.isSupported) {
+          throw UnsupportedError('TagLib is not supported.');
+        }
+        final tagFile = await taglib.TagLibFile.openAsync(path);
+        if (tagFile == null) {
+          throw Exception('Failed to open file via TagLib.');
+        }
+        try {
+          final title = tagFile.title;
+          final artist = tagFile.artist;
+          final album = tagFile.album;
+          final duration = tagFile.duration.inMilliseconds;
+          final trackNumber = tagFile.track;
+          final hasArtwork = tagFile.hasCover;
+          final artworkBytes = getImage && hasArtwork ? tagFile.coverData : null;
+          final lastModified = _safeLastModifiedMillis(file);
+
+          results.add(<String, dynamic>{
+            'path': path,
+            'title': title.isNotEmpty ? title : null,
+            'album': album.isNotEmpty ? album : null,
+            'artist': artist.isNotEmpty ? artist : null,
+            'duration': duration > 0 ? duration : null,
+            'trackNumber': trackNumber > 0 ? trackNumber : null,
+            'lastModifiedTime': lastModified,
+            'hasArtwork': hasArtwork,
+            'artworkBytes': artworkBytes,
+            'error': null,
+          });
+        } finally {
+          tagFile.close();
+        }
+      } catch (e) {
+        final lastModified = _safeLastModifiedMillis(file);
+        results.add(<String, dynamic>{
+          'path': path,
+          'title': null,
+          'album': null,
+          'artist': null,
+          'duration': null,
+          'trackNumber': null,
+          'lastModifiedTime': lastModified,
+          'hasArtwork': false,
+          'artworkBytes': null,
+          'error': e.toString(),
+        });
+      }
+    }
+    return results;
   }
 
   static int? _safeLastModifiedMillis(File file) {
