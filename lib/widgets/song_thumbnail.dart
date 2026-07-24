@@ -44,7 +44,17 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
   @override
   void initState() {
     super.initState();
+    _checkOrQueryArtwork();
+  }
+
+  void _checkOrQueryArtwork() {
     if (Platform.isAndroid || Platform.isIOS) {
+      final existingPath = ref.read(scannerServiceProvider).metadataMap[widget.path]?.thumbnailPath;
+      if (existingPath != null && existingPath.isNotEmpty) {
+        _artworkFilePath = existingPath;
+        _artworkQueried = true;
+        return;
+      }
       if (widget.id != null) {
         final cacheKey = '${widget.id}_$_bucketedSize';
         if (_artworkCache.containsKey(cacheKey)) {
@@ -132,7 +142,7 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
 
         final cacheKey = '${id}_$_bucketedSize';
         _artworkCache[cacheKey] = savedPath;
-        if (_artworkCache.length > 100) {
+        if (_artworkCache.length > 500) {
           _artworkCache.remove(_artworkCache.keys.first);
         }
         MemoryTrace.snapshot(
@@ -184,17 +194,7 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
       _loadTriggered = false;
       _artworkFilePath = null;
       _artworkQueried = false;
-      if ((Platform.isAndroid || Platform.isIOS) && widget.id != null) {
-        final cacheKey = '${widget.id}_$_bucketedSize';
-        if (_artworkCache.containsKey(cacheKey)) {
-          _artworkFilePath = _artworkCache[cacheKey];
-          _artworkQueried = true;
-        } else {
-          _queryArtwork(widget.id!);
-        }
-      } else if (Platform.isAndroid || Platform.isIOS) {
-        _triggerLoad();
-      }
+      _checkOrQueryArtwork();
     }
   }
 
