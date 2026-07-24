@@ -634,6 +634,7 @@ class _CoverItemState extends State<_CoverItem> {
 
         // Only apply perspective if there is actual rotation
         final double perspective = effectiveRotationY != 0 ? 0.001 : 0.0;
+        final bool isAnimating = widget.animation.isAnimating || !isCentered;
 
         return RepaintBoundary(
           child: Opacity(
@@ -661,29 +662,37 @@ class _CoverItemState extends State<_CoverItem> {
                             : 24.0,
                       ),
                       color: Colors.black26,
-                      boxShadow: [
-                        // Deep soft ambient shadow
-                        BoxShadow(
-                          color: Colors.black.withValues(
-                            alpha: (0.07 + 0.12 * (1 - pageOffset.abs())),
-                          ),
-                          blurRadius: 3 * scale,
-                          spreadRadius: 2 * scale,
-                          offset: Offset(0, 2 * scale),
-                        ),
-                        // Crisp contact shadow
-                        BoxShadow(
-                          color: Colors.black.withValues(
-                            alpha: (0.10 + 0.08 * (1 - pageOffset.abs())),
-                          ),
-                          blurRadius: 16 * scale,
-                          spreadRadius: -4 * scale,
-                          offset: Offset(0, 8 * scale),
-                        ),
-                      ],
+                      boxShadow: isAnimating
+                          ? const [
+                              BoxShadow(
+                                color: Colors.black38,
+                                blurRadius: 12,
+                                offset: Offset(0, 4),
+                              ),
+                            ]
+                          : [
+                              // Deep soft ambient shadow
+                              BoxShadow(
+                                color: Colors.black.withValues(
+                                  alpha: (0.07 + 0.12 * (1 - pageOffset.abs())),
+                                ),
+                                blurRadius: 3 * scale,
+                                spreadRadius: 2 * scale,
+                                offset: Offset(0, 2 * scale),
+                              ),
+                              // Crisp contact shadow
+                              BoxShadow(
+                                color: Colors.black.withValues(
+                                  alpha: (0.10 + 0.08 * (1 - pageOffset.abs())),
+                                ),
+                                blurRadius: 16 * scale,
+                                spreadRadius: -4 * scale,
+                                offset: Offset(0, 8 * scale),
+                              ),
+                            ],
                     ),
-                    clipBehavior: Clip.antiAlias,
-                    child: _buildCoverImage(isCentered),
+                    clipBehavior: isAnimating ? Clip.hardEdge : Clip.antiAlias,
+                    child: _buildCoverImage(isCentered, isAnimating),
                   ),
                 ),
               ),
@@ -694,24 +703,24 @@ class _CoverItemState extends State<_CoverItem> {
     );
   }
 
-  Widget _buildCoverImage(bool isCentered) {
+  Widget _buildCoverImage(bool isCentered, bool isAnimating) {
     final isPc = Platform.isWindows || Platform.isMacOS || Platform.isLinux;
 
     final int? finalCacheWidth;
     if (isPc) {
       // For PC/desktop, use a fixed cache size of 1200 to completely avoid re-decoding when resizing the window.
-      // Since ResizeImage has allowUpscaling = false by default, images smaller than 1200
-      // will be decoded at their original size, and larger ones will be capped at 1200.
       finalCacheWidth = 1200;
     } else {
-      final double devicePixelRatio = MediaQuery.of(context).devicePixelRatio;
-      final int limit = 800;
-      final bool isAnimating = widget.animation.isAnimating;
-      final double rawSize = ((widget.cacheWidthSize ?? widget.displaySize) ?? 400) * devicePixelRatio;
-      final int cacheSize = isAnimating
-          ? (rawSize / 20).round() * 20
-          : rawSize.round();
-      finalCacheWidth = cacheSize >= 40 ? math.min(cacheSize, limit) : null;
+      if (isAnimating) {
+        // 在动画或过度进行期间固定使用 800px 缓存宽度，避免 ResizeImage 在每一帧解算不同的 cacheWidth 导致反复重新解码
+        finalCacheWidth = 800;
+      } else {
+        final double devicePixelRatio = MediaQuery.of(context).devicePixelRatio;
+        final double rawSize = ((widget.cacheWidthSize ?? widget.displaySize) ?? 400) * devicePixelRatio;
+        // 使用 400px 大步长分桶，彻底防止微小尺寸变动导致的 ImageCache 频繁 Miss
+        final int cacheBucket = (rawSize / 400.0).ceil() * 400;
+        finalCacheWidth = math.min(math.max(cacheBucket, 400), 800);
+      }
     }
 
     final cachedBytes = widget.audioService.getCachedArtwork(
