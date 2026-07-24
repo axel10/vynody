@@ -298,6 +298,8 @@ class SettingsService extends ChangeNotifier {
 
   static const double defaultPlaybackBackgroundNormalOpacity = 0.20;
   static const double defaultPlaybackBackgroundLyricsOpacity = 0.30;
+  static const double defaultPlaybackBlurredArtworkBlurSigma = 30.0;
+  static const double defaultPlaybackCustomImageBlurSigma = 0.0;
 
   // Visualizer styling keys
   static const String _keyVisColor = 'visualizer_color';
@@ -944,14 +946,14 @@ class SettingsService extends ChangeNotifier {
 
   late final _playbackBlurredArtworkBlurSigmaProperty = SettingProperty<double>(
     key: _keyPlaybackBlurredArtworkBlurSigma,
-    defaultValue: 30.0,
+    defaultValue: defaultPlaybackBlurredArtworkBlurSigma,
     prefs: _prefs,
     onChanged: notifyListeners,
   );
 
   late final _playbackCustomImageBlurSigmaProperty = SettingProperty<double>(
     key: _keyPlaybackCustomImageBlurSigma,
-    defaultValue: 0.0,
+    defaultValue: defaultPlaybackCustomImageBlurSigma,
     prefs: _prefs,
     onChanged: notifyListeners,
   );
@@ -1692,12 +1694,12 @@ class SettingsService extends ChangeNotifier {
       _playbackBackgroundLyricsOpacityProperty.value = value;
 
   double get playbackBlurredArtworkBlurSigma =>
-      _playbackBlurredArtworkBlurSigmaProperty.value;
+      defaultPlaybackBlurredArtworkBlurSigma;
   set playbackBlurredArtworkBlurSigma(double value) =>
       _playbackBlurredArtworkBlurSigmaProperty.value = value;
 
   double get playbackCustomImageBlurSigma =>
-      _playbackCustomImageBlurSigmaProperty.value;
+      defaultPlaybackCustomImageBlurSigma;
   set playbackCustomImageBlurSigma(double value) =>
       _playbackCustomImageBlurSigmaProperty.value = value;
 

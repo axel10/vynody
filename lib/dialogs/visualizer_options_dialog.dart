@@ -522,18 +522,6 @@ class VisualizerOptionsDialog extends ConsumerWidget {
                 _buildBackgroundTypeDropdown(context, settings, setDialogState),
                 if (settings.playbackBackgroundType == 0) ...[
                   const SizedBox(height: 20),
-                  _buildOptionSlider(
-                    context,
-                    label: l10n.blurIntensity,
-                    value: settings.playbackBlurredArtworkBlurSigma,
-                    min: 0.0,
-                    max: 100.0,
-                    onChanged: (val) {
-                      settings.playbackBlurredArtworkBlurSigma = val;
-                      setDialogState(() {});
-                    },
-                  ),
-                  const SizedBox(height: 12),
                   _buildOpacitySettings(context, settings, setDialogState),
                 ],
                 if (isDynamicMeshBackground) ...[
@@ -829,8 +817,10 @@ class VisualizerOptionsDialog extends ConsumerWidget {
                   SettingsService.defaultPlaybackBackgroundNormalOpacity;
               settings.playbackBackgroundLyricsOpacity =
                   SettingsService.defaultPlaybackBackgroundLyricsOpacity;
-              settings.playbackBlurredArtworkBlurSigma = 30.0;
-              settings.playbackCustomImageBlurSigma = 0.0;
+              settings.playbackBlurredArtworkBlurSigma =
+                  SettingsService.defaultPlaybackBlurredArtworkBlurSigma;
+              settings.playbackCustomImageBlurSigma =
+                  SettingsService.defaultPlaybackCustomImageBlurSigma;
               setDialogState(() {});
             },
             style: TextButton.styleFrom(
@@ -1247,18 +1237,6 @@ class VisualizerOptionsDialog extends ConsumerWidget {
         ),
         const SizedBox(height: 20),
         _buildOpacitySettings(context, settings, setDialogState),
-        const SizedBox(height: 12),
-        _buildOptionSlider(
-          context,
-          label: l10n.blurIntensity,
-          value: settings.playbackCustomImageBlurSigma,
-          min: 0.0,
-          max: 100.0,
-          onChanged: (val) {
-            settings.playbackCustomImageBlurSigma = val;
-            setDialogState(() {});
-          },
-        ),
       ],
     );
   }

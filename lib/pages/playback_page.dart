@@ -1530,154 +1530,76 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                       ref.read(audioServiceProvider).getCachedArtwork(songPath))
                   : null;
 
+              final isPc = Platform.isWindows || Platform.isMacOS || Platform.isLinux;
+              final int bgCacheSize = isSmallWinValue ? (isPc ? 1200 : 500) : 300;
+
+              Widget? imageWidget;
+
+              // 统一背景使用低清/缩略图逻辑：
+              // 优先使用已缓存的缩略图文件，若未准备完成则回退至大图路径/字节，但强制使用小尺寸 cacheWidth/Height 解码，
+              // 避免毛玻璃背景加载全高清大图占用过高内存和 GPU 开销。
+              if (thumbnailPath != null &&
+                  thumbnailPath.isNotEmpty &&
+                  File(thumbnailPath).existsSync()) {
+                imageWidget = Image.file(
+                  File(thumbnailPath),
+                  width: double.infinity,
+                  height: double.infinity,
+                  cacheWidth: bgCacheSize,
+                  cacheHeight: bgCacheSize,
+                  fit: BoxFit.cover,
+                  filterQuality: FilterQuality.low,
+                  gaplessPlayback: true,
+                  excludeFromSemantics: true,
+                );
+              } else if (artworkPath != null &&
+                  artworkPath.isNotEmpty &&
+                  File(artworkPath).existsSync()) {
+                imageWidget = Image.file(
+                  File(artworkPath),
+                  width: double.infinity,
+                  height: double.infinity,
+                  cacheWidth: bgCacheSize,
+                  cacheHeight: bgCacheSize,
+                  fit: BoxFit.cover,
+                  filterQuality: FilterQuality.low,
+                  gaplessPlayback: true,
+                  excludeFromSemantics: true,
+                );
+              } else if (cachedBytes != null && cachedBytes.isNotEmpty) {
+                imageWidget = Image.memory(
+                  cachedBytes,
+                  width: double.infinity,
+                  height: double.infinity,
+                  cacheWidth: bgCacheSize,
+                  cacheHeight: bgCacheSize,
+                  fit: BoxFit.cover,
+                  filterQuality: FilterQuality.low,
+                  gaplessPlayback: true,
+                  excludeFromSemantics: true,
+                );
+              }
+
               final Widget content;
-
-              if (isSmallWinValue) {
-                final isPc = Platform.isWindows || Platform.isMacOS || Platform.isLinux;
-                final bgCacheSize = isPc ? 1200 : 500;
-
-                Widget? imageWidget;
-
-                if (artworkPath != null &&
-                    artworkPath.isNotEmpty &&
-                    File(artworkPath).existsSync()) {
-                  imageWidget = Image.file(
-                    File(artworkPath),
-                    width: double.infinity,
-                    height: double.infinity,
-                    cacheWidth: bgCacheSize,
-                    cacheHeight: bgCacheSize,
-                    fit: BoxFit.cover,
-                    filterQuality: FilterQuality.low,
-                    gaplessPlayback: true,
-                    excludeFromSemantics: true,
-                  );
-                } else if (cachedBytes != null && cachedBytes.isNotEmpty) {
-                  imageWidget = Image.memory(
-                    cachedBytes,
-                    width: double.infinity,
-                    height: double.infinity,
-                    cacheWidth: bgCacheSize,
-                    cacheHeight: bgCacheSize,
-                    fit: BoxFit.cover,
-                    filterQuality: FilterQuality.low,
-                    gaplessPlayback: true,
-                    excludeFromSemantics: true,
-                  );
-                } else if (thumbnailPath != null &&
-                    thumbnailPath.isNotEmpty &&
-                    File(thumbnailPath).existsSync()) {
-                  imageWidget = Image.file(
-                    File(thumbnailPath),
-                    width: double.infinity,
-                    height: double.infinity,
-                    cacheWidth: bgCacheSize,
-                    cacheHeight: bgCacheSize,
-                    fit: BoxFit.cover,
-                    filterQuality: FilterQuality.low,
-                    gaplessPlayback: true,
-                    excludeFromSemantics: true,
-                  );
-                }
-
-                final Object artworkKey;
-                if (artworkPath != null &&
-                    artworkPath.isNotEmpty &&
-                    File(artworkPath).existsSync()) {
-                  artworkKey = artworkPath;
-                } else if (cachedBytes != null && cachedBytes.isNotEmpty) {
-                  artworkKey = identityHashCode(cachedBytes);
-                } else if (thumbnailPath != null &&
-                    thumbnailPath.isNotEmpty &&
-                    File(thumbnailPath).existsSync()) {
-                  artworkKey = thumbnailPath;
-                } else {
-                  artworkKey = 'empty';
-                }
-
-                if (imageWidget != null) {
-                  content = ImageFiltered(
-                    key: ValueKey('${songKey}_${artworkKey}_$finalSuffix'),
-                    imageFilter: ui.ImageFilter.blur(sigmaX: 0.0, sigmaY: 0.0),
-                    child: Transform.scale(
-                      scale: 1.2,
-                      child: imageWidget,
-                    ),
-                  );
-                } else {
-                  content = Container(
-                    key: ValueKey('bg_empty_${songKey}_$finalSuffix'),
-                    color: Colors.black,
-                    width: double.infinity,
-                    height: double.infinity,
-                  );
-                }
+              if (imageWidget != null) {
+                content = ImageFiltered(
+                  // 使用稳定的 Key（依赖 songKey 而非动变图片 Key），
+                  // 当同一首歌曲的图片源（缩略图 -> 内存字节）更新时，不会触发 ImageFiltered 的销毁重构，
+                  // 从而消除了 Impeller (Vulkan) 下滤镜重建导致的单帧黑屏闪烁。
+                  key: ValueKey('${songKey}_bg_cover_$finalSuffix'),
+                  imageFilter: ui.ImageFilter.blur(
+                    sigmaX: isSmallWinValue ? 0.0 : settings.playbackBlurredArtworkBlurSigma,
+                    sigmaY: isSmallWinValue ? 0.0 : settings.playbackBlurredArtworkBlurSigma,
+                  ),
+                  child: Transform.scale(scale: 1.2, child: imageWidget),
+                );
               } else {
-                Widget? imageWidget;
-                Object artworkKey = 'empty';
-
-                if (thumbnailPath != null &&
-                    thumbnailPath.isNotEmpty &&
-                    File(thumbnailPath).existsSync()) {
-                  imageWidget = Image.file(
-                    File(thumbnailPath),
-                    width: double.infinity,
-                    height: double.infinity,
-                    cacheWidth: 300,
-                    cacheHeight: 300,
-                    fit: BoxFit.cover,
-                    filterQuality: FilterQuality.low,
-                    gaplessPlayback: true,
-                    excludeFromSemantics: true,
-                  );
-                  artworkKey = thumbnailPath;
-                } else if (cachedBytes != null && cachedBytes.isNotEmpty) {
-                  imageWidget = Image.memory(
-                    cachedBytes,
-                    width: double.infinity,
-                    height: double.infinity,
-                    cacheWidth: 300,
-                    cacheHeight: 300,
-                    fit: BoxFit.cover,
-                    filterQuality: FilterQuality.low,
-                    gaplessPlayback: true,
-                    excludeFromSemantics: true,
-                  );
-                  artworkKey = identityHashCode(cachedBytes);
-                } else if (artworkPath != null &&
-                    artworkPath.isNotEmpty &&
-                    File(artworkPath).existsSync()) {
-                  imageWidget = Image.file(
-                    File(artworkPath),
-                    width: double.infinity,
-                    height: double.infinity,
-                    cacheWidth: 300,
-                    cacheHeight: 300,
-                    fit: BoxFit.cover,
-                    filterQuality: FilterQuality.low,
-                    gaplessPlayback: true,
-                    excludeFromSemantics: true,
-                  );
-                  artworkKey = artworkPath;
-                }
-
-                if (imageWidget != null) {
-                  content = ImageFiltered(
-                    key: ValueKey('${songKey}_${artworkKey}_$finalSuffix'),
-                    imageFilter: ui.ImageFilter.blur(
-                      sigmaX: settings.playbackBlurredArtworkBlurSigma,
-                      sigmaY: settings.playbackBlurredArtworkBlurSigma,
-                    ),
-                    child: Transform.scale(scale: 1.2, child: imageWidget),
-                  );
-                } else {
-                  content = Container(
-                    key: ValueKey('bg_empty_${songKey}_$finalSuffix'),
-                    color: Colors.black,
-                    width: double.infinity,
-                    height: double.infinity,
-                  );
-                }
+                content = Container(
+                  key: ValueKey('bg_empty_${songKey}_$finalSuffix'),
+                  color: Colors.black,
+                  width: double.infinity,
+                  height: double.infinity,
+                );
               }
 
               // 过渡动画逻辑：新封面直接淡入盖在旧封面之上。
