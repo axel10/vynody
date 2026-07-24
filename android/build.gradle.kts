@@ -1,8 +1,13 @@
 allprojects {
     repositories {
-        google()
+        google {
+            content {
+                includeGroupAndSubgroups("androidx")
+                includeGroupAndSubgroups("com.android")
+                includeGroupAndSubgroups("com.google")
+            }
+        }
         mavenCentral()
-        maven { url = uri("https://jitpack.io") }
     }
 
     tasks.withType<AbstractCopyTask>().configureEach {
