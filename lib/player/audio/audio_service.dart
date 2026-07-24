@@ -41,6 +41,7 @@ import 'package:vynody/player/audio/playback_session_manager.dart';
 import 'package:vynody/player/audio/queue_background_processor.dart';
 import 'package:vynody/player/library/library_insights_service.dart';
 import 'package:vynody/player/lyrics/lyrics_riverpod.dart';
+import 'package:on_audio_query/on_audio_query.dart';
 
 class AudioService extends Notifier<AudioSnapshot> {
   static const String _volumeStorageKey = 'player_volume';
@@ -1756,6 +1757,44 @@ class AudioService extends Notifier<AudioSnapshot> {
             highResBytes = await file.readAsBytes();
           }
         } catch (_) {}
+      }
+
+      if (highResBytes == null && Platform.isAndroid && song.id != null) {
+        try {
+          final queryBytes = await OnAudioQuery().queryArtwork(
+            song.id!,
+            ArtworkType.AUDIO,
+            size: 800,
+          );
+          if (queryBytes != null && queryBytes.isNotEmpty) {
+            highResBytes = queryBytes;
+            unawaited(
+              MetadataHelper.saveArtworkAndThumbnail(
+                path,
+                queryBytes,
+                saveLarge: false,
+              ).then((info) async {
+                if (info != null) {
+                  final db = MetadataDatabase();
+                  final existingSong = await db.getSongMetadata(path);
+                  if (existingSong != null) {
+                    await db.insertOrUpdateSong(
+                      existingSong.copyWith(
+                        artworkPath: info['artworkPath'] as String?,
+                        thumbnailPath: info['thumbnailPath'] as String?,
+                        artworkWidth: info['width'] as int?,
+                        artworkHeight: info['height'] as int?,
+                        themeColorsBlob: info['themeColorsBlob'] as Uint8List?,
+                      ),
+                    );
+                  }
+                }
+              }),
+            );
+          }
+        } catch (e) {
+          debugPrint('AudioService: queryArtwork fallback error for ${song.id}: $e');
+        }
       }
 
       if (_currentIndex >= 0 &&

@@ -10,6 +10,7 @@ import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/player/scanner/scanner_path_utils.dart';
 import 'package:vynody/player/metadata/artwork_constants.dart';
 import 'package:flutter_taglib/flutter_taglib.dart' as taglib;
+import 'package:on_audio_query/on_audio_query.dart';
 
 Future<Map<String, dynamic>?> _buildArtworkFiles({
   required String songPath,
@@ -604,6 +605,29 @@ class MetadataHelper {
             }
           } catch (e) {
             debugPrint('Failed to process directory cover $coverPath: $e');
+          }
+        } else if (Platform.isAndroid && songId != null) {
+          try {
+            final queryBytes = await OnAudioQuery().queryArtwork(
+              songId,
+              ArtworkType.AUDIO,
+              size: 800,
+            );
+            if (queryBytes != null && queryBytes.isNotEmpty) {
+              final artworkInfo = await saveArtworkAndThumbnail(
+                filePath,
+                queryBytes,
+                saveLarge: false,
+              );
+
+              artworkPath = artworkInfo?['artworkPath'] as String?;
+              thumbnailPath = artworkInfo?['thumbnailPath'] as String?;
+              artworkWidth = artworkInfo?['width'] as int?;
+              artworkHeight = artworkInfo?['height'] as int?;
+              themeColorsBlob = artworkInfo?['themeColorsBlob'] as Uint8List?;
+            }
+          } catch (e) {
+            debugPrint('Failed to fetch system artwork via OnAudioQuery for $songId: $e');
           }
         }
       } else if (!generateThumbnail && existing != null) {
