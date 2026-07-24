@@ -125,7 +125,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
     AndroidOutputDirectory? androidOutputDirectory;
 
     if (Platform.isAndroid) {
-      await scanner.checkAndRequestPermissions();
       androidOutputDirectory = await ref
           .read(transcodeServiceProvider)
           .pickAndroidOutputDirectory();
@@ -384,38 +383,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
               height: 1.5,
             ),
           ),
-          if (Platform.isAndroid) ...[
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.primary.withOpacity(0.08),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: theme.colorScheme.primary.withOpacity(0.2),
-                ),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.info_outline_rounded,
-                    color: theme.colorScheme.primary,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      l10n.onboardingAndroidPermissionTip,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurface.withOpacity(0.85),
-                        height: 1.4,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+
           const SizedBox(height: 24),
           Center(
             child: SizedBox(

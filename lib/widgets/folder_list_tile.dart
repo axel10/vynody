@@ -16,6 +16,7 @@ class FolderListTile extends StatelessWidget {
     this.onLongPress,
     this.onSecondaryTapDown,
     this.trailing,
+    this.subtitle,
   });
 
   final MusicFolder folder;
@@ -27,6 +28,7 @@ class FolderListTile extends StatelessWidget {
   final VoidCallback? onLongPress;
   final void Function(TapDownDetails)? onSecondaryTapDown;
   final Widget? trailing;
+  final String? subtitle;
 
   @override
   Widget build(BuildContext context) {
@@ -48,17 +50,23 @@ class FolderListTile extends StatelessWidget {
         borderRadius: BorderRadius.zero,
       );
     } else {
+      final isSystem = folder.path == 'system';
       coverWidget = Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [startColor, endColor],
+            colors: isSystem
+                ? [
+                    const Color(0xFF39C5BB),
+                    const Color(0xFF2596BE),
+                  ]
+                : [startColor, endColor],
           ),
         ),
-        child: const Center(
+        child: Center(
           child: Icon(
-            Icons.folder_rounded,
+            isSystem ? Icons.library_music_rounded : Icons.folder_rounded,
             size: 24,
             color: Colors.white70,
           ),
@@ -155,7 +163,7 @@ class FolderListTile extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          l10n.songsCountFormat(songsCount),
+                          subtitle ?? l10n.songsCountFormat(songsCount),
                           style: theme.textTheme.bodySmall?.copyWith(
                             fontSize: 12,
                             color: theme.colorScheme.onSurfaceVariant,

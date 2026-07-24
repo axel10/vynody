@@ -583,7 +583,6 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
     AndroidOutputDirectory? androidOutputDirectory;
 
     if (Platform.isAndroid) {
-      await scanner.checkAndRequestPermissions();
       androidOutputDirectory = await ref
           .read(transcodeServiceProvider)
           .pickAndroidOutputDirectory();

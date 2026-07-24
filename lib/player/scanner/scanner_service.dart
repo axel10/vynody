@@ -907,9 +907,6 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
   }) async {
     final normalizedPath = _normalizePath(path);
     debugPrint('[ScannerService] addRootPath: path=$path, normalizedPath=$normalizedPath, persistentDocumentId=$persistentDocumentId, _linuxFlatpak=$_linuxFlatpak');
-    if (Platform.isAndroid && !_hasPermission) {
-      await checkAndRequestPermissions();
-    }
     if (Platform.isLinux && _linuxFlatpak && persistentDocumentId != null) {
       _linuxDocumentIds[normalizedPath] = persistentDocumentId;
       await _saveLinuxDocumentIds();

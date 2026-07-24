@@ -264,7 +264,8 @@ class FolderSubfoldersSliver extends StatelessWidget {
         },
       );
     } else {
-      if (folders.isEmpty) {
+      final totalItemCount = folders.length + (showSystemMedia ? 1 : 0);
+      if (totalItemCount == 0) {
         return const SliverToBoxAdapter(child: SizedBox.shrink());
       }
 
@@ -275,7 +276,47 @@ class FolderSubfoldersSliver extends StatelessWidget {
         sliver: SliverList(
           delegate: SliverChildBuilderDelegate(
             (context, index) {
-              final folder = folders[index];
+              if (showSystemMedia && index == 0) {
+                final systemFolder = scanner.systemMediaFolder ??
+                    MusicFolder(
+                      path: 'system',
+                      name: systemMediaTitle ?? '',
+                    );
+                final songsCount =
+                    scanner.getSongCountForFolder(systemFolder);
+                final representativeSong =
+                    scanner.getRepresentativeSongForFolder(systemFolder);
+                final isPortrait =
+                    MediaQuery.of(context).orientation == Orientation.portrait;
+
+                return AnimatedOpacity(
+                  opacity: 1.0,
+                  duration: const Duration(milliseconds: 180),
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isPortrait ? 8 : 16,
+                      vertical: 4,
+                    ),
+                    child: FolderListTile(
+                      folder: systemFolder,
+                      songsCount: songsCount,
+                      representativeSong: representativeSong,
+                      subtitle: hasPermission ? null : systemMediaSubtitle,
+                      onTap: () async {
+                        if (!hasPermission) {
+                          await scanner.checkAndRequestPermissions();
+                        }
+                        if (context.mounted) {
+                          onNavigateTo(systemFolder);
+                        }
+                      },
+                    ),
+                  ),
+                );
+              }
+
+              final folderIndex = showSystemMedia ? index - 1 : index;
+              final folder = folders[folderIndex];
               final isAvailable =
                   isRoot ? scanner.isRootPathAvailable(folder.path) : true;
               final isSelected = selectedFolderPaths.contains(folder.path);
@@ -324,7 +365,7 @@ class FolderSubfoldersSliver extends StatelessWidget {
                 ),
               );
             },
-            childCount: folders.length,
+            childCount: totalItemCount,
           ),
         ),
       );
