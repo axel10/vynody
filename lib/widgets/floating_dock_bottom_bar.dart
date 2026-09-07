@@ -339,11 +339,11 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
                             MiniControlButton(
                               icon: Icons.skip_previous_rounded,
                               iconSize: 18,
-                              padding: const EdgeInsets.all(5),
+                              padding: const EdgeInsets.all(4.0),
                               onPressed: audio.previous,
                               tooltip: l10n.previous,
                             ),
-                            const SizedBox(width: 2),
+                            const SizedBox(width: 1),
                             AnimatedPlayPauseButton(
                               isPlaying: isPlaying,
                               isLoading: isBuffering,
@@ -354,11 +354,11 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
                               materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                               tooltip: isPlaying ? l10n.pause : l10n.play,
                             ),
-                            const SizedBox(width: 2),
+                            const SizedBox(width: 1),
                             MiniControlButton(
                               icon: Icons.skip_next_rounded,
                               iconSize: 18,
-                              padding: const EdgeInsets.all(5),
+                              padding: const EdgeInsets.all(4.0),
                               onPressed: audio.next,
                               tooltip: l10n.next,
                             ),

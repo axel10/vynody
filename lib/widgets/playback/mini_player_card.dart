@@ -55,10 +55,10 @@ class MiniPlayerCard extends ConsumerWidget {
     final double prevNextIconSize = isLandscape ? 28.0 : 20.0;
     final double playPauseIconSize = isLandscape ? 34.0 : 28.0;
     final double secondaryIconSize = isLandscape ? 21.0 : 18.0;
-    final double controlsSpacing = isLandscape ? 6.0 : 4.0;
+    final double controlsSpacing = isLandscape ? 2.0 : 1.0;
 
     final playControls = Padding(
-      padding: const EdgeInsets.only(bottom: 9),
+      padding: const EdgeInsets.only(bottom: 11),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -68,6 +68,7 @@ class MiniPlayerCard extends ConsumerWidget {
             onPressed: onPrevious,
             tooltip: l10n.previous,
             iconSize: prevNextIconSize,
+            padding: const EdgeInsets.all(4.0),
           ),
           SizedBox(width: controlsSpacing),
           AnimatedPlayPauseButton(
@@ -76,7 +77,7 @@ class MiniPlayerCard extends ConsumerWidget {
             onPressed: onPlayPause,
             color: isDark ? Colors.white : Colors.black87,
             size: playPauseIconSize,
-            padding: const EdgeInsets.all(6.0),
+            padding: const EdgeInsets.all(4.0),
             materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
             tooltip: isPlaying ? l10n.pause : l10n.play,
           ),
@@ -86,29 +87,27 @@ class MiniPlayerCard extends ConsumerWidget {
             onPressed: onNext,
             tooltip: l10n.next,
             iconSize: prevNextIconSize,
+            padding: const EdgeInsets.all(4.0),
           ),
         ],
       ),
     );
 
     final trackInfo = Flexible(
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onMiniTap,
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: infoMaxWidth),
-          child: MiniPlayerProgressInfo(
-            currentMusic: currentMusic,
-            progress: progress,
-            onScrubbing: onScrubbing,
-            onSeek: onSeek,
-          ),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: infoMaxWidth),
+        child: MiniPlayerProgressInfo(
+          currentMusic: currentMusic,
+          progress: progress,
+          onMiniTap: onMiniTap,
+          onScrubbing: onScrubbing,
+          onSeek: onSeek,
         ),
       ),
     );
 
     final rightControls = Padding(
-      padding: const EdgeInsets.only(bottom: 9),
+      padding: const EdgeInsets.only(bottom: 11),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -171,12 +170,12 @@ class MiniPlayerCard extends ConsumerWidget {
                 ),
               ),
               Padding(
-  padding: const EdgeInsets.only(
-    left: 16,
-    right: 16,
-    top: 10,     // 👈 在这里给顶部留出合适的上边距（例如 5 或 6）
-    bottom: 2,  // 保持当前满意的下边距不变
-  ),
+                padding: const EdgeInsets.only(
+                  left: 16,
+                  right: 16,
+                  top: 10,
+                  bottom: 0,
+                ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.center,

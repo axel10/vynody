@@ -532,6 +532,7 @@ class PlaybackOverlayProgressTimeLayer extends ConsumerWidget {
 class MiniPlayerProgressInfo extends ConsumerStatefulWidget {
   final MusicFile? currentMusic;
   final double progress;
+  final VoidCallback? onMiniTap;
   final ValueChanged<double>? onScrubbing;
   final ValueChanged<double>? onSeek;
 
@@ -539,6 +540,7 @@ class MiniPlayerProgressInfo extends ConsumerStatefulWidget {
     super.key,
     required this.currentMusic,
     required this.progress,
+    this.onMiniTap,
     this.onScrubbing,
     this.onSeek,
   });
@@ -561,6 +563,14 @@ class _MiniPlayerProgressInfoState
       _isDragging = true;
       _dragValue = widget.progress;
     });
+    final RenderBox? box = context.findRenderObject() as RenderBox?;
+    if (box == null || box.size.width <= 0) return;
+    final double localX = details.localPosition.dx;
+    final double newProgress = (localX / box.size.width).clamp(0.0, 1.0);
+    setState(() {
+      _dragValue = newProgress;
+    });
+    widget.onScrubbing?.call(newProgress);
   }
 
   void _onDragUpdate(DragUpdateDetails details) {
@@ -621,184 +631,190 @@ class _MiniPlayerProgressInfoState
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovering = true),
       onExit: (_) => setState(() => _isHovering = false),
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onHorizontalDragStart: _onDragStart,
-        onHorizontalDragUpdate: _onDragUpdate,
-        onHorizontalDragEnd: _onDragEnd,
-        onHorizontalDragCancel: _onDragCancel,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            SizedBox(
-              height: 36,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  Positioned.fill(
-                    child: TweenAnimationBuilder<double>(
-                      duration: const Duration(milliseconds: 200),
-                      tween: Tween<double>(begin: 0, end: _isActive ? 5.0 : 0.0),
-                      builder: (context, blur, child) {
-                        return ImageFiltered(
-                          imageFilter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
-                          child: AnimatedOpacity(
-                            duration: const Duration(milliseconds: 200),
-                            opacity: _isActive ? 0.3 : 1.0,
-                            child: child,
-                          ),
-                        );
-                      },
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          const MiniArtwork(),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: SizedBox(
-                              height: 36,
-                              child: Column(
-                                mainAxisAlignment: subtitle.isNotEmpty
-                                    ? MainAxisAlignment.spaceBetween
-                                    : MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    currentMusic?.displayName ??
-                                        AppLocalizations.of(context)!.notSelected,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodySmall!
-                                        .copyWith(
-                                          color: isDark
-                                              ? Colors.white
-                                              : Colors.black87,
-                                          fontSize: 13.5,
-                                          fontWeight: FontWeight.bold,
-                                          height: 1.15,
-                                        ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  if (subtitle.isNotEmpty)
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: widget.onMiniTap,
+              child: SizedBox(
+                height: 36,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Positioned.fill(
+                      child: TweenAnimationBuilder<double>(
+                        duration: const Duration(milliseconds: 200),
+                        tween: Tween<double>(begin: 0, end: _isActive ? 5.0 : 0.0),
+                        builder: (context, blur, child) {
+                          return ImageFiltered(
+                            imageFilter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
+                            child: AnimatedOpacity(
+                              duration: const Duration(milliseconds: 200),
+                              opacity: _isActive ? 0.3 : 1.0,
+                              child: child,
+                            ),
+                          );
+                        },
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            const MiniArtwork(),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: SizedBox(
+                                height: 36,
+                                child: Column(
+                                  mainAxisAlignment: subtitle.isNotEmpty
+                                      ? MainAxisAlignment.spaceBetween
+                                      : MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
                                     Text(
-                                      subtitle,
+                                      currentMusic?.displayName ??
+                                          AppLocalizations.of(context)!.notSelected,
                                       style: Theme.of(context)
                                           .textTheme
                                           .bodySmall!
                                           .copyWith(
-                                            color: (isDark
-                                                    ? Colors.white
-                                                    : Colors.black87)
-                                                .withValues(alpha: 0.65),
-                                            fontSize: 11.5,
+                                            color: isDark
+                                                ? Colors.white
+                                                : Colors.black87,
+                                            fontSize: 13.5,
+                                            fontWeight: FontWeight.bold,
                                             height: 1.15,
                                           ),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),
-                                ],
+                                    if (subtitle.isNotEmpty)
+                                      Text(
+                                        subtitle,
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodySmall!
+                                            .copyWith(
+                                              color: (isDark
+                                                      ? Colors.white
+                                                      : Colors.black87)
+                                                  .withValues(alpha: 0.65),
+                                              fontSize: 11.5,
+                                              height: 1.15,
+                                            ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                  ],
+                                ),
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                  Positioned.fill(
-                    child: IgnorePointer(
-                      child: AnimatedOpacity(
-                        duration: const Duration(milliseconds: 200),
-                        opacity: _isActive ? 1.0 : 0.0,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Text(
-                                formatDuration(displayPosition),
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodySmall!
-                                    .copyWith(
-                                      color: isDark
-                                          ? Colors.white
-                                          : Colors.black87,
-                                      fontSize: 13.0,
-                                      fontWeight: FontWeight.bold,
-                                      letterSpacing: 0.5,
-                                    ),
-                              ),
-                              Text(
-                                formatDuration(duration),
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodySmall!
-                                    .copyWith(
-                                      color: isDark
-                                          ? Colors.white
-                                          : Colors.black87,
-                                      fontSize: 13.0,
-                                      fontWeight: FontWeight.bold,
-                                      letterSpacing: 0.5,
-                                    ),
-                              ),
-                            ],
+                    Positioned.fill(
+                      child: IgnorePointer(
+                        child: AnimatedOpacity(
+                          duration: const Duration(milliseconds: 200),
+                          opacity: _isActive ? 1.0 : 0.0,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Text(
+                                  formatDuration(displayPosition),
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall!
+                                      .copyWith(
+                                        color: isDark
+                                            ? Colors.white
+                                            : Colors.black87,
+                                        fontSize: 13.0,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 0.5,
+                                      ),
+                                ),
+                                Text(
+                                  formatDuration(duration),
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall!
+                                      .copyWith(
+                                        color: isDark
+                                            ? Colors.white
+                                            : Colors.black87,
+                                        fontSize: 13.0,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 0.5,
+                                      ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-            const SizedBox(height: 3),
-            MouseRegion(
-              cursor: SystemMouseCursors.click,
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTapDown: (details) {
-                  final RenderBox box = context.findRenderObject() as RenderBox;
-                  final double localX = details.localPosition.dx;
-                  final double newProgress =
-                      (localX / box.size.width).clamp(0.0, 1.0);
-                  widget.onScrubbing?.call(newProgress);
-                  widget.onSeek?.call(newProgress);
-                },
-                onTap: () {},
-                child: Container(
-                  height: 6,
-                  color: Colors.transparent,
-                  alignment: Alignment.center,
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    curve: Curves.easeOutCubic,
-                    transform: Matrix4.translationValues(
-                      0.0,
-                      _isActive ? -2.0 : 0.0,
-                      0.0,
-                    ),
-                    height: _isActive ? 6.5 : 2.5,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(999),
-                      child: LinearProgressIndicator(
-                        minHeight: _isActive ? 6.5 : 2.5,
-                        value: displayProgress.clamp(0.0, 1.0),
-                        backgroundColor:
-                            isDark ? Colors.white24 : Colors.black12,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          isDark ? Colors.white : Colors.black87,
-                        ),
+          ),
+          const SizedBox(height: 2),
+          MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTapDown: (details) {
+                final RenderBox? box =
+                    context.findRenderObject() as RenderBox?;
+                if (box == null || box.size.width <= 0) return;
+                final double localX = details.localPosition.dx;
+                final double newProgress =
+                    (localX / box.size.width).clamp(0.0, 1.0);
+                widget.onScrubbing?.call(newProgress);
+                widget.onSeek?.call(newProgress);
+              },
+              onHorizontalDragStart: _onDragStart,
+              onHorizontalDragUpdate: _onDragUpdate,
+              onHorizontalDragEnd: _onDragEnd,
+              onHorizontalDragCancel: _onDragCancel,
+              child: Container(
+                height: 14,
+                color: Colors.transparent,
+                alignment: Alignment.topCenter,
+                padding: const EdgeInsets.only(top: 3),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeOutCubic,
+                  transform: Matrix4.translationValues(
+                    0.0,
+                    _isActive ? -1.0 : 0.0,
+                    0.0,
+                  ),
+                  height: _isActive ? 6.0 : 2.5,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(999),
+                    child: LinearProgressIndicator(
+                      minHeight: _isActive ? 6.0 : 2.5,
+                      value: displayProgress.clamp(0.0, 1.0),
+                      backgroundColor:
+                          isDark ? Colors.white24 : Colors.black12,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        isDark ? Colors.white : Colors.black87,
                       ),
                     ),
                   ),
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
