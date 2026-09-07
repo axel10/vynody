@@ -74,6 +74,19 @@ class MiniArtwork extends ConsumerWidget {
 
     return Hero(
       tag: 'playback_artwork_hero',
+      placeholderBuilder: (context, heroSize, child) {
+        return SizedBox(
+          width: heroSize.width,
+          height: heroSize.height,
+          child: Visibility(
+            visible: false,
+            maintainState: true,
+            maintainSize: true,
+            maintainAnimation: true,
+            child: child,
+          ),
+        );
+      },
       flightShuttleBuilder: (
         flightContext,
         animation,
@@ -95,29 +108,27 @@ class MiniArtwork extends ConsumerWidget {
           child: Container(
             width: 36,
             height: 36,
-            decoration: BoxDecoration(
-              image: hasImage
-                  ? DecorationImage(
-                      image: imageProvider,
-                      fit: BoxFit.cover,
-                      filterQuality: FilterQuality.medium,
-                    )
-                  : null,
-              color: hasImage
-                  ? Colors.transparent
-                  : (Theme.of(context).brightness == Brightness.dark
-                      ? Colors.grey[900]
-                      : Colors.grey[200]),
-            ),
-            child: !hasImage
-                ? Icon(
+            color: hasImage
+                ? Colors.transparent
+                : (Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey[900]
+                    : Colors.grey[200]),
+            child: hasImage
+                ? Image(
+                    image: imageProvider,
+                    fit: BoxFit.cover,
+                    width: 36,
+                    height: 36,
+                    gaplessPlayback: true,
+                    filterQuality: FilterQuality.medium,
+                  )
+                : Icon(
                     Icons.music_note,
                     color: Theme.of(context).brightness == Brightness.dark
                         ? Colors.white
                         : Colors.black54,
                     size: 20,
-                  )
-                : null,
+                  ),
           ),
         ),
       ),
