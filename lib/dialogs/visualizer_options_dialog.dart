@@ -15,6 +15,7 @@ import 'package:vynody/player/pro/pro_models.dart';
 import 'package:vynody/widgets/pro/pro_badge.dart';
 
 import 'playback_button_layout_dialog.dart';
+import 'progress_bar_style_dialog.dart';
 
 class VisualizerOptionsDialog extends ConsumerWidget {
   const VisualizerOptionsDialog({
@@ -556,11 +557,72 @@ class VisualizerOptionsDialog extends ConsumerWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
+    final isProUnlocked = ref.watch(isProUnlockedProvider);
 
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          _buildSectionHeader(
+            context,
+            l10n.progressBarStyle,
+          ),
+          const SizedBox(height: 12),
+          _buildSectionCard(
+            context: context,
+            child: ListTile(
+              contentPadding: isPortrait
+                  ? EdgeInsets.zero
+                  : const EdgeInsets.symmetric(horizontal: 12),
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.linear_scale_rounded,
+                  color: theme.colorScheme.primary,
+                  size: 20,
+                ),
+              ),
+              title: Text(
+                l10n.progressBarStyle,
+                style: TextStyle(
+                  color: isDark ? Colors.white : theme.colorScheme.onSurface,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              subtitle: Text(
+                getProgressBarStyleLabel(
+                  l10n,
+                  (isProUnlocked ||
+                          settings.progressBarStyle ==
+                              ProgressBarStyle.standard)
+                      ? settings.progressBarStyle
+                      : ProgressBarStyle.standard,
+                ),
+                style: TextStyle(
+                  color: isDark
+                      ? Colors.white70
+                      : theme.colorScheme.onSurfaceVariant,
+                  fontSize: 12,
+                ),
+              ),
+              trailing: const Icon(Icons.chevron_right_rounded),
+              onTap: () async {
+                await showProgressBarStyleDialog(context, ref, settings);
+                setDialogState(() {});
+              },
+            ),
+          ),
+          const SizedBox(height: 16),
+          _buildSectionHeader(
+            context,
+            l10n.playbackBackground,
+          ),
+          const SizedBox(height: 12),
           _buildSectionCard(
             context: context,
             child: Column(

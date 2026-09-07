@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vynody/dialogs/playback_button_layout_dialog.dart';
+import 'package:vynody/dialogs/progress_bar_style_dialog.dart';
 import 'package:vynody/l10n/app_localizations.dart';
 import 'package:vynody/player/pro/pro_license_service.dart';
 import 'package:vynody/player/pro/pro_models.dart';
 import 'package:vynody/player/settings/settings_service.dart';
-import 'package:vynody/widgets/pro/pro_badge.dart';
 import '../widgets/settings_dropdown_tile.dart';
 import '../widgets/settings_group_card.dart';
 import '../widgets/settings_section_header.dart';
@@ -587,41 +587,19 @@ class GeneralSection extends ConsumerWidget {
                 settings.defaultToLyricsModeOnPlaybackOpen = value;
               },
             ),
-            SettingsDropdownTile<ProgressBarStyle>(
-              title: l10n.progressBarStyle,
-              subtitle: l10n.progressBarStyleDescription,
-              value: (isProUnlocked ||
-                      settings.progressBarStyle == ProgressBarStyle.standard)
-                  ? settings.progressBarStyle
-                  : ProgressBarStyle.standard,
-              options: [
-                SettingsDropdownOption(
-                  value: ProgressBarStyle.standard,
-                  label: l10n.progressBarStyleStandard,
+            ListTile(
+              title: Text(l10n.progressBarStyle),
+              subtitle: Text(
+                getProgressBarStyleLabel(
+                  l10n,
+                  (isProUnlocked ||
+                          settings.progressBarStyle == ProgressBarStyle.standard)
+                      ? settings.progressBarStyle
+                      : ProgressBarStyle.standard,
                 ),
-                SettingsDropdownOption(
-                  value: ProgressBarStyle.fullWaveform,
-                  label: l10n.progressBarStyleFullWaveform,
-                  trailing: const ProBadge(),
-                ),
-                SettingsDropdownOption(
-                  value: ProgressBarStyle.scrollingWaveform,
-                  label: l10n.progressBarStyleScrollingWaveform,
-                  trailing: const ProBadge(),
-                ),
-              ],
-              onChanged: (value) async {
-                if (value == null) return;
-                if (value != ProgressBarStyle.standard) {
-                  final allowed = await checkProGate(
-                    context,
-                    ref,
-                    feature: ProFeature.waveformBar,
-                  );
-                  if (!allowed) return;
-                }
-                settings.progressBarStyle = value;
-              },
+              ),
+              trailing: const Icon(Icons.chevron_right_rounded),
+              onTap: () => showProgressBarStyleDialog(context, ref, settings),
             ),
             if (settings.isWaveformProgressBarEnabled && isProUnlocked) ...[
               SwitchListTile(
