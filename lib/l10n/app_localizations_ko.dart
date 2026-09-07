@@ -1882,6 +1882,27 @@ class AppLocalizationsKo extends AppLocalizations {
   String get onboardingSelectDirectory => '폴더 선택';
 
   @override
+  String get onboardingStepProgressBarStyle => '진행 표시줄 스타일';
+
+  @override
+  String get onboardingProgressBarStyleDesc =>
+      '데스크톱 재생 시 선호하는 진행 표시줄 스타일을 선택하세요.';
+
+  @override
+  String get onboardingProgressBarStyleFullWaveformDesc =>
+      '와이드스크린에 최적화. 전체 트랙 구성을 한눈에 확인하고 호버 탐색을 지원합니다.';
+
+  @override
+  String get onboardingProgressBarStyleScrollingWaveformDesc =>
+      '다이내믹한 몰입감. 음악 재생에 따라 파형이 부드럽게 스크롤됩니다.';
+
+  @override
+  String get onboardingProgressBarStyleStandardDesc => '클래식하고 미니멀한 슬라이더 바.';
+
+  @override
+  String get onboardingRecommendedTag => '추천';
+
+  @override
   String get onboardingSuccessTitle => '모든 준비 완료!';
 
   @override

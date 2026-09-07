@@ -1860,6 +1860,26 @@ class AppLocalizationsZh extends AppLocalizations {
   String get onboardingSelectDirectory => '选择文件夹';
 
   @override
+  String get onboardingStepProgressBarStyle => '选择进度条样式';
+
+  @override
+  String get onboardingProgressBarStyleDesc => '为桌面端宽屏体验选择心仪的播放进度条展示形式。';
+
+  @override
+  String get onboardingProgressBarStyleFullWaveformDesc =>
+      '宽屏首选，全曲节奏一览无余，支持鼠标悬停与精准跳段';
+
+  @override
+  String get onboardingProgressBarStyleScrollingWaveformDesc =>
+      '沉浸律动，波形随音乐播放实时平移滚动';
+
+  @override
+  String get onboardingProgressBarStyleStandardDesc => '传统纤细滑块，低调极简';
+
+  @override
+  String get onboardingRecommendedTag => '推荐';
+
+  @override
   String get onboardingSuccessTitle => '一切准备就绪！';
 
   @override
@@ -6303,6 +6323,26 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get onboardingSelectDirectory => '選擇資料夾';
+
+  @override
+  String get onboardingStepProgressBarStyle => '選擇進度列樣式';
+
+  @override
+  String get onboardingProgressBarStyleDesc => '為桌面端寬螢幕體驗選擇心儀的播放進度列展示形式。';
+
+  @override
+  String get onboardingProgressBarStyleFullWaveformDesc =>
+      '寬螢幕首選，全曲節奏一覽無餘，支援滑鼠懸停與精準跳段';
+
+  @override
+  String get onboardingProgressBarStyleScrollingWaveformDesc =>
+      '沉浸律動，波形隨音樂播放即時平移捲動';
+
+  @override
+  String get onboardingProgressBarStyleStandardDesc => '傳統纖細滑桿，低調極簡';
+
+  @override
+  String get onboardingRecommendedTag => '推薦';
 
   @override
   String get onboardingSuccessTitle => '一切準備就緒！';

@@ -168,23 +168,32 @@ enum ProgressBarStyle { standard, fullWaveform, scrollingWaveform }
 
 extension ProgressBarStyleX on ProgressBarStyle {
   String get storageValue => name;
+
+  static ProgressBarStyle defaultForPlatform() {
+    return (defaultTargetPlatform == TargetPlatform.android ||
+            defaultTargetPlatform == TargetPlatform.iOS)
+        ? ProgressBarStyle.scrollingWaveform
+        : ProgressBarStyle.fullWaveform;
+  }
+
   static ProgressBarStyle fromStorageValue(
     String? value, {
     bool? oldWaveformEnabled,
-    ProgressBarStyle defaultValue = ProgressBarStyle.fullWaveform,
+    ProgressBarStyle? defaultValue,
   }) {
+    final def = defaultValue ?? defaultForPlatform();
     if (value != null) {
       return ProgressBarStyle.values.firstWhere(
         (e) => e.name == value,
-        orElse: () => defaultValue,
+        orElse: () => def,
       );
     }
     if (oldWaveformEnabled != null) {
       return oldWaveformEnabled
-          ? ProgressBarStyle.scrollingWaveform
+          ? def
           : ProgressBarStyle.standard;
     }
-    return defaultValue;
+    return def;
   }
 }
 
@@ -1435,7 +1444,7 @@ class SettingsService extends ChangeNotifier {
 
   late final _progressBarStyleProperty = SettingProperty<ProgressBarStyle>(
     key: _keyProgressBarStyle,
-    defaultValue: ProgressBarStyle.fullWaveform,
+    defaultValue: ProgressBarStyleX.defaultForPlatform(),
     prefs: _prefs,
     onChanged: notifyListeners,
     customRead: (prefs, key, def) {
@@ -2432,7 +2441,7 @@ class SettingsService extends ChangeNotifier {
   set isWaveformProgressBarEnabled(bool value) {
     if (value) {
       if (progressBarStyle == ProgressBarStyle.standard) {
-        progressBarStyle = ProgressBarStyle.fullWaveform;
+        progressBarStyle = ProgressBarStyleX.defaultForPlatform();
       }
     } else {
       progressBarStyle = ProgressBarStyle.standard;

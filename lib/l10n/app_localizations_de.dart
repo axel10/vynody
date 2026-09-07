@@ -1945,6 +1945,28 @@ class AppLocalizationsDe extends AppLocalizations {
   String get onboardingSelectDirectory => 'Ordner auswählen';
 
   @override
+  String get onboardingStepProgressBarStyle => 'Fortschrittsbalken-Stil';
+
+  @override
+  String get onboardingProgressBarStyleDesc =>
+      'Wählen Sie Ihren bevorzugten Fortschrittsbalken-Stil für die Desktop-Wiedergabe.';
+
+  @override
+  String get onboardingProgressBarStyleFullWaveformDesc =>
+      'Ideal für Breitbild. Gesamte Wellenform auf einen Blick mit Hover-Suchfunktion.';
+
+  @override
+  String get onboardingProgressBarStyleScrollingWaveformDesc =>
+      'Dynamisch & immersiv. Wellenform scrollt sanft mit der Audiowiedergabe mit.';
+
+  @override
+  String get onboardingProgressBarStyleStandardDesc =>
+      'Klassischer minimalistischer Schieberegler.';
+
+  @override
+  String get onboardingRecommendedTag => 'Empfohlen';
+
+  @override
   String get onboardingSuccessTitle => 'Alles bereit!';
 
   @override

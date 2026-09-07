@@ -1880,6 +1880,27 @@ class AppLocalizationsJa extends AppLocalizations {
   String get onboardingSelectDirectory => 'フォルダを選択';
 
   @override
+  String get onboardingStepProgressBarStyle => 'プログレスバーのスタイル';
+
+  @override
+  String get onboardingProgressBarStyleDesc =>
+      'デスクトップ再生時の好みのプログレスバースタイルを選択してください。';
+
+  @override
+  String get onboardingProgressBarStyleFullWaveformDesc =>
+      'ワイド画面に最適。楽曲全体の構成を一目で把握し、ホバーシークに対応。';
+
+  @override
+  String get onboardingProgressBarStyleScrollingWaveformDesc =>
+      '臨場感あふれるダイナミック波形。音楽に合わせてリアルタイムにスクロール。';
+
+  @override
+  String get onboardingProgressBarStyleStandardDesc => 'クラシックでミニマルなスライダーバー。';
+
+  @override
+  String get onboardingRecommendedTag => 'おすすめ';
+
+  @override
   String get onboardingSuccessTitle => '準備完了！';
 
   @override

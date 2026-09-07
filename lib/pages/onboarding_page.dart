@@ -1,11 +1,14 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../utils/file_selector_helper.dart';
 import 'package:vynody/player/scanner/scanner_service.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
+import 'package:vynody/player/settings/settings_service.dart';
 import 'package:vynody/utils/app_snack_bar.dart';
 import '../l10n/app_localizations.dart';
 import 'package:vynody/transcode/transcode_riverpod.dart';
@@ -239,8 +242,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
     final showAndroidMediaGuide = Platform.isAndroid;
     final showLinuxGuide = Platform.isLinux;
     final showAndroidBatteryGuide = Platform.isAndroid;
+    final showDesktopProgressBarStyleGuide =
+        !Platform.isAndroid && !Platform.isIOS;
     final totalPages = 2 +
         (showAndroidMediaGuide ? 1 : 0) +
+        (showDesktopProgressBarStyleGuide ? 1 : 0) +
         (showLinuxGuide ? 1 : 0) +
         (showAndroidBatteryGuide ? 1 : 0);
 
@@ -315,10 +321,13 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                                 _buildAndroidMediaGuidePage(theme),
                               // Step 3: Add Music Directory
                               _buildMusicDirectoryPage(l10n, theme),
-                              // Step 4 (Linux only): Linux Disk Auto-Mount Guide
+                              // Step 4 (Desktop only): Progress Bar Style Selection
+                              if (showDesktopProgressBarStyleGuide)
+                                _buildDesktopProgressBarStylePage(l10n, theme),
+                              // Step 5 (Linux only): Linux Disk Auto-Mount Guide
                               if (showLinuxGuide)
                                 _buildLinuxMountGuidePage(theme),
-                              // Step 5 (Android only): Android Battery Optimization Guide
+                              // Step 6 (Android only): Android Battery Optimization Guide
                               if (showAndroidBatteryGuide)
                                 _buildAndroidBatteryGuidePage(theme),
                             ],
@@ -540,6 +549,236 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
             const Spacer(),
           ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildDesktopProgressBarStylePage(
+    AppLocalizations l10n,
+    ThemeData theme,
+  ) {
+    final settings = ref.watch(settingsServiceProvider);
+    final currentStyle = settings.progressBarStyle;
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 28.0, vertical: 16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF39C5BB).withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.auto_graph_rounded,
+                  color: Color(0xFF39C5BB),
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  l10n.onboardingStepProgressBarStyle,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            l10n.onboardingProgressBarStyleDesc,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurface.withOpacity(0.8),
+              height: 1.35,
+            ),
+          ),
+          const SizedBox(height: 14),
+          // Dynamic Live Preview Box
+          _DesktopProgressBarPreview(
+            style: currentStyle,
+            isDark: isDark,
+          ),
+          const SizedBox(height: 14),
+          // Style Selection Options
+          _buildStyleSelectionOption(
+            title: l10n.progressBarStyleFullWaveform,
+            subtitle: l10n.onboardingProgressBarStyleFullWaveformDesc,
+            tag: l10n.onboardingRecommendedTag,
+            icon: Icons.graphic_eq_rounded,
+            isSelected: currentStyle == ProgressBarStyle.fullWaveform,
+            theme: theme,
+            onTap: () {
+              ref.read(settingsServiceProvider).progressBarStyle =
+                  ProgressBarStyle.fullWaveform;
+            },
+          ),
+          const SizedBox(height: 8),
+          _buildStyleSelectionOption(
+            title: l10n.progressBarStyleScrollingWaveform,
+            subtitle: l10n.onboardingProgressBarStyleScrollingWaveformDesc,
+            icon: Icons.waves_rounded,
+            isSelected: currentStyle == ProgressBarStyle.scrollingWaveform,
+            theme: theme,
+            onTap: () {
+              ref.read(settingsServiceProvider).progressBarStyle =
+                  ProgressBarStyle.scrollingWaveform;
+            },
+          ),
+          const SizedBox(height: 8),
+          _buildStyleSelectionOption(
+            title: l10n.progressBarStyleStandard,
+            subtitle: l10n.onboardingProgressBarStyleStandardDesc,
+            icon: Icons.linear_scale_rounded,
+            isSelected: currentStyle == ProgressBarStyle.standard,
+            theme: theme,
+            onTap: () {
+              ref.read(settingsServiceProvider).progressBarStyle =
+                  ProgressBarStyle.standard;
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStyleSelectionOption({
+    required String title,
+    required String subtitle,
+    String? tag,
+    required IconData icon,
+    required bool isSelected,
+    required ThemeData theme,
+    required VoidCallback onTap,
+  }) {
+    final isDark = theme.brightness == Brightness.dark;
+    const primaryColor = Color(0xFF39C5BB);
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOutCubic,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? primaryColor.withOpacity(isDark ? 0.14 : 0.08)
+                : (isDark
+                    ? Colors.white.withOpacity(0.03)
+                    : Colors.black.withOpacity(0.02)),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: isSelected
+                  ? primaryColor.withOpacity(0.8)
+                  : theme.colorScheme.onSurface.withOpacity(0.08),
+              width: isSelected ? 1.5 : 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                icon,
+                size: 20,
+                color: isSelected
+                    ? primaryColor
+                    : theme.colorScheme.onSurface.withOpacity(0.6),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          title,
+                          style: TextStyle(
+                            fontSize: 13.5,
+                            fontWeight:
+                                isSelected ? FontWeight.bold : FontWeight.w600,
+                            color: isSelected
+                                ? (isDark ? Colors.white : Colors.black87)
+                                : theme.colorScheme.onSurface.withOpacity(0.85),
+                          ),
+                        ),
+                        if (tag != null) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 1.5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: primaryColor.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                color: primaryColor.withOpacity(0.4),
+                                width: 0.8,
+                              ),
+                            ),
+                            child: Text(
+                              tag,
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF39C5BB),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        color: theme.colorScheme.onSurface.withOpacity(0.6),
+                        height: 1.25,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                width: 18,
+                height: 18,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: isSelected ? primaryColor : Colors.transparent,
+                  border: Border.all(
+                    color: isSelected
+                        ? primaryColor
+                        : theme.colorScheme.onSurface.withOpacity(0.3),
+                    width: 1.5,
+                  ),
+                ),
+                child: isSelected
+                    ? const Icon(
+                        Icons.check_rounded,
+                        size: 12,
+                        color: Colors.white,
+                      )
+                    : null,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -1155,5 +1394,402 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
         ],
       ),
     );
+  }
+}
+
+class _DesktopProgressBarPreview extends StatefulWidget {
+  final ProgressBarStyle style;
+  final bool isDark;
+
+  const _DesktopProgressBarPreview({
+    required this.style,
+    required this.isDark,
+  });
+
+  @override
+  State<_DesktopProgressBarPreview> createState() =>
+      _DesktopProgressBarPreviewState();
+}
+
+class _DesktopProgressBarPreviewState extends State<_DesktopProgressBarPreview>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  // Precomputed harmonic waveform samples (60 points)
+  static final List<double> _mockWaveform = List.generate(60, (i) {
+    final x = i / 60.0;
+    final val = (0.28 +
+            0.42 * math.sin(x * math.pi * 3.5).abs() +
+            0.20 * math.cos(x * math.pi * 7.0).abs() +
+            0.10 * math.sin(x * math.pi * 12.0).abs())
+        .clamp(0.12, 1.0);
+    return val;
+  });
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 7),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const primaryColor = Color(0xFF39C5BB);
+    final isDark = widget.isDark;
+
+    return Container(
+      height: 78,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        color: isDark
+            ? Colors.black.withOpacity(0.35)
+            : Colors.white.withOpacity(0.65),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withOpacity(0.08)
+              : Colors.black.withOpacity(0.06),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: isDark
+                ? Colors.black.withOpacity(0.2)
+                : primaryColor.withOpacity(0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, _) {
+          final progress = _controller.value;
+          final currentMs = (progress * 218000).toInt();
+          final currentMin = (currentMs ~/ 60000).toString().padLeft(2, '0');
+          final currentSec =
+              ((currentMs % 60000) ~/ 1000).toString().padLeft(2, '0');
+          final currentTimeStr = '$currentMin:$currentSec';
+          const totalTimeStr = '03:38';
+
+          return Column(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // Top simulated time indicators
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    currentTimeStr,
+                    style: TextStyle(
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w500,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                      color: isDark ? Colors.white54 : Colors.black54,
+                    ),
+                  ),
+                  Text(
+                    totalTimeStr,
+                    style: TextStyle(
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w500,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                      color: isDark ? Colors.white54 : Colors.black54,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              // Progress widget based on style
+              Expanded(
+                child: Center(
+                  child: widget.style == ProgressBarStyle.fullWaveform
+                      ? CustomPaint(
+                          size: const Size(double.infinity, 32),
+                          painter: _MiniFullWaveformPainter(
+                            waveform: _mockWaveform,
+                            progress: progress,
+                            activeColor: primaryColor,
+                            inactiveColor: isDark
+                                ? Colors.white.withOpacity(0.18)
+                                : Colors.black.withOpacity(0.12),
+                          ),
+                        )
+                      : widget.style == ProgressBarStyle.scrollingWaveform
+                          ? CustomPaint(
+                              size: const Size(double.infinity, 32),
+                              painter: _MiniScrollingWaveformPainter(
+                                waveform: _mockWaveform,
+                                progress: progress,
+                                activeColor: primaryColor,
+                                inactiveColor: isDark
+                                    ? Colors.white.withOpacity(0.18)
+                                    : Colors.black.withOpacity(0.12),
+                              ),
+                            )
+                          : CustomPaint(
+                              size: const Size(double.infinity, 32),
+                              painter: _MiniStandardSliderPainter(
+                                progress: progress,
+                                activeColor: primaryColor,
+                                inactiveColor: isDark
+                                    ? Colors.white.withOpacity(0.18)
+                                    : Colors.black.withOpacity(0.12),
+                              ),
+                            ),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _MiniStandardSliderPainter extends CustomPainter {
+  final double progress;
+  final Color activeColor;
+  final Color inactiveColor;
+
+  _MiniStandardSliderPainter({
+    required this.progress,
+    required this.activeColor,
+    required this.inactiveColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final centerY = size.height / 2;
+    const trackHeight = 4.0;
+    const thumbRadius = 5.0;
+
+    final trackRect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(0, centerY - trackHeight / 2, size.width, trackHeight),
+      const Radius.circular(trackHeight / 2),
+    );
+
+    // Inactive track
+    final inactivePaint = Paint()
+      ..color = inactiveColor
+      ..style = PaintingStyle.fill;
+    canvas.drawRRect(trackRect, inactivePaint);
+
+    final thumbX = size.width * progress;
+
+    // Active track up to thumbX
+    if (thumbX > 0) {
+      canvas.save();
+      canvas.clipRRect(trackRect);
+      final activePaint = Paint()
+        ..color = activeColor
+        ..style = PaintingStyle.fill;
+      canvas.drawRect(
+        Rect.fromLTWH(0, centerY - trackHeight / 2, thumbX, trackHeight),
+        activePaint,
+      );
+      canvas.restore();
+    }
+
+    // Thumb shadow
+    final shadowPaint = Paint()
+      ..color = activeColor.withOpacity(0.4)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3);
+    canvas.drawCircle(Offset(thumbX, centerY), thumbRadius + 1, shadowPaint);
+
+    // Thumb background
+    final thumbPaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(Offset(thumbX, centerY), thumbRadius, thumbPaint);
+
+    // Thumb border
+    final borderPaint = Paint()
+      ..color = activeColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0;
+    canvas.drawCircle(Offset(thumbX, centerY), thumbRadius - 1.0, borderPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _MiniStandardSliderPainter oldDelegate) {
+    return oldDelegate.progress != progress ||
+        oldDelegate.activeColor != activeColor ||
+        oldDelegate.inactiveColor != inactiveColor;
+  }
+}
+
+class _MiniFullWaveformPainter extends CustomPainter {
+  final List<double> waveform;
+  final double progress;
+  final Color activeColor;
+  final Color inactiveColor;
+
+  _MiniFullWaveformPainter({
+    required this.waveform,
+    required this.progress,
+    required this.activeColor,
+    required this.inactiveColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (waveform.isEmpty) return;
+    final barCount = waveform.length;
+    const gap = 2.0;
+    final totalGap = gap * (barCount - 1);
+    final barWidth = ((size.width - totalGap) / barCount).clamp(1.5, 6.0);
+    final centerY = size.height / 2;
+
+    final activePaint = Paint()
+      ..color = activeColor
+      ..style = PaintingStyle.fill;
+    final inactivePaint = Paint()
+      ..color = inactiveColor
+      ..style = PaintingStyle.fill;
+
+    final double playheadX = size.width * progress;
+    final Path activePath = Path();
+    final Path inactivePath = Path();
+    bool hasActive = false;
+    bool hasInactive = false;
+    RRect? splitRRect;
+    double? splitX;
+
+    for (int i = 0; i < barCount; i++) {
+      final x = i * (barWidth + gap);
+      final h = (waveform[i] * size.height).clamp(4.0, size.height);
+      final top = centerY - h / 2;
+
+      final rect = RRect.fromRectAndRadius(
+        Rect.fromLTWH(x, top, barWidth, h),
+        const Radius.circular(1.5),
+      );
+
+      final double xEnd = x + barWidth;
+      if (xEnd <= playheadX) {
+        activePath.addRRect(rect);
+        hasActive = true;
+      } else if (x >= playheadX) {
+        inactivePath.addRRect(rect);
+        hasInactive = true;
+      } else {
+        // 跨越播放头的分界柱子：底色完整绘制，激活色仅绘制左半部分
+        inactivePath.addRRect(rect);
+        hasInactive = true;
+        splitRRect = rect;
+        splitX = x;
+      }
+    }
+
+    if (hasInactive) {
+      canvas.drawPath(inactivePath, inactivePaint);
+    }
+    if (hasActive) {
+      canvas.drawPath(activePath, activePaint);
+    }
+
+    if (splitRRect != null && splitX != null) {
+      canvas.save();
+      canvas.clipRect(Rect.fromLTRB(splitX, 0, playheadX, size.height));
+      canvas.drawRRect(splitRRect, activePaint);
+      canvas.restore();
+    }
+
+    // Playhead dot indicator
+    final playheadPaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(Offset(playheadX, centerY), 3.0, playheadPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _MiniFullWaveformPainter oldDelegate) {
+    return oldDelegate.progress != progress ||
+        oldDelegate.activeColor != activeColor ||
+        oldDelegate.inactiveColor != inactiveColor;
+  }
+}
+
+class _MiniScrollingWaveformPainter extends CustomPainter {
+  final List<double> waveform;
+  final double progress;
+  final Color activeColor;
+  final Color inactiveColor;
+
+  _MiniScrollingWaveformPainter({
+    required this.waveform,
+    required this.progress,
+    required this.activeColor,
+    required this.inactiveColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (waveform.isEmpty) return;
+    final centerX = size.width / 2;
+    final centerY = size.height / 2;
+    const barWidth = 3.0;
+    const barGap = 2.5;
+    const itemStep = barWidth + barGap;
+
+    // Total virtual width of repeating waveform
+    final totalWaveCount = waveform.length;
+    final currentOffset = progress * (totalWaveCount * itemStep);
+
+    final activePaint = Paint()
+      ..color = activeColor
+      ..style = PaintingStyle.fill;
+    final inactivePaint = Paint()
+      ..color = inactiveColor
+      ..style = PaintingStyle.fill;
+
+    canvas.save();
+    canvas.clipRect(Rect.fromLTWH(0, 0, size.width, size.height));
+
+    final visibleBars = (size.width / itemStep).ceil() + 4;
+    final startIdx = (currentOffset / itemStep).floor() - (visibleBars ~/ 2);
+
+    for (int i = startIdx; i < startIdx + visibleBars; i++) {
+      final waveIdx = (i % totalWaveCount + totalWaveCount) % totalWaveCount;
+      final x = centerX + (i * itemStep - currentOffset);
+      final h = (waveform[waveIdx] * size.height).clamp(4.0, size.height);
+      final top = centerY - h / 2;
+
+      final rect = RRect.fromRectAndRadius(
+        Rect.fromLTWH(x - barWidth / 2, top, barWidth, h),
+        const Radius.circular(1.5),
+      );
+      canvas.drawRRect(rect, x <= centerX ? activePaint : inactivePaint);
+    }
+
+    // Center playhead needle
+    final needlePaint = Paint()
+      ..color = const Color(0xFF39C5BB)
+      ..strokeWidth = 2.0
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(
+      Offset(centerX, 2),
+      Offset(centerX, size.height - 2),
+      needlePaint,
+    );
+
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant _MiniScrollingWaveformPainter oldDelegate) {
+    return oldDelegate.progress != progress ||
+        oldDelegate.activeColor != activeColor ||
+        oldDelegate.inactiveColor != inactiveColor;
   }
 }

@@ -3621,6 +3621,42 @@ abstract class AppLocalizations {
   /// **'选择文件夹'**
   String get onboardingSelectDirectory;
 
+  /// No description provided for @onboardingStepProgressBarStyle.
+  ///
+  /// In zh, this message translates to:
+  /// **'选择进度条样式'**
+  String get onboardingStepProgressBarStyle;
+
+  /// No description provided for @onboardingProgressBarStyleDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'为桌面端宽屏体验选择心仪的播放进度条展示形式。'**
+  String get onboardingProgressBarStyleDesc;
+
+  /// No description provided for @onboardingProgressBarStyleFullWaveformDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'宽屏首选，全曲节奏一览无余，支持鼠标悬停与精准跳段'**
+  String get onboardingProgressBarStyleFullWaveformDesc;
+
+  /// No description provided for @onboardingProgressBarStyleScrollingWaveformDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'沉浸律动，波形随音乐播放实时平移滚动'**
+  String get onboardingProgressBarStyleScrollingWaveformDesc;
+
+  /// No description provided for @onboardingProgressBarStyleStandardDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'传统纤细滑块，低调极简'**
+  String get onboardingProgressBarStyleStandardDesc;
+
+  /// No description provided for @onboardingRecommendedTag.
+  ///
+  /// In zh, this message translates to:
+  /// **'推荐'**
+  String get onboardingRecommendedTag;
+
   /// No description provided for @onboardingSuccessTitle.
   ///
   /// In zh, this message translates to:

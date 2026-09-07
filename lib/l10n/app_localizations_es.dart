@@ -1950,6 +1950,28 @@ class AppLocalizationsEs extends AppLocalizations {
   String get onboardingSelectDirectory => 'Seleccionar carpeta';
 
   @override
+  String get onboardingStepProgressBarStyle => 'Estilo de barra de progreso';
+
+  @override
+  String get onboardingProgressBarStyleDesc =>
+      'Elige tu estilo de barra de progreso preferido para la reproducción de escritorio.';
+
+  @override
+  String get onboardingProgressBarStyleFullWaveformDesc =>
+      'Ideal para pantalla panorámica. Vista general de la pista con búsqueda al pasar el ratón.';
+
+  @override
+  String get onboardingProgressBarStyleScrollingWaveformDesc =>
+      'Inmersión dinámica. La forma de onda se desplaza suavemente durante la reproducción.';
+
+  @override
+  String get onboardingProgressBarStyleStandardDesc =>
+      'Control deslizante minimalista clásico.';
+
+  @override
+  String get onboardingRecommendedTag => 'Recomendado';
+
+  @override
   String get onboardingSuccessTitle => '¡Todo listo!';
 
   @override

@@ -1928,6 +1928,28 @@ class AppLocalizationsTr extends AppLocalizations {
   String get onboardingSelectDirectory => 'Klasör Seç';
 
   @override
+  String get onboardingStepProgressBarStyle => 'İlerleme Çubuğu Stili';
+
+  @override
+  String get onboardingProgressBarStyleDesc =>
+      'Masaüstü deneyimi için tercih ettiğiniz oynatma ilerleme çubuğu stilini seçin.';
+
+  @override
+  String get onboardingProgressBarStyleFullWaveformDesc =>
+      'Geniş ekran için en iyisi. Vurgulu arama ile tüm parçayı bir bakışta görün.';
+
+  @override
+  String get onboardingProgressBarStyleScrollingWaveformDesc =>
+      'Dinamik deneyim. Dalga formu ses çalındıkça sorunsuz kayar.';
+
+  @override
+  String get onboardingProgressBarStyleStandardDesc =>
+      'Klasik minimalist kaydırıcı çubuğu.';
+
+  @override
+  String get onboardingRecommendedTag => 'Önerilen';
+
+  @override
   String get onboardingSuccessTitle => 'Her Şey Hazır!';
 
   @override

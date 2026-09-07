@@ -1950,6 +1950,28 @@ class AppLocalizationsFr extends AppLocalizations {
   String get onboardingSelectDirectory => 'Sélectionner un dossier';
 
   @override
+  String get onboardingStepProgressBarStyle => 'Style de barre de progression';
+
+  @override
+  String get onboardingProgressBarStyleDesc =>
+      'Choisissez votre style de barre de progression préféré pour la lecture sur bureau.';
+
+  @override
+  String get onboardingProgressBarStyleFullWaveformDesc =>
+      'Idéal pour écran large. Aperçu complet de la piste avec recherche au survol.';
+
+  @override
+  String get onboardingProgressBarStyleScrollingWaveformDesc =>
+      'Immersion dynamique. La forme d\'onde défile en douceur avec la lecture audio.';
+
+  @override
+  String get onboardingProgressBarStyleStandardDesc =>
+      'Curseur minimaliste classique.';
+
+  @override
+  String get onboardingRecommendedTag => 'Recommandé';
+
+  @override
   String get onboardingSuccessTitle => 'Tout est prêt !';
 
   @override
