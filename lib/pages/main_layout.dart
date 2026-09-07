@@ -928,16 +928,17 @@ class _MainLayoutState extends ConsumerState<MainLayout>
     if (_isOnboardingAnimatingOut) return;
     setState(() {
       _isOnboardingAnimatingOut = true;
-      _currentIndex = 0;
     });
-    _onboardingAnimController?.forward().then((_) {
+    _onboardingAnimController?.forward().then((_) async {
       final settings = ref.read(settingsServiceProvider);
       settings.hasShownOnboarding = true;
       if (mounted) {
         setState(() {
           _isOnboardingAnimatingOut = false;
         });
-        _onDestinationSelected(0);
+        if (_currentIndex != 0) {
+          await _onDestinationSelected(0);
+        }
       }
     });
   }
