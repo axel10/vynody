@@ -1,4 +1,4 @@
-// ignore_for_file: avoid_print, override_on_non_overriding_member, annotate_overrides, must_call_super
+// ignore_for_file: avoid_print, override_on_non_overriding_member, annotate_overrides, must_call_super, unused_import, unnecessary_import
 import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
@@ -100,41 +100,7 @@ class _MockMobileStorageListenerPlatform extends MobileStorageListenerPlatform
 /// Loads system/fallback fonts for screenshot rendering.
 Future<void> loadIpadTestFonts() async {
   MobileStorageListenerPlatform.instance = _MockMobileStorageListenerPlatform();
-
-  final iconFontFile = File(
-    '/Users/axel10/flutter/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf',
-  );
-  if (iconFontFile.existsSync()) {
-    final iconLoader = FontLoader('MaterialIcons');
-    iconLoader.addFont(
-      Future.value(ByteData.sublistView(iconFontFile.readAsBytesSync())),
-    );
-    await iconLoader.load();
-  }
-
-  final unicodeFontFile = File(
-    '/System/Library/Fonts/Supplemental/Arial Unicode.ttf',
-  );
-  if (unicodeFontFile.existsSync()) {
-    final bytes = unicodeFontFile.readAsBytesSync();
-    for (final family in [
-      'Roboto',
-      'Arial Unicode MS',
-      '.SF UI Text',
-      '.SF UI Display',
-      'PingFang SC',
-      'Segoe UI',
-      'Microsoft YaHei UI',
-      'Microsoft YaHei',
-      'Heiti SC',
-      'sans-serif',
-      '',
-    ]) {
-      final loader = FontLoader(family);
-      loader.addFont(Future.value(ByteData.sublistView(bytes)));
-      await loader.load();
-    }
-  }
+  await ScreenshotPaths.loadCrossPlatformTestFonts();
 
   TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
       .setMockMethodCallHandler(

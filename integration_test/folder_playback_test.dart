@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/legacy.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:oktoast/oktoast.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vynody/l10n/app_localizations.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/models/music_folder.dart';
@@ -15,6 +16,7 @@ import 'package:vynody/player/audio/audio_service.dart';
 import 'package:vynody/player/audio/playback_source.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/player/scanner/scanner_service.dart';
+import 'package:vynody/player/settings/settings_service.dart';
 
 final currentSongNotifierProvider =
     ChangeNotifierProvider<ValueNotifier<MusicFile?>>((ref) {
@@ -31,6 +33,11 @@ void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets('tap a song in the folder page starts playback', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    final settings = SettingsService(prefs);
+    settings.openPlaybackOnDirectorySongTap = true;
+
     final currentSongNotifier = ValueNotifier<MusicFile?>(null);
     final isPlayingNotifier = ValueNotifier<bool>(false);
     final playbackOpenCompleter = Completer<void>();
@@ -64,6 +71,7 @@ void main() {
       _buildTestApp(
         scanner: scanner,
         audio: audio,
+        settings: settings,
         currentSongNotifier: currentSongNotifier,
         isPlayingNotifier: isPlayingNotifier,
         onOpenPlayback: () {
@@ -80,7 +88,7 @@ void main() {
     expect(find.text('Alpha'), findsOneWidget);
     expect(find.text('Beta'), findsOneWidget);
 
-    await tester.tap(find.byKey(ValueKey(songB.path)));
+    await tester.tap(find.text('Beta'));
     await tester.pumpAndSettle();
 
     expect(audio.playPlaylistCallCount, 1);
@@ -95,12 +103,14 @@ void main() {
 Widget _buildTestApp({
   required _FakeScannerService scanner,
   required _FakeAudioService audio,
+  required SettingsService settings,
   required ValueNotifier<MusicFile?> currentSongNotifier,
   required ValueNotifier<bool> isPlayingNotifier,
   required Future<void> Function() onOpenPlayback,
 }) {
   return ProviderScope(
     overrides: [
+      settingsServiceProvider.overrideWith((ref) => settings),
       scannerServiceProvider.overrideWith((ref) => scanner),
       audioServiceProvider.overrideWith((ref) => audio),
       currentSongNotifierProvider.overrideWith((ref) => currentSongNotifier),

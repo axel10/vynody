@@ -73,40 +73,7 @@ class _MockMobileStorageListenerPlatform extends MobileStorageListenerPlatform
 Future<void> loadMobileTestFonts() async {
   MobileStorageListenerPlatform.instance = _MockMobileStorageListenerPlatform();
 
-  final iconFontFile = File(
-    '/Users/axel10/flutter/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf',
-  );
-  if (iconFontFile.existsSync()) {
-    final iconLoader = FontLoader('MaterialIcons');
-    iconLoader.addFont(
-      Future.value(ByteData.sublistView(iconFontFile.readAsBytesSync())),
-    );
-    await iconLoader.load();
-  }
-
-  final unicodeFontFile = File(
-    '/System/Library/Fonts/Supplemental/Arial Unicode.ttf',
-  );
-  if (unicodeFontFile.existsSync()) {
-    final bytes = unicodeFontFile.readAsBytesSync();
-    for (final family in [
-      'Roboto',
-      'Arial Unicode MS',
-      '.SF UI Text',
-      '.SF UI Display',
-      'PingFang SC',
-      'Segoe UI',
-      'Microsoft YaHei UI',
-      'Microsoft YaHei',
-      'Heiti SC',
-      'sans-serif',
-      '',
-    ]) {
-      final loader = FontLoader(family);
-      loader.addFont(Future.value(ByteData.sublistView(bytes)));
-      await loader.load();
-    }
-  }
+  await ScreenshotPaths.loadCrossPlatformTestFonts();
 
   TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
     const MethodChannel('window_manager'),
@@ -907,11 +874,7 @@ const defaultDemoListEn = [
     final item = demoItems[i];
     final songPath = '$basePath/${item.filename}';
 
-    Uint8List? coverBytes;
-    final coverFile = File(item.coverPath);
-    if (coverFile.existsSync()) {
-      coverBytes = Uint8List.fromList(coverFile.readAsBytesSync());
-    }
+    final coverBytes = ScreenshotPaths.resolveCoverBytes(item.coverPath);
 
     final meta = SongMetadata(
       id: i + 1,
