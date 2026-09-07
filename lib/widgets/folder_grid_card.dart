@@ -49,6 +49,7 @@ class FolderGridCard extends StatelessWidget {
         path: representativeSong!.path,
         id: representativeSong!.id,
         thumbnailPath: representativeSong!.thumbnailPath,
+        bytes: representativeSong!.artworkBytes,
         size: 200,
         width: double.infinity,
         height: double.infinity,

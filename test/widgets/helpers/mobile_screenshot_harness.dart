@@ -336,6 +336,25 @@ class MockScannerService extends ScannerService {
 
   @override
   Map<String, SongMetadata> get metadataMap => _metadataMap;
+
+  MusicFolder? _mockNavigationFolder;
+  List<MusicFolder> _mockNavigationHistory = [];
+
+  @override
+  MusicFolder? get navigationCurrentFolder => _mockNavigationFolder;
+
+  @override
+  List<MusicFolder> get navigationHistory => _mockNavigationHistory;
+
+  @override
+  void setNavigationState(MusicFolder? current, List<MusicFolder> history) {
+    _mockNavigationFolder = current;
+    _mockNavigationHistory = List.from(history);
+    notifyListeners();
+  }
+
+  @override
+  Future<void> loadRootFolderSongs(String rootPath) async {}
 }
 
 /// Standard Sharing Service Mocks
@@ -1037,7 +1056,12 @@ Future<Uint8List> captureMobileScreen({
   await tester.runAsync(() async {
     for (final element in find.byType(Image).evaluate()) {
       final widget = element.widget as Image;
-      await precacheImage(widget.image, element);
+      try {
+        await precacheImage(widget.image, element).timeout(
+          const Duration(milliseconds: 300),
+          onTimeout: () {},
+        );
+      } catch (_) {}
     }
     await Future.delayed(const Duration(milliseconds: 350));
   });

@@ -311,6 +311,7 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
                     path: representativeSong.path,
                     id: representativeSong.id,
                     thumbnailPath: representativeSong.thumbnailPath,
+                    bytes: representativeSong.artworkBytes,
                     size: 100,
                     width: 100,
                     height: 100,

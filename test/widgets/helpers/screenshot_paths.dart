@@ -38,6 +38,11 @@ class ScreenshotPaths {
       final local = File('test_covers/$fileName');
       if (local.existsSync()) {
         file = local;
+      } else {
+        final github = File('test_covers/github/$fileName');
+        if (github.existsSync()) {
+          file = github;
+        }
       }
     }
     if (file.existsSync()) {

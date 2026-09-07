@@ -100,6 +100,7 @@ class SongGridCard extends ConsumerWidget {
                           SongThumbnail(
                             path: song.path,
                             id: song.id,
+                            bytes: song.artworkBytes,
                             size: 200,
                             width: double.infinity,
                             height: double.infinity,
