@@ -9,6 +9,7 @@ import 'package:vynody/dialogs/upgrade_to_pro_dialog.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/pro/app_channel.dart';
 import 'package:vynody/player/pro/pro_models.dart';
+import 'package:vynody/player/settings/settings_service.dart';
 import 'package:vynody/utils/secure_storage.dart';
 
 const String _kFirstLaunchTimeKey = 'vynody_license_first_launch_epoch_ms';
@@ -238,6 +239,18 @@ final isEffectiveWaveformEnabledProvider = Provider<bool>((ref) {
     settingsServiceProvider.select((s) => s.isWaveformProgressBarEnabled),
   );
   return isProUnlocked && isWaveformSettingEnabled;
+});
+
+/// Provider for the effective progress bar style (falls back to standard if Pro is locked).
+final effectiveProgressBarStyleProvider = Provider<ProgressBarStyle>((ref) {
+  final isProUnlocked = ref.watch(isProUnlockedProvider);
+  final style = ref.watch(
+    settingsServiceProvider.select((s) => s.progressBarStyle),
+  );
+  if (!isProUnlocked && style != ProgressBarStyle.standard) {
+    return ProgressBarStyle.standard;
+  }
+  return style;
 });
 
 /// Provider for whether WASAPI exclusive mode is effectively enabled (Windows, Pro unlocked & setting enabled).

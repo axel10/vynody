@@ -712,6 +712,22 @@ class AppLocalizationsDe extends AppLocalizations {
       'Gesamte Song-Wellenform anstelle des Standardschiebereglers verwenden';
 
   @override
+  String get progressBarStyle => 'Fortschrittsbalken-Stil';
+
+  @override
+  String get progressBarStyleDescription =>
+      'Wählen Sie den Anzeigestil des Wiedergabe-Fortschrittsbalkens';
+
+  @override
+  String get progressBarStyleStandard => 'Standard-Schieberegler';
+
+  @override
+  String get progressBarStyleFullWaveform => 'Gesamte Wellenform';
+
+  @override
+  String get progressBarStyleScrollingWaveform => 'Scrollende Wellenform';
+
+  @override
   String get waveformLongPressSeekSpeed =>
       'Spulgeschwindigkeit bei langem Drücken';
 

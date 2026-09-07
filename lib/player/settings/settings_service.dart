@@ -164,6 +164,30 @@ extension ArtistSortFieldX on ArtistSortField {
   }
 }
 
+enum ProgressBarStyle { standard, fullWaveform, scrollingWaveform }
+
+extension ProgressBarStyleX on ProgressBarStyle {
+  String get storageValue => name;
+  static ProgressBarStyle fromStorageValue(
+    String? value, {
+    bool? oldWaveformEnabled,
+    ProgressBarStyle defaultValue = ProgressBarStyle.fullWaveform,
+  }) {
+    if (value != null) {
+      return ProgressBarStyle.values.firstWhere(
+        (e) => e.name == value,
+        orElse: () => defaultValue,
+      );
+    }
+    if (oldWaveformEnabled != null) {
+      return oldWaveformEnabled
+          ? ProgressBarStyle.scrollingWaveform
+          : ProgressBarStyle.standard;
+    }
+    return defaultValue;
+  }
+}
+
 extension ThemeModeX on ThemeMode {
   String get storageValue => switch (this) {
     ThemeMode.system => 'system',
@@ -480,6 +504,7 @@ class SettingsService extends ChangeNotifier {
       'visualizer_landscape_frequency_groups';
   static const String _keyPortraitGap = 'visualizer_portrait_gap';
   static const String _keyLandscapeGap = 'visualizer_landscape_gap';
+  static const String _keyProgressBarStyle = 'progress_bar_style';
   static const String _keyIsWaveformProgressBarEnabled =
       'waveform_progress_bar_enabled';
   static const String _keyWaveformLongPressSeekSpeed =
@@ -1406,6 +1431,29 @@ class SettingsService extends ChangeNotifier {
     defaultValue: 2.0,
     prefs: _prefs,
     onChanged: notifyListeners,
+  );
+
+  late final _progressBarStyleProperty = SettingProperty<ProgressBarStyle>(
+    key: _keyProgressBarStyle,
+    defaultValue: ProgressBarStyle.fullWaveform,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+    customRead: (prefs, key, def) {
+      final str = prefs.getString(key);
+      final oldBool = prefs.getBool(_keyIsWaveformProgressBarEnabled);
+      return ProgressBarStyleX.fromStorageValue(
+        str,
+        oldWaveformEnabled: oldBool,
+        defaultValue: def,
+      );
+    },
+    customWrite: (prefs, key, val) {
+      prefs.setString(key, val.storageValue);
+      prefs.setBool(
+        _keyIsWaveformProgressBarEnabled,
+        val != ProgressBarStyle.standard,
+      );
+    },
   );
 
   late final _isWaveformProgressBarEnabledProperty = SettingProperty<bool>(
@@ -2372,10 +2420,24 @@ class SettingsService extends ChangeNotifier {
   double get landscapeGap => _landscapeGapProperty.value;
   set landscapeGap(double value) => _landscapeGapProperty.value = value;
 
+  ProgressBarStyle get progressBarStyle => _progressBarStyleProperty.value;
+  set progressBarStyle(ProgressBarStyle value) {
+    _progressBarStyleProperty.value = value;
+    _isWaveformProgressBarEnabledProperty.value =
+        value != ProgressBarStyle.standard;
+  }
+
   bool get isWaveformProgressBarEnabled =>
-      _isWaveformProgressBarEnabledProperty.value;
-  set isWaveformProgressBarEnabled(bool value) =>
-      _isWaveformProgressBarEnabledProperty.value = value;
+      progressBarStyle != ProgressBarStyle.standard;
+  set isWaveformProgressBarEnabled(bool value) {
+    if (value) {
+      if (progressBarStyle == ProgressBarStyle.standard) {
+        progressBarStyle = ProgressBarStyle.fullWaveform;
+      }
+    } else {
+      progressBarStyle = ProgressBarStyle.standard;
+    }
+  }
 
   double get waveformLongPressSeekSpeed =>
       _waveformLongPressSeekSpeedProperty.value;
@@ -2669,6 +2731,7 @@ class SettingsService extends ChangeNotifier {
     _landscapeFrequencyGroupsProperty.reset();
     _portraitGapProperty.reset();
     _landscapeGapProperty.reset();
+    _progressBarStyleProperty.reset();
     _isWaveformProgressBarEnabledProperty.reset();
     _showDeveloperOptionsProperty.reset();
     _randomRangeProperty.reset();

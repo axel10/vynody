@@ -698,6 +698,21 @@ class AppLocalizationsKo extends AppLocalizations {
   String get enableWaveformProgressBarDescription => '표준 슬라이더 대신 전체 곡 파형 사용';
 
   @override
+  String get progressBarStyle => '진행 표시줄 스타일';
+
+  @override
+  String get progressBarStyleDescription => '재생 진행 표시줄의 표시 스타일 선택';
+
+  @override
+  String get progressBarStyleStandard => '표준 슬라이더';
+
+  @override
+  String get progressBarStyleFullWaveform => '전체 파형 (정적)';
+
+  @override
+  String get progressBarStyleScrollingWaveform => '스크롤 파형';
+
+  @override
   String get waveformLongPressSeekSpeed => '파형 길게 누르기 빨리감기 속도';
 
   @override

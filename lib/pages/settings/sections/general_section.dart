@@ -587,18 +587,32 @@ class GeneralSection extends ConsumerWidget {
                 settings.defaultToLyricsModeOnPlaybackOpen = value;
               },
             ),
-            SwitchListTile(
-              title: Row(
-                children: [
-                  Text(l10n.enableWaveformProgressBar),
-                  const SizedBox(width: 8),
-                  const ProBadge(),
-                ],
-              ),
-              subtitle: Text(l10n.enableWaveformProgressBarDescription),
-              value: settings.isWaveformProgressBarEnabled && isProUnlocked,
+            SettingsDropdownTile<ProgressBarStyle>(
+              title: l10n.progressBarStyle,
+              subtitle: l10n.progressBarStyleDescription,
+              value: (isProUnlocked ||
+                      settings.progressBarStyle == ProgressBarStyle.standard)
+                  ? settings.progressBarStyle
+                  : ProgressBarStyle.standard,
+              options: [
+                SettingsDropdownOption(
+                  value: ProgressBarStyle.standard,
+                  label: l10n.progressBarStyleStandard,
+                ),
+                SettingsDropdownOption(
+                  value: ProgressBarStyle.fullWaveform,
+                  label: l10n.progressBarStyleFullWaveform,
+                  trailing: const ProBadge(),
+                ),
+                SettingsDropdownOption(
+                  value: ProgressBarStyle.scrollingWaveform,
+                  label: l10n.progressBarStyleScrollingWaveform,
+                  trailing: const ProBadge(),
+                ),
+              ],
               onChanged: (value) async {
-                if (value) {
+                if (value == null) return;
+                if (value != ProgressBarStyle.standard) {
                   final allowed = await checkProGate(
                     context,
                     ref,
@@ -606,7 +620,7 @@ class GeneralSection extends ConsumerWidget {
                   );
                   if (!allowed) return;
                 }
-                settings.isWaveformProgressBarEnabled = value;
+                settings.progressBarStyle = value;
               },
             ),
             if (settings.isWaveformProgressBarEnabled && isProUnlocked) ...[

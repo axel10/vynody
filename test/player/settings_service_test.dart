@@ -409,5 +409,62 @@ void main() {
       expect(restored.navidromeArtistSortAscending, isFalse);
     });
   });
+
+  group('SettingsService - Progress Bar Style & Migration', () {
+    test('defaults to fullWaveform when unconfigured', () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final settings = SettingsService(prefs);
+
+      expect(settings.progressBarStyle, ProgressBarStyle.fullWaveform);
+      expect(settings.isWaveformProgressBarEnabled, isTrue);
+    });
+
+    test('migrates legacy isWaveformProgressBarEnabled boolean setting', () async {
+      // Legacy case 1: disabled
+      SharedPreferences.setMockInitialValues({
+        'waveform_progress_bar_enabled': false,
+      });
+      var prefs = await SharedPreferences.getInstance();
+      var settings = SettingsService(prefs);
+      expect(settings.progressBarStyle, ProgressBarStyle.standard);
+      expect(settings.isWaveformProgressBarEnabled, isFalse);
+
+      // Legacy case 2: enabled
+      SharedPreferences.setMockInitialValues({
+        'waveform_progress_bar_enabled': true,
+      });
+      prefs = await SharedPreferences.getInstance();
+      settings = SettingsService(prefs);
+      expect(settings.progressBarStyle, ProgressBarStyle.scrollingWaveform);
+      expect(settings.isWaveformProgressBarEnabled, isTrue);
+    });
+
+    test('updates and persists progressBarStyle across styles', () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final settings = SettingsService(prefs);
+
+      // Switch to standard
+      settings.progressBarStyle = ProgressBarStyle.standard;
+      expect(settings.progressBarStyle, ProgressBarStyle.standard);
+      expect(settings.isWaveformProgressBarEnabled, isFalse);
+
+      // Switch to scrolling waveform
+      settings.progressBarStyle = ProgressBarStyle.scrollingWaveform;
+      expect(settings.progressBarStyle, ProgressBarStyle.scrollingWaveform);
+      expect(settings.isWaveformProgressBarEnabled, isTrue);
+
+      // Switch to full waveform
+      settings.progressBarStyle = ProgressBarStyle.fullWaveform;
+      expect(settings.progressBarStyle, ProgressBarStyle.fullWaveform);
+      expect(settings.isWaveformProgressBarEnabled, isTrue);
+
+      // Verify persistence
+      final restored = SettingsService(prefs);
+      expect(restored.progressBarStyle, ProgressBarStyle.fullWaveform);
+      expect(restored.isWaveformProgressBarEnabled, isTrue);
+    });
+  });
 }
 

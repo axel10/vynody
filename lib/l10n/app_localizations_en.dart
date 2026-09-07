@@ -706,6 +706,22 @@ class AppLocalizationsEn extends AppLocalizations {
       'Use full-song waveform instead of standard slider';
 
   @override
+  String get progressBarStyle => 'Progress Bar Style';
+
+  @override
+  String get progressBarStyleDescription =>
+      'Select the playback progress bar display style';
+
+  @override
+  String get progressBarStyleStandard => 'Standard Slider';
+
+  @override
+  String get progressBarStyleFullWaveform => 'Full Waveform';
+
+  @override
+  String get progressBarStyleScrollingWaveform => 'Scrolling Waveform';
+
+  @override
   String get waveformLongPressSeekSpeed => 'Long-press Waveform Seek Speed';
 
   @override

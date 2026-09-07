@@ -714,6 +714,22 @@ class AppLocalizationsFr extends AppLocalizations {
       'Utiliser la forme d\'onde complète au lieu du curseur standard';
 
   @override
+  String get progressBarStyle => 'Style de barre de progression';
+
+  @override
+  String get progressBarStyleDescription =>
+      'Sélectionnez le style d\'affichage de la barre de progression';
+
+  @override
+  String get progressBarStyleStandard => 'Curseur standard';
+
+  @override
+  String get progressBarStyleFullWaveform => 'Forme d\'onde complète';
+
+  @override
+  String get progressBarStyleScrollingWaveform => 'Forme d\'onde défilante';
+
+  @override
   String get waveformLongPressSeekSpeed => 'Vitesse d\'avance appui long';
 
   @override

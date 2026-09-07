@@ -242,10 +242,10 @@ class _WaveformProgressBarState extends ConsumerState<WaveformProgressBar> with 
     return LayoutBuilder(
       builder: (context, constraints) {
         final double width = constraints.maxWidth;
-        // 缩放因子：决定波形的“宽度”。这里我们让每个波形点占据一定的像素宽度
-        // 如果是滚动模式，我们让波形更宽一些，超出屏幕
-        final double defaultBarWidth = widget.isScrolling ? 7.0 : (width / math.max(1, _animatedWaveform.length));
-        final double defaultBarGap = widget.isScrolling ? 3.0 : 0.0;
+        // 缩放因子：决定波形的“宽度”
+        final double step = width / math.max(1, _animatedWaveform.length);
+        final double defaultBarGap = widget.isScrolling ? 3.0 : math.max(1.0, math.min(3.0, step * 0.3));
+        final double defaultBarWidth = widget.isScrolling ? 7.0 : math.max(1.5, step - defaultBarGap);
         final double barWidth = widget.barWidth ?? defaultBarWidth;
         final double barGap = widget.barGap ?? defaultBarGap;
         final double totalBarWidth = barWidth + barGap;
@@ -481,7 +481,9 @@ class WaveformPainter extends CustomPainter {
     double? splitX;
 
     for (int i = startIndex; i < endIndex; i++) {
-      final double x = isScrolling ? (viewCenterX + (i - currentIdx) * stepWidth) : (i * stepWidth);
+      final double x = isScrolling
+          ? (viewCenterX + (i - currentIdx) * stepWidth)
+          : (i * stepWidth + math.max(0.0, (stepWidth - barWidth) / 2));
       if (x + barWidth < 0 || x > size.width) continue;
 
       final double barHeight = math.max(barWidth, waveform[i] * maxBarHeight);

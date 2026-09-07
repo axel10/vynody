@@ -1425,6 +1425,36 @@ abstract class AppLocalizations {
   /// **'使用整首歌的波形图代替标准滑块'**
   String get enableWaveformProgressBarDescription;
 
+  /// No description provided for @progressBarStyle.
+  ///
+  /// In zh, this message translates to:
+  /// **'进度条样式'**
+  String get progressBarStyle;
+
+  /// No description provided for @progressBarStyleDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'选择播放进度条的显示样式'**
+  String get progressBarStyleDescription;
+
+  /// No description provided for @progressBarStyleStandard.
+  ///
+  /// In zh, this message translates to:
+  /// **'标准滑块'**
+  String get progressBarStyleStandard;
+
+  /// No description provided for @progressBarStyleFullWaveform.
+  ///
+  /// In zh, this message translates to:
+  /// **'全景静态波形'**
+  String get progressBarStyleFullWaveform;
+
+  /// No description provided for @progressBarStyleScrollingWaveform.
+  ///
+  /// In zh, this message translates to:
+  /// **'居中滚动波形'**
+  String get progressBarStyleScrollingWaveform;
+
   /// Long-press waveform progress bar fast-forward speed label
   ///
   /// In zh, this message translates to:

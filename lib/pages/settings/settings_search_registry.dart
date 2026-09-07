@@ -109,8 +109,8 @@ final List<SettingSearchItem> settingsSearchRegistry = [
     id: 'general.waveform_progress_bar',
     section: SettingsSection.general,
     icon: Icons.graphic_eq_rounded,
-    title: (l10n) => l10n.enableWaveformProgressBar,
-    description: (l10n) => l10n.enableWaveformProgressBarDescription,
+    title: (l10n) => l10n.progressBarStyle,
+    description: (l10n) => l10n.progressBarStyleDescription,
   ),
   SettingSearchItem(
     id: 'general.waveform_long_press_seek',

@@ -696,6 +696,21 @@ class AppLocalizationsZh extends AppLocalizations {
   String get enableWaveformProgressBarDescription => '使用整首歌的波形图代替标准滑块';
 
   @override
+  String get progressBarStyle => '进度条样式';
+
+  @override
+  String get progressBarStyleDescription => '选择播放进度条的显示样式';
+
+  @override
+  String get progressBarStyleStandard => '标准滑块';
+
+  @override
+  String get progressBarStyleFullWaveform => '全景静态波形';
+
+  @override
+  String get progressBarStyleScrollingWaveform => '居中滚动波形';
+
+  @override
   String get waveformLongPressSeekSpeed => '长按波形快进速度';
 
   @override
@@ -5124,6 +5139,21 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get enableWaveformProgressBarDescription => '使用整首歌曲的波形圖代替標準滑桿';
+
+  @override
+  String get progressBarStyle => '進度列樣式';
+
+  @override
+  String get progressBarStyleDescription => '選擇播放進度列的顯示樣式';
+
+  @override
+  String get progressBarStyleStandard => '標準滑桿';
+
+  @override
+  String get progressBarStyleFullWaveform => '全景靜態波形';
+
+  @override
+  String get progressBarStyleScrollingWaveform => '居中滾動波形';
 
   @override
   String get waveformLongPressSeekSpeed => '長按波形快進速度';

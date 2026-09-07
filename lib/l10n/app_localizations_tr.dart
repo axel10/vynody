@@ -709,6 +709,22 @@ class AppLocalizationsTr extends AppLocalizations {
       'Klasik ilerleme çubuğu yerine parçanın gerçek dalga formunu göster';
 
   @override
+  String get progressBarStyle => 'İlerleme Çubuğu Stili';
+
+  @override
+  String get progressBarStyleDescription =>
+      'Oynatma ilerleme çubuğu görüntüleme stilini seçin';
+
+  @override
+  String get progressBarStyleStandard => 'Standart Kaydırıcı';
+
+  @override
+  String get progressBarStyleFullWaveform => 'Tam Dalga Formu';
+
+  @override
+  String get progressBarStyleScrollingWaveform => 'Kayan Dalga Formu';
+
+  @override
   String get waveformLongPressSeekSpeed =>
       'Dalga Formu Uzun Basarak Sarma Hızı';
 

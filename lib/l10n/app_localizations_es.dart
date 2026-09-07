@@ -715,6 +715,22 @@ class AppLocalizationsEs extends AppLocalizations {
       'Usar la forma de onda completa de la canción en lugar del control deslizante estándar';
 
   @override
+  String get progressBarStyle => 'Estilo de barra de progreso';
+
+  @override
+  String get progressBarStyleDescription =>
+      'Selecciona el estilo de visualización de la barra de progreso';
+
+  @override
+  String get progressBarStyleStandard => 'Control deslizante estándar';
+
+  @override
+  String get progressBarStyleFullWaveform => 'Forma de onda completa';
+
+  @override
+  String get progressBarStyleScrollingWaveform => 'Forma de onda desplazable';
+
+  @override
   String get waveformLongPressSeekSpeed =>
       'Velocidad de avance con pulsación larga';
 

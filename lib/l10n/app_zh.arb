@@ -759,6 +759,11 @@
     "description": "Enable Waveform Progress Bar label"
   },
   "enableWaveformProgressBarDescription": "使用整首歌的波形图代替标准滑块",
+  "progressBarStyle": "进度条样式",
+  "progressBarStyleDescription": "选择播放进度条的显示样式",
+  "progressBarStyleStandard": "标准滑块",
+  "progressBarStyleFullWaveform": "全景静态波形",
+  "progressBarStyleScrollingWaveform": "居中滚动波形",
   "waveformLongPressSeekSpeed": "长按波形快进速度",
   "@waveformLongPressSeekSpeed": {
     "description": "Long-press waveform progress bar fast-forward speed label"

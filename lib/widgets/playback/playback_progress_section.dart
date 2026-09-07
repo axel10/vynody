@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/pro/pro_license_service.dart';
+import 'package:vynody/player/settings/settings_service.dart';
 import 'package:vynody/utils/playback_utils.dart';
 import 'package:vynody/widgets/mini_player_widgets.dart';
 import 'package:vynody/widgets/waveform_progress_bar.dart';
@@ -65,7 +66,10 @@ class PlaybackProgressSection extends ConsumerWidget {
     final position = ref.watch(audioPositionProvider);
     final duration = ref.watch(audioDurationProvider);
     final isPlaying = ref.watch(audioIsPlayingProvider);
-    final isWaveformEnabled = ref.watch(isEffectiveWaveformEnabledProvider);
+    final progressBarStyle = ref.watch(effectiveProgressBarStyleProvider);
+    final isWaveformEnabled = progressBarStyle != ProgressBarStyle.standard;
+    final isScrollingWaveform = progressBarStyle == ProgressBarStyle.scrollingWaveform;
+    final isFullWaveform = progressBarStyle == ProgressBarStyle.fullWaveform;
     final currentThemeColorsMap = ref.watch(audioCurrentThemeColorsMapProvider);
     final controlIconColor =
         currentThemeColorsMap['darkVibrant'] ??
@@ -134,7 +138,7 @@ class PlaybackProgressSection extends ConsumerWidget {
                           isWaveformEnabled: isWaveformEnabled,
                           isSmallWindowMode: settings.isSmallWindowMode,
                         );
-                    final double overflowScale = isLandscape
+                    final double overflowScale = (isLandscape || isFullWaveform)
                         ? 1.0
                         : (isSmallWindow
                               ? 1.0
@@ -154,6 +158,7 @@ class PlaybackProgressSection extends ConsumerWidget {
                         onSeek: onSeek ?? (_) {},
                         isWindowMinimized: isMinimized,
                         isTransitioning: isTransitioning,
+                        isScrolling: isScrollingWaveform,
                         height:
                             (isLandscape
                                 ? PlaybackHeroCardUiTuning
@@ -161,22 +166,26 @@ class PlaybackProgressSection extends ConsumerWidget {
                                 : PlaybackHeroCardUiTuning
                                       .waveformPortraitLyricsHeight) *
                             controlsScale,
-                        barWidth:
-                            (isLandscape
-                                ? PlaybackHeroCardUiTuning
-                                      .waveformBarWidthLandscape
-                                : PlaybackHeroCardUiTuning.waveformBarWidth) /
-                            overflowScale,
-                        barGap:
-                            (isLandscape
-                                ? PlaybackHeroCardUiTuning
-                                      .waveformBarGapLandscape
-                                : PlaybackHeroCardUiTuning.waveformBarGap) /
-                            overflowScale,
+                        barWidth: isScrollingWaveform
+                            ? (isLandscape
+                                    ? PlaybackHeroCardUiTuning
+                                          .waveformBarWidthLandscape
+                                    : PlaybackHeroCardUiTuning
+                                          .waveformBarWidth) /
+                                overflowScale
+                            : null,
+                        barGap: isScrollingWaveform
+                            ? (isLandscape
+                                    ? PlaybackHeroCardUiTuning
+                                          .waveformBarGapLandscape
+                                    : PlaybackHeroCardUiTuning
+                                          .waveformBarGap) /
+                                overflowScale
+                            : null,
                       ),
                     );
 
-                    if (!isLandscape) {
+                    if (!isLandscape && isScrollingWaveform) {
                       return Transform.scale(
                         scaleX: overflowScale,
                         child: widget,
@@ -206,7 +215,7 @@ class PlaybackProgressSection extends ConsumerWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                if (isLandscape || !isWaveformEnabled)
+                if (isLandscape || isFullWaveform || !isWaveformEnabled)
                   Text(
                     formatDuration(overridePosition ?? position),
                     style: TextStyle(
@@ -246,7 +255,7 @@ class PlaybackProgressSection extends ConsumerWidget {
                       ),
                     ),
                   ),
-                if (isLandscape || !isWaveformEnabled)
+                if (isLandscape || isFullWaveform || !isWaveformEnabled)
                   Text(
                     formatDuration(duration),
                     style: TextStyle(
@@ -329,6 +338,9 @@ class PlaybackOverlayProgressTimeLayer extends ConsumerWidget {
     final position = ref.watch(audioPositionProvider);
     final duration = ref.watch(audioDurationProvider);
     final isPlaying = ref.watch(audioIsPlayingProvider);
+    final progressBarStyle = ref.watch(effectiveProgressBarStyleProvider);
+    final isScrollingWaveform = progressBarStyle == ProgressBarStyle.scrollingWaveform;
+    final isFullWaveform = progressBarStyle == ProgressBarStyle.fullWaveform;
     final waveform = overrideWaveform ?? currentMusic?.waveform ?? const [];
     final displayProgress = overrideProgress ?? progress.clamp(0.0, 1.0);
     final currentThemeColorsMap = ref.watch(audioCurrentThemeColorsMapProvider);
@@ -350,39 +362,49 @@ class PlaybackOverlayProgressTimeLayer extends ConsumerWidget {
               isWaveformEnabled: true,
               isSmallWindowMode: settings.isSmallWindowMode,
             );
-            final double overflowScale = isSmallWindow
+            final double overflowScale = (isSmallWindow || isFullWaveform)
                 ? 1.0
                 : PlaybackHeroCardUiTuning.portraitWaveformOverflowScale;
 
-            return Transform.scale(
-              scaleX: overflowScale,
-              child: SizedBox(
-                width: totalWidth,
-                child: WaveformProgressBar(
-                  waveform: waveform,
-                  progress: displayProgress,
-                  duration: duration,
-                  isPlaying: isPlaying,
-                  onScrubbing: onScrubbing ?? (_) {},
-                  onSeek: onSeek ?? (_) {},
-                  isWindowMinimized: isMinimized,
-                  isTransitioning: isTransitioning,
-                  height:
-                      PlaybackHeroCardUiTuning.waveformOverlayHeight *
-                      controlsScale,
-                  barWidth:
-                      (isLandscape
-                          ? PlaybackHeroCardUiTuning.waveformBarWidthLandscape
-                          : PlaybackHeroCardUiTuning.waveformBarWidth) /
-                      overflowScale,
-                  barGap:
-                      (isLandscape
-                          ? PlaybackHeroCardUiTuning.waveformBarGapLandscape
-                          : PlaybackHeroCardUiTuning.waveformBarGap) /
-                      overflowScale,
-                ),
+            final waveWidget = SizedBox(
+              width: totalWidth,
+              child: WaveformProgressBar(
+                waveform: waveform,
+                progress: displayProgress,
+                duration: duration,
+                isPlaying: isPlaying,
+                onScrubbing: onScrubbing ?? (_) {},
+                onSeek: onSeek ?? (_) {},
+                isWindowMinimized: isMinimized,
+                isTransitioning: isTransitioning,
+                isScrolling: isScrollingWaveform,
+                height:
+                    PlaybackHeroCardUiTuning.waveformOverlayHeight *
+                    controlsScale,
+                barWidth: isScrollingWaveform
+                    ? (isLandscape
+                            ? PlaybackHeroCardUiTuning
+                                  .waveformBarWidthLandscape
+                            : PlaybackHeroCardUiTuning.waveformBarWidth) /
+                        overflowScale
+                    : null,
+                barGap: isScrollingWaveform
+                    ? (isLandscape
+                            ? PlaybackHeroCardUiTuning
+                                  .waveformBarGapLandscape
+                            : PlaybackHeroCardUiTuning.waveformBarGap) /
+                        overflowScale
+                    : null,
               ),
             );
+
+            if (isScrollingWaveform && overflowScale != 1.0) {
+              return Transform.scale(
+                scaleX: overflowScale,
+                child: waveWidget,
+              );
+            }
+            return waveWidget;
           },
         ),
         Builder(
@@ -402,7 +424,7 @@ class PlaybackOverlayProgressTimeLayer extends ConsumerWidget {
                   Positioned(
                     left: 0,
                     bottom: PlaybackHeroCardUiTuning.waveformOverlayTimeBottom,
-                    child: isLandscape
+                    child: (isLandscape || isFullWaveform)
                         ? Text(
                             formatDuration(overridePosition ?? position),
                             style: TextStyle(
@@ -451,7 +473,7 @@ class PlaybackOverlayProgressTimeLayer extends ConsumerWidget {
                   Positioned(
                     right: 0,
                     bottom: PlaybackHeroCardUiTuning.waveformOverlayTimeBottom,
-                    child: isLandscape
+                    child: (isLandscape || isFullWaveform)
                         ? Text(
                             formatDuration(duration),
                             style: TextStyle(

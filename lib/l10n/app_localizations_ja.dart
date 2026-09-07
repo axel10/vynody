@@ -697,6 +697,21 @@ class AppLocalizationsJa extends AppLocalizations {
   String get enableWaveformProgressBarDescription => '標準スライダーの代わりに全曲波形を使用';
 
   @override
+  String get progressBarStyle => 'プログレスバーのスタイル';
+
+  @override
+  String get progressBarStyleDescription => '再生プログレスバーの表示スタイルを選択';
+
+  @override
+  String get progressBarStyleStandard => '標準スライダー';
+
+  @override
+  String get progressBarStyleFullWaveform => 'フル波形（静止）';
+
+  @override
+  String get progressBarStyleScrollingWaveform => 'スクロール波形';
+
+  @override
   String get waveformLongPressSeekSpeed => '波形長押し早送り速度';
 
   @override
