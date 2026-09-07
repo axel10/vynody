@@ -269,7 +269,17 @@ class _WaveformProgressBarState extends ConsumerState<WaveformProgressBar> with 
               _isDragging = true;
               _dragStartX = details.localPosition.dx;
               _dragStartProgress = widget.progress;
-              _smoothProgressNotifier.value = widget.progress.clamp(0.0, 1.0);
+              if (!widget.isScrolling) {
+                final double newProgress =
+                    (details.localPosition.dx / width).clamp(0.0, 1.0);
+                widget.onScrubbing(newProgress);
+                _smoothProgressNotifier.value = newProgress;
+                setState(() {
+                  _hoverProgress = newProgress;
+                });
+              } else {
+                _smoothProgressNotifier.value = widget.progress.clamp(0.0, 1.0);
+              }
               _updateTickerState();
             },
             onHorizontalDragUpdate: (details) {
@@ -294,7 +304,7 @@ class _WaveformProgressBarState extends ConsumerState<WaveformProgressBar> with 
               }
             },
             onHorizontalDragEnd: (details) {
-              widget.onSeek(widget.progress);
+              widget.onSeek(_smoothProgressNotifier.value);
               setState(() {
                 _isDragging = false;
                 _hoverProgress = null;

@@ -271,7 +271,8 @@ class PlaybackHeroCard extends ConsumerWidget {
               builder: (context, constraints) {
                 final width = constraints.maxWidth.roundToDouble();
                 final height = constraints.maxHeight.roundToDouble();
-                final isWaveformEnabled = ref.watch(isEffectiveWaveformEnabledProvider);
+                final progressBarStyle =
+                    ref.watch(effectiveProgressBarStyleProvider);
                 final collapseButtonsInLandscapeLyrics = ref.watch(
                   settingsServiceProvider.select(
                     (s) => s.collapseButtonsInLandscapeLyrics,
@@ -293,7 +294,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                   height: height,
                   tLyrics: 0.0,
                   tLand: tLand,
-                  isWaveformEnabled: isWaveformEnabled,
+                  progressBarStyle: progressBarStyle,
                   isSmallWindow: isSmallWindow,
                   lyricsStyle: settings.lyricsStyle,
                   collapseButtonsInLandscapeLyrics:
@@ -307,7 +308,7 @@ class PlaybackHeroCard extends ConsumerWidget {
                   height: height,
                   tLyrics: 1.0,
                   tLand: tLand,
-                  isWaveformEnabled: isWaveformEnabled,
+                  progressBarStyle: progressBarStyle,
                   isSmallWindow: isSmallWindow,
                   lyricsStyle: settings.lyricsStyle,
                   collapseButtonsInLandscapeLyrics:
@@ -613,23 +614,32 @@ class PlaybackHeroCard extends ConsumerWidget {
     required double height,
     required double tLyrics,
     required double tLand,
-    required bool isWaveformEnabled,
+    required ProgressBarStyle progressBarStyle,
     required bool isSmallWindow,
     required LyricsStyle lyricsStyle,
     bool collapseButtonsInLandscapeLyrics = true,
     double uiScale = 1.0,
   }) {
     final double scaleFactor = isSmallWindow ? 0.82 : 1.0;
+    final bool isWaveformEnabled =
+        progressBarStyle != ProgressBarStyle.standard;
+    final bool isScrollingWaveform =
+        progressBarStyle == ProgressBarStyle.scrollingWaveform;
+    final bool isFullWaveform =
+        progressBarStyle == ProgressBarStyle.fullWaveform;
+    final bool isOverlayStyle = isScrollingWaveform;
 
     final pNormalControlsBaseIdealHeight =
         PlaybackHeroCardUiTuning.controlsTopButtonsHeight +
-        (isWaveformEnabled
+        (isOverlayStyle
             ? PlaybackHeroCardUiTuning.waveformStandardTimeRowSpacing
             : PlaybackHeroCardUiTuning.controlsRowPortraitGap) +
-        (isWaveformEnabled
+        (isOverlayStyle
             ? PlaybackHeroCardUiTuning.waveformOverlayHeight
-            : 48.0) +
-        (isWaveformEnabled
+            : (isFullWaveform
+                ? PlaybackHeroCardUiTuning.waveformPortraitLyricsHeight
+                : 48.0)) +
+        (isOverlayStyle
             ? 0.0
             : (8.0 +
                   PlaybackHeroCardUiTuning.controlsTimeRowHeight +

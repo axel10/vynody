@@ -1080,23 +1080,33 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                           Positioned.fill(
                             child: LayoutBuilder(
                               builder: (context, constraints) {
+                                final progressBarStyle =
+                                    ref.watch(effectiveProgressBarStyleProvider);
                                 final isWaveformEnabled =
-                                    isEffectiveWaveform;
+                                    progressBarStyle != ProgressBarStyle.standard;
+                                final isScrollingWaveform =
+                                    progressBarStyle == ProgressBarStyle.scrollingWaveform;
+                                final isFullWaveform =
+                                    progressBarStyle == ProgressBarStyle.fullWaveform;
+                                final isOverlayStyle = isScrollingWaveform;
                                 const double scaleFactor = 0.82;
 
                                 final pNormalControlsBaseIdealHeight =
                                     (PlaybackHeroCardUiTuning
                                             .controlsTopButtonsHeight +
-                                        (isWaveformEnabled
+                                        (isOverlayStyle
                                             ? PlaybackHeroCardUiTuning
                                                   .waveformStandardTimeRowSpacing
                                             : PlaybackHeroCardUiTuning
                                                   .controlsRowPortraitGap) +
-                                        (isWaveformEnabled
+                                        (isOverlayStyle
                                             ? PlaybackHeroCardUiTuning
                                                   .waveformOverlayHeight
-                                            : 48.0) +
-                                        (isWaveformEnabled
+                                            : (isFullWaveform
+                                                ? PlaybackHeroCardUiTuning
+                                                      .waveformPortraitLyricsHeight
+                                                : 48.0)) +
+                                        (isOverlayStyle
                                             ? 0.0
                                             : (8.0 +
                                                   PlaybackHeroCardUiTuning

@@ -10,6 +10,7 @@ import 'package:vynody/widgets/animated_play_pause_button.dart';
 import 'package:vynody/widgets/app_tooltip.dart';
 import 'package:vynody/widgets/playback_ui_tuning.dart';
 import 'package:vynody/player/pro/pro_license_service.dart';
+import 'package:vynody/player/settings/settings_service.dart';
 import 'playback_progress_section.dart';
 import '../../l10n/app_localizations.dart';
 
@@ -96,7 +97,10 @@ class PlaybackControls extends ConsumerWidget {
     final isBuffering = ref.watch(audioIsBufferingProvider);
     final l10n = AppLocalizations.of(context)!;
 
-    final isWaveformEnabled = ref.watch(isEffectiveWaveformEnabledProvider);
+    final progressBarStyle = ref.watch(effectiveProgressBarStyleProvider);
+    final isWaveformEnabled = progressBarStyle != ProgressBarStyle.standard;
+    final isScrollingWaveform =
+        progressBarStyle == ProgressBarStyle.scrollingWaveform;
 
     final size = MediaQuery.of(context).size;
     final settings = ref.read(settingsServiceProvider);
@@ -116,7 +120,7 @@ class PlaybackControls extends ConsumerWidget {
     final buttonsRowWidth =
         topButtonsCount * singleButtonWidth + topButtonsGaps * gapWidth;
 
-    final useOverlayStyle = !effectiveIsLandscape && isWaveformEnabled;
+    final useOverlayStyle = !effectiveIsLandscape && isScrollingWaveform;
 
     final widthFactor = effectiveIsLandscape
         ? (lerpDouble(
