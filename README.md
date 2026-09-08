@@ -67,6 +67,7 @@ The project currently targets the following platforms:
 
 - **Cross-Platform Local Music Player**: Supports both desktop and mobile platforms.
 - **Platform-Specific Native Audio Engines**: Integrates native audio backends optimized for each platform.
+- **WASAPI Exclusive Mode**: Supports exclusive-mode playback on Windows for direct audio output.
 - **Local Media Library**: Supports scanning local folders, incremental library updates, and song management.
 - **Online Tag Metadata Completion**: Supports fetching missing track metadata via audio fingerprinting.
 - **Lyrics Search, AI Generation & Translation**: Fetch lyrics from LRCLIB, generate synced lyrics or timelines with AI, and translate lyrics into a selected language.
@@ -83,7 +84,7 @@ Vynody does not use a single shared audio backend across all platforms. Instead,
 
 | Platform | Audio Engine / Backend |
 | :--- | :--- |
-| Windows | Audio Core (Rust) |
+| Windows | Audio Core (Rust, including WASAPI exclusive mode) |
 | Linux | Audio Core (Rust) |
 | macOS | Audio Core (Rust / AVFoundation + FFmpeg fallback) |
 | iOS | Audio Core (Rust / AVFoundation + FFmpeg fallback) |
@@ -293,6 +294,7 @@ Vynody 是一款以本地音乐播放为核心的跨平台播放器，使用 Flu
 
 - 跨平台本地音乐播放器，覆盖桌面端与移动端
 - 多平台原生播放内核接入，按平台选择更合适的实现
+- Windows 支持 WASAPI 独占模式，实现独占式音频输出
 - 本地媒体库扫描、增量更新与歌曲管理
 - 歌曲标签在线补全，支持通过音频指纹补全元数据
 - 歌词搜索、AI 生成与翻译，支持 LRCLIB 获取、AI 生成时间轴歌词和多语言翻译
@@ -309,7 +311,7 @@ Vynody 并不是所有平台都共用同一套播放器内核，而是按平台�
 
 | 平台 | 播放内核 |
 | :--- | :--- |
-| Windows | Audio Core（Rust） |
+| Windows | Audio Core（Rust，支持 WASAPI 独占模式） |
 | Linux | Audio Core（Rust） |
 | macOS | Audio Core（Rust / AVFoundation + FFmpeg 兜底） |
 | iOS | Audio Core（Rust / AVFoundation + FFmpeg 兜底） |
