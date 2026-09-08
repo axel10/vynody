@@ -181,7 +181,9 @@ class PlaybackHeroCardUiTuning {
   static const double waveformOverlayHeight = 200.0;
   static const double waveformOverlayTimeSide = 20.0;
   static const double waveformOverlayTimeBottom = 10.0;
-  static const double waveformPortraitLyricsHeight = 100.0; // 竖屏下波形进度条的高度
+  static const double waveformStaticPortraitHeight = 52.0; // 竖屏下静态全景波形进度条的高度
+  static const double waveformPortraitLyricsHeight =
+      waveformStaticPortraitHeight; // 竖屏下波形进度条的高度（兼容旧引用）
   static const double waveformLandscapeHeight = 74.0; // 横屏下波形进度条的高度
   static const double waveformStandardHorizontalPadding = 16.0;
   static const double waveformStandardTimeRowSpacing = 0.0;

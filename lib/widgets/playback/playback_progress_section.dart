@@ -164,7 +164,7 @@ class PlaybackProgressSection extends ConsumerWidget {
                                 ? PlaybackHeroCardUiTuning
                                       .waveformLandscapeHeight
                                 : PlaybackHeroCardUiTuning
-                                      .waveformPortraitLyricsHeight) *
+                                      .waveformStaticPortraitHeight) *
                             controlsScale,
                         barWidth: isScrollingWaveform
                             ? (isLandscape

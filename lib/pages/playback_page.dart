@@ -1082,8 +1082,6 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                               builder: (context, constraints) {
                                 final progressBarStyle =
                                     ref.watch(effectiveProgressBarStyleProvider);
-                                final isWaveformEnabled =
-                                    progressBarStyle != ProgressBarStyle.standard;
                                 final isScrollingWaveform =
                                     progressBarStyle == ProgressBarStyle.scrollingWaveform;
                                 final isFullWaveform =
@@ -1104,7 +1102,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                                                   .waveformOverlayHeight
                                             : (isFullWaveform
                                                 ? PlaybackHeroCardUiTuning
-                                                      .waveformPortraitLyricsHeight
+                                                      .waveformStaticPortraitHeight
                                                 : 48.0)) +
                                         (isOverlayStyle
                                             ? 0.0

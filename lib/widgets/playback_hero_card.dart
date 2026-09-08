@@ -637,7 +637,7 @@ class PlaybackHeroCard extends ConsumerWidget {
         (isOverlayStyle
             ? PlaybackHeroCardUiTuning.waveformOverlayHeight
             : (isFullWaveform
-                ? PlaybackHeroCardUiTuning.waveformPortraitLyricsHeight
+                ? PlaybackHeroCardUiTuning.waveformStaticPortraitHeight
                 : 48.0)) +
         (isOverlayStyle
             ? 0.0
