@@ -49,11 +49,18 @@ The project currently targets the following platforms:
 ## Screenshots
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/axel10/vynody/refs/heads/main/assets/readme/pc.jpg" alt="PC screenshot">
-  <img src="https://raw.githubusercontent.com/axel10/vynody/refs/heads/main/assets/readme/mobile.jpg" alt="Mobile screenshot">
-  <img src="https://raw.githubusercontent.com/axel10/vynody/refs/heads/main/assets/readme/folder.jpg" alt="Folder screenshot">
-  <img src="https://raw.githubusercontent.com/axel10/vynody/refs/heads/main/assets/readme/album.jpg" alt="Album screenshot">
-  <img src="https://raw.githubusercontent.com/axel10/vynody/refs/heads/main/assets/readme/eq.jpg" alt="Equalizer screenshot">
+  <img src="https://raw.githubusercontent.com/axel10/vynody/refs/heads/main/assets/readme/general_playback_pc.jpg" alt="Playback">
+  <img src="https://raw.githubusercontent.com/axel10/vynody/refs/heads/main/assets/readme/general_lyric_pc.jpg" alt="Lyrics">
+  <img src="https://raw.githubusercontent.com/axel10/vynody/refs/heads/main/assets/readme/en/folder_pc.jpg" alt="Folder">
+  <img src="https://raw.githubusercontent.com/axel10/vynody/refs/heads/main/assets/readme/en/album_pc.jpg" alt="Album">
+  <img src="https://raw.githubusercontent.com/axel10/vynody/refs/heads/main/assets/readme/en/navidrome_pc.jpg" alt="Navidrome">
+  <img src="https://raw.githubusercontent.com/axel10/vynody/refs/heads/main/assets/readme/en/share_pc.jpg" alt="LAN Share">
+</p>
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/axel10/vynody/refs/heads/main/assets/readme/general_playback_mobile.jpg" width="32%" alt="Playback (Mobile)">
+  <img src="https://raw.githubusercontent.com/axel10/vynody/refs/heads/main/assets/readme/general_lyric_mobile.jpg" width="32%" alt="Lyrics (Mobile)">
+  <img src="https://raw.githubusercontent.com/axel10/vynody/refs/heads/main/assets/readme/en/folder_mobile.jpg" width="32%" alt="Folder (Mobile)">
 </p>
 
 ## Features Overview
@@ -268,11 +275,18 @@ Vynody 是一款以本地音乐播放为核心的跨平台播放器，使用 Flu
 ## 截图
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/axel10/vynody/refs/heads/main/assets/readme/pc.jpg" alt="电脑端截图">
-  <img src="https://raw.githubusercontent.com/axel10/vynody/refs/heads/main/assets/readme/mobile.jpg" alt="移动端截图">
-  <img src="https://raw.githubusercontent.com/axel10/vynody/refs/heads/main/assets/readme/folder.jpg" alt="文件夹截图">
-  <img src="https://raw.githubusercontent.com/axel10/vynody/refs/heads/main/assets/readme/album.jpg" alt="专辑截图">
-  <img src="https://raw.githubusercontent.com/axel10/vynody/refs/heads/main/assets/readme/eq.jpg" alt="均衡器截图">
+  <img src="https://raw.githubusercontent.com/axel10/vynody/refs/heads/main/assets/readme/general_playback_pc.jpg" alt="播放界面">
+  <img src="https://raw.githubusercontent.com/axel10/vynody/refs/heads/main/assets/readme/general_lyric_pc.jpg" alt="歌词界面">
+  <img src="https://raw.githubusercontent.com/axel10/vynody/refs/heads/main/assets/readme/zh/folder_pc.jpg" alt="文件夹">
+  <img src="https://raw.githubusercontent.com/axel10/vynody/refs/heads/main/assets/readme/zh/album_pc.jpg" alt="专辑">
+  <img src="https://raw.githubusercontent.com/axel10/vynody/refs/heads/main/assets/readme/zh/navidrome_pc.jpg" alt="Navidrome">
+  <img src="https://raw.githubusercontent.com/axel10/vynody/refs/heads/main/assets/readme/zh/share_pc.jpg" alt="局域网共享">
+</p>
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/axel10/vynody/refs/heads/main/assets/readme/general_playback_mobile.jpg" width="32%" alt="播放界面 (移动端)">
+  <img src="https://raw.githubusercontent.com/axel10/vynody/refs/heads/main/assets/readme/general_lyric_mobile.jpg" width="32%" alt="歌词界面 (移动端)">
+  <img src="https://raw.githubusercontent.com/axel10/vynody/refs/heads/main/assets/readme/zh/folder_mobile.jpg" width="32%" alt="文件夹 (移动端)">
 </p>
 
 ## 特性概览
