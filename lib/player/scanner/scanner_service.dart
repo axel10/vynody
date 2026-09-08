@@ -79,6 +79,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
   final Set<String> _failedThumbnailPaths = <String>{};
   final Map<String, int> _watchedFileMtimes = {};
   int _lastScanProgressEmitMs = 0;
+  DateTime? _lastResumedSystemMediaScanAt;
 
   MusicFolder? _systemMediaFolder;
   bool _hasPermission = false;
@@ -2116,6 +2117,16 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     await Future.wait(scanState.pendingMetadataTasks);
   }
 
+  /// Public entry to trigger a rescan of a specific directory or system media.
+  Future<void> rescanDirectory(String directoryPath) async {
+    final normalized = _normalizePath(directoryPath);
+    if (normalized == 'system' || normalized.startsWith('system/')) {
+      await scanSystemMedia();
+      return;
+    }
+    await _rescanDirectory(normalized);
+  }
+
   Future<void> _rescanDirectory(String directoryPath) async {
     final normalizedDirectory = _normalizePath(directoryPath);
     if (normalizedDirectory.isEmpty) {
@@ -3296,9 +3307,15 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     );
   }
 
-  Future<void> scan({bool clearScannedRoots = false}) async {
+  Future<void> scan({
+    bool clearScannedRoots = false,
+    bool rescanSystemMedia = false,
+  }) async {
     _failedThumbnailPaths.clear();
     _watchedFileMtimes.clear();
+    if (rescanSystemMedia && Platform.isAndroid && _hasPermission) {
+      unawaited(scanSystemMedia());
+    }
     await _scanRootsWithFullFlow(
       () => _roots.rootPaths,
       clearScannedRoots: clearScannedRoots,
@@ -4162,6 +4179,19 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       );
       _pendingRootAvailabilityRescan = true;
       _scheduleRootAvailabilityRefresh();
+
+      if (Platform.isAndroid && _hasPermission) {
+        final now = DateTime.now();
+        if (_lastResumedSystemMediaScanAt == null ||
+            now.difference(_lastResumedSystemMediaScanAt!) >
+                const Duration(seconds: 30)) {
+          _lastResumedSystemMediaScanAt = now;
+          debugPrint(
+            '[ScannerService] App resumed, scheduling background system media refresh',
+          );
+          unawaited(scanSystemMedia());
+        }
+      }
     }
   }
 

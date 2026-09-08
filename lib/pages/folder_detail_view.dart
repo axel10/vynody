@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import '../l10n/app_localizations.dart';
@@ -110,11 +111,53 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
     });
   }
 
+  static MusicFolder? _findFolderInTree(MusicFolder root, String targetPath) {
+    if (ScannerPathUtils.pathsEqual(root.path, targetPath)) {
+      return root;
+    }
+    for (final sub in root.subFolders) {
+      final found = _findFolderInTree(sub, targetPath);
+      if (found != null) return found;
+    }
+    return null;
+  }
+
   MusicFolder get _effectiveFolder {
+    final scanner = ref.read(scannerServiceProvider);
     if (widget.folder.path == 'system') {
-      return ref.read(scannerServiceProvider).systemMediaFolder ?? widget.folder;
+      return scanner.systemMediaFolder ?? widget.folder;
+    }
+    if (widget.folder.path.startsWith('system/')) {
+      final systemFolder = scanner.systemMediaFolder;
+      if (systemFolder != null) {
+        final found = _findFolderInTree(
+          systemFolder,
+          widget.folder.path,
+        );
+        if (found != null) return found;
+      }
+    }
+    for (final root in scanner.rootFolders) {
+      if (ScannerPathUtils.pathContains(root.path, widget.folder.path)) {
+        final found = _findFolderInTree(
+          root,
+          widget.folder.path,
+        );
+        if (found != null) return found;
+      }
     }
     return widget.folder;
+  }
+
+  Future<void> _handleRefresh() async {
+    final scanner = ref.read(scannerServiceProvider);
+    HapticFeedback.lightImpact();
+    final currentPath = _effectiveFolder.path;
+    if (currentPath == 'system' || currentPath.startsWith('system/')) {
+      await scanner.scanSystemMedia();
+    } else {
+      await scanner.rescanDirectory(currentPath);
+    }
   }
 
   @override
@@ -367,11 +410,17 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
 
     final double headerHeight = 64.0 + (MediaQuery.of(context).padding.top > 0 ? MediaQuery.of(context).padding.top : ((Platform.isMacOS || Platform.isWindows || Platform.isLinux) ? 24.0 : 0.0));
 
-    final Widget scrollBody = CustomScrollView(
-      key: PageStorageKey<String>('folder-detail-${folder.path}'),
-      controller: _localScrollController,
-      cacheExtent: 1000.0,
-      slivers: [
+    final Widget scrollBody = RefreshIndicator(
+      edgeOffset: headerHeight,
+      onRefresh: _handleRefresh,
+      child: CustomScrollView(
+        key: PageStorageKey<String>('folder-detail-${folder.path}'),
+        controller: _localScrollController,
+        physics: const AlwaysScrollableScrollPhysics(
+          parent: BouncingScrollPhysics(),
+        ),
+        cacheExtent: 1000.0,
+        slivers: [
         if (!isPortrait)
           SliverToBoxAdapter(
             child: SizedBox(height: headerHeight),
@@ -663,6 +712,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
           padding: EdgeInsets.only(bottom: 160 + selectionPanelHeight),
         ),
       ],
+      ),
     );
 
     final selectedSongs = showSelectionPanel ? _getSelectedSongs() : <MusicFile>[];

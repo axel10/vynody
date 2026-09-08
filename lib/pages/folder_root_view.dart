@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/app_localizations.dart';
 import 'package:vynody/models/music_file.dart';
@@ -196,6 +197,19 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
     );
   }
 
+  Future<void> _handleRefresh() async {
+    final scanner = ref.read(scannerServiceProvider);
+    HapticFeedback.lightImpact();
+    if (Platform.isAndroid) {
+      await Future.wait([
+        scanner.scanSystemMedia(),
+        scanner.scan(clearScannedRoots: false, rescanSystemMedia: true),
+      ]);
+    } else {
+      await scanner.scan(clearScannedRoots: false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final scanner = ref.watch(scannerServiceProvider);
@@ -289,11 +303,17 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
     final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
     final double headerHeight = 64.0 + (MediaQuery.of(context).padding.top > 0 ? MediaQuery.of(context).padding.top : ((Platform.isMacOS || Platform.isWindows || Platform.isLinux) ? 24.0 : 0.0));
 
-    final rootList = CustomScrollView(
-      key: const PageStorageKey<String>('root_folders_scroll_view'),
-      controller: _localScrollController,
-      cacheExtent: 1000.0,
-      slivers: [
+    final rootList = RefreshIndicator(
+      edgeOffset: headerHeight,
+      onRefresh: _handleRefresh,
+      child: CustomScrollView(
+        key: const PageStorageKey<String>('root_folders_scroll_view'),
+        controller: _localScrollController,
+        physics: const AlwaysScrollableScrollPhysics(
+          parent: BouncingScrollPhysics(),
+        ),
+        cacheExtent: 1000.0,
+        slivers: [
         if (!isPortrait)
           SliverToBoxAdapter(
             child: SizedBox(height: headerHeight),
@@ -526,6 +546,7 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
           ),
         ],
       ],
+      ),
     );
 
     return Scaffold(
