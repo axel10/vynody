@@ -175,34 +175,68 @@ class LocalStreamProxy {
           request.response.add(data);
           await request.response.close();
         } else {
-          // Stream in chunks for large playback seeks
-          const chunkSize = 256 * 1024;
-          int currentOffset = start;
-          while (currentOffset <= end) {
-            final toRead = (end - currentOffset + 1 < chunkSize)
-                ? (end - currentOffset + 1)
-                : chunkSize;
-            final chunk = await smbClient.readFileRange(
-              share,
-              relativePath,
+          // Stream in chunks using a single persistent handle for maximum throughput
+          final pool = await smbClient.getPool(share);
+          var cleanPath = relativePath.trim();
+          if (cleanPath.startsWith('/')) cleanPath = cleanPath.substring(1);
+
+          await pool.withFile(cleanPath, (file) async {
+            const chunkSize = 1024 * 1024; // 1MB chunks
+            int currentOffset = start;
+            while (currentOffset <= end) {
+              final remaining = end - currentOffset + 1;
+              final toRead = remaining < chunkSize ? remaining : chunkSize;
+              final chunk = await file.read(
+                offset: currentOffset,
+                length: toRead,
+              );
+              if (chunk.isEmpty) break;
+              try {
+                request.response.add(chunk);
+                await request.response.flush();
+                currentOffset += chunk.length;
+              } catch (_) {
+                // Client aborted connection (e.g. seek / track skip)
+                break;
+              }
+            }
+          }, knownSize: totalSize);
+          try {
+            await request.response.close();
+          } catch (_) {}
+        }
+      } else {
+        // Full file streaming using persistent handle
+        request.response.statusCode = HttpStatus.ok;
+        request.response.headers.set(HttpHeaders.contentLengthHeader, totalSize.toString());
+
+        final pool = await smbClient.getPool(share);
+        var cleanPath = relativePath.trim();
+        if (cleanPath.startsWith('/')) cleanPath = cleanPath.substring(1);
+
+        await pool.withFile(cleanPath, (file) async {
+          const chunkSize = 1024 * 1024; // 1MB chunks
+          int currentOffset = 0;
+          while (currentOffset < totalSize) {
+            final remaining = totalSize - currentOffset;
+            final toRead = remaining < chunkSize ? remaining : chunkSize;
+            final chunk = await file.read(
               offset: currentOffset,
               length: toRead,
             );
             if (chunk.isEmpty) break;
-            request.response.add(chunk);
-            currentOffset += chunk.length;
+            try {
+              request.response.add(chunk);
+              await request.response.flush();
+              currentOffset += chunk.length;
+            } catch (_) {
+              break;
+            }
           }
+        }, knownSize: totalSize);
+        try {
           await request.response.close();
-        }
-      } else {
-        // Full file streaming
-        request.response.statusCode = HttpStatus.ok;
-        request.response.headers.set(HttpHeaders.contentLengthHeader, totalSize.toString());
-
-        await for (final chunk in smbClient.streamFile(share, relativePath)) {
-          request.response.add(chunk);
-        }
-        await request.response.close();
+        } catch (_) {}
       }
     } catch (e) {
       debugPrint('[LocalStreamProxy] Error serving request: $e');

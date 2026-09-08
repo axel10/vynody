@@ -130,7 +130,7 @@ class SmbClient implements RemoteDirectoryClient {
       user: server.username.isNotEmpty ? server.username : null,
       password: password.isNotEmpty ? password : null,
       domain: server.domain,
-      workers: 2,
+      workers: 4,
       timeoutSeconds: 15,
     );
     _poolCache[key] = pool;

@@ -156,13 +156,41 @@ class PlaybackQueueProcessor {
         );
       }
 
-      // Prefetch Phase: Pre-cache upcoming remote audio tracks according to user setting
-      final int prefetchCount = settingsService.remotePrefetchCount;
-      if (prefetchCount > 0 &&
-          currentFilePath != null &&
+      // Cache Phase: Ensure current and upcoming remote audio tracks are cached locally
+      if (currentFilePath != null &&
           currentIndex != -1 &&
           remoteMediaResolverGetter != null) {
         unawaited(() async {
+          if (currentIndex < playlist.length) {
+            final currentSong = playlist[currentIndex];
+            if (RemoteMediaResolver.isRemoteUri(currentSong.path)) {
+              try {
+                final resolver = await remoteMediaResolverGetter!();
+                if (!_disposed && myId == _currentProcessId && resolver != null) {
+                  final source = await resolver.resolvePlayableSource(currentSong.path);
+                  if (!_disposed && myId == _currentProcessId) {
+                    final cacheKey = source.cacheKey ?? source.uri;
+                    if (!await player.streamCacheManager.isTrackCached(cacheKey)) {
+                      await player.streamCacheManager.ensureTrackCached(
+                        cacheKey: cacheKey,
+                        remoteUrl: source.uri,
+                        headers: source.headers,
+                      );
+                      debugPrint(
+                        '[PlaybackQueueProcessor] Cached current remote track: ${currentSong.title ?? currentSong.name}',
+                      );
+                    }
+                  }
+                }
+              } catch (e) {
+                debugPrint(
+                  '[PlaybackQueueProcessor] Error caching current remote track (${currentSong.path}): $e',
+                );
+              }
+            }
+          }
+
+          final int prefetchCount = settingsService.remotePrefetchCount;
           for (int i = 1; i <= prefetchCount; i++) {
             if (_disposed || myId != _currentProcessId) return;
             final idx = (currentIndex + i) % playlist.length;

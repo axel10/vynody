@@ -2298,6 +2298,24 @@ class AudioService extends Notifier<AudioSnapshot> {
         final meta = result.$1;
         final artworkBytes = result.$2;
 
+        Uint8List? newWaveformBlob;
+        if (settingsService.isWaveformProgressBarEnabled) {
+          try {
+            final wfResult = await _waveformService.getWaveformData(
+              path: virtualUri,
+              expectedChunks: settingsService.waveformChunks,
+              sampleStride: settingsService.sampleStride,
+              localFilePath: file.path,
+            );
+            if (wfResult.waveformBlob != null) {
+              newWaveformBlob = wfResult.waveformBlob;
+              MusicFile.invalidateWaveformCache(virtualUri);
+            }
+          } catch (e) {
+            debugPrint('[AudioService] Failed to generate waveform for cached file $virtualUri: $e');
+          }
+        }
+
         bool queueModified = false;
         final decodedVirtualUri = safeDecodeUri(virtualUri);
         for (int i = 0; i < _queue.length; i++) {
@@ -2315,6 +2333,7 @@ class AudioService extends Notifier<AudioSnapshot> {
               artworkHeight: meta.artworkHeight ?? _queue[i].artworkHeight,
               themeColorsBlob: meta.themeColorsBlob ?? _queue[i].themeColorsBlob,
               artworkBytes: artworkBytes ?? _queue[i].artworkBytes,
+              waveformBlob: newWaveformBlob ?? _queue[i].waveformBlob,
             );
             queueModified = true;
           }
@@ -2332,6 +2351,9 @@ class AudioService extends Notifier<AudioSnapshot> {
           if (meta.themeColorsBlob != null) {
             final colorsMap = ThemeColorHelper.blobToColors(meta.themeColorsBlob!);
             _applyThemeColors(colorsMap);
+          }
+          if (newWaveformBlob != null) {
+            unawaited(_refreshCurrentWaveform());
           }
         }
 

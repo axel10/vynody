@@ -185,7 +185,7 @@ class RemoteMediaResolver {
   }
 
   /// Converts a cacheKey (e.g. `serverId:path`) back to its virtual URI (`webdav://...` or `subsonic://...` or `smb://...`).
-  static String? uriFromCacheKey(String cacheKey) {
+  static String? uriFromCacheKey(String cacheKey, [RemoteServerStorage? storage]) {
     final idx = cacheKey.indexOf(':');
     if (idx <= 0) return null;
     final serverId = cacheKey.substring(0, idx);
@@ -193,8 +193,29 @@ class RemoteMediaResolver {
     try {
       trackIdOrPath = Uri.decodeFull(trackIdOrPath);
     } catch (_) {}
+
+    if (storage != null) {
+      final servers = storage.loadServers();
+      final server = servers.cast<RemoteServer?>().firstWhere(
+            (s) => s?.id == serverId,
+            orElse: () => null,
+          );
+      if (server != null) {
+        if (server.type == RemoteServerType.smb) {
+          final clean = trackIdOrPath.startsWith('/') ? trackIdOrPath.substring(1) : trackIdOrPath;
+          return 'smb://$serverId/$clean';
+        } else if (server.type == RemoteServerType.webdav) {
+          return buildWebDavUri(serverId, trackIdOrPath);
+        } else {
+          return buildSubsonicUri(serverId, trackIdOrPath);
+        }
+      }
+    }
+
     if (trackIdOrPath.startsWith('/')) {
       return buildWebDavUri(serverId, trackIdOrPath);
+    } else if (trackIdOrPath.contains('/')) {
+      return 'smb://$serverId/$trackIdOrPath';
     } else {
       return buildSubsonicUri(serverId, trackIdOrPath);
     }

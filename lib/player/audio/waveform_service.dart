@@ -8,6 +8,7 @@ import 'package:audio_core/audio_core.dart';
 import 'package:path/path.dart' as p;
 import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/player/metadata/metadata_helper.dart';
+import 'package:vynody/player/remote/proxy/remote_media_resolver.dart';
 
 typedef WaveformCacheResult = ({
   List<double> waveform,
@@ -38,6 +39,7 @@ class WaveformService {
     int expectedChunks = 80,
     int sampleStride = 4,
     SongMetadata? baseMetadata,
+    String? localFilePath,
   }) async {
     var songMetadata = await db.getSongMetadata(path);
     if (songMetadata != null && songMetadata.waveformBlob != null) {
@@ -50,7 +52,30 @@ class WaveformService {
       }
     }
 
-    if (songMetadata == null) {
+    final isRemote = RemoteMediaResolver.isRemoteUri(path);
+    String? effectivePath = localFilePath;
+
+    if (isRemote && effectivePath == null) {
+      // Check if this remote track is already fully cached on local disk
+      final info = RemoteMediaResolver.parseUri(path);
+      if (info != null) {
+        final cacheKey = '${info.serverId}:${info.trackIdOrPath}';
+        if (await player.streamCacheManager.isTrackCached(cacheKey)) {
+          final cachedFile = await player.streamCacheManager.getCacheFile(cacheKey);
+          if (await cachedFile.exists() && await cachedFile.length() > 0) {
+            effectivePath = cachedFile.path;
+          }
+        }
+      }
+
+      // If remote song is not yet cached locally, defer waveform generation until
+      // buffering completes to avoid choking network bandwidth and stalling playback/FFT.
+      if (effectivePath == null) {
+        return (waveform: const <double>[], waveformBlob: null);
+      }
+    }
+
+    if (songMetadata == null && !isRemote) {
       final playbackMetadata = await MetadataHelper.loadMetadataForPlayback(
         path,
         generateThumbnail: false,
@@ -70,7 +95,7 @@ class WaveformService {
     final waveform = await player.getWaveform(
       expectedChunks: expectedChunks,
       sampleStride: sampleStride,
-      filePath: path,
+      filePath: effectivePath ?? path,
     );
     if (waveform.isEmpty) {
       return (waveform: waveform, waveformBlob: null);
@@ -105,6 +130,7 @@ class WaveformService {
     int expectedChunks = 80,
     int sampleStride = 4,
     SongMetadata? baseMetadata,
+    String? localFilePath,
   }) async* {
     var songMetadata = await db.getSongMetadata(path);
     if (songMetadata != null && songMetadata.waveformBlob != null) {
@@ -115,7 +141,26 @@ class WaveformService {
       }
     }
 
-    if (songMetadata == null) {
+    final isRemote = RemoteMediaResolver.isRemoteUri(path);
+    String? effectivePath = localFilePath;
+
+    if (isRemote && effectivePath == null) {
+      final info = RemoteMediaResolver.parseUri(path);
+      if (info != null) {
+        final cacheKey = '${info.serverId}:${info.trackIdOrPath}';
+        if (await player.streamCacheManager.isTrackCached(cacheKey)) {
+          final cachedFile = await player.streamCacheManager.getCacheFile(cacheKey);
+          if (await cachedFile.exists() && await cachedFile.length() > 0) {
+            effectivePath = cachedFile.path;
+          }
+        }
+      }
+      if (effectivePath == null) {
+        return;
+      }
+    }
+
+    if (songMetadata == null && !isRemote) {
       final playbackMetadata = await MetadataHelper.loadMetadataForPlayback(
         path,
         generateThumbnail: false,
@@ -134,7 +179,7 @@ class WaveformService {
     await for (final waveformChunk in player.streamWaveform(
       expectedChunks: expectedChunks,
       sampleStride: sampleStride,
-      filePath: path,
+      filePath: effectivePath ?? path,
     )) {
       if (waveformChunk.isNotEmpty) {
         lastWaveform = waveformChunk;
