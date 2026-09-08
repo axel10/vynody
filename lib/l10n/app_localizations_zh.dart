@@ -15,6 +15,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get alwaysOnTop => '置顶';
 
   @override
+  String get backToRootDirectory => '回到根目录';
+
+  @override
   String get systemMediaLibrary => '系统媒体库';
 
   @override
@@ -4478,6 +4481,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get alwaysOnTop => '置頂';
+
+  @override
+  String get backToRootDirectory => '回到根目錄';
 
   @override
   String get systemMediaLibrary => '系統媒體庫';

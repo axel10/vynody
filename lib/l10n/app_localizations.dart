@@ -123,6 +123,12 @@ abstract class AppLocalizations {
   /// **'置顶'**
   String get alwaysOnTop;
 
+  /// Tooltip for button to navigate back to root directory
+  ///
+  /// In zh, this message translates to:
+  /// **'回到根目录'**
+  String get backToRootDirectory;
+
   /// System media library
   ///
   /// In zh, this message translates to:

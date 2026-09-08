@@ -15,6 +15,9 @@ class AppLocalizationsTr extends AppLocalizations {
   String get alwaysOnTop => 'Her Zaman Üstte';
 
   @override
+  String get backToRootDirectory => 'Kök dizine dön';
+
+  @override
   String get systemMediaLibrary => 'Sistem Medya Kitaplığı';
 
   @override

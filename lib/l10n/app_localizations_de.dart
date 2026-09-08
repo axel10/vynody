@@ -15,6 +15,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get alwaysOnTop => 'Immer im Vordergrund';
 
   @override
+  String get backToRootDirectory => 'Zurück zum Stammverzeichnis';
+
+  @override
   String get systemMediaLibrary => 'System-Mediathek';
 
   @override

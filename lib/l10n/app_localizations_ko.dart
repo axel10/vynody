@@ -15,6 +15,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get alwaysOnTop => '항상 위에 표시';
 
   @override
+  String get backToRootDirectory => '루트 디렉터리로 돌아가기';
+
+  @override
   String get systemMediaLibrary => '시스템 미디어 라이브러리';
 
   @override

@@ -15,6 +15,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get alwaysOnTop => 'Toujours au premier plan';
 
   @override
+  String get backToRootDirectory => 'Retour au répertoire racine';
+
+  @override
   String get systemMediaLibrary => 'Bibliothèque multimédia système';
 
   @override

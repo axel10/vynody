@@ -2199,6 +2199,57 @@ class _WebDavBrowserPageState extends ConsumerState<WebDavBrowserPage> {
     }
   }
 
+  void _handleGoToFoldersRoot() {
+    _clearAllSelection();
+    final hasActiveSession = ref.read(activeRemoteSessionProvider) != null;
+    if (hasActiveSession) {
+      ref.read(activeRemoteSessionProvider.notifier).clear();
+    } else {
+      Navigator.of(context).popUntil((route) => route.isFirst);
+    }
+  }
+
+  Widget _buildPinnedLeading(
+    BuildContext context,
+    FolderNavBarStyle style,
+    AppLocalizations l10n,
+  ) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Material(
+          color: Colors.transparent,
+          child: InkResponse(
+            radius: 18,
+            highlightShape: BoxShape.circle,
+            onTap: _handleGoToFoldersRoot,
+            child: Tooltip(
+              message: l10n.backToRootDirectory,
+              child: Padding(
+                padding: const EdgeInsets.all(8),
+                child: Icon(
+                  Icons.home_rounded,
+                  size: 20,
+                  color: style.iconColor,
+                  shadows: style.shadows,
+                ),
+              ),
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 2),
+          child: Icon(
+            Icons.chevron_right_rounded,
+            size: 16,
+            color: style.chevronColor,
+            shadows: style.shadows,
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildHeaderNavBar(BuildContext context, {bool isOverlay = true}) {
     final currentMusic = ref.watch(audioCurrentMusicProvider);
     final settings = ref.watch(settingsServiceProvider);
@@ -2210,6 +2261,8 @@ class _WebDavBrowserPageState extends ConsumerState<WebDavBrowserPage> {
       scrollProgress: _scrollProgress,
       onGoBack: _handleGoBack,
       scrollController: _breadcrumbsScrollController,
+      pinnedLeadingBuilder: (context, style) =>
+          _buildPinnedLeading(context, style, l10n),
       breadcrumbItemsBuilder: (context, style) =>
           _buildBreadcrumbItems(style),
       actionsBuilder: (context, style) => _buildHeaderActions(

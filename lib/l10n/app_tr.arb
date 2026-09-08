@@ -2,6 +2,7 @@
   "@@locale": "tr",
   "appTitle": "Vynody",
   "alwaysOnTop": "Her Zaman Üstte",
+  "backToRootDirectory": "Kök dizine dön",
   "systemMediaLibrary": "Sistem Medya Kitaplığı",
   "scanningDirectory": "Dizin taranıyor...",
   "filesPreprocessed": "{count} ön işlendi",

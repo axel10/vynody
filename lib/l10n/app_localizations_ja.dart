@@ -15,6 +15,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get alwaysOnTop => '常に最前面';
 
   @override
+  String get backToRootDirectory => 'ルートディレクトリに戻る';
+
+  @override
   String get systemMediaLibrary => 'システムメディアライブラリ';
 
   @override

@@ -15,6 +15,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get alwaysOnTop => 'Always on Top';
 
   @override
+  String get backToRootDirectory => 'Back to root directory';
+
+  @override
   String get systemMediaLibrary => 'System Media Library';
 
   @override

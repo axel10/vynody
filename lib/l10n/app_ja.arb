@@ -5,6 +5,7 @@
   "@alwaysOnTop": {
     "description": "Tooltip for always on top / pin button in window title bar"
   },
+  "backToRootDirectory": "ルートディレクトリに戻る",
   "systemMediaLibrary": "システムメディアライブラリ",
   "scanningDirectory": "ディレクトリをスキャン中...",
   "filesPreprocessed": "前処理済み {count}",

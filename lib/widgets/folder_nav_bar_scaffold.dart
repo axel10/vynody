@@ -35,6 +35,7 @@ class FolderNavBarScaffold extends StatefulWidget {
     required this.scrollProgress,
     this.onGoBack,
     this.scrollController,
+    this.pinnedLeadingBuilder,
     required this.breadcrumbItemsBuilder,
     required this.actionsBuilder,
   });
@@ -43,6 +44,8 @@ class FolderNavBarScaffold extends StatefulWidget {
   final ValueListenable<double> scrollProgress;
   final VoidCallback? onGoBack;
   final ScrollController? scrollController;
+  final Widget? Function(BuildContext context, FolderNavBarStyle style)?
+      pinnedLeadingBuilder;
   final List<Widget> Function(BuildContext context, FolderNavBarStyle style)
       breadcrumbItemsBuilder;
   final Widget Function(BuildContext context, FolderNavBarStyle style)
@@ -226,6 +229,7 @@ class _FolderNavBarScaffoldState extends State<FolderNavBarScaffold>
           ),
         );
 
+        final pinnedLeading = widget.pinnedLeadingBuilder?.call(context, style);
         final breadcrumbItems = widget.breadcrumbItemsBuilder(context, style);
         final actions = widget.actionsBuilder(context, style);
 
@@ -274,6 +278,7 @@ class _FolderNavBarScaffoldState extends State<FolderNavBarScaffold>
                       backButton,
                       backChevron,
                     ],
+                    ?pinnedLeading,
                     Expanded(
                       child: LayoutBuilder(
                         builder: (context, constraints) {

@@ -5,6 +5,7 @@
   "@alwaysOnTop": {
     "description": "Tooltip for always on top / pin button in window title bar"
   },
+  "backToRootDirectory": "Volver al directorio raíz",
   "systemMediaLibrary": "Biblioteca multimedia del sistema",
   "scanningDirectory": "Escaneando directorio...",
   "filesPreprocessed": "Preprocesados {count}",

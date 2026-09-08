@@ -8,6 +8,10 @@
   "@alwaysOnTop": {
     "description": "Tooltip for always on top / pin button in window title bar"
   },
+  "backToRootDirectory": "回到根目录",
+  "@backToRootDirectory": {
+    "description": "Tooltip for button to navigate back to root directory"
+  },
   "systemMediaLibrary": "系统媒体库",
   "@systemMediaLibrary": {
     "description": "System media library"

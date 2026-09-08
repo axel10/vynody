@@ -2,6 +2,7 @@
   "@@locale": "zh_Hant",
   "appTitle": "Vynody",
   "alwaysOnTop": "置頂",
+  "backToRootDirectory": "回到根目錄",
   "systemMediaLibrary": "系統媒體庫",
   "scanningDirectory": "正在掃描目錄...",
   "filesPreprocessed": "已預處理 {count}",

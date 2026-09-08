@@ -5,6 +5,7 @@
   "@alwaysOnTop": {
     "description": "Tooltip for always on top / pin button in window title bar"
   },
+  "backToRootDirectory": "루트 디렉터리로 돌아가기",
   "systemMediaLibrary": "시스템 미디어 라이브러리",
   "scanningDirectory": "디렉토리 검색 중...",
   "filesPreprocessed": "전처리됨 {count}",
