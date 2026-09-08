@@ -14,6 +14,8 @@ import '../../metadata/metadata_helper.dart';
 import '../../sharing/sharing_riverpod.dart';
 import '../clients/subsonic_client.dart';
 import '../clients/webdav_client.dart';
+import '../clients/smb_client.dart';
+import '../proxy/local_stream_proxy.dart';
 import '../proxy/remote_media_resolver.dart';
 import '../remote_server_models.dart';
 
@@ -32,6 +34,8 @@ class RemoteDownloadTask {
   final MusicFile song;
   final String? trackId;
   final String? webDavPath;
+  final String? smbShare;
+  final String? smbPath;
   final String downloadUrl;
   final Map<String, String>? headers;
   final String targetPath;
@@ -49,6 +53,8 @@ class RemoteDownloadTask {
     required this.song,
     this.trackId,
     this.webDavPath,
+    this.smbShare,
+    this.smbPath,
     required this.downloadUrl,
     this.headers,
     required this.targetPath,
@@ -65,6 +71,7 @@ class RemoteDownloadTask {
       totalBytes > 0 ? (bytesDownloaded / totalBytes).clamp(0.0, 1.0) : 0.0;
   bool get isSubsonic => server.type == RemoteServerType.subsonic;
   bool get isWebDav => server.type == RemoteServerType.webdav;
+  bool get isSmb => server.type == RemoteServerType.smb;
 
   RemoteDownloadTask copyWith({
     RemoteDownloadStatus? status,
@@ -80,6 +87,8 @@ class RemoteDownloadTask {
       song: song,
       trackId: trackId,
       webDavPath: webDavPath,
+      smbShare: smbShare,
+      smbPath: smbPath,
       downloadUrl: downloadUrl,
       headers: headers,
       targetPath: targetPath,
@@ -534,6 +543,124 @@ class RemoteDownloadNotifier extends Notifier<List<RemoteDownloadTask>> {
     return enqueued;
   }
 
+  /// Enqueues an SMB file for download.
+  Future<RemoteDownloadTask?> enqueueSmbFile({
+    required RemoteServer server,
+    required SmbFile file,
+    bool skipWritableCheck = false,
+  }) async {
+    if (!skipWritableCheck) {
+      final ready = await ensureDownloadFolderWritable();
+      if (!ready) return null;
+    }
+
+    final baseFolder = await getDownloadFolderPath();
+    final song = RemoteMediaResolver.buildMusicFileFromSmb(file, server);
+
+    final targetPath = await buildLocalTrackPath(
+      song: song,
+      baseFolder: baseFolder,
+      server: server,
+      webDavPath: '${file.share}/${file.path}',
+    );
+
+    final taskId = 'smb_${server.id}_${file.share}_${file.path.hashCode}';
+
+    final existingIndex = state.indexWhere((t) => t.id == taskId);
+    if (existingIndex >= 0) {
+      final existing = state[existingIndex];
+      if (existing.status == RemoteDownloadStatus.completed) {
+        return existing;
+      }
+      if (existing.status == RemoteDownloadStatus.failed ||
+          existing.status == RemoteDownloadStatus.cancelled ||
+          existing.status == RemoteDownloadStatus.paused) {
+        retryTask(taskId);
+        return state.firstWhere((t) => t.id == taskId);
+      }
+      return existing;
+    }
+
+    final exists = await _checkFileExistsLocally(targetPath);
+    if (exists) {
+      int fileSize = file.contentLength;
+      try {
+        final targetFile = File(targetPath);
+        if (targetFile.existsSync()) {
+          fileSize = targetFile.lengthSync();
+        }
+      } catch (_) {}
+
+      final downloadUrl = await LocalStreamProxy.instance.buildSmbStreamUrl(
+        serverId: server.id,
+        share: file.share,
+        relativePath: file.path,
+      );
+
+      final task = RemoteDownloadTask(
+        id: taskId,
+        server: server,
+        song: song,
+        smbShare: file.share,
+        smbPath: file.path,
+        downloadUrl: downloadUrl,
+        targetPath: targetPath,
+        status: RemoteDownloadStatus.completed,
+        bytesDownloaded: fileSize,
+        totalBytes: fileSize,
+        completedAt: DateTime.now(),
+      );
+      state = [task, ...state];
+      return task;
+    }
+
+    final downloadUrl = await LocalStreamProxy.instance.buildSmbStreamUrl(
+      serverId: server.id,
+      share: file.share,
+      relativePath: file.path,
+    );
+
+    final task = RemoteDownloadTask(
+      id: taskId,
+      server: server,
+      song: song,
+      smbShare: file.share,
+      smbPath: file.path,
+      downloadUrl: downloadUrl,
+      targetPath: targetPath,
+      status: RemoteDownloadStatus.pending,
+      totalBytes: file.contentLength,
+    );
+
+    state = [...state, task];
+    _processQueue();
+    return task;
+  }
+
+  /// Enqueues multiple SMB files.
+  Future<List<RemoteDownloadTask>> enqueueSmbFiles({
+    required RemoteServer server,
+    required List<SmbFile> files,
+  }) async {
+    final ready = await ensureDownloadFolderWritable();
+    if (!ready) return [];
+
+    final List<RemoteDownloadTask> enqueued = [];
+    for (final file in files) {
+      if (!file.isDirectory && file.isAudio) {
+        final task = await enqueueSmbFile(
+          server: server,
+          file: file,
+          skipWritableCheck: true,
+        );
+        if (task != null) {
+          enqueued.add(task);
+        }
+      }
+    }
+    return enqueued;
+  }
+
   /// Concurrency scheduler: starts pending tasks up to [_maxConcurrent].
   void _processQueue() {
     final activeDownloadingCount =
@@ -965,6 +1092,27 @@ class RemoteDownloadService {
           password: password,
           songs: songs,
           collectionName: collectionName,
+        );
+  }
+
+  Future<bool> downloadSmbFile({
+    required RemoteServer server,
+    required SmbFile file,
+  }) async {
+    final task = await _ref.read(remoteDownloadTasksProvider.notifier).enqueueSmbFile(
+          server: server,
+          file: file,
+        );
+    return task != null;
+  }
+
+  Future<void> downloadSmbFiles({
+    required RemoteServer server,
+    required List<SmbFile> files,
+  }) async {
+    await _ref.read(remoteDownloadTasksProvider.notifier).enqueueSmbFiles(
+          server: server,
+          files: files,
         );
   }
 }

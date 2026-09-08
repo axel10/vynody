@@ -3,11 +3,13 @@ import 'dart:convert';
 /// Supported remote media server types.
 enum RemoteServerType {
   subsonic,
-  webdav;
+  webdav,
+  smb;
 
   String get displayName => switch (this) {
         RemoteServerType.subsonic => 'Navidrome / Subsonic',
         RemoteServerType.webdav => 'WebDAV',
+        RemoteServerType.smb => 'Samba / SMB',
       };
 
   static RemoteServerType fromString(String? value) {
@@ -27,6 +29,7 @@ class RemoteServer {
   final String url;
   final String username;
   final String? customPath;
+  final String? domain;
   final int? maxBitRate; // e.g. 320 for 320kbps transcoding
   final bool ignoreSsl;
   final DateTime createdAt;
@@ -39,6 +42,7 @@ class RemoteServer {
     required this.url,
     required this.username,
     this.customPath,
+    this.domain,
     this.maxBitRate,
     this.ignoreSsl = false,
     required this.createdAt,
@@ -52,6 +56,7 @@ class RemoteServer {
     String? url,
     String? username,
     String? customPath,
+    String? domain,
     int? maxBitRate,
     bool? ignoreSsl,
     DateTime? createdAt,
@@ -64,6 +69,7 @@ class RemoteServer {
       url: url ?? this.url,
       username: username ?? this.username,
       customPath: customPath ?? this.customPath,
+      domain: domain ?? this.domain,
       maxBitRate: maxBitRate ?? this.maxBitRate,
       ignoreSsl: ignoreSsl ?? this.ignoreSsl,
       createdAt: createdAt ?? this.createdAt,
@@ -79,6 +85,7 @@ class RemoteServer {
       'url': url,
       'username': username,
       'customPath': customPath,
+      'domain': domain,
       'maxBitRate': maxBitRate,
       'ignoreSsl': ignoreSsl,
       'createdAt': createdAt.toIso8601String(),
@@ -94,6 +101,7 @@ class RemoteServer {
       url: json['url'] as String? ?? '',
       username: json['username'] as String? ?? '',
       customPath: json['customPath'] as String?,
+      domain: json['domain'] as String?,
       maxBitRate: json['maxBitRate'] as int?,
       ignoreSsl: json['ignoreSsl'] as bool? ?? false,
       createdAt: json['createdAt'] != null
@@ -131,6 +139,7 @@ class ConnectionTestResult {
   final int? songCount;
   final int? albumCount;
   final String? detectedCustomPath;
+  final List<String>? availableShares;
 
   const ConnectionTestResult({
     required this.isSuccess,
@@ -139,6 +148,7 @@ class ConnectionTestResult {
     this.songCount,
     this.albumCount,
     this.detectedCustomPath,
+    this.availableShares,
   });
 
   const ConnectionTestResult.success({
@@ -147,6 +157,7 @@ class ConnectionTestResult {
     this.songCount,
     this.albumCount,
     this.detectedCustomPath,
+    this.availableShares,
   }) : isSuccess = true;
 
   const ConnectionTestResult.failure(this.message)
@@ -154,5 +165,6 @@ class ConnectionTestResult {
         serverVersion = null,
         songCount = null,
         albumCount = null,
-        detectedCustomPath = null;
+        detectedCustomPath = null,
+        availableShares = null;
 }

@@ -5,6 +5,7 @@ import 'remote_server_storage.dart';
 import '../../models/music_file.dart';
 import 'clients/subsonic_client.dart';
 import 'clients/webdav_client.dart';
+import 'clients/smb_client.dart';
 import '../metadata/metadata_database.dart';
 
 final remoteServerStorageProvider = FutureProvider<RemoteServerStorage>((ref) async {
@@ -64,6 +65,9 @@ class RemoteServersNotifier extends AsyncNotifier<List<RemoteServer>> {
   Future<ConnectionTestResult> testConnection(RemoteServer server, String password) async {
     if (server.type == RemoteServerType.subsonic) {
       final client = SubsonicClient(server: server, password: password);
+      return client.testConnection();
+    } else if (server.type == RemoteServerType.smb) {
+      final client = SmbClient(server: server, password: password);
       return client.testConnection();
     } else {
       final client = WebDavClient(server: server, password: password);

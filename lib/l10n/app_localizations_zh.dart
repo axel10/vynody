@@ -3864,7 +3864,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get noRemoteServersDesc =>
-      '添加 Navidrome (Subsonic) 或 WebDAV 服务器，畅享自建私有云音乐';
+      '添加 Navidrome (Subsonic)、WebDAV 或 SMB 共享，畅享自建私有云音乐';
 
   @override
   String get browseServer => '浏览';

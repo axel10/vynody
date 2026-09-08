@@ -17,7 +17,6 @@ import 'package:vynody/player/scanner/scanner_service.dart';
 import '../widgets/library_selection_scope.dart';
 import 'package:vynody/utils/app_snack_bar.dart';
 import 'package:vynody/transcode/transcode_riverpod.dart';
-import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/player/metadata/metadata_helper.dart';
 import 'package:audio_core/audio_core.dart';
 import '../widgets/scan_progress_toast.dart';
@@ -32,6 +31,7 @@ import 'remote/navidrome_album_detail_page.dart';
 import 'remote/navidrome_artist_detail_page.dart';
 import 'remote/navidrome_playlist_detail_page.dart';
 import 'remote/webdav_browser_page.dart';
+import 'remote/smb_browser_page.dart';
 
 class FoldersPage extends ConsumerStatefulWidget {
   final Future<void> Function()? onOpenPlayback;
@@ -235,7 +235,9 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
         isRootSelectionMode || _selectedRootPaths.isNotEmpty;
     if (!shouldClearSongSelection &&
         !shouldClearRootSelection &&
-        (!clearSortMode || !_isRootSortMode)) return;
+        (!clearSortMode || !_isRootSortMode)) {
+      return;
+    }
 
     setState(() {
       _isSelectionMode = false;
@@ -846,6 +848,17 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
             );
           }
         }
+      } else if (activeRemoteSession.server.type == RemoteServerType.smb) {
+        pages.add(
+          _buildPage(
+            key: ValueKey('smb-root-${activeRemoteSession.server.id}'),
+            child: SmbBrowserPage(
+              server: activeRemoteSession.server,
+              password: activeRemoteSession.password,
+              wrapWithMiniPlayer: false,
+            ),
+          ),
+        );
       } else {
         final rootPath = activeRemoteSession.rootPath ??
             (activeRemoteSession.server.customPath?.trim().isNotEmpty == true

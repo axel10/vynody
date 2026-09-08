@@ -58,6 +58,8 @@ dependencies:
   basic_utils: ^5.8.2
   crypto: ^3.0.6
   xml: ^6.5.0
+  dart_smb2:
+    path: ./dart_smb2
 
   window_manager: 
     git: 

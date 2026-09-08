@@ -7284,7 +7284,7 @@ abstract class AppLocalizations {
   /// No description provided for @noRemoteServersDesc.
   ///
   /// In zh, this message translates to:
-  /// **'添加 Navidrome (Subsonic) 或 WebDAV 服务器，畅享自建私有云音乐'**
+  /// **'添加 Navidrome (Subsonic)、WebDAV 或 SMB 共享，畅享自建私有云音乐'**
   String get noRemoteServersDesc;
 
   /// No description provided for @browseServer.

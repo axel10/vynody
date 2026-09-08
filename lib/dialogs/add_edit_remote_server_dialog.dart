@@ -32,6 +32,7 @@ class _AddEditRemoteServerDialogState
   late final TextEditingController _usernameController;
   late final TextEditingController _passwordController;
   late final TextEditingController _customPathController;
+  late final TextEditingController _domainController;
   int? _maxBitRate;
   bool _ignoreSsl = false;
   bool _obscurePassword = true;
@@ -52,6 +53,7 @@ class _AddEditRemoteServerDialogState
     _usernameController = TextEditingController(text: s?.username ?? '');
     _passwordController = TextEditingController();
     _customPathController = TextEditingController(text: s?.customPath ?? '');
+    _domainController = TextEditingController(text: s?.domain ?? '');
     _maxBitRate = s?.maxBitRate;
     _ignoreSsl = s?.ignoreSsl ?? false;
 
@@ -70,7 +72,13 @@ class _AddEditRemoteServerDialogState
   void _handleUrlChanged() {
     final text = _urlController.text.trim().toLowerCase();
     if (!_isEditing && text.isNotEmpty) {
-      if (text.contains('/dav') || text.contains('/remote.php/webdav')) {
+      if (text.startsWith('smb://') || text.contains(':445')) {
+        if (_serverType != RemoteServerType.smb) {
+          setState(() {
+            _serverType = RemoteServerType.smb;
+          });
+        }
+      } else if (text.contains('/dav') || text.contains('/remote.php/webdav')) {
         if (_serverType != RemoteServerType.webdav) {
           setState(() {
             _serverType = RemoteServerType.webdav;
@@ -94,13 +102,17 @@ class _AddEditRemoteServerDialogState
     _usernameController.dispose();
     _passwordController.dispose();
     _customPathController.dispose();
+    _domainController.dispose();
     super.dispose();
   }
 
   String _resolveServerName([String? inputName]) {
     final rawInput = (inputName ?? _nameController.text).trim();
-    final defaultBaseName =
-        _serverType == RemoteServerType.subsonic ? 'Navidrome' : 'WebDAV';
+    final defaultBaseName = switch (_serverType) {
+      RemoteServerType.subsonic => 'Navidrome',
+      RemoteServerType.webdav => 'WebDAV',
+      RemoteServerType.smb => 'Samba (SMB)',
+    };
 
     final existingServers = ref.read(remoteServersProvider).asData?.value ?? [];
     final currentId = widget.server?.id;
@@ -132,9 +144,13 @@ class _AddEditRemoteServerDialogState
       type: _serverType,
       url: _urlController.text.trim(),
       username: _usernameController.text.trim(),
-      customPath: _serverType == RemoteServerType.webdav &&
+      customPath: (_serverType == RemoteServerType.webdav || _serverType == RemoteServerType.smb) &&
               _customPathController.text.trim().isNotEmpty
           ? _customPathController.text.trim()
+          : null,
+      domain: _serverType == RemoteServerType.smb &&
+              _domainController.text.trim().isNotEmpty
+          ? _domainController.text.trim()
           : null,
       maxBitRate: _serverType == RemoteServerType.subsonic ? _maxBitRate : null,
       ignoreSsl: _ignoreSsl,
@@ -253,6 +269,11 @@ class _AddEditRemoteServerDialogState
                       icon: Icon(Icons.folder_copy_outlined),
                       label: Text('WebDAV'),
                     ),
+                    ButtonSegment(
+                      value: RemoteServerType.smb,
+                      icon: Icon(Icons.dns_outlined),
+                      label: Text('SMB'),
+                    ),
                   ],
                   selected: {_serverType},
                   onSelectionChanged: (selected) {
@@ -299,9 +320,11 @@ class _AddEditRemoteServerDialogState
                           controller: _urlController,
                           decoration: InputDecoration(
                             labelText: l10n.serverUrl,
-                            hintText: _serverType == RemoteServerType.subsonic
-                                ? 'http://192.168.1.100:4533'
-                                : 'https://dav.example.com/remote.php/webdav',
+                            hintText: switch (_serverType) {
+                              RemoteServerType.subsonic => 'http://192.168.1.100:4533',
+                              RemoteServerType.webdav => 'https://dav.example.com/remote.php/webdav',
+                              RemoteServerType.smb => '192.168.1.100 or 192.168.1.100:445',
+                            },
                             prefixIcon: const Icon(Icons.link_rounded),
                             border: const OutlineInputBorder(),
                           ),
@@ -376,6 +399,28 @@ class _AddEditRemoteServerDialogState
                             ),
                           ),
                         ],
+                        if (_serverType == RemoteServerType.smb) ...[
+                          const SizedBox(height: 14),
+                          TextFormField(
+                            controller: _customPathController,
+                            decoration: const InputDecoration(
+                              labelText: '共享文件夹 / Share (可选)',
+                              hintText: '如: music (留空则先浏览共享列表)',
+                              prefixIcon: Icon(Icons.folder_shared_outlined),
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          TextFormField(
+                            controller: _domainController,
+                            decoration: const InputDecoration(
+                              labelText: '工作组 / Domain (可选)',
+                              hintText: 'WORKGROUP',
+                              prefixIcon: Icon(Icons.domain_outlined),
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                        ],
                         if (_serverType == RemoteServerType.subsonic) ...[
                           const SizedBox(height: 14),
                           DropdownButtonFormField<int?>(
@@ -423,18 +468,20 @@ class _AddEditRemoteServerDialogState
                             },
                           ),
                         ],
-                        const SizedBox(height: 10),
-                        SwitchListTile(
-                          contentPadding: EdgeInsets.zero,
-                          title: Text(l10n.ignoreSsl),
-                          subtitle: const Text('For self-signed or internal SSL certs'),
-                          value: _ignoreSsl,
-                          onChanged: (val) {
-                            setState(() {
-                              _ignoreSsl = val;
-                            });
-                          },
-                        ),
+                        if (_serverType != RemoteServerType.smb) ...[
+                          const SizedBox(height: 10),
+                          SwitchListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: Text(l10n.ignoreSsl),
+                            subtitle: const Text('For self-signed or internal SSL certs'),
+                            value: _ignoreSsl,
+                            onChanged: (val) {
+                              setState(() {
+                                _ignoreSsl = val;
+                              });
+                            },
+                          ),
+                        ],
                         if (_testResult != null) ...[
                           const SizedBox(height: 10),
                           Container(
@@ -451,6 +498,7 @@ class _AddEditRemoteServerDialogState
                               ),
                             ),
                             child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Icon(
                                   _testResult!.isSuccess
@@ -487,6 +535,39 @@ class _AddEditRemoteServerDialogState
                                             color: Colors.green.shade800,
                                           ),
                                         ),
+                                      if (_testResult!.isSuccess &&
+                                          _testResult!.availableShares != null &&
+                                          _testResult!.availableShares!.isNotEmpty) ...[
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          '检测到以下共享文件夹 (点击填入):',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                            color: theme.colorScheme.onSurface,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Wrap(
+                                          spacing: 6,
+                                          runSpacing: 4,
+                                          children: _testResult!.availableShares!.map((share) {
+                                            final isSelected = _customPathController.text.trim() == share;
+                                            return ActionChip(
+                                              avatar: const Icon(Icons.folder_shared, size: 14),
+                                              label: Text(share),
+                                              backgroundColor: isSelected
+                                                  ? theme.colorScheme.primaryContainer
+                                                  : null,
+                                              onPressed: () {
+                                                setState(() {
+                                                  _customPathController.text = share;
+                                                });
+                                              },
+                                            );
+                                          }).toList(),
+                                        ),
+                                      ],
                                       if (!_testResult!.isSuccess)
                                         Text(
                                           _testResult!.message,

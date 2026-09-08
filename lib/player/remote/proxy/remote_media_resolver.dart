@@ -16,6 +16,8 @@ import '../remote_server_models.dart';
 import '../remote_server_storage.dart';
 import '../clients/subsonic_client.dart';
 import '../clients/webdav_client.dart';
+import '../clients/smb_client.dart';
+import 'local_stream_proxy.dart';
 import '../../metadata/metadata_database.dart';
 
 class RemoteUriInfo {
@@ -43,7 +45,9 @@ class RemoteMediaResolver {
 
   /// Checks if a file path is a remote virtual URI.
   static bool isRemoteUri(String path) {
-    return path.startsWith('subsonic://') || path.startsWith('webdav://');
+    return path.startsWith('subsonic://') ||
+        path.startsWith('webdav://') ||
+        path.startsWith('smb://');
   }
 
   /// Parses a remote virtual URI.
@@ -98,6 +102,17 @@ class RemoteMediaResolver {
             trackIdOrPath: cleanPath,
             queryParameters: queryParams,
           );
+        } else if (scheme == 'smb') {
+          var cleanPath = rawPath.startsWith('/') ? rawPath.substring(1) : rawPath;
+          try {
+            cleanPath = Uri.decodeFull(cleanPath);
+          } catch (_) {}
+          return RemoteUriInfo(
+            type: RemoteServerType.smb,
+            serverId: serverId,
+            trackIdOrPath: cleanPath,
+            queryParameters: queryParams,
+          );
         }
       }
     } catch (_) {}
@@ -139,7 +154,27 @@ class RemoteMediaResolver {
     return 'webdav://$serverId$clean';
   }
 
-  /// Converts a cacheKey (e.g. `serverId:path`) back to its virtual URI (`webdav://...` or `subsonic://...`).
+  /// Builds an SMB virtual URI.
+  static String buildSmbUri(String serverId, String share, String relativePath) {
+    var cleanShare = share.trim().replaceAll(RegExp(r'^/+|/+$'), '');
+    var cleanPath = relativePath.trim();
+    if (cleanPath.startsWith('/')) cleanPath = cleanPath.substring(1);
+    return 'smb://$serverId/$cleanShare/$cleanPath';
+  }
+
+  /// Parses SMB path segments (share, relativePath) from trackIdOrPath.
+  static (String share, String relativePath) parseSmbParts(String trackIdOrPath) {
+    var clean = trackIdOrPath.startsWith('/') ? trackIdOrPath.substring(1) : trackIdOrPath;
+    final slashIdx = clean.indexOf('/');
+    if (slashIdx >= 0) {
+      final share = clean.substring(0, slashIdx);
+      final path = clean.substring(slashIdx + 1);
+      return (share, path);
+    }
+    return (clean, '');
+  }
+
+  /// Converts a cacheKey (e.g. `serverId:path`) back to its virtual URI (`webdav://...` or `subsonic://...` or `smb://...`).
   static String? uriFromCacheKey(String cacheKey) {
     final idx = cacheKey.indexOf(':');
     if (idx <= 0) return null;
@@ -175,6 +210,18 @@ class RemoteMediaResolver {
       final streamUrl = client.buildStreamUrl(
         info.trackIdOrPath,
         maxBitRate: maxBitRate ?? server.maxBitRate,
+      );
+
+      return ResolvedAudioUri(
+        uri: streamUrl,
+        cacheKey: '${server.id}:${info.trackIdOrPath}',
+      );
+    } else if (info.type == RemoteServerType.smb) {
+      final parts = parseSmbParts(info.trackIdOrPath);
+      final streamUrl = await LocalStreamProxy.instance.buildSmbStreamUrl(
+        serverId: server.id,
+        share: parts.$1,
+        relativePath: parts.$2,
       );
 
       return ResolvedAudioUri(
@@ -276,6 +323,29 @@ class RemoteMediaResolver {
     SongMetadata? metadata,
   }) {
     final uri = buildWebDavUri(server.id, file.path);
+    final fallbackTitle = p.basenameWithoutExtension(file.name);
+
+    return MusicFile(
+      path: uri,
+      name: file.name,
+      title: metadata != null && metadata.title.isNotEmpty ? metadata.title : fallbackTitle,
+      artist: metadata != null && metadata.artist.isNotEmpty && metadata.artist != 'Unknown' ? metadata.artist : null,
+      album: metadata != null && metadata.album.isNotEmpty && metadata.album != 'Unknown' ? metadata.album : null,
+      trackNumber: metadata?.trackNumber,
+      durationMillis: metadata?.duration,
+      thumbnailPath: metadata?.thumbnailPath,
+      artworkPath: metadata?.artworkPath,
+      isMissing: false,
+    );
+  }
+
+  /// Constructs a [MusicFile] model from an [SmbFile].
+  static MusicFile buildMusicFileFromSmb(
+    SmbFile file,
+    RemoteServer server, {
+    SongMetadata? metadata,
+  }) {
+    final uri = buildSmbUri(server.id, file.share, file.path);
     final fallbackTitle = p.basenameWithoutExtension(file.name);
 
     return MusicFile(

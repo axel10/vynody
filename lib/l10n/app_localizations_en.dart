@@ -4083,7 +4083,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get noRemoteServersDesc =>
-      'Add Navidrome (Subsonic) or WebDAV servers to stream your self-hosted music library';
+      'Add Navidrome (Subsonic), WebDAV or SMB servers to stream your self-hosted music library';
 
   @override
   String get browseServer => 'Browse';

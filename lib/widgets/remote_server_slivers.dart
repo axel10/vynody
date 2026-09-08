@@ -21,6 +21,7 @@ Future<void> showRemoteServerContextMenu({
   final l10n = AppLocalizations.of(context)!;
   final theme = Theme.of(context);
   final isSubsonic = server.type == RemoteServerType.subsonic;
+  final isSmb = server.type == RemoteServerType.smb;
   final isMobile = Platform.isAndroid || Platform.isIOS;
 
   final String? selected;
@@ -28,11 +29,13 @@ Future<void> showRemoteServerContextMenu({
   if (isMobile) {
     final gradientColors = isSubsonic
         ? const [Color(0xFFFF5E3A), Color(0xFFFF2A68)]
-        : const [Color(0xFF0072FF), Color(0xFF00C6FF)];
+        : (isSmb
+            ? const [Color(0xFF00B09B), Color(0xFF96C93D)]
+            : const [Color(0xFF0072FF), Color(0xFF00C6FF)]);
     final serverIcon = isSubsonic
         ? Icons.library_music_rounded
-        : Icons.cloud_queue_rounded;
-    final typeLabel = isSubsonic ? 'Navidrome' : 'WebDAV';
+        : (isSmb ? Icons.dns_outlined : Icons.cloud_queue_rounded);
+    final typeLabel = isSubsonic ? 'Navidrome' : (isSmb ? 'SMB' : 'WebDAV');
 
     selected = await AppContextMenu.showModalSheet<String>(
       context: context,
@@ -115,8 +118,8 @@ Future<void> showRemoteServerContextMenu({
                             leading: Icon(
                               isSubsonic
                                   ? Icons.library_music_rounded
-                                  : Icons.folder_copy_outlined,
-                              color: isSubsonic ? Colors.orange : Colors.blue,
+                                  : (isSmb ? Icons.folder_shared_outlined : Icons.folder_copy_outlined),
+                              color: isSubsonic ? Colors.orange : (isSmb ? Colors.teal : Colors.blue),
                             ),
                             title: Text(l10n.browseServer),
                             shape: RoundedRectangleBorder(
@@ -644,16 +647,19 @@ class RemoteServerGridCard extends StatelessWidget {
     final theme = Theme.of(context);
     final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
     final isSubsonic = server.type == RemoteServerType.subsonic;
+    final isSmb = server.type == RemoteServerType.smb;
 
     final gradientColors = isSubsonic
         ? const [Color(0xFFFF5E3A), Color(0xFFFF2A68)]
-        : const [Color(0xFF0072FF), Color(0xFF00C6FF)];
+        : (isSmb
+            ? const [Color(0xFF00B09B), Color(0xFF96C93D)]
+            : const [Color(0xFF0072FF), Color(0xFF00C6FF)]);
 
     final serverIcon = isSubsonic
         ? Icons.library_music_rounded
-        : Icons.cloud_queue_rounded;
+        : (isSmb ? Icons.dns_outlined : Icons.cloud_queue_rounded);
 
-    final typeLabel = isSubsonic ? 'Navidrome' : 'WebDAV';
+    final typeLabel = isSubsonic ? 'Navidrome' : (isSmb ? 'SMB' : 'WebDAV');
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -814,17 +820,20 @@ class RemoteServerListTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isSubsonic = server.type == RemoteServerType.subsonic;
+    final isSmb = server.type == RemoteServerType.smb;
     final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
 
     final gradientColors = isSubsonic
         ? const [Color(0xFFFF5E3A), Color(0xFFFF2A68)]
-        : const [Color(0xFF0072FF), Color(0xFF00C6FF)];
+        : (isSmb
+            ? const [Color(0xFF00B09B), Color(0xFF96C93D)]
+            : const [Color(0xFF0072FF), Color(0xFF00C6FF)]);
 
     final serverIcon = isSubsonic
         ? Icons.library_music_rounded
-        : Icons.cloud_queue_rounded;
+        : (isSmb ? Icons.dns_outlined : Icons.cloud_queue_rounded);
 
-    final typeLabel = isSubsonic ? 'Navidrome' : 'WebDAV';
+    final typeLabel = isSubsonic ? 'Navidrome' : (isSmb ? 'SMB' : 'WebDAV');
 
     final leadingWidget = Container(
       width: 56,

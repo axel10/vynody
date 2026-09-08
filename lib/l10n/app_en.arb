@@ -1655,7 +1655,7 @@
   "connectionSuccess": "Connected successfully",
   "connectionFailed": "Connection failed",
   "noRemoteServers": "No remote servers added",
-  "noRemoteServersDesc": "Add Navidrome (Subsonic) or WebDAV servers to stream your self-hosted music library",
+  "noRemoteServersDesc": "Add Navidrome (Subsonic), WebDAV or SMB servers to stream your self-hosted music library",
   "browseServer": "Browse",
   "manageServer": "Manage",
   "deleteServerConfirm": "Are you sure you want to remove this media server?",

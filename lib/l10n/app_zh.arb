@@ -2396,7 +2396,7 @@
   "connectionSuccess": "连接成功",
   "connectionFailed": "连接失败",
   "noRemoteServers": "暂无连接的媒体服务器",
-  "noRemoteServersDesc": "添加 Navidrome (Subsonic) 或 WebDAV 服务器，畅享自建私有云音乐",
+  "noRemoteServersDesc": "添加 Navidrome (Subsonic)、WebDAV 或 SMB 共享，畅享自建私有云音乐",
   "browseServer": "浏览",
   "manageServer": "管理",
   "deleteServerConfirm": "确定要删除此媒体服务器连接吗？",
