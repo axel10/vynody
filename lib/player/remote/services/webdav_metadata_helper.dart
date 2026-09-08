@@ -6,33 +6,45 @@ import 'package:path_provider/path_provider.dart';
 import 'package:crypto/crypto.dart';
 
 import '../clients/webdav_client.dart';
+import '../proxy/local_stream_proxy.dart';
 import '../proxy/remote_media_resolver.dart';
 import '../remote_server_models.dart';
 import '../../metadata/metadata_database.dart';
 
-/// Helper for asynchronously extracting and caching audio metadata from WebDAV servers
+/// Helper for asynchronously extracting and caching audio metadata from WebDAV and SMB servers
 /// using lightweight HTTP Range requests via flutter_taglib.
-class WebDavMetadataHelper {
-  /// Fetches audio metadata for a single WebDAV file via HTTP Range requests.
-  ///
-  /// If the server does NOT support HTTP Range requests or if opening fails,
-  /// this method immediately logs the reason and returns `null` without downloading
-  /// the full file.
-  static Future<SongMetadata?> fetchWebDavSongMetadata({
+class RemoteMetadataHelper {
+  /// Fetches audio metadata for a single remote file (WebDAV or SMB) via HTTP Range requests.
+  static Future<SongMetadata?> fetchSongMetadata({
     required WebDavFile file,
     required RemoteServer server,
     required String password,
   }) async {
     if (!file.isAudio) return null;
 
-    final client = WebDavClient(server: server, password: password);
-    final virtualUri = RemoteMediaResolver.buildWebDavUri(server.id, file.path);
-    final fullUrl = client.buildFullUrl(file.path);
-    final headers = client.authHeaders;
-
     if (!taglib.TagLibFile.isSupported) {
-      debugPrint('[WebDAV Metadata] flutter_taglib is not supported on this platform.');
+      debugPrint('[Remote Metadata] flutter_taglib is not supported on this platform.');
       return null;
+    }
+
+    final String virtualUri;
+    final String fullUrl;
+    final Map<String, String>? headers;
+
+    if (server.type == RemoteServerType.smb) {
+      virtualUri = RemoteMediaResolver.buildRemoteUri(server, file.path);
+      final (share, relPath) = RemoteMediaResolver.parseSmbParts(file.path);
+      fullUrl = await LocalStreamProxy.instance.buildSmbStreamUrl(
+        serverId: server.id,
+        share: share,
+        relativePath: relPath,
+      );
+      headers = null;
+    } else {
+      final client = WebDavClient(server: server, password: password);
+      virtualUri = RemoteMediaResolver.buildWebDavUri(server.id, file.path);
+      fullUrl = client.buildFullUrl(file.path);
+      headers = client.authHeaders;
     }
 
     try {
@@ -46,8 +58,8 @@ class WebDavMetadataHelper {
 
       if (tagData == null) {
         debugPrint(
-          '[WebDAV Metadata] Skip metadata for "${file.name}": '
-          'Server does not support HTTP Range requests or file is unreadable (${taglib.TagLibFile.lastError ?? "read failed"}). '
+          '[Remote Metadata] Skip metadata for "${file.name}": '
+          'TagLib returned null (${taglib.TagLibFile.lastError ?? "read failed"}). '
           'Falling back to filename.',
         );
         return null;
@@ -86,7 +98,7 @@ class WebDavMetadataHelper {
           );
         }
       } catch (e) {
-        debugPrint('[WebDAV Metadata] Failed to save cover thumbnail for "${file.name}": $e');
+        debugPrint('[Remote Metadata] Failed to save cover thumbnail for "${file.name}": $e');
       }
 
       final songMetadata = SongMetadata(
@@ -106,12 +118,12 @@ class WebDavMetadataHelper {
 
       return songMetadata;
     } catch (e) {
-      debugPrint('[WebDAV Metadata] Error reading metadata for "${file.name}": $e');
+      debugPrint('[Remote Metadata] Error reading metadata for "${file.name}": $e');
       return null;
     }
   }
 
-  /// Concurrently processes a list of WebDAV audio files with a pool of workers.
+  /// Concurrently processes a list of remote audio files (WebDAV or SMB) with a pool of workers.
   static Future<void> processBatchMetadata({
     required List<WebDavFile> files,
     required RemoteServer server,
@@ -131,7 +143,7 @@ class WebDavMetadataHelper {
         if (isCancelled?.call() == true) return;
         final file = queue.removeAt(0);
 
-        final meta = await fetchWebDavSongMetadata(
+        final meta = await fetchSongMetadata(
           file: file,
           server: server,
           password: password,
@@ -140,7 +152,7 @@ class WebDavMetadataHelper {
         if (isCancelled?.call() == true) return;
 
         if (meta != null) {
-          final virtualUri = RemoteMediaResolver.buildWebDavUri(server.id, file.path);
+          final virtualUri = RemoteMediaResolver.buildRemoteUri(server, file.path);
           onMetadataLoaded(virtualUri, meta);
         }
       }
@@ -153,3 +165,7 @@ class WebDavMetadataHelper {
     await Future.wait(workers);
   }
 }
+
+/// Backwards compatibility alias for WebDavMetadataHelper
+typedef WebDavMetadataHelper = RemoteMetadataHelper;
+

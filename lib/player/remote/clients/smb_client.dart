@@ -3,6 +3,7 @@ import 'package:dart_smb2/dart_smb2.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import '../remote_server_models.dart';
+import 'webdav_client.dart';
 
 /// Representation of a file or folder in an SMB share.
 class SmbFile {
@@ -63,7 +64,7 @@ class SmbFile {
 }
 
 /// Client helper for interacting with SMB servers using `dart_smb2`.
-class SmbClient {
+class SmbClient implements RemoteDirectoryClient {
   final RemoteServer server;
   final String password;
 
@@ -186,8 +187,68 @@ class SmbClient {
     );
   }
 
+  /// Lists files and folders for a given virtual path (e.g. '/' or '/Music' or '/Music/Rock').
+  ///
+  /// - '/' lists accessible shares as top-level directories.
+  /// - '/ShareName' lists files and folders in the root of that share.
+  /// - '/ShareName/Subfolder' lists files in the specified subfolder of that share.
+  @override
+  Future<List<WebDavFile>> listFiles(String path) async {
+    var clean = path.trim();
+    if (clean.startsWith('/')) clean = clean.substring(1);
+    if (clean.endsWith('/')) clean = clean.substring(0, clean.length - 1);
+
+    if (clean.isEmpty) {
+      final shares = await listShares();
+      final validShares = shares
+          .where((s) => !s.name.endsWith(r'$'))
+          .toList()
+        ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+
+      return validShares
+          .map((s) => WebDavFile(
+                path: '/${s.name}',
+                name: s.name,
+                isDirectory: true,
+                contentLength: 0,
+                lastModified: null,
+              ))
+          .toList();
+    }
+
+    final slashIdx = clean.indexOf('/');
+    final share = slashIdx >= 0 ? clean.substring(0, slashIdx) : clean;
+    final relativePath = slashIdx >= 0 ? clean.substring(slashIdx + 1) : '';
+
+    final pool = await getPool(share);
+    final entries = await pool.listDirectory(relativePath);
+    final results = <WebDavFile>[];
+
+    for (final entry in entries) {
+      if (entry.name == '.' || entry.name == '..') continue;
+
+      final entryPath =
+          '/$share/${relativePath.isEmpty ? entry.name : '$relativePath/${entry.name}'}';
+      results.add(WebDavFile(
+        path: entryPath,
+        name: entry.name,
+        isDirectory: entry.isDirectory,
+        contentLength: entry.stat.size,
+        lastModified: entry.stat.modified,
+      ));
+    }
+
+    results.sort((a, b) {
+      if (a.isDirectory && !b.isDirectory) return -1;
+      if (!a.isDirectory && b.isDirectory) return 1;
+      return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+    });
+
+    return results;
+  }
+
   /// Lists files and folders in a given share and directory path.
-  Future<List<SmbFile>> listFiles(String share, String relativePath) async {
+  Future<List<SmbFile>> listSmbFiles(String share, String relativePath) async {
     final pool = await getPool(share);
     var cleanPath = relativePath.trim();
     if (cleanPath.startsWith('/')) cleanPath = cleanPath.substring(1);

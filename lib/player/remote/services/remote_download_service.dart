@@ -442,6 +442,23 @@ class RemoteDownloadNotifier extends Notifier<List<RemoteDownloadTask>> {
       if (!ready) return null;
     }
 
+    if (server.type == RemoteServerType.smb) {
+      final (share, relPath) = RemoteMediaResolver.parseSmbParts(file.path);
+      final smbFile = SmbFile(
+        share: share,
+        path: relPath,
+        name: file.name,
+        isDirectory: file.isDirectory,
+        contentLength: file.contentLength,
+        lastModified: file.lastModified,
+      );
+      return enqueueSmbFile(
+        server: server,
+        file: smbFile,
+        skipWritableCheck: true,
+      );
+    }
+
     final client = WebDavClient(server: server, password: password);
     final baseFolder = await getDownloadFolderPath();
     final song = RemoteMediaResolver.buildMusicFileFromWebDav(file, server);

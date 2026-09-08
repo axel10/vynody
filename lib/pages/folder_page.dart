@@ -31,7 +31,6 @@ import 'remote/navidrome_album_detail_page.dart';
 import 'remote/navidrome_artist_detail_page.dart';
 import 'remote/navidrome_playlist_detail_page.dart';
 import 'remote/webdav_browser_page.dart';
-import 'remote/smb_browser_page.dart';
 
 class FoldersPage extends ConsumerStatefulWidget {
   final Future<void> Function()? onOpenPlayback;
@@ -848,17 +847,6 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
             );
           }
         }
-      } else if (activeRemoteSession.server.type == RemoteServerType.smb) {
-        pages.add(
-          _buildPage(
-            key: ValueKey('smb-root-${activeRemoteSession.server.id}'),
-            child: SmbBrowserPage(
-              server: activeRemoteSession.server,
-              password: activeRemoteSession.password,
-              wrapWithMiniPlayer: false,
-            ),
-          ),
-        );
       } else {
         final rootPath = activeRemoteSession.rootPath ??
             (activeRemoteSession.server.customPath?.trim().isNotEmpty == true

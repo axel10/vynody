@@ -11,6 +11,7 @@ import '../../player/audio/playback_source.dart';
 import '../../player/remote/remote_server_models.dart';
 import '../../player/remote/remote_server_riverpod.dart';
 import '../../player/remote/clients/webdav_client.dart';
+import '../../player/remote/clients/smb_client.dart';
 import '../../player/remote/proxy/remote_media_resolver.dart';
 import '../../l10n/app_localizations.dart';
 import '../../player/remote/services/remote_download_service.dart';
@@ -60,7 +61,7 @@ class WebDavBrowserPage extends ConsumerStatefulWidget {
 }
 
 class _WebDavBrowserPageState extends ConsumerState<WebDavBrowserPage> {
-  late final WebDavClient _client;
+  late final RemoteDirectoryClient _client;
   late String _rootPath;
   late String _currentPath;
   bool _isLoading = false;
@@ -94,10 +95,17 @@ class _WebDavBrowserPageState extends ConsumerState<WebDavBrowserPage> {
     _selectionScopeNotifier =
         ref.read(librarySelectionScopeProvider.notifier);
     _searchController = TextEditingController();
-    _client = WebDavClient(
-      server: widget.server,
-      password: widget.password,
-    );
+    if (widget.server.type == RemoteServerType.smb) {
+      _client = SmbClient(
+        server: widget.server,
+        password: widget.password,
+      );
+    } else {
+      _client = WebDavClient(
+        server: widget.server,
+        password: widget.password,
+      );
+    }
 
     if (widget.highlightedSongPath != null) {
       _highlightedSongPath = widget.highlightedSongPath;
@@ -319,7 +327,7 @@ class _WebDavBrowserPageState extends ConsumerState<WebDavBrowserPage> {
     final db = MetadataDatabase();
     final Map<String, SongMetadata> dbHits = {};
     for (final file in audioFiles) {
-      final virtualUri = RemoteMediaResolver.buildWebDavUri(widget.server.id, file.path);
+      final virtualUri = RemoteMediaResolver.buildRemoteUri(widget.server, file.path);
       if (!_metadataMap.containsKey(virtualUri)) {
         final cached = await db.getSongMetadata(virtualUri);
         if (cached != null) {
@@ -347,7 +355,7 @@ class _WebDavBrowserPageState extends ConsumerState<WebDavBrowserPage> {
 
     // 2. Identify unparsed files that need HTTP Range tag extraction
     final unparsedFiles = audioFiles.where((f) {
-      final virtualUri = RemoteMediaResolver.buildWebDavUri(widget.server.id, f.path);
+      final virtualUri = RemoteMediaResolver.buildRemoteUri(widget.server, f.path);
       return !_metadataMap.containsKey(virtualUri);
     }).toList();
 
@@ -406,9 +414,9 @@ class _WebDavBrowserPageState extends ConsumerState<WebDavBrowserPage> {
     return list
         .where((item) => item.isAudio)
         .map((item) {
-          final virtualUri = RemoteMediaResolver.buildWebDavUri(widget.server.id, item.path);
+          final virtualUri = RemoteMediaResolver.buildRemoteUri(widget.server, item.path);
           final meta = _metadataMap[virtualUri] ?? scanner.metadataMap[virtualUri];
-          return RemoteMediaResolver.buildMusicFileFromWebDav(
+          return RemoteMediaResolver.buildMusicFile(
             item,
             widget.server,
             metadata: meta,
@@ -593,7 +601,7 @@ class _WebDavBrowserPageState extends ConsumerState<WebDavBrowserPage> {
           _selectedFolderPaths.add(item.path);
         } else if (item.isAudio) {
           final uri =
-              RemoteMediaResolver.buildWebDavUri(widget.server.id, item.path);
+              RemoteMediaResolver.buildRemoteUri(widget.server, item.path);
           _selectedSongPaths.add(uri);
         }
       }
@@ -640,13 +648,13 @@ class _WebDavBrowserPageState extends ConsumerState<WebDavBrowserPage> {
     List<MusicFile> allAudio,
     List<WebDavFile> displayedFiles,
   ) async {
-    final uri = RemoteMediaResolver.buildWebDavUri(widget.server.id, file.path);
+    final uri = RemoteMediaResolver.buildRemoteUri(widget.server, file.path);
     SelectionActionHelper.handleItemTap(
       index: index,
       itemKey: uri,
       items: displayedFiles,
       keySelector: (f) =>
-          RemoteMediaResolver.buildWebDavUri(widget.server.id, f.path),
+          RemoteMediaResolver.buildRemoteUri(widget.server, f.path),
       isSelectionMode: _isSelectionMode,
       selectedKeys: _selectedSongPaths,
       lastAnchorIndex: _lastSongAnchorIndex,
@@ -665,7 +673,7 @@ class _WebDavBrowserPageState extends ConsumerState<WebDavBrowserPage> {
       },
       onNormalTap: () async {
         if (file.isAudio) {
-          final target = RemoteMediaResolver.buildMusicFileFromWebDav(
+          final target = RemoteMediaResolver.buildMusicFile(
             file,
             widget.server,
             metadata: _metadataMap[uri] ??
@@ -678,7 +686,7 @@ class _WebDavBrowserPageState extends ConsumerState<WebDavBrowserPage> {
             initialIndex: initialIndex >= 0 ? initialIndex : 0,
             source: PlaybackSource(
               type: PlaybackSourceType.folder,
-              id: 'webdav-${widget.server.id}-$_currentPath',
+              id: 'remote-${widget.server.id}-$_currentPath',
               name: _isAtRoot ? widget.server.name : p.basename(_currentPath),
             ),
           );
@@ -688,7 +696,7 @@ class _WebDavBrowserPageState extends ConsumerState<WebDavBrowserPage> {
   }
 
   void _handleSongLongPress(WebDavFile file, int index) {
-    final uri = RemoteMediaResolver.buildWebDavUri(widget.server.id, file.path);
+    final uri = RemoteMediaResolver.buildRemoteUri(widget.server, file.path);
     _lastSongAnchorIndex = index;
     if (!_isSelectionMode) {
       _toggleSelectionMode();
@@ -704,8 +712,8 @@ class _WebDavBrowserPageState extends ConsumerState<WebDavBrowserPage> {
     List<MusicFile> allAudio,
     List<WebDavFile> displayedItems,
   ) {
-    final uri = RemoteMediaResolver.buildWebDavUri(widget.server.id, file.path);
-    final target = RemoteMediaResolver.buildMusicFileFromWebDav(
+    final uri = RemoteMediaResolver.buildRemoteUri(widget.server, file.path);
+    final target = RemoteMediaResolver.buildMusicFile(
       file,
       widget.server,
       metadata: _metadataMap[uri] ??
@@ -873,9 +881,9 @@ class _WebDavBrowserPageState extends ConsumerState<WebDavBrowserPage> {
       // Both are files
       int comp = 0;
       final virtualUriA =
-          RemoteMediaResolver.buildWebDavUri(widget.server.id, a.path);
+          RemoteMediaResolver.buildRemoteUri(widget.server, a.path);
       final virtualUriB =
-          RemoteMediaResolver.buildWebDavUri(widget.server.id, b.path);
+          RemoteMediaResolver.buildRemoteUri(widget.server, b.path);
       final metaA = _metadataMap[virtualUriA] ??
           ref.read(scannerServiceProvider).metadataMap[virtualUriA];
       final metaB = _metadataMap[virtualUriB] ??
@@ -1098,7 +1106,7 @@ class _WebDavBrowserPageState extends ConsumerState<WebDavBrowserPage> {
       displayedItems = _items.where((item) {
         if (item.name.toLowerCase().contains(lowercaseQuery)) return true;
         final virtualUri =
-            RemoteMediaResolver.buildWebDavUri(widget.server.id, item.path);
+            RemoteMediaResolver.buildRemoteUri(widget.server, item.path);
         final meta = _metadataMap[virtualUri] ??
             ref.read(scannerServiceProvider).metadataMap[virtualUri];
         if (meta != null) {
@@ -1114,7 +1122,7 @@ class _WebDavBrowserPageState extends ConsumerState<WebDavBrowserPage> {
     final matchedFiles = displayedItems.where((i) => !i.isDirectory).toList();
 
     final fileIndex = matchedFiles.indexWhere((f) {
-      final uri = RemoteMediaResolver.buildWebDavUri(widget.server.id, f.path);
+      final uri = RemoteMediaResolver.buildRemoteUri(widget.server, f.path);
       return uri == songPath || f.path == songFullPath;
     });
 
@@ -1211,7 +1219,7 @@ class _WebDavBrowserPageState extends ConsumerState<WebDavBrowserPage> {
     int totalDurationMs = 0;
     for (final item in audioItems) {
       final virtualUri =
-          RemoteMediaResolver.buildWebDavUri(widget.server.id, item.path);
+          RemoteMediaResolver.buildRemoteUri(widget.server, item.path);
       final meta = _metadataMap[virtualUri] ??
           ref.watch(
             scannerServiceProvider.select((s) => s.metadataMap[virtualUri]),
@@ -1227,7 +1235,7 @@ class _WebDavBrowserPageState extends ConsumerState<WebDavBrowserPage> {
     String? bannerCoverVirtualUri;
     for (final item in audioItems) {
       final virtualUri =
-          RemoteMediaResolver.buildWebDavUri(widget.server.id, item.path);
+          RemoteMediaResolver.buildRemoteUri(widget.server, item.path);
       final meta = _metadataMap[virtualUri] ??
           ref.watch(
             scannerServiceProvider.select((s) => s.metadataMap[virtualUri]),
@@ -1254,7 +1262,7 @@ class _WebDavBrowserPageState extends ConsumerState<WebDavBrowserPage> {
       displayedItems = _items.where((item) {
         if (item.name.toLowerCase().contains(lowercaseQuery)) return true;
         final virtualUri =
-            RemoteMediaResolver.buildWebDavUri(widget.server.id, item.path);
+            RemoteMediaResolver.buildRemoteUri(widget.server, item.path);
         final meta = _metadataMap[virtualUri] ??
             ref.read(scannerServiceProvider).metadataMap[virtualUri];
         if (meta != null) {

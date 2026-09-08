@@ -63,7 +63,12 @@ class WebDavFile {
   }
 }
 
-class WebDavClient {
+/// Common client interface for hierarchical remote file systems (WebDAV, SMB, etc.).
+abstract class RemoteDirectoryClient {
+  Future<List<WebDavFile>> listFiles(String path);
+}
+
+class WebDavClient implements RemoteDirectoryClient {
   final RemoteServer server;
   final String password;
   late final Dio _dio;
@@ -261,6 +266,7 @@ class WebDavClient {
   }
 
   /// Lists files and directories inside the given path using PROPFIND (Depth: 1).
+  @override
   Future<List<WebDavFile>> listFiles(String path) async {
     try {
       final url = buildFullUrl(path);

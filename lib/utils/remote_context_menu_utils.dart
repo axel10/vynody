@@ -11,6 +11,7 @@ import '../player/audio/audio_riverpod.dart';
 import '../player/audio/playback_source.dart';
 import '../player/remote/clients/subsonic_client.dart';
 import '../player/remote/clients/webdav_client.dart';
+import '../player/remote/clients/smb_client.dart';
 import '../player/remote/proxy/remote_media_resolver.dart';
 import '../player/remote/remote_server_models.dart';
 import '../pages/remote/remote_download_manager_page.dart';
@@ -1410,9 +1411,9 @@ String _formatWebDavFileSize(int bytes) {
   return '${size.toStringAsFixed(1)} ${suffixes[i]}';
 }
 
-/// Helper to fetch tracks of a WebDAV folder on-demand
+/// Helper to fetch tracks of a WebDAV/SMB folder on-demand
 Future<List<MusicFile>> fetchWebDavFolderAudioFiles(
-  WebDavClient client,
+  RemoteDirectoryClient client,
   RemoteServer server,
   String folderPath,
 ) async {
@@ -1420,16 +1421,16 @@ Future<List<MusicFile>> fetchWebDavFolderAudioFiles(
     final list = await client.listFiles(folderPath);
     return list
         .where((item) => item.isAudio)
-        .map((item) => RemoteMediaResolver.buildMusicFileFromWebDav(item, server))
+        .map((item) => RemoteMediaResolver.buildMusicFile(item, server))
         .toList();
   } catch (_) {
     return [];
   }
 }
 
-/// Helper to recursively fetch all audio files in a WebDAV directory and its subdirectories.
+/// Helper to recursively fetch all audio files in a remote directory and its subdirectories.
 Future<List<WebDavFile>> fetchAllWebDavAudioFilesRecursive(
-  WebDavClient client,
+  RemoteDirectoryClient client,
   String folderPath, {
   int maxDepth = 10,
 }) async {
@@ -1468,9 +1469,9 @@ Future<void> showWebDavFileContextMenu({
   final l10n = AppLocalizations.of(context)!;
   final isMobile = Platform.isAndroid || Platform.isIOS;
   final isAudio = file.isAudio;
-  final virtualUri = RemoteMediaResolver.buildWebDavUri(server.id, file.path);
+  final virtualUri = RemoteMediaResolver.buildRemoteUri(server, file.path);
   final meta = ref.read(scannerServiceProvider).metadataMap[virtualUri];
-  final song = isAudio ? RemoteMediaResolver.buildMusicFileFromWebDav(file, server, metadata: meta) : null;
+  final song = isAudio ? RemoteMediaResolver.buildMusicFile(file, server, metadata: meta) : null;
 
   if (isMobile) {
     final selected = await AppContextMenu.showModalSheet<String>(
@@ -1747,7 +1748,9 @@ Future<String?> showWebDavFolderBottomSheet({
 }) async {
   final l10n = AppLocalizations.of(context)!;
   final theme = Theme.of(context);
-  final client = WebDavClient(server: server, password: password);
+  final RemoteDirectoryClient client = server.type == RemoteServerType.smb
+      ? SmbClient(server: server, password: password)
+      : WebDavClient(server: server, password: password);
   final previousScope = ref.read(librarySelectionScopeProvider);
   ref
       .read(librarySelectionScopeProvider.notifier)
@@ -1973,7 +1976,9 @@ Future<void> showWebDavFolderContextMenu({
   void Function(String folderPath)? onMultiSelect,
 }) async {
   final l10n = AppLocalizations.of(context)!;
-  final client = WebDavClient(server: server, password: password);
+  final RemoteDirectoryClient client = server.type == RemoteServerType.smb
+      ? SmbClient(server: server, password: password)
+      : WebDavClient(server: server, password: password);
   final isMobile = Platform.isAndroid || Platform.isIOS;
 
   if (isMobile) {
@@ -2086,7 +2091,7 @@ Future<void> _handleWebDavFolderMenuSelection({
   required String selected,
   required BuildContext context,
   required WidgetRef ref,
-  required WebDavClient client,
+  required RemoteDirectoryClient client,
   required RemoteServer server,
   required String password,
   required WebDavFile folder,

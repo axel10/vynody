@@ -154,6 +154,16 @@ class RemoteMediaResolver {
     return 'webdav://$serverId$clean';
   }
 
+  /// Builds a virtual URI for either WebDAV or SMB remote servers.
+  static String buildRemoteUri(RemoteServer server, String relativePath) {
+    var clean = relativePath.trim();
+    if (!clean.startsWith('/')) clean = '/$clean';
+    if (server.type == RemoteServerType.smb) {
+      return 'smb://${server.id}$clean';
+    }
+    return 'webdav://${server.id}$clean';
+  }
+
   /// Builds an SMB virtual URI.
   static String buildSmbUri(String serverId, String share, String relativePath) {
     var cleanShare = share.trim().replaceAll(RegExp(r'^/+|/+$'), '');
@@ -316,13 +326,13 @@ class RemoteMediaResolver {
     );
   }
 
-  /// Constructs a [MusicFile] model from a [WebDavFile].
-  static MusicFile buildMusicFileFromWebDav(
+  /// Constructs a [MusicFile] model from a [WebDavFile] for any remote server (WebDAV / SMB).
+  static MusicFile buildMusicFile(
     WebDavFile file,
     RemoteServer server, {
     SongMetadata? metadata,
   }) {
-    final uri = buildWebDavUri(server.id, file.path);
+    final uri = buildRemoteUri(server, file.path);
     final fallbackTitle = p.basenameWithoutExtension(file.name);
 
     return MusicFile(
@@ -338,6 +348,13 @@ class RemoteMediaResolver {
       isMissing: false,
     );
   }
+
+  /// Constructs a [MusicFile] model from a [WebDavFile].
+  static MusicFile buildMusicFileFromWebDav(
+    WebDavFile file,
+    RemoteServer server, {
+    SongMetadata? metadata,
+  }) => buildMusicFile(file, server, metadata: metadata);
 
   /// Constructs a [MusicFile] model from an [SmbFile].
   static MusicFile buildMusicFileFromSmb(

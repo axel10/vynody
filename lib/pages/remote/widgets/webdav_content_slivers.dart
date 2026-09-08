@@ -273,13 +273,13 @@ class WebDavSongsSliver extends ConsumerWidget {
               delegate: SliverChildBuilderDelegate(
                 (context, index) {
                   final file = files[index];
-                  final uri = RemoteMediaResolver.buildWebDavUri(server.id, file.path);
+                  final uri = RemoteMediaResolver.buildRemoteUri(server, file.path);
                   final isSelected = selectedSongPaths.contains(uri);
 
                   if (file.isAudio) {
                     final meta = metadataMap[uri] ??
                         ref.watch(scannerServiceProvider.select((s) => s.metadataMap[uri]));
-                    final musicFile = RemoteMediaResolver.buildMusicFileFromWebDav(
+                    final musicFile = RemoteMediaResolver.buildMusicFile(
                       file,
                       server,
                       metadata: meta,
@@ -334,13 +334,13 @@ class WebDavSongsSliver extends ConsumerWidget {
           delegate: SliverChildBuilderDelegate(
             (context, index) {
               final file = files[index];
-              final uri = RemoteMediaResolver.buildWebDavUri(server.id, file.path);
+              final uri = RemoteMediaResolver.buildRemoteUri(server, file.path);
               final isSelected = selectedSongPaths.contains(uri);
 
               if (file.isAudio) {
                 final meta = metadataMap[uri] ??
                     ref.watch(scannerServiceProvider.select((s) => s.metadataMap[uri]));
-                final musicFile = RemoteMediaResolver.buildMusicFileFromWebDav(
+                final musicFile = RemoteMediaResolver.buildMusicFile(
                   file,
                   server,
                   metadata: meta,
