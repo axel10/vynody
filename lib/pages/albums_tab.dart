@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -205,9 +206,10 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab>
                 final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
                 final bool isCoverFlowImmersive = isLandscape && _is3DView;
 
-                final textScale = MediaQuery.textScalerOf(context).scale(10) / 10;
-                final clampedScale = textScale.clamp(1.0, 1.3);
-                final double textHeight = (isPortrait ? 92.0 : 108.0) * clampedScale;
+                final double textHeight = calculateAlbumCardTextHeight(
+                  context,
+                  isPortrait: isPortrait,
+                );
                 final itemWidth = (constraints.maxWidth - 32 - (crossAxisCount - 1) * 16) / crossAxisCount;
                 final childAspectRatio = itemWidth / (itemWidth + textHeight);
 
@@ -597,6 +599,45 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab>
       ),
     ];
   }
+}
+
+/// Dynamically calculates album card text area height based on typography and scaling.
+double calculateAlbumCardTextHeight(
+  BuildContext context, {
+  required bool isPortrait,
+}) {
+  final theme = Theme.of(context);
+  final textScaler = MediaQuery.textScalerOf(context);
+
+  final titleStyle =
+      isPortrait ? theme.textTheme.titleSmall : theme.textTheme.titleMedium;
+  final bodyStyle =
+      isPortrait ? theme.textTheme.bodySmall : theme.textTheme.bodyMedium;
+  final subStyle = theme.textTheme.bodySmall;
+
+  final titleHeight = textScaler.scale(titleStyle?.fontSize ?? (isPortrait ? 14.0 : 16.0)) *
+      (titleStyle?.height ?? 1.25);
+  final artistHeight = textScaler.scale(bodyStyle?.fontSize ?? (isPortrait ? 12.0 : 14.0)) *
+      (bodyStyle?.height ?? 1.25);
+  final iconSize = isPortrait ? 22.0 : 26.0;
+  final subTextHeight =
+      textScaler.scale(isPortrait ? 10.0 : 11.0) * (subStyle?.height ?? 1.25);
+  final bottomRowHeight = math.max(subTextHeight, iconSize);
+
+  final verticalPadding = isPortrait ? (8.0 + 6.0) : (10.0 + 8.0);
+  const titleArtistGap = 2.0;
+  const minBetweenGap = 4.0;
+  const safetyBuffer = 6.0;
+
+  final calculated = verticalPadding +
+      titleHeight +
+      titleArtistGap +
+      artistHeight +
+      minBetweenGap +
+      bottomRowHeight +
+      safetyBuffer;
+  final minHeight = isPortrait ? 96.0 : 118.0;
+  return math.max(calculated, minHeight);
 }
 
 class _AlbumCard extends ConsumerWidget {

@@ -1035,9 +1035,12 @@ Future<Uint8List> captureMobileScreen({
               child: SizedBox(
                 width: deviceSpec.logicalWidth,
                 height: deviceSpec.logicalHeight,
-                child: Material(
+                child: ColoredBox(
                   color: effectiveBgColor,
-                  child: screenChild,
+                  child: Material(
+                    color: effectiveBgColor,
+                    child: screenChild,
+                  ),
                 ),
               ),
             ),

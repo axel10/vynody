@@ -98,13 +98,6 @@ void main() {
     testWidgets('2. Desktop 专辑页 (Albums Page)', (tester) async {
       await loadMacosTestFonts();
 
-      final originalOnError = FlutterError.onError;
-      FlutterError.onError = (FlutterErrorDetails details) {
-        if (details.toString().contains('overflowed')) return;
-        originalOnError?.call(details);
-      };
-      addTearDown(() => FlutterError.onError = originalOnError);
-
       final scannerService = MockScannerService(
         rootFolders: [dataset.rootFolder],
         metadataMap: dataset.metadataMap,

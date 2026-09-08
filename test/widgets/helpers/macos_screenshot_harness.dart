@@ -1129,7 +1129,7 @@ Future<Uint8List> captureMacosWindow({
               'Roboto',
               'sans-serif',
             ],
-            scaffoldBackgroundColor: Colors.transparent,
+            scaffoldBackgroundColor: const Color(0xFF141721),
           ),
           locale: locale,
           localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -1138,24 +1138,27 @@ Future<Uint8List> captureMacosWindow({
             backgroundColor: const Color(0xFF141721),
             body: RepaintBoundary(
               key: windowCaptureKey,
-              child: SizedBox(
-                width: 1920,
-                height: 1080,
-                child: Stack(
-                  children: [
-                    Positioned.fill(
-                      child: customBody ??
-                          MainLayout(
-                            args: const [],
-                            initialIndex: initialIndex,
-                          ),
-                    ),
-                    Positioned(
-                      top: 14,
-                      left: 18,
-                      child: buildMacosTrafficLights(),
-                    ),
-                  ],
+              child: ColoredBox(
+                color: const Color(0xFF141721),
+                child: SizedBox(
+                  width: 1920,
+                  height: 1080,
+                  child: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: customBody ??
+                            MainLayout(
+                              args: const [],
+                              initialIndex: initialIndex,
+                            ),
+                      ),
+                      Positioned(
+                        top: 14,
+                        left: 18,
+                        child: buildMacosTrafficLights(),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

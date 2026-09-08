@@ -268,9 +268,12 @@ Future<Uint8List> captureIpadScreen({
               child: SizedBox(
                 width: deviceSpec.logicalWidth,
                 height: deviceSpec.logicalHeight,
-                child: Material(
+                child: ColoredBox(
                   color: effectiveBgColor,
-                  child: screenChild,
+                  child: Material(
+                    color: effectiveBgColor,
+                    child: screenChild,
+                  ),
                 ),
               ),
             ),
