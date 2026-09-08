@@ -362,6 +362,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
 
 
   bool isPathInActiveRoots(String path) {
+    if (path.isEmpty) return false;
     final normalized = _normalizePath(path);
     if (normalized.isEmpty) return false;
 
@@ -371,16 +372,16 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       }
     }
 
-    if (_systemMediaFolder != null) {
+    final systemFolder = _systemMediaFolder;
+    if (systemFolder != null) {
       if (normalized == 'system' ||
           normalized.startsWith('system/') ||
           normalized.startsWith('system\\') ||
-          _pathContains(_systemMediaFolder!.path, normalized)) {
+          _pathContains(systemFolder.path, normalized)) {
         return true;
       }
-      if (_systemMediaFolder!.allSongs.any(
-        (s) => _pathsEqual(s.path, normalized),
-      )) {
+      final lookupKey = _pathLookupKey(normalized);
+      if (systemFolder.allSongPaths.contains(lookupKey)) {
         return true;
       }
     }

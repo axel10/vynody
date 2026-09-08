@@ -12,9 +12,13 @@ final albumLibraryProvider = StreamProvider<List<AlbumSummary>>((ref) async* {
   final rootPathsKey = ref.watch(
     scannerServiceProvider.select((s) => s.rootPaths.join('|')),
   );
+  final hasSystemMedia = ref.watch(
+    scannerServiceProvider.select((s) => s.systemMediaFolder != null),
+  );
   final scanner = ref.read(scannerServiceProvider);
+  final shouldFilter = isReady && (rootPathsKey.isNotEmpty || hasSystemMedia);
   await for (final songs in db.watchAllSongMetadata()) {
-    final validSongs = isReady && rootPathsKey.isNotEmpty
+    final validSongs = shouldFilter
         ? songs.where((s) => scanner.isPathInActiveRoots(s.path))
         : songs;
     yield buildAlbumSummaries(validSongs);

@@ -15,11 +15,13 @@ final artistLibraryProvider = StreamProvider<List<ArtistSummary>>((ref) async* {
   final rootPathsKey = ref.watch(
     scannerServiceProvider.select((s) => s.rootPaths.join('|')),
   );
+  final hasSystemMedia = ref.watch(
+    scannerServiceProvider.select((s) => s.systemMediaFolder != null),
+  );
   final scanner = ref.read(scannerServiceProvider);
+  final shouldFilter = isReady && (rootPathsKey.isNotEmpty || hasSystemMedia);
   yield* repository.watchArtistSummaries(
-    isPathAllowed: isReady && rootPathsKey.isNotEmpty
-        ? scanner.isPathInActiveRoots
-        : null,
+    isPathAllowed: shouldFilter ? scanner.isPathInActiveRoots : null,
   );
 });
 

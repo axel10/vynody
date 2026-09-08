@@ -1,4 +1,5 @@
 import 'music_file.dart';
+import '../player/scanner/scanner_path_utils.dart';
 
 class MusicFolder {
   final String path;
@@ -53,12 +54,24 @@ class MusicFolder {
     return list;
   }
 
+  Set<String>? _allSongPathsCache;
+  Set<String> get allSongPaths {
+    if (_allSongPathsCache != null) return _allSongPathsCache!;
+    final set = <String>{};
+    for (final song in allSongs) {
+      set.add(ScannerPathUtils.pathLookupKey(song.path));
+    }
+    _allSongPathsCache = set;
+    return set;
+  }
+
   MusicFile? representativeSongCache;
 
   void invalidateCache() {
     _songCountCache = null;
     _totalDurationMsCache = null;
     _allSongsCache = null;
+    _allSongPathsCache = null;
     representativeSongCache = null;
     for (final sub in subFolders) {
       sub.invalidateCache();
