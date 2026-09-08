@@ -111,5 +111,81 @@ void main() {
         equals(ProgressBarStyle.scrollingWaveform),
       );
     });
+
+    testWidgets('shows recommended tag on scrollingWaveform for Android',
+        (tester) async {
+      final container = ProviderContainer(
+        overrides: [
+          isProUnlockedProvider.overrideWith((ref) => true),
+        ],
+      );
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            theme: ThemeData(platform: TargetPlatform.android),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: Scaffold(
+              body: ProgressBarStyleDialog(
+                settings: settings,
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump(const Duration(milliseconds: 100));
+
+      final l10n = AppLocalizations.of(
+        tester.element(find.byType(ProgressBarStyleDialog)),
+      )!;
+      expect(find.text(l10n.onboardingRecommendedTag), findsOneWidget);
+
+      final firstStyleFinder = find.descendant(
+        of: find.byType(InkWell).first,
+        matching: find.text(l10n.progressBarStyleScrollingWaveform),
+      );
+      expect(firstStyleFinder, findsOneWidget);
+    });
+
+    testWidgets('shows recommended tag on fullWaveform for Desktop',
+        (tester) async {
+      final container = ProviderContainer(
+        overrides: [
+          isProUnlockedProvider.overrideWith((ref) => true),
+        ],
+      );
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            theme: ThemeData(platform: TargetPlatform.macOS),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: Scaffold(
+              body: ProgressBarStyleDialog(
+                settings: settings,
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump(const Duration(milliseconds: 100));
+
+      final l10n = AppLocalizations.of(
+        tester.element(find.byType(ProgressBarStyleDialog)),
+      )!;
+      expect(find.text(l10n.onboardingRecommendedTag), findsOneWidget);
+
+      final firstStyleFinder = find.descendant(
+        of: find.byType(InkWell).first,
+        matching: find.text(l10n.progressBarStyleFullWaveform),
+      );
+      expect(firstStyleFinder, findsOneWidget);
+    });
   });
 }

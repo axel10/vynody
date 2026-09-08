@@ -411,12 +411,15 @@ void main() {
   });
 
   group('SettingsService - Progress Bar Style & Migration', () {
-    test('defaults to fullWaveform when unconfigured', () async {
+    test('defaults to platform default when unconfigured', () async {
       SharedPreferences.setMockInitialValues({});
       final prefs = await SharedPreferences.getInstance();
       final settings = SettingsService(prefs);
 
-      expect(settings.progressBarStyle, ProgressBarStyle.fullWaveform);
+      expect(
+        settings.progressBarStyle,
+        ProgressBarStyleX.defaultForPlatform(),
+      );
       expect(settings.isWaveformProgressBarEnabled, isTrue);
     });
 

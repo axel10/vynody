@@ -610,28 +610,53 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
           ),
           const SizedBox(height: 14),
           // Style Selection Options
-          _buildStyleSelectionOption(
-            title: l10n.progressBarStyleFullWaveform,
-            subtitle: l10n.onboardingProgressBarStyleFullWaveformDesc,
-            tag: l10n.onboardingRecommendedTag,
-            icon: Icons.graphic_eq_rounded,
-            isSelected: currentStyle == ProgressBarStyle.fullWaveform,
-            theme: theme,
-            onTap: () {
-              ref.read(settingsServiceProvider).progressBarStyle =
-                  ProgressBarStyle.fullWaveform;
-            },
-          ),
-          const SizedBox(height: 8),
-          _buildStyleSelectionOption(
-            title: l10n.progressBarStyleScrollingWaveform,
-            subtitle: l10n.onboardingProgressBarStyleScrollingWaveformDesc,
-            icon: Icons.waves_rounded,
-            isSelected: currentStyle == ProgressBarStyle.scrollingWaveform,
-            theme: theme,
-            onTap: () {
-              ref.read(settingsServiceProvider).progressBarStyle =
-                  ProgressBarStyle.scrollingWaveform;
+          Builder(
+            builder: (context) {
+              final isMobile = theme.platform == TargetPlatform.android ||
+                  theme.platform == TargetPlatform.iOS;
+              final fullWaveformOption = _buildStyleSelectionOption(
+                title: l10n.progressBarStyleFullWaveform,
+                subtitle: l10n.onboardingProgressBarStyleFullWaveformDesc,
+                tag: !isMobile ? l10n.onboardingRecommendedTag : null,
+                icon: Icons.graphic_eq_rounded,
+                isSelected: currentStyle == ProgressBarStyle.fullWaveform,
+                theme: theme,
+                onTap: () {
+                  ref.read(settingsServiceProvider).progressBarStyle =
+                      ProgressBarStyle.fullWaveform;
+                },
+              );
+              final scrollingWaveformOption = _buildStyleSelectionOption(
+                title: l10n.progressBarStyleScrollingWaveform,
+                subtitle: l10n.onboardingProgressBarStyleScrollingWaveformDesc,
+                tag: isMobile ? l10n.onboardingRecommendedTag : null,
+                icon: Icons.waves_rounded,
+                isSelected: currentStyle == ProgressBarStyle.scrollingWaveform,
+                theme: theme,
+                onTap: () {
+                  ref.read(settingsServiceProvider).progressBarStyle =
+                      ProgressBarStyle.scrollingWaveform;
+                },
+              );
+
+              if (isMobile) {
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    scrollingWaveformOption,
+                    const SizedBox(height: 8),
+                    fullWaveformOption,
+                  ],
+                );
+              }
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  fullWaveformOption,
+                  const SizedBox(height: 8),
+                  scrollingWaveformOption,
+                ],
+              );
             },
           ),
           const SizedBox(height: 8),

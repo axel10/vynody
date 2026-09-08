@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'dart:ui';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vynody/dialogs/upgrade_to_pro_dialog.dart';
@@ -473,25 +474,51 @@ class _ProgressBarStyleDialogState
           ),
           const SizedBox(height: 16),
           // Style Selection Options
-          _buildStyleOption(
-            title: l10n.progressBarStyleFullWaveform,
-            subtitle: l10n.onboardingProgressBarStyleFullWaveformDesc,
-            tag: l10n.onboardingRecommendedTag,
-            icon: Icons.graphic_eq_rounded,
-            isSelected: _selectedStyle == ProgressBarStyle.fullWaveform,
-            showProBadge: !isProUnlocked,
-            theme: theme,
-            onTap: () => _handleSelectStyle(ProgressBarStyle.fullWaveform),
-          ),
-          const SizedBox(height: 10),
-          _buildStyleOption(
-            title: l10n.progressBarStyleScrollingWaveform,
-            subtitle: l10n.onboardingProgressBarStyleScrollingWaveformDesc,
-            icon: Icons.waves_rounded,
-            isSelected: _selectedStyle == ProgressBarStyle.scrollingWaveform,
-            showProBadge: !isProUnlocked,
-            theme: theme,
-            onTap: () => _handleSelectStyle(ProgressBarStyle.scrollingWaveform),
+          Builder(
+            builder: (context) {
+              final platform = Theme.of(context).platform;
+              final isMobile = platform == TargetPlatform.android ||
+                  platform == TargetPlatform.iOS;
+              final fullWaveformOption = _buildStyleOption(
+                title: l10n.progressBarStyleFullWaveform,
+                subtitle: l10n.onboardingProgressBarStyleFullWaveformDesc,
+                tag: !isMobile ? l10n.onboardingRecommendedTag : null,
+                icon: Icons.graphic_eq_rounded,
+                isSelected: _selectedStyle == ProgressBarStyle.fullWaveform,
+                showProBadge: !isProUnlocked,
+                theme: theme,
+                onTap: () => _handleSelectStyle(ProgressBarStyle.fullWaveform),
+              );
+              final scrollingWaveformOption = _buildStyleOption(
+                title: l10n.progressBarStyleScrollingWaveform,
+                subtitle: l10n.onboardingProgressBarStyleScrollingWaveformDesc,
+                tag: isMobile ? l10n.onboardingRecommendedTag : null,
+                icon: Icons.waves_rounded,
+                isSelected: _selectedStyle == ProgressBarStyle.scrollingWaveform,
+                showProBadge: !isProUnlocked,
+                theme: theme,
+                onTap: () => _handleSelectStyle(ProgressBarStyle.scrollingWaveform),
+              );
+
+              if (isMobile) {
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    scrollingWaveformOption,
+                    const SizedBox(height: 10),
+                    fullWaveformOption,
+                  ],
+                );
+              }
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  fullWaveformOption,
+                  const SizedBox(height: 10),
+                  scrollingWaveformOption,
+                ],
+              );
+            },
           ),
           const SizedBox(height: 10),
           _buildStyleOption(
