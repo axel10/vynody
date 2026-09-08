@@ -21,6 +21,18 @@ enum RemoteServerType {
   }
 }
 
+/// Normalizes a remote path (WebDAV/SMB) to ensure leading slash and no trailing slash.
+String normalizeRemotePath(String? path) {
+  if (path == null) return '/';
+  var clean = path.trim().replaceAll(r'\', '/');
+  if (clean.isEmpty || clean == '/') return '/';
+  if (!clean.startsWith('/')) clean = '/$clean';
+  while (clean.endsWith('/') && clean.length > 1) {
+    clean = clean.substring(0, clean.length - 1);
+  }
+  return clean.isEmpty ? '/' : clean;
+}
+
 /// Metadata model for a connected remote media server.
 class RemoteServer {
   final String id;

@@ -848,10 +848,10 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
           }
         }
       } else {
-        final rootPath = activeRemoteSession.rootPath ??
-            (activeRemoteSession.server.customPath?.trim().isNotEmpty == true
-                ? activeRemoteSession.server.customPath!
-                : '/');
+        final rootPath = normalizeRemotePath(
+          activeRemoteSession.rootPath ??
+              activeRemoteSession.server.customPath,
+        );
 
         pages.add(
           _buildPage(

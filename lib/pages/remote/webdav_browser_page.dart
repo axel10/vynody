@@ -119,17 +119,19 @@ class _WebDavBrowserPageState extends ConsumerState<WebDavBrowserPage> {
       _metadataMap.addAll(session.webDavMetadataCache);
     }
 
-    _rootPath = widget.rootPath ??
-        (isSameServer && session.rootPath != null ? session.rootPath! : null) ??
-        (widget.server.customPath?.trim().isNotEmpty == true
-            ? widget.server.customPath!
-            : '/');
+    _rootPath = normalizeRemotePath(
+      widget.rootPath ??
+          (isSameServer && session.rootPath != null ? session.rootPath! : null) ??
+          widget.server.customPath,
+    );
 
-    _currentPath = widget.initialPath ??
-        (isSameServer && session.initialPath != null
-            ? session.initialPath!
-            : null) ??
-        _rootPath;
+    _currentPath = normalizeRemotePath(
+      widget.initialPath ??
+          (isSameServer && session.initialPath != null
+              ? session.initialPath!
+              : null) ??
+          _rootPath,
+    );
 
     if (isSameServer &&
         session.webDavDirectoryCache.containsKey(_currentPath)) {
@@ -189,15 +191,8 @@ class _WebDavBrowserPageState extends ConsumerState<WebDavBrowserPage> {
   }
 
   bool get _isAtRoot {
-    if (_currentPath.isEmpty || _currentPath == '/' || _currentPath == _rootPath) {
-      return true;
-    }
-    final cleanCurrent = _currentPath.endsWith('/') && _currentPath.length > 1
-        ? _currentPath.substring(0, _currentPath.length - 1)
-        : _currentPath;
-    final cleanRoot = _rootPath.endsWith('/') && _rootPath.length > 1
-        ? _rootPath.substring(0, _rootPath.length - 1)
-        : _rootPath;
+    final cleanCurrent = normalizeRemotePath(_currentPath);
+    final cleanRoot = normalizeRemotePath(_rootPath);
     return cleanCurrent == cleanRoot;
   }
 
@@ -748,7 +743,8 @@ class _WebDavBrowserPageState extends ConsumerState<WebDavBrowserPage> {
           for (final song in songsToAdd) {
             final uriInfo = RemoteMediaResolver.parseUri(song.path);
             final remotePath = (uriInfo != null &&
-                    uriInfo.type == RemoteServerType.webdav)
+                    (uriInfo.type == RemoteServerType.webdav ||
+                        uriInfo.type == RemoteServerType.smb))
                 ? uriInfo.trackIdOrPath
                 : null;
             if (remotePath != null) {
@@ -841,9 +837,11 @@ class _WebDavBrowserPageState extends ConsumerState<WebDavBrowserPage> {
 
   List<String> get _pathSegments {
     if (_isAtRoot) return [];
-    var relative = _currentPath;
-    if (_rootPath != '/' && relative.startsWith(_rootPath)) {
-      relative = relative.substring(_rootPath.length);
+    final cleanCurrent = normalizeRemotePath(_currentPath);
+    final cleanRoot = normalizeRemotePath(_rootPath);
+    var relative = cleanCurrent;
+    if (cleanRoot != '/' && relative.startsWith(cleanRoot)) {
+      relative = relative.substring(cleanRoot.length);
     }
     final segments = relative
         .split('/')
@@ -855,13 +853,11 @@ class _WebDavBrowserPageState extends ConsumerState<WebDavBrowserPage> {
   String _buildSegmentPath(int index) {
     final segments = _pathSegments;
     final sub = segments.sublist(0, index + 1).join('/');
-    if (_rootPath == '/' || _rootPath.isEmpty) {
+    final cleanRoot = normalizeRemotePath(_rootPath);
+    if (cleanRoot == '/' || cleanRoot.isEmpty) {
       return '/$sub';
     }
-    final base = _rootPath.endsWith('/')
-        ? _rootPath.substring(0, _rootPath.length - 1)
-        : _rootPath;
-    return '$base/$sub';
+    return '$cleanRoot/$sub';
   }
 
   void _sortItems(List<WebDavFile> items, {SortCriteria? criteria, SortOrder? order}) {
@@ -1072,7 +1068,8 @@ class _WebDavBrowserPageState extends ConsumerState<WebDavBrowserPage> {
 
     final info = RemoteMediaResolver.parseUri(currentMusic.path);
     if (info != null &&
-        info.type == RemoteServerType.webdav &&
+        (info.type == RemoteServerType.webdav ||
+            info.type == RemoteServerType.smb) &&
         info.serverId == widget.server.id) {
       final songFullPath = info.trackIdOrPath;
       final parentDir = p.posix.dirname(songFullPath);
@@ -1750,7 +1747,9 @@ class _WebDavBrowserPageState extends ConsumerState<WebDavBrowserPage> {
                             final uriInfo =
                                 RemoteMediaResolver.parseUri(song.path);
                             final remotePath = (uriInfo != null &&
-                                    uriInfo.type == RemoteServerType.webdav)
+                                    (uriInfo.type == RemoteServerType.webdav ||
+                                        uriInfo.type ==
+                                            RemoteServerType.smb))
                                 ? uriInfo.trackIdOrPath
                                 : null;
                             if (remotePath != null) {

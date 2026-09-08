@@ -112,11 +112,10 @@ class SongLocatorHelper {
               .getPassword(server.id) ??
           '';
 
-      if (remoteInfo.type == RemoteServerType.webdav) {
+      if (remoteInfo.type == RemoteServerType.webdav ||
+          remoteInfo.type == RemoteServerType.smb) {
         final targetDir = p.posix.dirname(remoteInfo.trackIdOrPath);
-        final rootPath = server.customPath?.trim().isNotEmpty == true
-            ? server.customPath!
-            : '/';
+        final rootPath = normalizeRemotePath(server.customPath);
         final stack =
             ActiveRemoteSession.buildWebDavPathStack(rootPath, targetDir);
         final activeSession = ref.read(activeRemoteSessionProvider);

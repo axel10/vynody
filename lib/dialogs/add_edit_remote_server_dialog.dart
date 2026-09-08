@@ -146,7 +146,7 @@ class _AddEditRemoteServerDialogState
       username: _usernameController.text.trim(),
       customPath: (_serverType == RemoteServerType.webdav || _serverType == RemoteServerType.smb) &&
               _customPathController.text.trim().isNotEmpty
-          ? _customPathController.text.trim()
+          ? normalizeRemotePath(_customPathController.text.trim())
           : null,
       domain: _serverType == RemoteServerType.smb &&
               _domainController.text.trim().isNotEmpty

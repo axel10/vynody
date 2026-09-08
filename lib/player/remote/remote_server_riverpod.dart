@@ -243,12 +243,8 @@ class ActiveRemoteSession {
     String rootPath,
     String targetDir,
   ) {
-    final cleanRoot = rootPath.endsWith('/') && rootPath.length > 1
-        ? rootPath.substring(0, rootPath.length - 1)
-        : rootPath;
-    final cleanTarget = targetDir.endsWith('/') && targetDir.length > 1
-        ? targetDir.substring(0, targetDir.length - 1)
-        : targetDir;
+    final cleanRoot = normalizeRemotePath(rootPath);
+    final cleanTarget = normalizeRemotePath(targetDir);
 
     if (cleanTarget.isEmpty ||
         cleanTarget == cleanRoot ||
