@@ -325,9 +325,10 @@ packages:
   dart_smb2:
     dependency: "direct main"
     description:
-      path: dart_smb2
-      relative: true
-    source: path
+      name: dart_smb2
+      sha256: b9cb9e235caf2a735716085d960297c949496190f78b95c4681c3a4940431d54
+      url: "https://pub.flutter-io.cn"
+    source: hosted
     version: "0.1.2"
   dart_style:
     dependency: transitive
