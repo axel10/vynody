@@ -150,14 +150,14 @@ class LyricsService {
     NetworkClient? client,
     MetadataDatabase? db,
     LyricsCacheRepository? cacheRepository,
-    Future<String?> Function(String uri)? remoteLyricsFetcher,
+    Future<String?> Function(LyricsQuery query)? remoteLyricsFetcher,
   })  : _client = client ?? NetworkClient.instance,
         _cacheRepository = cacheRepository ?? LyricsCacheRepository(db: db),
         _remoteLyricsFetcher = remoteLyricsFetcher;
 
   final NetworkClient _client;
   final LyricsCacheRepository _cacheRepository;
-  final Future<String?> Function(String uri)? _remoteLyricsFetcher;
+  final Future<String?> Function(LyricsQuery query)? _remoteLyricsFetcher;
   final Map<String, Future<LyricSelectionResult?>> _inFlight = {};
 
   static const double _acceptThreshold = 65.0;
@@ -300,7 +300,9 @@ class LyricsService {
         (normalizedQuery.filePath.startsWith('subsonic://') ||
             normalizedQuery.filePath.startsWith('webdav://'))) {
       try {
-        final remoteLrc = await _remoteLyricsFetcher(normalizedQuery.filePath);
+        // 传入规范化后的完整查询（含 title / artist / album），
+        // 这样即使服务端不支持 getLyricsBySongId，也能用 artist+title 兜底命中。
+        final remoteLrc = await _remoteLyricsFetcher(normalizedQuery);
         if (remoteLrc != null && remoteLrc.trim().isNotEmpty) {
           final syncedLines = _parseSyncedLyrics(remoteLrc);
           final isSynced = syncedLines.any((line) => line.isTimed);
@@ -339,8 +341,17 @@ class LyricsService {
             lyricsText: remoteLrc,
           );
           _logDebug('fetch remote server lyrics hit -> key="$cacheKey"');
+          unawaited(
+            _cacheRemoteServerLyrics(
+              query: normalizedQuery,
+              rawText: remoteLrc,
+              isSynced: isSynced,
+              syncedLines: syncedLines,
+            ),
+          );
           return res;
         }
+        _logDebug('fetch remote server lyrics miss -> key="$cacheKey"');
       } catch (e) {
         _logDebug('fetch remote server lyrics error: $e');
       }
@@ -418,6 +429,43 @@ class LyricsService {
     }
 
     return result;
+  }
+
+  /// 把远程服务端返回的歌词写入 SQLite 缓存。
+  /// 这样下次播放同一首歌时会在最前面的缓存层命中，避免每次都向服务器重新请求，
+  /// 也避免后续的 LRCLIB 结果被缓存后反而抢在服务端口歌词前面。
+  Future<void> _cacheRemoteServerLyrics({
+    required LyricsQuery query,
+    required String rawText,
+    required bool isSynced,
+    required List<LyricLine> syncedLines,
+  }) async {
+    try {
+      final effectiveLines = syncedLines.isNotEmpty
+          ? syncedLines
+          : rawText
+              .split('\n')
+              .map(
+                (line) => LyricLine(
+                  timestamp: Duration.zero,
+                  text: line,
+                  isTimed: false,
+                ),
+              )
+              .toList();
+      final record = LyricsCacheRecord(
+        cacheKey: query.cacheKey,
+        source: LyricsCacheSource.external,
+        isSynced: isSynced,
+        syncedLyrics: rawText,
+        syncedLines: effectiveLines,
+        timelineOffsetMillis: 0,
+        updatedAtMillis: DateTime.now().millisecondsSinceEpoch,
+      );
+      await _cacheRepository.saveLyricsCache(record);
+    } catch (e) {
+      debugPrint('[Lyrics] Failed to cache remote server lyrics: $e');
+    }
   }
 
   /// 尝试从同目录下和歌曲同名的lrc歌词文件解析

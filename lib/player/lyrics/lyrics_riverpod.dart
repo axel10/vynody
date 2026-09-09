@@ -50,9 +50,19 @@ final lyricsAiServiceProvider = Provider<LyricsAiService>((ref) {
 
 final lyricsServiceProvider = Provider<LyricsService>((ref) {
   return LyricsService(
-    remoteLyricsFetcher: (uri) async {
+    remoteLyricsFetcher: (query) async {
       final resolver = await ref.read(remoteMediaResolverProvider.future);
-      return resolver.fetchLyrics(MusicFile(path: uri, name: ''));
+      // 必须带上真实元数据：服务端若不支持 getLyricsBySongId，
+      // 会退回到按 artist+title 查询，缺了元数据就必然查空。
+      return resolver.fetchLyrics(
+        MusicFile(
+          path: query.filePath,
+          name: query.fileName,
+          title: query.title,
+          artist: query.artist,
+          album: query.album,
+        ),
+      );
     },
   );
 });

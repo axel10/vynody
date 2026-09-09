@@ -67,10 +67,9 @@ class LyricsController extends Notifier<LyricsControllerState> {
     _isLyricsActive = dependencies.isLyricsActive;
     _cacheSongDuration = dependencies.cacheSongDuration;
     _lyricsCacheRepository = LyricsCacheRepository(db: _db);
-    _lyricsService = LyricsService(
-      db: _db,
-      cacheRepository: _lyricsCacheRepository,
-    );
+    // 复用 provider 里的实例，它注入了远程服务器歌词 fetcher；
+    // 自己 new 一个会让 Subsonic / WebDAV 服务端歌词分支永远不生效。
+    _lyricsService = ref.read(lyricsServiceProvider);
     _settingsService = ref.read(settingsServiceProvider);
     final effectiveLanguageCode = ref.read(
       lyricsTranslationLanguageCodeProvider,

@@ -528,27 +528,47 @@ class SubsonicClient {
           final lyricsList =
               subsonic['lyricsList']?['structuredLyrics'] as List?;
           if (lyricsList != null && lyricsList.isNotEmpty) {
-            final first = lyricsList.first;
-            if (first is Map<String, dynamic>) {
-              // Check for synced or plain lyrics
-              final lineList = first['line'] as List?;
-              if (lineList != null && lineList.isNotEmpty) {
-                // Construct synced LRC format
-                final buffer = StringBuffer();
-                for (final line in lineList) {
-                  if (line is Map<String, dynamic>) {
-                    final start = line['start'] as int? ?? 0;
-                    final text = line['value'] as String? ?? '';
-                    final minutes =
-                        (start ~/ 60000).toString().padLeft(2, '0');
-                    final seconds =
-                        ((start % 60000) ~/ 1000).toString().padLeft(2, '0');
-                    final millis =
-                        ((start % 1000) ~/ 10).toString().padLeft(2, '0');
-                    buffer.writeln('[$minutes:$seconds.$millis]$text');
-                  }
+            // 服务端可能返回多条（不同语言/不同来源），优先取第一条有内容的，
+            // 并优先选择逐行的（synced）那一版。
+            Map<String, dynamic>? picked;
+            List? pickedLines;
+            for (final entry in lyricsList) {
+              if (entry is! Map<String, dynamic>) continue;
+              final lineList = entry['line'] as List?;
+              if (lineList == null || lineList.isEmpty) continue;
+              final isSyncedEntry = entry['synced'] == true;
+              if (picked == null || (isSyncedEntry && picked['synced'] != true)) {
+                picked = entry;
+                pickedLines = lineList;
+              }
+            }
+            if (pickedLines != null && pickedLines.isNotEmpty) {
+              // Navidrome 对无时间轴的歌词省略 start 字段，此时必须输出纯文本，
+              // 否则会把整首歌拼成一堆 [00:00.00] 的“假逐行歌词”。
+              final starts = pickedLines
+                  .whereType<Map<String, dynamic>>()
+                  .map((line) => line['start'] as int?)
+                  .toList();
+              final hasAnyStart = starts.any((start) => start != null);
+              final buffer = StringBuffer();
+              for (final line in pickedLines) {
+                if (line is! Map<String, dynamic>) continue;
+                final text = line['value'] as String? ?? '';
+                if (!hasAnyStart) {
+                  buffer.writeln(text);
+                  continue;
                 }
-                return buffer.toString();
+                final start = line['start'] as int? ?? 0;
+                final minutes = (start ~/ 60000).toString().padLeft(2, '0');
+                final seconds =
+                    ((start % 60000) ~/ 1000).toString().padLeft(2, '0');
+                final millis =
+                    ((start % 1000) ~/ 10).toString().padLeft(2, '0');
+                buffer.writeln('[$minutes:$seconds.$millis]$text');
+              }
+              final content = buffer.toString();
+              if (content.trim().isNotEmpty) {
+                return content;
               }
             }
           }
@@ -563,7 +583,10 @@ class SubsonicClient {
         final subsonic = await _getSubsonicData('getLyrics.view', params);
         final lyrics = subsonic['lyrics'];
         if (lyrics is Map<String, dynamic>) {
-          final content = lyrics['content'] as String?;
+          // Navidrome 的 responses.Lyrics 序列化出来是 {artist, title, value}；
+          // 'content' 是部分其他 Subsonic 实现的写法，这里两者都兼容。
+          final content = (lyrics['value'] as String?) ??
+              (lyrics['content'] as String?);
           if (content != null && content.trim().isNotEmpty) {
             return content.trim();
           }
