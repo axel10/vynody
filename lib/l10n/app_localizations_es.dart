@@ -3594,6 +3594,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get exportLogs => 'Exportar registros';
 
   @override
+  String get supportOnAfdian => 'Apóyanos en Afdian';
+
+  @override
   String get exportLogsSuccess => 'Registros exportados con éxito';
 
   @override

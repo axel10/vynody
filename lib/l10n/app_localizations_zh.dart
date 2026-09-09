@@ -3376,6 +3376,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get exportLogs => '导出日志';
 
   @override
+  String get supportOnAfdian => '在爱发电支持我们';
+
+  @override
   String get exportLogsSuccess => '日志已成功导出';
 
   @override
@@ -7842,6 +7845,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get exportLogs => '匯出日誌';
+
+  @override
+  String get supportOnAfdian => '在愛發電支持我們';
 
   @override
   String get exportLogsSuccess => '日誌已成功匯出';

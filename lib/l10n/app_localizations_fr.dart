@@ -3598,6 +3598,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get exportLogs => 'Exporter les journaux';
 
   @override
+  String get supportOnAfdian => 'Soutenez-nous sur Afdian';
+
+  @override
   String get exportLogsSuccess => 'Journaux exportés avec succès';
 
   @override

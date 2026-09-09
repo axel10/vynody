@@ -1398,6 +1398,7 @@
     }
   },
   "exportLogs": "Exportar registros",
+  "supportOnAfdian": "Apóyanos en Afdian",
   "exportLogsSuccess": "Registros exportados con éxito",
   "exportLogsFailed": "Error al exportar registros",
   "noLogFileFound": "No se encontró el archivo de registro",

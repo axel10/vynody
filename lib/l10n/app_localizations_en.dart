@@ -3546,6 +3546,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exportLogs => 'Export Logs';
 
   @override
+  String get supportOnAfdian => 'Support us on Afdian';
+
+  @override
   String get exportLogsSuccess => 'Logs exported successfully';
 
   @override

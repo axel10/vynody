@@ -1098,6 +1098,7 @@
     }
   },
   "exportLogs": "匯出日誌",
+  "supportOnAfdian": "在愛發電支持我們",
   "exportLogsSuccess": "日誌已成功匯出",
   "exportLogsFailed": "匯出日誌失敗",
   "noLogFileFound": "未找到日誌檔案",

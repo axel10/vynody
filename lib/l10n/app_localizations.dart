@@ -6381,6 +6381,12 @@ abstract class AppLocalizations {
   /// **'导出日志'**
   String get exportLogs;
 
+  /// No description provided for @supportOnAfdian.
+  ///
+  /// In zh, this message translates to:
+  /// **'在爱发电支持我们'**
+  String get supportOnAfdian;
+
   /// No description provided for @exportLogsSuccess.
   ///
   /// In zh, this message translates to:

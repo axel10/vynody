@@ -3427,6 +3427,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get exportLogs => 'ログをエクスポート';
 
   @override
+  String get supportOnAfdian => 'Afdian（愛発電）でサポート';
+
+  @override
   String get exportLogsSuccess => 'ログのエクスポートに成功しました';
 
   @override

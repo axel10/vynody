@@ -1398,6 +1398,7 @@
     }
   },
   "exportLogs": "Exporter les journaux",
+  "supportOnAfdian": "Soutenez-nous sur Afdian",
   "exportLogsSuccess": "Journaux exportés avec succès",
   "exportLogsFailed": "Échec de l'exportation des journaux",
   "noLogFileFound": "Aucun fichier journal trouvé",

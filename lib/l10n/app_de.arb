@@ -1398,6 +1398,7 @@
     }
   },
   "exportLogs": "Protokolle exportieren",
+  "supportOnAfdian": "Auf Afdian unterstützen",
   "exportLogsSuccess": "Protokolle erfolgreich exportiert",
   "exportLogsFailed": "Exportieren der Protokolle fehlgeschlagen",
   "noLogFileFound": "Keine Protokolldatei gefunden",

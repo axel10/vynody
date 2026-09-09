@@ -1497,6 +1497,7 @@
     }
   },
   "exportLogs": "ログをエクスポート",
+  "supportOnAfdian": "Afdian（愛発電）でサポート",
   "exportLogsSuccess": "ログのエクスポートに成功しました",
   "exportLogsFailed": "ログのエクスポートに失敗しました",
   "noLogFileFound": "ログファイルが見つかりません",

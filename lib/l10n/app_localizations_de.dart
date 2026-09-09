@@ -3588,6 +3588,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get exportLogs => 'Protokolle exportieren';
 
   @override
+  String get supportOnAfdian => 'Auf Afdian unterstützen';
+
+  @override
   String get exportLogsSuccess => 'Protokolle erfolgreich exportiert';
 
   @override

@@ -1490,6 +1490,7 @@
   "skipRemaining": "Kalanların Tümünü Atla",
   "invalidBackupFile": "Geçersiz yedek dosyası",
   "exportLogs": "Günlükleri Dışa Aktar",
+  "supportOnAfdian": "Afdian'da bizi destekle",
   "exportLogsSuccess": "Günlükler başarıyla dışa aktarıldı",
   "exportLogsFailed": "Günlükler dışa aktarılamadı",
   "noLogFileFound": "Günlük dosyası bulunamadı",

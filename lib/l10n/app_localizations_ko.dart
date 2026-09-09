@@ -3430,6 +3430,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exportLogs => '로그 내보내기';
 
   @override
+  String get supportOnAfdian => 'Afdian에서 후원하기';
+
+  @override
   String get exportLogsSuccess => '로그를 성공적으로 내보냈습니다';
 
   @override

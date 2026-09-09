@@ -3558,6 +3558,9 @@ class AppLocalizationsTr extends AppLocalizations {
   String get exportLogs => 'Günlükleri Dışa Aktar';
 
   @override
+  String get supportOnAfdian => 'Afdian\'da bizi destekle';
+
+  @override
   String get exportLogsSuccess => 'Günlükler başarıyla dışa aktarıldı';
 
   @override

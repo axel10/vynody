@@ -1438,6 +1438,7 @@
   "skipRemaining": "Skip All Remaining",
   "invalidBackupFile": "Invalid backup file",
   "exportLogs": "Export Logs",
+  "supportOnAfdian": "Support us on Afdian",
   "exportLogsSuccess": "Logs exported successfully",
   "exportLogsFailed": "Failed to export logs",
   "noLogFileFound": "No log file found",
