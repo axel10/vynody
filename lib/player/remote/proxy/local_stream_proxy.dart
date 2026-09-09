@@ -258,6 +258,8 @@ class LocalStreamProxy {
       '.m4a' || '.aac' => 'audio/mp4',
       '.ogg' || '.opus' => 'audio/ogg',
       '.ape' => 'audio/x-ape',
+      '.dsf' => 'audio/x-dsf',
+      '.dff' => 'audio/x-dff',
       '.wma' => 'audio/x-ms-wma',
       '.webm' => 'audio/webm',
       '.jpg' || '.jpeg' => 'image/jpeg',

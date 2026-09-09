@@ -64,6 +64,8 @@ modules:
       - type: git
         url: https://github.com/axel10/vynody.git
         tag: 1.7.1 # Replace with the latest tag or commit hash when releasing
+      # FFmpeg 预编译产物：版本必须和 audio_core/ffmpeg_version.env 里的 FFMPEG_VERSION 保持一致
+      # （Flatpak 是离线构建，无法读取 env 文件，只能手工同步；改版本时 sha256 也要一并更新）
       - type: file
         url: https://github.com/axel10/audio_core/releases/download/0.7/ffmpeg_lib_linux.tar.gz
         sha256: 69e7f0fa3756128506af7f2c2dd7016c2e4f708d1b177726110cfe90e440372b
