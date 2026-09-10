@@ -65,6 +65,13 @@ class LyricsAiDoubaoClient {
       'file': await MultipartFile.fromFile(file.path, filename: fileName),
     });
 
+    LyricsAiLogger.logRequest(
+      provider: 'Doubao',
+      action: 'upload_file',
+      data: formData,
+      extra: {'fileName': fileName, 'fileSize': fileSize},
+    );
+
     final response = await _client.post(
       'https://ark.cn-beijing.volces.com/api/v3/files',
       data: formData,
@@ -234,6 +241,50 @@ class LyricsAiDoubaoClient {
       file: file,
       modelId: modelId,
       prompt: prompt,
+      action: 'generate_timeline',
+      onUploadProgress: onUploadProgress,
+      onStageChanged: onStageChanged,
+      onProgress: onProgress,
+      cancelToken: cancelToken,
+      preserveTimestamps: true,
+    );
+  }
+
+  Future<LyricsGenerationResult> generateKaraokeLyricsFromLyrics({
+    required String apiKey,
+    required String filePath,
+    required String lyrics,
+    required String modelId,
+    void Function(double progress)? onUploadProgress,
+    void Function(String stage)? onStageChanged,
+    void Function(String partialText, bool isFinal)? onProgress,
+    CancelToken? cancelToken,
+  }) async {
+    final file = File(filePath);
+    if (!await file.exists()) {
+      debugPrint('[DoubaoLyrics] file not found for karaoke: $filePath');
+      return LyricsGenerationResult.failure(
+        _l10n().localSongFileNotFoundForTimeline,
+      );
+    }
+
+    final normalizedLyrics = lyrics.trim();
+    if (normalizedLyrics.isEmpty) {
+      return LyricsGenerationResult.failure(
+        _l10n().noLyricsForTimelineGeneration,
+      );
+    }
+
+    final prompt = LyricsAiPromptBuilder.buildConvertToKaraokePrompt(
+      lyrics: normalizedLyrics,
+    );
+
+    return _generateFromAudioFile(
+      apiKey: apiKey,
+      file: file,
+      modelId: modelId,
+      prompt: prompt,
+      action: 'convert_to_karaoke',
       onUploadProgress: onUploadProgress,
       onStageChanged: onStageChanged,
       onProgress: onProgress,
@@ -366,8 +417,11 @@ class LyricsAiDoubaoClient {
         ],
         'stream': true,
       };
-      debugPrint(
-        '[DoubaoLyrics] translation request payload: ${jsonEncode(requestData)}',
+      LyricsAiLogger.logRequest(
+        provider: 'Doubao',
+        action: 'translation',
+        model: modelId,
+        data: requestData,
       );
       final response = await _client.post(
         'https://ark.cn-beijing.volces.com/api/v3/responses',
@@ -442,6 +496,7 @@ class LyricsAiDoubaoClient {
     required String modelId,
     required String prompt,
     required bool preserveTimestamps,
+    String action = 'generate_lyrics',
     void Function(double progress)? onUploadProgress,
     void Function(String stage)? onStageChanged,
     void Function(String partialText, bool isFinal)? onProgress,
@@ -491,6 +546,17 @@ class LyricsAiDoubaoClient {
         ],
         'stream': true,
       };
+
+      LyricsAiLogger.logRequest(
+        provider: 'Doubao',
+        action: action,
+        model: modelId,
+        data: requestData,
+        extra: {
+          'filePath': file.path,
+          'fileId': readyFile.id,
+        },
+      );
 
       final response = await _client.post(
         'https://ark.cn-beijing.volces.com/api/v3/responses',

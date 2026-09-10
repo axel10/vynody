@@ -1017,6 +1017,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get generateTimeline => '타임라인 생성';
 
   @override
+  String get convertToKaraoke => '단어별 가사로 변환';
+
+  @override
   String get queueGenerateLyrics => '가사 생성 대기열';
 
   @override
@@ -2020,6 +2023,10 @@ class AppLocalizationsKo extends AppLocalizations {
       '현재 타임라인이 지워지고 다시 생성됩니다. 계속하시겠습니까?';
 
   @override
+  String get convertToKaraokeConfirmation =>
+      '현재 가사를 단어별 가사로 변환하고 타임라인을 다시 생성하시겠습니까?';
+
+  @override
   String get retranslateLyrics => '가사 다시 번역';
 
   @override
@@ -2096,6 +2103,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get generatingTimeline => '타임라인 생성 중';
+
+  @override
+  String get convertingToKaraoke => '단어별 가사로 변환 중';
 
   @override
   String get regeneratingLyrics => '가사 다시 생성 중';
@@ -2250,6 +2260,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get generateTimelineAction => '타임라인 생성';
+
+  @override
+  String get convertToKaraokeAction => '단어별 가사로 변환';
 
   @override
   String get deepseekOnlyTranslation => 'DeepSeek는 가사 번역에만 사용할 수 있습니다.';

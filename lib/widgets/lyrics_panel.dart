@@ -602,6 +602,14 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
           icon: Icons.timer_rounded,
           context: context,
         ),
+      if (lyricsState.hasLyrics)
+        buildContextMenuItem<String>(
+          value: 'convert_to_karaoke',
+          enabled: hasCurrentSong && !taskState.isGenerationBusy,
+          label: l10n.convertToKaraoke,
+          icon: Icons.mic_external_on_rounded,
+          context: context,
+        ),
       if (!requeryOnly &&
           _hasTimedLyrics(displayLines) &&
           lyricsState.hasLyrics)
@@ -810,6 +818,39 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
         if (!context.mounted || !mounted) return;
         final errorMessage = await _lyricsControllerActions
             .generateTimelineForCurrentSong();
+        if (errorMessage != null) {
+          _showGenerationErrorSnack(errorMessage);
+        }
+      }
+    } else if (selected == 'convert_to_karaoke') {
+      if (!await checkProGate(context, ref, feature: ProFeature.aiLyrics)) return;
+      if (!context.mounted || !mounted) return;
+      if (await _ensureLyricsApiKey()) {
+        if (!context.mounted) return;
+        if (lyricsState.hasLyrics) {
+          final confirm = await showDialog<bool>(
+            context: context,
+            builder: (dialogContext) => AlertDialog(
+              title: Text(l10n.convertToKaraoke),
+              content: Text(l10n.convertToKaraokeConfirmation),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext, false),
+                  child: Text(l10n.cancel),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext, true),
+                  child: Text(l10n.confirm),
+                ),
+              ],
+            ),
+          );
+          if (confirm != true) return;
+        }
+
+        if (!context.mounted || !mounted) return;
+        final errorMessage = await _lyricsControllerActions
+            .convertToKaraokeLyricsForCurrentSong();
         if (errorMessage != null) {
           _showGenerationErrorSnack(errorMessage);
         }
@@ -2200,6 +2241,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
         LyricsCacheSource.embedded,
         LyricsCacheSource.manualAdjust,
         LyricsCacheSource.aiTimeline,
+        LyricsCacheSource.aiKaraoke,
         LyricsCacheSource.aiGenerate,
         LyricsCacheSource.ai,
         LyricsCacheSource.lrclib,

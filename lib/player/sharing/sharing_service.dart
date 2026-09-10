@@ -2515,6 +2515,7 @@ class SharingService {
         return 4;
       case LyricsCacheSource.ai:
       case LyricsCacheSource.aiTimeline:
+      case LyricsCacheSource.aiKaraoke:
       case LyricsCacheSource.aiGenerate:
         return 3;
       case LyricsCacheSource.lrclib:

@@ -1,3 +1,8 @@
+import 'dart:convert';
+
+import 'package:dio/dio.dart' show FormData;
+import 'package:flutter/foundation.dart';
+
 import 'package:vynody/utils/localized_text.dart';
 import 'package:vynody/utils/lrc_utils.dart';
 
@@ -21,6 +26,13 @@ final class LyricsAiPromptBuilder {
     final cleanLyrics = LrcUtils.stripTimestamps(lyrics);
     const prompt = '这是这首歌的歌词和原文件，帮我把这些歌词打上时间轴。格式为[mm:ss.ms]歌词内容。mm: 分钟（00-99）ss: 秒（00-59）ms: 毫秒（通常为 3 位）。仅输出结果不输出其他内容（我拿来当api用的）';
     return '$prompt\n```text\n$cleanLyrics\n```';
+  }
+
+  static String buildConvertToKaraokePrompt({
+    required String lyrics,
+  }) {
+    final targetLyrics = lyrics.trim();
+    return '将以下歌词转换成卡拉ok歌词，即在每个单词前添加时间轴。注意保留歌词中的换行：\n$targetLyrics';
   }
 
   static String buildTranslateLyricsPrompt({
@@ -271,6 +283,75 @@ final class LyricsAiTranslationTextHelper {
     }
   }
 
+}
+
+final class LyricsAiLogger {
+  const LyricsAiLogger._();
+
+  static void logRequest({
+    required String provider,
+    required String action,
+    String? model,
+    required dynamic data,
+    Map<String, Object?>? extra,
+  }) {
+    final sanitized = _sanitize(data);
+    final payloadJson = _safeJsonEncode(sanitized);
+    final modelPart =
+        (model != null && model.trim().isNotEmpty) ? ' model=$model' : '';
+    final extraPart = (extra != null && extra.isNotEmpty)
+        ? ' extra=${_safeJsonEncode(extra)}'
+        : '';
+
+    debugPrint(
+      '[LyricsAi][$provider][$action]$modelPart$extraPart payload: $payloadJson',
+    );
+  }
+
+  static dynamic _sanitize(dynamic data) {
+    if (data is Map) {
+      return data.map((key, value) {
+        final keyStr = key.toString();
+        // 针对 base64 音频或超大二进制数据脱敏截断，避免控制台卡死
+        if ((keyStr == 'data' || keyStr == 'audioBase64') &&
+            value is String &&
+            value.length > 500) {
+          return MapEntry(
+            key,
+            '<base64 audio omitted, length=${value.length}>',
+          );
+        }
+        if (value is String &&
+            value.length > 20000 &&
+            keyStr != 'text' &&
+            keyStr != 'content' &&
+            keyStr != 'lyrics') {
+          return MapEntry(
+            key,
+            '<data omitted, length=${value.length}>',
+          );
+        }
+        return MapEntry(key, _sanitize(value));
+      });
+    } else if (data is List) {
+      return data.map(_sanitize).toList(growable: false);
+    } else if (data is FormData) {
+      final fields = data.fields.map((f) => '${f.key}=${f.value}').toList();
+      final files = data.files
+          .map((f) => '${f.key}=${f.value.filename} (${f.value.length} bytes)')
+          .toList();
+      return '<FormData fields=$fields files=$files>';
+    }
+    return data;
+  }
+
+  static String _safeJsonEncode(dynamic data) {
+    try {
+      return jsonEncode(data);
+    } catch (_) {
+      return data.toString();
+    }
+  }
 }
 
 AppLocalizations _l10n() => currentAppL10n;

@@ -535,6 +535,125 @@ class LyricsAiService {
     }
   }
 
+  Future<LyricsGenerationResult> generateKaraokeLyricsFromLyrics({
+    required String filePath,
+    required String lyrics,
+    String? songTitle,
+    String? modelId,
+    void Function(String? modelLabel)? onModelLabelChanged,
+    void Function(double progress)? onUploadProgress,
+    void Function(String stage)? onStageChanged,
+    void Function(String partialText, bool isFinal)? onProgress,
+    CancelToken? cancelToken,
+  }) async {
+    final normalizedLyrics = lyrics.trim();
+    if (normalizedLyrics.isEmpty) {
+      debugPrint('[LyricsAi] no usable lyrics for karaoke generation.');
+      return LyricsGenerationResult.failure(
+        _l10n().noLyricsForTimelineGeneration,
+      );
+    }
+
+    _PreparedAudio? preparedAudio;
+    try {
+      try {
+        preparedAudio = await _resolveAndPrepareAudioFile(
+          filePath: filePath,
+          songTitle: songTitle,
+          onStageChanged: onStageChanged,
+          onUploadProgress: onUploadProgress,
+          cancelToken: cancelToken,
+        );
+      } on _LocalFileNotFoundException {
+        debugPrint('[LyricsAi] file not found for karaoke: $filePath');
+        return LyricsGenerationResult.failure(
+          _l10n().localSongFileNotFoundForTimeline,
+        );
+      }
+
+      final activeFile = preparedAudio.file;
+      final activePath = activeFile.path;
+
+      final prompt = LyricsAiPromptBuilder.buildConvertToKaraokePrompt(
+        lyrics: normalizedLyrics,
+      );
+      final candidates = <LyricsAiModelSelection>[
+        LyricsAiModelSelection(
+          provider: _generationPrimaryModel.provider,
+          modelId: modelId?.trim().isNotEmpty == true
+              ? modelId!.trim()
+              : _generationPrimaryModel.modelId,
+        ),
+        if (_generationFallbackModel.modelId.trim().isNotEmpty)
+          _generationFallbackModel,
+      ];
+
+      String? lastError;
+      for (final candidate in candidates) {
+        final apiKey = _config.apiKeyForProvider(candidate.provider).trim();
+        if (apiKey.isEmpty) {
+          lastError = _missingApiKeyMessage(
+            candidate.provider,
+            action: _l10n().convertToKaraokeAction,
+          );
+          continue;
+        }
+        onModelLabelChanged?.call(_modelLabel(candidate));
+        final result = switch (candidate.provider) {
+          LyricsAiProvider.googleAiStudio => await _generateWithGoogleAiStudio(
+            file: activeFile,
+            apiKey: apiKey,
+            modelId: candidate.modelId,
+            prompt: prompt,
+            preserveTimestamps: true,
+            onStageChanged: onStageChanged,
+            onUploadProgress: onUploadProgress,
+            onProgress: onProgress,
+            cancelToken: cancelToken,
+          ),
+          LyricsAiProvider.openRouter =>
+            await _openRouterClient.generateKaraokeLyricsFromLyrics(
+              apiKey: apiKey,
+              modelId: candidate.modelId,
+              filePath: activePath,
+              lyrics: lyrics,
+              onUploadProgress: onUploadProgress,
+              onStageChanged: onStageChanged,
+              onProgress: onProgress,
+              cancelToken: cancelToken,
+            ),
+          LyricsAiProvider.doubao =>
+            await _doubaoClient.generateKaraokeLyricsFromLyrics(
+              apiKey: apiKey,
+              modelId: candidate.modelId,
+              filePath: activePath,
+              lyrics: lyrics,
+              onUploadProgress: onUploadProgress,
+              onStageChanged: onStageChanged,
+              onProgress: onProgress,
+              cancelToken: cancelToken,
+            ),
+          LyricsAiProvider.deepseek => LyricsGenerationResult.failure(
+            _l10n().deepseekOnlyTranslation,
+          ),
+          LyricsAiProvider.custom => LyricsGenerationResult.failure(
+            _l10n().customProviderOnlyTranslation,
+          ),
+        };
+        if (result.isSuccess) {
+          return _normalizeGenerationResult(result);
+        }
+        lastError = result.errorMessage;
+      }
+      return LyricsGenerationResult.failure(
+        lastError ??
+            _l10n().unknownTimelineGenerationError,
+      );
+    } finally {
+      await preparedAudio?.dispose();
+    }
+  }
+
   Future<LyricsGenerationResult> _generateFromUploadedFile({
     required File file,
     required String apiKey,
@@ -716,12 +835,11 @@ class LyricsAiService {
         'https://generativelanguage.googleapis.com/v1beta/models/$modelId:streamGenerateContent';
 
     try {
-      debugPrint(
-        '[LyricsAi] translation request provider=GoogleAIStudio '
-        'modelId=$modelId',
-      );
-      debugPrint(
-        '[LyricsAi] translation request payload: ${jsonEncode(requestData)}',
+      LyricsAiLogger.logRequest(
+        provider: 'Google AI Studio',
+        action: 'translation',
+        model: modelId,
+        data: requestData,
       );
       final response = await _client.post(
         url,
@@ -851,11 +969,11 @@ class LyricsAiService {
         ],
         'stream': true,
       };
-      debugPrint(
-        '[LyricsAi] translation request provider=OpenRouter modelId=$modelId',
-      );
-      debugPrint(
-        '[LyricsAi] translation request payload: ${jsonEncode(requestData)}',
+      LyricsAiLogger.logRequest(
+        provider: 'OpenRouter',
+        action: 'translation',
+        model: modelId,
+        data: requestData,
       );
       final response = await _client.post(
         'https://openrouter.ai/api/v1/chat/completions',
@@ -965,11 +1083,11 @@ class LyricsAiService {
         ],
         'stream': true,
       };
-      debugPrint(
-        '[LyricsAi] translation request provider=DeepSeek modelId=$modelId',
-      );
-      debugPrint(
-        '[LyricsAi] translation request payload: ${jsonEncode(requestData)}',
+      LyricsAiLogger.logRequest(
+        provider: 'DeepSeek',
+        action: 'translation',
+        model: modelId,
+        data: requestData,
       );
       final response = await _client.post(
         'https://api.deepseek.com/chat/completions',
@@ -1077,12 +1195,12 @@ class LyricsAiService {
         'stream': true,
       };
       final providerName = customProviderNameDisplay;
-      debugPrint(
-        '[LyricsAi] translation request provider=$providerName '
-        'modelId=$modelId baseUrl=$baseUrl',
-      );
-      debugPrint(
-        '[LyricsAi] translation request payload: ${jsonEncode(requestData)}',
+      LyricsAiLogger.logRequest(
+        provider: providerName.isNotEmpty ? providerName : 'Custom',
+        action: 'translation',
+        model: modelId,
+        data: requestData,
+        extra: {'baseUrl': baseUrl},
       );
       final apiUrl = baseUrl.endsWith('/')
           ? '${baseUrl}chat/completions'
@@ -1209,14 +1327,18 @@ class LyricsAiService {
         };
 
         // 这里使用 streamGenerateContent，是为了让结果在模型生成时就能逐步回传给界面。
-        debugPrint('[LyricsAi] generation request model=$effectiveModelId');
-        debugPrint('[LyricsAi] generation request attempt=$attempt');
-        debugPrint('[LyricsAi] generation request filePath=$filePath');
-        debugPrint('[LyricsAi] generation request fileName=$fileName');
-        debugPrint('[LyricsAi] generation request mimeType=$mimeType');
-        debugPrint('[LyricsAi] generation request fileUri=$fileUri');
-        debugPrint(
-          '[LyricsAi] generation request payload=${jsonEncode(requestData)}',
+        LyricsAiLogger.logRequest(
+          provider: 'Google AI Studio',
+          action: 'generation',
+          model: effectiveModelId,
+          data: requestData,
+          extra: {
+            'attempt': attempt,
+            'filePath': filePath,
+            'fileName': fileName,
+            'mimeType': mimeType,
+            'fileUri': fileUri,
+          },
         );
 
         try {

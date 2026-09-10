@@ -1008,6 +1008,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get generateTimeline => '生成时间轴';
 
   @override
+  String get convertToKaraoke => '转换为逐字歌词';
+
+  @override
   String get queueGenerateLyrics => '排队生成';
 
   @override
@@ -1995,6 +1998,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get regenerateTimelineConfirmation => '将清空当前时间轴并重新生成，是否继续？';
 
   @override
+  String get convertToKaraokeConfirmation => '将当前歌词转换为逐字歌词并重新生成时间轴，是否继续？';
+
+  @override
   String get retranslateLyrics => '重新翻译歌词';
 
   @override
@@ -2068,6 +2074,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get generatingTimeline => '正在生成时间轴';
+
+  @override
+  String get convertingToKaraoke => '正在转换为逐字歌词';
 
   @override
   String get regeneratingLyrics => '正在重新生成歌词';
@@ -2218,6 +2227,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get generateTimelineAction => '生成时间轴';
+
+  @override
+  String get convertToKaraokeAction => '转换为逐字歌词';
 
   @override
   String get deepseekOnlyTranslation => 'DeepSeek 仅支持歌词翻译。';
@@ -5479,6 +5491,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get generateTimeline => '生成時間軸';
 
   @override
+  String get convertToKaraoke => '轉換為逐字歌詞';
+
+  @override
   String get queueGenerateLyrics => '排隊生成';
 
   @override
@@ -6466,6 +6481,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get regenerateTimelineConfirmation => '將清空目前時間軸並重新生成，是否繼續？';
 
   @override
+  String get convertToKaraokeConfirmation => '將目前歌詞轉換為逐字歌詞並重新生成時間軸，是否繼續？';
+
+  @override
   String get retranslateLyrics => '重新翻譯歌詞';
 
   @override
@@ -6539,6 +6557,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get generatingTimeline => '正在生成時間軸';
+
+  @override
+  String get convertingToKaraoke => '正在轉換為逐字歌詞';
 
   @override
   String get regeneratingLyrics => '正在重新生成歌詞';
@@ -6689,6 +6710,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get generateTimelineAction => '生成時間軸';
+
+  @override
+  String get convertToKaraokeAction => '轉換為逐字歌詞';
 
   @override
   String get deepseekOnlyTranslation => 'DeepSeek 僅支援歌詞翻譯。';

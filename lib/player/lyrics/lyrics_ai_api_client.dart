@@ -4,6 +4,7 @@ import 'package:dio/dio.dart' show CancelToken, DioException, DioExceptionType, 
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 
+import 'package:vynody/player/lyrics/lyrics_ai_shared.dart';
 import 'package:vynody/utils/network_client.dart';
 
 class GeminiFileUploadResult {
@@ -36,6 +37,21 @@ class GeminiLyricsApiClient {
     final fileName = p.basename(file.path);
     final fileBytes = await file.readAsBytes();
 
+    final initPayload = {
+      'file': {'display_name': fileName},
+    };
+
+    LyricsAiLogger.logRequest(
+      provider: 'Google AI Studio',
+      action: 'upload_init',
+      data: initPayload,
+      extra: {
+        'fileName': fileName,
+        'mimeType': mimeType,
+        'fileSize': fileSize,
+      },
+    );
+
     final initResponse = await _client.post(
       'https://generativelanguage.googleapis.com/upload/v1beta/files',
       queryParameters: {'key': apiKey},
@@ -48,9 +64,7 @@ class GeminiLyricsApiClient {
           'Content-Type': 'application/json',
         },
       ),
-      data: {
-        'file': {'display_name': fileName},
-      },
+      data: initPayload,
       cancelToken: cancelToken,
     );
 

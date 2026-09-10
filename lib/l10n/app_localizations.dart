@@ -2013,6 +2013,12 @@ abstract class AppLocalizations {
   /// **'生成时间轴'**
   String get generateTimeline;
 
+  /// No description provided for @convertToKaraoke.
+  ///
+  /// In zh, this message translates to:
+  /// **'转换为逐字歌词'**
+  String get convertToKaraoke;
+
   /// No description provided for @queueGenerateLyrics.
   ///
   /// In zh, this message translates to:
@@ -3879,6 +3885,12 @@ abstract class AppLocalizations {
   /// **'将清空当前时间轴并重新生成，是否继续？'**
   String get regenerateTimelineConfirmation;
 
+  /// No description provided for @convertToKaraokeConfirmation.
+  ///
+  /// In zh, this message translates to:
+  /// **'将当前歌词转换为逐字歌词并重新生成时间轴，是否继续？'**
+  String get convertToKaraokeConfirmation;
+
   /// No description provided for @retranslateLyrics.
   ///
   /// In zh, this message translates to:
@@ -4028,6 +4040,12 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'正在生成时间轴'**
   String get generatingTimeline;
+
+  /// No description provided for @convertingToKaraoke.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在转换为逐字歌词'**
+  String get convertingToKaraoke;
 
   /// No description provided for @regeneratingLyrics.
   ///
@@ -4304,6 +4322,12 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'生成时间轴'**
   String get generateTimelineAction;
+
+  /// No description provided for @convertToKaraokeAction.
+  ///
+  /// In zh, this message translates to:
+  /// **'转换为逐字歌词'**
+  String get convertToKaraokeAction;
 
   /// No description provided for @deepseekOnlyTranslation.
   ///

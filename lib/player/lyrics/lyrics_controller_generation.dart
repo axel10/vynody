@@ -584,6 +584,100 @@ class LyricsGenerationCoordinator {
     });
   }
 
+  Future<String?> _generateKaraokeLyricsForSong(MusicFile song) async {
+    if (!_context.isProUnlocked()) {
+      return _l10n().proTrialExpired;
+    }
+    final sourceLyrics = _timelineSourceLyricsForSong(song).trim();
+    if (sourceLyrics.isEmpty) {
+      debugPrint(
+        '[LyricsController] convert to karaoke skipped: no usable lyrics '
+        'path=${song.path}',
+      );
+      return _l10n().noLyricsForTimelineGeneration;
+    }
+
+    final cancelToken = CancelToken();
+    _context.lyricsAiCancelToken = cancelToken;
+    try {
+      return await _runLyricsGeneration(
+        song: song,
+        databaseSource: LyricsCacheSource.aiKaraoke,
+        statusLabel: _l10n().convertingToKaraoke,
+        modelLabel: _context.lyricsAiService.currentGenerationModelLabel,
+        cancelToken: cancelToken,
+        translationProvider: () =>
+            _support.songForPath(song.path)?.lyrics?.translations ??
+            const <String, MusicLyricTranslation>{},
+        invoke:
+            (cancelToken, {
+              required onUploadProgress,
+              required onStageChanged,
+              required onProgress,
+            }) {
+              return _context.lyricsAiService.generateKaraokeLyricsFromLyrics(
+                filePath: song.path,
+                lyrics: sourceLyrics,
+                songTitle: song.title,
+                onModelLabelChanged: _updateLyricsGenerationModelLabel,
+                onUploadProgress: onUploadProgress,
+                onStageChanged: onStageChanged,
+                onProgress: onProgress,
+                cancelToken: cancelToken,
+              );
+            },
+      );
+    } catch (e) {
+      if (cancelToken.isCancelled || (e is DioException && CancelToken.isCancel(e))) {
+        debugPrint('[LyricsController] karaoke conversion cancelled by user.');
+        return null;
+      }
+      debugPrint('[LyricsController] Failed to convert to karaoke: $e');
+      return _l10n().timelineGenerationError('$e');
+    } finally {
+      if (_context.lyricsAiCancelToken == cancelToken) {
+        _context.lyricsAiCancelToken = null;
+      }
+      _context.updateSongTaskState(
+        song.path,
+        (current) => current.copyWith(
+          isGenerationQueued: false,
+          isGenerationRunning: false,
+          generationPhase: LyricsGenerationPhase.idle,
+          generationProgress: 0.0,
+          generationStatus: '',
+        ),
+      );
+    }
+  }
+
+  Future<String?> convertToKaraokeLyricsForCurrentSong() async {
+    if (!_context.isProUnlocked()) {
+      return _l10n().proTrialExpired;
+    }
+    final song = _context.currentMusic();
+    if (song == null) {
+      debugPrint(
+        '[LyricsController] convert to karaoke skipped: no current song',
+      );
+      return _l10n().noCurrentSongAvailable;
+    }
+    if (_context.isLyricsGenerationBusyForSong(song.path)) {
+      return _l10n().songAlreadyQueuedForGeneration;
+    }
+
+    _queueLyricsGeneration(
+      song,
+      statusLabel: _l10n().convertingToKaraoke,
+      modelLabel: _context.lyricsAiService.currentGenerationModelLabel,
+    );
+
+    return _context.lyricsAiTaskQueue.enqueue(() {
+      final activeSong = _support.songForPath(song.path) ?? song;
+      return _generateKaraokeLyricsForSong(activeSong);
+    });
+  }
+
   Future<String?> regenerateLyricsForCurrentSong() async {
     if (!_context.isProUnlocked()) {
       return _l10n().proTrialExpired;

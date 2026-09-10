@@ -541,6 +541,10 @@ class LyricsController extends Notifier<LyricsControllerState> {
     return _generationCoordinator.generateTimelineForCurrentSong();
   }
 
+  Future<String?> convertToKaraokeLyricsForCurrentSong() {
+    return _generationCoordinator.convertToKaraokeLyricsForCurrentSong();
+  }
+
   Future<String?> regenerateLyricsForCurrentSong() {
     return _generationCoordinator.regenerateLyricsForCurrentSong();
   }

@@ -6,6 +6,7 @@ enum LyricsCacheSource {
   none,
   aiGenerate,
   aiTimeline,
+  aiKaraoke,
   ai,
   manualAdjust,
   lrclib,
@@ -26,6 +27,9 @@ enum LyricsCacheSource {
       case 'gemini_timeline':
       case 'ai_timeline':
         return LyricsCacheSource.aiTimeline;
+      case 'gemini_karaoke':
+      case 'ai_karaoke':
+        return LyricsCacheSource.aiKaraoke;
       case 'gemini':
       case 'ai':
         return LyricsCacheSource.ai;
@@ -62,6 +66,9 @@ enum LyricsCacheSource {
       case 'gemini_timeline':
       case 'ai_timeline':
         return LyricsCacheSource.aiTimeline;
+      case 'gemini_karaoke':
+      case 'ai_karaoke':
+        return LyricsCacheSource.aiKaraoke;
       case 'embedded':
         return LyricsCacheSource.embedded;
       case 'external':
@@ -78,6 +85,7 @@ enum LyricsCacheSource {
       LyricsCacheSource.none => 'none',
       LyricsCacheSource.aiGenerate => 'ai_generate',
       LyricsCacheSource.aiTimeline => 'ai_timeline',
+      LyricsCacheSource.aiKaraoke => 'ai_karaoke',
       LyricsCacheSource.ai => 'ai',
       LyricsCacheSource.manualAdjust => 'manual_adjust',
       LyricsCacheSource.lrclib => 'lrclib',
@@ -91,6 +99,7 @@ enum LyricsCacheSource {
       LyricsCacheSource.none => 'none',
       LyricsCacheSource.aiGenerate => 'ai',
       LyricsCacheSource.aiTimeline => 'ai',
+      LyricsCacheSource.aiKaraoke => 'ai',
       LyricsCacheSource.ai => 'ai',
       LyricsCacheSource.manualAdjust => 'manual_adjust',
       LyricsCacheSource.lrclib => 'lrclib',
@@ -102,6 +111,7 @@ enum LyricsCacheSource {
   bool get isAiSource {
     return this == LyricsCacheSource.aiGenerate ||
         this == LyricsCacheSource.aiTimeline ||
+        this == LyricsCacheSource.aiKaraoke ||
         this == LyricsCacheSource.ai;
   }
 

@@ -1042,10 +1042,13 @@ class AppLocalizationsEs extends AppLocalizations {
   String get durationZero => '0:00';
 
   @override
-  String get generateLyrics => 'Generar letras';
+  String get generateLyrics => 'Generar letra';
 
   @override
   String get generateTimeline => 'Generar línea de tiempo';
+
+  @override
+  String get convertToKaraoke => 'Convertir a letra palabra por palabra';
 
   @override
   String get queueGenerateLyrics => 'Poner en cola de generación';
@@ -2094,6 +2097,10 @@ class AppLocalizationsEs extends AppLocalizations {
       'Se borrará la línea de tiempo actual y se regenerará. ¿Continuar?';
 
   @override
+  String get convertToKaraokeConfirmation =>
+      'Se convertirá la letra actual a palabra por palabra y se regenerará la línea de tiempo. ¿Continuar?';
+
+  @override
   String get retranslateLyrics => 'Retraducir letras';
 
   @override
@@ -2177,6 +2184,9 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get generatingTimeline => 'Generando línea de tiempo';
+
+  @override
+  String get convertingToKaraoke => 'Convirtiendo a letra palabra por palabra';
 
   @override
   String get regeneratingLyrics => 'Regenerando letras';
@@ -2346,6 +2356,9 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get generateTimelineAction => 'generar línea de tiempo';
+
+  @override
+  String get convertToKaraokeAction => 'convertir a letra palabra por palabra';
 
   @override
   String get deepseekOnlyTranslation =>

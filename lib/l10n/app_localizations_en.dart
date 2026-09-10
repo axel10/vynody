@@ -1032,6 +1032,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get generateTimeline => 'Generate Timeline';
 
   @override
+  String get convertToKaraoke => 'Convert to Word-by-Word Lyrics';
+
+  @override
   String get queueGenerateLyrics => 'Queue Lyrics Generation';
 
   @override
@@ -2065,6 +2068,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'This will clear the current timeline and regenerate. Continue?';
 
   @override
+  String get convertToKaraokeConfirmation =>
+      'This will convert current lyrics to word-by-word lyrics and regenerate timeline. Continue?';
+
+  @override
   String get retranslateLyrics => 'Re-translate Lyrics';
 
   @override
@@ -2147,6 +2154,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get generatingTimeline => 'Generating timeline';
+
+  @override
+  String get convertingToKaraoke => 'Converting to word-by-word lyrics';
 
   @override
   String get regeneratingLyrics => 'Regenerating lyrics';
@@ -2318,6 +2328,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get generateTimelineAction => 'generate timeline';
+
+  @override
+  String get convertToKaraokeAction => 'convert to word-by-word lyrics';
 
   @override
   String get deepseekOnlyTranslation =>

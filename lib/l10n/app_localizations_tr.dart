@@ -1034,6 +1034,9 @@ class AppLocalizationsTr extends AppLocalizations {
   String get generateTimeline => 'Zaman Çizelgesi Oluştur';
 
   @override
+  String get convertToKaraoke => 'Kelime Kelime Şarkı Sözüne Dönüştür';
+
+  @override
   String get queueGenerateLyrics => 'Sıradaki İçin Söz Oluştur';
 
   @override
@@ -2070,6 +2073,10 @@ class AppLocalizationsTr extends AppLocalizations {
       'Mevcut zaman çizelgesi temizlenecek ve yeniden oluşturulacaktır. Devam edilsin mi?';
 
   @override
+  String get convertToKaraokeConfirmation =>
+      'Mevcut sözler kelime kelime dönüştürülecek ve zaman çizelgesi yeniden oluşturulacaktır. Devam edilsin mi?';
+
+  @override
   String get retranslateLyrics => 'Şarkı Sözlerini Yeniden Çevir';
 
   @override
@@ -2152,6 +2159,9 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get generatingTimeline => 'AI zaman çizelgesini oluşturuyor...';
+
+  @override
+  String get convertingToKaraoke => 'Kelime kelime şarkı sözüne dönüştürülüyor';
 
   @override
   String get regeneratingLyrics => 'Şarkı sözleri yeniden oluşturuluyor';
@@ -2322,6 +2332,9 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get generateTimelineAction => 'zaman çizelgesi oluştur';
+
+  @override
+  String get convertToKaraokeAction => 'kelime kelime şarkı sözüne dönüştür';
 
   @override
   String get deepseekOnlyTranslation =>

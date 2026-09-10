@@ -1044,6 +1044,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get generateTimeline => 'Zeitachse generieren';
 
   @override
+  String get convertToKaraoke => 'In Wort-für-Wort-Songtext umwandeln';
+
+  @override
   String get queueGenerateLyrics => 'Generierung einreihen';
 
   @override
@@ -2069,17 +2072,16 @@ class AppLocalizationsDe extends AppLocalizations {
   String get copyTranslationResults => 'Übersetzungsergebnisse kopieren';
 
   @override
-  String get writeLyricsToFile => 'Songtext in Datei schreiben';
+  String get writeLyricsToFile => '将歌词写入文件';
 
   @override
-  String get selectLyricSource => 'Songtext-Quelle auswählen';
+  String get selectLyricSource => '选择歌词来源';
 
   @override
-  String get regenerateLyrics => 'Songtext neu generieren';
+  String get regenerateLyrics => '重新生成歌词';
 
   @override
-  String get regenerateLyricsConfirmation =>
-      'Der aktuelle Songtext wird gelöscht und neu generiert. Fortfahren?';
+  String get regenerateLyricsConfirmation => '将清空当前歌词并重新生成，是否继续？';
 
   @override
   String get regenerateTimeline => 'Zeitachse neu generieren';
@@ -2089,15 +2091,19 @@ class AppLocalizationsDe extends AppLocalizations {
       'Die aktuelle Zeitachse wird gelöscht und neu generiert. Fortfahren?';
 
   @override
+  String get convertToKaraokeConfirmation =>
+      'Aktuellen Songtext in Wort-für-Wort-Songtext umwandeln und Zeitachse neu generieren. Fortfahren?';
+
+  @override
   String get retranslateLyrics => 'Songtext neu übersetzen';
 
   @override
   String get retranslateLyricsConfirmation =>
-      'Die aktuelle Übersetzung wird gelöscht und neu erstellt. Fortfahren?';
+      'Die aktuelle Übersetzung wird gelöscht und neu übersetzt. Fortfahren?';
 
   @override
   String get translationCopiedToClipboard =>
-      'Übersetzung in die Zwischenablage kopiert';
+      'Übersetzungsergebnisse in die Zwischenablage kopiert';
 
   @override
   String get writingLyrics => 'Songtext wird geschrieben...';
@@ -2109,10 +2115,10 @@ class AppLocalizationsDe extends AppLocalizations {
   String get writeLyricsFailed => 'Fehler beim Schreiben des Songtexts';
 
   @override
-  String get externalLrcFile => 'Externe LRC-Datei';
+  String get externalLrcFile => 'Gleichnamige externe LRC-Datei';
 
   @override
-  String get embeddedLyrics => 'Eingebetteter Songtext';
+  String get embeddedLyrics => 'Eingebetteter Audio-Songtext';
 
   @override
   String get manuallyAdjustedLyrics => 'Manuell angepasster Songtext';
@@ -2127,62 +2133,66 @@ class AppLocalizationsDe extends AppLocalizations {
   String get matchScore => 'Übereinstimmung';
 
   @override
-  String get untitledRelease => 'Unbenannte Veröffentlichung';
+  String get untitledRelease => 'Ohne Titel';
 
   @override
   String get localSongFileNotFoundForGeneration =>
-      'Die lokale Songdatei existiert nicht. Songtext kann nicht generiert werden.';
+      'Lokale Songdatei existiert nicht, Songtext kann nicht generiert werden.';
 
   @override
   String get localSongFileNotFoundForTimeline =>
-      'Die lokale Songdatei existiert nicht. Zeitachse kann nicht generiert werden.';
+      'Lokale Songdatei existiert nicht, Zeitachse kann nicht generiert werden.';
 
   @override
   String get noLyricsForTimelineGeneration =>
-      'Kein Songtext für die Zeitachsengenerierung verfügbar.';
+      'Kein Songtext für die Erstellung der Zeitachse verfügbar.';
 
   @override
   String get noLyricsAvailableForTranslation =>
-      'Kein Songtext für die Übersetzung verfügbar.';
+      'Kein Songtext zum Übersetzen verfügbar.';
 
   @override
-  String get noCurrentSongAvailable => 'Kein aktueller Song verfügbar.';
+  String get noCurrentSongAvailable => 'Kein aktueller Titel verfügbar.';
 
   @override
   String get invalidTargetLanguage => 'Ungültige Zielsprache.';
 
   @override
   String get songAlreadyQueuedForTranslation =>
-      'Der Song ist bereits für die Übersetzung in der Warteschlange.';
+      'Songtext-Aufgabe für diesen Titel ist bereits in der Warteschlange oder in Übersetzung.';
 
   @override
   String get songAlreadyQueuedForGeneration =>
-      'Der Song ist bereits für die Generierung in der Warteschlange.';
+      'Songtext-Aufgabe für diesen Titel ist bereits in der Warteschlange oder in Generierung.';
 
   @override
   String get songNoLongerExistsForTranslation =>
-      'Der Song existiert nicht mehr. Übersetzung nicht möglich.';
+      'Aktueller Titel existiert nicht mehr, Songtext kann nicht übersetzt werden.';
 
   @override
   String get generationFailed => 'Generierung fehlgeschlagen.';
 
   @override
-  String get generatingLyrics => 'Generiere Songtext';
+  String get generatingLyrics => 'Songtext wird generiert';
 
   @override
-  String get generatingTimeline => 'Generiere Zeitachse';
+  String get generatingTimeline => 'Zeitachse wird generiert';
 
   @override
-  String get regeneratingLyrics => 'Generiere Songtext neu';
+  String get convertingToKaraoke =>
+      'Wird in Wort-für-Wort-Songtext umgewandelt';
 
   @override
-  String get translatingLyrics => 'Übersetze Songtext';
+  String get regeneratingLyrics => 'Songtext wird neu generiert';
 
   @override
-  String get transcodingSongFile => 'Transkodiere Songdatei';
+  String get translatingLyrics => 'Songtext wird übersetzt';
 
   @override
-  String get uploadingSongFile => 'Lade Songdatei hoch';
+  String get transcodingSongFile => 'Titeldatei wird transkodiert';
+
+  @override
+  String get uploadingSongFile => 'Titeldatei wird hochgeladen';
 
   @override
   String get fileUploadedWaitingForReadiness =>
@@ -2192,11 +2202,11 @@ class AppLocalizationsDe extends AppLocalizations {
   String get waitingForFileReadiness => 'Warte auf Dateibereitschaft';
 
   @override
-  String get requestingModelResponse => 'Fordere Modellantwort an';
+  String get requestingModelResponse => 'Modellantwort wird angefordert';
 
   @override
   String retryingTaskKindGeneration(Object taskKind) {
-    return 'Wiederhole $taskKind-Generierung';
+    return '$taskKind-Generierung wird wiederholt';
   }
 
   @override
@@ -2238,19 +2248,19 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get modelRefusedToGenerateLyrics =>
-      'Das Modell hat die Songtext-Generierung verweigert.';
+      'Das Modell hat die Generierung des Songtexts verweigert.';
 
   @override
   String get modelRefusedToGenerateTimeline =>
-      'Das Modell hat die Zeitachsen-Generierung verweigert.';
+      'Das Modell hat die Generierung der Zeitachse verweigert.';
 
   @override
   String get doubaoPreUploadTranscodingFailed =>
-      'Audio-Transkodierung vor Doubao-Upload fehlgeschlagen.';
+      'Audiotranskodierung vor dem Doubao-Upload fehlgeschlagen.';
 
   @override
   String get doubaoTempTranscodeNotInTempDir =>
-      'Die temporäre Doubao-Datei wurde nicht im Temp-Verzeichnis erstellt.';
+      'Temporäre Doubao-Transkodierungsdatei wurde nicht im temporären Verzeichnis erstellt.';
 
   @override
   String get doubaoEmptyStreamingResponse =>
@@ -2286,38 +2296,38 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get customProviderEmptyStreamingResponse =>
-      'Der benutzerdefinierte Anbieter hat eine leere Streaming-Antwort zurückgegeben.';
+      'Benutzerdefinierter Anbieter hat eine leere Streaming-Antwort zurückgegeben.';
 
   @override
   String get customProviderEmptyResponse =>
-      'Der benutzerdefinierte Anbieter hat eine leere Antwort zurückgegeben.';
+      'Benutzerdefinierter Anbieter hat eine leere Antwort zurückgegeben.';
 
   @override
   String get fileUploadFailed =>
-      'Datei-Upload fehlgeschlagen. Bitte erneut versuchen.';
+      'Datei-Upload fehlgeschlagen. Bitte versuchen Sie es erneut.';
 
   @override
   String get uploadedFileNotReady =>
-      'Die hochgeladene Datei wurde nicht bereit. Später erneut versuchen.';
+      'Hochgeladene Datei ist nicht bereit. Bitte versuchen Sie es später erneut.';
 
   @override
-  String get audioTranscodingFailed => 'Audio-Transkodierung fehlgeschlagen.';
+  String get audioTranscodingFailed => 'Audiotranskodierung fehlgeschlagen.';
 
   @override
   String get tempTranscodeNotInTempDir =>
-      'Die temporäre Transkodierungsdatei wurde nicht im Temp-Verzeichnis erstellt.';
+      'Temporäre Transkodierungsdatei nicht im temporären Ordner erstellt.';
 
   @override
   String get networkRequestFailedCheckProxy =>
-      'Netzwerkanfrage fehlgeschlagen. Überprüfen Sie Ihre Verbindung und Proxy-Einstellungen.';
+      'Netzwerkanfrage fehlgeschlagen. Bitte überprüfen Sie Ihr Netzwerk und die Proxy-Einstellungen.';
 
   @override
   String get quotaExhaustedToday =>
-      'Das heutige Kontingent ist aufgebraucht. Morgen erneut versuchen.';
+      'Das heutige Kontingent ist aufgebraucht. Bitte versuchen Sie es morgen nach dem Zurücksetzen erneut.';
 
   @override
   String get googleAiHeavyLoad =>
-      'Google AI ist stark ausgelastet und vorübergehend nicht verfügbar.';
+      'Google AI ist derzeit stark ausgelastet und vorübergehend nicht verfügbar.';
 
   @override
   String lyricsGenerationFailedWithError(Object error) {
@@ -2326,7 +2336,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String missingApiKeyForAction(Object action, Object providerName) {
-    return 'Kein API-Schlüssel für $providerName gefunden. $action nicht möglich.';
+    return 'API-Schlüssel für $providerName nicht gefunden, $action nicht verfügbar.';
   }
 
   @override
@@ -2336,7 +2346,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get googleServerFlaky =>
-      'Google hat gerade Probleme. Ein erneuter Versuch könnte funktionieren.';
+      'Google hat gerade Probleme. Ein erneuter Versuch könnte erfolgreich sein.';
 
   @override
   String get translateLyricsAction => 'Songtext übersetzen';
@@ -2346,6 +2356,9 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get generateTimelineAction => 'Zeitachse generieren';
+
+  @override
+  String get convertToKaraokeAction => 'in Wort-für-Wort-Songtext umwandeln';
 
   @override
   String get deepseekOnlyTranslation =>

@@ -261,6 +261,126 @@ class LyricsAiOpenRouterClient {
     }
   }
 
+  Future<LyricsGenerationResult> generateKaraokeLyricsFromLyrics({
+    required String apiKey,
+    required String filePath,
+    required String lyrics,
+    required String modelId,
+    void Function(double progress)? onUploadProgress,
+    void Function(String stage)? onStageChanged,
+    void Function(String partialText, bool isFinal)? onProgress,
+    CancelToken? cancelToken,
+  }) async {
+    final file = File(filePath);
+    if (!await file.exists()) {
+      debugPrint('[OpenRouterLyrics] file not found for karaoke: $filePath');
+      return LyricsGenerationResult.failure(
+        _l10n().localSongFileNotFoundForTimeline,
+      );
+    }
+
+    final normalizedLyrics = lyrics.trim();
+    if (normalizedLyrics.isEmpty) {
+      debugPrint(
+        '[OpenRouterLyrics] no usable lyrics for karaoke generation.',
+      );
+      return LyricsGenerationResult.failure(
+        _l10n().noLyricsForTimelineGeneration,
+      );
+    }
+
+    final prompt = LyricsAiPromptBuilder.buildConvertToKaraokePrompt(
+      lyrics: normalizedLyrics,
+    );
+
+    try {
+      onStageChanged?.call('requesting');
+      onUploadProgress?.call(1.0);
+      final fileBytes = await file.readAsBytes();
+      final audioFormat = _audioFormatForFilePath(filePath);
+      final requestData = {
+        ..._buildAudioRequestData(
+          modelId: modelId,
+          prompt: prompt,
+          audioBase64: base64Encode(fileBytes),
+          audioFormat: audioFormat,
+          stream: true,
+        ),
+      };
+      _logRequest(
+        action: 'convert_to_karaoke',
+        requestData: requestData,
+        prompt: prompt,
+        extra: {
+          'filePath': filePath,
+          'fileSizeBytes': fileBytes.length,
+          'audioFormat': audioFormat,
+          'sourceLength': normalizedLyrics.length,
+        },
+      );
+
+      final generatedBuffer = StringBuffer();
+      String lastEmitted = '';
+      var sawRefusalLikeText = false;
+      await _streamTextResponse(
+        apiKey: apiKey,
+        requestData: requestData,
+        onStageChanged: onStageChanged,
+        cancelToken: cancelToken,
+        onChunk: (chunk) {
+          _logChunk('convert_to_karaoke', chunk);
+          if (_streamParser.looksLikeRefusalText(chunk)) {
+            sawRefusalLikeText = true;
+          }
+          generatedBuffer.write(chunk);
+          final current = _currentLyricsSnapshot(generatedBuffer.toString());
+          if (_looksLikeRefusalResponse(current)) {
+            sawRefusalLikeText = true;
+            return;
+          }
+          if (current.isEmpty || current == lastEmitted) {
+            return;
+          }
+          lastEmitted = current;
+          onProgress?.call(current, false);
+        },
+      );
+
+      final generatedText = _streamParser.extractText(
+        generatedBuffer.toString(),
+      );
+      final cleanedText = LrcUtils.cleanGeneratedLyricsText(
+        generatedText ?? generatedBuffer.toString(),
+      );
+      final normalizedText = LrcUtils.normalizeGeneratedLyricsText(cleanedText);
+      if (sawRefusalLikeText || _looksLikeRefusalResponse(normalizedText)) {
+        return LyricsGenerationResult.failure(
+          _l10n().modelRefusedToGenerateTimeline,
+        );
+      }
+      debugPrint(
+        '[OpenRouterLyrics] karaoke conversion completed -> '
+        'rawLength=${generatedBuffer.length} cleanedLength=${normalizedText.length}',
+      );
+      if (normalizedText.trim().isEmpty) {
+        return LyricsGenerationResult.failure(
+          _l10n().openRouterEmptyResponse,
+        );
+      }
+
+      onProgress?.call(normalizedText, true);
+      return LyricsGenerationResult.success(normalizedText);
+    } catch (e) {
+      return LyricsGenerationResult.failure(
+        _formatGenerationErrorMessage(
+          e,
+          modelId: modelId,
+          fallback: _l10n().unknownTimelineGenerationError,
+        ),
+      );
+    }
+  }
+
   Map<String, dynamic> _buildAudioRequestData({
     required String modelId,
     required String prompt,
@@ -366,17 +486,12 @@ class LyricsAiOpenRouterClient {
     required String prompt,
     required Map<String, Object?> extra,
   }) {
-    debugPrint(
-      '[OpenRouterLyrics] $action start -> model=${requestData['model']} '
-      'promptLength=${prompt.length} extra=${jsonEncode(extra)}',
-    );
-    debugPrint(
-      '[OpenRouterLyrics] $action prompt preview -> '
-      '${_truncateForLog(prompt, maxLength: 800)}',
-    );
-    debugPrint(
-      '[OpenRouterLyrics] $action request payload -> '
-      '${jsonEncode(_sanitizeRequestData(requestData))}',
+    LyricsAiLogger.logRequest(
+      provider: 'OpenRouter',
+      action: action,
+      model: requestData['model']?.toString(),
+      data: requestData,
+      extra: extra,
     );
   }
 
@@ -439,49 +554,7 @@ class LyricsAiOpenRouterClient {
     return refusalMarkers.any((marker) => lower.contains(marker));
   }
 
-  Map<String, dynamic> _sanitizeRequestData(Map<String, dynamic> requestData) {
-    return requestData.map((key, value) {
-      if (key != 'messages' || value is! List) {
-        return MapEntry(key, value);
-      }
 
-      final sanitizedMessages = value
-          .map((message) {
-            if (message is! Map) return message;
-
-            final sanitizedMessage = Map<String, dynamic>.from(message);
-            final content = sanitizedMessage['content'];
-            if (content is! List) return sanitizedMessage;
-
-            sanitizedMessage['content'] = content
-                .map((part) {
-                  if (part is! Map) return part;
-
-                  final sanitizedPart = Map<String, dynamic>.from(part);
-                  if (sanitizedPart['type'] == 'input_audio') {
-                    final inputAudio = sanitizedPart['input_audio'];
-                    if (inputAudio is Map) {
-                      final sanitizedAudio = Map<String, dynamic>.from(
-                        inputAudio,
-                      );
-                      final data = sanitizedAudio['data'];
-                      sanitizedAudio['data'] = data is String
-                          ? '<base64 omitted, length=${data.length}>'
-                          : '<base64 omitted>';
-                      sanitizedPart['input_audio'] = sanitizedAudio;
-                    }
-                  }
-                  return sanitizedPart;
-                })
-                .toList(growable: false);
-
-            return sanitizedMessage;
-          })
-          .toList(growable: false);
-
-      return MapEntry(key, sanitizedMessages);
-    });
-  }
 
   String _audioFormatForFilePath(String filePath) {
     switch (p.extension(filePath).toLowerCase()) {

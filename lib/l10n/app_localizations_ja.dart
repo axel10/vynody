@@ -1013,6 +1013,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get generateTimeline => 'タイムラインを生成';
 
   @override
+  String get convertToKaraoke => '単語ごとの歌詞に変換';
+
+  @override
   String get queueGenerateLyrics => '歌詞生成をキューに入れる';
 
   @override
@@ -2017,6 +2020,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get regenerateTimelineConfirmation => '現在のタイムラインをクリアして再生成します。続行しますか？';
 
   @override
+  String get convertToKaraokeConfirmation =>
+      '現在の歌詞を単語ごとの歌詞に変換してタイムラインを再生成します。続行しますか？';
+
+  @override
   String get retranslateLyrics => '歌詞を再翻訳';
 
   @override
@@ -2092,6 +2099,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get generatingTimeline => 'タイムラインを生成中';
+
+  @override
+  String get convertingToKaraoke => '単語ごとの歌詞に変換中';
 
   @override
   String get regeneratingLyrics => '歌詞を再生成中';
@@ -2248,6 +2258,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get generateTimelineAction => 'タイムラインを生成';
+
+  @override
+  String get convertToKaraokeAction => '単語ごとの歌詞に変換';
 
   @override
   String get deepseekOnlyTranslation => 'DeepSeekは歌詞の翻訳にのみ利用可能です。';
