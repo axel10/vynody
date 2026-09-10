@@ -385,12 +385,17 @@ class _LyricsPanelTimedLyricsViewState extends State<LyricsPanelTimedLyricsView>
                                         curve: Curves.easeOutCubic,
                                         style: lineStyle,
                                         textAlign: isLeftAligned ? TextAlign.left : TextAlign.center,
-                                        child: (line.words != null && line.words!.isNotEmpty && isActive && widget.lyricsStyle == LyricsStyle.apple)
+                                        child: (line.words != null && line.words!.isNotEmpty && widget.lyricsStyle == LyricsStyle.apple)
                                             ? WordWordLyricsWidget(
                                                 words: line.words!,
                                                 lineStyle: lineStyle,
                                                 activeColor: widget.textColor,
-                                                inactiveColor: widget.textColor.withValues(alpha: PlaybackPageUiTuning.appleLyricsInactiveOpacity),
+                                                inactiveColor: widget.textColor.withValues(
+                                                  alpha: isHovered
+                                                      ? 1.0
+                                                      : PlaybackPageUiTuning.appleLyricsInactiveOpacity,
+                                                ),
+                                                isActive: isActive,
                                                 isLeftAligned: isLeftAligned,
                                               )
                                             : Text(line.text),
@@ -938,6 +943,7 @@ class WordWordLyricsWidget extends ConsumerStatefulWidget {
     required this.activeColor,
     required this.inactiveColor,
     required this.isLeftAligned,
+    this.isActive = true,
   });
 
   final List<LyricWord> words;
@@ -945,6 +951,7 @@ class WordWordLyricsWidget extends ConsumerStatefulWidget {
   final Color activeColor;
   final Color inactiveColor;
   final bool isLeftAligned;
+  final bool isActive;
 
   @override
   ConsumerState<WordWordLyricsWidget> createState() => _WordWordLyricsWidgetState();
@@ -960,14 +967,14 @@ class _WordWordLyricsWidgetState extends ConsumerState<WordWordLyricsWidget> wit
   void initState() {
     super.initState();
     _ticker = createTicker((_) {
-      if (mounted && _isPlaying) {
+      if (mounted && _isPlaying && widget.isActive) {
         setState(() {});
       }
     });
   }
 
   void _updateTickerState() {
-    if (_isPlaying) {
+    if (_isPlaying && widget.isActive) {
       if (!_ticker.isActive) {
         _ticker.start();
       }
@@ -979,6 +986,14 @@ class _WordWordLyricsWidgetState extends ConsumerState<WordWordLyricsWidget> wit
   }
 
   @override
+  void didUpdateWidget(covariant WordWordLyricsWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.isActive != widget.isActive) {
+      _updateTickerState();
+    }
+  }
+
+  @override
   void dispose() {
     _ticker.dispose();
     super.dispose();
@@ -986,6 +1001,44 @@ class _WordWordLyricsWidgetState extends ConsumerState<WordWordLyricsWidget> wit
 
   @override
   Widget build(BuildContext context) {
+    final validWords = <LyricWord>[];
+    for (int i = 0; i < widget.words.length; i++) {
+      final w = widget.words[i];
+      if (w.text.trim().isEmpty) continue;
+      if (validWords.isEmpty) {
+        validWords.add(w.copyWith(text: w.text.trimLeft()));
+      } else if (w.text.startsWith(RegExp(r'^\s+'))) {
+        final last = validWords.removeLast();
+        final lastText = last.text.endsWith(' ') ? last.text : '${last.text} ';
+        validWords.add(last.copyWith(text: lastText));
+        validWords.add(w.copyWith(text: w.text.trimLeft()));
+      } else {
+        validWords.add(w);
+      }
+    }
+
+    if (validWords.isEmpty) {
+      return Text(
+        widget.words.map((w) => w.text).join().trim(),
+        style: widget.lineStyle,
+      );
+    }
+
+    if (!widget.isActive) {
+      return ExcludeSemantics(
+        child: Wrap(
+          alignment: widget.isLeftAligned ? WrapAlignment.start : WrapAlignment.center,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: validWords.map((word) {
+            return Text(
+              word.text,
+              style: widget.lineStyle.copyWith(color: widget.inactiveColor),
+            );
+          }).toList(),
+        ),
+      );
+    }
+
     final position = ref.watch(audioPositionProvider);
     final isPlaying = ref.watch(audioIsPlayingProvider);
 
@@ -1008,7 +1061,7 @@ class _WordWordLyricsWidgetState extends ConsumerState<WordWordLyricsWidget> wit
       child: Wrap(
         alignment: widget.isLeftAligned ? WrapAlignment.start : WrapAlignment.center,
         crossAxisAlignment: WrapCrossAlignment.center,
-        children: widget.words.map((word) {
+        children: validWords.map((word) {
           final startMs = word.timestamp.inMilliseconds;
           final durationMs = word.durationMs;
           final currentMs = currentPosition.inMilliseconds;

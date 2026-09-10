@@ -132,5 +132,34 @@ void main() {
       expect(parsed[1].text, '方向盘周围');
       expect(parsed[1].words!.length, 5);
     });
+
+    test('does not create leading whitespace or whitespace tokens when space exists after line timestamp', () {
+      const lrc = '[00:10.000] <00:10.000>Never <00:10.500>gonna <00:11.000>give <00:11.500>you <00:12.000>up';
+      final parsed = LrcUtils.parseTimedLyrics(lrc);
+
+      expect(parsed.length, 1);
+      final line = parsed[0];
+      expect(line.text, 'Never gonna give you up');
+      expect(line.words, isNotNull);
+      expect(line.words!.length, 5);
+      expect(line.words![0].text, 'Never ');
+      expect(line.words![0].text.startsWith(' '), isFalse);
+      expect(line.words![1].text, 'gonna ');
+      expect(line.words![4].text, 'up');
+    });
+
+    test('migrates leading spaces between words to previous word trailing space', () {
+      const lrc = '[00:10.000] Never<00:10.500> gonna<00:11.000> give';
+      final parsed = LrcUtils.parseTimedLyrics(lrc);
+
+      expect(parsed.length, 1);
+      final line = parsed[0];
+      expect(line.text, 'Never gonna give');
+      expect(line.words, isNotNull);
+      expect(line.words!.length, 3);
+      expect(line.words![0].text, 'Never ');
+      expect(line.words![1].text, 'gonna ');
+      expect(line.words![2].text, 'give');
+    });
   });
 }

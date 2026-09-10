@@ -241,8 +241,8 @@ class LrcUtils {
 
       final firstWordEnd = wordMatches.first.start;
       final firstWordText = remainingContent.substring(0, firstWordEnd);
-      if (firstWordText.isNotEmpty) {
-        wordTokens.add(_ParsedWordToken(baseTimestamp, firstWordText));
+      if (firstWordText.trim().isNotEmpty) {
+        wordTokens.add(_ParsedWordToken(baseTimestamp, firstWordText.trimLeft()));
       }
 
       Duration? trailingTimestamp;
@@ -254,9 +254,17 @@ class LrcUtils {
 
         final startIdx = match.end;
         final endIdx = (i + 1 < wordMatches.length) ? wordMatches[i + 1].start : remainingContent.length;
-        final wordText = remainingContent.substring(startIdx, endIdx);
+        var wordText = remainingContent.substring(startIdx, endIdx);
 
-        if (wordText.isNotEmpty) {
+        if (wordText.trim().isNotEmpty) {
+          if (wordTokens.isEmpty) {
+            wordText = wordText.trimLeft();
+          } else if (wordText.startsWith(RegExp(r'^\s+'))) {
+            final last = wordTokens.removeLast();
+            final lastText = last.text.endsWith(' ') ? last.text : '${last.text} ';
+            wordTokens.add(_ParsedWordToken(last.timestamp, lastText));
+            wordText = wordText.trimLeft();
+          }
           wordTokens.add(_ParsedWordToken(timestamp, wordText));
         } else if (i == wordMatches.length - 1) {
           trailingTimestamp = timestamp;
@@ -387,16 +395,21 @@ class LrcUtils {
 
           if (k > 0 && _needsSpace(group[k - 1].text, wordText)) {
             sb.write(' ');
+            if (mergedWords.isNotEmpty) {
+              final prevWord = mergedWords.removeLast();
+              final prevWithSpace = prevWord.text.endsWith(' ') ? prevWord.text : '${prevWord.text} ';
+              mergedWords.add(prevWord.copyWith(text: prevWithSpace));
+            }
             mergedWords.add(LyricWord(
               timestamp: gLine.timestamp,
               durationMs: durationMs,
-              text: ' $wordText',
+              text: wordText.trimLeft(),
             ));
           } else {
             mergedWords.add(LyricWord(
               timestamp: gLine.timestamp,
               durationMs: durationMs,
-              text: wordText,
+              text: k == 0 ? wordText.trimLeft() : wordText,
             ));
           }
           sb.write(wordText);
