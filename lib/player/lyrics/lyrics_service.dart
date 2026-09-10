@@ -295,10 +295,11 @@ class LyricsService {
       return normalizedCachedFromDb;
     }
 
-    // 尝试拉取远程服务器专属歌词（Subsonic / WebDAV）
+    // 尝试拉取远程服务器专属歌词（Subsonic / WebDAV / Jellyfin）
     if (_remoteLyricsFetcher != null &&
         (normalizedQuery.filePath.startsWith('subsonic://') ||
-            normalizedQuery.filePath.startsWith('webdav://'))) {
+            normalizedQuery.filePath.startsWith('webdav://') ||
+            normalizedQuery.filePath.startsWith('jellyfin://'))) {
       try {
         // 传入规范化后的完整查询（含 title / artist / album），
         // 这样即使服务端不支持 getLyricsBySongId，也能用 artist+title 兜底命中。

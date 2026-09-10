@@ -7,6 +7,7 @@ import 'package:vynody/player/remote/remote_server_models.dart';
 import 'package:vynody/player/remote/remote_server_storage.dart';
 import 'package:vynody/player/remote/proxy/remote_media_resolver.dart';
 import 'package:vynody/player/remote/clients/webdav_client.dart';
+import 'package:vynody/player/remote/clients/jellyfin_client.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -113,5 +114,69 @@ void main() {
     expect(davSource.uri, 'http://bob:bob_pwd@example.com/dav/Music/Song.flac');
     expect(davSource.headers?['Authorization'], isNotNull);
     expect(davSource.cacheKey, 'webdav_test:/Music/Song.flac');
+  });
+
+  test('RemoteMediaResolver parses and resolves Jellyfin virtual URIs', () {
+    expect(RemoteMediaResolver.isRemoteUri('jellyfin://jellyfin_test/item_789'), isTrue);
+
+    final jfInfo = RemoteMediaResolver.parseUri('jellyfin://jellyfin_test/item_789');
+    expect(jfInfo?.type, RemoteServerType.jellyfin);
+    expect(jfInfo?.serverId, 'jellyfin_test');
+    expect(jfInfo?.trackIdOrPath, 'item_789');
+
+    final jfSong = RemoteMediaResolver.buildMusicFileFromJellyfin({
+      'id': 'item_789',
+      'title': 'Jellyfin Track',
+      'artist': 'Jellyfin Artist',
+      'album': 'Jellyfin Album',
+      'duration': 210,
+      'suffix': 'mp3',
+      'coverArt': 'item_789',
+    }, RemoteServer(
+      id: 'jellyfin_test',
+      name: 'My Jellyfin',
+      type: RemoteServerType.jellyfin,
+      url: 'http://example.com:8096',
+      username: 'charlie',
+      createdAt: DateTime.now(),
+    ));
+
+    expect(jfSong.path, 'jellyfin://jellyfin_test/item_789');
+    expect(jfSong.title, 'Jellyfin Track');
+    expect(jfSong.artist, 'Jellyfin Artist');
+    expect(jfSong.album, 'Jellyfin Album');
+    expect(jfSong.durationMillis, 210000);
+    expect(jfSong.artworkPath, 'jellyfin-cover://jellyfin_test/item_789');
+
+    expect(RemoteMediaResolver.extractTrackId(jfSong), 'item_789');
+  });
+
+  test('JellyfinClient item normalization formats items to standardized schema', () {
+    final rawItem = {
+      'Id': 'item_abc',
+      'Name': 'Midnight City',
+      'Artists': ['M83'],
+      'Album': 'Hurry Up, We\'re Dreaming',
+      'AlbumId': 'alb_123',
+      'RunTimeTicks': 2430000000, // 243 seconds
+      'Container': 'flac',
+      'IndexNumber': 5,
+      'ParentIndexNumber': 1,
+      'ProductionYear': 2011,
+      'UserData': {'IsFavorite': true},
+    };
+
+    final normalized = JellyfinClient.normalizeSongItem(rawItem);
+    expect(normalized['id'], 'item_abc');
+    expect(normalized['title'], 'Midnight City');
+    expect(normalized['artist'], 'M83');
+    expect(normalized['album'], 'Hurry Up, We\'re Dreaming');
+    expect(normalized['albumId'], 'alb_123');
+    expect(normalized['duration'], 243);
+    expect(normalized['track'], 5);
+    expect(normalized['discNumber'], 1);
+    expect(normalized['year'], 2011);
+    expect(normalized['isFavorite'], isTrue);
+    expect(normalized['starred'], isNotNull);
   });
 }

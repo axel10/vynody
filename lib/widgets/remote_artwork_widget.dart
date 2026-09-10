@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../player/remote/remote_server_models.dart';
 import '../player/remote/clients/subsonic_client.dart';
+import '../player/remote/clients/jellyfin_client.dart';
 
 class RemoteArtworkWidget extends StatelessWidget {
   /// In-memory negative cache to prevent repeated 404 / failed HTTP requests
@@ -46,9 +47,13 @@ class RemoteArtworkWidget extends StatelessWidget {
         password != null &&
         coverArtId != null &&
         coverArtId!.isNotEmpty &&
-        server!.type == RemoteServerType.subsonic) {
-      final client = SubsonicClient(server: server!, password: password!);
-      final imageUrl = client.buildCoverArtUrl(coverArtId!, size: (size * 2).toInt());
+        (server!.type == RemoteServerType.subsonic ||
+            server!.type == RemoteServerType.jellyfin)) {
+      final imageUrl = server!.type == RemoteServerType.jellyfin
+          ? JellyfinClient(server: server!, password: password!)
+              .buildCoverArtUrl(coverArtId!, size: (size * 2).toInt())
+          : SubsonicClient(server: server!, password: password!)
+              .buildCoverArtUrl(coverArtId!, size: (size * 2).toInt());
 
       if (_failedUrls.contains(imageUrl)) {
         return _buildFallback(context, w, h, radius);

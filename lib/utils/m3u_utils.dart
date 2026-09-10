@@ -281,6 +281,8 @@ class M3uUtils {
         effectiveServers.where((s) => s.type == RemoteServerType.webdav).toList();
     final subsonicServers =
         effectiveServers.where((s) => s.type == RemoteServerType.subsonic).toList();
+    final jellyfinServers =
+        effectiveServers.where((s) => s.type == RemoteServerType.jellyfin).toList();
 
     // 3. Batch query direct paths
     final directPaths = entries.map((e) => e.path).toList();
@@ -468,6 +470,27 @@ class M3uUtils {
         if (uriInfo != null) {
           for (final srv in subsonicServers) {
             final candidateUri = RemoteMediaResolver.buildSubsonicUri(
+              srv.id,
+              uriInfo.trackIdOrPath,
+            );
+            final meta = await targetDb.getRemoteSongMetadata(candidateUri);
+            if (meta != null) {
+              resolvedSong = _buildMusicFileFromMetadata(
+                meta,
+                exists: true,
+                fallbackTitle: entry.title,
+                fallbackArtist: entry.artist,
+                fallbackDuration: entry.durationMillis,
+              );
+              break;
+            }
+          }
+        }
+      } else if (rawPath.startsWith('jellyfin://')) {
+        final uriInfo = RemoteMediaResolver.parseUri(rawPath);
+        if (uriInfo != null) {
+          for (final srv in jellyfinServers) {
+            final candidateUri = RemoteMediaResolver.buildJellyfinUri(
               srv.id,
               uriInfo.trackIdOrPath,
             );

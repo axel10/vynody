@@ -16,6 +16,7 @@ import 'package:vynody/player/lyrics/lyrics_riverpod.dart';
 import 'package:vynody/player/lyrics/lyrics_service.dart';
 import 'package:vynody/player/lyrics/lyrics_cache_models.dart';
 import 'package:vynody/player/metadata/metadata_helper.dart';
+import 'package:vynody/player/remote/proxy/remote_media_resolver.dart';
 import 'package:vynody/player/settings/settings_service.dart';
 import 'package:vynody/utils/file_selector_helper.dart';
 import 'package:vynody/utils/lrc_utils.dart';
@@ -222,8 +223,7 @@ Future<void> importLyricsForSongWithContainer(
 
     // Save to external companion .lrc file if configured in settings and local file
     final settings = container.read(settingsServiceProvider);
-    final isRemote =
-        song.path.startsWith('subsonic://') || song.path.startsWith('webdav://');
+    final isRemote = RemoteMediaResolver.isRemoteUri(song.path);
     if (settings.lyricsSaveMethod == LyricsSaveMethod.lrcFile && !isRemote) {
       try {
         await MetadataHelper.saveLyricsToExternalLrc(song.path, normalizedText);
@@ -273,8 +273,7 @@ Future<void> showSongContextMenu(
   final hasTitle = titleText.isNotEmpty;
   final hasArtist = isVisibleSongText(artistText);
   final hasAlbum = isVisibleSongText(albumText);
-  final isRemoteSong = song != null &&
-      (song.path.startsWith('subsonic://') || song.path.startsWith('webdav://'));
+  final isRemoteSong = song != null && RemoteMediaResolver.isRemoteUri(song.path);
   final hasFilePath = song != null && song.path.trim().isNotEmpty;
   final canOpenLocation =
       (Platform.isWindows || Platform.isMacOS || Platform.isLinux) &&
@@ -618,8 +617,7 @@ Future<void> showSongBottomSheet(
   final audio = ref.read(audioServiceProvider);
   final playlistService = ref.read(playlistServiceProvider);
 
-  final isRemoteSong =
-      song.path.startsWith('subsonic://') || song.path.startsWith('webdav://');
+  final isRemoteSong = RemoteMediaResolver.isRemoteUri(song.path);
   final hasFilePath = song.path.trim().isNotEmpty;
   final canOpenLocation =
       (Platform.isWindows || Platform.isMacOS || Platform.isLinux) &&

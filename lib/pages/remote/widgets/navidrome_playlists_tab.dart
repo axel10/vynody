@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oktoast/oktoast.dart';
 import '../../../l10n/app_localizations.dart';
-import '../../../player/remote/clients/subsonic_client.dart';
+import '../../../player/remote/clients/remote_media_library_client.dart';
 import '../../../player/remote/navidrome_navigation.dart';
 import '../../../player/remote/remote_server_models.dart';
 import '../../../utils/remote_context_menu_utils.dart';
@@ -551,7 +551,7 @@ class NavidromePlaylistItem extends ConsumerWidget {
 
 Future<void> showCreateNavidromePlaylistDialog({
   required BuildContext context,
-  required SubsonicClient client,
+  required RemoteMediaLibraryClient client,
   required void Function(Map<String, dynamic> created) onCreated,
 }) async {
   final l10n = AppLocalizations.of(context)!;

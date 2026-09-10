@@ -21,6 +21,7 @@ Future<void> showRemoteServerContextMenu({
   final l10n = AppLocalizations.of(context)!;
   final theme = Theme.of(context);
   final isSubsonic = server.type == RemoteServerType.subsonic;
+  final isJellyfin = server.type == RemoteServerType.jellyfin;
   final isSmb = server.type == RemoteServerType.smb;
   final isMobile = Platform.isAndroid || Platform.isIOS;
 
@@ -29,13 +30,19 @@ Future<void> showRemoteServerContextMenu({
   if (isMobile) {
     final gradientColors = isSubsonic
         ? const [Color(0xFFFF5E3A), Color(0xFFFF2A68)]
-        : (isSmb
-            ? const [Color(0xFF00B09B), Color(0xFF96C93D)]
-            : const [Color(0xFF0072FF), Color(0xFF00C6FF)]);
+        : (isJellyfin
+            ? const [Color(0xFF00A4DC), Color(0xFFAA5CC3)]
+            : (isSmb
+                ? const [Color(0xFF00B09B), Color(0xFF96C93D)]
+                : const [Color(0xFF0072FF), Color(0xFF00C6FF)]));
     final serverIcon = isSubsonic
         ? Icons.library_music_rounded
-        : (isSmb ? Icons.dns_outlined : Icons.cloud_queue_rounded);
-    final typeLabel = isSubsonic ? 'Navidrome' : (isSmb ? 'SMB' : 'WebDAV');
+        : (isJellyfin
+            ? Icons.movie_filter_outlined
+            : (isSmb ? Icons.dns_outlined : Icons.cloud_queue_rounded));
+    final typeLabel = isSubsonic
+        ? 'Navidrome'
+        : (isJellyfin ? 'Jellyfin' : (isSmb ? 'SMB' : 'WebDAV'));
 
     selected = await AppContextMenu.showModalSheet<String>(
       context: context,
@@ -647,19 +654,26 @@ class RemoteServerGridCard extends StatelessWidget {
     final theme = Theme.of(context);
     final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
     final isSubsonic = server.type == RemoteServerType.subsonic;
+    final isJellyfin = server.type == RemoteServerType.jellyfin;
     final isSmb = server.type == RemoteServerType.smb;
 
     final gradientColors = isSubsonic
         ? const [Color(0xFFFF5E3A), Color(0xFFFF2A68)]
-        : (isSmb
-            ? const [Color(0xFF00B09B), Color(0xFF96C93D)]
-            : const [Color(0xFF0072FF), Color(0xFF00C6FF)]);
+        : (isJellyfin
+            ? const [Color(0xFF00A4DC), Color(0xFFAA5CC3)]
+            : (isSmb
+                ? const [Color(0xFF00B09B), Color(0xFF96C93D)]
+                : const [Color(0xFF0072FF), Color(0xFF00C6FF)]));
 
     final serverIcon = isSubsonic
         ? Icons.library_music_rounded
-        : (isSmb ? Icons.dns_outlined : Icons.cloud_queue_rounded);
+        : (isJellyfin
+            ? Icons.movie_filter_outlined
+            : (isSmb ? Icons.dns_outlined : Icons.cloud_queue_rounded));
 
-    final typeLabel = isSubsonic ? 'Navidrome' : (isSmb ? 'SMB' : 'WebDAV');
+    final typeLabel = isSubsonic
+        ? 'Navidrome'
+        : (isJellyfin ? 'Jellyfin' : (isSmb ? 'SMB' : 'WebDAV'));
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -820,20 +834,27 @@ class RemoteServerListTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isSubsonic = server.type == RemoteServerType.subsonic;
+    final isJellyfin = server.type == RemoteServerType.jellyfin;
     final isSmb = server.type == RemoteServerType.smb;
     final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
 
     final gradientColors = isSubsonic
         ? const [Color(0xFFFF5E3A), Color(0xFFFF2A68)]
-        : (isSmb
-            ? const [Color(0xFF00B09B), Color(0xFF96C93D)]
-            : const [Color(0xFF0072FF), Color(0xFF00C6FF)]);
+        : (isJellyfin
+            ? const [Color(0xFF00A4DC), Color(0xFFAA5CC3)]
+            : (isSmb
+                ? const [Color(0xFF00B09B), Color(0xFF96C93D)]
+                : const [Color(0xFF0072FF), Color(0xFF00C6FF)]));
 
     final serverIcon = isSubsonic
         ? Icons.library_music_rounded
-        : (isSmb ? Icons.dns_outlined : Icons.cloud_queue_rounded);
+        : (isJellyfin
+            ? Icons.movie_filter_outlined
+            : (isSmb ? Icons.dns_outlined : Icons.cloud_queue_rounded));
 
-    final typeLabel = isSubsonic ? 'Navidrome' : (isSmb ? 'SMB' : 'WebDAV');
+    final typeLabel = isSubsonic
+        ? 'Navidrome'
+        : (isJellyfin ? 'Jellyfin' : (isSmb ? 'SMB' : 'WebDAV'));
 
     final leadingWidget = Container(
       width: 56,
@@ -847,7 +868,10 @@ class RemoteServerListTile extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: (isSubsonic ? Colors.orange : Colors.blue).withValues(alpha: 0.2),
+            color: (isSubsonic
+                    ? Colors.orange
+                    : (isJellyfin ? const Color(0xFF00A4DC) : Colors.blue))
+                .withValues(alpha: 0.2),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),

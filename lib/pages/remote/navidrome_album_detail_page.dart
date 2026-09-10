@@ -9,8 +9,7 @@ import '../../models/music_file.dart';
 import '../../player/audio/audio_riverpod.dart';
 import '../../player/audio/playback_source.dart';
 import '../../player/remote/remote_server_models.dart';
-import '../../player/remote/clients/subsonic_client.dart';
-import '../../player/remote/proxy/remote_media_resolver.dart';
+import '../../player/remote/clients/remote_media_library_client.dart';
 import '../../widgets/remote_artwork_widget.dart';
 import '../../widgets/desktop_window_title_bar.dart';
 import '../../widgets/mini_player_wrapper.dart';
@@ -153,7 +152,7 @@ class _NavidromeAlbumDetailPageState
     });
 
     try {
-      final client = SubsonicClient(
+      final client = RemoteMediaLibraryClient.create(
         server: widget.server,
         password: widget.password,
       );
@@ -174,10 +173,7 @@ class _NavidromeAlbumDetailPageState
         for (final item in songList) {
           if (item is Map<String, dynamic>) {
             parsedTracks.add(
-              RemoteMediaResolver.buildMusicFileFromSubsonic(
-                item,
-                widget.server,
-              ),
+              client.buildMusicFile(item),
             );
           }
         }
@@ -648,7 +644,7 @@ class _NavidromeAlbumDetailPageState
                           if (sel.isEmpty) return;
                           final notifier =
                               ref.read(remoteDownloadTasksProvider.notifier);
-                          await notifier.enqueueSubsonicTracks(
+                          await notifier.enqueueRemoteTracks(
                             server: widget.server,
                             password: widget.password,
                             songs: sel,
@@ -781,7 +777,7 @@ class _NavidromeAlbumDetailPageState
                   ? () async {
                       final notifier =
                           ref.read(remoteDownloadTasksProvider.notifier);
-                      await notifier.enqueueSubsonicTracks(
+                      await notifier.enqueueRemoteTracks(
                         server: widget.server,
                         password: widget.password,
                         songs: _tracks,
@@ -817,7 +813,7 @@ class _NavidromeAlbumDetailPageState
             OutlinedButton.icon(
               onPressed: () async {
                 final l10n = AppLocalizations.of(context)!;
-                final client = SubsonicClient(
+                final client = RemoteMediaLibraryClient.create(
                   server: widget.server,
                   password: widget.password,
                 );

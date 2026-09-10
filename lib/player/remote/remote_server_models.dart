@@ -4,12 +4,14 @@ import 'dart:convert';
 enum RemoteServerType {
   subsonic,
   webdav,
-  smb;
+  smb,
+  jellyfin;
 
   String get displayName => switch (this) {
         RemoteServerType.subsonic => 'Navidrome / Subsonic',
         RemoteServerType.webdav => 'WebDAV',
         RemoteServerType.smb => 'Samba / SMB',
+        RemoteServerType.jellyfin => 'Jellyfin',
       };
 
   static RemoteServerType fromString(String? value) {

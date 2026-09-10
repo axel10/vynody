@@ -6,8 +6,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../../models/music_file.dart';
 import '../../../player/audio/audio_riverpod.dart';
 import '../../../player/audio/playback_source.dart';
-import '../../../player/remote/clients/subsonic_client.dart';
-import '../../../player/remote/proxy/remote_media_resolver.dart';
+import '../../../player/remote/clients/remote_media_library_client.dart';
 import '../../../player/remote/remote_server_models.dart';
 import '../../../player/remote/services/remote_download_service.dart';
 import '../../../utils/app_snack_bar.dart';
@@ -89,7 +88,7 @@ class NavidromeSelectionActions {
     List<MusicFile> searchedSongs = const [],
     List<MusicFile>? songs,
   }) async {
-    final client = SubsonicClient(
+    final client = RemoteMediaLibraryClient.create(
       server: server,
       password: password,
     );
@@ -132,7 +131,7 @@ class NavidromeSelectionActions {
     required String albumTitle,
   }) async {
     final l10n = AppLocalizations.of(context)!;
-    final client = SubsonicClient(
+    final client = RemoteMediaLibraryClient.create(
       server: server,
       password: password,
     );
@@ -145,10 +144,7 @@ class NavidromeSelectionActions {
         for (final item in songList) {
           if (item is Map<String, dynamic>) {
             parsed.add(
-              RemoteMediaResolver.buildMusicFileFromSubsonic(
-                item,
-                server,
-              ),
+              client.buildMusicFile(item),
             );
           }
         }
@@ -253,7 +249,7 @@ class NavidromeSelectionActions {
       );
       if (songs == null || songs.isEmpty) return;
       final notifier = ref.read(remoteDownloadTasksProvider.notifier);
-      await notifier.enqueueSubsonicTracks(
+      await notifier.enqueueRemoteTracks(
         server: server,
         password: password,
         songs: songs,
@@ -319,7 +315,7 @@ class NavidromeSelectionActions {
         .where((id) => id != starredPlaylistId && id != 'starred_songs')
         .toList();
     if (toDelete.isEmpty) return;
-    final client = SubsonicClient(
+    final client = RemoteMediaLibraryClient.create(
       server: server,
       password: password,
     );

@@ -6,6 +6,7 @@ import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/library/playlist_service.dart';
 import 'package:vynody/dialogs/transcode_dialog.dart';
 import 'package:vynody/dialogs/song_details_dialog.dart';
+import 'package:vynody/player/remote/proxy/remote_media_resolver.dart';
 import 'package:vynody/utils/song_context_menu_utils.dart';
 import 'package:vynody/l10n/app_localizations.dart';
 
@@ -70,8 +71,7 @@ class LibrarySelectionPanel extends ConsumerWidget {
     final isSingleSelected = !isEmpty && selectedSongs.length == 1;
 
     final isRemote = selectedSongs.isNotEmpty &&
-        (selectedSongs.first.path.startsWith('subsonic://') ||
-            selectedSongs.first.path.startsWith('webdav://'));
+        RemoteMediaResolver.isRemoteUri(selectedSongs.first.path);
     final hasFilePath = isSingleSelected &&
         selectedSongs.isNotEmpty &&
         selectedSongs.first.path.trim().isNotEmpty &&

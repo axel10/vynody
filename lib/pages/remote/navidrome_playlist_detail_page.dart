@@ -10,7 +10,7 @@ import '../../player/audio/audio_riverpod.dart';
 import '../../player/audio/playback_source.dart';
 import '../../player/remote/remote_server_models.dart';
 import '../../player/remote/remote_server_riverpod.dart';
-import '../../player/remote/clients/subsonic_client.dart';
+import '../../player/remote/clients/remote_media_library_client.dart';
 import '../../player/remote/proxy/remote_media_resolver.dart';
 import '../../player/remote/services/remote_download_service.dart';
 import '../../widgets/remote_artwork_widget.dart';
@@ -177,7 +177,7 @@ class _NavidromePlaylistDetailContentState
     }
     if (selectedIndices.isEmpty) return;
     final l10n = AppLocalizations.of(context)!;
-    final client = SubsonicClient(
+    final client = RemoteMediaLibraryClient.create(
       server: widget.server,
       password: widget.password,
     );
@@ -331,7 +331,7 @@ class _NavidromePlaylistDetailContentState
     });
 
     try {
-      final client = SubsonicClient(
+      final client = RemoteMediaLibraryClient.create(
         server: widget.server,
         password: widget.password,
       );
@@ -343,10 +343,7 @@ class _NavidromePlaylistDetailContentState
         int totalDur = 0;
 
         for (final item in songList) {
-          final song = RemoteMediaResolver.buildMusicFileFromSubsonic(
-            item,
-            widget.server,
-          );
+          final song = client.buildMusicFile(item);
           parsedTracks.add(song);
           final trackId = item['id']?.toString() ?? song.id.toString();
           starred.add(trackId);
@@ -407,10 +404,7 @@ class _NavidromePlaylistDetailContentState
       if (songList != null) {
         for (final item in songList) {
           if (item is Map<String, dynamic>) {
-            final song = RemoteMediaResolver.buildMusicFileFromSubsonic(
-              item,
-              widget.server,
-            );
+            final song = client.buildMusicFile(item);
             parsedTracks.add(song);
             if (item['starred'] != null) {
               final trackId = item['id']?.toString() ?? song.id.toString();
@@ -486,7 +480,7 @@ class _NavidromePlaylistDetailContentState
     final l10n = AppLocalizations.of(context)!;
     final notifier = ref.read(remoteDownloadTasksProvider.notifier);
 
-    await notifier.enqueueSubsonicTracks(
+    await notifier.enqueueRemoteTracks(
       server: widget.server,
       password: widget.password,
       songs: _tracks,
@@ -519,7 +513,7 @@ class _NavidromePlaylistDetailContentState
     final l10n = AppLocalizations.of(context)!;
     final songToRemove = _tracks[index];
 
-    final client = SubsonicClient(
+    final client = RemoteMediaLibraryClient.create(
       server: widget.server,
       password: widget.password,
     );
@@ -577,7 +571,7 @@ class _NavidromePlaylistDetailContentState
             onPressed: () async {
               final newName = controller.text.trim();
               if (newName.isNotEmpty && newName != _currentName) {
-                final client = SubsonicClient(
+                final client = RemoteMediaLibraryClient.create(
                   server: widget.server,
                   password: widget.password,
                 );
@@ -635,7 +629,7 @@ class _NavidromePlaylistDetailContentState
           TextButton(
             onPressed: () async {
               Navigator.pop(ctx);
-              final client = SubsonicClient(
+              final client = RemoteMediaLibraryClient.create(
                 server: widget.server,
                 password: widget.password,
               );
@@ -1066,14 +1060,14 @@ class _NavidromePlaylistDetailContentState
                             ? _formatTrackDuration(song.durationMillis! ~/ 1000)
                             : '--:--';
 
-                        final trackId = RemoteMediaResolver.extractSubsonicTrackId(song) ??
+                        final trackId = RemoteMediaResolver.extractTrackId(song) ??
                             (song.id != null && song.id! > 0 ? song.id.toString() : '');
                         final isStarred = _starredSongIds.contains(trackId);
 
                         String? trackCoverId;
                         if (song.artworkPath != null && song.artworkPath!.isNotEmpty) {
                           trackCoverId = song.artworkPath!
-                              .replaceFirst('subsonic-cover://${widget.server.id}/', '');
+                              .replaceFirst(RegExp(r'^(subsonic|jellyfin)-cover://[^/]+/'), '');
                         }
                         if (trackCoverId == null || trackCoverId.isEmpty) {
                           trackCoverId = trackId.isNotEmpty ? trackId : null;
@@ -1282,7 +1276,7 @@ class _NavidromePlaylistDetailContentState
                                                 color: isStarred ? Colors.redAccent : null,
                                               ),
                                               onPressed: () async {
-                                                final client = SubsonicClient(
+                                                final client = RemoteMediaLibraryClient.create(
                                                   server: widget.server,
                                                   password: widget.password,
                                                 );
@@ -1380,7 +1374,7 @@ class _NavidromePlaylistDetailContentState
               final sel = List<MusicFile>.from(selectedSongs);
               if (sel.isEmpty) return;
               final notifier = ref.read(remoteDownloadTasksProvider.notifier);
-              await notifier.enqueueSubsonicTracks(
+              await notifier.enqueueRemoteTracks(
                 server: widget.server,
                 password: widget.password,
                 songs: sel,

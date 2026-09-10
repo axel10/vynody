@@ -8,7 +8,7 @@ import 'package:vynody/l10n/app_localizations.dart';
 import 'package:vynody/models/music_folder.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
-import 'package:vynody/player/remote/clients/subsonic_client.dart';
+import 'package:vynody/player/remote/clients/remote_media_library_client.dart';
 import 'package:vynody/player/remote/navidrome_navigation.dart';
 import 'package:vynody/player/remote/proxy/remote_media_resolver.dart';
 import 'package:vynody/player/remote/remote_server_models.dart';
@@ -138,9 +138,10 @@ class SongLocatorHelper {
         }
         ref.read(songHighlightProvider.notifier).highlight(songPath);
         return true;
-      } else if (remoteInfo.type == RemoteServerType.subsonic) {
+      } else if (remoteInfo.type == RemoteServerType.subsonic ||
+                 remoteInfo.type == RemoteServerType.jellyfin) {
         try {
-          final client = SubsonicClient(server: server, password: password);
+          final client = RemoteMediaLibraryClient.create(server: server, password: password);
           final songData = await client.getSong(remoteInfo.trackIdOrPath);
           if (songData != null && context.mounted) {
             final albumId =

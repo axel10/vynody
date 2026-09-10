@@ -123,6 +123,8 @@ class MetadataHelper {
     if (trimmed.isEmpty) return false;
     if (trimmed.startsWith('subsonic://') ||
         trimmed.startsWith('webdav://') ||
+        trimmed.startsWith('jellyfin://') ||
+        trimmed.startsWith('smb://') ||
         trimmed.startsWith('http://') ||
         trimmed.startsWith('https://') ||
         trimmed.startsWith('content://')) {
@@ -156,7 +158,9 @@ class MetadataHelper {
         filePath.startsWith('http://') ||
         filePath.startsWith('https://') ||
         filePath.startsWith('subsonic://') ||
-        filePath.startsWith('webdav://')) {
+        filePath.startsWith('webdav://') ||
+        filePath.startsWith('jellyfin://') ||
+        filePath.startsWith('smb://')) {
       return filePath;
     }
     final isExternal =
@@ -618,7 +622,10 @@ class MetadataHelper {
     int? sourceFlags,
     Map<String, String?>? dirCache,
   }) async {
-    if (filePath.startsWith('subsonic://') || filePath.startsWith('webdav://')) {
+    if (filePath.startsWith('subsonic://') ||
+        filePath.startsWith('webdav://') ||
+        filePath.startsWith('jellyfin://') ||
+        filePath.startsWith('smb://')) {
       return null;
     }
     if (!await canAccessAudioFile(filePath)) {
@@ -907,7 +914,10 @@ class MetadataHelper {
 
   /// 从文件直接读取原始标签，不请求网络，不存入数据库
   static Future<SongMetadata?> readMetadataFromFile(String filePath) async {
-    if (filePath.startsWith('subsonic://') || filePath.startsWith('webdav://')) {
+    if (filePath.startsWith('subsonic://') ||
+        filePath.startsWith('webdav://') ||
+        filePath.startsWith('jellyfin://') ||
+        filePath.startsWith('smb://')) {
       return null;
     }
     if (!await canAccessAudioFile(filePath)) {
@@ -1062,7 +1072,10 @@ class MetadataHelper {
     if (cached != null) {
       return (cached, null);
     }
-    if (filePath.startsWith('subsonic://') || filePath.startsWith('webdav://')) {
+    if (filePath.startsWith('subsonic://') ||
+        filePath.startsWith('webdav://') ||
+        filePath.startsWith('jellyfin://') ||
+        filePath.startsWith('smb://')) {
       return null;
     }
 
@@ -1075,7 +1088,10 @@ class MetadataHelper {
 
   /// 解码文件内嵌封面，分辨率限制在 [maxWidth] * [maxHeight]
   static Future<Uint8List?> decodeEmbeddedArtwork(String filePath) async {
-    if (filePath.startsWith('subsonic://') || filePath.startsWith('webdav://')) {
+    if (filePath.startsWith('subsonic://') ||
+        filePath.startsWith('webdav://') ||
+        filePath.startsWith('jellyfin://') ||
+        filePath.startsWith('smb://')) {
       return null;
     }
     if (!await canAccessAudioFile(filePath)) {
@@ -1098,7 +1114,10 @@ class MetadataHelper {
 
   /// 探测文件内是否存在内嵌封面，不生成任何缓存文件。
   static Future<bool> hasEmbeddedArtwork(String filePath) async {
-    if (filePath.startsWith('subsonic://') || filePath.startsWith('webdav://')) {
+    if (filePath.startsWith('subsonic://') ||
+        filePath.startsWith('webdav://') ||
+        filePath.startsWith('jellyfin://') ||
+        filePath.startsWith('smb://')) {
       return false;
     }
     if (!await canAccessAudioFile(filePath)) {

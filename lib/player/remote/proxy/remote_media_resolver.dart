@@ -17,6 +17,7 @@ import '../remote_server_storage.dart';
 import '../clients/subsonic_client.dart';
 import '../clients/webdav_client.dart';
 import '../clients/smb_client.dart';
+import '../clients/jellyfin_client.dart';
 import 'local_stream_proxy.dart';
 import '../../metadata/metadata_database.dart';
 
@@ -47,7 +48,8 @@ class RemoteMediaResolver {
   static bool isRemoteUri(String path) {
     return path.startsWith('subsonic://') ||
         path.startsWith('webdav://') ||
-        path.startsWith('smb://');
+        path.startsWith('smb://') ||
+        path.startsWith('jellyfin://');
   }
 
   /// Parses a remote virtual URI.
@@ -90,6 +92,17 @@ class RemoteMediaResolver {
             trackIdOrPath: trackId,
             queryParameters: queryParams,
           );
+        } else if (scheme == 'jellyfin') {
+          var trackId = rawPath.startsWith('/') ? rawPath.substring(1) : rawPath;
+          try {
+            trackId = Uri.decodeFull(trackId);
+          } catch (_) {}
+          return RemoteUriInfo(
+            type: RemoteServerType.jellyfin,
+            serverId: serverId,
+            trackIdOrPath: trackId,
+            queryParameters: queryParams,
+          );
         } else if (scheme == 'webdav') {
           var cleanPath = rawPath.isNotEmpty ? rawPath : '/';
           if (!cleanPath.startsWith('/')) cleanPath = '/$cleanPath';
@@ -122,6 +135,20 @@ class RemoteMediaResolver {
   /// Builds a Subsonic virtual URI.
   static String buildSubsonicUri(String serverId, String trackId) {
     return 'subsonic://$serverId/$trackId';
+  }
+
+  /// Builds a Jellyfin virtual URI.
+  static String buildJellyfinUri(String serverId, String trackId) {
+    return 'jellyfin://$serverId/$trackId';
+  }
+
+  /// Extracts remote track ID from a [MusicFile] or URI path for any remote server.
+  static String? extractTrackId(MusicFile song) {
+    final info = parseUri(song.path);
+    if (info != null && info.trackIdOrPath.isNotEmpty) {
+      return info.trackIdOrPath;
+    }
+    return extractSubsonicTrackId(song);
   }
 
   /// Extracts Subsonic track ID from a [MusicFile] or URI path.
@@ -184,7 +211,7 @@ class RemoteMediaResolver {
     return (clean, '');
   }
 
-  /// Converts a cacheKey (e.g. `serverId:path`) back to its virtual URI (`webdav://...` or `subsonic://...` or `smb://...`).
+  /// Converts a cacheKey (e.g. `serverId:path`) back to its virtual URI (`webdav://...` or `subsonic://...` or `smb://...` or `jellyfin://...`).
   static String? uriFromCacheKey(String cacheKey, [RemoteServerStorage? storage]) {
     final idx = cacheKey.indexOf(':');
     if (idx <= 0) return null;
@@ -206,6 +233,8 @@ class RemoteMediaResolver {
           return 'smb://$serverId/$clean';
         } else if (server.type == RemoteServerType.webdav) {
           return buildWebDavUri(serverId, trackIdOrPath);
+        } else if (server.type == RemoteServerType.jellyfin) {
+          return buildJellyfinUri(serverId, trackIdOrPath);
         } else {
           return buildSubsonicUri(serverId, trackIdOrPath);
         }
@@ -238,6 +267,18 @@ class RemoteMediaResolver {
 
     if (info.type == RemoteServerType.subsonic) {
       final client = SubsonicClient(server: server, password: password);
+      final streamUrl = client.buildStreamUrl(
+        info.trackIdOrPath,
+        maxBitRate: maxBitRate ?? server.maxBitRate,
+      );
+
+      return ResolvedAudioUri(
+        uri: streamUrl,
+        cacheKey: '${server.id}:${info.trackIdOrPath}',
+      );
+    } else if (info.type == RemoteServerType.jellyfin) {
+      final client = JellyfinClient(server: server, password: password);
+      await client.authenticate();
       final streamUrl = client.buildStreamUrl(
         info.trackIdOrPath,
         maxBitRate: maxBitRate ?? server.maxBitRate,
@@ -347,6 +388,40 @@ class RemoteMediaResolver {
     );
   }
 
+  /// Constructs a [MusicFile] model from a Jellyfin track JSON object.
+  static MusicFile buildMusicFileFromJellyfin(
+    Map<String, dynamic> trackJson,
+    RemoteServer server,
+  ) {
+    final trackId = trackJson['id'] as String? ?? '';
+    final title = trackJson['title'] as String? ?? trackJson['name'] as String? ?? '';
+    final artist = trackJson['artist'] as String?;
+    final album = trackJson['album'] as String?;
+    final trackNumber = trackJson['track'] as int?;
+    final durationSeconds = trackJson['duration'] as int? ?? 0;
+    final coverArt = trackJson['coverArt'] as String?;
+    final suffix = trackJson['suffix'] as String? ?? 'mp3';
+
+    final effectiveCoverArt = (coverArt != null && coverArt.isNotEmpty)
+        ? coverArt
+        : (trackId.isNotEmpty ? trackId : null);
+
+    final uri = buildJellyfinUri(server.id, trackId);
+    return MusicFile(
+      path: uri,
+      name: '$title.$suffix',
+      title: title,
+      artist: artist,
+      album: album,
+      trackNumber: trackNumber,
+      durationMillis: durationSeconds * 1000,
+      artworkPath: effectiveCoverArt != null
+          ? 'jellyfin-cover://${server.id}/$effectiveCoverArt'
+          : null,
+      isMissing: false,
+    );
+  }
+
   /// Constructs a [MusicFile] model from a [WebDavFile] for any remote server (WebDAV / SMB).
   static MusicFile buildMusicFile(
     WebDavFile file,
@@ -424,6 +499,15 @@ class RemoteMediaResolver {
       }
       final client = SubsonicClient(server: server, password: password);
       return client.buildCoverArtUrl(coverId, size: size);
+    } else if (info.type == RemoteServerType.jellyfin) {
+      var coverId = (coverArtId != null && coverArtId.isNotEmpty)
+          ? coverArtId.replaceFirst('jellyfin-cover://', '')
+          : info.trackIdOrPath;
+      if (coverId.startsWith('${server.id}/')) {
+        coverId = coverId.substring('${server.id}/'.length);
+      }
+      final client = JellyfinClient(server: server, password: password);
+      return client.buildCoverArtUrl(coverId, size: size);
     }
     return null;
   }
@@ -446,6 +530,15 @@ class RemoteMediaResolver {
         resolvedCoverId = resolvedCoverId.substring('${server.id}/'.length);
       }
       final client = SubsonicClient(server: server, password: password);
+      return client.getCoverArtBytes(resolvedCoverId, size: size);
+    } else if (info.type == RemoteServerType.jellyfin) {
+      var resolvedCoverId = (coverArtId != null && coverArtId.isNotEmpty)
+          ? coverArtId.replaceFirst('jellyfin-cover://', '')
+          : info.trackIdOrPath;
+      if (resolvedCoverId.startsWith('${server.id}/')) {
+        resolvedCoverId = resolvedCoverId.substring('${server.id}/'.length);
+      }
+      final client = JellyfinClient(server: server, password: password);
       return client.getCoverArtBytes(resolvedCoverId, size: size);
     }
     return null;
@@ -470,6 +563,9 @@ class RemoteMediaResolver {
         artist: song.artist,
         title: song.title ?? song.name,
       );
+    } else if (info.type == RemoteServerType.jellyfin) {
+      final client = JellyfinClient(server: server, password: password);
+      return client.getLyrics(info.trackIdOrPath);
     } else if (info.type == RemoteServerType.webdav) {
       final client = WebDavClient(server: server, password: password);
       // Attempt to find companion .lrc file in the same directory

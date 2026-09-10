@@ -1884,6 +1884,13 @@ class _SharingPageState extends ConsumerState<SharingPage>
     RemoteServer server,
   ) {
     final isSubsonic = server.type == RemoteServerType.subsonic;
+    final isJellyfin = server.type == RemoteServerType.jellyfin;
+    final themeColor = isJellyfin
+        ? const Color(0xFF00A4DC)
+        : (isSubsonic ? Colors.orange : Colors.blue);
+    final iconData = isJellyfin
+        ? Icons.movie_filter_outlined
+        : (isSubsonic ? Icons.library_music_rounded : Icons.folder_copy_outlined);
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -1904,16 +1911,12 @@ class _SharingPageState extends ConsumerState<SharingPage>
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: isSubsonic
-                        ? Colors.orange.withValues(alpha: 0.12)
-                        : Colors.blue.withValues(alpha: 0.12),
+                    color: themeColor.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
-                    isSubsonic
-                        ? Icons.library_music_rounded
-                        : Icons.folder_copy_outlined,
-                    color: isSubsonic ? Colors.orange : Colors.blue,
+                    iconData,
+                    color: themeColor,
                     size: 24,
                   ),
                 ),
@@ -1942,9 +1945,7 @@ class _SharingPageState extends ConsumerState<SharingPage>
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: isSubsonic
-                                  ? Colors.orange.withValues(alpha: 0.15)
-                                  : Colors.blue.withValues(alpha: 0.15),
+                              color: themeColor.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
@@ -1952,7 +1953,7 @@ class _SharingPageState extends ConsumerState<SharingPage>
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
-                                color: isSubsonic ? Colors.orange : Colors.blue,
+                                color: themeColor,
                               ),
                             ),
                           ),

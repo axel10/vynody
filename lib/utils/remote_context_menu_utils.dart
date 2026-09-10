@@ -9,7 +9,7 @@ import '../l10n/app_localizations.dart';
 import '../models/music_file.dart';
 import '../player/audio/audio_riverpod.dart';
 import '../player/audio/playback_source.dart';
-import '../player/remote/clients/subsonic_client.dart';
+import '../player/remote/clients/remote_media_library_client.dart';
 import '../player/remote/clients/webdav_client.dart';
 import '../player/remote/clients/smb_client.dart';
 import '../player/remote/proxy/remote_media_resolver.dart';
@@ -23,7 +23,7 @@ import '../widgets/app_context_menu.dart';
 
 /// Helper to fetch tracks of an album on-demand if not already supplied
 Future<List<MusicFile>> fetchSubsonicAlbumTracks(
-  SubsonicClient client,
+  RemoteMediaLibraryClient client,
   RemoteServer server,
   String albumId,
 ) async {
@@ -35,7 +35,7 @@ Future<List<MusicFile>> fetchSubsonicAlbumTracks(
       for (final item in songList) {
         if (item is Map<String, dynamic>) {
           parsed.add(
-            RemoteMediaResolver.buildMusicFileFromSubsonic(item, server),
+            client.buildMusicFile(item),
           );
         }
       }
@@ -46,14 +46,14 @@ Future<List<MusicFile>> fetchSubsonicAlbumTracks(
 }
 
 Future<List<MusicFile>> _fetchAlbumTracks(
-  SubsonicClient client,
+  RemoteMediaLibraryClient client,
   RemoteServer server,
   String albumId,
 ) => fetchSubsonicAlbumTracks(client, server, albumId);
 
 /// Helper to fetch tracks of an artist on-demand
 Future<List<MusicFile>> fetchSubsonicArtistTracks(
-  SubsonicClient client,
+  RemoteMediaLibraryClient client,
   RemoteServer server,
   String artistId,
 ) async {
@@ -69,6 +69,15 @@ Future<List<MusicFile>> fetchSubsonicArtistTracks(
       }
 
       final List<MusicFile> allSongs = [];
+      final dynamic directSongs = artistMap['song'];
+      if (directSongs is List) {
+        for (final s in directSongs) {
+          if (s is Map<String, dynamic>) {
+            allSongs.add(client.buildMusicFile(s));
+          }
+        }
+      }
+
       for (final al in albumList) {
         final aId = al['id'] as String?;
         if (aId != null) {
@@ -78,7 +87,7 @@ Future<List<MusicFile>> fetchSubsonicArtistTracks(
             for (final s in sData) {
               if (s is Map<String, dynamic>) {
                 allSongs.add(
-                  RemoteMediaResolver.buildMusicFileFromSubsonic(s, server),
+                  client.buildMusicFile(s),
                 );
               }
             }
@@ -92,14 +101,14 @@ Future<List<MusicFile>> fetchSubsonicArtistTracks(
 }
 
 Future<List<MusicFile>> _fetchArtistTracks(
-  SubsonicClient client,
+  RemoteMediaLibraryClient client,
   RemoteServer server,
   String artistId,
 ) => fetchSubsonicArtistTracks(client, server, artistId);
 
 /// Helper to fetch tracks of a playlist on-demand
 Future<List<MusicFile>> fetchSubsonicPlaylistTracks(
-  SubsonicClient client,
+  RemoteMediaLibraryClient client,
   RemoteServer server,
   String playlistId,
 ) async {
@@ -111,7 +120,7 @@ Future<List<MusicFile>> fetchSubsonicPlaylistTracks(
         final List<MusicFile> parsed = [];
         for (final item in songList) {
           parsed.add(
-            RemoteMediaResolver.buildMusicFileFromSubsonic(item, server),
+            client.buildMusicFile(item),
           );
         }
         return parsed;
@@ -124,7 +133,7 @@ Future<List<MusicFile>> fetchSubsonicPlaylistTracks(
         for (final item in entryList) {
           if (item is Map<String, dynamic>) {
             parsed.add(
-              RemoteMediaResolver.buildMusicFileFromSubsonic(item, server),
+              client.buildMusicFile(item),
             );
           }
         }
@@ -152,7 +161,7 @@ Future<void> showRemoteAlbumContextMenu({
   VoidCallback? onViewArtist,
 }) async {
   final l10n = AppLocalizations.of(context)!;
-  final client = SubsonicClient(server: server, password: password);
+  final client = RemoteMediaLibraryClient.create(server: server, password: password);
   final isMobile = Platform.isAndroid || Platform.isIOS;
 
   if (isMobile) {
@@ -347,7 +356,7 @@ Future<void> _handleAlbumMenuSelection({
   required String selected,
   required BuildContext context,
   required WidgetRef ref,
-  required SubsonicClient client,
+  required RemoteMediaLibraryClient client,
   required RemoteServer server,
   required String password,
   required String albumId,
@@ -427,7 +436,7 @@ Future<void> _handleAlbumMenuSelection({
       final trackList = await getOrFetchSongs();
       if (trackList.isNotEmpty && context.mounted) {
         final notifier = ref.read(remoteDownloadTasksProvider.notifier);
-        await notifier.enqueueSubsonicTracks(
+        await notifier.enqueueRemoteTracks(
           server: server,
           password: password,
           songs: trackList,
@@ -480,11 +489,11 @@ Future<void> showRemoteSongContextMenu({
   VoidCallback? onRemoveFromPlaylist,
 }) async {
   final l10n = AppLocalizations.of(context)!;
-  final client = SubsonicClient(server: server, password: password);
+  final client = RemoteMediaLibraryClient.create(server: server, password: password);
   final isMobile = Platform.isAndroid || Platform.isIOS;
 
-  // Extract subsonic trackId
-  final trackId = RemoteMediaResolver.extractSubsonicTrackId(song) ??
+  // Extract trackId
+  final trackId = RemoteMediaResolver.extractTrackId(song) ??
       (song.id != null && song.id! > 0 ? song.id.toString() : '');
 
   if (isMobile) {
@@ -706,7 +715,7 @@ Future<void> _handleSongMenuSelection({
   required String selected,
   required BuildContext context,
   required WidgetRef ref,
-  required SubsonicClient client,
+  required RemoteMediaLibraryClient client,
   required RemoteServer server,
   required String password,
   required MusicFile song,
@@ -750,11 +759,10 @@ Future<void> _handleSongMenuSelection({
       break;
     case 'download':
       final notifier = ref.read(remoteDownloadTasksProvider.notifier);
-      await notifier.enqueueSubsonicTrack(
+      await notifier.enqueueRemoteTracks(
         server: server,
         password: password,
-        song: song,
-        trackId: trackId,
+        songs: [song],
       );
       if (context.mounted) {
         AppSnackBar.show(
@@ -813,7 +821,7 @@ Future<void> showRemoteArtistContextMenu({
   VoidCallback? onViewDetails,
 }) async {
   final l10n = AppLocalizations.of(context)!;
-  final client = SubsonicClient(server: server, password: password);
+  final client = RemoteMediaLibraryClient.create(server: server, password: password);
   final isMobile = Platform.isAndroid || Platform.isIOS;
 
   if (isMobile) {
@@ -978,7 +986,7 @@ Future<void> _handleArtistMenuSelection({
   required String selected,
   required BuildContext context,
   required WidgetRef ref,
-  required SubsonicClient client,
+  required RemoteMediaLibraryClient client,
   required RemoteServer server,
   required String password,
   required String artistId,
@@ -1042,7 +1050,7 @@ Future<void> _handleArtistMenuSelection({
       final trackList = await getArtistSongs();
       if (trackList.isNotEmpty && context.mounted) {
         final notifier = ref.read(remoteDownloadTasksProvider.notifier);
-        await notifier.enqueueSubsonicTracks(
+        await notifier.enqueueRemoteTracks(
           server: server,
           password: password,
           songs: trackList,
@@ -1080,7 +1088,7 @@ Future<void> _handleArtistMenuSelection({
 
 /// Helper to fetch tracks of a playlist on-demand if not already supplied
 Future<List<MusicFile>> _fetchPlaylistTracks(
-  SubsonicClient client,
+  RemoteMediaLibraryClient client,
   RemoteServer server,
   String playlistId,
 ) async {
@@ -1092,7 +1100,7 @@ Future<List<MusicFile>> _fetchPlaylistTracks(
       for (final item in songList) {
         if (item is Map<String, dynamic>) {
           parsed.add(
-            RemoteMediaResolver.buildMusicFileFromSubsonic(item, server),
+            client.buildMusicFile(item),
           );
         }
       }
@@ -1117,7 +1125,7 @@ Future<void> showRemotePlaylistContextMenu({
   VoidCallback? onDelete,
 }) async {
   final l10n = AppLocalizations.of(context)!;
-  final client = SubsonicClient(server: server, password: password);
+  final client = RemoteMediaLibraryClient.create(server: server, password: password);
   final isMobile = Platform.isAndroid || Platform.isIOS;
 
   if (isMobile) {
@@ -1307,7 +1315,7 @@ Future<void> _handlePlaylistMenuSelection({
   required String selected,
   required BuildContext context,
   required WidgetRef ref,
-  required SubsonicClient client,
+  required RemoteMediaLibraryClient client,
   required RemoteServer server,
   required String password,
   required String playlistId,
@@ -1357,7 +1365,7 @@ Future<void> _handlePlaylistMenuSelection({
       final trackList = await getPlaylistSongs();
       if (trackList.isNotEmpty && context.mounted) {
         final notifier = ref.read(remoteDownloadTasksProvider.notifier);
-        await notifier.enqueueSubsonicTracks(
+        await notifier.enqueueRemoteTracks(
           server: server,
           password: password,
           songs: trackList,

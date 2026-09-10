@@ -78,6 +78,12 @@ class _AddEditRemoteServerDialogState
             _serverType = RemoteServerType.smb;
           });
         }
+      } else if (text.contains(':8096') || text.contains('/jellyfin')) {
+        if (_serverType != RemoteServerType.jellyfin) {
+          setState(() {
+            _serverType = RemoteServerType.jellyfin;
+          });
+        }
       } else if (text.contains('/dav') || text.contains('/remote.php/webdav')) {
         if (_serverType != RemoteServerType.webdav) {
           setState(() {
@@ -110,6 +116,7 @@ class _AddEditRemoteServerDialogState
     final rawInput = (inputName ?? _nameController.text).trim();
     final defaultBaseName = switch (_serverType) {
       RemoteServerType.subsonic => 'Navidrome',
+      RemoteServerType.jellyfin => 'Jellyfin',
       RemoteServerType.webdav => 'WebDAV',
       RemoteServerType.smb => 'Samba (SMB)',
     };
@@ -144,15 +151,20 @@ class _AddEditRemoteServerDialogState
       type: _serverType,
       url: _urlController.text.trim(),
       username: _usernameController.text.trim(),
-      customPath: (_serverType == RemoteServerType.webdav || _serverType == RemoteServerType.smb) &&
-              _customPathController.text.trim().isNotEmpty
-          ? normalizeRemotePath(_customPathController.text.trim())
+      customPath: _serverType == RemoteServerType.webdav ||
+              _serverType == RemoteServerType.smb
+          ? _customPathController.text.trim().isNotEmpty
+              ? _customPathController.text.trim()
+              : null
           : null,
       domain: _serverType == RemoteServerType.smb &&
               _domainController.text.trim().isNotEmpty
           ? _domainController.text.trim()
           : null,
-      maxBitRate: _serverType == RemoteServerType.subsonic ? _maxBitRate : null,
+      maxBitRate: (_serverType == RemoteServerType.subsonic ||
+              _serverType == RemoteServerType.jellyfin)
+          ? _maxBitRate
+          : null,
       ignoreSsl: _ignoreSsl,
       createdAt: widget.server?.createdAt ?? DateTime.now(),
       lastConnectedAt: widget.server?.lastConnectedAt,
@@ -265,6 +277,11 @@ class _AddEditRemoteServerDialogState
                       label: Text('Navidrome'),
                     ),
                     ButtonSegment(
+                      value: RemoteServerType.jellyfin,
+                      icon: Icon(Icons.movie_filter_outlined),
+                      label: Text('Jellyfin'),
+                    ),
+                    ButtonSegment(
                       value: RemoteServerType.webdav,
                       icon: Icon(Icons.folder_copy_outlined),
                       label: Text('WebDAV'),
@@ -322,6 +339,7 @@ class _AddEditRemoteServerDialogState
                             labelText: l10n.serverUrl,
                             hintText: switch (_serverType) {
                               RemoteServerType.subsonic => 'http://192.168.1.100:4533',
+                              RemoteServerType.jellyfin => 'http://192.168.1.100:8096',
                               RemoteServerType.webdav => 'https://dav.example.com/remote.php/webdav',
                               RemoteServerType.smb => '192.168.1.100 or 192.168.1.100:445',
                             },
@@ -421,7 +439,8 @@ class _AddEditRemoteServerDialogState
                             ),
                           ),
                         ],
-                        if (_serverType == RemoteServerType.subsonic) ...[
+                        if (_serverType == RemoteServerType.subsonic ||
+                            _serverType == RemoteServerType.jellyfin) ...[
                           const SizedBox(height: 14),
                           DropdownButtonFormField<int?>(
                             initialValue: _maxBitRate,

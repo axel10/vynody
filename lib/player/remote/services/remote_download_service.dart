@@ -15,6 +15,7 @@ import '../../sharing/sharing_riverpod.dart';
 import '../clients/subsonic_client.dart';
 import '../clients/webdav_client.dart';
 import '../clients/smb_client.dart';
+import '../clients/jellyfin_client.dart';
 import '../proxy/local_stream_proxy.dart';
 import '../proxy/remote_media_resolver.dart';
 import '../remote_server_models.dart';
@@ -61,7 +62,7 @@ class RemoteDownloadTask {
     this.status = RemoteDownloadStatus.pending,
     this.bytesDownloaded = 0,
     this.totalBytes = 0,
-    this.speedBytesPerSec = 0,
+    this.speedBytesPerSec = 0.0,
     this.error,
     DateTime? createdAt,
     this.completedAt,
@@ -72,6 +73,7 @@ class RemoteDownloadTask {
   bool get isSubsonic => server.type == RemoteServerType.subsonic;
   bool get isWebDav => server.type == RemoteServerType.webdav;
   bool get isSmb => server.type == RemoteServerType.smb;
+  bool get isJellyfin => server.type == RemoteServerType.jellyfin;
 
   RemoteDownloadTask copyWith({
     RemoteDownloadStatus? status,
@@ -428,6 +430,146 @@ class RemoteDownloadNotifier extends Notifier<List<RemoteDownloadTask>> {
       }
     }
     return enqueued;
+  }
+
+  /// Enqueues a single Jellyfin track for download.
+  Future<RemoteDownloadTask?> enqueueJellyfinTrack({
+    required RemoteServer server,
+    required String password,
+    required MusicFile song,
+    String? trackId,
+    bool skipWritableCheck = false,
+  }) async {
+    if (!skipWritableCheck) {
+      final ready = await ensureDownloadFolderWritable();
+      if (!ready) return null;
+    }
+
+    final client = JellyfinClient(server: server, password: password);
+    try {
+      await client.authenticate();
+    } catch (_) {}
+    final baseFolder = await getDownloadFolderPath();
+
+    final resolvedTrackId = trackId ??
+        RemoteMediaResolver.parseUri(song.path)?.trackIdOrPath ??
+        (song.id != null && song.id! > 0
+            ? song.id.toString()
+            : 'unknown_${song.path.hashCode}');
+
+    final targetPath = await buildLocalTrackPath(
+      song: song,
+      baseFolder: baseFolder,
+      server: server,
+    );
+
+    final taskId = 'jellyfin_${server.id}_$resolvedTrackId';
+
+    // If already in queue, don't duplicate
+    final existingIndex = state.indexWhere((t) => t.id == taskId);
+    if (existingIndex >= 0) {
+      final existing = state[existingIndex];
+      if (existing.status == RemoteDownloadStatus.completed) {
+        return existing;
+      }
+      if (existing.status == RemoteDownloadStatus.failed ||
+          existing.status == RemoteDownloadStatus.cancelled ||
+          existing.status == RemoteDownloadStatus.paused) {
+        retryTask(taskId);
+        return state.firstWhere((t) => t.id == taskId);
+      }
+      return existing;
+    }
+
+    // Check if target file already exists locally
+    final exists = await _checkFileExistsLocally(targetPath);
+    if (exists) {
+      int fileSize = 0;
+      try {
+        final targetFile = File(targetPath);
+        if (targetFile.existsSync()) {
+          fileSize = targetFile.lengthSync();
+        }
+      } catch (_) {}
+
+      final task = RemoteDownloadTask(
+        id: taskId,
+        server: server,
+        song: song,
+        trackId: resolvedTrackId,
+        downloadUrl: client.buildStreamUrl(resolvedTrackId),
+        targetPath: targetPath,
+        status: RemoteDownloadStatus.completed,
+        bytesDownloaded: fileSize,
+        totalBytes: fileSize,
+        completedAt: DateTime.now(),
+      );
+      state = [task, ...state];
+      return task;
+    }
+
+    final downloadUrl = client.buildStreamUrl(resolvedTrackId);
+    final task = RemoteDownloadTask(
+      id: taskId,
+      server: server,
+      song: song,
+      trackId: resolvedTrackId,
+      downloadUrl: downloadUrl,
+      targetPath: targetPath,
+      status: RemoteDownloadStatus.pending,
+    );
+
+    state = [...state, task];
+    _processQueue();
+    return task;
+  }
+
+  /// Enqueues multiple Jellyfin tracks.
+  Future<List<RemoteDownloadTask>> enqueueJellyfinTracks({
+    required RemoteServer server,
+    required String password,
+    required List<MusicFile> songs,
+    String? collectionName,
+  }) async {
+    final ready = await ensureDownloadFolderWritable();
+    if (!ready) return [];
+
+    final List<RemoteDownloadTask> enqueued = [];
+    for (final song in songs) {
+      final task = await enqueueJellyfinTrack(
+        server: server,
+        password: password,
+        song: song,
+        skipWritableCheck: true,
+      );
+      if (task != null) {
+        enqueued.add(task);
+      }
+    }
+    return enqueued;
+  }
+
+  /// Enqueues tracks for any structured remote server (Subsonic / Jellyfin).
+  Future<List<RemoteDownloadTask>> enqueueRemoteTracks({
+    required RemoteServer server,
+    required String password,
+    required List<MusicFile> songs,
+    String? collectionName,
+  }) async {
+    if (server.type == RemoteServerType.jellyfin) {
+      return enqueueJellyfinTracks(
+        server: server,
+        password: password,
+        songs: songs,
+        collectionName: collectionName,
+      );
+    }
+    return enqueueSubsonicTracks(
+      server: server,
+      password: password,
+      songs: songs,
+      collectionName: collectionName,
+    );
   }
 
   /// Enqueues a WebDAV file for download.

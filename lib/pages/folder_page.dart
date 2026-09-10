@@ -784,7 +784,8 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
     );
 
     if (activeRemoteSessionId != null && activeRemoteSession != null) {
-      if (activeRemoteSession.server.type == RemoteServerType.subsonic) {
+      if (activeRemoteSession.server.type == RemoteServerType.subsonic ||
+          activeRemoteSession.server.type == RemoteServerType.jellyfin) {
         pages.add(
           _buildPage(
             key: ValueKey('remote-page-${activeRemoteSession.server.id}'),

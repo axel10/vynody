@@ -7,7 +7,7 @@ import '../../models/music_file.dart';
 import '../../player/audio/audio_riverpod.dart';
 import '../../player/remote/remote_server_models.dart';
 import '../../player/remote/remote_server_riverpod.dart';
-import '../../player/remote/clients/subsonic_client.dart';
+import '../../player/remote/clients/remote_media_library_client.dart';
 import '../../player/remote/proxy/remote_media_resolver.dart';
 import '../../widgets/desktop_window_title_bar.dart';
 import '../../widgets/mini_player_wrapper.dart';
@@ -47,7 +47,7 @@ class NavidromeLibraryPage extends ConsumerStatefulWidget {
 class _NavidromeLibraryPageState extends ConsumerState<NavidromeLibraryPage>
     with SingleTickerProviderStateMixin {
   late final TabController _tabController;
-  late final SubsonicClient _client;
+  late final RemoteMediaLibraryClient _client;
 
   // Albums state
   bool _isLoadingAlbums = false;
@@ -461,7 +461,7 @@ class _NavidromeLibraryPageState extends ConsumerState<NavidromeLibraryPage>
       initialIndex: initialIndex,
     );
     _tabController.addListener(_handleTabChanged);
-    _client = SubsonicClient(
+    _client = RemoteMediaLibraryClient.create(
       server: widget.server,
       password: widget.password,
     );
@@ -731,10 +731,7 @@ class _NavidromeLibraryPageState extends ConsumerState<NavidromeLibraryPage>
       final newParsedSongs = <MusicFile>[];
       final newStarred = <String>{};
       for (final raw in rawSongs) {
-        final song = RemoteMediaResolver.buildMusicFileFromSubsonic(
-          raw,
-          widget.server,
-        );
+        final song = _client.buildMusicFile(raw);
         newParsedSongs.add(song);
         if (raw['starred'] != null) {
           final id = raw['id']?.toString() ?? song.id.toString();
@@ -801,7 +798,7 @@ class _NavidromeLibraryPageState extends ConsumerState<NavidromeLibraryPage>
   }
 
   Future<void> _toggleSongStar(MusicFile song) async {
-    final trackId = RemoteMediaResolver.extractSubsonicTrackId(song) ??
+    final trackId = RemoteMediaResolver.extractTrackId(song) ??
         (song.id != null && song.id! > 0 ? song.id.toString() : '');
     if (trackId.isEmpty) return;
 
@@ -955,12 +952,7 @@ class _NavidromeLibraryPageState extends ConsumerState<NavidromeLibraryPage>
         if (songList != null) {
           for (final s in songList) {
             if (s is Map<String, dynamic>) {
-              songs.add(
-                RemoteMediaResolver.buildMusicFileFromSubsonic(
-                  s,
-                  widget.server,
-                ),
-              );
+              songs.add(_client.buildMusicFile(s));
             }
           }
         }

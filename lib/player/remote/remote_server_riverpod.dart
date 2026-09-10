@@ -6,6 +6,7 @@ import '../../models/music_file.dart';
 import 'clients/subsonic_client.dart';
 import 'clients/webdav_client.dart';
 import 'clients/smb_client.dart';
+import 'clients/jellyfin_client.dart';
 import '../metadata/metadata_database.dart';
 
 final remoteServerStorageProvider = FutureProvider<RemoteServerStorage>((ref) async {
@@ -68,6 +69,9 @@ class RemoteServersNotifier extends AsyncNotifier<List<RemoteServer>> {
       return client.testConnection();
     } else if (server.type == RemoteServerType.smb) {
       final client = SmbClient(server: server, password: password);
+      return client.testConnection();
+    } else if (server.type == RemoteServerType.jellyfin) {
+      final client = JellyfinClient(server: server, password: password);
       return client.testConnection();
     } else {
       final client = WebDavClient(server: server, password: password);

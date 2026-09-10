@@ -249,6 +249,8 @@ class ScannerMetadataStore {
 
     final isRemote = metadata.path.startsWith('webdav://') ||
         metadata.path.startsWith('subsonic://') ||
+        metadata.path.startsWith('jellyfin://') ||
+        metadata.path.startsWith('smb://') ||
         metadata.path.startsWith('http://') ||
         metadata.path.startsWith('https://');
 

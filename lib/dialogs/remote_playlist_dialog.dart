@@ -4,7 +4,7 @@ import 'package:oktoast/oktoast.dart';
 import '../l10n/app_localizations.dart';
 import '../models/music_file.dart';
 import '../player/audio/audio_riverpod.dart';
-import '../player/remote/clients/subsonic_client.dart';
+import '../player/remote/clients/remote_media_library_client.dart';
 import '../player/remote/proxy/remote_media_resolver.dart';
 import '../player/remote/remote_server_models.dart';
 import '../utils/song_context_menu_utils.dart';
@@ -18,14 +18,14 @@ class RemoteAddToPlaylistDialog {
     required List<MusicFile> songs,
   }) async {
     if (songs.isEmpty) return;
-    final client = SubsonicClient(server: server, password: password);
+    final client = RemoteMediaLibraryClient.create(server: server, password: password);
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
 
-    // Extract Subsonic track IDs
+    // Extract remote track IDs
     final List<String> songIds = [];
     for (final song in songs) {
-      final trackId = RemoteMediaResolver.extractSubsonicTrackId(song);
+      final trackId = RemoteMediaResolver.extractTrackId(song);
       if (trackId != null && trackId.isNotEmpty && trackId != 'null') {
         songIds.add(trackId);
       }
@@ -53,7 +53,7 @@ class RemoteAddToPlaylistDialog {
 }
 
 class _RemotePlaylistDialogContent extends StatefulWidget {
-  final SubsonicClient client;
+  final RemoteMediaLibraryClient client;
   final List<MusicFile> songs;
   final List<String> songIds;
   final ThemeData theme;
