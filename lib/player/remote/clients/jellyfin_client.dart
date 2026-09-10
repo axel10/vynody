@@ -390,6 +390,7 @@ class JellyfinClient {
         'SortBy': 'SortName',
         'SortOrder': 'Ascending',
         'Recursive': true,
+        'Fields': 'ItemCounts',
       },
     );
 
@@ -717,6 +718,7 @@ class JellyfinClient {
         'SortBy': 'SortName',
         'SortOrder': 'Ascending',
         'Recursive': true,
+        'Fields': 'ItemCounts',
       },
     );
 
@@ -818,32 +820,64 @@ class JellyfinClient {
     int albumCount = 20,
     int songCount = 50,
   }) async {
-    final session = await authenticate();
-    final res = await _get(
-      '/Users/${session.userId}/Items',
-      {
-        'SearchTerm': query,
-        'IncludeItemTypes': 'MusicArtist,MusicAlbum,Audio',
-        'Recursive': true,
-        'Limit': artistCount + albumCount + songCount,
-      },
-    );
-
-    final items = res['Items'] as List? ?? [];
-    final songs = <Map<String, dynamic>>[];
-    final albums = <Map<String, dynamic>>[];
-    final artists = <Map<String, dynamic>>[];
-
-    for (final item in items.whereType<Map<String, dynamic>>()) {
-      final type = item['Type'] as String? ?? '';
-      if (type == 'Audio' && songs.length < songCount) {
-        songs.add(normalizeSongItem(item));
-      } else if (type == 'MusicAlbum' && albums.length < albumCount) {
-        albums.add(normalizeAlbumItem(item));
-      } else if ((type == 'MusicArtist' || type == 'Artist') && artists.length < artistCount) {
-        artists.add(normalizeArtistItem(item));
-      }
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) {
+      return {
+        'song': <Map<String, dynamic>>[],
+        'album': <Map<String, dynamic>>[],
+        'artist': <Map<String, dynamic>>[],
+      };
     }
+
+    final session = await authenticate();
+
+    final results = await Future.wait([
+      _get(
+        '/Artists',
+        {
+          'userId': session.userId,
+          'SearchTerm': trimmed,
+          'Limit': artistCount,
+          'Fields': 'ItemCounts',
+        },
+      ).catchError((_) => <String, dynamic>{}),
+      _get(
+        '/Users/${session.userId}/Items',
+        {
+          'SearchTerm': trimmed,
+          'IncludeItemTypes': 'MusicAlbum',
+          'Recursive': true,
+          'Limit': albumCount,
+          'Fields': 'ChildCount,ItemCounts',
+        },
+      ).catchError((_) => <String, dynamic>{}),
+      _get(
+        '/Users/${session.userId}/Items',
+        {
+          'SearchTerm': trimmed,
+          'IncludeItemTypes': 'Audio',
+          'Recursive': true,
+          'Limit': songCount,
+        },
+      ).catchError((_) => <String, dynamic>{}),
+    ]);
+
+    final artistItems = results[0]['Items'] as List? ?? [];
+    final albumItems = results[1]['Items'] as List? ?? [];
+    final songItems = results[2]['Items'] as List? ?? [];
+
+    final artists = artistItems
+        .whereType<Map<String, dynamic>>()
+        .map(normalizeArtistItem)
+        .toList();
+    final albums = albumItems
+        .whereType<Map<String, dynamic>>()
+        .map(normalizeAlbumItem)
+        .toList();
+    final songs = songItems
+        .whereType<Map<String, dynamic>>()
+        .map(normalizeSongItem)
+        .toList();
 
     return {
       'song': songs,
