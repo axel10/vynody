@@ -415,12 +415,20 @@ class _MainLayoutState extends ConsumerState<MainLayout>
   @override
   void onWindowMaximize() {
     ref.read(isWindowMinimizedProvider.notifier).state = false;
+    final settings = ref.read(settingsServiceProvider);
+    if (!settings.isSmallWindowMode) {
+      settings.isRegularWindowMaximized = true;
+    }
     debugPrint('[main_layout] Window maximized');
   }
 
   @override
   void onWindowUnmaximize() {
     ref.read(isWindowMinimizedProvider.notifier).state = false;
+    final settings = ref.read(settingsServiceProvider);
+    if (!settings.isSmallWindowMode) {
+      settings.isRegularWindowMaximized = false;
+    }
     debugPrint('[main_layout] Window unmaximized');
   }
 
@@ -479,11 +487,14 @@ class _MainLayoutState extends ConsumerState<MainLayout>
         final isFullScreen = await windowManager.isFullScreen();
         final isMinimized = await windowManager.isMinimized();
         if (!isMaximized && !isFullScreen && !isMinimized) {
+          settings.isRegularWindowMaximized = false;
           final size = await windowManager.getSize();
           if (size.width >= 400 && size.height >= 650) {
             settings.savedRegularWindowSize = size;
             debugPrint('[vynody] savedRegularWindowSize updated to $size');
           }
+        } else if (isMaximized) {
+          settings.isRegularWindowMaximized = true;
         }
       }
     });
@@ -1091,6 +1102,9 @@ class _MainLayoutState extends ConsumerState<MainLayout>
             );
             await windowManager.setSize(savedSize);
             await windowManager.setAlwaysOnTop(false);
+            if (settings.isRegularWindowMaximized) {
+              await windowManager.maximize();
+            }
           }
         }
       },

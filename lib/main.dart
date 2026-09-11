@@ -275,6 +275,10 @@ void main(List<String> args) async {
         windowManager.waitUntilReadyToShow(windowOptions, () async {
           AppLog.log('window ready to show', mirrorToConsole: true);
           MemoryTrace.snapshot('main:window-ready');
+          if (settingsService.isRegularWindowMaximized &&
+              !settingsService.isSmallWindowMode) {
+            await windowManager.maximize();
+          }
           await windowManager.show();
           await windowManager.focus();
         });
@@ -476,11 +480,19 @@ class _MyAppState extends ConsumerState<MyApp>
 
   @override
   void onWindowMaximize() {
+    final settings = ref.read(settingsServiceProvider);
+    if (!settings.isSmallWindowMode) {
+      settings.isRegularWindowMaximized = true;
+    }
     _syncWindowState();
   }
 
   @override
   void onWindowUnmaximize() {
+    final settings = ref.read(settingsServiceProvider);
+    if (!settings.isSmallWindowMode) {
+      settings.isRegularWindowMaximized = false;
+    }
     _syncWindowState();
   }
 

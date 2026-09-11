@@ -547,6 +547,7 @@ class SettingsService extends ChangeNotifier {
 
   static const String _keyRegularWindowWidth = 'regular_window_width';
   static const String _keyRegularWindowHeight = 'regular_window_height';
+  static const String _keyRegularWindowMaximized = 'regular_window_maximized';
   static const String _keySmallWindowWidth = 'small_window_width';
   static const String _keySmallWindowHeight = 'small_window_height';
   static const String _keySmallWindowBottomPanelMode =
@@ -606,6 +607,13 @@ class SettingsService extends ChangeNotifier {
   late final _regularWindowHeightProperty = SettingProperty<double>(
     key: _keyRegularWindowHeight,
     defaultValue: 720.0,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
+  late final _regularWindowMaximizedProperty = SettingProperty<bool>(
+    key: _keyRegularWindowMaximized,
+    defaultValue: false,
     prefs: _prefs,
     onChanged: notifyListeners,
   );
@@ -3015,6 +3023,12 @@ class SettingsService extends ChangeNotifier {
   set savedRegularWindowSize(Size size) {
     _regularWindowWidthProperty.value = size.width.clamp(400.0, 99999.0);
     _regularWindowHeightProperty.value = size.height.clamp(650.0, 99999.0);
+  }
+
+  bool get isRegularWindowMaximized => _regularWindowMaximizedProperty.value;
+
+  set isRegularWindowMaximized(bool value) {
+    _regularWindowMaximizedProperty.value = value;
   }
 }
 
