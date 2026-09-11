@@ -2142,6 +2142,10 @@ class AppLocalizationsTr extends AppLocalizations {
       'Kullanılabilir söz yok, zaman çizelgesi oluşturulamıyor.';
 
   @override
+  String get karaokeRequiresSyncedLyrics =>
+      'Yalnızca zaman damgalı senkronize şarkı sözleri kelime kelime dönüştürülebilir. Düz metin şarkı sözleri desteklenmez.';
+
+  @override
   String get noLyricsAvailableForTranslation =>
       'Çeviri için uygun şarkı sözü bulunamadı.';
 

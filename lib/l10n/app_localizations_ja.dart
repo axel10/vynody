@@ -2086,6 +2086,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get noLyricsForTimelineGeneration => 'タイムライン生成に利用可能な歌詞がありません。';
 
   @override
+  String get karaokeRequiresSyncedLyrics =>
+      'タイムライン付きの同期歌詞のみを単語ごとの歌詞に変換できます。プレーンテキストの歌詞は変換できません。';
+
+  @override
   String get noLyricsAvailableForTranslation => '翻訳に利用可能な歌詞がありません。';
 
   @override

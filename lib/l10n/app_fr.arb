@@ -812,6 +812,7 @@
   "localSongFileNotFoundForGeneration": "Le fichier local n'existe pas. Impossible de générer les paroles.",
   "localSongFileNotFoundForTimeline": "Le fichier local n'existe pas. Impossible de générer la chronologie.",
   "noLyricsForTimelineGeneration": "Aucune parole disponible pour générer la chronologie.",
+  "karaokeRequiresSyncedLyrics": "Seules les paroles synchronisées avec horodatage peuvent être converties en paroles mot à mot. Les paroles en texte brut ne sont pas prises en charge.",
   "noLyricsAvailableForTranslation": "Aucune parole disponible pour la traduction.",
   "noCurrentSongAvailable": "Aucune chanson en cours.",
   "invalidTargetLanguage": "Langue cible invalide.",

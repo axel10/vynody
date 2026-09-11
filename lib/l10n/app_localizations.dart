@@ -4011,6 +4011,12 @@ abstract class AppLocalizations {
   /// **'没有可用歌词，无法生成时间轴。'**
   String get noLyricsForTimelineGeneration;
 
+  /// No description provided for @karaokeRequiresSyncedLyrics.
+  ///
+  /// In zh, this message translates to:
+  /// **'仅支持包含时间轴的同步歌词转换为逐字歌词，纯文本歌词无法转换。'**
+  String get karaokeRequiresSyncedLyrics;
+
   /// No description provided for @noLyricsAvailableForTranslation.
   ///
   /// In zh, this message translates to:

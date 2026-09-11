@@ -812,6 +812,7 @@
   "localSongFileNotFoundForGeneration": "Lokale Songdatei existiert nicht, Songtext kann nicht generiert werden.",
   "localSongFileNotFoundForTimeline": "Lokale Songdatei existiert nicht, Zeitachse kann nicht generiert werden.",
   "noLyricsForTimelineGeneration": "Kein Songtext für die Erstellung der Zeitachse verfügbar.",
+  "karaokeRequiresSyncedLyrics": "Nur synchronisierte Songtexte mit Zeitachse können in Wort-für-Wort-Songtexte umgewandelt werden. Reine Textsongtexte werden nicht unterstützt.",
   "noLyricsAvailableForTranslation": "Kein Songtext zum Übersetzen verfügbar.",
   "noCurrentSongAvailable": "Kein aktueller Titel verfügbar.",
   "invalidTargetLanguage": "Ungültige Zielsprache.",

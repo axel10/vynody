@@ -2061,6 +2061,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get noLyricsForTimelineGeneration => '没有可用歌词，无法生成时间轴。';
 
   @override
+  String get karaokeRequiresSyncedLyrics => '仅支持包含时间轴的同步歌词转换为逐字歌词，纯文本歌词无法转换。';
+
+  @override
   String get noLyricsAvailableForTranslation => '没有可用于翻译的歌词。';
 
   @override
@@ -6577,6 +6580,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get noLyricsForTimelineGeneration => '沒有可用歌詞，無法生成時間軸。';
+
+  @override
+  String get karaokeRequiresSyncedLyrics => '僅支援包含時間軸的同步歌詞轉換為逐字歌詞，純文字歌詞無法轉換。';
 
   @override
   String get noLyricsAvailableForTranslation => '沒有可用於翻譯的歌詞。';

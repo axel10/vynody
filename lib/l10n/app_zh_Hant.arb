@@ -646,6 +646,7 @@
   "localSongFileNotFoundForGeneration": "本機歌曲檔案不存在，無法生成歌詞。",
   "localSongFileNotFoundForTimeline": "本機歌曲檔案不存在，無法生成時間軸。",
   "noLyricsForTimelineGeneration": "沒有可用歌詞，無法生成時間軸。",
+  "karaokeRequiresSyncedLyrics": "僅支援包含時間軸的同步歌詞轉換為逐字歌詞，純文字歌詞無法轉換。",
   "noLyricsAvailableForTranslation": "沒有可用於翻譯的歌詞。",
   "noCurrentSongAvailable": "沒有可用的目前歌曲。",
   "invalidTargetLanguage": "目標語言無效。",

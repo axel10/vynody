@@ -812,6 +812,7 @@
   "localSongFileNotFoundForGeneration": "El archivo de la canción local no existe. No se pueden generar letras.",
   "localSongFileNotFoundForTimeline": "El archivo de la canción local no existe. No se puede generar línea de tiempo.",
   "noLyricsForTimelineGeneration": "No hay letras disponibles para generar línea de tiempo.",
+  "karaokeRequiresSyncedLyrics": "Solo las letras sincronizadas con marcas de tiempo se pueden convertir a palabra por palabra. Las letras de texto sin formato no son compatibles.",
   "noLyricsAvailableForTranslation": "No hay letras disponibles para traducir.",
   "noCurrentSongAvailable": "No hay una canción actual disponible.",
   "invalidTargetLanguage": "Idioma de destino no válido.",

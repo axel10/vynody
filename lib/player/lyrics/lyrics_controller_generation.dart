@@ -602,7 +602,14 @@ class LyricsGenerationCoordinator {
     if (!_context.isProUnlocked()) {
       return _l10n().proTrialExpired;
     }
-    final sourceLyrics = _timelineSourceLyricsForSong(song).trim();
+    if (!_hasTimedLyricsForSong(song)) {
+      debugPrint(
+        '[LyricsController] convert to karaoke skipped: song has no timed lyrics '
+        'path=${song.path}',
+      );
+      return _l10n().karaokeRequiresSyncedLyrics;
+    }
+    final sourceLyrics = _karaokeSourceLyricsForSong(song).trim();
     if (sourceLyrics.isEmpty) {
       debugPrint(
         '[LyricsController] convert to karaoke skipped: no usable lyrics '
@@ -676,6 +683,14 @@ class LyricsGenerationCoordinator {
         '[LyricsController] convert to karaoke skipped: no current song',
       );
       return _l10n().noCurrentSongAvailable;
+    }
+    final activeSong = _support.songForPath(song.path) ?? song;
+    if (!_hasTimedLyricsForSong(activeSong)) {
+      debugPrint(
+        '[LyricsController] convert to karaoke skipped: song has no timed lyrics '
+        'path=${song.path}',
+      );
+      return _l10n().karaokeRequiresSyncedLyrics;
     }
     if (_context.isLyricsGenerationBusyForSong(song.path)) {
       return _l10n().songAlreadyQueuedForGeneration;
@@ -762,6 +777,48 @@ class LyricsGenerationCoordinator {
     }
 
     return _context.getState().currentLyricsText.trim();
+  }
+
+  bool _hasTimedLyricsForSong(MusicFile song) {
+    if (song.lyrics?.isSynced == true) return true;
+    if (_context.getState().currentLyricsLines.any((line) => line.isTimed)) {
+      return true;
+    }
+    final sourceLyrics = _timelineSourceLyricsForSong(song);
+    if (sourceLyrics.isNotEmpty &&
+        LrcUtils.parseTimedLyrics(sourceLyrics).any((line) => line.isTimed)) {
+      return true;
+    }
+    return false;
+  }
+
+  String _karaokeSourceLyricsForSong(MusicFile song) {
+    final lyrics = song.lyrics;
+    if (lyrics != null && lyrics.isSynced) {
+      if (LrcUtils.parseTimedLyrics(lyrics.plainText).any((line) => line.isTimed)) {
+        return lyrics.plainText.trim();
+      }
+      return _support.lyricsTextWithTimestamps(lyrics);
+    }
+    final state = _context.getState();
+    if (state.currentLyricsLines.any((line) => line.isTimed)) {
+      final rawText = state.currentLyricsText.trim();
+      if (LrcUtils.parseTimedLyrics(rawText).any((line) => line.isTimed)) {
+        return rawText;
+      }
+      return state.currentLyricsLines
+          .map((line) {
+            if (!line.isTimed) return line.text.trimRight();
+            final ms = line.timestamp.inMilliseconds;
+            final m = ms ~/ 60000;
+            final s = (ms % 60000) ~/ 1000;
+            final cs = (ms % 1000) ~/ 10;
+            return '[${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}.${cs.toString().padLeft(2, '0')}]${line.text}';
+          })
+          .join('\n')
+          .trim();
+    }
+    return _timelineSourceLyricsForSong(song);
   }
 }
 

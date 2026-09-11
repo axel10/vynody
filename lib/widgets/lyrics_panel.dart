@@ -607,7 +607,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
           icon: Icons.timer_rounded,
           context: context,
         ),
-      if (lyricsState.hasLyrics)
+      if (lyricsState.hasLyrics && _hasTimedLyrics(displayLines))
         buildContextMenuItem<String>(
           value: 'convert_to_karaoke',
           enabled: hasCurrentSong && !taskState.isGenerationBusy,
@@ -830,6 +830,10 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
         }
       }
     } else if (selected == 'convert_to_karaoke') {
+      if (!_hasTimedLyrics(displayLines)) {
+        showToast(l10n.karaokeRequiresSyncedLyrics);
+        return;
+      }
       if (!await checkProGate(context, ref, feature: ProFeature.aiLyrics)) return;
       if (!context.mounted || !mounted) return;
       if (await _ensureLyricsApiKey()) {

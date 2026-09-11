@@ -2166,6 +2166,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Aucune parole disponible pour générer la chronologie.';
 
   @override
+  String get karaokeRequiresSyncedLyrics =>
+      'Seules les paroles synchronisées avec horodatage peuvent être converties en paroles mot à mot. Les paroles en texte brut ne sont pas prises en charge.';
+
+  @override
   String get noLyricsAvailableForTranslation =>
       'Aucune parole disponible pour la traduction.';
 

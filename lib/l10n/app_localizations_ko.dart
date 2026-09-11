@@ -2089,6 +2089,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get noLyricsForTimelineGeneration => '타임라인 생성에 사용할 수 있는 가사가 없습니다.';
 
   @override
+  String get karaokeRequiresSyncedLyrics =>
+      '타임라인이 있는 동기화된 가사만 단어별 가사로 변환할 수 있으며, 일반 텍스트 가사는 변환할 수 없습니다.';
+
+  @override
   String get noLyricsAvailableForTranslation => '번역에 사용할 수 있는 가사가 없습니다.';
 
   @override

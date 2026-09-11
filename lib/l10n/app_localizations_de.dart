@@ -2161,6 +2161,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Kein Songtext für die Erstellung der Zeitachse verfügbar.';
 
   @override
+  String get karaokeRequiresSyncedLyrics =>
+      'Nur synchronisierte Songtexte mit Zeitachse können in Wort-für-Wort-Songtexte umgewandelt werden. Reine Textsongtexte werden nicht unterstützt.';
+
+  @override
   String get noLyricsAvailableForTranslation =>
       'Kein Songtext zum Übersetzen verfügbar.';
 

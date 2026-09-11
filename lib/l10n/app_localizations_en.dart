@@ -2137,6 +2137,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'No lyrics available for timeline generation.';
 
   @override
+  String get karaokeRequiresSyncedLyrics =>
+      'Only synchronized lyrics with timestamps can be converted to word-by-word lyrics. Plain text lyrics are not supported.';
+
+  @override
   String get noLyricsAvailableForTranslation =>
       'No lyrics are available for translation.';
 

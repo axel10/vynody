@@ -890,6 +890,7 @@
   "localSongFileNotFoundForGeneration": "Yerel şarkı dosyası bulunamadı, söz oluşturulamıyor.",
   "localSongFileNotFoundForTimeline": "Yerel şarkı dosyası bulunamadı, zaman çizelgesi oluşturulamıyor.",
   "noLyricsForTimelineGeneration": "Kullanılabilir söz yok, zaman çizelgesi oluşturulamıyor.",
+  "karaokeRequiresSyncedLyrics": "Yalnızca zaman damgalı senkronize şarkı sözleri kelime kelime dönüştürülebilir. Düz metin şarkı sözleri desteklenmez.",
   "noLyricsAvailableForTranslation": "Çeviri için uygun şarkı sözü bulunamadı.",
   "noCurrentSongAvailable": "Şu anda çalınan şarkı yok.",
   "invalidTargetLanguage": "Hedef dil geçersiz.",

@@ -1368,6 +1368,7 @@
   "localSongFileNotFoundForGeneration": "本地歌曲文件不存在，无法生成歌词。",
   "localSongFileNotFoundForTimeline": "本地歌曲文件不存在，无法生成时间轴。",
   "noLyricsForTimelineGeneration": "没有可用歌词，无法生成时间轴。",
+  "karaokeRequiresSyncedLyrics": "仅支持包含时间轴的同步歌词转换为逐字歌词，纯文本歌词无法转换。",
   "noLyricsAvailableForTranslation": "没有可用于翻译的歌词。",
   "noCurrentSongAvailable": "没有可用的当前歌曲。",
   "invalidTargetLanguage": "目标语言无效。",

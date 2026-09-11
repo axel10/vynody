@@ -255,5 +255,16 @@ void main() {
       expect(parsed[0].words?[4].text, 'heart');
       expect(parsed[0].words?[5].text, '溢');
     });
+
+    test('LrcUtils and MusicLyric correctly distinguish timed lyrics from plain text lyrics', () {
+      const plainLyrics = 'First line without time\nSecond line without time';
+      const timedLyrics = '[00:01.00]First line with time\n[00:05.00]Second line with time';
+
+      final plainParsed = LrcUtils.parseTimedLyrics(plainLyrics);
+      expect(plainParsed.any((line) => line.isTimed), isFalse);
+
+      final timedParsed = LrcUtils.parseTimedLyrics(timedLyrics);
+      expect(timedParsed.any((line) => line.isTimed), isTrue);
+    });
   });
 }

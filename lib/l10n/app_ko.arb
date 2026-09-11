@@ -812,6 +812,7 @@
   "localSongFileNotFoundForGeneration": "로컬 노래 파일이 존재하지 않아 가사를 생성할 수 없습니다.",
   "localSongFileNotFoundForTimeline": "로컬 노래 파일이 존재하지 않아 타임라인을 생성할 수 없습니다.",
   "noLyricsForTimelineGeneration": "타임라인 생성에 사용할 수 있는 가사가 없습니다.",
+  "karaokeRequiresSyncedLyrics": "타임라인이 있는 동기화된 가사만 단어별 가사로 변환할 수 있으며, 일반 텍스트 가사는 변환할 수 없습니다.",
   "noLyricsAvailableForTranslation": "번역에 사용할 수 있는 가사가 없습니다.",
   "noCurrentSongAvailable": "현재 노래가 없습니다.",
   "invalidTargetLanguage": "유효하지 않은 대상 언어입니다.",

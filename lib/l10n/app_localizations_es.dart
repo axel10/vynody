@@ -2167,6 +2167,10 @@ class AppLocalizationsEs extends AppLocalizations {
       'No hay letras disponibles para generar línea de tiempo.';
 
   @override
+  String get karaokeRequiresSyncedLyrics =>
+      'Solo las letras sincronizadas con marcas de tiempo se pueden convertir a palabra por palabra. Las letras de texto sin formato no son compatibles.';
+
+  @override
   String get noLyricsAvailableForTranslation =>
       'No hay letras disponibles para traducir.';
 

@@ -820,6 +820,7 @@
   "localSongFileNotFoundForGeneration": "The local song file does not exist, so lyrics cannot be generated.",
   "localSongFileNotFoundForTimeline": "The local song file does not exist, so a timeline cannot be generated.",
   "noLyricsForTimelineGeneration": "No lyrics available for timeline generation.",
+  "karaokeRequiresSyncedLyrics": "Only synchronized lyrics with timestamps can be converted to word-by-word lyrics. Plain text lyrics are not supported.",
   "noLyricsAvailableForTranslation": "No lyrics are available for translation.",
   "noCurrentSongAvailable": "No current song available.",
   "invalidTargetLanguage": "Invalid target language.",
