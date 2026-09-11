@@ -224,16 +224,30 @@ class _AddEditRemoteServerDialogState
     }
   }
 
+  IconData _getServerIcon(RemoteServerType type) {
+    return switch (type) {
+      RemoteServerType.subsonic => Icons.library_music_rounded,
+      RemoteServerType.jellyfin => Icons.movie_filter_outlined,
+      RemoteServerType.webdav => Icons.folder_copy_outlined,
+      RemoteServerType.smb => Icons.dns_outlined,
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
+    final isDesktop = theme.platform == TargetPlatform.macOS ||
+        theme.platform == TargetPlatform.windows ||
+        theme.platform == TargetPlatform.linux;
+    final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
+    final useDropdown = !isDesktop && isPortrait;
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       insetPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 540, maxHeight: 720),
+        constraints: const BoxConstraints(maxWidth: 620, maxHeight: 720),
         child: Padding(
           padding: const EdgeInsets.all(20.0),
           child: Form(
@@ -245,9 +259,7 @@ class _AddEditRemoteServerDialogState
                 Row(
                   children: [
                     Icon(
-                      _serverType == RemoteServerType.subsonic
-                          ? Icons.cloud_queue_rounded
-                          : Icons.folder_shared_outlined,
+                      _getServerIcon(_serverType),
                       color: theme.colorScheme.primary,
                       size: 28,
                     ),
@@ -269,43 +281,107 @@ class _AddEditRemoteServerDialogState
                   ],
                 ),
                 const SizedBox(height: 16),
-                SegmentedButton<RemoteServerType>(
-                  segments: const [
-                    ButtonSegment(
-                      value: RemoteServerType.subsonic,
-                      icon: Icon(Icons.library_music_rounded),
-                      label: Text('Navidrome'),
+                if (!useDropdown) ...[
+                  SegmentedButton<RemoteServerType>(
+                    showSelectedIcon: false,
+                    style: SegmentedButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
                     ),
-                    ButtonSegment(
-                      value: RemoteServerType.jellyfin,
-                      icon: Icon(Icons.movie_filter_outlined),
-                      label: Text('Jellyfin'),
-                    ),
-                    ButtonSegment(
-                      value: RemoteServerType.webdav,
-                      icon: Icon(Icons.folder_copy_outlined),
-                      label: Text('WebDAV'),
-                    ),
-                    ButtonSegment(
-                      value: RemoteServerType.smb,
-                      icon: Icon(Icons.dns_outlined),
-                      label: Text('SMB'),
-                    ),
-                  ],
-                  selected: {_serverType},
-                  onSelectionChanged: (selected) {
-                    setState(() {
-                      _serverType = selected.first;
-                      _testResult = null;
-                    });
-                  },
-                ),
-                const SizedBox(height: 16),
+                    segments: const [
+                      ButtonSegment(
+                        value: RemoteServerType.subsonic,
+                        icon: Icon(Icons.library_music_rounded, size: 18),
+                        label: Text(
+                          'Navidrome',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          softWrap: false,
+                        ),
+                      ),
+                      ButtonSegment(
+                        value: RemoteServerType.jellyfin,
+                        icon: Icon(Icons.movie_filter_outlined, size: 18),
+                        label: Text(
+                          'Jellyfin',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          softWrap: false,
+                        ),
+                      ),
+                      ButtonSegment(
+                        value: RemoteServerType.webdav,
+                        icon: Icon(Icons.folder_copy_outlined, size: 18),
+                        label: Text(
+                          'WebDAV',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          softWrap: false,
+                        ),
+                      ),
+                      ButtonSegment(
+                        value: RemoteServerType.smb,
+                        icon: Icon(Icons.dns_outlined, size: 18),
+                        label: Text(
+                          'SMB',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          softWrap: false,
+                        ),
+                      ),
+                    ],
+                    selected: {_serverType},
+                    onSelectionChanged: (selected) {
+                      setState(() {
+                        _serverType = selected.first;
+                        _testResult = null;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                ],
                 Expanded(
                   child: SingleChildScrollView(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        if (useDropdown) ...[
+                          DropdownButtonFormField<RemoteServerType>(
+                            value: _serverType,
+                            isExpanded: true,
+                            decoration: InputDecoration(
+                              labelText: l10n.serverType,
+                              prefixIcon: Icon(_getServerIcon(_serverType)),
+                              border: const OutlineInputBorder(),
+                            ),
+                            items: RemoteServerType.values.map((type) {
+                              return DropdownMenuItem(
+                                value: type,
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(_getServerIcon(type), size: 20),
+                                    const SizedBox(width: 10),
+                                    Text(type.displayName),
+                                  ],
+                                ),
+                              );
+                            }).toList(),
+                            onChanged: (val) {
+                              if (val != null && val != _serverType) {
+                                WidgetsBinding.instance
+                                    .addPostFrameCallback((_) {
+                                  if (mounted) {
+                                    setState(() {
+                                      _serverType = val;
+                                      _testResult = null;
+                                    });
+                                  }
+                                });
+                              }
+                            },
+                          ),
+                          const SizedBox(height: 14),
+                        ],
                         TextFormField(
                           controller: _nameController,
                           decoration: InputDecoration(
