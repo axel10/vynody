@@ -92,7 +92,7 @@ void main() {
       );
       expect(
         normalized,
-        '[00:08.89]Some [00:09.47]days [00:09.68]you\'re [00:09.91]alone, [00:10.51] yeah',
+        '[00:08.89]Some [00:09.47]days [00:09.68]you\'re [00:09.91]alone, [00:10.51]yeah',
       );
     });
 
@@ -131,6 +131,80 @@ void main() {
       expect(parsed[0].words?.length, 5);
       expect(parsed[1].text, "Some days this don't feel like home");
       expect(parsed[1].words?.length, 7);
+    });
+
+    test('sanitizeKaraokeLineSpaces removes extra spaces between non-English (CJK) characters', () {
+      // Spaces after timestamps (user example: [00:14.39] 繋[00:14.65] い[00:15.00] だ)
+      const userExample = '[00:14.39] 繋[00:14.65] い[00:15.00] だ';
+      expect(
+        LrcUtils.sanitizeKaraokeLineSpaces(userExample),
+        '[00:14.39]繋[00:14.65]い[00:15.00]だ',
+      );
+
+      // Spaces before timestamps
+      const spacesBefore = '[00:14.39]繋 [00:14.65]い [00:15.00]だ';
+      expect(
+        LrcUtils.sanitizeKaraokeLineSpaces(spacesBefore),
+        '[00:14.39]繋[00:14.65]い[00:15.00]だ',
+      );
+
+      // Spaces on both sides of timestamps
+      const spacesBoth = '[00:14.39] 繋 [00:14.65] い [00:15.00] だ ';
+      expect(
+        LrcUtils.sanitizeKaraokeLineSpaces(spacesBoth),
+        '[00:14.39]繋[00:14.65]い[00:15.00]だ',
+      );
+
+      // Chinese characters
+      const chineseLine = '[00:01.00] 你[00:01.50] 好[00:02.00] 世[00:02.50] 界';
+      expect(
+        LrcUtils.sanitizeKaraokeLineSpaces(chineseLine),
+        '[00:01.00]你[00:01.50]好[00:02.00]世[00:02.50]界',
+      );
+    });
+
+    test('sanitizeKaraokeLineSpaces preserves spaces between English words in mixed lyrics', () {
+      const mixedLine =
+          '[00:10.00] 说 [00:10.50] 一 [00:11.00] 声 [00:11.50] Goodbye [00:12.00] my [00:12.50] love';
+      final sanitized = LrcUtils.sanitizeKaraokeLineSpaces(mixedLine);
+
+      // Chinese characters have no spaces, English words keep single spaces between them
+      expect(
+        sanitized,
+        '[00:10.00]说[00:10.50]一[00:11.00]声 [00:11.50]Goodbye [00:12.00]my [00:12.50]love',
+      );
+    });
+
+    test('parseTimedLyrics correctly parses sanitized non-English and mixed karaoke lines', () {
+      const userExample = '[00:14.39] 繋[00:14.65] い[00:15.00] だ';
+      final parsed = LrcUtils.parseTimedLyrics(userExample);
+      expect(parsed.length, 1);
+      expect(parsed[0].text, '繋いだ');
+      expect(parsed[0].words?.length, 3);
+      expect(parsed[0].words?[0].text, '繋');
+      expect(parsed[0].words?[1].text, 'い');
+      expect(parsed[0].words?[2].text, 'だ');
+
+      const mixedLine =
+          '[00:10.00] 说 [00:10.50] 一 [00:11.00] 声 [00:11.50] Goodbye [00:12.00] my [00:12.50] love';
+      final parsedMixed = LrcUtils.parseTimedLyrics(mixedLine);
+      expect(parsedMixed.length, 1);
+      expect(parsedMixed[0].text, '说一声 Goodbye my love');
+      expect(parsedMixed[0].words?.length, 6);
+      expect(parsedMixed[0].words?[0].text, '说');
+      expect(parsedMixed[0].words?[1].text, '一');
+      expect(parsedMixed[0].words?[2].text, '声 ');
+      expect(parsedMixed[0].words?[3].text, 'Goodbye ');
+      expect(parsedMixed[0].words?[4].text, 'my ');
+      expect(parsedMixed[0].words?[5].text, 'love');
+    });
+
+    test('buildConvertToKaraokePrompt contains explicit space formatting guidelines', () {
+      const inputLyrics = '[00:01.00]繋いだ手を離して';
+      final prompt = LyricsAiPromptBuilder.buildConvertToKaraokePrompt(lyrics: inputLyrics);
+      expect(prompt, contains('【空格规范】'));
+      expect(prompt, contains('非英文歌词，字与字之间、字与时间戳之间严禁添加任何空格'));
+      expect(prompt, contains('英文单词，单词与单词之间必须保留正常空格'));
     });
   });
 }

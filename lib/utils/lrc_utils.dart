@@ -200,7 +200,11 @@ class LrcUtils {
     return false;
   }
 
-  static void _parseSingleNormalizedLine(String line, List<LyricLine> targetList) {
+  static void _parseSingleNormalizedLine(String rawLine, List<LyricLine> targetList) {
+    var line = rawLine;
+    if (isKaraokeLyricsLine(line)) {
+      line = sanitizeKaraokeLineSpaces(line);
+    }
     final lineTimestamps = <Duration>[];
     var index = 0;
     while (index < line.length) {
@@ -278,7 +282,10 @@ class LrcUtils {
             wordText = wordText.trimLeft();
           } else if (wordText.startsWith(RegExp(r'^\s+'))) {
             final last = wordTokens.removeLast();
-            final lastText = last.text.endsWith(' ') ? last.text : '${last.text} ';
+            final shouldAddSpace = _needsSpace(last.text, wordText);
+            final lastText = shouldAddSpace
+                ? (last.text.endsWith(' ') ? last.text : '${last.text} ')
+                : last.text.trimRight();
             wordTokens.add(_ParsedWordToken(last.timestamp, lastText));
             wordText = wordText.trimLeft();
           }
@@ -447,24 +454,192 @@ class LrcUtils {
     return result;
   }
 
+  static bool isCJKCodeUnit(int codeUnit) {
+    return (codeUnit >= 0x4e00 && codeUnit <= 0x9fff) || // CJK Unified Ideographs
+        (codeUnit >= 0x3400 && codeUnit <= 0x4dbf) ||     // CJK Extension A
+        (codeUnit >= 0x3040 && codeUnit <= 0x30ff) ||     // Hiragana & Katakana
+        (codeUnit >= 0x31f0 && codeUnit <= 0x31ff) ||     // Katakana Phonetic Extensions
+        (codeUnit >= 0x1100 && codeUnit <= 0x11ff) ||     // Hangul Jamo
+        (codeUnit >= 0x3130 && codeUnit <= 0x318f) ||     // Hangul Compatibility Jamo
+        (codeUnit >= 0xac00 && codeUnit <= 0xd7af);       // Hangul Syllables
+  }
+
+  static bool isCJKPunctuation(int codeUnit) {
+    return (codeUnit >= 0x3000 && codeUnit <= 0x303f) || // CJK Symbols and Punctuation
+        (codeUnit >= 0xff01 && codeUnit <= 0xff0f) ||     // Fullwidth ASCII punctuation
+        (codeUnit >= 0xff1a && codeUnit <= 0xff20) ||
+        (codeUnit >= 0xff3b && codeUnit <= 0xff40) ||
+        (codeUnit >= 0xff5b && codeUnit <= 0xff65);
+  }
+
+  static bool isWordConstituent(int codeUnit) {
+    return (codeUnit >= 0x41 && codeUnit <= 0x5a) ||     // A-Z
+        (codeUnit >= 0x61 && codeUnit <= 0x7a) ||         // a-z
+        (codeUnit >= 0x30 && codeUnit <= 0x39) ||         // 0-9
+        (codeUnit >= 0x00c0 && codeUnit <= 0x024f) ||     // Latin Extended-A and Extended-B
+        codeUnit == 0x27 ||                               // '
+        codeUnit == 0x2019;                               // ’
+  }
+
+  static bool _isPunctuation(int codeUnit) {
+    return isCJKPunctuation(codeUnit) ||
+        codeUnit == 0x2c || // ,
+        codeUnit == 0x2e || // .
+        codeUnit == 0x21 || // !
+        codeUnit == 0x3f || // ?
+        codeUnit == 0x3a || // :
+        codeUnit == 0x3b || // ;
+        codeUnit == 0x22 || // "
+        codeUnit == 0x28 || // (
+        codeUnit == 0x29 || // )
+        codeUnit == 0x2d || // -
+        codeUnit == 0x2f || // /
+        codeUnit == 0x7e;   // ~
+  }
+
   static bool _needsSpace(String text1, String text2) {
     if (text1.isEmpty || text2.isEmpty) return false;
-    final lastChar = text1.trimRight().codeUnitAt(text1.trimRight().length - 1);
-    final firstChar = text2.trimLeft().codeUnitAt(0);
+    final trimmed1 = text1.trimRight();
+    final trimmed2 = text2.trimLeft();
+    if (trimmed1.isEmpty || trimmed2.isEmpty) return false;
 
-    final isCJK1 = _isCJKCodeUnit(lastChar);
-    final isCJK2 = _isCJKCodeUnit(firstChar);
+    final lastChar = trimmed1.codeUnitAt(trimmed1.length - 1);
+    final firstChar = trimmed2.codeUnitAt(0);
+
+    final isCJK1 = isCJKCodeUnit(lastChar) || isCJKPunctuation(lastChar);
+    final isCJK2 = isCJKCodeUnit(firstChar) || isCJKPunctuation(firstChar);
 
     if (isCJK1 || isCJK2) return false;
     return true;
   }
 
-  static bool _isCJKCodeUnit(int codeUnit) {
-    return (codeUnit >= 0x4e00 && codeUnit <= 0x9fa5) ||
-        (codeUnit >= 0x3040 && codeUnit <= 0x30ff) ||
-        (codeUnit >= 0x31f0 && codeUnit <= 0x31ff) ||
-        (codeUnit >= 0x1100 && codeUnit <= 0x11ff) ||
-        (codeUnit >= 0xac00 && codeUnit <= 0xd7af);
+  static bool _isCJKCodeUnit(int codeUnit) => isCJKCodeUnit(codeUnit);
+
+  /// Cleans redundant spaces introduced by AI in karaoke lyrics while preserving
+  /// spaces between English/Latin words.
+  static String sanitizeKaraokeLineSpaces(String rawLine) {
+    if (rawLine.isEmpty) return rawLine;
+
+    final matches = _timestampLinePattern.allMatches(rawLine).toList();
+    if (matches.isEmpty) return rawLine;
+
+    // 单个时间戳普通行：若时间戳后紧跟空格且首字符为 CJK 字符，去除多余空格
+    if (matches.length == 1) {
+      final match = matches.first;
+      if (match.start == 0) {
+        final tag = match.group(0)!;
+        final rest = rawLine.substring(match.end);
+        if (rest.startsWith(RegExp(r'[\s\u3000]+'))) {
+          final trimmedRest = rest.replaceFirst(RegExp(r'^[\s\u3000]+'), '');
+          if (trimmedRest.isNotEmpty && isCJKCodeUnit(trimmedRest.codeUnitAt(0))) {
+            return '$tag$trimmedRest';
+          }
+        }
+      }
+      return rawLine;
+    }
+
+    // 逐字歌词行（卡拉OK行，含多个时间戳）
+    final prefix = rawLine.substring(0, matches.first.start).trim();
+    final spans = <_KaraokeTagSpan>[];
+    for (int i = 0; i < matches.length; i++) {
+      final match = matches[i];
+      final tag = match.group(0)!;
+      final start = match.end;
+      final end = (i + 1 < matches.length) ? matches[i + 1].start : rawLine.length;
+      final text = rawLine.substring(start, end);
+      spans.add(_KaraokeTagSpan(tag, text));
+    }
+
+    if (spans.isEmpty) return rawLine;
+
+    // 行首第一个标签后面的多余前导空格去掉
+    spans.first.text = spans.first.text.replaceFirst(RegExp(r'^[\s\u3000]+'), '');
+    // 行尾末尾的多余空白去掉
+    spans.last.text = spans.last.text.replaceFirst(RegExp(r'[\s\u3000]+$'), '');
+
+    for (int i = 0; i < spans.length - 1; i++) {
+      final currentSpan = spans[i];
+      final nextSpan = spans[i + 1];
+
+      final hasSpace = currentSpan.text.endsWith(' ') ||
+          currentSpan.text.endsWith('\t') ||
+          currentSpan.text.endsWith('\u3000') ||
+          nextSpan.text.startsWith(' ') ||
+          nextSpan.text.startsWith('\t') ||
+          nextSpan.text.startsWith('\u3000');
+
+      final trimmedCurrent = currentSpan.text.replaceFirst(RegExp(r'[\s\u3000]+$'), '');
+      final trimmedNext = nextSpan.text.replaceFirst(RegExp(r'^[\s\u3000]+'), '');
+
+      if (!hasSpace) {
+        currentSpan.text = trimmedCurrent;
+        nextSpan.text = trimmedNext;
+        continue;
+      }
+
+      final codeA = trimmedCurrent.isNotEmpty
+          ? trimmedCurrent.codeUnitAt(trimmedCurrent.length - 1)
+          : null;
+      final codeB = trimmedNext.isNotEmpty
+          ? trimmedNext.codeUnitAt(0)
+          : null;
+
+      bool keepSpace = false;
+      if (codeA != null && codeB != null) {
+        if (isWordConstituent(codeA) && isWordConstituent(codeB)) {
+          // 英文/西文单词之间（例如 "Goodbye" 和 "my"），必须保留空格！
+          keepSpace = true;
+        } else if (isCJKCodeUnit(codeA) && isCJKCodeUnit(codeB)) {
+          // 两个都是 CJK 字符（例如 "繋" 和 "い"），坚决去除空格！
+          keepSpace = false;
+        } else if (isCJKCodeUnit(codeA) || isCJKPunctuation(codeA) || isCJKCodeUnit(codeB) || isCJKPunctuation(codeB)) {
+          if (_isPunctuation(codeA) || _isPunctuation(codeB)) {
+            // 标点符号与 CJK 之间，去除空格
+            keepSpace = false;
+          } else {
+            // 一边是 CJK 字符，一边是西文单词（例如 "声" 和 "Goodbye"）
+            // 保留原有的单个空格
+            keepSpace = true;
+          }
+        } else {
+          keepSpace = true;
+        }
+      }
+
+      if (keepSpace) {
+        currentSpan.text = '$trimmedCurrent ';
+        nextSpan.text = trimmedNext;
+      } else {
+        currentSpan.text = trimmedCurrent;
+        nextSpan.text = trimmedNext;
+      }
+    }
+
+    final sb = StringBuffer();
+    if (prefix.isNotEmpty) {
+      sb.write(prefix);
+    }
+    for (final span in spans) {
+      sb.write(span.tag);
+      sb.write(span.text);
+    }
+    return sb.toString();
+  }
+
+  /// Cleans extra spaces in entire karaoke lyrics text across all lines.
+  static String sanitizeKaraokeLyricsSpaces(String lyrics) {
+    if (lyrics.isEmpty) return lyrics;
+    final lines = lyrics.split(RegExp(r'\r?\n'));
+    final result = <String>[];
+    for (final line in lines) {
+      if (isKaraokeLyricsLine(line)) {
+        result.add(sanitizeKaraokeLineSpaces(line));
+      } else {
+        result.add(line);
+      }
+    }
+    return result.join('\n');
   }
 
   static String? normalizeLrcLine(String rawLine) {
@@ -595,7 +770,8 @@ class LrcUtils {
     final normalizedLines = <String>[];
     for (final rawLine in cleaned.split(RegExp(r'\r?\n'))) {
       if (preserveKaraokeLineStructure || isKaraokeLyricsLine(rawLine)) {
-        final line = _collapseDuplicateLineStartTimestamps(rawLine.trim());
+        final collapsed = _collapseDuplicateLineStartTimestamps(rawLine.trim());
+        final line = sanitizeKaraokeLineSpaces(collapsed);
         if (line.isNotEmpty) {
           normalizedLines.add(line);
         }
@@ -1048,4 +1224,10 @@ class _KaraokeItem {
     required this.normalizedText,
     required this.hasPrecedingNewline,
   });
+}
+
+class _KaraokeTagSpan {
+  final String tag;
+  String text;
+  _KaraokeTagSpan(this.tag, this.text);
 }
