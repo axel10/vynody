@@ -342,7 +342,7 @@ class SettingProperty<T> {
 
 class SettingsService extends ChangeNotifier {
   static const String defaultGenerationPrimaryModelId =
-      'gemini-flash-lite-latest';
+      'gemini-3.1-flash-lite';
   static const String defaultGenerationFallbackModelId = '';
   static const String defaultTranslationPrimaryModelId = 'gemma-4-31b-it';
   static const String defaultTranslationFallbackModelId = '';
@@ -454,6 +454,8 @@ class SettingsService extends ChangeNotifier {
       'lyrics_translation_fallback_provider';
   static const String _keyTranslationFallbackModelId =
       'lyrics_translation_fallback_model_id';
+  static const String _keyIgnoreNonRecommendedLyricsModelWarning =
+      'ignore_non_recommended_lyrics_model_warning';
   static const String _legacyKeyLyricsAiProvider = 'lyrics_ai_provider';
   static const String _legacyKeyGeminiPrimaryModelId =
       'gemini_primary_model_id';
@@ -1172,6 +1174,14 @@ class SettingsService extends ChangeNotifier {
       defaultValue: def,
       emptyUsesDefault: false,
     ),
+  );
+
+  late final _ignoreNonRecommendedLyricsModelWarningProperty =
+      SettingProperty<bool>(
+    key: _keyIgnoreNonRecommendedLyricsModelWarning,
+    defaultValue: false,
+    prefs: _prefs,
+    onChanged: notifyListeners,
   );
 
   late final _geminiApiKeyProperty = SettingProperty<String>(
@@ -2011,6 +2021,12 @@ class SettingsService extends ChangeNotifier {
   set translationFallbackModel(LyricsAiModelSelection value) {
     _translationFallbackProviderProperty.value = value.provider;
     _translationFallbackModelIdProperty.value = value.modelId.trim();
+  }
+
+  bool get ignoreNonRecommendedLyricsModelWarning =>
+      _ignoreNonRecommendedLyricsModelWarningProperty.value;
+  set ignoreNonRecommendedLyricsModelWarning(bool value) {
+    _ignoreNonRecommendedLyricsModelWarningProperty.value = value;
   }
 
   String get geminiApiKey => _geminiApiKeyProperty.value;

@@ -2862,5 +2862,21 @@
   "wasapiExclusiveShortcutDescription": "使用快捷键快速在独占模式与系统共享输出间切换",
   "wasapiExclusiveEnabledNotice": "已启用 WASAPI 独占模式",
   "audioSharedModeEnabledNotice": "已切换至系统共享音频模式",
-  "editShortcutTitle": "编辑快捷键"
+  "editShortcutTitle": "编辑快捷键",
+  "nonRecommendedModelWarningTitle": "非推荐模型提醒",
+  "nonRecommendedModelWarningMessage": "当前歌词生成模型为「{currentModel}」，非官方推荐模型（推荐使用「{recommendedModel}」）。非推荐模型可能存在生成歌词不准确、时间轴偏移等问题，是否换成推荐模型？",
+  "@nonRecommendedModelWarningMessage": {
+    "placeholders": {
+      "currentModel": {
+        "type": "String"
+      },
+      "recommendedModel": {
+        "type": "String"
+      }
+    }
+  },
+  "switchAndGenerate": "换成推荐模型",
+  "continueGeneration": "继续生成",
+  "abortGeneration": "中止",
+  "doNotShowAgain": "以后不再弹出"
 }

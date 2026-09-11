@@ -4550,8 +4550,31 @@ class AppLocalizationsJa extends AppLocalizations {
   String get wasapiExclusiveEnabledNotice => 'WASAPI 排他モードを有効にしました';
 
   @override
-  String get audioSharedModeEnabledNotice => 'システム共有オーディオモードに切り替えました';
+  String get audioSharedModeEnabledNotice => '已切换至系统共享音频模式';
 
   @override
   String get editShortcutTitle => 'ショートカットを編集';
+
+  @override
+  String get nonRecommendedModelWarningTitle => '非推奨モデルの警告';
+
+  @override
+  String nonRecommendedModelWarningMessage(
+    String currentModel,
+    String recommendedModel,
+  ) {
+    return '現在の歌詞生成モデルは「$currentModel」ですが、推奨モデルは「$recommendedModel」です。非推奨モデルでは歌詞の精度低下やタイムスタンプのずれが発生する可能性があります。推奨モデルに切り替えますか？';
+  }
+
+  @override
+  String get switchAndGenerate => '推奨モデルに切り替えて生成';
+
+  @override
+  String get continueGeneration => '現在のモデルで続行';
+
+  @override
+  String get abortGeneration => '中止';
+
+  @override
+  String get doNotShowAgain => '次回から表示しない';
 }

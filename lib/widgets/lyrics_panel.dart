@@ -16,6 +16,7 @@ import 'package:vynody/models/music_file.dart';
 import 'package:vynody/models/music_lyric.dart';
 import '../l10n/app_localizations.dart';
 import '../dialogs/ai_guide_dialog.dart';
+import '../dialogs/lyrics_model_recommendation_dialog.dart';
 import '../dialogs/manual_lyrics_dialog.dart';
 import '../dialogs/online_lyrics_search_dialog.dart';
 import '../dialogs/timeline_adjustment_dialog.dart';
@@ -506,6 +507,10 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     return ensureLyricsGenerationApiKey(context, ref);
   }
 
+  Future<bool> _ensureRecommendedGenerationModel() async {
+    return ensureLyricsGenerationModelRecommendation(context, ref);
+  }
+
   Future<bool> _ensureGeminiApiKey() async {
     return ensureGeminiApiKey(context, ref);
   }
@@ -783,6 +788,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
         }
 
         if (!context.mounted || !mounted) return;
+        if (!await _ensureRecommendedGenerationModel()) return;
         final errorMessage = await _lyricsControllerActions
             .regenerateLyricsForCurrentSong();
         if (errorMessage != null) {
@@ -816,6 +822,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
         }
 
         if (!context.mounted || !mounted) return;
+        if (!await _ensureRecommendedGenerationModel()) return;
         final errorMessage = await _lyricsControllerActions
             .generateTimelineForCurrentSong();
         if (errorMessage != null) {
@@ -849,6 +856,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
         }
 
         if (!context.mounted || !mounted) return;
+        if (!await _ensureRecommendedGenerationModel()) return;
         final errorMessage = await _lyricsControllerActions
             .convertToKaraokeLyricsForCurrentSong();
         if (errorMessage != null) {
@@ -1707,7 +1715,8 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
           }
           if (!context.mounted || !mounted) return;
           if (await _ensureLyricsApiKey()) {
-            if (!mounted) return;
+            if (!mounted || !context.mounted) return;
+            if (!await _ensureRecommendedGenerationModel()) return;
             final errorMessage = await _lyricsControllerActions
                 .generateLyricsForCurrentSong();
             if (errorMessage != null) {

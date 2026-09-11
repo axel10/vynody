@@ -4555,8 +4555,31 @@ class AppLocalizationsKo extends AppLocalizations {
   String get wasapiExclusiveEnabledNotice => 'WASAPI 독점 모드가 활성화되었습니다';
 
   @override
-  String get audioSharedModeEnabledNotice => '시스템 공유 오디오 모드로 전환되었습니다';
+  String get audioSharedModeEnabledNotice => '已切换至系统共享音频模式';
 
   @override
   String get editShortcutTitle => '단축키 수정';
+
+  @override
+  String get nonRecommendedModelWarningTitle => '비권장 모델 알림';
+
+  @override
+  String nonRecommendedModelWarningMessage(
+    String currentModel,
+    String recommendedModel,
+  ) {
+    return '현재 가사 생성 모델은 \"$currentModel\"이며, 권장 모델은 \"$recommendedModel\"입니다. 비권장 모델은 가사 정확도 저하 또는 타임스탬프 불일치가 발생할 수 있습니다. 권장 모델로 전환하시겠습니까?';
+  }
+
+  @override
+  String get switchAndGenerate => '권장 모델로 변경 및 생성';
+
+  @override
+  String get continueGeneration => '계속 생성';
+
+  @override
+  String get abortGeneration => '중단';
+
+  @override
+  String get doNotShowAgain => '다시 묻지 않음';
 }

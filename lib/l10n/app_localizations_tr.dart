@@ -4725,8 +4725,31 @@ class AppLocalizationsTr extends AppLocalizations {
   String get wasapiExclusiveEnabledNotice => 'WASAPI Özel Modu etkinleştirildi';
 
   @override
-  String get audioSharedModeEnabledNotice => 'Paylaşımlı Ses Moduna geçildi';
+  String get audioSharedModeEnabledNotice => '已切换至系统共享音频模式';
 
   @override
   String get editShortcutTitle => 'Kısayolu Düzenle';
+
+  @override
+  String get nonRecommendedModelWarningTitle => 'Önerilmeyen Model Bildirimi';
+
+  @override
+  String nonRecommendedModelWarningMessage(
+    String currentModel,
+    String recommendedModel,
+  ) {
+    return 'Geçerli şarkı sözü oluşturma modeli \"$currentModel\", ancak \"$recommendedModel\" önerilir. Önerilmeyen modeller hatalı sözlere veya zaman damgası kaymalarına neden olabilir. Önerilen modele geçmek ister misiniz?';
+  }
+
+  @override
+  String get switchAndGenerate => 'Önerilene Geç';
+
+  @override
+  String get continueGeneration => 'Devam Et';
+
+  @override
+  String get abortGeneration => 'İptal Et';
+
+  @override
+  String get doNotShowAgain => 'Bir daha gösterme';
 }

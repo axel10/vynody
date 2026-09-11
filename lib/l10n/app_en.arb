@@ -2121,5 +2121,21 @@
   "wasapiExclusiveShortcutDescription": "Use shortcut to quickly toggle between Exclusive and Shared mode",
   "wasapiExclusiveEnabledNotice": "WASAPI Exclusive Mode enabled",
   "audioSharedModeEnabledNotice": "Switched to Shared Audio Mode",
-  "editShortcutTitle": "Edit Shortcut"
+  "editShortcutTitle": "Edit Shortcut",
+  "nonRecommendedModelWarningTitle": "Non-Recommended Model Notice",
+  "nonRecommendedModelWarningMessage": "The current lyrics generation model is \"{currentModel}\", which is not recommended (recommended: \"{recommendedModel}\"). Non-recommended models may produce inaccurate lyrics or misaligned timestamps. Would you like to switch to the recommended model?",
+  "@nonRecommendedModelWarningMessage": {
+    "placeholders": {
+      "currentModel": {
+        "type": "String"
+      },
+      "recommendedModel": {
+        "type": "String"
+      }
+    }
+  },
+  "switchAndGenerate": "Switch to Recommended",
+  "continueGeneration": "Continue",
+  "abortGeneration": "Abort",
+  "doNotShowAgain": "Don't show again"
 }

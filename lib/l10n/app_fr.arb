@@ -1749,6 +1749,21 @@
   "wasapiExclusiveShortcutTitle": "Raccourci de basculement rapide",
   "wasapiExclusiveShortcutDescription": "Utilisez un raccourci pour basculer rapidement entre le mode exclusif et le mode partagé",
   "wasapiExclusiveEnabledNotice": "Mode exclusif WASAPI activé",
-  "audioSharedModeEnabledNotice": "Basculé en mode audio partagé",
-  "editShortcutTitle": "Modifier le raccourci"
+  "editShortcutTitle": "Modifier le raccourci",
+  "nonRecommendedModelWarningTitle": "Avis sur le modèle non recommandé",
+  "nonRecommendedModelWarningMessage": "Le modèle actuel de génération de paroles est \"{currentModel}\", mais \"{recommendedModel}\" est recommandé. Les modèles non recommandés peuvent produire des paroles inexactes ou des horodatages décalés. Souhaitez-vous passer au modèle recommandé ?",
+  "@nonRecommendedModelWarningMessage": {
+    "placeholders": {
+      "currentModel": {
+        "type": "String"
+      },
+      "recommendedModel": {
+        "type": "String"
+      }
+    }
+  },
+  "switchAndGenerate": "Passer au recommandé",
+  "continueGeneration": "Continuer",
+  "abortGeneration": "Abandonner",
+  "doNotShowAgain": "Ne plus afficher"
 }

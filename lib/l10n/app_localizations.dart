@@ -8358,6 +8358,45 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'编辑快捷键'**
   String get editShortcutTitle;
+
+  /// No description provided for @nonRecommendedModelWarningTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'非推荐模型提醒'**
+  String get nonRecommendedModelWarningTitle;
+
+  /// No description provided for @nonRecommendedModelWarningMessage.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前歌词生成模型为「{currentModel}」，非官方推荐模型（推荐使用「{recommendedModel}」）。非推荐模型可能存在生成歌词不准确、时间轴偏移等问题，是否换成推荐模型？'**
+  String nonRecommendedModelWarningMessage(
+    String currentModel,
+    String recommendedModel,
+  );
+
+  /// No description provided for @switchAndGenerate.
+  ///
+  /// In zh, this message translates to:
+  /// **'换成推荐模型'**
+  String get switchAndGenerate;
+
+  /// No description provided for @continueGeneration.
+  ///
+  /// In zh, this message translates to:
+  /// **'继续生成'**
+  String get continueGeneration;
+
+  /// No description provided for @abortGeneration.
+  ///
+  /// In zh, this message translates to:
+  /// **'中止'**
+  String get abortGeneration;
+
+  /// No description provided for @doNotShowAgain.
+  ///
+  /// In zh, this message translates to:
+  /// **'以后不再弹出'**
+  String get doNotShowAgain;
 }
 
 class _AppLocalizationsDelegate

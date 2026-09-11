@@ -4485,6 +4485,29 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get editShortcutTitle => '编辑快捷键';
+
+  @override
+  String get nonRecommendedModelWarningTitle => '非推荐模型提醒';
+
+  @override
+  String nonRecommendedModelWarningMessage(
+    String currentModel,
+    String recommendedModel,
+  ) {
+    return '当前歌词生成模型为「$currentModel」，非官方推荐模型（推荐使用「$recommendedModel」）。非推荐模型可能存在生成歌词不准确、时间轴偏移等问题，是否换成推荐模型？';
+  }
+
+  @override
+  String get switchAndGenerate => '换成推荐模型';
+
+  @override
+  String get continueGeneration => '继续生成';
+
+  @override
+  String get abortGeneration => '中止';
+
+  @override
+  String get doNotShowAgain => '以后不再弹出';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -8968,4 +8991,27 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get editShortcutTitle => '編輯快速鍵';
+
+  @override
+  String get nonRecommendedModelWarningTitle => '非推薦模型提醒';
+
+  @override
+  String nonRecommendedModelWarningMessage(
+    String currentModel,
+    String recommendedModel,
+  ) {
+    return '目前歌詞生成模型為「$currentModel」，非官方推薦模型（推薦使用「$recommendedModel」）。非推薦模型可能存在生成歌詞不準確、時間軸偏移等問題，是否換成推薦模型？';
+  }
+
+  @override
+  String get switchAndGenerate => '換成推薦模型';
+
+  @override
+  String get continueGeneration => '繼續生成';
+
+  @override
+  String get abortGeneration => '中止';
+
+  @override
+  String get doNotShowAgain => '以後不再彈出';
 }

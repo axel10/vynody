@@ -4711,4 +4711,27 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get editShortcutTitle => 'Edit Shortcut';
+
+  @override
+  String get nonRecommendedModelWarningTitle => 'Non-Recommended Model Notice';
+
+  @override
+  String nonRecommendedModelWarningMessage(
+    String currentModel,
+    String recommendedModel,
+  ) {
+    return 'The current lyrics generation model is \"$currentModel\", which is not recommended (recommended: \"$recommendedModel\"). Non-recommended models may produce inaccurate lyrics or misaligned timestamps. Would you like to switch to the recommended model?';
+  }
+
+  @override
+  String get switchAndGenerate => 'Switch to Recommended';
+
+  @override
+  String get continueGeneration => 'Continue';
+
+  @override
+  String get abortGeneration => 'Abort';
+
+  @override
+  String get doNotShowAgain => 'Don\'t show again';
 }

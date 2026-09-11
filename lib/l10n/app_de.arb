@@ -1745,6 +1745,21 @@
   "wasapiExclusiveShortcutTitle": "Tastenkürzel zum schnellen Umschalten",
   "wasapiExclusiveShortcutDescription": "Verwenden Sie ein Tastenkürzel, um schnell zwischen Exklusiv- und Shared-Modus umzuschalten",
   "wasapiExclusiveEnabledNotice": "WASAPI-Exklusivmodus aktiviert",
-  "audioSharedModeEnabledNotice": "Zu Shared-Audiomodus gewechselt",
-  "editShortcutTitle": "Tastenkürzel bearbeiten"
+  "editShortcutTitle": "Tastenkürzel bearbeiten",
+  "nonRecommendedModelWarningTitle": "Nicht empfohlener Modellhinweis",
+  "nonRecommendedModelWarningMessage": "Das aktuelle Modell zur Texterstellung ist \"{currentModel}\", empfohlen wird jedoch \"{recommendedModel}\". Nicht empfohlene Modelle können ungenaue Texte oder Zeitstempelversatz verursachen. Möchten Sie zum empfohlenen Modell wechseln?",
+  "@nonRecommendedModelWarningMessage": {
+    "placeholders": {
+      "currentModel": {
+        "type": "String"
+      },
+      "recommendedModel": {
+        "type": "String"
+      }
+    }
+  },
+  "switchAndGenerate": "Zum empfohlenen Modell wechseln",
+  "continueGeneration": "Fortfahren",
+  "abortGeneration": "Abbrechen",
+  "doNotShowAgain": "Nicht mehr anzeigen"
 }

@@ -4773,8 +4773,32 @@ class AppLocalizationsFr extends AppLocalizations {
   String get wasapiExclusiveEnabledNotice => 'Mode exclusif WASAPI activé';
 
   @override
-  String get audioSharedModeEnabledNotice => 'Basculé en mode audio partagé';
+  String get audioSharedModeEnabledNotice => '已切换至系统共享音频模式';
 
   @override
   String get editShortcutTitle => 'Modifier le raccourci';
+
+  @override
+  String get nonRecommendedModelWarningTitle =>
+      'Avis sur le modèle non recommandé';
+
+  @override
+  String nonRecommendedModelWarningMessage(
+    String currentModel,
+    String recommendedModel,
+  ) {
+    return 'Le modèle actuel de génération de paroles est \"$currentModel\", mais \"$recommendedModel\" est recommandé. Les modèles non recommandés peuvent produire des paroles inexactes ou des horodatages décalés. Souhaitez-vous passer au modèle recommandé ?';
+  }
+
+  @override
+  String get switchAndGenerate => 'Passer au recommandé';
+
+  @override
+  String get continueGeneration => 'Continuer';
+
+  @override
+  String get abortGeneration => 'Abandonner';
+
+  @override
+  String get doNotShowAgain => 'Ne plus afficher';
 }

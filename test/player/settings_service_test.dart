@@ -99,6 +99,16 @@ void main() {
       expect(settingsService.generationPrimaryModel.provider, LyricsAiProvider.openRouter);
       expect(settingsService.translationPrimaryModel.provider, LyricsAiProvider.openRouter);
     });
+
+    test('default Google AI Studio generation model is gemini-3.1-flash-lite', () {
+      expect(SettingsService.defaultGenerationPrimaryModelId, 'gemini-3.1-flash-lite');
+    });
+
+    test('ignoreNonRecommendedLyricsModelWarning defaults to false and can be toggled', () {
+      expect(settingsService.ignoreNonRecommendedLyricsModelWarning, false);
+      settingsService.ignoreNonRecommendedLyricsModelWarning = true;
+      expect(settingsService.ignoreNonRecommendedLyricsModelWarning, true);
+    });
   });
 
   group('SettingsService - LAN sharing directory state', () {
