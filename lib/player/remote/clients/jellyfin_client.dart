@@ -443,6 +443,7 @@ class JellyfinClient {
       'Limit': size,
       'SortBy': sortBy,
       'SortOrder': sortOrder,
+      'Fields': 'ChildCount,ItemCounts',
       ...extra,
     };
 
@@ -461,7 +462,10 @@ class JellyfinClient {
     // 1. Fetch album item info
     Map<String, dynamic>? albumInfo;
     try {
-      albumInfo = await _get('/Users/${session.userId}/Items/$albumId');
+      albumInfo = await _get(
+        '/Users/${session.userId}/Items/$albumId',
+        {'Fields': 'ChildCount,ItemCounts'},
+      );
     } catch (_) {}
 
     // 2. Fetch tracks belonging to this album
@@ -483,6 +487,9 @@ class JellyfinClient {
 
     final result = albumInfo != null ? normalizeAlbumItem(albumInfo) : <String, dynamic>{'id': albumId};
     result['song'] = normalizedTracks;
+    if (normalizedTracks.isNotEmpty) {
+      result['songCount'] = normalizedTracks.length;
+    }
     return result;
   }
 
@@ -499,6 +506,7 @@ class JellyfinClient {
         'Recursive': true,
         'SortBy': 'ProductionYear,SortName',
         'SortOrder': 'Descending',
+        'Fields': 'ChildCount,ItemCounts',
       },
     );
     final rawAlbums = albumsRes['Items'] as List? ?? [];
