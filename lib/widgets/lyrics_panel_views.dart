@@ -433,13 +433,16 @@ class _LyricsPanelTimedLyricsViewState extends State<LyricsPanelTimedLyricsView>
                                                         duration: const Duration(milliseconds: 300),
                                                         curve: Curves.easeOutCubic,
                                                         style: TextStyle(
-                                                          color: (isActive &&
-                                                                  !(widget.lyricsStyle == LyricsStyle.apple &&
-                                                                      line.words != null &&
-                                                                      line.words!.isNotEmpty))
+                                                          color: isHovered
                                                               ? widget.secondaryTextColor.withValues(alpha: 1.0)
-                                                              : (isHovered
-                                                                  ? widget.secondaryTextColor.withValues(alpha: 1.0)
+                                                              : (isActive
+                                                                  ? (widget.lyricsStyle == LyricsStyle.apple &&
+                                                                          line.words != null &&
+                                                                          line.words!.isNotEmpty
+                                                                      ? widget.secondaryTextColor.withValues(
+                                                                          alpha: PlaybackPageUiTuning.appleLyricsActiveTranslationOpacity,
+                                                                        )
+                                                                      : widget.secondaryTextColor.withValues(alpha: 1.0))
                                                                   : widget.secondaryTextColor),
                                                           fontSize: translationFontSize,
                                                           fontWeight: (isActive || widget.lyricsStyle == LyricsStyle.apple)
@@ -480,13 +483,16 @@ class _LyricsPanelTimedLyricsViewState extends State<LyricsPanelTimedLyricsView>
                                                       duration: const Duration(milliseconds: 300),
                                                       curve: Curves.easeOutCubic,
                                                       style: TextStyle(
-                                                        color: (isActive &&
-                                                                !(widget.lyricsStyle == LyricsStyle.apple &&
-                                                                    line.words != null &&
-                                                                    line.words!.isNotEmpty))
+                                                        color: isHovered
                                                             ? widget.secondaryTextColor.withValues(alpha: 1.0)
-                                                            : (isHovered
-                                                                ? widget.secondaryTextColor.withValues(alpha: 1.0)
+                                                            : (isActive
+                                                                ? (widget.lyricsStyle == LyricsStyle.apple &&
+                                                                        line.words != null &&
+                                                                        line.words!.isNotEmpty
+                                                                    ? widget.secondaryTextColor.withValues(
+                                                                        alpha: PlaybackPageUiTuning.appleLyricsActiveTranslationOpacity,
+                                                                      )
+                                                                    : widget.secondaryTextColor.withValues(alpha: 1.0))
                                                                 : widget.secondaryTextColor),
                                                         fontSize: translationFontSize,
                                                         fontWeight: (isActive || widget.lyricsStyle == LyricsStyle.apple)
