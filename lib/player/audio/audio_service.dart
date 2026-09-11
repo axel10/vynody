@@ -2654,7 +2654,10 @@ class AudioService extends Notifier<AudioSnapshot> {
     unawaited(_persistPlaybackSession());
   }
 
-  Future<AudioDetails> getAudioDetails({required String path}) async {
+  Future<AudioDetails> getAudioDetails({
+    required String path,
+    String? fallbackMediaUri,
+  }) async {
     if (RemoteMediaResolver.isRemoteUri(path)) {
       final info = RemoteMediaResolver.parseUri(path);
       if (info != null) {
@@ -2663,12 +2666,18 @@ class AudioService extends Notifier<AudioSnapshot> {
         if (isCached) {
           final cacheFile = await _player.streamCacheManager.getCacheFile(cacheKey);
           if (await cacheFile.exists()) {
-            return _player.engine.getAudioDetails(path: cacheFile.path);
+            return _player.engine.getAudioDetails(
+              path: cacheFile.path,
+              fallbackMediaUri: fallbackMediaUri ?? path,
+            );
           }
         }
       }
     }
-    return _player.engine.getAudioDetails(path: path);
+    return _player.engine.getAudioDetails(
+      path: path,
+      fallbackMediaUri: fallbackMediaUri,
+    );
   }
 
   Future<void> enqueueNext(List<MusicFile> songs) async {

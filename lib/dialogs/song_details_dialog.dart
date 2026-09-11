@@ -40,15 +40,54 @@ class _SongDetailsDialogState extends ConsumerState<_SongDetailsDialog> {
 
   Future<AudioDetails> _loadDetails(AudioService audioService) async {
     try {
-      return await audioService.getAudioDetails(path: widget.song.path);
+      final details = await audioService.getAudioDetails(
+        path: widget.song.path,
+        fallbackMediaUri: widget.song.name,
+      );
+      var formatName = details.formatName.trim();
+      var codecName = details.codecName.trim();
+      if (formatName.toLowerCase() == 'cache' || formatName.toLowerCase() == 'tmp') {
+        formatName = '';
+      }
+      if (codecName.toLowerCase() == 'cache' || codecName.toLowerCase() == 'tmp') {
+        codecName = '';
+      }
+
+      if (formatName.isEmpty || codecName.isEmpty) {
+        var ext = p.extension(widget.song.name).replaceAll('.', '').toLowerCase();
+        if (ext.contains('?')) ext = ext.split('?').first;
+        if (ext == 'cache' || ext == 'tmp') ext = '';
+        if (ext.isNotEmpty) {
+          if (formatName.isEmpty) {
+            formatName = (ext == 'mpeg') ? 'mp3' : (ext == 'mp4' ? 'm4a' : ext);
+          }
+          if (codecName.isEmpty) {
+            if (ext == 'mp3' || ext == 'mpeg') {
+              codecName = 'mp3';
+            } else if (ext == 'm4a' || ext == 'mp4') {
+              codecName = 'aac';
+            } else {
+              codecName = ext;
+            }
+          }
+        }
+      }
+
+      return details.copyWith(
+        formatName: formatName,
+        codecName: codecName,
+      );
     } catch (_) {
       // Gracefully construct fallback audio details from existing MusicFile metadata
       var ext = p.extension(widget.song.path).replaceAll('.', '').toLowerCase();
       if (ext.contains('?')) ext = ext.split('?').first;
-      if (ext.isEmpty) {
+      if (ext.isEmpty || ext == 'cache' || ext == 'tmp') {
         ext = p.extension(widget.song.name).replaceAll('.', '').toLowerCase();
+        if (ext.contains('?')) ext = ext.split('?').first;
       }
-      final formatName = ext.isNotEmpty ? ext : '';
+      if (ext == 'cache' || ext == 'tmp') ext = '';
+
+      final formatName = (ext == 'mpeg') ? 'mp3' : (ext == 'mp4' ? 'm4a' : (ext.isNotEmpty ? ext : ''));
       String codecName = formatName;
       if (formatName == 'mp3' || formatName == 'mpeg') {
         codecName = 'mp3';
