@@ -14,6 +14,7 @@ import '../player/remote/clients/webdav_client.dart';
 import '../player/remote/clients/smb_client.dart';
 import '../player/remote/proxy/remote_media_resolver.dart';
 import '../player/remote/remote_server_models.dart';
+import '../player/remote/remote_server_riverpod.dart';
 import '../pages/remote/remote_download_manager_page.dart';
 import '../player/remote/services/remote_download_service.dart';
 import '../widgets/library_selection_scope.dart';
@@ -809,6 +810,8 @@ Future<void> showRemoteArtistContextMenu({
   required String password,
   required String artistId,
   required String artistName,
+  bool isStarred = false,
+  void Function(bool isStarred)? onStarredChanged,
   VoidCallback? onViewDetails,
 }) async {
   final l10n = AppLocalizations.of(context)!;
@@ -860,9 +863,15 @@ Future<void> showRemoteArtistContextMenu({
                     onTap: () => Navigator.pop(ctx, 'add_to_queue'),
                   ),
                   ListTile(
-                    leading: const Icon(Icons.favorite_border_rounded),
-                    title: Text(l10n.starItem),
-                    onTap: () => Navigator.pop(ctx, 'star'),
+                    leading: Icon(
+                      isStarred
+                          ? Icons.favorite_rounded
+                          : Icons.favorite_border_rounded,
+                      color: isStarred ? Colors.redAccent : null,
+                    ),
+                    title: Text(isStarred ? l10n.unstarItem : l10n.starItem),
+                    onTap: () =>
+                        Navigator.pop(ctx, isStarred ? 'unstar' : 'star'),
                   ),
                   ListTile(
                     leading: const Icon(Icons.download_rounded),
@@ -892,6 +901,8 @@ Future<void> showRemoteArtistContextMenu({
       password: password,
       artistId: artistId,
       artistName: artistName,
+      isStarred: isStarred,
+      onStarredChanged: onStarredChanged,
       onViewDetails: onViewDetails,
     );
     return;
@@ -925,9 +936,10 @@ Future<void> showRemoteArtistContextMenu({
     ),
     const PopupMenuDivider(),
     buildContextMenuItem<String>(
-      value: 'star',
-      label: l10n.starItem,
-      icon: Icons.favorite_border_rounded,
+      value: isStarred ? 'unstar' : 'star',
+      label: isStarred ? l10n.unstarItem : l10n.starItem,
+      icon: isStarred ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+      iconColor: isStarred ? Colors.redAccent : null,
       context: context,
     ),
     const PopupMenuDivider(),
@@ -969,6 +981,8 @@ Future<void> showRemoteArtistContextMenu({
     password: password,
     artistId: artistId,
     artistName: artistName,
+    isStarred: isStarred,
+    onStarredChanged: onStarredChanged,
     onViewDetails: onViewDetails,
   );
 }
@@ -982,6 +996,8 @@ Future<void> _handleArtistMenuSelection({
   required String password,
   required String artistId,
   required String artistName,
+  bool isStarred = false,
+  void Function(bool isStarred)? onStarredChanged,
   VoidCallback? onViewDetails,
 }) async {
   final l10n = AppLocalizations.of(context)!;
@@ -1035,7 +1051,31 @@ Future<void> _handleArtistMenuSelection({
       break;
     case 'star':
       final ok = await client.star(artistId: artistId);
+      if (ok) {
+        onStarredChanged?.call(true);
+        final currentStarred = Set<String>.from(
+            ref.read(activeRemoteSessionProvider)?.navidromeStarredArtistIds ??
+                {});
+        currentStarred.add(artistId);
+        ref.read(activeRemoteSessionProvider.notifier).updateNavidromeArtists(
+              starredArtistIds: currentStarred,
+            );
+      }
       showToast(ok ? l10n.starredSuccess : l10n.starFailed);
+      break;
+    case 'unstar':
+      final ok = await client.unstar(artistId: artistId);
+      if (ok) {
+        onStarredChanged?.call(false);
+        final currentStarred = Set<String>.from(
+            ref.read(activeRemoteSessionProvider)?.navidromeStarredArtistIds ??
+                {});
+        currentStarred.remove(artistId);
+        ref.read(activeRemoteSessionProvider.notifier).updateNavidromeArtists(
+              starredArtistIds: currentStarred,
+            );
+      }
+      showToast(ok ? l10n.unstarredSuccess : l10n.starFailed);
       break;
     case 'download':
       final trackList = await getArtistSongs();

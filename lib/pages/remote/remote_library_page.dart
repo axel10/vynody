@@ -644,8 +644,13 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
     try {
       final list = await _client.getArtists();
       if (!mounted) return;
+      final preStarred = list
+          .where((a) => a['isFavorite'] == true || a['starred'] != null)
+          .map((a) => a['id']?.toString() ?? '')
+          .where((id) => id.isNotEmpty);
       setState(() {
         _artists = list;
+        _starredArtistIds.addAll(preStarred);
         _isLoadingArtists = false;
         _connectionError = null;
         if (_selectedArtistId == null && list.isNotEmpty) {
@@ -1007,6 +1012,21 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<ActiveRemoteSession?>(activeRemoteSessionProvider, (prev, next) {
+      if (next != null && next.server.id == widget.server.id) {
+        final nextStarred = next.navidromeStarredArtistIds;
+        if (nextStarred != null &&
+            (nextStarred.length != _starredArtistIds.length ||
+                !_starredArtistIds.containsAll(nextStarred))) {
+          setState(() {
+            _starredArtistIds
+              ..clear()
+              ..addAll(nextStarred);
+          });
+        }
+      }
+    });
+
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final isMacOS = Platform.isMacOS;

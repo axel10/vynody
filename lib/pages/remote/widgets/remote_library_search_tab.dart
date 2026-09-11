@@ -5,6 +5,7 @@ import '../../../models/music_file.dart';
 import '../../../player/audio/audio_riverpod.dart';
 import '../../../player/remote/remote_library_navigation.dart';
 import '../../../player/remote/remote_server_models.dart';
+import '../../../player/remote/remote_server_riverpod.dart';
 import '../../../utils/layout_constants.dart';
 import '../../../utils/remote_context_menu_utils.dart';
 import '../../../utils/selection_utils.dart';
@@ -171,6 +172,13 @@ class RemoteLibrarySearchView extends ConsumerWidget {
             final coverArtId = artist['coverArt'] as String?;
             final albumCount = artist['albumCount'] as int?;
             final isMultiSelected = selectedArtistIds.contains(artistId);
+            final isStarred = (ref
+                    .watch(activeRemoteSessionProvider)
+                    ?.navidromeStarredArtistIds
+                    ?.contains(artistId) ==
+                true) ||
+                artist['isFavorite'] == true ||
+                artist['starred'] != null;
 
             return GestureDetector(
               behavior: HitTestBehavior.opaque,
@@ -184,6 +192,7 @@ class RemoteLibrarySearchView extends ConsumerWidget {
                     password: password,
                     artistId: artistId,
                     artistName: artistName,
+                    isStarred: isStarred,
                     onViewDetails: () {
                       RemoteLibraryNavUtils.openArtist(
                         context,

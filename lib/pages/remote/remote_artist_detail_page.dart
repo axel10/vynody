@@ -155,10 +155,12 @@ class _RemoteArtistDetailContentState
   List<MusicFile> _allSongs = [];
   Map<String, dynamic>? _artistInfo;
   bool _isStarred = false;
+  String _resolvedArtistId = '';
 
   @override
   void initState() {
     super.initState();
+    _resolvedArtistId = widget.artistId;
     _loadArtistData();
   }
 
@@ -166,7 +168,9 @@ class _RemoteArtistDetailContentState
   void didUpdateWidget(RemoteArtistDetailContent oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.artistId != widget.artistId ||
-        oldWidget.server.id != widget.server.id) {
+        oldWidget.server.id != widget.server.id ||
+        oldWidget.artistName != widget.artistName) {
+      _resolvedArtistId = widget.artistId;
       _loadArtistData();
     }
   }
@@ -183,7 +187,10 @@ class _RemoteArtistDetailContentState
         password: widget.password,
       );
 
-      final artistMap = await client.getArtist(widget.artistId);
+      final artistMap = await client.getArtist(
+        widget.artistId,
+        artistName: widget.artistName,
+      );
       if (artistMap == null) {
         if (!mounted) return;
         final l10n = AppLocalizations.of(context)!;
@@ -194,14 +201,23 @@ class _RemoteArtistDetailContentState
         return;
       }
 
+      final resolvedId = (artistMap['id'] as String? ?? '').trim();
+      if (resolvedId.isNotEmpty) {
+        _resolvedArtistId = resolvedId;
+      }
+
       // Fetch artist bio / info if available
-      client.getArtistInfo(widget.artistId).then((info) {
-        if (mounted && info != null) {
-          setState(() {
-            _artistInfo = info;
-          });
-        }
-      }).catchError((_) {});
+      final infoTargetId =
+          _resolvedArtistId.isNotEmpty ? _resolvedArtistId : widget.artistId;
+      if (infoTargetId.isNotEmpty) {
+        client.getArtistInfo(infoTargetId).then((info) {
+          if (mounted && info != null) {
+            setState(() {
+              _artistInfo = info;
+            });
+          }
+        }).catchError((_) {});
+      }
 
       // Parse albums
       final dynamic rawAlbums = artistMap['album'];
@@ -296,7 +312,14 @@ class _RemoteArtistDetailContentState
         });
       }
 
-      final isStarred = artistMap['starred'] != null;
+      final effectiveId =
+          _resolvedArtistId.isNotEmpty ? _resolvedArtistId : widget.artistId;
+      final sessionStarred =
+          ref.read(activeRemoteSessionProvider)?.navidromeStarredArtistIds;
+      final isStarred = artistMap['starred'] != null ||
+          artistMap['isFavorite'] == true ||
+          (effectiveId.isNotEmpty &&
+              sessionStarred?.contains(effectiveId) == true);
       if (!mounted) return;
       setState(() {
         _albumSections = sections;
@@ -510,20 +533,46 @@ class _RemoteArtistDetailContentState
                             ),
                             OutlinedButton.icon(
                               onPressed: () async {
+                                final effectiveId = _resolvedArtistId.isNotEmpty
+                                    ? _resolvedArtistId
+                                    : widget.artistId;
+                                if (effectiveId.isEmpty) return;
                                 final client = RemoteMediaLibraryClient.create(
                                   server: widget.server,
                                   password: widget.password,
                                 );
                                 if (_isStarred) {
-                                  final ok = await client.unstar(artistId: widget.artistId);
+                                  final ok =
+                                      await client.unstar(artistId: effectiveId);
                                   if (ok && mounted) {
                                     setState(() => _isStarred = false);
+                                    final currentStarred = Set<String>.from(ref
+                                            .read(activeRemoteSessionProvider)
+                                            ?.navidromeStarredArtistIds ??
+                                        {});
+                                    currentStarred.remove(effectiveId);
+                                    ref
+                                        .read(activeRemoteSessionProvider.notifier)
+                                        .updateNavidromeArtists(
+                                          starredArtistIds: currentStarred,
+                                        );
                                     showToast(l10n.unstarredSuccess);
                                   }
                                 } else {
-                                  final ok = await client.star(artistId: widget.artistId);
+                                  final ok =
+                                      await client.star(artistId: effectiveId);
                                   if (ok && mounted) {
                                     setState(() => _isStarred = true);
+                                    final currentStarred = Set<String>.from(ref
+                                            .read(activeRemoteSessionProvider)
+                                            ?.navidromeStarredArtistIds ??
+                                        {});
+                                    currentStarred.add(effectiveId);
+                                    ref
+                                        .read(activeRemoteSessionProvider.notifier)
+                                        .updateNavidromeArtists(
+                                          starredArtistIds: currentStarred,
+                                        );
                                     showToast(l10n.starredSuccess);
                                   }
                                 }

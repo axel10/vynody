@@ -411,6 +411,7 @@ class RemoteLibraryArtistItem extends ConsumerWidget {
             password: password,
             artistId: artistId,
             artistName: name,
+            isStarred: isStarred,
             onViewDetails: onTap,
           );
         }

@@ -307,6 +307,14 @@ class JellyfinClient {
     final artistName = artistsList != null && artistsList.isNotEmpty
         ? artistsList.join(', ')
         : (item['AlbumArtist'] as String? ?? '');
+    String? artistId;
+    final artistItems = item['ArtistItems'] as List?;
+    if (artistItems != null && artistItems.isNotEmpty) {
+      final firstArtist = artistItems.first;
+      if (firstArtist is Map) {
+        artistId = firstArtist['Id'] as String?;
+      }
+    }
     final albumName = item['Album'] as String? ?? '';
     final albumId = item['AlbumId'] as String? ?? '';
     final trackNum = item['IndexNumber'] as int?;
@@ -322,6 +330,7 @@ class JellyfinClient {
       'title': name,
       'name': name,
       'artist': artistName,
+      'artistId': artistId,
       'album': albumName,
       'albumId': albumId,
       'track': trackNum,
@@ -341,6 +350,23 @@ class JellyfinClient {
     final name = item['Name'] as String? ?? '';
     final artistName = item['AlbumArtist'] as String? ??
         ((item['Artists'] as List?)?.join(', ') ?? '');
+    String? artistId;
+    final albumArtists = item['AlbumArtists'] as List?;
+    if (albumArtists != null && albumArtists.isNotEmpty) {
+      final firstArtist = albumArtists.first;
+      if (firstArtist is Map) {
+        artistId = firstArtist['Id'] as String?;
+      }
+    }
+    if (artistId == null || artistId.isEmpty) {
+      final artistItems = item['ArtistItems'] as List?;
+      if (artistItems != null && artistItems.isNotEmpty) {
+        final firstArtist = artistItems.first;
+        if (firstArtist is Map) {
+          artistId = firstArtist['Id'] as String?;
+        }
+      }
+    }
     final year = item['ProductionYear'] as int?;
     final songCount = item['ChildCount'] as int? ?? item['SongCount'] as int? ?? 0;
     final ticks = item['RunTimeTicks'] as num? ?? 0;
@@ -352,6 +378,7 @@ class JellyfinClient {
       'name': name,
       'title': name,
       'artist': artistName,
+      'artistId': artistId,
       'year': year,
       'songCount': songCount,
       'duration': durationSec,
@@ -494,14 +521,44 @@ class JellyfinClient {
   }
 
   /// Fetches artist details including their albums and songs.
-  Future<Map<String, dynamic>?> getArtist(String artistId) async {
+  Future<Map<String, dynamic>?> getArtist(String artistId, {String? artistName}) async {
     final session = await authenticate();
+    String resolvedId = artistId.trim();
+
+    // 0. If artistId is empty, try to resolve by artistName
+    if (resolvedId.isEmpty && artistName != null && artistName.trim().isNotEmpty) {
+      try {
+        final searchRes = await _get(
+          '/Users/${session.userId}/Items',
+          {
+            'IncludeItemTypes': 'MusicArtist',
+            'SearchTerm': artistName.trim(),
+            'Recursive': true,
+            'Limit': 1,
+          },
+        );
+        final items = searchRes['Items'] as List? ?? [];
+        if (items.isNotEmpty && items[0] is Map<String, dynamic>) {
+          resolvedId = (items[0] as Map<String, dynamic>)['Id'] as String? ?? '';
+        }
+      } catch (_) {}
+    }
+
+    // Fetch artist item detail for UserData / IsFavorite
+    Map<String, dynamic>? artistItem;
+    if (resolvedId.isNotEmpty) {
+      try {
+        artistItem = await _get('/Users/${session.userId}/Items/$resolvedId');
+      } catch (_) {}
+    }
+    final isStarred = artistItem?['UserData']?['IsFavorite'] == true;
+    final resolvedName = artistItem?['Name'] as String? ?? artistName ?? '';
 
     // 1. Fetch artist albums
     final albumsRes = await _get(
       '/Users/${session.userId}/Items',
       {
-        'ArtistIds': artistId,
+        if (resolvedId.isNotEmpty) 'ArtistIds': resolvedId,
         'IncludeItemTypes': 'MusicAlbum',
         'Recursive': true,
         'SortBy': 'ProductionYear,SortName',
@@ -519,7 +576,7 @@ class JellyfinClient {
     final songsRes = await _get(
       '/Users/${session.userId}/Items',
       {
-        'ArtistIds': artistId,
+        if (resolvedId.isNotEmpty) 'ArtistIds': resolvedId,
         'IncludeItemTypes': 'Audio',
         'Recursive': true,
         'SortBy': 'SortName',
@@ -534,9 +591,12 @@ class JellyfinClient {
         .toList();
 
     return {
-      'id': artistId,
+      'id': resolvedId,
+      'name': resolvedName,
       'album': normalizedAlbums,
       'song': normalizedSongs,
+      'starred': isStarred ? DateTime.now().toIso8601String() : null,
+      'isFavorite': isStarred,
     };
   }
 
@@ -719,23 +779,56 @@ class JellyfinClient {
   /// Fetches starred / favorite artists.
   Future<List<Map<String, dynamic>>> getStarredArtists() async {
     final session = await authenticate();
-    final res = await _get(
-      '/Artists',
-      {
-        'userId': session.userId,
-        'Filters': 'IsFavorite',
-        'SortBy': 'SortName',
-        'SortOrder': 'Ascending',
-        'Recursive': true,
-        'Fields': 'ItemCounts',
-      },
-    );
+    final result = <Map<String, dynamic>>[];
+    final seenIds = <String>{};
 
-    final items = res['Items'] as List? ?? [];
-    return items
-        .whereType<Map<String, dynamic>>()
-        .map(normalizeArtistItem)
-        .toList();
+    // 1. Primary canonical Jellyfin user favorites query
+    try {
+      final res = await _get(
+        '/Users/${session.userId}/Items',
+        {
+          'IncludeItemTypes': 'MusicArtist',
+          'Filters': 'IsFavorite',
+          'Recursive': true,
+          'SortBy': 'SortName',
+          'SortOrder': 'Ascending',
+          'Fields': 'ItemCounts',
+        },
+      );
+      final items = res['Items'] as List? ?? [];
+      for (final item in items.whereType<Map<String, dynamic>>()) {
+        final normalized = normalizeArtistItem(item);
+        final id = normalized['id'] as String? ?? '';
+        if (id.isNotEmpty && seenIds.add(id)) {
+          result.add(normalized);
+        }
+      }
+    } catch (_) {}
+
+    // 2. Also check /Artists with Filters=IsFavorite for compatibility
+    try {
+      final res = await _get(
+        '/Artists',
+        {
+          'userId': session.userId,
+          'Filters': 'IsFavorite',
+          'SortBy': 'SortName',
+          'SortOrder': 'Ascending',
+          'Recursive': true,
+          'Fields': 'ItemCounts',
+        },
+      );
+      final items = res['Items'] as List? ?? [];
+      for (final item in items.whereType<Map<String, dynamic>>()) {
+        final normalized = normalizeArtistItem(item);
+        final id = normalized['id'] as String? ?? '';
+        if (id.isNotEmpty && seenIds.add(id)) {
+          result.add(normalized);
+        }
+      }
+    } catch (_) {}
+
+    return result;
   }
 
   /// Creates a playlist on the Jellyfin server.

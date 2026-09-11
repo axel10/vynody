@@ -11,7 +11,7 @@ abstract class RemoteMediaLibraryClient {
 
   Future<ConnectionTestResult> testConnection();
   Future<List<Map<String, dynamic>>> getArtists();
-  Future<Map<String, dynamic>?> getArtist(String artistId);
+  Future<Map<String, dynamic>?> getArtist(String artistId, {String? artistName});
   Future<Map<String, dynamic>?> getArtistInfo(String artistId);
   Future<List<Map<String, dynamic>>> getAlbumList({
     String type = 'alphabeticalByName',
@@ -92,7 +92,7 @@ class SubsonicMediaLibraryClient implements RemoteMediaLibraryClient {
   Future<List<Map<String, dynamic>>> getArtists() => client.getArtists();
 
   @override
-  Future<Map<String, dynamic>?> getArtist(String artistId) =>
+  Future<Map<String, dynamic>?> getArtist(String artistId, {String? artistName}) =>
       client.getArtist(artistId);
 
   @override
@@ -218,8 +218,8 @@ class JellyfinMediaLibraryClient implements RemoteMediaLibraryClient {
   Future<List<Map<String, dynamic>>> getArtists() => client.getArtists();
 
   @override
-  Future<Map<String, dynamic>?> getArtist(String artistId) =>
-      client.getArtist(artistId);
+  Future<Map<String, dynamic>?> getArtist(String artistId, {String? artistName}) =>
+      client.getArtist(artistId, artistName: artistName);
 
   @override
   Future<Map<String, dynamic>?> getArtistInfo(String artistId) =>
