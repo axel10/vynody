@@ -17,6 +17,7 @@ class RemoteLibraryAlbumsToolbar extends StatelessWidget {
   final ValueChanged<bool> onToggleSearchExpanded;
   final String sortType;
   final ValueChanged<String> onSortTypeChanged;
+  final bool isJellyfin;
 
   const RemoteLibraryAlbumsToolbar({
     super.key,
@@ -29,6 +30,7 @@ class RemoteLibraryAlbumsToolbar extends StatelessWidget {
     required this.onToggleSearchExpanded,
     required this.sortType,
     required this.onSortTypeChanged,
+    this.isJellyfin = false,
   });
 
   @override
@@ -37,8 +39,10 @@ class RemoteLibraryAlbumsToolbar extends StatelessWidget {
     final sortOptions = [
       {'key': 'alphabeticalByName', 'label': l10n.sortAllAZ},
       {'key': 'newest', 'label': l10n.sortRecentAdded},
-      {'key': 'recent', 'label': l10n.sortRecentlyPlayed},
-      {'key': 'frequent', 'label': l10n.sortMostPlayed},
+      if (!isJellyfin) ...[
+        {'key': 'recent', 'label': l10n.sortRecentlyPlayed},
+        {'key': 'frequent', 'label': l10n.sortMostPlayed},
+      ],
       {'key': 'starred', 'label': l10n.sortStarred},
       {'key': 'random', 'label': l10n.sortRandom},
     ];

@@ -485,6 +485,10 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
     }
     final settings = ref.read(settingsServiceProvider);
     _albumSortType = settings.navidromeAlbumSortType;
+    if (widget.server.type == RemoteServerType.jellyfin &&
+        (_albumSortType == 'recent' || _albumSortType == 'frequent')) {
+      _albumSortType = 'alphabeticalByName';
+    }
     _artistSortField = settings.navidromeArtistSortField;
     _artistSortAsc = settings.navidromeArtistSortAscending;
     _songSortField = settings.navidromeSongSortField;
@@ -561,6 +565,10 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
   }
 
   Future<void> _loadAlbums({bool forceRefresh = false}) async {
+    if (widget.server.type == RemoteServerType.jellyfin &&
+        (_albumSortType == 'recent' || _albumSortType == 'frequent')) {
+      _albumSortType = 'alphabeticalByName';
+    }
     final session = ref.read(activeRemoteSessionProvider);
     final isSameServer =
         session != null && session.server.id == widget.server.id;
@@ -1555,6 +1563,7 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
     switch (_tabController.index) {
       case 0:
         return RemoteLibraryAlbumsToolbar(
+          isJellyfin: widget.server.type == RemoteServerType.jellyfin,
           searchController: _albumSearchController,
           searchFocusNode: _albumSearchFocusNode,
           searchQuery: _albumSearchQuery,
