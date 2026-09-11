@@ -216,8 +216,8 @@ Future<void> showRemoteAlbumContextMenu({
                   ),
                   ListTile(
                     leading: const Icon(Icons.playlist_add_rounded),
-                    title: Text(l10n.addToServerPlaylist),
-                    onTap: () => Navigator.pop(ctx, 'add_to_server_playlist'),
+                    title: Text(l10n.addToPlaylist),
+                    onTap: () => Navigator.pop(ctx, 'add_to_playlist'),
                   ),
                   ListTile(
                     leading: const Icon(Icons.favorite_border_rounded),
@@ -288,8 +288,8 @@ Future<void> showRemoteAlbumContextMenu({
     ),
     const PopupMenuDivider(),
     buildContextMenuItem<String>(
-      value: 'add_to_server_playlist',
-      label: l10n.addToServerPlaylist,
+      value: 'add_to_playlist',
+      label: l10n.addToPlaylist,
       icon: Icons.playlist_add_rounded,
       context: context,
     ),
@@ -416,6 +416,7 @@ Future<void> _handleAlbumMenuSelection({
         showToast(l10n.addedToQueue);
       }
       break;
+    case 'add_to_playlist':
     case 'add_to_server_playlist':
       final trackList = await getOrFetchSongs();
       if (trackList.isNotEmpty && context.mounted) {
@@ -537,13 +538,8 @@ Future<void> showRemoteSongContextMenu({
                   ),
                   ListTile(
                     leading: const Icon(Icons.playlist_add_rounded),
-                    title: Text(l10n.addToServerPlaylist),
-                    onTap: () => Navigator.pop(ctx, 'add_to_server_playlist'),
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.library_add_outlined),
-                    title: Text(l10n.addToLocalPlaylist),
-                    onTap: () => Navigator.pop(ctx, 'add_to_local_playlist'),
+                    title: Text(l10n.addToPlaylist),
+                    onTap: () => Navigator.pop(ctx, 'add_to_playlist'),
                   ),
                   ListTile(
                     leading: const Icon(Icons.favorite_border_rounded),
@@ -619,15 +615,9 @@ Future<void> showRemoteSongContextMenu({
     ),
     const PopupMenuDivider(),
     buildContextMenuItem<String>(
-      value: 'add_to_server_playlist',
-      label: l10n.addToServerPlaylist,
+      value: 'add_to_playlist',
+      label: l10n.addToPlaylist,
       icon: Icons.playlist_add_rounded,
-      context: context,
-    ),
-    buildContextMenuItem<String>(
-      value: 'add_to_local_playlist',
-      label: l10n.addToLocalPlaylist,
-      icon: Icons.library_add_outlined,
       context: context,
     ),
     buildContextMenuItem<String>(
@@ -736,6 +726,7 @@ Future<void> _handleSongMenuSelection({
       await audio.appendToQueue([song]);
       showToast(l10n.addedToQueue);
       break;
+    case 'add_to_playlist':
     case 'add_to_server_playlist':
       if (context.mounted) {
         await RemoteAddToPlaylistDialog.show(

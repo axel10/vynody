@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oktoast/oktoast.dart';
+import '../../../dialogs/remote_playlist_dialog.dart';
 import '../../../dialogs/transcode_dialog.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../models/music_file.dart';
@@ -11,7 +12,6 @@ import '../../../player/remote/remote_server_models.dart';
 import '../../../player/remote/services/remote_download_service.dart';
 import '../../../utils/app_snack_bar.dart';
 import '../../../utils/remote_context_menu_utils.dart';
-import '../../../utils/song_context_menu_utils.dart';
 import '../remote_download_manager_page.dart';
 
 class NavidromeSelectionActions {
@@ -212,6 +212,8 @@ class NavidromeSelectionActions {
   static Future<void> handleBatchAddToPlaylist({
     required BuildContext context,
     required WidgetRef ref,
+    required RemoteServer server,
+    required String password,
     required Future<List<MusicFile>> Function() onFetchSongs,
     required VoidCallback onClearSelection,
   }) async {
@@ -224,8 +226,13 @@ class NavidromeSelectionActions {
       );
       if (songs == null || songs.isEmpty) return;
       if (!context.mounted) return;
-      final playlistService = ref.read(playlistServiceProvider);
-      await showAddSongsToPlaylistDialog(context, playlistService, songs);
+      await RemoteAddToPlaylistDialog.show(
+        context,
+        ref: ref,
+        server: server,
+        password: password,
+        songs: songs,
+      );
       onClearSelection();
     } catch (e) {
       showToast(e.toString());

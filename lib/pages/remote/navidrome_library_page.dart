@@ -1461,6 +1461,8 @@ class _NavidromeLibraryPageState extends ConsumerState<NavidromeLibraryPage>
                     NavidromeSelectionActions.handleBatchAddToPlaylist(
                   context: context,
                   ref: ref,
+                  server: widget.server,
+                  password: widget.password,
                   onFetchSongs: _fetchSelectedSongs,
                   onClearSelection: _cancelSelection,
                 ),
