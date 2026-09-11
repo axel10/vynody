@@ -206,5 +206,54 @@ void main() {
       expect(prompt, contains('非英文歌词，字与字之间、字与时间戳之间严禁添加任何空格'));
       expect(prompt, contains('英文单词，单词与单词之间必须保留正常空格'));
     });
+
+    test('sanitizeKaraokeLineSpaces restores missing spaces between English words without original lyrics', () {
+      const aiBrokenLine =
+          '[00:01.37]届[00:01.62]け[00:01.87]Brand[00:02.32]new[00:02.57]heart[00:02.82]溢';
+      final sanitized = LrcUtils.sanitizeKaraokeLineSpaces(aiBrokenLine);
+      expect(
+        sanitized,
+        '[00:01.37]届[00:01.62]け[00:01.87]Brand [00:02.32]new [00:02.57]heart[00:02.82]溢',
+      );
+    });
+
+    test('sanitizeKaraokeLineSpaces restores spaces using originalLineText', () {
+      const aiBrokenLine =
+          '[00:01.37]届[00:01.62]け[00:01.87]Brand[00:02.32]new[00:02.57]heart[00:02.82]溢る視線';
+      const originalLine = '[00:01.37]届けBrand new heart溢る視線';
+      final sanitized = LrcUtils.sanitizeKaraokeLineSpaces(
+        aiBrokenLine,
+        originalLineText: originalLine,
+      );
+      expect(
+        sanitized,
+        '[00:01.37]届[00:01.62]け[00:01.87]Brand [00:02.32]new [00:02.57]heart[00:02.82]溢る視線',
+      );
+    });
+
+    test('normalizeGeneratedLyricsText restores English word spaces from originalLyrics and parses correctly', () {
+      const originalLyrics = '[00:01.37]届けBrand new heart溢る視線';
+      const aiBrokenOutput =
+          '[00:01.37]届[00:01.62]け[00:01.87]Brand[00:02.32]new[00:02.57]heart[00:02.82]溢[00:03.10]る[00:03.30]視[00:03.50]線';
+
+      final normalized = LrcUtils.normalizeGeneratedLyricsText(
+        aiBrokenOutput,
+        preserveKaraokeLineStructure: true,
+        originalLyrics: originalLyrics,
+      );
+      expect(
+        normalized,
+        '[00:01.37]届[00:01.62]け[00:01.87]Brand [00:02.32]new [00:02.57]heart[00:02.82]溢[00:03.10]る[00:03.30]視[00:03.50]線',
+      );
+
+      final parsed = LrcUtils.parseTimedLyrics(normalized);
+      expect(parsed.length, 1);
+      expect(parsed[0].text, '届けBrand new heart溢る視線');
+      expect(parsed[0].words?.length, 9);
+      expect(parsed[0].words?[2].text, 'Brand ');
+      expect(parsed[0].words?[3].text, 'new ');
+      expect(parsed[0].words?[4].text, 'heart');
+      expect(parsed[0].words?[5].text, '溢');
+    });
   });
 }

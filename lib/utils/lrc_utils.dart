@@ -288,6 +288,10 @@ class LrcUtils {
                 : last.text.trimRight();
             wordTokens.add(_ParsedWordToken(last.timestamp, lastText));
             wordText = wordText.trimLeft();
+          } else if (!wordTokens.last.text.endsWith(' ') &&
+              _needsSpace(wordTokens.last.text, wordText)) {
+            final last = wordTokens.removeLast();
+            wordTokens.add(_ParsedWordToken(last.timestamp, '${last.text} '));
           }
           wordTokens.add(_ParsedWordToken(timestamp, wordText));
         } else if (i == wordMatches.length - 1) {
@@ -515,9 +519,24 @@ class LrcUtils {
 
   static bool _isCJKCodeUnit(int codeUnit) => isCJKCodeUnit(codeUnit);
 
+  static bool _isLatinLetter(int codeUnit) {
+    return (codeUnit >= 0x41 && codeUnit <= 0x5a) || // A-Z
+        (codeUnit >= 0x61 && codeUnit <= 0x7a) || // a-z
+        (codeUnit >= 0x00c0 && codeUnit <= 0x024f); // Latin Extended-A & B
+  }
+
+  static bool _isLatinWordLetterOrDigit(int codeUnit) {
+    return _isLatinLetter(codeUnit) ||
+        (codeUnit >= 0x30 && codeUnit <= 0x39);
+  }
+
   /// Cleans redundant spaces introduced by AI in karaoke lyrics while preserving
-  /// spaces between English/Latin words.
-  static String sanitizeKaraokeLineSpaces(String rawLine) {
+  /// and restoring spaces between English/Latin words. When [originalLineText] is
+  /// provided, restores original spaces between words based on original lyrics.
+  static String sanitizeKaraokeLineSpaces(
+    String rawLine, {
+    String? originalLineText,
+  }) {
     if (rawLine.isEmpty) return rawLine;
 
     final matches = _timestampLinePattern.allMatches(rawLine).toList();
@@ -558,6 +577,40 @@ class LrcUtils {
     // 行尾末尾的多余空白去掉
     spans.last.text = spans.last.text.replaceFirst(RegExp(r'[\s\u3000]+$'), '');
 
+    String? cleanOriginal;
+    if (originalLineText != null && originalLineText.trim().isNotEmpty) {
+      var orig = originalLineText.replaceAll(_timestampLinePattern, '').trim();
+      final split = _splitInlineTranslation(orig);
+      if (split != null) {
+        orig = split.$1.trim();
+      }
+      if (orig.isNotEmpty) {
+        cleanOriginal = orig;
+      }
+    }
+
+    final spanOrigRanges = List<({int start, int end})?>.filled(
+      spans.length,
+      null,
+      growable: false,
+    );
+
+    if (cleanOriginal != null) {
+      var currOrigIdx = 0;
+      final cleanOrigLower = cleanOriginal.toLowerCase();
+
+      for (int i = 0; i < spans.length; i++) {
+        final text = spans[i].text.trim();
+        if (text.isEmpty) continue;
+        final textLower = text.toLowerCase();
+        final found = cleanOrigLower.indexOf(textLower, currOrigIdx);
+        if (found != -1 && (found - currOrigIdx) <= 25) {
+          spanOrigRanges[i] = (start: found, end: found + text.length);
+          currOrigIdx = found + text.length;
+        }
+      }
+    }
+
     for (int i = 0; i < spans.length - 1; i++) {
       final currentSpan = spans[i];
       final nextSpan = spans[i + 1];
@@ -569,45 +622,59 @@ class LrcUtils {
           nextSpan.text.startsWith('\t') ||
           nextSpan.text.startsWith('\u3000');
 
-      final trimmedCurrent = currentSpan.text.replaceFirst(RegExp(r'[\s\u3000]+$'), '');
-      final trimmedNext = nextSpan.text.replaceFirst(RegExp(r'^[\s\u3000]+'), '');
+      final trimmedCurrent =
+          currentSpan.text.replaceFirst(RegExp(r'[\s\u3000]+$'), '');
+      final trimmedNext =
+          nextSpan.text.replaceFirst(RegExp(r'^[\s\u3000]+'), '');
 
-      if (!hasSpace) {
-        currentSpan.text = trimmedCurrent;
-        nextSpan.text = trimmedNext;
-        continue;
-      }
+      bool? needSpace;
 
-      final codeA = trimmedCurrent.isNotEmpty
-          ? trimmedCurrent.codeUnitAt(trimmedCurrent.length - 1)
-          : null;
-      final codeB = trimmedNext.isNotEmpty
-          ? trimmedNext.codeUnitAt(0)
-          : null;
-
-      bool keepSpace = false;
-      if (codeA != null && codeB != null) {
-        if (isWordConstituent(codeA) && isWordConstituent(codeB)) {
-          // 英文/西文单词之间（例如 "Goodbye" 和 "my"），必须保留空格！
-          keepSpace = true;
-        } else if (isCJKCodeUnit(codeA) && isCJKCodeUnit(codeB)) {
-          // 两个都是 CJK 字符（例如 "繋" 和 "い"），坚决去除空格！
-          keepSpace = false;
-        } else if (isCJKCodeUnit(codeA) || isCJKPunctuation(codeA) || isCJKCodeUnit(codeB) || isCJKPunctuation(codeB)) {
-          if (_isPunctuation(codeA) || _isPunctuation(codeB)) {
-            // 标点符号与 CJK 之间，去除空格
-            keepSpace = false;
-          } else {
-            // 一边是 CJK 字符，一边是西文单词（例如 "声" 和 "Goodbye"）
-            // 保留原有的单个空格
-            keepSpace = true;
-          }
-        } else {
-          keepSpace = true;
+      // 优先根据原歌词该行在两词之间的空白情况还原
+      if (cleanOriginal != null) {
+        final rangeA = spanOrigRanges[i];
+        final rangeB = spanOrigRanges[i + 1];
+        if (rangeA != null && rangeB != null && rangeB.start >= rangeA.end) {
+          final origGap = cleanOriginal.substring(rangeA.end, rangeB.start);
+          needSpace = origGap.contains(RegExp(r'[\s\u3000]'));
         }
       }
 
-      if (keepSpace) {
+      if (needSpace == null) {
+        final codeA = trimmedCurrent.isNotEmpty
+            ? trimmedCurrent.codeUnitAt(trimmedCurrent.length - 1)
+            : null;
+        final codeB =
+            trimmedNext.isNotEmpty ? trimmedNext.codeUnitAt(0) : null;
+
+        if (codeA != null && codeB != null) {
+          if (_isLatinWordLetterOrDigit(codeA) &&
+              _isLatinWordLetterOrDigit(codeB)) {
+            // 英文/西文单词之间（例如 "Brand" 和 "new"），必须保留或自动补齐空格！
+            needSpace = true;
+          } else if (isCJKCodeUnit(codeA) && isCJKCodeUnit(codeB)) {
+            // 两个都是 CJK 字符（例如 "繋" 和 "い"），坚决去除空格！
+            needSpace = false;
+          } else if (isCJKCodeUnit(codeA) ||
+              isCJKPunctuation(codeA) ||
+              isCJKCodeUnit(codeB) ||
+              isCJKPunctuation(codeB)) {
+            if (_isPunctuation(codeA) || _isPunctuation(codeB)) {
+              // 标点符号与 CJK 之间，去除空格
+              needSpace = false;
+            } else {
+              // 一边是 CJK 字符，一边是西文单词（例如 "声" 和 "Goodbye"）
+              // 仅在已有空格时保留
+              needSpace = hasSpace;
+            }
+          } else {
+            needSpace = hasSpace;
+          }
+        } else {
+          needSpace = hasSpace;
+        }
+      }
+
+      if (needSpace) {
         currentSpan.text = '$trimmedCurrent ';
         nextSpan.text = trimmedNext;
       } else {
@@ -628,13 +695,32 @@ class LrcUtils {
   }
 
   /// Cleans extra spaces in entire karaoke lyrics text across all lines.
-  static String sanitizeKaraokeLyricsSpaces(String lyrics) {
+  static String sanitizeKaraokeLyricsSpaces(
+    String lyrics, {
+    String? originalLyrics,
+  }) {
     if (lyrics.isEmpty) return lyrics;
     final lines = lyrics.split(RegExp(r'\r?\n'));
+    final targetLines =
+        originalLyrics != null && originalLyrics.trim().isNotEmpty
+            ? _extractSourceLyricLines(originalLyrics)
+            : null;
     final result = <String>[];
+    var targetLineIdx = 0;
     for (final line in lines) {
       if (isKaraokeLyricsLine(line)) {
-        result.add(sanitizeKaraokeLineSpaces(line));
+        String? originalLineText;
+        if (targetLines != null && targetLines.isNotEmpty) {
+          originalLineText = _findMatchingSourceLine(
+            line,
+            targetLines,
+            targetLineIdx,
+          );
+          targetLineIdx++;
+        }
+        result.add(
+          sanitizeKaraokeLineSpaces(line, originalLineText: originalLineText),
+        );
       } else {
         result.add(line);
       }
@@ -757,6 +843,7 @@ class LrcUtils {
     if (cleaned.isEmpty) return '';
     if (!_timestampLinePattern.hasMatch(cleaned)) return cleaned;
 
+    List<_SourceLyricLine>? targetLines;
     if (originalLyrics != null && originalLyrics.trim().isNotEmpty) {
       final restored = restoreKaraokeLineBreaks(
         karaokeLyrics: cleaned,
@@ -765,13 +852,27 @@ class LrcUtils {
       if (restored.isNotEmpty) {
         cleaned = restored;
       }
+      targetLines = _extractSourceLyricLines(originalLyrics);
     }
 
     final normalizedLines = <String>[];
+    var targetLineIdx = 0;
     for (final rawLine in cleaned.split(RegExp(r'\r?\n'))) {
       if (preserveKaraokeLineStructure || isKaraokeLyricsLine(rawLine)) {
         final collapsed = _collapseDuplicateLineStartTimestamps(rawLine.trim());
-        final line = sanitizeKaraokeLineSpaces(collapsed);
+        String? originalLineText;
+        if (targetLines != null && targetLines.isNotEmpty) {
+          originalLineText = _findMatchingSourceLine(
+            collapsed,
+            targetLines,
+            targetLineIdx,
+          );
+          targetLineIdx++;
+        }
+        final line = sanitizeKaraokeLineSpaces(
+          collapsed,
+          originalLineText: originalLineText,
+        );
         if (line.isNotEmpty) {
           normalizedLines.add(line);
         }
@@ -1171,6 +1272,57 @@ class LrcUtils {
       }
     }
     return line;
+  }
+
+  static String? _findMatchingSourceLine(
+    String rawLine,
+    List<_SourceLyricLine> targetLines,
+    int hintIndex,
+  ) {
+    if (targetLines.isEmpty) return null;
+
+    final lineMatch = _timestampLinePattern.firstMatch(rawLine);
+    final lineTs =
+        lineMatch != null ? parseTimestampToken(lineMatch.group(0)!) : null;
+
+    // 1. 若 hintIndex 处的起始时间戳高度吻合（<= 3s），直接采用
+    if (hintIndex >= 0 && hintIndex < targetLines.length) {
+      final candidate = targetLines[hintIndex];
+      if (lineTs != null && candidate.timestamp != null) {
+        if ((lineTs - candidate.timestamp!).abs() <=
+            const Duration(seconds: 3)) {
+          return candidate.text;
+        }
+      } else if (lineTs == null && candidate.timestamp == null) {
+        return candidate.text;
+      }
+    }
+
+    // 2. 根据起始时间戳在所有目标行中寻找最接近的一行
+    if (lineTs != null) {
+      _SourceLyricLine? bestCandidate;
+      Duration? minDiff;
+      for (final tLine in targetLines) {
+        if (tLine.timestamp == null) continue;
+        final diff = (lineTs - tLine.timestamp!).abs();
+        if (diff <= const Duration(seconds: 3)) {
+          if (minDiff == null || diff < minDiff) {
+            minDiff = diff;
+            bestCandidate = tLine;
+          }
+        }
+      }
+      if (bestCandidate != null) {
+        return bestCandidate.text;
+      }
+    }
+
+    // 3. 回退至 hintIndex
+    if (hintIndex >= 0 && hintIndex < targetLines.length) {
+      return targetLines[hintIndex].text;
+    }
+
+    return null;
   }
 }
 
