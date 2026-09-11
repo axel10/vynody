@@ -789,6 +789,10 @@
   "openSettingsButton": "Einstellungen öffnen",
   "closeButton": "Schließen",
   "copyTranslationResults": "Übersetzungsergebnisse kopieren",
+  "writeLyricsToFile": "Songtexte in Datei schreiben",
+  "selectLyricSource": "Songtext-Quelle auswählen",
+  "regenerateLyrics": "Songtext neu generieren",
+  "regenerateLyricsConfirmation": "Der aktuelle Songtext wird gelöscht und neu generiert. Fortfahren?",
   "regenerateTimeline": "Zeitachse neu generieren",
   "regenerateTimelineConfirmation": "Die aktuelle Zeitachse wird gelöscht und neu generiert. Fortfahren?",
   "convertToKaraokeConfirmation": "Aktuellen Songtext in Wort-für-Wort-Songtext umwandeln und Zeitachse neu generieren. Fortfahren?",
@@ -1745,6 +1749,7 @@
   "wasapiExclusiveShortcutTitle": "Tastenkürzel zum schnellen Umschalten",
   "wasapiExclusiveShortcutDescription": "Verwenden Sie ein Tastenkürzel, um schnell zwischen Exklusiv- und Shared-Modus umzuschalten",
   "wasapiExclusiveEnabledNotice": "WASAPI-Exklusivmodus aktiviert",
+  "audioSharedModeEnabledNotice": "Zu Shared-Audiomodus gewechselt",
   "editShortcutTitle": "Tastenkürzel bearbeiten",
   "nonRecommendedModelWarningTitle": "Nicht empfohlener Modellhinweis",
   "nonRecommendedModelWarningMessage": "Das aktuelle Modell zur Texterstellung ist \"{currentModel}\", empfohlen wird jedoch \"{recommendedModel}\". Nicht empfohlene Modelle können ungenaue Texte oder Zeitstempelversatz verursachen. Möchten Sie zum empfohlenen Modell wechseln?",
@@ -1761,5 +1766,9 @@
   "switchAndGenerate": "Zum empfohlenen Modell wechseln",
   "continueGeneration": "Fortfahren",
   "abortGeneration": "Abbrechen",
-  "doNotShowAgain": "Nicht mehr anzeigen"
+  "doNotShowAgain": "Nicht mehr anzeigen",
+  "addToLocalFavorites": "Lokale Favoriten",
+  "addToCloudFavorites": "Cloud-Favoriten",
+  "batchAddedToCloudFavorites": "Zu Cloud-Favoriten hinzugefügt",
+  "batchAddedToLocalFavorites": "Zu lokalen Favoriten hinzugefügt"
 }

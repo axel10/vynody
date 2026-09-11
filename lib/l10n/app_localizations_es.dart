@@ -444,16 +444,16 @@ class AppLocalizationsEs extends AppLocalizations {
   String get removeFromFavorites => 'Eliminar de favoritos';
 
   @override
-  String get addToLocalFavorites => '本地收藏';
+  String get addToLocalFavorites => 'Favoritos locales';
 
   @override
-  String get addToCloudFavorites => '云端收藏';
+  String get addToCloudFavorites => 'Favoritos en la nube';
 
   @override
-  String get batchAddedToCloudFavorites => '已加入云端收藏';
+  String get batchAddedToCloudFavorites => 'Añadido a favoritos en la nube';
 
   @override
-  String get batchAddedToLocalFavorites => '已加入本地收藏';
+  String get batchAddedToLocalFavorites => 'Añadido a favoritos locales';
 
   @override
   String get viewAlbumDetails => 'Ver detalles del álbum';
@@ -4787,7 +4787,8 @@ class AppLocalizationsEs extends AppLocalizations {
   String get wasapiExclusiveEnabledNotice => 'Modo exclusivo WASAPI activado';
 
   @override
-  String get audioSharedModeEnabledNotice => '已切换至系统共享音频模式';
+  String get audioSharedModeEnabledNotice =>
+      'Cambiado al modo de audio compartido';
 
   @override
   String get editShortcutTitle => 'Editar atajo';

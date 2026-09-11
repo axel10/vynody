@@ -1749,6 +1749,7 @@
   "wasapiExclusiveShortcutTitle": "단축키 빠른 전환",
   "wasapiExclusiveShortcutDescription": "단축키를 사용하여 독점 모드와 시스템 공유 출력 간을 빠르게 전환합니다",
   "wasapiExclusiveEnabledNotice": "WASAPI 독점 모드가 활성화되었습니다",
+  "audioSharedModeEnabledNotice": "시스템 공유 오디오 모드로 전환되었습니다",
   "editShortcutTitle": "단축키 수정",
   "nonRecommendedModelWarningTitle": "비권장 모델 알림",
   "nonRecommendedModelWarningMessage": "현재 가사 생성 모델은 \"{currentModel}\"이며, 권장 모델은 \"{recommendedModel}\"입니다. 비권장 모델은 가사 정확도 저하 또는 타임스탬프 불일치가 발생할 수 있습니다. 권장 모델로 전환하시겠습니까?",
@@ -1765,5 +1766,9 @@
   "switchAndGenerate": "권장 모델로 변경 및 생성",
   "continueGeneration": "계속 생성",
   "abortGeneration": "중단",
-  "doNotShowAgain": "다시 묻지 않음"
+  "doNotShowAgain": "다시 묻지 않음",
+  "addToLocalFavorites": "로컬 즐겨찾기",
+  "addToCloudFavorites": "클라우드 즐겨찾기",
+  "batchAddedToCloudFavorites": "클라우드 즐겨찾기에 추가됨",
+  "batchAddedToLocalFavorites": "로컬 즐겨찾기에 추가됨"
 }

@@ -1749,6 +1749,7 @@
   "wasapiExclusiveShortcutTitle": "Acceso directo de cambio rápido",
   "wasapiExclusiveShortcutDescription": "Use el atajo para alternar rápidamente entre el modo exclusivo y compartido",
   "wasapiExclusiveEnabledNotice": "Modo exclusivo WASAPI activado",
+  "audioSharedModeEnabledNotice": "Cambiado al modo de audio compartido",
   "editShortcutTitle": "Editar atajo",
   "nonRecommendedModelWarningTitle": "Aviso de modelo no recomendado",
   "nonRecommendedModelWarningMessage": "El modelo actual de generación de letras es \"{currentModel}\", pero se recomienda \"{recommendedModel}\". Los modelos no recomendados pueden generar letras inexactas o desalineadas. ¿Desea cambiar al modelo recomendado?",
@@ -1765,5 +1766,9 @@
   "switchAndGenerate": "Cambiar al recomendado",
   "continueGeneration": "Continuar",
   "abortGeneration": "Cancelar",
-  "doNotShowAgain": "No volver a mostrar"
+  "doNotShowAgain": "No volver a mostrar",
+  "addToLocalFavorites": "Favoritos locales",
+  "addToCloudFavorites": "Favoritos en la nube",
+  "batchAddedToCloudFavorites": "Añadido a favoritos en la nube",
+  "batchAddedToLocalFavorites": "Añadido a favoritos locales"
 }

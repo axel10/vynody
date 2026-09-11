@@ -438,16 +438,16 @@ class AppLocalizationsTr extends AppLocalizations {
   String get removeFromFavorites => 'Favorilerden Kaldır';
 
   @override
-  String get addToLocalFavorites => '本地收藏';
+  String get addToLocalFavorites => 'Yerel Favoriler';
 
   @override
-  String get addToCloudFavorites => '云端收藏';
+  String get addToCloudFavorites => 'Bulut Favorileri';
 
   @override
-  String get batchAddedToCloudFavorites => '已加入云端收藏';
+  String get batchAddedToCloudFavorites => 'Bulut favorilerine eklendi';
 
   @override
-  String get batchAddedToLocalFavorites => '已加入本地收藏';
+  String get batchAddedToLocalFavorites => 'Yerel favorilere eklendi';
 
   @override
   String get viewAlbumDetails => 'Albüm Ayrıntılarını Görüntüle';
@@ -4737,7 +4737,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get wasapiExclusiveEnabledNotice => 'WASAPI Özel Modu etkinleştirildi';
 
   @override
-  String get audioSharedModeEnabledNotice => '已切换至系统共享音频模式';
+  String get audioSharedModeEnabledNotice => 'Paylaşımlı Ses Moduna geçildi';
 
   @override
   String get editShortcutTitle => 'Kısayolu Düzenle';

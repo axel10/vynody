@@ -433,16 +433,16 @@ class AppLocalizationsJa extends AppLocalizations {
   String get removeFromFavorites => 'お気に入りから削除';
 
   @override
-  String get addToLocalFavorites => '本地收藏';
+  String get addToLocalFavorites => 'ローカルのお気に入り';
 
   @override
-  String get addToCloudFavorites => '云端收藏';
+  String get addToCloudFavorites => 'クラウドのお気に入り';
 
   @override
-  String get batchAddedToCloudFavorites => '已加入云端收藏';
+  String get batchAddedToCloudFavorites => 'クラウドのお気に入りに追加しました';
 
   @override
-  String get batchAddedToLocalFavorites => '已加入本地收藏';
+  String get batchAddedToLocalFavorites => 'ローカルのお気に入りに追加しました';
 
   @override
   String get viewAlbumDetails => 'アルバムの詳細を表示';
@@ -4562,7 +4562,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get wasapiExclusiveEnabledNotice => 'WASAPI 排他モードを有効にしました';
 
   @override
-  String get audioSharedModeEnabledNotice => '已切换至系统共享音频模式';
+  String get audioSharedModeEnabledNotice => '共有オーディオモードに切り替えました';
 
   @override
   String get editShortcutTitle => 'ショートカットを編集';

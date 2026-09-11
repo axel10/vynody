@@ -441,16 +441,16 @@ class AppLocalizationsDe extends AppLocalizations {
   String get removeFromFavorites => 'Aus Favoriten entfernen';
 
   @override
-  String get addToLocalFavorites => '本地收藏';
+  String get addToLocalFavorites => 'Lokale Favoriten';
 
   @override
-  String get addToCloudFavorites => '云端收藏';
+  String get addToCloudFavorites => 'Cloud-Favoriten';
 
   @override
-  String get batchAddedToCloudFavorites => '已加入云端收藏';
+  String get batchAddedToCloudFavorites => 'Zu Cloud-Favoriten hinzugefügt';
 
   @override
-  String get batchAddedToLocalFavorites => '已加入本地收藏';
+  String get batchAddedToLocalFavorites => 'Zu lokalen Favoriten hinzugefügt';
 
   @override
   String get viewAlbumDetails => 'Album-Details anzeigen';
@@ -2084,16 +2084,17 @@ class AppLocalizationsDe extends AppLocalizations {
   String get copyTranslationResults => 'Übersetzungsergebnisse kopieren';
 
   @override
-  String get writeLyricsToFile => '将歌词写入文件';
+  String get writeLyricsToFile => 'Songtexte in Datei schreiben';
 
   @override
-  String get selectLyricSource => '选择歌词来源';
+  String get selectLyricSource => 'Songtext-Quelle auswählen';
 
   @override
-  String get regenerateLyrics => '重新生成歌词';
+  String get regenerateLyrics => 'Songtext neu generieren';
 
   @override
-  String get regenerateLyricsConfirmation => '将清空当前歌词并重新生成，是否继续？';
+  String get regenerateLyricsConfirmation =>
+      'Der aktuelle Songtext wird gelöscht und neu generiert. Fortfahren?';
 
   @override
   String get regenerateTimeline => 'Zeitachse neu generieren';
@@ -4773,7 +4774,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get wasapiExclusiveEnabledNotice => 'WASAPI-Exklusivmodus aktiviert';
 
   @override
-  String get audioSharedModeEnabledNotice => '已切换至系统共享音频模式';
+  String get audioSharedModeEnabledNotice => 'Zu Shared-Audiomodus gewechselt';
 
   @override
   String get editShortcutTitle => 'Tastenkürzel bearbeiten';

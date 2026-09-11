@@ -432,16 +432,16 @@ class AppLocalizationsKo extends AppLocalizations {
   String get removeFromFavorites => '즐겨찾기에서 제거';
 
   @override
-  String get addToLocalFavorites => '本地收藏';
+  String get addToLocalFavorites => '로컬 즐겨찾기';
 
   @override
-  String get addToCloudFavorites => '云端收藏';
+  String get addToCloudFavorites => '클라우드 즐겨찾기';
 
   @override
-  String get batchAddedToCloudFavorites => '已加入云端收藏';
+  String get batchAddedToCloudFavorites => '클라우드 즐겨찾기에 추가됨';
 
   @override
-  String get batchAddedToLocalFavorites => '已加入本地收藏';
+  String get batchAddedToLocalFavorites => '로컬 즐겨찾기에 추가됨';
 
   @override
   String get viewAlbumDetails => '앨범 상세 보기';
@@ -4567,7 +4567,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get wasapiExclusiveEnabledNotice => 'WASAPI 독점 모드가 활성화되었습니다';
 
   @override
-  String get audioSharedModeEnabledNotice => '已切换至系统共享音频模式';
+  String get audioSharedModeEnabledNotice => '시스템 공유 오디오 모드로 전환되었습니다';
 
   @override
   String get editShortcutTitle => '단축키 수정';

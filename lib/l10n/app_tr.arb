@@ -1873,6 +1873,7 @@
   "wasapiExclusiveShortcutTitle": "Hızlı Geçiş Kısayolu",
   "wasapiExclusiveShortcutDescription": "Özel ve Paylaşımlı mod arasında hızlıca geçiş yapmak için kısayol kullanın",
   "wasapiExclusiveEnabledNotice": "WASAPI Özel Modu etkinleştirildi",
+  "audioSharedModeEnabledNotice": "Paylaşımlı Ses Moduna geçildi",
   "editShortcutTitle": "Kısayolu Düzenle",
   "nonRecommendedModelWarningTitle": "Önerilmeyen Model Bildirimi",
   "nonRecommendedModelWarningMessage": "Geçerli şarkı sözü oluşturma modeli \"{currentModel}\", ancak \"{recommendedModel}\" önerilir. Önerilmeyen modeller hatalı sözlere veya zaman damgası kaymalarına neden olabilir. Önerilen modele geçmek ister misiniz?",
@@ -1889,5 +1890,9 @@
   "switchAndGenerate": "Önerilene Geç",
   "continueGeneration": "Devam Et",
   "abortGeneration": "İptal Et",
-  "doNotShowAgain": "Bir daha gösterme"
+  "doNotShowAgain": "Bir daha gösterme",
+  "addToLocalFavorites": "Yerel Favoriler",
+  "addToCloudFavorites": "Bulut Favorileri",
+  "batchAddedToCloudFavorites": "Bulut favorilerine eklendi",
+  "batchAddedToLocalFavorites": "Yerel favorilere eklendi"
 }
