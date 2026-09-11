@@ -280,54 +280,56 @@ class RemoteLibraryAlbumsView extends ConsumerWidget {
                   )
                 : RefreshIndicator(
                     onRefresh: onRefresh,
-                    child: GridView.builder(
-                      padding:
-                          EdgeInsets.fromLTRB(16, 8, 16, bottomOffset),
-                      gridDelegate:
-                          SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: crossAxisCount,
-                        childAspectRatio: childAspectRatio,
-                        crossAxisSpacing: 16,
-                        mainAxisSpacing: 16,
-                      ),
-                      itemCount: albums.length,
-                      itemBuilder: (context, index) {
-                        final album = albums[index];
-                        final albumId = album['id'] as String? ?? '';
-                        final isSelected = selectedAlbumIds.contains(albumId);
-                        final title = album['title'] as String? ??
-                            album['name'] as String? ??
-                            l10n.unknownAlbum;
-                        final artist = album['artist'] as String? ??
-                            l10n.unknownArtist;
-                        final coverId = album['coverArt'] as String?;
-                        final songCount = album['songCount'] as int?;
-                        final year = album['year'] as int?;
+                    child: Scrollbar(
+                      child: GridView.builder(
+                        padding:
+                            EdgeInsets.fromLTRB(16, 8, 16, bottomOffset),
+                        gridDelegate:
+                            SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: crossAxisCount,
+                          childAspectRatio: childAspectRatio,
+                          crossAxisSpacing: 16,
+                          mainAxisSpacing: 16,
+                        ),
+                        itemCount: albums.length,
+                        itemBuilder: (context, index) {
+                          final album = albums[index];
+                          final albumId = album['id'] as String? ?? '';
+                          final isSelected = selectedAlbumIds.contains(albumId);
+                          final title = album['title'] as String? ??
+                              album['name'] as String? ??
+                              l10n.unknownAlbum;
+                          final artist = album['artist'] as String? ??
+                              l10n.unknownArtist;
+                          final coverId = album['coverArt'] as String?;
+                          final songCount = album['songCount'] as int?;
+                          final year = album['year'] as int?;
 
-                        return RemoteLibraryAlbumCard(
-                          server: server,
-                          password: password,
-                          album: album,
-                          albumId: albumId,
-                          title: title,
-                          artist: artist,
-                          coverId: coverId,
-                          songCount: songCount,
-                          year: year,
-                          index: index,
-                          isSelected: isSelected,
-                          isSelectionMode: isSelectionMode,
-                          filteredAlbums: albums,
-                          selectedAlbumIds: selectedAlbumIds,
-                          lastAlbumAnchorIndex: lastAlbumAnchorIndex,
-                          isPortrait: isPortrait,
-                          onSetSelection: onSetSelection,
-                          onToggleSelection: onToggleSelection,
-                          onUpdateAnchor: onUpdateAnchor,
-                          onPlayAlbumDirectly: () =>
-                              onPlayAlbumDirectly(albumId, title),
-                        );
-                      },
+                          return RemoteLibraryAlbumCard(
+                            server: server,
+                            password: password,
+                            album: album,
+                            albumId: albumId,
+                            title: title,
+                            artist: artist,
+                            coverId: coverId,
+                            songCount: songCount,
+                            year: year,
+                            index: index,
+                            isSelected: isSelected,
+                            isSelectionMode: isSelectionMode,
+                            filteredAlbums: albums,
+                            selectedAlbumIds: selectedAlbumIds,
+                            lastAlbumAnchorIndex: lastAlbumAnchorIndex,
+                            isPortrait: isPortrait,
+                            onSetSelection: onSetSelection,
+                            onToggleSelection: onToggleSelection,
+                            onUpdateAnchor: onUpdateAnchor,
+                            onPlayAlbumDirectly: () =>
+                                onPlayAlbumDirectly(albumId, title),
+                          );
+                        },
+                      ),
                     ),
                   ),
           ),

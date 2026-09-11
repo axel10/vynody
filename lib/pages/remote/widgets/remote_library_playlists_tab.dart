@@ -245,40 +245,42 @@ class RemoteLibraryPlaylistsView extends ConsumerWidget {
                   ),
                   child: RefreshIndicator(
                     onRefresh: onRefresh,
-                    child: ListView.builder(
-                      padding:
-                          EdgeInsets.fromLTRB(12, 12, 12, bottomOffset),
-                      itemCount: playlists.length,
-                      itemBuilder: (context, index) {
-                        final pl = playlists[index];
-                        final isSelected =
-                            pl['id'] == selectedPlaylist['id'];
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 8.0),
-                          child: RemoteLibraryPlaylistItem(
-                            server: server,
-                            password: password,
-                            playlist: pl,
-                            index: index,
-                            allPlaylists: playlists,
-                            isSelected: isSelected,
-                            isMultiSelected: selectedPlaylistIds
-                                .contains(pl['id'] as String? ?? ''),
-                            isSelectionMode: isSelectionMode,
-                            selectedPlaylistIds: selectedPlaylistIds,
-                            lastPlaylistAnchorIndex:
-                                lastPlaylistAnchorIndex,
-                            onSetSelection: onSetSelection,
-                            onToggleSelection: onToggleSelection,
-                            onUpdateAnchor: onUpdateAnchor,
-                            onRefreshPlaylists: onRefresh,
-                            onTap: () {
-                              final id = pl['id'] as String?;
-                              onSelectPlaylistId(id);
-                            },
-                          ),
-                        );
-                      },
+                    child: Scrollbar(
+                      child: ListView.builder(
+                        padding:
+                            EdgeInsets.fromLTRB(12, 12, 12, bottomOffset),
+                        itemCount: playlists.length,
+                        itemBuilder: (context, index) {
+                          final pl = playlists[index];
+                          final isSelected =
+                              pl['id'] == selectedPlaylist['id'];
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 8.0),
+                            child: RemoteLibraryPlaylistItem(
+                              server: server,
+                              password: password,
+                              playlist: pl,
+                              index: index,
+                              allPlaylists: playlists,
+                              isSelected: isSelected,
+                              isMultiSelected: selectedPlaylistIds
+                                  .contains(pl['id'] as String? ?? ''),
+                              isSelectionMode: isSelectionMode,
+                              selectedPlaylistIds: selectedPlaylistIds,
+                              lastPlaylistAnchorIndex:
+                                  lastPlaylistAnchorIndex,
+                              onSetSelection: onSetSelection,
+                              onToggleSelection: onToggleSelection,
+                              onUpdateAnchor: onUpdateAnchor,
+                              onRefreshPlaylists: onRefresh,
+                              onTap: () {
+                                final id = pl['id'] as String?;
+                                onSelectPlaylistId(id);
+                              },
+                            ),
+                          );
+                        },
+                      ),
                     ),
                   ),
                 ),
@@ -345,49 +347,51 @@ class RemoteLibraryPlaylistsView extends ConsumerWidget {
               )
             : RefreshIndicator(
                 onRefresh: onRefresh,
-                child: ListView.builder(
-                  padding: EdgeInsets.fromLTRB(16, 8, 16, bottomOffset),
-                  itemCount: playlists.length,
-                  itemBuilder: (context, index) {
-                    final pl = playlists[index];
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 8.0),
-                      child: RemoteLibraryPlaylistItem(
-                        server: server,
-                        password: password,
-                        playlist: pl,
-                        index: index,
-                        allPlaylists: playlists,
-                        isSelected: false,
-                        isMultiSelected: selectedPlaylistIds
-                            .contains(pl['id'] as String? ?? ''),
-                        isSelectionMode: isSelectionMode,
-                        selectedPlaylistIds: selectedPlaylistIds,
-                        lastPlaylistAnchorIndex: lastPlaylistAnchorIndex,
-                        onSetSelection: onSetSelection,
-                        onToggleSelection: onToggleSelection,
-                        onUpdateAnchor: onUpdateAnchor,
-                        onRefreshPlaylists: onRefresh,
-                        onTap: () {
-                          RemoteLibraryNavUtils.openPlaylist(
-                            context,
-                            ref,
-                            server: server,
-                            password: password,
-                            playlistId: pl['id'] as String? ?? '',
-                            playlistName:
-                                pl['name'] as String? ?? l10n.playlist,
-                            coverArtId: pl['coverArt'] as String?,
-                            songCount: pl['songCount'] as int?,
-                            duration: pl['duration'] as int?,
-                            isStarred: pl['isStarred'] == true ||
-                                pl['id'] == starredPlaylistId,
-                            onPlaylistModified: onRefresh,
-                          );
-                        },
-                      ),
-                    );
-                  },
+                child: Scrollbar(
+                  child: ListView.builder(
+                    padding: EdgeInsets.fromLTRB(16, 8, 16, bottomOffset),
+                    itemCount: playlists.length,
+                    itemBuilder: (context, index) {
+                      final pl = playlists[index];
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 8.0),
+                        child: RemoteLibraryPlaylistItem(
+                          server: server,
+                          password: password,
+                          playlist: pl,
+                          index: index,
+                          allPlaylists: playlists,
+                          isSelected: false,
+                          isMultiSelected: selectedPlaylistIds
+                              .contains(pl['id'] as String? ?? ''),
+                          isSelectionMode: isSelectionMode,
+                          selectedPlaylistIds: selectedPlaylistIds,
+                          lastPlaylistAnchorIndex: lastPlaylistAnchorIndex,
+                          onSetSelection: onSetSelection,
+                          onToggleSelection: onToggleSelection,
+                          onUpdateAnchor: onUpdateAnchor,
+                          onRefreshPlaylists: onRefresh,
+                          onTap: () {
+                            RemoteLibraryNavUtils.openPlaylist(
+                              context,
+                              ref,
+                              server: server,
+                              password: password,
+                              playlistId: pl['id'] as String? ?? '',
+                              playlistName:
+                                  pl['name'] as String? ?? l10n.playlist,
+                              coverArtId: pl['coverArt'] as String?,
+                              songCount: pl['songCount'] as int?,
+                              duration: pl['duration'] as int?,
+                              isStarred: pl['isStarred'] == true ||
+                                  pl['id'] == starredPlaylistId,
+                              onPlaylistModified: onRefresh,
+                            );
+                          },
+                        ),
+                      );
+                    },
+                  ),
                 ),
               );
       },

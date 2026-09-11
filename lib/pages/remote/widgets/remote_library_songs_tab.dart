@@ -490,7 +490,8 @@ class _RemoteLibrarySongsViewState
       },
       child: RefreshIndicator(
         onRefresh: widget.onRefresh,
-        child: ListView.builder(
+        child: Scrollbar(
+          child: ListView.builder(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: EdgeInsets.fromLTRB(16, 8, 16, widget.bottomOffset),
           itemCount: widget.songs.length + 1 + (widget.hasMore ? 1 : 0),
@@ -883,7 +884,8 @@ class _RemoteLibrarySongsViewState
           },
         ),
       ),
-    );
+    ),
+  );
   }
 }
 

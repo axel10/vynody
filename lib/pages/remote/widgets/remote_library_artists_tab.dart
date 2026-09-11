@@ -211,40 +211,42 @@ class RemoteLibraryArtistsView extends ConsumerWidget {
                   ),
                   child: RefreshIndicator(
                     onRefresh: onRefresh,
-                    child: ListView.builder(
-                      padding:
-                          EdgeInsets.fromLTRB(12, 12, 12, bottomOffset),
-                      itemCount: artists.length,
-                      itemBuilder: (context, index) {
-                        final artist = artists[index];
-                        final isSelected =
-                            artist['id'] == selectedArtist['id'];
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 8.0),
-                          child: RemoteLibraryArtistItem(
-                            server: server,
-                            password: password,
-                            artist: artist,
-                            index: index,
-                            allArtists: artists,
-                            isSelected: isSelected,
-                            isMultiSelected: selectedArtistIds
-                                .contains(artist['id'] as String? ?? ''),
-                            isStarred: starredArtistIds
-                                .contains(artist['id'] as String? ?? ''),
-                            isSelectionMode: isSelectionMode,
-                            selectedArtistIds: selectedArtistIds,
-                            lastArtistAnchorIndex: lastArtistAnchorIndex,
-                            onSetSelection: onSetSelection,
-                            onToggleSelection: onToggleSelection,
-                            onUpdateAnchor: onUpdateAnchor,
-                            onTap: () {
-                              final id = artist['id'] as String?;
-                              onSelectArtistId(id);
-                            },
-                          ),
-                        );
-                      },
+                    child: Scrollbar(
+                      child: ListView.builder(
+                        padding:
+                            EdgeInsets.fromLTRB(12, 12, 12, bottomOffset),
+                        itemCount: artists.length,
+                        itemBuilder: (context, index) {
+                          final artist = artists[index];
+                          final isSelected =
+                              artist['id'] == selectedArtist['id'];
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 8.0),
+                            child: RemoteLibraryArtistItem(
+                              server: server,
+                              password: password,
+                              artist: artist,
+                              index: index,
+                              allArtists: artists,
+                              isSelected: isSelected,
+                              isMultiSelected: selectedArtistIds
+                                  .contains(artist['id'] as String? ?? ''),
+                              isStarred: starredArtistIds
+                                  .contains(artist['id'] as String? ?? ''),
+                              isSelectionMode: isSelectionMode,
+                              selectedArtistIds: selectedArtistIds,
+                              lastArtistAnchorIndex: lastArtistAnchorIndex,
+                              onSetSelection: onSetSelection,
+                              onToggleSelection: onToggleSelection,
+                              onUpdateAnchor: onUpdateAnchor,
+                              onTap: () {
+                                final id = artist['id'] as String?;
+                                onSelectArtistId(id);
+                              },
+                            ),
+                          );
+                        },
+                      ),
                     ),
                   ),
                 ),
@@ -297,46 +299,48 @@ class RemoteLibraryArtistsView extends ConsumerWidget {
               )
             : RefreshIndicator(
                 onRefresh: onRefresh,
-                child: ListView.builder(
-                  padding: EdgeInsets.fromLTRB(16, 8, 16, bottomOffset),
-                  itemCount: artists.length,
-                  itemBuilder: (context, index) {
-                    final artist = artists[index];
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 8.0),
-                      child: RemoteLibraryArtistItem(
-                        server: server,
-                        password: password,
-                        artist: artist,
-                        index: index,
-                        allArtists: artists,
-                        isSelected: false,
-                        isMultiSelected: selectedArtistIds
-                            .contains(artist['id'] as String? ?? ''),
-                        isStarred: starredArtistIds
-                            .contains(artist['id'] as String? ?? ''),
-                        isSelectionMode: isSelectionMode,
-                        selectedArtistIds: selectedArtistIds,
-                        lastArtistAnchorIndex: lastArtistAnchorIndex,
-                        onSetSelection: onSetSelection,
-                        onToggleSelection: onToggleSelection,
-                        onUpdateAnchor: onUpdateAnchor,
-                        onTap: () {
-                          RemoteLibraryNavUtils.openArtist(
-                            context,
-                            ref,
-                            server: server,
-                            password: password,
-                            artistId: artist['id'] as String? ?? '',
-                            artistName: artist['name'] as String? ??
-                                l10n.unknownArtist,
-                            coverArtId: artist['coverArt'] as String?,
-                            albumCount: artist['albumCount'] as int?,
-                          );
-                        },
-                      ),
-                    );
-                  },
+                child: Scrollbar(
+                  child: ListView.builder(
+                    padding: EdgeInsets.fromLTRB(16, 8, 16, bottomOffset),
+                    itemCount: artists.length,
+                    itemBuilder: (context, index) {
+                      final artist = artists[index];
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 8.0),
+                        child: RemoteLibraryArtistItem(
+                          server: server,
+                          password: password,
+                          artist: artist,
+                          index: index,
+                          allArtists: artists,
+                          isSelected: false,
+                          isMultiSelected: selectedArtistIds
+                              .contains(artist['id'] as String? ?? ''),
+                          isStarred: starredArtistIds
+                              .contains(artist['id'] as String? ?? ''),
+                          isSelectionMode: isSelectionMode,
+                          selectedArtistIds: selectedArtistIds,
+                          lastArtistAnchorIndex: lastArtistAnchorIndex,
+                          onSetSelection: onSetSelection,
+                          onToggleSelection: onToggleSelection,
+                          onUpdateAnchor: onUpdateAnchor,
+                          onTap: () {
+                            RemoteLibraryNavUtils.openArtist(
+                              context,
+                              ref,
+                              server: server,
+                              password: password,
+                              artistId: artist['id'] as String? ?? '',
+                              artistName: artist['name'] as String? ??
+                                  l10n.unknownArtist,
+                              coverArtId: artist['coverArt'] as String?,
+                              albumCount: artist['albumCount'] as int?,
+                            );
+                          },
+                        ),
+                      );
+                    },
+                  ),
                 ),
               );
       },

@@ -152,8 +152,9 @@ class RemoteLibrarySearchView extends ConsumerWidget {
       child: ConstrainedBox(
         constraints:
             const BoxConstraints(maxWidth: kSingleColumnContentMaxWidth),
-        child: ListView(
-          padding: EdgeInsets.fromLTRB(16, 8, 16, bottomOffset),
+        child: Scrollbar(
+          child: ListView(
+            padding: EdgeInsets.fromLTRB(16, 8, 16, bottomOffset),
           children: [
         if (searchedArtists.isNotEmpty) ...[
           Padding(
@@ -531,6 +532,7 @@ class RemoteLibrarySearchView extends ConsumerWidget {
           }(),
         ],
       ],
+          ),
         ),
       ),
     );
