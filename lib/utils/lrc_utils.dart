@@ -229,20 +229,35 @@ class LrcUtils {
     final remainingContent = line.substring(index);
     final wordMatches = _timestampLinePattern.allMatches(remainingContent).toList();
 
+    final effectiveTimestamps = <Duration>[];
+    for (final t in lineTimestamps) {
+      if (effectiveTimestamps.isEmpty ||
+          (t - effectiveTimestamps.last).abs() >= const Duration(seconds: 3)) {
+        effectiveTimestamps.add(t);
+      }
+    }
+
     if (wordMatches.isEmpty) {
       final text = remainingContent.trim();
-      for (final timestamp in lineTimestamps) {
+      for (final timestamp in effectiveTimestamps) {
         targetList.add(LyricLine(timestamp: timestamp, text: text, isTimed: true));
       }
     } else {
       // Parse word-by-word lyrics
-      final baseTimestamp = lineTimestamps.first;
+      final baseTimestamp = effectiveTimestamps.isNotEmpty
+          ? effectiveTimestamps.first
+          : lineTimestamps.first;
+      final firstWordTimestamp = lineTimestamps.length > 1 &&
+              (lineTimestamps[1] - baseTimestamp).abs() < const Duration(seconds: 3)
+          ? lineTimestamps[1]
+          : baseTimestamp;
+
       final wordTokens = <_ParsedWordToken>[];
 
       final firstWordEnd = wordMatches.first.start;
       final firstWordText = remainingContent.substring(0, firstWordEnd);
       if (firstWordText.trim().isNotEmpty) {
-        wordTokens.add(_ParsedWordToken(baseTimestamp, firstWordText.trimLeft()));
+        wordTokens.add(_ParsedWordToken(firstWordTimestamp, firstWordText.trimLeft()));
       }
 
       Duration? trailingTimestamp;
@@ -297,22 +312,20 @@ class LrcUtils {
 
         final cleanText = cleanTextBuffer.toString().trim();
         if (cleanText.isNotEmpty) {
-          for (final t in lineTimestamps) {
-            final wordsList = relativeWords.map((rw) {
-              return LyricWord(
-                timestamp: t + rw.offset,
-                durationMs: rw.durationMs,
-                text: rw.text,
-              );
-            }).toList();
+          final wordsList = relativeWords.map((rw) {
+            return LyricWord(
+              timestamp: baseTimestamp + rw.offset,
+              durationMs: rw.durationMs,
+              text: rw.text,
+            );
+          }).toList();
 
-            targetList.add(LyricLine(
-              timestamp: t,
-              text: cleanText,
-              isTimed: true,
-              words: wordsList,
-            ));
-          }
+          targetList.add(LyricLine(
+            timestamp: baseTimestamp,
+            text: cleanText,
+            isTimed: true,
+            words: wordsList,
+          ));
         }
       }
     }
@@ -526,13 +539,42 @@ class LrcUtils {
     return unwrapped.trim();
   }
 
-  static String normalizeGeneratedLyricsText(String? text) {
+  static bool isKaraokeLyricsLine(String rawLine) {
+    final line = normalizeLrcLine(rawLine);
+    if (line == null || line.isEmpty) return false;
+
+    final matches = _timestampLinePattern.allMatches(line).toList();
+    if (matches.length <= 1) return false;
+
+    for (var i = 0; i < matches.length - 1; i++) {
+      final currentMatch = matches[i];
+      final nextMatch = matches[i + 1];
+      final between = line.substring(currentMatch.end, nextMatch.start).trim();
+      if (between.isNotEmpty) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  static String normalizeGeneratedLyricsText(
+    String? text, {
+    bool preserveKaraokeLineStructure = false,
+  }) {
     final cleaned = cleanGeneratedLyricsText(text);
     if (cleaned.isEmpty) return '';
     if (!_timestampLinePattern.hasMatch(cleaned)) return cleaned;
 
     final normalizedLines = <String>[];
     for (final rawLine in cleaned.split(RegExp(r'\r?\n'))) {
+      if (preserveKaraokeLineStructure || isKaraokeLyricsLine(rawLine)) {
+        final line = _collapseDuplicateLineStartTimestamps(rawLine.trim());
+        if (line.isNotEmpty) {
+          normalizedLines.add(line);
+        }
+        continue;
+      }
+
       final expandedLines = _expandPackedTimestampLine(rawLine);
       if (expandedLines.isEmpty) {
         final line = rawLine.trim();
@@ -599,6 +641,24 @@ class LrcUtils {
 
     emitGroup(normalized.substring(lastTimestampEnd));
     return expandedLines;
+  }
+
+  static String _collapseDuplicateLineStartTimestamps(String rawLine) {
+    var line = rawLine.trim();
+    if (line.isEmpty) return line;
+
+    final matches = _timestampLinePattern.allMatches(line).toList();
+    if (matches.length < 2) return line;
+
+    // 检查第 1 个与第 2 个时间戳是否紧贴在行首
+    if (matches[0].start == 0 && matches[1].start == matches[0].end) {
+      final t1 = parseTimestampToken(matches[0].group(0)!);
+      final t2 = parseTimestampToken(matches[1].group(0)!);
+      if (t1 != null && t2 != null && (t2 - t1).abs() < const Duration(seconds: 3)) {
+        line = line.substring(0, matches[0].end) + line.substring(matches[1].end).trimLeft();
+      }
+    }
+    return line;
   }
 }
 

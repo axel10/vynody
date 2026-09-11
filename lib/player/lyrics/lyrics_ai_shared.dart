@@ -32,7 +32,14 @@ final class LyricsAiPromptBuilder {
     required String lyrics,
   }) {
     final targetLyrics = lyrics.trim();
-    return '将以下歌词转换成卡拉ok歌词，即在每个单词前添加时间轴。注意保留歌词中的换行：\n$targetLyrics';
+    return '这是这首歌的歌词和音频，请将歌词转换为卡拉OK逐字时间轴格式（word-by-word LRC / Enhanced LRC）。\n'
+        '要求：\n'
+        '1. 严格保持原歌词的分行结构和行数不变，原歌词有几行输出就必须是几行！绝对禁止在词与词、字与字之间换行！\n'
+        '2. 每一行开头只允许包含一个时间轴（即该行第一个词的起始时间），严禁在行首并排出现两个时间轴（绝对禁止像 [00:01.00][00:01.50] 这样并排）！\n'
+        '3. 格式标准示例：[00:01.23]word1 [00:01.80]word2 [00:02.30]word3，或 [00:01.23]字[00:01.80]字[00:02.30]字。行首时间轴即为第一个词的开始时间，后续词前面依次标记时间轴。\n'
+        '4. 保持歌词文本内容原样不变，不要翻译，不要增加或删减任何歌词行，不要输出任何解释说明或Markdown代码块以外的内容。\n'
+        '待转换歌词如下：\n'
+        '$targetLyrics';
   }
 
   static String buildTranslateLyricsPrompt({

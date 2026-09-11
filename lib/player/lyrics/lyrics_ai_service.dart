@@ -606,6 +606,7 @@ class LyricsAiService {
             modelId: candidate.modelId,
             prompt: prompt,
             preserveTimestamps: true,
+            preserveKaraokeLineStructure: true,
             onStageChanged: onStageChanged,
             onUploadProgress: onUploadProgress,
             onProgress: onProgress,
@@ -641,7 +642,10 @@ class LyricsAiService {
           ),
         };
         if (result.isSuccess) {
-          return _normalizeGenerationResult(result);
+          return _normalizeGenerationResult(
+            result,
+            preserveKaraokeLineStructure: true,
+          );
         }
         lastError = result.errorMessage;
       }
@@ -663,6 +667,7 @@ class LyricsAiService {
     required String fallbackModelId,
     required String prompt,
     required bool preserveTimestamps,
+    bool preserveKaraokeLineStructure = false,
     void Function(String? modelLabel)? onModelLabelChanged,
     Future<LyricsGenerationResult> Function(String apiKey)?
     openRouterFallbackGenerator,
@@ -691,7 +696,10 @@ class LyricsAiService {
           fallbackLog: 'upload failed',
         );
         if (fallbackResult != null) {
-          return _normalizeGenerationResult(fallbackResult);
+          return _normalizeGenerationResult(
+            fallbackResult,
+            preserveKaraokeLineStructure: preserveKaraokeLineStructure,
+          );
         }
         return LyricsGenerationResult.failure(
           _l10n().fileUploadFailed,
@@ -718,7 +726,10 @@ class LyricsAiService {
           fallbackLog: 'upload never became ACTIVE',
         );
         if (fallbackResult != null) {
-          return _normalizeGenerationResult(fallbackResult);
+          return _normalizeGenerationResult(
+            fallbackResult,
+            preserveKaraokeLineStructure: preserveKaraokeLineStructure,
+          );
         }
         return LyricsGenerationResult.failure(
           _l10n().uploadedFileNotReady,
@@ -736,12 +747,16 @@ class LyricsAiService {
         fallbackModelId: fallbackModelId,
         prompt: prompt,
         preserveTimestamps: preserveTimestamps,
+        preserveKaraokeLineStructure: preserveKaraokeLineStructure,
         onModelLabelChanged: onModelLabelChanged,
         onStageChanged: onStageChanged,
         onProgress: onProgress,
         cancelToken: cancelToken,
       );
-      return _normalizeGenerationResult(generationOutcome.result);
+      return _normalizeGenerationResult(
+        generationOutcome.result,
+        preserveKaraokeLineStructure: preserveKaraokeLineStructure,
+      );
     } catch (e) {
       if (e is DioException && CancelToken.isCancel(e)) {
         rethrow;
@@ -754,7 +769,10 @@ class LyricsAiService {
         fallbackLog: 'upload or active wait failed with exception',
       );
       if (fallbackResult != null) {
-        return _normalizeGenerationResult(fallbackResult);
+        return _normalizeGenerationResult(
+          fallbackResult,
+          preserveKaraokeLineStructure: preserveKaraokeLineStructure,
+        );
       }
       return LyricsGenerationResult.failure(
         _formatGenerationErrorMessage(
@@ -771,6 +789,7 @@ class LyricsAiService {
     required String modelId,
     required String prompt,
     required bool preserveTimestamps,
+    bool preserveKaraokeLineStructure = false,
     void Function(double progress)? onUploadProgress,
     void Function(String stage)? onStageChanged,
     void Function(String partialText, bool isFinal)? onProgress,
@@ -786,13 +805,17 @@ class LyricsAiService {
       fallbackModelId: '',
       prompt: prompt,
       preserveTimestamps: preserveTimestamps,
+      preserveKaraokeLineStructure: preserveKaraokeLineStructure,
       openRouterFallbackGenerator: null,
       onUploadProgress: onUploadProgress,
       onStageChanged: onStageChanged,
       onProgress: onProgress,
       cancelToken: cancelToken,
     );
-    return _normalizeGenerationResult(result);
+    return _normalizeGenerationResult(
+      result,
+      preserveKaraokeLineStructure: preserveKaraokeLineStructure,
+    );
   }
 
   Future<String?> _translateWithGoogleAiStudio({
@@ -1290,6 +1313,7 @@ class LyricsAiService {
     required String fallbackModelId,
     required String prompt,
     required bool preserveTimestamps,
+    bool preserveKaraokeLineStructure = false,
     void Function(String? modelLabel)? onModelLabelChanged,
     void Function(String stage)? onStageChanged,
     void Function(String partialText, bool isFinal)? onProgress,
@@ -1427,7 +1451,10 @@ class LyricsAiService {
               ? cleanedText
               : _stripTimestamps(cleanedText);
           final normalizedFinalText = preserveTimestamps
-              ? LrcUtils.normalizeGeneratedLyricsText(finalText)
+              ? LrcUtils.normalizeGeneratedLyricsText(
+                  finalText,
+                  preserveKaraokeLineStructure: preserveKaraokeLineStructure,
+                )
               : finalText;
           if (normalizedFinalText.isEmpty) {
             lastErrorMessage = _l10n().geminiEmptyResponse;
@@ -1655,14 +1682,18 @@ class LyricsAiService {
   }
 
   LyricsGenerationResult _normalizeGenerationResult(
-    LyricsGenerationResult result,
-  ) {
+    LyricsGenerationResult result, {
+    bool preserveKaraokeLineStructure = false,
+  }) {
     final text = result.text;
     if (!result.isSuccess || text == null) {
       return result;
     }
 
-    final normalizedText = LrcUtils.normalizeGeneratedLyricsText(text);
+    final normalizedText = LrcUtils.normalizeGeneratedLyricsText(
+      text,
+      preserveKaraokeLineStructure: preserveKaraokeLineStructure,
+    );
     if (normalizedText.trim().isEmpty || normalizedText.trim() == text.trim()) {
       return result;
     }

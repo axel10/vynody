@@ -290,6 +290,7 @@ class LyricsAiDoubaoClient {
       onProgress: onProgress,
       cancelToken: cancelToken,
       preserveTimestamps: true,
+      preserveKaraokeLineStructure: true,
     );
   }
 
@@ -496,6 +497,7 @@ class LyricsAiDoubaoClient {
     required String modelId,
     required String prompt,
     required bool preserveTimestamps,
+    bool preserveKaraokeLineStructure = false,
     String action = 'generate_lyrics',
     void Function(double progress)? onUploadProgress,
     void Function(String stage)? onStageChanged,
@@ -618,9 +620,15 @@ class LyricsAiDoubaoClient {
         generatedBuffer.toString(),
       );
       final normalizedText = preserveTimestamps
-          ? LrcUtils.normalizeGeneratedLyricsText(cleanedText)
+          ? LrcUtils.normalizeGeneratedLyricsText(
+              cleanedText,
+              preserveKaraokeLineStructure: preserveKaraokeLineStructure,
+            )
           : LrcUtils.stripTimestamps(
-              LrcUtils.normalizeGeneratedLyricsText(cleanedText),
+              LrcUtils.normalizeGeneratedLyricsText(
+                cleanedText,
+                preserveKaraokeLineStructure: preserveKaraokeLineStructure,
+              ),
             );
       if (normalizedText.trim().isEmpty) {
         return LyricsGenerationResult.failure(

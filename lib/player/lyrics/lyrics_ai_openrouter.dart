@@ -333,7 +333,10 @@ class LyricsAiOpenRouterClient {
             sawRefusalLikeText = true;
           }
           generatedBuffer.write(chunk);
-          final current = _currentLyricsSnapshot(generatedBuffer.toString());
+          final current = _currentLyricsSnapshot(
+            generatedBuffer.toString(),
+            preserveKaraokeLineStructure: true,
+          );
           if (_looksLikeRefusalResponse(current)) {
             sawRefusalLikeText = true;
             return;
@@ -352,7 +355,10 @@ class LyricsAiOpenRouterClient {
       final cleanedText = LrcUtils.cleanGeneratedLyricsText(
         generatedText ?? generatedBuffer.toString(),
       );
-      final normalizedText = LrcUtils.normalizeGeneratedLyricsText(cleanedText);
+      final normalizedText = LrcUtils.normalizeGeneratedLyricsText(
+        cleanedText,
+        preserveKaraokeLineStructure: true,
+      );
       if (sawRefusalLikeText || _looksLikeRefusalResponse(normalizedText)) {
         return LyricsGenerationResult.failure(
           _l10n().modelRefusedToGenerateTimeline,
@@ -508,7 +514,10 @@ class LyricsAiOpenRouterClient {
     return '${text.substring(0, maxLength)}...';
   }
 
-  String _currentLyricsSnapshot(String rawText) {
+  String _currentLyricsSnapshot(
+    String rawText, {
+    bool preserveKaraokeLineStructure = false,
+  }) {
     final cleaned = LrcUtils.cleanGeneratedLyricsText(rawText);
     if (cleaned.isEmpty) {
       return '';
@@ -517,7 +526,10 @@ class LyricsAiOpenRouterClient {
         !_streamParser.looksLikeRefusalText(cleaned)) {
       return '';
     }
-    return LrcUtils.normalizeGeneratedLyricsText(cleaned);
+    return LrcUtils.normalizeGeneratedLyricsText(
+      cleaned,
+      preserveKaraokeLineStructure: preserveKaraokeLineStructure,
+    );
   }
 
   bool _containsTimestampedLyrics(String text) {
