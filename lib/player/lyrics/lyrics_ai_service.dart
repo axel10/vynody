@@ -607,6 +607,7 @@ class LyricsAiService {
             prompt: prompt,
             preserveTimestamps: true,
             preserveKaraokeLineStructure: true,
+            originalLyrics: normalizedLyrics,
             onStageChanged: onStageChanged,
             onUploadProgress: onUploadProgress,
             onProgress: onProgress,
@@ -645,6 +646,7 @@ class LyricsAiService {
           return _normalizeGenerationResult(
             result,
             preserveKaraokeLineStructure: true,
+            originalLyrics: normalizedLyrics,
           );
         }
         lastError = result.errorMessage;
@@ -668,6 +670,7 @@ class LyricsAiService {
     required String prompt,
     required bool preserveTimestamps,
     bool preserveKaraokeLineStructure = false,
+    String? originalLyrics,
     void Function(String? modelLabel)? onModelLabelChanged,
     Future<LyricsGenerationResult> Function(String apiKey)?
     openRouterFallbackGenerator,
@@ -699,6 +702,7 @@ class LyricsAiService {
           return _normalizeGenerationResult(
             fallbackResult,
             preserveKaraokeLineStructure: preserveKaraokeLineStructure,
+            originalLyrics: originalLyrics,
           );
         }
         return LyricsGenerationResult.failure(
@@ -729,6 +733,7 @@ class LyricsAiService {
           return _normalizeGenerationResult(
             fallbackResult,
             preserveKaraokeLineStructure: preserveKaraokeLineStructure,
+            originalLyrics: originalLyrics,
           );
         }
         return LyricsGenerationResult.failure(
@@ -772,6 +777,7 @@ class LyricsAiService {
         return _normalizeGenerationResult(
           fallbackResult,
           preserveKaraokeLineStructure: preserveKaraokeLineStructure,
+          originalLyrics: originalLyrics,
         );
       }
       return LyricsGenerationResult.failure(
@@ -790,6 +796,7 @@ class LyricsAiService {
     required String prompt,
     required bool preserveTimestamps,
     bool preserveKaraokeLineStructure = false,
+    String? originalLyrics,
     void Function(double progress)? onUploadProgress,
     void Function(String stage)? onStageChanged,
     void Function(String partialText, bool isFinal)? onProgress,
@@ -806,6 +813,7 @@ class LyricsAiService {
       prompt: prompt,
       preserveTimestamps: preserveTimestamps,
       preserveKaraokeLineStructure: preserveKaraokeLineStructure,
+      originalLyrics: originalLyrics,
       openRouterFallbackGenerator: null,
       onUploadProgress: onUploadProgress,
       onStageChanged: onStageChanged,
@@ -815,6 +823,7 @@ class LyricsAiService {
     return _normalizeGenerationResult(
       result,
       preserveKaraokeLineStructure: preserveKaraokeLineStructure,
+      originalLyrics: originalLyrics,
     );
   }
 
@@ -1684,6 +1693,7 @@ class LyricsAiService {
   LyricsGenerationResult _normalizeGenerationResult(
     LyricsGenerationResult result, {
     bool preserveKaraokeLineStructure = false,
+    String? originalLyrics,
   }) {
     final text = result.text;
     if (!result.isSuccess || text == null) {
@@ -1693,6 +1703,7 @@ class LyricsAiService {
     final normalizedText = LrcUtils.normalizeGeneratedLyricsText(
       text,
       preserveKaraokeLineStructure: preserveKaraokeLineStructure,
+      originalLyrics: originalLyrics,
     );
     if (normalizedText.trim().isEmpty || normalizedText.trim() == text.trim()) {
       return result;

@@ -162,4 +162,164 @@ void main() {
       expect(line.words![2].text, 'give');
     });
   });
+
+  group('LrcUtils.restoreKaraokeLineBreaks', () {
+    test('restores newlines when all newlines are lost in Chinese karaoke lyrics', () {
+      const originalLyrics = '''
+[00:01.00]我爱你中国
+[00:05.00]亲爱的母亲
+[00:10.00]我为你流泪
+[00:15.00]也为你自豪
+''';
+
+      // Karaoke string with ALL newlines missing (single line)
+      const lostNewlineKaraoke =
+          '[00:01.00]我[00:01.50]爱[00:02.00]你[00:02.50]中[00:03.00]国'
+          '[00:05.00]亲[00:05.50]爱[00:06.00]的[00:07.00]母[00:08.00]亲'
+          '[00:10.00]我[00:11.00]为[00:12.00]你[00:13.00]流[00:14.00]泪'
+          '[00:15.00]也[00:16.00]为[00:17.00]你[00:18.00]自[00:19.00]豪';
+
+      final restored = LrcUtils.restoreKaraokeLineBreaks(
+        karaokeLyrics: lostNewlineKaraoke,
+        originalLyrics: originalLyrics,
+      );
+
+      final lines = restored.split('\n');
+      expect(lines.length, 4);
+      expect(lines[0], '[00:01.00]我[00:01.50]爱[00:02.00]你[00:02.50]中[00:03.00]国');
+      expect(lines[1], '[00:05.00]亲[00:05.50]爱[00:06.00]的[00:07.00]母[00:08.00]亲');
+      expect(lines[2], '[00:10.00]我[00:11.00]为[00:12.00]你[00:13.00]流[00:14.00]泪');
+      expect(lines[3], '[00:15.00]也[00:16.00]为[00:17.00]你[00:18.00]自[00:19.00]豪');
+
+      // Verify parseTimedLyrics produces 4 distinct timed lines with words
+      final parsed = LrcUtils.parseTimedLyrics(restored);
+      expect(parsed.length, 4);
+      expect(parsed[0].text, '我爱你中国');
+      expect(parsed[1].text, '亲爱的母亲');
+      expect(parsed[2].text, '我为你流泪');
+      expect(parsed[3].text, '也为你自豪');
+    });
+
+    test('restores newlines when all newlines are lost in English karaoke lyrics', () {
+      const originalLyrics = '''
+[00:20.10]Cause you were Romeo
+[00:22.00]I was a scarlet letter
+[00:24.00]And my daddy said
+''';
+
+      const lostNewlineKaraoke =
+          '[00:20.10]Cause [00:20.50]you [00:20.80]were [00:21.10]Romeo '
+          '[00:22.00]I [00:22.30]was [00:22.50]a [00:22.80]scarlet [00:23.20]letter '
+          '[00:24.00]And [00:24.30]my [00:24.50]daddy [00:24.80]said';
+
+      final restored = LrcUtils.restoreKaraokeLineBreaks(
+        karaokeLyrics: lostNewlineKaraoke,
+        originalLyrics: originalLyrics,
+      );
+
+      final lines = restored.split('\n');
+      expect(lines.length, 3);
+      expect(lines[0], '[00:20.10]Cause [00:20.50]you [00:20.80]were [00:21.10]Romeo');
+      expect(lines[1], '[00:22.00]I [00:22.30]was [00:22.50]a [00:22.80]scarlet [00:23.20]letter');
+      expect(lines[2], '[00:24.00]And [00:24.30]my [00:24.50]daddy [00:24.80]said');
+    });
+
+    test('restores newlines when original lyrics is plain text without timestamps', () {
+      const plainOriginalLyrics = '''
+First line of song
+Second line of song
+Third line of song
+''';
+
+      const lostNewlineKaraoke =
+          '[00:01.00]First [00:01.50]line [00:02.00]of [00:02.50]song '
+          '[00:05.00]Second [00:05.50]line [00:06.00]of [00:06.50]song '
+          '[00:10.00]Third [00:10.50]line [00:11.00]of [00:11.50]song';
+
+      final restored = LrcUtils.restoreKaraokeLineBreaks(
+        karaokeLyrics: lostNewlineKaraoke,
+        originalLyrics: plainOriginalLyrics,
+      );
+
+      final lines = restored.split('\n');
+      expect(lines.length, 3);
+      expect(lines[0], '[00:01.00]First [00:01.50]line [00:02.00]of [00:02.50]song');
+      expect(lines[1], '[00:05.00]Second [00:05.50]line [00:06.00]of [00:06.50]song');
+      expect(lines[2], '[00:10.00]Third [00:10.50]line [00:11.00]of [00:11.50]song');
+    });
+
+    test('preserves trailing timestamps on line end', () {
+      const originalLyrics = '''
+[00:01.00]Hello world
+[00:05.00]Second line
+''';
+
+      const lostNewlineWithTrailing =
+          '[00:01.00]Hello [00:01.50]world[00:02.00] '
+          '[00:05.00]Second [00:05.50]line[00:06.00]';
+
+      final restored = LrcUtils.restoreKaraokeLineBreaks(
+        karaokeLyrics: lostNewlineWithTrailing,
+        originalLyrics: originalLyrics,
+      );
+
+      final lines = restored.split('\n');
+      expect(lines.length, 2);
+      expect(lines[0], '[00:01.00]Hello [00:01.50]world[00:02.00]');
+      expect(lines[1], '[00:05.00]Second [00:05.50]line[00:06.00]');
+    });
+
+    test('handles consecutive line-start timestamps [ts]<ts>', () {
+      const originalLyrics = '''
+[00:01.00]Hello world
+[00:05.00]Second line
+''';
+
+      const lostNewlineDoubleTimestamps =
+          '[00:01.00]<00:01.00>Hello <00:01.50>world '
+          '[00:05.00]<00:05.00>Second <00:05.50>line';
+
+      final restored = LrcUtils.restoreKaraokeLineBreaks(
+        karaokeLyrics: lostNewlineDoubleTimestamps,
+        originalLyrics: originalLyrics,
+      );
+
+      final lines = restored.split('\n');
+      expect(lines.length, 2);
+      expect(lines[0], '[00:01.00]<00:01.00>Hello <00:01.50>world');
+      expect(lines[1], '[00:05.00]<00:05.00>Second <00:05.50>line');
+    });
+
+    test('does not modify lyrics if karaoke already has equal or more lines than original', () {
+      const originalLyrics = '[00:01.00]Line 1\n[00:05.00]Line 2';
+      const alreadySplitKaraoke = '[00:01.00]Line [00:02.00]1\n[00:05.00]Line [00:06.00]2';
+
+      final restored = LrcUtils.restoreKaraokeLineBreaks(
+        karaokeLyrics: alreadySplitKaraoke,
+        originalLyrics: originalLyrics,
+      );
+
+      expect(restored, alreadySplitKaraoke);
+    });
+
+    test('normalizeGeneratedLyricsText automatically restores newlines when originalLyrics is passed', () {
+      const originalLyrics = '''
+[ti:Test Title]
+[ar:Test Artist]
+[00:01.00]Line one
+[00:05.00]Line two
+''';
+
+      const rawAiSingleLine =
+          '```lrc\n[00:01.00]Line [00:02.00]one [00:05.00]Line [00:06.00]two\n```';
+
+      final normalized = LrcUtils.normalizeGeneratedLyricsText(
+        rawAiSingleLine,
+        preserveKaraokeLineStructure: true,
+        originalLyrics: originalLyrics,
+      );
+
+      expect(normalized, '[00:01.00]Line [00:02.00]one\n[00:05.00]Line [00:06.00]two');
+    });
+  });
 }

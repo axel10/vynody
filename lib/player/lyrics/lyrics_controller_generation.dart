@@ -283,6 +283,7 @@ class LyricsGenerationCoordinator {
     required CancelToken cancelToken,
     required _LyricsGenerationInvoker invoke,
     Map<String, MusicLyricTranslation> Function()? translationProvider,
+    bool publishProgressively = true,
   }) async {
     final session = _beginLyricsGeneration(
       song,
@@ -327,6 +328,11 @@ class LyricsGenerationCoordinator {
           final progressText = partialText.trim();
           if (progressText.isEmpty) return;
           lastProgressText = progressText;
+
+          if (!publishProgressively) {
+            return;
+          }
+
           final progressLyrics = _buildGeneratedLyrics(
             text: progressText,
             source: _support.lyricsProviderTag(),
@@ -351,7 +357,9 @@ class LyricsGenerationCoordinator {
       }
 
       if (cancelToken.isCancelled) {
-        if (lastProgressText != null && lastProgressText!.isNotEmpty) {
+        if (publishProgressively &&
+            lastProgressText != null &&
+            lastProgressText!.isNotEmpty) {
           await _saveGeneratedLyricsToDatabase(
             song: song,
             generatedLyrics: lastProgressText!,
@@ -365,7 +373,9 @@ class LyricsGenerationCoordinator {
       if (!result.isSuccess ||
           result.text == null ||
           result.text!.trim().isEmpty) {
-        if (lastProgressText != null && lastProgressText!.isNotEmpty) {
+        if (publishProgressively &&
+            lastProgressText != null &&
+            lastProgressText!.isNotEmpty) {
           await _saveGeneratedLyricsToDatabase(
             song: song,
             generatedLyrics: lastProgressText!,
@@ -394,7 +404,9 @@ class LyricsGenerationCoordinator {
       );
       return null;
     } catch (e) {
-      if (lastProgressText != null && lastProgressText!.isNotEmpty) {
+      if (publishProgressively &&
+          lastProgressText != null &&
+          lastProgressText!.isNotEmpty) {
         try {
           await _saveGeneratedLyricsToDatabase(
             song: song,
@@ -403,7 +415,9 @@ class LyricsGenerationCoordinator {
             source: databaseSource,
           );
         } catch (dbError) {
-          debugPrint('[LyricsController] Failed to save partial progress on error: $dbError');
+          debugPrint(
+            '[LyricsController] Failed to save partial progress on error: $dbError',
+          );
         }
       }
       rethrow;
@@ -606,6 +620,7 @@ class LyricsGenerationCoordinator {
         statusLabel: _l10n().convertingToKaraoke,
         modelLabel: _context.lyricsAiService.currentGenerationModelLabel,
         cancelToken: cancelToken,
+        publishProgressively: false,
         translationProvider: () =>
             _support.songForPath(song.path)?.lyrics?.translations ??
             const <String, MusicLyricTranslation>{},

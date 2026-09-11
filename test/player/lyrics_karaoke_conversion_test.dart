@@ -13,6 +13,7 @@ void main() {
         prompt,
         contains('严格保持原歌词的分行结构和行数不变，原歌词有几行输出就必须是几行！绝对禁止在词与词、字与字之间换行！'),
       );
+      expect(prompt, contains('第一位是分不是秒！绝对不能把第一位当成秒'));
       expect(prompt, contains('[00:01.00]Hello world\n[00:05.00]Second line of song'));
     });
 
@@ -106,6 +107,30 @@ void main() {
       expect(parsed[0].text, "Some days you're alone, yeah");
       expect(parsed[0].words?.length, 5);
       expect(parsed[1].text, "Some days this don't feel");
+    });
+
+    test('normalizeGeneratedLyricsText restores lines when AI returns all karaoke lyrics on one line', () {
+      const originalLyrics = '''
+[00:08.89]Some days you're alone, yeah
+[00:13.39]Some days this don't feel like home
+''';
+
+      const aiSingleLineOutput =
+          '[00:08.89]Some [00:09.47]days [00:09.68]you\'re [00:09.91]alone, [00:10.51] yeah '
+          '[00:13.39]Some [00:13.88]days [00:14.22]this [00:14.39]don\'t [00:14.65]feel [00:15.00]like [00:15.30]home';
+
+      final normalized = LrcUtils.normalizeGeneratedLyricsText(
+        aiSingleLineOutput,
+        preserveKaraokeLineStructure: true,
+        originalLyrics: originalLyrics,
+      );
+
+      final parsed = LrcUtils.parseTimedLyrics(normalized);
+      expect(parsed.length, 2);
+      expect(parsed[0].text, "Some days you're alone, yeah");
+      expect(parsed[0].words?.length, 5);
+      expect(parsed[1].text, "Some days this don't feel like home");
+      expect(parsed[1].words?.length, 7);
     });
   });
 }

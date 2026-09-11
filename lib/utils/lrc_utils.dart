@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:vynody/models/lyric_line.dart';
 
 class ParsedLyricsResult {
@@ -543,27 +545,52 @@ class LrcUtils {
     final line = normalizeLrcLine(rawLine);
     if (line == null || line.isEmpty) return false;
 
+    if (line.contains('<') && line.contains('>')) return true;
+
     final matches = _timestampLinePattern.allMatches(line).toList();
     if (matches.length <= 1) return false;
 
-    for (var i = 0; i < matches.length - 1; i++) {
+    var hasNonEmptyBetween = false;
+    Duration? prevTs;
+    var shortGapCount = 0;
+    for (var i = 0; i < matches.length; i++) {
       final currentMatch = matches[i];
-      final nextMatch = matches[i + 1];
-      final between = line.substring(currentMatch.end, nextMatch.start).trim();
-      if (between.isNotEmpty) {
-        return true;
+      if (i + 1 < matches.length) {
+        final nextMatch = matches[i + 1];
+        final between = line.substring(currentMatch.end, nextMatch.start).trim();
+        if (between.isNotEmpty) {
+          hasNonEmptyBetween = true;
+        }
       }
+      final ts = parseTimestampToken(currentMatch.group(0)!);
+      if (ts != null && prevTs != null) {
+        if ((ts - prevTs).abs() <= const Duration(milliseconds: 2500)) {
+          shortGapCount++;
+        }
+      }
+      prevTs = ts;
     }
-    return false;
+    return hasNonEmptyBetween && shortGapCount >= 1;
   }
 
   static String normalizeGeneratedLyricsText(
     String? text, {
     bool preserveKaraokeLineStructure = false,
+    String? originalLyrics,
   }) {
-    final cleaned = cleanGeneratedLyricsText(text);
+    var cleaned = cleanGeneratedLyricsText(text);
     if (cleaned.isEmpty) return '';
     if (!_timestampLinePattern.hasMatch(cleaned)) return cleaned;
+
+    if (originalLyrics != null && originalLyrics.trim().isNotEmpty) {
+      final restored = restoreKaraokeLineBreaks(
+        karaokeLyrics: cleaned,
+        originalLyrics: originalLyrics,
+      );
+      if (restored.isNotEmpty) {
+        cleaned = restored;
+      }
+    }
 
     final normalizedLines = <String>[];
     for (final rawLine in cleaned.split(RegExp(r'\r?\n'))) {
@@ -588,6 +615,312 @@ class LrcUtils {
     }
 
     return normalizedLines.join('\n').trim();
+  }
+
+  static String restoreKaraokeLineBreaks({
+    required String karaokeLyrics,
+    required String originalLyrics,
+  }) {
+    final trimmedKaraoke = karaokeLyrics.trim();
+    final trimmedOriginal = originalLyrics.trim();
+    if (trimmedKaraoke.isEmpty || trimmedOriginal.isEmpty) {
+      return karaokeLyrics;
+    }
+
+    final targetLines = _extractSourceLyricLines(trimmedOriginal);
+    if (targetLines.length <= 1) {
+      return karaokeLyrics;
+    }
+
+    final existingLines = trimmedKaraoke
+        .split(RegExp(r'\r?\n'))
+        .map((l) => l.trim())
+        .where((l) => l.isNotEmpty)
+        .toList();
+    if (existingLines.length >= targetLines.length) {
+      return karaokeLyrics;
+    }
+
+    final matches = _timestampLinePattern.allMatches(trimmedKaraoke).toList();
+    if (matches.length < 2) {
+      return karaokeLyrics;
+    }
+
+    final items = <_KaraokeItem>[];
+    for (var i = 0; i < matches.length; i++) {
+      final match = matches[i];
+      final nextStart =
+          (i + 1 < matches.length) ? matches[i + 1].start : trimmedKaraoke.length;
+      final textBetween = trimmedKaraoke.substring(match.end, nextStart);
+      final prevEnd = (i == 0) ? 0 : matches[i - 1].end;
+      final textBeforeMatch = trimmedKaraoke.substring(prevEnd, match.start);
+      final hasNewline =
+          textBeforeMatch.contains('\n') || textBeforeMatch.contains('\r');
+
+      items.add(_KaraokeItem(
+        index: i,
+        matchStart: match.start,
+        matchEnd: match.end,
+        tag: match.group(0)!,
+        timestamp: parseTimestampToken(match.group(0)!),
+        text: textBetween,
+        normalizedText: _normalizeForLyricMatch(textBetween),
+        hasPrecedingNewline: hasNewline,
+      ));
+    }
+
+    var cum = 0;
+    for (final item in items) {
+      cum += item.normalizedText.length;
+      item.cumLen = cum;
+    }
+
+    if (cum == 0 || items.length < targetLines.length) {
+      return karaokeLyrics;
+    }
+
+    final numLines = targetLines.length;
+    final numItems = items.length;
+
+    final dp = List.generate(numLines, (_) => <int, double>{});
+    final parent = List.generate(numLines, (_) => <int, int>{});
+
+    double computeCost(int k, int i, int j) {
+      final targetLine = targetLines[k];
+      final targetNorm = targetLine.normalizedText;
+      final targetLen = targetNorm.length;
+
+      final startCum = (i == 0) ? 0 : items[i - 1].cumLen;
+      final endCum = items[j - 1].cumLen;
+      final segLen = endCum - startCum;
+
+      final lenDiff = (segLen - targetLen).abs();
+      var cost = lenDiff * 8.0;
+
+      final leadText = _itemLeadText(items, i, 8);
+      final targetPrefix = targetNorm.substring(0, min(8, targetNorm.length));
+      final prefixMatchLen = _commonPrefixLength(leadText, targetPrefix);
+      cost -= prefixMatchLen * 12.0;
+
+      if (k + 1 < numLines && j < numItems) {
+        final nextTargetNorm = targetLines[k + 1].normalizedText;
+        final nextLeadText = _itemLeadText(items, j, 8);
+        final nextTargetPrefix =
+            nextTargetNorm.substring(0, min(8, nextTargetNorm.length));
+        final nextPrefixMatchLen =
+            _commonPrefixLength(nextLeadText, nextTargetPrefix);
+        cost -= nextPrefixMatchLen * 12.0;
+      }
+
+      if (targetLine.timestamp != null && items[i].timestamp != null) {
+        final diffMs =
+            (targetLine.timestamp! - items[i].timestamp!).inMilliseconds.abs();
+        final diffSec = diffMs / 1000.0;
+        if (diffSec <= 2.0) {
+          cost += diffSec * 4.0;
+        } else if (diffSec <= 6.0) {
+          cost += 8.0 + (diffSec - 2.0) * 10.0;
+        } else {
+          cost += 48.0 + (diffSec - 6.0) * 20.0;
+        }
+      }
+
+      if (i > 0 && items[i].hasPrecedingNewline) {
+        cost -= 25.0;
+      }
+
+      return cost;
+    }
+
+    final target0Len = targetLines[0].normalizedText.length;
+    final maxEnd0 = numItems - (numLines - 1);
+    for (var j = 1; j <= maxEnd0; j++) {
+      final segLen = items[j - 1].cumLen;
+      if (segLen < max(0, target0Len - 20) && j < maxEnd0) continue;
+      if (segLen > target0Len + 30 && dp[0].length >= 5) break;
+
+      final cost = computeCost(0, 0, j);
+      dp[0][j] = cost;
+      parent[0][j] = 0;
+    }
+
+    if (dp[0].isEmpty) {
+      for (var j = 1; j <= min(maxEnd0, 10); j++) {
+        dp[0][j] = computeCost(0, 0, j);
+        parent[0][j] = 0;
+      }
+    }
+
+    for (var k = 1; k < numLines - 1; k++) {
+      final lineLen = targetLines[k].normalizedText.length;
+      final maxEndK = numItems - (numLines - 1 - k);
+
+      for (final i in dp[k - 1].keys) {
+        final prevCost = dp[k - 1][i]!;
+        final startCum = items[i - 1].cumLen;
+
+        for (var j = i + 1; j <= maxEndK; j++) {
+          final segLen = items[j - 1].cumLen - startCum;
+          if (segLen < max(0, lineLen - 20) && j < maxEndK) continue;
+          if (segLen > lineLen + 30 && dp[k].length >= 5) break;
+
+          final totalCost = prevCost + computeCost(k, i, j);
+          if (!dp[k].containsKey(j) || totalCost < dp[k][j]!) {
+            dp[k][j] = totalCost;
+            parent[k][j] = i;
+          }
+        }
+      }
+
+      if (dp[k].isEmpty) {
+        final bestI = dp[k - 1].keys.first;
+        final nextJ = min(bestI + 1, maxEndK);
+        dp[k][nextJ] = dp[k - 1][bestI]! + computeCost(k, bestI, nextJ);
+        parent[k][nextJ] = bestI;
+      }
+    }
+
+    final lastK = numLines - 1;
+    var bestLastCost = double.infinity;
+    var bestLastStart = -1;
+
+    for (final i in dp[lastK - 1].keys) {
+      final totalCost = dp[lastK - 1][i]! + computeCost(lastK, i, numItems);
+      if (totalCost < bestLastCost) {
+        bestLastCost = totalCost;
+        bestLastStart = i;
+      }
+    }
+
+    if (bestLastStart == -1) {
+      return karaokeLyrics;
+    }
+
+    final splitPoints = List<int>.filled(numLines, 0);
+    splitPoints[lastK] = bestLastStart;
+    var currEnd = bestLastStart;
+    for (var k = lastK - 1; k >= 1; k--) {
+      final prevStart = parent[k][currEnd]!;
+      splitPoints[k] = prevStart;
+      currEnd = prevStart;
+    }
+    splitPoints[0] = 0;
+
+    for (var k = 1; k < numLines; k++) {
+      final splitIdx = splitPoints[k];
+      if (splitIdx > 0) {
+        final prev = items[splitIdx - 1];
+        final curr = items[splitIdx];
+        if (prev.normalizedText.isEmpty &&
+            prev.timestamp != null &&
+            curr.timestamp != null &&
+            (prev.timestamp! - curr.timestamp!).inMilliseconds.abs() <= 500 &&
+            prev.tag.startsWith('[') &&
+            curr.tag.startsWith('<')) {
+          splitPoints[k] = splitIdx - 1;
+        }
+      }
+    }
+
+    final resultLines = <String>[];
+    for (var k = 0; k < numLines; k++) {
+      final startOffset = (k == 0) ? 0 : items[splitPoints[k]].matchStart;
+      final endOffset = (k + 1 < numLines)
+          ? items[splitPoints[k + 1]].matchStart
+          : trimmedKaraoke.length;
+
+      var lineStr = trimmedKaraoke.substring(startOffset, endOffset).trim();
+      lineStr = _collapseDuplicateLineStartTimestamps(lineStr);
+      if (lineStr.isNotEmpty) {
+        resultLines.add(lineStr);
+      }
+    }
+
+    if (resultLines.length < 2) {
+      return karaokeLyrics;
+    }
+
+    return resultLines.join('\n').trim();
+  }
+
+  static List<_SourceLyricLine> _extractSourceLyricLines(String originalLyrics) {
+    final parsed = parseLyricsWithTranslation(originalLyrics);
+    if (parsed.syncedLines.isNotEmpty) {
+      final result = <_SourceLyricLine>[];
+      for (final line in parsed.syncedLines) {
+        final cleanText = line.text.trim();
+        final norm = _normalizeForLyricMatch(cleanText);
+        if (norm.isNotEmpty) {
+          result.add(_SourceLyricLine(
+            text: cleanText,
+            normalizedText: norm,
+            timestamp: line.timestamp,
+          ));
+        }
+      }
+      if (result.length >= 2) {
+        return result;
+      }
+    }
+
+    final rawLines = originalLyrics.split(RegExp(r'\r?\n'));
+    final result = <_SourceLyricLine>[];
+    for (final rawLine in rawLines) {
+      var line = rawLine.trim();
+      if (line.isEmpty) continue;
+      if (RegExp(r'^\[[a-zA-Z]{2,8}:').hasMatch(line)) continue;
+
+      Duration? ts;
+      final firstMatch = _timestampLinePattern.firstMatch(line);
+      if (firstMatch != null) {
+        ts = parseTimestampToken(firstMatch.group(0)!);
+        line = line.replaceAll(_timestampLinePattern, '').trim();
+      }
+
+      final split = _splitInlineTranslation(line);
+      if (split != null) {
+        line = split.$1.trim();
+      }
+
+      final norm = _normalizeForLyricMatch(line);
+      if (norm.isNotEmpty) {
+        result.add(_SourceLyricLine(
+          text: line,
+          normalizedText: norm,
+          timestamp: ts,
+        ));
+      }
+    }
+    return result;
+  }
+
+  static String _normalizeForLyricMatch(String text) {
+    var s = text.replaceAll(_timestampLinePattern, '');
+    s = s.toLowerCase();
+    s = s.replaceAll(RegExp(r'[\s\p{P}\p{S}]+', unicode: true), '');
+    return s;
+  }
+
+  static String _itemLeadText(
+    List<_KaraokeItem> items,
+    int startIdx,
+    int maxChars,
+  ) {
+    final sb = StringBuffer();
+    for (var idx = startIdx; idx < items.length; idx++) {
+      sb.write(items[idx].normalizedText);
+      if (sb.length >= maxChars) break;
+    }
+    return sb.toString();
+  }
+
+  static int _commonPrefixLength(String a, String b) {
+    final maxLen = min(a.length, b.length);
+    var len = 0;
+    while (len < maxLen && a.codeUnitAt(len) == b.codeUnitAt(len)) {
+      len++;
+    }
+    return len;
   }
 
   static List<String> _expandPackedTimestampLine(String rawLine) {
@@ -650,8 +983,11 @@ class LrcUtils {
     final matches = _timestampLinePattern.allMatches(line).toList();
     if (matches.length < 2) return line;
 
-    // 检查第 1 个与第 2 个时间戳是否紧贴在行首
-    if (matches[0].start == 0 && matches[1].start == matches[0].end) {
+    // 检查第 1 个与第 2 个时间戳是否紧贴在行首且均为 [ ] 格式（去除大模型在行首错误并排的方括号时间戳）
+    if (matches[0].start == 0 &&
+        matches[1].start == matches[0].end &&
+        matches[0].group(0)!.startsWith('[') &&
+        matches[1].group(0)!.startsWith('[')) {
       final t1 = parseTimestampToken(matches[0].group(0)!);
       final t2 = parseTimestampToken(matches[1].group(0)!);
       if (t1 != null && t2 != null && (t2 - t1).abs() < const Duration(seconds: 3)) {
@@ -676,5 +1012,40 @@ class _RelativeWord {
     required this.offset,
     required this.durationMs,
     required this.text,
+  });
+}
+
+class _SourceLyricLine {
+  final String text;
+  final String normalizedText;
+  final Duration? timestamp;
+
+  _SourceLyricLine({
+    required this.text,
+    required this.normalizedText,
+    this.timestamp,
+  });
+}
+
+class _KaraokeItem {
+  final int index;
+  final int matchStart;
+  final int matchEnd;
+  final String tag;
+  final Duration? timestamp;
+  final String text;
+  final String normalizedText;
+  final bool hasPrecedingNewline;
+  int cumLen = 0;
+
+  _KaraokeItem({
+    required this.index,
+    required this.matchStart,
+    required this.matchEnd,
+    required this.tag,
+    required this.timestamp,
+    required this.text,
+    required this.normalizedText,
+    required this.hasPrecedingNewline,
   });
 }

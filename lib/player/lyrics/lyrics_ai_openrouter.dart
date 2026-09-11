@@ -358,6 +358,7 @@ class LyricsAiOpenRouterClient {
       final normalizedText = LrcUtils.normalizeGeneratedLyricsText(
         cleanedText,
         preserveKaraokeLineStructure: true,
+        originalLyrics: normalizedLyrics,
       );
       if (sawRefusalLikeText || _looksLikeRefusalResponse(normalizedText)) {
         return LyricsGenerationResult.failure(
