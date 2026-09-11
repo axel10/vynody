@@ -9,7 +9,7 @@ import 'package:vynody/models/music_folder.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/player/remote/clients/remote_media_library_client.dart';
-import 'package:vynody/player/remote/navidrome_navigation.dart';
+import 'package:vynody/player/remote/remote_library_navigation.dart';
 import 'package:vynody/player/remote/proxy/remote_media_resolver.dart';
 import 'package:vynody/player/remote/remote_server_models.dart';
 import 'package:vynody/player/remote/remote_server_riverpod.dart';
@@ -169,7 +169,7 @@ class SongLocatorHelper {
                       ),
                     );
               } else {
-                NavidromeNavUtils.openAlbum(
+                RemoteLibraryNavUtils.openAlbum(
                   context,
                   ref,
                   server: server,

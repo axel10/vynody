@@ -26,10 +26,10 @@ import 'folder_detail_view.dart';
 import 'package:linux_directory_access/linux_directory_access.dart';
 import 'package:vynody/player/remote/remote_server_models.dart';
 import 'package:vynody/player/remote/remote_server_riverpod.dart';
-import 'remote/navidrome_library_page.dart';
-import 'remote/navidrome_album_detail_page.dart';
-import 'remote/navidrome_artist_detail_page.dart';
-import 'remote/navidrome_playlist_detail_page.dart';
+import 'remote/remote_library_page.dart';
+import 'remote/remote_album_detail_page.dart';
+import 'remote/remote_artist_detail_page.dart';
+import 'remote/remote_playlist_detail_page.dart';
 import 'remote/webdav_browser_page.dart';
 
 class FoldersPage extends ConsumerStatefulWidget {
@@ -789,7 +789,7 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
         pages.add(
           _buildPage(
             key: ValueKey('remote-page-${activeRemoteSession.server.id}'),
-            child: NavidromeLibraryPage(
+            child: RemoteLibraryPage(
               server: activeRemoteSession.server,
               password: activeRemoteSession.password,
               initialTabIndex: activeRemoteSession.initialTabIndex,
@@ -803,7 +803,7 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
             pages.add(
               _buildPage(
                 key: ValueKey('remote-album-${route.albumId}-$i'),
-                child: NavidromeAlbumDetailPage(
+                child: RemoteAlbumDetailPage(
                   server: activeRemoteSession.server,
                   password: activeRemoteSession.password,
                   albumId: route.albumId,
@@ -819,7 +819,7 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
               _buildPage(
                 key: ValueKey(
                     'remote-artist-${route.artistId}_${route.artistName}-$i'),
-                child: NavidromeArtistDetailPage(
+                child: RemoteArtistDetailPage(
                   server: activeRemoteSession.server,
                   password: activeRemoteSession.password,
                   artistId: route.artistId,
@@ -833,7 +833,7 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
             pages.add(
               _buildPage(
                 key: ValueKey('remote-playlist-${route.playlistId}-$i'),
-                child: NavidromePlaylistDetailPage(
+                child: RemotePlaylistDetailPage(
                   server: activeRemoteSession.server,
                   password: activeRemoteSession.password,
                   playlistId: route.playlistId,
