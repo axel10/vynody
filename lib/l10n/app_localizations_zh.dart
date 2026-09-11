@@ -432,6 +432,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get removeFromFavorites => '取消收藏';
 
   @override
+  String get addToLocalFavorites => '本地收藏';
+
+  @override
+  String get addToCloudFavorites => '云端收藏';
+
+  @override
+  String get batchAddedToCloudFavorites => '已加入云端收藏';
+
+  @override
+  String get batchAddedToLocalFavorites => '已加入本地收藏';
+
+  @override
   String get viewAlbumDetails => '查看专辑详情';
 
   @override
@@ -4936,6 +4948,18 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get removeFromFavorites => '取消收藏';
+
+  @override
+  String get addToLocalFavorites => '本地最愛';
+
+  @override
+  String get addToCloudFavorites => '雲端最愛';
+
+  @override
+  String get batchAddedToCloudFavorites => '已加入雲端最愛';
+
+  @override
+  String get batchAddedToLocalFavorites => '已加入本地最愛';
 
   @override
   String get viewAlbumDetails => '檢視專輯詳情';

@@ -585,7 +585,7 @@ class _NavidromeSongsViewState extends ConsumerState<NavidromeSongsView> {
               _formatTrackDuration((song.durationMillis ?? 0) ~/ 1000);
 
           final trackId =
-              RemoteMediaResolver.extractSubsonicTrackId(song) ??
+              RemoteMediaResolver.extractTrackId(song) ??
                   (song.id != null && song.id! > 0 ? song.id.toString() : '');
           final isStarred = widget.starredSongIds.contains(trackId);
 

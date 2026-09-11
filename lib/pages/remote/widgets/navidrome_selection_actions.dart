@@ -12,6 +12,8 @@ import '../../../player/remote/remote_server_models.dart';
 import '../../../player/remote/services/remote_download_service.dart';
 import '../../../utils/app_snack_bar.dart';
 import '../../../utils/remote_context_menu_utils.dart';
+import '../../../player/library/playlist_service.dart';
+import '../../../player/remote/proxy/remote_media_resolver.dart';
 import '../remote_download_manager_page.dart';
 
 class NavidromeSelectionActions {
@@ -243,6 +245,149 @@ class NavidromeSelectionActions {
         songs: songs,
       );
       onClearSelection();
+    } catch (e) {
+      showToast(e.toString());
+    }
+  }
+
+  static Future<void> handleBatchAddToLocalFavorites({
+    required BuildContext context,
+    required WidgetRef ref,
+    required Future<List<MusicFile>> Function() onFetchSongs,
+    required VoidCallback onClearSelection,
+  }) async {
+    final l10n = AppLocalizations.of(context)!;
+    try {
+      final songs = await _withLoading(
+        context: context,
+        message: l10n.loadingAlbumTracks,
+        task: onFetchSongs,
+      );
+      if (songs == null || songs.isEmpty) return;
+      final playlistService = ref.read(playlistServiceProvider);
+      await playlistService.addSongsToPlaylist(
+        PlaylistService.favoritePlaylistId,
+        songs,
+      );
+      onClearSelection();
+      if (context.mounted) {
+        showToast(l10n.batchAddedToLocalFavorites);
+      }
+    } catch (e) {
+      showToast(e.toString());
+    }
+  }
+
+  static Future<void> handleBatchAddToCloudFavorites({
+    required BuildContext context,
+    required WidgetRef ref,
+    required RemoteServer server,
+    required String password,
+    required Future<List<MusicFile>> Function() onFetchSongs,
+    required VoidCallback onClearSelection,
+    Set<String>? selectedAlbumIds,
+    Set<String>? selectedArtistIds,
+    void Function(List<String> starredTrackIds)? onStarredChanged,
+    void Function(List<String> starredArtistIds)? onStarredArtistsChanged,
+  }) async {
+    final l10n = AppLocalizations.of(context)!;
+    final isJellyfin = server.type == RemoteServerType.jellyfin;
+    final brandColor = isJellyfin ? const Color(0xFF9D65C9) : Colors.orange;
+    try {
+      final client = RemoteMediaLibraryClient.create(
+        server: server,
+        password: password,
+      );
+
+      // Pre-authenticate for Jellyfin to populate session cache safely
+      if (client is JellyfinMediaLibraryClient) {
+        await client.client.authenticate();
+        if (!context.mounted) return;
+      }
+
+      int successCount = 0;
+
+      // 1. Album multi-selection mode
+      if (selectedAlbumIds != null && selectedAlbumIds.isNotEmpty) {
+        final albumIds = selectedAlbumIds.toList();
+        for (final albumId in albumIds) {
+          final ok = await client.star(albumId: albumId);
+          if (ok) successCount++;
+        }
+        onClearSelection();
+        if (context.mounted) {
+          if (successCount > 0) {
+            showToast(l10n.batchAddedToCloudFavorites);
+          } else {
+            showToast(l10n.starFailed);
+          }
+        }
+        return;
+      }
+
+      // 2. Artist multi-selection mode
+      if (selectedArtistIds != null && selectedArtistIds.isNotEmpty) {
+        final artistIds = selectedArtistIds.toList();
+        final successfulArtistIds = <String>[];
+        for (final artistId in artistIds) {
+          final ok = await client.star(artistId: artistId);
+          if (ok) {
+            successCount++;
+            successfulArtistIds.add(artistId);
+          }
+        }
+        if (successfulArtistIds.isNotEmpty) {
+          onStarredArtistsChanged?.call(successfulArtistIds);
+        }
+        onClearSelection();
+        if (context.mounted) {
+          if (successCount > 0) {
+            showToast(l10n.batchAddedToCloudFavorites);
+          } else {
+            showToast(l10n.starFailed);
+          }
+        }
+        return;
+      }
+
+      // 3. Songs mode (songs tab, search tab, or detail pages)
+      final songs = await _withLoading(
+        context: context,
+        message: l10n.loadingAlbumTracks,
+        indicatorColor: brandColor,
+        task: onFetchSongs,
+      );
+      if (songs == null || songs.isEmpty) return;
+
+      final validTrackIds = <String>[];
+      for (final song in songs) {
+        final trackId = RemoteMediaResolver.extractTrackId(song) ??
+            (song.id != null && song.id! > 0 ? song.id.toString() : '');
+        if (trackId.isNotEmpty) {
+          validTrackIds.add(trackId);
+        }
+      }
+
+      final successfulTrackIds = <String>[];
+      for (final id in validTrackIds) {
+        final ok = await client.star(id: id);
+        if (ok) {
+          successCount++;
+          successfulTrackIds.add(id);
+        }
+      }
+
+      if (successfulTrackIds.isNotEmpty) {
+        onStarredChanged?.call(successfulTrackIds);
+      }
+      onClearSelection();
+      if (context.mounted) {
+        if (successCount > 0) {
+          showToast(l10n.batchAddedToCloudFavorites);
+        } else {
+          showToast(l10n.starFailed);
+        }
+      }
     } catch (e) {
       showToast(e.toString());
     }

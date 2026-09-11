@@ -25,6 +25,7 @@ import '../../widgets/library_selection_scope.dart';
 import 'navidrome_artist_detail_page.dart';
 import '../../utils/layout_constants.dart';
 import 'remote_download_manager_page.dart';
+import 'widgets/navidrome_selection_actions.dart';
 import '../../utils/song_locator_helper.dart';
 
 /// Standalone Full-Page for Navidrome Playlist Detail (used in portrait / mobile navigation)
@@ -1389,6 +1390,34 @@ class _NavidromePlaylistDetailContentState
             allSongs: _tracks,
             onToggleSelectAll: () => toggleSelectAllSongs(_tracks),
             onCancel: cancelSongSelection,
+            onAddToFavorites: () =>
+                NavidromeSelectionActions.handleBatchAddToLocalFavorites(
+              context: context,
+              ref: ref,
+              onFetchSongs: () async => selectedSongs,
+              onClearSelection: cancelSongSelection,
+            ),
+            onAddToCloudFavorites: () =>
+                NavidromeSelectionActions.handleBatchAddToCloudFavorites(
+              context: context,
+              ref: ref,
+              server: widget.server,
+              password: widget.password,
+              onFetchSongs: () async => selectedSongs,
+              onClearSelection: cancelSongSelection,
+              onStarredChanged: (starredIds) {
+                ref
+                    .read(activeRemoteSessionProvider.notifier)
+                    .updateNavidromeSongs(
+                      starredSongIds: {
+                        ...?ref
+                            .read(activeRemoteSessionProvider)
+                            ?.navidromeStarredSongIds,
+                        ...starredIds,
+                      },
+                    );
+              },
+            ),
             onDelete: !_isStarredView ? _deleteSelectedSongs : null,
             deleteLabel: l10n.removeFromPlaylist,
             onDownload: () async {

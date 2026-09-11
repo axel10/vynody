@@ -366,7 +366,7 @@ class _NavidromeLibraryPageState extends ConsumerState<NavidromeLibraryPage>
 
     if (_songStarredOnly) {
       result = result.where((song) {
-        final trackId = RemoteMediaResolver.extractSubsonicTrackId(song) ??
+        final trackId = RemoteMediaResolver.extractTrackId(song) ??
             (song.id != null && song.id! > 0 ? song.id.toString() : '');
         return _starredSongIds.contains(trackId);
       }).toList();
@@ -1465,6 +1465,46 @@ class _NavidromeLibraryPageState extends ConsumerState<NavidromeLibraryPage>
                   password: widget.password,
                   onFetchSongs: _fetchSelectedSongs,
                   onClearSelection: _cancelSelection,
+                ),
+                onAddToFavorites: () =>
+                    NavidromeSelectionActions.handleBatchAddToLocalFavorites(
+                  context: context,
+                  ref: ref,
+                  onFetchSongs: _fetchSelectedSongs,
+                  onClearSelection: _cancelSelection,
+                ),
+                onAddToCloudFavorites: () =>
+                    NavidromeSelectionActions.handleBatchAddToCloudFavorites(
+                  context: context,
+                  ref: ref,
+                  server: widget.server,
+                  password: widget.password,
+                  selectedAlbumIds:
+                      _isAlbumSelectionMode ? _selectedAlbumIds : null,
+                  selectedArtistIds:
+                      _isArtistSelectionMode ? _selectedArtistIds : null,
+                  onFetchSongs: _fetchSelectedSongs,
+                  onClearSelection: _cancelSelection,
+                  onStarredChanged: (starredIds) {
+                    setState(() {
+                      _starredSongIds.addAll(starredIds);
+                    });
+                    ref
+                        .read(activeRemoteSessionProvider.notifier)
+                        .updateNavidromeSongs(
+                          starredSongIds: _starredSongIds,
+                        );
+                  },
+                  onStarredArtistsChanged: (starredIds) {
+                    setState(() {
+                      _starredArtistIds.addAll(starredIds);
+                    });
+                    ref
+                        .read(activeRemoteSessionProvider.notifier)
+                        .updateNavidromeArtists(
+                          starredArtistIds: _starredArtistIds,
+                        );
+                  },
                 ),
                 onDownload: () => NavidromeSelectionActions.handleBatchDownload(
                   context: context,

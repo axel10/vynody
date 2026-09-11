@@ -523,6 +523,22 @@
   "@addToFavorites": {
     "description": "Add current album or song to favorites"
   },
+  "addToLocalFavorites": "本地收藏",
+  "@addToLocalFavorites": {
+    "description": "Add selected songs to local favorites"
+  },
+  "addToCloudFavorites": "云端收藏",
+  "@addToCloudFavorites": {
+    "description": "Add selected songs to server/cloud favorites"
+  },
+  "batchAddedToCloudFavorites": "已加入云端收藏",
+  "@batchAddedToCloudFavorites": {
+    "description": "Toast message when songs are added to cloud favorites"
+  },
+  "batchAddedToLocalFavorites": "已加入本地收藏",
+  "@batchAddedToLocalFavorites": {
+    "description": "Toast message when songs are added to local favorites"
+  },
   "viewAlbumDetails": "查看专辑详情",
   "@viewAlbumDetails": {
     "description": "View album details action"

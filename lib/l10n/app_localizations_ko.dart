@@ -432,6 +432,18 @@ class AppLocalizationsKo extends AppLocalizations {
   String get removeFromFavorites => '즐겨찾기에서 제거';
 
   @override
+  String get addToLocalFavorites => '本地收藏';
+
+  @override
+  String get addToCloudFavorites => '云端收藏';
+
+  @override
+  String get batchAddedToCloudFavorites => '已加入云端收藏';
+
+  @override
+  String get batchAddedToLocalFavorites => '已加入本地收藏';
+
+  @override
   String get viewAlbumDetails => '앨범 상세 보기';
 
   @override

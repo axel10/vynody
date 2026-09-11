@@ -10,7 +10,7 @@ import 'package:vynody/player/remote/proxy/remote_media_resolver.dart';
 import 'package:vynody/utils/song_context_menu_utils.dart';
 import 'package:vynody/l10n/app_localizations.dart';
 
-class LibrarySelectionPanel extends ConsumerWidget {
+class LibrarySelectionPanel extends ConsumerStatefulWidget {
   const LibrarySelectionPanel({
     super.key,
     required this.selectedSongs,
@@ -30,6 +30,10 @@ class LibrarySelectionPanel extends ConsumerWidget {
     this.onAddToQueue,
     this.onAddToPlaylist,
     this.onAddToFavorites,
+    this.onAddToCloudFavorites,
+    this.favoritesLabel,
+    this.cloudFavoritesLabel,
+    this.cloudFavoritesIcon,
     this.onDownload,
     this.onTranscode,
     this.isSelectionEmpty,
@@ -53,50 +57,152 @@ class LibrarySelectionPanel extends ConsumerWidget {
   final VoidCallback? onAddToQueue;
   final VoidCallback? onAddToPlaylist;
   final VoidCallback? onAddToFavorites;
+  final VoidCallback? onAddToCloudFavorites;
+  final String? favoritesLabel;
+  final String? cloudFavoritesLabel;
+  final IconData? cloudFavoritesIcon;
   final VoidCallback? onDownload;
   final VoidCallback? onTranscode;
   final bool? isSelectionEmpty;
   final bool? isAllSelected;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<LibrarySelectionPanel> createState() =>
+      _LibrarySelectionPanelState();
+}
+
+class _LibrarySelectionPanelState extends ConsumerState<LibrarySelectionPanel> {
+  final ScrollController _scrollController = ScrollController();
+
+  static const double _singleRowHeight = 58.0;
+  static const double _rowSpacing = 8.0;
+  static const double _maxVisibleRows = 2.0;
+  static const double _maxActionAreaHeight =
+      (_singleRowHeight * _maxVisibleRows) +
+      (_rowSpacing * (_maxVisibleRows - 1));
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
     final audio = ref.read(audioServiceProvider);
     final playlistService = ref.read(playlistServiceProvider);
 
-    final isAllSelected = this.isAllSelected ??
-        (selectedSongs.length == allSongs.length && allSongs.isNotEmpty);
-    final isEmpty = isSelectionEmpty ?? selectedSongs.isEmpty;
-    final isSingleSelected = !isEmpty && selectedSongs.length == 1;
+    final isAllSelected = widget.isAllSelected ??
+        (widget.selectedSongs.length == widget.allSongs.length &&
+            widget.allSongs.isNotEmpty);
+    final isEmpty = widget.isSelectionEmpty ?? widget.selectedSongs.isEmpty;
+    final isSingleSelected = !isEmpty && widget.selectedSongs.length == 1;
 
-    final isRemote = selectedSongs.isNotEmpty &&
-        RemoteMediaResolver.isRemoteUri(selectedSongs.first.path);
+    final isRemote = widget.selectedSongs.isNotEmpty &&
+        RemoteMediaResolver.isRemoteUri(widget.selectedSongs.first.path);
     final hasFilePath = isSingleSelected &&
-        selectedSongs.isNotEmpty &&
-        selectedSongs.first.path.trim().isNotEmpty &&
+        widget.selectedSongs.isNotEmpty &&
+        widget.selectedSongs.first.path.trim().isNotEmpty &&
         !isRemote;
     final canOpenLocation =
         (Platform.isWindows || Platform.isMacOS || Platform.isLinux) &&
-        (onOpenLocation != null || hasFilePath);
+        (widget.onOpenLocation != null || hasFilePath);
 
     final selectAllText = isAllSelected ? l10n.deselectAll : l10n.selectAll;
+    final isLandscape =
+        MediaQuery.of(context).orientation == Orientation.landscape;
 
-    final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+    final primaryRow = Row(
+      children: [
+        Expanded(
+          child: _buildSelectionActionButton(
+            context: context,
+            icon: isAllSelected ? Icons.deselect : Icons.select_all,
+            label: selectAllText,
+            onPressed: (widget.allSongs.isEmpty && widget.isAllSelected == null)
+                ? null
+                : widget.onToggleSelectAll,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _buildSelectionActionButton(
+            context: context,
+            icon: Icons.queue_play_next_rounded,
+            label: l10n.playNext,
+            onPressed: isEmpty
+                ? null
+                : () async {
+                    if (widget.onPlayNext != null) {
+                      widget.onPlayNext!();
+                    } else {
+                      await audio.enqueueNext(widget.selectedSongs);
+                      widget.onCancel();
+                    }
+                  },
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _buildSelectionActionButton(
+            context: context,
+            icon: Icons.queue_music_rounded,
+            label: l10n.addToQueue,
+            onPressed: isEmpty
+                ? null
+                : () async {
+                    if (widget.onAddToQueue != null) {
+                      widget.onAddToQueue!();
+                    } else {
+                      await audio.appendToQueue(widget.selectedSongs);
+                      widget.onCancel();
+                    }
+                  },
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _buildSelectionActionButton(
+            context: context,
+            icon: Icons.playlist_add_rounded,
+            label: l10n.addToPlaylist,
+            onPressed: isEmpty
+                ? null
+                : () async {
+                    if (widget.onAddToPlaylist != null) {
+                      widget.onAddToPlaylist!();
+                    } else {
+                      await showAddSongsToPlaylistDialog(
+                        context,
+                        playlistService,
+                        widget.selectedSongs,
+                      );
+                      widget.onCancel();
+                    }
+                  },
+          ),
+        ),
+      ],
+    );
 
     final List<Widget> secondaryActionRows = [];
-    if (!hideSecondaryActions) {
+    if (!widget.hideSecondaryActions) {
       final secondaryActions = <Widget>[];
 
-      if (replaceFavoritesWithSongDetails) {
-        if (!hideSongProperties) {
+      if (widget.replaceFavoritesWithSongDetails) {
+        if (!widget.hideSongProperties) {
           secondaryActions.add(
             _buildSelectionActionButton(
               context: context,
               icon: Icons.info_outline_rounded,
               label: l10n.songProperties,
-              onPressed: selectedSongs.length == 1
-                  ? () => showSongDetailsDialog(context, selectedSongs.first)
+              onPressed: widget.selectedSongs.length == 1
+                  ? () => showSongDetailsDialog(
+                        context,
+                        widget.selectedSongs.first,
+                      )
                   : null,
             ),
           );
@@ -109,35 +215,35 @@ class LibrarySelectionPanel extends ConsumerWidget {
             onPressed: isEmpty
                 ? null
                 : () async {
-                    if (onTranscode != null) {
-                      onTranscode!();
+                    if (widget.onTranscode != null) {
+                      widget.onTranscode!();
                     } else {
                       await showTranscodeDialog(
                         context,
-                        songs: selectedSongs,
+                        songs: widget.selectedSongs,
                       );
-                      onCancel();
+                      widget.onCancel();
                     }
                   },
           ),
         );
         if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
-          if (onOpenLocation != null || hasFilePath) {
+          if (widget.onOpenLocation != null || hasFilePath) {
             secondaryActions.add(
               _buildSelectionActionButton(
                 context: context,
                 icon: Icons.folder_open_rounded,
-                label: openLocationLabel ?? l10n.openFileLocation,
+                label: widget.openLocationLabel ?? l10n.openFileLocation,
                 onPressed: canOpenLocation
                     ? () async {
-                        if (onOpenLocation != null) {
-                          onOpenLocation!();
+                        if (widget.onOpenLocation != null) {
+                          widget.onOpenLocation!();
                         } else {
                           await openSongFileLocation(
-                            selectedSongs.first.path,
+                            widget.selectedSongs.first.path,
                           );
                         }
-                        onCancel();
+                        widget.onCancel();
                       }
                     : null,
               ),
@@ -151,38 +257,38 @@ class LibrarySelectionPanel extends ConsumerWidget {
               label: l10n.importLyrics,
               onPressed: isSingleSelected
                   ? () async {
-                      if (onImportLyrics != null) {
-                        onImportLyrics!();
+                      if (widget.onImportLyrics != null) {
+                        widget.onImportLyrics!();
                       } else {
                         await importLyricsForSong(
                           context,
                           ref,
-                          selectedSongs.first,
+                          widget.selectedSongs.first,
                         );
                       }
-                      onCancel();
+                      widget.onCancel();
                     }
                   : null,
             ),
           );
         }
-        if (onDownload != null) {
+        if (widget.onDownload != null) {
           secondaryActions.add(
             _buildSelectionActionButton(
               context: context,
               icon: Icons.download_rounded,
               label: l10n.downloadSong.contains('下载') ? '下载' : 'Download',
-              onPressed: isEmpty ? null : onDownload,
+              onPressed: isEmpty ? null : widget.onDownload,
             ),
           );
         }
-        if (onDelete != null) {
+        if (widget.onDelete != null) {
           secondaryActions.add(
             _buildSelectionActionButton(
               context: context,
               icon: Icons.delete_outline_rounded,
-              label: deleteLabel ?? l10n.delete,
-              onPressed: isEmpty ? null : onDelete,
+              label: widget.deleteLabel ?? l10n.delete,
+              onPressed: isEmpty ? null : widget.onDelete,
             ),
           );
         }
@@ -191,34 +297,47 @@ class LibrarySelectionPanel extends ConsumerWidget {
           _buildSelectionActionButton(
             context: context,
             icon: Icons.favorite_rounded,
-            label: l10n.addToFavorites,
+            label: widget.favoritesLabel ??
+                (widget.onAddToCloudFavorites != null
+                    ? l10n.addToLocalFavorites
+                    : l10n.addToFavorites),
             onPressed: isEmpty
                 ? null
                 : () async {
-                    if (onAddToFavorites != null) {
-                      onAddToFavorites!();
+                    if (widget.onAddToFavorites != null) {
+                      widget.onAddToFavorites!();
                     } else {
                       await playlistService.addSongsToPlaylist(
                         PlaylistService.favoritePlaylistId,
-                        selectedSongs,
+                        widget.selectedSongs,
                       );
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(
                               l10n.addedToPlaylist(
-                                selectedSongs.length,
+                                widget.selectedSongs.length,
                                 l10n.favorites,
                               ),
                             ),
                           ),
                         );
                       }
-                      onCancel();
+                      widget.onCancel();
                     }
                   },
           ),
         );
+        if (widget.onAddToCloudFavorites != null) {
+          secondaryActions.add(
+            _buildSelectionActionButton(
+              context: context,
+              icon: widget.cloudFavoritesIcon ?? Icons.cloud_done_rounded,
+              label: widget.cloudFavoritesLabel ?? l10n.addToCloudFavorites,
+              onPressed: isEmpty ? null : widget.onAddToCloudFavorites,
+            ),
+          );
+        }
         secondaryActions.add(
           _buildSelectionActionButton(
             context: context,
@@ -227,47 +346,50 @@ class LibrarySelectionPanel extends ConsumerWidget {
             onPressed: isEmpty
                 ? null
                 : () async {
-                    if (onTranscode != null) {
-                      onTranscode!();
+                    if (widget.onTranscode != null) {
+                      widget.onTranscode!();
                     } else {
                       await showTranscodeDialog(
                         context,
-                        songs: selectedSongs,
+                        songs: widget.selectedSongs,
                       );
-                      onCancel();
+                      widget.onCancel();
                     }
                   },
           ),
         );
-        if (!hideSongProperties) {
+        if (!widget.hideSongProperties) {
           secondaryActions.add(
             _buildSelectionActionButton(
               context: context,
               icon: Icons.info_outline_rounded,
               label: l10n.songProperties,
               onPressed: isSingleSelected
-                  ? () => showSongDetailsDialog(context, selectedSongs.first)
+                  ? () => showSongDetailsDialog(
+                        context,
+                        widget.selectedSongs.first,
+                      )
                   : null,
             ),
           );
         }
         if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
-          if (onOpenLocation != null || hasFilePath) {
+          if (widget.onOpenLocation != null || hasFilePath) {
             secondaryActions.add(
               _buildSelectionActionButton(
                 context: context,
                 icon: Icons.folder_open_rounded,
-                label: openLocationLabel ?? l10n.openFileLocation,
+                label: widget.openLocationLabel ?? l10n.openFileLocation,
                 onPressed: canOpenLocation
                     ? () async {
-                        if (onOpenLocation != null) {
-                          onOpenLocation!();
+                        if (widget.onOpenLocation != null) {
+                          widget.onOpenLocation!();
                         } else {
                           await openSongFileLocation(
-                            selectedSongs.first.path,
+                            widget.selectedSongs.first.path,
                           );
                         }
-                        onCancel();
+                        widget.onCancel();
                       }
                     : null,
               ),
@@ -281,38 +403,38 @@ class LibrarySelectionPanel extends ConsumerWidget {
               label: l10n.importLyrics,
               onPressed: isSingleSelected
                   ? () async {
-                      if (onImportLyrics != null) {
-                        onImportLyrics!();
+                      if (widget.onImportLyrics != null) {
+                        widget.onImportLyrics!();
                       } else {
                         await importLyricsForSong(
                           context,
                           ref,
-                          selectedSongs.first,
+                          widget.selectedSongs.first,
                         );
                       }
-                      onCancel();
+                      widget.onCancel();
                     }
                   : null,
             ),
           );
         }
-        if (onDownload != null) {
+        if (widget.onDownload != null) {
           secondaryActions.add(
             _buildSelectionActionButton(
               context: context,
               icon: Icons.download_rounded,
               label: l10n.downloadSong.contains('下载') ? '下载' : 'Download',
-              onPressed: isEmpty ? null : onDownload,
+              onPressed: isEmpty ? null : widget.onDownload,
             ),
           );
         }
-        if (onDelete != null) {
+        if (widget.onDelete != null) {
           secondaryActions.add(
             _buildSelectionActionButton(
               context: context,
               icon: Icons.delete_outline_rounded,
-              label: deleteLabel ?? l10n.delete,
-              onPressed: isEmpty ? null : onDelete,
+              label: widget.deleteLabel ?? l10n.delete,
+              onPressed: isEmpty ? null : widget.onDelete,
             ),
           );
         }
@@ -325,9 +447,6 @@ class LibrarySelectionPanel extends ConsumerWidget {
         );
         while (chunk.length < 4) {
           chunk.add(const SizedBox.shrink());
-        }
-        if (secondaryActionRows.isNotEmpty) {
-          secondaryActionRows.add(const SizedBox(height: 8));
         }
         secondaryActionRows.add(
           Row(
@@ -344,6 +463,11 @@ class LibrarySelectionPanel extends ConsumerWidget {
         );
       }
     }
+
+    final allActionRows = <Widget>[
+      primaryRow,
+      ...secondaryActionRows,
+    ];
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
@@ -369,7 +493,8 @@ class LibrarySelectionPanel extends ConsumerWidget {
                       children: [
                         const SizedBox(width: 8),
                         Text(
-                          title ?? l10n.selectedSongs(selectedSongs.length),
+                          widget.title ??
+                              l10n.selectedSongs(widget.selectedSongs.length),
                           style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                           ),
@@ -377,90 +502,41 @@ class LibrarySelectionPanel extends ConsumerWidget {
                         const Spacer(),
                         IconButton(
                           icon: const Icon(Icons.close),
-                          onPressed: onCancel,
+                          onPressed: widget.onCancel,
                           tooltip: l10n.cancel,
                         ),
                       ],
                     ),
                     const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildSelectionActionButton(
-                            context: context,
-                            icon: isAllSelected
-                                ? Icons.deselect
-                                : Icons.select_all,
-                            label: selectAllText,
-                            onPressed: (allSongs.isEmpty && this.isAllSelected == null)
-                                ? null
-                                : onToggleSelectAll,
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(
+                        maxHeight: _maxActionAreaHeight,
+                      ),
+                      child: Scrollbar(
+                        controller: _scrollController,
+                        thumbVisibility: allActionRows.length > 2,
+                        child: SingleChildScrollView(
+                          controller: _scrollController,
+                          physics: allActionRows.length > 2
+                              ? const BouncingScrollPhysics(
+                                  parent: AlwaysScrollableScrollPhysics(),
+                                )
+                              : const NeverScrollableScrollPhysics(),
+                          padding: EdgeInsets.only(
+                            right: allActionRows.length > 2 ? 6.0 : 0.0,
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              for (var i = 0; i < allActionRows.length; i++) ...[
+                                if (i > 0) const SizedBox(height: _rowSpacing),
+                                allActionRows[i],
+                              ],
+                            ],
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _buildSelectionActionButton(
-                            context: context,
-                            icon: Icons.queue_play_next_rounded,
-                            label: l10n.playNext,
-                            onPressed: isEmpty
-                                ? null
-                                : () async {
-                                    if (onPlayNext != null) {
-                                      onPlayNext!();
-                                    } else {
-                                      await audio.enqueueNext(selectedSongs);
-                                      onCancel();
-                                    }
-                                  },
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _buildSelectionActionButton(
-                            context: context,
-                            icon: Icons.queue_music_rounded,
-                            label: l10n.addToQueue,
-                            onPressed: isEmpty
-                                ? null
-                                : () async {
-                                    if (onAddToQueue != null) {
-                                      onAddToQueue!();
-                                    } else {
-                                      await audio.appendToQueue(selectedSongs);
-                                      onCancel();
-                                    }
-                                  },
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _buildSelectionActionButton(
-                            context: context,
-                            icon: Icons.playlist_add_rounded,
-                            label: l10n.addToPlaylist,
-                            onPressed: isEmpty
-                                ? null
-                                : () async {
-                                    if (onAddToPlaylist != null) {
-                                      onAddToPlaylist!();
-                                    } else {
-                                      await showAddSongsToPlaylistDialog(
-                                        context,
-                                        playlistService,
-                                        selectedSongs,
-                                      );
-                                      onCancel();
-                                    }
-                                  },
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
-                    if (secondaryActionRows.isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      ...secondaryActionRows,
-                    ],
                   ],
                 ),
               ),
@@ -479,30 +555,34 @@ class LibrarySelectionPanel extends ConsumerWidget {
   }) {
     final theme = Theme.of(context);
     final isEnabled = onPressed != null;
-    return Opacity(
-      opacity: isEnabled ? 1.0 : 0.38,
-      child: TextButton(
-        onPressed: onPressed,
-        style: TextButton.styleFrom(
-          foregroundColor: theme.colorScheme.onSurface,
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 22, color: theme.colorScheme.primary),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 12),
+    return SizedBox(
+      height: _singleRowHeight,
+      child: Opacity(
+        opacity: isEnabled ? 1.0 : 0.38,
+        child: TextButton(
+          onPressed: onPressed,
+          style: TextButton.styleFrom(
+            foregroundColor: theme.colorScheme.onSurface,
+            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
             ),
-          ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 22, color: theme.colorScheme.primary),
+              const SizedBox(height: 3),
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 12),
+              ),
+            ],
+          ),
         ),
       ),
     );

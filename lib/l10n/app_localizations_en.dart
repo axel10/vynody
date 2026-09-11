@@ -437,6 +437,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get removeFromFavorites => 'Remove from Favorites';
 
   @override
+  String get addToLocalFavorites => 'Local Favorites';
+
+  @override
+  String get addToCloudFavorites => 'Cloud Favorites';
+
+  @override
+  String get batchAddedToCloudFavorites => 'Added to cloud favorites';
+
+  @override
+  String get batchAddedToLocalFavorites => 'Added to local favorites';
+
+  @override
   String get viewAlbumDetails => 'View Album Details';
 
   @override

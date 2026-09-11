@@ -2137,5 +2137,9 @@
   "switchAndGenerate": "Switch to Recommended",
   "continueGeneration": "Continue",
   "abortGeneration": "Abort",
-  "doNotShowAgain": "Don't show again"
+  "doNotShowAgain": "Don't show again",
+  "addToLocalFavorites": "Local Favorites",
+  "addToCloudFavorites": "Cloud Favorites",
+  "batchAddedToCloudFavorites": "Added to cloud favorites",
+  "batchAddedToLocalFavorites": "Added to local favorites"
 }

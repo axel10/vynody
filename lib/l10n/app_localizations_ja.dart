@@ -433,6 +433,18 @@ class AppLocalizationsJa extends AppLocalizations {
   String get removeFromFavorites => 'お気に入りから削除';
 
   @override
+  String get addToLocalFavorites => '本地收藏';
+
+  @override
+  String get addToCloudFavorites => '云端收藏';
+
+  @override
+  String get batchAddedToCloudFavorites => '已加入云端收藏';
+
+  @override
+  String get batchAddedToLocalFavorites => '已加入本地收藏';
+
+  @override
   String get viewAlbumDetails => 'アルバムの詳細を表示';
 
   @override

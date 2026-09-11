@@ -7,6 +7,7 @@ import '../../models/music_file.dart';
 import '../../player/audio/audio_riverpod.dart';
 import '../../player/audio/playback_source.dart';
 import '../../player/remote/remote_server_models.dart';
+import '../../player/remote/remote_server_riverpod.dart';
 import '../../player/remote/clients/remote_media_library_client.dart';
 import '../../widgets/remote_artwork_widget.dart';
 import '../../widgets/desktop_window_title_bar.dart';
@@ -20,6 +21,7 @@ import '../../utils/remote_context_menu_utils.dart';
 import '../../widgets/library_selection_panel.dart';
 import '../../widgets/library_selection_scope.dart';
 import 'remote_download_manager_page.dart';
+import 'widgets/navidrome_selection_actions.dart';
 
 class NavidromeArtistDetailPage extends ConsumerWidget {
   final RemoteServer server;
@@ -577,6 +579,34 @@ class _NavidromeArtistDetailContentState
             allSongs: _allSongs,
             onToggleSelectAll: () => toggleSelectAllSongs(_allSongs),
             onCancel: cancelSongSelection,
+            onAddToFavorites: () =>
+                NavidromeSelectionActions.handleBatchAddToLocalFavorites(
+              context: context,
+              ref: ref,
+              onFetchSongs: () async => selectedSongs,
+              onClearSelection: cancelSongSelection,
+            ),
+            onAddToCloudFavorites: () =>
+                NavidromeSelectionActions.handleBatchAddToCloudFavorites(
+              context: context,
+              ref: ref,
+              server: widget.server,
+              password: widget.password,
+              onFetchSongs: () async => selectedSongs,
+              onClearSelection: cancelSongSelection,
+              onStarredChanged: (starredIds) {
+                ref
+                    .read(activeRemoteSessionProvider.notifier)
+                    .updateNavidromeSongs(
+                      starredSongIds: {
+                        ...?ref
+                            .read(activeRemoteSessionProvider)
+                            ?.navidromeStarredSongIds,
+                        ...starredIds,
+                      },
+                    );
+              },
+            ),
             onDownload: () async {
               final sel = List<MusicFile>.from(selectedSongs);
               if (sel.isEmpty) return;

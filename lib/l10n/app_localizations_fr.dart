@@ -443,6 +443,18 @@ class AppLocalizationsFr extends AppLocalizations {
   String get removeFromFavorites => 'Retirer des favoris';
 
   @override
+  String get addToLocalFavorites => '本地收藏';
+
+  @override
+  String get addToCloudFavorites => '云端收藏';
+
+  @override
+  String get batchAddedToCloudFavorites => '已加入云端收藏';
+
+  @override
+  String get batchAddedToLocalFavorites => '已加入本地收藏';
+
+  @override
   String get viewAlbumDetails => 'Voir les détails de l\'album';
 
   @override

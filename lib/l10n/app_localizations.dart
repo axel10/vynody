@@ -903,6 +903,30 @@ abstract class AppLocalizations {
   /// **'取消收藏'**
   String get removeFromFavorites;
 
+  /// Add selected songs to local favorites
+  ///
+  /// In zh, this message translates to:
+  /// **'本地收藏'**
+  String get addToLocalFavorites;
+
+  /// Add selected songs to server/cloud favorites
+  ///
+  /// In zh, this message translates to:
+  /// **'云端收藏'**
+  String get addToCloudFavorites;
+
+  /// Toast message when songs are added to cloud favorites
+  ///
+  /// In zh, this message translates to:
+  /// **'已加入云端收藏'**
+  String get batchAddedToCloudFavorites;
+
+  /// Toast message when songs are added to local favorites
+  ///
+  /// In zh, this message translates to:
+  /// **'已加入本地收藏'**
+  String get batchAddedToLocalFavorites;
+
   /// View album details action
   ///
   /// In zh, this message translates to:

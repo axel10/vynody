@@ -1461,5 +1461,9 @@
   "switchAndGenerate": "換成推薦模型",
   "continueGeneration": "繼續生成",
   "abortGeneration": "中止",
-  "doNotShowAgain": "以後不再彈出"
+  "doNotShowAgain": "以後不再彈出",
+  "addToLocalFavorites": "本地最愛",
+  "addToCloudFavorites": "雲端最愛",
+  "batchAddedToCloudFavorites": "已加入雲端最愛",
+  "batchAddedToLocalFavorites": "已加入本地最愛"
 }
