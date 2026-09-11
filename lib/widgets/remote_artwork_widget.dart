@@ -7,9 +7,13 @@ class RemoteArtworkWidget extends StatelessWidget {
   /// In-memory negative cache to prevent repeated 404 / failed HTTP requests
   static final Set<String> _failedUrls = <String>{};
 
+  /// In-memory cache for resolved cover art URLs
+  static final Map<String, String> _resolvedUrlCache = <String, String>{};
+
   /// Method to clear the failed URLs cache if needed (e.g. on manual refresh)
   static void clearFailedCache() {
     _failedUrls.clear();
+    _resolvedUrlCache.clear();
   }
 
   final RemoteServer? server;
@@ -49,15 +53,27 @@ class RemoteArtworkWidget extends StatelessWidget {
         coverArtId!.isNotEmpty &&
         (server!.type == RemoteServerType.subsonic ||
             server!.type == RemoteServerType.jellyfin)) {
-      final imageUrl = server!.type == RemoteServerType.jellyfin
-          ? JellyfinClient(server: server!, password: password!)
-              .buildCoverArtUrl(coverArtId!, size: (size * 2).toInt())
-          : SubsonicClient(server: server!, password: password!)
-              .buildCoverArtUrl(coverArtId!, size: (size * 2).toInt());
+      final cacheKey =
+          '${server!.id}_${server!.type.name}_${coverArtId}_${(size * 2).toInt()}';
+      var imageUrl = _resolvedUrlCache[cacheKey];
+      if (imageUrl == null) {
+        imageUrl = server!.type == RemoteServerType.jellyfin
+            ? JellyfinClient(server: server!, password: password!)
+                .buildCoverArtUrl(coverArtId!, size: (size * 2).toInt())
+            : SubsonicClient(server: server!, password: password!)
+                .buildCoverArtUrl(coverArtId!, size: (size * 2).toInt());
+        if (_resolvedUrlCache.length > 5000) {
+          _resolvedUrlCache.clear();
+        }
+        _resolvedUrlCache[cacheKey] = imageUrl;
+      }
 
       if (_failedUrls.contains(imageUrl)) {
         return _buildFallback(context, w, h, radius);
       }
+
+      final cacheW = (w * 2).round();
+      final cacheH = (h * 2).round();
 
       return ClipRRect(
         borderRadius: radius,
@@ -65,6 +81,8 @@ class RemoteArtworkWidget extends StatelessWidget {
           imageUrl,
           width: w,
           height: h,
+          cacheWidth: cacheW > 0 ? cacheW : null,
+          cacheHeight: cacheH > 0 ? cacheH : null,
           fit: fit,
           frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
             if (wasSynchronouslyLoaded || frame != null) {
@@ -73,7 +91,7 @@ class RemoteArtworkWidget extends StatelessWidget {
             return _buildFallback(context, w, h, radius);
           },
           errorBuilder: (_, _, _) {
-            _failedUrls.add(imageUrl);
+            _failedUrls.add(imageUrl!);
             return _buildFallback(context, w, h, radius);
           },
         ),
