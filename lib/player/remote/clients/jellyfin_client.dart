@@ -1,5 +1,5 @@
 import 'dart:io';
-import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
 import '../remote_server_models.dart';
@@ -597,6 +597,7 @@ class JellyfinClient {
         'Recursive': true,
         'SortBy': 'SortName',
         'SortOrder': 'Ascending',
+        'Fields': 'ItemCounts,ChildCount,CumulativeRunTimeTicks,PrimaryImageAspectRatio',
       },
     );
 
@@ -742,6 +743,7 @@ class JellyfinClient {
           'Name': name,
           'Ids': songIds ?? [],
           'UserId': session.userId,
+          'MediaType': 'Audio',
         },
         options: Options(
           headers: {
@@ -752,12 +754,15 @@ class JellyfinClient {
       );
       final data = res.data;
       if (data is Map<String, dynamic>) {
+        final createdId = (data['Id'] ?? data['id'])?.toString() ?? '';
         return {
-          'id': data['Id'],
+          'id': createdId,
           'name': name,
         };
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('Error creating Jellyfin playlist: $e');
+    }
     return null;
   }
 
@@ -782,6 +787,7 @@ class JellyfinClient {
       if (songIdsToAdd != null && songIdsToAdd.isNotEmpty) {
         await _dio.post<dynamic>(
           '$baseUrl/Playlists/$playlistId/Items',
+          data: {},
           queryParameters: {
             'ids': songIdsToAdd.join(','),
             'userId': session.userId,
@@ -792,7 +798,8 @@ class JellyfinClient {
         );
       }
       return true;
-    } catch (_) {
+    } catch (e) {
+      debugPrint('Error updating Jellyfin playlist: $e');
       return false;
     }
   }

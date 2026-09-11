@@ -121,8 +121,82 @@ class NavidromePlaylistsView extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
 
+    final isJellyfin = server.type == RemoteServerType.jellyfin;
+    final brandColor = isJellyfin ? const Color(0xFF9D65C9) : Colors.orange;
+    final serverName = isJellyfin ? 'Jellyfin' : 'Navidrome';
+
     if (isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      final isZh = l10n.localeName.startsWith('zh');
+
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: brandColor.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  SizedBox(
+                    width: 64,
+                    height: 64,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 3,
+                      valueColor: AlwaysStoppedAnimation<Color>(brandColor),
+                    ),
+                  ),
+                  Icon(
+                    Icons.queue_music_rounded,
+                    size: 28,
+                    color: brandColor,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              isZh ? '正在加载歌单列表...' : 'Loading playlists...',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+                fontSize: 16,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    isJellyfin ? Icons.movie_filter_rounded : Icons.cloud_done_rounded,
+                    size: 13,
+                    color: brandColor,
+                  ),
+                  const SizedBox(width: 5),
+                  Text(
+                    server.name.isNotEmpty
+                        ? '${server.name} ($serverName)'
+                        : serverName,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
     }
     if (error != null) {
       return Center(

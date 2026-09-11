@@ -356,8 +356,82 @@ class _NavidromeSongsViewState extends ConsumerState<NavidromeSongsView> {
     final isAudioPlaying = ref.watch(audioIsPlayingProvider);
     final highlightedPath = ref.watch(songHighlightProvider);
 
+    final isJellyfin = widget.server.type == RemoteServerType.jellyfin;
+    final brandColor = isJellyfin ? const Color(0xFF9D65C9) : Colors.orange;
+    final serverName = isJellyfin ? 'Jellyfin' : 'Navidrome';
+
     if (widget.isLoading && widget.songs.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
+      final isZh = l10n.localeName.startsWith('zh');
+
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: brandColor.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  SizedBox(
+                    width: 64,
+                    height: 64,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 3,
+                      valueColor: AlwaysStoppedAnimation<Color>(brandColor),
+                    ),
+                  ),
+                  Icon(
+                    Icons.music_note_rounded,
+                    size: 28,
+                    color: brandColor,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              isZh ? '正在加载歌曲列表...' : 'Loading songs...',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+                fontSize: 16,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    isJellyfin ? Icons.movie_filter_rounded : Icons.cloud_done_rounded,
+                    size: 13,
+                    color: brandColor,
+                  ),
+                  const SizedBox(width: 5),
+                  Text(
+                    widget.server.name.isNotEmpty
+                        ? '${widget.server.name} ($serverName)'
+                        : serverName,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
     }
 
     if (widget.error != null && widget.songs.isEmpty) {
@@ -483,10 +557,13 @@ class _NavidromeSongsViewState extends ConsumerState<NavidromeSongsView> {
               padding: const EdgeInsets.symmetric(vertical: 24.0),
               child: Center(
                 child: widget.isLoadingMore
-                    ? const SizedBox(
+                    ? SizedBox(
                         width: 24,
                         height: 24,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(brandColor),
+                        ),
                       )
                     : (widget.hasMore
                         ? TextButton.icon(

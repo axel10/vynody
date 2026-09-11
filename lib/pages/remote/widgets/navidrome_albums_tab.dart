@@ -209,8 +209,20 @@ class NavidromeAlbumsView extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
 
+    final isJellyfin = server.type == RemoteServerType.jellyfin;
+    final brandColor = isJellyfin ? const Color(0xFF9D65C9) : Colors.orange;
+
     if (isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return Center(
+        child: SizedBox(
+          width: 36,
+          height: 36,
+          child: CircularProgressIndicator(
+            strokeWidth: 3,
+            valueColor: AlwaysStoppedAnimation<Color>(brandColor),
+          ),
+        ),
+      );
     }
     if (error != null) {
       return Center(

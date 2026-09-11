@@ -21,6 +21,7 @@ class NavidromeSelectionActions {
     required BuildContext context,
     required String message,
     required Future<T> Function() task,
+    Color? indicatorColor,
   }) async {
     showDialog<void>(
       context: context,
@@ -38,10 +39,15 @@ class NavidromeSelectionActions {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const SizedBox(
+                  SizedBox(
                     width: 22,
                     height: 22,
-                    child: CircularProgressIndicator(strokeWidth: 2.5),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      valueColor: indicatorColor != null
+                          ? AlwaysStoppedAnimation<Color>(indicatorColor)
+                          : null,
+                    ),
                   ),
                   const SizedBox(width: 16),
                   Flexible(
@@ -218,10 +224,13 @@ class NavidromeSelectionActions {
     required VoidCallback onClearSelection,
   }) async {
     final l10n = AppLocalizations.of(context)!;
+    final isJellyfin = server.type == RemoteServerType.jellyfin;
+    final brandColor = isJellyfin ? const Color(0xFF9D65C9) : Colors.orange;
     try {
       final songs = await _withLoading(
         context: context,
         message: l10n.loadingAlbumTracks,
+        indicatorColor: brandColor,
         task: onFetchSongs,
       );
       if (songs == null || songs.isEmpty) return;

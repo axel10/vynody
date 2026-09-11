@@ -688,11 +688,32 @@ class _NavidromePlaylistDetailContentState
     final selectedSongs = getSelectedSongs(_tracks);
 
     if (_isLoading) {
-      return const Center(
-        child: SizedBox(
-          width: 32,
-          height: 32,
-          child: CircularProgressIndicator(strokeWidth: 3),
+      final isJellyfin = widget.server.type == RemoteServerType.jellyfin;
+      final brandColor = isJellyfin ? const Color(0xFF9D65C9) : Colors.orange;
+      final isZh = l10n.localeName.startsWith('zh');
+
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: 36,
+              height: 36,
+              child: CircularProgressIndicator(
+                strokeWidth: 3,
+                valueColor: AlwaysStoppedAnimation<Color>(brandColor),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              isZh ? '正在加载歌单曲目...' : 'Loading playlist tracks...',
+              style: TextStyle(
+                color: theme.colorScheme.onSurfaceVariant,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
         ),
       );
     }

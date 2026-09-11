@@ -10,6 +10,7 @@ import '../player/remote/proxy/remote_media_resolver.dart';
 import '../player/remote/remote_server_models.dart';
 import '../utils/app_snack_bar.dart';
 import '../utils/playlist_name.dart';
+import '../widgets/remote_artwork_widget.dart';
 import '../widgets/song_thumbnail.dart';
 
 class RemoteAddToPlaylistDialog {
@@ -396,6 +397,11 @@ class _RemotePlaylistDialogContentState
             return name.contains(_searchQuery.toLowerCase());
           }).toList();
 
+    final isJellyfin = widget.client.server.type == RemoteServerType.jellyfin;
+    final serverColor = isJellyfin ? const Color(0xFF9D65C9) : Colors.orange;
+    final serverBadgeText = isJellyfin ? 'Jellyfin' : 'Navidrome';
+    final serverIcon = isJellyfin ? Icons.movie_filter_rounded : Icons.cloud_done_rounded;
+
     return Dialog(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(24),
@@ -418,12 +424,12 @@ class _RemotePlaylistDialogContentState
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: widget.theme.colorScheme.primaryContainer,
+                      color: serverColor.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(14),
                     ),
                     child: Icon(
                       Icons.playlist_add_rounded,
-                      color: widget.theme.colorScheme.onPrimaryContainer,
+                      color: serverColor,
                       size: 24,
                     ),
                   ),
@@ -432,12 +438,44 @@ class _RemotePlaylistDialogContentState
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          widget.l10n.addToPlaylist,
-                          style: widget.theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                          ),
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                widget.l10n.addToPlaylist,
+                                style: widget.theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: serverColor.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(serverIcon, size: 12, color: serverColor),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    serverBadgeText,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: serverColor,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 2),
                         Container(
@@ -592,8 +630,34 @@ class _RemotePlaylistDialogContentState
   Widget _buildServerPlaylistsTab(
     List<Map<String, dynamic>> filteredServerPlaylists,
   ) {
+    final isJellyfin = widget.client.server.type == RemoteServerType.jellyfin;
+    final serverColor = isJellyfin ? const Color(0xFF9D65C9) : Colors.orange;
+
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      final isZh = widget.l10n.localeName.startsWith('zh');
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: 32,
+              height: 32,
+              child: CircularProgressIndicator(
+                strokeWidth: 3,
+                valueColor: AlwaysStoppedAnimation<Color>(serverColor),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              isZh ? '正在加载服务端歌单...' : 'Loading server playlists...',
+              style: TextStyle(
+                color: widget.theme.colorScheme.onSurfaceVariant,
+                fontSize: 13,
+              ),
+            ),
+          ],
+        ),
+      );
     }
     if (_error != null) {
       return Center(
@@ -644,6 +708,42 @@ class _RemotePlaylistDialogContentState
         final name = pl['name'] as String? ?? widget.l10n.playlist;
         final id = pl['id'] as String? ?? '';
         final count = pl['songCount'] as int? ?? 0;
+        final coverArtId = (pl['coverArt'] as String?)?.isNotEmpty == true
+            ? pl['coverArt'] as String
+            : (pl['id'] as String? ?? '');
+
+        Widget leadingWidget;
+        if (coverArtId.isNotEmpty) {
+          leadingWidget = ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: SizedBox(
+              width: 44,
+              height: 44,
+              child: RemoteArtworkWidget(
+                server: widget.client.server,
+                password: widget.client.password,
+                coverArtId: coverArtId,
+                size: 44,
+                borderRadius: BorderRadius.circular(12),
+                fallbackIcon: Icons.queue_music_rounded,
+              ),
+            ),
+          );
+        } else {
+          leadingWidget = Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: serverColor.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              Icons.queue_music_rounded,
+              color: serverColor,
+              size: 22,
+            ),
+          );
+        }
 
         return Padding(
           padding: const EdgeInsets.symmetric(vertical: 3),
@@ -660,19 +760,7 @@ class _RemotePlaylistDialogContentState
                 ),
                 child: Row(
                   children: [
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: Colors.orange.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(
-                        Icons.queue_music_rounded,
-                        color: Colors.orange,
-                        size: 22,
-                      ),
-                    ),
+                    leadingWidget,
                     const SizedBox(width: 14),
                     Expanded(
                       child: Column(
