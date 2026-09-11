@@ -1244,12 +1244,12 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
                       ),
                       actions: [
                         IconButton(
-                          icon: const Icon(Icons.my_location_rounded),
+                          icon: const Icon(Icons.my_location_rounded, size: 20),
                           tooltip: l10n.locateCurrentSong,
                           onPressed: _locateCurrentSong,
                         ),
                         IconButton(
-                          icon: const Icon(Icons.refresh_rounded),
+                          icon: const Icon(Icons.refresh_rounded, size: 20),
                           tooltip: l10n.refresh,
                           onPressed: () {
                             switch (_tabController.index) {
@@ -1281,7 +1281,7 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
                               icon: Badge(
                                 isLabelVisible: activeCount > 0,
                                 label: Text('$activeCount'),
-                                child: const Icon(Icons.download_rounded),
+                                child: const Icon(Icons.download_rounded, size: 20),
                               ),
                               tooltip: l10n.downloadManager,
                               onPressed: () {

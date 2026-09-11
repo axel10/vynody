@@ -73,7 +73,7 @@ class RemotePlaylistDetailPage extends ConsumerWidget {
             icon: Badge(
               isLabelVisible: ref.watch(activeDownloadsCountProvider) > 0,
               label: Text('${ref.watch(activeDownloadsCountProvider)}'),
-              child: const Icon(Icons.download_rounded),
+              child: const Icon(Icons.download_rounded, size: 20),
             ),
             tooltip: l10n.downloadManager,
             onPressed: () {

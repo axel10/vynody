@@ -470,6 +470,38 @@ void main() {
         await tester.pump(const Duration(milliseconds: 200));
 
         expect(tester.takeException(), isNull);
+        final appBarFinder = find.byType(AppBar);
+        if (size.width < 500) {
+          expect(
+            find.descendant(
+              of: appBarFinder,
+              matching: find.byIcon(Icons.more_vert_rounded),
+            ),
+            findsOneWidget,
+          );
+          expect(
+            find.descendant(
+              of: appBarFinder,
+              matching: find.byIcon(Icons.sort_rounded),
+            ),
+            findsNothing,
+          );
+        } else {
+          expect(
+            find.descendant(
+              of: appBarFinder,
+              matching: find.byIcon(Icons.more_vert_rounded),
+            ),
+            findsNothing,
+          );
+          expect(
+            find.descendant(
+              of: appBarFinder,
+              matching: find.byIcon(Icons.sort_rounded),
+            ),
+            findsOneWidget,
+          );
+        }
       }
     });
   });

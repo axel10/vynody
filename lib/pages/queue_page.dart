@@ -24,6 +24,7 @@ enum QueueSortField {
   trackNumber,
 }
 
+
 // 队列页面
 class QueuePage extends ConsumerStatefulWidget {
   const QueuePage({super.key});
@@ -49,6 +50,31 @@ class _QueuePageState extends ConsumerState<QueuePage>
   void initState() {
     super.initState();
     _scrollController = ScrollController();
+  }
+
+  String _formatDurationText(Duration duration, AppLocalizations l10n) {
+    final hours = duration.inHours;
+    final minutes = duration.inMinutes.remainder(60);
+    final seconds = duration.inSeconds.remainder(60);
+
+    final isZh = l10n.localeName.startsWith('zh');
+    if (isZh) {
+      if (hours > 0) {
+        return '$hours小时$minutes分钟';
+      } else if (minutes > 0) {
+        return '$minutes分钟$seconds秒';
+      } else {
+        return '$seconds秒';
+      }
+    } else {
+      if (hours > 0) {
+        return '${hours}h ${minutes}m';
+      } else if (minutes > 0) {
+        return '${minutes}m ${seconds}s';
+      } else {
+        return '${seconds}s';
+      }
+    }
   }
 
   @override
@@ -376,284 +402,126 @@ class _QueuePageState extends ConsumerState<QueuePage>
     final headerHorizontalPadding = isPortrait ? 20.0 : 32.0;
     final headerIconColor =
         theme.colorScheme.onSurface.withValues(alpha: 0.85);
+    final l10n = AppLocalizations.of(context)!;
 
-    if (queue.isEmpty) {
-      return Scaffold(
-        appBar: AppBar(
-          automaticallyImplyLeading: false,
-          scrolledUnderElevation: 0,
-          surfaceTintColor: Colors.transparent,
-          notificationPredicate: (_) => false,
-          titleSpacing: 0,
-          centerTitle: true,
-          title: Align(
-            alignment: Alignment.center,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: kSingleColumnContentMaxWidth),
-              child: SizedBox(
-                height: kToolbarHeight,
-                child: Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: headerHorizontalPadding,
-                  ),
-                  child: Stack(
-                    alignment: Alignment.center,
-                    clipBehavior: Clip.none,
-                    children: [
-                    Center(
-                      child: Text(
-                        AppLocalizations.of(context)!.queue,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      right: 0,
-                      child: isPortrait
-                          ? IconButton(
-                              icon: Icon(
-                                Icons.more_vert_rounded,
-                                size: 20,
-                                color: headerIconColor.withValues(alpha: 0.38),
-                              ),
-                              onPressed: null,
-                            )
-                          : Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                IconButton(
-                                  icon: Icon(
-                                    Icons.sort_rounded,
-                                    size: 20,
-                                    color:
-                                        headerIconColor.withValues(alpha: 0.38),
-                                  ),
-                                  onPressed: null,
-                                  tooltip: AppLocalizations.of(context)!.sort,
-                                ),
-                                IconButton(
-                                  icon: Icon(
-                                    Icons.my_location_rounded,
-                                    size: 20,
-                                    color:
-                                        headerIconColor.withValues(alpha: 0.38),
-                                  ),
-                                  onPressed: null,
-                                  tooltip: AppLocalizations.of(
-                                    context,
-                                  )!.locateCurrentSong,
-                                ),
-                                IconButton(
-                                  icon: Icon(
-                                    Icons.delete_sweep_rounded,
-                                    size: 20,
-                                    color:
-                                        headerIconColor.withValues(alpha: 0.38),
-                                  ),
-                                  onPressed: null,
-                                  tooltip:
-                                      AppLocalizations.of(context)!.queueEmpty,
-                                ),
-                              ],
-                            ),
-                    ),
-                  ],
-                ),
+    int totalDurationMs = 0;
+    for (final song in displayQueue) {
+      totalDurationMs += song.durationMillis ?? 0;
+    }
+
+    final String countAndDurationText;
+    if (displayQueue.isEmpty) {
+      countAndDurationText = l10n.songCount(0);
+    } else if (totalDurationMs > 0) {
+      countAndDurationText =
+          '${l10n.songCount(displayQueue.length)} · ${_formatDurationText(Duration(milliseconds: totalDurationMs), l10n)}';
+    } else {
+      countAndDurationText = l10n.songCount(displayQueue.length);
+    }
+
+    final Widget subtitleWidget;
+    if (isRandomMode) {
+      subtitleWidget = Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildViewSelector(
+            context,
+            theme,
+            isDark,
+            isShuffleRandomMode,
+          ),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              '· $countAndDurationText',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
           ),
-          ),
-        ),
-        body: QueueFileDropTarget(
-          enabled: true,
-          displayQueue: displayQueue,
-          queueSongs: queue,
-          itemKeyBuilder: _songTileKeyFor,
-          showPreview: showPreview,
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: kSingleColumnContentMaxWidth),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.queue_music,
-                    size: 64,
-                    color: Colors.grey.withValues(alpha: 0.5),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    AppLocalizations.of(context)!.queueEmpty,
-                    style: const TextStyle(fontSize: 18, color: Colors.grey),
-                  ),
-                ],
-              ),
-            ),
-          ),
+        ],
+      );
+    } else {
+      subtitleWidget = Text(
+        countAndDurationText,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: theme.textTheme.bodyMedium?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
         ),
       );
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        scrolledUnderElevation: 0,
-        surfaceTintColor: Colors.transparent,
-        notificationPredicate: (_) => false,
-        titleSpacing: 0,
-        centerTitle: true,
-        title: Align(
-          alignment: Alignment.center,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: kSingleColumnContentMaxWidth),
-            child: SizedBox(
-              height: kToolbarHeight,
-              child: Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: headerHorizontalPadding,
-                ),
-                child: Stack(
-                  alignment: Alignment.center,
-                  clipBehavior: Clip.none,
-                  children: [
-                  Center(
-                    child: isRandomMode
-                        ? _buildViewSelector(
-                            context,
-                            theme,
-                            isDark,
-                            isShuffleRandomMode,
-                          )
-                        : Text(
-                            AppLocalizations.of(context)!.queue,
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                  ),
-                  Positioned(
-                    right: 0,
-                    child: isPortrait
-                        ? PopupMenuButton<String>(
-                            icon: Icon(
-                              Icons.more_vert_rounded,
-                              size: 20,
-                              color: headerIconColor,
-                            ),
-                            tooltip: MaterialLocalizations.of(
-                              context,
-                            ).moreButtonTooltip,
-                            onSelected: (value) {
-                              if (value == 'sort') {
-                                _showSortDialog(context);
-                              } else if (value == 'locate') {
-                                _scrollToCurrentPlay();
-                              } else if (value == 'clear') {
-                                _showClearQueueDialog(context);
-                              }
-                            },
-                            itemBuilder: (context) {
-                              final l10n = AppLocalizations.of(context)!;
-                              return [
-                                PopupMenuItem(
-                                  value: 'sort',
-                                  enabled: _viewIndex == 0,
-                                  child: Row(
-                                    children: [
-                                      const Icon(Icons.sort_rounded, size: 20),
-                                      const SizedBox(width: 12),
-                                      Text(l10n.sort),
-                                    ],
-                                  ),
-                                ),
-                                PopupMenuItem(
-                                  value: 'locate',
-                                  child: Row(
-                                    children: [
-                                      const Icon(
-                                        Icons.my_location_rounded,
-                                        size: 20,
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Text(l10n.locateCurrentSong),
-                                    ],
-                                  ),
-                                ),
-                                PopupMenuItem(
-                                  value: 'clear',
-                                  child: Row(
-                                    children: [
-                                      const Icon(
-                                        Icons.delete_sweep_rounded,
-                                        size: 20,
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Text(l10n.clearQueue),
-                                    ],
-                                  ),
-                                ),
-                              ];
-                            },
-                          )
-                        : Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                icon: Icon(
-                                  Icons.sort_rounded,
-                                  size: 20,
-                                  color: _viewIndex == 0
-                                      ? headerIconColor
-                                      : headerIconColor.withValues(alpha: 0.38),
-                                ),
-                                onPressed: _viewIndex == 0
-                                    ? () => _showSortDialog(context)
-                                    : null,
-                                tooltip: AppLocalizations.of(context)!.sort,
-                              ),
-                              IconButton(
-                                icon: Icon(
-                                  Icons.my_location_rounded,
-                                  size: 20,
-                                  color: headerIconColor,
-                                ),
-                                onPressed: _scrollToCurrentPlay,
-                                tooltip: AppLocalizations.of(
-                                  context,
-                                )!.locateCurrentSong,
-                              ),
-                              IconButton(
-                                icon: Icon(
-                                  Icons.delete_sweep_rounded,
-                                  size: 20,
-                                  color: headerIconColor,
-                                ),
-                                onPressed: () => _showClearQueueDialog(context),
-                                tooltip: AppLocalizations.of(
-                                  context,
-                                )!.clearQueue,
-                              ),
-                            ],
-                          ),
-                  ),
-                ],
+    final bool canSort = _viewIndex == 0 && displayQueue.isNotEmpty;
+    final bool canLocate = displayQueue.isNotEmpty;
+    final bool canClear = queue.isNotEmpty;
+
+    final headerActionButtons = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          icon: Icon(
+            Icons.sort_rounded,
+            size: 20,
+            color: canSort
+                ? headerIconColor
+                : headerIconColor.withValues(alpha: 0.38),
+          ),
+          onPressed: canSort ? () => _showSortDialog(context) : null,
+          tooltip: l10n.sort,
+        ),
+        IconButton(
+          icon: Icon(
+            Icons.my_location_rounded,
+            size: 20,
+            color: canLocate
+                ? headerIconColor
+                : headerIconColor.withValues(alpha: 0.38),
+          ),
+          onPressed: canLocate ? _scrollToCurrentPlay : null,
+          tooltip: l10n.locateCurrentSong,
+        ),
+        IconButton(
+          icon: Icon(
+            Icons.delete_sweep_rounded,
+            size: 20,
+            color: canClear
+                ? headerIconColor
+                : headerIconColor.withValues(alpha: 0.38),
+          ),
+          onPressed: canClear ? () => _showClearQueueDialog(context) : null,
+          tooltip: canClear ? l10n.clearQueue : l10n.queueEmpty,
+        ),
+      ],
+    );
+
+    final Widget listOrEmpty;
+    if (displayQueue.isEmpty) {
+      listOrEmpty = Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: kSingleColumnContentMaxWidth),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.queue_music,
+                size: 64,
+                color: Colors.grey.withValues(alpha: 0.5),
               ),
-            ),
+              const SizedBox(height: 16),
+              Text(
+                l10n.queueEmpty,
+                style: const TextStyle(fontSize: 18, color: Colors.grey),
+              ),
+            ],
           ),
         ),
-        ),
-      ),
-      body: QueueFileDropTarget(
-        enabled: true,
-        displayQueue: displayQueue,
-        queueSongs: queue,
-        itemKeyBuilder: _songTileKeyFor,
-        showPreview: showPreview,
-        child: Stack(
-          children: [
-            Column(
-              children: [
+      );
+    } else {
+      listOrEmpty = Column(
+        children: [
                 Expanded(
                   child: Stack(
                     children: [
@@ -836,7 +704,64 @@ class _QueuePageState extends ConsumerState<QueuePage>
                   ),
                 ),
               ],
+            );
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
+        notificationPredicate: (_) => false,
+        toolbarHeight: 70.0,
+        titleSpacing: 0,
+        centerTitle: false,
+        title: Align(
+          alignment: Alignment.center,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: kSingleColumnContentMaxWidth),
+            child: SizedBox(
+              height: 70.0,
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: headerHorizontalPadding,
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            l10n.queue,
+                            style: theme.textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          subtitleWidget,
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    headerActionButtons,
+                  ],
+                ),
+              ),
             ),
+          ),
+        ),
+      ),
+      body: QueueFileDropTarget(
+        enabled: true,
+        displayQueue: displayQueue,
+        queueSongs: queue,
+        itemKeyBuilder: _songTileKeyFor,
+        showPreview: showPreview,
+        child: Stack(
+          children: [
+            listOrEmpty,
             AnimatedSelectionPanel(
               isVisible: isSelectionMode,
               child: LibrarySelectionPanel(
@@ -956,12 +881,12 @@ class _QueuePageState extends ConsumerState<QueuePage>
             ),
         ],
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
           decoration: BoxDecoration(
             color: isDark
                 ? Colors.white.withValues(alpha: 0.06)
                 : theme.colorScheme.primaryContainer.withValues(alpha: 0.35),
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: (isDark ? Colors.white : theme.colorScheme.primary).withValues(alpha: 0.12),
               width: 1,
@@ -972,19 +897,19 @@ class _QueuePageState extends ConsumerState<QueuePage>
             children: [
               Icon(
                 selectedIcon,
-                size: 16,
+                size: 14,
                 color: isDark ? Colors.white70 : theme.colorScheme.primary,
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
               Text(
                 selectedText,
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w600,
-                  fontSize: 14,
+                  fontSize: 13,
                   color: isDark ? Colors.white : theme.colorScheme.onPrimaryContainer,
                 ),
               ),
-              const SizedBox(width: 6),
+              const SizedBox(width: 4),
               Icon(
                 Icons.keyboard_arrow_down_rounded,
                 size: 16,

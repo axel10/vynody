@@ -273,7 +273,7 @@ class _RemoteAlbumDetailPageState
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.my_location_rounded),
+            icon: const Icon(Icons.my_location_rounded, size: 20),
             tooltip: l10n.locateCurrentSong,
             onPressed: _locateCurrentSong,
           ),
@@ -284,7 +284,7 @@ class _RemoteAlbumDetailPageState
                 icon: Badge(
                   isLabelVisible: activeCount > 0,
                   label: Text('$activeCount'),
-                  child: const Icon(Icons.download_rounded),
+                  child: const Icon(Icons.download_rounded, size: 20),
                 ),
                 tooltip: l10n.downloadManager,
                 onPressed: () {
