@@ -45,6 +45,26 @@ import 'package:vynody/utils/app_snack_bar.dart';
 
 int _currentBaseTabIndex = 0;
 
+class _PlaybackEnterSlideAnimation extends Animation<Offset>
+    with AnimationWithParentMixin<double> {
+  _PlaybackEnterSlideAnimation(this.parent);
+
+  @override
+  final Animation<double> parent;
+
+  @override
+  Offset get value {
+    // 退出离开播放页时（reverse 状态）不执行下沉位移，保持原地淡出，
+    // 避免与封面 Hero 飞回收缩动画产生视觉撕裂与剥离割裂感。
+    if (parent.status == AnimationStatus.reverse ||
+        parent.status == AnimationStatus.dismissed) {
+      return Offset.zero;
+    }
+    final progress = Curves.easeOutCubic.transform(parent.value);
+    return Offset(0.0, 1.0 - progress);
+  }
+}
+
 Route<void> buildMainLayoutRoute({
   required List<String> args,
   required int initialIndex,
@@ -58,21 +78,14 @@ Route<void> buildMainLayoutRoute({
     reverseTransitionDuration: const Duration(milliseconds: 350),
     transitionsBuilder: (context, animation, secondaryAnimation, child) {
       if (initialIndex == 1) {
-        final slideCurvedAnimation = CurvedAnimation(
-          parent: animation,
-          curve: Curves.easeOutCubic,
-          reverseCurve: Curves.easeInCubic,
-        );
+        final slideAnimation = _PlaybackEnterSlideAnimation(animation);
         final fadeCurvedAnimation = CurvedAnimation(
           parent: animation,
           curve: Curves.easeOut,
-          reverseCurve: Curves.easeInQuad,
+          reverseCurve: Curves.easeOutCubic,
         );
         return SlideTransition(
-          position: Tween<Offset>(
-            begin: const Offset(0.0, 1.0),
-            end: Offset.zero,
-          ).animate(slideCurvedAnimation),
+          position: slideAnimation,
           child: FadeTransition(
             opacity: Tween<double>(begin: 0.0, end: 1.0).animate(fadeCurvedAnimation),
             child: child,
