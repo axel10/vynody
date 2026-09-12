@@ -290,6 +290,15 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
     audio.setPlaybackMode(nextMode);
   }
 
+  Future<void> _ensureRegularWindowMode() async {
+    final settings = ref.read(settingsServiceProvider);
+    if (settings.isSmallWindowMode) {
+      settings.isSmallWindowMode = false;
+      // Allow window transition & layout rebuild to complete before showing heavy bottom sheets/dialogs
+      await Future.delayed(const Duration(milliseconds: 300));
+    }
+  }
+
   Future<void> _showEqualizerPanel(BuildContext context) async {
     final allowed = await checkProGate(
       context,
@@ -299,6 +308,9 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
     if (!allowed) return;
 
     if (!context.mounted) return;
+    await _ensureRegularWindowMode();
+    if (!context.mounted) return;
+
     showModalBottomSheet(
       context: context,
       useRootNavigator: true,
@@ -327,13 +339,16 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
       ref,
       feature: ProFeature.tagCompletion,
     );
-    if (!allowed || !mounted) return;
+    if (!allowed || !context.mounted) return;
 
     final song = ref.read(audioCurrentMusicProvider);
     if (song == null) return;
     final duration = ref.read(audioDurationProvider);
-    final messenger = ScaffoldMessenger.of(context);
 
+    await _ensureRegularWindowMode();
+    if (!context.mounted) return;
+
+    final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context)!;
     final popped =
         await showModalBottomSheet<(MusicBrainzTagSelectionResult, bool)>(
@@ -350,7 +365,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
           ),
         );
 
-    if (popped == null || !mounted) return;
+    if (popped == null || !context.mounted) return;
     final result = popped.$1;
     final savedToSourceFile = popped.$2;
 
@@ -371,13 +386,16 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
     BuildContext context,
     AudioService audio,
   ) async {
+    await _ensureRegularWindowMode();
+    if (!context.mounted) return;
+
     final l10n = AppLocalizations.of(context)!;
     final song = ref.read(audioCurrentMusicProvider);
     if (song == null) return;
     final messenger = ScaffoldMessenger.of(context);
 
     final result = await showSongTagEditSheet(context, song: song);
-    if (result == null || !mounted) return;
+    if (result == null || !context.mounted) return;
 
     await _applySongMetadataResult(
       messenger,
@@ -423,11 +441,14 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
     }
   }
 
-  void _showTagSaveMenu(
+  Future<void> _showTagSaveMenu(
     BuildContext context,
     AudioService audio, {
     required bool isModified,
-  }) {
+  }) async {
+    await _ensureRegularWindowMode();
+    if (!context.mounted) return;
+
     final l10n = AppLocalizations.of(context)!;
     final currentSong = ref.read(audioCurrentMusicProvider);
     final queue = ref.read(audioPlaybackQueueProvider);
@@ -441,6 +462,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
         isModified;
     final isQueueEnabled = queue.isNotEmpty;
 
+    if (!context.mounted) return;
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -763,7 +785,9 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
     );
   }
 
-  void _showMoreMenu(BuildContext context, AudioService audio) {
+  Future<void> _showMoreMenu(BuildContext context, AudioService audio) async {
+    await _ensureRegularWindowMode();
+    if (!context.mounted) return;
     final settings = ref.read(settingsServiceProvider);
     showVisualizerOptionsDialog(context, audio, settings);
   }

@@ -86,41 +86,43 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
                   ),
                 ),
                 padding: const EdgeInsets.fromLTRB(24, 16, 24, 40),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildHeader(audio, config, l10n),
-                    const SizedBox(height: 14),
-                    _buildPresetBar(
-                      audio,
-                      config,
-                      accentColor,
-                      bandCount,
-                      frequencies,
-                      l10n,
-                    ),
-                    const SizedBox(height: 18),
-                    _buildEqSliders(
-                      audio,
-                      config,
-                      accentColor,
-                      bandCount,
-                      frequencies,
-                    ),
-                    const SizedBox(height: 28),
-                    _buildBottomControls(audio, config, accentColor, l10n),
-                    const SizedBox(height: 24),
-                    Divider(
-                      height: 1,
-                      color: isDark
-                          ? Colors.white10
-                          : theme.colorScheme.outlineVariant
-                              .withValues(alpha: 0.5),
-                    ),
-                    const SizedBox(height: 24),
-                    _buildSpeedControl(audio, playbackSpeed, accentColor, l10n),
-                  ],
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildHeader(audio, config, l10n),
+                      const SizedBox(height: 14),
+                      _buildPresetBar(
+                        audio,
+                        config,
+                        accentColor,
+                        bandCount,
+                        frequencies,
+                        l10n,
+                      ),
+                      const SizedBox(height: 18),
+                      _buildEqSliders(
+                        audio,
+                        config,
+                        accentColor,
+                        bandCount,
+                        frequencies,
+                      ),
+                      const SizedBox(height: 28),
+                      _buildBottomControls(audio, config, accentColor, l10n),
+                      const SizedBox(height: 24),
+                      Divider(
+                        height: 1,
+                        color: isDark
+                            ? Colors.white10
+                            : theme.colorScheme.outlineVariant
+                                .withValues(alpha: 0.5),
+                      ),
+                      const SizedBox(height: 24),
+                      _buildSpeedControl(audio, playbackSpeed, accentColor, l10n),
+                    ],
+                  ),
                 ),
               ),
             ),

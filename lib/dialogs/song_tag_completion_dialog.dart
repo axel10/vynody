@@ -741,7 +741,7 @@ class _SongTagCompletionSheetState
         controller.acoustidResults.isEmpty &&
         !hasFilteredMusicBrainzMatches) {
       return Center(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 28),
           child: Column(
             mainAxisSize: MainAxisSize.min,
