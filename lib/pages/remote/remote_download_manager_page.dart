@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oktoast/oktoast.dart';
@@ -290,14 +291,33 @@ class _RemoteDownloadManagerPageState
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: Text(
-                  folder,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: theme.colorScheme.onSurfaceVariant,
+                child: ScrollConfiguration(
+                  behavior: ScrollConfiguration.of(context).copyWith(
+                    dragDevices: {
+                      PointerDeviceKind.touch,
+                      PointerDeviceKind.mouse,
+                      PointerDeviceKind.trackpad,
+                      PointerDeviceKind.stylus,
+                    },
+                    scrollbars: false,
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    child: Tooltip(
+                      message: folder,
+                      waitDuration: const Duration(seconds: 1),
+                      child: Text(
+                        folder,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                        maxLines: 1,
+                        softWrap: false,
+                      ),
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(width: 8),
