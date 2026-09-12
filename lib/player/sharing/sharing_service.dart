@@ -1678,13 +1678,19 @@ class SharingService {
         'temp_transfer_${DateTime.now().millisecondsSinceEpoch}_${Random().nextInt(10000)}',
       ),
     );
-    final targetFile = useSaf ? tempFile : File(targetPath);
+    final nonSafTempFile = File('$targetPath.vynody_tmp');
+    final targetFile = useSaf ? tempFile : nonSafTempFile;
 
     if (!useSaf) {
       // Ensure parent directories exist for normal file writes across all platforms
       final parentDir = Directory(p.dirname(targetPath));
       if (!parentDir.existsSync()) {
         parentDir.createSync(recursive: true);
+      }
+      if (nonSafTempFile.existsSync()) {
+        try {
+          nonSafTempFile.deleteSync();
+        } catch (_) {}
       }
     }
 
@@ -1800,6 +1806,14 @@ class SharingService {
           '[SharingService] Receiver: Saved file successfully via SAF: $targetPath',
         );
       } else {
+        // Atomic rename from temp file (.vynody_tmp) to final targetPath
+        final finalFile = File(targetPath);
+        if (await finalFile.exists()) {
+          try {
+            await finalFile.delete();
+          } catch (_) {}
+        }
+        await nonSafTempFile.rename(targetPath);
         debugPrint(
           '[SharingService] Receiver: Saved file successfully: $targetPath',
         );

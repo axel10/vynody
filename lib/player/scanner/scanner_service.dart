@@ -2267,7 +2267,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   void _enqueueWatchedPath(String path) {
-    if (_isDisposed) return;
+    if (_isDisposed || _mediaObserverPaused) return;
 
     final normalizedPath = _normalizePath(path);
     if (normalizedPath.isEmpty) {
@@ -2398,7 +2398,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
 
   Future<void> _flushPendingDirectoryRescans() async {
     _directoryRescanTimer = null;
-    if (_isDisposed || _directoryRescanInProgress) {
+    if (_isDisposed || _directoryRescanInProgress || _mediaObserverPaused) {
       return;
     }
     if (_scanCoordinator.isScanning) {
