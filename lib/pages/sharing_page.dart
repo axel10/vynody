@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oktoast/oktoast.dart';
@@ -1042,14 +1043,35 @@ class _SharingPageState extends ConsumerState<SharingPage>
                                     ),
                                   ),
                                   const SizedBox(height: 2),
-                                  Text(
-                                    currentFolderPath,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      color: theme.colorScheme.onSurface
-                                          .withValues(alpha: 0.6),
-                                      fontSize: 12,
+                                  ScrollConfiguration(
+                                    behavior: ScrollConfiguration.of(context)
+                                        .copyWith(
+                                      dragDevices: {
+                                        PointerDeviceKind.touch,
+                                        PointerDeviceKind.mouse,
+                                        PointerDeviceKind.trackpad,
+                                        PointerDeviceKind.stylus,
+                                      },
+                                      scrollbars: false,
+                                    ),
+                                    child: SingleChildScrollView(
+                                      scrollDirection: Axis.horizontal,
+                                      physics: const BouncingScrollPhysics(),
+                                      child: Tooltip(
+                                        message: currentFolderPath,
+                                        waitDuration:
+                                            const Duration(seconds: 1),
+                                        child: Text(
+                                          currentFolderPath,
+                                          maxLines: 1,
+                                          softWrap: false,
+                                          style: TextStyle(
+                                            color: theme.colorScheme.onSurface
+                                                .withValues(alpha: 0.6),
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ),
                                     ),
                                   ),
                                   if (!_isFolderWritable) ...[
