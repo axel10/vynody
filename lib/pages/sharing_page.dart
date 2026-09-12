@@ -254,7 +254,7 @@ class _SharingPageState extends ConsumerState<SharingPage>
     try {
       final filePaths = await FileSelectorHelper.pickFiles(
         label: l10n.audioFiles,
-        extensions: const ['mp3', 'wav', 'flac', 'm4a', 'aac', 'ogg'],
+        extensions: MusicFileUtils.supportedExtensionsWithoutDot,
         fileType: FileType.audio,
       );
 

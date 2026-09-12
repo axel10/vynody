@@ -12,6 +12,7 @@ import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/player/scanner/scanner_path_utils.dart';
 import 'package:vynody/player/metadata/artwork_constants.dart';
 import 'package:flutter_taglib/flutter_taglib.dart' as taglib;
+import 'package:vynody/player/library/music_file_utils.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 
 Future<Map<String, dynamic>?> _buildArtworkFiles({
@@ -1868,6 +1869,7 @@ class AndroidSafStorageHelper {
   static Future<List<String>> listMusicFilesRecursively(
     String treeUri, {
     String relativeSubPath = '',
+    List<String>? extensions,
   }) async {
     try {
       final methodChannel = const MethodChannel('com.example.audio_converter/saf');
@@ -1876,6 +1878,7 @@ class AndroidSafStorageHelper {
         <String, Object?>{
           'treeUri': treeUri,
           'relativeSubPath': relativeSubPath,
+          'extensions': extensions ?? MusicFileUtils.supportedExtensionsWithoutDot,
         },
       );
       return result ?? const <String>[];

@@ -21,8 +21,14 @@ class MusicFileUtils {
     '.opus',
     '.wav',
     '.webm',
-    '.wma',
   };
+
+  /// List of supported extensions without leading dot (e.g. ['mp3', 'flac', ...])
+  /// convenient for file pickers and platform method channels.
+  static final List<String> supportedExtensionsWithoutDot =
+      supportedAudioExtensions
+          .map((ext) => ext.startsWith('.') ? ext.substring(1) : ext)
+          .toList(growable: false);
 
   static bool isMusicFilePath(String path) {
     return supportedAudioExtensions.contains(p.extension(path).toLowerCase());

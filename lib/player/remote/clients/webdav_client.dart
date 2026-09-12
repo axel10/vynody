@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
 import 'package:path/path.dart' as p;
 import 'package:xml/xml.dart';
+import '../../library/music_file_utils.dart';
 import '../remote_server_models.dart';
 
 class WebDavFile {
@@ -23,32 +24,7 @@ class WebDavFile {
     this.contentType,
   });
 
-  bool get isAudio {
-    if (isDirectory) return false;
-    final ext = p.extension(name).toLowerCase();
-    return const {
-      '.mp3',
-      '.flac',
-      '.wav',
-      '.m4a',
-      '.aac',
-      '.ogg',
-      '.opus',
-      '.ape',
-      '.wma',
-      '.dsf',
-      '.dff',
-      '.alac',
-      '.webm',
-      '.aif',
-      '.aiff',
-      '.caf',
-      '.m4b',
-      '.m4p',
-      '.mid',
-      '.midi',
-    }.contains(ext);
-  }
+  bool get isAudio => !isDirectory && MusicFileUtils.isMusicFilePath(name);
 
   bool get isImage {
     if (isDirectory) return false;
