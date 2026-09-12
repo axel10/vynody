@@ -498,10 +498,21 @@ Future<List<Playlist>?> showSelectPlaylistsDialog(
   );
 }
 
+final Set<String> _shownDialogSessionIds = <String>{};
+
+bool hasShownTransferProgressDialog(String sessionId) =>
+    _shownDialogSessionIds.contains(sessionId);
+
 void showTransferProgressDialog(BuildContext context, String sessionId) {
+  if (_shownDialogSessionIds.contains(sessionId)) {
+    return;
+  }
+  _shownDialogSessionIds.add(sessionId);
+
   final theme = Theme.of(context);
   showDialog(
     context: context,
+    useRootNavigator: true,
     barrierDismissible: false,
     builder: (context) {
       final l10n = AppLocalizations.of(context)!;

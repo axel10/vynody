@@ -42,7 +42,6 @@ class _SharingPageState extends ConsumerState<SharingPage>
   late final TabController _tabController;
   late final SharingServerStateNotifier _sharingServerNotifier;
   bool _didSyncInitialSharingState = false;
-  final Set<String> _shownDialogSessionIds = {};
   bool _isFolderWritable = true;
   String _lastCheckedFolderPath = '';
 
@@ -714,18 +713,6 @@ class _SharingPageState extends ConsumerState<SharingPage>
       }
     }
 
-    ref.listen(activeTransfersProvider, (previous, next) {
-      for (final session in next) {
-        if (!session.isSending &&
-            (session.status == TransferStatus.transferring ||
-                session.status == TransferStatus.pending)) {
-          if (!_shownDialogSessionIds.contains(session.id)) {
-            _shownDialogSessionIds.add(session.id);
-            showTransferProgressDialog(context, session.id);
-          }
-        }
-      }
-    });
 
     final sessions = ref.watch(activeTransfersProvider);
     final hasActiveTransfers = sessions.any(

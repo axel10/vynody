@@ -1188,13 +1188,30 @@ class _MainLayoutState extends ConsumerState<MainLayout>
       }
     });
 
-    // Listen for transfer session completions to show SnackBar notifications
+    // Listen for transfer session updates to show progress dialogs and completion notifications
     ref.listen<List<TransferSession>>(activeTransfersProvider, (
       previous,
       next,
     ) {
+      // 1. Globally show progress dialog for incoming receiving sessions
+      for (final session in next) {
+        if (!session.isSending &&
+            (session.status == TransferStatus.transferring ||
+                session.status == TransferStatus.pending)) {
+          final wasTransferring = previous != null &&
+              previous.any((s) =>
+                  s.id == session.id &&
+                  (s.status == TransferStatus.transferring ||
+                      s.status == TransferStatus.pending));
+          if (!wasTransferring) {
+            showTransferProgressDialog(context, session.id);
+          }
+        }
+      }
+
       if (previous == null) return;
 
+      // 2. Show completion/failure SnackBar for finished sessions
       for (final session in next) {
         // We only care about receiving files
         if (session.isSending) continue;
@@ -1219,6 +1236,11 @@ class _MainLayoutState extends ConsumerState<MainLayout>
             session.status == TransferStatus.cancelled;
 
         if (isFinished) {
+          // If the progress dialog was shown, the dialog itself already displayed the SnackBar on dismiss
+          if (hasShownTransferProgressDialog(session.id)) {
+            continue;
+          }
+
           final isSuccess = session.status == TransferStatus.success;
           final text = isSuccess
               ? l10n.receiveCompleted(session.completedFilesCount ?? session.filesCount ?? 1)

@@ -138,6 +138,8 @@ class ActiveTransfersNotifier extends Notifier<List<TransferSession>> {
   @override
   List<TransferSession> build() => [];
 
+  int _lastNotifyMs = 0;
+
   void addSession(TransferSession session) {
     state = [session, ...state];
   }
@@ -148,7 +150,19 @@ class ActiveTransfersNotifier extends Notifier<List<TransferSession>> {
     TransferStatus? status,
     int? completedFilesCount,
     List<ActiveFileProgress>? activeFiles,
+    bool force = false,
   }) {
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final isTerminal = status == TransferStatus.success ||
+        status == TransferStatus.failed ||
+        status == TransferStatus.cancelled;
+
+    // Throttle high-frequency progress updates during transfer to 100ms unless terminal, status change, or forced
+    if (!force && !isTerminal && status == null && (nowMs - _lastNotifyMs < 100)) {
+      return;
+    }
+    _lastNotifyMs = nowMs;
+
     state = [
       for (final s in state)
         if (s.id == id)
@@ -1683,28 +1697,9 @@ class SharingService {
       int fileBytesReceived = 0;
       DateTime lastLogTime = DateTime.now();
 
-      final progressStream = request.map((chunk) {
-        // Check cancellation
-        final currentSessions = _ref.read(activeTransfersProvider);
-        final currentSession = currentSessions.firstWhere(
-          (s) => s.id == sessionId,
-          orElse: () => TransferSession(
-            id: '',
-            fileName: '',
-            totalBytes: 0,
-            bytesTransferred: 0,
-            isSending: true,
-            deviceName: '',
-            status: TransferStatus.failed,
-          ),
-        );
-        if (currentSession.status == TransferStatus.cancelled) {
-          debugPrint(
-            '[SharingService] Receiver: Transfer was cancelled by user during download of $relativePath',
-          );
-          throw Exception('Cancelled by user');
-        }
+      int lastProgressUpdateMs = 0;
 
+      final progressStream = request.map((chunk) {
         fileBytesReceived += chunk.length;
 
         final newCumulative =
@@ -1720,15 +1715,41 @@ class SharingService {
           );
         }
 
-        _ref
-            .read(activeTransfersProvider.notifier)
-            .updateProgress(
-              sessionId,
-              newCumulative,
-              activeFiles: metadata.activeFilesMap.values.toList(),
-            );
-
         final now = DateTime.now();
+        final nowMs = now.millisecondsSinceEpoch;
+        if (nowMs - lastProgressUpdateMs >= 100) {
+          lastProgressUpdateMs = nowMs;
+
+          // Check cancellation throttled to 100ms
+          final currentSessions = _ref.read(activeTransfersProvider);
+          final currentSession = currentSessions.firstWhere(
+            (s) => s.id == sessionId,
+            orElse: () => TransferSession(
+              id: '',
+              fileName: '',
+              totalBytes: 0,
+              bytesTransferred: 0,
+              isSending: true,
+              deviceName: '',
+              status: TransferStatus.failed,
+            ),
+          );
+          if (currentSession.status == TransferStatus.cancelled) {
+            debugPrint(
+              '[SharingService] Receiver: Transfer was cancelled by user during download of $relativePath',
+            );
+            throw Exception('Cancelled by user');
+          }
+
+          _ref
+              .read(activeTransfersProvider.notifier)
+              .updateProgress(
+                sessionId,
+                newCumulative,
+                activeFiles: metadata.activeFilesMap.values.toList(),
+              );
+        }
+
         if (now.difference(lastLogTime).inSeconds >= 2) {
           debugPrint(
             '[SharingService] Receiver: Downloading $relativePath: '
@@ -2286,25 +2307,40 @@ class SharingService {
 
             final fileStream = File(fileInfo.path).openRead();
 
+            int lastProgressUpdateMs = 0;
+
             await for (final chunk in fileStream) {
-              final currentSessionInner = _ref
-                  .read(activeTransfersProvider)
-                  .firstWhere(
-                    (s) => s.id == sessionId,
-                    orElse: () => TransferSession(
-                      id: '',
-                      fileName: '',
-                      totalBytes: 0,
-                      bytesTransferred: 0,
-                      isSending: true,
-                      deviceName: '',
-                      status: TransferStatus.failed,
-                    ),
-                  );
-              if (currentSessionInner.status == TransferStatus.cancelled) {
-                isCancelled = true;
-                uploadRequest.abort();
-                return;
+              final nowMs = DateTime.now().millisecondsSinceEpoch;
+              if (nowMs - lastProgressUpdateMs >= 100) {
+                lastProgressUpdateMs = nowMs;
+                final currentSessionInner = _ref
+                    .read(activeTransfersProvider)
+                    .firstWhere(
+                      (s) => s.id == sessionId,
+                      orElse: () => TransferSession(
+                        id: '',
+                        fileName: '',
+                        totalBytes: 0,
+                        bytesTransferred: 0,
+                        isSending: true,
+                        deviceName: '',
+                        status: TransferStatus.failed,
+                      ),
+                    );
+                if (currentSessionInner.status == TransferStatus.cancelled) {
+                  isCancelled = true;
+                  uploadRequest.abort();
+                  return;
+                }
+
+                _ref
+                    .read(activeTransfersProvider.notifier)
+                    .updateProgress(
+                      sessionId,
+                      totalBytesSent,
+                      completedFilesCount: completedFilesCount,
+                      activeFiles: localActiveFiles.values.toList(),
+                    );
               }
 
               uploadRequest.add(chunk);
@@ -2316,15 +2352,6 @@ class SharingService {
                 bytesTransferred: current.bytesTransferred + chunk.length,
                 totalBytes: current.totalBytes,
               );
-
-              _ref
-                  .read(activeTransfersProvider.notifier)
-                  .updateProgress(
-                    sessionId,
-                    totalBytesSent,
-                    completedFilesCount: completedFilesCount,
-                    activeFiles: localActiveFiles.values.toList(),
-                  );
             }
 
             debugPrint(
