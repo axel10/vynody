@@ -65,7 +65,9 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
   String? _artistsError;
   String? _selectedArtistId;
   final TextEditingController _artistSearchController = TextEditingController();
+  final FocusNode _artistSearchFocusNode = FocusNode();
   String _artistSearchQuery = '';
+  bool _isArtistSearchExpanded = false;
   bool _artistSortAsc = true;
   String _artistSortField = 'name'; // 'name' or 'albumCount'
   bool _artistStarredOnly = false;
@@ -80,7 +82,9 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
   final Set<String> _starredSongIds = {};
   String? _songsError;
   final TextEditingController _songSearchController = TextEditingController();
+  final FocusNode _songSearchFocusNode = FocusNode();
   String _songSearchQuery = '';
+  bool _isSongSearchExpanded = false;
   bool _songStarredOnly = false;
   String _songSortField = 'title'; // 'title', 'artist', 'album', 'duration'
   bool _songSortAsc = true;
@@ -557,7 +561,9 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
     _albumSearchController.dispose();
     _albumSearchFocusNode.dispose();
     _artistSearchController.dispose();
+    _artistSearchFocusNode.dispose();
     _songSearchController.dispose();
+    _songSearchFocusNode.dispose();
     _playlistSearchController.dispose();
     _searchController.dispose();
     _searchDebounce?.cancel();
@@ -1616,7 +1622,9 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
       case 1:
         return RemoteLibraryArtistsToolbar(
           searchController: _artistSearchController,
+          searchFocusNode: _artistSearchFocusNode,
           searchQuery: _artistSearchQuery,
+          isSearchExpanded: _isArtistSearchExpanded,
           starredOnly: _artistStarredOnly,
           sortAsc: _artistSortAsc,
           sortField: _artistSortField,
@@ -1629,6 +1637,11 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
             _artistSearchController.clear();
             setState(() {
               _artistSearchQuery = '';
+            });
+          },
+          onToggleSearchExpanded: (expanded) {
+            setState(() {
+              _isArtistSearchExpanded = expanded;
             });
           },
           onToggleStarredOnly: (selected) {
@@ -1661,7 +1674,9 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
       case 2:
         return RemoteLibrarySongsToolbar(
           searchController: _songSearchController,
+          searchFocusNode: _songSearchFocusNode,
           searchQuery: _songSearchQuery,
+          isSearchExpanded: _isSongSearchExpanded,
           starredOnly: _songStarredOnly,
           sortAsc: _songSortAsc,
           sortField: _songSortField,
@@ -1674,6 +1689,11 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
             _songSearchController.clear();
             setState(() {
               _songSearchQuery = '';
+            });
+          },
+          onToggleSearchExpanded: (expanded) {
+            setState(() {
+              _isSongSearchExpanded = expanded;
             });
           },
           onToggleStarredOnly: (selected) {

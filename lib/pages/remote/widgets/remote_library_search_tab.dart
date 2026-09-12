@@ -10,6 +10,7 @@ import '../../../utils/layout_constants.dart';
 import '../../../utils/remote_context_menu_utils.dart';
 import '../../../utils/selection_utils.dart';
 import '../../../widgets/remote_artwork_widget.dart';
+import 'remote_library_toolbar_widgets.dart';
 
 class RemoteLibrarySearchToolbar extends StatelessWidget {
   final TextEditingController searchController;
@@ -28,39 +29,23 @@ class RemoteLibrarySearchToolbar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
-      child: TextField(
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      child: RemoteSearchBar(
         controller: searchController,
+        hintText: l10n.searchRemoteHint,
+        searchQuery: searchController.text,
         onChanged: onSearchChanged,
-        decoration: InputDecoration(
-          hintText: l10n.searchRemoteHint,
-          prefixIcon: const Icon(Icons.search_rounded),
-          suffixIcon: isSearching
-              ? const UnconstrainedBox(
-                  child: SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
-                )
-              : (searchController.text.isNotEmpty
-                  ? IconButton(
-                      icon: const Icon(Icons.clear_rounded),
-                      onPressed: onClearSearch,
-                    )
-                  : null),
-          filled: true,
-          isDense: true,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 12,
-            vertical: 8,
-          ),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none,
-          ),
-        ),
+        onClear: onClearSearch,
+        trailing: isSearching
+            ? const UnconstrainedBox(
+                child: SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              )
+            : null,
       ),
     );
   }

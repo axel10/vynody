@@ -16,12 +16,16 @@ import '../../../widgets/playing_equalizer_icon.dart';
 import '../../../widgets/remote_artwork_widget.dart';
 import '../../../player/remote/remote_library_navigation.dart';
 import '../remote_download_manager_page.dart';
+import 'remote_library_toolbar_widgets.dart';
 
 class RemoteLibrarySongsToolbar extends StatelessWidget {
   final TextEditingController searchController;
+  final FocusNode searchFocusNode;
   final String searchQuery;
   final ValueChanged<String> onSearchChanged;
   final VoidCallback onClearSearch;
+  final bool isSearchExpanded;
+  final ValueChanged<bool> onToggleSearchExpanded;
   final bool starredOnly;
   final ValueChanged<bool> onToggleStarredOnly;
   final String sortField; // 'title', 'artist', 'album', 'duration'
@@ -31,9 +35,12 @@ class RemoteLibrarySongsToolbar extends StatelessWidget {
   const RemoteLibrarySongsToolbar({
     super.key,
     required this.searchController,
+    required this.searchFocusNode,
     required this.searchQuery,
     required this.onSearchChanged,
     required this.onClearSearch,
+    required this.isSearchExpanded,
+    required this.onToggleSearchExpanded,
     required this.starredOnly,
     required this.onToggleStarredOnly,
     required this.sortField,
@@ -60,37 +67,12 @@ class RemoteLibrarySongsToolbar extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
+    final chips = SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      clipBehavior: Clip.none,
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Expanded(
-            child: TextField(
-              controller: searchController,
-              onChanged: onSearchChanged,
-              decoration: InputDecoration(
-                hintText: l10n.filterSongs,
-                prefixIcon: const Icon(Icons.search_rounded, size: 20),
-                suffixIcon: searchQuery.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear_rounded, size: 18),
-                        onPressed: onClearSearch,
-                      )
-                    : null,
-                filled: true,
-                isDense: true,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
           FilterChip(
             materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
             visualDensity: VisualDensity.compact,
@@ -202,6 +184,8 @@ class RemoteLibrarySongsToolbar extends StatelessWidget {
               }
             },
             child: ActionChip(
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              visualDensity: VisualDensity.compact,
               avatar: Icon(
                 sortAsc
                     ? Icons.arrow_upward_rounded
@@ -217,6 +201,24 @@ class RemoteLibrarySongsToolbar extends StatelessWidget {
           ),
         ],
       ),
+    );
+
+    return RemoteResponsiveToolbar(
+      searchField: RemoteSearchBar(
+        controller: searchController,
+        focusNode: searchFocusNode,
+        hintText: l10n.filterSongs,
+        searchQuery: searchQuery,
+        onChanged: onSearchChanged,
+        onClear: onClearSearch,
+      ),
+      trailing: chips,
+      searchFocusNode: searchFocusNode,
+      isSearchExpanded: isSearchExpanded || searchQuery.isNotEmpty,
+      onToggleSearchExpanded: onToggleSearchExpanded,
+      onClearSearch: onClearSearch,
+      searchTooltip: l10n.filterSongs,
+      collapseBreakpoint: 480.0,
     );
   }
 }

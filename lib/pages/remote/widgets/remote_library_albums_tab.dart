@@ -6,6 +6,7 @@ import '../../../player/remote/remote_server_models.dart';
 import '../../../utils/remote_context_menu_utils.dart';
 import '../../../utils/selection_utils.dart';
 import '../../../widgets/remote_artwork_widget.dart';
+import 'remote_library_toolbar_widgets.dart';
 
 class RemoteLibraryAlbumsToolbar extends StatelessWidget {
   final TextEditingController searchController;
@@ -47,127 +48,50 @@ class RemoteLibraryAlbumsToolbar extends StatelessWidget {
       {'key': 'random', 'label': l10n.sortRandom},
     ];
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isWide = constraints.maxWidth >= 650;
-        final searchField = TextField(
-          controller: searchController,
-          focusNode: searchFocusNode,
-          onChanged: onSearchChanged,
-          decoration: InputDecoration(
-            hintText: l10n.filterAlbums,
-            prefixIcon: const Icon(Icons.search_rounded, size: 20),
-            suffixIcon: searchQuery.isNotEmpty
-                ? IconButton(
-                    icon: const Icon(Icons.clear_rounded, size: 18),
-                    onPressed: onClearSearch,
-                  )
-                : null,
-            filled: true,
-            isDense: true,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 8,
+    final sortChips = SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      clipBehavior: Clip.none,
+      child: Row(
+        children: sortOptions.map((opt) {
+          final key = opt['key']!;
+          final label = opt['label']!;
+          final isSelected = sortType == key;
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: FilterChip(
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              visualDensity: VisualDensity.compact,
+              label: Text(label, style: const TextStyle(fontSize: 12)),
+              selected: isSelected,
+              onSelected: (selected) {
+                if (selected && sortType != key) {
+                  onSortTypeChanged(key);
+                }
+              },
             ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
-            ),
-          ),
-        );
+          );
+        }).toList(),
+      ),
+    );
 
-        final sortChips = SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          clipBehavior: Clip.none,
-          child: Row(
-            children: sortOptions.map((opt) {
-              final key = opt['key']!;
-              final label = opt['label']!;
-              final isSelected = sortType == key;
-              return Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: FilterChip(
-                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  visualDensity: VisualDensity.compact,
-                  label: Text(label, style: const TextStyle(fontSize: 12)),
-                  selected: isSelected,
-                  onSelected: (selected) {
-                    if (selected && sortType != key) {
-                      onSortTypeChanged(key);
-                    }
-                  },
-                ),
-              );
-            }).toList(),
-          ),
-        );
-
-        final isNarrowExpanded = isSearchExpanded || searchQuery.isNotEmpty;
-
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-          child: isWide
-              ? Row(
-                  children: [
-                    Expanded(
-                      flex: 4,
-                      child: searchField,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      flex: 6,
-                      child: sortChips,
-                    ),
-                  ],
-                )
-              : AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 200),
-                  transitionBuilder: (child, animation) => FadeTransition(
-                    opacity: animation,
-                    child: child,
-                  ),
-                  child: isNarrowExpanded
-                      ? Row(
-                          key: const ValueKey('album_search_expanded'),
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.arrow_back_rounded,
-                                  size: 20),
-                              tooltip: l10n.closeSearch,
-                              onPressed: () {
-                                searchFocusNode.unfocus();
-                                onToggleSearchExpanded(false);
-                                onClearSearch();
-                              },
-                            ),
-                            const SizedBox(width: 4),
-                            Expanded(child: searchField),
-                          ],
-                        )
-                      : Row(
-                          key: const ValueKey('album_search_collapsed'),
-                          children: [
-                            IconButton.filledTonal(
-                              style: IconButton.styleFrom(
-                                minimumSize: const Size(32, 32),
-                                fixedSize: const Size(32, 32),
-                                padding: EdgeInsets.zero,
-                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              ),
-                              icon: const Icon(Icons.search_rounded, size: 18),
-                              tooltip: l10n.filterAlbums,
-                              onPressed: () {
-                                onToggleSearchExpanded(true);
-                                searchFocusNode.requestFocus();
-                              },
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(child: sortChips),
-                          ],
-                        ),
-                ),
-        );
-      },
+    return RemoteResponsiveToolbar(
+      searchField: RemoteSearchBar(
+        controller: searchController,
+        focusNode: searchFocusNode,
+        hintText: l10n.filterAlbums,
+        searchQuery: searchQuery,
+        onChanged: onSearchChanged,
+        onClear: onClearSearch,
+      ),
+      trailing: sortChips,
+      searchFocusNode: searchFocusNode,
+      isSearchExpanded: isSearchExpanded || searchQuery.isNotEmpty,
+      onToggleSearchExpanded: onToggleSearchExpanded,
+      onClearSearch: onClearSearch,
+      searchTooltip: l10n.filterAlbums,
+      collapseBreakpoint: 650.0,
+      searchFlex: 4,
+      trailingFlex: 6,
     );
   }
 }

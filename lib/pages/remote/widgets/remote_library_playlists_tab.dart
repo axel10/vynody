@@ -9,6 +9,7 @@ import '../../../utils/remote_context_menu_utils.dart';
 import '../../../utils/selection_utils.dart';
 import '../../../widgets/remote_artwork_widget.dart';
 import '../remote_playlist_detail_page.dart';
+import 'remote_library_toolbar_widgets.dart';
 
 class RemoteLibraryPlaylistsToolbar extends StatelessWidget {
   final TextEditingController searchController;
@@ -30,44 +31,33 @@ class RemoteLibraryPlaylistsToolbar extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       child: Row(
         children: [
           Expanded(
-            child: TextField(
+            child: RemoteSearchBar(
               controller: searchController,
+              hintText: l10n.searchPlaylists,
+              searchQuery: searchController.text,
               onChanged: onSearchChanged,
-              decoration: InputDecoration(
-                hintText: l10n.searchPlaylists,
-                prefixIcon: const Icon(Icons.search, size: 20),
-                suffixIcon: searchController.text.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear, size: 18),
-                        onPressed: onClearSearch,
-                      )
-                    : null,
-                filled: true,
-                fillColor: theme.colorScheme.surfaceContainerHighest
-                    .withValues(alpha: 0.5),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-              ),
+              onClear: onClearSearch,
+              fillColor: theme.colorScheme.surfaceContainerHighest
+                  .withValues(alpha: 0.5),
             ),
           ),
           const SizedBox(width: 8),
           IconButton.filledTonal(
+            style: kCompactIconButtonStyle,
             tooltip: l10n.createNewServerPlaylist,
-            icon: const Icon(Icons.add_rounded),
+            icon: const Icon(Icons.add_rounded, size: 18),
             onPressed: onCreatePlaylist,
           ),
-          const SizedBox(width: 4),
+          const SizedBox(width: 6),
           IconButton(
+            style: kCompactIconButtonStyle,
             tooltip: l10n.refresh,
-            icon: const Icon(Icons.refresh_rounded),
+            icon: const Icon(Icons.refresh_rounded, size: 18),
             onPressed: onRefresh,
           ),
         ],
