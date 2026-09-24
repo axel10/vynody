@@ -390,6 +390,32 @@ Third line of song
       }
     });
 
+    test('keeps lines with only a line timestamp (no word tags) in awlrc payload', () {
+      // 间奏等只有行时间戳、没有 <offset,duration> 逐字标签的行不应被丢弃
+      const word = '[00:01.500]<0,300>前<300,500>奏\n'
+          '[00:10.000]（间奏 / 吉他独奏）\n'
+          '[00:20.000]<0,400>主<400,600>歌';
+      final lxLyrics = '[awlrc:awlrc:${base64Encode(utf8.encode(word))}]';
+
+      final parsed = LrcUtils.parseTimedLyrics(lxLyrics);
+
+      expect(parsed.length, 3);
+
+      expect(parsed[0].timestamp, const Duration(milliseconds: 1500));
+      expect(parsed[0].text, '前奏');
+      expect(parsed[0].words, isNotNull);
+      expect(parsed[0].words!.length, 2);
+
+      expect(parsed[1].timestamp, const Duration(seconds: 10));
+      expect(parsed[1].text, '（间奏 / 吉他独奏）');
+      expect(parsed[1].words, isNull);
+
+      expect(parsed[2].timestamp, const Duration(seconds: 20));
+      expect(parsed[2].text, '主歌');
+      expect(parsed[2].words, isNotNull);
+      expect(parsed[2].words!.length, 2);
+    });
+
     test('pairs tlrc payload as translation', () {
       const main = '[ti:T]\n[00:01.000]Hello\n[00:03.000]World';
       const word = '[00:01.000]<0,500>He<500,500>llo\n[00:03.000]<0,1000>World';

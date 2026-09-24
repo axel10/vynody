@@ -229,11 +229,18 @@ class LrcUtils {
 
   static LyricLine? _parseLxWordLine(String line) {
     final lineMatch = _lxLineStartPattern.firstMatch(line);
-    final tags = _lxWordTagPattern.allMatches(line).toList();
-    if (lineMatch == null || tags.isEmpty) return null;
+    if (lineMatch == null) return null;
 
     final base = parseTimestampToken(lineMatch.group(1)!);
     if (base == null) return null;
+
+    final tags = _lxWordTagPattern.allMatches(line).toList();
+    if (tags.isEmpty) {
+      // 只有行时间戳、没有逐字标签的行（如间奏提示），按普通同步行保留
+      final text = line.substring(lineMatch.end).trim();
+      if (text.isEmpty) return null;
+      return LyricLine(timestamp: base, text: text, isTimed: true);
+    }
 
     final words = <LyricWord>[];
     final text = StringBuffer(line.substring(lineMatch.end, tags.first.start));
