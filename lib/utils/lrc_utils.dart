@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:math';
 
 import 'package:vynody/models/lyric_line.dart';
@@ -29,6 +30,17 @@ class LrcUtils {
     r'\s+[/／]\s+|\s*//\s*',
   );
 
+  static final RegExp _awlrcTagPattern = RegExp(
+    r'^\[awlrc:([^\]]+)\]\s*$',
+    multiLine: true,
+  );
+
+  static final RegExp _lxLineStartPattern = RegExp(
+    r'^\[(\d{1,3}:\d{2}(?:[.:]\d{1,3})?)\]',
+  );
+
+  static final RegExp _lxWordTagPattern = RegExp(r'<(\d+),(\d+)>');
+
   static List<LyricLine> parseTimedLyrics(String? lyrics) {
     return parseLyricsWithTranslation(lyrics).syncedLines;
   }
@@ -36,6 +48,11 @@ class LrcUtils {
   static ParsedLyricsResult parseLyricsWithTranslation(String? lyrics) {
     if (lyrics == null || lyrics.trim().isEmpty) {
       return const ParsedLyricsResult(syncedLines: []);
+    }
+
+    final lxResult = _parseLxLyrics(lyrics);
+    if (lxResult != null) {
+      return lxResult;
     }
 
     final rawLines = lyrics.split(RegExp(r'\r?\n'));
@@ -155,6 +172,94 @@ class LrcUtils {
 
     allParsedLines.sort((a, b) => a.timestamp.compareTo(b.timestamp));
     return ParsedLyricsResult(syncedLines: refineWordDurations(allParsedLines));
+  }
+
+  /// lx-music 歌词：`[awlrc:lrc:BASE64,tlrc:BASE64,awlrc:BASE64]` 
+  static ParsedLyricsResult? _parseLxLyrics(String lyrics) {
+    final payloads = _extractLxPayloads(lyrics);
+    if (payloads == null) return null;
+
+    final wordLyrics = payloads['awlrc'];
+    if (wordLyrics == null || wordLyrics.trim().isEmpty) return null;
+
+    final syncedLines = <LyricLine>[];
+    for (final rawLine in wordLyrics.split(RegExp(r'\r?\n'))) {
+      final line = _parseLxWordLine(rawLine.trim());
+      if (line != null) syncedLines.add(line);
+    }
+    if (syncedLines.isEmpty) return null;
+    syncedLines.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+
+    final translation = payloads['tlrc'];
+    if (translation == null || translation.trim().isEmpty) {
+      return ParsedLyricsResult(syncedLines: syncedLines);
+    }
+
+    final translationsByTs = <Duration, String>{};
+    for (final line in parseTimedLyrics(translation)) {
+      final text = line.text.trim();
+      if (text.isNotEmpty) {
+        translationsByTs.putIfAbsent(line.timestamp, () => text);
+      }
+    }
+    return ParsedLyricsResult(
+      syncedLines: syncedLines,
+      translatedLines:
+          syncedLines.map((l) => translationsByTs[l.timestamp] ?? '').toList(),
+    );
+  }
+
+  static Map<String, String>? _extractLxPayloads(String lyrics) {
+    final match = _awlrcTagPattern.firstMatch(lyrics);
+    if (match == null) return null;
+
+    final payloads = <String, String>{};
+    for (final pair in match.group(1)!.split(',')) {
+      final sep = pair.indexOf(':');
+      if (sep <= 0) continue;
+      try {
+        payloads[pair.substring(0, sep)] =
+            utf8.decode(base64.decode(pair.substring(sep + 1)));
+      } on FormatException {
+        return null;
+      }
+    }
+    return payloads;
+  }
+
+  static LyricLine? _parseLxWordLine(String line) {
+    final lineMatch = _lxLineStartPattern.firstMatch(line);
+    final tags = _lxWordTagPattern.allMatches(line).toList();
+    if (lineMatch == null || tags.isEmpty) return null;
+
+    final base = parseTimestampToken(lineMatch.group(1)!);
+    if (base == null) return null;
+
+    final words = <LyricWord>[];
+    final text = StringBuffer(line.substring(lineMatch.end, tags.first.start));
+    for (int i = 0; i < tags.length; i++) {
+      final wordText = line.substring(
+        tags[i].end,
+        i + 1 < tags.length ? tags[i + 1].start : line.length,
+      );
+      if (wordText.isEmpty) continue;
+      final offsetMs = int.tryParse(tags[i].group(1)!);
+      final durationMs = int.tryParse(tags[i].group(2)!);
+      if (offsetMs == null || durationMs == null) continue;
+      words.add(LyricWord(
+        timestamp: base + Duration(milliseconds: offsetMs),
+        durationMs: durationMs,
+        text: wordText,
+      ));
+      text.write(wordText);
+    }
+    if (words.isEmpty) return null;
+    return LyricLine(
+      timestamp: base,
+      text: text.toString().trim(),
+      isTimed: true,
+      words: words,
+    );
   }
 
   static List<LyricLine> refineWordDurations(List<LyricLine> lines) {
@@ -819,7 +924,9 @@ class LrcUtils {
 
   static String stripTimestamps(String lyrics) {
     final lines = lyrics.split(RegExp(r'\r?\n'));
-    final stripped = lines.map((line) {
+    final stripped = lines
+        .where((line) => !_awlrcTagPattern.hasMatch(line))
+        .map((line) {
       final withoutTimestamps = line.replaceAll(_timestampLinePattern, '');
       return withoutTimestamps.trimRight();
     }).toList();

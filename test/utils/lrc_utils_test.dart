@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:vynody/utils/lrc_utils.dart';
@@ -342,6 +344,100 @@ Third line of song
       );
 
       expect(normalized, '[00:01.00]Line [00:02.00]one\n[00:05.00]Line [00:06.00]two');
+    });
+  });
+
+  group('LrcUtils lx (awlrc) lyrics', () {
+    // [awlrc:lrc:BASE64,awlrc:BASE64]，awlrc 为逐字歌词
+    const juneSample = '[ar:arkady sevidov]\n'
+        '[ti:June]\n'
+        '[by:]\n'
+        '[hash:4399c9872c7235b60b58ce88dc487897]\n'
+        '[al:]\n'
+        '[sign:]\n'
+        '[qq:]\n'
+        '[total:320317]\n'
+        '[offset:0]\n'
+        '[00:01.589]纯音乐，请欣赏\n'
+        '[awlrc:lrc:W2FyOmFya2FkeSBzZXZpZG92XQpbdGk6SnVuZV0KW2J5Ol0KW2hhc2g6NDM5OWM5ODcyYzcyMzViNjBiNThjZTg4ZGM0ODc4OTddClthbDpdCltzaWduOl0KW3FxOl0KW3RvdGFsOjMyMDMxN10KW29mZnNldDowXQpbMDA6MDEuNTg5Xee6r+mfs+S5kO+8jOivt+aso+i1jw==,awlrc:W2FyOmFya2FkeSBzZXZpZG92XQpbdGk6SnVuZV0KW2J5Ol0KW2hhc2g6NDM5OWM5ODcyYzcyMzViNjBiNThjZTg4ZGM0ODc4OTddClthbDpdCltzaWduOl0KW3FxOl0KW3RvdGFsOjMyMDMxN10KW29mZnNldDowXQpbMDA6MDEuNTg5XTwwLDM1ND7nuq88MzU0LDUwNT7pn7M8ODU5LDQwNj7kuZA8MTI2NSwzMDQ+77yMPDE1NjksMjUyPuivtzwxODIxLDQwNT7mrKM8MjIyNiwzMDM+6LWP]';
+
+    test('parses word-by-word lyrics from awlrc payload', () {
+      final parsed = LrcUtils.parseTimedLyrics(juneSample);
+
+      expect(parsed.length, 1);
+      final line = parsed[0];
+      expect(line.timestamp, const Duration(milliseconds: 1589));
+      expect(line.text, '纯音乐，请欣赏');
+      expect(line.words, isNotNull);
+      expect(line.words!.length, 7);
+
+      // 词标签 <offset,duration>
+      final expected = <(String, int, int)>[
+        ('纯', 1589, 354),
+        ('音', 1943, 505),
+        ('乐', 2448, 406),
+        ('，', 2854, 304),
+        ('请', 3158, 252),
+        ('欣', 3410, 405),
+        ('赏', 3815, 303),
+      ];
+      for (int i = 0; i < expected.length; i++) {
+        expect(line.words![i].text, expected[i].$1, reason: 'word $i');
+        expect(line.words![i].timestamp,
+            Duration(milliseconds: expected[i].$2),
+            reason: 'word $i timestamp');
+        expect(line.words![i].durationMs, expected[i].$3, reason: 'word $i duration');
+      }
+    });
+
+    test('pairs tlrc payload as translation', () {
+      const main = '[ti:T]\n[00:01.000]Hello\n[00:03.000]World';
+      const word = '[00:01.000]<0,500>He<500,500>llo\n[00:03.000]<0,1000>World';
+      const trans = '[00:01.000]你好\n[00:03.000]世界';
+      final lxLyrics = '[awlrc:lrc:${base64Encode(utf8.encode(main))}'
+          ',awlrc:${base64Encode(utf8.encode(word))}'
+          ',tlrc:${base64Encode(utf8.encode(trans))}]';
+
+      final result = LrcUtils.parseLyricsWithTranslation(lxLyrics);
+
+      expect(result.syncedLines.length, 2);
+      expect(result.syncedLines[0].text, 'Hello');
+      expect(result.syncedLines[0].words!.map((w) => w.text).join(), 'Hello');
+      expect(result.syncedLines[0].words!.last.durationMs, 500);
+      expect(result.syncedLines[1].text, 'World');
+      expect(result.hasTranslation, isTrue);
+      expect(result.translatedLines, ['你好', '世界']);
+    });
+
+    test('falls back to outer LRC when awlrc word payload is absent', () {
+      const main = '[ti:X]\n[00:01.00]正常歌词';
+      final lxLyrics = '[awlrc:lrc:${base64Encode(utf8.encode(main))}]\n'
+          '[00:01.00]正常歌词';
+
+      final parsed = LrcUtils.parseTimedLyrics(lxLyrics);
+
+      expect(parsed.length, 1);
+      expect(parsed[0].timestamp, const Duration(seconds: 1));
+      expect(parsed[0].text, '正常歌词');
+      expect(parsed[0].words, isNull);
+    });
+
+    test('falls back to outer LRC when payload is malformed base64', () {
+      const lxLyrics = '[awlrc:lrc:!!!not-base64!!!]\n[00:02.00]回退歌词';
+
+      final parsed = LrcUtils.parseTimedLyrics(lxLyrics);
+
+      expect(parsed.length, 1);
+      expect(parsed[0].text, '回退歌词');
+    });
+
+    test('stripTimestamps removes the awlrc tag line', () {
+      const lxLyrics = '[ti:X]\n$juneSample\n[00:01.589]纯音乐，请欣赏';
+
+      final stripped = LrcUtils.stripTimestamps(lxLyrics);
+
+      expect(stripped, isNot(contains('awlrc')));
+      expect(stripped, contains('纯音乐，请欣赏'));
     });
   });
 }
