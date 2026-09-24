@@ -48,6 +48,7 @@ class _AcoustidApiKeyDialog extends StatefulWidget {
 
 class _AcoustidApiKeyDialogState extends State<_AcoustidApiKeyDialog> {
   late final TextEditingController _controller;
+  bool _obscureText = true;
 
   @override
   void initState() {
@@ -79,12 +80,24 @@ class _AcoustidApiKeyDialogState extends State<_AcoustidApiKeyDialog> {
               TextField(
                 controller: _controller,
                 autofocus: true,
-                obscureText: true,
+                obscureText: _obscureText,
                 enableSuggestions: false,
                 autocorrect: false,
                 decoration: InputDecoration(
                   labelText: widget.apiKeyLabel,
                   hintText: widget.apiKeyHint,
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscureText
+                          ? Icons.visibility_off_rounded
+                          : Icons.visibility_rounded,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _obscureText = !_obscureText;
+                      });
+                    },
+                  ),
                 ),
                 onChanged: (_) {
                   setState(() {});

@@ -54,6 +54,7 @@ class _CustomProviderConfigDialogState
   late final TextEditingController _baseUrlController;
   late final TextEditingController _apiKeyController;
   late final TextEditingController _nameController;
+  bool _obscureApiKey = true;
   bool _isTesting = false;
   String _statusText = '';
   bool _statusSuccess = false;
@@ -191,10 +192,25 @@ class _CustomProviderConfigDialogState
             const SizedBox(height: 16),
             TextField(
               controller: _apiKeyController,
+              obscureText: _obscureApiKey,
+              enableSuggestions: false,
+              autocorrect: false,
               decoration: InputDecoration(
                 labelText: l10n.apiKey,
                 hintText: l10n.pleaseEnterApiKeyHint,
                 border: const OutlineInputBorder(),
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscureApiKey
+                        ? Icons.visibility_off_rounded
+                        : Icons.visibility_rounded,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _obscureApiKey = !_obscureApiKey;
+                    });
+                  },
+                ),
               ),
             ),
             if (_statusText.isNotEmpty) ...[
