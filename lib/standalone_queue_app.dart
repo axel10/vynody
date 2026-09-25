@@ -713,7 +713,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
         final isCurrent = index == _currentIndex;
 
         return Material(
-          key: ValueKey('queue_item_${song.path}_$index'),
+          key: ObjectKey(song),
           color: isCurrent
               ? theme.colorScheme.primaryContainer.withValues(alpha: 0.35)
               : Colors.transparent,

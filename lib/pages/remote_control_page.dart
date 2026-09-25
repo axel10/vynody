@@ -1048,7 +1048,7 @@ class _RemoteControlPageState extends ConsumerState<RemoteControlPage>
                     final isSelected = _selectedIndices.contains(index);
 
                     return _RemoteQueueListTile(
-                      key: ValueKey('remote_queue_${item.id}_$index'),
+                      key: ObjectKey(item),
                       index: index,
                       item: item,
                       isCurrent: isCurrent,

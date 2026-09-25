@@ -1700,18 +1700,21 @@ class AudioService extends Notifier<AudioSnapshot> {
       return;
     }
 
+    final currentPlayingPath = currentMusic?.path;
+
     final movedSong = _queue.removeAt(oldIndex);
     _queue.insert(newIndex, movedSong);
-    _player.playlist.moveTrack(oldIndex, newIndex);
 
-    if (currentMusic?.path != null) {
+    if (currentPlayingPath != null) {
       final updatedIndex = _queue.indexWhere(
-        (song) => song.path == currentMusic?.path,
+        (song) => song.path == currentPlayingPath,
       );
       if (updatedIndex != -1) {
         _currentIndex = updatedIndex;
       }
     }
+
+    _player.playlist.moveTrack(oldIndex, newIndex);
 
     _startQueueBackgroundProcessing();
     notifyListeners();

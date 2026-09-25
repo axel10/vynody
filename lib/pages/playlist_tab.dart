@@ -474,9 +474,9 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab>
                   itemCount: activePlaylist.songs.length,
                   onReorder: (oldIndex, newIndex) {
                     if (newIndex > oldIndex) newIndex--;
-                    setState(() {
+                    if (selectedKeys.isNotEmpty) {
                       _reorderSelectedIndices(oldIndex, newIndex);
-                    });
+                    }
                     playlistService.reorderSongsInPlaylist(
                       activePlaylist.id,
                       oldIndex,

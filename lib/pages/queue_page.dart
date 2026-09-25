@@ -30,7 +30,7 @@ class _QueuePageState extends ConsumerState<QueuePage>
   @override
   LibrarySelectionScope get selectionScope => LibrarySelectionScope.queue;
 
-  final Map<int, GlobalKey> _songTileKeys = {};
+  final List<GlobalKey> _songTileKeys = [];
   int _viewIndex = 0; // 0: Normal Queue, 1: Random History, 2: Random Queue
   late final ScrollController _scrollController;
   int? _highlightedIndex;
@@ -173,10 +173,10 @@ class _QueuePageState extends ConsumerState<QueuePage>
   }
 
   GlobalKey _songTileKeyFor(int index, [MusicFile? song]) {
-    return _songTileKeys.putIfAbsent(
-      index,
-      () => GlobalKey(debugLabel: 'queue-tile-$index'),
-    );
+    while (_songTileKeys.length <= index) {
+      _songTileKeys.add(GlobalKey(debugLabel: 'queue-tile-${_songTileKeys.length}'));
+    }
+    return _songTileKeys[index];
   }
 
   void _showClearQueueDialog(BuildContext context) {
@@ -293,6 +293,9 @@ class _QueuePageState extends ConsumerState<QueuePage>
         : _viewIndex == 2
         ? randomQueue
         : queue;
+    if (_songTileKeys.length > displayQueue.length) {
+      _songTileKeys.removeRange(displayQueue.length, _songTileKeys.length);
+    }
     final isPortrait =
         MediaQuery.of(context).orientation == Orientation.portrait;
     final headerHorizontalPadding = isPortrait ? 20.0 : 32.0;
@@ -434,18 +437,22 @@ class _QueuePageState extends ConsumerState<QueuePage>
                         child: ReorderableListView.builder(
                           scrollController: _scrollController,
                           buildDefaultDragHandles: false,
-                          cacheExtent: 1000,
+                          cacheExtent: 1000.0,
                           padding: EdgeInsets.only(
                             top: topBarHeight,
                             bottom: bottomOffset,
                           ),
                           itemCount: displayQueue.length,
-                          onReorder: (oldIndex, newIndex) {
+                          onReorderItem: (oldIndex, newIndex) {
                             if (_viewIndex != 0) return;
-                            if (newIndex > oldIndex) newIndex--;
-                            setState(() {
+                            if (oldIndex < _songTileKeys.length &&
+                                newIndex < _songTileKeys.length) {
+                              final movedKey = _songTileKeys.removeAt(oldIndex);
+                              _songTileKeys.insert(newIndex, movedKey);
+                            }
+                            if (selectedKeys.isNotEmpty) {
                               _reorderSelectedIndices(oldIndex, newIndex);
-                            });
+                            }
                             ref
                                 .read(audioServiceProvider)
                                 .moveQueueTrack(oldIndex, newIndex);

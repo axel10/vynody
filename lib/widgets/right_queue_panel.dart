@@ -398,7 +398,7 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
         final isCurrent = index == currentIndex;
 
         return _RightQueueTile(
-          key: ValueKey('drawer_queue_${song.path}_$index'),
+          key: ObjectKey(song),
           song: song,
           index: index,
           isCurrent: isCurrent,
