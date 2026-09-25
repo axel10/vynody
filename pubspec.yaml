@@ -295,18 +295,29 @@ dependency_overrides:
   audio_core:
     path: ./audio_core
   desktop_multi_window:
-    path: ./flutter-plugins/packages/desktop_multi_window
+    git: 
+      url: https://github.com/axel10/flutter-plugins
+      path: packages/desktop_multi_window
+      ref: main
   irondash_engine_context:
     git:
       url: https://github.com/axel10/irondash
       path: engine_context/dart
       ref: main
   super_drag_and_drop:
-    path: ./super_native_extensions/super_drag_and_drop
+    git: 
+      url: https://github.com/axel10/super_native_extensions
+      path: super_drag_and_drop
+      ref: main
   super_clipboard:
-    path: ./super_native_extensions/super_clipboard
+    git: 
+      url: https://github.com/axel10/super_native_extensions
+      path: super_clipboard
+      ref: main
   super_native_extensions:
-    path: ./super_native_extensions/super_native_extensions
+    git: 
+      url: https://github.com/axel10/super_native_extensions
+      ref: main
   sqlparser: 0.44.4
 
   #   mobile_storage_listener:
