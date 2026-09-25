@@ -97,6 +97,7 @@ class QueueSortUtils {
     BuildContext context, {
     required QueueSortField currentField,
     required bool sortAscending,
+    void Function(QueueSortField field, bool sortAscending)? onChanged,
   }) {
     final l10n = AppLocalizations.of(context)!;
     return showDialog<SortResult<QueueSortField>>(
@@ -105,6 +106,7 @@ class QueueSortUtils {
         title: l10n.sort,
         currentField: currentField,
         sortAscending: sortAscending,
+        onChanged: onChanged,
         options: [
           SortOptionItem(
             value: QueueSortField.title,

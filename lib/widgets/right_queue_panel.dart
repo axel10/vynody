@@ -39,6 +39,21 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
       context,
       currentField: _sortField,
       sortAscending: _sortAscending,
+      onChanged: (field, ascending) {
+        if (mounted) {
+          setState(() {
+            _sortField = field;
+            _sortAscending = ascending;
+          });
+          final currentQueue = ref.read(audioPlaybackQueueProvider);
+          final sortedList = QueueSortUtils.sortQueue(
+            currentQueue,
+            field,
+            ascending,
+          );
+          ref.read(audioServiceProvider).updateQueue(sortedList);
+        }
+      },
     );
     if (result != null && mounted) {
       setState(() {

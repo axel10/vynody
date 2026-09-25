@@ -765,7 +765,7 @@ class SharingService {
         if (_tlsCertService?.fingerprint != null) 'fp': _tlsCertService!.fingerprint!,
       },
     );
-    _bonsoirBroadcast = BonsoirBroadcast(service: service);
+    _bonsoirBroadcast = BonsoirBroadcast(service: service, printLogs: false);
     try {
       await _bonsoirBroadcast!.initialize();
       await _bonsoirBroadcast!.start();

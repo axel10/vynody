@@ -219,6 +219,15 @@ class _QueuePageState extends ConsumerState<QueuePage>
       context,
       currentField: _sortField,
       sortAscending: _sortAscending,
+      onChanged: (field, ascending) {
+        if (mounted) {
+          setState(() {
+            _sortField = field;
+            _sortAscending = ascending;
+          });
+          _applySort(field, ascending);
+        }
+      },
     );
 
     if (result != null && mounted) {

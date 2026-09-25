@@ -31,12 +31,14 @@ class SortOptionsDialog<T> extends StatefulWidget {
     required this.options,
     required this.currentField,
     required this.sortAscending,
+    this.onChanged,
   });
 
   final String title;
   final List<SortOptionItem<T>> options;
   final T currentField;
   final bool sortAscending;
+  final void Function(T field, bool sortAscending)? onChanged;
 
   @override
   State<SortOptionsDialog<T>> createState() => _SortOptionsDialogState<T>();
@@ -51,6 +53,10 @@ class _SortOptionsDialogState<T> extends State<SortOptionsDialog<T>> {
     super.initState();
     _selectedField = widget.currentField;
     _isDescending = !widget.sortAscending;
+  }
+
+  void _notifyChange() {
+    widget.onChanged?.call(_selectedField, !_isDescending);
   }
 
   @override
@@ -103,6 +109,7 @@ class _SortOptionsDialogState<T> extends State<SortOptionsDialog<T>> {
                     setState(() {
                       _selectedField = val;
                     });
+                    _notifyChange();
                   }
                 },
               );
@@ -137,6 +144,7 @@ class _SortOptionsDialogState<T> extends State<SortOptionsDialog<T>> {
                 setState(() {
                   _isDescending = val ?? false;
                 });
+                _notifyChange();
               },
             ),
           ],
