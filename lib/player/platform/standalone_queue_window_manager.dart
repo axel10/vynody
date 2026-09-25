@@ -12,7 +12,14 @@ import 'package:vynody/player/library/music_file_utils.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/player/scanner/scanner_service.dart';
 import 'package:vynody/player/settings/settings_service.dart';
+import 'package:collection/collection.dart';
 import 'package:vynody/player/platform/right_queue_drawer_controller.dart';
+import 'package:vynody/player/remote/remote_server_models.dart';
+import 'package:vynody/player/remote/remote_server_riverpod.dart';
+import 'package:vynody/player/remote/proxy/remote_media_resolver.dart';
+import 'package:vynody/player/remote/clients/webdav_client.dart';
+import 'package:vynody/player/remote/clients/smb_client.dart';
+import 'package:vynody/utils/remote_context_menu_utils.dart';
 import 'package:vynody/utils/app_log.dart';
 
 final standaloneQueueWindowManagerProvider =
@@ -167,6 +174,9 @@ class StandaloneQueueWindowManager {
     debugPrint('[StandaloneQueue] _handleDroppedPaths processing ${paths.length} paths (insertIndex=$insertIndex)');
     if (paths.isEmpty) return;
     final songs = <MusicFile>[];
+    final db = MetadataDatabase();
+    final servers = ref.read(remoteServersProvider).asData?.value ?? [];
+
     for (final path in paths) {
       if (FileSystemEntity.isFileSync(path)) {
         if (MusicFileUtils.isMusicFilePath(path)) {
@@ -189,8 +199,73 @@ class StandaloneQueueWindowManager {
         } catch (e) {
           AppLog.log('[StandaloneQueue] Error scanning directory $path: $e', mirrorToConsole: true);
         }
+      } else if (RemoteMediaResolver.isRemoteUri(path)) {
+        final remoteInfo = RemoteMediaResolver.parseUri(path);
+        final server = servers.firstWhereOrNull((s) => s.id == remoteInfo?.serverId);
+        final targetPath = remoteInfo?.trackIdOrPath ?? path;
+        final isAudio = MusicFileUtils.isMusicFilePath(targetPath) ||
+            (remoteInfo?.type == RemoteServerType.subsonic) ||
+            (remoteInfo?.type == RemoteServerType.jellyfin);
+
+        if (isAudio) {
+          final cachedMeta = await db.getRemoteSongMetadata(path);
+          if (cachedMeta != null) {
+            songs.add(MusicFile(
+              path: path,
+              name: p.basename(targetPath),
+              title: cachedMeta.title,
+              artist: cachedMeta.artist,
+              albumArtist: cachedMeta.albumArtist,
+              album: cachedMeta.album,
+              trackNumber: cachedMeta.trackNumber,
+              durationMillis: cachedMeta.duration,
+              thumbnailPath: cachedMeta.thumbnailPath,
+              artworkPath: cachedMeta.artworkPath,
+              artworkWidth: cachedMeta.artworkWidth,
+              artworkHeight: cachedMeta.artworkHeight,
+              themeColorsBlob: cachedMeta.themeColorsBlob,
+              waveformBlob: cachedMeta.waveformBlob,
+              lastModifiedTime: cachedMeta.lastModifiedTime,
+            ));
+          } else if (server != null) {
+            songs.add(RemoteMediaResolver.buildMusicFile(
+              WebDavFile(
+                path: targetPath,
+                name: p.basename(targetPath),
+                isDirectory: false,
+                contentLength: 0,
+              ),
+              server,
+            ));
+          } else {
+            songs.add(MusicFile(
+              path: path,
+              name: p.basename(targetPath),
+            ));
+          }
+        } else if (server != null && remoteInfo != null) {
+          // Remote directory
+          try {
+            final password = await ref.read(remoteServersProvider.notifier).getPassword(server.id) ?? '';
+            final client = server.type == RemoteServerType.smb
+                ? SmbClient(server: server, password: password)
+                : WebDavClient(server: server, password: password);
+            final remoteFolderAudios = await fetchWebDavFolderAudioFiles(client, server, targetPath);
+            debugPrint('[StandaloneQueue] Fetched ${remoteFolderAudios.length} songs from remote folder $path');
+            songs.addAll(remoteFolderAudios);
+          } catch (e) {
+            AppLog.log('[StandaloneQueue] Error fetching remote folder $path: $e', mirrorToConsole: true);
+          }
+        } else {
+          songs.add(MusicFile(
+            path: path,
+            name: p.basename(targetPath),
+          ));
+        }
+      } else if (path.startsWith('http://') || path.startsWith('https://')) {
+        songs.add(MusicFile(path: path, name: p.basename(path)));
       } else {
-        debugPrint('[StandaloneQueue] Dropped path does not exist on disk: $path');
+        debugPrint('[StandaloneQueue] Dropped path unrecognized: $path');
       }
     }
 

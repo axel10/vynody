@@ -16,6 +16,7 @@ import 'package:vynody/widgets/folder_layout_utils.dart';
 import 'package:vynody/widgets/folder_list_tile.dart';
 import 'package:vynody/widgets/song_grid_card.dart';
 import 'package:vynody/widgets/song_tile.dart';
+import 'package:vynody/widgets/draggable_song_item.dart';
 
 /// Renders WebDAV subfolders in grid or list view using unified FolderGridCard and FolderListTile.
 class WebDavSubfoldersSliver extends ConsumerWidget {
@@ -103,10 +104,12 @@ class WebDavSubfoldersSliver extends ConsumerWidget {
                   final isSelected = selectedFolderPaths.contains(folder.path);
                   final isIndexed =
                       scanRootsNotifier.isFolderIndexed(server.id, folder.path);
+                  final virtualUri =
+                      RemoteMediaResolver.buildRemoteUri(server, folder.path);
 
                   return HoverableCard(
                     child: FolderGridCard(
-                      folder: MusicFolder(path: folder.path, name: folder.name),
+                      folder: MusicFolder(path: virtualUri, name: folder.name),
                       subtitle: 'Folder',
                       enableHero: false,
                       isSelected: isSelected,
@@ -155,13 +158,15 @@ class WebDavSubfoldersSliver extends ConsumerWidget {
               final isSelected = selectedFolderPaths.contains(folder.path);
               final isIndexed =
                   scanRootsNotifier.isFolderIndexed(server.id, folder.path);
+              final virtualUri =
+                  RemoteMediaResolver.buildRemoteUri(server, folder.path);
 
               return Padding(
                 padding: const EdgeInsets.symmetric(
                   vertical: 4,
                 ),
                 child: FolderListTile(
-                  folder: MusicFolder(path: folder.path, name: folder.name),
+                  folder: MusicFolder(path: virtualUri, name: folder.name),
                   subtitle: 'Folder',
                   enableHero: false,
                   isSelected: isSelected,
@@ -313,15 +318,20 @@ class WebDavSongsSliver extends ConsumerWidget {
                     );
                   }
 
+                  final musicFile = RemoteMediaResolver.buildMusicFile(file, server);
                   return HoverableCard(
-                    child: WebDavGenericFileGridCard(
-                      file: file,
-                      isSelected: isSelected,
-                      isSelectionMode: isSelectionMode,
-                      onTap: () => onSongTap(file, index),
-                      onLongPress: () => onSongLongPress?.call(file),
-                      onSecondaryTapDown: (details) =>
-                          onSongSecondaryTapDown?.call(file, details),
+                    child: DraggableSongItem(
+                      song: musicFile,
+                      enabled: !isSelectionMode,
+                      child: WebDavGenericFileGridCard(
+                        file: file,
+                        isSelected: isSelected,
+                        isSelectionMode: isSelectionMode,
+                        onTap: () => onSongTap(file, index),
+                        onLongPress: () => onSongLongPress?.call(file),
+                        onSecondaryTapDown: (details) =>
+                            onSongSecondaryTapDown?.call(file, details),
+                      ),
                     ),
                   );
                 },
@@ -377,19 +387,24 @@ class WebDavSongsSliver extends ConsumerWidget {
                 );
               }
 
+              final musicFile = RemoteMediaResolver.buildMusicFile(file, server);
               return Padding(
                 padding: const EdgeInsets.symmetric(
                   vertical: 4,
                 ),
-                child: WebDavGenericFileListTile(
-                  file: file,
-                  isSelected: isSelected,
-                  isSelectionMode: isSelectionMode,
-                  onTap: () => onSongTap(file, index),
-                  onLongPress: () => onSongLongPress?.call(file),
-                  onSecondaryTapDown: (details) =>
-                      onSongSecondaryTapDown?.call(file, details),
-                  onMorePressed: (ctx) => onSongMorePressed?.call(file, ctx),
+                child: DraggableSongItem(
+                  song: musicFile,
+                  enabled: !isSelectionMode,
+                  child: WebDavGenericFileListTile(
+                    file: file,
+                    isSelected: isSelected,
+                    isSelectionMode: isSelectionMode,
+                    onTap: () => onSongTap(file, index),
+                    onLongPress: () => onSongLongPress?.call(file),
+                    onSecondaryTapDown: (details) =>
+                        onSongSecondaryTapDown?.call(file, details),
+                    onMorePressed: (ctx) => onSongMorePressed?.call(file, ctx),
+                  ),
                 ),
               );
             },

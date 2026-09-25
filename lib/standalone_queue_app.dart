@@ -348,6 +348,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
               formats: const [
                 Formats.fileUri,
                 Formats.plainText,
+                Formats.uri,
               ],
               onDropOver: (event) {
                 if (!_isDraggingOver) {
@@ -436,6 +437,22 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
                     final filePath = uri.toFilePath();
                     debugPrint('[DROP] Item #$i fileUri read: $filePath');
                     paths.add(filePath);
+                  }
+
+                  // 3. Try uri
+                  final genericNamedUri = await _readFormatSafely<NamedUri>(reader, Formats.uri);
+                  if (genericNamedUri != null) {
+                    final genericUri = genericNamedUri.uri;
+                    if (genericUri.scheme == 'file') {
+                      try {
+                        paths.add(genericUri.toFilePath());
+                      } catch (_) {
+                        paths.add(genericUri.toString());
+                      }
+                    } else {
+                      debugPrint('[DROP] Item #$i uri read: $genericUri');
+                      paths.add(genericUri.toString());
+                    }
                   }
                 }
 

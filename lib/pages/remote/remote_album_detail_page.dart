@@ -16,6 +16,7 @@ import '../../widgets/desktop_window_title_bar.dart';
 import '../../widgets/mini_player_wrapper.dart';
 import '../../widgets/playing_equalizer_icon.dart';
 import '../../dialogs/remote_playlist_dialog.dart';
+import '../../widgets/draggable_song_item.dart';
 import '../../l10n/app_localizations.dart';
 import '../../player/remote/services/remote_download_service.dart';
 import '../../player/remote/remote_library_navigation.dart';
@@ -419,7 +420,10 @@ class _RemoteAlbumDetailPageState
                                   ? _formatDuration(song.durationMillis!)
                                   : null;
 
-                              return GestureDetector(
+                              return DraggableSongItem(
+                                song: song,
+                                enabled: !isSelectionMode,
+                                child: GestureDetector(
                                 behavior: HitTestBehavior.opaque,
                                 onSecondaryTapDown: (details) {
                                   if (!isSelectionMode) {
@@ -625,6 +629,7 @@ class _RemoteAlbumDetailPageState
                                     ),
                                   ),
                                 ),
+                              ),
                               ),
                             );
                           },

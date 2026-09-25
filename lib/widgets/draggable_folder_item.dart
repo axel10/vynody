@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:super_drag_and_drop/super_drag_and_drop.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/models/music_folder.dart';
+import 'package:vynody/player/remote/proxy/remote_media_resolver.dart';
 
 /// Wraps a folder widget to provide system-level native drag source support.
 /// Enables dragging a folder from library/directory pages into standalone queue window or other apps.
@@ -34,7 +35,8 @@ class DraggableFolderItem extends StatelessWidget {
         final allSongs = folder.allSongs;
         final songPaths = allSongs.map((s) => s.path).toList();
         final isSystem = folder.path == 'system';
-        final isDir = !isSystem && Directory(folder.path).existsSync();
+        final isRemote = RemoteMediaResolver.isRemoteUri(folder.path);
+        final isDir = !isSystem && !isRemote && Directory(folder.path).existsSync();
 
         final item = DragItem(
           localData: <String, dynamic>{
@@ -49,8 +51,17 @@ class DraggableFolderItem extends StatelessWidget {
           item.add(Formats.fileUri(Uri.file(folder.path)));
           item.add(Formats.plainText(folder.path));
         } else if (songPaths.isNotEmpty) {
-          item.add(Formats.fileUri(Uri.file(songPaths.first)));
+          final first = songPaths.first;
+          if (!RemoteMediaResolver.isRemoteUri(first) && File(first).existsSync()) {
+            item.add(Formats.fileUri(Uri.file(first)));
+          }
           item.add(Formats.plainText(songPaths.join('\n')));
+        } else {
+          item.add(Formats.plainText(folder.path));
+          final uri = Uri.tryParse(folder.path);
+          if (uri != null) {
+            item.add(Formats.uri(NamedUri(uri)));
+          }
         }
         request.session.dragCompleted.addListener(() {
           final op = request.session.dragCompleted.value;

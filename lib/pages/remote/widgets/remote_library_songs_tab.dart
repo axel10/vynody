@@ -14,6 +14,7 @@ import '../../../utils/selection_utils.dart';
 import '../../../utils/song_locator_helper.dart';
 import '../../../widgets/playing_equalizer_icon.dart';
 import '../../../widgets/remote_artwork_widget.dart';
+import '../../../widgets/draggable_song_item.dart';
 import '../../../player/remote/remote_library_navigation.dart';
 import '../remote_download_manager_page.dart';
 import 'remote_library_toolbar_widgets.dart';
@@ -608,15 +609,18 @@ class _RemoteLibrarySongsViewState
                       coverId = trackId.isNotEmpty ? trackId : null;
                     }
 
-                    return RepaintBoundary(
-                      child: Align(
-                        alignment: Alignment.center,
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(
-                            maxWidth: kSingleColumnContentMaxWidth,
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 2),
+                    return DraggableSongItem(
+                      song: song,
+                      enabled: !widget.isSelectionMode,
+                      child: RepaintBoundary(
+                        child: Align(
+                          alignment: Alignment.center,
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(
+                              maxWidth: kSingleColumnContentMaxWidth,
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 2),
                             child: GestureDetector(
                               behavior: HitTestBehavior.opaque,
                               onSecondaryTapDown: (details) {
@@ -919,6 +923,7 @@ class _RemoteLibrarySongsViewState
                             ),
                           ),
                         ),
+                      ),
                       ),
                     );
                   },

@@ -169,9 +169,24 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
       }
 
       // 2. Try fileUri
-      final uri = await _readFormatSafely<Uri>(reader, Formats.fileUri);
-      if (uri != null && uri.scheme == 'file') {
-        paths.add(uri.toFilePath());
+      final fileUri = await _readFormatSafely<Uri>(reader, Formats.fileUri);
+      if (fileUri != null && fileUri.scheme == 'file') {
+        paths.add(fileUri.toFilePath());
+      }
+
+      // 3. Try uri
+      final namedUri = await _readFormatSafely<NamedUri>(reader, Formats.uri);
+      if (namedUri != null) {
+        final uri = namedUri.uri;
+        if (uri.scheme == 'file') {
+          try {
+            paths.add(uri.toFilePath());
+          } catch (_) {
+            paths.add(uri.toString());
+          }
+        } else {
+          paths.add(uri.toString());
+        }
       }
     }
 
@@ -233,7 +248,7 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
         onDragEntered: (_) => setState(() => _isDraggingOver = true),
         onDragExited: (_) => setState(() => _isDraggingOver = false),
         child: DropRegion(
-          formats: const [Formats.fileUri, Formats.plainText],
+          formats: const [Formats.fileUri, Formats.plainText, Formats.uri],
           hitTestBehavior: HitTestBehavior.opaque,
           onDropOver: (event) {
             final y = event.position.local.dy - (52.0 + topPadding); // Subtract header height

@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:super_drag_and_drop/super_drag_and_drop.dart';
 import 'package:vynody/models/music_file.dart';
+import 'package:vynody/player/remote/proxy/remote_media_resolver.dart';
 
 /// Wraps a song widget to provide system-level native drag source support.
 /// Enables dragging a song from library, albums, directories into standalone queue window or other apps.
@@ -34,8 +35,17 @@ class DraggableSongItem extends StatelessWidget {
             'artist': song.artist,
           },
         );
-        // Add native file uri so system drop targets and other windows recognize it as a file
-        item.add(Formats.fileUri(Uri.file(song.path)));
+        final isRemote = RemoteMediaResolver.isRemoteUri(song.path) ||
+            song.path.startsWith('http://') ||
+            song.path.startsWith('https://');
+        if (!isRemote && File(song.path).existsSync()) {
+          item.add(Formats.fileUri(Uri.file(song.path)));
+        } else if (isRemote) {
+          final uri = Uri.tryParse(song.path);
+          if (uri != null) {
+            item.add(Formats.uri(NamedUri(uri)));
+          }
+        }
         item.add(Formats.plainText(song.path));
         request.session.dragCompleted.addListener(() {
           final op = request.session.dragCompleted.value;
