@@ -6,6 +6,7 @@ import 'package:vynody/player/audio/audio_service.dart';
 import 'package:vynody/models/music_file.dart';
 import '../l10n/app_localizations.dart';
 import 'package:vynody/player/library/playlist_service.dart';
+import 'package:vynody/utils/list_reorder_utils.dart';
 import 'package:vynody/utils/song_context_menu_utils.dart';
 import 'package:vynody/utils/time_format_utils.dart';
 import 'package:vynody/widgets/queue_file_drop_target.dart';
@@ -34,7 +35,7 @@ class MiniQueueView extends ConsumerStatefulWidget {
 }
 
 class _MiniQueueViewState extends ConsumerState<MiniQueueView> {
-  final Map<String, GlobalKey> _itemKeys = {};
+  final _keyPool = ReorderableKeyPool(debugPrefix: 'mini-queue-tile');
   late final ScrollController _scrollController;
   int? _highlightedIndex;
   Timer? _highlightTimer;
@@ -49,14 +50,8 @@ class _MiniQueueViewState extends ConsumerState<MiniQueueView> {
   void dispose() {
     _scrollController.dispose();
     _highlightTimer?.cancel();
+    _keyPool.clear();
     super.dispose();
-  }
-
-  GlobalKey _itemKeyForSong(MusicFile song) {
-    return _itemKeys.putIfAbsent(
-      song.path,
-      () => GlobalKey(debugLabel: 'mini-queue-${song.path}'),
-    );
   }
 
   void _scrollToCurrentPlay() {
@@ -108,11 +103,13 @@ class _MiniQueueViewState extends ConsumerState<MiniQueueView> {
     final playlistService = ref.read(playlistServiceProvider);
     final l10n = AppLocalizations.of(context)!;
 
+    _keyPool.syncLength(queue.length);
+
     return QueueFileDropTarget(
       enabled: true,
       displayQueue: queue,
       queueSongs: queue,
-      itemKeyBuilder: (index, song) => _itemKeyForSong(song),
+      itemKeyBuilder: (index, song) => _keyPool.getKey(index),
       showPreview: true,
       onFilesDropped: (paths, insertIndex) async {
         await ref
@@ -181,7 +178,7 @@ class _MiniQueueViewState extends ConsumerState<MiniQueueView> {
                         final isCurrent = index == currentIndex;
 
                         return KeyedSubtree(
-                          key: _itemKeyForSong(song),
+                          key: _keyPool.getKey(index),
                           child: _MiniQueueTile(
                             song: song,
                             isCurrent: isCurrent,
