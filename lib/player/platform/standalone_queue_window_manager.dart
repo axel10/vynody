@@ -12,6 +12,7 @@ import 'package:vynody/player/library/music_file_utils.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/player/scanner/scanner_service.dart';
 import 'package:vynody/player/settings/settings_service.dart';
+import 'package:vynody/player/platform/right_queue_drawer_controller.dart';
 import 'package:vynody/utils/app_log.dart';
 
 final standaloneQueueWindowManagerProvider =
@@ -113,8 +114,13 @@ class StandaloneQueueWindowManager {
             final paths = List<String>.from(args['paths'] ?? []);
             final insertIndex = args['insertIndex'] as int?;
             final playNow = args['playNow'] as bool? ?? false;
-            await _handleDroppedPaths(paths, insertIndex: insertIndex, playNow: playNow);
+            await handleDroppedPaths(paths, insertIndex: insertIndex, playNow: playNow);
           }
+          return true;
+
+        case 'dock_to_main':
+          await closeQueueWindow();
+          ref.read(rightQueueDrawerProvider.notifier).open();
           return true;
 
         case 'window_closed':
@@ -127,7 +133,7 @@ class StandaloneQueueWindowManager {
     });
   }
 
-  Future<void> _handleDroppedPaths(
+  Future<void> handleDroppedPaths(
     List<String> paths, {
     int? insertIndex,
     bool playNow = false,
@@ -270,6 +276,9 @@ class StandaloneQueueWindowManager {
   }
 
   Future<void> openOrFocusQueueWindow() async {
+    // If the right queue drawer is currently open in the main window, close it.
+    unawaited(ref.read(rightQueueDrawerProvider.notifier).close(restoreWindowSize: false));
+
     if (_subWindowController != null) {
       try {
         await _subWindowController!.show();

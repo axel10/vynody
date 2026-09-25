@@ -209,6 +209,13 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
     _sendIpc('reorder', {'oldIndex': oldIndex, 'newIndex': newIndex});
   }
 
+  void _dockToMainWindow() async {
+    _sendIpc('dock_to_main');
+    try {
+      await _controller.hide();
+    } catch (_) {}
+  }
+
   void _closeWindow() async {
     _sendIpc('window_closed');
     try {
@@ -580,7 +587,16 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
             ),
           ],
           AppTooltip(
-            message: '吸附回主窗口 / 关闭',
+            message: '吸附回主窗口',
+            child: IconButton(
+              icon: const Icon(Icons.vertical_align_bottom_rounded, size: 18),
+              onPressed: _dockToMainWindow,
+              visualDensity: VisualDensity.compact,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          AppTooltip(
+            message: '关闭独立窗口',
             child: IconButton(
               icon: const Icon(Icons.close_rounded, size: 18),
               onPressed: _closeWindow,

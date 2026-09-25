@@ -39,6 +39,8 @@ import '../widgets/playback_ui_tuning.dart';
 import '../widgets/global_drop_target.dart';
 import '../widgets/library_selection_scope.dart';
 import '../widgets/global_scan_progress_watcher.dart';
+import 'package:vynody/player/platform/right_queue_drawer_controller.dart';
+import '../widgets/right_queue_panel.dart';
 import 'package:vynody/utils/deleted_song_snack.dart';
 import 'package:vynody/utils/app_snack_bar.dart';
 
@@ -196,7 +198,6 @@ class _MainLayoutState extends ConsumerState<MainLayout>
   double? _lastVolume;
   bool _showMiniVolumeSlider = false;
   late final AudioService _audioService;
-  bool _isFullScreen = false;
   DateTime? _ignoreResizeEventsUntil;
   Timer? _windowResizeDebounceTimer;
   late final MainLayoutUiController _uiController;
@@ -323,9 +324,6 @@ class _MainLayoutState extends ConsumerState<MainLayout>
       windowManager.addListener(this);
       windowManager.isFullScreen().then((isFull) {
         if (mounted) {
-          setState(() {
-            _isFullScreen = isFull;
-          });
           ref.read(isWindowFullScreenProvider.notifier).state = isFull;
         }
       });
@@ -392,18 +390,12 @@ class _MainLayoutState extends ConsumerState<MainLayout>
 
   @override
   void onWindowEnterFullScreen() {
-    setState(() {
-      _isFullScreen = true;
-    });
     ref.read(isWindowFullScreenProvider.notifier).state = true;
     debugPrint('[main_layout] Window entered full screen');
   }
 
   @override
   void onWindowLeaveFullScreen() {
-    setState(() {
-      _isFullScreen = false;
-    });
     ref.read(isWindowFullScreenProvider.notifier).state = false;
     debugPrint('[main_layout] Window left full screen');
   }
@@ -450,20 +442,6 @@ class _MainLayoutState extends ConsumerState<MainLayout>
         }
       }
     });
-  }
-
-  Future<void> _setFullScreen(bool enable) async {
-    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-      if (enable) {
-        await windowManager.setFullScreen(true);
-      } else {
-        await windowManager.setFullScreen(false);
-      }
-      setState(() {
-        _isFullScreen = enable;
-      });
-      ref.read(isWindowFullScreenProvider.notifier).state = enable;
-    }
   }
 
   /// 处理启动时的命令行参数 (初次启动，例如双击打开应用)
@@ -1292,10 +1270,32 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                     body: Stack(
                       children: [
                         Positioned.fill(
-                          child: _buildCurrentPage(
-                            isDesktop,
-                            useSidebar,
-                            isCoverFlowImmersive,
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: _buildCurrentPage(
+                                  isDesktop,
+                                  useSidebar,
+                                  isCoverFlowImmersive,
+                                ),
+                              ),
+                              if (isDesktop && !isSmallWin)
+                                ClipRect(
+                                  child: AnimatedSize(
+                                    duration: const Duration(milliseconds: 250),
+                                    curve: Curves.easeOutCubic,
+                                    alignment: Alignment.centerRight,
+                                    child: ref.watch(rightQueueDrawerProvider)
+                                        ? Padding(
+                                            padding: EdgeInsets.only(
+                                              top: showCustomTitleBar ? 32.0 : 0.0,
+                                            ),
+                                            child: const RightQueuePanel(),
+                                          )
+                                        : const SizedBox.shrink(),
+                                  ),
+                                ),
+                            ],
                           ),
                         ),
                         if (useSidebar)
@@ -1392,7 +1392,11 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                                         : 0.0))
                               : -120.0,
                           left: railWidth,
-                          right: 0,
+                          right: (isDesktop &&
+                                  !isSmallWin &&
+                                  ref.watch(rightQueueDrawerProvider))
+                              ? kRightQueueDrawerWidth
+                              : 0.0,
                           child: AnimatedOpacity(
                             duration: const Duration(milliseconds: 300),
                             curve: Curves.easeInOut,
@@ -1411,7 +1415,12 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                                               Orientation.landscape;
                                           final availableWidth =
                                               MediaQuery.of(context).size.width -
-                                              railWidth;
+                                              railWidth -
+                                              ((isDesktop &&
+                                                      !isSmallWin &&
+                                                      ref.watch(rightQueueDrawerProvider))
+                                                  ? kRightQueueDrawerWidth
+                                                  : 0.0);
 
                                           return Container(
                                             key: const ValueKey('dynamic-island'),
