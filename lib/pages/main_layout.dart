@@ -1012,7 +1012,12 @@ class _MainLayoutState extends ConsumerState<MainLayout>
               );
             }
 
-            await windowManager.setMinimumSize(const Size(400, 650));
+            final isDrawerOpen = ref.read(rightQueueDrawerProvider);
+            await windowManager.setMinimumSize(
+              isDrawerOpen
+                  ? kDrawerOpenMinWindowSize
+                  : kDefaultRegularMinWindowSize,
+            );
             await windowManager.setMaximumSize(const Size(99999, 99999));
             final savedSize = settings.savedRegularWindowSize;
             debugPrint(
