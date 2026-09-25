@@ -4,10 +4,10 @@ import 'dart:io';
 import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:super_drag_and_drop/super_drag_and_drop.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/utils/list_reorder_utils.dart';
 import 'package:vynody/widgets/app_tooltip.dart';
+import 'package:vynody/widgets/queue_file_drop_target.dart';
 
 class StandaloneQueueApp extends StatefulWidget {
   final String windowId;
@@ -32,8 +32,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
   List<MusicFile> _queue = [];
   int _currentIndex = -1;
   bool _isPlaying = false;
-  bool _isDraggingOver = false;
-  int? _dropInsertIndex;
+  final _keyPool = ReorderableKeyPool(debugPrefix: 'standalone-queue-tile');
 
   ThemeMode _themeMode = ThemeMode.system;
   Color _accentColor = const Color(0xFF6750A4);
@@ -223,6 +222,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
   void _reorderQueue(int oldIndex, int newIndex) {
     if (!ListReorderUtils.moveItem(_queue, oldIndex, newIndex)) return;
 
+    _keyPool.moveKey(oldIndex, newIndex);
     setState(() {
       _currentIndex = ListReorderUtils.reorderIndex(
         _currentIndex,
@@ -268,44 +268,12 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
     return '$minutes:${seconds.toString().padLeft(2, '0')}';
   }
 
-  Future<T?> _readFormatSafely<T extends Object>(
-    dynamic reader,
-    ValueFormat<T> format,
-  ) async {
-    if (!reader.canProvide(format)) return null;
-    final completer = Completer<T?>();
-    try {
-      final progress = reader.getValue<T>(
-        format,
-        (value) {
-          if (!completer.isCompleted) completer.complete(value);
-        },
-        onError: (err) {
-          debugPrint('[DROP] Error reading format $format: $err');
-          if (!completer.isCompleted) completer.complete(null);
-        },
-      );
-      if (progress == null) {
-        if (!completer.isCompleted) completer.complete(null);
-      }
-      return await completer.future.timeout(
-        const Duration(milliseconds: 600),
-        onTimeout: () {
-          debugPrint('[DROP] Timeout reading format $format');
-          return null;
-        },
-      );
-    } catch (e) {
-      debugPrint('[DROP] Exception reading format $format: $e');
-      return null;
-    }
-  }
-
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _subChannel.setMethodCallHandler(null);
     _scrollController.dispose();
+    _keyPool.clear();
     super.dispose();
   }
 
@@ -354,6 +322,8 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
     final lightTheme = _buildTheme(Brightness.light, _accentColor);
     final darkTheme = _buildTheme(Brightness.dark, _accentColor);
 
+    _keyPool.syncLength(_queue.length);
+
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: '播放队列 - Vynody',
@@ -365,198 +335,27 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
           final theme = Theme.of(context);
           return Scaffold(
             backgroundColor: theme.scaffoldBackgroundColor,
-            body: DropRegion(
-              formats: const [
-                Formats.fileUri,
-                Formats.plainText,
-                Formats.uri,
-              ],
-              onDropOver: (event) {
-                if (!_isDraggingOver) {
-                  setState(() => _isDraggingOver = true);
-                }
-                return DropOperation.copy;
-              },
-              onDropEnter: (_) {
-                debugPrint('[DROP] onDropEnter triggered in standalone queue window');
-                setState(() => _isDraggingOver = true);
-              },
-              onDropLeave: (_) {
-                debugPrint('[DROP] onDropLeave triggered in standalone queue window');
-                setState(() {
-                  _isDraggingOver = false;
-                  _dropInsertIndex = null;
+            body: QueueFileDropTarget(
+              enabled: true,
+              displayQueue: _queue,
+              queueSongs: _queue,
+              itemKeyBuilder: (index, song) => _keyPool.getKey(index),
+              showPreview: _queue.isNotEmpty,
+              indicatorHorizontalPadding: 12.0,
+              onFilesDropped: (paths, insertIndex) async {
+                _sendIpc('add_files', {
+                  'paths': paths,
+                  'insertIndex': insertIndex,
+                  'playNow': false,
                 });
-              },
-              onDropEnded: (_) {
-                debugPrint('[DROP] onDropEnded triggered in standalone queue window');
-                setState(() {
-                  _isDraggingOver = false;
-                  _dropInsertIndex = null;
-                });
-              },
-              onPerformDrop: (event) async {
-                debugPrint('[DROP] onPerformDrop started. Received ${event.session.items.length} items');
-                setState(() {
-                  _isDraggingOver = false;
-                  _dropInsertIndex = null;
-                });
-                final paths = <String>[];
-                for (var i = 0; i < event.session.items.length; i++) {
-                  final item = event.session.items[i];
-                  debugPrint('[DROP] Item #$i localData: ${item.localData}');
-                  if (item.localData is MusicFile) {
-                    final p = (item.localData as MusicFile).path;
-                    debugPrint('[DROP] Item #$i resolved MusicFile path: $p');
-                    paths.add(p);
-                    continue;
-                  }
-                  if (item.localData is Map) {
-                    final map = item.localData as Map;
-                    if (map['paths'] is List) {
-                      final list = map['paths'] as List;
-                      debugPrint('[DROP] Item #$i resolved ${list.length} paths from localData[paths]');
-                      for (final p in list) {
-                        if (p != null) paths.add(p.toString());
-                      }
-                      continue;
-                    }
-                    if (map['path'] != null) {
-                      final p = map['path'] as String;
-                      debugPrint('[DROP] Item #$i resolved path from localData[path]: $p');
-                      paths.add(p);
-                      continue;
-                    }
-                  }
-                  final reader = item.dataReader;
-                  if (reader == null) {
-                    debugPrint('[DROP] Item #$i dataReader is null');
-                    continue;
-                  }
-
-                  bool extracted = false;
-
-                  // 1. Try plainText first (batch song paths separated by newline)
-                  final text = await _readFormatSafely<String>(reader, Formats.plainText);
-                  if (text != null && text.trim().isNotEmpty) {
-                    debugPrint('[DROP] Item #$i plainText read, raw length=${text.length}');
-                    final lines = text.split(RegExp(r'[\r\n]+'));
-                    for (final rawLine in lines) {
-                      final trimmed = rawLine.trim();
-                      if (trimmed.isEmpty) continue;
-                      if (trimmed.startsWith('file://')) {
-                        try {
-                          paths.add(Uri.parse(trimmed).toFilePath());
-                          extracted = true;
-                          continue;
-                        } catch (_) {}
-                      }
-                      paths.add(trimmed);
-                      extracted = true;
-                    }
-                  }
-
-                  if (extracted) continue;
-
-                  // 2. Try fileUri
-                  final uri = await _readFormatSafely<Uri>(reader, Formats.fileUri);
-                  if (uri != null && uri.scheme == 'file') {
-                    final filePath = uri.toFilePath();
-                    debugPrint('[DROP] Item #$i fileUri read: $filePath');
-                    paths.add(filePath);
-                    continue;
-                  }
-
-                  // 3. Try uri
-                  final genericNamedUri = await _readFormatSafely<NamedUri>(reader, Formats.uri);
-                  if (genericNamedUri != null) {
-                    final genericUri = genericNamedUri.uri;
-                    if (genericUri.scheme == 'file') {
-                      try {
-                        paths.add(genericUri.toFilePath());
-                      } catch (_) {
-                        paths.add(genericUri.toString());
-                      }
-                    } else {
-                      debugPrint('[DROP] Item #$i uri read: $genericUri');
-                      paths.add(genericUri.toString());
-                    }
-                  }
-                }
-
-                final uniquePaths = <String>[];
-                final seen = <String>{};
-                for (final p in paths) {
-                  String decoded = p;
-                  try {
-                    decoded = Uri.decodeFull(p);
-                  } catch (_) {}
-                  if (seen.add(decoded)) {
-                    uniquePaths.add(decoded);
-                  }
-                }
-
-                debugPrint('[DROP] onPerformDrop finished. Total unique paths: ${uniquePaths.length}');
-
-                if (uniquePaths.isNotEmpty) {
-                  debugPrint('[DROP] Sending IPC add_files with ${uniquePaths.length} paths');
-                  _sendIpc('add_files', {
-                    'paths': uniquePaths,
-                    'insertIndex': _dropInsertIndex,
-                    'playNow': false,
-                  });
-                } else {
-                  debugPrint('[DROP] No valid paths extracted from drop session');
-                }
               },
               child: Column(
                 children: [
                   _buildTitleBar(context),
                   Expanded(
-                    child: Stack(
-                      children: [
-                        _queue.isEmpty
-                            ? _buildEmptyView(context)
-                            : _buildQueueList(context),
-                        if (_isDraggingOver)
-                          Container(
-                            color: theme.colorScheme.primary.withValues(alpha: 0.15),
-                            child: Center(
-                              child: Card(
-                                elevation: 8,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 24,
-                                    vertical: 16,
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        Icons.playlist_add_rounded,
-                                        size: 32,
-                                        color: theme.colorScheme.primary,
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Text(
-                                        '释放以添加到播放队列',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w600,
-                                          color: theme.colorScheme.onSurface,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
+                    child: _queue.isEmpty
+                        ? _buildEmptyView(context)
+                        : _buildQueueList(context),
                   ),
                 ],
               ),
@@ -734,7 +533,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
         final isCurrent = index == _currentIndex;
 
         return Material(
-          key: ObjectKey(song),
+          key: _keyPool.getKey(index),
           color: isCurrent
               ? theme.colorScheme.primaryContainer.withValues(alpha: 0.35)
               : Colors.transparent,

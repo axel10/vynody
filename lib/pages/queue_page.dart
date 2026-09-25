@@ -16,6 +16,7 @@ import '../widgets/library_selection_panel.dart';
 import 'package:vynody/utils/layout_constants.dart';
 import 'package:vynody/utils/queue_sort_utils.dart';
 import 'package:vynody/utils/list_reorder_utils.dart';
+import 'package:vynody/player/platform/standalone_queue_window_manager.dart';
 
 
 // 队列页面
@@ -599,6 +600,11 @@ class _QueuePageState extends ConsumerState<QueuePage>
         queueSongs: queue,
         itemKeyBuilder: _songTileKeyFor,
         showPreview: showPreview,
+        onFilesDropped: (paths, insertIndex) async {
+          await ref
+              .read(standaloneQueueWindowManagerProvider)
+              .handleDroppedPaths(paths, insertIndex: insertIndex);
+        },
         child: Stack(
           fit: StackFit.expand,
           children: [

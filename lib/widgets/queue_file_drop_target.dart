@@ -1,43 +1,47 @@
+import 'dart:async';
 import 'package:desktop_drop/desktop_drop.dart' as dd;
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:super_drag_and_drop/super_drag_and_drop.dart';
 
 import 'package:vynody/models/music_file.dart';
-import 'package:vynody/player/platform/standalone_queue_window_manager.dart';
 import 'package:vynody/utils/drop_data_utils.dart';
 import 'package:vynody/utils/layout_constants.dart';
 
-class QueueFileDropTarget extends ConsumerStatefulWidget {
+class QueueFileDropTarget extends StatefulWidget {
   const QueueFileDropTarget({
     super.key,
     required this.child,
     required this.displayQueue,
     required this.queueSongs,
     required this.itemKeyBuilder,
+    required this.onFilesDropped,
     this.enabled = true,
     this.showPreview = true,
+    this.indicatorHorizontalPadding = 16.0,
+    this.indicatorMaxWidth = kSingleColumnContentMaxWidth,
   });
 
   final Widget child;
   final List<MusicFile> displayQueue;
   final List<MusicFile> queueSongs;
   final GlobalKey Function(int index, MusicFile song) itemKeyBuilder;
+  final FutureOr<void> Function(List<String> paths, int? insertIndex) onFilesDropped;
   final bool enabled;
   final bool showPreview;
+  final double indicatorHorizontalPadding;
+  final double? indicatorMaxWidth;
 
   @override
-  ConsumerState<QueueFileDropTarget> createState() =>
-      _QueueFileDropTargetState();
+  State<QueueFileDropTarget> createState() => _QueueFileDropTargetState();
 }
 
-class _QueueFileDropTargetState extends ConsumerState<QueueFileDropTarget> {
+class _QueueFileDropTargetState extends State<QueueFileDropTarget> {
   final GlobalKey _surfaceKey = GlobalKey(debugLabel: 'queue-drop-surface');
   bool _isDraggingFiles = false;
   double? _dropIndicatorTop;
   int? _dropInsertIndex;
 
-  ({int insertIndex, double indicatorTop})? _calculateDropPreview(
+  ({int insertIndex, double? indicatorTop})? _calculateDropPreview(
     Offset localPosition,
   ) {
     final surfaceBox =
@@ -64,7 +68,7 @@ class _QueueFileDropTargetState extends ConsumerState<QueueFileDropTarget> {
     }
 
     if (visibleItems.isEmpty) {
-      return (insertIndex: 0, indicatorTop: 0);
+      return (insertIndex: 0, indicatorTop: null);
     }
 
     visibleItems.sort((a, b) => a.index.compareTo(b.index));
@@ -105,23 +109,21 @@ class _QueueFileDropTargetState extends ConsumerState<QueueFileDropTarget> {
   }
 
   void _onPerformSuperDrop(PerformDropEvent event) async {
+    final insertIndex = _dropInsertIndex;
+    _clearDropPreview();
     final uniquePaths = await DropDataUtils.extractPathsFromDrop(event);
     if (uniquePaths.isNotEmpty) {
-      await ref
-          .read(standaloneQueueWindowManagerProvider)
-          .handleDroppedPaths(uniquePaths, insertIndex: _dropInsertIndex);
+      await widget.onFilesDropped(uniquePaths, insertIndex);
     }
-    _clearDropPreview();
   }
 
   void _onPerformDesktopDrop(dd.DropDoneDetails details) async {
+    final insertIndex = _dropInsertIndex;
+    _clearDropPreview();
     final paths = details.files.map((f) => f.path).toList();
     if (paths.isNotEmpty) {
-      await ref
-          .read(standaloneQueueWindowManagerProvider)
-          .handleDroppedPaths(paths, insertIndex: _dropInsertIndex);
+      await widget.onFilesDropped(paths, insertIndex);
     }
-    _clearDropPreview();
   }
 
   void _updateDropPreview(Offset localPosition) {
@@ -194,11 +196,13 @@ class _QueueFileDropTargetState extends ConsumerState<QueueFileDropTarget> {
                     child: Align(
                       alignment: Alignment.center,
                       child: ConstrainedBox(
-                        constraints: const BoxConstraints(
-                          maxWidth: kSingleColumnContentMaxWidth,
+                        constraints: BoxConstraints(
+                          maxWidth: widget.indicatorMaxWidth ?? double.infinity,
                         ),
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: widget.indicatorHorizontalPadding,
+                          ),
                           child: Container(
                             height: 3,
                             decoration: BoxDecoration(

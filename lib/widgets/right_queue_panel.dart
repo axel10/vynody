@@ -1,20 +1,20 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:desktop_drop/desktop_drop.dart' as dd;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:super_drag_and_drop/super_drag_and_drop.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/audio/audio_service.dart';
 import 'package:vynody/player/platform/right_queue_drawer_controller.dart';
 import 'package:vynody/player/platform/standalone_queue_window_manager.dart';
-import 'package:vynody/utils/drop_data_utils.dart';
+import 'package:vynody/utils/layout_constants.dart';
+import 'package:vynody/utils/list_reorder_utils.dart';
 import 'package:vynody/utils/queue_sort_utils.dart';
 import 'package:vynody/utils/song_context_menu_utils.dart';
 import 'package:vynody/utils/time_format_utils.dart';
 import 'package:vynody/widgets/app_tooltip.dart';
+import 'package:vynody/widgets/queue_file_drop_target.dart';
 
 class RightQueuePanel extends ConsumerStatefulWidget {
   const RightQueuePanel({super.key});
@@ -25,14 +25,14 @@ class RightQueuePanel extends ConsumerStatefulWidget {
 
 class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
   final ScrollController _scrollController = ScrollController();
-  bool _isDraggingOver = false;
-  int? _dropInsertIndex;
+  final _keyPool = ReorderableKeyPool(debugPrefix: 'right-queue-tile');
   QueueSortField _sortField = QueueSortField.title;
   bool _sortAscending = true;
 
   @override
   void dispose() {
     _scrollController.dispose();
+    _keyPool.clear();
     super.dispose();
   }
 
@@ -110,24 +110,6 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
     );
   }
 
-  void _onPerformSuperDrop(PerformDropEvent event) async {
-    final uniquePaths = await DropDataUtils.extractPathsFromDrop(event);
-    if (uniquePaths.isNotEmpty) {
-      await ref
-          .read(standaloneQueueWindowManagerProvider)
-          .handleDroppedPaths(uniquePaths, insertIndex: _dropInsertIndex);
-    }
-  }
-
-  void _onPerformDesktopDrop(dd.DropDoneDetails details) async {
-    final paths = details.files.map((f) => f.path).toList();
-    if (paths.isNotEmpty) {
-      await ref
-          .read(standaloneQueueWindowManagerProvider)
-          .handleDroppedPaths(paths, insertIndex: _dropInsertIndex);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -138,6 +120,8 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
     final isDesktop =
         Platform.isWindows || Platform.isLinux || Platform.isMacOS;
     final topPadding = isDesktop ? 32.0 : 0.0;
+
+    _keyPool.syncLength(queue.length);
 
     return Container(
       width: kRightQueueDrawerWidth,
@@ -157,90 +141,34 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
           ),
         ],
       ),
-      child: dd.DropTarget(
-        onDragDone: _onPerformDesktopDrop,
-        onDragEntered: (_) => setState(() => _isDraggingOver = true),
-        onDragExited: (_) => setState(() => _isDraggingOver = false),
-        child: DropRegion(
-          formats: const [Formats.fileUri, Formats.plainText, Formats.uri],
-          hitTestBehavior: HitTestBehavior.opaque,
-          onDropOver: (event) {
-            final y = event.position.local.dy - (52.0 + topPadding); // Subtract header height
-            if (y <= 0) {
-              _dropInsertIndex = 0;
-            } else {
-              final idx = (y / 54.0).floor();
-              _dropInsertIndex = idx.clamp(0, queue.length);
-            }
-            return DropOperation.copy;
-          },
-          onDropEnter: (_) => setState(() => _isDraggingOver = true),
-          onDropLeave: (_) => setState(() => _isDraggingOver = false),
-          onDropEnded: (_) => setState(() => _isDraggingOver = false),
-          onPerformDrop: (event) async {
-            _onPerformSuperDrop(event);
-          },
-          child: Column(
-            children: [
-              if (topPadding > 0) SizedBox(height: topPadding),
-              _buildHeader(context, queue.length),
-              Expanded(
-                child: Stack(
-                  children: [
-                    queue.isEmpty
-                        ? _buildEmptyView(context)
-                        : _buildQueueList(
-                            context,
-                            queue,
-                            currentIndex,
-                            isPlaying,
-                            audioService,
-                          ),
-                    if (_isDraggingOver)
-                      Container(
-                        color: theme.colorScheme.primary.withValues(alpha: 0.12),
-                        child: Center(
-                          child: Card(
-                            elevation: 6,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 20,
-                                vertical: 14,
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.playlist_add_rounded,
-                                    size: 28,
-                                    color: theme.colorScheme.primary,
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Text(
-                                    _dropInsertIndex != null &&
-                                            _dropInsertIndex! < queue.length
-                                        ? '插入至第 ${_dropInsertIndex! + 1} 首'
-                                        : '添加到队列末尾',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
-                                      color: theme.colorScheme.onSurface,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+      child: QueueFileDropTarget(
+        enabled: true,
+        displayQueue: queue,
+        queueSongs: queue,
+        itemKeyBuilder: (index, song) => _keyPool.getKey(index),
+        showPreview: queue.isNotEmpty,
+        indicatorHorizontalPadding: 12.0,
+        onFilesDropped: (paths, insertIndex) async {
+          await ref
+              .read(standaloneQueueWindowManagerProvider)
+              .handleDroppedPaths(paths, insertIndex: insertIndex);
+        },
+        child: Column(
+          children: [
+            if (topPadding > 0) SizedBox(height: topPadding),
+            _buildHeader(context, queue.length),
+            Expanded(
+              child: queue.isEmpty
+                  ? _buildEmptyView(context)
+                  : _buildQueueList(
+                      context,
+                      queue,
+                      currentIndex,
+                      isPlaying,
+                      audioService,
+                    ),
+            ),
+          ],
         ),
       ),
     );
@@ -392,13 +320,14 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
       itemCount: queue.length,
       onReorderItem: (oldIndex, newIndex) {
         audioService.moveQueueTrack(oldIndex, newIndex);
+        _keyPool.moveKey(oldIndex, newIndex);
       },
       itemBuilder: (context, index) {
         final song = queue[index];
         final isCurrent = index == currentIndex;
 
         return _RightQueueTile(
-          key: ObjectKey(song),
+          key: _keyPool.getKey(index),
           song: song,
           index: index,
           isCurrent: isCurrent,

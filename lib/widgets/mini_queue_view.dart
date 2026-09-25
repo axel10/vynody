@@ -10,6 +10,7 @@ import 'package:vynody/utils/song_context_menu_utils.dart';
 import 'package:vynody/utils/time_format_utils.dart';
 import 'package:vynody/widgets/queue_file_drop_target.dart';
 import 'package:vynody/widgets/playing_equalizer_icon.dart';
+import 'package:vynody/player/platform/standalone_queue_window_manager.dart';
 
 const Color _miniQueuePanelBackgroundColor = Color.fromARGB(132, 0, 0, 0);
 const Color _miniQueuePanelBorderColor = Color(0x14FFFFFF);
@@ -113,6 +114,11 @@ class _MiniQueueViewState extends ConsumerState<MiniQueueView> {
       queueSongs: queue,
       itemKeyBuilder: (index, song) => _itemKeyForSong(song),
       showPreview: true,
+      onFilesDropped: (paths, insertIndex) async {
+        await ref
+            .read(standaloneQueueWindowManagerProvider)
+            .handleDroppedPaths(paths, insertIndex: insertIndex);
+      },
       child: Container(
         decoration: BoxDecoration(
           color: _miniQueuePanelBackgroundColor,
