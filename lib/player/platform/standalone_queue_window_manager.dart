@@ -37,6 +37,7 @@ class StandaloneQueueWindowManager {
   ProviderSubscription<int>? _currentIndexSub;
   ProviderSubscription<ScannerService>? _scannerSub;
   ProviderSubscription<SettingsService>? _settingsSub;
+  StreamSubscription<void>? _windowsChangedSub;
   Timer? _debounceSyncTimer;
 
   StandaloneQueueWindowManager(this.ref) {
@@ -46,9 +47,30 @@ class StandaloneQueueWindowManager {
       mode: ChannelMode.unidirectional,
     );
     _initIpcHandler();
+    _initWindowsChangedListener();
   }
 
   bool get isWindowOpen => ref.read(isStandaloneQueueWindowOpenProvider);
+
+  void _initWindowsChangedListener() {
+    _windowsChangedSub?.cancel();
+    _windowsChangedSub = onWindowsChanged.listen((_) async {
+      if (_subWindowId == null) return;
+      try {
+        final allWindows = await WindowController.getAll();
+        final exists = allWindows.any((w) => w.windowId == _subWindowId);
+        if (!exists) {
+          AppLog.log(
+            '[StandaloneQueue] Sub-window $_subWindowId closed natively',
+            mirrorToConsole: true,
+          );
+          _onSubWindowClosed();
+        }
+      } catch (e) {
+        AppLog.log('[StandaloneQueue] Error checking window existence: $e');
+      }
+    });
+  }
 
   void _initIpcHandler() {
     _mainChannel.setMethodCallHandler((call) async {
@@ -352,6 +374,8 @@ class StandaloneQueueWindowManager {
 
   void _onSubWindowClosed() {
     _stopStateListening();
+    _subWindowController = null;
+    _subWindowId = null;
     ref.read(isStandaloneQueueWindowOpenProvider.notifier).state = false;
   }
 
@@ -499,6 +523,8 @@ class StandaloneQueueWindowManager {
   }
 
   void dispose() {
+    _windowsChangedSub?.cancel();
+    _windowsChangedSub = null;
     _debounceSyncTimer?.cancel();
     _debounceSyncTimer = null;
     _stopStateListening();
