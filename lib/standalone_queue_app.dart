@@ -202,6 +202,16 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
   }
 
   void _removeIndex(int index) {
+    if (index >= 0 && index < _queue.length) {
+      setState(() {
+        _queue.removeAt(index);
+        if (_currentIndex == index) {
+          _currentIndex = -1;
+        } else if (_currentIndex > index) {
+          _currentIndex--;
+        }
+      });
+    }
     _sendIpc('remove_index', index);
   }
 
@@ -210,6 +220,26 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
   }
 
   void _reorderQueue(int oldIndex, int newIndex) {
+    if (oldIndex < 0 ||
+        oldIndex >= _queue.length ||
+        newIndex < 0 ||
+        newIndex >= _queue.length ||
+        oldIndex == newIndex) {
+      return;
+    }
+
+    setState(() {
+      final moved = _queue.removeAt(oldIndex);
+      _queue.insert(newIndex, moved);
+      if (_currentIndex == oldIndex) {
+        _currentIndex = newIndex;
+      } else if (oldIndex < _currentIndex && newIndex >= _currentIndex) {
+        _currentIndex--;
+      } else if (oldIndex > _currentIndex && newIndex <= _currentIndex) {
+        _currentIndex++;
+      }
+    });
+
     _sendIpc('reorder', {'oldIndex': oldIndex, 'newIndex': newIndex});
   }
 
