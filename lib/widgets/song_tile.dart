@@ -8,14 +8,15 @@ import 'package:vynody/l10n/app_localizations.dart';
 import 'package:vynody/utils/time_format_utils.dart';
 import 'package:vynody/widgets/playing_equalizer_icon.dart';
 import 'package:vynody/widgets/draggable_song_item.dart';
+import 'package:vynody/widgets/library_selection_scope.dart';
 
 class SongTile extends ConsumerWidget {
   const SongTile({
     super.key,
     required this.song,
     required this.isCurrent,
-    this.isSelected = false,
-    this.isSelectionMode = false,
+    this.isSelected,
+    this.isSelectionMode,
     this.selectedPaths,
     this.isHighlighted = false,
     this.dragHandle,
@@ -27,8 +28,8 @@ class SongTile extends ConsumerWidget {
 
   final MusicFile song;
   final bool isCurrent;
-  final bool isSelected;
-  final bool isSelectionMode;
+  final bool? isSelected;
+  final bool? isSelectionMode;
   final Iterable<String>? selectedPaths;
   final bool isHighlighted;
   final Widget? dragHandle;
@@ -45,6 +46,31 @@ class SongTile extends ConsumerWidget {
       scannerServiceProvider.select((s) => s.metadataMap[song.path]),
     );
     final isPlaying = ref.watch(audioIsPlayingProvider);
+
+    final isGlobalSelectionActive = ref.watch(
+      librarySelectionStateProvider.select(
+        (s) => s.isActive && s.scope != LibrarySelectionScope.none,
+      ),
+    );
+    final isGlobalSongSelected = isGlobalSelectionActive
+        ? ref.watch(
+            librarySelectionStateProvider.select(
+              (s) => s.selectedKeys.contains(song.path),
+            ),
+          )
+        : false;
+
+    final effectiveSelectionMode = isSelectionMode ?? isGlobalSelectionActive;
+    final effectiveSelected = isSelected ??
+        selectedPaths?.contains(song.path) ??
+        isGlobalSongSelected;
+
+    VoidCallback? effectiveOnTap = onTap;
+    if (effectiveOnTap == null && effectiveSelectionMode) {
+      effectiveOnTap = () {
+        ref.read(librarySelectionStateProvider.notifier).toggle(song.path);
+      };
+    }
     
     final isMissing = song.isMissing;
     
@@ -77,15 +103,15 @@ class SongTile extends ConsumerWidget {
           Opacity(
             opacity: isMissing
                 ? 0.35
-                : isSelectionMode
-                    ? (isSelected ? 0.5 : 0.7)
+                : effectiveSelectionMode
+                    ? (effectiveSelected ? 0.5 : 0.7)
                     : 1.0,
             child: SongThumbnail.fromSong(
               song,
               size: 56.0,
             ),
           ),
-          if (isSelectionMode)
+          if (effectiveSelectionMode)
             Positioned.fill(
               child: Align(
                 alignment: Alignment.center,
@@ -93,8 +119,8 @@ class SongTile extends ConsumerWidget {
                   width: 32,
                   height: 32,
                   child: Checkbox(
-                    value: isSelected,
-                    onChanged: (_) => onTap?.call(),
+                    value: effectiveSelected,
+                    onChanged: (_) => effectiveOnTap?.call(),
                     fillColor: WidgetStateProperty.all(Colors.white),
                     checkColor: Colors.black,
                     shape: RoundedRectangleBorder(
@@ -110,7 +136,7 @@ class SongTile extends ConsumerWidget {
 
     // Build trailing widget (more button or drag handle)
     Widget? trailingWidget;
-    if (isSelectionMode) {
+    if (effectiveSelectionMode) {
       if (dragHandle != null) {
         trailingWidget = IconTheme(
           data: theme.iconTheme.copyWith(
@@ -154,7 +180,7 @@ class SongTile extends ConsumerWidget {
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
         decoration: BoxDecoration(
-          color: isSelectionMode && isSelected
+          color: effectiveSelectionMode && effectiveSelected
               ? theme.colorScheme.primaryContainer.withValues(alpha: 0.35)
               : isHighlighted
                   ? theme.colorScheme.primary.withValues(alpha: 0.2)
@@ -167,7 +193,7 @@ class SongTile extends ConsumerWidget {
           child: InkWell(
             borderRadius: BorderRadius.circular(12),
             enableFeedback: false,
-            onTap: onTap,
+            onTap: effectiveOnTap,
             onLongPress: onLongPress,
             hoverColor: theme.colorScheme.onSurface.withValues(alpha: 0.06),
             child: Padding(
@@ -264,8 +290,8 @@ class SongTile extends ConsumerWidget {
     return DraggableSongItem(
       song: song,
       enabled: !isMissing,
-      isSelected: isSelected,
-      isSelectionMode: isSelectionMode,
+      isSelected: effectiveSelected,
+      isSelectionMode: effectiveSelectionMode,
       selectedPaths: selectedPaths,
       child: content,
     );

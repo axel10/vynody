@@ -9,6 +9,7 @@ import '../widgets/playing_equalizer_icon.dart';
 import '../player/audio/audio_riverpod.dart';
 import 'remote_media_badge.dart';
 import 'draggable_song_item.dart';
+import 'library_selection_scope.dart';
 
 class SongGridCard extends ConsumerWidget {
   const SongGridCard({
@@ -16,8 +17,8 @@ class SongGridCard extends ConsumerWidget {
     required this.song,
     required this.isCurrent,
     required this.isPlaying,
-    this.isSelected = false,
-    this.isSelectionMode = false,
+    this.isSelected,
+    this.isSelectionMode,
     this.selectedPaths,
     this.isHighlighted = false,
     this.onTap,
@@ -28,8 +29,8 @@ class SongGridCard extends ConsumerWidget {
   final MusicFile song;
   final bool isCurrent;
   final bool isPlaying;
-  final bool isSelected;
-  final bool isSelectionMode;
+  final bool? isSelected;
+  final bool? isSelectionMode;
   final Iterable<String>? selectedPaths;
   final bool isHighlighted;
   final VoidCallback? onTap;
@@ -41,6 +42,31 @@ class SongGridCard extends ConsumerWidget {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
     final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
+
+    final isGlobalSelectionActive = ref.watch(
+      librarySelectionStateProvider.select(
+        (s) => s.isActive && s.scope != LibrarySelectionScope.none,
+      ),
+    );
+    final isGlobalSongSelected = isGlobalSelectionActive
+        ? ref.watch(
+            librarySelectionStateProvider.select(
+              (s) => s.selectedKeys.contains(song.path),
+            ),
+          )
+        : false;
+
+    final effectiveSelectionMode = isSelectionMode ?? isGlobalSelectionActive;
+    final effectiveSelected = isSelected ??
+        selectedPaths?.contains(song.path) ??
+        isGlobalSongSelected;
+
+    VoidCallback? effectiveOnTap = onTap;
+    if (effectiveOnTap == null && effectiveSelectionMode) {
+      effectiveOnTap = () {
+        ref.read(librarySelectionStateProvider.notifier).toggle(song.path);
+      };
+    }
 
     final metadata = ref.watch(
       scannerServiceProvider.select((s) => s.metadataMap[song.path]),
@@ -72,7 +98,7 @@ class SongGridCard extends ConsumerWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         enableFeedback: false,
-        onTap: onTap,
+        onTap: effectiveOnTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeInOut,
@@ -139,19 +165,19 @@ class SongGridCard extends ConsumerWidget {
                               ),
                             ),
                           ),
-                          if (isSelectionMode)
+                          if (effectiveSelectionMode)
                             Container(
-                              color: isSelected
+                              color: effectiveSelected
                                   ? theme.colorScheme.primaryContainer.withValues(alpha: 0.4)
                                   : Colors.black26,
                             ),
-                          if (isSelectionMode)
+                          if (effectiveSelectionMode)
                             Positioned(
                               top: 8,
                               left: 8,
                               child: Icon(
-                                isSelected ? Icons.check_circle_rounded : Icons.radio_button_off_rounded,
-                                color: isSelected ? theme.colorScheme.primary : Colors.white70,
+                                effectiveSelected ? Icons.check_circle_rounded : Icons.radio_button_off_rounded,
+                                color: effectiveSelected ? theme.colorScheme.primary : Colors.white70,
                                 size: 24,
                               ),
                             ),
@@ -219,8 +245,8 @@ class SongGridCard extends ConsumerWidget {
     return DraggableSongItem(
       song: song,
       enabled: true,
-      isSelected: isSelected,
-      isSelectionMode: isSelectionMode,
+      isSelected: effectiveSelected,
+      isSelectionMode: effectiveSelectionMode,
       selectedPaths: selectedPaths,
       child: card,
     );

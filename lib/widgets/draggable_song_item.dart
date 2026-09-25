@@ -34,38 +34,41 @@ class DraggableSongItem extends ConsumerWidget {
       return child;
     }
 
-    final selectionState = ref.watch(librarySelectionStateProvider);
-    final globalSelectionActive = selectionState.isActive &&
-        selectionState.scope != LibrarySelectionScope.none &&
-        selectionState.selectedKeys.isNotEmpty;
+    final isGlobalSelectionActive = ref.watch(
+      librarySelectionStateProvider.select(
+        (s) => s.isActive && s.scope != LibrarySelectionScope.none && s.selectedKeys.isNotEmpty,
+      ),
+    );
+    final isGlobalSongSelected = isGlobalSelectionActive
+        ? ref.watch(
+            librarySelectionStateProvider.select(
+              (s) => s.selectedKeys.contains(song.path),
+            ),
+          )
+        : false;
 
     final bool selectionActive = (isSelectionMode ?? false) ||
         (selectedPaths != null && selectedPaths!.isNotEmpty) ||
-        globalSelectionActive;
+        isGlobalSelectionActive;
 
     final bool thisSongSelected = isSelected ??
         selectedPaths?.contains(song.path) ??
-        (globalSelectionActive && selectionState.selectedKeys.contains(song.path));
+        isGlobalSongSelected;
 
-    final List<String> dragPaths;
+    final int dragCount;
     if (selectionActive && thisSongSelected) {
       if (selectedPaths != null && selectedPaths!.isNotEmpty) {
-        dragPaths = selectedPaths!.toList();
-      } else if (globalSelectionActive) {
-        final stringKeys =
-            selectionState.selectedKeys.whereType<String>().toList();
-        if (stringKeys.isNotEmpty && stringKeys.contains(song.path)) {
-          dragPaths = stringKeys;
-        } else {
-          dragPaths = [song.path];
-        }
+        dragCount = selectedPaths!.length;
+      } else if (isGlobalSelectionActive) {
+        dragCount = ref.watch(
+          librarySelectionStateProvider.select((s) => s.selectedKeys.length),
+        );
       } else {
-        dragPaths = [song.path];
+        dragCount = 1;
       }
     } else {
-      dragPaths = [song.path];
+      dragCount = 1;
     }
-    final int dragCount = dragPaths.length;
     final bool isBatch = dragCount > 1;
 
     final hasThumb = song.thumbnailPath != null &&
@@ -80,8 +83,28 @@ class DraggableSongItem extends ConsumerWidget {
     return DesktopDraggableWrapper(
       enabled: enabled,
       dragItemProvider: (request) async {
+        final List<String> dragPaths;
+        if (selectionActive && thisSongSelected) {
+          if (selectedPaths != null && selectedPaths!.isNotEmpty) {
+            dragPaths = selectedPaths!.toList();
+          } else {
+            final globalState = ref.read(librarySelectionStateProvider);
+            final stringKeys =
+                globalState.selectedKeys.whereType<String>().toList();
+            if (stringKeys.isNotEmpty && stringKeys.contains(song.path)) {
+              dragPaths = stringKeys;
+            } else {
+              dragPaths = [song.path];
+            }
+          }
+        } else {
+          dragPaths = [song.path];
+        }
+        final actualCount = dragPaths.length;
+        final actualIsBatch = actualCount > 1;
+
         debugPrint(
-            '[DRAG] DraggableSongItem.dragItemProvider called for: ${song.displayName} (path: ${song.path}), total: $dragCount');
+            '[DRAG] DraggableSongItem.dragItemProvider called for: ${song.displayName} (path: ${song.path}), total: $actualCount');
         final item = DragItem(
           localData: <String, dynamic>{
             'path': song.path,
@@ -89,11 +112,11 @@ class DraggableSongItem extends ConsumerWidget {
             'name': song.name,
             'title': song.title,
             'artist': song.artist,
-            'count': dragCount,
+            'count': actualCount,
           },
         );
 
-        if (!isBatch) {
+        if (!actualIsBatch) {
           final isRemote = RemoteMediaResolver.isRemoteUri(song.path) ||
               song.path.startsWith('http://') ||
               song.path.startsWith('https://');
