@@ -184,33 +184,34 @@ class _DesktopWindowTitleBarState extends ConsumerState<DesktopWindowTitleBar>
                         },
                       ),
                     ),
-                    AppTooltip(
-                      message: ref.watch(isStandaloneQueueWindowOpenProvider)
-                          ? '关闭独立播放队列'
-                          : (ref.watch(rightQueueDrawerProvider)
-                              ? '收起播放队列'
-                              : '展开播放队列'),
-                      child: _MacosSmallWindowButton(
-                        icon: ref.watch(isStandaloneQueueWindowOpenProvider) ||
-                                ref.watch(rightQueueDrawerProvider)
-                            ? Icons.queue_music
-                            : Icons.queue_music_outlined,
-                        iconSize: isSmallWindowMode ? 16 : 18,
-                        color: (ref.watch(isStandaloneQueueWindowOpenProvider) ||
-                                ref.watch(rightQueueDrawerProvider))
-                            ? Theme.of(context).colorScheme.primary
-                            : null,
-                        onPressed: () {
-                          if (ref.read(isStandaloneQueueWindowOpenProvider)) {
-                            ref
-                                .read(standaloneQueueWindowManagerProvider)
-                                .closeQueueWindow();
-                          } else {
-                            ref.read(rightQueueDrawerProvider.notifier).toggle();
-                          }
-                        },
+                    if (!isSmallWindowMode)
+                      AppTooltip(
+                        message: ref.watch(isStandaloneQueueWindowOpenProvider)
+                            ? '关闭独立播放队列'
+                            : (ref.watch(rightQueueDrawerProvider)
+                                ? '收起播放队列'
+                                : '展开播放队列'),
+                        child: _MacosSmallWindowButton(
+                          icon: ref.watch(isStandaloneQueueWindowOpenProvider) ||
+                                  ref.watch(rightQueueDrawerProvider)
+                              ? Icons.queue_music
+                              : Icons.queue_music_outlined,
+                          iconSize: isSmallWindowMode ? 16 : 18,
+                          color: (ref.watch(isStandaloneQueueWindowOpenProvider) ||
+                                  ref.watch(rightQueueDrawerProvider))
+                              ? Theme.of(context).colorScheme.primary
+                              : null,
+                          onPressed: () {
+                            if (ref.read(isStandaloneQueueWindowOpenProvider)) {
+                              ref
+                                  .read(standaloneQueueWindowManagerProvider)
+                                  .closeQueueWindow();
+                            } else {
+                              ref.read(rightQueueDrawerProvider.notifier).toggle();
+                            }
+                          },
+                        ),
                       ),
-                    ),
                     if (isSmallWindowMode)
                       Row(
                         mainAxisSize: MainAxisSize.min,
@@ -233,29 +234,35 @@ class _DesktopWindowTitleBarState extends ConsumerState<DesktopWindowTitleBar>
                               },
                             ),
                           ),
-                          _MacosSmallWindowButton(
-                            icon: Icons.queue_music,
-                            iconSize: 16,
-                            color: settings.isSmallWindowQueueExpanded
-                                ? Theme.of(context).colorScheme.primary
-                                : null,
-                            onPressed: () {
-                              settings.toggleSmallWindowBottomPanelMode(
-                                SmallWindowBottomPanelMode.queue,
-                              );
-                            },
+                          AppTooltip(
+                            message: '播放队列',
+                            child: _MacosSmallWindowButton(
+                              icon: Icons.queue_music,
+                              iconSize: 16,
+                              color: settings.isSmallWindowQueueExpanded
+                                  ? Theme.of(context).colorScheme.primary
+                                  : null,
+                              onPressed: () {
+                                settings.toggleSmallWindowBottomPanelMode(
+                                  SmallWindowBottomPanelMode.queue,
+                                );
+                              },
+                            ),
                           ),
-                          _MacosSmallWindowButton(
-                            icon: Icons.text_snippet_outlined,
-                            iconSize: 16,
-                            color: settings.isSmallWindowLyricsExpanded
-                                ? Theme.of(context).colorScheme.primary
-                                : null,
-                            onPressed: () {
-                              settings.toggleSmallWindowBottomPanelMode(
-                                SmallWindowBottomPanelMode.lyrics,
-                              );
-                            },
+                          AppTooltip(
+                            message: '歌词',
+                            child: _MacosSmallWindowButton(
+                              icon: Icons.text_snippet_outlined,
+                              iconSize: 16,
+                              color: settings.isSmallWindowLyricsExpanded
+                                  ? Theme.of(context).colorScheme.primary
+                                  : null,
+                              onPressed: () {
+                                settings.toggleSmallWindowBottomPanelMode(
+                                  SmallWindowBottomPanelMode.lyrics,
+                                );
+                              },
+                            ),
                           ),
                         ],
                       ),
@@ -319,32 +326,33 @@ class _DesktopWindowTitleBarState extends ConsumerState<DesktopWindowTitleBar>
                               !settings.enableDesktopLyrics;
                         },
                       ),
-                    _CapsuleButtonData(
-                      icon: ref.watch(isStandaloneQueueWindowOpenProvider)
-                          ? Icons.queue_music
-                          : (ref.watch(rightQueueDrawerProvider)
-                              ? Icons.queue_music
-                              : Icons.queue_music_outlined),
-                      iconSize: isSmallWindowMode ? 14 : 16,
-                      tooltip: ref.watch(isStandaloneQueueWindowOpenProvider)
-                          ? '关闭独立播放队列'
-                          : (ref.watch(rightQueueDrawerProvider)
-                              ? '收起播放队列'
-                              : '展开播放队列'),
-                      color: (ref.watch(isStandaloneQueueWindowOpenProvider) ||
-                              ref.watch(rightQueueDrawerProvider))
+                    if (!isSmallWindowMode)
+                      _CapsuleButtonData(
+                        icon: ref.watch(isStandaloneQueueWindowOpenProvider)
+                            ? Icons.queue_music
+                            : (ref.watch(rightQueueDrawerProvider)
+                                ? Icons.queue_music
+                                : Icons.queue_music_outlined),
+                        iconSize: 16,
+                        tooltip: ref.watch(isStandaloneQueueWindowOpenProvider)
+                            ? '关闭独立播放队列'
+                            : (ref.watch(rightQueueDrawerProvider)
+                                ? '收起播放队列'
+                                : '展开播放队列'),
+                        color: (ref.watch(isStandaloneQueueWindowOpenProvider) ||
+                                ref.watch(rightQueueDrawerProvider))
                             ? Theme.of(context).colorScheme.primary
-                          : null,
-                      onPressed: () {
-                        if (ref.read(isStandaloneQueueWindowOpenProvider)) {
-                          ref
-                              .read(standaloneQueueWindowManagerProvider)
-                              .closeQueueWindow();
-                        } else {
-                          ref.read(rightQueueDrawerProvider.notifier).toggle();
-                        }
-                      },
-                    ),
+                            : null,
+                        onPressed: () {
+                          if (ref.read(isStandaloneQueueWindowOpenProvider)) {
+                            ref
+                                .read(standaloneQueueWindowManagerProvider)
+                                .closeQueueWindow();
+                          } else {
+                            ref.read(rightQueueDrawerProvider.notifier).toggle();
+                          }
+                        },
+                      ),
                     if (isSmallWindowMode) ...[
                       _CapsuleButtonData(
                         icon: settings.isSmallWindowAlwaysOnTop
@@ -369,6 +377,7 @@ class _DesktopWindowTitleBarState extends ConsumerState<DesktopWindowTitleBar>
                       _CapsuleButtonData(
                         icon: Icons.queue_music,
                         iconSize: 14,
+                        tooltip: '播放队列',
                         color: settings.isSmallWindowQueueExpanded
                             ? Theme.of(context).colorScheme.primary
                             : null,
@@ -381,6 +390,7 @@ class _DesktopWindowTitleBarState extends ConsumerState<DesktopWindowTitleBar>
                       _CapsuleButtonData(
                         icon: Icons.text_snippet_outlined,
                         iconSize: 14,
+                        tooltip: '歌词',
                         color: settings.isSmallWindowLyricsExpanded
                             ? Theme.of(context).colorScheme.primary
                             : null,
