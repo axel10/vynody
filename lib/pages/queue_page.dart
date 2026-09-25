@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
-import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/app_localizations.dart';
@@ -15,16 +14,7 @@ import 'package:vynody/widgets/queue_file_drop_target.dart';
 import '../widgets/library_selection_scope.dart';
 import '../widgets/library_selection_panel.dart';
 import 'package:vynody/utils/layout_constants.dart';
-import 'package:vynody/dialogs/sort_options_dialog.dart';
-
-enum QueueSortField {
-  title,
-  artist,
-  album,
-  duration,
-  filename,
-  trackNumber,
-}
+import 'package:vynody/utils/queue_sort_utils.dart';
 
 
 // 队列页面
@@ -225,46 +215,10 @@ class _QueuePageState extends ConsumerState<QueuePage>
   }
 
   Future<void> _showSortDialog(BuildContext context) async {
-    final l10n = AppLocalizations.of(context)!;
-    final result = await showDialog<SortResult<QueueSortField>>(
-      context: context,
-      builder: (context) => SortOptionsDialog<QueueSortField>(
-        title: l10n.sort,
-        currentField: _sortField,
-        sortAscending: _sortAscending,
-        options: [
-          SortOptionItem(
-            value: QueueSortField.title,
-            label: l10n.title,
-            icon: Icons.title_rounded,
-          ),
-          SortOptionItem(
-            value: QueueSortField.artist,
-            label: l10n.artists,
-            icon: Icons.person_rounded,
-          ),
-          SortOptionItem(
-            value: QueueSortField.album,
-            label: l10n.albums,
-            icon: Icons.album_rounded,
-          ),
-          SortOptionItem(
-            value: QueueSortField.duration,
-            label: l10n.sortDuration,
-            icon: Icons.schedule_rounded,
-          ),
-          SortOptionItem(
-            value: QueueSortField.filename,
-            label: l10n.fileName,
-            icon: Icons.insert_drive_file_outlined,
-          ),
-          SortOptionItem(
-            value: QueueSortField.trackNumber,
-            label: l10n.trackNumber,
-            icon: Icons.numbers_rounded,
-          ),
-        ],
-      ),
+    final result = await QueueSortUtils.showSortDialog(
+      context,
+      currentField: _sortField,
+      sortAscending: _sortAscending,
     );
 
     if (result != null && mounted) {
@@ -280,76 +234,7 @@ class _QueuePageState extends ConsumerState<QueuePage>
     final currentQueue = ref.read(audioPlaybackQueueProvider);
     if (currentQueue.isEmpty) return;
 
-    final sortedList = List<MusicFile>.from(currentQueue);
-    sortedList.sort((a, b) {
-      int cmp = 0;
-      switch (field) {
-        case QueueSortField.title:
-          cmp = compareNatural(
-            a.displayName.toLowerCase(),
-            b.displayName.toLowerCase(),
-          );
-          break;
-        case QueueSortField.artist:
-          cmp = compareNatural(
-            (a.artist ?? '').toLowerCase(),
-            (b.artist ?? '').toLowerCase(),
-          );
-          if (cmp == 0) {
-            cmp = compareNatural(
-              a.displayName.toLowerCase(),
-              b.displayName.toLowerCase(),
-            );
-          }
-          break;
-        case QueueSortField.album:
-          cmp = compareNatural(
-            (a.album ?? '').toLowerCase(),
-            (b.album ?? '').toLowerCase(),
-          );
-          if (cmp == 0) {
-            final aTrack = a.trackNumber ?? 0;
-            final bTrack = b.trackNumber ?? 0;
-            cmp = aTrack.compareTo(bTrack);
-            if (cmp == 0) {
-              cmp = compareNatural(
-                a.displayName.toLowerCase(),
-                b.displayName.toLowerCase(),
-              );
-            }
-          }
-          break;
-        case QueueSortField.duration:
-          final aDur = a.durationMillis ?? 0;
-          final bDur = b.durationMillis ?? 0;
-          cmp = aDur.compareTo(bDur);
-          if (cmp == 0) {
-            cmp = compareNatural(
-              a.displayName.toLowerCase(),
-              b.displayName.toLowerCase(),
-            );
-          }
-          break;
-        case QueueSortField.filename:
-          cmp = compareNatural(a.name.toLowerCase(), b.name.toLowerCase());
-          break;
-        case QueueSortField.trackNumber:
-          if (a.trackNumber != null && b.trackNumber != null) {
-            cmp = a.trackNumber!.compareTo(b.trackNumber!);
-          } else if (a.trackNumber != null) {
-            cmp = -1;
-          } else if (b.trackNumber != null) {
-            cmp = 1;
-          } else {
-            cmp = compareNatural(
-              a.displayName.toLowerCase(),
-              b.displayName.toLowerCase(),
-            );
-          }
-          break;
-      }
-      return ascending ? cmp : -cmp;
-    });
+    final sortedList = QueueSortUtils.sortQueue(currentQueue, field, ascending);
 
     if (ref.read(librarySelectionScopeProvider) ==
         LibrarySelectionScope.queue) {

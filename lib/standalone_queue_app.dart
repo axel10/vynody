@@ -119,6 +119,10 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
           }
           return true;
 
+        case 'close_window':
+          _closeWindow();
+          return true;
+
         default:
           return null;
       }

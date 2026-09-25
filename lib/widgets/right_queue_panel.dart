@@ -10,6 +10,7 @@ import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/audio/audio_service.dart';
 import 'package:vynody/player/platform/right_queue_drawer_controller.dart';
 import 'package:vynody/player/platform/standalone_queue_window_manager.dart';
+import 'package:vynody/utils/queue_sort_utils.dart';
 import 'package:vynody/utils/song_context_menu_utils.dart';
 import 'package:vynody/widgets/app_tooltip.dart';
 
@@ -24,11 +25,34 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
   final ScrollController _scrollController = ScrollController();
   bool _isDraggingOver = false;
   int? _dropInsertIndex;
+  QueueSortField _sortField = QueueSortField.title;
+  bool _sortAscending = true;
 
   @override
   void dispose() {
     _scrollController.dispose();
     super.dispose();
+  }
+
+  Future<void> _showSortDialog(BuildContext context) async {
+    final result = await QueueSortUtils.showSortDialog(
+      context,
+      currentField: _sortField,
+      sortAscending: _sortAscending,
+    );
+    if (result != null && mounted) {
+      setState(() {
+        _sortField = result.field;
+        _sortAscending = result.sortAscending;
+      });
+      final currentQueue = ref.read(audioPlaybackQueueProvider);
+      final sortedList = QueueSortUtils.sortQueue(
+        currentQueue,
+        result.field,
+        result.sortAscending,
+      );
+      await ref.read(audioServiceProvider).updateQueue(sortedList);
+    }
   }
 
   void _scrollToCurrent() {
@@ -356,12 +380,10 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
             ),
           ),
           AppTooltip(
-            message: '收起',
+            message: '排序',
             child: IconButton(
-              icon: const Icon(Icons.close_rounded, size: 18),
-              onPressed: () {
-                ref.read(rightQueueDrawerProvider.notifier).close();
-              },
+              icon: const Icon(Icons.sort_rounded, size: 18),
+              onPressed: queueLength > 0 ? () => _showSortDialog(context) : null,
               visualDensity: VisualDensity.compact,
               color: theme.colorScheme.onSurfaceVariant,
             ),

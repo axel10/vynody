@@ -48,7 +48,7 @@ class StandaloneQueueWindowManager {
     _initIpcHandler();
   }
 
-  bool get isWindowOpen => _subWindowId != null;
+  bool get isWindowOpen => ref.read(isStandaloneQueueWindowOpenProvider);
 
   void _initIpcHandler() {
     _mainChannel.setMethodCallHandler((call) async {
@@ -282,6 +282,8 @@ class StandaloneQueueWindowManager {
     if (_subWindowController != null) {
       try {
         await _subWindowController!.show();
+        ref.read(isStandaloneQueueWindowOpenProvider.notifier).state = true;
+        _startStateListening();
         _syncFullStateToSubWindow();
         return;
       } catch (e) {
@@ -327,19 +329,28 @@ class StandaloneQueueWindowManager {
   }
 
   Future<void> closeQueueWindow() async {
-    if (_subWindowController == null) return;
-    try {
-      await _subWindowController!.hide();
-    } catch (e) {
-      AppLog.log('[StandaloneQueue] Error closing window: $e');
-    } finally {
-      _onSubWindowClosed();
+    if (_subWindowId != null) {
+      try {
+        final subChannel = WindowMethodChannel(
+          'vynody/standalone_queue_sub_$_subWindowId',
+          mode: ChannelMode.unidirectional,
+        );
+        unawaited(subChannel.invokeMethod('close_window'));
+      } catch (e) {
+        AppLog.log('[StandaloneQueue] Error sending close_window IPC: $e');
+      }
     }
+    if (_subWindowController != null) {
+      try {
+        await _subWindowController!.hide();
+      } catch (e) {
+        AppLog.log('[StandaloneQueue] Error closing window: $e');
+      }
+    }
+    _onSubWindowClosed();
   }
 
   void _onSubWindowClosed() {
-    _subWindowController = null;
-    _subWindowId = null;
     _stopStateListening();
     ref.read(isStandaloneQueueWindowOpenProvider.notifier).state = false;
   }

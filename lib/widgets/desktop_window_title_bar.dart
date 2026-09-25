@@ -146,7 +146,7 @@ class _DesktopWindowTitleBarState extends ConsumerState<DesktopWindowTitleBar>
       height: widget.height,
       child: Row(
         children: [
-          if (isMacOS && showMiniButton)
+          if (isMacOS)
             AnimatedOpacity(
               duration: const Duration(milliseconds: 200),
               opacity: hideButtons ? 0.0 : 1.0,
@@ -156,15 +156,16 @@ class _DesktopWindowTitleBarState extends ConsumerState<DesktopWindowTitleBar>
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    _MacosSmallWindowButton(
-                      icon: isSmallWindowMode
-                          ? Icons.open_in_full
-                          : Icons.picture_in_picture_alt,
-                      iconSize: isSmallWindowMode ? 16 : 18,
-                      onPressed: () {
-                        settings.isSmallWindowMode = !settings.isSmallWindowMode;
-                      },
-                    ),
+                    if (showMiniButton)
+                      _MacosSmallWindowButton(
+                        icon: isSmallWindowMode
+                            ? Icons.open_in_full
+                            : Icons.picture_in_picture_alt,
+                        iconSize: isSmallWindowMode ? 16 : 18,
+                        onPressed: () {
+                          settings.isSmallWindowMode = !settings.isSmallWindowMode;
+                        },
+                      ),
                     AppTooltip(
                       message: settings.enableDesktopLyrics
                           ? '关闭桌面歌词'
@@ -185,7 +186,7 @@ class _DesktopWindowTitleBarState extends ConsumerState<DesktopWindowTitleBar>
                     ),
                     AppTooltip(
                       message: ref.watch(isStandaloneQueueWindowOpenProvider)
-                          ? '独立播放队列 (已开启，点击聚焦)'
+                          ? '关闭独立播放队列'
                           : (ref.watch(rightQueueDrawerProvider)
                               ? '收起播放队列'
                               : '展开播放队列'),
@@ -203,7 +204,7 @@ class _DesktopWindowTitleBarState extends ConsumerState<DesktopWindowTitleBar>
                           if (ref.read(isStandaloneQueueWindowOpenProvider)) {
                             ref
                                 .read(standaloneQueueWindowManagerProvider)
-                                .openOrFocusQueueWindow();
+                                .closeQueueWindow();
                           } else {
                             ref.read(rightQueueDrawerProvider.notifier).toggle();
                           }
@@ -290,7 +291,7 @@ class _DesktopWindowTitleBarState extends ConsumerState<DesktopWindowTitleBar>
                 ignoring: hideButtons,
                 child: _WindowsCapsuleButtons(
                   buttons: [
-                    if (showMiniButton) ...[
+                    if (showMiniButton)
                       _CapsuleButtonData(
                         icon: isSmallWindowMode
                             ? Icons.open_in_full
@@ -301,96 +302,94 @@ class _DesktopWindowTitleBarState extends ConsumerState<DesktopWindowTitleBar>
                               !settings.isSmallWindowMode;
                         },
                       ),
-                      if (!Platform.isLinux)
-                        _CapsuleButtonData(
-                          icon: settings.enableDesktopLyrics
-                              ? Icons.subtitles
-                              : Icons.subtitles_outlined,
-                          iconSize: isSmallWindowMode ? 14 : 16,
-                          tooltip: settings.enableDesktopLyrics
-                              ? '关闭桌面歌词'
-                              : '桌面歌词',
-                          color: settings.enableDesktopLyrics
-                              ? Theme.of(context).colorScheme.primary
-                              : null,
-                          onPressed: () {
-                            settings.enableDesktopLyrics =
-                                !settings.enableDesktopLyrics;
-                          },
-                        ),
+                    if (!Platform.isLinux)
                       _CapsuleButtonData(
-                        icon: ref.watch(isStandaloneQueueWindowOpenProvider)
-                            ? Icons.queue_music
-                            : (ref.watch(rightQueueDrawerProvider)
-                                ? Icons.queue_music
-                                : Icons.queue_music_outlined),
+                        icon: settings.enableDesktopLyrics
+                            ? Icons.subtitles
+                            : Icons.subtitles_outlined,
                         iconSize: isSmallWindowMode ? 14 : 16,
-                        tooltip: ref.watch(isStandaloneQueueWindowOpenProvider)
-                            ? '独立播放队列 (已开启，点击聚焦)'
-                            : (ref.watch(rightQueueDrawerProvider)
-                                ? '收起播放队列'
-                                : '展开播放队列'),
-                        color: (ref.watch(isStandaloneQueueWindowOpenProvider) ||
-                                ref.watch(rightQueueDrawerProvider))
+                        tooltip: settings.enableDesktopLyrics
+                            ? '关闭桌面歌词'
+                            : '桌面歌词',
+                        color: settings.enableDesktopLyrics
                             ? Theme.of(context).colorScheme.primary
                             : null,
                         onPressed: () {
-                          if (ref.read(isStandaloneQueueWindowOpenProvider)) {
-                            ref
-                                .read(standaloneQueueWindowManagerProvider)
-                                .openOrFocusQueueWindow();
-                          } else {
-                            ref.read(rightQueueDrawerProvider.notifier).toggle();
-                          }
+                          settings.enableDesktopLyrics =
+                              !settings.enableDesktopLyrics;
                         },
                       ),
-                      if (isSmallWindowMode)
-                        _CapsuleButtonData(
-                          icon: settings.isSmallWindowAlwaysOnTop
-                              ? Icons.push_pin
-                              : Icons.push_pin_outlined,
-                          iconSize: 14,
-                          tooltip:
-                              AppLocalizations.of(
-                                context,
-                              )?.alwaysOnTop ??
-                              'Always on Top',
-                          color: settings.isSmallWindowAlwaysOnTop
-                              ? Theme.of(context).colorScheme.primary
-                              : null,
-                          onPressed: () async {
-                            final nextVal =
-                                !settings.isSmallWindowAlwaysOnTop;
-                            settings.isSmallWindowAlwaysOnTop = nextVal;
-                            await windowManager.setAlwaysOnTop(nextVal);
-                          },
-                        ),
-                      if (isSmallWindowMode)
-                        _CapsuleButtonData(
-                          icon: Icons.queue_music,
-                          iconSize: 14,
-                          color: settings.isSmallWindowQueueExpanded
-                              ? Theme.of(context).colorScheme.primary
-                              : null,
-                          onPressed: () {
-                            settings.toggleSmallWindowBottomPanelMode(
-                              SmallWindowBottomPanelMode.queue,
-                            );
-                          },
-                        ),
-                      if (isSmallWindowMode)
-                        _CapsuleButtonData(
-                          icon: Icons.text_snippet_outlined,
-                          iconSize: 14,
-                          color: settings.isSmallWindowLyricsExpanded
-                              ? Theme.of(context).colorScheme.primary
-                              : null,
-                          onPressed: () {
-                            settings.toggleSmallWindowBottomPanelMode(
-                              SmallWindowBottomPanelMode.lyrics,
-                            );
-                          },
-                        ),
+                    _CapsuleButtonData(
+                      icon: ref.watch(isStandaloneQueueWindowOpenProvider)
+                          ? Icons.queue_music
+                          : (ref.watch(rightQueueDrawerProvider)
+                              ? Icons.queue_music
+                              : Icons.queue_music_outlined),
+                      iconSize: isSmallWindowMode ? 14 : 16,
+                      tooltip: ref.watch(isStandaloneQueueWindowOpenProvider)
+                          ? '关闭独立播放队列'
+                          : (ref.watch(rightQueueDrawerProvider)
+                              ? '收起播放队列'
+                              : '展开播放队列'),
+                      color: (ref.watch(isStandaloneQueueWindowOpenProvider) ||
+                              ref.watch(rightQueueDrawerProvider))
+                            ? Theme.of(context).colorScheme.primary
+                          : null,
+                      onPressed: () {
+                        if (ref.read(isStandaloneQueueWindowOpenProvider)) {
+                          ref
+                              .read(standaloneQueueWindowManagerProvider)
+                              .closeQueueWindow();
+                        } else {
+                          ref.read(rightQueueDrawerProvider.notifier).toggle();
+                        }
+                      },
+                    ),
+                    if (isSmallWindowMode) ...[
+                      _CapsuleButtonData(
+                        icon: settings.isSmallWindowAlwaysOnTop
+                            ? Icons.push_pin
+                            : Icons.push_pin_outlined,
+                        iconSize: 14,
+                        tooltip:
+                            AppLocalizations.of(
+                              context,
+                            )?.alwaysOnTop ??
+                            'Always on Top',
+                        color: settings.isSmallWindowAlwaysOnTop
+                            ? Theme.of(context).colorScheme.primary
+                            : null,
+                        onPressed: () async {
+                          final nextVal =
+                              !settings.isSmallWindowAlwaysOnTop;
+                          settings.isSmallWindowAlwaysOnTop = nextVal;
+                          await windowManager.setAlwaysOnTop(nextVal);
+                        },
+                      ),
+                      _CapsuleButtonData(
+                        icon: Icons.queue_music,
+                        iconSize: 14,
+                        color: settings.isSmallWindowQueueExpanded
+                            ? Theme.of(context).colorScheme.primary
+                            : null,
+                        onPressed: () {
+                          settings.toggleSmallWindowBottomPanelMode(
+                            SmallWindowBottomPanelMode.queue,
+                          );
+                        },
+                      ),
+                      _CapsuleButtonData(
+                        icon: Icons.text_snippet_outlined,
+                        iconSize: 14,
+                        color: settings.isSmallWindowLyricsExpanded
+                            ? Theme.of(context).colorScheme.primary
+                            : null,
+                        onPressed: () {
+                          settings.toggleSmallWindowBottomPanelMode(
+                            SmallWindowBottomPanelMode.lyrics,
+                          );
+                        },
+                      ),
                     ],
                     if (!isSmallWindowMode) ...[
                       _CapsuleButtonData(
