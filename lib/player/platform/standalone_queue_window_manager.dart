@@ -167,17 +167,29 @@ class StandaloneQueueWindowManager {
     int? insertIndex,
     bool playNow = false,
   }) async {
+    final uniqueInputPaths = <String>[];
+    final seenInput = <String>{};
+    for (final p in paths) {
+      String decoded = p;
+      try {
+        decoded = Uri.decodeFull(p);
+      } catch (_) {}
+      if (seenInput.add(decoded)) {
+        uniqueInputPaths.add(decoded);
+      }
+    }
+
     AppLog.log(
-      '[StandaloneQueue] _handleDroppedPaths processing ${paths.length} paths (insertIndex=$insertIndex)',
+      '[StandaloneQueue] _handleDroppedPaths processing ${uniqueInputPaths.length} paths (insertIndex=$insertIndex)',
       mirrorToConsole: true,
     );
-    debugPrint('[StandaloneQueue] _handleDroppedPaths processing ${paths.length} paths (insertIndex=$insertIndex)');
-    if (paths.isEmpty) return;
+    debugPrint('[StandaloneQueue] _handleDroppedPaths processing ${uniqueInputPaths.length} paths (insertIndex=$insertIndex)');
+    if (uniqueInputPaths.isEmpty) return;
     final songs = <MusicFile>[];
     final db = MetadataDatabase();
     final servers = ref.read(remoteServersProvider).asData?.value ?? [];
 
-    for (final path in paths) {
+    for (final path in uniqueInputPaths) {
       if (FileSystemEntity.isFileSync(path)) {
         if (MusicFileUtils.isMusicFilePath(path)) {
           songs.add(MusicFile(path: path, name: p.basename(path)));
@@ -250,7 +262,15 @@ class StandaloneQueueWindowManager {
             final client = server.type == RemoteServerType.smb
                 ? SmbClient(server: server, password: password)
                 : WebDavClient(server: server, password: password);
-            final remoteFolderAudios = await fetchWebDavFolderAudioFiles(client, server, targetPath);
+            final remoteFiles = await fetchAllWebDavAudioFilesRecursive(client, targetPath);
+            final remoteUris = remoteFiles.map((f) => RemoteMediaResolver.buildRemoteUri(server, f.path)).toList();
+            final cachedMap = await db.getSongMetadataByPaths(remoteUris);
+            final remoteFolderAudios = remoteFiles
+                .map((f) {
+                  final uri = RemoteMediaResolver.buildRemoteUri(server, f.path);
+                  return RemoteMediaResolver.buildMusicFile(f, server, metadata: cachedMap[uri]);
+                })
+                .toList();
             debugPrint('[StandaloneQueue] Fetched ${remoteFolderAudios.length} songs from remote folder $path');
             songs.addAll(remoteFolderAudios);
           } catch (e) {

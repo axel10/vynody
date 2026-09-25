@@ -1,17 +1,13 @@
-import 'dart:io';
+import 'dart:async';
 
-import 'package:desktop_drop/desktop_drop.dart';
+import 'package:desktop_drop/desktop_drop.dart' as dd;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:path/path.dart' as p;
+import 'package:super_drag_and_drop/super_drag_and_drop.dart';
 
-import 'package:vynody/l10n/app_localizations.dart';
 import 'package:vynody/models/music_file.dart';
-import 'package:vynody/player/audio/audio_riverpod.dart';
-import 'package:vynody/player/library/music_file_utils.dart';
-import 'package:vynody/player/metadata/metadata_database.dart';
+import 'package:vynody/player/platform/standalone_queue_window_manager.dart';
 import 'package:vynody/utils/layout_constants.dart';
-import 'package:vynody/utils/app_snack_bar.dart';
 
 class QueueFileDropTarget extends ConsumerStatefulWidget {
   const QueueFileDropTarget({
@@ -41,46 +37,6 @@ class _QueueFileDropTargetState extends ConsumerState<QueueFileDropTarget> {
   bool _isDraggingFiles = false;
   double? _dropIndicatorTop;
   int? _dropInsertIndex;
-
-  Future<List<MusicFile>> _getFilesFromPath(String path) async {
-    final results = <MusicFile>[];
-    final entityType = FileSystemEntity.typeSync(path);
-
-    if (entityType == FileSystemEntityType.file) {
-      if (MusicFileUtils.isMusicFilePath(path)) {
-        results.add(MusicFile(path: path, name: p.basename(path)));
-      }
-    } else if (entityType == FileSystemEntityType.directory) {
-      final dir = Directory(path);
-      try {
-        await for (final item in dir.list(
-          recursive: true,
-          followLinks: false,
-        )) {
-          if (item is File && MusicFileUtils.isMusicFilePath(item.path)) {
-            results.add(
-              MusicFile(path: item.path, name: p.basename(item.path)),
-            );
-          }
-        }
-      } catch (e) {
-        debugPrint('Error scanning directory $path: $e');
-      }
-    }
-
-    return results;
-  }
-
-  List<MusicFile> _dedupeDroppedFiles(List<MusicFile> files) {
-    final uniqueFiles = <MusicFile>[];
-    final seenPaths = <String>{};
-    for (final song in files) {
-      if (seenPaths.add(song.path)) {
-        uniqueFiles.add(song);
-      }
-    }
-    return uniqueFiles;
-  }
 
   ({int insertIndex, double indicatorTop})? _calculateDropPreview(
     Offset localPosition,
@@ -149,193 +105,223 @@ class _QueueFileDropTargetState extends ConsumerState<QueueFileDropTarget> {
     });
   }
 
-  Future<void> _handleDroppedFiles(
-    List<DropItem> droppedItems, {
-    required Offset dropLocalPosition,
-  }) async {
-    final audio = ref.read(audioServiceProvider);
-    final l10n = AppLocalizations.of(context)!;
-    final List<MusicFile> allFiles = [];
-
-    for (final item in droppedItems) {
-      final files = await _getFilesFromPath(item.path);
-      allFiles.addAll(files);
+  Future<T?> _readFormatSafely<T extends Object>(
+    dynamic reader,
+    ValueFormat<T> format,
+  ) async {
+    if (!reader.canProvide(format)) return null;
+    final completer = Completer<T?>();
+    try {
+      final progress = reader.getValue<T>(
+        format,
+        (value) {
+          if (!completer.isCompleted) completer.complete(value);
+        },
+        onError: (err) {
+          if (!completer.isCompleted) completer.complete(null);
+        },
+      );
+      if (progress == null) {
+        if (!completer.isCompleted) completer.complete(null);
+      }
+      return await completer.future.timeout(
+        const Duration(milliseconds: 600),
+        onTimeout: () => null,
+      );
+    } catch (_) {
+      return null;
     }
+  }
 
-    if (!mounted) return;
-
-    final uniqueFiles = _dedupeDroppedFiles(allFiles);
-    if (uniqueFiles.isEmpty) {
-      _clearDropPreview();
-      return;
-    }
-
-    final existingQueuePaths = widget.queueSongs
-        .map((song) => song.path)
-        .toSet();
-    final newSongs = <MusicFile>[];
-    var existingCount = 0;
-
-    for (final song in uniqueFiles) {
-      if (existingQueuePaths.contains(song.path)) {
-        existingCount++;
+  void _onPerformSuperDrop(PerformDropEvent event) async {
+    final paths = <String>[];
+    for (var i = 0; i < event.session.items.length; i++) {
+      final item = event.session.items[i];
+      if (item.localData is MusicFile) {
+        paths.add((item.localData as MusicFile).path);
         continue;
       }
-      newSongs.add(song);
-    }
+      if (item.localData is Map) {
+        final map = item.localData as Map;
+        if (map['paths'] is List) {
+          final list = map['paths'] as List;
+          for (final p in list) {
+            if (p != null) paths.add(p.toString());
+          }
+          continue;
+        }
+        if (map['path'] != null) {
+          paths.add(map['path'] as String);
+          continue;
+        }
+      }
 
-    if (newSongs.isEmpty) {
-      _clearDropPreview();
-      return;
-    }
+      final reader = item.dataReader;
+      if (reader == null) continue;
 
-    final db = MetadataDatabase();
-    final cachedMap =
-        await db.getSongMetadataByPaths(newSongs.map((s) => s.path));
-    for (var i = 0; i < newSongs.length; i++) {
-      final s = newSongs[i];
-      final cached = cachedMap[s.path];
-      if (cached != null) {
-        newSongs[i] = newSongs[i].copyWith(
-          title: cached.title,
-          artist: cached.artist,
-          albumArtist: cached.albumArtist,
-          album: cached.album,
-          trackNumber: cached.trackNumber,
-          durationMillis: cached.duration,
-          thumbnailPath: cached.thumbnailPath,
-          artworkPath: cached.artworkPath,
-          artworkWidth: cached.artworkWidth,
-          artworkHeight: cached.artworkHeight,
-          themeColorsBlob: cached.themeColorsBlob,
-          waveformBlob: cached.waveformBlob,
-          lastModifiedTime: cached.lastModifiedTime,
-        );
+      // 1. Try plainText first
+      final text = await _readFormatSafely<String>(reader, Formats.plainText);
+      if (text != null && text.trim().isNotEmpty) {
+        final lines = text.split(RegExp(r'[\r\n]+'));
+        for (final rawLine in lines) {
+          final trimmed = rawLine.trim();
+          if (trimmed.isEmpty) continue;
+          if (trimmed.startsWith('file://')) {
+            try {
+              paths.add(Uri.parse(trimmed).toFilePath());
+              continue;
+            } catch (_) {}
+          }
+          paths.add(trimmed);
+        }
+      }
+
+      // 2. Try fileUri
+      final fileUri = await _readFormatSafely<Uri>(reader, Formats.fileUri);
+      if (fileUri != null && fileUri.scheme == 'file') {
+        paths.add(fileUri.toFilePath());
+      }
+
+      // 3. Try uri
+      final namedUri = await _readFormatSafely<NamedUri>(reader, Formats.uri);
+      if (namedUri != null) {
+        final uri = namedUri.uri;
+        if (uri.scheme == 'file') {
+          try {
+            paths.add(uri.toFilePath());
+          } catch (_) {
+            paths.add(uri.toString());
+          }
+        } else {
+          paths.add(uri.toString());
+        }
       }
     }
 
-    final preview = widget.showPreview
-        ? _calculateDropPreview(dropLocalPosition)
-        : null;
-    final insertIndex = (preview?.insertIndex ?? widget.queueSongs.length)
-        .clamp(0, widget.queueSongs.length);
-
-    if (widget.showPreview) {
-      await audio.insertIntoQueueAt(insertIndex, newSongs);
-    } else {
-      await audio.appendToQueue(newSongs);
+    final uniquePaths = <String>[];
+    final seen = <String>{};
+    for (final p in paths) {
+      if (seen.add(p)) {
+        uniquePaths.add(p);
+      }
     }
 
-    if (!mounted) return;
-
+    if (uniquePaths.isNotEmpty) {
+      await ref
+          .read(standaloneQueueWindowManagerProvider)
+          .handleDroppedPaths(uniquePaths, insertIndex: _dropInsertIndex);
+    }
     _clearDropPreview();
-    final message = existingCount > 0
-        ? l10n.dropAddedSongsWithExisting(newSongs.length, existingCount)
-        : l10n.dropAddedSongs(newSongs.length);
+  }
 
-    AppSnackBar.show(context, ref, SnackBar(content: Text(message)));
+  void _onPerformDesktopDrop(dd.DropDoneDetails details) async {
+    final paths = details.files.map((f) => f.path).toList();
+    if (paths.isNotEmpty) {
+      await ref
+          .read(standaloneQueueWindowManagerProvider)
+          .handleDroppedPaths(paths, insertIndex: _dropInsertIndex);
+    }
+    _clearDropPreview();
+  }
+
+  void _updateDropPreview(Offset localPosition) {
+    if (!widget.enabled || !widget.showPreview) return;
+    final preview = _calculateDropPreview(localPosition);
+    if (preview == null) return;
+
+    if (_isDraggingFiles &&
+        _dropInsertIndex == preview.insertIndex &&
+        _dropIndicatorTop == preview.indicatorTop) {
+      return;
+    }
+
+    setState(() {
+      _isDraggingFiles = true;
+      _dropInsertIndex = preview.insertIndex;
+      _dropIndicatorTop = preview.indicatorTop;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return DropTarget(
+    return dd.DropTarget(
       enable: widget.enabled,
       onDragEntered: (details) {
         if (!widget.enabled) return;
-        if (!widget.showPreview) {
-          if (!_isDraggingFiles) {
-            setState(() {
-              _isDraggingFiles = true;
-            });
-          }
-          return;
-        }
-
-        final preview = _calculateDropPreview(details.localPosition);
-        if (preview == null) return;
-
-        if (_isDraggingFiles &&
-            _dropInsertIndex == preview.insertIndex &&
-            _dropIndicatorTop == preview.indicatorTop) {
-          return;
-        }
-
-        setState(() {
-          _isDraggingFiles = true;
-          _dropInsertIndex = preview.insertIndex;
-          _dropIndicatorTop = preview.indicatorTop;
-        });
+        _updateDropPreview(details.localPosition);
       },
       onDragUpdated: (details) {
-        if (!widget.enabled || !widget.showPreview) return;
-        final preview = _calculateDropPreview(details.localPosition);
-        if (preview == null) return;
-
-        if (_isDraggingFiles &&
-            _dropInsertIndex == preview.insertIndex &&
-            _dropIndicatorTop == preview.indicatorTop) {
-          return;
-        }
-
-        setState(() {
-          _isDraggingFiles = true;
-          _dropInsertIndex = preview.insertIndex;
-          _dropIndicatorTop = preview.indicatorTop;
-        });
-      },
-      onDragExited: (_) {
-        _clearDropPreview();
-      },
-      onDragDone: (details) async {
         if (!widget.enabled) return;
-        await _handleDroppedFiles(
-          details.files,
-          dropLocalPosition: details.localPosition,
-        );
+        _updateDropPreview(details.localPosition);
       },
-      child: Container(
-        key: _surfaceKey,
-        child: Stack(
-          children: [
-            widget.child,
-            if (widget.enabled &&
-                widget.showPreview &&
-                _dropIndicatorTop != null)
-              Positioned(
-                top: _dropIndicatorTop! - 1.5,
-                left: 0,
-                right: 0,
-                child: IgnorePointer(
-                  child: Align(
-                    alignment: Alignment.center,
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: kSingleColumnContentMaxWidth),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: Container(
-                          height: 3,
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.primary,
-                            borderRadius: BorderRadius.circular(999),
-                            boxShadow: [
-                              BoxShadow(
-                                color: theme.colorScheme.primary.withValues(
-                                  alpha: 0.45,
+      onDragExited: (_) => _clearDropPreview(),
+      onDragDone: (details) {
+        if (!widget.enabled) return;
+        _onPerformDesktopDrop(details);
+      },
+      child: DropRegion(
+        formats: const [Formats.fileUri, Formats.plainText, Formats.uri],
+        hitTestBehavior: HitTestBehavior.translucent,
+        onDropOver: (event) {
+          _updateDropPreview(event.position.local);
+          return DropOperation.copy;
+        },
+        onDropEnter: (_) {
+          if (!_isDraggingFiles) {
+            setState(() => _isDraggingFiles = true);
+          }
+        },
+        onDropLeave: (_) => _clearDropPreview(),
+        onDropEnded: (_) => _clearDropPreview(),
+        onPerformDrop: (event) async {
+          _onPerformSuperDrop(event);
+        },
+        child: Container(
+          key: _surfaceKey,
+          child: Stack(
+            children: [
+              widget.child,
+              if (widget.enabled &&
+                  widget.showPreview &&
+                  _dropIndicatorTop != null)
+                Positioned(
+                  top: _dropIndicatorTop! - 1.5,
+                  left: 0,
+                  right: 0,
+                  child: IgnorePointer(
+                    child: Align(
+                      alignment: Alignment.center,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(
+                          maxWidth: kSingleColumnContentMaxWidth,
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Container(
+                            height: 3,
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.primary,
+                              borderRadius: BorderRadius.circular(999),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: theme.colorScheme.primary.withValues(
+                                    alpha: 0.45,
+                                  ),
+                                  blurRadius: 8,
+                                  spreadRadius: 1,
                                 ),
-                                blurRadius: 8,
-                                spreadRadius: 1,
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
                       ),
                     ),
                   ),
                 ),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
     );

@@ -1,15 +1,14 @@
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_taglib/flutter_taglib.dart' as taglib;
 import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
-import 'package:crypto/crypto.dart';
 
 import '../clients/webdav_client.dart';
 import '../proxy/local_stream_proxy.dart';
 import '../proxy/remote_media_resolver.dart';
 import '../remote_server_models.dart';
 import '../../metadata/metadata_database.dart';
+import '../../metadata/metadata_helper.dart';
+import '../../metadata/artwork_constants.dart';
 
 /// Helper for asynchronously extracting and caching audio metadata from WebDAV and SMB servers
 /// using lightweight HTTP Range requests via flutter_taglib.
@@ -88,29 +87,26 @@ class RemoteMetadataHelper {
       final trackNumber = tagData.track;
 
       String? savedThumbnailPath;
+      String? savedArtworkPath;
+      int? artworkWidth;
+      int? artworkHeight;
+      Uint8List? themeColorsBlob;
       try {
         if (tagData.hasCover && tagData.coverData != null && tagData.coverData!.isNotEmpty) {
           final coverBytes = tagData.coverData!;
-          final md5Hex = md5.convert(coverBytes).toString();
-          final supportDir = await getApplicationSupportDirectory();
-          final thumbnailsDir = Directory(p.join(supportDir.path, 'thumbnails'));
-          if (!thumbnailsDir.existsSync()) {
-            await thumbnailsDir.create(recursive: true);
-          }
-          final thumbFile = File(p.join(thumbnailsDir.path, '${md5Hex}_thumb.jpg'));
-          if (!thumbFile.existsSync()) {
-            await thumbFile.writeAsBytes(coverBytes);
-          }
-          savedThumbnailPath = thumbFile.path;
-
-          final db = MetadataDatabase();
-          await db.insertOrUpdateArtworkCache(
-            ArtworkCacheRecord(
-              md5: md5Hex,
-              thumbnailPath: savedThumbnailPath,
-              updatedAtMillis: DateTime.now().millisecondsSinceEpoch,
-            ),
+          final artInfo = await MetadataHelper.saveArtworkAndThumbnail(
+            virtualUri,
+            coverBytes,
+            saveLarge: false,
+            thumbnailSize: vynodyArtworkThumbnailSize,
           );
+          if (artInfo != null) {
+            savedThumbnailPath = artInfo['thumbnailPath'] as String?;
+            savedArtworkPath = artInfo['artworkPath'] as String?;
+            artworkWidth = artInfo['width'] as int?;
+            artworkHeight = artInfo['height'] as int?;
+            themeColorsBlob = artInfo['themeColorsBlob'] as Uint8List?;
+          }
         }
       } catch (e) {
         debugPrint('[Remote Metadata] Failed to save cover thumbnail for "${file.name}": $e');
@@ -124,7 +120,12 @@ class RemoteMetadataHelper {
         duration: duration > 0 ? duration : null,
         trackNumber: trackNumber > 0 ? trackNumber : null,
         thumbnailPath: savedThumbnailPath,
+        artworkPath: savedArtworkPath,
+        artworkWidth: artworkWidth,
+        artworkHeight: artworkHeight,
+        themeColorsBlob: themeColorsBlob,
         lastModifiedTime: file.lastModified?.millisecondsSinceEpoch ?? 0,
+        metadataImgScanned: file.lastModified?.millisecondsSinceEpoch ?? DateTime.now().millisecondsSinceEpoch,
         sourceFlags: sourceFlags ?? SongSourceFlags.remote,
         genres: genre.isNotEmpty ? [genre] : null,
       );

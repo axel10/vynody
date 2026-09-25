@@ -13,6 +13,7 @@ class FolderListTile extends StatelessWidget {
     this.representativeSong,
     this.isSelected = false,
     this.isSelectionMode = false,
+    this.isSortMode = false,
     this.onTap,
     this.onLongPress,
     this.onSecondaryTapDown,
@@ -28,6 +29,7 @@ class FolderListTile extends StatelessWidget {
   final MusicFile? representativeSong;
   final bool isSelected;
   final bool isSelectionMode;
+  final bool isSortMode;
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
   final void Function(TapDownDetails)? onSecondaryTapDown;
@@ -225,7 +227,7 @@ class FolderListTile extends StatelessWidget {
       folder: folder,
       songsCount: songsCount,
       representativeSong: representativeSong,
-      enabled: !isSelectionMode && trailingWidget == null,
+      enabled: !isSelectionMode && !isSortMode,
       child: tile,
     );
   }

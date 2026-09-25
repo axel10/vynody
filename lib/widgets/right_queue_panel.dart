@@ -151,6 +151,8 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
       final reader = item.dataReader;
       if (reader == null) continue;
 
+      bool extracted = false;
+
       // 1. Try plainText first (batch song paths)
       final text = await _readFormatSafely<String>(reader, Formats.plainText);
       if (text != null && text.trim().isNotEmpty) {
@@ -161,17 +163,22 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
           if (trimmed.startsWith('file://')) {
             try {
               paths.add(Uri.parse(trimmed).toFilePath());
+              extracted = true;
               continue;
             } catch (_) {}
           }
           paths.add(trimmed);
+          extracted = true;
         }
       }
+
+      if (extracted) continue;
 
       // 2. Try fileUri
       final fileUri = await _readFormatSafely<Uri>(reader, Formats.fileUri);
       if (fileUri != null && fileUri.scheme == 'file') {
         paths.add(fileUri.toFilePath());
+        continue;
       }
 
       // 3. Try uri
@@ -193,8 +200,12 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
     final uniquePaths = <String>[];
     final seen = <String>{};
     for (final p in paths) {
-      if (seen.add(p)) {
-        uniquePaths.add(p);
+      String decoded = p;
+      try {
+        decoded = Uri.decodeFull(p);
+      } catch (_) {}
+      if (seen.add(decoded)) {
+        uniquePaths.add(decoded);
       }
     }
 

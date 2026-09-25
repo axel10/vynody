@@ -413,6 +413,8 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
                     continue;
                   }
 
+                  bool extracted = false;
+
                   // 1. Try plainText first (batch song paths separated by newline)
                   final text = await _readFormatSafely<String>(reader, Formats.plainText);
                   if (text != null && text.trim().isNotEmpty) {
@@ -424,12 +426,16 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
                       if (trimmed.startsWith('file://')) {
                         try {
                           paths.add(Uri.parse(trimmed).toFilePath());
+                          extracted = true;
                           continue;
                         } catch (_) {}
                       }
                       paths.add(trimmed);
+                      extracted = true;
                     }
                   }
+
+                  if (extracted) continue;
 
                   // 2. Try fileUri
                   final uri = await _readFormatSafely<Uri>(reader, Formats.fileUri);
@@ -437,6 +443,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
                     final filePath = uri.toFilePath();
                     debugPrint('[DROP] Item #$i fileUri read: $filePath');
                     paths.add(filePath);
+                    continue;
                   }
 
                   // 3. Try uri
@@ -459,8 +466,12 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
                 final uniquePaths = <String>[];
                 final seen = <String>{};
                 for (final p in paths) {
-                  if (seen.add(p)) {
-                    uniquePaths.add(p);
+                  String decoded = p;
+                  try {
+                    decoded = Uri.decodeFull(p);
+                  } catch (_) {}
+                  if (seen.add(decoded)) {
+                    uniquePaths.add(decoded);
                   }
                 }
 

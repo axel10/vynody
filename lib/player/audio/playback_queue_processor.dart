@@ -16,6 +16,10 @@ import 'package:vynody/player/settings/settings_service.dart';
 import 'package:vynody/player/settings/theme_color_helper.dart';
 import 'package:vynody/player/settings/track_artwork_theme_service.dart';
 import 'package:vynody/player/audio/waveform_service.dart';
+import 'package:path/path.dart' as p;
+import 'package:vynody/player/remote/remote_server_models.dart';
+import 'package:vynody/player/remote/clients/webdav_client.dart';
+import 'package:vynody/player/remote/services/webdav_metadata_helper.dart';
 import 'package:vynody/player/remote/proxy/remote_media_resolver.dart';
 import 'package:vynody/utils/memory_trace.dart';
 
@@ -224,13 +228,9 @@ class PlaybackQueueProcessor {
       }
 
       // Phase 1: Fast Metadata & Thumbnail Pass
-      // Immediately process basic tags (title, artist, duration) and thumbnails for priority songs
+      // Immediately process basic tags (title, artist, duration) and thumbnails for all songs
       // in the queue that are missing them, prioritizing the current song and upcoming songs.
-      final fastPassList = dbPriorityPaths.isNotEmpty
-          ? sortedList.where((s) => dbPriorityPaths.contains(s.path))
-          : sortedList.take(10);
-
-      for (final song in fastPassList) {
+      for (final song in sortedList) {
         if (_disposed || myId != _currentProcessId) {
           debugPrint(
             'Background process $myId superseded by $_currentProcessId, exiting.',
@@ -440,6 +440,59 @@ class PlaybackQueueProcessor {
             onUpdate(song.path, updates);
           }
         }
+      } else {
+        final info = RemoteMediaResolver.parseUri(song.path);
+        if (info != null &&
+            (info.type == RemoteServerType.webdav ||
+                info.type == RemoteServerType.smb)) {
+          final resolver = await remoteMediaResolverGetter?.call();
+          if (_disposed || myId != _currentProcessId || resolver == null) return;
+          final servers = resolver.storage.loadServers();
+          final server = servers.cast<RemoteServer?>().firstWhere(
+            (s) => s?.id == info.serverId,
+            orElse: () => null,
+          );
+          if (server != null) {
+            final password =
+                await resolver.storage.getPassword(server.id) ?? '';
+            final targetPath = info.trackIdOrPath;
+            final m = await RemoteMetadataHelper.fetchSongMetadata(
+              file: WebDavFile(
+                path: targetPath,
+                name: p.basename(targetPath),
+                isDirectory: false,
+                contentLength: 0,
+              ),
+              server: server,
+              password: password,
+              sourceFlags: SongSourceFlags.remote,
+            );
+            if (_disposed || myId != _currentProcessId) return;
+            if (m != null) {
+              final Map<String, dynamic> updates = {
+                if (m.title.isNotEmpty) 'title': m.title,
+                if (m.artist.isNotEmpty && m.artist != 'Unknown Artist')
+                  'artist': m.artist,
+                if (m.album.isNotEmpty && m.album != 'Unknown Album')
+                  'album': m.album,
+                if (m.trackNumber != null) 'trackNumber': m.trackNumber,
+                if (m.duration != null) 'durationMillis': m.duration,
+                if (m.thumbnailPath != null) 'thumbnailPath': m.thumbnailPath,
+                if (m.artworkPath != null) 'artworkPath': m.artworkPath,
+                if (m.artworkWidth != null) 'artworkWidth': m.artworkWidth,
+                if (m.artworkHeight != null) 'artworkHeight': m.artworkHeight,
+              };
+              if (m.themeColorsBlob != null) {
+                updates['themeColorsBlob'] = m.themeColorsBlob;
+                updates['themeColors'] =
+                    ThemeColorHelper.blobToColors(m.themeColorsBlob!);
+              }
+              if (updates.isNotEmpty) {
+                onUpdate(song.path, updates);
+              }
+            }
+          }
+        }
       }
     } catch (e) {
       debugPrint('Error processing metadata & thumbnail for ${song.path}: $e');
@@ -620,6 +673,63 @@ class PlaybackQueueProcessor {
                 }
               } catch (e) {
                 debugPrint('Error processing remote cache for ${song.path}: $e');
+              }
+            }
+
+            if (m == null || m.thumbnailPath == null) {
+              if (info != null &&
+                  (info.type == RemoteServerType.webdav ||
+                      info.type == RemoteServerType.smb)) {
+                try {
+                  final resolver = await remoteMediaResolverGetter?.call();
+                  if (!_disposed && myId == _currentProcessId && resolver != null) {
+                    final servers = resolver.storage.loadServers();
+                    final server = servers.cast<RemoteServer?>().firstWhere(
+                      (s) => s?.id == info.serverId,
+                      orElse: () => null,
+                    );
+                    if (server != null) {
+                      final password =
+                          await resolver.storage.getPassword(server.id) ?? '';
+                      final targetPath = info.trackIdOrPath;
+                      final fetched = await RemoteMetadataHelper.fetchSongMetadata(
+                        file: WebDavFile(
+                          path: targetPath,
+                          name: p.basename(targetPath),
+                          isDirectory: false,
+                          contentLength: 0,
+                        ),
+                        server: server,
+                        password: password,
+                        sourceFlags: SongSourceFlags.remote,
+                      );
+                      if (fetched != null) {
+                        m = fetched;
+                        final updates = <String, dynamic>{
+                          if (m.title.isNotEmpty) 'title': m.title,
+                          if (m.artist.isNotEmpty && m.artist != 'Unknown Artist')
+                            'artist': m.artist,
+                          if (m.album.isNotEmpty && m.album != 'Unknown Album')
+                            'album': m.album,
+                          if (m.trackNumber != null) 'trackNumber': m.trackNumber,
+                          if (m.duration != null) 'durationMillis': m.duration,
+                          if (m.thumbnailPath != null) 'thumbnailPath': m.thumbnailPath,
+                          if (m.artworkPath != null) 'artworkPath': m.artworkPath,
+                          if (m.artworkWidth != null) 'artworkWidth': m.artworkWidth,
+                          if (m.artworkHeight != null) 'artworkHeight': m.artworkHeight,
+                        };
+                        if (m.themeColorsBlob != null) {
+                          updates['themeColorsBlob'] = m.themeColorsBlob;
+                          updates['themeColors'] =
+                              ThemeColorHelper.blobToColors(m.themeColorsBlob!);
+                        }
+                        onUpdate(song.path, updates);
+                      }
+                    }
+                  }
+                } catch (e) {
+                  debugPrint('Error processing remote metadata in heavy pass: $e');
+                }
               }
             }
 

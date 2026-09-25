@@ -472,6 +472,7 @@ class FolderSubfoldersSliver extends StatelessWidget {
                       representativeSong: representativeSong,
                       isSelected: false,
                       isSelectionMode: false,
+                      isSortMode: true,
                       onTap: null,
                       trailing: ReorderableDragStartListener(
                         index: index,

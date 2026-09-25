@@ -1477,17 +1477,17 @@ Future<List<WebDavFile>> fetchAllWebDavAudioFilesRecursive(
   int maxDepth = 10,
 }) async {
   final List<WebDavFile> result = [];
-  final List<String> queue = [folderPath];
-  int depth = 0;
+  final List<({String path, int depth})> queue = [(path: folderPath, depth: 0)];
 
-  while (queue.isNotEmpty && depth < maxDepth) {
-    depth++;
+  while (queue.isNotEmpty) {
     final current = queue.removeAt(0);
     try {
-      final items = await client.listFiles(current);
+      final items = await client.listFiles(current.path);
       for (final item in items) {
         if (item.isDirectory) {
-          queue.add(item.path);
+          if (current.depth + 1 < maxDepth) {
+            queue.add((path: item.path, depth: current.depth + 1));
+          }
         } else if (item.isAudio) {
           result.add(item);
         }
