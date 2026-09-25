@@ -15,6 +15,7 @@ import 'package:vynody/player/ai/openrouter_api_key_service.dart';
 import 'package:vynody/player/library/playlist_service.dart';
 import 'package:vynody/player/scanner/scanner_service.dart';
 import 'package:vynody/player/settings/settings_service.dart';
+import 'package:vynody/player/platform/standalone_queue_window_manager.dart';
 import 'package:vynody/utils/device_info_utils.dart';
 
 final settingsServiceProvider = ChangeNotifierProvider<SettingsService>((ref) {
@@ -87,6 +88,7 @@ final audioServiceWiringProvider = Provider<void>((ref) {
     audio.setSongMissingStateByPath(path, isMissing);
     playlist.setSongMissingStateByPath(path, isMissing);
   });
+  ref.read(standaloneQueueWindowManagerProvider);
 });
 
 final audioSnapshotProvider = Provider<AudioSnapshot>((ref) {

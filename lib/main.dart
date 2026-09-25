@@ -32,6 +32,8 @@ import 'widgets/app_global_shortcuts.dart';
 import 'widgets/volume_controls.dart';
 import 'pages/main_layout_riverpod.dart';
 import 'package:flutter_desktop_lyrics/flutter_desktop_lyrics.dart';
+import 'package:vynody/player/platform/standalone_queue_window_manager.dart';
+import 'package:vynody/standalone_queue_app.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 final List<String> _pendingFileOpenArgs = <String>[];
@@ -160,6 +162,13 @@ void main(List<String> args) async {
       return true;
     };
     runApp(DesktopLyrics.createLyricsWindowApp(args));
+    return;
+  }
+
+  if (StandaloneQueueWindowManager.isStandaloneQueueWindow(args)) {
+    final windowId = args[1];
+    final argumentStr = args.length > 2 ? args[2] : '';
+    runApp(StandaloneQueueApp(windowId: windowId, arguments: argumentStr));
     return;
   }
 

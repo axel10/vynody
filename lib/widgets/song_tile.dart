@@ -6,6 +6,7 @@ import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/widgets/song_thumbnail.dart';
 import 'package:vynody/l10n/app_localizations.dart';
 import 'package:vynody/widgets/playing_equalizer_icon.dart';
+import 'package:vynody/widgets/draggable_song_item.dart';
 
 class SongTile extends ConsumerWidget {
   const SongTile({
@@ -143,7 +144,7 @@ class SongTile extends ConsumerWidget {
             ? theme.colorScheme.primary
             : theme.colorScheme.onSurface;
 
-    return GestureDetector(
+    final content = GestureDetector(
       behavior: HitTestBehavior.opaque,
       onSecondaryTapDown: onSecondaryTapDown,
       child: AnimatedContainer(
@@ -255,6 +256,12 @@ class SongTile extends ConsumerWidget {
           ),
         ),
       ),
+    );
+
+    return DraggableSongItem(
+      song: song,
+      enabled: !isMissing && !isSelectionMode && dragHandle == null,
+      child: content,
     );
   }
 

@@ -66,6 +66,10 @@ dependencies:
       path: packages/window_manager
       ref: main
   desktop_drop: ^0.7.0
+  desktop_multi_window:
+    path: ./flutter-plugins/packages/desktop_multi_window
+  super_drag_and_drop:
+    path: ./super_native_extensions/super_drag_and_drop
   collection: ^1.19.1
   image: ^4.8.0
 
@@ -290,14 +294,14 @@ dependency_overrides:
   #   path: ./Bonsoir/packages/bonsoir_windows
   audio_core:
     path: ./audio_core
-  # flutter_desktop_lyrics:
-    # path: ./flutter_desktop_lyrics
-  # desktop_multi_window:
-  #   path: ./flutter-plugins/packages/desktop_multi_window
-  # flutter_taglib:
-  #   path: ./audio_core/flutter_taglib
-  # windows_taskbar:
-  #   path: ./windows_taskbar
+  desktop_multi_window:
+    path: ./flutter-plugins/packages/desktop_multi_window
+  super_drag_and_drop:
+    path: ./super_native_extensions/super_drag_and_drop
+  super_clipboard:
+    path: ./super_native_extensions/super_clipboard
+  super_native_extensions:
+    path: ./super_native_extensions/super_native_extensions
   sqlparser: 0.44.4
 
   #   mobile_storage_listener:

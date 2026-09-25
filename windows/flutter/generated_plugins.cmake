@@ -10,11 +10,13 @@ list(APPEND FLUTTER_PLUGIN_LIST
   flutter_desktop_lyrics
   flutter_desktop_tray
   flutter_secure_storage_windows
+  irondash_engine_context
   mobile_storage_listener
   pasteboard
   permission_handler_windows
   proxy_getter
   screen_retriever_windows
+  super_native_extensions
   url_launcher_windows
   window_manager
   windows_taskbar

@@ -9,6 +9,7 @@ import '../player/audio/audio_riverpod.dart';
 import '../player/pro/pro_license_service.dart';
 import '../player/settings/settings_service.dart';
 import '../pages/settings_page.dart';
+import '../player/platform/standalone_queue_window_manager.dart';
 import '../l10n/app_localizations.dart';
 
 class DesktopWindowTitleBar extends ConsumerStatefulWidget {
@@ -289,6 +290,23 @@ class _DesktopWindowTitleBarState extends ConsumerState<DesktopWindowTitleBar>
                                 !settings.enableDesktopLyrics;
                           },
                         ),
+                      _CapsuleButtonData(
+                        icon: ref.watch(isStandaloneQueueWindowOpenProvider)
+                            ? Icons.queue_music
+                            : Icons.queue_music_outlined,
+                        iconSize: isSmallWindowMode ? 14 : 16,
+                        tooltip: ref.watch(isStandaloneQueueWindowOpenProvider)
+                            ? '独立播放队列 (已开启)'
+                            : '分离播放队列 (独立窗口)',
+                        color: ref.watch(isStandaloneQueueWindowOpenProvider)
+                            ? Theme.of(context).colorScheme.primary
+                            : null,
+                        onPressed: () {
+                          ref
+                              .read(standaloneQueueWindowManagerProvider)
+                              .openOrFocusQueueWindow();
+                        },
+                      ),
                       if (isSmallWindowMode)
                         _CapsuleButtonData(
                           icon: settings.isSmallWindowAlwaysOnTop

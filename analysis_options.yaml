@@ -19,6 +19,7 @@ analyzer:
     - "window_manager/**"
     - "flutter_desktop_lyrics/**"
     - "flutter-plugins/**"
+    - "super_native_extensions/**"
     - android/**
     - ios/**
     - web/**

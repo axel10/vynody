@@ -9,10 +9,12 @@ list(APPEND FLUTTER_PLUGIN_LIST
   flutter_desktop_lyrics
   flutter_desktop_tray
   flutter_secure_storage_linux
+  irondash_engine_context
   linux_directory_access
   mobile_storage_listener
   pasteboard
   screen_retriever_linux
+  super_native_extensions
   url_launcher_linux
   window_manager
 )

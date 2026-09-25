@@ -19,6 +19,7 @@ import flutter_desktop_lyrics
 import flutter_desktop_tray
 import flutter_secure_storage_macos
 import in_app_purchase_storekit
+import irondash_engine_context
 import mobile_storage_listener
 import package_info_plus
 import pasteboard
@@ -26,6 +27,7 @@ import proxy_getter
 import screen_retriever_macos
 import shared_preferences_foundation
 import sqflite_darwin
+import super_native_extensions
 import url_launcher_macos
 import window_manager
 
@@ -44,6 +46,7 @@ func RegisterGeneratedPlugins(registry: FlutterPluginRegistry) {
   FlutterTrayPlugin.register(with: registry.registrar(forPlugin: "FlutterTrayPlugin"))
   FlutterSecureStoragePlugin.register(with: registry.registrar(forPlugin: "FlutterSecureStoragePlugin"))
   InAppPurchasePlugin.register(with: registry.registrar(forPlugin: "InAppPurchasePlugin"))
+  IrondashEngineContextPlugin.register(with: registry.registrar(forPlugin: "IrondashEngineContextPlugin"))
   MobileStorageListenerPlugin.register(with: registry.registrar(forPlugin: "MobileStorageListenerPlugin"))
   FPPPackageInfoPlusPlugin.register(with: registry.registrar(forPlugin: "FPPPackageInfoPlusPlugin"))
   PasteboardPlugin.register(with: registry.registrar(forPlugin: "PasteboardPlugin"))
@@ -51,6 +54,7 @@ func RegisterGeneratedPlugins(registry: FlutterPluginRegistry) {
   ScreenRetrieverMacosPlugin.register(with: registry.registrar(forPlugin: "ScreenRetrieverMacosPlugin"))
   SharedPreferencesPlugin.register(with: registry.registrar(forPlugin: "SharedPreferencesPlugin"))
   SqflitePlugin.register(with: registry.registrar(forPlugin: "SqflitePlugin"))
+  SuperNativeExtensionsPlugin.register(with: registry.registrar(forPlugin: "SuperNativeExtensionsPlugin"))
   UrlLauncherPlugin.register(with: registry.registrar(forPlugin: "UrlLauncherPlugin"))
   WindowManagerPlugin.register(with: registry.registrar(forPlugin: "WindowManagerPlugin"))
 }

@@ -339,13 +339,11 @@ packages:
     source: hosted
     version: "0.7.1"
   desktop_multi_window:
-    dependency: transitive
+    dependency: "direct main"
     description:
-      path: "packages/desktop_multi_window"
-      ref: main
-      resolved-ref: "38dfe33c85da6a5b155e2fe39d9c29f9a432bf06"
-      url: "https://github.com/axel10/flutter-plugins"
-    source: git
+      path: "flutter-plugins/packages/desktop_multi_window"
+      relative: true
+    source: path
     version: "0.3.1"
   device_info_plus:
     dependency: "direct main"
@@ -825,6 +823,22 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "1.1.0"
+  irondash_engine_context:
+    dependency: transitive
+    description:
+      name: irondash_engine_context
+      sha256: eccd423b2e6b821338fc3c0bf4d12192cff7a4a3f5c66c6abc704f25aa3886b1
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "0.6.0-dev.0"
+  irondash_message_channel:
+    dependency: transitive
+    description:
+      name: irondash_message_channel
+      sha256: "247e07d6b8694d9fd2c372832a6c5ef057298aa9a52ed4d74861c064096ee1ab"
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "0.8.0-dev.0"
   jni:
     dependency: transitive
     description:
@@ -1012,6 +1026,14 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "0.19.2"
+  native_toolchain_rust:
+    dependency: transitive
+    description:
+      name: native_toolchain_rust
+      sha256: faa57d2258a3b0fd2a634054f54e4496c9fcbd971977e7d2b7e6916d56892857
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "1.0.4+0"
   objective_c:
     dependency: transitive
     description:
@@ -1215,6 +1237,14 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "7.0.2"
+  pixel_snap:
+    dependency: transitive
+    description:
+      name: pixel_snap
+      sha256: "677410ea37b07cd37ecb6d5e6c0d8d7615a7cf3bd92ba406fd1ac57e937d1fb0"
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "0.1.5"
   platform:
     dependency: transitive
     description:
@@ -1581,6 +1611,27 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "1.4.1"
+  super_clipboard:
+    dependency: "direct overridden"
+    description:
+      path: "super_native_extensions/super_clipboard"
+      relative: true
+    source: path
+    version: "0.10.0-dev.2"
+  super_drag_and_drop:
+    dependency: "direct main"
+    description:
+      path: "super_native_extensions/super_drag_and_drop"
+      relative: true
+    source: path
+    version: "0.10.0-dev.2"
+  super_native_extensions:
+    dependency: "direct overridden"
+    description:
+      path: "super_native_extensions/super_native_extensions"
+      relative: true
+    source: path
+    version: "0.10.0-dev.2"
   sync_http:
     dependency: transitive
     description:
@@ -1613,6 +1664,14 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "0.7.11"
+  toml:
+    dependency: transitive
+    description:
+      name: toml
+      sha256: "35a35f782228656a2af31e8c73d1353cc4ef3d683fd68af1111b44631879c05e"
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "0.18.0"
   typed_data:
     dependency: transitive
     description:
