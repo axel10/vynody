@@ -4,8 +4,10 @@ import 'dart:io';
 import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/utils/list_reorder_utils.dart';
+import 'package:vynody/utils/selection_utils.dart';
 import 'package:vynody/widgets/app_tooltip.dart';
 import 'package:vynody/widgets/queue_file_drop_target.dart';
 
@@ -33,6 +35,11 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
   int _currentIndex = -1;
   bool _isPlaying = false;
   final _keyPool = ReorderableKeyPool(debugPrefix: 'standalone-queue-tile');
+  final FocusNode _focusNode = FocusNode();
+
+  final Set<int> _selectedIndices = {};
+  bool _isSelectionMode = false;
+  int? _lastAnchorIndex;
 
   ThemeMode _themeMode = ThemeMode.system;
   Color _accentColor = const Color(0xFF6750A4);
@@ -160,6 +167,8 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
     _currentIndex = currentIndex;
     _isPlaying = isPlaying;
 
+    _selectedIndices.removeWhere((idx) => idx >= _queue.length);
+
     if (themeModeIdx != null) {
       if (themeModeIdx == 0) _themeMode = ThemeMode.system;
       if (themeModeIdx == 1) _themeMode = ThemeMode.light;
@@ -201,10 +210,43 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
     _sendIpc('play_index', index);
   }
 
+  void _exitSelectionMode() {
+    if (!mounted) return;
+    setState(() {
+      _isSelectionMode = false;
+      _selectedIndices.clear();
+      _lastAnchorIndex = null;
+    });
+  }
+
+  void _toggleSelectionMode() {
+    setState(() {
+      _isSelectionMode = !_isSelectionMode;
+      if (!_isSelectionMode) {
+        _selectedIndices.clear();
+        _lastAnchorIndex = null;
+      }
+    });
+  }
+
+  void _toggleSelectAll() {
+    if (_queue.isEmpty) return;
+    setState(() {
+      _isSelectionMode = true;
+      if (_selectedIndices.length == _queue.length) {
+        _selectedIndices.clear();
+      } else {
+        _selectedIndices.clear();
+        _selectedIndices.addAll(List.generate(_queue.length, (i) => i));
+      }
+    });
+  }
+
   void _removeIndex(int index) {
     if (index >= 0 && index < _queue.length) {
       setState(() {
         _queue.removeAt(index);
+        _selectedIndices.remove(index);
         if (_currentIndex == index) {
           _currentIndex = -1;
         } else if (_currentIndex > index) {
@@ -215,8 +257,197 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
     _sendIpc('remove_index', index);
   }
 
+  void _removeSelected() {
+    if (_selectedIndices.isEmpty) return;
+    final indices = _selectedIndices.toList()..sort();
+    _sendIpc('remove_indices', indices);
+    setState(() {
+      for (int i = indices.length - 1; i >= 0; i--) {
+        final idx = indices[i];
+        if (idx >= 0 && idx < _queue.length) {
+          _queue.removeAt(idx);
+          if (_currentIndex == idx) {
+            _currentIndex = -1;
+          } else if (_currentIndex > idx) {
+            _currentIndex--;
+          }
+        }
+      }
+      _selectedIndices.clear();
+      _isSelectionMode = false;
+      _lastAnchorIndex = null;
+    });
+  }
+
+  void _handleItemTap(int index) {
+    final isShift = ModifierKeyUtils.isRangeSelectPressed;
+    final isCtrl = ModifierKeyUtils.isDiscreteSelectPressed;
+
+    if (isShift) {
+      final anchor = _lastAnchorIndex ?? index;
+      final range = ModifierKeyUtils.getIndexRange(anchor, index);
+      setState(() {
+        _isSelectionMode = true;
+        _selectedIndices.addAll(range.where((i) => i >= 0 && i < _queue.length));
+        _lastAnchorIndex = index;
+      });
+    } else if (isCtrl) {
+      setState(() {
+        _isSelectionMode = true;
+        if (_selectedIndices.contains(index)) {
+          _selectedIndices.remove(index);
+          if (_selectedIndices.isEmpty) {
+            _isSelectionMode = false;
+          }
+        } else {
+          _selectedIndices.add(index);
+        }
+        _lastAnchorIndex = index;
+      });
+    } else if (_isSelectionMode) {
+      setState(() {
+        if (_selectedIndices.contains(index)) {
+          _selectedIndices.remove(index);
+          if (_selectedIndices.isEmpty) {
+            _isSelectionMode = false;
+          }
+        } else {
+          _selectedIndices.add(index);
+        }
+        _lastAnchorIndex = index;
+      });
+    } else {
+      _lastAnchorIndex = index;
+      _playIndex(index);
+    }
+  }
+
+  void _handleItemRightClick(BuildContext context, Offset globalPos, int index) {
+    final isSelected = _selectedIndices.contains(index);
+    final count = _selectedIndices.length;
+
+    final items = <PopupMenuEntry<String>>[];
+
+    if (isSelected && count > 1) {
+      items.add(
+        PopupMenuItem<String>(
+          value: 'remove_selected',
+          child: Row(
+            children: [
+              const Icon(Icons.delete_outline_rounded, size: 18, color: Colors.redAccent),
+              const SizedBox(width: 8),
+              Text('从队列中移除 ($count 首)'),
+            ],
+          ),
+        ),
+      );
+      items.add(const PopupMenuDivider());
+      items.add(
+        const PopupMenuItem<String>(
+          value: 'select_all',
+          child: Row(
+            children: [
+              Icon(Icons.select_all_rounded, size: 18),
+              SizedBox(width: 8),
+              Text('全选'),
+            ],
+          ),
+        ),
+      );
+      items.add(
+        const PopupMenuItem<String>(
+          value: 'clear_selection',
+          child: Row(
+            children: [
+              Icon(Icons.deselect_rounded, size: 18),
+              SizedBox(width: 8),
+              Text('取消选择'),
+            ],
+          ),
+        ),
+      );
+    } else {
+      items.add(
+        const PopupMenuItem<String>(
+          value: 'play',
+          child: Row(
+            children: [
+              Icon(Icons.play_arrow_rounded, size: 18),
+              SizedBox(width: 8),
+              Text('播放'),
+            ],
+          ),
+        ),
+      );
+      items.add(
+        const PopupMenuItem<String>(
+          value: 'remove',
+          child: Row(
+            children: [
+              Icon(Icons.delete_outline_rounded, size: 18, color: Colors.redAccent),
+              SizedBox(width: 8),
+              Text('从队列中移除'),
+            ],
+          ),
+        ),
+      );
+      items.add(const PopupMenuDivider());
+      items.add(
+        const PopupMenuItem<String>(
+          value: 'enter_select',
+          child: Row(
+            children: [
+              Icon(Icons.checklist_rounded, size: 18),
+              SizedBox(width: 8),
+              Text('多选'),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final overlay = Overlay.of(context).context.findRenderObject() as RenderBox?;
+    if (overlay == null) return;
+
+    showMenu<String>(
+      context: context,
+      position: RelativeRect.fromRect(
+        globalPos & const Size(40, 40),
+        Offset.zero & overlay.size,
+      ),
+      items: items,
+    ).then((action) {
+      if (action == null) return;
+      switch (action) {
+        case 'remove_selected':
+          _removeSelected();
+          break;
+        case 'select_all':
+          _toggleSelectAll();
+          break;
+        case 'clear_selection':
+          _exitSelectionMode();
+          break;
+        case 'play':
+          _playIndex(index);
+          break;
+        case 'remove':
+          _removeIndex(index);
+          break;
+        case 'enter_select':
+          setState(() {
+            _isSelectionMode = true;
+            _selectedIndices.add(index);
+            _lastAnchorIndex = index;
+          });
+          break;
+      }
+    });
+  }
+
   void _clearQueue() {
     _sendIpc('clear_queue');
+    _exitSelectionMode();
   }
 
   void _reorderQueue(int oldIndex, int newIndex) {
@@ -229,6 +460,15 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
         oldIndex: oldIndex,
         newIndex: newIndex,
       );
+      if (_selectedIndices.isNotEmpty) {
+        final updated = ListReorderUtils.reorderSelectedIndices(
+          _selectedIndices,
+          oldIndex: oldIndex,
+          newIndex: newIndex,
+        );
+        _selectedIndices.clear();
+        _selectedIndices.addAll(updated);
+      }
     });
 
     _sendIpc('reorder', {'oldIndex': oldIndex, 'newIndex': newIndex});
@@ -273,6 +513,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
     WidgetsBinding.instance.removeObserver(this);
     _subChannel.setMethodCallHandler(null);
     _scrollController.dispose();
+    _focusNode.dispose();
     _keyPool.clear();
     super.dispose();
   }
@@ -323,6 +564,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
     final darkTheme = _buildTheme(Brightness.dark, _accentColor);
 
     _keyPool.syncLength(_queue.length);
+    _selectedIndices.removeWhere((idx) => idx >= _queue.length);
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
@@ -333,31 +575,46 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
       home: Builder(
         builder: (context) {
           final theme = Theme.of(context);
-          return Scaffold(
-            backgroundColor: theme.scaffoldBackgroundColor,
-            body: QueueFileDropTarget(
-              enabled: true,
-              displayQueue: _queue,
-              queueSongs: _queue,
-              itemKeyBuilder: (index, song) => _keyPool.getKey(index),
-              showPreview: _queue.isNotEmpty,
-              indicatorHorizontalPadding: 12.0,
-              onFilesDropped: (paths, insertIndex) async {
-                _sendIpc('add_files', {
-                  'paths': paths,
-                  'insertIndex': insertIndex,
-                  'playNow': false,
-                });
-              },
-              child: Column(
-                children: [
-                  _buildTitleBar(context),
-                  Expanded(
-                    child: _queue.isEmpty
-                        ? _buildEmptyView(context)
-                        : _buildQueueList(context),
+          return CallbackShortcuts(
+            bindings: {
+              const SingleActivator(LogicalKeyboardKey.delete): _removeSelected,
+              const SingleActivator(LogicalKeyboardKey.backspace): _removeSelected,
+              const SingleActivator(LogicalKeyboardKey.escape): _exitSelectionMode,
+              const SingleActivator(LogicalKeyboardKey.keyA, control: true):
+                  _toggleSelectAll,
+              const SingleActivator(LogicalKeyboardKey.keyA, meta: true):
+                  _toggleSelectAll,
+            },
+            child: Focus(
+              focusNode: _focusNode,
+              autofocus: true,
+              child: Scaffold(
+                backgroundColor: theme.scaffoldBackgroundColor,
+                body: QueueFileDropTarget(
+                  enabled: true,
+                  displayQueue: _queue,
+                  queueSongs: _queue,
+                  itemKeyBuilder: (index, song) => _keyPool.getKey(index),
+                  showPreview: _queue.isNotEmpty,
+                  indicatorHorizontalPadding: 12.0,
+                  onFilesDropped: (paths, insertIndex) async {
+                    _sendIpc('add_files', {
+                      'paths': paths,
+                      'insertIndex': insertIndex,
+                      'playNow': false,
+                    });
+                  },
+                  child: Column(
+                    children: [
+                      _buildTitleBar(context),
+                      Expanded(
+                        child: _queue.isEmpty
+                            ? _buildEmptyView(context)
+                            : _buildQueueList(context),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
           );
@@ -368,97 +625,170 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
 
   Widget _buildTitleBar(BuildContext context) {
     final theme = Theme.of(context);
+    final isSelecting = _isSelectionMode || _selectedIndices.isNotEmpty;
 
-    return Container(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
       height: 48,
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
+        color: isSelecting
+            ? theme.colorScheme.primaryContainer.withValues(alpha: 0.45)
+            : theme.colorScheme.surface,
         border: Border(
           bottom: BorderSide(
-            color: theme.dividerColor.withValues(alpha: 0.12),
+            color: isSelecting
+                ? theme.colorScheme.primary.withValues(alpha: 0.25)
+                : theme.dividerColor.withValues(alpha: 0.12),
           ),
         ),
       ),
-      child: Row(
-        children: [
-          const SizedBox(width: 14),
-          Icon(
-            Icons.queue_music_rounded,
-            size: 20,
-            color: theme.colorScheme.primary,
-          ),
-          const SizedBox(width: 8),
-          Text(
-            '播放队列',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: theme.colorScheme.onSurface,
+      child: isSelecting
+          ? Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.close_rounded, size: 20),
+                  onPressed: _exitSelectionMode,
+                  visualDensity: VisualDensity.compact,
+                  tooltip: '退出多选',
+                  color: theme.colorScheme.onSurface,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  '已选 ${_selectedIndices.length} 项',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.onSurface,
+                  ),
+                ),
+                const Spacer(),
+                AppTooltip(
+                  message: _selectedIndices.length == _queue.length ? '取消全选' : '全选',
+                  child: IconButton(
+                    icon: Icon(
+                      _selectedIndices.length == _queue.length
+                          ? Icons.deselect_rounded
+                          : Icons.select_all_rounded,
+                      size: 19,
+                    ),
+                    onPressed: _toggleSelectAll,
+                    visualDensity: VisualDensity.compact,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+                if (_selectedIndices.isNotEmpty)
+                  AppTooltip(
+                    message: '从队列中移除',
+                    child: IconButton(
+                      icon: const Icon(Icons.delete_outline_rounded, size: 19),
+                      onPressed: _removeSelected,
+                      visualDensity: VisualDensity.compact,
+                      color: theme.colorScheme.error,
+                    ),
+                  ),
+                AppTooltip(
+                  message: '吸附回主窗口',
+                  child: IconButton(
+                    icon: const Icon(Icons.vertical_align_bottom_rounded, size: 18),
+                    onPressed: _dockToMainWindow,
+                    visualDensity: VisualDensity.compact,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                AppTooltip(
+                  message: '关闭独立窗口',
+                  child: IconButton(
+                    icon: const Icon(Icons.close_rounded, size: 18),
+                    onPressed: _closeWindow,
+                    visualDensity: VisualDensity.compact,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(width: 6),
+              ],
+            )
+          : Row(
+              children: [
+                const SizedBox(width: 14),
+                Icon(
+                  Icons.queue_music_rounded,
+                  size: 20,
+                  color: theme.colorScheme.primary,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  '播放队列',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.onSurface,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color:
+                        theme.colorScheme.primaryContainer.withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    '${_queue.length}',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: theme.colorScheme.onPrimaryContainer,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: SizedBox(height: double.infinity),
+                ),
+                if (_queue.isNotEmpty) ...[
+                  AppTooltip(
+                    message: '定位到当前播放',
+                    child: IconButton(
+                      icon: const Icon(Icons.my_location_rounded, size: 18),
+                      onPressed: _scrollToCurrent,
+                      visualDensity: VisualDensity.compact,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  AppTooltip(
+                    message: '清空队列',
+                    child: IconButton(
+                      icon: const Icon(Icons.delete_sweep_outlined, size: 18),
+                      onPressed: () {
+                        _showClearConfirmDialog(context);
+                      },
+                      visualDensity: VisualDensity.compact,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+                AppTooltip(
+                  message: '吸附回主窗口',
+                  child: IconButton(
+                    icon: const Icon(Icons.vertical_align_bottom_rounded, size: 18),
+                    onPressed: _dockToMainWindow,
+                    visualDensity: VisualDensity.compact,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                AppTooltip(
+                  message: '关闭独立窗口',
+                  child: IconButton(
+                    icon: const Icon(Icons.close_rounded, size: 18),
+                    onPressed: _closeWindow,
+                    visualDensity: VisualDensity.compact,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(width: 6),
+              ],
             ),
-          ),
-          const SizedBox(width: 6),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.primaryContainer.withValues(alpha: 0.5),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Text(
-              '${_queue.length}',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: theme.colorScheme.onPrimaryContainer,
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          const Expanded(
-            child: SizedBox(height: double.infinity),
-          ),
-          if (_queue.isNotEmpty) ...[
-            AppTooltip(
-              message: '定位到当前播放',
-              child: IconButton(
-                icon: const Icon(Icons.my_location_rounded, size: 18),
-                onPressed: _scrollToCurrent,
-                visualDensity: VisualDensity.compact,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-            AppTooltip(
-              message: '清空队列',
-              child: IconButton(
-                icon: const Icon(Icons.delete_sweep_outlined, size: 18),
-                onPressed: () {
-                  _showClearConfirmDialog(context);
-                },
-                visualDensity: VisualDensity.compact,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-          AppTooltip(
-            message: '吸附回主窗口',
-            child: IconButton(
-              icon: const Icon(Icons.vertical_align_bottom_rounded, size: 18),
-              onPressed: _dockToMainWindow,
-              visualDensity: VisualDensity.compact,
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-          AppTooltip(
-            message: '关闭独立窗口',
-            child: IconButton(
-              icon: const Icon(Icons.close_rounded, size: 18),
-              onPressed: _closeWindow,
-              visualDensity: VisualDensity.compact,
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(width: 6),
-        ],
-      ),
     );
   }
 
@@ -520,6 +850,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
 
   Widget _buildQueueList(BuildContext context) {
     final theme = Theme.of(context);
+    final isSelecting = _isSelectionMode || _selectedIndices.isNotEmpty;
 
     return ReorderableListView.builder(
       scrollController: _scrollController,
@@ -531,14 +862,30 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
       itemBuilder: (context, index) {
         final song = _queue[index];
         final isCurrent = index == _currentIndex;
+        final isSelected = _selectedIndices.contains(index);
+
+        final itemColor = isSelected
+            ? theme.colorScheme.primaryContainer.withValues(alpha: 0.55)
+            : (isCurrent
+                ? theme.colorScheme.primaryContainer.withValues(alpha: 0.35)
+                : Colors.transparent);
 
         return Material(
           key: _keyPool.getKey(index),
-          color: isCurrent
-              ? theme.colorScheme.primaryContainer.withValues(alpha: 0.35)
-              : Colors.transparent,
+          color: itemColor,
           child: InkWell(
-            onTap: () => _playIndex(index),
+            onTap: () => _handleItemTap(index),
+            onLongPress: () {
+              setState(() {
+                _isSelectionMode = true;
+                if (!_selectedIndices.contains(index)) {
+                  _selectedIndices.add(index);
+                }
+                _lastAnchorIndex = index;
+              });
+            },
+            onSecondaryTapUp: (details) =>
+                _handleItemRightClick(context, details.globalPosition, index),
             child: Container(
               height: 56,
               padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -547,10 +894,42 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
                   bottom: BorderSide(
                     color: theme.dividerColor.withValues(alpha: 0.06),
                   ),
+                  left: isSelected
+                      ? BorderSide(
+                          color: theme.colorScheme.primary,
+                          width: 3.0,
+                        )
+                      : BorderSide.none,
                 ),
               ),
               child: Row(
                 children: [
+                  if (isSelecting)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: Checkbox(
+                          value: isSelected,
+                          onChanged: (_) {
+                            setState(() {
+                              if (_selectedIndices.contains(index)) {
+                                _selectedIndices.remove(index);
+                                if (_selectedIndices.isEmpty) {
+                                  _isSelectionMode = false;
+                                }
+                              } else {
+                                _selectedIndices.add(index);
+                              }
+                              _lastAnchorIndex = index;
+                            });
+                          },
+                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      ),
+                    ),
                   ReorderableDragStartListener(
                     index: index,
                     child: Padding(
@@ -657,16 +1036,17 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
                         color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
                       ),
                     ),
-                  IconButton(
-                    icon: Icon(
-                      Icons.close_rounded,
-                      size: 16,
-                      color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                  if (!isSelecting)
+                    IconButton(
+                      icon: Icon(
+                        Icons.close_rounded,
+                        size: 16,
+                        color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                      ),
+                      onPressed: () => _removeIndex(index),
+                      visualDensity: VisualDensity.compact,
+                      tooltip: '从队列中移除',
                     ),
-                    onPressed: () => _removeIndex(index),
-                    visualDensity: VisualDensity.compact,
-                    tooltip: '从队列中移除',
-                  ),
                 ],
               ),
             ),
@@ -676,3 +1056,4 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
     );
   }
 }
+

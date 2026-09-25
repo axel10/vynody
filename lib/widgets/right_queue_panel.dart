@@ -2,15 +2,16 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/audio/audio_service.dart';
 import 'package:vynody/player/platform/right_queue_drawer_controller.dart';
 import 'package:vynody/player/platform/standalone_queue_window_manager.dart';
-import 'package:vynody/utils/layout_constants.dart';
 import 'package:vynody/utils/list_reorder_utils.dart';
 import 'package:vynody/utils/queue_sort_utils.dart';
+import 'package:vynody/utils/selection_utils.dart';
 import 'package:vynody/utils/song_context_menu_utils.dart';
 import 'package:vynody/utils/time_format_utils.dart';
 import 'package:vynody/widgets/app_tooltip.dart';
@@ -25,15 +26,172 @@ class RightQueuePanel extends ConsumerStatefulWidget {
 
 class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
   final ScrollController _scrollController = ScrollController();
+  final FocusNode _focusNode = FocusNode();
   final _keyPool = ReorderableKeyPool(debugPrefix: 'right-queue-tile');
   QueueSortField _sortField = QueueSortField.title;
   bool _sortAscending = true;
 
+  final Set<int> _selectedIndices = {};
+  bool _isSelectionMode = false;
+  int? _lastAnchorIndex;
+
   @override
   void dispose() {
     _scrollController.dispose();
+    _focusNode.dispose();
     _keyPool.clear();
     super.dispose();
+  }
+
+  void _exitSelectionMode() {
+    if (!mounted) return;
+    setState(() {
+      _isSelectionMode = false;
+      _selectedIndices.clear();
+      _lastAnchorIndex = null;
+    });
+  }
+
+  void _toggleSelectionMode() {
+    setState(() {
+      _isSelectionMode = !_isSelectionMode;
+      if (!_isSelectionMode) {
+        _selectedIndices.clear();
+        _lastAnchorIndex = null;
+      }
+    });
+  }
+
+  void _toggleSelectAll(int totalLength) {
+    if (totalLength <= 0) return;
+    setState(() {
+      _isSelectionMode = true;
+      if (_selectedIndices.length == totalLength) {
+        _selectedIndices.clear();
+      } else {
+        _selectedIndices.clear();
+        _selectedIndices.addAll(List.generate(totalLength, (i) => i));
+      }
+    });
+  }
+
+  void _removeSelected(List<MusicFile> queue) {
+    if (_selectedIndices.isEmpty) return;
+    final indices = _selectedIndices.toList()..sort();
+    ref.read(audioServiceProvider).removeTracksAt(indices);
+    _exitSelectionMode();
+  }
+
+  void _addSelectedToPlaylist(BuildContext context, List<MusicFile> queue) {
+    final selectedSongs = _selectedIndices
+        .where((i) => i >= 0 && i < queue.length)
+        .map((i) => queue[i])
+        .toList();
+    if (selectedSongs.isEmpty) return;
+    final playlistService = ref.read(playlistServiceProvider);
+    showAddSongsToPlaylistDialog(context, playlistService, selectedSongs);
+  }
+
+  void _handleItemTap(int index, List<MusicFile> queue) {
+    final isShift = ModifierKeyUtils.isRangeSelectPressed;
+    final isCtrl = ModifierKeyUtils.isDiscreteSelectPressed;
+
+    if (isShift) {
+      final anchor = _lastAnchorIndex ?? index;
+      final range = ModifierKeyUtils.getIndexRange(anchor, index);
+      setState(() {
+        _isSelectionMode = true;
+        _selectedIndices.addAll(range.where((i) => i >= 0 && i < queue.length));
+        _lastAnchorIndex = index;
+      });
+    } else if (isCtrl) {
+      setState(() {
+        _isSelectionMode = true;
+        if (_selectedIndices.contains(index)) {
+          _selectedIndices.remove(index);
+          if (_selectedIndices.isEmpty) {
+            _isSelectionMode = false;
+          }
+        } else {
+          _selectedIndices.add(index);
+        }
+        _lastAnchorIndex = index;
+      });
+    } else if (_isSelectionMode) {
+      setState(() {
+        if (_selectedIndices.contains(index)) {
+          _selectedIndices.remove(index);
+          if (_selectedIndices.isEmpty) {
+            _isSelectionMode = false;
+          }
+        } else {
+          _selectedIndices.add(index);
+        }
+        _lastAnchorIndex = index;
+      });
+    } else {
+      _lastAnchorIndex = index;
+      ref.read(audioServiceProvider).playAtIndex(index);
+    }
+  }
+
+  void _handleItemRightClick(
+    BuildContext context,
+    Offset globalPos,
+    int index,
+    List<MusicFile> queue,
+    int currentIndex,
+  ) {
+    final isSelected = _selectedIndices.contains(index);
+    final List<MusicFile> targetSongs;
+
+    if (isSelected && _selectedIndices.length > 1) {
+      targetSongs = _selectedIndices
+          .where((i) => i >= 0 && i < queue.length)
+          .map((i) => queue[i])
+          .toList();
+    } else {
+      targetSongs = [queue[index]];
+    }
+
+    final audioService = ref.read(audioServiceProvider);
+    final playlistService = ref.read(playlistServiceProvider);
+
+    showSongContextMenu(
+      context,
+      globalPos,
+      song: queue[index],
+      songs: targetSongs,
+      mode: SongContextMenuMode.full,
+      onAddToPlaylist: () async {
+        await showAddSongsToPlaylistDialog(context, playlistService, targetSongs);
+      },
+      onPlayNext: targetSongs.length > 1
+          ? null
+          : (index == currentIndex
+              ? null
+              : () {
+                  final curIdx = audioService.currentIndex;
+                  if (curIdx < 0) return;
+                  final insertIndex = index < curIdx ? curIdx : curIdx + 1;
+                  audioService.moveQueueTrack(index, insertIndex);
+                }),
+      onRemoveFromQueue: () {
+        if (isSelected && _selectedIndices.length > 1) {
+          _removeSelected(queue);
+        } else {
+          audioService.removeFromPlaylist(index);
+          if (_selectedIndices.contains(index)) {
+            setState(() {
+              _selectedIndices.remove(index);
+              if (_selectedIndices.isEmpty) {
+                _isSelectionMode = false;
+              }
+            });
+          }
+        }
+      },
+    );
   }
 
   Future<void> _showSortDialog(BuildContext context) async {
@@ -102,6 +260,7 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
             onPressed: () {
               Navigator.of(ctx).pop();
               ref.read(audioServiceProvider).clearPlaylist();
+              _exitSelectionMode();
             },
             child: const Text('清空'),
           ),
@@ -123,149 +282,236 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
 
     _keyPool.syncLength(queue.length);
 
-    return Container(
-      width: kRightQueueDrawerWidth,
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        border: Border(
-          left: BorderSide(
-            color: theme.dividerColor.withValues(alpha: 0.12),
-            width: 1.0,
-          ),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            offset: const Offset(-2, 0),
-            blurRadius: 8,
-          ),
-        ],
-      ),
-      child: QueueFileDropTarget(
-        enabled: true,
-        displayQueue: queue,
-        queueSongs: queue,
-        itemKeyBuilder: (index, song) => _keyPool.getKey(index),
-        showPreview: queue.isNotEmpty,
-        indicatorHorizontalPadding: 12.0,
-        onFilesDropped: (paths, insertIndex) async {
-          await ref
-              .read(standaloneQueueWindowManagerProvider)
-              .handleDroppedPaths(paths, insertIndex: insertIndex);
-        },
-        child: Column(
-          children: [
-            if (topPadding > 0) SizedBox(height: topPadding),
-            _buildHeader(context, queue.length),
-            Expanded(
-              child: queue.isEmpty
-                  ? _buildEmptyView(context)
-                  : _buildQueueList(
-                      context,
-                      queue,
-                      currentIndex,
-                      isPlaying,
-                      audioService,
-                    ),
+    // Clean up selected indices if queue shrunk
+    _selectedIndices.removeWhere((idx) => idx >= queue.length);
+
+    return CallbackShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.delete): () =>
+            _removeSelected(queue),
+        const SingleActivator(LogicalKeyboardKey.backspace): () =>
+            _removeSelected(queue),
+        const SingleActivator(LogicalKeyboardKey.escape): _exitSelectionMode,
+        const SingleActivator(LogicalKeyboardKey.keyA, control: true): () =>
+            _toggleSelectAll(queue.length),
+        const SingleActivator(LogicalKeyboardKey.keyA, meta: true): () =>
+            _toggleSelectAll(queue.length),
+      },
+      child: Focus(
+        focusNode: _focusNode,
+        autofocus: true,
+        child: Container(
+          width: kRightQueueDrawerWidth,
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            border: Border(
+              left: BorderSide(
+                color: theme.dividerColor.withValues(alpha: 0.12),
+                width: 1.0,
+              ),
             ),
-          ],
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.08),
+                offset: const Offset(-2, 0),
+                blurRadius: 8,
+              ),
+            ],
+          ),
+          child: QueueFileDropTarget(
+            enabled: true,
+            displayQueue: queue,
+            queueSongs: queue,
+            itemKeyBuilder: (index, song) => _keyPool.getKey(index),
+            showPreview: queue.isNotEmpty,
+            indicatorHorizontalPadding: 12.0,
+            onFilesDropped: (paths, insertIndex) async {
+              await ref
+                  .read(standaloneQueueWindowManagerProvider)
+                  .handleDroppedPaths(paths, insertIndex: insertIndex);
+            },
+            child: Column(
+              children: [
+                if (topPadding > 0) SizedBox(height: topPadding),
+                _buildHeader(context, queue),
+                Expanded(
+                  child: queue.isEmpty
+                      ? _buildEmptyView(context)
+                      : _buildQueueList(
+                          context,
+                          queue,
+                          currentIndex,
+                          isPlaying,
+                          audioService,
+                        ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildHeader(BuildContext context, int queueLength) {
+  Widget _buildHeader(BuildContext context, List<MusicFile> queue) {
     final theme = Theme.of(context);
-    return Container(
+    final queueLength = queue.length;
+    final isSelecting = _isSelectionMode || _selectedIndices.isNotEmpty;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
       height: 52,
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+        color: isSelecting
+            ? theme.colorScheme.primaryContainer.withValues(alpha: 0.45)
+            : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
         border: Border(
           bottom: BorderSide(
-            color: theme.dividerColor.withValues(alpha: 0.08),
+            color: isSelecting
+                ? theme.colorScheme.primary.withValues(alpha: 0.25)
+                : theme.dividerColor.withValues(alpha: 0.08),
             width: 1.0,
           ),
         ),
       ),
-      child: Row(
-        children: [
-          Icon(
-            Icons.queue_music_rounded,
-            size: 20,
-            color: theme.colorScheme.primary,
-          ),
-          const SizedBox(width: 8),
-          Text(
-            '播放队列',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: theme.colorScheme.onSurface,
+      child: isSelecting
+          ? Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.close_rounded, size: 20),
+                  onPressed: _exitSelectionMode,
+                  visualDensity: VisualDensity.compact,
+                  tooltip: '退出多选',
+                  color: theme.colorScheme.onSurface,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  '已选 ${_selectedIndices.length} 项',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.onSurface,
+                  ),
+                ),
+                const Spacer(),
+                AppTooltip(
+                  message: _selectedIndices.length == queueLength ? '取消全选' : '全选',
+                  child: IconButton(
+                    icon: Icon(
+                      _selectedIndices.length == queueLength
+                          ? Icons.deselect_rounded
+                          : Icons.select_all_rounded,
+                      size: 19,
+                    ),
+                    onPressed: () => _toggleSelectAll(queueLength),
+                    visualDensity: VisualDensity.compact,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+                if (_selectedIndices.isNotEmpty) ...[
+                  AppTooltip(
+                    message: '添加到歌单',
+                    child: IconButton(
+                      icon: const Icon(Icons.playlist_add_rounded, size: 20),
+                      onPressed: () => _addSelectedToPlaylist(context, queue),
+                      visualDensity: VisualDensity.compact,
+                      color: theme.colorScheme.primary,
+                    ),
+                  ),
+                  AppTooltip(
+                    message: '从队列中移除',
+                    child: IconButton(
+                      icon: const Icon(Icons.delete_outline_rounded, size: 19),
+                      onPressed: () => _removeSelected(queue),
+                      visualDensity: VisualDensity.compact,
+                      color: theme.colorScheme.error,
+                    ),
+                  ),
+                ],
+              ],
+            )
+          : Row(
+              children: [
+                Icon(
+                  Icons.queue_music_rounded,
+                  size: 20,
+                  color: theme.colorScheme.primary,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  '播放队列',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.onSurface,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color:
+                        theme.colorScheme.primaryContainer.withValues(alpha: 0.6),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    '$queueLength',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: theme.colorScheme.onPrimaryContainer,
+                    ),
+                  ),
+                ),
+                const Spacer(),
+                if (queueLength > 0) ...[
+                  AppTooltip(
+                    message: '定位当前播放',
+                    child: IconButton(
+                      icon: const Icon(Icons.my_location_rounded, size: 18),
+                      onPressed: _scrollToCurrent,
+                      visualDensity: VisualDensity.compact,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  AppTooltip(
+                    message: '清空队列',
+                    child: IconButton(
+                      icon: const Icon(Icons.delete_sweep_outlined, size: 18),
+                      onPressed: () => _showClearConfirmDialog(context),
+                      visualDensity: VisualDensity.compact,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+                AppTooltip(
+                  message: '分离为独立窗口',
+                  child: IconButton(
+                    icon: const Icon(Icons.open_in_new_rounded, size: 18),
+                    onPressed: () {
+                      ref.read(rightQueueDrawerProvider.notifier).close();
+                      ref
+                          .read(standaloneQueueWindowManagerProvider)
+                          .openOrFocusQueueWindow();
+                    },
+                    visualDensity: VisualDensity.compact,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+                AppTooltip(
+                  message: '排序',
+                  child: IconButton(
+                    icon: const Icon(Icons.sort_rounded, size: 18),
+                    onPressed:
+                        queueLength > 0 ? () => _showSortDialog(context) : null,
+                    visualDensity: VisualDensity.compact,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
             ),
-          ),
-          const SizedBox(width: 6),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.primaryContainer.withValues(alpha: 0.6),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Text(
-              '$queueLength',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: theme.colorScheme.onPrimaryContainer,
-              ),
-            ),
-          ),
-          const Spacer(),
-          if (queueLength > 0) ...[
-            AppTooltip(
-              message: '定位当前播放',
-              child: IconButton(
-                icon: const Icon(Icons.my_location_rounded, size: 18),
-                onPressed: _scrollToCurrent,
-                visualDensity: VisualDensity.compact,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-            AppTooltip(
-              message: '清空队列',
-              child: IconButton(
-                icon: const Icon(Icons.delete_sweep_outlined, size: 18),
-                onPressed: () => _showClearConfirmDialog(context),
-                visualDensity: VisualDensity.compact,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-          AppTooltip(
-            message: '分离为独立窗口',
-            child: IconButton(
-              icon: const Icon(Icons.open_in_new_rounded, size: 18),
-              onPressed: () {
-                ref.read(rightQueueDrawerProvider.notifier).close();
-                ref
-                    .read(standaloneQueueWindowManagerProvider)
-                    .openOrFocusQueueWindow();
-              },
-              visualDensity: VisualDensity.compact,
-              color: theme.colorScheme.primary,
-            ),
-          ),
-          AppTooltip(
-            message: '排序',
-            child: IconButton(
-              icon: const Icon(Icons.sort_rounded, size: 18),
-              onPressed: queueLength > 0 ? () => _showSortDialog(context) : null,
-              visualDensity: VisualDensity.compact,
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -314,6 +560,8 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
     bool isPlaying,
     AudioService audioService,
   ) {
+    final isSelecting = _isSelectionMode || _selectedIndices.isNotEmpty;
+
     return ReorderableListView.builder(
       scrollController: _scrollController,
       buildDefaultDragHandles: false,
@@ -321,10 +569,22 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
       onReorderItem: (oldIndex, newIndex) {
         audioService.moveQueueTrack(oldIndex, newIndex);
         _keyPool.moveKey(oldIndex, newIndex);
+        if (_selectedIndices.isNotEmpty) {
+          final updated = ListReorderUtils.reorderSelectedIndices(
+            _selectedIndices,
+            oldIndex: oldIndex,
+            newIndex: newIndex,
+          );
+          setState(() {
+            _selectedIndices.clear();
+            _selectedIndices.addAll(updated);
+          });
+        }
       },
       itemBuilder: (context, index) {
         final song = queue[index];
         final isCurrent = index == currentIndex;
+        final isSelected = _selectedIndices.contains(index);
 
         return _RightQueueTile(
           key: _keyPool.getKey(index),
@@ -332,8 +592,39 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
           index: index,
           isCurrent: isCurrent,
           isPlaying: isPlaying,
+          isSelected: isSelected,
+          isSelectionMode: isSelecting,
           durationFormatted: TimeFormatUtils.formatMs(song.durationMillis ?? 0),
-          onTap: () => audioService.playAtIndex(index),
+          onTap: () => _handleItemTap(index, queue),
+          onLongPress: () {
+            setState(() {
+              _isSelectionMode = true;
+              if (!_selectedIndices.contains(index)) {
+                _selectedIndices.add(index);
+              }
+              _lastAnchorIndex = index;
+            });
+          },
+          onToggleSelect: () {
+            setState(() {
+              if (_selectedIndices.contains(index)) {
+                _selectedIndices.remove(index);
+                if (_selectedIndices.isEmpty) {
+                  _isSelectionMode = false;
+                }
+              } else {
+                _selectedIndices.add(index);
+              }
+              _lastAnchorIndex = index;
+            });
+          },
+          onSecondaryTap: (pos) => _handleItemRightClick(
+            context,
+            pos,
+            index,
+            queue,
+            currentIndex,
+          ),
           onRemove: () => audioService.removeFromPlaylist(index),
         );
       },
@@ -346,8 +637,13 @@ class _RightQueueTile extends ConsumerStatefulWidget {
   final int index;
   final bool isCurrent;
   final bool isPlaying;
+  final bool isSelected;
+  final bool isSelectionMode;
   final String durationFormatted;
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
+  final VoidCallback onToggleSelect;
+  final ValueChanged<Offset> onSecondaryTap;
   final VoidCallback onRemove;
 
   const _RightQueueTile({
@@ -356,8 +652,13 @@ class _RightQueueTile extends ConsumerStatefulWidget {
     required this.index,
     required this.isCurrent,
     required this.isPlaying,
+    required this.isSelected,
+    required this.isSelectionMode,
     required this.durationFormatted,
     required this.onTap,
+    this.onLongPress,
+    required this.onToggleSelect,
+    required this.onSecondaryTap,
     required this.onRemove,
   });
 
@@ -367,35 +668,6 @@ class _RightQueueTile extends ConsumerStatefulWidget {
 
 class _RightQueueTileState extends ConsumerState<_RightQueueTile> {
   bool _isHovered = false;
-
-  void _showContextMenu(Offset globalPos) {
-    final playlistService = ref.read(playlistServiceProvider);
-    final audioService = ref.read(audioServiceProvider);
-
-    showSongContextMenu(
-      context,
-      globalPos,
-      song: widget.song,
-      songs: [widget.song],
-      mode: SongContextMenuMode.full,
-      onAddToPlaylist: () async {
-        await showAddSongsToPlaylistDialog(context, playlistService, [widget.song]);
-      },
-      onPlayNext: widget.isCurrent
-          ? null
-          : () {
-              final queue = audioService.playbackQueue;
-              final currentIndex = audioService.currentIndex;
-              final queueIndex =
-                  queue.indexWhere((s) => s.path == widget.song.path);
-              if (queueIndex < 0 || currentIndex < 0) return;
-              final insertIndex =
-                  queueIndex < currentIndex ? currentIndex : currentIndex + 1;
-              audioService.moveQueueTrack(queueIndex, insertIndex);
-            },
-      onRemoveFromQueue: widget.onRemove,
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -408,17 +680,23 @@ class _RightQueueTileState extends ConsumerState<_RightQueueTile> {
     final hasArt = song.artworkPath != null &&
         song.artworkPath!.isNotEmpty &&
         File(song.artworkPath!).existsSync();
-    final coverPath = hasThumb ? song.thumbnailPath : (hasArt ? song.artworkPath : null);
+    final coverPath =
+        hasThumb ? song.thumbnailPath : (hasArt ? song.artworkPath : null);
+
+    final itemColor = widget.isSelected
+        ? theme.colorScheme.primaryContainer.withValues(alpha: 0.55)
+        : (widget.isCurrent
+            ? theme.colorScheme.primaryContainer.withValues(alpha: 0.28)
+            : (_isHovered
+                ? theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4)
+                : Colors.transparent));
 
     return Material(
-      color: widget.isCurrent
-          ? theme.colorScheme.primaryContainer.withValues(alpha: 0.32)
-          : (_isHovered
-              ? theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4)
-              : Colors.transparent),
+      color: itemColor,
       child: InkWell(
         onTap: widget.onTap,
-        onSecondaryTapUp: (details) => _showContextMenu(details.globalPosition),
+        onLongPress: widget.onLongPress,
+        onSecondaryTapUp: (details) => widget.onSecondaryTap(details.globalPosition),
         child: MouseRegion(
           onEnter: (_) => setState(() => _isHovered = true),
           onExit: (_) => setState(() => _isHovered = false),
@@ -430,10 +708,30 @@ class _RightQueueTileState extends ConsumerState<_RightQueueTile> {
                 bottom: BorderSide(
                   color: theme.dividerColor.withValues(alpha: 0.05),
                 ),
+                left: widget.isSelected
+                    ? BorderSide(
+                        color: theme.colorScheme.primary,
+                        width: 3.0,
+                      )
+                    : BorderSide.none,
               ),
             ),
             child: Row(
               children: [
+                if (widget.isSelectionMode)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: Checkbox(
+                        value: widget.isSelected,
+                        onChanged: (_) => widget.onToggleSelect(),
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ),
+                  ),
                 ReorderableDragStartListener(
                   index: widget.index,
                   child: Padding(
@@ -502,7 +800,9 @@ class _RightQueueTileState extends ConsumerState<_RightQueueTile> {
                                     : FontWeight.normal,
                                 color: widget.isCurrent
                                     ? theme.colorScheme.primary
-                                    : theme.colorScheme.onSurface,
+                                    : (widget.isSelected
+                                        ? theme.colorScheme.onSurface
+                                        : theme.colorScheme.onSurface),
                               ),
                             ),
                           ),
@@ -522,7 +822,7 @@ class _RightQueueTileState extends ConsumerState<_RightQueueTile> {
                   ),
                 ),
                 const SizedBox(width: 6),
-                if (_isHovered)
+                if (_isHovered && !widget.isSelectionMode)
                   AppTooltip(
                     message: '从队列中移除',
                     child: IconButton(

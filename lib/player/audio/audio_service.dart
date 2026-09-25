@@ -2957,6 +2957,36 @@ class AudioService extends Notifier<AudioSnapshot> {
     }
   }
 
+  Future<void> removeTracksAt(Iterable<int> indices) async {
+    final sortedIndices = indices.toSet().toList()..sort();
+    if (sortedIndices.isEmpty) return;
+
+    for (int i = sortedIndices.length - 1; i >= 0; i--) {
+      final index = sortedIndices[i];
+      if (index >= 0 && index < _queue.length) {
+        _queue.removeAt(index);
+        await _player.playlist.removeTrackAt(index);
+      }
+    }
+
+    if (currentMusic?.path != null) {
+      final updatedIndex = _queue.indexWhere(
+        (song) => song.path == currentMusic?.path,
+      );
+      if (updatedIndex != -1) {
+        _currentIndex = updatedIndex;
+      } else {
+        _currentIndex = -1;
+      }
+    } else {
+      _currentIndex = -1;
+    }
+
+    _startQueueBackgroundProcessing();
+    notifyListeners();
+    unawaited(_persistPlaybackSession());
+  }
+
   Future<void> _clearCurrentMusicState() async {
     _currentIndex = -1;
     _resetPlaybackTrackingForSong(null);

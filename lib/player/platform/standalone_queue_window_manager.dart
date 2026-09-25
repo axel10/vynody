@@ -122,6 +122,14 @@ class StandaloneQueueWindowManager {
           }
           return true;
 
+        case 'remove_indices':
+          final rawIndices = call.arguments as List?;
+          if (rawIndices != null) {
+            final indices = rawIndices.cast<int>();
+            await audio.removeTracksAt(indices);
+          }
+          return true;
+
         case 'clear_queue':
           audio.clearPlaylist();
           return true;
