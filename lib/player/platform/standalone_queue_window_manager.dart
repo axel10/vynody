@@ -107,6 +107,8 @@ class StandaloneQueueWindowManager {
 
         case 'add_files':
           final args = call.arguments as Map?;
+          AppLog.log('[StandaloneQueue] IPC add_files received args: $args', mirrorToConsole: true);
+          debugPrint('[StandaloneQueue] IPC add_files received args: $args');
           if (args != null) {
             final paths = List<String>.from(args['paths'] ?? []);
             final insertIndex = args['insertIndex'] as int?;
@@ -130,28 +132,47 @@ class StandaloneQueueWindowManager {
     int? insertIndex,
     bool playNow = false,
   }) async {
+    AppLog.log(
+      '[StandaloneQueue] _handleDroppedPaths processing ${paths.length} paths (insertIndex=$insertIndex)',
+      mirrorToConsole: true,
+    );
+    debugPrint('[StandaloneQueue] _handleDroppedPaths processing ${paths.length} paths (insertIndex=$insertIndex)');
     if (paths.isEmpty) return;
     final songs = <MusicFile>[];
     for (final path in paths) {
       if (FileSystemEntity.isFileSync(path)) {
         if (MusicFileUtils.isMusicFilePath(path)) {
           songs.add(MusicFile(path: path, name: p.basename(path)));
+        } else {
+          debugPrint('[StandaloneQueue] Dropped file is not a supported music file: $path');
         }
       } else if (FileSystemEntity.isDirectorySync(path)) {
         final dir = Directory(path);
         try {
+          final dirSongs = <MusicFile>[];
           await for (final item in dir.list(recursive: true, followLinks: false)) {
             if (item is File && MusicFileUtils.isMusicFilePath(item.path)) {
-              songs.add(MusicFile(path: item.path, name: p.basename(item.path)));
+              dirSongs.add(MusicFile(path: item.path, name: p.basename(item.path)));
             }
           }
+          dirSongs.sort((a, b) => a.path.compareTo(b.path));
+          debugPrint('[StandaloneQueue] Scanned directory $path, found ${dirSongs.length} songs');
+          songs.addAll(dirSongs);
         } catch (e) {
-          AppLog.log('[StandaloneQueue] Error scanning directory $path: $e');
+          AppLog.log('[StandaloneQueue] Error scanning directory $path: $e', mirrorToConsole: true);
         }
+      } else {
+        debugPrint('[StandaloneQueue] Dropped path does not exist on disk: $path');
       }
     }
 
-    if (songs.isEmpty) return;
+    if (songs.isEmpty) {
+      AppLog.log('[StandaloneQueue] No valid music files found from dropped paths', mirrorToConsole: true);
+      debugPrint('[StandaloneQueue] No valid music files found from dropped paths');
+      return;
+    }
+
+    final scanner = ref.read(scannerServiceProvider);
 
     try {
       final db = MetadataDatabase();
@@ -176,6 +197,20 @@ class StandaloneQueueWindowManager {
             waveformBlob: cached.waveformBlob,
             lastModifiedTime: cached.lastModifiedTime,
           );
+        } else {
+          final meta = scanner.metadataMap[s.path];
+          if (meta != null) {
+            songs[i] = songs[i].copyWith(
+              title: meta.title,
+              artist: meta.artist,
+              albumArtist: meta.albumArtist,
+              album: meta.album,
+              trackNumber: meta.trackNumber,
+              durationMillis: meta.duration,
+              thumbnailPath: meta.thumbnailPath,
+              artworkPath: meta.artworkPath,
+            );
+          }
         }
       }
     } catch (e) {
@@ -188,6 +223,10 @@ class StandaloneQueueWindowManager {
     } else {
       await audio.appendToQueue(songs);
     }
+
+    AppLog.log('[StandaloneQueue] Successfully added ${songs.length} songs to queue, forcing sub-window sync', mirrorToConsole: true);
+    debugPrint('[StandaloneQueue] Successfully added ${songs.length} songs to queue, forcing sub-window sync');
+    _syncFullStateToSubWindow();
 
     if (playNow && songs.isNotEmpty) {
       await audio.playFile(songs.first.path, songs.first.name);

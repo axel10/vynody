@@ -243,6 +243,7 @@ class FolderSubfoldersSliver extends StatelessWidget {
                             representativeSong: representativeSong,
                             subtitle:
                                 hasPermission ? null : systemMediaSubtitle,
+                            isSortMode: true,
                             onTap: null,
                           ),
                         ),
@@ -267,6 +268,7 @@ class FolderSubfoldersSliver extends StatelessWidget {
                           representativeSong: representativeSong,
                           isSelected: false,
                           isSelectionMode: false,
+                          isSortMode: true,
                           onTap: null,
                           onSecondaryTapDown: (details) {
                             onShowFolderContextMenu?.call(
@@ -356,6 +358,7 @@ class FolderSubfoldersSliver extends StatelessWidget {
                         representativeSong: representativeSong,
                         isSelected: isSelected,
                         isSelectionMode: isSelectionMode,
+                        isSortMode: isSortMode,
                         onTap: onFolderTap != null
                             ? (isAvailable || isSelectionMode ? () => onFolderTap?.call(folder, folderIndex) : null)
                             : (isSelectionMode

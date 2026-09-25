@@ -27,6 +27,7 @@ import 'package:vynody/player/library/library_source_filter.dart';
 import 'package:vynody/player/settings/settings_service.dart';
 import 'main_layout_riverpod.dart';
 import 'package:vynody/utils/layout_constants.dart';
+import '../widgets/draggable_album_item.dart';
 import '../utils/app_snack_bar.dart';
 
 class AlbumsTab extends ConsumerStatefulWidget {
@@ -732,7 +733,7 @@ class _AlbumCard extends ConsumerWidget {
       ),
     );
 
-    return Material(
+    final content = Material(
       color: Colors.transparent,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
@@ -860,6 +861,12 @@ class _AlbumCard extends ConsumerWidget {
           ),
         ),
       ),
+    );
+
+    return DraggableAlbumItem(
+      album: album,
+      enabled: !isSelectionMode,
+      child: content,
     );
   }
 

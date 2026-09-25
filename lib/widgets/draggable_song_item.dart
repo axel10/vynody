@@ -37,6 +37,10 @@ class DraggableSongItem extends StatelessWidget {
         // Add native file uri so system drop targets and other windows recognize it as a file
         item.add(Formats.fileUri(Uri.file(song.path)));
         item.add(Formats.plainText(song.path));
+        request.session.dragCompleted.addListener(() {
+          final op = request.session.dragCompleted.value;
+          debugPrint('[DRAG] DraggableSongItem drag completed for "${song.displayName}". Result operation: $op');
+        });
         return item;
       },
       allowedOperations: () => const [DropOperation.copy, DropOperation.link],

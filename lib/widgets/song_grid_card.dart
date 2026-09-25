@@ -7,6 +7,7 @@ import '../widgets/song_thumbnail.dart';
 import '../widgets/playing_equalizer_icon.dart';
 import '../player/audio/audio_riverpod.dart';
 import 'remote_media_badge.dart';
+import 'draggable_song_item.dart';
 
 class SongGridCard extends ConsumerWidget {
   const SongGridCard({
@@ -62,7 +63,7 @@ class SongGridCard extends ConsumerWidget {
 
     final titleColor = isCurrent ? theme.colorScheme.primary : theme.colorScheme.onSurface;
 
-    return GestureDetector(
+    final card = GestureDetector(
       onSecondaryTapDown: onSecondaryTapDown,
       onLongPress: onLongPress,
       child: InkWell(
@@ -210,6 +211,12 @@ class SongGridCard extends ConsumerWidget {
           ),
         ),
       ),
+    );
+
+    return DraggableSongItem(
+      song: song,
+      enabled: !isSelectionMode,
+      child: card,
     );
   }
 

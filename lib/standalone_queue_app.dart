@@ -236,6 +236,39 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
     return '$minutes:${seconds.toString().padLeft(2, '0')}';
   }
 
+  Future<T?> _readFormatSafely<T extends Object>(
+    dynamic reader,
+    ValueFormat<T> format,
+  ) async {
+    if (!reader.canProvide(format)) return null;
+    final completer = Completer<T?>();
+    try {
+      final progress = reader.getValue<T>(
+        format,
+        (value) {
+          if (!completer.isCompleted) completer.complete(value);
+        },
+        onError: (err) {
+          debugPrint('[DROP] Error reading format $format: $err');
+          if (!completer.isCompleted) completer.complete(null);
+        },
+      );
+      if (progress == null) {
+        if (!completer.isCompleted) completer.complete(null);
+      }
+      return await completer.future.timeout(
+        const Duration(milliseconds: 600),
+        onTimeout: () {
+          debugPrint('[DROP] Timeout reading format $format');
+          return null;
+        },
+      );
+    } catch (e) {
+      debugPrint('[DROP] Exception reading format $format: $e');
+      return null;
+    }
+  }
+
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
@@ -311,57 +344,71 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
                 }
                 return DropOperation.copy;
               },
-              onDropEnter: (_) => setState(() => _isDraggingOver = true),
-              onDropLeave: (_) => setState(() {
-                _isDraggingOver = false;
-                _dropInsertIndex = null;
-              }),
-              onDropEnded: (_) => setState(() {
-                _isDraggingOver = false;
-                _dropInsertIndex = null;
-              }),
+              onDropEnter: (_) {
+                debugPrint('[DROP] onDropEnter triggered in standalone queue window');
+                setState(() => _isDraggingOver = true);
+              },
+              onDropLeave: (_) {
+                debugPrint('[DROP] onDropLeave triggered in standalone queue window');
+                setState(() {
+                  _isDraggingOver = false;
+                  _dropInsertIndex = null;
+                });
+              },
+              onDropEnded: (_) {
+                debugPrint('[DROP] onDropEnded triggered in standalone queue window');
+                setState(() {
+                  _isDraggingOver = false;
+                  _dropInsertIndex = null;
+                });
+              },
               onPerformDrop: (event) async {
+                debugPrint('[DROP] onPerformDrop started. Received ${event.session.items.length} items');
                 setState(() {
                   _isDraggingOver = false;
                   _dropInsertIndex = null;
                 });
                 final paths = <String>[];
-                for (final item in event.session.items) {
+                for (var i = 0; i < event.session.items.length; i++) {
+                  final item = event.session.items[i];
+                  debugPrint('[DROP] Item #$i localData: ${item.localData}');
                   if (item.localData is MusicFile) {
-                    paths.add((item.localData as MusicFile).path);
+                    final p = (item.localData as MusicFile).path;
+                    debugPrint('[DROP] Item #$i resolved MusicFile path: $p');
+                    paths.add(p);
                     continue;
                   }
-                  if (item.localData is Map && (item.localData as Map)['path'] != null) {
-                    paths.add((item.localData as Map)['path'] as String);
-                    continue;
-                  }
-                  final reader = item.dataReader;
-                  if (reader == null) continue;
-
-                  if (reader.canProvide(Formats.fileUri)) {
-                    final completer = Completer<Uri?>();
-                    reader.getValue<Uri>(Formats.fileUri, (value) {
-                      if (!completer.isCompleted) completer.complete(value);
-                    }, onError: (_) {
-                      if (!completer.isCompleted) completer.complete(null);
-                    });
-                    final uri = await completer.future;
-                    if (uri != null && uri.scheme == 'file') {
-                      paths.add(uri.toFilePath());
+                  if (item.localData is Map) {
+                    final map = item.localData as Map;
+                    if (map['paths'] is List) {
+                      final list = map['paths'] as List;
+                      debugPrint('[DROP] Item #$i resolved ${list.length} paths from localData[paths]');
+                      for (final p in list) {
+                        if (p != null) paths.add(p.toString());
+                      }
+                      continue;
+                    }
+                    if (map['path'] != null) {
+                      final p = map['path'] as String;
+                      debugPrint('[DROP] Item #$i resolved path from localData[path]: $p');
+                      paths.add(p);
                       continue;
                     }
                   }
+                  final reader = item.dataReader;
+                  if (reader == null) {
+                    debugPrint('[DROP] Item #$i dataReader is null');
+                    continue;
+                  }
 
-                  if (reader.canProvide(Formats.plainText)) {
-                    final completer = Completer<String?>();
-                    reader.getValue<String>(Formats.plainText, (value) {
-                      if (!completer.isCompleted) completer.complete(value);
-                    }, onError: (_) {
-                      if (!completer.isCompleted) completer.complete(null);
-                    });
-                    final text = await completer.future;
-                    if (text != null && text.trim().isNotEmpty) {
-                      final trimmed = text.trim();
+                  // 1. Try plainText first (batch song paths separated by newline)
+                  final text = await _readFormatSafely<String>(reader, Formats.plainText);
+                  if (text != null && text.trim().isNotEmpty) {
+                    debugPrint('[DROP] Item #$i plainText read, raw length=${text.length}');
+                    final lines = text.split(RegExp(r'[\r\n]+'));
+                    for (final rawLine in lines) {
+                      final trimmed = rawLine.trim();
+                      if (trimmed.isEmpty) continue;
                       if (trimmed.startsWith('file://')) {
                         try {
                           paths.add(Uri.parse(trimmed).toFilePath());
@@ -371,14 +418,35 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
                       paths.add(trimmed);
                     }
                   }
+
+                  // 2. Try fileUri
+                  final uri = await _readFormatSafely<Uri>(reader, Formats.fileUri);
+                  if (uri != null && uri.scheme == 'file') {
+                    final filePath = uri.toFilePath();
+                    debugPrint('[DROP] Item #$i fileUri read: $filePath');
+                    paths.add(filePath);
+                  }
                 }
 
-                if (paths.isNotEmpty) {
+                final uniquePaths = <String>[];
+                final seen = <String>{};
+                for (final p in paths) {
+                  if (seen.add(p)) {
+                    uniquePaths.add(p);
+                  }
+                }
+
+                debugPrint('[DROP] onPerformDrop finished. Total unique paths: ${uniquePaths.length}');
+
+                if (uniquePaths.isNotEmpty) {
+                  debugPrint('[DROP] Sending IPC add_files with ${uniquePaths.length} paths');
                   _sendIpc('add_files', {
-                    'paths': paths,
+                    'paths': uniquePaths,
                     'insertIndex': _dropInsertIndex,
                     'playNow': false,
                   });
+                } else {
+                  debugPrint('[DROP] No valid paths extracted from drop session');
                 }
               },
               child: Column(

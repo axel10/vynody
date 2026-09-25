@@ -4,6 +4,7 @@ import '../models/music_file.dart';
 import '../models/music_folder.dart';
 import '../l10n/app_localizations.dart';
 import '../widgets/song_thumbnail.dart';
+import 'draggable_folder_item.dart';
 
 class FolderGridCard extends StatelessWidget {
   const FolderGridCard({
@@ -13,6 +14,7 @@ class FolderGridCard extends StatelessWidget {
     this.representativeSong,
     this.isSelected = false,
     this.isSelectionMode = false,
+    this.isSortMode = false,
     this.onTap,
     this.onLongPress,
     this.onSecondaryTapDown,
@@ -27,6 +29,7 @@ class FolderGridCard extends StatelessWidget {
   final MusicFile? representativeSong;
   final bool isSelected;
   final bool isSelectionMode;
+  final bool isSortMode;
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
   final void Function(TapDownDetails)? onSecondaryTapDown;
@@ -143,7 +146,7 @@ class FolderGridCard extends StatelessWidget {
       ),
     );
 
-    return GestureDetector(
+    final card = GestureDetector(
       onSecondaryTapDown: onSecondaryTapDown,
       onLongPress: onLongPress,
       child: InkWell(
@@ -211,6 +214,14 @@ class FolderGridCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+
+    return DraggableFolderItem(
+      folder: folder,
+      songsCount: songsCount,
+      representativeSong: representativeSong,
+      enabled: !isSelectionMode && !isSortMode,
+      child: card,
     );
   }
 }

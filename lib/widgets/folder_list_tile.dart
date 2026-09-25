@@ -3,6 +3,7 @@ import 'package:vynody/models/music_file.dart';
 import 'package:vynody/models/music_folder.dart';
 import 'package:vynody/l10n/app_localizations.dart';
 import 'package:vynody/widgets/song_thumbnail.dart';
+import 'draggable_folder_item.dart';
 
 class FolderListTile extends StatelessWidget {
   const FolderListTile({
@@ -148,7 +149,7 @@ class FolderListTile extends StatelessWidget {
       ),
     );
 
-    return GestureDetector(
+    final tile = GestureDetector(
       behavior: HitTestBehavior.opaque,
       onSecondaryTapDown: onSecondaryTapDown != null
           ? (details) => onSecondaryTapDown!(details)
@@ -251,6 +252,14 @@ class FolderListTile extends StatelessWidget {
           ),
         ),
       ),
+    );
+
+    return DraggableFolderItem(
+      folder: folder,
+      songsCount: songsCount,
+      representativeSong: representativeSong,
+      enabled: !isSelectionMode && trailingWidget == null,
+      child: tile,
     );
   }
 }
