@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import '../models/music_file.dart';
 import '../l10n/app_localizations.dart';
+import '../utils/time_format_utils.dart';
 import '../widgets/song_thumbnail.dart';
 import '../widgets/playing_equalizer_icon.dart';
 import '../player/audio/audio_riverpod.dart';
@@ -51,7 +52,7 @@ class SongGridCard extends ConsumerWidget {
     final artistAlbumText = '$artist - $album';
 
     // Format duration and file format
-    final durationStr = _formatDuration(metadata?.duration ?? song.durationMillis);
+    final durationStr = (metadata?.duration ?? song.durationMillis).toFormattedDuration();
     final ext = p.extension(song.path).replaceAll('.', '').toUpperCase();
     final formatStr = ext.isNotEmpty ? ext : 'UNKNOWN';
 
@@ -223,17 +224,5 @@ class SongGridCard extends ConsumerWidget {
       selectedPaths: selectedPaths,
       child: card,
     );
-  }
-
-  String _formatDuration(int? durationMs) {
-    if (durationMs == null) return '--:--';
-    final duration = Duration(milliseconds: durationMs);
-    final hours = duration.inHours;
-    final minutes = duration.inMinutes.remainder(60);
-    final seconds = duration.inSeconds.remainder(60);
-    if (hours > 0) {
-      return '$hours:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
-    }
-    return '$minutes:${seconds.toString().padLeft(2, '0')}';
   }
 }

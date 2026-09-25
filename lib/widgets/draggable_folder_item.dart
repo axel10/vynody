@@ -4,6 +4,7 @@ import 'package:super_drag_and_drop/super_drag_and_drop.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/models/music_folder.dart';
 import 'package:vynody/player/remote/proxy/remote_media_resolver.dart';
+import 'package:vynody/widgets/draggable_preview_card.dart';
 
 /// Wraps a folder widget to provide system-level native drag source support.
 /// Enables dragging a folder from library/directory pages into standalone queue window or other apps.
@@ -25,11 +26,22 @@ class DraggableFolderItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!enabled || (!Platform.isWindows && !Platform.isMacOS && !Platform.isLinux)) {
+    if (!enabled || !DesktopDraggableWrapper.isPlatformSupported) {
       return child;
     }
 
-    return DragItemWidget(
+    final rep = representativeSong;
+    final hasThumb = rep?.thumbnailPath != null &&
+        rep!.thumbnailPath!.isNotEmpty &&
+        File(rep.thumbnailPath!).existsSync();
+    final hasArt = rep?.artworkPath != null &&
+        rep!.artworkPath!.isNotEmpty &&
+        File(rep.artworkPath!).existsSync();
+    final coverPath = hasThumb ? rep.thumbnailPath : (hasArt ? rep.artworkPath : null);
+    final displayCount = songsCount > 0 ? songsCount : folder.allSongs.length;
+
+    return DesktopDraggableWrapper(
+      enabled: enabled,
       dragItemProvider: (request) async {
         debugPrint('[DRAG] DraggableFolderItem.dragItemProvider called for: ${folder.name} (path: ${folder.path})');
         final allSongs = folder.allSongs;
@@ -69,130 +81,20 @@ class DraggableFolderItem extends StatelessWidget {
         });
         return item;
       },
-      allowedOperations: () => const [DropOperation.copy, DropOperation.link],
       dragBuilder: (context, child) {
         debugPrint('[DRAG] DraggableFolderItem.dragBuilder called for: ${folder.name}');
-        return _buildDragPreview(context);
+        return AppDraggablePreviewCard(
+          title: folder.name,
+          subtitle: folder.path == 'system' ? '系统媒体' : folder.path,
+          imagePath: coverPath,
+          defaultIcon: folder.path == 'system'
+              ? Icons.library_music_rounded
+              : Icons.folder_rounded,
+          badgeText: displayCount > 0 ? '$displayCount首' : null,
+          count: displayCount,
+        );
       },
-      child: DraggableWidget(
-        hitTestBehavior: HitTestBehavior.translucent,
-        child: child,
-      ),
-    );
-  }
-
-  Widget _buildDragPreview(BuildContext context) {
-    final theme = Theme.of(context);
-    final rep = representativeSong;
-    final hasThumb = rep?.thumbnailPath != null &&
-        rep!.thumbnailPath!.isNotEmpty &&
-        File(rep.thumbnailPath!).existsSync();
-    final hasArt = rep?.artworkPath != null &&
-        rep!.artworkPath!.isNotEmpty &&
-        File(rep.artworkPath!).existsSync();
-    final coverPath = hasThumb ? rep.thumbnailPath : (hasArt ? rep.artworkPath : null);
-
-    final displayCount = songsCount > 0 ? songsCount : folder.allSongs.length;
-
-    return Material(
-      color: Colors.transparent,
-      child: Container(
-        width: 250,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainerHigh,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: theme.colorScheme.primary.withValues(alpha: 0.35),
-            width: 1.2,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.25),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(8),
-                image: coverPath != null
-                    ? DecorationImage(
-                        image: FileImage(File(coverPath)),
-                        fit: BoxFit.cover,
-                      )
-                    : null,
-              ),
-              child: coverPath == null
-                  ? Icon(
-                      folder.path == 'system'
-                          ? Icons.library_music_rounded
-                          : Icons.folder_rounded,
-                      size: 24,
-                      color: theme.colorScheme.primary,
-                    )
-                  : null,
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    folder.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: theme.colorScheme.onSurface,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          folder.path == 'system' ? '系统媒体' : folder.path,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                            fontSize: 11,
-                          ),
-                        ),
-                      ),
-                      if (displayCount > 0)
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.primary.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            '$displayCount首',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
-                              color: theme.colorScheme.primary,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
+      child: child,
     );
   }
 }

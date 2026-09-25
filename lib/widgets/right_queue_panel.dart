@@ -10,8 +10,10 @@ import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/audio/audio_service.dart';
 import 'package:vynody/player/platform/right_queue_drawer_controller.dart';
 import 'package:vynody/player/platform/standalone_queue_window_manager.dart';
+import 'package:vynody/utils/drop_data_utils.dart';
 import 'package:vynody/utils/queue_sort_utils.dart';
 import 'package:vynody/utils/song_context_menu_utils.dart';
+import 'package:vynody/utils/time_format_utils.dart';
 import 'package:vynody/widgets/app_tooltip.dart';
 
 class RightQueuePanel extends ConsumerStatefulWidget {
@@ -108,126 +110,8 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
     );
   }
 
-  String _formatDuration(int ms) {
-    final dur = Duration(milliseconds: ms);
-    final minutes = dur.inMinutes;
-    final seconds = dur.inSeconds.remainder(60);
-    return '$minutes:${seconds.toString().padLeft(2, '0')}';
-  }
-
-  Future<T?> _readFormatSafely<T extends Object>(
-    dynamic reader,
-    ValueFormat<T> format,
-  ) async {
-    if (!reader.canProvide(format)) return null;
-    final completer = Completer<T?>();
-    try {
-      final progress = reader.getValue<T>(
-        format,
-        (value) {
-          if (!completer.isCompleted) completer.complete(value);
-        },
-        onError: (err) {
-          debugPrint('[RightQueuePanel] Error reading format $format: $err');
-          if (!completer.isCompleted) completer.complete(null);
-        },
-      );
-      if (progress == null) {
-        if (!completer.isCompleted) completer.complete(null);
-      }
-      return await completer.future.timeout(
-        const Duration(milliseconds: 600),
-        onTimeout: () => null,
-      );
-    } catch (_) {
-      return null;
-    }
-  }
-
   void _onPerformSuperDrop(PerformDropEvent event) async {
-    final paths = <String>[];
-    for (var i = 0; i < event.session.items.length; i++) {
-      final item = event.session.items[i];
-      if (item.localData is MusicFile) {
-        paths.add((item.localData as MusicFile).path);
-        continue;
-      }
-      if (item.localData is Map) {
-        final map = item.localData as Map;
-        if (map['paths'] is List) {
-          final list = map['paths'] as List;
-          for (final p in list) {
-            if (p != null) paths.add(p.toString());
-          }
-          continue;
-        }
-        if (map['path'] != null) {
-          paths.add(map['path'] as String);
-          continue;
-        }
-      }
-
-      final reader = item.dataReader;
-      if (reader == null) continue;
-
-      bool extracted = false;
-
-      // 1. Try plainText first (batch song paths)
-      final text = await _readFormatSafely<String>(reader, Formats.plainText);
-      if (text != null && text.trim().isNotEmpty) {
-        final lines = text.split(RegExp(r'[\r\n]+'));
-        for (final rawLine in lines) {
-          final trimmed = rawLine.trim();
-          if (trimmed.isEmpty) continue;
-          if (trimmed.startsWith('file://')) {
-            try {
-              paths.add(Uri.parse(trimmed).toFilePath());
-              extracted = true;
-              continue;
-            } catch (_) {}
-          }
-          paths.add(trimmed);
-          extracted = true;
-        }
-      }
-
-      if (extracted) continue;
-
-      // 2. Try fileUri
-      final fileUri = await _readFormatSafely<Uri>(reader, Formats.fileUri);
-      if (fileUri != null && fileUri.scheme == 'file') {
-        paths.add(fileUri.toFilePath());
-        continue;
-      }
-
-      // 3. Try uri
-      final namedUri = await _readFormatSafely<NamedUri>(reader, Formats.uri);
-      if (namedUri != null) {
-        final uri = namedUri.uri;
-        if (uri.scheme == 'file') {
-          try {
-            paths.add(uri.toFilePath());
-          } catch (_) {
-            paths.add(uri.toString());
-          }
-        } else {
-          paths.add(uri.toString());
-        }
-      }
-    }
-
-    final uniquePaths = <String>[];
-    final seen = <String>{};
-    for (final p in paths) {
-      String decoded = p;
-      try {
-        decoded = Uri.decodeFull(p);
-      } catch (_) {}
-      if (seen.add(decoded)) {
-        uniquePaths.add(decoded);
-      }
-    }
-
+    final uniquePaths = await DropDataUtils.extractPathsFromDrop(event);
     if (uniquePaths.isNotEmpty) {
       await ref
           .read(standaloneQueueWindowManagerProvider)
@@ -519,7 +403,7 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
           index: index,
           isCurrent: isCurrent,
           isPlaying: isPlaying,
-          durationFormatted: _formatDuration(song.durationMillis ?? 0),
+          durationFormatted: TimeFormatUtils.formatMs(song.durationMillis ?? 0),
           onTap: () => audioService.playAtIndex(index),
           onRemove: () => audioService.removeFromPlaylist(index),
         );

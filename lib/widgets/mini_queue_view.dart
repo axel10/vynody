@@ -7,6 +7,7 @@ import 'package:vynody/models/music_file.dart';
 import '../l10n/app_localizations.dart';
 import 'package:vynody/player/library/playlist_service.dart';
 import 'package:vynody/utils/song_context_menu_utils.dart';
+import 'package:vynody/utils/time_format_utils.dart';
 import 'package:vynody/widgets/queue_file_drop_target.dart';
 import 'package:vynody/widgets/playing_equalizer_icon.dart';
 
@@ -359,7 +360,7 @@ class _MiniQueueTileState extends State<_MiniQueueTile> {
                       )
                     else
                       Text(
-                        _formatDuration(widget.song.durationMillis),
+                        widget.song.durationMillis.toFormattedDuration(fallback: ''),
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: widget.isCurrent
                               ? _miniQueueCurrentTrackDurationColor
@@ -375,13 +376,5 @@ class _MiniQueueTileState extends State<_MiniQueueTile> {
         ),
       ),
     );
-  }
-
-  String _formatDuration(int? durationMs) {
-    if (durationMs == null) return '';
-    final duration = Duration(milliseconds: durationMs);
-    final minutes = duration.inMinutes;
-    final seconds = duration.inSeconds.remainder(60);
-    return '$minutes:${seconds.toString().padLeft(2, '0')}';
   }
 }

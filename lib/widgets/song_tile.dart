@@ -5,6 +5,7 @@ import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/widgets/song_thumbnail.dart';
 import 'package:vynody/l10n/app_localizations.dart';
+import 'package:vynody/utils/time_format_utils.dart';
 import 'package:vynody/widgets/playing_equalizer_icon.dart';
 import 'package:vynody/widgets/draggable_song_item.dart';
 
@@ -57,7 +58,7 @@ class SongTile extends ConsumerWidget {
     final trackStr = (trackNumber != null && trackNumber > 0)
         ? trackNumber.toString().padLeft(2, '0')
         : null;
-    final durationStr = _formatDuration(metadata?.duration ?? song.durationMillis);
+    final durationStr = (metadata?.duration ?? song.durationMillis).toFormattedDuration();
     final ext = p.extension(song.path).replaceAll('.', '').toUpperCase();
     final formatStr = ext.isNotEmpty ? ext : 'UNKNOWN';
     final durationFormatText = [
@@ -268,17 +269,5 @@ class SongTile extends ConsumerWidget {
       selectedPaths: selectedPaths,
       child: content,
     );
-  }
-
-  String _formatDuration(int? durationMs) {
-    if (durationMs == null) return '--:--';
-    final duration = Duration(milliseconds: durationMs);
-    final hours = duration.inHours;
-    final minutes = duration.inMinutes.remainder(60);
-    final seconds = duration.inSeconds.remainder(60);
-    if (hours > 0) {
-      return '$hours:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
-    }
-    return '$minutes:${seconds.toString().padLeft(2, '0')}';
   }
 }
