@@ -1291,12 +1291,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                                     curve: Curves.easeOutCubic,
                                     alignment: Alignment.centerRight,
                                     child: ref.watch(rightQueueDrawerProvider)
-                                        ? Padding(
-                                            padding: EdgeInsets.only(
-                                              top: showCustomTitleBar ? 32.0 : 0.0,
-                                            ),
-                                            child: const RightQueuePanel(),
-                                          )
+                                        ? const RightQueuePanel()
                                         : const SizedBox.shrink(),
                                   ),
                                 ),
@@ -1367,12 +1362,15 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                             left: 0,
                             right: 0,
                             child: DesktopWindowTitleBar(
-                              brightness: isPlayback
+                              brightness: (isPlayback &&
+                                      !ref.watch(rightQueueDrawerProvider))
                                   ? Brightness.dark
                                   : theme.brightness,
                               showSmallWindowButton: isPlayback,
-                              showButtonGroupBackground: isPlayback,
-                              hideButtonsWhenInactive: isPlayback,
+                              showButtonGroupBackground: isPlayback &&
+                                  !ref.watch(rightQueueDrawerProvider),
+                              hideButtonsWhenInactive: isPlayback &&
+                                  !ref.watch(rightQueueDrawerProvider),
                             ),
                           ),
                       if (useSidebar)

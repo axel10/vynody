@@ -191,6 +191,9 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
     final currentIndex = ref.watch(audioCurrentIndexProvider);
     final isPlaying = ref.watch(audioIsPlayingProvider);
     final audioService = ref.read(audioServiceProvider);
+    final isDesktop =
+        Platform.isWindows || Platform.isLinux || Platform.isMacOS;
+    final topPadding = isDesktop ? 32.0 : 0.0;
 
     return Container(
       width: kRightQueueDrawerWidth,
@@ -218,7 +221,7 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
           formats: const [Formats.fileUri, Formats.plainText],
           hitTestBehavior: HitTestBehavior.opaque,
           onDropOver: (event) {
-            final y = event.position.local.dy - 52.0; // Subtract header height
+            final y = event.position.local.dy - (52.0 + topPadding); // Subtract header height
             if (y <= 0) {
               _dropInsertIndex = 0;
             } else {
@@ -235,6 +238,7 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
           },
           child: Column(
             children: [
+              if (topPadding > 0) SizedBox(height: topPadding),
               _buildHeader(context, queue.length),
               Expanded(
                 child: Stack(
