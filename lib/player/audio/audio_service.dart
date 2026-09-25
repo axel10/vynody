@@ -43,6 +43,7 @@ import 'package:vynody/player/audio/queue_background_processor.dart';
 import 'package:vynody/player/library/library_insights_service.dart';
 import 'package:vynody/player/lyrics/lyrics_riverpod.dart';
 import 'package:vynody/player/remote/remote_server_riverpod.dart';
+import 'package:vynody/utils/list_reorder_utils.dart';
 import 'package:vynody/utils/localized_text.dart';
 import 'package:vynody/player/remote/proxy/remote_media_resolver.dart';
 import 'package:vynody/player/pro/pro_license_service.dart';
@@ -1692,27 +1693,15 @@ class AudioService extends Notifier<AudioSnapshot> {
   }
 
   void moveQueueTrack(int oldIndex, int newIndex) {
-    if (oldIndex < 0 ||
-        oldIndex >= _queue.length ||
-        newIndex < 0 ||
-        newIndex >= _queue.length ||
-        oldIndex == newIndex) {
+    if (!ListReorderUtils.moveItem(_queue, oldIndex, newIndex)) {
       return;
     }
 
-    final currentPlayingPath = currentMusic?.path;
-
-    final movedSong = _queue.removeAt(oldIndex);
-    _queue.insert(newIndex, movedSong);
-
-    if (currentPlayingPath != null) {
-      final updatedIndex = _queue.indexWhere(
-        (song) => song.path == currentPlayingPath,
-      );
-      if (updatedIndex != -1) {
-        _currentIndex = updatedIndex;
-      }
-    }
+    _currentIndex = ListReorderUtils.reorderIndex(
+      _currentIndex,
+      oldIndex: oldIndex,
+      newIndex: newIndex,
+    );
 
     _player.playlist.moveTrack(oldIndex, newIndex);
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vynody/models/music_file.dart';
 import '../utils/selection_utils.dart';
+import '../utils/list_reorder_utils.dart';
 
 enum LibrarySelectionScope {
   none,
@@ -266,6 +267,22 @@ mixin SelectionStateMixin<T extends ConsumerStatefulWidget, K>
       allKeys,
       scope: selectionScope,
     );
+  }
+
+  /// Adjusts selected index keys when an item in the list moves from [oldIndex] to [newIndex].
+  void reorderSelection(int oldIndex, int newIndex) {
+    if (selectedKeys.isEmpty || K != int) return;
+
+    final currentIndices = selectedKeys.cast<int>();
+    final updated = ListReorderUtils.reorderSelectedIndices(
+      currentIndices,
+      oldIndex: oldIndex,
+      newIndex: newIndex,
+    );
+
+    ref
+        .read(librarySelectionStateProvider.notifier)
+        .setSelection(updated, scope: selectionScope);
   }
 
   int? _lastAnchorIndex;

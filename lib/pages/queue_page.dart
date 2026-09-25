@@ -15,6 +15,7 @@ import '../widgets/library_selection_scope.dart';
 import '../widgets/library_selection_panel.dart';
 import 'package:vynody/utils/layout_constants.dart';
 import 'package:vynody/utils/queue_sort_utils.dart';
+import 'package:vynody/utils/list_reorder_utils.dart';
 
 
 // 队列页面
@@ -30,7 +31,7 @@ class _QueuePageState extends ConsumerState<QueuePage>
   @override
   LibrarySelectionScope get selectionScope => LibrarySelectionScope.queue;
 
-  final List<GlobalKey> _songTileKeys = [];
+  final _keyPool = ReorderableKeyPool(debugPrefix: 'queue-tile');
   int _viewIndex = 0; // 0: Normal Queue, 1: Random History, 2: Random Queue
   late final ScrollController _scrollController;
   int? _highlightedIndex;
@@ -73,37 +74,8 @@ class _QueuePageState extends ConsumerState<QueuePage>
   void dispose() {
     _scrollController.dispose();
     _highlightTimer?.cancel();
-    _songTileKeys.clear();
+    _keyPool.clear();
     super.dispose();
-  }
-
-  void _reorderSelectedIndices(int oldIndex, int newIndex) {
-    if (selectedKeys.isEmpty) return;
-
-    final updated = <int>{};
-    for (final index in selectedKeys) {
-      if (index == oldIndex) {
-        updated.add(newIndex);
-      } else if (oldIndex < newIndex) {
-        if (index > oldIndex && index <= newIndex) {
-          updated.add(index - 1);
-        } else {
-          updated.add(index);
-        }
-      } else if (newIndex < oldIndex) {
-        if (index >= newIndex && index < oldIndex) {
-          updated.add(index + 1);
-        } else {
-          updated.add(index);
-        }
-      } else {
-        updated.add(index);
-      }
-    }
-
-    ref
-        .read(librarySelectionStateProvider.notifier)
-        .setSelection(updated, scope: selectionScope);
   }
 
   List<MusicFile> _selectedSongsFromDisplay(List<MusicFile> displayQueue) {
@@ -173,10 +145,7 @@ class _QueuePageState extends ConsumerState<QueuePage>
   }
 
   GlobalKey _songTileKeyFor(int index, [MusicFile? song]) {
-    while (_songTileKeys.length <= index) {
-      _songTileKeys.add(GlobalKey(debugLabel: 'queue-tile-${_songTileKeys.length}'));
-    }
-    return _songTileKeys[index];
+    return _keyPool.getKey(index);
   }
 
   void _showClearQueueDialog(BuildContext context) {
@@ -293,9 +262,7 @@ class _QueuePageState extends ConsumerState<QueuePage>
         : _viewIndex == 2
         ? randomQueue
         : queue;
-    if (_songTileKeys.length > displayQueue.length) {
-      _songTileKeys.removeRange(displayQueue.length, _songTileKeys.length);
-    }
+    _keyPool.syncLength(displayQueue.length);
     final isPortrait =
         MediaQuery.of(context).orientation == Orientation.portrait;
     final headerHorizontalPadding = isPortrait ? 20.0 : 32.0;
@@ -445,14 +412,8 @@ class _QueuePageState extends ConsumerState<QueuePage>
                           itemCount: displayQueue.length,
                           onReorderItem: (oldIndex, newIndex) {
                             if (_viewIndex != 0) return;
-                            if (oldIndex < _songTileKeys.length &&
-                                newIndex < _songTileKeys.length) {
-                              final movedKey = _songTileKeys.removeAt(oldIndex);
-                              _songTileKeys.insert(newIndex, movedKey);
-                            }
-                            if (selectedKeys.isNotEmpty) {
-                              _reorderSelectedIndices(oldIndex, newIndex);
-                            }
+                            _keyPool.moveKey(oldIndex, newIndex);
+                            reorderSelection(oldIndex, newIndex);
                             ref
                                 .read(audioServiceProvider)
                                 .moveQueueTrack(oldIndex, newIndex);

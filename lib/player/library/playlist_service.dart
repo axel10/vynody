@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/utils/m3u_utils.dart';
+import 'package:vynody/utils/list_reorder_utils.dart';
 
 /// 播放列表排序字段
 enum PlaylistSortField {
@@ -579,9 +580,7 @@ class PlaylistService extends ChangeNotifier {
     final index = _playlists.indexWhere((p) => p.id == playlistId);
     if (index != -1) {
       final songs = _playlists[index].songs;
-      if (oldIndex < songs.length && newIndex < songs.length) {
-        final song = songs.removeAt(oldIndex);
-        songs.insert(newIndex, song);
+      if (ListReorderUtils.moveItem(songs, oldIndex, newIndex)) {
         _playlists[index].updatedAt = DateTime.now();
         notifyListeners();
         await _savePlaylists();

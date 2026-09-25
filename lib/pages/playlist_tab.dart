@@ -52,34 +52,6 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab>
     super.dispose();
   }
 
-  void _reorderSelectedIndices(int oldIndex, int newIndex) {
-    if (selectedKeys.isEmpty) return;
-
-    final updated = <int>{};
-    for (final index in selectedKeys) {
-      if (index == oldIndex) {
-        updated.add(newIndex);
-      } else if (oldIndex < newIndex) {
-        if (index > oldIndex && index <= newIndex) {
-          updated.add(index - 1);
-        } else {
-          updated.add(index);
-        }
-      } else if (newIndex < oldIndex) {
-        if (index >= newIndex && index < oldIndex) {
-          updated.add(index + 1);
-        } else {
-          updated.add(index);
-        }
-      } else {
-        updated.add(index);
-      }
-    }
-
-    ref
-        .read(librarySelectionStateProvider.notifier)
-        .setSelection(updated, scope: selectionScope);
-  }
 
   void _showAddToPlaylistDialog(
     BuildContext context,
@@ -474,9 +446,7 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab>
                   itemCount: activePlaylist.songs.length,
                   onReorder: (oldIndex, newIndex) {
                     if (newIndex > oldIndex) newIndex--;
-                    if (selectedKeys.isNotEmpty) {
-                      _reorderSelectedIndices(oldIndex, newIndex);
-                    }
+                    reorderSelection(oldIndex, newIndex);
                     playlistService.reorderSongsInPlaylist(
                       activePlaylist.id,
                       oldIndex,

@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:super_drag_and_drop/super_drag_and_drop.dart';
 import 'package:vynody/models/music_file.dart';
+import 'package:vynody/utils/list_reorder_utils.dart';
 import 'package:vynody/widgets/app_tooltip.dart';
 
 class StandaloneQueueApp extends StatefulWidget {
@@ -220,24 +221,14 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
   }
 
   void _reorderQueue(int oldIndex, int newIndex) {
-    if (oldIndex < 0 ||
-        oldIndex >= _queue.length ||
-        newIndex < 0 ||
-        newIndex >= _queue.length ||
-        oldIndex == newIndex) {
-      return;
-    }
+    if (!ListReorderUtils.moveItem(_queue, oldIndex, newIndex)) return;
 
     setState(() {
-      final moved = _queue.removeAt(oldIndex);
-      _queue.insert(newIndex, moved);
-      if (_currentIndex == oldIndex) {
-        _currentIndex = newIndex;
-      } else if (oldIndex < _currentIndex && newIndex >= _currentIndex) {
-        _currentIndex--;
-      } else if (oldIndex > _currentIndex && newIndex <= _currentIndex) {
-        _currentIndex++;
-      }
+      _currentIndex = ListReorderUtils.reorderIndex(
+        _currentIndex,
+        oldIndex: oldIndex,
+        newIndex: newIndex,
+      );
     });
 
     _sendIpc('reorder', {'oldIndex': oldIndex, 'newIndex': newIndex});
