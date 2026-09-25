@@ -13,6 +13,7 @@ import 'song_thumbnail.dart';
 import 'playing_equalizer_icon.dart';
 import 'library_selection_panel.dart';
 import 'library_selection_scope.dart';
+import 'draggable_song_item.dart';
 import 'package:vynody/utils/layout_constants.dart';
 
 class LibraryRankedSongList extends ConsumerStatefulWidget {
@@ -539,7 +540,7 @@ class _SongListItem extends ConsumerWidget {
             ? theme.colorScheme.primary
             : theme.colorScheme.onSurface;
 
-    return RepaintBoundary(
+    final cardWidget = RepaintBoundary(
       child: Card(
         margin: EdgeInsets.zero,
         elevation: 0,
@@ -553,116 +554,119 @@ class _SongListItem extends ConsumerWidget {
           enableFeedback: false,
           onTap: onTap,
           onLongPress: onLongPress,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onSecondaryTapDown: (details) async {
-              if (!isSelectionMode) {
-                await showSongBottomSheet(context, ref, song);
-              }
-            },
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 8,
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  SizedBox(
-                    width: 44,
-                    height: 44,
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        Opacity(
-                          opacity: isMissing
-                              ? 0.35
-                              : isSelectionMode
-                                  ? (isSelected ? 0.5 : 0.7)
-                                  : 1.0,
-                          child: SongThumbnail.fromSong(
-                            song,
-                            size: 44,
+          onSecondaryTapDown: (details) async {
+            if (!isSelectionMode) {
+              await showSongBottomSheet(context, ref, song);
+            }
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 8,
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                SizedBox(
+                  width: 44,
+                  height: 44,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Opacity(
+                        opacity: isMissing
+                            ? 0.35
+                            : isSelectionMode
+                                ? (isSelected ? 0.5 : 0.7)
+                                : 1.0,
+                        child: SongThumbnail.fromSong(
+                          song,
+                          size: 44,
+                        ),
+                      ),
+                      if (isSelectionMode)
+                        Positioned.fill(
+                          child: Align(
+                            alignment: Alignment.center,
+                            child: SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: Checkbox(
+                                value: isSelected,
+                                onChanged: (_) => onTap(),
+                                fillColor: WidgetStateProperty.all(Colors.white),
+                                checkColor: Colors.black,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                              ),
+                            ),
                           ),
                         ),
-                        if (isSelectionMode)
-                          Positioned.fill(
-                            child: Align(
-                              alignment: Alignment.center,
-                              child: SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: Checkbox(
-                                  value: isSelected,
-                                  onChanged: (_) => onTap(),
-                                  fillColor: WidgetStateProperty.all(Colors.white),
-                                  checkColor: Colors.black,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
+                    ],
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            if (isCurrent && !isMissing) ...[
-                              PlayingEqualizerIcon(
-                                color: theme.colorScheme.primary,
-                                size: 16,
-                                isPlaying: isPlaying,
-                              ),
-                              const SizedBox(width: 6),
-                            ],
-                            Expanded(
-                              child: Text(
-                                song.displayName,
-                                style: theme.textTheme.bodyLarge?.copyWith(
-                                  color: textColor,
-                                  fontWeight: isCurrent && !isMissing ? FontWeight.bold : FontWeight.normal,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          if (isCurrent && !isMissing) ...[
+                            PlayingEqualizerIcon(
+                              color: theme.colorScheme.primary,
+                              size: 16,
+                              isPlaying: isPlaying,
                             ),
+                            const SizedBox(width: 6),
                           ],
-                        ),
-                        const SizedBox(height: 3),
-                        Text(
-                          _songSubtitle(l10n, entry),
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: isMissing
-                                ? theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5)
-                                : isCurrent
-                                    ? theme.colorScheme.primary.withValues(alpha: 0.8)
-                                    : theme.colorScheme.onSurfaceVariant,
+                          Expanded(
+                            child: Text(
+                              song.displayName,
+                              style: theme.textTheme.bodyLarge?.copyWith(
+                                color: textColor,
+                                fontWeight: isCurrent && !isMissing ? FontWeight.bold : FontWeight.normal,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                        ],
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        _songSubtitle(l10n, entry),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: isMissing
+                              ? theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5)
+                              : isCurrent
+                                  ? theme.colorScheme.primary.withValues(alpha: 0.8)
+                                  : theme.colorScheme.onSurfaceVariant,
                         ),
-                      ],
-                    ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 12),
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(minWidth: 90),
-                    child: trailingBuilder(context, entry),
-                  ),
-                ],
-              ),
+                ),
+                const SizedBox(width: 12),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(minWidth: 90),
+                  child: trailingBuilder(context, entry),
+                ),
+              ],
             ),
           ),
         ),
       ),
+    );
+
+    return DraggableSongItem(
+      song: song,
+      enabled: !isMissing && !isSelectionMode,
+      child: cardWidget,
     );
   }
 

@@ -12,12 +12,12 @@ import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/audio/playback_source.dart';
 import 'package:vynody/utils/song_context_menu_utils.dart';
 import '../widgets/desktop_window_title_bar.dart';
-import '../widgets/song_thumbnail.dart';
 import '../widgets/album_cover.dart';
 import '../widgets/remote_media_badge.dart';
 import '../widgets/mini_player_wrapper.dart';
 import '../widgets/library_selection_panel.dart';
 import '../widgets/library_selection_scope.dart';
+import '../widgets/draggable_song_item.dart';
 import 'package:vynody/utils/layout_constants.dart';
 
 class AlbumDetailPage extends ConsumerStatefulWidget {
@@ -422,80 +422,83 @@ class _AlbumSongItem extends StatelessWidget {
             ),
           );
 
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onSecondaryTapDown: onSecondaryTapDown,
-      child: Material(
-        color: isTileSelected
-            ? theme.colorScheme.primaryContainer.withValues(alpha: 0.35)
-            : Colors.transparent,
-        child: InkWell(
-          enableFeedback: false,
-          canRequestFocus: false,
-          onTap: onTap,
-          onLongPress: onLongPress,
-          child: Align(
-            alignment: Alignment.center,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: kSingleColumnContentMaxWidth),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                child: Row(
-                  children: [
-                    leadingWidget,
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Flexible(
-                                child: Text(
-                                  song.displayName,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: theme.textTheme.bodyLarge?.copyWith(
-                                    color: isCurrent ? theme.colorScheme.primary : null,
-                                    fontWeight: isCurrent ? FontWeight.w700 : null,
-                                  ),
+    final tileWidget = Material(
+      color: isTileSelected
+          ? theme.colorScheme.primaryContainer.withValues(alpha: 0.35)
+          : Colors.transparent,
+      child: InkWell(
+        enableFeedback: false,
+        canRequestFocus: false,
+        onTap: onTap,
+        onLongPress: onLongPress,
+        onSecondaryTapDown: onSecondaryTapDown,
+        child: Align(
+          alignment: Alignment.center,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: kSingleColumnContentMaxWidth),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              child: Row(
+                children: [
+                  leadingWidget,
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                song.displayName,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.bodyLarge?.copyWith(
+                                  color: isCurrent ? theme.colorScheme.primary : null,
+                                  fontWeight: isCurrent ? FontWeight.w700 : null,
                                 ),
                               ),
-                              RemoteMediaBadge.songTrailing(
-                                song: song,
-                                isMixed: showRemoteIndicator,
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            song.artist ?? unknownArtist,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
                             ),
+                            RemoteMediaBadge.songTrailing(
+                              song: song,
+                              isMixed: showRemoteIndicator,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          song.artist ?? unknownArtist,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
                           ),
-                        ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (durationLabel != null) ...[
+                    const SizedBox(width: 12),
+                    Text(
+                      durationLabel,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
                       ),
                     ),
-                    if (durationLabel != null) ...[
-                      const SizedBox(width: 12),
-                      Text(
-                        durationLabel,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
                   ],
-                ),
+                ],
               ),
             ),
           ),
         ),
       ),
+    );
+
+    return DraggableSongItem(
+      song: song,
+      enabled: !song.isMissing && !isSelectionMode,
+      child: tileWidget,
     );
   }
 }

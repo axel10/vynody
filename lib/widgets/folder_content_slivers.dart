@@ -714,32 +714,26 @@ class FolderSongsSliver extends StatelessWidget {
               final isCurrent = currentSongPath == file.path;
               final isSelected = selectedSongPaths.contains(file.path);
 
-              return GestureDetector(
+              return Padding(
                 key: ValueKey(file.path),
-                behavior: HitTestBehavior.opaque,
-                onSecondaryTapDown: (details) {
-                  onSongSecondaryTapDown(file, details);
-                },
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 4,
-                  ),
-                  child: SongTile(
-                    song: file,
-                    isCurrent: isCurrent,
-                    isSelected: isSelected,
-                    isSelectionMode: isSelectionMode,
-                    isHighlighted: highlightedSongPath == file.path,
-                    onTap: () => onSongTap(file, fileIndex),
-                    onLongPress: () => onSongLongPress?.call(file),
-                    onSecondaryTapDown: (details) {
-                      onSongSecondaryTapDown(file, details);
-                    },
-                    onMorePressed: onSongMorePressed != null
-                        ? (buttonContext) =>
-                            onSongMorePressed!(file, buttonContext)
-                        : null,
-                  ),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 4,
+                ),
+                child: SongTile(
+                  song: file,
+                  isCurrent: isCurrent,
+                  isSelected: isSelected,
+                  isSelectionMode: isSelectionMode,
+                  isHighlighted: highlightedSongPath == file.path,
+                  onTap: () => onSongTap(file, fileIndex),
+                  onLongPress: () => onSongLongPress?.call(file),
+                  onSecondaryTapDown: (details) {
+                    onSongSecondaryTapDown(file, details);
+                  },
+                  onMorePressed: onSongMorePressed != null
+                      ? (buttonContext) =>
+                          onSongMorePressed!(file, buttonContext)
+                      : null,
                 ),
               );
             },

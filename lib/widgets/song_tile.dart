@@ -260,7 +260,7 @@ class SongTile extends ConsumerWidget {
 
     return DraggableSongItem(
       song: song,
-      enabled: !isMissing && !isSelectionMode && dragHandle == null,
+      enabled: !isMissing && !isSelectionMode,
       child: content,
     );
   }

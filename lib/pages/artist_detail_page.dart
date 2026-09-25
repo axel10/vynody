@@ -16,6 +16,7 @@ import '../widgets/remote_media_badge.dart';
 import '../widgets/mini_player_wrapper.dart';
 import '../widgets/library_selection_panel.dart';
 import '../widgets/library_selection_scope.dart';
+import '../widgets/draggable_song_item.dart';
 
 class ArtistDetailPage extends ConsumerWidget {
   const ArtistDetailPage({super.key, required this.artist});
@@ -599,7 +600,7 @@ class _AlbumSongTile extends StatelessWidget {
     final durationLabel = _formatDuration(song.durationMillis);
     final isTileSelected = isSelectionMode ? isSelected : isCurrent;
 
-    return RepaintBoundary(
+    final tileWidget = RepaintBoundary(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -615,22 +616,20 @@ class _AlbumSongTile extends StatelessWidget {
             ),
           SizedBox(
             height: showTopDivider ? 44.0 : 45.0,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onSecondaryTapDown: onSecondaryTapDown,
-              child: Material(
-                color: isTileSelected
-                    ? theme.colorScheme.primaryContainer.withValues(alpha: 0.35)
-                    : Colors.transparent,
+            child: Material(
+              color: isTileSelected
+                  ? theme.colorScheme.primaryContainer.withValues(alpha: 0.35)
+                  : Colors.transparent,
+              borderRadius: borderRadius,
+              clipBehavior: borderRadius != null ? Clip.antiAlias : Clip.none,
+              child: InkWell(
+                enableFeedback: false,
+                canRequestFocus: false,
                 borderRadius: borderRadius,
-                clipBehavior: borderRadius != null ? Clip.antiAlias : Clip.none,
-                child: InkWell(
-                  enableFeedback: false,
-                  canRequestFocus: false,
-                  borderRadius: borderRadius,
-                  onTap: onTap,
-                  onLongPress: onLongPress,
-                  child: Padding(
+                onTap: onTap,
+                onLongPress: onLongPress,
+                onSecondaryTapDown: onSecondaryTapDown,
+                child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                     child: Row(
                       children: [
@@ -681,9 +680,14 @@ class _AlbumSongTile extends StatelessWidget {
                 ),
               ),
             ),
-          ),
         ],
       ),
+    );
+
+    return DraggableSongItem(
+      song: song,
+      enabled: !song.isMissing && !isSelectionMode,
+      child: tileWidget,
     );
   }
 }

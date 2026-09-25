@@ -1,9 +1,10 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'package:desktop_drop/desktop_drop.dart';
 import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:super_drag_and_drop/super_drag_and_drop.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/widgets/app_tooltip.dart';
 
@@ -299,18 +300,79 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
           final theme = Theme.of(context);
           return Scaffold(
             backgroundColor: theme.scaffoldBackgroundColor,
-            body: DropTarget(
-              onDragEntered: (_) => setState(() => _isDraggingOver = true),
-              onDragExited: (_) => setState(() {
+            body: DropRegion(
+              formats: const [
+                Formats.fileUri,
+                Formats.plainText,
+              ],
+              onDropOver: (event) {
+                if (!_isDraggingOver) {
+                  setState(() => _isDraggingOver = true);
+                }
+                return DropOperation.copy;
+              },
+              onDropEnter: (_) => setState(() => _isDraggingOver = true),
+              onDropLeave: (_) => setState(() {
                 _isDraggingOver = false;
                 _dropInsertIndex = null;
               }),
-              onDragDone: (details) {
+              onDropEnded: (_) => setState(() {
+                _isDraggingOver = false;
+                _dropInsertIndex = null;
+              }),
+              onPerformDrop: (event) async {
                 setState(() {
                   _isDraggingOver = false;
                   _dropInsertIndex = null;
                 });
-                final paths = details.files.map((f) => f.path).toList();
+                final paths = <String>[];
+                for (final item in event.session.items) {
+                  if (item.localData is MusicFile) {
+                    paths.add((item.localData as MusicFile).path);
+                    continue;
+                  }
+                  if (item.localData is Map && (item.localData as Map)['path'] != null) {
+                    paths.add((item.localData as Map)['path'] as String);
+                    continue;
+                  }
+                  final reader = item.dataReader;
+                  if (reader == null) continue;
+
+                  if (reader.canProvide(Formats.fileUri)) {
+                    final completer = Completer<Uri?>();
+                    reader.getValue<Uri>(Formats.fileUri, (value) {
+                      if (!completer.isCompleted) completer.complete(value);
+                    }, onError: (_) {
+                      if (!completer.isCompleted) completer.complete(null);
+                    });
+                    final uri = await completer.future;
+                    if (uri != null && uri.scheme == 'file') {
+                      paths.add(uri.toFilePath());
+                      continue;
+                    }
+                  }
+
+                  if (reader.canProvide(Formats.plainText)) {
+                    final completer = Completer<String?>();
+                    reader.getValue<String>(Formats.plainText, (value) {
+                      if (!completer.isCompleted) completer.complete(value);
+                    }, onError: (_) {
+                      if (!completer.isCompleted) completer.complete(null);
+                    });
+                    final text = await completer.future;
+                    if (text != null && text.trim().isNotEmpty) {
+                      final trimmed = text.trim();
+                      if (trimmed.startsWith('file://')) {
+                        try {
+                          paths.add(Uri.parse(trimmed).toFilePath());
+                          continue;
+                        } catch (_) {}
+                      }
+                      paths.add(trimmed);
+                    }
+                  }
+                }
+
                 if (paths.isNotEmpty) {
                   _sendIpc('add_files', {
                     'paths': paths,

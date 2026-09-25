@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/legacy.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/library/music_file_utils.dart';
+import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/player/scanner/scanner_service.dart';
 import 'package:vynody/player/settings/settings_service.dart';
 import 'package:vynody/utils/app_log.dart';
@@ -151,6 +152,35 @@ class StandaloneQueueWindowManager {
     }
 
     if (songs.isEmpty) return;
+
+    try {
+      final db = MetadataDatabase();
+      final cachedMap =
+          await db.getSongMetadataByPaths(songs.map((s) => s.path));
+      for (var i = 0; i < songs.length; i++) {
+        final s = songs[i];
+        final cached = cachedMap[s.path];
+        if (cached != null) {
+          songs[i] = songs[i].copyWith(
+            title: cached.title,
+            artist: cached.artist,
+            albumArtist: cached.albumArtist,
+            album: cached.album,
+            trackNumber: cached.trackNumber,
+            durationMillis: cached.duration,
+            thumbnailPath: cached.thumbnailPath,
+            artworkPath: cached.artworkPath,
+            artworkWidth: cached.artworkWidth,
+            artworkHeight: cached.artworkHeight,
+            themeColorsBlob: cached.themeColorsBlob,
+            waveformBlob: cached.waveformBlob,
+            lastModifiedTime: cached.lastModifiedTime,
+          );
+        }
+      }
+    } catch (e) {
+      AppLog.log('[StandaloneQueue] Error enriching metadata for dropped songs: $e');
+    }
 
     final audio = ref.read(audioServiceProvider);
     if (insertIndex != null && insertIndex >= 0) {
