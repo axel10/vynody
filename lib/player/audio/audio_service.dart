@@ -916,7 +916,9 @@ class AudioService extends Notifier<AudioSnapshot> {
   bool _needsPlaybackMetadataRefresh(MusicFile song) {
     return !_hasMeaningfulTrackText(song.title) ||
         !_hasMeaningfulTrackText(song.artist) ||
-        !_hasMeaningfulTrackText(song.album);
+        !_hasMeaningfulTrackText(song.album) ||
+        song.durationMillis == null ||
+        song.durationMillis! <= 0;
   }
 
   Future<MusicFile> _resolveMetadataForPlayback(MusicFile song) async {
@@ -965,7 +967,8 @@ class AudioService extends Notifier<AudioSnapshot> {
 
     final result = await MetadataHelper.loadMetadataForPlayback(
       song.path,
-      generateThumbnail: false,
+      generateThumbnail: song.thumbnailPath == null,
+      forceRefresh: true,
     );
     if (result == null) {
       return song;

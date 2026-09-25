@@ -664,7 +664,8 @@ class MetadataHelper {
     }
     if (!forceRefresh &&
         existing != null &&
-        existing.lastModifiedTime == lastModified) {
+        existing.lastModifiedTime == lastModified &&
+        _isMetadataComplete(existing)) {
       final hasArtwork =
           (existing.artworkPath?.isNotEmpty ?? false) ||
           (existing.thumbnailPath?.isNotEmpty ?? false);
@@ -815,23 +816,30 @@ class MetadataHelper {
         resolvedSourceFlags ??= SongSourceFlags.external;
       }
 
+      final bool readFailed = title == null &&
+          artist == null &&
+          album == null &&
+          duration == null;
+      final int? textScannedTime =
+          readFailed ? existing?.metadataTextScanned : lastModified;
+
       final song = SongMetadata(
         path: filePath,
         title: title ?? p.basenameWithoutExtension(filePath),
         album: album ?? 'Unknown Album',
         artist: artist ?? 'Unknown Artist',
         albumArtist: albumArtist ?? existing?.albumArtist,
-        duration: duration,
+        duration: duration ?? existing?.duration,
         artworkPath: artworkPath,
         thumbnailPath: thumbnailPath,
         artworkWidth: artworkWidth,
         artworkHeight: artworkHeight,
-        trackNumber: trackNumber,
+        trackNumber: trackNumber ?? existing?.trackNumber,
         themeColorsBlob: themeColorsBlob,
         lastModifiedTime: lastModified,
-        metadataTextScanned: lastModified,
+        metadataTextScanned: textScannedTime,
         metadataImgScanned: generateThumbnail
-            ? lastModified
+            ? (readFailed ? existing?.metadataImgScanned : lastModified)
             : existing?.metadataImgScanned,
         createdAt: createdAt,
         sourceFlags: resolvedSourceFlags,
@@ -1064,19 +1072,39 @@ class MetadataHelper {
   /// Returns a tuple of `(SongMetadata, Uint8List?)` where the second element
   /// is non-null only if a fresh scan (not a DB cache hit)
   /// was needed and the file contained embedded artwork.
+  static bool _isMetadataComplete(SongMetadata metadata) {
+    if (metadata.isModified) {
+      return true;
+    }
+    final hasTitle = metadata.title.trim().isNotEmpty &&
+        metadata.title.trim().toLowerCase() != 'unknown';
+    final hasArtist = metadata.artist.trim().isNotEmpty &&
+        metadata.artist.trim().toLowerCase() != 'unknown' &&
+        metadata.artist.trim().toLowerCase() != 'unknown artist';
+    final hasAlbum = metadata.album.trim().isNotEmpty &&
+        metadata.album.trim().toLowerCase() != 'unknown' &&
+        metadata.album.trim().toLowerCase() != 'unknown album';
+    final hasDuration = metadata.duration != null && metadata.duration! > 0;
+    return hasTitle && (hasArtist || hasAlbum) && hasDuration;
+  }
+
   static Future<(SongMetadata, Uint8List?)?> loadMetadataForPlayback(
     String filePath, {
     bool generateThumbnail = false,
+    bool forceRefresh = false,
   }) async {
     final db = MetadataDatabase();
     final cached = await db.getSongMetadata(filePath);
-    if (cached != null) {
+    if (!forceRefresh && cached != null && _isMetadataComplete(cached)) {
       return (cached, null);
     }
     if (filePath.startsWith('subsonic://') ||
         filePath.startsWith('webdav://') ||
         filePath.startsWith('jellyfin://') ||
         filePath.startsWith('smb://')) {
+      if (cached != null) {
+        return (cached, null);
+      }
       return null;
     }
 
@@ -1084,6 +1112,7 @@ class MetadataHelper {
       filePath,
       generateThumbnail: generateThumbnail,
       sourceFlags: SongSourceFlags.external,
+      forceRefresh: forceRefresh,
     );
   }
 

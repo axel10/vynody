@@ -162,9 +162,17 @@ class ScannerScanPipeline {
       final currentLastModified = lastModifiedByPath[lookupKey];
       final textScanned = existing?.metadataTextScanned;
 
+      final bool isMetadataIncomplete = existing != null &&
+          !existing.isModified &&
+          (existing.duration == null ||
+              existing.duration! <= 0 ||
+              (_isPlaceholderText(existing.artist) &&
+                  _isPlaceholderText(existing.album)));
+
       if (existing != null && existing.isModified) {
         stageByPath[path] = ScanFileStage.unchanged;
       } else if (existing != null &&
+          !isMetadataIncomplete &&
           currentLastModified != null &&
           textScanned == currentLastModified) {
         stageByPath[path] = ScanFileStage.unchanged;
@@ -181,6 +189,14 @@ class ScannerScanPipeline {
       existingMetadataByPath: existingMetadataByPath,
       stageByPath: stageByPath,
     );
+  }
+
+  bool _isPlaceholderText(String? value) {
+    final text = value?.trim().toLowerCase();
+    if (text == null || text.isEmpty) return true;
+    return text == 'unknown' ||
+        text == 'unknown artist' ||
+        text == 'unknown album';
   }
 
   SongMetadata buildScannedMetadataFromBatchResult(
@@ -211,6 +227,14 @@ class ScannerScanPipeline {
         _cleanText(fallbackTitle) ?? p.basenameWithoutExtension(filePath);
 
     final hasError = result['error'] != null;
+    final bool readFailed = hasError ||
+        (result['title'] == null &&
+            result['artist'] == null &&
+            result['album'] == null &&
+            result['duration'] == null);
+
+    final int? resolvedMetadataTextScanned =
+        readFailed ? existing?.metadataTextScanned : lastModified;
 
     return SongMetadata(
       path: filePath,
@@ -247,7 +271,7 @@ class ScannerScanPipeline {
       themeColorsBlob: existing?.themeColorsBlob,
       waveformBlob: existing?.waveformBlob,
       lastModifiedTime: lastModified,
-      metadataTextScanned: lastModified,
+      metadataTextScanned: resolvedMetadataTextScanned,
       metadataImgScanned: existing?.metadataImgScanned,
       createdAt: existing?.createdAt ?? now,
       genres: existing?.genres,
