@@ -451,6 +451,7 @@ class _AlbumSectionSliver extends StatelessWidget {
                         onLongPress: () => onSongLongPress(song),
                         isSelectionMode: isSelectionMode,
                         isSelected: isSelected,
+                        selectedPaths: selectedSongPaths,
                         showTopDivider: i > 0,
                         borderRadius: BorderRadius.only(
                           topLeft: i == 0 ? const Radius.circular(18) : Radius.zero,
@@ -579,6 +580,7 @@ class _AlbumSongTile extends StatelessWidget {
     required this.onLongPress,
     this.isSelectionMode = false,
     this.isSelected = false,
+    this.selectedPaths,
     this.showTopDivider = false,
     this.borderRadius,
   });
@@ -592,6 +594,7 @@ class _AlbumSongTile extends StatelessWidget {
   final VoidCallback onLongPress;
   final bool isSelectionMode;
   final bool isSelected;
+  final Iterable<String>? selectedPaths;
   final bool showTopDivider;
   final BorderRadius? borderRadius;
 
@@ -686,7 +689,10 @@ class _AlbumSongTile extends StatelessWidget {
 
     return DraggableSongItem(
       song: song,
-      enabled: !song.isMissing && !isSelectionMode,
+      enabled: !song.isMissing,
+      isSelected: isSelected,
+      isSelectionMode: isSelectionMode,
+      selectedPaths: selectedPaths,
       child: tileWidget,
     );
   }

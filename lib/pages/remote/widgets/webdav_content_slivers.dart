@@ -322,7 +322,10 @@ class WebDavSongsSliver extends ConsumerWidget {
                   return HoverableCard(
                     child: DraggableSongItem(
                       song: musicFile,
-                      enabled: !isSelectionMode,
+                      enabled: true,
+                      isSelected: isSelected,
+                      isSelectionMode: isSelectionMode,
+                      selectedPaths: selectedSongPaths,
                       child: WebDavGenericFileGridCard(
                         file: file,
                         isSelected: isSelected,
@@ -377,6 +380,7 @@ class WebDavSongsSliver extends ConsumerWidget {
                     isCurrent: isCurrent,
                     isSelected: isSelected,
                     isSelectionMode: isSelectionMode,
+                    selectedPaths: selectedSongPaths,
                     isHighlighted: isHighlighted,
                     onTap: () => onSongTap(file, index),
                     onLongPress: () => onSongLongPress?.call(file),
@@ -394,7 +398,10 @@ class WebDavSongsSliver extends ConsumerWidget {
                 ),
                 child: DraggableSongItem(
                   song: musicFile,
-                  enabled: !isSelectionMode,
+                  enabled: true,
+                  isSelected: isSelected,
+                  isSelectionMode: isSelectionMode,
+                  selectedPaths: selectedSongPaths,
                   child: WebDavGenericFileListTile(
                     file: file,
                     isSelected: isSelected,

@@ -429,6 +429,7 @@ class _LibraryRankedSongListState extends ConsumerState<LibraryRankedSongList>
                           trailingBuilder: widget.trailingBuilder,
                           isSelectionMode: isSelectionMode,
                           isSelected: isSelected,
+                          selectedPaths: selectedSongPaths,
                           onTap: () {
                             handleSongTap(
                               index: index,
@@ -512,6 +513,7 @@ class _SongListItem extends ConsumerWidget {
     required this.trailingBuilder,
     this.isSelectionMode = false,
     this.isSelected = false,
+    this.selectedPaths,
     required this.onTap,
     required this.onLongPress,
   });
@@ -522,6 +524,7 @@ class _SongListItem extends ConsumerWidget {
   final Widget Function(BuildContext, LibraryInsightSongEntry) trailingBuilder;
   final bool isSelectionMode;
   final bool isSelected;
+  final Iterable<String>? selectedPaths;
   final VoidCallback onTap;
   final VoidCallback onLongPress;
 
@@ -665,7 +668,10 @@ class _SongListItem extends ConsumerWidget {
 
     return DraggableSongItem(
       song: song,
-      enabled: !isMissing && !isSelectionMode,
+      enabled: !isMissing,
+      isSelected: isSelected,
+      isSelectionMode: isSelectionMode,
+      selectedPaths: selectedPaths,
       child: cardWidget,
     );
   }

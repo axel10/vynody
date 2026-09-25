@@ -527,6 +527,15 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab>
                       );
                     }
 
+                    final selectedSongPaths = isSelectionMode
+                        ? selectedKeys
+                            .map((i) => (i >= 0 && i < activePlaylist.songs.length)
+                                ? activePlaylist.songs[i].path
+                                : null)
+                            .whereType<String>()
+                            .toSet()
+                        : const <String>{};
+
                     return Align(
                       key: ObjectKey(song),
                       alignment: Alignment.center,
@@ -541,6 +550,7 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab>
                             isCurrent: isCurrent,
                             isSelected: isSelected,
                             isSelectionMode: isSelectionMode,
+                            selectedPaths: selectedSongPaths,
                             dragHandle: ReorderableDragStartListener(
                               index: index,
                               child: const Icon(Icons.drag_handle),

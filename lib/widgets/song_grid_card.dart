@@ -17,6 +17,7 @@ class SongGridCard extends ConsumerWidget {
     required this.isPlaying,
     this.isSelected = false,
     this.isSelectionMode = false,
+    this.selectedPaths,
     this.isHighlighted = false,
     this.onTap,
     this.onLongPress,
@@ -28,6 +29,7 @@ class SongGridCard extends ConsumerWidget {
   final bool isPlaying;
   final bool isSelected;
   final bool isSelectionMode;
+  final Iterable<String>? selectedPaths;
   final bool isHighlighted;
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
@@ -215,7 +217,10 @@ class SongGridCard extends ConsumerWidget {
 
     return DraggableSongItem(
       song: song,
-      enabled: !isSelectionMode,
+      enabled: true,
+      isSelected: isSelected,
+      isSelectionMode: isSelectionMode,
+      selectedPaths: selectedPaths,
       child: card,
     );
   }

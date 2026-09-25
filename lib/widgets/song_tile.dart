@@ -15,6 +15,7 @@ class SongTile extends ConsumerWidget {
     required this.isCurrent,
     this.isSelected = false,
     this.isSelectionMode = false,
+    this.selectedPaths,
     this.isHighlighted = false,
     this.dragHandle,
     this.onTap,
@@ -27,6 +28,7 @@ class SongTile extends ConsumerWidget {
   final bool isCurrent;
   final bool isSelected;
   final bool isSelectionMode;
+  final Iterable<String>? selectedPaths;
   final bool isHighlighted;
   final Widget? dragHandle;
   final VoidCallback? onTap;
@@ -260,7 +262,10 @@ class SongTile extends ConsumerWidget {
 
     return DraggableSongItem(
       song: song,
-      enabled: !isMissing && !isSelectionMode,
+      enabled: !isMissing,
+      isSelected: isSelected,
+      isSelectionMode: isSelectionMode,
+      selectedPaths: selectedPaths,
       child: content,
     );
   }

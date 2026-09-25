@@ -535,6 +535,15 @@ class _QueuePageState extends ConsumerState<QueuePage>
                                     isCurrent: isCurrent,
                                     isSelected: isSelected,
                                     isSelectionMode: isSelectionMode,
+                                    selectedPaths: isSelectionMode
+                                        ? selectedKeys
+                                            .map((i) => (i >= 0 &&
+                                                    i < displayQueue.length)
+                                                ? displayQueue[i].path
+                                                : null)
+                                            .whereType<String>()
+                                            .toSet()
+                                        : const <String>{},
                                     isHighlighted: _highlightedIndex == index,
                                     dragHandle: ReorderableDragStartListener(
                                       index: index,

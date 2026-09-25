@@ -611,7 +611,10 @@ class _RemoteLibrarySongsViewState
 
                     return DraggableSongItem(
                       song: song,
-                      enabled: !widget.isSelectionMode,
+                      enabled: true,
+                      isSelected: isSelected,
+                      isSelectionMode: widget.isSelectionMode,
+                      selectedPaths: widget.selectedSongPaths,
                       child: RepaintBoundary(
                         child: Align(
                           alignment: Alignment.center,

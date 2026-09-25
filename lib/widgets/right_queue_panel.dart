@@ -148,6 +148,25 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
     final paths = <String>[];
     for (var i = 0; i < event.session.items.length; i++) {
       final item = event.session.items[i];
+      if (item.localData is MusicFile) {
+        paths.add((item.localData as MusicFile).path);
+        continue;
+      }
+      if (item.localData is Map) {
+        final map = item.localData as Map;
+        if (map['paths'] is List) {
+          final list = map['paths'] as List;
+          for (final p in list) {
+            if (p != null) paths.add(p.toString());
+          }
+          continue;
+        }
+        if (map['path'] != null) {
+          paths.add(map['path'] as String);
+          continue;
+        }
+      }
+
       final reader = item.dataReader;
       if (reader == null) continue;
 

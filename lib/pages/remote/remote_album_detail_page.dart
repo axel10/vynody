@@ -422,7 +422,10 @@ class _RemoteAlbumDetailPageState
 
                               return DraggableSongItem(
                                 song: song,
-                                enabled: !isSelectionMode,
+                                enabled: true,
+                                isSelected: isSelected,
+                                isSelectionMode: isSelectionMode,
+                                selectedPaths: selectedSongPaths,
                                 child: GestureDetector(
                                 behavior: HitTestBehavior.opaque,
                                 onSecondaryTapDown: (details) {

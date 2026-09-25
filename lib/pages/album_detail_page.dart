@@ -186,6 +186,7 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage>
                     isCurrent: isCurrent,
                     isSelected: isSelected,
                     isSelectionMode: isSelectionMode,
+                    selectedPaths: selectedSongPaths,
                     isLargeAlbum: isLargeAlbum,
                     showRemoteIndicator: showRemote,
                     unknownArtist: unknownArtist,
@@ -364,6 +365,7 @@ class _AlbumSongItem extends StatelessWidget {
     required this.isCurrent,
     required this.isSelected,
     required this.isSelectionMode,
+    this.selectedPaths,
     required this.isLargeAlbum,
     required this.unknownArtist,
     this.showRemoteIndicator = false,
@@ -378,6 +380,7 @@ class _AlbumSongItem extends StatelessWidget {
   final bool isCurrent;
   final bool isSelected;
   final bool isSelectionMode;
+  final Iterable<String>? selectedPaths;
   final bool isLargeAlbum;
   final String unknownArtist;
   final bool showRemoteIndicator;
@@ -497,7 +500,10 @@ class _AlbumSongItem extends StatelessWidget {
 
     return DraggableSongItem(
       song: song,
-      enabled: !song.isMissing && !isSelectionMode,
+      enabled: !song.isMissing,
+      isSelected: isSelected,
+      isSelectionMode: isSelectionMode,
+      selectedPaths: selectedPaths,
       child: tileWidget,
     );
   }
