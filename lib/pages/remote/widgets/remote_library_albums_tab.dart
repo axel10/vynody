@@ -5,6 +5,7 @@ import '../../../player/remote/remote_library_navigation.dart';
 import '../../../player/remote/remote_server_models.dart';
 import '../../../utils/remote_context_menu_utils.dart';
 import '../../../utils/selection_utils.dart';
+import '../../../widgets/draggable_remote_album_item.dart';
 import '../../../widgets/remote_artwork_widget.dart';
 import 'remote_library_toolbar_widgets.dart';
 
@@ -314,7 +315,7 @@ class RemoteLibraryAlbumCard extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
 
-    return GestureDetector(
+    final itemWidget = GestureDetector(
       behavior: HitTestBehavior.opaque,
       onSecondaryTapDown: (details) {
         if (!isSelectionMode) {
@@ -500,6 +501,21 @@ class RemoteLibraryAlbumCard extends ConsumerWidget {
           ),
         ),
       ),
+    );
+
+    return DraggableRemoteAlbumItem(
+      server: server,
+      album: album,
+      albumId: albumId,
+      title: title,
+      artist: artist,
+      coverId: coverId,
+      songCount: songCount,
+      isSelectionMode: isSelectionMode,
+      isSelected: isSelected,
+      selectedAlbumIds: selectedAlbumIds,
+      allAlbums: filteredAlbums,
+      child: itemWidget,
     );
   }
 }
