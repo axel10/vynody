@@ -60,7 +60,7 @@ class FolderNavBarScaffold extends StatefulWidget {
         Platform.isMacOS || Platform.isWindows || Platform.isLinux;
     final topPadding = statusBarHeight > 0
         ? statusBarHeight + 2.0
-        : (isDesktop ? 28.0 : 4.0);
+        : (isDesktop ? 38.0 : 4.0);
     const bottomPadding = 4.0;
     const contentHeight = 32.0;
     return topPadding + contentHeight + bottomPadding;
@@ -234,7 +234,7 @@ class _FolderNavBarScaffoldState extends State<FolderNavBarScaffold>
             Platform.isMacOS || Platform.isWindows || Platform.isLinux;
         final topPadding = statusBarHeight > 0
             ? statusBarHeight + 2.0
-            : (isDesktop ? 28.0 : 4.0);
+            : (isDesktop ? 38.0 : 4.0);
         const bottomPadding = 4.0;
 
         final Widget barContent = Container(
