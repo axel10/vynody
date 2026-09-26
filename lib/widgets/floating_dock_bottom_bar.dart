@@ -19,6 +19,7 @@ class FloatingDockBottomBar extends ConsumerStatefulWidget {
     required this.isHidden,
     this.hideMiniPlayer = false,
     this.additionalBottomOffset = 0.0,
+    this.rightDrawerWidth = 0.0,
   });
 
   final int currentIndex;
@@ -27,6 +28,7 @@ class FloatingDockBottomBar extends ConsumerStatefulWidget {
   final bool isHidden;
   final bool hideMiniPlayer;
   final double additionalBottomOffset;
+  final double rightDrawerWidth;
 
   @override
   ConsumerState<FloatingDockBottomBar> createState() =>
@@ -58,12 +60,13 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
 
     final bottomPadding = MediaQuery.of(context).padding.bottom;
     final totalBottomOffset = bottomPadding + 8.0 + widget.additionalBottomOffset;
+    final totalRightOffset = 16.0 + widget.rightDrawerWidth;
 
     return AnimatedPositioned(
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeOutCubic,
       left: 16.0,
-      right: 16.0,
+      right: totalRightOffset,
       bottom: widget.isHidden ? -(200.0 + bottomPadding) : totalBottomOffset,
       child: Center(
         child: AnimatedOpacity(

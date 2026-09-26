@@ -1516,6 +1516,11 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                           hideMiniPlayer:
                               hideMiniPlayerForSelection ||
                               isCoverFlowImmersive,
+                          rightDrawerWidth: (isDesktop &&
+                                  !isSmallWin &&
+                                  ref.watch(rightQueueDrawerProvider))
+                              ? kRightQueueDrawerWidth
+                              : 0.0,
                           additionalBottomOffset:
                               uiState.snackBarOffset +
                               (((isRootSelectionMode && _currentIndex == 0) ||
