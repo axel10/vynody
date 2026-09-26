@@ -13,7 +13,6 @@ import 'package:vynody/player/settings/shortcut_bindings.dart';
 import 'package:vynody/utils/list_reorder_utils.dart';
 import 'package:vynody/utils/selection_utils.dart';
 import 'package:vynody/widgets/app_tooltip.dart';
-import 'package:vynody/widgets/draggable_song_item.dart';
 import 'package:vynody/widgets/queue_file_drop_target.dart';
 import 'package:vynody/widgets/song_thumbnail.dart';
 
@@ -1887,11 +1886,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
                   ),
                   const SizedBox(width: 4),
                   Expanded(
-                    child: DraggableSongItem(
-                      song: song,
-                      isSelected: isSelected,
-                      isSelectionMode: isSelecting,
-                      child: Row(
+                    child: Row(
                         children: [
                           ClipRRect(
                             borderRadius: BorderRadius.circular(6),
@@ -1998,7 +1993,6 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
                           ),
                         ],
                       ),
-                    ),
                   ),
                   if (song.durationMillis != null && song.durationMillis! > 0)
                     Text(

@@ -339,7 +339,7 @@ packages:
     source: hosted
     version: "0.7.1"
   desktop_multi_window:
-    dependency: "direct main"
+    dependency: "direct overridden"
     description:
       path: "flutter-plugins/packages/desktop_multi_window"
       relative: true

@@ -21,7 +21,6 @@ import 'package:vynody/utils/selection_utils.dart';
 import 'package:vynody/utils/song_context_menu_utils.dart';
 import 'package:vynody/utils/time_format_utils.dart';
 import 'package:vynody/widgets/app_tooltip.dart';
-import 'package:vynody/widgets/draggable_song_item.dart';
 import 'package:vynody/widgets/queue_file_drop_target.dart';
 import 'package:vynody/widgets/song_thumbnail.dart';
 import 'package:vynody/utils/drop_data_utils.dart';
@@ -1578,66 +1577,63 @@ class _RightPlaylistSongTileState
                   ),
                 ),
                 Expanded(
-                  child: DraggableSongItem(
-                    song: song,
-                    child: Row(
-                      children: [
-                        SongThumbnail.fromSong(
-                          song,
-                          size: 36.0,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  if (widget.isCurrent) ...[
-                                    Icon(
-                                      widget.isPlaying
-                                          ? Icons.volume_up_rounded
-                                          : Icons.pause_rounded,
-                                      size: 14,
-                                      color: theme.colorScheme.primary,
-                                    ),
-                                    const SizedBox(width: 4),
-                                  ],
-                                  Expanded(
-                                    child: Text(
-                                      song.displayName,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: widget.isCurrent
-                                            ? FontWeight.bold
-                                            : FontWeight.w500,
-                                        color: widget.isCurrent
-                                            ? theme.colorScheme.primary
-                                            : theme.colorScheme.onSurface,
-                                      ),
+                  child: Row(
+                    children: [
+                      SongThumbnail.fromSong(
+                        song,
+                        size: 36.0,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                if (widget.isCurrent) ...[
+                                  Icon(
+                                    widget.isPlaying
+                                        ? Icons.volume_up_rounded
+                                        : Icons.pause_rounded,
+                                    size: 14,
+                                    color: theme.colorScheme.primary,
+                                  ),
+                                  const SizedBox(width: 4),
+                                ],
+                                Expanded(
+                                  child: Text(
+                                    song.displayName,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: widget.isCurrent
+                                          ? FontWeight.bold
+                                          : FontWeight.w500,
+                                      color: widget.isCurrent
+                                          ? theme.colorScheme.primary
+                                          : theme.colorScheme.onSurface,
                                     ),
                                   ),
-                                ],
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                subtitleText,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 11.5,
-                                  color: theme.colorScheme.onSurfaceVariant,
                                 ),
+                              ],
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              subtitleText,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                color: theme.colorScheme.onSurfaceVariant,
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
                 if (widget.durationFormatted.isNotEmpty) ...[
@@ -1773,107 +1769,102 @@ class _RightQueueTileState extends ConsumerState<_RightQueueTile> {
                   ),
                 ),
                 Expanded(
-                  child: DraggableSongItem(
-                    song: song,
-                    isSelected: widget.isSelected,
-                    isSelectionMode: widget.isSelectionMode,
-                    child: Row(
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(6),
-                          child: SizedBox(
-                            width: 36,
-                            height: 36,
-                            child: Stack(
-                              fit: StackFit.expand,
-                              children: [
-                                Opacity(
-                                  opacity: widget.isSelectionMode
-                                      ? (widget.isSelected ? 0.5 : 0.7)
-                                      : 1.0,
-                                  child: SongThumbnail.fromSong(
-                                    song,
-                                    size: 36.0,
-                                  ),
-                                ),
-                                if (widget.isSelectionMode)
-                                  Positioned.fill(
-                                    child: Align(
-                                      alignment: Alignment.center,
-                                      child: SizedBox(
-                                        width: 22,
-                                        height: 22,
-                                        child: Checkbox(
-                                          value: widget.isSelected,
-                                          onChanged: (_) => widget.onToggleSelect(),
-                                          fillColor: WidgetStateProperty.all(Colors.white),
-                                          checkColor: Colors.black,
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(4),
-                                          ),
-                                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                          visualDensity: VisualDensity.compact,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                  child: Row(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: SizedBox(
+                          width: 36,
+                          height: 36,
+                          child: Stack(
+                            fit: StackFit.expand,
                             children: [
-                              Row(
-                                children: [
-                                  if (widget.isCurrent) ...[
-                                    Icon(
-                                      widget.isPlaying
-                                          ? Icons.volume_up_rounded
-                                          : Icons.pause_rounded,
-                                      size: 14,
-                                      color: theme.colorScheme.primary,
-                                    ),
-                                    const SizedBox(width: 4),
-                                  ],
-                                  Expanded(
-                                    child: Text(
-                                      song.displayName,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: widget.isCurrent
-                                            ? FontWeight.bold
-                                            : FontWeight.normal,
-                                        color: widget.isCurrent
-                                            ? theme.colorScheme.primary
-                                            : (widget.isSelected
-                                                ? theme.colorScheme.onSurface
-                                                : theme.colorScheme.onSurface),
+                              Opacity(
+                                opacity: widget.isSelectionMode
+                                    ? (widget.isSelected ? 0.5 : 0.7)
+                                    : 1.0,
+                                child: SongThumbnail.fromSong(
+                                  song,
+                                  size: 36.0,
+                                ),
+                              ),
+                              if (widget.isSelectionMode)
+                                Positioned.fill(
+                                  child: Align(
+                                    alignment: Alignment.center,
+                                    child: SizedBox(
+                                      width: 22,
+                                      height: 22,
+                                      child: Checkbox(
+                                        value: widget.isSelected,
+                                        onChanged: (_) => widget.onToggleSelect(),
+                                        fillColor: WidgetStateProperty.all(Colors.white),
+                                        checkColor: Colors.black,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
+                                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                        visualDensity: VisualDensity.compact,
                                       ),
                                     ),
                                   ),
-                                ],
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                subtitleText,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: theme.colorScheme.onSurfaceVariant,
                                 ),
-                              ),
                             ],
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                if (widget.isCurrent) ...[
+                                  Icon(
+                                    widget.isPlaying
+                                        ? Icons.volume_up_rounded
+                                        : Icons.pause_rounded,
+                                    size: 14,
+                                    color: theme.colorScheme.primary,
+                                  ),
+                                  const SizedBox(width: 4),
+                                ],
+                                Expanded(
+                                  child: Text(
+                                    song.displayName,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: widget.isCurrent
+                                          ? FontWeight.bold
+                                          : FontWeight.normal,
+                                      color: widget.isCurrent
+                                          ? theme.colorScheme.primary
+                                          : (widget.isSelected
+                                              ? theme.colorScheme.onSurface
+                                              : theme.colorScheme.onSurface),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              subtitleText,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(width: 6),
