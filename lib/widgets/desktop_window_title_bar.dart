@@ -162,6 +162,7 @@ class _DesktopWindowTitleBarState extends ConsumerState<DesktopWindowTitleBar>
                             ? Icons.open_in_full
                             : Icons.picture_in_picture_alt,
                         iconSize: isSmallWindowMode ? 16 : 18,
+                        brightness: widget.brightness,
                         onPressed: () {
                           settings.isSmallWindowMode = !settings.isSmallWindowMode;
                         },
@@ -175,6 +176,7 @@ class _DesktopWindowTitleBarState extends ConsumerState<DesktopWindowTitleBar>
                             ? Icons.subtitles
                             : Icons.subtitles_outlined,
                         iconSize: isSmallWindowMode ? 16 : 18,
+                        brightness: widget.brightness,
                         color: settings.enableDesktopLyrics
                             ? Theme.of(context).colorScheme.primary
                             : null,
@@ -197,6 +199,7 @@ class _DesktopWindowTitleBarState extends ConsumerState<DesktopWindowTitleBar>
                               ? Icons.queue_music
                               : Icons.queue_music_outlined,
                           iconSize: isSmallWindowMode ? 16 : 18,
+                          brightness: widget.brightness,
                           color: (ref.watch(isStandaloneQueueWindowOpenProvider) ||
                                   ref.watch(rightQueueDrawerProvider))
                               ? Theme.of(context).colorScheme.primary
@@ -224,6 +227,7 @@ class _DesktopWindowTitleBarState extends ConsumerState<DesktopWindowTitleBar>
                                   ? Icons.push_pin
                                   : Icons.push_pin_outlined,
                               iconSize: 16,
+                              brightness: widget.brightness,
                               color: settings.isSmallWindowAlwaysOnTop
                                   ? Theme.of(context).colorScheme.primary
                                   : null,
@@ -239,6 +243,7 @@ class _DesktopWindowTitleBarState extends ConsumerState<DesktopWindowTitleBar>
                             child: _MacosSmallWindowButton(
                               icon: Icons.queue_music,
                               iconSize: 16,
+                              brightness: widget.brightness,
                               color: settings.isSmallWindowQueueExpanded
                                   ? Theme.of(context).colorScheme.primary
                                   : null,
@@ -254,6 +259,7 @@ class _DesktopWindowTitleBarState extends ConsumerState<DesktopWindowTitleBar>
                             child: _MacosSmallWindowButton(
                               icon: Icons.text_snippet_outlined,
                               iconSize: 16,
+                              brightness: widget.brightness,
                               color: settings.isSmallWindowLyricsExpanded
                                   ? Theme.of(context).colorScheme.primary
                                   : null,
@@ -470,11 +476,13 @@ class _MacosSmallWindowButton extends StatefulWidget {
   final double iconSize;
   final VoidCallback onPressed;
   final Color? color;
+  final Brightness brightness;
 
   const _MacosSmallWindowButton({
     required this.icon,
     required this.iconSize,
     required this.onPressed,
+    required this.brightness,
     this.color,
   });
 
@@ -488,6 +496,28 @@ class _MacosSmallWindowButtonState extends State<_MacosSmallWindowButton> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = widget.brightness == Brightness.dark;
+
+    final Color defaultIconColor = isDark
+        ? Colors.white.withValues(alpha: 0.85)
+        : Colors.black.withValues(alpha: 0.80);
+    final Color hoveredIconColor = isDark ? Colors.white : Colors.black;
+
+    final Color iconColor =
+        widget.color ?? (_isHovered ? hoveredIconColor : defaultIconColor);
+
+    final Color capsuleBg = isDark
+        ? (_isHovered
+            ? Colors.white.withValues(alpha: 0.22)
+            : Colors.white.withValues(alpha: 0.12))
+        : (_isHovered
+            ? Colors.white.withValues(alpha: 0.40)
+            : Colors.white.withValues(alpha: 0.22));
+
+    final Color capsuleBorderColor = isDark
+        ? Colors.white.withValues(alpha: 0.15)
+        : Colors.white.withValues(alpha: 0.25);
+
     return Center(
       child: MouseRegion(
         onEnter: (_) => setState(() => _isHovered = true),
@@ -512,12 +542,10 @@ class _MacosSmallWindowButtonState extends State<_MacosSmallWindowButton> {
               filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
               child: Container(
                 decoration: BoxDecoration(
-                  color: _isHovered
-                      ? Colors.white.withValues(alpha: 0.35)
-                      : Colors.white.withValues(alpha: 0.20),
+                  color: capsuleBg,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.20),
+                    color: capsuleBorderColor,
                     width: 0.5,
                   ),
                 ),
@@ -526,13 +554,15 @@ class _MacosSmallWindowButtonState extends State<_MacosSmallWindowButton> {
                   child: InkWell(
                     onTap: widget.onPressed,
                     hoverColor: Colors.transparent,
-                    splashColor: Colors.black.withValues(alpha: 0.05),
-                    highlightColor: Colors.black.withValues(alpha: 0.05),
+                    splashColor: (isDark ? Colors.white : Colors.black)
+                        .withValues(alpha: 0.05),
+                    highlightColor: (isDark ? Colors.white : Colors.black)
+                        .withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(12),
                     child: Center(
                       child: Icon(
                         widget.icon,
-                        color: widget.color ?? Colors.black,
+                        color: iconColor,
                         size: widget.iconSize,
                       ),
                     ),
