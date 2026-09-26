@@ -8,7 +8,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
+import 'package:vynody/player/audio/playback_source.dart';
 import 'package:vynody/player/library/music_file_utils.dart';
+import 'package:vynody/player/library/playlist_service.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/player/scanner/scanner_service.dart';
 import 'package:vynody/player/settings/settings_service.dart';
@@ -43,6 +45,7 @@ class StandaloneQueueWindowManager {
   ProviderSubscription<bool>? _isPlayingSub;
   ProviderSubscription<int>? _currentIndexSub;
   ProviderSubscription<ScannerService>? _scannerSub;
+  ProviderSubscription<PlaylistService>? _playlistSub;
   ProviderSubscription<SettingsService>? _settingsSub;
   StreamSubscription<void>? _windowsChangedSub;
   Timer? _debounceSyncTimer;
@@ -155,6 +158,139 @@ class StandaloneQueueWindowManager {
           }
           return true;
 
+        case 'add_to_playlist':
+          final args = call.arguments as Map?;
+          if (args != null) {
+            final playlistId = args['playlistId'] as String;
+            final paths = List<String>.from(args['paths'] ?? []);
+            await addPathsToPlaylist(playlistId, paths);
+          }
+          return true;
+
+        case 'create_playlist':
+          final args = call.arguments as Map?;
+          final name = args?['name'] as String?;
+          if (name != null && name.trim().isNotEmpty) {
+            await ref.read(playlistServiceProvider).createPlaylist(name.trim());
+            _syncFullStateToSubWindow();
+          }
+          return true;
+
+        case 'play_playlist':
+          final args = call.arguments as Map?;
+          if (args != null) {
+            final playlistId = args['playlistId'] as String;
+            final initialIndex = args['initialIndex'] as int? ?? 0;
+            final playlist = ref
+                .read(playlistServiceProvider)
+                .playlists
+                .firstWhereOrNull((p) => p.id == playlistId);
+            if (playlist != null && playlist.songs.isNotEmpty) {
+              await audio.playPlaylist(
+                playlist.songs,
+                initialIndex: initialIndex,
+                source: PlaybackSource(
+                  type: PlaybackSourceType.playlist,
+                  id: playlist.id,
+                  name: playlist.name,
+                ),
+              );
+            }
+          }
+          return true;
+
+        case 'append_playlist_to_queue':
+          final args = call.arguments as Map?;
+          if (args != null) {
+            final playlistId = args['playlistId'] as String;
+            final playlist = ref
+                .read(playlistServiceProvider)
+                .playlists
+                .firstWhereOrNull((p) => p.id == playlistId);
+            if (playlist != null && playlist.songs.isNotEmpty) {
+              await audio.appendToQueue(playlist.songs);
+            }
+          }
+          return true;
+
+        case 'remove_from_playlist':
+          final args = call.arguments as Map?;
+          if (args != null) {
+            final playlistId = args['playlistId'] as String;
+            final index = args['index'] as int?;
+            final indices = (args['indices'] as List?)?.cast<int>() ??
+                (index != null ? [index] : <int>[]);
+            final validIndices = indices.where((i) => i >= 0).toList();
+            if (validIndices.isNotEmpty) {
+              await ref
+                  .read(playlistServiceProvider)
+                  .removeSongsFromPlaylist(playlistId, validIndices);
+              _syncFullStateToSubWindow();
+            }
+          }
+          return true;
+
+        case 'reorder_playlist_songs':
+          final args = call.arguments as Map?;
+          if (args != null) {
+            final playlistId = args['playlistId'] as String;
+            final oldIndex = args['oldIndex'] as int;
+            final newIndex = args['newIndex'] as int;
+            await ref
+                .read(playlistServiceProvider)
+                .reorderSongsInPlaylist(playlistId, oldIndex, newIndex);
+            _syncFullStateToSubWindow();
+          }
+          return true;
+
+        case 'clear_playlist':
+          final args = call.arguments as Map?;
+          if (args != null) {
+            final playlistId = args['playlistId'] as String;
+            await ref.read(playlistServiceProvider).clearPlaylist(playlistId);
+            _syncFullStateToSubWindow();
+          }
+          return true;
+
+        case 'rename_playlist':
+          final args = call.arguments as Map?;
+          if (args != null) {
+            final playlistId = args['playlistId'] as String;
+            final name = args['name'] as String?;
+            if (name != null && name.trim().isNotEmpty) {
+              await ref
+                  .read(playlistServiceProvider)
+                  .renamePlaylist(playlistId, name.trim());
+              _syncFullStateToSubWindow();
+            }
+          }
+          return true;
+
+        case 'delete_playlist':
+          final args = call.arguments as Map?;
+          if (args != null) {
+            final playlistId = args['playlistId'] as String;
+            await ref.read(playlistServiceProvider).deletePlaylist(playlistId);
+            _syncFullStateToSubWindow();
+          }
+          return true;
+
+        case 'enqueue_next':
+          final songJson = call.arguments as Map?;
+          if (songJson != null) {
+            final song = _musicFileFromJson(Map<String, dynamic>.from(songJson));
+            audio.enqueueNext([song]);
+          }
+          return true;
+
+        case 'append_to_queue':
+          final songJson = call.arguments as Map?;
+          if (songJson != null) {
+            final song = _musicFileFromJson(Map<String, dynamic>.from(songJson));
+            audio.appendToQueue([song]);
+          }
+          return true;
+
         case 'dock_to_main':
           await closeQueueWindow();
           ref.read(rightQueueDrawerProvider.notifier).open();
@@ -170,11 +306,17 @@ class StandaloneQueueWindowManager {
     });
   }
 
-  Future<void> handleDroppedPaths(
-    List<String> paths, {
-    int? insertIndex,
-    bool playNow = false,
-  }) async {
+  Future<void> addPathsToPlaylist(String playlistId, List<String> paths) async {
+    final songs = await resolvePathsToMusicFiles(paths);
+    if (songs.isNotEmpty) {
+      await ref
+          .read(playlistServiceProvider)
+          .addSongsToPlaylist(playlistId, songs);
+      _syncFullStateToSubWindow();
+    }
+  }
+
+  Future<List<MusicFile>> resolvePathsToMusicFiles(List<String> paths) async {
     final uniqueInputPaths = <String>[];
     final seenInput = <String>{};
     for (final p in paths) {
@@ -187,12 +329,7 @@ class StandaloneQueueWindowManager {
       }
     }
 
-    AppLog.log(
-      '[StandaloneQueue] _handleDroppedPaths processing ${uniqueInputPaths.length} paths (insertIndex=$insertIndex)',
-      mirrorToConsole: true,
-    );
-    debugPrint('[StandaloneQueue] _handleDroppedPaths processing ${uniqueInputPaths.length} paths (insertIndex=$insertIndex)');
-    if (uniqueInputPaths.isEmpty) return;
+    if (uniqueInputPaths.isEmpty) return const [];
     final songs = <MusicFile>[];
     final db = MetadataDatabase();
     final servers = ref.read(remoteServersProvider).asData?.value ?? [];
@@ -300,7 +437,7 @@ class StandaloneQueueWindowManager {
     if (songs.isEmpty) {
       AppLog.log('[StandaloneQueue] No valid music files found from dropped paths', mirrorToConsole: true);
       debugPrint('[StandaloneQueue] No valid music files found from dropped paths');
-      return;
+      return const [];
     }
 
     final scanner = ref.read(scannerServiceProvider);
@@ -348,6 +485,21 @@ class StandaloneQueueWindowManager {
       AppLog.log('[StandaloneQueue] Error enriching metadata for dropped songs: $e');
     }
 
+    return songs;
+  }
+
+  Future<void> handleDroppedPaths(
+    List<String> paths, {
+    int? insertIndex,
+    bool playNow = false,
+  }) async {
+    final songs = await resolvePathsToMusicFiles(paths);
+    if (songs.isEmpty) {
+      AppLog.log('[StandaloneQueue] No valid music files found from dropped paths', mirrorToConsole: true);
+      debugPrint('[StandaloneQueue] No valid music files found from dropped paths');
+      return;
+    }
+
     final audio = ref.read(audioServiceProvider);
     if (insertIndex != null && insertIndex >= 0) {
       await audio.insertIntoQueueAt(insertIndex, songs);
@@ -385,6 +537,7 @@ class StandaloneQueueWindowManager {
     final currentIndex = ref.read(audioCurrentIndexProvider);
     final isPlaying = ref.read(audioIsPlayingProvider);
     final settings = ref.read(settingsServiceProvider);
+    final playlistService = ref.read(playlistServiceProvider);
 
     _preloadQueueThumbnails(queue);
 
@@ -392,6 +545,15 @@ class StandaloneQueueWindowManager {
       'type': 'standalone_queue',
       'title': '播放队列 - Vynody',
       'queue': queue.map(_musicFileToJson).toList(),
+      'playlists': playlistService.playlists.map((p) => {
+        'id': p.id,
+        'name': p.name,
+        'songCount': p.songs.length,
+        'isFavorite': p.id == PlaylistService.favoritePlaylistId,
+        'isDefault': p.id == 'default',
+        'songs': p.songs.map(_musicFileToJson).toList(),
+      }).toList(),
+      'currentPlaylistId': playlistService.currentPlaylist?.id,
       'currentMusic': currentMusic != null ? _musicFileToJson(currentMusic) : null,
       'currentIndex': currentIndex,
       'isPlaying': isPlaying,
@@ -510,6 +672,11 @@ class StandaloneQueueWindowManager {
       (prev, next) => _debouncedSyncFullState(),
     );
 
+    _playlistSub = ref.listen<PlaylistService>(
+      playlistServiceProvider,
+      (prev, next) => _debouncedSyncFullState(),
+    );
+
     _settingsSub = ref.listen<SettingsService>(
       settingsServiceProvider,
       (prev, next) {
@@ -548,6 +715,8 @@ class StandaloneQueueWindowManager {
     _currentIndexSub = null;
     _scannerSub?.close();
     _scannerSub = null;
+    _playlistSub?.close();
+    _playlistSub = null;
     _settingsSub?.close();
     _settingsSub = null;
   }

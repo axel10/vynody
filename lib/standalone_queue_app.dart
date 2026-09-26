@@ -1,14 +1,18 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:collection/collection.dart';
 import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:super_drag_and_drop/super_drag_and_drop.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/utils/list_reorder_utils.dart';
 import 'package:vynody/utils/selection_utils.dart';
 import 'package:vynody/widgets/app_tooltip.dart';
+import 'package:vynody/widgets/draggable_song_item.dart';
 import 'package:vynody/widgets/queue_file_drop_target.dart';
 
 class StandaloneQueueApp extends StatefulWidget {
@@ -32,10 +36,32 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
   late final WindowMethodChannel _mainChannel;
 
   List<MusicFile> _queue = [];
+  List<Map<String, dynamic>> _playlists = [];
   int _currentIndex = -1;
   bool _isPlaying = false;
   final _keyPool = ReorderableKeyPool(debugPrefix: 'standalone-queue-tile');
+  final _playlistSongKeyPool =
+      ReorderableKeyPool(debugPrefix: 'standalone-playlist-song-tile');
   final FocusNode _focusNode = FocusNode();
+
+  int _currentTabIndex = 0; // 0: 播放队列, 1: 播放列表
+  Timer? _tabHoverTimer;
+  String? _selectedPlaylistId;
+
+  Map<String, dynamic>? get _activePlaylist {
+    if (_playlists.isEmpty) return null;
+    return _playlists.firstWhereOrNull((p) => p['id'] == _selectedPlaylistId) ??
+        _playlists.first;
+  }
+
+  List<MusicFile> get _activePlaylistSongs {
+    final active = _activePlaylist;
+    if (active == null) return const [];
+    final rawSongs = active['songs'] as List? ?? [];
+    return rawSongs
+        .map((item) => _musicFileFromJson(Map<String, dynamic>.from(item)))
+        .toList();
+  }
 
   final Set<int> _selectedIndices = {};
   bool _isSelectionMode = false;
@@ -45,6 +71,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
   Color _accentColor = const Color(0xFF6750A4);
 
   final ScrollController _scrollController = ScrollController();
+  final ScrollController _playlistScrollController = ScrollController();
 
   bool get _isEffectiveDark {
     if (_themeMode == ThemeMode.dark) return true;
@@ -158,14 +185,27 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
         .map((item) => _musicFileFromJson(Map<String, dynamic>.from(item)))
         .toList();
 
+    final rawPlaylists = data['playlists'] as List? ?? [];
+    final playlists = rawPlaylists
+        .map((e) => Map<String, dynamic>.from(e as Map))
+        .toList();
+
     final currentIndex = data['currentIndex'] as int? ?? -1;
     final isPlaying = data['isPlaying'] as bool? ?? false;
     final themeModeIdx = data['themeMode'] as int?;
     final accentVal = data['accentColor'] as int?;
 
     _queue = queue;
+    _playlists = playlists;
     _currentIndex = currentIndex;
     _isPlaying = isPlaying;
+
+    final serverCurrentPlaylistId = data['currentPlaylistId'] as String?;
+    if (_selectedPlaylistId == null && playlists.isNotEmpty) {
+      _selectedPlaylistId = serverCurrentPlaylistId ?? playlists.first['id'] as String?;
+    } else if (_selectedPlaylistId != null && !playlists.any((p) => p['id'] == _selectedPlaylistId)) {
+      _selectedPlaylistId = playlists.isNotEmpty ? playlists.first['id'] as String? : null;
+    }
 
     _selectedIndices.removeWhere((idx) => idx >= _queue.length);
 
@@ -204,6 +244,27 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
     } catch (e) {
       debugPrint('[StandaloneQueueApp] Error sending IPC method $method: $e');
     }
+  }
+
+  void _onTabHoverEnter(int targetTab) {
+    _tabHoverTimer?.cancel();
+    if (_currentTabIndex != targetTab) {
+      _tabHoverTimer = Timer(const Duration(milliseconds: 300), () {
+        if (mounted) {
+          setState(() {
+            _currentTabIndex = targetTab;
+            if (_currentTabIndex != 0) {
+              _exitSelectionMode();
+            }
+          });
+        }
+      });
+    }
+  }
+
+  void _onTabHoverExit() {
+    _tabHoverTimer?.cancel();
+    _tabHoverTimer = null;
   }
 
   void _playIndex(int index) {
@@ -450,15 +511,6 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
         oldIndex: oldIndex,
         newIndex: newIndex,
       );
-      if (_selectedIndices.isNotEmpty) {
-        final updated = ListReorderUtils.reorderSelectedIndices(
-          _selectedIndices,
-          oldIndex: oldIndex,
-          newIndex: newIndex,
-        );
-        _selectedIndices.clear();
-        _selectedIndices.addAll(updated);
-      }
     });
 
     _sendIpc('reorder', {'oldIndex': oldIndex, 'newIndex': newIndex});
@@ -481,7 +533,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
   void _scrollToCurrent() {
     if (_currentIndex >= 0 && _currentIndex < _queue.length) {
       if (_scrollController.hasClients) {
-        final offset = (_currentIndex * 60.0) - 100;
+        final offset = (_currentIndex * 56.0) - 100;
         _scrollController.animateTo(
           offset.clamp(0.0, _scrollController.position.maxScrollExtent),
           duration: const Duration(milliseconds: 250),
@@ -491,20 +543,73 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
     }
   }
 
-  String _formatDuration(int ms) {
-    final dur = Duration(milliseconds: ms);
-    final minutes = dur.inMinutes;
-    final seconds = dur.inSeconds.remainder(60);
-    return '$minutes:${seconds.toString().padLeft(2, '0')}';
+  String _formatDuration(int durationMs) {
+    final minutes = durationMs ~/ 60000;
+    final seconds = (durationMs % 60000) ~/ 1000;
+    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+  }
+
+  void _showCreatePlaylistDialog(BuildContext context) {
+    final controller = TextEditingController();
+    String? errorText;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('新建歌单'),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            decoration: InputDecoration(
+              labelText: '歌单名称',
+              hintText: '请输入歌单名称',
+              errorText: errorText,
+            ),
+            onChanged: (val) {
+              if (errorText != null) {
+                setDialogState(() => errorText = null);
+              }
+            },
+            onSubmitted: (val) {
+              final name = val.trim();
+              if (name.isNotEmpty) {
+                _sendIpc('create_playlist', {'name': name});
+                Navigator.pop(ctx);
+              }
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('取消'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final name = controller.text.trim();
+                if (name.isNotEmpty) {
+                  _sendIpc('create_playlist', {'name': name});
+                  Navigator.pop(ctx);
+                }
+              },
+              child: const Text('创建'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
   void dispose() {
+    _tabHoverTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     _subChannel.setMethodCallHandler(null);
     _scrollController.dispose();
+    _playlistScrollController.dispose();
     _focusNode.dispose();
     _keyPool.clear();
+    _playlistSongKeyPool.clear();
     super.dispose();
   }
 
@@ -553,16 +658,19 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
     final lightTheme = _buildTheme(Brightness.light, _accentColor);
     final darkTheme = _buildTheme(Brightness.dark, _accentColor);
 
+    final activePlaylistSongs = _activePlaylistSongs;
     _keyPool.syncLength(_queue.length);
+    _playlistSongKeyPool.syncLength(activePlaylistSongs.length);
     _selectedIndices.removeWhere((idx) => idx >= _queue.length);
 
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: '播放队列 - Vynody',
-      theme: lightTheme,
-      darkTheme: darkTheme,
-      themeMode: _themeMode,
-      home: Builder(
+    return ProviderScope(
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        title: '播放队列与歌单 - Vynody',
+        theme: lightTheme,
+        darkTheme: darkTheme,
+        themeMode: _themeMode,
+        home: Builder(
         builder: (context) {
           final theme = Theme.of(context);
           return CallbackShortcuts(
@@ -582,27 +690,54 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
                 backgroundColor: theme.scaffoldBackgroundColor,
                 body: QueueFileDropTarget(
                   enabled: true,
-                  displayQueue: _queue,
-                  queueSongs: _queue,
-                  itemKeyBuilder: (index, song) => _keyPool.getKey(index),
-                  showPreview: _queue.isNotEmpty,
+                  displayQueue: _currentTabIndex == 0 ? _queue : activePlaylistSongs,
+                  queueSongs: _currentTabIndex == 0 ? _queue : activePlaylistSongs,
+                  itemKeyBuilder: (index, song) => _currentTabIndex == 0
+                      ? _keyPool.getKey(index)
+                      : _playlistSongKeyPool.getKey(index),
+                  showPreview: (_currentTabIndex == 0 ? _queue : activePlaylistSongs).isNotEmpty,
                   indicatorHorizontalPadding: 12.0,
                   onFilesDropped: (paths, insertIndex) async {
-                    _sendIpc('add_files', {
-                      'paths': paths,
-                      'insertIndex': insertIndex,
-                      'playNow': false,
-                    });
+                    if (_currentTabIndex == 0) {
+                      _sendIpc('add_files', {
+                        'paths': paths,
+                        'insertIndex': insertIndex,
+                        'playNow': false,
+                      });
+                    } else {
+                      final active = _activePlaylist;
+                      if (active != null) {
+                        _sendIpc('add_to_playlist', {
+                          'playlistId': active['id'],
+                          'paths': paths,
+                        });
+                      }
+                    }
                   },
-                  child: Column(
-                    children: [
-                      _buildTitleBar(context),
-                      Expanded(
-                        child: _queue.isEmpty
-                            ? _buildEmptyView(context)
-                            : _buildQueueList(context),
-                      ),
-                    ],
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final isSelecting =
+                          _isSelectionMode || _selectedIndices.isNotEmpty;
+                      final isWide = constraints.maxWidth >= 380;
+
+                      return Column(
+                        children: [
+                          _buildTitleBar(context, isWide: isWide),
+                          if (!isWide && !isSelecting)
+                            _buildTabBarRow(context),
+                          Expanded(
+                            child: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 180),
+                              child: _currentTabIndex == 0
+                                  ? (_queue.isEmpty
+                                      ? _buildEmptyView(context)
+                                      : _buildQueueList(context))
+                                  : _buildPlaylistsView(context),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   ),
                 ),
               ),
@@ -610,16 +745,18 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
           );
         },
       ),
-    );
-  }
+    ),
+  );
+}
 
-  Widget _buildTitleBar(BuildContext context) {
+  Widget _buildTitleBar(BuildContext context, {required bool isWide}) {
     final theme = Theme.of(context);
     final isSelecting = _isSelectionMode || _selectedIndices.isNotEmpty;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       height: 48,
+      padding: const EdgeInsets.symmetric(horizontal: 10),
       decoration: BoxDecoration(
         color: isSelecting
             ? theme.colorScheme.primaryContainer.withValues(alpha: 0.45)
@@ -685,58 +822,32 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
-                AppTooltip(
-                  message: '关闭独立窗口',
-                  child: IconButton(
-                    icon: const Icon(Icons.close_rounded, size: 18),
-                    onPressed: _closeWindow,
-                    visualDensity: VisualDensity.compact,
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(width: 6),
               ],
             )
           : Row(
               children: [
-                const SizedBox(width: 14),
-                Icon(
-                  Icons.queue_music_rounded,
-                  size: 20,
-                  color: theme.colorScheme.primary,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  '播放队列',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: theme.colorScheme.onSurface,
+                if (isWide)
+                  _buildInlineTabBar(context)
+                else ...[
+                  Icon(
+                    _currentTabIndex == 0
+                        ? Icons.queue_music_rounded
+                        : Icons.playlist_play_rounded,
+                    size: 20,
+                    color: theme.colorScheme.primary,
                   ),
-                ),
-                const SizedBox(width: 6),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color:
-                        theme.colorScheme.primaryContainer.withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(
-                    '${_queue.length}',
+                  const SizedBox(width: 8),
+                  Text(
+                    _currentTabIndex == 0 ? '播放队列' : '播放列表',
                     style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: theme.colorScheme.onPrimaryContainer,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.onSurface,
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                const Expanded(
-                  child: SizedBox(height: double.infinity),
-                ),
-                if (_queue.isNotEmpty) ...[
+                ],
+                const Spacer(),
+                if (_currentTabIndex == 0 && _queue.isNotEmpty) ...[
                   AppTooltip(
                     message: '定位到当前播放',
                     child: IconButton(
@@ -767,18 +878,709 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
-                AppTooltip(
-                  message: '关闭独立窗口',
-                  child: IconButton(
-                    icon: const Icon(Icons.close_rounded, size: 18),
-                    onPressed: _closeWindow,
-                    visualDensity: VisualDensity.compact,
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(width: 6),
               ],
             ),
+    );
+  }
+
+  Widget _buildInlineTabBar(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      height: 32,
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.55),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildPillTabItem(
+            title: '播放队列',
+            count: _queue.length,
+            index: 0,
+            isSelected: _currentTabIndex == 0,
+            isCompact: true,
+          ),
+          const SizedBox(width: 4),
+          _buildPillTabItem(
+            title: '播放列表',
+            count: _playlists.length,
+            index: 1,
+            isSelected: _currentTabIndex == 1,
+            isCompact: true,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTabBarRow(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.fromLTRB(10, 6, 10, 8),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        border: Border(
+          bottom: BorderSide(
+            color: theme.dividerColor.withValues(alpha: 0.08),
+            width: 1.0,
+          ),
+        ),
+      ),
+      child: Container(
+        height: 34,
+        padding: const EdgeInsets.all(2),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.55),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: _buildPillTabItem(
+                title: '播放队列',
+                count: _queue.length,
+                index: 0,
+                isSelected: _currentTabIndex == 0,
+              ),
+            ),
+            const SizedBox(width: 4),
+            Expanded(
+              child: _buildPillTabItem(
+                title: '播放列表',
+                count: _playlists.length,
+                index: 1,
+                isSelected: _currentTabIndex == 1,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPillTabItem({
+    required String title,
+    required int count,
+    required int index,
+    required bool isSelected,
+    bool isCompact = false,
+  }) {
+    final theme = Theme.of(context);
+
+    return DropRegion(
+      formats: const [Formats.fileUri, Formats.plainText, Formats.uri],
+      hitTestBehavior: HitTestBehavior.opaque,
+      onDropEnter: (_) => _onTabHoverEnter(index),
+      onDropLeave: (_) => _onTabHoverExit(),
+      onDropEnded: (_) => _onTabHoverExit(),
+      onDropOver: (event) => DropOperation.copy,
+      onPerformDrop: (event) async {},
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: () {
+          setState(() {
+            _currentTabIndex = index;
+            if (_currentTabIndex != 0) {
+              _exitSelectionMode();
+            }
+          });
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          alignment: Alignment.center,
+          padding: isCompact
+              ? const EdgeInsets.symmetric(horizontal: 10)
+              : EdgeInsets.zero,
+          decoration: BoxDecoration(
+            color: isSelected ? theme.colorScheme.surface : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.06),
+                      blurRadius: 3,
+                      offset: const Offset(0, 1),
+                    )
+                  ]
+                : null,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                  color: isSelected
+                      ? theme.colorScheme.onSurface
+                      : theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(width: 5),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? theme.colorScheme.primary.withValues(alpha: 0.15)
+                      : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '$count',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: isSelected
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPlaylistsView(BuildContext context) {
+    final theme = Theme.of(context);
+
+    if (_playlists.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.playlist_play_rounded,
+              size: 52,
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.25),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              '暂无播放列表',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+              ),
+            ),
+            const SizedBox(height: 12),
+            FilledButton.tonalIcon(
+              onPressed: () => _showCreatePlaylistDialog(context),
+              icon: const Icon(Icons.add_rounded, size: 18),
+              label: const Text('新建歌单'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final activePlaylist = _activePlaylist;
+    if (activePlaylist == null) {
+      return const SizedBox.shrink();
+    }
+
+    final songs = _activePlaylistSongs;
+
+    return Column(
+      children: [
+        _buildPlaylistSelectorHeader(context, activePlaylist),
+        const Divider(height: 1, thickness: 1),
+        Expanded(
+          child: songs.isEmpty
+              ? _buildEmptyPlaylistSongsView(context, activePlaylist)
+              : _buildPlaylistSongsList(context, activePlaylist, songs),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPlaylistSelectorHeader(
+    BuildContext context,
+    Map<String, dynamic> activePlaylist,
+  ) {
+    final theme = Theme.of(context);
+    final plId = activePlaylist['id'] as String? ?? '';
+    final rawName = activePlaylist['name'] as String? ?? '';
+    final isFavorite =
+        activePlaylist['isFavorite'] as bool? ?? (plId == 'favorites');
+    final isDefault =
+        activePlaylist['isDefault'] as bool? ?? (plId == 'default');
+    final plName = isFavorite ? '收藏' : (isDefault ? '默认列表' : rawName);
+    final isBuiltin = isFavorite || isDefault;
+    final songs = _activePlaylistSongs;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.25),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Builder(
+              builder: (btnContext) => Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(8),
+                  onTap: () async {
+                    final box = btnContext.findRenderObject() as RenderBox?;
+                    final overlay = Overlay.of(context)
+                        .context
+                        .findRenderObject() as RenderBox?;
+                    if (box == null || overlay == null) return;
+
+                    final pos = box.localToGlobal(Offset.zero);
+                    final position = RelativeRect.fromRect(
+                      pos & box.size,
+                      Offset.zero & overlay.size,
+                    );
+
+                    await showMenu<String>(
+                      context: context,
+                      position: position,
+                      elevation: 6,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      color: theme.colorScheme.surface,
+                      items: _playlists.map((pl) {
+                        final id = pl['id'] as String? ?? '';
+                        final name = pl['name'] as String? ?? '';
+                        final isFav =
+                            pl['isFavorite'] as bool? ?? (id == 'favorites');
+                        final isDef =
+                            pl['isDefault'] as bool? ?? (id == 'default');
+                        final displayName =
+                            isFav ? '收藏' : (isDef ? '默认列表' : name);
+                        final count = pl['songCount'] as int? ??
+                            ((pl['songs'] as List?)?.length ?? 0);
+                        final isCurrentSelected = id == _selectedPlaylistId;
+
+                        return PopupMenuItem<String>(
+                          value: id,
+                          child: Row(
+                            children: [
+                              Icon(
+                                isFav
+                                    ? Icons.favorite_rounded
+                                    : (isDef
+                                        ? Icons.queue_music_rounded
+                                        : Icons.playlist_play_rounded),
+                                size: 18,
+                                color: isFav
+                                    ? Colors.redAccent
+                                    : (isCurrentSelected
+                                        ? theme.colorScheme.primary
+                                        : theme.colorScheme.onSurfaceVariant),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  displayName,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: isCurrentSelected
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
+                                    color: isCurrentSelected
+                                        ? theme.colorScheme.primary
+                                        : theme.colorScheme.onSurface,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                '$count',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                    ).then((selectedId) {
+                      if (selectedId != null && mounted) {
+                        setState(() => _selectedPlaylistId = selectedId);
+                        _sendIpc('set_current_playlist', {'playlistId': selectedId});
+                      }
+                    });
+                  },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceContainerHighest
+                        .withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        isFavorite
+                            ? Icons.favorite_rounded
+                            : (isDefault
+                                ? Icons.queue_music_rounded
+                                : Icons.playlist_play_rounded),
+                        size: 16,
+                        color: isFavorite
+                            ? Colors.redAccent
+                            : theme.colorScheme.primary,
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          '$plName (${songs.length})',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w600,
+                            color: theme.colorScheme.onSurface,
+                          ),
+                        ),
+                      ),
+                      Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        size: 18,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          ),
+          const SizedBox(width: 4),
+          if (songs.isNotEmpty) ...[
+            AppTooltip(
+              message: '播放全部',
+              child: IconButton(
+                icon: const Icon(Icons.play_circle_fill_rounded, size: 20),
+                onPressed: () => _sendIpc('play_playlist', {
+                  'playlistId': plId,
+                  'initialIndex': 0,
+                }),
+                visualDensity: VisualDensity.compact,
+                color: theme.colorScheme.primary,
+              ),
+            ),
+            AppTooltip(
+              message: '追加到队列末尾',
+              child: IconButton(
+                icon: const Icon(Icons.playlist_add_rounded, size: 20),
+                onPressed: () => _sendIpc('append_playlist_to_queue', {
+                  'playlistId': plId,
+                }),
+                visualDensity: VisualDensity.compact,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+          AppTooltip(
+            message: '新建歌单',
+            child: IconButton(
+              icon: const Icon(Icons.add_rounded, size: 20),
+              onPressed: () => _showCreatePlaylistDialog(context),
+              visualDensity: VisualDensity.compact,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert_rounded, size: 18),
+            tooltip: '更多选项',
+            color: theme.colorScheme.surface,
+            onSelected: (action) async {
+              if (action == 'clear') {
+                _sendIpc('clear_playlist', {'playlistId': plId});
+              } else if (action == 'rename') {
+                _showRenamePlaylistDialog(context, plId, rawName);
+              } else if (action == 'delete') {
+                _sendIpc('delete_playlist', {'playlistId': plId});
+              }
+            },
+            itemBuilder: (ctx) => [
+              if (songs.isNotEmpty)
+                const PopupMenuItem(
+                  value: 'clear',
+                  child: Row(
+                    children: [
+                      Icon(Icons.clear_all_rounded, size: 18),
+                      SizedBox(width: 8),
+                      Text('清空歌曲'),
+                    ],
+                  ),
+                ),
+              if (!isBuiltin) ...[
+                const PopupMenuItem(
+                  value: 'rename',
+                  child: Row(
+                    children: [
+                      Icon(Icons.edit_outlined, size: 18),
+                      SizedBox(width: 8),
+                      Text('重命名歌单'),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'delete',
+                  child: Row(
+                    children: [
+                      Icon(Icons.delete_outline_rounded, size: 18, color: Colors.redAccent),
+                      SizedBox(width: 8),
+                      Text('删除歌单', style: TextStyle(color: Colors.redAccent)),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyPlaylistSongsView(
+    BuildContext context,
+    Map<String, dynamic> playlist,
+  ) {
+    final theme = Theme.of(context);
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.playlist_add_rounded,
+              size: 52,
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              '歌单内暂无歌曲',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              '可直接拖拽本地音频文件至此添加',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 12,
+                height: 1.4,
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPlaylistSongsList(
+    BuildContext context,
+    Map<String, dynamic> playlist,
+    List<MusicFile> songs,
+  ) {
+    final plId = playlist['id'] as String? ?? '';
+    _playlistSongKeyPool.syncLength(songs.length);
+    final currentMusicPath = (_currentIndex >= 0 && _currentIndex < _queue.length)
+        ? _queue[_currentIndex].path
+        : null;
+
+    return ReorderableListView.builder(
+      scrollController: _playlistScrollController,
+      buildDefaultDragHandles: false,
+      itemCount: songs.length,
+      onReorderItem: (oldIndex, newIndex) {
+        _sendIpc('reorder_playlist_songs', {
+          'playlistId': plId,
+          'oldIndex': oldIndex,
+          'newIndex': newIndex,
+        });
+        _playlistSongKeyPool.moveKey(oldIndex, newIndex);
+      },
+      itemBuilder: (context, index) {
+        final song = songs[index];
+        final isCurrent = currentMusicPath != null && currentMusicPath == song.path;
+
+        return _StandalonePlaylistSongTile(
+          key: _playlistSongKeyPool.getKey(index),
+          song: song,
+          index: index,
+          isCurrent: isCurrent,
+          isPlaying: isCurrent && _isPlaying,
+          durationFormatted: song.durationMillis != null && song.durationMillis! > 0
+              ? _formatDuration(song.durationMillis!)
+              : '',
+          onTap: () => _sendIpc('play_playlist', {
+            'playlistId': plId,
+            'initialIndex': index,
+          }),
+          onSecondaryTap: (pos) => _handlePlaylistSongRightClick(
+            context,
+            pos,
+            song,
+            index,
+            plId,
+          ),
+          onRemove: () => _sendIpc('remove_from_playlist', {
+            'playlistId': plId,
+            'indices': [index],
+          }),
+        );
+      },
+    );
+  }
+
+  void _handlePlaylistSongRightClick(
+    BuildContext context,
+    Offset globalPos,
+    MusicFile song,
+    int index,
+    String playlistId,
+  ) {
+    final overlay =
+        Overlay.of(context).context.findRenderObject() as RenderBox?;
+    if (overlay == null) return;
+
+    showMenu<String>(
+      context: context,
+      position: RelativeRect.fromRect(
+        Rect.fromLTWH(globalPos.dx, globalPos.dy, 0, 0),
+        Offset.zero & overlay.size,
+      ),
+      elevation: 6,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+      ),
+      items: [
+        PopupMenuItem(
+          value: 'play',
+          child: Row(
+            children: [
+              Icon(Icons.play_arrow_rounded, size: 18, color: Theme.of(context).colorScheme.primary),
+              const SizedBox(width: 8),
+              const Text('立即播放'),
+            ],
+          ),
+        ),
+        const PopupMenuItem(
+          value: 'next',
+          child: Row(
+            children: [
+              Icon(Icons.playlist_play_rounded, size: 18),
+              SizedBox(width: 8),
+              Text('下一首播放'),
+            ],
+          ),
+        ),
+        const PopupMenuItem(
+          value: 'queue',
+          child: Row(
+            children: [
+              Icon(Icons.playlist_add_rounded, size: 18),
+              SizedBox(width: 8),
+              Text('追加到队列'),
+            ],
+          ),
+        ),
+        const PopupMenuDivider(),
+        const PopupMenuItem(
+          value: 'remove',
+          child: Row(
+            children: [
+              Icon(Icons.remove_circle_outline_rounded, size: 18, color: Colors.redAccent),
+              SizedBox(width: 8),
+              Text('从歌单中移除', style: TextStyle(color: Colors.redAccent)),
+            ],
+          ),
+        ),
+      ],
+    ).then((action) {
+      if (action == 'play') {
+        _sendIpc('play_playlist', {
+          'playlistId': playlistId,
+          'initialIndex': index,
+        });
+      } else if (action == 'next') {
+        _sendIpc('enqueue_next', {'songPaths': [song.path]});
+      } else if (action == 'queue') {
+        _sendIpc('append_to_queue', {'songPaths': [song.path]});
+      } else if (action == 'remove') {
+        _sendIpc('remove_from_playlist', {
+          'playlistId': playlistId,
+          'indices': [index],
+        });
+      }
+    });
+  }
+
+  void _showRenamePlaylistDialog(
+    BuildContext context,
+    String playlistId,
+    String currentName,
+  ) {
+    final controller = TextEditingController(text: currentName);
+    String? errorText;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('重命名歌单'),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            decoration: InputDecoration(
+              labelText: '歌单名称',
+              errorText: errorText,
+            ),
+            onSubmitted: (val) {
+              final newName = val.trim();
+              if (newName.isNotEmpty && newName != currentName) {
+                _sendIpc('rename_playlist', {
+                  'playlistId': playlistId,
+                  'name': newName,
+                });
+                if (ctx.mounted) Navigator.pop(ctx);
+              }
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('取消'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final newName = controller.text.trim();
+                if (newName.isNotEmpty && newName != currentName) {
+                  _sendIpc('rename_playlist', {
+                    'playlistId': playlistId,
+                    'name': newName,
+                  });
+                  if (ctx.mounted) Navigator.pop(ctx);
+                }
+              },
+              child: const Text('确定'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -886,7 +1688,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
                 _handleItemRightClick(context, details.globalPosition, index),
             child: Container(
               height: 56,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 10),
               decoration: BoxDecoration(
                 border: Border(
                   bottom: BorderSide(
@@ -913,142 +1715,153 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  Builder(
-                    builder: (context) {
-                      final hasThumb = song.thumbnailPath != null &&
-                          song.thumbnailPath!.isNotEmpty &&
-                          File(song.thumbnailPath!).existsSync();
-                      final hasArt = song.artworkPath != null &&
-                          song.artworkPath!.isNotEmpty &&
-                          File(song.artworkPath!).existsSync();
-                      final coverPath = hasThumb
-                          ? song.thumbnailPath
-                          : (hasArt ? song.artworkPath : null);
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: DraggableSongItem(
+                      song: song,
+                      isSelected: isSelected,
+                      isSelectionMode: isSelecting,
+                      child: Row(
+                        children: [
+                          Builder(
+                            builder: (context) {
+                              final hasThumb = song.thumbnailPath != null &&
+                                  song.thumbnailPath!.isNotEmpty &&
+                                  File(song.thumbnailPath!).existsSync();
+                              final hasArt = song.artworkPath != null &&
+                                  song.artworkPath!.isNotEmpty &&
+                                  File(song.artworkPath!).existsSync();
+                              final coverPath = hasThumb
+                                  ? song.thumbnailPath
+                                  : (hasArt ? song.artworkPath : null);
 
-                      return ClipRRect(
-                        borderRadius: BorderRadius.circular(6),
-                        child: SizedBox(
-                          width: 38,
-                          height: 38,
-                          child: Stack(
-                            fit: StackFit.expand,
-                            children: [
-                              Opacity(
-                                opacity: isSelecting
-                                    ? (isSelected ? 0.5 : 0.7)
-                                    : 1.0,
-                                child: Container(
-                                  color: theme.colorScheme.surfaceContainerHighest,
-                                  child: coverPath != null
-                                      ? Image.file(
-                                          File(coverPath),
-                                          fit: BoxFit.cover,
-                                          cacheWidth: 80,
-                                          cacheHeight: 80,
-                                          errorBuilder: (_, _, _) => Icon(
-                                            Icons.music_note_rounded,
-                                            size: 20,
-                                            color: isCurrent
-                                                ? theme.colorScheme.primary
-                                                : theme.colorScheme.onSurfaceVariant,
-                                          ),
-                                        )
-                                      : Icon(
-                                          Icons.music_note_rounded,
-                                          size: 20,
-                                          color: isCurrent
-                                              ? theme.colorScheme.primary
-                                              : theme.colorScheme.onSurfaceVariant,
+                              return ClipRRect(
+                                borderRadius: BorderRadius.circular(6),
+                                child: SizedBox(
+                                  width: 38,
+                                  height: 38,
+                                  child: Stack(
+                                    fit: StackFit.expand,
+                                    children: [
+                                      Opacity(
+                                        opacity: isSelecting
+                                            ? (isSelected ? 0.5 : 0.7)
+                                            : 1.0,
+                                        child: Container(
+                                          color: theme.colorScheme.surfaceContainerHighest,
+                                          child: coverPath != null
+                                              ? Image.file(
+                                                  File(coverPath),
+                                                  fit: BoxFit.cover,
+                                                  cacheWidth: 80,
+                                                  cacheHeight: 80,
+                                                  errorBuilder: (_, _, _) => Icon(
+                                                    Icons.music_note_rounded,
+                                                    size: 20,
+                                                    color: isCurrent
+                                                        ? theme.colorScheme.primary
+                                                        : theme.colorScheme.onSurfaceVariant,
+                                                  ),
+                                                )
+                                              : Icon(
+                                                  Icons.music_note_rounded,
+                                                  size: 20,
+                                                  color: isCurrent
+                                                      ? theme.colorScheme.primary
+                                                      : theme.colorScheme.onSurfaceVariant,
+                                                ),
                                         ),
-                                ),
-                              ),
-                              if (isSelecting)
-                                Positioned.fill(
-                                  child: Align(
-                                    alignment: Alignment.center,
-                                    child: SizedBox(
-                                      width: 24,
-                                      height: 24,
-                                      child: Checkbox(
-                                        value: isSelected,
-                                        onChanged: (_) {
-                                          setState(() {
-                                            if (_selectedIndices.contains(index)) {
-                                              _selectedIndices.remove(index);
-                                              if (_selectedIndices.isEmpty) {
-                                                _isSelectionMode = false;
-                                              }
-                                            } else {
-                                              _selectedIndices.add(index);
-                                            }
-                                            _lastAnchorIndex = index;
-                                          });
-                                        },
-                                        fillColor: WidgetStateProperty.all(Colors.white),
-                                        checkColor: Colors.black,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(4),
-                                        ),
-                                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                        visualDensity: VisualDensity.compact,
                                       ),
-                                    ),
+                                      if (isSelecting)
+                                        Positioned.fill(
+                                          child: Align(
+                                            alignment: Alignment.center,
+                                            child: SizedBox(
+                                              width: 24,
+                                              height: 24,
+                                              child: Checkbox(
+                                                value: isSelected,
+                                                onChanged: (_) {
+                                                  setState(() {
+                                                    if (_selectedIndices.contains(index)) {
+                                                      _selectedIndices.remove(index);
+                                                      if (_selectedIndices.isEmpty) {
+                                                        _isSelectionMode = false;
+                                                      }
+                                                    } else {
+                                                      _selectedIndices.add(index);
+                                                    }
+                                                    _lastAnchorIndex = index;
+                                                  });
+                                                },
+                                                fillColor: WidgetStateProperty.all(Colors.white),
+                                                checkColor: Colors.black,
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius: BorderRadius.circular(4),
+                                                ),
+                                                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                                visualDensity: VisualDensity.compact,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                    ],
                                   ),
                                 ),
-                            ],
+                              );
+                            },
                           ),
-                        ),
-                      );
-                    },
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            if (isCurrent) ...[
-                              Icon(
-                                _isPlaying
-                                    ? Icons.volume_up_rounded
-                                    : Icons.pause_rounded,
-                                size: 14,
-                                color: theme.colorScheme.primary,
-                              ),
-                              const SizedBox(width: 4),
-                            ],
-                            Expanded(
-                              child: Text(
-                                song.displayName,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 13.5,
-                                  fontWeight: isCurrent
-                                      ? FontWeight.bold
-                                      : FontWeight.w500,
-                                  color: isCurrent
-                                      ? theme.colorScheme.primary
-                                      : theme.colorScheme.onSurface,
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    if (isCurrent) ...[
+                                      Icon(
+                                        _isPlaying
+                                            ? Icons.volume_up_rounded
+                                            : Icons.pause_rounded,
+                                        size: 14,
+                                        color: theme.colorScheme.primary,
+                                      ),
+                                      const SizedBox(width: 4),
+                                    ],
+                                    Expanded(
+                                      child: Text(
+                                        song.displayName,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontSize: 13.5,
+                                          fontWeight: isCurrent
+                                              ? FontWeight.bold
+                                              : FontWeight.w500,
+                                          color: isCurrent
+                                              ? theme.colorScheme.primary
+                                              : theme.colorScheme.onSurface,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  subtitleText,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          subtitleText,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: theme.colorScheme.onSurfaceVariant,
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                   if (song.durationMillis != null && song.durationMillis! > 0)
@@ -1080,3 +1893,210 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
   }
 }
 
+class _StandalonePlaylistSongTile extends StatefulWidget {
+  final MusicFile song;
+  final int index;
+  final bool isCurrent;
+  final bool isPlaying;
+  final String durationFormatted;
+  final VoidCallback onTap;
+  final ValueChanged<Offset> onSecondaryTap;
+  final VoidCallback onRemove;
+
+  const _StandalonePlaylistSongTile({
+    super.key,
+    required this.song,
+    required this.index,
+    required this.isCurrent,
+    required this.isPlaying,
+    required this.durationFormatted,
+    required this.onTap,
+    required this.onSecondaryTap,
+    required this.onRemove,
+  });
+
+  @override
+  State<_StandalonePlaylistSongTile> createState() =>
+      _StandalonePlaylistSongTileState();
+}
+
+class _StandalonePlaylistSongTileState
+    extends State<_StandalonePlaylistSongTile> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final song = widget.song;
+
+    final artist = (song.artist != null && song.artist!.trim().isNotEmpty)
+        ? song.artist!.trim()
+        : '未知歌手';
+    final album = (song.album != null && song.album!.trim().isNotEmpty)
+        ? song.album!.trim()
+        : null;
+    final subtitleText = album != null ? '$artist - $album' : artist;
+
+    final hasThumb = song.thumbnailPath != null &&
+        song.thumbnailPath!.isNotEmpty &&
+        File(song.thumbnailPath!).existsSync();
+    final hasArt = song.artworkPath != null &&
+        song.artworkPath!.isNotEmpty &&
+        File(song.artworkPath!).existsSync();
+    final coverPath =
+        hasThumb ? song.thumbnailPath : (hasArt ? song.artworkPath : null);
+
+    final itemColor = widget.isCurrent
+        ? theme.colorScheme.primaryContainer.withValues(alpha: 0.28)
+        : (_isHovered
+            ? theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4)
+            : Colors.transparent);
+
+    return Material(
+      color: itemColor,
+      child: InkWell(
+        onTap: widget.onTap,
+        onSecondaryTapUp: (details) =>
+            widget.onSecondaryTap(details.globalPosition),
+        child: MouseRegion(
+          onEnter: (_) => setState(() => _isHovered = true),
+          onExit: (_) => setState(() => _isHovered = false),
+          child: Container(
+            height: 54,
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(
+                  color: theme.dividerColor.withValues(alpha: 0.05),
+                ),
+              ),
+            ),
+            child: Row(
+              children: [
+                ReorderableDragStartListener(
+                  index: widget.index,
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: Icon(
+                      Icons.drag_handle_rounded,
+                      size: 16,
+                      color: theme.colorScheme.onSurface.withValues(
+                        alpha: _isHovered ? 0.6 : 0.25,
+                      ),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Row(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: SizedBox(
+                          width: 36,
+                          height: 36,
+                          child: Container(
+                            color: theme.colorScheme.surfaceContainerHighest,
+                            child: coverPath != null
+                                ? Image.file(
+                                    File(coverPath),
+                                    fit: BoxFit.cover,
+                                    cacheWidth: 80,
+                                    cacheHeight: 80,
+                                    errorBuilder: (_, _, _) => Icon(
+                                      Icons.music_note_rounded,
+                                      size: 18,
+                                      color:
+                                          theme.colorScheme.onSurfaceVariant,
+                                    ),
+                                  )
+                                : Icon(
+                                    Icons.music_note_rounded,
+                                    size: 18,
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                  ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                if (widget.isCurrent) ...[
+                                  Icon(
+                                    widget.isPlaying
+                                        ? Icons.volume_up_rounded
+                                        : Icons.pause_rounded,
+                                    size: 14,
+                                    color: theme.colorScheme.primary,
+                                  ),
+                                  const SizedBox(width: 4),
+                                ],
+                                Expanded(
+                                  child: Text(
+                                    song.displayName,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: widget.isCurrent
+                                          ? FontWeight.bold
+                                          : FontWeight.w500,
+                                      color: widget.isCurrent
+                                          ? theme.colorScheme.primary
+                                          : theme.colorScheme.onSurface,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              subtitleText,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (widget.durationFormatted.isNotEmpty) ...[
+                  const SizedBox(width: 8),
+                  Text(
+                    widget.durationFormatted,
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      color: theme.colorScheme.onSurfaceVariant
+                          .withValues(alpha: 0.7),
+                    ),
+                  ),
+                ],
+                const SizedBox(width: 4),
+                IconButton(
+                  icon: Icon(
+                    Icons.close_rounded,
+                    size: 16,
+                    color: theme.colorScheme.onSurfaceVariant
+                        .withValues(alpha: 0.5),
+                  ),
+                  onPressed: widget.onRemove,
+                  visualDensity: VisualDensity.compact,
+                  tooltip: '从歌单中移除',
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
