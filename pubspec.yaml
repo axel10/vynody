@@ -296,6 +296,11 @@ dependency_overrides:
     path: ./audio_core
   desktop_multi_window:
     path: ./flutter-plugins/packages/desktop_multi_window
+  irondash_engine_context:
+    git:
+      url: https://github.com/axel10/irondash
+      path: engine_context/dart
+      ref: main
   super_drag_and_drop:
     path: ./super_native_extensions/super_drag_and_drop
   super_clipboard:

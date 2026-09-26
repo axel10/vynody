@@ -71,6 +71,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
 
   ThemeMode _themeMode = ThemeMode.system;
   Color _accentColor = const Color(0xFF6750A4);
+  bool _isAlwaysOnTop = false;
 
   final ScrollController _scrollController = ScrollController();
   final ScrollController _playlistScrollController = ScrollController();
@@ -218,6 +219,10 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
     }
     if (accentVal != null) {
       _accentColor = Color(accentVal);
+    }
+    final isAlwaysOnTop = data['isAlwaysOnTop'] as bool?;
+    if (isAlwaysOnTop != null) {
+      _isAlwaysOnTop = isAlwaysOnTop;
     }
 
     _updateNativeTitleBar();
@@ -540,6 +545,19 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
     } catch (_) {}
   }
 
+  void _toggleAlwaysOnTop() async {
+    final nextVal = !_isAlwaysOnTop;
+    setState(() {
+      _isAlwaysOnTop = nextVal;
+    });
+    try {
+      await _controller.setAlwaysOnTop(nextVal);
+    } catch (e) {
+      debugPrint('[StandaloneQueueApp] Error setting always on top: $e');
+    }
+    _sendIpc('set_always_on_top', nextVal);
+  }
+
   void _closeWindow() async {
     _sendIpc('window_closed');
     try {
@@ -831,6 +849,22 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
                     ),
                   ),
                 AppTooltip(
+                  message: _isAlwaysOnTop ? '取消置顶' : '置顶',
+                  child: IconButton(
+                    icon: Icon(
+                      _isAlwaysOnTop
+                          ? Icons.push_pin
+                          : Icons.push_pin_outlined,
+                      size: 18,
+                    ),
+                    onPressed: _toggleAlwaysOnTop,
+                    visualDensity: VisualDensity.compact,
+                    color: _isAlwaysOnTop
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                AppTooltip(
                   message: '吸附回主窗口',
                   child: IconButton(
                     icon: const Icon(Icons.vertical_align_bottom_rounded, size: 18),
@@ -886,6 +920,22 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
                     ),
                   ),
                 ],
+                AppTooltip(
+                  message: _isAlwaysOnTop ? '取消置顶' : '置顶',
+                  child: IconButton(
+                    icon: Icon(
+                      _isAlwaysOnTop
+                          ? Icons.push_pin
+                          : Icons.push_pin_outlined,
+                      size: 18,
+                    ),
+                    onPressed: _toggleAlwaysOnTop,
+                    visualDensity: VisualDensity.compact,
+                    color: _isAlwaysOnTop
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
                 AppTooltip(
                   message: '吸附回主窗口',
                   child: IconButton(

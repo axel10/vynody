@@ -586,6 +586,8 @@ class SettingsService extends ChangeNotifier {
   static const String _keySmallWindowBottomPanelMode =
       'small_window_bottom_panel_mode';
   static const String _keySmallWindowAlwaysOnTop = 'small_window_always_on_top';
+  static const String _keyStandaloneQueueAlwaysOnTop =
+      'standalone_queue_always_on_top';
   static const String _keySmallWindowQueueWidth = 'small_window_queue_width';
   static const String _keySmallWindowQueueHeight = 'small_window_queue_height';
   static const String _keyEnableDesktopLyrics = 'enable_desktop_lyrics';
@@ -1881,6 +1883,13 @@ class SettingsService extends ChangeNotifier {
   late final _smallWindowAlwaysOnTopProperty = SettingProperty<bool>(
     key: _keySmallWindowAlwaysOnTop,
     defaultValue: true,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
+  late final _standaloneQueueAlwaysOnTopProperty = SettingProperty<bool>(
+    key: _keyStandaloneQueueAlwaysOnTop,
+    defaultValue: false,
     prefs: _prefs,
     onChanged: notifyListeners,
   );
@@ -3327,6 +3336,12 @@ class SettingsService extends ChangeNotifier {
   bool get isSmallWindowAlwaysOnTop => _smallWindowAlwaysOnTopProperty.value;
   set isSmallWindowAlwaysOnTop(bool value) {
     _smallWindowAlwaysOnTopProperty.value = value;
+  }
+
+  bool get isStandaloneQueueAlwaysOnTop =>
+      _standaloneQueueAlwaysOnTopProperty.value;
+  set isStandaloneQueueAlwaysOnTop(bool value) {
+    _standaloneQueueAlwaysOnTopProperty.value = value;
   }
 
   SmallWindowBottomPanelMode get smallWindowBottomPanelMode {

@@ -297,6 +297,14 @@ class StandaloneQueueWindowManager {
           ref.read(rightQueueDrawerProvider.notifier).open();
           return true;
 
+        case 'set_always_on_top':
+          final isAlwaysOnTop = call.arguments as bool?;
+          if (isAlwaysOnTop != null) {
+            ref.read(settingsServiceProvider).isStandaloneQueueAlwaysOnTop =
+                isAlwaysOnTop;
+          }
+          return true;
+
         case 'window_closed':
           _onSubWindowClosed();
           return true;
@@ -647,6 +655,7 @@ class StandaloneQueueWindowManager {
       'isPlaying': isPlaying,
       'themeMode': settings.themeMode.index,
       'accentColor': settings.themeColor.toARGB32(),
+      'isAlwaysOnTop': settings.isStandaloneQueueAlwaysOnTop,
     };
   }
 
@@ -688,6 +697,11 @@ class StandaloneQueueWindowManager {
         try {
           await controller.setDarkMode(isDark);
         } catch (_) {}
+        if (settings.isStandaloneQueueAlwaysOnTop) {
+          try {
+            await controller.setAlwaysOnTop(true);
+          } catch (_) {}
+        }
       }
 
       await controller.show();
