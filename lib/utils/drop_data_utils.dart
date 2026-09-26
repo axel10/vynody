@@ -7,6 +7,10 @@ import 'package:vynody/models/music_file.dart';
 class DropDataUtils {
   const DropDataUtils._();
 
+  /// Indicates whether an in-app drag session (initiated via [DesktopDraggableWrapper]) is currently active.
+  /// Used by global backdrop targets to avoid swallowing internal drag operations.
+  static bool isInternalDragActive = false;
+
   /// Reads a specific format from a [DataReader] with error handling and timeout.
   static Future<T?> readFormatSafely<T extends Object>(
     dynamic reader,
@@ -47,6 +51,8 @@ class DropDataUtils {
 
     for (var i = 0; i < event.session.items.length; i++) {
       final item = event.session.items[i];
+      debugPrint(
+          '[DropDataUtils] processing item $i: localData=${item.localData}, reader=${item.dataReader != null}');
 
       // 1. Fast in-memory extraction (localData)
       if (item.localData is MusicFile) {
@@ -73,7 +79,30 @@ class DropDataUtils {
 
       bool extracted = false;
 
-      // 2. Try plainText first (supports multi-line batch paths from other windows/apps)
+      // 2. Try fileUri first (direct native file drag from macOS Finder / Windows Explorer)
+      final fileUri = await readFormatSafely<Uri>(
+        reader,
+        Formats.fileUri,
+        timeout: itemTimeout,
+      );
+      if (fileUri != null) {
+        if (fileUri.scheme == 'file' || fileUri.scheme.isEmpty) {
+          try {
+            paths.add(fileUri.toFilePath());
+            extracted = true;
+          } catch (_) {
+            paths.add(fileUri.path);
+            extracted = true;
+          }
+        } else {
+          paths.add(fileUri.toString());
+          extracted = true;
+        }
+      }
+
+      if (extracted) continue;
+
+      // 3. Try plainText (supports multi-line batch paths from other windows/apps)
       final text = await readFormatSafely<String>(
         reader,
         Formats.plainText,
@@ -98,17 +127,6 @@ class DropDataUtils {
 
       if (extracted) continue;
 
-      // 3. Try fileUri
-      final fileUri = await readFormatSafely<Uri>(
-        reader,
-        Formats.fileUri,
-        timeout: itemTimeout,
-      );
-      if (fileUri != null && fileUri.scheme == 'file') {
-        paths.add(fileUri.toFilePath());
-        continue;
-      }
-
       // 4. Try uri
       final namedUri = await readFormatSafely<NamedUri>(
         reader,
@@ -117,7 +135,7 @@ class DropDataUtils {
       );
       if (namedUri != null) {
         final uri = namedUri.uri;
-        if (uri.scheme == 'file') {
+        if (uri.scheme == 'file' || uri.scheme.isEmpty) {
           try {
             paths.add(uri.toFilePath());
           } catch (_) {
@@ -133,15 +151,22 @@ class DropDataUtils {
     final uniquePaths = <String>[];
     final seen = <String>{};
     for (final p in paths) {
-      String decoded = p;
+      var clean = p;
+      if (clean.startsWith('file://')) {
+        try {
+          clean = Uri.parse(clean).toFilePath();
+        } catch (_) {}
+      }
+      String decoded = clean;
       try {
-        decoded = Uri.decodeFull(p);
+        decoded = Uri.decodeFull(clean);
       } catch (_) {}
       if (seen.add(decoded)) {
         uniquePaths.add(decoded);
       }
     }
 
+    debugPrint('[DropDataUtils] extractPathsFromDrop found ${uniquePaths.length} paths: $uniquePaths');
     return uniquePaths;
   }
 }

@@ -24,6 +24,7 @@ import 'package:vynody/widgets/app_tooltip.dart';
 import 'package:vynody/widgets/draggable_song_item.dart';
 import 'package:vynody/widgets/queue_file_drop_target.dart';
 import 'package:vynody/widgets/song_thumbnail.dart';
+import 'package:vynody/utils/drop_data_utils.dart';
 
 class RightQueuePanel extends ConsumerStatefulWidget {
   const RightQueuePanel({super.key});
@@ -432,6 +433,8 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
             showPreview: (_currentTabIndex == 0 ? queue : activePlaylistSongs).isNotEmpty,
             indicatorHorizontalPadding: 12.0,
             onFilesDropped: (paths, insertIndex) async {
+              debugPrint(
+                  '[RightQueuePanel] onFilesDropped called with ${paths.length} paths, insertIndex=$insertIndex, tab=$_currentTabIndex');
               if (_currentTabIndex == 0) {
                 await ref
                     .read(standaloneQueueWindowManagerProvider)
@@ -761,7 +764,29 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
       onDropLeave: (_) => _onTabHoverExit(),
       onDropEnded: (_) => _onTabHoverExit(),
       onDropOver: (event) => DropOperation.copy,
-      onPerformDrop: (event) async {},
+      onPerformDrop: (event) async {
+        final droppedPaths = await DropDataUtils.extractPathsFromDrop(event);
+        if (droppedPaths.isNotEmpty) {
+          if (index == 0) {
+            await ref
+                .read(standaloneQueueWindowManagerProvider)
+                .handleDroppedPaths(droppedPaths);
+          } else {
+            final playlistService = ref.read(playlistServiceProvider);
+            final playlists = playlistService.playlists;
+            final activePlaylist = playlists.isNotEmpty
+                ? (playlists.firstWhereOrNull((p) => p.id == _selectedPlaylistId) ??
+                    playlists.firstWhereOrNull((p) => p.id == playlistService.currentPlaylist?.id) ??
+                    playlists.first)
+                : null;
+            if (activePlaylist != null) {
+              await ref
+                  .read(standaloneQueueWindowManagerProvider)
+                  .addPathsToPlaylist(activePlaylist.id, droppedPaths);
+            }
+          }
+        }
+      },
       child: InkWell(
         borderRadius: BorderRadius.circular(8),
         onTap: () {

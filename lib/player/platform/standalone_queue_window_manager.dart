@@ -401,9 +401,15 @@ class StandaloneQueueWindowManager {
     final uniqueInputPaths = <String>[];
     final seenInput = <String>{};
     for (final p in paths) {
-      String decoded = p;
+      var clean = p;
+      if (clean.startsWith('file://')) {
+        try {
+          clean = Uri.parse(clean).toFilePath();
+        } catch (_) {}
+      }
+      String decoded = clean;
       try {
-        decoded = Uri.decodeFull(p);
+        decoded = Uri.decodeFull(clean);
       } catch (_) {}
       if (seenInput.add(decoded)) {
         uniqueInputPaths.add(decoded);
@@ -414,9 +420,12 @@ class StandaloneQueueWindowManager {
     final songs = <MusicFile>[];
     final db = MetadataDatabase();
     final servers = ref.read(remoteServersProvider).asData?.value ?? [];
+    final scanner = ref.read(scannerServiceProvider);
 
     for (final path in uniqueInputPaths) {
-      if (FileSystemEntity.isFileSync(path)) {
+      if (FileSystemEntity.isFileSync(path) ||
+          scanner.metadataMap.containsKey(path) ||
+          MusicFileUtils.isMusicFilePath(path)) {
         if (MusicFileUtils.isMusicFilePath(path)) {
           songs.add(MusicFile(path: path, name: p.basename(path)));
         } else {
@@ -607,8 +616,6 @@ class StandaloneQueueWindowManager {
       debugPrint('[StandaloneQueue] No valid music files found from dropped paths');
       return const [];
     }
-
-    final scanner = ref.read(scannerServiceProvider);
 
     try {
       final db = MetadataDatabase();

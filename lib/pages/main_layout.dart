@@ -1258,46 +1258,47 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                 if (didPop) return;
                 _handleBackPressed();
               },
-              child: GlobalDropTarget(
-                enable:
-                    _currentIndex != 3 &&
-                    !(_currentIndex == 1 &&
-                        isSmallWin &&
-                        settings.smallWindowBottomPanelMode !=
-                            SmallWindowBottomPanelMode.collapsed),
-                child: Listener(
-                  behavior: HitTestBehavior.translucent,
-                  onPointerDown: _handleDesktopPointerActivity,
-                  onPointerMove: _handleDesktopPointerActivity,
-                  onPointerHover: _handleDesktopPointerActivity,
-                  child: Scaffold(
-                    extendBody: true,
-                    body: Stack(
-                      children: [
-                        Positioned.fill(
-                          child: Row(
-                            children: [
-                              Expanded(
+              child: Listener(
+                behavior: HitTestBehavior.translucent,
+                onPointerDown: _handleDesktopPointerActivity,
+                onPointerMove: _handleDesktopPointerActivity,
+                onPointerHover: _handleDesktopPointerActivity,
+                child: Scaffold(
+                  extendBody: true,
+                  body: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: GlobalDropTarget(
+                                enable:
+                                    _currentIndex != 3 &&
+                                    !(_currentIndex == 1 &&
+                                        isSmallWin &&
+                                        settings.smallWindowBottomPanelMode !=
+                                            SmallWindowBottomPanelMode.collapsed),
                                 child: _buildCurrentPage(
                                   isDesktop,
                                   useSidebar,
                                   isCoverFlowImmersive,
                                 ),
                               ),
-                              if (isDesktop && !isSmallWin)
-                                ClipRect(
-                                  child: AnimatedSize(
-                                    duration: const Duration(milliseconds: 250),
-                                    curve: Curves.easeOutCubic,
-                                    alignment: Alignment.centerRight,
-                                    child: ref.watch(rightQueueDrawerProvider)
-                                        ? const RightQueuePanel()
-                                        : const SizedBox.shrink(),
-                                  ),
+                            ),
+                            if (isDesktop && !isSmallWin)
+                              ClipRect(
+                                child: AnimatedSize(
+                                  duration: const Duration(milliseconds: 250),
+                                  curve: Curves.easeOutCubic,
+                                  alignment: Alignment.centerRight,
+                                  child: ref.watch(rightQueueDrawerProvider)
+                                      ? const RightQueuePanel()
+                                      : const SizedBox.shrink(),
                                 ),
-                            ],
-                          ),
+                              ),
+                          ],
                         ),
+                      ),
                         if (useSidebar)
                           Positioned(
                             left: 0,
@@ -1538,8 +1539,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
               ),
             ),
           ),
-        ),
-      );
+        );
 
     final showOnboarding =
         _showOnboarding || _isOnboardingAnimatingOut;

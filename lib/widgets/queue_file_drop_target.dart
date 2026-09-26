@@ -40,6 +40,18 @@ class _QueueFileDropTargetState extends State<QueueFileDropTarget> {
   bool _isDraggingFiles = false;
   double? _dropIndicatorTop;
   int? _dropInsertIndex;
+  int? _lastCalculatedInsertIndex;
+  DateTime? _lastDropTime;
+
+  bool _isDuplicateDrop() {
+    final now = DateTime.now();
+    if (_lastDropTime != null &&
+        now.difference(_lastDropTime!) < const Duration(milliseconds: 600)) {
+      return true;
+    }
+    _lastDropTime = now;
+    return false;
+  }
 
   ({int insertIndex, double? indicatorTop})? _calculateDropPreview(
     Offset localPosition,
@@ -108,21 +120,32 @@ class _QueueFileDropTargetState extends State<QueueFileDropTarget> {
     });
   }
 
-  void _onPerformSuperDrop(PerformDropEvent event) async {
-    final insertIndex = _dropInsertIndex;
+  Future<void> _onPerformSuperDrop(PerformDropEvent event) async {
+    if (_isDuplicateDrop()) return;
+    final insertIndex = _dropInsertIndex ?? _lastCalculatedInsertIndex;
+    _lastCalculatedInsertIndex = null;
+    debugPrint('[QueueFileDropTarget] _onPerformSuperDrop starting, insertIndex=$insertIndex, items=${event.session.items.length}');
     _clearDropPreview();
     final uniquePaths = await DropDataUtils.extractPathsFromDrop(event);
+    debugPrint(
+        '[QueueFileDropTarget] _onPerformSuperDrop extracted ${uniquePaths.length} paths, calling onFilesDropped...');
     if (uniquePaths.isNotEmpty) {
       await widget.onFilesDropped(uniquePaths, insertIndex);
+      debugPrint('[QueueFileDropTarget] _onPerformSuperDrop onFilesDropped completed');
     }
   }
 
-  void _onPerformDesktopDrop(dd.DropDoneDetails details) async {
-    final insertIndex = _dropInsertIndex;
+  Future<void> _onPerformDesktopDrop(dd.DropDoneDetails details) async {
+    if (_isDuplicateDrop()) return;
+    final insertIndex = _dropInsertIndex ?? _lastCalculatedInsertIndex;
+    _lastCalculatedInsertIndex = null;
+    debugPrint(
+        '[QueueFileDropTarget] _onPerformDesktopDrop starting, insertIndex=$insertIndex, files=${details.files.length}');
     _clearDropPreview();
     final paths = details.files.map((f) => f.path).toList();
     if (paths.isNotEmpty) {
       await widget.onFilesDropped(paths, insertIndex);
+      debugPrint('[QueueFileDropTarget] _onPerformDesktopDrop onFilesDropped completed');
     }
   }
 
@@ -130,6 +153,8 @@ class _QueueFileDropTargetState extends State<QueueFileDropTarget> {
     if (!widget.enabled || !widget.showPreview) return;
     final preview = _calculateDropPreview(localPosition);
     if (preview == null) return;
+
+    _lastCalculatedInsertIndex = preview.insertIndex;
 
     if (_isDraggingFiles &&
         _dropInsertIndex == preview.insertIndex &&
@@ -148,86 +173,104 @@ class _QueueFileDropTargetState extends State<QueueFileDropTarget> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
+    if (!widget.enabled) {
+      return widget.child;
+    }
+
     return dd.DropTarget(
       enable: widget.enabled,
       onDragEntered: (details) {
         if (!widget.enabled) return;
+        debugPrint('[QueueFileDropTarget] dd.onDragEntered at ${details.localPosition}');
         _updateDropPreview(details.localPosition);
       },
       onDragUpdated: (details) {
         if (!widget.enabled) return;
         _updateDropPreview(details.localPosition);
       },
-      onDragExited: (_) => _clearDropPreview(),
-      onDragDone: (details) {
+      onDragExited: (_) {
+        debugPrint('[QueueFileDropTarget] dd.onDragExited');
+        _clearDropPreview();
+      },
+      onDragDone: (details) async {
+        debugPrint('[QueueFileDropTarget] dd.onDragDone with ${details.files.length} files at ${details.localPosition}');
         if (!widget.enabled) return;
-        _onPerformDesktopDrop(details);
+        await _onPerformDesktopDrop(details);
       },
       child: DropRegion(
         formats: const [Formats.fileUri, Formats.plainText, Formats.uri],
-        hitTestBehavior: HitTestBehavior.translucent,
+        hitTestBehavior: HitTestBehavior.opaque,
         onDropOver: (event) {
+          debugPrint('[QueueFileDropTarget] super.onDropOver at ${event.position.local}');
           _updateDropPreview(event.position.local);
           return DropOperation.copy;
         },
         onDropEnter: (_) {
+          debugPrint('[QueueFileDropTarget] super.onDropEnter');
           if (!_isDraggingFiles) {
             setState(() => _isDraggingFiles = true);
           }
         },
-        onDropLeave: (_) => _clearDropPreview(),
-        onDropEnded: (_) => _clearDropPreview(),
-        onPerformDrop: (event) async {
-          _onPerformSuperDrop(event);
+        onDropLeave: (_) {
+          debugPrint('[QueueFileDropTarget] super.onDropLeave');
+          _clearDropPreview();
         },
-        child: Container(
-          key: _surfaceKey,
-          child: Stack(
-            children: [
-              widget.child,
-              if (widget.enabled &&
-                  widget.showPreview &&
-                  _dropIndicatorTop != null)
-                Positioned(
-                  top: _dropIndicatorTop! - 1.5,
-                  left: 0,
-                  right: 0,
-                  child: IgnorePointer(
-                    child: Align(
-                      alignment: Alignment.center,
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          maxWidth: widget.indicatorMaxWidth ?? double.infinity,
+        onDropEnded: (_) {
+          debugPrint('[QueueFileDropTarget] super.onDropEnded');
+          _clearDropPreview();
+        },
+        onPerformDrop: (event) async {
+          debugPrint('[QueueFileDropTarget] super.onPerformDrop at ${event.position.local}');
+          await _onPerformSuperDrop(event);
+        },
+      child: Container(
+        key: _surfaceKey,
+        child: Stack(
+          children: [
+            widget.child,
+            if (widget.enabled &&
+                widget.showPreview &&
+                _dropIndicatorTop != null)
+              Positioned(
+                top: _dropIndicatorTop! - 1.5,
+                left: 0,
+                right: 0,
+                child: IgnorePointer(
+                  child: Align(
+                    alignment: Alignment.center,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxWidth: widget.indicatorMaxWidth ?? double.infinity,
+                      ),
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: widget.indicatorHorizontalPadding,
                         ),
-                        child: Padding(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: widget.indicatorHorizontalPadding,
-                          ),
-                          child: Container(
-                            height: 3,
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.primary,
-                              borderRadius: BorderRadius.circular(999),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: theme.colorScheme.primary.withValues(
-                                    alpha: 0.45,
-                                  ),
-                                  blurRadius: 8,
-                                  spreadRadius: 1,
+                        child: Container(
+                          height: 3,
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primary,
+                            borderRadius: BorderRadius.circular(999),
+                            boxShadow: [
+                              BoxShadow(
+                                color: theme.colorScheme.primary.withValues(
+                                  alpha: 0.45,
                                 ),
-                              ],
-                            ),
+                                blurRadius: 8,
+                                spreadRadius: 1,
+                              ),
+                            ],
                           ),
                         ),
                       ),
                     ),
                   ),
                 ),
-            ],
-          ),
+              ),
+          ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

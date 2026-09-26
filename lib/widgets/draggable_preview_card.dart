@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:super_drag_and_drop/super_drag_and_drop.dart';
+import 'package:vynody/utils/drop_data_utils.dart';
 
 /// Reusable visual preview card shown when dragging items across the app or desktop.
 class AppDraggablePreviewCard extends StatelessWidget {
@@ -209,7 +210,20 @@ class DesktopDraggableWrapper extends StatelessWidget {
     }
 
     return DragItemWidget(
-      dragItemProvider: dragItemProvider,
+      dragItemProvider: (request) async {
+        DropDataUtils.isInternalDragActive = true;
+        request.session.dragCompleted.addListener(() {
+          Future.delayed(const Duration(milliseconds: 350), () {
+            DropDataUtils.isInternalDragActive = false;
+          });
+        });
+        try {
+          return await dragItemProvider(request);
+        } catch (e) {
+          DropDataUtils.isInternalDragActive = false;
+          rethrow;
+        }
+      },
       allowedOperations: allowedOperations ??
           () => const [DropOperation.copy, DropOperation.link],
       dragBuilder: dragBuilder,

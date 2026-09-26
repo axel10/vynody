@@ -66,6 +66,11 @@ dependencies:
       path: packages/window_manager
       ref: main
   desktop_drop: ^0.7.0
+  desktop_multi_window:
+    git:
+      url: https://github.com/axel10/flutter-plugins
+      path: packages/desktop_multi_window
+      ref: main
 
   super_drag_and_drop:
     path: ./super_native_extensions/super_drag_and_drop
