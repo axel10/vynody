@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:desktop_drop/desktop_drop.dart' as dd;
 import 'package:flutter/material.dart';
 import 'package:super_drag_and_drop/super_drag_and_drop.dart';
 
@@ -41,17 +40,6 @@ class _QueueFileDropTargetState extends State<QueueFileDropTarget> {
   double? _dropIndicatorTop;
   int? _dropInsertIndex;
   int? _lastCalculatedInsertIndex;
-  DateTime? _lastDropTime;
-
-  bool _isDuplicateDrop() {
-    final now = DateTime.now();
-    if (_lastDropTime != null &&
-        now.difference(_lastDropTime!) < const Duration(milliseconds: 600)) {
-      return true;
-    }
-    _lastDropTime = now;
-    return false;
-  }
 
   ({int insertIndex, double? indicatorTop})? _calculateDropPreview(
     Offset localPosition,
@@ -121,31 +109,17 @@ class _QueueFileDropTargetState extends State<QueueFileDropTarget> {
   }
 
   Future<void> _onPerformSuperDrop(PerformDropEvent event) async {
-    if (_isDuplicateDrop()) return;
     final insertIndex = _dropInsertIndex ?? _lastCalculatedInsertIndex;
     _lastCalculatedInsertIndex = null;
-    debugPrint('[QueueFileDropTarget] _onPerformSuperDrop starting, insertIndex=$insertIndex, items=${event.session.items.length}');
+    debugPrint(
+        '[QueueFileDropTarget] onPerformDrop starting, insertIndex=$insertIndex, items=${event.session.items.length}');
     _clearDropPreview();
     final uniquePaths = await DropDataUtils.extractPathsFromDrop(event);
     debugPrint(
-        '[QueueFileDropTarget] _onPerformSuperDrop extracted ${uniquePaths.length} paths, calling onFilesDropped...');
+        '[QueueFileDropTarget] onPerformDrop extracted ${uniquePaths.length} paths, calling onFilesDropped...');
     if (uniquePaths.isNotEmpty) {
       await widget.onFilesDropped(uniquePaths, insertIndex);
-      debugPrint('[QueueFileDropTarget] _onPerformSuperDrop onFilesDropped completed');
-    }
-  }
-
-  Future<void> _onPerformDesktopDrop(dd.DropDoneDetails details) async {
-    if (_isDuplicateDrop()) return;
-    final insertIndex = _dropInsertIndex ?? _lastCalculatedInsertIndex;
-    _lastCalculatedInsertIndex = null;
-    debugPrint(
-        '[QueueFileDropTarget] _onPerformDesktopDrop starting, insertIndex=$insertIndex, files=${details.files.length}');
-    _clearDropPreview();
-    final paths = details.files.map((f) => f.path).toList();
-    if (paths.isNotEmpty) {
-      await widget.onFilesDropped(paths, insertIndex);
-      debugPrint('[QueueFileDropTarget] _onPerformDesktopDrop onFilesDropped completed');
+      debugPrint('[QueueFileDropTarget] onPerformDrop onFilesDropped completed');
     }
   }
 
@@ -177,52 +151,21 @@ class _QueueFileDropTargetState extends State<QueueFileDropTarget> {
       return widget.child;
     }
 
-    return dd.DropTarget(
-      enable: widget.enabled,
-      onDragEntered: (details) {
-        if (!widget.enabled) return;
-        debugPrint('[QueueFileDropTarget] dd.onDragEntered at ${details.localPosition}');
-        _updateDropPreview(details.localPosition);
+    return DropRegion(
+      formats: const [Formats.fileUri, Formats.plainText, Formats.uri],
+      hitTestBehavior: HitTestBehavior.opaque,
+      onDropOver: (event) {
+        _updateDropPreview(event.position.local);
+        return DropOperation.copy;
       },
-      onDragUpdated: (details) {
-        if (!widget.enabled) return;
-        _updateDropPreview(details.localPosition);
+      onDropEnter: (_) {
+        if (!_isDraggingFiles) {
+          setState(() => _isDraggingFiles = true);
+        }
       },
-      onDragExited: (_) {
-        debugPrint('[QueueFileDropTarget] dd.onDragExited');
-        _clearDropPreview();
-      },
-      onDragDone: (details) async {
-        debugPrint('[QueueFileDropTarget] dd.onDragDone with ${details.files.length} files at ${details.localPosition}');
-        if (!widget.enabled) return;
-        await _onPerformDesktopDrop(details);
-      },
-      child: DropRegion(
-        formats: const [Formats.fileUri, Formats.plainText, Formats.uri],
-        hitTestBehavior: HitTestBehavior.opaque,
-        onDropOver: (event) {
-          debugPrint('[QueueFileDropTarget] super.onDropOver at ${event.position.local}');
-          _updateDropPreview(event.position.local);
-          return DropOperation.copy;
-        },
-        onDropEnter: (_) {
-          debugPrint('[QueueFileDropTarget] super.onDropEnter');
-          if (!_isDraggingFiles) {
-            setState(() => _isDraggingFiles = true);
-          }
-        },
-        onDropLeave: (_) {
-          debugPrint('[QueueFileDropTarget] super.onDropLeave');
-          _clearDropPreview();
-        },
-        onDropEnded: (_) {
-          debugPrint('[QueueFileDropTarget] super.onDropEnded');
-          _clearDropPreview();
-        },
-        onPerformDrop: (event) async {
-          debugPrint('[QueueFileDropTarget] super.onPerformDrop at ${event.position.local}');
-          await _onPerformSuperDrop(event);
-        },
+      onDropLeave: (_) => _clearDropPreview(),
+      onDropEnded: (_) => _clearDropPreview(),
+      onPerformDrop: (event) async => await _onPerformSuperDrop(event),
       child: Container(
         key: _surfaceKey,
         child: Stack(
@@ -270,7 +213,6 @@ class _QueueFileDropTargetState extends State<QueueFileDropTarget> {
           ],
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 }

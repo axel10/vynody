@@ -3,7 +3,6 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
-  desktop_drop
   desktop_multi_window
   file_selector_linux
   flutter_desktop_lyrics

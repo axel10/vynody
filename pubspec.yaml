@@ -65,7 +65,6 @@ dependencies:
       url: https://github.com/axel10/window_manager
       path: packages/window_manager
       ref: main
-  desktop_drop: ^0.7.0
   desktop_multi_window:
     git:
       url: https://github.com/axel10/flutter-plugins
