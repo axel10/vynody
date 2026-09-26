@@ -529,33 +529,42 @@ class _TabButton extends StatelessWidget {
 
     return AppTooltip(
       message: item.label,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(20),
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
           onTap: onTap,
           child: Center(
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              curve: Curves.easeOutCubic,
-              padding: const EdgeInsets.symmetric(
-                horizontal: 14.0,
-                vertical: 6.0,
-              ),
-              decoration: BoxDecoration(
+            child: Material(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.circular(16),
+              clipBehavior: Clip.antiAlias,
+              child: InkWell(
                 borderRadius: BorderRadius.circular(16),
-                color: isSelected
-                    ? (isPlayback
-                        ? Colors.white.withValues(alpha: 0.20)
-                        : theme.colorScheme.primaryContainer.withValues(
-                            alpha: isDark ? 0.45 : 0.7,
-                          ))
-                    : Colors.transparent,
-              ),
-              child: Icon(
-                isSelected ? item.selectedIcon : item.icon,
-                size: 22,
-                color: isSelected ? activeColor : inactiveColor,
+                onTap: onTap,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeOutCubic,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14.0,
+                    vertical: 6.0,
+                  ),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    color: isSelected
+                        ? (isPlayback
+                            ? Colors.white.withValues(alpha: 0.20)
+                            : theme.colorScheme.primaryContainer.withValues(
+                                alpha: isDark ? 0.45 : 0.7,
+                              ))
+                        : Colors.transparent,
+                  ),
+                  child: Icon(
+                    isSelected ? item.selectedIcon : item.icon,
+                    size: 22,
+                    color: isSelected ? activeColor : inactiveColor,
+                  ),
+                ),
               ),
             ),
           ),
