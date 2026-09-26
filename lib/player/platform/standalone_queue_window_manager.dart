@@ -773,7 +773,7 @@ class StandaloneQueueWindowManager {
         try {
           await controller.setDarkMode(isDark);
         } catch (_) {}
-        if (settings.isStandaloneQueueAlwaysOnTop) {
+        if (!Platform.isLinux && settings.isStandaloneQueueAlwaysOnTop) {
           try {
             await controller.setAlwaysOnTop(true);
           } catch (_) {}

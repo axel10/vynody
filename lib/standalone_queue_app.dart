@@ -947,22 +947,23 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
                       color: theme.colorScheme.error,
                     ),
                   ),
-                AppTooltip(
-                  message: _isAlwaysOnTop ? '取消置顶' : '置顶',
-                  child: IconButton(
-                    icon: Icon(
-                      _isAlwaysOnTop
-                          ? Icons.push_pin
-                          : Icons.push_pin_outlined,
-                      size: 18,
+                if (!Platform.isLinux)
+                  AppTooltip(
+                    message: _isAlwaysOnTop ? '取消置顶' : '置顶',
+                    child: IconButton(
+                      icon: Icon(
+                        _isAlwaysOnTop
+                            ? Icons.push_pin
+                            : Icons.push_pin_outlined,
+                        size: 18,
+                      ),
+                      onPressed: _toggleAlwaysOnTop,
+                      visualDensity: VisualDensity.compact,
+                      color: _isAlwaysOnTop
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.onSurfaceVariant,
                     ),
-                    onPressed: _toggleAlwaysOnTop,
-                    visualDensity: VisualDensity.compact,
-                    color: _isAlwaysOnTop
-                        ? theme.colorScheme.primary
-                        : theme.colorScheme.onSurfaceVariant,
                   ),
-                ),
                 AppTooltip(
                   message: '吸附回主窗口',
                   child: IconButton(
@@ -1019,22 +1020,23 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
                     ),
                   ),
                 ],
-                AppTooltip(
-                  message: _isAlwaysOnTop ? '取消置顶' : '置顶',
-                  child: IconButton(
-                    icon: Icon(
-                      _isAlwaysOnTop
-                          ? Icons.push_pin
-                          : Icons.push_pin_outlined,
-                      size: 18,
+                if (!Platform.isLinux)
+                  AppTooltip(
+                    message: _isAlwaysOnTop ? '取消置顶' : '置顶',
+                    child: IconButton(
+                      icon: Icon(
+                        _isAlwaysOnTop
+                            ? Icons.push_pin
+                            : Icons.push_pin_outlined,
+                        size: 18,
+                      ),
+                      onPressed: _toggleAlwaysOnTop,
+                      visualDensity: VisualDensity.compact,
+                      color: _isAlwaysOnTop
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.onSurfaceVariant,
                     ),
-                    onPressed: _toggleAlwaysOnTop,
-                    visualDensity: VisualDensity.compact,
-                    color: _isAlwaysOnTop
-                        ? theme.colorScheme.primary
-                        : theme.colorScheme.onSurfaceVariant,
                   ),
-                ),
                 AppTooltip(
                   message: '吸附回主窗口',
                   child: IconButton(

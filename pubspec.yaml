@@ -66,8 +66,7 @@ dependencies:
       path: packages/window_manager
       ref: main
   desktop_drop: ^0.7.0
-  desktop_multi_window:
-    path: ./flutter-plugins/packages/desktop_multi_window
+
   super_drag_and_drop:
     path: ./super_native_extensions/super_drag_and_drop
   collection: ^1.19.1
@@ -294,11 +293,13 @@ dependency_overrides:
   #   path: ./Bonsoir/packages/bonsoir_windows
   audio_core:
     path: ./audio_core
+  # desktop_multi_window:
+  #   git: 
+  #     url: https://github.com/axel10/flutter-plugins
+  #     path: packages/desktop_multi_window
+  #     ref: main
   desktop_multi_window:
-    git: 
-      url: https://github.com/axel10/flutter-plugins
-      path: packages/desktop_multi_window
-      ref: main
+    path: ./flutter-plugins/packages/desktop_multi_window
   irondash_engine_context:
     git:
       url: https://github.com/axel10/irondash
