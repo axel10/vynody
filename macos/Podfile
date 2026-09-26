@@ -7,6 +7,7 @@ project 'Runner', {
   'Debug' => :debug,
   'Profile' => :release,
   'Release' => :release,
+   'AppStore' => :release,  
 }
 
 def flutter_root
