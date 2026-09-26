@@ -15,7 +15,7 @@ import 'package:vynody/utils/localized_text.dart';
 import 'package:vynody/utils/selection_utils.dart';
 import 'package:vynody/widgets/app_tooltip.dart';
 import 'package:vynody/widgets/queue_file_drop_target.dart';
-import 'package:vynody/widgets/song_thumbnail.dart';
+import 'package:vynody/widgets/queue_song_tile.dart';
 
 class _StandaloneShortcutIntent extends Intent {
   final AppShortcutAction action;
@@ -1608,12 +1608,13 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
         final song = songs[index];
         final isCurrent = currentMusicPath != null && currentMusicPath == song.path;
 
-        return _StandalonePlaylistSongTile(
+        return QueueSongTile(
           key: _playlistSongReorderController.getKey(index),
           song: song,
           index: index,
           isCurrent: isCurrent,
           isPlaying: isCurrent && _isPlaying,
+          isPlaylistSong: true,
           durationFormatted: song.durationMillis != null && song.durationMillis! > 0
               ? _formatDuration(song.durationMillis!)
               : '',
@@ -1836,8 +1837,6 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
   }
 
   Widget _buildQueueList(BuildContext context) {
-    final theme = Theme.of(context);
-    final l10n = AppLocalizations.of(context)!;
     final isSelecting = _isSelectionMode || _selectedIndices.isNotEmpty;
 
     _queueReorderController.syncLength(_queue.length);
@@ -1854,377 +1853,47 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
         final isCurrent = index == _currentIndex;
         final isSelected = _selectedIndices.contains(index);
 
-        final artist = (song.artist != null && song.artist!.trim().isNotEmpty)
-            ? song.artist!.trim()
-            : l10n.unknownArtist;
-        final album = (song.album != null && song.album!.trim().isNotEmpty)
-            ? song.album!.trim()
-            : null;
-        final subtitleText = album != null ? '$artist - $album' : artist;
-
-        final itemColor = isSelected
-            ? theme.colorScheme.primaryContainer.withValues(alpha: 0.55)
-            : (isCurrent
-                ? theme.colorScheme.primaryContainer.withValues(alpha: 0.35)
-                : Colors.transparent);
-
-        return Material(
+        return QueueSongTile(
           key: _queueReorderController.getKey(index),
-          color: itemColor,
-          child: InkWell(
-            onTap: () => _handleItemTap(index),
-            onLongPress: () {
-              setState(() {
-                _isSelectionMode = true;
-                if (!_selectedIndices.contains(index)) {
-                  _selectedIndices.add(index);
+          song: song,
+          index: index,
+          isCurrent: isCurrent,
+          isPlaying: _isPlaying,
+          isSelected: isSelected,
+          isSelectionMode: isSelecting,
+          durationFormatted:
+              (song.durationMillis != null && song.durationMillis! > 0)
+                  ? _formatDuration(song.durationMillis!)
+                  : '',
+          onTap: () => _handleItemTap(index),
+          onLongPress: () {
+            setState(() {
+              _isSelectionMode = true;
+              if (!_selectedIndices.contains(index)) {
+                _selectedIndices.add(index);
+              }
+              _lastAnchorIndex = index;
+            });
+          },
+          onToggleSelect: () {
+            setState(() {
+              if (_selectedIndices.contains(index)) {
+                _selectedIndices.remove(index);
+                if (_selectedIndices.isEmpty) {
+                  _isSelectionMode = false;
                 }
-                _lastAnchorIndex = index;
-              });
-            },
-            onSecondaryTapUp: (details) =>
-                _handleItemRightClick(context, details.globalPosition, index),
-            child: Container(
-              height: 56,
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(
-                    color: theme.dividerColor.withValues(alpha: 0.06),
-                  ),
-                  left: isSelected
-                      ? BorderSide(
-                          color: theme.colorScheme.primary,
-                          width: 3.0,
-                        )
-                      : BorderSide.none,
-                ),
-              ),
-              child: Row(
-                children: [
-                  ReorderableDragStartListener(
-                    index: index,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      child: Icon(
-                        Icons.drag_handle_rounded,
-                        size: 18,
-                        color: theme.colorScheme.onSurface.withValues(alpha: 0.35),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: Row(
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(6),
-                            child: SizedBox(
-                              width: 38,
-                              height: 38,
-                              child: Stack(
-                                fit: StackFit.expand,
-                                children: [
-                                  Opacity(
-                                    opacity: isSelecting
-                                        ? (isSelected ? 0.5 : 0.7)
-                                        : 1.0,
-                                    child: SongThumbnail.fromSong(
-                                      song,
-                                      size: 38.0,
-                                    ),
-                                  ),
-                                  if (isSelecting)
-                                    Positioned.fill(
-                                      child: Align(
-                                        alignment: Alignment.center,
-                                        child: SizedBox(
-                                          width: 24,
-                                          height: 24,
-                                              child: Checkbox(
-                                                value: isSelected,
-                                                onChanged: (_) {
-                                                  setState(() {
-                                                    if (_selectedIndices.contains(index)) {
-                                                      _selectedIndices.remove(index);
-                                                      if (_selectedIndices.isEmpty) {
-                                                        _isSelectionMode = false;
-                                                      }
-                                                    } else {
-                                                      _selectedIndices.add(index);
-                                                    }
-                                                    _lastAnchorIndex = index;
-                                                  });
-                                                },
-                                                fillColor: WidgetStateProperty.all(Colors.white),
-                                                checkColor: Colors.black,
-                                                shape: RoundedRectangleBorder(
-                                                  borderRadius: BorderRadius.circular(4),
-                                                ),
-                                                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                                visualDensity: VisualDensity.compact,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    if (isCurrent) ...[
-                                      Icon(
-                                        _isPlaying
-                                            ? Icons.volume_up_rounded
-                                            : Icons.pause_rounded,
-                                        size: 14,
-                                        color: theme.colorScheme.primary,
-                                      ),
-                                      const SizedBox(width: 4),
-                                    ],
-                                    Expanded(
-                                      child: Text(
-                                        song.displayName,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          fontSize: 13.5,
-                                          fontWeight: isCurrent
-                                              ? FontWeight.bold
-                                              : FontWeight.w500,
-                                          color: isCurrent
-                                              ? theme.colorScheme.primary
-                                              : theme.colorScheme.onSurface,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  subtitleText,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: theme.colorScheme.onSurfaceVariant,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                  ),
-                  if (song.durationMillis != null && song.durationMillis! > 0)
-                    Text(
-                      _formatDuration(song.durationMillis!),
-                      style: TextStyle(
-                        fontSize: 11.5,
-                        color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-                      ),
-                    ),
-                  if (!isSelecting)
-                    IconButton(
-                      icon: Icon(
-                        Icons.close_rounded,
-                        size: 16,
-                        color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
-                      ),
-                      onPressed: () => _removeIndex(index),
-                      visualDensity: VisualDensity.compact,
-                      tooltip: l10n.removeFromQueue,
-                    ),
-                ],
-              ),
-            ),
-          ),
+              } else {
+                _selectedIndices.add(index);
+              }
+              _lastAnchorIndex = index;
+            });
+          },
+          onSecondaryTap: (pos) =>
+              _handleItemRightClick(context, pos, index),
+          onRemove: () => _removeIndex(index),
         );
       },
     );
   }
 }
 
-class _StandalonePlaylistSongTile extends StatefulWidget {
-  final MusicFile song;
-  final int index;
-  final bool isCurrent;
-  final bool isPlaying;
-  final String durationFormatted;
-  final VoidCallback onTap;
-  final ValueChanged<Offset> onSecondaryTap;
-  final VoidCallback onRemove;
-
-  const _StandalonePlaylistSongTile({
-    super.key,
-    required this.song,
-    required this.index,
-    required this.isCurrent,
-    required this.isPlaying,
-    required this.durationFormatted,
-    required this.onTap,
-    required this.onSecondaryTap,
-    required this.onRemove,
-  });
-
-  @override
-  State<_StandalonePlaylistSongTile> createState() =>
-      _StandalonePlaylistSongTileState();
-}
-
-class _StandalonePlaylistSongTileState
-    extends State<_StandalonePlaylistSongTile> {
-  bool _isHovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final l10n = AppLocalizations.of(context)!;
-    final song = widget.song;
-
-    final artist = (song.artist != null && song.artist!.trim().isNotEmpty)
-        ? song.artist!.trim()
-        : l10n.unknownArtist;
-    final album = (song.album != null && song.album!.trim().isNotEmpty)
-        ? song.album!.trim()
-        : null;
-    final subtitleText = album != null ? '$artist - $album' : artist;
-
-    final itemColor = widget.isCurrent
-        ? theme.colorScheme.primaryContainer.withValues(alpha: 0.28)
-        : (_isHovered
-            ? theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4)
-            : Colors.transparent);
-
-    return Material(
-      color: itemColor,
-      child: InkWell(
-        onTap: widget.onTap,
-        onSecondaryTapUp: (details) =>
-            widget.onSecondaryTap(details.globalPosition),
-        child: MouseRegion(
-          onEnter: (_) => setState(() => _isHovered = true),
-          onExit: (_) => setState(() => _isHovered = false),
-          child: Container(
-            height: 54,
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            decoration: BoxDecoration(
-              border: Border(
-                bottom: BorderSide(
-                  color: theme.dividerColor.withValues(alpha: 0.05),
-                ),
-              ),
-            ),
-            child: Row(
-              children: [
-                ReorderableDragStartListener(
-                  index: widget.index,
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: 6),
-                    child: Icon(
-                      Icons.drag_handle_rounded,
-                      size: 16,
-                      color: theme.colorScheme.onSurface.withValues(
-                        alpha: _isHovered ? 0.6 : 0.25,
-                      ),
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: Row(
-                    children: [
-                      SongThumbnail.fromSong(
-                        song,
-                        size: 36.0,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                if (widget.isCurrent) ...[
-                                  Icon(
-                                    widget.isPlaying
-                                        ? Icons.volume_up_rounded
-                                        : Icons.pause_rounded,
-                                    size: 14,
-                                    color: theme.colorScheme.primary,
-                                  ),
-                                  const SizedBox(width: 4),
-                                ],
-                                Expanded(
-                                  child: Text(
-                                    song.displayName,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: widget.isCurrent
-                                          ? FontWeight.bold
-                                          : FontWeight.w500,
-                                      color: widget.isCurrent
-                                          ? theme.colorScheme.primary
-                                          : theme.colorScheme.onSurface,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              subtitleText,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 11.5,
-                                color: theme.colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (widget.durationFormatted.isNotEmpty) ...[
-                  const SizedBox(width: 8),
-                  Text(
-                    widget.durationFormatted,
-                    style: TextStyle(
-                      fontSize: 11.5,
-                      color: theme.colorScheme.onSurfaceVariant
-                          .withValues(alpha: 0.7),
-                    ),
-                  ),
-                ],
-                const SizedBox(width: 4),
-                IconButton(
-                  icon: Icon(
-                    Icons.close_rounded,
-                    size: 16,
-                    color: theme.colorScheme.onSurfaceVariant
-                        .withValues(alpha: 0.5),
-                  ),
-                  onPressed: widget.onRemove,
-                  visualDensity: VisualDensity.compact,
-                  tooltip: l10n.removeFromPlaylist,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}

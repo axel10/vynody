@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 /// Utility class for checking desktop keyboard modifier keys (Shift, Ctrl, Cmd, Alt).
@@ -110,3 +111,134 @@ class SelectionActionHelper {
     }
   }
 }
+
+/// Manages index-based multi-selection state for lists on desktop.
+/// Handles Shift-range, Ctrl/Cmd-toggle, selection mode, select all, and anchor tracking.
+class IndexSelectionController extends ChangeNotifier {
+  final Set<int> _selectedIndices = {};
+  bool _isSelectionMode = false;
+  int? _lastAnchorIndex;
+
+  Set<int> get selectedIndices => _selectedIndices;
+  bool get isSelectionMode => _isSelectionMode;
+  bool get isNotEmpty => _selectedIndices.isNotEmpty;
+  bool get isEmpty => _selectedIndices.isEmpty;
+  int get length => _selectedIndices.length;
+  int? get lastAnchorIndex => _lastAnchorIndex;
+
+  bool contains(int index) => _selectedIndices.contains(index);
+
+  void handleItemTap(
+    int index,
+    int totalLength, {
+    void Function()? onNormalTap,
+  }) {
+    final isShift = ModifierKeyUtils.isRangeSelectPressed;
+    final isCtrl = ModifierKeyUtils.isDiscreteSelectPressed;
+
+    if (isShift) {
+      final anchor = _lastAnchorIndex ?? index;
+      final range = ModifierKeyUtils.getIndexRange(anchor, index);
+      _isSelectionMode = true;
+      _selectedIndices.addAll(range.where((i) => i >= 0 && i < totalLength));
+      _lastAnchorIndex = index;
+      notifyListeners();
+    } else if (isCtrl) {
+      _isSelectionMode = true;
+      if (_selectedIndices.contains(index)) {
+        _selectedIndices.remove(index);
+        if (_selectedIndices.isEmpty) {
+          _isSelectionMode = false;
+        }
+      } else {
+        _selectedIndices.add(index);
+      }
+      _lastAnchorIndex = index;
+      notifyListeners();
+    } else if (_isSelectionMode) {
+      if (_selectedIndices.contains(index)) {
+        _selectedIndices.remove(index);
+        if (_selectedIndices.isEmpty) {
+          _isSelectionMode = false;
+        }
+      } else {
+        _selectedIndices.add(index);
+      }
+      _lastAnchorIndex = index;
+      notifyListeners();
+    } else {
+      _lastAnchorIndex = index;
+      onNormalTap?.call();
+    }
+  }
+
+  void handleItemLongPress(int index) {
+    _isSelectionMode = true;
+    _selectedIndices.add(index);
+    _lastAnchorIndex = index;
+    notifyListeners();
+  }
+
+  void toggleItem(int index) {
+    _isSelectionMode = true;
+    if (_selectedIndices.contains(index)) {
+      _selectedIndices.remove(index);
+      if (_selectedIndices.isEmpty) {
+        _isSelectionMode = false;
+      }
+    } else {
+      _selectedIndices.add(index);
+    }
+    _lastAnchorIndex = index;
+    notifyListeners();
+  }
+
+  void toggleSelectAll(int totalLength) {
+    if (totalLength <= 0) return;
+    _isSelectionMode = true;
+    if (_selectedIndices.length == totalLength) {
+      _selectedIndices.clear();
+      _isSelectionMode = false;
+    } else {
+      _selectedIndices.clear();
+      _selectedIndices.addAll(List.generate(totalLength, (i) => i));
+    }
+    notifyListeners();
+  }
+
+  void exitSelectionMode() {
+    if (!_isSelectionMode && _selectedIndices.isEmpty && _lastAnchorIndex == null) return;
+    _isSelectionMode = false;
+    _selectedIndices.clear();
+    _lastAnchorIndex = null;
+    notifyListeners();
+  }
+
+  void cleanOutOfRange(int totalLength) {
+    final before = _selectedIndices.length;
+    _selectedIndices.removeWhere((idx) => idx >= totalLength || idx < 0);
+    if (_selectedIndices.isEmpty && _isSelectionMode && totalLength == 0) {
+      _isSelectionMode = false;
+    }
+    if (_selectedIndices.length != before) {
+      notifyListeners();
+    }
+  }
+
+  void removeIndex(int index) {
+    if (_selectedIndices.remove(index)) {
+      if (_selectedIndices.isEmpty) {
+        _isSelectionMode = false;
+      }
+      notifyListeners();
+    }
+  }
+
+  void clear() {
+    _selectedIndices.clear();
+    _isSelectionMode = false;
+    _lastAnchorIndex = null;
+    notifyListeners();
+  }
+}
+

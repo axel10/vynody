@@ -11,6 +11,7 @@ import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/audio/audio_service.dart';
 import 'package:vynody/player/audio/playback_source.dart';
+import 'package:vynody/player/audio/media_drop_import_service.dart';
 import 'package:vynody/player/library/playlist_service.dart';
 import 'package:vynody/player/platform/right_queue_drawer_controller.dart';
 import 'package:vynody/player/platform/standalone_queue_window_manager.dart';
@@ -23,7 +24,7 @@ import 'package:vynody/utils/song_context_menu_utils.dart';
 import 'package:vynody/utils/time_format_utils.dart';
 import 'package:vynody/widgets/app_tooltip.dart';
 import 'package:vynody/widgets/queue_file_drop_target.dart';
-import 'package:vynody/widgets/song_thumbnail.dart';
+import 'package:vynody/widgets/queue_song_tile.dart';
 import 'package:vynody/utils/drop_data_utils.dart';
 
 class RightQueuePanel extends ConsumerStatefulWidget {
@@ -439,11 +440,11 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
                   '[RightQueuePanel] onFilesDropped called with ${paths.length} paths, insertIndex=$insertIndex, tab=$_currentTabIndex');
               if (_currentTabIndex == 0) {
                 await ref
-                    .read(standaloneQueueWindowManagerProvider)
+                    .read(mediaDropImportServiceProvider)
                     .handleDroppedPaths(paths, insertIndex: insertIndex);
               } else if (activePlaylist != null) {
                 await ref
-                    .read(standaloneQueueWindowManagerProvider)
+                    .read(mediaDropImportServiceProvider)
                     .addPathsToPlaylist(activePlaylist.id, paths);
               }
             },
@@ -929,13 +930,18 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
         final song = queue[index];
         final isCurrent = index == currentIndex;
         final isSelected = _selectedIndices.contains(index);
+        final metadata = ref.watch(
+          scannerServiceProvider.select((s) => s.metadataMap[song.path]),
+        );
 
-        return _RightQueueTile(
+        return QueueSongTile(
           key: _queueReorderController.getKey(index),
           song: song,
           index: index,
           isCurrent: isCurrent,
           isPlaying: isPlaying,
+          artistOverride: metadata?.artist,
+          albumOverride: metadata?.album,
           isSelected: isSelected,
           isSelectionMode: isSelecting,
           durationFormatted: TimeFormatUtils.formatMs(song.durationMillis ?? 0),
@@ -1384,13 +1390,19 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
       itemBuilder: (context, index) {
         final song = playlist.songs[index];
         final isCurrent = currentMusic?.path == song.path;
+        final metadata = ref.watch(
+          scannerServiceProvider.select((s) => s.metadataMap[song.path]),
+        );
 
-        return _RightPlaylistSongTile(
+        return QueueSongTile(
           key: _playlistSongReorderController.getKey(index),
           song: song,
           index: index,
           isCurrent: isCurrent,
           isPlaying: isCurrent && isPlaying,
+          artistOverride: metadata?.artist,
+          albumOverride: metadata?.album,
+          isPlaylistSong: true,
           durationFormatted: TimeFormatUtils.formatMs(song.durationMillis ?? 0),
           onTap: () => audioService.playPlaylist(
             playlist.songs,
@@ -1500,410 +1512,3 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
   }
 }
 
-class _RightPlaylistSongTile extends ConsumerStatefulWidget {
-  final MusicFile song;
-  final int index;
-  final bool isCurrent;
-  final bool isPlaying;
-  final String durationFormatted;
-  final VoidCallback onTap;
-  final ValueChanged<Offset> onSecondaryTap;
-  final VoidCallback onRemove;
-
-  const _RightPlaylistSongTile({
-    super.key,
-    required this.song,
-    required this.index,
-    required this.isCurrent,
-    required this.isPlaying,
-    required this.durationFormatted,
-    required this.onTap,
-    required this.onSecondaryTap,
-    required this.onRemove,
-  });
-
-  @override
-  ConsumerState<_RightPlaylistSongTile> createState() =>
-      _RightPlaylistSongTileState();
-}
-
-class _RightPlaylistSongTileState
-    extends ConsumerState<_RightPlaylistSongTile> {
-  bool _isHovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final l10n = AppLocalizations.of(context)!;
-    final song = widget.song;
-
-    final metadata = ref.watch(
-      scannerServiceProvider.select((s) => s.metadataMap[song.path]),
-    );
-    final artist = (metadata?.artist ?? song.artist)?.trim();
-    final album = (metadata?.album ?? song.album)?.trim();
-    final displayArtist =
-        (artist != null && artist.isNotEmpty) ? artist : l10n.unknownArtist;
-    final displayAlbum = (album != null && album.isNotEmpty) ? album : null;
-    final subtitleText =
-        displayAlbum != null ? '$displayArtist - $displayAlbum' : displayArtist;
-
-    final itemColor = widget.isCurrent
-        ? theme.colorScheme.primaryContainer.withValues(alpha: 0.28)
-        : (_isHovered
-            ? theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4)
-            : Colors.transparent);
-
-    return Material(
-      color: itemColor,
-      child: InkWell(
-        onTap: widget.onTap,
-        onSecondaryTapUp: (details) =>
-            widget.onSecondaryTap(details.globalPosition),
-        child: MouseRegion(
-          onEnter: (_) => setState(() => _isHovered = true),
-          onExit: (_) => setState(() => _isHovered = false),
-          child: Container(
-            height: 54,
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            decoration: BoxDecoration(
-              border: Border(
-                bottom: BorderSide(
-                  color: theme.dividerColor.withValues(alpha: 0.05),
-                ),
-              ),
-            ),
-            child: Row(
-              children: [
-                ReorderableDragStartListener(
-                  index: widget.index,
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: 6),
-                    child: Icon(
-                      Icons.drag_handle_rounded,
-                      size: 16,
-                      color: theme.colorScheme.onSurface.withValues(
-                        alpha: _isHovered ? 0.6 : 0.25,
-                      ),
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: Row(
-                    children: [
-                      SongThumbnail.fromSong(
-                        song,
-                        size: 36.0,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                if (widget.isCurrent) ...[
-                                  Icon(
-                                    widget.isPlaying
-                                        ? Icons.volume_up_rounded
-                                        : Icons.pause_rounded,
-                                    size: 14,
-                                    color: theme.colorScheme.primary,
-                                  ),
-                                  const SizedBox(width: 4),
-                                ],
-                                Expanded(
-                                  child: Text(
-                                    song.displayName,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: widget.isCurrent
-                                          ? FontWeight.bold
-                                          : FontWeight.w500,
-                                      color: widget.isCurrent
-                                          ? theme.colorScheme.primary
-                                          : theme.colorScheme.onSurface,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              subtitleText,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 11.5,
-                                color: theme.colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (widget.durationFormatted.isNotEmpty) ...[
-                  const SizedBox(width: 8),
-                  Text(
-                    widget.durationFormatted,
-                    style: TextStyle(
-                      fontSize: 11.5,
-                      color: theme.colorScheme.onSurfaceVariant
-                          .withValues(alpha: 0.7),
-                    ),
-                  ),
-                ],
-                const SizedBox(width: 4),
-                IconButton(
-                  icon: Icon(
-                    Icons.close_rounded,
-                    size: 16,
-                    color: theme.colorScheme.onSurfaceVariant
-                        .withValues(alpha: _isHovered ? 0.8 : 0.4),
-                  ),
-                  onPressed: widget.onRemove,
-                  visualDensity: VisualDensity.compact,
-                  tooltip: l10n.removeFromPlaylist,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _RightQueueTile extends ConsumerStatefulWidget {
-  final MusicFile song;
-  final int index;
-  final bool isCurrent;
-  final bool isPlaying;
-  final bool isSelected;
-  final bool isSelectionMode;
-  final String durationFormatted;
-  final VoidCallback onTap;
-  final VoidCallback? onLongPress;
-  final VoidCallback onToggleSelect;
-  final ValueChanged<Offset> onSecondaryTap;
-  final VoidCallback onRemove;
-
-  const _RightQueueTile({
-    super.key,
-    required this.song,
-    required this.index,
-    required this.isCurrent,
-    required this.isPlaying,
-    required this.isSelected,
-    required this.isSelectionMode,
-    required this.durationFormatted,
-    required this.onTap,
-    this.onLongPress,
-    required this.onToggleSelect,
-    required this.onSecondaryTap,
-    required this.onRemove,
-  });
-
-  @override
-  ConsumerState<_RightQueueTile> createState() => _RightQueueTileState();
-}
-
-class _RightQueueTileState extends ConsumerState<_RightQueueTile> {
-  bool _isHovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final l10n = AppLocalizations.of(context)!;
-    final song = widget.song;
-
-    final metadata = ref.watch(
-      scannerServiceProvider.select((s) => s.metadataMap[song.path]),
-    );
-    final artist = (metadata?.artist ?? song.artist)?.trim();
-    final album = (metadata?.album ?? song.album)?.trim();
-    final displayArtist = (artist != null && artist.isNotEmpty) ? artist : l10n.unknownArtist;
-    final displayAlbum = (album != null && album.isNotEmpty) ? album : null;
-    final subtitleText =
-        displayAlbum != null ? '$displayArtist - $displayAlbum' : displayArtist;
-
-    final itemColor = widget.isSelected
-        ? theme.colorScheme.primaryContainer.withValues(alpha: 0.55)
-        : (widget.isCurrent
-            ? theme.colorScheme.primaryContainer.withValues(alpha: 0.28)
-            : (_isHovered
-                ? theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4)
-                : Colors.transparent));
-
-    return Material(
-      color: itemColor,
-      child: InkWell(
-        onTap: widget.onTap,
-        onLongPress: widget.onLongPress,
-        onSecondaryTapUp: (details) => widget.onSecondaryTap(details.globalPosition),
-        child: MouseRegion(
-          onEnter: (_) => setState(() => _isHovered = true),
-          onExit: (_) => setState(() => _isHovered = false),
-          child: Container(
-            height: 54,
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            decoration: BoxDecoration(
-              border: Border(
-                bottom: BorderSide(
-                  color: theme.dividerColor.withValues(alpha: 0.05),
-                ),
-                left: widget.isSelected
-                    ? BorderSide(
-                        color: theme.colorScheme.primary,
-                        width: 3.0,
-                      )
-                    : BorderSide.none,
-              ),
-            ),
-            child: Row(
-              children: [
-                ReorderableDragStartListener(
-                  index: widget.index,
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: 6),
-                    child: Icon(
-                      Icons.drag_handle_rounded,
-                      size: 16,
-                      color: theme.colorScheme.onSurface.withValues(
-                        alpha: _isHovered ? 0.6 : 0.25,
-                      ),
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: Row(
-                    children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(6),
-                        child: SizedBox(
-                          width: 36,
-                          height: 36,
-                          child: Stack(
-                            fit: StackFit.expand,
-                            children: [
-                              Opacity(
-                                opacity: widget.isSelectionMode
-                                    ? (widget.isSelected ? 0.5 : 0.7)
-                                    : 1.0,
-                                child: SongThumbnail.fromSong(
-                                  song,
-                                  size: 36.0,
-                                ),
-                              ),
-                              if (widget.isSelectionMode)
-                                Positioned.fill(
-                                  child: Align(
-                                    alignment: Alignment.center,
-                                    child: SizedBox(
-                                      width: 22,
-                                      height: 22,
-                                      child: Checkbox(
-                                        value: widget.isSelected,
-                                        onChanged: (_) => widget.onToggleSelect(),
-                                        fillColor: WidgetStateProperty.all(Colors.white),
-                                        checkColor: Colors.black,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(4),
-                                        ),
-                                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                        visualDensity: VisualDensity.compact,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                if (widget.isCurrent) ...[
-                                  Icon(
-                                    widget.isPlaying
-                                        ? Icons.volume_up_rounded
-                                        : Icons.pause_rounded,
-                                    size: 14,
-                                    color: theme.colorScheme.primary,
-                                  ),
-                                  const SizedBox(width: 4),
-                                ],
-                                Expanded(
-                                  child: Text(
-                                    song.displayName,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: widget.isCurrent
-                                          ? FontWeight.bold
-                                          : FontWeight.normal,
-                                      color: widget.isCurrent
-                                          ? theme.colorScheme.primary
-                                          : (widget.isSelected
-                                              ? theme.colorScheme.onSurface
-                                              : theme.colorScheme.onSurface),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              subtitleText,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: theme.colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 6),
-                if (_isHovered && !widget.isSelectionMode)
-                  AppTooltip(
-                    message: l10n.removeFromQueue,
-                    child: IconButton(
-                      icon: const Icon(Icons.close_rounded, size: 16),
-                      onPressed: widget.onRemove,
-                      visualDensity: VisualDensity.compact,
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  )
-                else if ((song.durationMillis ?? 0) > 0)
-                  Text(
-                    widget.durationFormatted,
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
