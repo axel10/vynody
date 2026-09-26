@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oktoast/oktoast.dart';
-import 'package:window_manager/window_manager.dart';
 
 import '../../models/music_file.dart';
 import '../../player/audio/audio_riverpod.dart';
@@ -14,7 +13,6 @@ import '../../player/remote/clients/remote_media_library_client.dart';
 import '../../player/remote/proxy/remote_media_resolver.dart';
 import '../../player/remote/services/remote_download_service.dart';
 import '../../widgets/remote_artwork_widget.dart';
-import '../../widgets/desktop_window_title_bar.dart';
 import '../../widgets/mini_player_wrapper.dart';
 import '../../widgets/playing_equalizer_icon.dart';
 import '../../l10n/app_localizations.dart';
@@ -58,10 +56,6 @@ class RemotePlaylistDetailPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
-    final isMacOS = Platform.isMacOS;
-    final bool showCustomTitleBar =
-        Platform.isWindows || Platform.isLinux || Platform.isMacOS;
 
     Widget content = Scaffold(
       appBar: AppBar(
@@ -103,15 +97,15 @@ class RemotePlaylistDetailPage extends ConsumerWidget {
       ),
     );
 
-    if (showCustomTitleBar || isMacOS) {
+    final bool isDesktop =
+        Platform.isWindows || Platform.isLinux || Platform.isMacOS;
+
+    if (isDesktop) {
       content = Material(
-        color: theme.colorScheme.surface,
+        color: Theme.of(context).colorScheme.surface,
         child: Column(
           children: [
-            if (showCustomTitleBar)
-              DesktopWindowTitleBar(brightness: theme.brightness)
-            else
-              const DragToMoveArea(child: SizedBox(height: 32)),
+            const SizedBox(height: 32),
             Expanded(child: content),
           ],
         ),

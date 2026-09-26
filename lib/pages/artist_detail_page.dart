@@ -1,8 +1,6 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:window_manager/window_manager.dart';
 
 import '../l10n/app_localizations.dart';
 import 'package:vynody/models/artist_summary.dart';
@@ -10,7 +8,6 @@ import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/audio/playback_source.dart';
 import 'package:vynody/utils/song_context_menu_utils.dart';
-import '../widgets/desktop_window_title_bar.dart';
 import '../widgets/song_thumbnail.dart';
 import '../widgets/remote_media_badge.dart';
 import '../widgets/mini_player_wrapper.dart';
@@ -25,25 +22,20 @@ class ArtistDetailPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
     Widget content = Scaffold(
       appBar: AppBar(title: Text(artist.name)),
       body: ArtistDetailContent(artist: artist),
     );
 
-    final isMacOS = Platform.isMacOS;
-    final bool showCustomTitleBar =
+    final bool isDesktop =
         Platform.isWindows || Platform.isLinux || Platform.isMacOS;
 
-    if (showCustomTitleBar || isMacOS) {
+    if (isDesktop) {
       content = Material(
-        color: theme.colorScheme.surface,
+        color: Theme.of(context).colorScheme.surface,
         child: Column(
           children: [
-            if (showCustomTitleBar)
-              DesktopWindowTitleBar(brightness: theme.brightness)
-            else
-              const DragToMoveArea(child: SizedBox(height: 32)),
+            const SizedBox(height: 32),
             Expanded(child: content),
           ],
         ),

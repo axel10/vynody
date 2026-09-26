@@ -1,9 +1,8 @@
-import 'dart:math' as math;
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:window_manager/window_manager.dart';
 
 import '../l10n/app_localizations.dart';
 import 'package:vynody/models/album_summary.dart';
@@ -11,7 +10,6 @@ import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/audio/playback_source.dart';
 import 'package:vynody/utils/song_context_menu_utils.dart';
-import '../widgets/desktop_window_title_bar.dart';
 import '../widgets/album_cover.dart';
 import '../widgets/remote_media_badge.dart';
 import '../widgets/mini_player_wrapper.dart';
@@ -66,10 +64,6 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage>
     final headerColor = theme.colorScheme.secondaryContainer.withValues(
       alpha: 0.65,
     );
-
-    final isMacOS = Platform.isMacOS;
-    final bool showCustomTitleBar =
-        Platform.isWindows || Platform.isLinux || Platform.isMacOS;
 
     final selectedSongs = isSelectionMode
         ? getSelectedSongs(widget.album.songs)
@@ -253,17 +247,15 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage>
       ),
     );
 
-    if (showCustomTitleBar || isMacOS) {
+    final bool isDesktop =
+        Platform.isWindows || Platform.isLinux || Platform.isMacOS;
+
+    if (isDesktop) {
       content = Material(
         color: theme.colorScheme.surface,
         child: Column(
           children: [
-            if (showCustomTitleBar)
-              DesktopWindowTitleBar(
-                brightness: theme.brightness,
-              )
-            else
-              const DragToMoveArea(child: SizedBox(height: 32)),
+            const SizedBox(height: 32),
             Expanded(child: content),
           ],
         ),

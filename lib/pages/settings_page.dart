@@ -68,7 +68,9 @@ class SettingsPageState extends ConsumerState<SettingsPage> {
     _searchController.dispose();
     _portraitSearchFocusNode.dispose();
     _landscapeSearchFocusNode.dispose();
-    _isSettingsActiveNotifier.set(false);
+    Future.microtask(() {
+      _isSettingsActiveNotifier.set(false);
+    });
     super.dispose();
   }
 

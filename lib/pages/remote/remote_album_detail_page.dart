@@ -4,7 +4,6 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oktoast/oktoast.dart';
-import 'package:window_manager/window_manager.dart';
 import '../../models/music_file.dart';
 import '../../player/audio/audio_riverpod.dart';
 import '../../player/audio/playback_source.dart';
@@ -12,7 +11,6 @@ import '../../player/remote/remote_server_models.dart';
 import '../../player/remote/remote_server_riverpod.dart';
 import '../../player/remote/clients/remote_media_library_client.dart';
 import '../../widgets/remote_artwork_widget.dart';
-import '../../widgets/desktop_window_title_bar.dart';
 import '../../widgets/mini_player_wrapper.dart';
 import '../../widgets/playing_equalizer_icon.dart';
 import '../../dialogs/remote_playlist_dialog.dart';
@@ -240,9 +238,6 @@ class _RemoteAlbumDetailPageState
       alpha: 0.65,
     );
 
-    final isMacOS = Platform.isMacOS;
-    final bool showCustomTitleBar =
-        Platform.isWindows || Platform.isLinux || Platform.isMacOS;
     final bottomOffset = MiniPlayerUiTuning.getListBottomPadding(
       context,
       hasPlayingMusic: currentMusic != null,
@@ -719,15 +714,15 @@ class _RemoteAlbumDetailPageState
                 ),
     );
 
-    if (showCustomTitleBar || isMacOS) {
+    final bool isDesktop =
+        Platform.isWindows || Platform.isLinux || Platform.isMacOS;
+
+    if (isDesktop) {
       content = Material(
         color: theme.colorScheme.surface,
         child: Column(
           children: [
-            if (showCustomTitleBar)
-              DesktopWindowTitleBar(brightness: theme.brightness)
-            else
-              const DragToMoveArea(child: SizedBox(height: 32)),
+            const SizedBox(height: 32),
             Expanded(child: content),
           ],
         ),

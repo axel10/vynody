@@ -2,14 +2,12 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:window_manager/window_manager.dart';
 import '../../models/music_file.dart';
 import '../../player/audio/audio_riverpod.dart';
 import '../../player/remote/remote_server_models.dart';
 import '../../player/remote/remote_server_riverpod.dart';
 import '../../player/remote/clients/remote_media_library_client.dart';
 import '../../player/remote/proxy/remote_media_resolver.dart';
-import '../../widgets/desktop_window_title_bar.dart';
 import '../../widgets/mini_player_wrapper.dart';
 import '../../l10n/app_localizations.dart';
 import '../../player/remote/services/remote_download_service.dart';
@@ -1084,9 +1082,6 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
 
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
-    final isMacOS = Platform.isMacOS;
-    final bool showCustomTitleBar =
-        Platform.isWindows || Platform.isLinux || Platform.isMacOS;
     final currentMusic = ref.watch(audioCurrentMusicProvider);
     final bottomOffset = MiniPlayerUiTuning.getListBottomPadding(
       context,
@@ -1615,15 +1610,15 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
     );
     }
 
-    if (showCustomTitleBar || isMacOS) {
+    final bool isDesktop =
+        Platform.isWindows || Platform.isLinux || Platform.isMacOS;
+
+    if (isDesktop) {
       content = Material(
         color: theme.colorScheme.surface,
         child: Column(
           children: [
-            if (showCustomTitleBar)
-              DesktopWindowTitleBar(brightness: theme.brightness)
-            else
-              const DragToMoveArea(child: SizedBox(height: 32)),
+            const SizedBox(height: 32),
             Expanded(child: content),
           ],
         ),
