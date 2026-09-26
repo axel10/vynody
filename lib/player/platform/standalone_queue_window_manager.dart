@@ -684,7 +684,7 @@ class StandaloneQueueWindowManager {
           (settings.themeMode == ThemeMode.system &&
               WidgetsBinding.instance.platformDispatcher.platformBrightness ==
                   Brightness.dark);
-      if (Platform.isWindows) {
+      if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
         try {
           await controller.setDarkMode(isDark);
         } catch (_) {}
@@ -773,7 +773,8 @@ class StandaloneQueueWindowManager {
             (settings.themeMode == ThemeMode.system &&
                 WidgetsBinding.instance.platformDispatcher.platformBrightness ==
                     Brightness.dark);
-        if (Platform.isWindows && _subWindowController != null) {
+        if ((Platform.isWindows || Platform.isLinux || Platform.isMacOS) &&
+            _subWindowController != null) {
           try {
             _subWindowController!.setDarkMode(isDark);
           } catch (_) {}

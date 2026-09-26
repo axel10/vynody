@@ -83,7 +83,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
   }
 
   void _updateNativeTitleBar() {
-    if (!Platform.isWindows) return;
+    if (!Platform.isWindows && !Platform.isLinux && !Platform.isMacOS) return;
     try {
       _controller.setDarkMode(_isEffectiveDark);
     } catch (_) {}
