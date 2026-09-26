@@ -5,6 +5,7 @@ import '../../../player/remote/remote_library_navigation.dart';
 import '../../../player/remote/remote_server_models.dart';
 import '../../../utils/remote_context_menu_utils.dart';
 import '../../../utils/selection_utils.dart';
+import '../../../widgets/draggable_remote_artist_item.dart';
 import '../../../widgets/remote_artwork_widget.dart';
 import '../remote_artist_detail_page.dart';
 import 'remote_library_toolbar_widgets.dart';
@@ -402,7 +403,7 @@ class RemoteLibraryArtistItem extends ConsumerWidget {
             ? theme.colorScheme.primaryContainer.withValues(alpha: 0.5)
             : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35));
 
-    return GestureDetector(
+    final itemWidget = GestureDetector(
       behavior: HitTestBehavior.opaque,
       onSecondaryTapDown: (details) {
         if (!isSelectionMode) {
@@ -561,6 +562,16 @@ class RemoteLibraryArtistItem extends ConsumerWidget {
           ),
         ),
       ),
+    );
+
+    return DraggableRemoteArtistItem(
+      server: server,
+      artist: artist,
+      isSelectionMode: isSelectionMode,
+      isSelected: isMultiSelected,
+      selectedArtistIds: selectedArtistIds,
+      allArtists: allArtists,
+      child: itemWidget,
     );
   }
 }

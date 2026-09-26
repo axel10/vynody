@@ -9,6 +9,7 @@ import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/audio/playback_source.dart';
 import 'artist_detail_page.dart';
 import '../widgets/artist_avatar.dart';
+import '../widgets/draggable_artist_item.dart';
 import '../widgets/remote_media_badge.dart';
 import '../widgets/scroll_to_top_wrapper.dart';
 import '../widgets/library_selection_scope.dart';
@@ -322,6 +323,11 @@ class _ArtistsTabState extends ConsumerState<ArtistsTab>
                                 selected: false,
                                 isSelectionMode: isSelectionMode,
                                 isSelectedInSelectionMode: isSelected,
+                                selectedArtists: isSelectionMode
+                                    ? visibleArtists
+                                        .where((a) => this.isSelected(a.queryKey))
+                                        .toList()
+                                    : null,
                                 onTap: () {
                                   handleItemTap(
                                     index: artistIndex,
@@ -527,6 +533,12 @@ class _ArtistListPane extends StatelessWidget {
                       selected: selected,
                       isSelectionMode: isSelectionMode,
                       isSelectedInSelectionMode: isSelected,
+                      selectedArtists: isSelectionMode
+                          ? artists
+                              .where((a) => selectedArtistKeysInSelectionMode
+                                  .contains(a.queryKey))
+                              .toList()
+                          : null,
                       onTap: () => onArtistSelected(artist),
                       onLongPress: onArtistLongPressed != null ? () => onArtistLongPressed!(artist) : null,
                       onSelectionToggled: () => onArtistSelected(artist),
@@ -546,6 +558,7 @@ class _ArtistListItem extends ConsumerWidget {
     required this.onTap,
     this.isSelectionMode = false,
     this.isSelectedInSelectionMode = false,
+    this.selectedArtists,
     this.onSelectionToggled,
     this.onLongPress,
   });
@@ -555,6 +568,7 @@ class _ArtistListItem extends ConsumerWidget {
   final VoidCallback onTap;
   final bool isSelectionMode;
   final bool isSelectedInSelectionMode;
+  final List<ArtistSummary>? selectedArtists;
   final VoidCallback? onSelectionToggled;
   final VoidCallback? onLongPress;
 
@@ -581,32 +595,37 @@ class _ArtistListItem extends ConsumerWidget {
             ? theme.colorScheme.primaryContainer.withValues(alpha: 0.5)
             : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35));
 
-    return RepaintBoundary(
-      child: Material(
-        color: backgroundColor,
-      borderRadius: BorderRadius.circular(18),
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onSecondaryTapDown: (details) {
-          if (!isSelectionMode) {
-            _showArtistContextMenuForArtist(
-              context,
-              ref,
-              artist,
-            );
-          }
-        },
-        onLongPress: () {
-          if (onLongPress != null) {
-            onLongPress!();
-          } else if (!isSelectionMode) {
-            _showArtistContextMenuForArtist(
-              context,
-              ref,
-              artist,
-            );
-          }
-        },
+    return DraggableArtistItem(
+      artist: artist,
+      isSelectionMode: isSelectionMode,
+      isSelected: isSelectionMode ? isSelectedInSelectionMode : selected,
+      selectedArtists: selectedArtists,
+      child: RepaintBoundary(
+        child: Material(
+          color: backgroundColor,
+          borderRadius: BorderRadius.circular(18),
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onSecondaryTapDown: (details) {
+              if (!isSelectionMode) {
+                _showArtistContextMenuForArtist(
+                  context,
+                  ref,
+                  artist,
+                );
+              }
+            },
+            onLongPress: () {
+              if (onLongPress != null) {
+                onLongPress!();
+              } else if (!isSelectionMode) {
+                _showArtistContextMenuForArtist(
+                  context,
+                  ref,
+                  artist,
+                );
+              }
+            },
         child: InkWell(
           borderRadius: BorderRadius.circular(18),
           enableFeedback: false,
@@ -687,8 +706,9 @@ class _ArtistListItem extends ConsumerWidget {
         ),
       ),
     ),
-  );
-}
+  ),
+);
+  }
 }
 
 class _ArtistDetailPane extends StatelessWidget {

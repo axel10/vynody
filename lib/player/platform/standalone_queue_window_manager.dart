@@ -21,6 +21,7 @@ import 'package:vynody/player/remote/remote_server_riverpod.dart';
 import 'package:vynody/player/remote/proxy/remote_media_resolver.dart';
 import 'package:vynody/player/remote/clients/webdav_client.dart';
 import 'package:vynody/player/remote/clients/smb_client.dart';
+import 'package:vynody/player/remote/clients/remote_media_library_client.dart';
 import 'package:vynody/utils/remote_context_menu_utils.dart';
 import 'package:vynody/utils/app_log.dart';
 
@@ -426,6 +427,93 @@ class StandaloneQueueWindowManager {
             path: path,
             name: p.basename(targetPath),
           ));
+        }
+      } else if (path.startsWith('subsonic-artist://') ||
+          path.startsWith('jellyfin-artist://')) {
+        final uri = Uri.tryParse(path);
+        final serverId = uri?.host ?? '';
+        final artistId = uri != null && uri.pathSegments.isNotEmpty
+            ? uri.pathSegments.join('/')
+            : '';
+        final server = servers.firstWhereOrNull((s) => s.id == serverId);
+        if (server != null && artistId.isNotEmpty) {
+          try {
+            final password = await ref
+                    .read(remoteServersProvider.notifier)
+                    .getPassword(server.id) ??
+                '';
+            final client = RemoteMediaLibraryClient.create(
+              server: server,
+              password: password,
+            );
+            final tracks =
+                await fetchSubsonicArtistTracks(client, server, artistId);
+            debugPrint(
+                '[StandaloneQueue] Resolved remote artist $artistId, found ${tracks.length} tracks');
+            songs.addAll(tracks);
+          } catch (e) {
+            AppLog.log(
+                '[StandaloneQueue] Error resolving remote artist $path: $e',
+                mirrorToConsole: true);
+          }
+        }
+      } else if (path.startsWith('subsonic-playlist://') ||
+          path.startsWith('jellyfin-playlist://')) {
+        final uri = Uri.tryParse(path);
+        final serverId = uri?.host ?? '';
+        final playlistId = uri != null && uri.pathSegments.isNotEmpty
+            ? uri.pathSegments.join('/')
+            : '';
+        final server = servers.firstWhereOrNull((s) => s.id == serverId);
+        if (server != null && playlistId.isNotEmpty) {
+          try {
+            final password = await ref
+                    .read(remoteServersProvider.notifier)
+                    .getPassword(server.id) ??
+                '';
+            final client = RemoteMediaLibraryClient.create(
+              server: server,
+              password: password,
+            );
+            final tracks =
+                await fetchSubsonicPlaylistTracks(client, server, playlistId);
+            debugPrint(
+                '[StandaloneQueue] Resolved remote playlist $playlistId, found ${tracks.length} tracks');
+            songs.addAll(tracks);
+          } catch (e) {
+            AppLog.log(
+                '[StandaloneQueue] Error resolving remote playlist $path: $e',
+                mirrorToConsole: true);
+          }
+        }
+      } else if (path.startsWith('subsonic-album://') ||
+          path.startsWith('jellyfin-album://')) {
+        final uri = Uri.tryParse(path);
+        final serverId = uri?.host ?? '';
+        final albumId = uri != null && uri.pathSegments.isNotEmpty
+            ? uri.pathSegments.join('/')
+            : '';
+        final server = servers.firstWhereOrNull((s) => s.id == serverId);
+        if (server != null && albumId.isNotEmpty) {
+          try {
+            final password = await ref
+                    .read(remoteServersProvider.notifier)
+                    .getPassword(server.id) ??
+                '';
+            final client = RemoteMediaLibraryClient.create(
+              server: server,
+              password: password,
+            );
+            final tracks =
+                await fetchSubsonicAlbumTracks(client, server, albumId);
+            debugPrint(
+                '[StandaloneQueue] Resolved remote album $albumId, found ${tracks.length} tracks');
+            songs.addAll(tracks);
+          } catch (e) {
+            AppLog.log(
+                '[StandaloneQueue] Error resolving remote album $path: $e',
+                mirrorToConsole: true);
+          }
         }
       } else if (path.startsWith('http://') || path.startsWith('https://')) {
         songs.add(MusicFile(path: path, name: p.basename(path)));

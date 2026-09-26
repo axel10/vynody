@@ -9,6 +9,7 @@ import '../../../player/remote/remote_server_riverpod.dart';
 import '../../../utils/app_snack_bar.dart';
 import '../../../utils/remote_context_menu_utils.dart';
 import '../../../utils/selection_utils.dart';
+import '../../../widgets/draggable_remote_playlist_item.dart';
 import '../../../widgets/remote_artwork_widget.dart';
 import '../remote_playlist_detail_page.dart';
 import 'remote_library_toolbar_widgets.dart';
@@ -612,7 +613,7 @@ class RemoteLibraryPlaylistItem extends ConsumerWidget {
             ? theme.colorScheme.primaryContainer.withValues(alpha: 0.5)
             : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35));
 
-    return GestureDetector(
+    final itemWidget = GestureDetector(
       behavior: HitTestBehavior.opaque,
       onSecondaryTapDown: isStarredItem || isSelectionMode
           ? null
@@ -783,6 +784,17 @@ class RemoteLibraryPlaylistItem extends ConsumerWidget {
           ),
         ),
       ),
+    );
+
+    return DraggableRemotePlaylistItem(
+      server: server,
+      playlist: playlist,
+      songCount: songCount,
+      isSelectionMode: isSelectionMode,
+      isSelected: isMultiSelected,
+      selectedPlaylistIds: selectedPlaylistIds,
+      allPlaylists: allPlaylists,
+      child: itemWidget,
     );
   }
 }
