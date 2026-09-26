@@ -5165,4 +5165,216 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get cannotConnectToMediaServer =>
       'Medya kitaplığı sunucusuna bağlanılamıyor. Lütfen servisin çalıştığını kontrol edin.';
+
+  @override
+  String get playQueue => 'Çalma Sırası';
+
+  @override
+  String get clearPlaybackQueue => 'Çalma Sırasını Temizle';
+
+  @override
+  String get confirmClearPlaybackQueue =>
+      'Kuyruktaki tüm bekleyen şarkıları temizlemek istediğinizden emin misiniz?';
+
+  @override
+  String get exitMultiSelect => 'Çoklu Seçimden Çık';
+
+  @override
+  String selectedItemsCount(Object count) {
+    return '$count seçildi';
+  }
+
+  @override
+  String removeFromQueueWithCount(Object count) {
+    return 'Sıradan kaldır ($count şarkı)';
+  }
+
+  @override
+  String get cancelSelection => 'Seçimi Kaldır';
+
+  @override
+  String get multiSelect => 'Çoklu Seçim';
+
+  @override
+  String get create => 'Oluştur';
+
+  @override
+  String get moreOptions => 'Daha Fazla Seçenek';
+
+  @override
+  String get detachToStandaloneWindow => 'Bağımsız Pencereye Ayır';
+
+  @override
+  String get closeDrawer => 'Çekmeceyi Kapat';
+
+  @override
+  String get queueEmptyDragHint =>
+      'Kitaplıktan, klasörlerden veya çalma listelerinden şarkıları buraya sürükleyin';
+
+  @override
+  String get appendToQueueEnd => 'Kuyruğun Sonuna Ekle';
+
+  @override
+  String addedSongsToQueueEnd(Object count) {
+    return '$count şarkı sıranın sonuna eklendi';
+  }
+
+  @override
+  String playlistSongsCleared(Object name) {
+    return '\"$name\" temizlendi';
+  }
+
+  @override
+  String playlistDeletedWithName(Object name) {
+    return '\"$name\" çalma listesi silindi';
+  }
+
+  @override
+  String get clearSongs => 'Şarkıları Temizle';
+
+  @override
+  String get playlistEmptyDragHint =>
+      'Kitaplıktan şarkıları sürükleyin\nveya yerel ses dosyalarını doğrudan buraya bırakın';
+
+  @override
+  String get standaloneQueueWindowTitle => 'Çalma Sırası ve Listeler - Vynody';
+
+  @override
+  String get standaloneQueueManagerTitle => 'Çalma Sırası - Vynody';
+
+  @override
+  String get dockBackToMainWindow => 'Ana Pencereye Sabitle';
+
+  @override
+  String get unpin => 'Sabitlemeyi Kaldır';
+
+  @override
+  String get playNow => 'Şimdi Çal';
+
+  @override
+  String get standalonePlaylistDragHint =>
+      'Eklemek için yerel ses dosyalarını doğrudan buraya sürükleyin';
+
+  @override
+  String get standaloneQueueDragHint =>
+      'Şarkıları kitaplıktan, klasörlerden veya dışarıdan buraya sürükleyin';
+
+  @override
+  String get closeStandaloneQueue => 'Bağımsız Çalma Sırasını Kapat';
+
+  @override
+  String get collapsePlayQueue => 'Çalma Sırasını Daralt';
+
+  @override
+  String get expandPlayQueue => 'Çalma Sırasını Genişlet';
+
+  @override
+  String get enableLyricsTranslation => 'Şarkı Sözü Çevirisini Aç';
+
+  @override
+  String get disableLyricsTranslation => 'Şarkı Sözü Çevirisini Kapat';
+
+  @override
+  String get generateLyricsTranslation => 'Şarkı Sözü Çevirisi Oluştur';
+
+  @override
+  String get enableWordByWordLyrics => 'Kelime Kelime Sözleri Aç';
+
+  @override
+  String get disableWordByWordLyrics => 'Kelime Kelime Sözleri Kapat';
+
+  @override
+  String get generateWordByWordLyrics => 'Kelime Kelime Sözler Oluştur';
+
+  @override
+  String get lyricsTranslationEnabled => 'Şarkı sözü çevirisi açıldı';
+
+  @override
+  String get lyricsTranslationDisabled => 'Şarkı sözü çevirisi kapatıldı';
+
+  @override
+  String get enableDescending => 'Azalan sıralamayı etkinleştir';
+
+  @override
+  String get currentlyDescending => 'Şu anda azalan şekilde sıralı';
+
+  @override
+  String get currentlyAscending => 'Şu anda artan şekilde sıralı';
+
+  @override
+  String get librarySourceFilterTitle => 'Kitaplık Kaynağı Filtresi';
+
+  @override
+  String get librarySourceAll => 'Tüm Müzikler';
+
+  @override
+  String get librarySourceAllDescription =>
+      'Yerel ve tüm dizine eklenmiş uzak müzikleri içerir';
+
+  @override
+  String get librarySourceLocalOnly => 'Yalnızca Yerel Cihaz';
+
+  @override
+  String get librarySourceLocalOnlyDescription =>
+      'Yalnızca bu cihazda depolanan müzikleri gösterir';
+
+  @override
+  String get librarySourceIndexedRemote => 'Dizine Eklenmiş Uzak Sunucular';
+
+  @override
+  String get visualizerStyle => 'Spektrum Stili';
+
+  @override
+  String get visualizerStyleBars => 'Klasik Çubuklar';
+
+  @override
+  String get visualizerStyleSmoothWave => 'Pürüzsüz Dalga';
+
+  @override
+  String get visualizerStyleFloatingBars => 'Yüzen Başlıklar';
+
+  @override
+  String get visualizerStyleRadial => 'Dairesel Halka';
+
+  @override
+  String get visualizerStyleMatrix => 'Neon Matris';
+
+  @override
+  String get visualizerStyleMirroredWave => 'Aynalı Dalga';
+
+  @override
+  String get replaceButton => 'Düğmeyi Değiştir';
+
+  @override
+  String selectedArtistsWithTotalSongs(Object artistCount, Object songCount) {
+    return '$artistCount sanatçı seçildi ($songCount şarkı)';
+  }
+
+  @override
+  String get jellyfinAlbum => 'Jellyfin Albümü';
+
+  @override
+  String get navidromeAlbum => 'Navidrome Albümü';
+
+  @override
+  String get jellyfinArtist => 'Jellyfin Sanatçısı';
+
+  @override
+  String get navidromeArtist => 'Navidrome Sanatçısı';
+
+  @override
+  String get jellyfinPlaylist => 'Jellyfin Çalma Listesi';
+
+  @override
+  String get navidromePlaylist => 'Navidrome Çalma Listesi';
+
+  @override
+  String get unknownPlaylist => 'Bilinmeyen Çalma Listesi';
+
+  @override
+  String get loadingServerPlaylists => 'Sunucu çalma listeleri yükleniyor...';
+
+  @override
+  String get jellyfinMediaDeletionPermissionHint =>
+      ' (Lütfen Jellyfin kullanıcısının \"Medya silmeye izin ver\" yetkisi olup olmadığını kontrol edin)';
 }

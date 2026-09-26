@@ -1565,14 +1565,14 @@ class VisualizerOptionsDialog extends ConsumerWidget {
   }
 
   String _visualizerStyleLabel(BuildContext context, VisualizerStyle style) {
-    final isZh = Localizations.localeOf(context).languageCode == 'zh';
+    final l10n = AppLocalizations.of(context)!;
     return switch (style) {
-      VisualizerStyle.bars => isZh ? '经典柱状 (Classic Bars)' : 'Classic Bars',
-      VisualizerStyle.smoothWave => isZh ? '平滑波浪 (Smooth Wave)' : 'Smooth Wave',
-      VisualizerStyle.floatingBars => isZh ? '浮动顶帽 (Floating Caps)' : 'Floating Caps',
-      VisualizerStyle.radial => isZh ? '环形光晕 (Radial Halo)' : 'Radial Halo',
-      VisualizerStyle.matrix => isZh ? '点阵矩阵 (Neon Matrix)' : 'Neon Matrix',
-      VisualizerStyle.mirroredWave => isZh ? '对称镜像波 (Mirrored Wave)' : 'Mirrored Wave',
+      VisualizerStyle.bars => l10n.visualizerStyleBars,
+      VisualizerStyle.smoothWave => l10n.visualizerStyleSmoothWave,
+      VisualizerStyle.floatingBars => l10n.visualizerStyleFloatingBars,
+      VisualizerStyle.radial => l10n.visualizerStyleRadial,
+      VisualizerStyle.matrix => l10n.visualizerStyleMatrix,
+      VisualizerStyle.mirroredWave => l10n.visualizerStyleMirroredWave,
     };
   }
 
@@ -1584,7 +1584,7 @@ class VisualizerOptionsDialog extends ConsumerWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
-    final isZh = Localizations.localeOf(context).languageCode == 'zh';
+    final l10n = AppLocalizations.of(context)!;
 
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: isPortrait ? 0 : 12),
@@ -1594,7 +1594,7 @@ class VisualizerOptionsDialog extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.only(top: 8, bottom: 8),
             child: Text(
-              isZh ? '频谱样式' : 'Spectrum Style',
+              l10n.visualizerStyle,
               style: TextStyle(
                 color: isDark ? Colors.white70 : theme.colorScheme.onSurfaceVariant,
                 fontSize: 13,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../l10n/app_localizations.dart';
 import '../player/library/library_source_filter.dart';
 import '../player/remote/remote_server_models.dart';
 
@@ -32,7 +33,7 @@ class _LibrarySourceFilterDialogState
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isZh = Localizations.localeOf(context).languageCode == 'zh';
+    final l10n = AppLocalizations.of(context)!;
     final remoteServers = ref.watch(remoteIndexedServersProvider);
 
     return AlertDialog(
@@ -43,7 +44,7 @@ class _LibrarySourceFilterDialogState
             color: theme.colorScheme.primary,
           ),
           const SizedBox(width: 10),
-          Text(isZh ? '媒体库来源筛选' : 'Library Source Filter'),
+          Text(l10n.librarySourceFilterTitle),
         ],
       ),
       content: ConstrainedBox(
@@ -66,7 +67,7 @@ class _LibrarySourceFilterDialogState
                       : theme.colorScheme.onSurfaceVariant,
                 ),
                 title: Text(
-                  isZh ? '全部音乐' : 'All Music',
+                  l10n.librarySourceAll,
                   style: TextStyle(
                     fontWeight: _selectedFilter.type == LibrarySourceType.all
                         ? FontWeight.w600
@@ -74,9 +75,7 @@ class _LibrarySourceFilterDialogState
                   ),
                 ),
                 subtitle: Text(
-                  isZh
-                      ? '包含本地与所有已索引的远程音乐'
-                      : 'Includes local and all indexed remote music',
+                  l10n.librarySourceAllDescription,
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
@@ -102,7 +101,7 @@ class _LibrarySourceFilterDialogState
                       : theme.colorScheme.onSurfaceVariant,
                 ),
                 title: Text(
-                  isZh ? '仅本地设备' : 'Local Device Only',
+                  l10n.librarySourceLocalOnly,
                   style: TextStyle(
                     fontWeight: _selectedFilter.type == LibrarySourceType.local
                         ? FontWeight.w600
@@ -110,9 +109,7 @@ class _LibrarySourceFilterDialogState
                   ),
                 ),
                 subtitle: Text(
-                  isZh
-                      ? '仅显示本设备存储的音乐'
-                      : 'Only shows music stored on this device',
+                  l10n.librarySourceLocalOnlyDescription,
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
@@ -134,7 +131,7 @@ class _LibrarySourceFilterDialogState
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   child: Text(
-                    isZh ? '已索引的远程服务器' : 'Indexed Remote Servers',
+                    l10n.librarySourceIndexedRemote,
                     style: theme.textTheme.labelMedium?.copyWith(
                       color: theme.colorScheme.primary,
                       fontWeight: FontWeight.bold,
@@ -172,7 +169,7 @@ class _LibrarySourceFilterDialogState
                       ),
                     ),
                     subtitle: Text(
-                      '${server.serverType.displayName} · ${server.totalSongs} ${isZh ? '首歌曲' : 'songs'}',
+                      '${server.serverType.displayName} · ${l10n.songsCountFormat(server.totalSongs)}',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
@@ -194,7 +191,7 @@ class _LibrarySourceFilterDialogState
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: Text(isZh ? '取消' : 'Cancel'),
+          child: Text(l10n.cancel),
         ),
         FilledButton(
           onPressed: () {
@@ -203,7 +200,7 @@ class _LibrarySourceFilterDialogState
                 .setFilter(_selectedFilter);
             Navigator.of(context).pop(_selectedFilter);
           },
-          child: Text(isZh ? '确定' : 'OK'),
+          child: Text(l10n.confirm),
         ),
       ],
     );

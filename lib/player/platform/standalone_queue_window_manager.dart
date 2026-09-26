@@ -28,6 +28,7 @@ import 'package:vynody/player/remote/clients/remote_media_library_client.dart';
 import 'package:vynody/player/settings/shortcut_bindings.dart';
 import 'package:vynody/utils/remote_context_menu_utils.dart';
 import 'package:vynody/utils/app_log.dart';
+import 'package:vynody/utils/localized_text.dart';
 
 final standaloneQueueWindowManagerProvider =
     Provider<StandaloneQueueWindowManager>((ref) {
@@ -718,7 +719,8 @@ class StandaloneQueueWindowManager {
 
     return {
       'type': 'standalone_queue',
-      'title': '播放队列 - Vynody',
+      'title': currentAppL10n.standaloneQueueManagerTitle,
+      'appLocale': settings.appLocale,
       'queue': queue.map(_musicFileToJson).toList(),
       'playlists': playlistService.playlists.map((p) => {
         'id': p.id,

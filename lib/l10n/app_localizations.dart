@@ -9117,6 +9117,390 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'无法连接到媒体库服务器，请检查服务是否开启'**
   String get cannotConnectToMediaServer;
+
+  /// Title or label for play queue
+  ///
+  /// In zh, this message translates to:
+  /// **'播放队列'**
+  String get playQueue;
+
+  /// Dialog title or button for clearing playback queue
+  ///
+  /// In zh, this message translates to:
+  /// **'清空播放队列'**
+  String get clearPlaybackQueue;
+
+  /// Confirmation message when clearing playback queue
+  ///
+  /// In zh, this message translates to:
+  /// **'确定要清空当前所有待播放的歌曲吗？'**
+  String get confirmClearPlaybackQueue;
+
+  /// Tooltip for button to exit multi-select mode
+  ///
+  /// In zh, this message translates to:
+  /// **'退出多选'**
+  String get exitMultiSelect;
+
+  /// Number of selected items
+  ///
+  /// In zh, this message translates to:
+  /// **'已选 {count} 项'**
+  String selectedItemsCount(Object count);
+
+  /// Menu action to remove selected number of songs from queue
+  ///
+  /// In zh, this message translates to:
+  /// **'从队列中移除 ({count} 首)'**
+  String removeFromQueueWithCount(Object count);
+
+  /// Action to deselect all selected items
+  ///
+  /// In zh, this message translates to:
+  /// **'取消选择'**
+  String get cancelSelection;
+
+  /// Context menu item to enter multi-select mode
+  ///
+  /// In zh, this message translates to:
+  /// **'多选'**
+  String get multiSelect;
+
+  /// Button to create something
+  ///
+  /// In zh, this message translates to:
+  /// **'创建'**
+  String get create;
+
+  /// Tooltip for more options menu
+  ///
+  /// In zh, this message translates to:
+  /// **'更多选项'**
+  String get moreOptions;
+
+  /// Tooltip to open queue panel as standalone window
+  ///
+  /// In zh, this message translates to:
+  /// **'分离为独立窗口'**
+  String get detachToStandaloneWindow;
+
+  /// Tooltip to close side drawer
+  ///
+  /// In zh, this message translates to:
+  /// **'关闭抽屉'**
+  String get closeDrawer;
+
+  /// Empty queue drag hint in side drawer
+  ///
+  /// In zh, this message translates to:
+  /// **'可从左侧媒体库、目录或歌单\n直接将歌曲拖拽到此处'**
+  String get queueEmptyDragHint;
+
+  /// Tooltip to append songs to queue end
+  ///
+  /// In zh, this message translates to:
+  /// **'追加到队列末尾'**
+  String get appendToQueueEnd;
+
+  /// Toast message after appending songs to queue
+  ///
+  /// In zh, this message translates to:
+  /// **'已将 {count} 首歌曲追加到队列末尾'**
+  String addedSongsToQueueEnd(Object count);
+
+  /// Toast message after clearing songs in playlist
+  ///
+  /// In zh, this message translates to:
+  /// **'已清空【{name}】'**
+  String playlistSongsCleared(Object name);
+
+  /// Toast message after deleting a playlist with its name
+  ///
+  /// In zh, this message translates to:
+  /// **'已删除歌单【{name}】'**
+  String playlistDeletedWithName(Object name);
+
+  /// Menu action to clear songs in playlist
+  ///
+  /// In zh, this message translates to:
+  /// **'清空歌曲'**
+  String get clearSongs;
+
+  /// Empty playlist drag hint in side drawer
+  ///
+  /// In zh, this message translates to:
+  /// **'可从左侧媒体库拖拽歌曲\n或直接拖拽本地音频文件至此'**
+  String get playlistEmptyDragHint;
+
+  /// Window title for standalone queue and playlist window
+  ///
+  /// In zh, this message translates to:
+  /// **'播放队列与歌单 - Vynody'**
+  String get standaloneQueueWindowTitle;
+
+  /// Window title for standalone queue manager
+  ///
+  /// In zh, this message translates to:
+  /// **'播放队列 - Vynody'**
+  String get standaloneQueueManagerTitle;
+
+  /// Tooltip to close standalone queue window and reopen in main window
+  ///
+  /// In zh, this message translates to:
+  /// **'吸附回主窗口'**
+  String get dockBackToMainWindow;
+
+  /// Tooltip to unpin window from staying on top
+  ///
+  /// In zh, this message translates to:
+  /// **'取消置顶'**
+  String get unpin;
+
+  /// Context menu item to immediately play song
+  ///
+  /// In zh, this message translates to:
+  /// **'立即播放'**
+  String get playNow;
+
+  /// Drag hint in empty playlist in standalone window
+  ///
+  /// In zh, this message translates to:
+  /// **'可直接拖拽本地音频文件至此添加'**
+  String get standalonePlaylistDragHint;
+
+  /// Drag hint in empty queue in standalone window
+  ///
+  /// In zh, this message translates to:
+  /// **'从媒体库、目录页或外部将歌曲拖拽到此处'**
+  String get standaloneQueueDragHint;
+
+  /// Tooltip for button to close standalone queue window
+  ///
+  /// In zh, this message translates to:
+  /// **'关闭独立播放队列'**
+  String get closeStandaloneQueue;
+
+  /// Tooltip for button to collapse right queue drawer
+  ///
+  /// In zh, this message translates to:
+  /// **'收起播放队列'**
+  String get collapsePlayQueue;
+
+  /// Tooltip for button to expand right queue drawer
+  ///
+  /// In zh, this message translates to:
+  /// **'展开播放队列'**
+  String get expandPlayQueue;
+
+  /// Tooltip to turn on lyrics translation
+  ///
+  /// In zh, this message translates to:
+  /// **'开启歌词翻译'**
+  String get enableLyricsTranslation;
+
+  /// Tooltip to turn off lyrics translation
+  ///
+  /// In zh, this message translates to:
+  /// **'关闭歌词翻译'**
+  String get disableLyricsTranslation;
+
+  /// Tooltip to trigger AI translation generation
+  ///
+  /// In zh, this message translates to:
+  /// **'生成歌词翻译'**
+  String get generateLyricsTranslation;
+
+  /// Tooltip to turn on word by word lyrics
+  ///
+  /// In zh, this message translates to:
+  /// **'开启逐字歌词'**
+  String get enableWordByWordLyrics;
+
+  /// Tooltip to turn off word by word lyrics
+  ///
+  /// In zh, this message translates to:
+  /// **'关闭逐字歌词'**
+  String get disableWordByWordLyrics;
+
+  /// Tooltip to trigger karaoke lyrics generation
+  ///
+  /// In zh, this message translates to:
+  /// **'生成逐字歌词'**
+  String get generateWordByWordLyrics;
+
+  /// Toast notification when lyrics translation is enabled
+  ///
+  /// In zh, this message translates to:
+  /// **'已开启歌词翻译'**
+  String get lyricsTranslationEnabled;
+
+  /// Toast notification when lyrics translation is disabled
+  ///
+  /// In zh, this message translates to:
+  /// **'已关闭歌词翻译'**
+  String get lyricsTranslationDisabled;
+
+  /// Checkbox title to enable descending sort order
+  ///
+  /// In zh, this message translates to:
+  /// **'启用降序'**
+  String get enableDescending;
+
+  /// Subtitle indicating descending order is active
+  ///
+  /// In zh, this message translates to:
+  /// **'当前为降序排列'**
+  String get currentlyDescending;
+
+  /// Subtitle indicating ascending order is active
+  ///
+  /// In zh, this message translates to:
+  /// **'当前为升序排列'**
+  String get currentlyAscending;
+
+  /// Title for library source filter dialog
+  ///
+  /// In zh, this message translates to:
+  /// **'媒体库来源筛选'**
+  String get librarySourceFilterTitle;
+
+  /// Filter option for all music sources
+  ///
+  /// In zh, this message translates to:
+  /// **'全部音乐'**
+  String get librarySourceAll;
+
+  /// Description for all music filter option
+  ///
+  /// In zh, this message translates to:
+  /// **'包含本地与所有已索引的远程音乐'**
+  String get librarySourceAllDescription;
+
+  /// Filter option for local music only
+  ///
+  /// In zh, this message translates to:
+  /// **'仅本地设备'**
+  String get librarySourceLocalOnly;
+
+  /// Description for local music filter option
+  ///
+  /// In zh, this message translates to:
+  /// **'仅显示本设备存储的音乐'**
+  String get librarySourceLocalOnlyDescription;
+
+  /// Section header for indexed remote servers filter
+  ///
+  /// In zh, this message translates to:
+  /// **'已索引的远程服务器'**
+  String get librarySourceIndexedRemote;
+
+  /// Visualizer spectrum style label
+  ///
+  /// In zh, this message translates to:
+  /// **'频谱样式'**
+  String get visualizerStyle;
+
+  /// Classic bars visualizer style name
+  ///
+  /// In zh, this message translates to:
+  /// **'经典柱状'**
+  String get visualizerStyleBars;
+
+  /// Smooth wave visualizer style name
+  ///
+  /// In zh, this message translates to:
+  /// **'平滑波浪'**
+  String get visualizerStyleSmoothWave;
+
+  /// Floating caps visualizer style name
+  ///
+  /// In zh, this message translates to:
+  /// **'浮动顶帽'**
+  String get visualizerStyleFloatingBars;
+
+  /// Radial halo visualizer style name
+  ///
+  /// In zh, this message translates to:
+  /// **'环形光晕'**
+  String get visualizerStyleRadial;
+
+  /// Neon matrix visualizer style name
+  ///
+  /// In zh, this message translates to:
+  /// **'点阵矩阵'**
+  String get visualizerStyleMatrix;
+
+  /// Mirrored wave visualizer style name
+  ///
+  /// In zh, this message translates to:
+  /// **'对称镜像波'**
+  String get visualizerStyleMirroredWave;
+
+  /// Tooltip to replace playback button in custom layout
+  ///
+  /// In zh, this message translates to:
+  /// **'替换按键'**
+  String get replaceButton;
+
+  /// Summary of selected artists and their total songs
+  ///
+  /// In zh, this message translates to:
+  /// **'已选择 {artistCount} 位艺术家 ({songCount} 首歌曲)'**
+  String selectedArtistsWithTotalSongs(Object artistCount, Object songCount);
+
+  /// Jellyfin album label
+  ///
+  /// In zh, this message translates to:
+  /// **'Jellyfin 专辑'**
+  String get jellyfinAlbum;
+
+  /// Navidrome album label
+  ///
+  /// In zh, this message translates to:
+  /// **'Navidrome 专辑'**
+  String get navidromeAlbum;
+
+  /// Jellyfin artist label
+  ///
+  /// In zh, this message translates to:
+  /// **'Jellyfin 艺术家'**
+  String get jellyfinArtist;
+
+  /// Navidrome artist label
+  ///
+  /// In zh, this message translates to:
+  /// **'Navidrome 艺术家'**
+  String get navidromeArtist;
+
+  /// Jellyfin playlist label
+  ///
+  /// In zh, this message translates to:
+  /// **'Jellyfin 歌单'**
+  String get jellyfinPlaylist;
+
+  /// Navidrome playlist label
+  ///
+  /// In zh, this message translates to:
+  /// **'Navidrome 歌单'**
+  String get navidromePlaylist;
+
+  /// Fallback label for unknown playlist
+  ///
+  /// In zh, this message translates to:
+  /// **'未知歌单'**
+  String get unknownPlaylist;
+
+  /// Progress indicator while loading remote playlists
+  ///
+  /// In zh, this message translates to:
+  /// **'正在加载服务端歌单...'**
+  String get loadingServerPlaylists;
+
+  /// Permission hint when deleting playlist fails on Jellyfin
+  ///
+  /// In zh, this message translates to:
+  /// **'（请检查 Jellyfin 用户是否开启“允许删除媒体”权限）'**
+  String get jellyfinMediaDeletionPermissionHint;
 }
 
 class _AppLocalizationsDelegate

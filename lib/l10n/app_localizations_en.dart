@@ -5140,4 +5140,216 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get cannotConnectToMediaServer =>
       'Cannot connect to media library server. Please check if the service is running.';
+
+  @override
+  String get playQueue => 'Play Queue';
+
+  @override
+  String get clearPlaybackQueue => 'Clear Play Queue';
+
+  @override
+  String get confirmClearPlaybackQueue =>
+      'Are you sure you want to clear all upcoming songs in the queue?';
+
+  @override
+  String get exitMultiSelect => 'Exit Multi-select';
+
+  @override
+  String selectedItemsCount(Object count) {
+    return '$count selected';
+  }
+
+  @override
+  String removeFromQueueWithCount(Object count) {
+    return 'Remove from queue ($count songs)';
+  }
+
+  @override
+  String get cancelSelection => 'Deselect';
+
+  @override
+  String get multiSelect => 'Multi-select';
+
+  @override
+  String get create => 'Create';
+
+  @override
+  String get moreOptions => 'More Options';
+
+  @override
+  String get detachToStandaloneWindow => 'Detach to Standalone Window';
+
+  @override
+  String get closeDrawer => 'Close Drawer';
+
+  @override
+  String get queueEmptyDragHint =>
+      'Drag songs here from library, folders, or playlists';
+
+  @override
+  String get appendToQueueEnd => 'Append to End of Queue';
+
+  @override
+  String addedSongsToQueueEnd(Object count) {
+    return 'Appended $count songs to end of queue';
+  }
+
+  @override
+  String playlistSongsCleared(Object name) {
+    return 'Cleared \"$name\"';
+  }
+
+  @override
+  String playlistDeletedWithName(Object name) {
+    return 'Deleted playlist \"$name\"';
+  }
+
+  @override
+  String get clearSongs => 'Clear Songs';
+
+  @override
+  String get playlistEmptyDragHint =>
+      'Drag songs from library\nor drag local audio files here directly';
+
+  @override
+  String get standaloneQueueWindowTitle => 'Play Queue & Playlists - Vynody';
+
+  @override
+  String get standaloneQueueManagerTitle => 'Play Queue - Vynody';
+
+  @override
+  String get dockBackToMainWindow => 'Dock Back to Main Window';
+
+  @override
+  String get unpin => 'Unpin';
+
+  @override
+  String get playNow => 'Play Now';
+
+  @override
+  String get standalonePlaylistDragHint =>
+      'Drag local audio files here directly to add';
+
+  @override
+  String get standaloneQueueDragHint =>
+      'Drag songs here from library, folders, or external files';
+
+  @override
+  String get closeStandaloneQueue => 'Close Standalone Queue';
+
+  @override
+  String get collapsePlayQueue => 'Collapse Play Queue';
+
+  @override
+  String get expandPlayQueue => 'Expand Play Queue';
+
+  @override
+  String get enableLyricsTranslation => 'Turn on Lyrics Translation';
+
+  @override
+  String get disableLyricsTranslation => 'Turn off Lyrics Translation';
+
+  @override
+  String get generateLyricsTranslation => 'Generate Lyrics Translation';
+
+  @override
+  String get enableWordByWordLyrics => 'Turn on Word-by-Word Lyrics';
+
+  @override
+  String get disableWordByWordLyrics => 'Turn off Word-by-Word Lyrics';
+
+  @override
+  String get generateWordByWordLyrics => 'Generate Word-by-Word Lyrics';
+
+  @override
+  String get lyricsTranslationEnabled => 'Lyrics translation enabled';
+
+  @override
+  String get lyricsTranslationDisabled => 'Lyrics translation disabled';
+
+  @override
+  String get enableDescending => 'Enable descending order';
+
+  @override
+  String get currentlyDescending => 'Currently sorted in descending order';
+
+  @override
+  String get currentlyAscending => 'Currently sorted in ascending order';
+
+  @override
+  String get librarySourceFilterTitle => 'Library Source Filter';
+
+  @override
+  String get librarySourceAll => 'All Music';
+
+  @override
+  String get librarySourceAllDescription =>
+      'Includes local and all indexed remote music';
+
+  @override
+  String get librarySourceLocalOnly => 'Local Device Only';
+
+  @override
+  String get librarySourceLocalOnlyDescription =>
+      'Only shows music stored on this device';
+
+  @override
+  String get librarySourceIndexedRemote => 'Indexed Remote Servers';
+
+  @override
+  String get visualizerStyle => 'Spectrum Style';
+
+  @override
+  String get visualizerStyleBars => 'Classic Bars';
+
+  @override
+  String get visualizerStyleSmoothWave => 'Smooth Wave';
+
+  @override
+  String get visualizerStyleFloatingBars => 'Floating Caps';
+
+  @override
+  String get visualizerStyleRadial => 'Radial Halo';
+
+  @override
+  String get visualizerStyleMatrix => 'Neon Matrix';
+
+  @override
+  String get visualizerStyleMirroredWave => 'Mirrored Wave';
+
+  @override
+  String get replaceButton => 'Replace Button';
+
+  @override
+  String selectedArtistsWithTotalSongs(Object artistCount, Object songCount) {
+    return 'Selected $artistCount artists ($songCount songs)';
+  }
+
+  @override
+  String get jellyfinAlbum => 'Jellyfin Album';
+
+  @override
+  String get navidromeAlbum => 'Navidrome Album';
+
+  @override
+  String get jellyfinArtist => 'Jellyfin Artist';
+
+  @override
+  String get navidromeArtist => 'Navidrome Artist';
+
+  @override
+  String get jellyfinPlaylist => 'Jellyfin Playlist';
+
+  @override
+  String get navidromePlaylist => 'Navidrome Playlist';
+
+  @override
+  String get unknownPlaylist => 'Unknown Playlist';
+
+  @override
+  String get loadingServerPlaylists => 'Loading server playlists...';
+
+  @override
+  String get jellyfinMediaDeletionPermissionHint =>
+      ' (Please check if Jellyfin user has \"Allow media deletion\" permission)';
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:super_drag_and_drop/super_drag_and_drop.dart';
+import 'package:vynody/l10n/app_localizations.dart';
 import 'package:vynody/player/remote/remote_server_models.dart';
 import 'package:vynody/widgets/draggable_preview_card.dart';
 
@@ -89,23 +90,24 @@ class DraggableRemotePlaylistItem extends StatelessWidget {
       dragBuilder: (context, child) {
         debugPrint(
             '[DRAG] DraggableRemotePlaylistItem.dragBuilder called for: $playlistName');
+        final l10n = AppLocalizations.of(context)!;
         if (isBatch) {
           return AppDraggablePreviewCard(
             title: playlistName,
-            subtitle: '已选择 ${selectedPlaylistIds!.length} 个歌单',
+            subtitle: l10n.selectedPlaylistsCount(selectedPlaylistIds!.length),
             defaultIcon: Icons.queue_music_rounded,
-            badgeText: '${selectedPlaylistIds!.length}个',
+            badgeText: '${selectedPlaylistIds!.length}',
             count: selectedPlaylistIds!.length,
             isBatch: true,
           );
         }
-        final serverLabel = isJellyfin ? 'Jellyfin 歌单' : 'Navidrome 歌单';
-        final subtitle = count > 0 ? '$count 首歌曲' : serverLabel;
+        final serverLabel = isJellyfin ? l10n.jellyfinPlaylist : l10n.navidromePlaylist;
+        final subtitle = count > 0 ? l10n.songsCountFormat(count) : serverLabel;
         return AppDraggablePreviewCard(
           title: playlistName,
           subtitle: subtitle,
           defaultIcon: Icons.queue_music_rounded,
-          badgeText: count > 0 ? '$count首' : null,
+          badgeText: count > 0 ? l10n.songsCountFormat(count) : null,
           count: count > 0 ? count : 1,
         );
       },

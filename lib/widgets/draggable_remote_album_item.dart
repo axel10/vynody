@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:super_drag_and_drop/super_drag_and_drop.dart';
+import 'package:vynody/l10n/app_localizations.dart';
 import 'package:vynody/player/remote/remote_server_models.dart';
 import 'package:vynody/widgets/draggable_preview_card.dart';
 
@@ -95,21 +96,26 @@ class DraggableRemoteAlbumItem extends StatelessWidget {
       dragBuilder: (context, child) {
         debugPrint(
             '[DRAG] DraggableRemoteAlbumItem.dragBuilder called for: $title');
+        final l10n = AppLocalizations.of(context)!;
         if (isBatch) {
           return AppDraggablePreviewCard(
             title: title,
-            subtitle: '已选择 ${selectedAlbumIds!.length} 张专辑',
+            subtitle: l10n.selectedAlbumsCount(selectedAlbumIds!.length),
             defaultIcon: Icons.album_rounded,
-            badgeText: '${selectedAlbumIds!.length}张',
+            badgeText: '${selectedAlbumIds!.length}',
             count: selectedAlbumIds!.length,
             isBatch: true,
           );
         }
         return AppDraggablePreviewCard(
           title: title,
-          subtitle: artist.isNotEmpty ? artist : (isJellyfin ? 'Jellyfin 专辑' : 'Navidrome 专辑'),
+          subtitle: artist.isNotEmpty
+              ? artist
+              : (isJellyfin ? l10n.jellyfinAlbum : l10n.navidromeAlbum),
           defaultIcon: Icons.album_rounded,
-          badgeText: songCount != null && songCount! > 0 ? '$songCount首' : null,
+          badgeText: songCount != null && songCount! > 0
+              ? l10n.songsCountFormat(songCount!)
+              : null,
           count: songCount ?? 1,
         );
       },

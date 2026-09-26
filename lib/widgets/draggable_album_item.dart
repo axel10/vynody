@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:super_drag_and_drop/super_drag_and_drop.dart';
+import 'package:vynody/l10n/app_localizations.dart';
 import 'package:vynody/models/album_summary.dart';
 import 'package:vynody/widgets/draggable_preview_card.dart';
 
@@ -59,12 +60,13 @@ class DraggableAlbumItem extends StatelessWidget {
       },
       dragBuilder: (context, child) {
         debugPrint('[DRAG] DraggableAlbumItem.dragBuilder called for: ${album.title}');
+        final l10n = AppLocalizations.of(context)!;
         return AppDraggablePreviewCard(
           title: album.title,
           subtitle: album.artist,
           imagePath: coverPath,
           defaultIcon: Icons.album_rounded,
-          badgeText: '${album.trackCount}首',
+          badgeText: l10n.songsCountFormat(album.trackCount),
           count: album.trackCount,
         );
       },

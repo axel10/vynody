@@ -640,7 +640,6 @@ class _RemotePlaylistDialogContentState
     final serverColor = isJellyfin ? const Color(0xFF9D65C9) : Colors.orange;
 
     if (_isLoading) {
-      final isZh = widget.l10n.localeName.startsWith('zh');
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -655,7 +654,7 @@ class _RemotePlaylistDialogContentState
             ),
             const SizedBox(height: 12),
             Text(
-              isZh ? '正在加载服务端歌单...' : 'Loading server playlists...',
+              widget.l10n.loadingServerPlaylists,
               style: TextStyle(
                 color: widget.theme.colorScheme.onSurfaceVariant,
                 fontSize: 13,

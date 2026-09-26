@@ -126,15 +126,15 @@ class _SortOptionsDialogState<T> extends State<SortOptionsDialog<T>> {
                 borderRadius: BorderRadius.circular(12),
               ),
               title: Text(
-                isZh ? '启用降序' : l10n.sortDescending,
+                l10n.enableDescending,
                 style: theme.textTheme.bodyMedium?.copyWith(
                   fontWeight: _isDescending ? FontWeight.w600 : FontWeight.normal,
                 ),
               ),
               subtitle: Text(
                 _isDescending
-                    ? (isZh ? '当前为降序排列' : l10n.sortDescending)
-                    : (isZh ? '当前为升序排列' : l10n.sortAscending),
+                    ? l10n.currentlyDescending
+                    : l10n.currentlyAscending,
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),

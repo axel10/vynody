@@ -4884,6 +4884,211 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get cannotConnectToMediaServer => '无法连接到媒体库服务器，请检查服务是否开启';
+
+  @override
+  String get playQueue => '播放队列';
+
+  @override
+  String get clearPlaybackQueue => '清空播放队列';
+
+  @override
+  String get confirmClearPlaybackQueue => '确定要清空当前所有待播放的歌曲吗？';
+
+  @override
+  String get exitMultiSelect => '退出多选';
+
+  @override
+  String selectedItemsCount(Object count) {
+    return '已选 $count 项';
+  }
+
+  @override
+  String removeFromQueueWithCount(Object count) {
+    return '从队列中移除 ($count 首)';
+  }
+
+  @override
+  String get cancelSelection => '取消选择';
+
+  @override
+  String get multiSelect => '多选';
+
+  @override
+  String get create => '创建';
+
+  @override
+  String get moreOptions => '更多选项';
+
+  @override
+  String get detachToStandaloneWindow => '分离为独立窗口';
+
+  @override
+  String get closeDrawer => '关闭抽屉';
+
+  @override
+  String get queueEmptyDragHint => '可从左侧媒体库、目录或歌单\n直接将歌曲拖拽到此处';
+
+  @override
+  String get appendToQueueEnd => '追加到队列末尾';
+
+  @override
+  String addedSongsToQueueEnd(Object count) {
+    return '已将 $count 首歌曲追加到队列末尾';
+  }
+
+  @override
+  String playlistSongsCleared(Object name) {
+    return '已清空【$name】';
+  }
+
+  @override
+  String playlistDeletedWithName(Object name) {
+    return '已删除歌单【$name】';
+  }
+
+  @override
+  String get clearSongs => '清空歌曲';
+
+  @override
+  String get playlistEmptyDragHint => '可从左侧媒体库拖拽歌曲\n或直接拖拽本地音频文件至此';
+
+  @override
+  String get standaloneQueueWindowTitle => '播放队列与歌单 - Vynody';
+
+  @override
+  String get standaloneQueueManagerTitle => '播放队列 - Vynody';
+
+  @override
+  String get dockBackToMainWindow => '吸附回主窗口';
+
+  @override
+  String get unpin => '取消置顶';
+
+  @override
+  String get playNow => '立即播放';
+
+  @override
+  String get standalonePlaylistDragHint => '可直接拖拽本地音频文件至此添加';
+
+  @override
+  String get standaloneQueueDragHint => '从媒体库、目录页或外部将歌曲拖拽到此处';
+
+  @override
+  String get closeStandaloneQueue => '关闭独立播放队列';
+
+  @override
+  String get collapsePlayQueue => '收起播放队列';
+
+  @override
+  String get expandPlayQueue => '展开播放队列';
+
+  @override
+  String get enableLyricsTranslation => '开启歌词翻译';
+
+  @override
+  String get disableLyricsTranslation => '关闭歌词翻译';
+
+  @override
+  String get generateLyricsTranslation => '生成歌词翻译';
+
+  @override
+  String get enableWordByWordLyrics => '开启逐字歌词';
+
+  @override
+  String get disableWordByWordLyrics => '关闭逐字歌词';
+
+  @override
+  String get generateWordByWordLyrics => '生成逐字歌词';
+
+  @override
+  String get lyricsTranslationEnabled => '已开启歌词翻译';
+
+  @override
+  String get lyricsTranslationDisabled => '已关闭歌词翻译';
+
+  @override
+  String get enableDescending => '启用降序';
+
+  @override
+  String get currentlyDescending => '当前为降序排列';
+
+  @override
+  String get currentlyAscending => '当前为升序排列';
+
+  @override
+  String get librarySourceFilterTitle => '媒体库来源筛选';
+
+  @override
+  String get librarySourceAll => '全部音乐';
+
+  @override
+  String get librarySourceAllDescription => '包含本地与所有已索引的远程音乐';
+
+  @override
+  String get librarySourceLocalOnly => '仅本地设备';
+
+  @override
+  String get librarySourceLocalOnlyDescription => '仅显示本设备存储的音乐';
+
+  @override
+  String get librarySourceIndexedRemote => '已索引的远程服务器';
+
+  @override
+  String get visualizerStyle => '频谱样式';
+
+  @override
+  String get visualizerStyleBars => '经典柱状';
+
+  @override
+  String get visualizerStyleSmoothWave => '平滑波浪';
+
+  @override
+  String get visualizerStyleFloatingBars => '浮动顶帽';
+
+  @override
+  String get visualizerStyleRadial => '环形光晕';
+
+  @override
+  String get visualizerStyleMatrix => '点阵矩阵';
+
+  @override
+  String get visualizerStyleMirroredWave => '对称镜像波';
+
+  @override
+  String get replaceButton => '替换按键';
+
+  @override
+  String selectedArtistsWithTotalSongs(Object artistCount, Object songCount) {
+    return '已选择 $artistCount 位艺术家 ($songCount 首歌曲)';
+  }
+
+  @override
+  String get jellyfinAlbum => 'Jellyfin 专辑';
+
+  @override
+  String get navidromeAlbum => 'Navidrome 专辑';
+
+  @override
+  String get jellyfinArtist => 'Jellyfin 艺术家';
+
+  @override
+  String get navidromeArtist => 'Navidrome 艺术家';
+
+  @override
+  String get jellyfinPlaylist => 'Jellyfin 歌单';
+
+  @override
+  String get navidromePlaylist => 'Navidrome 歌单';
+
+  @override
+  String get unknownPlaylist => '未知歌单';
+
+  @override
+  String get loadingServerPlaylists => '正在加载服务端歌单...';
+
+  @override
+  String get jellyfinMediaDeletionPermissionHint =>
+      '（请检查 Jellyfin 用户是否开启“允许删除媒体”权限）';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -9766,4 +9971,209 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get cannotConnectToMediaServer => '無法連線至媒體庫伺服器，請檢查服務是否開啟';
+
+  @override
+  String get playQueue => '播放佇列';
+
+  @override
+  String get clearPlaybackQueue => '清空播放佇列';
+
+  @override
+  String get confirmClearPlaybackQueue => '確定要清空目前所有待播放的歌曲嗎？';
+
+  @override
+  String get exitMultiSelect => '退出多選';
+
+  @override
+  String selectedItemsCount(Object count) {
+    return '已選 $count 項';
+  }
+
+  @override
+  String removeFromQueueWithCount(Object count) {
+    return '從佇列中移除 ($count 首)';
+  }
+
+  @override
+  String get cancelSelection => '取消選擇';
+
+  @override
+  String get multiSelect => '多選';
+
+  @override
+  String get create => '建立';
+
+  @override
+  String get moreOptions => '更多選項';
+
+  @override
+  String get detachToStandaloneWindow => '分離為獨立視窗';
+
+  @override
+  String get closeDrawer => '關閉側欄';
+
+  @override
+  String get queueEmptyDragHint => '可從左側媒體庫、目錄或歌單\n直接將歌曲拖曳到此處';
+
+  @override
+  String get appendToQueueEnd => '追加到佇列末尾';
+
+  @override
+  String addedSongsToQueueEnd(Object count) {
+    return '已將 $count 首歌曲追加到佇列末尾';
+  }
+
+  @override
+  String playlistSongsCleared(Object name) {
+    return '已清空【$name】';
+  }
+
+  @override
+  String playlistDeletedWithName(Object name) {
+    return '已刪除歌單【$name】';
+  }
+
+  @override
+  String get clearSongs => '清空歌曲';
+
+  @override
+  String get playlistEmptyDragHint => '可從左側媒體庫拖曳歌曲\n或直接拖曳本機音訊檔案至此';
+
+  @override
+  String get standaloneQueueWindowTitle => '播放佇列與歌單 - Vynody';
+
+  @override
+  String get standaloneQueueManagerTitle => '播放佇列 - Vynody';
+
+  @override
+  String get dockBackToMainWindow => '吸附回主視窗';
+
+  @override
+  String get unpin => '取消置頂';
+
+  @override
+  String get playNow => '立即播放';
+
+  @override
+  String get standalonePlaylistDragHint => '可直接拖曳本機音訊檔案至此新增';
+
+  @override
+  String get standaloneQueueDragHint => '從媒體庫、目錄頁或外部將歌曲拖曳到此處';
+
+  @override
+  String get closeStandaloneQueue => '關閉獨立播放佇列';
+
+  @override
+  String get collapsePlayQueue => '收起播放佇列';
+
+  @override
+  String get expandPlayQueue => '展開播放佇列';
+
+  @override
+  String get enableLyricsTranslation => '開啟歌詞翻譯';
+
+  @override
+  String get disableLyricsTranslation => '關閉歌詞翻譯';
+
+  @override
+  String get generateLyricsTranslation => '生成歌詞翻譯';
+
+  @override
+  String get enableWordByWordLyrics => '開啟逐字歌詞';
+
+  @override
+  String get disableWordByWordLyrics => '關閉逐字歌詞';
+
+  @override
+  String get generateWordByWordLyrics => '生成逐字歌詞';
+
+  @override
+  String get lyricsTranslationEnabled => '已開啟歌詞翻譯';
+
+  @override
+  String get lyricsTranslationDisabled => '已關閉歌詞翻譯';
+
+  @override
+  String get enableDescending => '啟用降冪';
+
+  @override
+  String get currentlyDescending => '目前為降冪排序';
+
+  @override
+  String get currentlyAscending => '目前為升冪排序';
+
+  @override
+  String get librarySourceFilterTitle => '媒體庫來源篩選';
+
+  @override
+  String get librarySourceAll => '全部音樂';
+
+  @override
+  String get librarySourceAllDescription => '包含本機與所有已建立索引的遠端音樂';
+
+  @override
+  String get librarySourceLocalOnly => '僅本機裝置';
+
+  @override
+  String get librarySourceLocalOnlyDescription => '僅顯示儲存於此裝置的音樂';
+
+  @override
+  String get librarySourceIndexedRemote => '已建立索引的遠端伺服器';
+
+  @override
+  String get visualizerStyle => '頻譜樣式';
+
+  @override
+  String get visualizerStyleBars => '經典柱狀';
+
+  @override
+  String get visualizerStyleSmoothWave => '平滑波浪';
+
+  @override
+  String get visualizerStyleFloatingBars => '浮動頂帽';
+
+  @override
+  String get visualizerStyleRadial => '環形光暈';
+
+  @override
+  String get visualizerStyleMatrix => '點陣矩陣';
+
+  @override
+  String get visualizerStyleMirroredWave => '對稱鏡像波';
+
+  @override
+  String get replaceButton => '替換按鍵';
+
+  @override
+  String selectedArtistsWithTotalSongs(Object artistCount, Object songCount) {
+    return '已選擇 $artistCount 位演出者 ($songCount 首歌曲)';
+  }
+
+  @override
+  String get jellyfinAlbum => 'Jellyfin 專輯';
+
+  @override
+  String get navidromeAlbum => 'Navidrome 專輯';
+
+  @override
+  String get jellyfinArtist => 'Jellyfin 演出者';
+
+  @override
+  String get navidromeArtist => 'Navidrome 演出者';
+
+  @override
+  String get jellyfinPlaylist => 'Jellyfin 歌單';
+
+  @override
+  String get navidromePlaylist => 'Navidrome 歌單';
+
+  @override
+  String get unknownPlaylist => '未知歌單';
+
+  @override
+  String get loadingServerPlaylists => '正在載入伺服器端歌單...';
+
+  @override
+  String get jellyfinMediaDeletionPermissionHint =>
+      '（請檢查 Jellyfin 使用者是否開啟「允許刪除媒體」權限）';
 }

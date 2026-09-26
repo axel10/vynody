@@ -115,6 +115,7 @@ class _DesktopWindowTitleBarState extends ConsumerState<DesktopWindowTitleBar>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final isFullScreen = ref.watch(isWindowFullScreenProvider);
     final isMacOS = Platform.isMacOS;
     final isWindowsOrLinux = Platform.isWindows || Platform.isLinux;
@@ -169,8 +170,8 @@ class _DesktopWindowTitleBarState extends ConsumerState<DesktopWindowTitleBar>
                       ),
                     AppTooltip(
                       message: settings.enableDesktopLyrics
-                          ? '关闭桌面歌词'
-                          : '桌面歌词',
+                          ? (l10n?.closeDesktopLyrics ?? 'Close Desktop Lyrics')
+                          : (l10n?.desktopLyrics ?? 'Desktop Lyrics'),
                       child: _MacosSmallWindowButton(
                         icon: settings.enableDesktopLyrics
                             ? Icons.subtitles
@@ -189,10 +190,10 @@ class _DesktopWindowTitleBarState extends ConsumerState<DesktopWindowTitleBar>
                     if (!isSmallWindowMode)
                       AppTooltip(
                         message: ref.watch(isStandaloneQueueWindowOpenProvider)
-                            ? '关闭独立播放队列'
+                            ? (l10n?.closeStandaloneQueue ?? 'Close Standalone Queue')
                             : (ref.watch(rightQueueDrawerProvider)
-                                ? '收起播放队列'
-                                : '展开播放队列'),
+                                ? (l10n?.collapsePlayQueue ?? 'Collapse Play Queue')
+                                : (l10n?.expandPlayQueue ?? 'Expand Play Queue')),
                         child: _MacosSmallWindowButton(
                           icon: ref.watch(isStandaloneQueueWindowOpenProvider) ||
                                   ref.watch(rightQueueDrawerProvider)
@@ -239,7 +240,7 @@ class _DesktopWindowTitleBarState extends ConsumerState<DesktopWindowTitleBar>
                             ),
                           ),
                           AppTooltip(
-                            message: '播放队列',
+                            message: l10n?.playQueue ?? 'Play Queue',
                             child: _MacosSmallWindowButton(
                               icon: Icons.queue_music,
                               iconSize: 16,
@@ -255,7 +256,7 @@ class _DesktopWindowTitleBarState extends ConsumerState<DesktopWindowTitleBar>
                             ),
                           ),
                           AppTooltip(
-                            message: '歌词',
+                            message: l10n?.lyrics ?? 'Lyrics',
                             child: _MacosSmallWindowButton(
                               icon: Icons.text_snippet_outlined,
                               iconSize: 16,
@@ -322,8 +323,8 @@ class _DesktopWindowTitleBarState extends ConsumerState<DesktopWindowTitleBar>
                             : Icons.subtitles_outlined,
                         iconSize: isSmallWindowMode ? 14 : 16,
                         tooltip: settings.enableDesktopLyrics
-                            ? '关闭桌面歌词'
-                            : '桌面歌词',
+                            ? (l10n?.closeDesktopLyrics ?? 'Close Desktop Lyrics')
+                            : (l10n?.desktopLyrics ?? 'Desktop Lyrics'),
                         color: settings.enableDesktopLyrics
                             ? Theme.of(context).colorScheme.primary
                             : null,
@@ -341,10 +342,10 @@ class _DesktopWindowTitleBarState extends ConsumerState<DesktopWindowTitleBar>
                                 : Icons.queue_music_outlined),
                         iconSize: 16,
                         tooltip: ref.watch(isStandaloneQueueWindowOpenProvider)
-                            ? '关闭独立播放队列'
+                            ? (l10n?.closeStandaloneQueue ?? 'Close Standalone Queue')
                             : (ref.watch(rightQueueDrawerProvider)
-                                ? '收起播放队列'
-                                : '展开播放队列'),
+                                ? (l10n?.collapsePlayQueue ?? 'Collapse Play Queue')
+                                : (l10n?.expandPlayQueue ?? 'Expand Play Queue')),
                         color: (ref.watch(isStandaloneQueueWindowOpenProvider) ||
                                 ref.watch(rightQueueDrawerProvider))
                             ? Theme.of(context).colorScheme.primary
@@ -366,9 +367,7 @@ class _DesktopWindowTitleBarState extends ConsumerState<DesktopWindowTitleBar>
                             : Icons.push_pin_outlined,
                         iconSize: 14,
                         tooltip:
-                            AppLocalizations.of(
-                              context,
-                            )?.alwaysOnTop ??
+                            l10n?.alwaysOnTop ??
                             'Always on Top',
                         color: settings.isSmallWindowAlwaysOnTop
                             ? Theme.of(context).colorScheme.primary
@@ -383,7 +382,7 @@ class _DesktopWindowTitleBarState extends ConsumerState<DesktopWindowTitleBar>
                       _CapsuleButtonData(
                         icon: Icons.queue_music,
                         iconSize: 14,
-                        tooltip: '播放队列',
+                        tooltip: l10n?.playQueue ?? 'Play Queue',
                         color: settings.isSmallWindowQueueExpanded
                             ? Theme.of(context).colorScheme.primary
                             : null,
@@ -396,7 +395,7 @@ class _DesktopWindowTitleBarState extends ConsumerState<DesktopWindowTitleBar>
                       _CapsuleButtonData(
                         icon: Icons.text_snippet_outlined,
                         iconSize: 14,
-                        tooltip: '歌词',
+                        tooltip: l10n?.lyrics ?? 'Lyrics',
                         color: settings.isSmallWindowLyricsExpanded
                             ? Theme.of(context).colorScheme.primary
                             : null,

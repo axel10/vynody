@@ -4968,4 +4968,210 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get cannotConnectToMediaServer =>
       'メディアライブラリサーバーに接続できません。サービスが起動しているか確認してください。';
+
+  @override
+  String get playQueue => '再生キュー';
+
+  @override
+  String get clearPlaybackQueue => '再生キューを消去';
+
+  @override
+  String get confirmClearPlaybackQueue => 'キュー内のすべての保留中の曲を消去してもよろしいですか？';
+
+  @override
+  String get exitMultiSelect => '複数選択を終了';
+
+  @override
+  String selectedItemsCount(Object count) {
+    return '$count件選択中';
+  }
+
+  @override
+  String removeFromQueueWithCount(Object count) {
+    return 'キューから削除 ($count曲)';
+  }
+
+  @override
+  String get cancelSelection => '選択を解除';
+
+  @override
+  String get multiSelect => '複数選択';
+
+  @override
+  String get create => '作成';
+
+  @override
+  String get moreOptions => 'その他のオプション';
+
+  @override
+  String get detachToStandaloneWindow => '独立ウィンドウに分離';
+
+  @override
+  String get closeDrawer => 'ドロワーを閉じる';
+
+  @override
+  String get queueEmptyDragHint => 'ライブラリ、フォルダ、プレイリストから\n曲をここにドラッグできます';
+
+  @override
+  String get appendToQueueEnd => 'キューの末尾に追加';
+
+  @override
+  String addedSongsToQueueEnd(Object count) {
+    return '$count曲をキューの末尾に追加しました';
+  }
+
+  @override
+  String playlistSongsCleared(Object name) {
+    return '「$name」を消去しました';
+  }
+
+  @override
+  String playlistDeletedWithName(Object name) {
+    return 'プレイリスト「$name」を削除しました';
+  }
+
+  @override
+  String get clearSongs => '曲をすべてクリア';
+
+  @override
+  String get playlistEmptyDragHint =>
+      'ライブラリからドラッグするか\nローカル音楽ファイルを直接ここにドラッグできます';
+
+  @override
+  String get standaloneQueueWindowTitle => '再生キューとプレイリスト - Vynody';
+
+  @override
+  String get standaloneQueueManagerTitle => '再生キュー - Vynody';
+
+  @override
+  String get dockBackToMainWindow => 'メインウィンドウに戻す';
+
+  @override
+  String get unpin => '最前面表示を解除';
+
+  @override
+  String get playNow => '今すぐ再生';
+
+  @override
+  String get standalonePlaylistDragHint => 'ローカル音楽ファイルを直接ここにドラッグして追加できます';
+
+  @override
+  String get standaloneQueueDragHint => 'ライブラリ、フォルダ、外部から曲をここにドラッグ';
+
+  @override
+  String get closeStandaloneQueue => '独立再生キューを閉じる';
+
+  @override
+  String get collapsePlayQueue => '再生キューを折りたたむ';
+
+  @override
+  String get expandPlayQueue => '再生キューを展開';
+
+  @override
+  String get enableLyricsTranslation => '歌詞翻訳を有効にする';
+
+  @override
+  String get disableLyricsTranslation => '歌詞翻訳を無効にする';
+
+  @override
+  String get generateLyricsTranslation => '歌詞翻訳を生成';
+
+  @override
+  String get enableWordByWordLyrics => '音節同期歌詞を有効にする';
+
+  @override
+  String get disableWordByWordLyrics => '音節同期歌詞を無効にする';
+
+  @override
+  String get generateWordByWordLyrics => '音節同期歌詞を生成';
+
+  @override
+  String get lyricsTranslationEnabled => '歌詞翻訳を有効にしました';
+
+  @override
+  String get lyricsTranslationDisabled => '歌詞翻訳を無効にしました';
+
+  @override
+  String get enableDescending => '降順を有効にする';
+
+  @override
+  String get currentlyDescending => '現在降順でソート中';
+
+  @override
+  String get currentlyAscending => '現在昇順でソート中';
+
+  @override
+  String get librarySourceFilterTitle => 'ライブラリソースの絞り込み';
+
+  @override
+  String get librarySourceAll => 'すべての音楽';
+
+  @override
+  String get librarySourceAllDescription => 'ローカルおよびインデックス済みのすべてのリモート音楽を含みます';
+
+  @override
+  String get librarySourceLocalOnly => 'ローカルデバイスのみ';
+
+  @override
+  String get librarySourceLocalOnlyDescription => 'このデバイスに保存されている音楽のみを表示します';
+
+  @override
+  String get librarySourceIndexedRemote => 'インデックス済みリモートサーバー';
+
+  @override
+  String get visualizerStyle => 'スペクトラムスタイル';
+
+  @override
+  String get visualizerStyleBars => 'クラシックバー';
+
+  @override
+  String get visualizerStyleSmoothWave => 'スムーズウェーブ';
+
+  @override
+  String get visualizerStyleFloatingBars => 'フローティングキャップ';
+
+  @override
+  String get visualizerStyleRadial => 'ラジアルヘイロー';
+
+  @override
+  String get visualizerStyleMatrix => 'ネオンマトリックス';
+
+  @override
+  String get visualizerStyleMirroredWave => 'ミラーウェーブ';
+
+  @override
+  String get replaceButton => 'ボタンを変更';
+
+  @override
+  String selectedArtistsWithTotalSongs(Object artistCount, Object songCount) {
+    return '$artistCount名のアーティストを選択中 ($songCount曲)';
+  }
+
+  @override
+  String get jellyfinAlbum => 'Jellyfin アルバム';
+
+  @override
+  String get navidromeAlbum => 'Navidrome アルバム';
+
+  @override
+  String get jellyfinArtist => 'Jellyfin アーティスト';
+
+  @override
+  String get navidromeArtist => 'Navidrome アーティスト';
+
+  @override
+  String get jellyfinPlaylist => 'Jellyfin プレイリスト';
+
+  @override
+  String get navidromePlaylist => 'Navidrome プレイリスト';
+
+  @override
+  String get unknownPlaylist => '不明なプレイリスト';
+
+  @override
+  String get loadingServerPlaylists => 'サーバーのプレイリストを読み込み中...';
+
+  @override
+  String get jellyfinMediaDeletionPermissionHint =>
+      '（Jellyfin ユーザーに「メディアの削除を許可」権限があるか確認してください）';
 }

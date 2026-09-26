@@ -321,7 +321,7 @@ class _PlaybackButtonLayoutViewState extends State<PlaybackButtonLayoutView> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           PopupMenuButton<String>(
-                            tooltip: '替换按键',
+                            tooltip: l10n.replaceButton,
                             icon: Icon(
                               Icons.swap_horiz_rounded,
                               size: 18,

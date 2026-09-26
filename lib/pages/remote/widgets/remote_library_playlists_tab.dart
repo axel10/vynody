@@ -466,11 +466,8 @@ class RemoteLibraryPlaylistItem extends ConsumerWidget {
                 onRefreshPlaylists();
               } else {
                 if (context.mounted) {
-                  final isZh = l10n.localeName.startsWith('zh');
                   final permHint = server.type == RemoteServerType.jellyfin
-                      ? (isZh
-                          ? '（请检查 Jellyfin 用户是否开启“允许删除媒体”权限）'
-                          : ' (Please check Jellyfin "Allow media deletion" permission)')
+                      ? l10n.jellyfinMediaDeletionPermissionHint
                       : '';
                   AppSnackBar.show(
                     context,

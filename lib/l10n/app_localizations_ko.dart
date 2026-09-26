@@ -4974,4 +4974,209 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String get cannotConnectToMediaServer =>
       '미디어 라이브러리 서버에 연결할 수 없습니다. 서비스가 실행 중인지 확인하세요.';
+
+  @override
+  String get playQueue => '재생 대기열';
+
+  @override
+  String get clearPlaybackQueue => '재생 대기열 비우기';
+
+  @override
+  String get confirmClearPlaybackQueue => '현재 대기열의 모든 곡을 비우시겠습니까?';
+
+  @override
+  String get exitMultiSelect => '다중 선택 종료';
+
+  @override
+  String selectedItemsCount(Object count) {
+    return '$count개 선택됨';
+  }
+
+  @override
+  String removeFromQueueWithCount(Object count) {
+    return '대기열에서 제거 ($count곡)';
+  }
+
+  @override
+  String get cancelSelection => '선택 취소';
+
+  @override
+  String get multiSelect => '다중 선택';
+
+  @override
+  String get create => '생성';
+
+  @override
+  String get moreOptions => '추가 옵션';
+
+  @override
+  String get detachToStandaloneWindow => '독립 창으로 분리';
+
+  @override
+  String get closeDrawer => '서랍 닫기';
+
+  @override
+  String get queueEmptyDragHint => '라이브러리, 폴더 또는 재생목록에서\n곡을 이곳으로 드래그할 수 있습니다';
+
+  @override
+  String get appendToQueueEnd => '대기열 끝에 추가';
+
+  @override
+  String addedSongsToQueueEnd(Object count) {
+    return '$count곡을 대기열 끝에 추가했습니다';
+  }
+
+  @override
+  String playlistSongsCleared(Object name) {
+    return '「$name」을(를) 비웠습니다';
+  }
+
+  @override
+  String playlistDeletedWithName(Object name) {
+    return '재생목록 「$name」을(를) 삭제했습니다';
+  }
+
+  @override
+  String get clearSongs => '곡 비우기';
+
+  @override
+  String get playlistEmptyDragHint => '라이브러리에서 곡을 드래그하거나\n로컬 오디오 파일을 직접 드래그하세요';
+
+  @override
+  String get standaloneQueueWindowTitle => '재생 대기열 및 재생목록 - Vynody';
+
+  @override
+  String get standaloneQueueManagerTitle => '재생 대기열 - Vynody';
+
+  @override
+  String get dockBackToMainWindow => '기본 창으로 다시 도킹';
+
+  @override
+  String get unpin => '고정 해제';
+
+  @override
+  String get playNow => '지금 재생';
+
+  @override
+  String get standalonePlaylistDragHint => '로컬 오디오 파일을 직접 드래그하여 추가하세요';
+
+  @override
+  String get standaloneQueueDragHint => '라이브러리, 폴더 또는 외부에서 곡을 이곳으로 드래그하세요';
+
+  @override
+  String get closeStandaloneQueue => '독립 재생 대기열 닫기';
+
+  @override
+  String get collapsePlayQueue => '재생 대기열 접기';
+
+  @override
+  String get expandPlayQueue => '재생 대기열 펼치기';
+
+  @override
+  String get enableLyricsTranslation => '가사 번역 켜기';
+
+  @override
+  String get disableLyricsTranslation => '가사 번역 끄기';
+
+  @override
+  String get generateLyricsTranslation => '가사 번역 생성';
+
+  @override
+  String get enableWordByWordLyrics => '단어별 가사 켜기';
+
+  @override
+  String get disableWordByWordLyrics => '단어별 가사 끄기';
+
+  @override
+  String get generateWordByWordLyrics => '단어별 가사 생성';
+
+  @override
+  String get lyricsTranslationEnabled => '가사 번역이 켜졌습니다';
+
+  @override
+  String get lyricsTranslationDisabled => '가사 번역이 꺼졌습니다';
+
+  @override
+  String get enableDescending => '내림차순 활성화';
+
+  @override
+  String get currentlyDescending => '현재 내림차순 정렬됨';
+
+  @override
+  String get currentlyAscending => '현재 오름차순 정렬됨';
+
+  @override
+  String get librarySourceFilterTitle => '라이브러리 소스 필터';
+
+  @override
+  String get librarySourceAll => '모든 음악';
+
+  @override
+  String get librarySourceAllDescription => '로컬 및 색인된 모든 원격 음악을 포함합니다';
+
+  @override
+  String get librarySourceLocalOnly => '로컬 기기만';
+
+  @override
+  String get librarySourceLocalOnlyDescription => '이 기기에 저장된 음악만 표시합니다';
+
+  @override
+  String get librarySourceIndexedRemote => '색인된 원격 서버';
+
+  @override
+  String get visualizerStyle => '스펙트럼 스타일';
+
+  @override
+  String get visualizerStyleBars => '클래식 바';
+
+  @override
+  String get visualizerStyleSmoothWave => '부드러운 파형';
+
+  @override
+  String get visualizerStyleFloatingBars => '플로팅 캡';
+
+  @override
+  String get visualizerStyleRadial => '방사형 원형';
+
+  @override
+  String get visualizerStyleMatrix => '네온 매트릭스';
+
+  @override
+  String get visualizerStyleMirroredWave => '대칭 미러 파형';
+
+  @override
+  String get replaceButton => '버튼 변경';
+
+  @override
+  String selectedArtistsWithTotalSongs(Object artistCount, Object songCount) {
+    return '$artistCount명의 아티스트 선택됨 ($songCount곡)';
+  }
+
+  @override
+  String get jellyfinAlbum => 'Jellyfin 앨범';
+
+  @override
+  String get navidromeAlbum => 'Navidrome 앨범';
+
+  @override
+  String get jellyfinArtist => 'Jellyfin 아티스트';
+
+  @override
+  String get navidromeArtist => 'Navidrome 아티스트';
+
+  @override
+  String get jellyfinPlaylist => 'Jellyfin 재생목록';
+
+  @override
+  String get navidromePlaylist => 'Navidrome 재생목록';
+
+  @override
+  String get unknownPlaylist => '알 수 없는 재생목록';
+
+  @override
+  String get loadingServerPlaylists => '서버 재생목록 로드 중...';
+
+  @override
+  String get jellyfinMediaDeletionPermissionHint =>
+      ' (Jellyfin 사용자에게 \"미디어 삭제 허용\" 권한이 있는지 확인하세요)';
 }

@@ -11,6 +11,7 @@ import 'package:super_drag_and_drop/super_drag_and_drop.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/settings/shortcut_bindings.dart';
 import 'package:vynody/utils/list_reorder_utils.dart';
+import 'package:vynody/utils/localized_text.dart';
 import 'package:vynody/utils/selection_utils.dart';
 import 'package:vynody/widgets/app_tooltip.dart';
 import 'package:vynody/widgets/queue_file_drop_target.dart';
@@ -119,6 +120,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
   ThemeMode _themeMode = ThemeMode.system;
   Color _accentColor = const Color(0xFF6750A4);
   bool _isAlwaysOnTop = false;
+  Locale? _locale;
 
   final ScrollController _scrollController = ScrollController();
   final ScrollController _playlistScrollController = ScrollController();
@@ -271,6 +273,17 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
     final isAlwaysOnTop = data['isAlwaysOnTop'] as bool?;
     if (isAlwaysOnTop != null) {
       _isAlwaysOnTop = isAlwaysOnTop;
+    }
+
+    final rawLocale = data['appLocale'] as String?;
+    if (rawLocale != null) {
+      if (rawLocale == 'system' || rawLocale.isEmpty) {
+        _locale = null;
+      } else if (rawLocale == 'zh_Hant') {
+        _locale = const Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant');
+      } else {
+        _locale = Locale(rawLocale);
+      }
     }
 
     final rawShortcuts = data['shortcutBindings'] as Map?;
@@ -441,6 +454,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
   void _handleItemRightClick(BuildContext context, Offset globalPos, int index) {
     final isSelected = _selectedIndices.contains(index);
     final count = _selectedIndices.length;
+    final l10n = AppLocalizations.of(context)!;
 
     final items = <PopupMenuEntry<String>>[];
 
@@ -452,70 +466,70 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
             children: [
               const Icon(Icons.delete_outline_rounded, size: 18, color: Colors.redAccent),
               const SizedBox(width: 8),
-              Text('从队列中移除 ($count 首)'),
+              Text(l10n.removeFromQueueWithCount(count)),
             ],
           ),
         ),
       );
       items.add(const PopupMenuDivider());
       items.add(
-        const PopupMenuItem<String>(
+        PopupMenuItem<String>(
           value: 'select_all',
           child: Row(
             children: [
-              Icon(Icons.select_all_rounded, size: 18),
-              SizedBox(width: 8),
-              Text('全选'),
+              const Icon(Icons.select_all_rounded, size: 18),
+              const SizedBox(width: 8),
+              Text(l10n.selectAll),
             ],
           ),
         ),
       );
       items.add(
-        const PopupMenuItem<String>(
+        PopupMenuItem<String>(
           value: 'clear_selection',
           child: Row(
             children: [
-              Icon(Icons.deselect_rounded, size: 18),
-              SizedBox(width: 8),
-              Text('取消选择'),
+              const Icon(Icons.deselect_rounded, size: 18),
+              const SizedBox(width: 8),
+              Text(l10n.cancelSelection),
             ],
           ),
         ),
       );
     } else {
       items.add(
-        const PopupMenuItem<String>(
+        PopupMenuItem<String>(
           value: 'play',
           child: Row(
             children: [
-              Icon(Icons.play_arrow_rounded, size: 18),
-              SizedBox(width: 8),
-              Text('播放'),
+              const Icon(Icons.play_arrow_rounded, size: 18),
+              const SizedBox(width: 8),
+              Text(l10n.play),
             ],
           ),
         ),
       );
       items.add(
-        const PopupMenuItem<String>(
+        PopupMenuItem<String>(
           value: 'remove',
           child: Row(
             children: [
-              Icon(Icons.delete_outline_rounded, size: 18, color: Colors.redAccent),
-              SizedBox(width: 8),
-              Text('从队列中移除'),
+              const Icon(Icons.delete_outline_rounded, size: 18, color: Colors.redAccent),
+              const SizedBox(width: 8),
+              Text(l10n.removeFromQueue),
             ],
           ),
         ),
       );
       items.add(const PopupMenuDivider());
       items.add(
-        const PopupMenuItem<String>(
+        PopupMenuItem<String>(
           value: 'enter_select',
           child: Row(
             children: [
-              Icon(Icons.checklist_rounded, size: 18),
-              SizedBox(width: 8),
-              Text('多选'),
+              const Icon(Icons.checklist_rounded, size: 18),
+              const SizedBox(width: 8),
+              Text(l10n.multiSelect),
             ],
           ),
         ),
@@ -643,6 +657,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
   }
 
   void _showCreatePlaylistDialog(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final controller = TextEditingController();
     String? errorText;
 
@@ -650,13 +665,13 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          title: const Text('新建歌单'),
+          title: Text(l10n.createPlaylist),
           content: TextField(
             controller: controller,
             autofocus: true,
             decoration: InputDecoration(
-              labelText: '歌单名称',
-              hintText: '请输入歌单名称',
+              labelText: l10n.playlistName,
+              hintText: l10n.playlistName,
               errorText: errorText,
             ),
             onChanged: (val) {
@@ -675,7 +690,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('取消'),
+              child: Text(l10n.cancel),
             ),
             FilledButton(
               onPressed: () {
@@ -685,7 +700,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
                   Navigator.pop(ctx);
                 }
               },
-              child: const Text('创建'),
+              child: Text(l10n.create),
             ),
           ],
         ),
@@ -787,10 +802,13 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
     return ProviderScope(
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
-        title: '播放队列与歌单 - Vynody',
+        title: currentAppL10n.standaloneQueueWindowTitle,
         theme: lightTheme,
         darkTheme: darkTheme,
         themeMode: _themeMode,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        locale: _locale,
         home: Builder(
         builder: (context) {
           final theme = Theme.of(context);
@@ -885,6 +903,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
   Widget _buildTitleBar(BuildContext context, {required bool isWide}) {
     final theme = Theme.of(context);
     final isSelecting = _isSelectionMode || _selectedIndices.isNotEmpty;
+    final l10n = AppLocalizations.of(context)!;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
@@ -909,12 +928,12 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
                   icon: const Icon(Icons.close_rounded, size: 20),
                   onPressed: _exitSelectionMode,
                   visualDensity: VisualDensity.compact,
-                  tooltip: '退出多选',
+                  tooltip: l10n.exitMultiSelect,
                   color: theme.colorScheme.onSurface,
                 ),
                 const SizedBox(width: 4),
                 Text(
-                  '已选 ${_selectedIndices.length} 项',
+                  l10n.selectedItemsCount(_selectedIndices.length),
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
@@ -923,7 +942,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
                 ),
                 const Spacer(),
                 AppTooltip(
-                  message: _selectedIndices.length == _queue.length ? '取消全选' : '全选',
+                  message: _selectedIndices.length == _queue.length ? l10n.deselectAll : l10n.selectAll,
                   child: IconButton(
                     icon: Icon(
                       _selectedIndices.length == _queue.length
@@ -938,7 +957,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
                 ),
                 if (_selectedIndices.isNotEmpty)
                   AppTooltip(
-                    message: '从队列中移除',
+                    message: l10n.removeFromQueue,
                     child: IconButton(
                       icon: const Icon(Icons.delete_outline_rounded, size: 19),
                       onPressed: _removeSelected,
@@ -948,7 +967,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
                   ),
                 if (!Platform.isLinux)
                   AppTooltip(
-                    message: _isAlwaysOnTop ? '取消置顶' : '置顶',
+                    message: _isAlwaysOnTop ? l10n.unpin : l10n.alwaysOnTop,
                     child: IconButton(
                       icon: Icon(
                         _isAlwaysOnTop
@@ -964,7 +983,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
                     ),
                   ),
                 AppTooltip(
-                  message: '吸附回主窗口',
+                  message: l10n.dockBackToMainWindow,
                   child: IconButton(
                     icon: const Icon(Icons.vertical_align_bottom_rounded, size: 18),
                     onPressed: _dockToMainWindow,
@@ -988,7 +1007,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    _currentTabIndex == 0 ? '播放队列' : '播放列表',
+                    _currentTabIndex == 0 ? l10n.playQueue : l10n.playlist,
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
@@ -999,7 +1018,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
                 const Spacer(),
                 if (_currentTabIndex == 0 && _queue.isNotEmpty) ...[
                   AppTooltip(
-                    message: '定位到当前播放',
+                    message: l10n.locateCurrentSong,
                     child: IconButton(
                       icon: const Icon(Icons.my_location_rounded, size: 18),
                       onPressed: _scrollToCurrent,
@@ -1008,7 +1027,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
                     ),
                   ),
                   AppTooltip(
-                    message: '清空队列',
+                    message: l10n.clearPlaybackQueue,
                     child: IconButton(
                       icon: const Icon(Icons.delete_sweep_outlined, size: 18),
                       onPressed: () {
@@ -1021,7 +1040,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
                 ],
                 if (!Platform.isLinux)
                   AppTooltip(
-                    message: _isAlwaysOnTop ? '取消置顶' : '置顶',
+                    message: _isAlwaysOnTop ? l10n.unpin : l10n.alwaysOnTop,
                     child: IconButton(
                       icon: Icon(
                         _isAlwaysOnTop
@@ -1037,7 +1056,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
                     ),
                   ),
                 AppTooltip(
-                  message: '吸附回主窗口',
+                  message: l10n.dockBackToMainWindow,
                   child: IconButton(
                     icon: const Icon(Icons.vertical_align_bottom_rounded, size: 18),
                     onPressed: _dockToMainWindow,
@@ -1052,6 +1071,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
 
   Widget _buildInlineTabBar(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       height: 32,
       padding: const EdgeInsets.all(2),
@@ -1064,7 +1084,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
         children: [
           _buildPillTabItem(
             context: context,
-            title: '播放队列',
+            title: l10n.playQueue,
             count: _queue.length,
             index: 0,
             isSelected: _currentTabIndex == 0,
@@ -1073,7 +1093,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
           const SizedBox(width: 4),
           _buildPillTabItem(
             context: context,
-            title: '播放列表',
+            title: l10n.playlist,
             count: _playlists.length,
             index: 1,
             isSelected: _currentTabIndex == 1,
@@ -1086,6 +1106,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
 
   Widget _buildTabBarRow(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.fromLTRB(10, 6, 10, 8),
       decoration: BoxDecoration(
@@ -1109,7 +1130,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
             Expanded(
               child: _buildPillTabItem(
                 context: context,
-                title: '播放队列',
+                title: l10n.playQueue,
                 count: _queue.length,
                 index: 0,
                 isSelected: _currentTabIndex == 0,
@@ -1119,7 +1140,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
             Expanded(
               child: _buildPillTabItem(
                 context: context,
-                title: '播放列表',
+                title: l10n.playlist,
                 count: _playlists.length,
                 index: 1,
                 isSelected: _currentTabIndex == 1,
@@ -1221,6 +1242,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
 
   Widget _buildPlaylistsView(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     if (_playlists.isEmpty) {
       return Center(
@@ -1234,7 +1256,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
             ),
             const SizedBox(height: 14),
             Text(
-              '暂无播放列表',
+              l10n.noPlaylistsAvailable,
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
@@ -1245,7 +1267,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
             FilledButton.tonalIcon(
               onPressed: () => _showCreatePlaylistDialog(context),
               icon: const Icon(Icons.add_rounded, size: 18),
-              label: const Text('新建歌单'),
+              label: Text(l10n.createPlaylist),
             ),
           ],
         ),
@@ -1277,13 +1299,14 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
     Map<String, dynamic> activePlaylist,
   ) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final plId = activePlaylist['id'] as String? ?? '';
     final rawName = activePlaylist['name'] as String? ?? '';
     final isFavorite =
         activePlaylist['isFavorite'] as bool? ?? (plId == 'favorites');
     final isDefault =
         activePlaylist['isDefault'] as bool? ?? (plId == 'default');
-    final plName = isFavorite ? '收藏' : (isDefault ? '默认列表' : rawName);
+    final plName = isFavorite ? l10n.favorites : (isDefault ? l10n.defaultList : rawName);
     final isBuiltin = isFavorite || isDefault;
     final songs = _activePlaylistSongs;
 
@@ -1329,7 +1352,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
                         final isDef =
                             pl['isDefault'] as bool? ?? (id == 'default');
                         final displayName =
-                            isFav ? '收藏' : (isDef ? '默认列表' : name);
+                            isFav ? l10n.favorites : (isDef ? l10n.defaultList : name);
                         final count = pl['songCount'] as int? ??
                             ((pl['songs'] as List?)?.length ?? 0);
                         final isCurrentSelected = id == _selectedPlaylistId;
@@ -1435,7 +1458,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
           const SizedBox(width: 4),
           if (songs.isNotEmpty) ...[
             AppTooltip(
-              message: '播放全部',
+              message: l10n.playAll,
               child: IconButton(
                 icon: const Icon(Icons.play_circle_fill_rounded, size: 20),
                 onPressed: () => _sendIpc('play_playlist', {
@@ -1447,7 +1470,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
               ),
             ),
             AppTooltip(
-              message: '追加到队列末尾',
+              message: l10n.appendToQueueEnd,
               child: IconButton(
                 icon: const Icon(Icons.playlist_add_rounded, size: 20),
                 onPressed: () => _sendIpc('append_playlist_to_queue', {
@@ -1459,7 +1482,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
             ),
           ],
           AppTooltip(
-            message: '新建歌单',
+            message: l10n.createPlaylist,
             child: IconButton(
               icon: const Icon(Icons.add_rounded, size: 20),
               onPressed: () => _showCreatePlaylistDialog(context),
@@ -1469,7 +1492,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
           ),
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert_rounded, size: 18),
-            tooltip: '更多选项',
+            tooltip: l10n.moreOptions,
             color: theme.colorScheme.surface,
             onSelected: (action) async {
               if (action == 'clear') {
@@ -1482,34 +1505,34 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
             },
             itemBuilder: (ctx) => [
               if (songs.isNotEmpty)
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'clear',
                   child: Row(
                     children: [
-                      Icon(Icons.clear_all_rounded, size: 18),
-                      SizedBox(width: 8),
-                      Text('清空歌曲'),
+                      const Icon(Icons.clear_all_rounded, size: 18),
+                      const SizedBox(width: 8),
+                      Text(l10n.clearSongs),
                     ],
                   ),
                 ),
               if (!isBuiltin) ...[
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'rename',
                   child: Row(
                     children: [
-                      Icon(Icons.edit_outlined, size: 18),
-                      SizedBox(width: 8),
-                      Text('重命名歌单'),
+                      const Icon(Icons.edit_outlined, size: 18),
+                      const SizedBox(width: 8),
+                      Text(l10n.renamePlaylist),
                     ],
                   ),
                 ),
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'delete',
                   child: Row(
                     children: [
-                      Icon(Icons.delete_outline_rounded, size: 18, color: Colors.redAccent),
-                      SizedBox(width: 8),
-                      Text('删除歌单', style: TextStyle(color: Colors.redAccent)),
+                      const Icon(Icons.delete_outline_rounded, size: 18, color: Colors.redAccent),
+                      const SizedBox(width: 8),
+                      Text(l10n.deletePlaylist, style: const TextStyle(color: Colors.redAccent)),
                     ],
                   ),
                 ),
@@ -1526,6 +1549,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
     Map<String, dynamic> playlist,
   ) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -1539,7 +1563,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
             ),
             const SizedBox(height: 14),
             Text(
-              '歌单内暂无歌曲',
+              l10n.noSongsInPlaylist,
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
@@ -1548,7 +1572,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
             ),
             const SizedBox(height: 6),
             Text(
-              '可直接拖拽本地音频文件至此添加',
+              l10n.standalonePlaylistDragHint,
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 12,
@@ -1620,6 +1644,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
     int index,
     String playlistId,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     final overlay =
         Overlay.of(context).context.findRenderObject() as RenderBox?;
     if (overlay == null) return;
@@ -1641,38 +1666,38 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
             children: [
               Icon(Icons.play_arrow_rounded, size: 18, color: Theme.of(context).colorScheme.primary),
               const SizedBox(width: 8),
-              const Text('立即播放'),
+              Text(l10n.playNow),
             ],
           ),
         ),
-        const PopupMenuItem(
+        PopupMenuItem(
           value: 'next',
           child: Row(
             children: [
-              Icon(Icons.playlist_play_rounded, size: 18),
-              SizedBox(width: 8),
-              Text('下一首播放'),
+              const Icon(Icons.playlist_play_rounded, size: 18),
+              const SizedBox(width: 8),
+              Text(l10n.playNext),
             ],
           ),
         ),
-        const PopupMenuItem(
+        PopupMenuItem(
           value: 'queue',
           child: Row(
             children: [
-              Icon(Icons.playlist_add_rounded, size: 18),
-              SizedBox(width: 8),
-              Text('追加到队列'),
+              const Icon(Icons.playlist_add_rounded, size: 18),
+              const SizedBox(width: 8),
+              Text(l10n.addToQueue),
             ],
           ),
         ),
         const PopupMenuDivider(),
-        const PopupMenuItem(
+        PopupMenuItem(
           value: 'remove',
           child: Row(
             children: [
-              Icon(Icons.remove_circle_outline_rounded, size: 18, color: Colors.redAccent),
-              SizedBox(width: 8),
-              Text('从歌单中移除', style: TextStyle(color: Colors.redAccent)),
+              const Icon(Icons.remove_circle_outline_rounded, size: 18, color: Colors.redAccent),
+              const SizedBox(width: 8),
+              Text(l10n.removeFromPlaylist, style: const TextStyle(color: Colors.redAccent)),
             ],
           ),
         ),
@@ -1701,6 +1726,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
     String playlistId,
     String currentName,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     final controller = TextEditingController(text: currentName);
     String? errorText;
 
@@ -1708,12 +1734,12 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          title: const Text('重命名歌单'),
+          title: Text(l10n.renamePlaylist),
           content: TextField(
             controller: controller,
             autofocus: true,
             decoration: InputDecoration(
-              labelText: '歌单名称',
+              labelText: l10n.playlistName,
               errorText: errorText,
             ),
             onSubmitted: (val) {
@@ -1730,7 +1756,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('取消'),
+              child: Text(l10n.cancel),
             ),
             FilledButton(
               onPressed: () {
@@ -1743,7 +1769,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
                   if (ctx.mounted) Navigator.pop(ctx);
                 }
               },
-              child: const Text('确定'),
+              child: Text(l10n.confirm),
             ),
           ],
         ),
@@ -1752,22 +1778,23 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
   }
 
   void _showClearConfirmDialog(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('清空队列'),
-        content: const Text('确定要清空当前的播放队列吗？'),
+        title: Text(l10n.clearPlaybackQueue),
+        content: Text(l10n.confirmClearPlaybackQueue),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('取消'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
               _clearQueue();
             },
-            child: const Text('清空'),
+            child: Text(l10n.clear),
           ),
         ],
       ),
@@ -1776,6 +1803,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
 
   Widget _buildEmptyView(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -1787,7 +1815,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
           ),
           const SizedBox(height: 16),
           Text(
-            '播放队列为空',
+            l10n.queueEmpty,
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -1796,7 +1824,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
           ),
           const SizedBox(height: 8),
           Text(
-            '从媒体库、目录页或外部将歌曲拖拽到此处',
+            l10n.queueEmptyDragHint,
             style: TextStyle(
               fontSize: 13,
               color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
@@ -1809,6 +1837,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
 
   Widget _buildQueueList(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final isSelecting = _isSelectionMode || _selectedIndices.isNotEmpty;
 
     _queueReorderController.syncLength(_queue.length);
@@ -1827,7 +1856,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
 
         final artist = (song.artist != null && song.artist!.trim().isNotEmpty)
             ? song.artist!.trim()
-            : '未知歌手';
+            : l10n.unknownArtist;
         final album = (song.album != null && song.album!.trim().isNotEmpty)
             ? song.album!.trim()
             : null;
@@ -2011,7 +2040,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
                       ),
                       onPressed: () => _removeIndex(index),
                       visualDensity: VisualDensity.compact,
-                      tooltip: '从队列中移除',
+                      tooltip: l10n.removeFromQueue,
                     ),
                 ],
               ),
@@ -2057,11 +2086,12 @@ class _StandalonePlaylistSongTileState
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final song = widget.song;
 
     final artist = (song.artist != null && song.artist!.trim().isNotEmpty)
         ? song.artist!.trim()
-        : '未知歌手';
+        : l10n.unknownArtist;
     final album = (song.album != null && song.album!.trim().isNotEmpty)
         ? song.album!.trim()
         : null;
@@ -2188,7 +2218,7 @@ class _StandalonePlaylistSongTileState
                   ),
                   onPressed: widget.onRemove,
                   visualDensity: VisualDensity.compact,
-                  tooltip: '从歌单中移除',
+                  tooltip: l10n.removeFromPlaylist,
                 ),
               ],
             ),

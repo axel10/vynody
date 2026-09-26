@@ -3152,5 +3152,280 @@
   "cannotConnectToMediaServer": "无法连接到媒体库服务器，请检查服务是否开启",
   "@cannotConnectToMediaServer": {
     "description": "Error message when connecting to remote media server fails"
+  },
+  "playQueue": "播放队列",
+  "@playQueue": {
+    "description": "Title or label for play queue"
+  },
+  "clearPlaybackQueue": "清空播放队列",
+  "@clearPlaybackQueue": {
+    "description": "Dialog title or button for clearing playback queue"
+  },
+  "confirmClearPlaybackQueue": "确定要清空当前所有待播放的歌曲吗？",
+  "@confirmClearPlaybackQueue": {
+    "description": "Confirmation message when clearing playback queue"
+  },
+  "exitMultiSelect": "退出多选",
+  "@exitMultiSelect": {
+    "description": "Tooltip for button to exit multi-select mode"
+  },
+  "selectedItemsCount": "已选 {count} 项",
+  "@selectedItemsCount": {
+    "description": "Number of selected items",
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "removeFromQueueWithCount": "从队列中移除 ({count} 首)",
+  "@removeFromQueueWithCount": {
+    "description": "Menu action to remove selected number of songs from queue",
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "cancelSelection": "取消选择",
+  "@cancelSelection": {
+    "description": "Action to deselect all selected items"
+  },
+  "multiSelect": "多选",
+  "@multiSelect": {
+    "description": "Context menu item to enter multi-select mode"
+  },
+  "create": "创建",
+  "@create": {
+    "description": "Button to create something"
+  },
+  "moreOptions": "更多选项",
+  "@moreOptions": {
+    "description": "Tooltip for more options menu"
+  },
+  "detachToStandaloneWindow": "分离为独立窗口",
+  "@detachToStandaloneWindow": {
+    "description": "Tooltip to open queue panel as standalone window"
+  },
+  "closeDrawer": "关闭抽屉",
+  "@closeDrawer": {
+    "description": "Tooltip to close side drawer"
+  },
+  "queueEmptyDragHint": "可从左侧媒体库、目录或歌单\n直接将歌曲拖拽到此处",
+  "@queueEmptyDragHint": {
+    "description": "Empty queue drag hint in side drawer"
+  },
+  "appendToQueueEnd": "追加到队列末尾",
+  "@appendToQueueEnd": {
+    "description": "Tooltip to append songs to queue end"
+  },
+  "addedSongsToQueueEnd": "已将 {count} 首歌曲追加到队列末尾",
+  "@addedSongsToQueueEnd": {
+    "description": "Toast message after appending songs to queue",
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "playlistSongsCleared": "已清空【{name}】",
+  "@playlistSongsCleared": {
+    "description": "Toast message after clearing songs in playlist",
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "playlistDeletedWithName": "已删除歌单【{name}】",
+  "@playlistDeletedWithName": {
+    "description": "Toast message after deleting a playlist with its name",
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "clearSongs": "清空歌曲",
+  "@clearSongs": {
+    "description": "Menu action to clear songs in playlist"
+  },
+  "playlistEmptyDragHint": "可从左侧媒体库拖拽歌曲\n或直接拖拽本地音频文件至此",
+  "@playlistEmptyDragHint": {
+    "description": "Empty playlist drag hint in side drawer"
+  },
+  "standaloneQueueWindowTitle": "播放队列与歌单 - Vynody",
+  "@standaloneQueueWindowTitle": {
+    "description": "Window title for standalone queue and playlist window"
+  },
+  "standaloneQueueManagerTitle": "播放队列 - Vynody",
+  "@standaloneQueueManagerTitle": {
+    "description": "Window title for standalone queue manager"
+  },
+  "dockBackToMainWindow": "吸附回主窗口",
+  "@dockBackToMainWindow": {
+    "description": "Tooltip to close standalone queue window and reopen in main window"
+  },
+  "unpin": "取消置顶",
+  "@unpin": {
+    "description": "Tooltip to unpin window from staying on top"
+  },
+  "playNow": "立即播放",
+  "@playNow": {
+    "description": "Context menu item to immediately play song"
+  },
+  "standalonePlaylistDragHint": "可直接拖拽本地音频文件至此添加",
+  "@standalonePlaylistDragHint": {
+    "description": "Drag hint in empty playlist in standalone window"
+  },
+  "standaloneQueueDragHint": "从媒体库、目录页或外部将歌曲拖拽到此处",
+  "@standaloneQueueDragHint": {
+    "description": "Drag hint in empty queue in standalone window"
+  },
+  "closeStandaloneQueue": "关闭独立播放队列",
+  "@closeStandaloneQueue": {
+    "description": "Tooltip for button to close standalone queue window"
+  },
+  "collapsePlayQueue": "收起播放队列",
+  "@collapsePlayQueue": {
+    "description": "Tooltip for button to collapse right queue drawer"
+  },
+  "expandPlayQueue": "展开播放队列",
+  "@expandPlayQueue": {
+    "description": "Tooltip for button to expand right queue drawer"
+  },
+  "enableLyricsTranslation": "开启歌词翻译",
+  "@enableLyricsTranslation": {
+    "description": "Tooltip to turn on lyrics translation"
+  },
+  "disableLyricsTranslation": "关闭歌词翻译",
+  "@disableLyricsTranslation": {
+    "description": "Tooltip to turn off lyrics translation"
+  },
+  "generateLyricsTranslation": "生成歌词翻译",
+  "@generateLyricsTranslation": {
+    "description": "Tooltip to trigger AI translation generation"
+  },
+  "enableWordByWordLyrics": "开启逐字歌词",
+  "@enableWordByWordLyrics": {
+    "description": "Tooltip to turn on word by word lyrics"
+  },
+  "disableWordByWordLyrics": "关闭逐字歌词",
+  "@disableWordByWordLyrics": {
+    "description": "Tooltip to turn off word by word lyrics"
+  },
+  "generateWordByWordLyrics": "生成逐字歌词",
+  "@generateWordByWordLyrics": {
+    "description": "Tooltip to trigger karaoke lyrics generation"
+  },
+  "lyricsTranslationEnabled": "已开启歌词翻译",
+  "@lyricsTranslationEnabled": {
+    "description": "Toast notification when lyrics translation is enabled"
+  },
+  "lyricsTranslationDisabled": "已关闭歌词翻译",
+  "@lyricsTranslationDisabled": {
+    "description": "Toast notification when lyrics translation is disabled"
+  },
+  "enableDescending": "启用降序",
+  "@enableDescending": {
+    "description": "Checkbox title to enable descending sort order"
+  },
+  "currentlyDescending": "当前为降序排列",
+  "@currentlyDescending": {
+    "description": "Subtitle indicating descending order is active"
+  },
+  "currentlyAscending": "当前为升序排列",
+  "@currentlyAscending": {
+    "description": "Subtitle indicating ascending order is active"
+  },
+  "librarySourceFilterTitle": "媒体库来源筛选",
+  "@librarySourceFilterTitle": {
+    "description": "Title for library source filter dialog"
+  },
+  "librarySourceAll": "全部音乐",
+  "@librarySourceAll": {
+    "description": "Filter option for all music sources"
+  },
+  "librarySourceAllDescription": "包含本地与所有已索引的远程音乐",
+  "@librarySourceAllDescription": {
+    "description": "Description for all music filter option"
+  },
+  "librarySourceLocalOnly": "仅本地设备",
+  "@librarySourceLocalOnly": {
+    "description": "Filter option for local music only"
+  },
+  "librarySourceLocalOnlyDescription": "仅显示本设备存储的音乐",
+  "@librarySourceLocalOnlyDescription": {
+    "description": "Description for local music filter option"
+  },
+  "librarySourceIndexedRemote": "已索引的远程服务器",
+  "@librarySourceIndexedRemote": {
+    "description": "Section header for indexed remote servers filter"
+  },
+  "visualizerStyle": "频谱样式",
+  "@visualizerStyle": {
+    "description": "Visualizer spectrum style label"
+  },
+  "visualizerStyleBars": "经典柱状",
+  "@visualizerStyleBars": {
+    "description": "Classic bars visualizer style name"
+  },
+  "visualizerStyleSmoothWave": "平滑波浪",
+  "@visualizerStyleSmoothWave": {
+    "description": "Smooth wave visualizer style name"
+  },
+  "visualizerStyleFloatingBars": "浮动顶帽",
+  "@visualizerStyleFloatingBars": {
+    "description": "Floating caps visualizer style name"
+  },
+  "visualizerStyleRadial": "环形光晕",
+  "@visualizerStyleRadial": {
+    "description": "Radial halo visualizer style name"
+  },
+  "visualizerStyleMatrix": "点阵矩阵",
+  "@visualizerStyleMatrix": {
+    "description": "Neon matrix visualizer style name"
+  },
+  "visualizerStyleMirroredWave": "对称镜像波",
+  "@visualizerStyleMirroredWave": {
+    "description": "Mirrored wave visualizer style name"
+  },
+  "replaceButton": "替换按键",
+  "@replaceButton": {
+    "description": "Tooltip to replace playback button in custom layout"
+  },
+  "selectedArtistsWithTotalSongs": "已选择 {artistCount} 位艺术家 ({songCount} 首歌曲)",
+  "@selectedArtistsWithTotalSongs": {
+    "description": "Summary of selected artists and their total songs",
+    "placeholders": {
+      "artistCount": {},
+      "songCount": {}
+    }
+  },
+  "jellyfinAlbum": "Jellyfin 专辑",
+  "@jellyfinAlbum": {
+    "description": "Jellyfin album label"
+  },
+  "navidromeAlbum": "Navidrome 专辑",
+  "@navidromeAlbum": {
+    "description": "Navidrome album label"
+  },
+  "jellyfinArtist": "Jellyfin 艺术家",
+  "@jellyfinArtist": {
+    "description": "Jellyfin artist label"
+  },
+  "navidromeArtist": "Navidrome 艺术家",
+  "@navidromeArtist": {
+    "description": "Navidrome artist label"
+  },
+  "jellyfinPlaylist": "Jellyfin 歌单",
+  "@jellyfinPlaylist": {
+    "description": "Jellyfin playlist label"
+  },
+  "navidromePlaylist": "Navidrome 歌单",
+  "@navidromePlaylist": {
+    "description": "Navidrome playlist label"
+  },
+  "unknownPlaylist": "未知歌单",
+  "@unknownPlaylist": {
+    "description": "Fallback label for unknown playlist"
+  },
+  "loadingServerPlaylists": "正在加载服务端歌单...",
+  "@loadingServerPlaylists": {
+    "description": "Progress indicator while loading remote playlists"
+  },
+  "jellyfinMediaDeletionPermissionHint": "（请检查 Jellyfin 用户是否开启“允许删除媒体”权限）",
+  "@jellyfinMediaDeletionPermissionHint": {
+    "description": "Permission hint when deleting playlist fails on Jellyfin"
   }
 }

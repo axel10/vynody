@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:super_drag_and_drop/super_drag_and_drop.dart';
+import 'package:vynody/l10n/app_localizations.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/models/music_folder.dart';
 import 'package:vynody/player/remote/proxy/remote_media_resolver.dart';
@@ -83,14 +84,15 @@ class DraggableFolderItem extends StatelessWidget {
       },
       dragBuilder: (context, child) {
         debugPrint('[DRAG] DraggableFolderItem.dragBuilder called for: ${folder.name}');
+        final l10n = AppLocalizations.of(context)!;
         return AppDraggablePreviewCard(
           title: folder.name,
-          subtitle: folder.path == 'system' ? '系统媒体' : folder.path,
+          subtitle: folder.path == 'system' ? l10n.systemMediaLibrary : folder.path,
           imagePath: coverPath,
           defaultIcon: folder.path == 'system'
               ? Icons.library_music_rounded
               : Icons.folder_rounded,
-          badgeText: displayCount > 0 ? '$displayCount首' : null,
+          badgeText: displayCount > 0 ? l10n.songsCountFormat(displayCount) : null,
           count: displayCount,
         );
       },

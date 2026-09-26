@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:super_drag_and_drop/super_drag_and_drop.dart';
+import 'package:vynody/l10n/app_localizations.dart';
 import 'package:vynody/models/artist_summary.dart';
 import 'package:vynody/widgets/draggable_preview_card.dart';
 
@@ -92,25 +93,26 @@ class DraggableArtistItem extends StatelessWidget {
       dragBuilder: (context, child) {
         debugPrint(
             '[DRAG] DraggableArtistItem.dragBuilder called for: ${artist.name}');
+        final l10n = AppLocalizations.of(context)!;
         if (isBatch) {
           final totalSongs = selectedArtists!.fold<int>(
               0, (sum, a) => sum + a.songs.length);
           return AppDraggablePreviewCard(
             title: artist.name,
-            subtitle: '已选择 ${selectedArtists!.length} 位艺术家 ($totalSongs 首歌曲)',
+            subtitle: l10n.selectedArtistsWithTotalSongs(selectedArtists!.length, totalSongs),
             imagePath: coverPath,
             defaultIcon: Icons.person_rounded,
-            badgeText: '${selectedArtists!.length}位',
+            badgeText: '${selectedArtists!.length}',
             count: selectedArtists!.length,
             isBatch: true,
           );
         }
         return AppDraggablePreviewCard(
           title: artist.name,
-          subtitle: '${artist.songCount}首歌曲',
+          subtitle: l10n.songsCountFormat(artist.songCount),
           imagePath: coverPath,
           defaultIcon: Icons.person_rounded,
-          badgeText: '${artist.songCount}首',
+          badgeText: l10n.songsCountFormat(artist.songCount),
           count: artist.songCount,
         );
       },

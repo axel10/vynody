@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:super_drag_and_drop/super_drag_and_drop.dart';
+import 'package:vynody/l10n/app_localizations.dart';
 import 'package:vynody/player/remote/remote_server_models.dart';
 import 'package:vynody/widgets/draggable_preview_card.dart';
 
@@ -87,23 +88,24 @@ class DraggableRemoteArtistItem extends StatelessWidget {
       dragBuilder: (context, child) {
         debugPrint(
             '[DRAG] DraggableRemoteArtistItem.dragBuilder called for: $artistName');
+        final l10n = AppLocalizations.of(context)!;
         if (isBatch) {
           return AppDraggablePreviewCard(
             title: artistName,
-            subtitle: '已选择 ${selectedArtistIds!.length} 位艺术家',
+            subtitle: l10n.selectedArtistsCount(selectedArtistIds!.length),
             defaultIcon: Icons.person_rounded,
-            badgeText: '${selectedArtistIds!.length}位',
+            badgeText: '${selectedArtistIds!.length}',
             count: selectedArtistIds!.length,
             isBatch: true,
           );
         }
-        final serverLabel = isJellyfin ? 'Jellyfin 艺术家' : 'Navidrome 艺术家';
-        final subtitle = albumCount > 0 ? '$albumCount 张专辑' : serverLabel;
+        final serverLabel = isJellyfin ? l10n.jellyfinArtist : l10n.navidromeArtist;
+        final subtitle = albumCount > 0 ? l10n.albumCount(albumCount) : serverLabel;
         return AppDraggablePreviewCard(
           title: artistName,
           subtitle: subtitle,
           defaultIcon: Icons.person_rounded,
-          badgeText: albumCount > 0 ? '$albumCount专' : null,
+          badgeText: albumCount > 0 ? l10n.albumCount(albumCount) : null,
           count: 1,
         );
       },

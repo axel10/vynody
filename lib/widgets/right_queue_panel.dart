@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:super_drag_and_drop/super_drag_and_drop.dart';
+import 'package:vynody/l10n/app_localizations.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/audio/audio_service.dart';
@@ -276,15 +277,16 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
   }
 
   void _showClearConfirmDialog(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('清空播放队列'),
-        content: const Text('确定要清空当前所有待播放的歌曲吗？'),
+        title: Text(l10n.clearPlaybackQueue),
+        content: Text(l10n.confirmClearPlaybackQueue),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('取消'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () {
@@ -292,7 +294,7 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
               ref.read(audioServiceProvider).clearPlaylist();
               _exitSelectionMode();
             },
-            child: const Text('清空'),
+            child: Text(l10n.clear),
           ),
         ],
       ),
@@ -300,6 +302,7 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
   }
 
   void _showCreatePlaylistDialog(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final controller = TextEditingController();
     String? errorText;
 
@@ -307,13 +310,13 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          title: const Text('新建歌单'),
+          title: Text(l10n.createPlaylist),
           content: TextField(
             controller: controller,
             autofocus: true,
             decoration: InputDecoration(
-              labelText: '歌单名称',
-              hintText: '请输入歌单名称',
+              labelText: l10n.playlistName,
+              hintText: l10n.playlistName,
               errorText: errorText,
             ),
             onChanged: (val) {
@@ -326,7 +329,7 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
               if (name.isNotEmpty) {
                 final playlistService = ref.read(playlistServiceProvider);
                 if (playlistService.playlistExists(name)) {
-                  setDialogState(() => errorText = '已存在同名歌单');
+                  setDialogState(() => errorText = l10n.playlistNameExists);
                   return;
                 }
                 await playlistService.createPlaylist(name);
@@ -337,7 +340,7 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('取消'),
+              child: Text(l10n.cancel),
             ),
             FilledButton(
               onPressed: () async {
@@ -345,14 +348,14 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
                 if (name.isNotEmpty) {
                   final playlistService = ref.read(playlistServiceProvider);
                   if (playlistService.playlistExists(name)) {
-                    setDialogState(() => errorText = '已存在同名歌单');
+                    setDialogState(() => errorText = l10n.playlistNameExists);
                     return;
                   }
                   await playlistService.createPlaylist(name);
                   if (ctx.mounted) Navigator.pop(ctx);
                 }
               },
-              child: const Text('创建'),
+              child: Text(l10n.create),
             ),
           ],
         ),
@@ -497,6 +500,7 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
     required bool isWide,
   }) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final queueLength = queue.length;
     final isSelecting = _isSelectionMode || _selectedIndices.isNotEmpty;
 
@@ -524,12 +528,12 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
                   icon: const Icon(Icons.close_rounded, size: 20),
                   onPressed: _exitSelectionMode,
                   visualDensity: VisualDensity.compact,
-                  tooltip: '退出多选',
+                  tooltip: l10n.exitMultiSelect,
                   color: theme.colorScheme.onSurface,
                 ),
                 const SizedBox(width: 4),
                 Text(
-                  '已选 ${_selectedIndices.length} 项',
+                  l10n.selectedItemsCount(_selectedIndices.length),
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
@@ -538,7 +542,7 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
                 ),
                 const Spacer(),
                 AppTooltip(
-                  message: _selectedIndices.length == queueLength ? '取消全选' : '全选',
+                  message: _selectedIndices.length == queueLength ? l10n.deselectAll : l10n.selectAll,
                   child: IconButton(
                     icon: Icon(
                       _selectedIndices.length == queueLength
@@ -553,7 +557,7 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
                 ),
                 if (_selectedIndices.isNotEmpty) ...[
                   AppTooltip(
-                    message: '添加到歌单',
+                    message: l10n.addToPlaylist,
                     child: IconButton(
                       icon: const Icon(Icons.playlist_add_rounded, size: 20),
                       onPressed: () => _addSelectedToPlaylist(context, queue),
@@ -562,7 +566,7 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
                     ),
                   ),
                   AppTooltip(
-                    message: '从队列中移除',
+                    message: l10n.removeFromQueue,
                     child: IconButton(
                       icon: const Icon(Icons.delete_outline_rounded, size: 19),
                       onPressed: () => _removeSelected(queue),
@@ -587,7 +591,7 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    _currentTabIndex == 0 ? '播放队列' : '播放列表',
+                    _currentTabIndex == 0 ? l10n.playQueue : l10n.playlist,
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
@@ -599,7 +603,7 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
                 if (_currentTabIndex == 0) ...[
                   if (queueLength > 0) ...[
                     AppTooltip(
-                      message: '定位当前播放',
+                      message: l10n.locateCurrentSong,
                       child: IconButton(
                         icon: const Icon(Icons.my_location_rounded, size: 18),
                         onPressed: _scrollToCurrent,
@@ -608,7 +612,7 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
                       ),
                     ),
                     AppTooltip(
-                      message: '排序',
+                      message: l10n.sortBy,
                       child: IconButton(
                         icon: const Icon(Icons.sort_rounded, size: 18),
                         onPressed: () => _showSortDialog(context),
@@ -617,7 +621,7 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
                       ),
                     ),
                     AppTooltip(
-                      message: '清空队列',
+                      message: l10n.clearPlaybackQueue,
                       child: IconButton(
                         icon: const Icon(Icons.delete_sweep_outlined, size: 18),
                         onPressed: () => _showClearConfirmDialog(context),
@@ -628,7 +632,7 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
                   ],
                 ],
                 AppTooltip(
-                  message: '分离为独立窗口',
+                  message: l10n.detachToStandaloneWindow,
                   child: IconButton(
                     icon: const Icon(Icons.open_in_new_rounded, size: 18),
                     onPressed: () {
@@ -642,7 +646,7 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
                   ),
                 ),
                 AppTooltip(
-                  message: '关闭抽屉',
+                  message: l10n.closeDrawer,
                   child: IconButton(
                     icon: const Icon(Icons.close_rounded, size: 18),
                     onPressed: () {
@@ -663,6 +667,7 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
     int playlistCount,
   ) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       height: 32,
       padding: const EdgeInsets.all(2),
@@ -675,7 +680,7 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
         children: [
           _buildPillTabItem(
             context: context,
-            title: '播放队列',
+            title: l10n.playQueue,
             count: queueCount,
             index: 0,
             isSelected: _currentTabIndex == 0,
@@ -684,7 +689,7 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
           const SizedBox(width: 4),
           _buildPillTabItem(
             context: context,
-            title: '播放列表',
+            title: l10n.playlist,
             count: playlistCount,
             index: 1,
             isSelected: _currentTabIndex == 1,
@@ -701,6 +706,7 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
     int playlistCount,
   ) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.fromLTRB(10, 6, 10, 8),
       decoration: BoxDecoration(
@@ -724,7 +730,7 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
             Expanded(
               child: _buildPillTabItem(
                 context: context,
-                title: '播放队列',
+                title: l10n.playQueue,
                 count: queueCount,
                 index: 0,
                 isSelected: _currentTabIndex == 0,
@@ -734,7 +740,7 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
             Expanded(
               child: _buildPillTabItem(
                 context: context,
-                title: '播放列表',
+                title: l10n.playlist,
                 count: playlistCount,
                 index: 1,
                 isSelected: _currentTabIndex == 1,
@@ -858,6 +864,7 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
 
   Widget _buildEmptyView(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -871,7 +878,7 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
             ),
             const SizedBox(height: 14),
             Text(
-              '播放队列为空',
+              l10n.queueEmpty,
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
@@ -880,7 +887,7 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
             ),
             const SizedBox(height: 6),
             Text(
-              '可从左侧媒体库、目录或歌单\n直接将歌曲拖拽到此处',
+              l10n.queueEmptyDragHint,
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 12,
@@ -978,6 +985,7 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
     bool isPlaying,
   ) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     if (playlists.isEmpty) {
       return Center(
@@ -993,7 +1001,7 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
               ),
               const SizedBox(height: 14),
               Text(
-                '暂无播放列表',
+                l10n.noPlaylistsAvailable,
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
@@ -1004,7 +1012,7 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
               FilledButton.tonalIcon(
                 onPressed: () => _showCreatePlaylistDialog(context),
                 icon: const Icon(Icons.add_rounded, size: 18),
-                label: const Text('新建歌单'),
+                label: Text(l10n.createPlaylist),
               ),
             ],
           ),
@@ -1049,6 +1057,7 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
     PlaylistService playlistService,
   ) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final isFavorite = activePlaylist.id == PlaylistService.favoritePlaylistId;
     final isDefault = activePlaylist.id == 'default';
     final isBuiltin = isFavorite || isDefault;
@@ -1123,7 +1132,7 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
                               ),
                               const SizedBox(width: 6),
                               Text(
-                                '${p.songs.length} 首',
+                                l10n.songsCountFormat(p.songs.length),
                                 style: TextStyle(
                                   fontSize: 11,
                                   color: theme.colorScheme.onSurfaceVariant
@@ -1197,7 +1206,7 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
           const SizedBox(width: 4),
           if (activePlaylist.songs.isNotEmpty) ...[
             AppTooltip(
-              message: '播放全部',
+              message: l10n.playAll,
               child: IconButton(
                 icon: const Icon(Icons.play_circle_fill_rounded, size: 20),
                 onPressed: () => audioService.playPlaylist(
@@ -1213,7 +1222,7 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
               ),
             ),
             AppTooltip(
-              message: '追加到队列末尾',
+              message: l10n.appendToQueueEnd,
               child: IconButton(
                 icon: const Icon(Icons.playlist_add_rounded, size: 20),
                 onPressed: () {
@@ -1222,7 +1231,7 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
                     context,
                     ref,
                     SnackBar(
-                      content: Text('已将 ${activePlaylist.songs.length} 首歌曲追加到队列末尾'),
+                      content: Text(l10n.addedSongsToQueueEnd(activePlaylist.songs.length)),
                     ),
                   );
                 },
@@ -1232,7 +1241,7 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
             ),
           ],
           AppTooltip(
-            message: '新建歌单',
+            message: l10n.createPlaylist,
             child: IconButton(
               icon: const Icon(Icons.add_rounded, size: 20),
               onPressed: () => _showCreatePlaylistDialog(context),
@@ -1242,7 +1251,7 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
           ),
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert_rounded, size: 18),
-            tooltip: '更多选项',
+            tooltip: l10n.moreOptions,
             color: theme.colorScheme.surface,
             onSelected: (action) async {
               if (action == 'clear') {
@@ -1251,7 +1260,7 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
                   AppSnackBar.show(
                     context,
                     ref,
-                    SnackBar(content: Text('已清空【$plName】')),
+                    SnackBar(content: Text(l10n.playlistSongsCleared(plName))),
                   );
                 }
               } else if (action == 'rename') {
@@ -1262,41 +1271,41 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
                   AppSnackBar.show(
                     context,
                     ref,
-                    SnackBar(content: Text('已删除歌单【$plName】')),
+                    SnackBar(content: Text(l10n.playlistDeletedWithName(plName))),
                   );
                 }
               }
             },
             itemBuilder: (ctx) => [
               if (activePlaylist.songs.isNotEmpty)
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'clear',
                   child: Row(
                     children: [
-                      Icon(Icons.clear_all_rounded, size: 18),
-                      SizedBox(width: 8),
-                      Text('清空歌曲'),
+                      const Icon(Icons.clear_all_rounded, size: 18),
+                      const SizedBox(width: 8),
+                      Text(l10n.clearSongs),
                     ],
                   ),
                 ),
               if (!isBuiltin) ...[
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'rename',
                   child: Row(
                     children: [
-                      Icon(Icons.edit_outlined, size: 18),
-                      SizedBox(width: 8),
-                      Text('重命名歌单'),
+                      const Icon(Icons.edit_outlined, size: 18),
+                      const SizedBox(width: 8),
+                      Text(l10n.renamePlaylist),
                     ],
                   ),
                 ),
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'delete',
                   child: Row(
                     children: [
-                      Icon(Icons.delete_outline_rounded, size: 18, color: Colors.redAccent),
-                      SizedBox(width: 8),
-                      Text('删除歌单', style: TextStyle(color: Colors.redAccent)),
+                      const Icon(Icons.delete_outline_rounded, size: 18, color: Colors.redAccent),
+                      const SizedBox(width: 8),
+                      Text(l10n.deletePlaylist, style: const TextStyle(color: Colors.redAccent)),
                     ],
                   ),
                 ),
@@ -1310,6 +1319,7 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
 
   Widget _buildEmptyPlaylistSongsView(BuildContext context, Playlist playlist) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -1323,7 +1333,7 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
             ),
             const SizedBox(height: 14),
             Text(
-              '歌单内暂无歌曲',
+              l10n.noSongsInPlaylist,
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
@@ -1332,7 +1342,7 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
             ),
             const SizedBox(height: 6),
             Text(
-              '可从左侧媒体库拖拽歌曲\n或直接拖拽本地音频文件至此',
+              l10n.playlistEmptyDragHint,
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 12,
@@ -1434,6 +1444,7 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
   }
 
   void _showRenameDialog(BuildContext context, Playlist playlist) {
+    final l10n = AppLocalizations.of(context)!;
     final controller = TextEditingController(text: playlist.name);
     String? errorText;
 
@@ -1441,12 +1452,12 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          title: const Text('重命名歌单'),
+          title: Text(l10n.renamePlaylist),
           content: TextField(
             controller: controller,
             autofocus: true,
             decoration: InputDecoration(
-              labelText: '歌单名称',
+              labelText: l10n.playlistName,
               errorText: errorText,
             ),
             onSubmitted: (val) async {
@@ -1454,7 +1465,7 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
               if (newName.isNotEmpty && newName != playlist.name) {
                 final playlistService = ref.read(playlistServiceProvider);
                 if (playlistService.playlistExists(newName, excludeId: playlist.id)) {
-                  setDialogState(() => errorText = '已存在同名歌单');
+                  setDialogState(() => errorText = l10n.playlistNameExists);
                   return;
                 }
                 await playlistService.renamePlaylist(playlist.id, newName);
@@ -1465,7 +1476,7 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('取消'),
+              child: Text(l10n.cancel),
             ),
             FilledButton(
               onPressed: () async {
@@ -1473,14 +1484,14 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
                 if (newName.isNotEmpty && newName != playlist.name) {
                   final playlistService = ref.read(playlistServiceProvider);
                   if (playlistService.playlistExists(newName, excludeId: playlist.id)) {
-                    setDialogState(() => errorText = '已存在同名歌单');
+                    setDialogState(() => errorText = l10n.playlistNameExists);
                     return;
                   }
                   await playlistService.renamePlaylist(playlist.id, newName);
                   if (ctx.mounted) Navigator.pop(ctx);
                 }
               },
-              child: const Text('确定'),
+              child: Text(l10n.confirm),
             ),
           ],
         ),
@@ -1523,6 +1534,7 @@ class _RightPlaylistSongTileState
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final song = widget.song;
 
     final metadata = ref.watch(
@@ -1531,7 +1543,7 @@ class _RightPlaylistSongTileState
     final artist = (metadata?.artist ?? song.artist)?.trim();
     final album = (metadata?.album ?? song.album)?.trim();
     final displayArtist =
-        (artist != null && artist.isNotEmpty) ? artist : '未知艺术家';
+        (artist != null && artist.isNotEmpty) ? artist : l10n.unknownArtist;
     final displayAlbum = (album != null && album.isNotEmpty) ? album : null;
     final subtitleText =
         displayAlbum != null ? '$displayArtist - $displayAlbum' : displayArtist;
@@ -1657,7 +1669,7 @@ class _RightPlaylistSongTileState
                   ),
                   onPressed: widget.onRemove,
                   visualDensity: VisualDensity.compact,
-                  tooltip: '从歌单中移除',
+                  tooltip: l10n.removeFromPlaylist,
                 ),
               ],
             ),
@@ -1708,6 +1720,7 @@ class _RightQueueTileState extends ConsumerState<_RightQueueTile> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final song = widget.song;
 
     final metadata = ref.watch(
@@ -1715,7 +1728,7 @@ class _RightQueueTileState extends ConsumerState<_RightQueueTile> {
     );
     final artist = (metadata?.artist ?? song.artist)?.trim();
     final album = (metadata?.album ?? song.album)?.trim();
-    final displayArtist = (artist != null && artist.isNotEmpty) ? artist : '未知艺术家';
+    final displayArtist = (artist != null && artist.isNotEmpty) ? artist : l10n.unknownArtist;
     final displayAlbum = (album != null && album.isNotEmpty) ? album : null;
     final subtitleText =
         displayAlbum != null ? '$displayArtist - $displayAlbum' : displayArtist;
@@ -1870,7 +1883,7 @@ class _RightQueueTileState extends ConsumerState<_RightQueueTile> {
                 const SizedBox(width: 6),
                 if (_isHovered && !widget.isSelectionMode)
                   AppTooltip(
-                    message: '从队列中移除',
+                    message: l10n.removeFromQueue,
                     child: IconButton(
                       icon: const Icon(Icons.close_rounded, size: 16),
                       onPressed: widget.onRemove,

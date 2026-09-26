@@ -119,7 +119,7 @@ class PlaybackControls extends ConsumerWidget {
       final settings = ref.read(settingsServiceProvider);
       final nextState = !settings.showLyricsTranslation;
       settings.showLyricsTranslation = nextState;
-      showToast(nextState ? '已开启歌词翻译' : '已关闭歌词翻译');
+      showToast(nextState ? l10n.lyricsTranslationEnabled : l10n.lyricsTranslationDisabled);
       return;
     }
 
@@ -702,8 +702,8 @@ class PlaybackControls extends ConsumerWidget {
           isLoading: isTranslating,
           hasData: hasTranslation,
           tooltip: hasTranslation
-              ? (showLyricsTranslation ? '关闭歌词翻译' : '开启歌词翻译')
-              : '生成歌词翻译',
+              ? (showLyricsTranslation ? l10n.disableLyricsTranslation : l10n.enableLyricsTranslation)
+              : l10n.generateLyricsTranslation,
           onTap: () => _handleTranslationTap(context, ref, currentMusic, l10n),
         ),
         buildLyricsTopButton(
@@ -712,8 +712,8 @@ class PlaybackControls extends ConsumerWidget {
           isLoading: isGeneratingKaraoke,
           hasData: hasWordByWord,
           tooltip: hasWordByWord
-              ? (showLyricsWordByWord ? '关闭逐字歌词' : '开启逐字歌词')
-              : '生成逐字歌词',
+              ? (showLyricsWordByWord ? l10n.disableWordByWordLyrics : l10n.enableWordByWordLyrics)
+              : l10n.generateWordByWordLyrics,
           onTap: () => _handleWordByWordTap(context, ref, currentMusic, l10n),
         ),
       ],

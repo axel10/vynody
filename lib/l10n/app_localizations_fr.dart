@@ -5213,4 +5213,218 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get cannotConnectToMediaServer =>
       'Impossible de se connecter au serveur multimédia. Veuillez vérifier si le service est actif.';
+
+  @override
+  String get playQueue => 'File de lecture';
+
+  @override
+  String get clearPlaybackQueue => 'Vider la file de lecture';
+
+  @override
+  String get confirmClearPlaybackQueue =>
+      'Voulez-vous vraiment effacer tous les morceaux de la file d\'attente ?';
+
+  @override
+  String get exitMultiSelect => 'Quitter la sélection multiple';
+
+  @override
+  String selectedItemsCount(Object count) {
+    return '$count sélectionnés';
+  }
+
+  @override
+  String removeFromQueueWithCount(Object count) {
+    return 'Retirer de la file ($count morceaux)';
+  }
+
+  @override
+  String get cancelSelection => 'Désélectionner';
+
+  @override
+  String get multiSelect => 'Sélection multiple';
+
+  @override
+  String get create => 'Créer';
+
+  @override
+  String get moreOptions => 'Plus d\'options';
+
+  @override
+  String get detachToStandaloneWindow =>
+      'Détacher dans une fenêtre indépendante';
+
+  @override
+  String get closeDrawer => 'Fermer le volet';
+
+  @override
+  String get queueEmptyDragHint =>
+      'Glissez des morceaux ici depuis la bibliothèque, les dossiers ou les listes';
+
+  @override
+  String get appendToQueueEnd => 'Ajouter à la fin de la file';
+
+  @override
+  String addedSongsToQueueEnd(Object count) {
+    return '$count morceaux ajoutés à la fin de la file';
+  }
+
+  @override
+  String playlistSongsCleared(Object name) {
+    return '\"$name\" vidé';
+  }
+
+  @override
+  String playlistDeletedWithName(Object name) {
+    return 'Liste de lecture \"$name\" supprimée';
+  }
+
+  @override
+  String get clearSongs => 'Effacer les morceaux';
+
+  @override
+  String get playlistEmptyDragHint =>
+      'Glissez des morceaux depuis la bibliothèque\nou directement des fichiers audio locaux ici';
+
+  @override
+  String get standaloneQueueWindowTitle => 'File de lecture & Listes - Vynody';
+
+  @override
+  String get standaloneQueueManagerTitle => 'File de lecture - Vynody';
+
+  @override
+  String get dockBackToMainWindow => 'Rattacher à la fenêtre principale';
+
+  @override
+  String get unpin => 'Détacher du premier plan';
+
+  @override
+  String get playNow => 'Lire maintenant';
+
+  @override
+  String get standalonePlaylistDragHint =>
+      'Glissez directement des fichiers audio locaux ici pour les ajouter';
+
+  @override
+  String get standaloneQueueDragHint =>
+      'Glissez des morceaux ici depuis la bibliothèque, les dossiers ou l\'extérieur';
+
+  @override
+  String get closeStandaloneQueue => 'Fermer la file de lecture indépendante';
+
+  @override
+  String get collapsePlayQueue => 'Réduire la file de lecture';
+
+  @override
+  String get expandPlayQueue => 'Déployer la file de lecture';
+
+  @override
+  String get enableLyricsTranslation => 'Activer la traduction des paroles';
+
+  @override
+  String get disableLyricsTranslation => 'Désactiver la traduction des paroles';
+
+  @override
+  String get generateLyricsTranslation => 'Générer la traduction des paroles';
+
+  @override
+  String get enableWordByWordLyrics => 'Activer les paroles mot à mot';
+
+  @override
+  String get disableWordByWordLyrics => 'Désactiver les paroles mot à mot';
+
+  @override
+  String get generateWordByWordLyrics => 'Générer les paroles mot à mot';
+
+  @override
+  String get lyricsTranslationEnabled => 'Traduction des paroles activée';
+
+  @override
+  String get lyricsTranslationDisabled => 'Traduction des paroles désactivée';
+
+  @override
+  String get enableDescending => 'Activer l\'ordre décroissant';
+
+  @override
+  String get currentlyDescending => 'Actuellement trié par ordre décroissant';
+
+  @override
+  String get currentlyAscending => 'Actuellement trié par ordre croissant';
+
+  @override
+  String get librarySourceFilterTitle =>
+      'Filtre des sources de la bibliothèque';
+
+  @override
+  String get librarySourceAll => 'Toute la musique';
+
+  @override
+  String get librarySourceAllDescription =>
+      'Inclut la musique locale et tous les morceaux distants indexés';
+
+  @override
+  String get librarySourceLocalOnly => 'Appareil local uniquement';
+
+  @override
+  String get librarySourceLocalOnlyDescription =>
+      'Affiche uniquement la musique stockée sur cet appareil';
+
+  @override
+  String get librarySourceIndexedRemote => 'Serveurs distants indexés';
+
+  @override
+  String get visualizerStyle => 'Style de spectre';
+
+  @override
+  String get visualizerStyleBars => 'Barres classiques';
+
+  @override
+  String get visualizerStyleSmoothWave => 'Onde fluide';
+
+  @override
+  String get visualizerStyleFloatingBars => 'Capsules flottantes';
+
+  @override
+  String get visualizerStyleRadial => 'Halo radial';
+
+  @override
+  String get visualizerStyleMatrix => 'Matrice néon';
+
+  @override
+  String get visualizerStyleMirroredWave => 'Onde miroir';
+
+  @override
+  String get replaceButton => 'Remplacer le bouton';
+
+  @override
+  String selectedArtistsWithTotalSongs(Object artistCount, Object songCount) {
+    return '$artistCount artistes sélectionnés ($songCount morceaux)';
+  }
+
+  @override
+  String get jellyfinAlbum => 'Album Jellyfin';
+
+  @override
+  String get navidromeAlbum => 'Album Navidrome';
+
+  @override
+  String get jellyfinArtist => 'Artiste Jellyfin';
+
+  @override
+  String get navidromeArtist => 'Artiste Navidrome';
+
+  @override
+  String get jellyfinPlaylist => 'Liste de lecture Jellyfin';
+
+  @override
+  String get navidromePlaylist => 'Liste de lecture Navidrome';
+
+  @override
+  String get unknownPlaylist => 'Liste de lecture inconnue';
+
+  @override
+  String get loadingServerPlaylists => 'Chargement des listes du serveur...';
+
+  @override
+  String get jellyfinMediaDeletionPermissionHint =>
+      ' (Vérifiez si l\'utilisateur Jellyfin a la permission \"Autoriser la suppression de médias\")';
 }

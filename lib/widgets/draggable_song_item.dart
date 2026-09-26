@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:super_drag_and_drop/super_drag_and_drop.dart';
+import 'package:vynody/l10n/app_localizations.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/remote/proxy/remote_media_resolver.dart';
 import 'package:vynody/widgets/draggable_preview_card.dart';
@@ -150,9 +151,12 @@ class DraggableSongItem extends ConsumerWidget {
       dragBuilder: (context, child) {
         debugPrint(
             '[DRAG] DraggableSongItem.dragBuilder called for: ${song.displayName} (batch: $isBatch, count: $dragCount)');
+        final l10n = AppLocalizations.of(context)!;
         return AppDraggablePreviewCard(
           title: song.displayName,
-          subtitle: isBatch ? '已选择 $dragCount 首歌曲' : (song.artist ?? '未知歌手'),
+          subtitle: isBatch
+              ? l10n.selectedSongs(dragCount)
+              : (song.artist?.isNotEmpty == true ? song.artist! : l10n.unknownArtist),
           imagePath: coverPath,
           defaultIcon: Icons.music_note_rounded,
           isBatch: isBatch,
