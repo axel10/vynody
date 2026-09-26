@@ -913,6 +913,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
         mainAxisSize: MainAxisSize.min,
         children: [
           _buildPillTabItem(
+            context: context,
             title: '播放队列',
             count: _queue.length,
             index: 0,
@@ -921,6 +922,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
           ),
           const SizedBox(width: 4),
           _buildPillTabItem(
+            context: context,
             title: '播放列表',
             count: _playlists.length,
             index: 1,
@@ -956,6 +958,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
           children: [
             Expanded(
               child: _buildPillTabItem(
+                context: context,
                 title: '播放队列',
                 count: _queue.length,
                 index: 0,
@@ -965,6 +968,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
             const SizedBox(width: 4),
             Expanded(
               child: _buildPillTabItem(
+                context: context,
                 title: '播放列表',
                 count: _playlists.length,
                 index: 1,
@@ -978,6 +982,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
   }
 
   Widget _buildPillTabItem({
+    required BuildContext context,
     required String title,
     required int count,
     required int index,
