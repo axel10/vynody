@@ -15,13 +15,17 @@ import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/player/scanner/scanner_service.dart';
 import 'package:vynody/player/settings/settings_service.dart';
 import 'package:collection/collection.dart';
+import 'package:window_manager/window_manager.dart';
+import 'package:vynody/pages/main_layout_riverpod.dart';
 import 'package:vynody/player/platform/right_queue_drawer_controller.dart';
+import 'package:vynody/player/pro/pro_license_service.dart';
 import 'package:vynody/player/remote/remote_server_models.dart';
 import 'package:vynody/player/remote/remote_server_riverpod.dart';
 import 'package:vynody/player/remote/proxy/remote_media_resolver.dart';
 import 'package:vynody/player/remote/clients/webdav_client.dart';
 import 'package:vynody/player/remote/clients/smb_client.dart';
 import 'package:vynody/player/remote/clients/remote_media_library_client.dart';
+import 'package:vynody/player/settings/shortcut_bindings.dart';
 import 'package:vynody/utils/remote_context_menu_utils.dart';
 import 'package:vynody/utils/app_log.dart';
 
@@ -305,6 +309,14 @@ class StandaloneQueueWindowManager {
           }
           return true;
 
+        case 'shortcut_action':
+          final actionKey = call.arguments as String?;
+          if (actionKey != null) {
+            final action = AppShortcutActionX.fromStorageKey(actionKey);
+            unawaited(_handleShortcutAction(action));
+          }
+          return true;
+
         case 'window_closed':
           _onSubWindowClosed();
           return true;
@@ -313,6 +325,66 @@ class StandaloneQueueWindowManager {
           return null;
       }
     });
+  }
+
+  Future<void> _handleShortcutAction(AppShortcutAction action) async {
+    final audio = ref.read(audioServiceProvider);
+    switch (action) {
+      case AppShortcutAction.playPause:
+        audio.togglePlay();
+        break;
+      case AppShortcutAction.next:
+        audio.next();
+        break;
+      case AppShortcutAction.previous:
+        audio.previous();
+        break;
+      case AppShortcutAction.volumeUp:
+        ref
+            .read(mainLayoutUiControllerProvider.notifier)
+            .setVolumeHudVisible(true);
+        audio.setVolume((audio.volume + 5).roundToDouble());
+        break;
+      case AppShortcutAction.volumeDown:
+        ref
+            .read(mainLayoutUiControllerProvider.notifier)
+            .setVolumeHudVisible(true);
+        audio.setVolume((audio.volume - 5).roundToDouble());
+        break;
+      case AppShortcutAction.mute:
+        audio.toggleMute();
+        break;
+      case AppShortcutAction.seekForward:
+        audio.seekRelative(const Duration(seconds: 5));
+        break;
+      case AppShortcutAction.seekBackward:
+        audio.seekRelative(const Duration(seconds: -5));
+        break;
+      case AppShortcutAction.toggleFullScreen:
+        if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+          final isFullScreen = await windowManager.isFullScreen();
+          final next = !isFullScreen;
+          await windowManager.setFullScreen(next);
+          ref.read(isWindowFullScreenProvider.notifier).state = next;
+        }
+        break;
+      case AppShortcutAction.toggleWasapiExclusive:
+        if (Platform.isWindows) {
+          final settings = ref.read(settingsServiceProvider);
+          if (settings.hasUsedWasapiExclusive) {
+            final isProUnlocked = ref.read(isProUnlockedProvider);
+            final isCurrentlyExclusive =
+                settings.windowsAudioOutputMode == 'wasapi_exclusive' &&
+                    isProUnlocked;
+            if (!isCurrentlyExclusive && isProUnlocked) {
+              await audio.updateWindowsAudioOutput(mode: 'wasapi_exclusive');
+            } else if (isCurrentlyExclusive) {
+              await audio.updateWindowsAudioOutput(mode: 'shared');
+            }
+          }
+        }
+        break;
+    }
   }
 
   Future<void> addPathsToPlaylist(String playlistId, List<String> paths) async {
@@ -656,6 +728,10 @@ class StandaloneQueueWindowManager {
       'themeMode': settings.themeMode.index,
       'accentColor': settings.themeColor.toARGB32(),
       'isAlwaysOnTop': settings.isStandaloneQueueAlwaysOnTop,
+      'shortcutBindings': {
+        for (final entry in settings.shortcutBindings.entries)
+          entry.key.storageKey: entry.value.toJson(),
+      },
     };
   }
 

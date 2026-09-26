@@ -9,12 +9,58 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:super_drag_and_drop/super_drag_and_drop.dart';
 import 'package:vynody/models/music_file.dart';
+import 'package:vynody/player/settings/shortcut_bindings.dart';
 import 'package:vynody/utils/list_reorder_utils.dart';
 import 'package:vynody/utils/selection_utils.dart';
 import 'package:vynody/widgets/app_tooltip.dart';
 import 'package:vynody/widgets/draggable_song_item.dart';
 import 'package:vynody/widgets/queue_file_drop_target.dart';
 import 'package:vynody/widgets/song_thumbnail.dart';
+
+class _StandaloneShortcutIntent extends Intent {
+  final AppShortcutAction action;
+  const _StandaloneShortcutIntent(this.action);
+}
+
+class _DeleteSelectedIntent extends Intent {
+  const _DeleteSelectedIntent();
+}
+
+class _EscapeSelectionIntent extends Intent {
+  const _EscapeSelectionIntent();
+}
+
+class _SelectAllIntent extends Intent {
+  const _SelectAllIntent();
+}
+
+class _StandaloneQueueShortcutManager extends ShortcutManager {
+  @override
+  KeyEventResult handleKeypress(BuildContext context, KeyEvent event) {
+    if (_isTextInputFocused()) {
+      return KeyEventResult.ignored;
+    }
+    return super.handleKeypress(context, event);
+  }
+
+  bool _isTextInputFocused() {
+    final focusNode = FocusManager.instance.primaryFocus;
+    if (focusNode == null) return false;
+
+    final context = focusNode.context;
+    if (context == null) return false;
+
+    final widget = context.widget;
+    if (widget is EditableText ||
+        widget is TextField ||
+        widget is TextFormField) {
+      return true;
+    }
+    return context.findAncestorWidgetOfExactType<EditableText>() != null ||
+        context.findAncestorWidgetOfExactType<TextField>() != null ||
+        context.findAncestorWidgetOfExactType<TextFormField>() != null;
+  }
+}
 
 class StandaloneQueueApp extends StatefulWidget {
   final String windowId;
@@ -45,6 +91,8 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
   final _playlistSongReorderController =
       ReorderableListController<dynamic>(debugPrefix: 'standalone-playlist-song-tile');
   final FocusNode _focusNode = FocusNode();
+  late final _StandaloneQueueShortcutManager _shortcutManager;
+  Map<AppShortcutAction, ShortcutBinding> _shortcutBindings = {};
 
   int _currentTabIndex = 0; // 0: 播放队列, 1: 播放列表
   Timer? _tabHoverTimer;
@@ -94,6 +142,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _shortcutManager = _StandaloneQueueShortcutManager();
     _controller = WindowController.fromWindowId(widget.windowId);
     _subChannel = WindowMethodChannel(
       'vynody/standalone_queue_sub_${widget.windowId}',
@@ -223,6 +272,16 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
     final isAlwaysOnTop = data['isAlwaysOnTop'] as bool?;
     if (isAlwaysOnTop != null) {
       _isAlwaysOnTop = isAlwaysOnTop;
+    }
+
+    final rawShortcuts = data['shortcutBindings'] as Map?;
+    if (rawShortcuts != null) {
+      _shortcutBindings = {
+        for (final entry in rawShortcuts.entries)
+          AppShortcutActionX.fromStorageKey(entry.key.toString()):
+              ShortcutBinding.fromJson(entry.value) ??
+                  AppShortcutActionX.fromStorageKey(entry.key.toString()).defaultBinding,
+      };
     }
 
     _updateNativeTitleBar();
@@ -643,6 +702,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
     _scrollController.dispose();
     _playlistScrollController.dispose();
     _focusNode.dispose();
+    _shortcutManager.dispose();
     _queueReorderController.clear();
     _playlistSongReorderController.clear();
     super.dispose();
@@ -688,6 +748,32 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
     );
   }
 
+  Map<ShortcutActivator, Intent> _buildShortcutMap() {
+    final map = <ShortcutActivator, Intent>{
+      const SingleActivator(LogicalKeyboardKey.delete):
+          const _DeleteSelectedIntent(),
+      const SingleActivator(LogicalKeyboardKey.backspace):
+          const _DeleteSelectedIntent(),
+      const SingleActivator(LogicalKeyboardKey.escape):
+          const _EscapeSelectionIntent(),
+      const SingleActivator(LogicalKeyboardKey.keyA, control: true):
+          const _SelectAllIntent(),
+      const SingleActivator(LogicalKeyboardKey.keyA, meta: true):
+          const _SelectAllIntent(),
+    };
+
+    for (final action in AppShortcutAction.values) {
+      final binding = _shortcutBindings[action] ?? action.defaultBinding;
+      final activator = binding.toActivator();
+      if (activator == null) continue;
+      if (!map.containsKey(activator)) {
+        map[activator] = _StandaloneShortcutIntent(action);
+      }
+    }
+
+    return map;
+  }
+
   @override
   Widget build(BuildContext context) {
     final lightTheme = _buildTheme(Brightness.light, _accentColor);
@@ -697,6 +783,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
     _queueReorderController.syncLength(_queue.length);
     _playlistSongReorderController.syncLength(activePlaylistSongs.length);
     _selectedIndices.removeWhere((idx) => idx >= _queue.length);
+    _shortcutManager.shortcuts = _buildShortcutMap();
 
     return ProviderScope(
       child: MaterialApp(
@@ -708,71 +795,83 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
         home: Builder(
         builder: (context) {
           final theme = Theme.of(context);
-          return CallbackShortcuts(
-            bindings: {
-              const SingleActivator(LogicalKeyboardKey.delete): _removeSelected,
-              const SingleActivator(LogicalKeyboardKey.backspace): _removeSelected,
-              const SingleActivator(LogicalKeyboardKey.escape): _exitSelectionMode,
-              const SingleActivator(LogicalKeyboardKey.keyA, control: true):
-                  _toggleSelectAll,
-              const SingleActivator(LogicalKeyboardKey.keyA, meta: true):
-                  _toggleSelectAll,
-            },
-            child: Focus(
-              focusNode: _focusNode,
-              autofocus: true,
-              child: Scaffold(
-                backgroundColor: theme.scaffoldBackgroundColor,
-                body: QueueFileDropTarget(
-                  enabled: true,
-                  displayQueue: _currentTabIndex == 0 ? _queue : activePlaylistSongs,
-                  queueSongs: _currentTabIndex == 0 ? _queue : activePlaylistSongs,
-                  itemKeyBuilder: (index, song) => _currentTabIndex == 0
-                      ? _queueReorderController.getKey(index)
-                      : _playlistSongReorderController.getKey(index),
-                  showPreview: (_currentTabIndex == 0 ? _queue : activePlaylistSongs).isNotEmpty,
-                  indicatorHorizontalPadding: 12.0,
-                  onFilesDropped: (paths, insertIndex) async {
-                    if (_currentTabIndex == 0) {
-                      _sendIpc('add_files', {
-                        'paths': paths,
-                        'insertIndex': insertIndex,
-                        'playNow': false,
-                      });
-                    } else {
-                      final active = _activePlaylist;
-                      if (active != null) {
-                        _sendIpc('add_to_playlist', {
-                          'playlistId': active['id'],
-                          'paths': paths,
-                        });
-                      }
-                    }
+          return Shortcuts.manager(
+            manager: _shortcutManager,
+            child: Actions(
+              actions: <Type, Action<Intent>>{
+                _DeleteSelectedIntent: CallbackAction<_DeleteSelectedIntent>(
+                  onInvoke: (_) => _removeSelected(),
+                ),
+                _EscapeSelectionIntent: CallbackAction<_EscapeSelectionIntent>(
+                  onInvoke: (_) => _exitSelectionMode(),
+                ),
+                _SelectAllIntent: CallbackAction<_SelectAllIntent>(
+                  onInvoke: (_) => _toggleSelectAll(),
+                ),
+                _StandaloneShortcutIntent:
+                    CallbackAction<_StandaloneShortcutIntent>(
+                  onInvoke: (intent) {
+                    _sendIpc('shortcut_action', intent.action.storageKey);
+                    return null;
                   },
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      final isSelecting =
-                          _isSelectionMode || _selectedIndices.isNotEmpty;
-                      final isWide = constraints.maxWidth >= 380;
-
-                      return Column(
-                        children: [
-                          _buildTitleBar(context, isWide: isWide),
-                          if (!isWide && !isSelecting)
-                            _buildTabBarRow(context),
-                          Expanded(
-                            child: AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 180),
-                              child: _currentTabIndex == 0
-                                  ? (_queue.isEmpty
-                                      ? _buildEmptyView(context)
-                                      : _buildQueueList(context))
-                                  : _buildPlaylistsView(context),
-                            ),
-                          ),
-                        ],
-                      );
+                ),
+              },
+              child: Focus(
+                focusNode: _focusNode,
+                autofocus: true,
+                child: Scaffold(
+                  backgroundColor: theme.scaffoldBackgroundColor,
+                  body: QueueFileDropTarget(
+                    enabled: true,
+                    displayQueue: _currentTabIndex == 0 ? _queue : activePlaylistSongs,
+                    queueSongs: _currentTabIndex == 0 ? _queue : activePlaylistSongs,
+                    itemKeyBuilder: (index, song) => _currentTabIndex == 0
+                        ? _queueReorderController.getKey(index)
+                        : _playlistSongReorderController.getKey(index),
+                    showPreview: (_currentTabIndex == 0 ? _queue : activePlaylistSongs).isNotEmpty,
+                    indicatorHorizontalPadding: 12.0,
+                    onFilesDropped: (paths, insertIndex) async {
+                      if (_currentTabIndex == 0) {
+                        _sendIpc('add_files', {
+                          'paths': paths,
+                          'insertIndex': insertIndex,
+                          'playNow': false,
+                        });
+                      } else {
+                        final active = _activePlaylist;
+                        if (active != null) {
+                          _sendIpc('add_to_playlist', {
+                            'playlistId': active['id'],
+                            'paths': paths,
+                          });
+                        }
+                      }
                     },
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final isSelecting =
+                            _isSelectionMode || _selectedIndices.isNotEmpty;
+                        final isWide = constraints.maxWidth >= 380;
+
+                        return Column(
+                          children: [
+                            _buildTitleBar(context, isWide: isWide),
+                            if (!isWide && !isSelecting)
+                              _buildTabBarRow(context),
+                            Expanded(
+                              child: AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 180),
+                                child: _currentTabIndex == 0
+                                    ? (_queue.isEmpty
+                                        ? _buildEmptyView(context)
+                                        : _buildQueueList(context))
+                                    : _buildPlaylistsView(context),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
                   ),
                 ),
               ),
