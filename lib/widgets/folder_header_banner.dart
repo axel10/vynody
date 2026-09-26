@@ -306,7 +306,7 @@ class _FolderLandscapeHeaderBanner extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isWideScreen = constraints.maxWidth >= 540 && MediaQuery.of(context).size.width >= 900;
+        final isWideScreen = constraints.maxWidth >= 680;
 
         if (isWideScreen) {
           return Container(
@@ -547,8 +547,6 @@ class _FolderPortraitHeaderBanner extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final l10n = AppLocalizations.of(context)!;
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isWideScreen = screenWidth >= 900;
     final statusBarTop = MediaQuery.of(context).padding.top;
     final isDesktop = Platform.isMacOS || Platform.isWindows || Platform.isLinux;
     final desktopTitleBarHeight = isDesktop ? 28.0 : 0.0;
@@ -565,11 +563,15 @@ class _FolderPortraitHeaderBanner extends StatelessWidget {
           )
         : null;
 
-    return Container(
-      margin: const EdgeInsets.only(left: 0, right: 0, top: 0, bottom: 12),
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWideScreen = constraints.maxWidth >= 680;
+
+        return Container(
+          margin: const EdgeInsets.only(left: 0, right: 0, top: 0, bottom: 12),
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
           // 1. Background cover / backdrop layer with elastic overscroll stretch
           Positioned(
             top: -overscroll,
@@ -924,6 +926,8 @@ class _FolderPortraitHeaderBanner extends StatelessWidget {
           ],
         ),
       );
+      },
+    );
   }
 }
 

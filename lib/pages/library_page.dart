@@ -20,12 +20,14 @@ class LibraryPage extends ConsumerStatefulWidget {
   final int initialTabIndex;
   final bool initialAlbums3DView;
   final int initialAlbums3DIndex;
+  final bool? useSidebar;
 
   const LibraryPage({
     super.key,
     this.initialTabIndex = 0,
     this.initialAlbums3DView = false,
     this.initialAlbums3DIndex = 0,
+    this.useSidebar,
   });
 
   @override
@@ -69,11 +71,12 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final bool isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
     final bool isDesktop = Platform.isWindows || Platform.isLinux || Platform.isMacOS;
+    final bool isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
     final bool isCoverFlowImmersive =
         isLandscape && ref.watch(isCoverFlowImmersiveActiveProvider);
-    final double leftPadding = isLandscape ? 80.0 : 0.0;
+    final bool effectiveUseSidebar = widget.useSidebar ?? isLandscape;
+    final double leftPadding = effectiveUseSidebar ? 80.0 : 0.0;
     final double safeTopPadding =
         isDesktop ? 32.0 : MediaQuery.of(context).padding.top;
     final double topPadding = safeTopPadding + kToolbarHeight;

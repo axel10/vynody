@@ -701,6 +701,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
             initialTabIndex: widget.initialLibraryTabIndex,
             initialAlbums3DView: widget.initialAlbums3DView,
             initialAlbums3DIndex: widget.initialAlbums3DIndex,
+            useSidebar: useSidebar,
           ),
         );
       case 3:
@@ -1230,9 +1231,12 @@ class _MainLayoutState extends ConsumerState<MainLayout>
       isWaveformEnabled: ref.watch(isEffectiveWaveformEnabledProvider),
       isSmallWindowMode: settings.isSmallWindowMode,
     );
+    final bool isDrawerOpen =
+        isDesktop && !isSmallWin && ref.watch(rightQueueDrawerProvider);
+    final double effectiveWidth =
+        size.width - (isDrawerOpen ? kRightQueueDrawerWidth : 0.0);
     final bool isLandscape =
-        !isSmallWin &&
-        (MediaQuery.of(context).orientation == Orientation.landscape);
+        !isSmallWin && (effectiveWidth > size.height);
     final bool isCoverFlowImmersive =
         isLandscape &&
         ref.watch(isCoverFlowImmersiveActiveProvider);
@@ -1414,9 +1418,6 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                                           final audio = ref.read(
                                             audioServiceProvider,
                                           );
-                                          final isLandscape =
-                                              MediaQuery.of(context).orientation ==
-                                              Orientation.landscape;
                                           final availableWidth =
                                               MediaQuery.of(context).size.width -
                                               railWidth -
