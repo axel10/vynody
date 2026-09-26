@@ -23,6 +23,7 @@ import 'package:vynody/utils/time_format_utils.dart';
 import 'package:vynody/widgets/app_tooltip.dart';
 import 'package:vynody/widgets/draggable_song_item.dart';
 import 'package:vynody/widgets/queue_file_drop_target.dart';
+import 'package:vynody/widgets/song_thumbnail.dart';
 
 class RightQueuePanel extends ConsumerStatefulWidget {
   const RightQueuePanel({super.key});
@@ -1511,15 +1512,6 @@ class _RightPlaylistSongTileState
     final subtitleText =
         displayAlbum != null ? '$displayArtist - $displayAlbum' : displayArtist;
 
-    final hasThumb = song.thumbnailPath != null &&
-        song.thumbnailPath!.isNotEmpty &&
-        File(song.thumbnailPath!).existsSync();
-    final hasArt = song.artworkPath != null &&
-        song.artworkPath!.isNotEmpty &&
-        File(song.artworkPath!).existsSync();
-    final coverPath =
-        hasThumb ? song.thumbnailPath : (hasArt ? song.artworkPath : null);
-
     final itemColor = widget.isCurrent
         ? theme.colorScheme.primaryContainer.withValues(alpha: 0.28)
         : (_isHovered
@@ -1565,35 +1557,10 @@ class _RightPlaylistSongTileState
                     song: song,
                     child: Row(
                       children: [
-                        ClipRRect(
+                        SongThumbnail.fromSong(
+                          song,
+                          size: 36.0,
                           borderRadius: BorderRadius.circular(6),
-                          child: SizedBox(
-                            width: 36,
-                            height: 36,
-                            child: Container(
-                              color:
-                                  theme.colorScheme.surfaceContainerHighest,
-                              child: coverPath != null
-                                  ? Image.file(
-                                      File(coverPath),
-                                      fit: BoxFit.cover,
-                                      cacheWidth: 80,
-                                      cacheHeight: 80,
-                                      errorBuilder: (_, _, _) => Icon(
-                                        Icons.music_note_rounded,
-                                        size: 18,
-                                        color:
-                                            theme.colorScheme.onSurfaceVariant,
-                                      ),
-                                    )
-                                  : Icon(
-                                      Icons.music_note_rounded,
-                                      size: 18,
-                                      color:
-                                          theme.colorScheme.onSurfaceVariant,
-                                    ),
-                            ),
-                          ),
                         ),
                         const SizedBox(width: 10),
                         Expanded(
@@ -1732,15 +1699,6 @@ class _RightQueueTileState extends ConsumerState<_RightQueueTile> {
     final subtitleText =
         displayAlbum != null ? '$displayArtist - $displayAlbum' : displayArtist;
 
-    final hasThumb = song.thumbnailPath != null &&
-        song.thumbnailPath!.isNotEmpty &&
-        File(song.thumbnailPath!).existsSync();
-    final hasArt = song.artworkPath != null &&
-        song.artworkPath!.isNotEmpty &&
-        File(song.artworkPath!).existsSync();
-    final coverPath =
-        hasThumb ? song.thumbnailPath : (hasArt ? song.artworkPath : null);
-
     final itemColor = widget.isSelected
         ? theme.colorScheme.primaryContainer.withValues(alpha: 0.55)
         : (widget.isCurrent
@@ -1808,25 +1766,9 @@ class _RightQueueTileState extends ConsumerState<_RightQueueTile> {
                                   opacity: widget.isSelectionMode
                                       ? (widget.isSelected ? 0.5 : 0.7)
                                       : 1.0,
-                                  child: Container(
-                                    color: theme.colorScheme.surfaceContainerHighest,
-                                    child: coverPath != null
-                                        ? Image.file(
-                                            File(coverPath),
-                                            fit: BoxFit.cover,
-                                            cacheWidth: 80,
-                                            cacheHeight: 80,
-                                            errorBuilder: (_, _, _) => Icon(
-                                              Icons.music_note_rounded,
-                                              size: 18,
-                                              color: theme.colorScheme.onSurfaceVariant,
-                                            ),
-                                          )
-                                        : Icon(
-                                            Icons.music_note_rounded,
-                                            size: 18,
-                                            color: theme.colorScheme.onSurfaceVariant,
-                                          ),
+                                  child: SongThumbnail.fromSong(
+                                    song,
+                                    size: 36.0,
                                   ),
                                 ),
                                 if (widget.isSelectionMode)

@@ -5,10 +5,14 @@ import 'proxy/remote_media_resolver.dart';
 import 'remote_server_riverpod.dart';
 
 final audioStreamCacheManagerProvider = Provider<AudioStreamCacheManager>((ref) {
-  final settings = ref.watch(settingsServiceProvider);
-  return AudioStreamCacheManager(
-    maxCacheSizeBytesGetter: () => settings.remoteCacheMaxSizeBytes,
-  );
+  try {
+    final settings = ref.watch(settingsServiceProvider);
+    return AudioStreamCacheManager(
+      maxCacheSizeBytesGetter: () => settings.remoteCacheMaxSizeBytes,
+    );
+  } catch (_) {
+    return AudioStreamCacheManager();
+  }
 });
 
 final remoteMediaResolverProvider = FutureProvider<RemoteMediaResolver>((ref) async {
