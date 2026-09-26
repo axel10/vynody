@@ -297,13 +297,13 @@ dependency_overrides:
   #   path: ./Bonsoir/packages/bonsoir_windows
   audio_core:
     path: ./audio_core
-  # desktop_multi_window:
-  #   git: 
-  #     url: https://github.com/axel10/flutter-plugins
-  #     path: packages/desktop_multi_window
-  #     ref: main
   desktop_multi_window:
-    path: ./flutter-plugins/packages/desktop_multi_window
+    git: 
+      url: https://github.com/axel10/flutter-plugins
+      path: packages/desktop_multi_window
+      ref: main
+  # desktop_multi_window:
+  #   path: ./flutter-plugins/packages/desktop_multi_window
   irondash_engine_context:
     git:
       url: https://github.com/axel10/irondash
