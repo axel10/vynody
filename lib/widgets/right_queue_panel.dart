@@ -52,16 +52,6 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
     });
   }
 
-  void _toggleSelectionMode() {
-    setState(() {
-      _isSelectionMode = !_isSelectionMode;
-      if (!_isSelectionMode) {
-        _selectedIndices.clear();
-        _lastAnchorIndex = null;
-      }
-    });
-  }
-
   void _toggleSelectAll(int totalLength) {
     if (totalLength <= 0) return;
     setState(() {
@@ -674,6 +664,16 @@ class _RightQueueTileState extends ConsumerState<_RightQueueTile> {
     final theme = Theme.of(context);
     final song = widget.song;
 
+    final metadata = ref.watch(
+      scannerServiceProvider.select((s) => s.metadataMap[song.path]),
+    );
+    final artist = (metadata?.artist ?? song.artist)?.trim();
+    final album = (metadata?.album ?? song.album)?.trim();
+    final displayArtist = (artist != null && artist.isNotEmpty) ? artist : '未知艺术家';
+    final displayAlbum = (album != null && album.isNotEmpty) ? album : null;
+    final subtitleText =
+        displayAlbum != null ? '$displayArtist - $displayAlbum' : displayArtist;
+
     final hasThumb = song.thumbnailPath != null &&
         song.thumbnailPath!.isNotEmpty &&
         File(song.thumbnailPath!).existsSync();
@@ -718,20 +718,6 @@ class _RightQueueTileState extends ConsumerState<_RightQueueTile> {
             ),
             child: Row(
               children: [
-                if (widget.isSelectionMode)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 6),
-                    child: SizedBox(
-                      width: 22,
-                      height: 22,
-                      child: Checkbox(
-                        value: widget.isSelected,
-                        onChanged: (_) => widget.onToggleSelect(),
-                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        visualDensity: VisualDensity.compact,
-                      ),
-                    ),
-                  ),
                 ReorderableDragStartListener(
                   index: widget.index,
                   child: Padding(
@@ -747,27 +733,60 @@ class _RightQueueTileState extends ConsumerState<_RightQueueTile> {
                 ),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(6),
-                  child: Container(
+                  child: SizedBox(
                     width: 36,
                     height: 36,
-                    color: theme.colorScheme.surfaceContainerHighest,
-                    child: coverPath != null
-                        ? Image.file(
-                            File(coverPath),
-                            fit: BoxFit.cover,
-                            cacheWidth: 80,
-                            cacheHeight: 80,
-                            errorBuilder: (_, _, _) => Icon(
-                              Icons.music_note_rounded,
-                              size: 18,
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          )
-                        : Icon(
-                            Icons.music_note_rounded,
-                            size: 18,
-                            color: theme.colorScheme.onSurfaceVariant,
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        Opacity(
+                          opacity: widget.isSelectionMode
+                              ? (widget.isSelected ? 0.5 : 0.7)
+                              : 1.0,
+                          child: Container(
+                            color: theme.colorScheme.surfaceContainerHighest,
+                            child: coverPath != null
+                                ? Image.file(
+                                    File(coverPath),
+                                    fit: BoxFit.cover,
+                                    cacheWidth: 80,
+                                    cacheHeight: 80,
+                                    errorBuilder: (_, _, _) => Icon(
+                                      Icons.music_note_rounded,
+                                      size: 18,
+                                      color: theme.colorScheme.onSurfaceVariant,
+                                    ),
+                                  )
+                                : Icon(
+                                    Icons.music_note_rounded,
+                                    size: 18,
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                  ),
                           ),
+                        ),
+                        if (widget.isSelectionMode)
+                          Positioned.fill(
+                            child: Align(
+                              alignment: Alignment.center,
+                              child: SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: Checkbox(
+                                  value: widget.isSelected,
+                                  onChanged: (_) => widget.onToggleSelect(),
+                                  fillColor: WidgetStateProperty.all(Colors.white),
+                                  checkColor: Colors.black,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  visualDensity: VisualDensity.compact,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -810,7 +829,7 @@ class _RightQueueTileState extends ConsumerState<_RightQueueTile> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        song.artist ?? '',
+                        subtitleText,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(

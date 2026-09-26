@@ -219,16 +219,6 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
     });
   }
 
-  void _toggleSelectionMode() {
-    setState(() {
-      _isSelectionMode = !_isSelectionMode;
-      if (!_isSelectionMode) {
-        _selectedIndices.clear();
-        _lastAnchorIndex = null;
-      }
-    });
-  }
-
   void _toggleSelectAll() {
     if (_queue.isEmpty) return;
     setState(() {
@@ -864,6 +854,14 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
         final isCurrent = index == _currentIndex;
         final isSelected = _selectedIndices.contains(index);
 
+        final artist = (song.artist != null && song.artist!.trim().isNotEmpty)
+            ? song.artist!.trim()
+            : '未知歌手';
+        final album = (song.album != null && song.album!.trim().isNotEmpty)
+            ? song.album!.trim()
+            : null;
+        final subtitleText = album != null ? '$artist - $album' : artist;
+
         final itemColor = isSelected
             ? theme.colorScheme.primaryContainer.withValues(alpha: 0.55)
             : (isCurrent
@@ -904,32 +902,6 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
               ),
               child: Row(
                 children: [
-                  if (isSelecting)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 6),
-                      child: SizedBox(
-                        width: 22,
-                        height: 22,
-                        child: Checkbox(
-                          value: isSelected,
-                          onChanged: (_) {
-                            setState(() {
-                              if (_selectedIndices.contains(index)) {
-                                _selectedIndices.remove(index);
-                                if (_selectedIndices.isEmpty) {
-                                  _isSelectionMode = false;
-                                }
-                              } else {
-                                _selectedIndices.add(index);
-                              }
-                              _lastAnchorIndex = index;
-                            });
-                          },
-                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          visualDensity: VisualDensity.compact,
-                        ),
-                      ),
-                    ),
                   ReorderableDragStartListener(
                     index: index,
                     child: Padding(
@@ -954,28 +926,79 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
                           ? song.thumbnailPath
                           : (hasArt ? song.artworkPath : null);
 
-                      return Container(
-                        width: 38,
-                        height: 38,
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.surfaceContainerHighest,
-                          borderRadius: BorderRadius.circular(8),
-                          image: coverPath != null
-                              ? DecorationImage(
-                                  image: FileImage(File(coverPath)),
-                                  fit: BoxFit.cover,
-                                )
-                              : null,
+                      return ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: SizedBox(
+                          width: 38,
+                          height: 38,
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              Opacity(
+                                opacity: isSelecting
+                                    ? (isSelected ? 0.5 : 0.7)
+                                    : 1.0,
+                                child: Container(
+                                  color: theme.colorScheme.surfaceContainerHighest,
+                                  child: coverPath != null
+                                      ? Image.file(
+                                          File(coverPath),
+                                          fit: BoxFit.cover,
+                                          cacheWidth: 80,
+                                          cacheHeight: 80,
+                                          errorBuilder: (_, _, _) => Icon(
+                                            Icons.music_note_rounded,
+                                            size: 20,
+                                            color: isCurrent
+                                                ? theme.colorScheme.primary
+                                                : theme.colorScheme.onSurfaceVariant,
+                                          ),
+                                        )
+                                      : Icon(
+                                          Icons.music_note_rounded,
+                                          size: 20,
+                                          color: isCurrent
+                                              ? theme.colorScheme.primary
+                                              : theme.colorScheme.onSurfaceVariant,
+                                        ),
+                                ),
+                              ),
+                              if (isSelecting)
+                                Positioned.fill(
+                                  child: Align(
+                                    alignment: Alignment.center,
+                                    child: SizedBox(
+                                      width: 24,
+                                      height: 24,
+                                      child: Checkbox(
+                                        value: isSelected,
+                                        onChanged: (_) {
+                                          setState(() {
+                                            if (_selectedIndices.contains(index)) {
+                                              _selectedIndices.remove(index);
+                                              if (_selectedIndices.isEmpty) {
+                                                _isSelectionMode = false;
+                                              }
+                                            } else {
+                                              _selectedIndices.add(index);
+                                            }
+                                            _lastAnchorIndex = index;
+                                          });
+                                        },
+                                        fillColor: WidgetStateProperty.all(Colors.white),
+                                        checkColor: Colors.black,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
+                                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                        visualDensity: VisualDensity.compact,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
                         ),
-                        child: coverPath == null
-                            ? Icon(
-                                Icons.music_note_rounded,
-                                size: 20,
-                                color: isCurrent
-                                    ? theme.colorScheme.primary
-                                    : theme.colorScheme.onSurfaceVariant,
-                              )
-                            : null,
                       );
                     },
                   ),
@@ -1017,7 +1040,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          song.artist ?? '未知歌手',
+                          subtitleText,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
