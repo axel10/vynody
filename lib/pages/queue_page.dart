@@ -32,7 +32,8 @@ class _QueuePageState extends ConsumerState<QueuePage>
   @override
   LibrarySelectionScope get selectionScope => LibrarySelectionScope.queue;
 
-  final _keyPool = ReorderableKeyPool(debugPrefix: 'queue-tile');
+  final _queueReorderController =
+      ReorderableListController<MusicFile>(debugPrefix: 'queue-tile');
   int _viewIndex = 0; // 0: Normal Queue, 1: Random History, 2: Random Queue
   late final ScrollController _scrollController;
   int? _highlightedIndex;
@@ -75,7 +76,7 @@ class _QueuePageState extends ConsumerState<QueuePage>
   void dispose() {
     _scrollController.dispose();
     _highlightTimer?.cancel();
-    _keyPool.clear();
+    _queueReorderController.clear();
     super.dispose();
   }
 
@@ -146,7 +147,7 @@ class _QueuePageState extends ConsumerState<QueuePage>
   }
 
   GlobalKey _songTileKeyFor(int index, [MusicFile? song]) {
-    return _keyPool.getKey(index);
+    return _queueReorderController.getKey(index);
   }
 
   void _showClearQueueDialog(BuildContext context) {
@@ -263,7 +264,7 @@ class _QueuePageState extends ConsumerState<QueuePage>
         : _viewIndex == 2
         ? randomQueue
         : queue;
-    _keyPool.syncLength(displayQueue.length);
+    _queueReorderController.syncLength(displayQueue.length);
     final isPortrait =
         MediaQuery.of(context).orientation == Orientation.portrait;
     final headerHorizontalPadding = isPortrait ? 20.0 : 32.0;
@@ -413,11 +414,16 @@ class _QueuePageState extends ConsumerState<QueuePage>
                           itemCount: displayQueue.length,
                           onReorderItem: (oldIndex, newIndex) {
                             if (_viewIndex != 0) return;
-                            _keyPool.moveKey(oldIndex, newIndex);
-                            reorderSelection(oldIndex, newIndex);
-                            ref
-                                .read(audioServiceProvider)
-                                .moveQueueTrack(oldIndex, newIndex);
+                            _queueReorderController.handleReorder(
+                              oldIndex: oldIndex,
+                              newIndex: newIndex,
+                              onPersist: () {
+                                reorderSelection(oldIndex, newIndex);
+                                ref
+                                    .read(audioServiceProvider)
+                                    .moveQueueTrack(oldIndex, newIndex);
+                              },
+                            );
                           },
                           itemBuilder: (context, index) {
                             final song = displayQueue[index];

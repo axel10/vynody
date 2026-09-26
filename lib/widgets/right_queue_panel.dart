@@ -35,9 +35,10 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
   final ScrollController _scrollController = ScrollController();
   final ScrollController _playlistScrollController = ScrollController();
   final FocusNode _focusNode = FocusNode();
-  final _keyPool = ReorderableKeyPool(debugPrefix: 'right-queue-tile');
-  final _playlistSongKeyPool =
-      ReorderableKeyPool(debugPrefix: 'right-playlist-song-tile');
+  final _queueReorderController =
+      ReorderableListController<MusicFile>(debugPrefix: 'right-queue-tile');
+  final _playlistSongReorderController =
+      ReorderableListController<MusicFile>(debugPrefix: 'right-playlist-song-tile');
   QueueSortField _sortField = QueueSortField.title;
   bool _sortAscending = true;
 
@@ -55,8 +56,8 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
     _scrollController.dispose();
     _playlistScrollController.dispose();
     _focusNode.dispose();
-    _keyPool.clear();
-    _playlistSongKeyPool.clear();
+    _queueReorderController.clear();
+    _playlistSongReorderController.clear();
     super.dispose();
   }
 
@@ -379,9 +380,9 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
         : null;
     final activePlaylistSongs = activePlaylist?.songs ?? const <MusicFile>[];
 
-    _keyPool.syncLength(queue.length);
+    _queueReorderController.syncLength(queue.length);
     if (activePlaylist != null) {
-      _playlistSongKeyPool.syncLength(activePlaylist.songs.length);
+      _playlistSongReorderController.syncLength(activePlaylist.songs.length);
     }
 
     // Clean up selected indices if queue shrunk
@@ -425,8 +426,8 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
             displayQueue: _currentTabIndex == 0 ? queue : activePlaylistSongs,
             queueSongs: _currentTabIndex == 0 ? queue : activePlaylistSongs,
             itemKeyBuilder: (index, song) => _currentTabIndex == 0
-                ? _keyPool.getKey(index)
-                : _playlistSongKeyPool.getKey(index),
+                ? _queueReorderController.getKey(index)
+                : _playlistSongReorderController.getKey(index),
             showPreview: (_currentTabIndex == 0 ? queue : activePlaylistSongs).isNotEmpty,
             indicatorHorizontalPadding: 12.0,
             onFilesDropped: (paths, insertIndex) async {
@@ -876,25 +877,21 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
     AudioService audioService,
   ) {
     final isSelecting = _isSelectionMode || _selectedIndices.isNotEmpty;
+    _queueReorderController.syncLength(queue.length);
 
     return ReorderableListView.builder(
       scrollController: _scrollController,
       buildDefaultDragHandles: false,
       itemCount: queue.length,
       onReorderItem: (oldIndex, newIndex) {
-        audioService.moveQueueTrack(oldIndex, newIndex);
-        _keyPool.moveKey(oldIndex, newIndex);
-        if (_selectedIndices.isNotEmpty) {
-          final updated = ListReorderUtils.reorderSelectedIndices(
-            _selectedIndices,
+        setState(() {
+          _queueReorderController.handleReorder(
             oldIndex: oldIndex,
             newIndex: newIndex,
+            selectedIndices: _selectedIndices,
+            onPersist: () => audioService.moveQueueTrack(oldIndex, newIndex),
           );
-          setState(() {
-            _selectedIndices.clear();
-            _selectedIndices.addAll(updated);
-          });
-        }
+        });
       },
       itemBuilder: (context, index) {
         final song = queue[index];
@@ -902,7 +899,7 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
         final isSelected = _selectedIndices.contains(index);
 
         return _RightQueueTile(
-          key: _keyPool.getKey(index),
+          key: _queueReorderController.getKey(index),
           song: song,
           index: index,
           isCurrent: isCurrent,
@@ -1332,22 +1329,29 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
     MusicFile? currentMusic,
     bool isPlaying,
   ) {
-    _playlistSongKeyPool.syncLength(playlist.songs.length);
+    _playlistSongReorderController.syncLength(playlist.songs.length);
 
     return ReorderableListView.builder(
       scrollController: _playlistScrollController,
       buildDefaultDragHandles: false,
       itemCount: playlist.songs.length,
       onReorderItem: (oldIndex, newIndex) {
-        playlistService.reorderSongsInPlaylist(playlist.id, oldIndex, newIndex);
-        _playlistSongKeyPool.moveKey(oldIndex, newIndex);
+        _playlistSongReorderController.handleReorder(
+          oldIndex: oldIndex,
+          newIndex: newIndex,
+          onPersist: () => playlistService.reorderSongsInPlaylist(
+            playlist.id,
+            oldIndex,
+            newIndex,
+          ),
+        );
       },
       itemBuilder: (context, index) {
         final song = playlist.songs[index];
         final isCurrent = currentMusic?.path == song.path;
 
         return _RightPlaylistSongTile(
-          key: _playlistSongKeyPool.getKey(index),
+          key: _playlistSongReorderController.getKey(index),
           song: song,
           index: index,
           isCurrent: isCurrent,

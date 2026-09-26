@@ -113,3 +113,72 @@ class ReorderableKeyPool {
 
   int get length => _keys.length;
 }
+
+/// A unified controller encapsulating [ReorderableKeyPool], in-place list reordering,
+/// active index tracking, and selection remapping for reorderable lists.
+class ReorderableListController<T> {
+  final ReorderableKeyPool keyPool;
+  List<T>? list;
+
+  ReorderableListController({
+    String debugPrefix = 'reorderable',
+    this.list,
+  }) : keyPool = ReorderableKeyPool(debugPrefix: debugPrefix);
+
+  /// Retrieves or creates a [GlobalKey] for [index].
+  GlobalKey getKey(int index) => keyPool.getKey(index);
+
+  /// Trims unused keys to match the current item count.
+  void syncLength(int currentLength) => keyPool.syncLength(currentLength);
+
+  /// Clears all keys.
+  void clear() => keyPool.clear();
+
+  /// Handles a reorder event seamlessly:
+  /// - Moves key in [keyPool]
+  /// - Optionally moves the item in [targetList] or [list]
+  /// - Optionally remaps [selectedIndices]
+  /// - Optionally recalculates [currentIndex] and returns the updated index
+  /// - Executes [onPersist] (e.g. Service call, IPC message, DB write)
+  int? handleReorder({
+    required int oldIndex,
+    required int newIndex,
+    List<T>? targetList,
+    int? currentIndex,
+    Set<int>? selectedIndices,
+    void Function(Set<int> updatedSelection)? onSelectionChanged,
+    void Function()? onPersist,
+  }) {
+    keyPool.moveKey(oldIndex, newIndex);
+
+    final effectiveList = targetList ?? list;
+    if (effectiveList != null) {
+      ListReorderUtils.moveItem(effectiveList, oldIndex, newIndex);
+    }
+
+    if (selectedIndices != null && selectedIndices.isNotEmpty) {
+      final updated = ListReorderUtils.reorderSelectedIndices(
+        selectedIndices,
+        oldIndex: oldIndex,
+        newIndex: newIndex,
+      );
+      selectedIndices
+        ..clear()
+        ..addAll(updated);
+      onSelectionChanged?.call(selectedIndices);
+    }
+
+    int? nextIndex;
+    if (currentIndex != null) {
+      nextIndex = ListReorderUtils.reorderIndex(
+        currentIndex,
+        oldIndex: oldIndex,
+        newIndex: newIndex,
+      );
+    }
+
+    onPersist?.call();
+    return nextIndex;
+  }
+}
+

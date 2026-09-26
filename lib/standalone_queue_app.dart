@@ -39,9 +39,10 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
   List<Map<String, dynamic>> _playlists = [];
   int _currentIndex = -1;
   bool _isPlaying = false;
-  final _keyPool = ReorderableKeyPool(debugPrefix: 'standalone-queue-tile');
-  final _playlistSongKeyPool =
-      ReorderableKeyPool(debugPrefix: 'standalone-playlist-song-tile');
+  final _queueReorderController =
+      ReorderableListController<MusicFile>(debugPrefix: 'standalone-queue-tile');
+  final _playlistSongReorderController =
+      ReorderableListController<dynamic>(debugPrefix: 'standalone-playlist-song-tile');
   final FocusNode _focusNode = FocusNode();
 
   int _currentTabIndex = 0; // 0: 播放队列, 1: 播放列表
@@ -502,18 +503,33 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
   }
 
   void _reorderQueue(int oldIndex, int newIndex) {
-    if (!ListReorderUtils.moveItem(_queue, oldIndex, newIndex)) return;
-
-    _keyPool.moveKey(oldIndex, newIndex);
     setState(() {
-      _currentIndex = ListReorderUtils.reorderIndex(
-        _currentIndex,
+      _currentIndex = _queueReorderController.handleReorder(
         oldIndex: oldIndex,
         newIndex: newIndex,
+        targetList: _queue,
+        currentIndex: _currentIndex,
+        selectedIndices: _selectedIndices,
+        onPersist: () => _sendIpc('reorder', {'oldIndex': oldIndex, 'newIndex': newIndex}),
+      ) ?? _currentIndex;
+    });
+  }
+
+  void _reorderPlaylistSongs(String playlistId, int oldIndex, int newIndex) {
+    final activePl = _activePlaylist;
+    final rawSongs = activePl?['songs'] as List?;
+    setState(() {
+      _playlistSongReorderController.handleReorder(
+        oldIndex: oldIndex,
+        newIndex: newIndex,
+        targetList: rawSongs,
+        onPersist: () => _sendIpc('reorder_playlist_songs', {
+          'playlistId': playlistId,
+          'oldIndex': oldIndex,
+          'newIndex': newIndex,
+        }),
       );
     });
-
-    _sendIpc('reorder', {'oldIndex': oldIndex, 'newIndex': newIndex});
   }
 
   void _dockToMainWindow() async {
@@ -608,8 +624,8 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
     _scrollController.dispose();
     _playlistScrollController.dispose();
     _focusNode.dispose();
-    _keyPool.clear();
-    _playlistSongKeyPool.clear();
+    _queueReorderController.clear();
+    _playlistSongReorderController.clear();
     super.dispose();
   }
 
@@ -659,8 +675,8 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
     final darkTheme = _buildTheme(Brightness.dark, _accentColor);
 
     final activePlaylistSongs = _activePlaylistSongs;
-    _keyPool.syncLength(_queue.length);
-    _playlistSongKeyPool.syncLength(activePlaylistSongs.length);
+    _queueReorderController.syncLength(_queue.length);
+    _playlistSongReorderController.syncLength(activePlaylistSongs.length);
     _selectedIndices.removeWhere((idx) => idx >= _queue.length);
 
     return ProviderScope(
@@ -693,8 +709,8 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
                   displayQueue: _currentTabIndex == 0 ? _queue : activePlaylistSongs,
                   queueSongs: _currentTabIndex == 0 ? _queue : activePlaylistSongs,
                   itemKeyBuilder: (index, song) => _currentTabIndex == 0
-                      ? _keyPool.getKey(index)
-                      : _playlistSongKeyPool.getKey(index),
+                      ? _queueReorderController.getKey(index)
+                      : _playlistSongReorderController.getKey(index),
                   showPreview: (_currentTabIndex == 0 ? _queue : activePlaylistSongs).isNotEmpty,
                   indicatorHorizontalPadding: 12.0,
                   onFilesDropped: (paths, insertIndex) async {
@@ -1396,7 +1412,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
     List<MusicFile> songs,
   ) {
     final plId = playlist['id'] as String? ?? '';
-    _playlistSongKeyPool.syncLength(songs.length);
+    _playlistSongReorderController.syncLength(songs.length);
     final currentMusicPath = (_currentIndex >= 0 && _currentIndex < _queue.length)
         ? _queue[_currentIndex].path
         : null;
@@ -1406,19 +1422,14 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
       buildDefaultDragHandles: false,
       itemCount: songs.length,
       onReorderItem: (oldIndex, newIndex) {
-        _sendIpc('reorder_playlist_songs', {
-          'playlistId': plId,
-          'oldIndex': oldIndex,
-          'newIndex': newIndex,
-        });
-        _playlistSongKeyPool.moveKey(oldIndex, newIndex);
+        _reorderPlaylistSongs(plId, oldIndex, newIndex);
       },
       itemBuilder: (context, index) {
         final song = songs[index];
         final isCurrent = currentMusicPath != null && currentMusicPath == song.path;
 
         return _StandalonePlaylistSongTile(
-          key: _playlistSongKeyPool.getKey(index),
+          key: _playlistSongReorderController.getKey(index),
           song: song,
           index: index,
           isCurrent: isCurrent,
@@ -1644,6 +1655,8 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
     final theme = Theme.of(context);
     final isSelecting = _isSelectionMode || _selectedIndices.isNotEmpty;
 
+    _queueReorderController.syncLength(_queue.length);
+
     return ReorderableListView.builder(
       scrollController: _scrollController,
       buildDefaultDragHandles: false,
@@ -1671,7 +1684,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
                 : Colors.transparent);
 
         return Material(
-          key: _keyPool.getKey(index),
+          key: _queueReorderController.getKey(index),
           color: itemColor,
           child: InkWell(
             onTap: () => _handleItemTap(index),
