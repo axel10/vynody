@@ -573,7 +573,7 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Pre-flight smoke test: Validate macOS project & signing settings
+      - name: "Pre-flight smoke test: Validate macOS project & signing settings"
         run: |
           echo "==> Running macOS project configuration pre-flight smoke test..."
           
