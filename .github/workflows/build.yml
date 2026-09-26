@@ -573,6 +573,67 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Pre-flight smoke test: Validate macOS project & signing settings
+        run: |
+          echo "==> Running macOS project configuration pre-flight smoke test..."
+          
+          # 1. 检查 Release 配置下的关键签名参数（防止本地误将 Release 改为 Automatic/带 Team）
+          RELEASE_SETTINGS=$(xcodebuild -workspace macos/Runner.xcworkspace -scheme Runner -configuration Release -showBuildSettings)
+          CODE_SIGN_STYLE=$(echo "$RELEASE_SETTINGS" | grep '^[[:space:]]*CODE_SIGN_STYLE =' | head -n 1 | sed 's/.*= //' | tr -d '\r')
+          CODE_SIGN_IDENTITY=$(echo "$RELEASE_SETTINGS" | grep '^[[:space:]]*CODE_SIGN_IDENTITY =' | head -n 1 | sed 's/.*= //' | tr -d '\r')
+          DEV_TEAM_IS_EMPTY=$(echo "$RELEASE_SETTINGS" | grep '^[[:space:]]*_DEVELOPMENT_TEAM_IS_EMPTY =' | head -n 1 | sed 's/.*= //' | tr -d '\r')
+          DEVELOPMENT_TEAM=$(echo "$RELEASE_SETTINGS" | grep '^[[:space:]]*DEVELOPMENT_TEAM =' | head -n 1 | sed 's/.*= //' | tr -d '\r')
+          BUNDLE_ID=$(echo "$RELEASE_SETTINGS" | grep '^[[:space:]]*PRODUCT_BUNDLE_IDENTIFIER =' | head -n 1 | sed 's/.*= //' | tr -d '\r')
+          
+          echo "Checked Release Build Settings:"
+          echo "  - CODE_SIGN_STYLE: '$CODE_SIGN_STYLE'"
+          echo "  - CODE_SIGN_IDENTITY: '$CODE_SIGN_IDENTITY'"
+          echo "  - _DEVELOPMENT_TEAM_IS_EMPTY: '$DEV_TEAM_IS_EMPTY'"
+          echo "  - DEVELOPMENT_TEAM: '$DEVELOPMENT_TEAM'"
+          echo "  - PRODUCT_BUNDLE_IDENTIFIER: '$BUNDLE_ID'"
+          
+          ERROR_FOUND=0
+          
+          if [ "$CODE_SIGN_STYLE" = "Automatic" ]; then
+            echo "::error::Release configuration has CODE_SIGN_STYLE=Automatic! CI cannot build in Automatic mode without an Apple ID login session. Please keep Release as Manual signing, and use the AppStore configuration for Automatic signing."
+            ERROR_FOUND=1
+          fi
+          
+          if [ "$CODE_SIGN_IDENTITY" != "-" ]; then
+            echo "::error::Release configuration has CODE_SIGN_IDENTITY='$CODE_SIGN_IDENTITY' instead of '-'. CI requires ad-hoc signing '-' during compilation."
+            ERROR_FOUND=1
+          fi
+          
+          if [ "$DEV_TEAM_IS_EMPTY" != "YES" ] && [ -n "$DEVELOPMENT_TEAM" ]; then
+            echo "::error::Release configuration has DEVELOPMENT_TEAM='$DEVELOPMENT_TEAM'! Release should have an empty development team to avoid CI signing conflicts."
+            ERROR_FOUND=1
+          fi
+          
+          # 2. 检查 Podfile 是否配置了 AppStore 映射
+          if ! grep -q "'AppStore' => :release" macos/Podfile; then
+            echo "::error::macos/Podfile is missing AppStore configuration mapping ('AppStore' => :release)!"
+            ERROR_FOUND=1
+          fi
+          
+          # 3. 检查 Runner.xcscheme 的 ArchiveAction 是否正确映射到 AppStore
+          if ! grep -A 2 '<ArchiveAction' macos/Runner.xcodeproj/xcshareddata/xcschemes/Runner.xcscheme | grep -q 'buildConfiguration = "AppStore"'; then
+            echo "::error::Runner.xcscheme ArchiveAction is not pointing to AppStore configuration!"
+            ERROR_FOUND=1
+          fi
+          
+          # 4. 检查 AppStore 配置是否完整存在
+          if ! xcodebuild -workspace macos/Runner.xcworkspace -scheme Runner -configuration AppStore -showBuildSettings > /dev/null 2>&1; then
+            echo "::error::Xcode workspace is missing 'AppStore' build configuration!"
+            ERROR_FOUND=1
+          fi
+          
+          if [ $ERROR_FOUND -ne 0 ]; then
+            echo "::error::macOS project settings smoke test FAILED! Aborting CI build early to prevent wasted build time."
+            exit 1
+          fi
+          
+          echo "==> macOS project configuration pre-flight smoke test PASSED!"
+
       - name: Clean macOS package caches
         run: |
           rm -rf build/macos

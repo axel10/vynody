@@ -333,9 +333,11 @@ packages:
   desktop_multi_window:
     dependency: "direct main"
     description:
-      path: "flutter-plugins/packages/desktop_multi_window"
-      relative: true
-    source: path
+      path: "packages/desktop_multi_window"
+      ref: main
+      resolved-ref: d7881ae4d97b4eda5a3eb1b9f0d2bef51a022385
+      url: "https://github.com/axel10/flutter-plugins"
+    source: git
     version: "0.3.1"
   device_info_plus:
     dependency: "direct main"
