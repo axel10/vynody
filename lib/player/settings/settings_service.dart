@@ -16,6 +16,7 @@ import 'package:vynody/player/library/playlist_service.dart';
 import 'package:vynody/utils/app_proxy_manager.dart';
 import 'package:vynody/utils/localized_text.dart';
 
+export 'package:flutter/material.dart' show ThemeMode;
 export 'package:vynody/utils/app_proxy_manager.dart' show AppProxyMode;
 
 AppLocalizations _l10n() => currentAppL10n;
@@ -208,15 +209,27 @@ extension ThemeModeX on ThemeMode {
     ThemeMode.dark => 'dark',
   };
 
-  static ThemeMode fromStorageValue(String? value) {
+  static ThemeMode defaultForPlatform() {
+    return (defaultTargetPlatform == TargetPlatform.android ||
+            defaultTargetPlatform == TargetPlatform.iOS)
+        ? ThemeMode.dark
+        : ThemeMode.system;
+  }
+
+  static ThemeMode fromStorageValue(
+    String? value, [
+    ThemeMode? defaultValue,
+  ]) {
+    final def = defaultValue ?? defaultForPlatform();
     switch (value?.trim().toLowerCase()) {
       case 'light':
         return ThemeMode.light;
       case 'dark':
         return ThemeMode.dark;
       case 'system':
-      default:
         return ThemeMode.system;
+      default:
+        return def;
     }
   }
 }
@@ -900,11 +913,11 @@ class SettingsService extends ChangeNotifier {
 
   late final _themeModeProperty = SettingProperty<ThemeMode>(
     key: _keyThemeMode,
-    defaultValue: ThemeMode.system,
+    defaultValue: ThemeModeX.defaultForPlatform(),
     prefs: _prefs,
     onChanged: notifyListeners,
     customRead: (prefs, key, def) =>
-        ThemeModeX.fromStorageValue(prefs.getString(key)),
+        ThemeModeX.fromStorageValue(prefs.getString(key), def),
     customWrite: (prefs, key, val) => prefs.setString(key, val.storageValue),
   );
 

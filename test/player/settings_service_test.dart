@@ -1,5 +1,5 @@
-import 'dart:ui';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vynody/player/audio/equalizer_presets.dart';
@@ -299,6 +299,52 @@ void main() {
       // Verify loaded from stored preferences
       final restoredSettings = SettingsService(prefs);
       expect(restoredSettings.themeColor, newColor);
+    });
+
+    test('themeMode defaults to dark on Android and iOS', () async {
+      for (final platform in [TargetPlatform.android, TargetPlatform.iOS]) {
+        debugDefaultTargetPlatformOverride = platform;
+        SharedPreferences.setMockInitialValues({});
+        final prefs = await SharedPreferences.getInstance();
+        final settings = SettingsService(prefs);
+        expect(settings.themeMode, ThemeMode.dark,
+            reason: 'Should default to ThemeMode.dark on $platform');
+      }
+      debugDefaultTargetPlatformOverride = null;
+    });
+
+    test('themeMode defaults to system on Desktop platforms', () async {
+      for (final platform in [TargetPlatform.macOS, TargetPlatform.windows, TargetPlatform.linux]) {
+        debugDefaultTargetPlatformOverride = platform;
+        SharedPreferences.setMockInitialValues({});
+        final prefs = await SharedPreferences.getInstance();
+        final settings = SettingsService(prefs);
+        expect(settings.themeMode, ThemeMode.system,
+            reason: 'Should default to ThemeMode.system on $platform');
+      }
+      debugDefaultTargetPlatformOverride = null;
+    });
+
+    test('themeMode persists manual changes across restarts', () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final settings = SettingsService(prefs);
+
+      var notified = false;
+      settings.addListener(() {
+        notified = true;
+      });
+
+      settings.themeMode = ThemeMode.light;
+      expect(settings.themeMode, ThemeMode.light);
+      expect(notified, isTrue);
+
+      final reloaded = SettingsService(prefs);
+      expect(reloaded.themeMode, ThemeMode.light);
+
+      settings.themeMode = ThemeMode.system;
+      final reloadedSystem = SettingsService(prefs);
+      expect(reloadedSystem.themeMode, ThemeMode.system);
     });
 
     test('customEqPresets persists, saves, and deletes correctly', () async {
