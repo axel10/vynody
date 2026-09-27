@@ -294,6 +294,14 @@ class _MusicFoldersDialogState extends ConsumerState<MusicFoldersDialog> {
                       ],
                     ),
                   ),
+                  if (Platform.isWindows ||
+                      Platform.isLinux ||
+                      Platform.isMacOS)
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded),
+                      tooltip: l10n?.cancel ?? '关闭',
+                      onPressed: () => Navigator.of(context).pop(false),
+                    ),
                 ],
               ),
 
