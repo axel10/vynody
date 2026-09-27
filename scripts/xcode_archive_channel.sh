@@ -1,9 +1,10 @@
 #!/bin/sh
 # scripts/xcode_archive_channel.sh
-# Detects whether the current Xcode build is an Archive action.
-# If archiving and no distribution channel has been explicitly defined,
-# automatically injects CHANNEL=store into DART_DEFINES so the resulting build
-# defaults to the App Store edition.
+# Ensure Rust / Cargo toolchain is accessible from Xcode's restricted build environment
+if [ -d "$HOME/.cargo/bin" ]; then
+  export PATH="$HOME/.cargo/bin:$PATH"
+fi
+
 
 is_archive=0
 if [ "$ACTION" = "archive" ] || [ "$ACTION" = "install" ]; then
