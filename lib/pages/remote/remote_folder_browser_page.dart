@@ -39,6 +39,7 @@ import 'widgets/webdav_content_slivers.dart';
 import '../../utils/selection_utils.dart';
 import '../../utils/song_locator_helper.dart';
 import '../../widgets/folder_nav_bar_scaffold.dart';
+import '../../widgets/folder_scan_widgets.dart';
 
 class RemoteFolderBrowserPage extends ConsumerStatefulWidget {
   final RemoteServer server;
@@ -2006,97 +2007,103 @@ class _RemoteFolderBrowserPageState
     int activeDownloadsCount,
   ) {
     if (style.isPortrait) {
-      return FolderNavActionMenu<String>(
-        style: style,
-        onSelected: (value) {
-          if (value == 'locate') {
-            _locateCurrentSong();
-          } else if (value == 'sort') {
-            _showSortDialog(context);
-          } else if (value == 'view_mode') {
-            settings.folderViewMode = switch (settings.folderViewMode) {
-              FolderViewMode.list => FolderViewMode.hybrid,
-              FolderViewMode.hybrid => FolderViewMode.grid,
-              FolderViewMode.grid => FolderViewMode.list,
-            };
-          } else if (value == 'refresh') {
-            _loadDirectory(_currentPath, forceRefresh: true);
-          } else if (value == 'downloads') {
-            Navigator.of(context, rootNavigator: true).push(
-              MaterialPageRoute(
-                builder: (_) => const RemoteDownloadManagerPage(),
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FolderScanSpinner(style: style),
+          FolderNavActionMenu<String>(
+            style: style,
+            onSelected: (value) {
+              if (value == 'locate') {
+                _locateCurrentSong();
+              } else if (value == 'sort') {
+                _showSortDialog(context);
+              } else if (value == 'view_mode') {
+                settings.folderViewMode = switch (settings.folderViewMode) {
+                  FolderViewMode.list => FolderViewMode.hybrid,
+                  FolderViewMode.hybrid => FolderViewMode.grid,
+                  FolderViewMode.grid => FolderViewMode.list,
+                };
+              } else if (value == 'refresh') {
+                _loadDirectory(_currentPath, forceRefresh: true);
+              } else if (value == 'downloads') {
+                Navigator.of(context, rootNavigator: true).push(
+                  MaterialPageRoute(
+                    builder: (_) => const RemoteDownloadManagerPage(),
+                  ),
+                );
+              }
+            },
+            itemBuilder: (context) => [
+              if (currentMusic != null)
+                PopupMenuItem(
+                  value: 'locate',
+                  child: Row(
+                    children: [
+                      const Icon(Icons.my_location_rounded, size: 20),
+                      const SizedBox(width: 12),
+                      Text(l10n.locateCurrentSong),
+                    ],
+                  ),
+                ),
+              PopupMenuItem(
+                value: 'sort',
+                child: Row(
+                  children: [
+                    const Icon(Icons.sort_rounded, size: 20),
+                    const SizedBox(width: 12),
+                    Text(l10n.sortBy),
+                  ],
+                ),
               ),
-            );
-          }
-        },
-        itemBuilder: (context) => [
-          if (currentMusic != null)
-            PopupMenuItem(
-              value: 'locate',
-              child: Row(
-                children: [
-                  const Icon(Icons.my_location_rounded, size: 20),
-                  const SizedBox(width: 12),
-                  Text(l10n.locateCurrentSong),
-                ],
+              PopupMenuItem(
+                value: 'view_mode',
+                child: Row(
+                  children: [
+                    Icon(
+                      switch (settings.folderViewMode) {
+                        FolderViewMode.list => Icons.grid_view_rounded,
+                        FolderViewMode.hybrid => Icons.view_module_rounded,
+                        FolderViewMode.grid => Icons.view_list_rounded,
+                      },
+                      size: 20,
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      switch (settings.folderViewMode) {
+                        FolderViewMode.list => l10n.hybridView,
+                        FolderViewMode.hybrid => l10n.gridView,
+                        FolderViewMode.grid => l10n.listView,
+                      },
+                    ),
+                  ],
+                ),
               ),
-            ),
-          PopupMenuItem(
-            value: 'sort',
-            child: Row(
-              children: [
-                const Icon(Icons.sort_rounded, size: 20),
-                const SizedBox(width: 12),
-                Text(l10n.sortBy),
-              ],
-            ),
-          ),
-          PopupMenuItem(
-            value: 'view_mode',
-            child: Row(
-              children: [
-                Icon(
-                  switch (settings.folderViewMode) {
-                    FolderViewMode.list => Icons.grid_view_rounded,
-                    FolderViewMode.hybrid => Icons.view_module_rounded,
-                    FolderViewMode.grid => Icons.view_list_rounded,
-                  },
-                  size: 20,
+              PopupMenuItem(
+                value: 'refresh',
+                child: Row(
+                  children: [
+                    const Icon(Icons.refresh_rounded, size: 20),
+                    const SizedBox(width: 12),
+                    Text(l10n.refreshResults),
+                  ],
                 ),
-                const SizedBox(width: 12),
-                Text(
-                  switch (settings.folderViewMode) {
-                    FolderViewMode.list => l10n.hybridView,
-                    FolderViewMode.hybrid => l10n.gridView,
-                    FolderViewMode.grid => l10n.listView,
-                  },
+              ),
+              PopupMenuItem(
+                value: 'downloads',
+                child: Row(
+                  children: [
+                    Badge(
+                      isLabelVisible: activeDownloadsCount > 0,
+                      label: Text('$activeDownloadsCount'),
+                      child: const Icon(Icons.download_rounded, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(l10n.downloadManager),
+                  ],
                 ),
-              ],
-            ),
-          ),
-          PopupMenuItem(
-            value: 'refresh',
-            child: Row(
-              children: [
-                const Icon(Icons.refresh_rounded, size: 20),
-                const SizedBox(width: 12),
-                Text(l10n.refreshResults),
-              ],
-            ),
-          ),
-          PopupMenuItem(
-            value: 'downloads',
-            child: Row(
-              children: [
-                Badge(
-                  isLabelVisible: activeDownloadsCount > 0,
-                  label: Text('$activeDownloadsCount'),
-                  child: const Icon(Icons.download_rounded, size: 20),
-                ),
-                const SizedBox(width: 12),
-                Text(l10n.downloadManager),
-              ],
-            ),
+              ),
+            ],
           ),
         ],
       );
@@ -2104,6 +2111,7 @@ class _RemoteFolderBrowserPageState
       return Row(
         mainAxisSize: MainAxisSize.min,
         children: [
+          FolderScanSpinner(style: style),
           if (currentMusic != null) ...[
             FolderNavIconButton(
               style: style,

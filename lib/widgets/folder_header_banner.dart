@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vynody/l10n/app_localizations.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
+import 'folder_scan_widgets.dart';
 
 class FolderHeaderBanner extends ConsumerStatefulWidget {
   const FolderHeaderBanner({
@@ -308,109 +309,8 @@ class _FolderLandscapeHeaderBanner extends StatelessWidget {
       builder: (context, constraints) {
         final isWideScreen = constraints.maxWidth >= 680;
 
-        if (isWideScreen) {
-          return Container(
-            padding: const EdgeInsets.all(16),
-            margin: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              color: theme.colorScheme.surfaceContainer.withValues(alpha: 0.5),
-              border: Border.all(
-                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2),
-              ),
-            ),
-            child: Row(
-              children: [
-                resolvedCover,
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _BannerInfoColumn(
-                    title: title,
-                    subtitle: subtitle,
-                    songsCount: songsCount,
-                    durationText: durationText,
-                    isOverlay: false,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 200),
-                  child: isSearching
-                      ? Row(
-                          key: const ValueKey('wide-search-active'),
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            SizedBox(
-                              width: 260,
-                              child: _BannerSearchTextField(
-                                controller: searchController,
-                                hintText: searchHintText,
-                                query: searchQuery,
-                                onChanged: onSearchQueryChanged,
-                                compact: true,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            IconButton(
-                              icon: const Icon(Icons.close_rounded, size: 20),
-                              onPressed: () {
-                                searchController.clear();
-                                onSearchQueryChanged('');
-                                onToggleSearch(false);
-                              },
-                              style: IconButton.styleFrom(
-                                minimumSize: const Size(32, 32),
-                                padding: EdgeInsets.zero,
-                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                visualDensity: VisualDensity.compact,
-                              ),
-                            ),
-                          ],
-                        )
-                      : Row(
-                          key: const ValueKey('wide-actions-normal'),
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            if (actionButtonsScrollable)
-                              Flexible(
-                                child: SingleChildScrollView(
-                                  scrollDirection: Axis.horizontal,
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: actionButtons,
-                                  ),
-                                ),
-                              )
-                            else
-                              ...actionButtons,
-                            const SizedBox(width: 8),
-                            _BannerSearchIconButton(
-                              onPressed: () => onToggleSearch(true),
-                              tooltip: l10n.search,
-                              isWhite: false,
-                            ),
-                          ],
-                        ),
-                ),
-              ],
-            ),
-          );
-        }
-
-        return Container(
-          padding: const EdgeInsets.all(16),
-          margin: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            color: theme.colorScheme.surfaceContainer.withValues(alpha: 0.5),
-            border: Border.all(
-              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2),
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+        final Widget bannerContent = isWideScreen
+            ? Row(
                 children: [
                   resolvedCover,
                   const SizedBox(width: 16),
@@ -423,62 +323,167 @@ class _FolderLandscapeHeaderBanner extends StatelessWidget {
                       isOverlay: false,
                     ),
                   ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              const Divider(height: 1),
-              const SizedBox(height: 12),
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 200),
-                child: isSearching
-                    ? Row(
-                        key: const ValueKey('search-active-row'),
-                        children: [
-                          Expanded(
-                            child: _BannerSearchTextField(
-                              controller: searchController,
-                              hintText: searchHintText,
-                              query: searchQuery,
-                              onChanged: onSearchQueryChanged,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          IconButton(
-                            icon: const Icon(Icons.close_rounded),
-                            onPressed: () {
-                              searchController.clear();
-                              onSearchQueryChanged('');
-                              onToggleSearch(false);
-                            },
-                          ),
-                        ],
-                      )
-                    : Row(
-                        key: const ValueKey('actions-normal-row'),
-                        children: [
-                          if (actionButtonsScrollable)
-                            Expanded(
-                              child: SingleChildScrollView(
-                                scrollDirection: Axis.horizontal,
-                                child: Row(
-                                  children: actionButtons,
+                  const SizedBox(width: 16),
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 200),
+                    child: isSearching
+                        ? Row(
+                            key: const ValueKey('wide-search-active'),
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              SizedBox(
+                                width: 260,
+                                child: _BannerSearchTextField(
+                                  controller: searchController,
+                                  hintText: searchHintText,
+                                  query: searchQuery,
+                                  onChanged: onSearchQueryChanged,
+                                  compact: true,
                                 ),
                               ),
-                            )
-                          else ...[
-                            ...actionButtons,
-                            const Spacer(),
-                          ],
-                          const SizedBox(width: 8),
-                          _BannerSearchIconButton(
-                            onPressed: () => onToggleSearch(true),
-                            tooltip: l10n.search,
-                            isWhite: false,
+                              const SizedBox(width: 8),
+                              IconButton(
+                                icon: const Icon(Icons.close_rounded, size: 20),
+                                onPressed: () {
+                                  searchController.clear();
+                                  onSearchQueryChanged('');
+                                  onToggleSearch(false);
+                                },
+                                style: IconButton.styleFrom(
+                                  minimumSize: const Size(32, 32),
+                                  padding: EdgeInsets.zero,
+                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  visualDensity: VisualDensity.compact,
+                                ),
+                              ),
+                            ],
+                          )
+                        : Row(
+                            key: const ValueKey('wide-actions-normal'),
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (actionButtonsScrollable)
+                                Flexible(
+                                  child: SingleChildScrollView(
+                                    scrollDirection: Axis.horizontal,
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: actionButtons,
+                                    ),
+                                  ),
+                                )
+                              else
+                                ...actionButtons,
+                              const SizedBox(width: 8),
+                              _BannerSearchIconButton(
+                                onPressed: () => onToggleSearch(true),
+                                tooltip: l10n.search,
+                                isWhite: false,
+                              ),
+                            ],
                           ),
-                        ],
+                  ),
+                ],
+              )
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      resolvedCover,
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: _BannerInfoColumn(
+                          title: title,
+                          subtitle: subtitle,
+                          songsCount: songsCount,
+                          durationText: durationText,
+                          isOverlay: false,
+                        ),
                       ),
-              ),
-            ],
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  const Divider(height: 1),
+                  const SizedBox(height: 12),
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 200),
+                    child: isSearching
+                        ? Row(
+                            key: const ValueKey('search-active-row'),
+                            children: [
+                              Expanded(
+                                child: _BannerSearchTextField(
+                                  controller: searchController,
+                                  hintText: searchHintText,
+                                  query: searchQuery,
+                                  onChanged: onSearchQueryChanged,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              IconButton(
+                                icon: const Icon(Icons.close_rounded),
+                                onPressed: () {
+                                  searchController.clear();
+                                  onSearchQueryChanged('');
+                                  onToggleSearch(false);
+                                },
+                              ),
+                            ],
+                          )
+                        : Row(
+                            key: const ValueKey('actions-normal-row'),
+                            children: [
+                              if (actionButtonsScrollable)
+                                Expanded(
+                                  child: SingleChildScrollView(
+                                    scrollDirection: Axis.horizontal,
+                                    child: Row(
+                                      children: actionButtons,
+                                    ),
+                                  ),
+                                )
+                              else ...[
+                                ...actionButtons,
+                                const Spacer(),
+                              ],
+                              const SizedBox(width: 8),
+                              _BannerSearchIconButton(
+                                onPressed: () => onToggleSearch(true),
+                                tooltip: l10n.search,
+                                isWhite: false,
+                              ),
+                            ],
+                          ),
+                  ),
+                ],
+              );
+
+        return Container(
+          margin: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            color: theme.colorScheme.surfaceContainer.withValues(alpha: 0.5),
+            border: Border.all(
+              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2),
+            ),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Stack(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: bannerContent,
+                ),
+                const Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: FolderBannerScanProgressBar(),
+                ),
+              ],
+            ),
           ),
         );
       },
@@ -921,6 +926,16 @@ class _FolderPortraitHeaderBanner extends StatelessWidget {
                     ],
                   ],
                 ),
+              ),
+            ),
+            // 3. Hairline scanning progress bar at bottom of the banner
+            const Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: ClipRRect(
+                borderRadius: BorderRadius.vertical(bottom: Radius.circular(20)),
+                child: FolderBannerScanProgressBar(),
               ),
             ),
           ],

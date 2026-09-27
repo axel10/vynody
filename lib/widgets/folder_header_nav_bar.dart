@@ -7,6 +7,7 @@ import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/settings/settings_service.dart';
 import 'package:vynody/utils/song_locator_helper.dart';
 import 'folder_nav_bar_scaffold.dart';
+import 'folder_scan_widgets.dart';
 export 'folder_nav_bar_scaffold.dart';
 
 class FolderHeaderNavBar extends ConsumerWidget {
@@ -116,79 +117,85 @@ class FolderHeaderNavBar extends ConsumerWidget {
     final settings = ref.watch(settingsServiceProvider);
 
     if (style.isPortrait) {
-      return FolderNavActionMenu<String>(
-        style: style,
-        onSelected: (value) {
-          if (value == 'locate') {
-            _handleLocate(ref, context);
-          } else if (value == 'sort') {
-            onSortPressed();
-          } else if (value == 'view_mode') {
-            settings.folderViewMode = switch (settings.folderViewMode) {
-              FolderViewMode.list => FolderViewMode.hybrid,
-              FolderViewMode.hybrid => FolderViewMode.grid,
-              FolderViewMode.grid => FolderViewMode.list,
-            };
-          }
-        },
-        itemBuilder: (context) => [
-          if (currentMusic != null)
-            PopupMenuItem(
-              value: 'locate',
-              child: Row(
-                children: [
-                  const Icon(Icons.my_location_rounded, size: 20),
-                  const SizedBox(width: 12),
-                  Text(l10n.locateCurrentSong),
-                ],
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FolderScanSpinner(style: style),
+          FolderNavActionMenu<String>(
+            style: style,
+            onSelected: (value) {
+              if (value == 'locate') {
+                _handleLocate(ref, context);
+              } else if (value == 'sort') {
+                onSortPressed();
+              } else if (value == 'view_mode') {
+                settings.folderViewMode = switch (settings.folderViewMode) {
+                  FolderViewMode.list => FolderViewMode.hybrid,
+                  FolderViewMode.hybrid => FolderViewMode.grid,
+                  FolderViewMode.grid => FolderViewMode.list,
+                };
+              }
+            },
+            itemBuilder: (context) => [
+              if (currentMusic != null)
+                PopupMenuItem(
+                  value: 'locate',
+                  child: Row(
+                    children: [
+                      const Icon(Icons.my_location_rounded, size: 20),
+                      const SizedBox(width: 12),
+                      Text(l10n.locateCurrentSong),
+                    ],
+                  ),
+                ),
+              PopupMenuItem(
+                value: 'sort',
+                child: Row(
+                  children: [
+                    Icon(
+                      isSortActive ? Icons.check_rounded : Icons.sort,
+                      size: 20,
+                      color: isSortActive
+                          ? Theme.of(context).colorScheme.primary
+                          : null,
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      l10n.sort,
+                      style: isSortActive
+                          ? TextStyle(
+                              color: Theme.of(context).colorScheme.primary,
+                              fontWeight: FontWeight.bold,
+                            )
+                          : null,
+                    ),
+                  ],
+                ),
               ),
-            ),
-          PopupMenuItem(
-            value: 'sort',
-            child: Row(
-              children: [
-                Icon(
-                  isSortActive ? Icons.check_rounded : Icons.sort,
-                  size: 20,
-                  color: isSortActive
-                      ? Theme.of(context).colorScheme.primary
-                      : null,
+              PopupMenuItem(
+                value: 'view_mode',
+                child: Row(
+                  children: [
+                    Icon(
+                      switch (settings.folderViewMode) {
+                        FolderViewMode.list => Icons.grid_view_rounded,
+                        FolderViewMode.hybrid => Icons.view_module_rounded,
+                        FolderViewMode.grid => Icons.view_list_rounded,
+                      },
+                      size: 20,
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      switch (settings.folderViewMode) {
+                        FolderViewMode.list => l10n.hybridView,
+                        FolderViewMode.hybrid => l10n.gridView,
+                        FolderViewMode.grid => l10n.listView,
+                      },
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 12),
-                Text(
-                  l10n.sort,
-                  style: isSortActive
-                      ? TextStyle(
-                          color: Theme.of(context).colorScheme.primary,
-                          fontWeight: FontWeight.bold,
-                        )
-                      : null,
-                ),
-              ],
-            ),
-          ),
-          PopupMenuItem(
-            value: 'view_mode',
-            child: Row(
-              children: [
-                Icon(
-                  switch (settings.folderViewMode) {
-                    FolderViewMode.list => Icons.grid_view_rounded,
-                    FolderViewMode.hybrid => Icons.view_module_rounded,
-                    FolderViewMode.grid => Icons.view_list_rounded,
-                  },
-                  size: 20,
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  switch (settings.folderViewMode) {
-                    FolderViewMode.list => l10n.hybridView,
-                    FolderViewMode.hybrid => l10n.gridView,
-                    FolderViewMode.grid => l10n.listView,
-                  },
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ],
       );
@@ -196,6 +203,7 @@ class FolderHeaderNavBar extends ConsumerWidget {
       return Row(
         mainAxisSize: MainAxisSize.min,
         children: [
+          FolderScanSpinner(style: style),
           if (currentMusic != null) ...[
             FolderNavIconButton(
               style: style,

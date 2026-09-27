@@ -1010,7 +1010,7 @@ class SettingsService extends ChangeNotifier {
 
   late final _showScanProgressToastProperty = SettingProperty<bool>(
     key: _keyShowScanProgressToast,
-    defaultValue: true,
+    defaultValue: false,
     prefs: _prefs,
     onChanged: notifyListeners,
   );
