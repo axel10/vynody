@@ -17,8 +17,8 @@ bool hasSongArtwork(MusicFile? file) =>
 /// Evaluates representative song for a single folder [folder].
 /// Priority 1: Direct file with artwork
 /// Priority 2: Direct subfolder representative with artwork
-/// Priority 3: Fallback to first direct file
-/// Priority 4: Fallback to first subfolder representative
+/// Returns null if neither direct files nor subfolders have artwork,
+/// ensuring only folders with actual artwork are recorded in FolderCovers.
 MusicFile? evaluateRepresentativeSongForFolder(
   MusicFolder folder, {
   Map<String, SongMetadata>? metadataByPath,
@@ -27,7 +27,8 @@ MusicFile? evaluateRepresentativeSongForFolder(
   bool hasArtwork(MusicFile file) {
     if (hasSongArtwork(file)) return true;
     if (metadataByPath != null) {
-      final meta = metadataByPath[file.path];
+      final key = normalizePath != null ? normalizePath(file.path) : file.path;
+      final meta = metadataByPath[key] ?? metadataByPath[file.path];
       if (meta != null) {
         return (meta.artworkPath != null && meta.artworkPath!.isNotEmpty) ||
             (meta.thumbnailPath != null && meta.thumbnailPath!.isNotEmpty);
@@ -50,8 +51,15 @@ MusicFile? evaluateRepresentativeSongForFolder(
     }
   }
 
-  // Priority 3: Fallback to first direct file
-  selected ??= folder.files.firstOrNull;
+  // Priority 3: Fallback to direct file (preferring formats likely to have embedded art, e.g. flac/mp3/m4a/ogg/opus)
+  if (selected == null && folder.files.isNotEmpty) {
+    selected = folder.files.firstWhereOrNull((f) {
+      final dotIdx = f.path.lastIndexOf('.');
+      if (dotIdx < 0) return false;
+      final ext = f.path.substring(dotIdx + 1).toLowerCase();
+      return ext == 'flac' || ext == 'mp3' || ext == 'm4a' || ext == 'ogg' || ext == 'opus';
+    }) ?? folder.files.firstOrNull;
+  }
 
   // Priority 4: Fallback to first subfolder representative
   if (selected == null) {

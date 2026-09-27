@@ -19,6 +19,7 @@ class ScannerMetadataStore {
     required void Function(String path, bool isMissing) notifySongMissingState,
     required String Function(String path) normalizePath,
     required bool Function(String left, String right) pathsEqual,
+    void Function(String path, String thumbnailPath)? onThumbnailUpdated,
   }) : _rootFolders = rootFolders,
        _systemMediaFolder = systemMediaFolder,
        _notifyListeners = notifyListeners,
@@ -27,7 +28,8 @@ class ScannerMetadataStore {
        _onAlbumMetadataMutated = onAlbumMetadataMutated,
        _notifySongMissingState = notifySongMissingState,
        _normalizePath = normalizePath,
-       _pathsEqual = pathsEqual;
+       _pathsEqual = pathsEqual,
+       _onThumbnailUpdated = onThumbnailUpdated;
 
   final Iterable<MusicFolder> Function() _rootFolders;
   final MusicFolder? Function() _systemMediaFolder;
@@ -38,6 +40,7 @@ class ScannerMetadataStore {
   final void Function(String path, bool isMissing) _notifySongMissingState;
   final String Function(String path) _normalizePath;
   final bool Function(String left, String right) _pathsEqual;
+  final void Function(String path, String thumbnailPath)? _onThumbnailUpdated;
 
   final Map<String, SongMetadata> _metadataMap = {};
 
@@ -215,6 +218,7 @@ class ScannerMetadataStore {
       }
 
       if (metadata != null) {
+        final previousThumbnail = _metadataMap[path]?.thumbnailPath;
         final mergedMetadata = metadata.copyWith(
           sourceFlags: _mergeSourceFlags(
             _metadataMap[path]?.sourceFlags,
@@ -225,10 +229,17 @@ class ScannerMetadataStore {
           _metadataMap[path],
           mergedMetadata,
         );
+        final newlyGeneratedThumbnail =
+            (mergedMetadata.thumbnailPath?.isNotEmpty ?? false) &&
+            mergedMetadata.thumbnailPath != previousThumbnail;
+
         _metadataMap[path] = mergedMetadata;
         _onMetadataMutated();
         if (albumChanged) {
           _onAlbumMetadataMutated();
+        }
+        if (newlyGeneratedThumbnail) {
+          _onThumbnailUpdated?.call(path, mergedMetadata.thumbnailPath!);
         }
         _scheduleMetadataNotify();
       }

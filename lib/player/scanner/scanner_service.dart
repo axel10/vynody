@@ -618,6 +618,8 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       normalizePath: _normalizePath,
       pathsEqual: _pathsEqual,
       onAlbumMetadataMutated: _markAlbumLibraryMutated,
+      onThumbnailUpdated: (path, thumb) =>
+          unawaited(updateSongThumbnailPath(path, thumb)),
     );
     _scanPipeline = ScannerScanPipeline(
       normalizePath: _normalizePath,
@@ -896,6 +898,17 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       allCovers.addAll(rootCovers);
     }
 
+    final staleCovers = _folderRepresentativeSongPaths.keys
+        .where((folder) => !allCovers.containsKey(folder))
+        .toList();
+    if (staleCovers.isNotEmpty) {
+      for (final folder in staleCovers) {
+        _folderRepresentativeSongPaths.remove(folder);
+        _folderRepresentativeSongs.remove(folder);
+      }
+      await _repository.removeFolderCoversForPaths(staleCovers);
+    }
+
     if (allCovers.isNotEmpty) {
       _folderRepresentativeSongPaths.addAll(allCovers);
       for (final entry in allCovers.entries) {
@@ -905,6 +918,8 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
         }
       }
       await _repository.batchUpsertFolderCovers(allCovers);
+    }
+    if (allCovers.isNotEmpty || staleCovers.isNotEmpty) {
       notifyListeners();
     }
   }

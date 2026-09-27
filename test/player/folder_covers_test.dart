@@ -200,10 +200,10 @@ void main() {
     });
 
     test('removeFolderCoversUnderRoots cleans up root and all nested subfolders', () async {
-      const songRoot = SongMetadata(path: '/root/01.mp3', title: 'Root Song', album: 'Album', artist: 'Artist');
-      const songSub1 = SongMetadata(path: '/root/sub1/02.mp3', title: 'Sub1 Song', album: 'Album', artist: 'Artist');
-      const songSub2 = SongMetadata(path: '/root/sub1/nested/03.mp3', title: 'Sub2 Song', album: 'Album', artist: 'Artist');
-      const otherSong = SongMetadata(path: '/other/04.mp3', title: 'Other Song', album: 'Album', artist: 'Artist');
+      const songRoot = SongMetadata(path: '/root/01.mp3', title: 'Root Song', album: 'Album', artist: 'Artist', artworkPath: '/art/root.jpg');
+      const songSub1 = SongMetadata(path: '/root/sub1/02.mp3', title: 'Sub1 Song', album: 'Album', artist: 'Artist', artworkPath: '/art/sub1.jpg');
+      const songSub2 = SongMetadata(path: '/root/sub1/nested/03.mp3', title: 'Sub2 Song', album: 'Album', artist: 'Artist', artworkPath: '/art/sub2.jpg');
+      const otherSong = SongMetadata(path: '/other/04.mp3', title: 'Other Song', album: 'Album', artist: 'Artist', artworkPath: '/art/other.jpg');
 
       await db.insertOrUpdateSong(songRoot);
       await db.insertOrUpdateSong(songSub1);
