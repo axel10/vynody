@@ -408,9 +408,9 @@ class _LibraryRankedSongListState extends ConsumerState<LibraryRankedSongList>
             )
           else
             SliverPadding(
-              padding: EdgeInsets.fromLTRB(12, 12, 12, 140 + (isSelectionMode ? 220.0 : 0.0)),
+              padding: EdgeInsets.fromLTRB(12, 4, 12, 140 + (isSelectionMode ? 220.0 : 0.0)),
               sliver: SliverFixedExtentList.builder(
-                itemExtent: 74.0,
+                itemExtent: 64.0,
                 itemCount: filteredItems.length,
                 itemBuilder: (context, index) {
                   final entry = filteredItems[index];
@@ -421,7 +421,7 @@ class _LibraryRankedSongListState extends ConsumerState<LibraryRankedSongList>
                     child: ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: kSingleColumnContentMaxWidth),
                       child: Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.symmetric(vertical: 2),
                         child: _SongListItem(
                           entry: entry,
                           l10n: l10n,
@@ -543,123 +543,134 @@ class _SongListItem extends ConsumerWidget {
             ? theme.colorScheme.primary
             : theme.colorScheme.onSurface;
 
-    final cardWidget = RepaintBoundary(
-      child: Card(
-        margin: EdgeInsets.zero,
-        elevation: 0,
-        color: isSelectionMode && isSelected
-            ? theme.colorScheme.primaryContainer.withValues(alpha: 0.35)
-            : isCurrent
-                ? theme.colorScheme.primaryContainer.withValues(alpha: 0.15)
-                : theme.colorScheme.surfaceContainerLow,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          enableFeedback: false,
-          onTap: onTap,
-          onLongPress: onLongPress,
-          onSecondaryTapDown: (details) async {
-            if (!isSelectionMode) {
-              await showSongBottomSheet(context, ref, song);
-            }
-          },
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 8,
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                SizedBox(
-                  width: 44,
-                  height: 44,
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      Opacity(
-                        opacity: isMissing
-                            ? 0.35
-                            : isSelectionMode
-                                ? (isSelected ? 0.5 : 0.7)
-                                : 1.0,
-                        child: SongThumbnail.fromSong(
-                          song,
-                          size: 44,
-                        ),
-                      ),
-                      if (isSelectionMode)
-                        Positioned.fill(
-                          child: Align(
-                            alignment: Alignment.center,
-                            child: SizedBox(
-                              width: 24,
-                              height: 24,
-                              child: Checkbox(
-                                value: isSelected,
-                                onChanged: (_) => onTap(),
-                                fillColor: WidgetStateProperty.all(Colors.white),
-                                checkColor: Colors.black,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(4),
+    final itemWidget = RepaintBoundary(
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onSecondaryTapDown: (details) async {
+          if (!isSelectionMode) {
+            await showSongBottomSheet(context, ref, song);
+          }
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+          decoration: BoxDecoration(
+            color: isSelectionMode && isSelected
+                ? theme.colorScheme.primaryContainer.withValues(alpha: 0.35)
+                : isCurrent
+                    ? theme.colorScheme.primaryContainer.withValues(alpha: 0.15)
+                    : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Material(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              enableFeedback: false,
+              hoverColor: theme.colorScheme.onSurface.withValues(alpha: 0.06),
+              onTap: onTap,
+              onLongPress: onLongPress,
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: MediaQuery.of(context).orientation == Orientation.portrait ? 12 : 16,
+                  vertical: 8,
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    SizedBox(
+                      width: 44,
+                      height: 44,
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          Opacity(
+                            opacity: isMissing
+                                ? 0.35
+                                : isSelectionMode
+                                    ? (isSelected ? 0.5 : 0.7)
+                                    : 1.0,
+                            child: SongThumbnail.fromSong(
+                              song,
+                              size: 44,
+                            ),
+                          ),
+                          if (isSelectionMode)
+                            Positioned.fill(
+                              child: Align(
+                                alignment: Alignment.center,
+                                child: SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child: Checkbox(
+                                    value: isSelected,
+                                    onChanged: (_) => onTap(),
+                                    fillColor: WidgetStateProperty.all(Colors.white),
+                                    checkColor: Colors.black,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          if (isCurrent && !isMissing) ...[
-                            PlayingEqualizerIcon(
-                              color: theme.colorScheme.primary,
-                              size: 16,
-                              isPlaying: isPlaying,
-                            ),
-                            const SizedBox(width: 6),
-                          ],
-                          Expanded(
-                            child: Text(
-                              song.displayName,
-                              style: theme.textTheme.bodyLarge?.copyWith(
-                                color: textColor,
-                                fontWeight: isCurrent && !isMissing ? FontWeight.bold : FontWeight.normal,
+                          Row(
+                            children: [
+                              if (isCurrent && !isMissing) ...[
+                                PlayingEqualizerIcon(
+                                  color: theme.colorScheme.primary,
+                                  size: 16,
+                                  isPlaying: isPlaying,
+                                ),
+                                const SizedBox(width: 6),
+                              ],
+                              Expanded(
+                                child: Text(
+                                  song.displayName,
+                                  style: theme.textTheme.bodyLarge?.copyWith(
+                                    color: textColor,
+                                    fontWeight: isCurrent && !isMissing ? FontWeight.bold : FontWeight.normal,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                            ],
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            _songSubtitle(l10n, entry),
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: isMissing
+                                  ? theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5)
+                                  : isCurrent
+                                      ? theme.colorScheme.primary.withValues(alpha: 0.8)
+                                      : theme.colorScheme.onSurfaceVariant,
                             ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),
-                      const SizedBox(height: 3),
-                      Text(
-                        _songSubtitle(l10n, entry),
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: isMissing
-                              ? theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5)
-                              : isCurrent
-                                  ? theme.colorScheme.primary.withValues(alpha: 0.8)
-                                  : theme.colorScheme.onSurfaceVariant,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(width: 12),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(minWidth: 90),
+                      child: trailingBuilder(context, entry),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 12),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(minWidth: 90),
-                  child: trailingBuilder(context, entry),
-                ),
-              ],
+              ),
             ),
           ),
         ),
@@ -672,7 +683,7 @@ class _SongListItem extends ConsumerWidget {
       isSelected: isSelected,
       isSelectionMode: isSelectionMode,
       selectedPaths: selectedPaths,
-      child: cardWidget,
+      child: itemWidget,
     );
   }
 
