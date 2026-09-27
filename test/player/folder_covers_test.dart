@@ -5,7 +5,7 @@ import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/models/music_folder.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
-import 'package:vynody/utils/folder_helpers.dart';
+import 'package:vynody/player/scanner/folder_cover_resolver.dart';
 
 class _TestPathProviderPlatform extends Fake
     with MockPlatformInterfaceMixin
@@ -21,7 +21,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('computeFolderCoversBottomUp', () {
-    test('propagates leaf representative cover up to root when parent has no direct songs', () {
+    test('propagates leaf representative cover up to root when parent has no direct songs', () async {
       const leafSong = MusicFile(
         path: '/music/rock/classic/01.mp3',
         name: '01.mp3',
@@ -43,7 +43,7 @@ void main() {
         subFolders: [rockFolder],
       );
 
-      final covers = computeFolderCoversBottomUp(rootFolder);
+      final covers = await FolderCoverResolver.computeFolderCoversBottomUp(rootFolder);
 
       expect(covers['/music/rock/classic'], equals('/music/rock/classic/01.mp3'));
       expect(covers['/music/rock'], equals('/music/rock/classic/01.mp3'));
@@ -54,7 +54,7 @@ void main() {
       expect(rootFolder.representativeSongCache, equals(leafSong));
     });
 
-    test('prefers parent direct artwork song over child subfolder song', () {
+    test('prefers parent direct artwork song over child subfolder song', () async {
       const parentSong = MusicFile(
         path: '/music/album/parent.mp3',
         name: 'parent.mp3',
@@ -77,13 +77,13 @@ void main() {
         subFolders: [bonusFolder],
       );
 
-      final covers = computeFolderCoversBottomUp(albumFolder);
+      final covers = await FolderCoverResolver.computeFolderCoversBottomUp(albumFolder);
 
       expect(covers['/music/album'], equals('/music/album/parent.mp3'));
       expect(covers['/music/album/bonus'], equals('/music/album/bonus/child.mp3'));
     });
 
-    test('handles android system media virtual path hierarchy', () {
+    test('handles android system media virtual path hierarchy', () async {
       const popSong = MusicFile(
         path: 'system/Download/Pop/pop.mp3',
         name: 'pop.mp3',
@@ -105,14 +105,14 @@ void main() {
         subFolders: [downloadFolder],
       );
 
-      final covers = computeFolderCoversBottomUp(systemFolder);
+      final covers = await FolderCoverResolver.computeFolderCoversBottomUp(systemFolder);
 
       expect(covers['system/Download/Pop'], equals('system/Download/Pop/pop.mp3'));
       expect(covers['system/Download'], equals('system/Download/Pop/pop.mp3'));
       expect(covers['system'], equals('system/Download/Pop/pop.mp3'));
     });
 
-    test('evaluateRepresentativeSongForFolder selects artwork song and falls back correctly', () {
+    test('evaluateRepresentativeSongForFolder selects artwork song and returns null if no cover', () async {
       const artSong = MusicFile(
         path: '/folder/art.mp3',
         name: 'art.mp3',
@@ -128,17 +128,26 @@ void main() {
         name: 'folder',
         files: [noArtSong, artSong],
       );
-      expect(evaluateRepresentativeSongForFolder(folder1), equals(artSong));
+      expect(
+        await FolderCoverResolver.evaluateRepresentativeSongForFolder(folder1, probeCover: (_) async => false),
+        equals(artSong),
+      );
 
       final folder2 = MusicFolder(
         path: '/folder2',
         name: 'folder2',
         files: [noArtSong],
       );
-      expect(evaluateRepresentativeSongForFolder(folder2), equals(noArtSong));
+      expect(
+        await FolderCoverResolver.evaluateRepresentativeSongForFolder(folder2, probeCover: (_) async => false),
+        isNull,
+      );
 
       final emptyFolder = MusicFolder(path: '/empty', name: 'empty');
-      expect(evaluateRepresentativeSongForFolder(emptyFolder), isNull);
+      expect(
+        await FolderCoverResolver.evaluateRepresentativeSongForFolder(emptyFolder, probeCover: (_) async => false),
+        isNull,
+      );
     });
   });
 

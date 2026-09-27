@@ -1,63 +1,42 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vynody/models/music_file.dart';
-import 'package:vynody/models/music_folder.dart';
 import 'package:vynody/utils/folder_helpers.dart';
 
 void main() {
-  group('findRepresentativeSong', () {
-    test('returns null when folder has no songs', () {
-      final folder = MusicFolder(path: '/music', name: 'music');
-      expect(findRepresentativeSong(folder), isNull);
+  group('folder_helpers', () {
+    test('hasSongArtwork returns true if artwork or thumbnail exists', () {
+      expect(hasSongArtwork(null), isFalse);
+      expect(hasSongArtwork(const MusicFile(path: '/a.mp3', name: 'a.mp3')), isFalse);
+      expect(
+        hasSongArtwork(const MusicFile(
+          path: '/a.mp3',
+          name: 'a.mp3',
+          artworkPath: '/art.jpg',
+        )),
+        true,
+      );
+      expect(
+        hasSongArtwork(const MusicFile(
+          path: '/a.mp3',
+          name: 'a.mp3',
+          thumbnailPath: '/thumb.jpg',
+        )),
+        true,
+      );
     });
 
-    test('prefers song with artwork in files over first song without artwork', () {
-      const song1NoArt = MusicFile(path: '/music/01.mp3', name: '01.mp3');
-      const song2WithArt = MusicFile(
-        path: '/music/02.mp3',
-        name: '02.mp3',
-        artworkPath: '/covers/02.jpg',
-      );
-      final folder = MusicFolder(
-        path: '/music',
-        name: 'music',
-        files: [song1NoArt, song2WithArt],
-      );
-
-      expect(findRepresentativeSong(folder), equals(song2WithArt));
+    test('formatDurationMs formats milliseconds into strings', () {
+      expect(formatDurationMs(null), '0:00');
+      expect(formatDurationMs(0), '0:00');
+      expect(formatDurationMs(65000), '1:05');
+      expect(formatDurationMs(3665000), '1:01:05');
     });
 
-    test('prefers song with artwork in allSongs (subFolders) if files has no artwork', () {
-      const song1NoArt = MusicFile(path: '/music/01.mp3', name: '01.mp3');
-      const subSongWithArt = MusicFile(
-        path: '/music/sub/02.mp3',
-        name: '02.mp3',
-        thumbnailPath: '/thumbs/02.png',
-      );
-      final subFolder = MusicFolder(
-        path: '/music/sub',
-        name: 'sub',
-        files: [subSongWithArt],
-      );
-      final folder = MusicFolder(
-        path: '/music',
-        name: 'music',
-        files: [song1NoArt],
-        subFolders: [subFolder],
-      );
-
-      expect(findRepresentativeSong(folder), equals(subSongWithArt));
-    });
-
-    test('falls back to first file if no song has artwork', () {
-      const song1 = MusicFile(path: '/music/01.mp3', name: '01.mp3');
-      const song2 = MusicFile(path: '/music/02.mp3', name: '02.mp3');
-      final folder = MusicFolder(
-        path: '/music',
-        name: 'music',
-        files: [song1, song2],
-      );
-
-      expect(findRepresentativeSong(folder), equals(song1));
+    test('formatFileSize formats byte count to human-readable size', () {
+      expect(formatFileSize(null), '0 B');
+      expect(formatFileSize(500), '500 B');
+      expect(formatFileSize(1024 * 500), '500.0 KB');
+      expect(formatFileSize(1024 * 1024 * 5), '5.0 MB');
     });
   });
 }

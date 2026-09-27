@@ -36,7 +36,7 @@ import 'package:vynody/player/settings/settings_service.dart';
 import 'package:vynody/player/settings/track_artwork_theme_service.dart';
 import 'package:vynody/utils/localized_text.dart';
 import 'package:vynody/utils/linux_mount_helper.dart';
-import 'package:vynody/utils/folder_helpers.dart';
+import 'package:vynody/player/scanner/folder_cover_resolver.dart';
 import 'package:linux_directory_access/linux_directory_access.dart';
 import 'package:vynody/player/remote/services/remote_scan_root.dart';
 import 'package:vynody/player/remote/proxy/remote_media_resolver.dart';
@@ -292,10 +292,8 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       final normFolder = _normalizePath(folder.path);
       final oldSongPath = _folderRepresentativeSongPaths[normFolder];
 
-      final newRep = evaluateRepresentativeSongForFolder(
+      final newRep = await FolderCoverResolver.evaluateRepresentativeSongForFolder(
         folder,
-        metadataByPath: _metadataStore.metadataMap,
-        normalizePath: _normalizePath,
       );
       folder.representativeSongCache = newRep;
       final newSongPath = newRep != null ? _normalizePath(newRep.path) : null;
@@ -881,18 +879,16 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     final allCovers = <String, String>{};
 
     if (_systemMediaFolder != null) {
-      final systemCovers = computeFolderCoversBottomUp(
+      final systemCovers = await FolderCoverResolver.computeFolderCoversBottomUp(
         _systemMediaFolder!,
-        metadataByPath: _metadataStore.metadataMap,
         normalizePath: _normalizePath,
       );
       allCovers.addAll(systemCovers);
     }
 
     for (final root in _scannedRootFolders) {
-      final rootCovers = computeFolderCoversBottomUp(
+      final rootCovers = await FolderCoverResolver.computeFolderCoversBottomUp(
         root,
-        metadataByPath: _metadataStore.metadataMap,
         normalizePath: _normalizePath,
       );
       allCovers.addAll(rootCovers);
