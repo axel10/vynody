@@ -33,7 +33,6 @@ import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/player/audio/playback_source.dart';
 import 'main_layout_riverpod.dart';
 import '../dialogs/music_folders_dialog.dart';
-import '../widgets/ui_guide_overlay.dart';
 import '../widgets/desktop_window_title_bar.dart';
 import '../widgets/floating_dock_bottom_bar.dart';
 import '../widgets/playback_hero_card.dart';
@@ -206,7 +205,6 @@ class _MainLayoutState extends ConsumerState<MainLayout>
   final GlobalKey<FoldersPageState> _foldersPageKey =
       GlobalKey<FoldersPageState>();
 
-  bool _showUiGuide = false;
   bool _isOnboardingDialogOpen = false;
 
   MainLayoutUiController get _ui => _uiController;
@@ -883,10 +881,6 @@ class _MainLayoutState extends ConsumerState<MainLayout>
 
     final settings = ref.read(settingsServiceProvider);
     settings.hasShownOnboarding = true;
-
-    setState(() {
-      _showUiGuide = true;
-    });
   }
 
   @override
@@ -1558,25 +1552,6 @@ class _MainLayoutState extends ConsumerState<MainLayout>
             ),
           ),
         );
-
-    if (_showUiGuide) {
-      return Stack(
-        children: [
-          Positioned.fill(child: mainAppWidget),
-          Positioned.fill(
-            child: UiGuideOverlay(
-              onComplete: () {
-                if (mounted) {
-                  setState(() {
-                    _showUiGuide = false;
-                  });
-                }
-              },
-            ),
-          ),
-        ],
-      );
-    }
 
     return mainAppWidget;
   }
