@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vynody/dialogs/playback_button_layout_dialog.dart';
 import 'package:vynody/dialogs/progress_bar_style_dialog.dart';
 import 'package:vynody/l10n/app_localizations.dart';
+import 'package:vynody/main.dart' show navigatorKey;
+import 'package:vynody/pages/main_layout.dart' show buildMainLayoutRoute;
 import 'package:vynody/player/pro/pro_license_service.dart';
 import 'package:vynody/player/pro/pro_models.dart';
 import 'package:vynody/player/settings/settings_service.dart';
@@ -12,7 +14,6 @@ import '../dialogs/custom_proxy_dialog.dart';
 import '../widgets/settings_dropdown_tile.dart';
 import '../widgets/settings_group_card.dart';
 import '../widgets/settings_section_header.dart';
-import 'package:vynody/utils/app_snack_bar.dart';
 
 class GeneralSection extends ConsumerWidget {
   final SettingsService settings;
@@ -818,10 +819,11 @@ class GeneralSection extends ConsumerWidget {
                   settings.hasShownOnboarding = false;
                   settings.hasShownCoverTapLyricTip = false;
                   settings.hasShownLyricsMenuTip = false;
-                  AppSnackBar.show(
-                    context,
-                    ref,
-                    SnackBar(content: Text(l10n.onboardingReset)),
+                  final nav = navigatorKey.currentState ??
+                      Navigator.of(context, rootNavigator: true);
+                  nav.pushAndRemoveUntil(
+                    buildMainLayoutRoute(args: const [], initialIndex: 0),
+                    (route) => false,
                   );
                 },
                 child: Text(l10n.reset),

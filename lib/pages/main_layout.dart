@@ -10,6 +10,7 @@ import 'package:path/path.dart' as p;
 import 'package:window_manager/window_manager.dart';
 
 import '../l10n/app_localizations.dart';
+import '../main.dart' show navigatorKey;
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/audio/audio_service.dart';
 import 'package:vynody/player/lyrics/lyrics_riverpod.dart';
@@ -856,12 +857,25 @@ class _MainLayoutState extends ConsumerState<MainLayout>
     if (_isOnboardingDialogOpen || !mounted) return;
     _isOnboardingDialogOpen = true;
 
+    // Ensure all overlying routes (e.g. SettingsPage, dialogs) are closed and return to root
+    final nav =
+        navigatorKey.currentState ?? Navigator.of(context, rootNavigator: true);
+    nav.popUntil((route) => route.isFirst);
+
     // Ensure we are on directory page (tab 0)
     if (_currentIndex != 0) {
+      _isOnboardingDialogOpen = false;
       await _onDestinationSelected(0);
+      return;
     }
 
-    if (!mounted) return;
+    // Give a brief moment for directory page layout/transitions to settle
+    await Future<void>.delayed(const Duration(milliseconds: 300));
+    if (!mounted) {
+      _isOnboardingDialogOpen = false;
+      return;
+    }
+
     await MusicFoldersDialog.show(context, isOnboarding: true);
 
     if (!mounted) return;
