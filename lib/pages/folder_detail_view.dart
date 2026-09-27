@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -24,6 +23,7 @@ import 'package:vynody/utils/song_locator_helper.dart';
 import '../widgets/folder_header_nav_bar.dart';
 import '../widgets/folder_layout_utils.dart';
 import '../widgets/folder_content_slivers.dart';
+import '../widgets/playback_ui_tuning.dart';
 
 class FolderDetailView extends ConsumerStatefulWidget {
   const FolderDetailView({
@@ -388,7 +388,13 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
           folder,
           scanner.navigationHistory,
         );
-    final selectionPanelHeight = showSelectionPanel ? 220.0 : 0.0;
+    final hasPlayingMusic = currentMusic != null;
+    final folderListBottomPadding = MiniPlayerUiTuning.getListBottomPadding(
+      context,
+      hasPlayingMusic: hasPlayingMusic,
+      isSelectionMode: showSelectionPanel,
+      selectionPanelHeight: 120.0,
+    );
 
     final representativeSong = scanner.getRepresentativeSongForFolder(folder);
 
@@ -709,7 +715,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
           ),
         ],
         SliverPadding(
-          padding: EdgeInsets.only(bottom: 160 + selectionPanelHeight),
+          padding: EdgeInsets.only(bottom: folderListBottomPadding),
         ),
       ],
       ),
@@ -718,10 +724,8 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
     final selectedSongs = showSelectionPanel ? _getSelectedSongs() : <MusicFile>[];
 
     final scaffold = Scaffold(
-      body: SafeArea(
-        top: false,
-        child: Stack(
-            children: [
+      body: Stack(
+        children: [
               Column(
                 children: [
                   if (widget.isSelectionMode && !showSelectionPanel)
@@ -808,7 +812,6 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
               ),
             ],
           ),
-        ),
       );
 
     if (widget.isSelectionMode) {

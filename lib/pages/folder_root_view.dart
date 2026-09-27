@@ -22,6 +22,7 @@ import '../widgets/folder_content_slivers.dart';
 import '../widgets/remote_server_slivers.dart';
 import '../dialogs/add_edit_remote_server_dialog.dart';
 import '../utils/selection_utils.dart';
+import '../widgets/playback_ui_tuning.dart';
 
 class FolderRootView extends ConsumerStatefulWidget {
   const FolderRootView({
@@ -231,7 +232,13 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
 
     final isLargeScreen = MediaQuery.of(context).size.width >= 1000;
     final selectionLabel = l10n.selectedFolders(widget.selectedRootPaths.length);
-    final rootListBottomPadding = isRootSelectionMode ? 224.0 : 160.0;
+    final hasPlayingMusic = currentMusic != null;
+    final rootListBottomPadding = MiniPlayerUiTuning.getListBottomPadding(
+      context,
+      hasPlayingMusic: hasPlayingMusic,
+      isSelectionMode: isRootSelectionMode,
+      selectionPanelHeight: 120.0,
+    );
 
     final systemFolder = MusicFolder(path: 'system', name: '');
     final systemSongCount = Platform.isAndroid
@@ -514,6 +521,7 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
             viewMode: settings.folderViewMode,
             currentSongPath: currentMusic?.path,
             isPlaying: ref.watch(audioIsPlayingProvider),
+            bottomPadding: rootListBottomPadding,
             onSongTap: (file, fileIndex) async {
               unawaited(() async {
                 try {
@@ -556,16 +564,14 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
     );
 
     return Scaffold(
-      body: SafeArea(
-        top: false,
-        child: Stack(
-          children: [
-            Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: folderPageMaxWidth),
-                child: rootList,
-              ),
+      body: Stack(
+        children: [
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: folderPageMaxWidth),
+              child: rootList,
             ),
+          ),
             Positioned(
               top: 0,
               left: 0,
@@ -629,7 +635,7 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
               Positioned(
                 left: 0,
                 right: 0,
-                bottom: 24,
+                bottom: 24 + MediaQuery.of(context).padding.bottom,
                 child: Center(
                   child: Material(
                     elevation: 8,
@@ -666,9 +672,8 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
               ),
           ],
         ),
-      ),
-    );
-  }
+      );
+    }
 
   Widget _buildRootTopHeader(BuildContext context, {bool isOverlay = true}) {
     return Hero(

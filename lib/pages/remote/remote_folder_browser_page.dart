@@ -1564,13 +1564,13 @@ class _RemoteFolderBrowserPageState
                       displayedItems,
                     );
                   },
-                  bottomPadding: bottomOffset,
+                  bottomPadding: 0,
                 ),
 
             ],
             SliverPadding(
               padding: EdgeInsets.only(
-                bottom: bottomOffset + (_isSelectionMode ? 220.0 : 0.0) + 24,
+                bottom: bottomOffset,
               ),
             ),
           ],
@@ -1605,10 +1605,8 @@ class _RemoteFolderBrowserPageState
     }
 
     final scaffold = Scaffold(
-      body: SafeArea(
-        top: false,
-        child: Stack(
-          children: [
+      body: Stack(
+        children: [
             Center(
               child: ConstrainedBox(
                 constraints:
@@ -1869,8 +1867,7 @@ class _RemoteFolderBrowserPageState
             ),
           ],
         ),
-      ),
-    );
+      );
 
     final content = PopScope(
       canPop: !_isSelectionMode,
