@@ -8,7 +8,8 @@ Vynody — cross-platform local music player (Flutter + Audio Core/ExoPlayer aud
 flutter pub get                          # install dependencies
 dart run build_runner build --delete-conflicting-outputs  # codegen (freezed, json_serializable, drift)
 flutter analyze                          # static analysis + lint
-flutter test                             # unit & widget tests (test/)
+flutter test                             # unit & widget tests (test/ - default concurrency=2 via dart_test.yaml)
+./scripts/run_tests.sh                   # memory-safe test runner (--batch / -j 2)
 flutter test integration_test/           # integration tests
 flutter run -d <device-id>               # dev run on a device
 ```
@@ -17,7 +18,8 @@ flutter run -d <device-id>               # dev run on a device
 
 1. `dart run build_runner build --delete-conflicting-outputs` — if you touch model/DAO files that use `@freezed`, `@JsonSerializable`, or Drift tables.
 2. `flutter analyze` — must pass (generated `*.g.dart` / `*.freezed.dart` are excluded from analysis).
-3. `flutter test` — run before pushing.
+3. **During development:** Run only tests relevant to the modified code (e.g. `flutter test test/path/to/specific_test.dart` or `./scripts/run_tests.sh test/player/`).
+4. **Before `git push`:** Run full test suite via `./scripts/run_tests.sh` (or `./scripts/run_tests.sh --batch`), which automatically executes both main project tests and `audio_core` tests.
 
 ## Architecture notes
 
@@ -40,5 +42,5 @@ flutter run -d <device-id>               # dev run on a device
 - **Multiple `dependency_overrides`** in `pubspec.yaml` override upstream packages (`bonsoir`, `bonsoir_windows`, `permission_handler_windows`, `audio_core`). These exist for fork compatibility; don't remove them without understanding why.
 - **Rust toolchain required** for Windows/Linux desktop builds and Android cross-compilation. The `audio_core` plugin contains native Rust code built via Cargokit.
 - **`flutter analyze` excludes generated files** (`analysis_options.yaml`), so codegen errors won't appear until runtime. Always run `build_runner` after touching annotated classes.
-- **No pre-commit hooks or task runner** — run `flutter analyze` and `flutter test` manually before pushing.
+- **Git hooks:** A `pre-push` hook is configured in `.git/hooks/pre-push` that automatically runs `./scripts/run_tests.sh --batch` (full tests including `audio_core`) before any `git push`.
 - **Android keystore** is a CI secret (`ANDROID_KEYSTORE_BASE64`); local debug builds use the default debug keystore.

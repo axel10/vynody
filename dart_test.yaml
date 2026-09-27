@@ -1,0 +1,6 @@
+# Configuration for dart test / flutter test
+# Restricts concurrency to avoid memory exhaustion (OOM) on multi-core systems (especially Apple Silicon)
+concurrency: 2
+
+# Disabling chain_stack_traces reduces memory overhead by not storing extensive async traces across tests
+chain_stack_traces: false
