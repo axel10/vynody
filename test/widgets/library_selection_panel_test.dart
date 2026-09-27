@@ -103,4 +103,75 @@ void main() {
     expect(find.text('本地收藏'), findsNothing);
     expect(find.text('云端收藏'), findsNothing);
   });
+
+  testWidgets('LibrarySelectionPanel places transcodeAction at the very end',
+      (tester) async {
+    await tester.pumpWidget(
+      createTestWidget(
+        onAddToFavorites: () {},
+        onAddToCloudFavorites: () {},
+        onDownload: () {},
+        onDelete: () {},
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final textButtons = tester
+        .widgetList<Text>(
+          find.descendant(
+            of: find.byType(LibrarySelectionPanel),
+            matching: find.descendant(
+              of: find.byType(TextButton),
+              matching: find.byType(Text),
+            ),
+          ),
+        )
+        .map((t) => t.data)
+        .whereType<String>()
+        .toList();
+
+    expect(textButtons.last, equals('转码'));
+  });
+
+  testWidgets('LibrarySelectionPanel with replaceFavoritesWithSongDetails places transcodeAction at the very end',
+      (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('zh'),
+          home: Scaffold(
+            body: LibrarySelectionPanel(
+              selectedSongs: [sampleSong],
+              allSongs: [sampleSong],
+              replaceFavoritesWithSongDetails: true,
+              onToggleSelectAll: () {},
+              onCancel: () {},
+              onDownload: () {},
+              onDelete: () {},
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final textButtons = tester
+        .widgetList<Text>(
+          find.descendant(
+            of: find.byType(LibrarySelectionPanel),
+            matching: find.descendant(
+              of: find.byType(TextButton),
+              matching: find.byType(Text),
+            ),
+          ),
+        )
+        .map((t) => t.data)
+        .whereType<String>()
+        .toList();
+
+    expect(textButtons.last, equals('转码'));
+  });
 }
+

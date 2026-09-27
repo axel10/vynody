@@ -241,26 +241,6 @@ class _LibrarySelectionPanelState extends ConsumerState<LibrarySelectionPanel> {
                 : null,
           ),
         );
-        secondaryActions.add(
-          _buildSelectionActionButton(
-            context: context,
-            icon: Icons.sync_rounded,
-            label: l10n.transcodeAction,
-            onPressed: isEmpty
-                ? null
-                : () async {
-                    if (widget.onTranscode != null) {
-                      widget.onTranscode!();
-                    } else {
-                      await showTranscodeDialog(
-                        context,
-                        songs: widget.selectedSongs,
-                      );
-                      widget.onCancel();
-                    }
-                  },
-          ),
-        );
         if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
           secondaryActions.add(
             _buildSelectionActionButton(
@@ -382,26 +362,6 @@ class _LibrarySelectionPanelState extends ConsumerState<LibrarySelectionPanel> {
             ),
           );
         }
-        secondaryActions.add(
-          _buildSelectionActionButton(
-            context: context,
-            icon: Icons.sync_rounded,
-            label: l10n.transcodeAction,
-            onPressed: isEmpty
-                ? null
-                : () async {
-                    if (widget.onTranscode != null) {
-                      widget.onTranscode!();
-                    } else {
-                      await showTranscodeDialog(
-                        context,
-                        songs: widget.selectedSongs,
-                      );
-                      widget.onCancel();
-                    }
-                  },
-          ),
-        );
         if (!widget.hideSongProperties) {
           secondaryActions.add(
             _buildSelectionActionButton(
@@ -517,6 +477,27 @@ class _LibrarySelectionPanelState extends ConsumerState<LibrarySelectionPanel> {
           );
         }
       }
+
+      secondaryActions.add(
+        _buildSelectionActionButton(
+          context: context,
+          icon: Icons.sync_rounded,
+          label: l10n.transcodeAction,
+          onPressed: isEmpty
+              ? null
+              : () async {
+                  if (widget.onTranscode != null) {
+                    widget.onTranscode!();
+                  } else {
+                    await showTranscodeDialog(
+                      context,
+                      songs: widget.selectedSongs,
+                    );
+                    widget.onCancel();
+                  }
+                },
+        ),
+      );
 
       for (var i = 0; i < secondaryActions.length; i += 4) {
         final chunk = secondaryActions.sublist(
