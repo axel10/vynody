@@ -31,7 +31,8 @@ import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/player/audio/playback_source.dart';
 import 'main_layout_riverpod.dart';
-import 'onboarding_page.dart';
+import '../dialogs/music_folders_dialog.dart';
+import '../widgets/ui_guide_overlay.dart';
 import '../widgets/desktop_window_title_bar.dart';
 import '../widgets/floating_dock_bottom_bar.dart';
 import '../widgets/playback_hero_card.dart';
@@ -204,10 +205,8 @@ class _MainLayoutState extends ConsumerState<MainLayout>
   final GlobalKey<FoldersPageState> _foldersPageKey =
       GlobalKey<FoldersPageState>();
 
-  bool _showOnboarding = false;
-  AnimationController? _onboardingAnimController;
-  bool _isOnboardingAnimatingOut = false;
-  int _onboardingKey = 0;
+  bool _showUiGuide = false;
+  bool _isOnboardingDialogOpen = false;
 
   MainLayoutUiController get _ui => _uiController;
 
@@ -286,13 +285,13 @@ class _MainLayoutState extends ConsumerState<MainLayout>
   void initState() {
     super.initState();
     final settings = ref.read(settingsServiceProvider);
-    _showOnboarding = !settings.hasShownOnboarding;
+    final needOnboarding = !settings.hasShownOnboarding;
     final isStressTest = widget.args.any(
       (arg) => arg == '--stress-test' || arg == '--audio-stress-test',
     );
     final initialIndex = isStressTest
         ? 0
-        : (_showOnboarding ? 0 : widget.initialIndex);
+        : (needOnboarding ? 0 : widget.initialIndex);
     _currentIndex = initialIndex;
     _lastVolume = ref.read(audioVolumeProvider);
     _audioService = ref.read(audioServiceProvider);
@@ -306,6 +305,9 @@ class _MainLayoutState extends ConsumerState<MainLayout>
       ref.read(mainTabIndexProvider.notifier).setIndex(_currentIndex);
       if (_currentIndex != 1) {
         _currentBaseTabIndex = _currentIndex;
+      }
+      if (needOnboarding) {
+        _triggerOnboardingFlow();
       }
     });
 
@@ -340,7 +342,6 @@ class _MainLayoutState extends ConsumerState<MainLayout>
 
   @override
   void dispose() {
-    _onboardingAnimController?.dispose();
     _windowResizeDebounceTimer?.cancel();
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
       windowManager.removeListener(this);
@@ -851,23 +852,26 @@ class _MainLayoutState extends ConsumerState<MainLayout>
     ];
   }
 
-  void _completeOnboarding() {
-    if (_isOnboardingAnimatingOut) return;
+  Future<void> _triggerOnboardingFlow() async {
+    if (_isOnboardingDialogOpen || !mounted) return;
+    _isOnboardingDialogOpen = true;
+
+    // Ensure we are on directory page (tab 0)
+    if (_currentIndex != 0) {
+      await _onDestinationSelected(0);
+    }
+
+    if (!mounted) return;
+    await MusicFoldersDialog.show(context, isOnboarding: true);
+
+    if (!mounted) return;
+    _isOnboardingDialogOpen = false;
+
+    final settings = ref.read(settingsServiceProvider);
+    settings.hasShownOnboarding = true;
+
     setState(() {
-      _isOnboardingAnimatingOut = true;
-    });
-    _onboardingAnimController?.forward().then((_) async {
-      final settings = ref.read(settingsServiceProvider);
-      settings.hasShownOnboarding = true;
-      if (mounted) {
-        setState(() {
-          _showOnboarding = false;
-          _isOnboardingAnimatingOut = false;
-        });
-        if (_currentIndex != 0) {
-          await _onDestinationSelected(0);
-        }
-      }
+      _showUiGuide = true;
     });
   }
 
@@ -878,12 +882,11 @@ class _MainLayoutState extends ConsumerState<MainLayout>
     ref.listen<bool>(
       settingsServiceProvider.select((s) => s.hasShownOnboarding),
       (previous, next) {
-        if (!next && !_showOnboarding) {
-          setState(() {
-            _showOnboarding = true;
-            _isOnboardingAnimatingOut = false;
-            _onboardingKey++;
-            _onboardingAnimController?.reset();
+        if (!next && !_isOnboardingDialogOpen) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              _triggerOnboardingFlow();
+            }
           });
         }
       },
@@ -1542,81 +1545,19 @@ class _MainLayoutState extends ConsumerState<MainLayout>
           ),
         );
 
-    final showOnboarding =
-        _showOnboarding || _isOnboardingAnimatingOut;
-
-    if (showOnboarding) {
-      _onboardingAnimController ??= AnimationController(
-        vsync: this,
-        duration: const Duration(milliseconds: 500),
-      );
-      if (!_isOnboardingAnimatingOut &&
-          _onboardingAnimController!.value != 0.0) {
-        _onboardingAnimController!.value = 0.0;
-      }
-
-      final onboardingOpacity = Tween<double>(begin: 1.0, end: 0.0).animate(
-        CurvedAnimation(
-          parent: _onboardingAnimController!,
-          curve: Curves.easeOutCubic,
-        ),
-      );
-
-      final onboardingOffset =
-          Tween<Offset>(
-            begin: Offset.zero,
-            end: const Offset(-1.0, 0.0), // Slide left off screen
-          ).animate(
-            CurvedAnimation(
-              parent: _onboardingAnimController!,
-              curve: Curves.easeOutCubic,
-            ),
-          );
-
+    if (_showUiGuide) {
       return Stack(
         children: [
+          Positioned.fill(child: mainAppWidget),
           Positioned.fill(
-            child: IgnorePointer(
-              ignoring: true,
-              child: Focus(canRequestFocus: false, child: mainAppWidget),
-            ),
-          ),
-          Positioned.fill(
-            child: FadeTransition(
-              opacity: onboardingOpacity,
-              child: SlideTransition(
-                position: onboardingOffset,
-                child: Scaffold(
-                  body: Stack(
-                    children: [
-                      Positioned.fill(
-                        child: IgnorePointer(
-                          ignoring: _isOnboardingAnimatingOut,
-                          child: OnboardingScreen(
-                            key: ValueKey(_onboardingKey),
-                            onComplete: _completeOnboarding,
-                          ),
-                        ),
-                      ),
-                      if (showCustomTitleBar)
-                        Positioned(
-                          top: 0,
-                          left: 0,
-                          right: 0,
-                          child: IgnorePointer(
-                            ignoring: _isOnboardingAnimatingOut,
-                            child: DesktopWindowTitleBar(
-                              brightness: theme.brightness,
-                              showSmallWindowButton: false,
-                              showButtonGroupBackground: isPlayback,
-                              hideButtonsWhenInactive: isPlayback,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
+            child: UiGuideOverlay(
+              onComplete: () {
+                if (mounted) {
+                  setState(() {
+                    _showUiGuide = false;
+                  });
+                }
+              },
             ),
           ),
         ],

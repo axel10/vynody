@@ -3,10 +3,8 @@ import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../utils/file_selector_helper.dart';
 import '../utils/folder_helpers.dart';
 import '../utils/song_locator_helper.dart';
-import 'package:path/path.dart' as p;
 import 'package:collection/collection.dart';
 import '../l10n/app_localizations.dart';
 import 'package:vynody/models/music_folder.dart';
@@ -15,13 +13,9 @@ import 'package:vynody/player/scanner/scanner_path_utils.dart';
 import 'package:vynody/player/scanner/scanner_service.dart';
 import '../widgets/library_selection_scope.dart';
 import 'package:vynody/utils/app_snack_bar.dart';
-import 'package:vynody/transcode/transcode_riverpod.dart';
-import 'package:vynody/player/metadata/metadata_helper.dart';
-import 'package:audio_core/audio_core.dart';
 import '../widgets/folder_bottom_sheet.dart';
 import 'folder_root_view.dart';
 import 'folder_detail_view.dart';
-import 'package:linux_directory_access/linux_directory_access.dart';
 import 'package:vynody/player/remote/remote_server_models.dart';
 import 'package:vynody/player/remote/remote_server_riverpod.dart';
 import 'remote/remote_library_page.dart';
@@ -29,6 +23,7 @@ import 'remote/remote_album_detail_page.dart';
 import 'remote/remote_artist_detail_page.dart';
 import 'remote/remote_playlist_detail_page.dart';
 import 'remote/remote_folder_browser_page.dart';
+import '../dialogs/music_folders_dialog.dart';
 
 class FoldersPage extends ConsumerStatefulWidget {
   final Future<void> Function()? onOpenPlayback;
@@ -45,7 +40,6 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
   final Set<String> _selectedSongPaths = {};
   final Set<String> _selectedFolderPaths = {};
   final Set<String> _selectedRootPaths = {};
-  AppLocalizations? _l10n;
   ScannerService? _scanner;
   late final LibrarySelectionScopeController _librarySelectionScopeController;
   late final HeroController _heroController;
@@ -330,11 +324,6 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
     );
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _l10n = AppLocalizations.of(context);
-  }
 
   @override
   void initState() {
@@ -356,91 +345,6 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
     super.dispose();
   }
 
-  Future<String?> _getDirectoryPath() {
-    return FileSelectorHelper.pickDirectory();
-  }
-
-  Future<void> _pickFolder(ScannerService scanner) async {
-    Directory? cwd;
-    try {
-      cwd = Directory.current;
-    } catch (_) {}
-
-    String? selectedDirectory;
-    String? persistentDocumentId;
-    AndroidOutputDirectory? androidOutputDirectory;
-
-    if (Platform.isAndroid) {
-      androidOutputDirectory = await ref
-          .read(transcodeServiceProvider)
-          .pickAndroidOutputDirectory();
-      selectedDirectory = androidOutputDirectory?.displayPath;
-    } else if (Platform.isLinux && await LinuxDirectoryAccess().isFlatpak) {
-      final grant = await LinuxDirectoryAccess().pickDirectory();
-      selectedDirectory = grant?.path;
-      persistentDocumentId = grant?.documentId;
-    } else {
-      selectedDirectory = await _getDirectoryPath();
-    }
-
-    debugPrint(
-      '[FoldersPage] directory picker returned '
-      'hasSelection=${selectedDirectory != null}',
-    );
-
-    if (cwd != null) {
-      try {
-        Directory.current = cwd;
-      } catch (_) {}
-    }
-
-    if (selectedDirectory != null) {
-      if (!mounted) return;
-
-      if (Platform.isWindows) {
-        await Future.delayed(const Duration(milliseconds: 300));
-      }
-
-      if (Platform.isAndroid && androidOutputDirectory != null) {
-        await AndroidSafStorageHelper.saveMapping(
-          androidOutputDirectory.displayPath,
-          androidOutputDirectory.treeUri,
-        );
-      }
-
-      debugPrint('[FoldersPage] adding selected root path=$selectedDirectory');
-      final result = await scanner.addRootPath(
-        selectedDirectory,
-        persistentDocumentId: persistentDocumentId,
-      );
-      debugPrint(
-        '[FoldersPage] add root path completed status=${result.status}',
-      );
-
-      if (!mounted) return;
-      String message;
-      switch (result.status) {
-        case RootPathAddStatus.added:
-        case RootPathAddStatus.alreadyAdded:
-          if (Platform.isAndroid && !scanner.hasPermission) {
-            message = '${AppLocalizations.of(context)!.directoryAddedSuccess}${AppLocalizations.of(context)!.safFallbackScanningNotice}';
-          } else {
-            message = AppLocalizations.of(context)!.directoryAddedSuccess;
-          }
-          break;
-        case RootPathAddStatus.noMusic:
-          message = AppLocalizations.of(context)!.directoryAddedNoMusic;
-          break;
-        case RootPathAddStatus.persistentAccessDenied:
-          message = AppLocalizations.of(context)!.persistentAccessDenied;
-          break;
-        case RootPathAddStatus.failed:
-          message = AppLocalizations.of(context)!.folderAddFailed;
-          break;
-      }
-      AppSnackBar.show(context, ref, SnackBar(content: Text(message)));
-    }
-  }
 
   Page<dynamic> _buildPage({
     required LocalKey key,
@@ -493,7 +397,7 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
           isSelectionMode: _isSelectionMode,
           isSortMode: _isRootSortMode,
           selectedRootPaths: _selectedRootPaths,
-          onPickFolder: () => _pickFolder(scanner),
+          onPickFolder: () => MusicFoldersDialog.show(context),
           onToggleRootSelection: _toggleRootSelection,
           onToggleRootSelectionMode: _toggleRootSelectionMode,
           onToggleSortMode: _toggleRootSortMode,
