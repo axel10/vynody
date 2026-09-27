@@ -318,6 +318,11 @@ class RemoteDirectoryScanner {
         root.virtualUri,
         maxCreatedAt: deleteTriggerTime,
       );
+      unawaited(
+        _ref
+            .read(audioServiceProvider)
+            .purgeSongsFromQueue(rootPaths: [root.virtualUri]),
+      );
       await _ref.read(remoteScanRootsProvider.notifier).removeRoot(root.id);
       final currentRoots = _ref.read(remoteScanRootsProvider).asData?.value ?? [];
       _ref.read(scannerServiceProvider).setRemoteRoots(currentRoots);
@@ -334,7 +339,13 @@ class RemoteDirectoryScanner {
 
     final schemes = const ['webdav', 'smb', 'subsonic', 'jellyfin'];
     for (final scheme in schemes) {
-      await _db.softDeleteSongsUnderPath('$scheme://$serverId');
+      final rootUri = '$scheme://$serverId';
+      await _db.softDeleteSongsUnderPath(rootUri);
+      unawaited(
+        _ref
+            .read(audioServiceProvider)
+            .purgeSongsFromQueue(rootPaths: [rootUri]),
+      );
     }
 
     await _ref.read(remoteScanRootsProvider.notifier).removeRootsForServer(serverId);

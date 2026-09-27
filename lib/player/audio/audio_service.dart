@@ -31,6 +31,7 @@ import 'package:vynody/player/platform/darwin_integration_service.dart';
 import 'package:vynody/player/platform/linux_integration_service.dart';
 import 'package:vynody/player/platform/desktop_tray_service.dart';
 import 'package:vynody/player/scanner/scanner_service.dart';
+import 'package:vynody/player/scanner/scanner_path_utils.dart';
 import 'package:vynody/player/library/playlist_service.dart';
 import 'package:vynody/player/metadata/metadata_helper.dart';
 import 'package:vynody/utils/memory_trace.dart';
@@ -823,6 +824,7 @@ class AudioService extends Notifier<AudioSnapshot> {
     }
 
     _isTransitioning = true;
+    var skippedAny = false;
     try {
       var attempts = 0;
       while (_queue.isNotEmpty && attempts < _queue.length) {
@@ -834,16 +836,22 @@ class AudioService extends Notifier<AudioSnapshot> {
         if (await _songExists(current.path)) {
           _lastMissingCurrentTrackPathHandled = null;
           await _syncCurrentPlaybackSong(current);
+          if (skippedAny) {
+            _showMissingSongNotice(skipped: true);
+          }
           return;
         }
 
         if (_lastMissingCurrentTrackPathHandled == current.path) {
+          if (skippedAny) {
+            _showMissingSongNotice(skipped: true);
+          }
           return;
         }
         _lastMissingCurrentTrackPathHandled = current.path;
 
         setSongMissingStateByPath(current.path, true);
-        _showMissingSongNotice(skipped: true);
+        skippedAny = true;
 
         final success = await _player.playlist.playNext();
         final newIndex = _player.playlist.currentIndex ?? -1;
@@ -854,12 +862,18 @@ class AudioService extends Notifier<AudioSnapshot> {
           _duration = Duration.zero;
           _position = Duration.zero;
           _lastMissingCurrentTrackPathHandled = null;
+          if (skippedAny) {
+            _showMissingSongNotice(skipped: true);
+          }
           notifyListeners();
           return;
         }
 
         _currentIndex = newIndex;
         attempts++;
+      }
+      if (skippedAny) {
+        _showMissingSongNotice(skipped: true);
       }
     } finally {
       _isTransitioning = false;
@@ -2980,6 +2994,100 @@ class AudioService extends Notifier<AudioSnapshot> {
       }
     } else {
       _currentIndex = -1;
+    }
+
+    _startQueueBackgroundProcessing();
+    notifyListeners();
+    unawaited(_persistPlaybackSession());
+  }
+
+  bool _isSongUnderRoot(String songPath, String rootPath) {
+    if (RemoteMediaResolver.isRemoteUri(songPath) ||
+        RemoteMediaResolver.isRemoteUri(rootPath)) {
+      final normalizedSong = songPath.toLowerCase();
+      final normalizedRoot = rootPath.toLowerCase();
+      return normalizedSong.startsWith(normalizedRoot);
+    }
+    return ScannerPathUtils.pathContains(rootPath, songPath);
+  }
+
+  Future<void> purgeSongsFromQueue({
+    Iterable<String>? paths,
+    Iterable<String>? rootPaths,
+  }) async {
+    if (_queue.isEmpty) return;
+    final pathSet = paths != null && paths.isNotEmpty
+        ? paths.map(ScannerPathUtils.normalizePath).toSet()
+        : const <String>{};
+    final roots = rootPaths != null && rootPaths.isNotEmpty
+        ? rootPaths.map(ScannerPathUtils.normalizePath).toList()
+        : const <String>[];
+
+    if (pathSet.isEmpty && roots.isEmpty) return;
+
+    bool shouldRemove(MusicFile song) {
+      final normPath = ScannerPathUtils.normalizePath(song.path);
+      if (pathSet.contains(normPath)) return true;
+      for (final root in roots) {
+        if (_isSongUnderRoot(song.path, root)) return true;
+      }
+      return false;
+    }
+
+    final hasToRemove = _queue.any(shouldRemove);
+    if (!hasToRemove) return;
+
+    final wasPlaying = _isPlaying;
+    final currentPath = currentMusic?.path;
+    final isCurrentSongRemoved =
+        currentPath != null && shouldRemove(currentMusic!);
+
+    final remainingQueue = _queue.where((s) => !shouldRemove(s)).toList();
+
+    if (remainingQueue.isEmpty) {
+      await clearPlaylist();
+      return;
+    }
+
+    _queue.clear();
+    _queue.addAll(remainingQueue);
+
+    final tracks =
+        remainingQueue.map(_audioTrackForSong).toList(growable: false);
+    final activePlaylistId =
+        _player.playlist.activePlaylistId ?? _player.playlist.queuePlaylistId;
+    await _player.playlist.updatePlaylistTracks(activePlaylistId, tracks);
+
+    if (isCurrentSongRemoved) {
+      final targetIndex =
+          _currentIndex.clamp(0, remainingQueue.length - 1).toInt();
+      _currentIndex = targetIndex;
+      final nextSong = remainingQueue[targetIndex];
+      if (wasPlaying) {
+        try {
+          await _player.playTrack(
+            _audioTrackForSong(nextSong),
+            preferredPlaylistId: activePlaylistId,
+          );
+          _position = Duration.zero;
+          _resetPlaybackTrackingForSong(nextSong);
+          await _syncCurrentPlaybackSong(nextSong);
+        } catch (e) {
+          debugPrint(
+            '[AudioService] Failed to play next song after queue purge: $e',
+          );
+        }
+      } else {
+        try {
+          await _player.player.pause(bypassGuard: true);
+        } catch (_) {}
+        _position = Duration.zero;
+        _resetPlaybackTrackingForSong(nextSong);
+        await _syncCurrentPlaybackSong(nextSong);
+      }
+    } else if (currentPath != null) {
+      final newIndex = remainingQueue.indexWhere((s) => s.path == currentPath);
+      _currentIndex = newIndex != -1 ? newIndex : 0;
     }
 
     _startQueueBackgroundProcessing();

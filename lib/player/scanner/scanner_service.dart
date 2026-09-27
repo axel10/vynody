@@ -54,6 +54,8 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
   final Completer<void> _readyCompleter = Completer<void>();
   AudioCoreController? _playerController;
   void Function(String path, bool isMissing)? _songMissingStateHandler;
+  void Function(Iterable<String> paths, Iterable<String> rootPaths)?
+      _songsPurgedHandler;
   StreamSubscription? _mediaObserverSubscription;
   bool _mediaObserverPaused = false;
   final MobileStorageListener _mobileStorageListener = MobileStorageListener();
@@ -717,6 +719,19 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     _songMissingStateHandler = handler;
   }
 
+  void setSongsPurgedHandler(
+    void Function(Iterable<String> paths, Iterable<String> rootPaths)? handler,
+  ) {
+    _songsPurgedHandler = handler;
+  }
+
+  void _notifySongsPurged(
+    Iterable<String> paths,
+    Iterable<String> rootPaths,
+  ) {
+    _songsPurgedHandler?.call(paths, rootPaths);
+  }
+
   void _notifySongMissingState(String path, bool isMissing) {
     final handler = _songMissingStateHandler;
     if (handler == null) return;
@@ -1149,6 +1164,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       await _syncActiveScopedRootAccess();
     }
     _removeRootsFromScannedTree(normalizedTargets);
+    _notifySongsPurged(const <String>[], normalizedTargets);
     await _purgeRemovedRootsFromMetadataCache(normalizedTargets);
     _rebuildDisplayedRootFolders();
     _syncNavigationStateToLatestTree();
@@ -2790,6 +2806,8 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
 
     final sweepResult = await _repository.sweepOrphanSongs();
     if (sweepResult.deletedPaths.isEmpty) return;
+
+    _notifySongsPurged(sweepResult.deletedPaths, normalizedRoots);
 
     _metadataStore.deleteMissingFromCache(
       sweepResult.deletedPaths,

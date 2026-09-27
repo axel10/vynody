@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:audio_core/audio_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -87,6 +88,9 @@ final audioServiceWiringProvider = Provider<void>((ref) {
   scanner.setSongMissingStateHandler((path, isMissing) {
     audio.setSongMissingStateByPath(path, isMissing);
     playlist.setSongMissingStateByPath(path, isMissing);
+  });
+  scanner.setSongsPurgedHandler((paths, rootPaths) {
+    unawaited(audio.purgeSongsFromQueue(paths: paths, rootPaths: rootPaths));
   });
   ref.read(standaloneQueueWindowManagerProvider);
 });
