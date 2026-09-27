@@ -236,13 +236,17 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
 
     if (cached != null) {
       final cachedMusicFile = _treeBuilder.musicFileFromSongMetadata(cached);
-      if (hasArtwork(cachedMusicFile) || memoryRep == null) {
+      if (hasArtwork(cachedMusicFile)) {
         return cachedMusicFile;
       }
     }
 
     if (memoryRep != null) {
       return memoryRep;
+    }
+
+    if (cached != null) {
+      return _treeBuilder.musicFileFromSongMetadata(cached);
     }
 
     if (!_pendingRepresentativeSongFetches.contains(normalized)) {

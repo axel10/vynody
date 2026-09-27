@@ -49,6 +49,29 @@ class FolderGridCard extends StatelessWidget {
     final Color startColor = HSLColor.fromAHSL(1.0, hue, 0.65, 0.45).toColor();
     final Color endColor = HSLColor.fromAHSL(1.0, (hue + 40) % 360, 0.75, 0.35).toColor();
 
+    final isSystem = folder.path == 'system';
+    final defaultCoverWidget = Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isSystem
+              ? [
+                  Colors.purple.shade700,
+                  Colors.deepPurple.shade900,
+                ]
+              : [startColor, endColor],
+        ),
+      ),
+      child: Center(
+        child: Icon(
+          isSystem ? Icons.library_music_rounded : Icons.folder_rounded,
+          size: 48,
+          color: Colors.white.withValues(alpha: 0.85),
+        ),
+      ),
+    );
+
     Widget coverWidget;
     if (representativeSong != null) {
       coverWidget = SongThumbnail.fromSong(
@@ -57,30 +80,10 @@ class FolderGridCard extends StatelessWidget {
         width: double.infinity,
         height: double.infinity,
         borderRadius: BorderRadius.zero,
+        fallbackWidget: defaultCoverWidget,
       );
     } else {
-      final isSystem = folder.path == 'system';
-      coverWidget = Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: isSystem
-                ? [
-                    Colors.purple.shade700,
-                    Colors.deepPurple.shade900,
-                  ]
-                : [startColor, endColor],
-          ),
-        ),
-        child: Center(
-          child: Icon(
-            isSystem ? Icons.library_music_rounded : Icons.folder_rounded,
-            size: 48,
-            color: Colors.white.withValues(alpha: 0.85),
-          ),
-        ),
-      );
+      coverWidget = defaultCoverWidget;
     }
 
     final cardCover = ClipRRect(

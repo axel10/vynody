@@ -25,6 +25,7 @@ class SongThumbnail extends ConsumerStatefulWidget {
   final double? height;
 
   final BorderRadius? borderRadius;
+  final Widget? fallbackWidget;
 
   const SongThumbnail({
     super.key,
@@ -37,6 +38,7 @@ class SongThumbnail extends ConsumerStatefulWidget {
     this.width,
     this.height,
     this.borderRadius,
+    this.fallbackWidget,
   });
 
   /// Factory constructor for a [MusicFile].
@@ -47,6 +49,7 @@ class SongThumbnail extends ConsumerStatefulWidget {
     this.width,
     this.height,
     this.borderRadius,
+    this.fallbackWidget,
   })  : path = song.path,
         id = song.id,
         thumbnailPath = song.thumbnailPath,
@@ -61,6 +64,7 @@ class SongThumbnail extends ConsumerStatefulWidget {
     this.width,
     this.height,
     this.borderRadius,
+    this.fallbackWidget,
   })  : path = album.representativeSong.path,
         id = album.representativeSong.id,
         thumbnailPath = album.representativeSong.thumbnailPath,
@@ -75,6 +79,7 @@ class SongThumbnail extends ConsumerStatefulWidget {
     this.width,
     this.height,
     this.borderRadius,
+    this.fallbackWidget,
   })  : path = metadata.path,
         id = metadata.id,
         thumbnailPath = metadata.thumbnailPath,
@@ -474,6 +479,16 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
   }
 
   Widget _fallbackIcon(double width, double height, BorderRadius radius) {
+    if (widget.fallbackWidget != null) {
+      return SizedBox(
+        width: width,
+        height: height,
+        child: ClipRRect(
+          borderRadius: radius,
+          child: widget.fallbackWidget!,
+        ),
+      );
+    }
     return Container(
       width: width,
       height: height,

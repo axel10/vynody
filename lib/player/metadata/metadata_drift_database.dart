@@ -669,17 +669,20 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       final subPrefixPattern = relativePath.endsWith(separator) ? '$relativePath%$separator%' : '$relativePath$separator%$separator%';
 
       final depthOrder = 'CASE WHEN (path = ? OR path = ? OR (path LIKE ? AND path NOT LIKE ?)) THEN 0 ELSE 1 END, $orderByClause';
-      final vars = [
-        Variable(relativePath),
-        Variable(normalized),
-        Variable(prefixPattern),
-        Variable(subPrefixPattern),
+      final whereVars = [
         Variable(SongSourceFlags.systemMedia),
         Variable(relativePath),
         Variable(prefixPattern),
         Variable(normalized),
         Variable('$normalized%'),
       ];
+      final orderVars = [
+        Variable(relativePath),
+        Variable(normalized),
+        Variable(prefixPattern),
+        Variable(subPrefixPattern),
+      ];
+      final vars = [...whereVars, ...orderVars];
 
       var row = await customSelect(
         '''
@@ -718,13 +721,16 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
     final subPrefixPattern = normalized.endsWith(separator) ? '$normalized%$separator%' : '$normalized$separator%$separator%';
 
     final depthOrder = 'CASE WHEN (path = ? OR (path LIKE ? AND path NOT LIKE ?)) THEN 0 ELSE 1 END, $orderByClause';
-    final vars = [
-      Variable(normalized),
-      Variable(prefixPattern),
-      Variable(subPrefixPattern),
+    final whereVars = [
       Variable(normalized),
       Variable(prefixPattern),
     ];
+    final orderVars = [
+      Variable(normalized),
+      Variable(prefixPattern),
+      Variable(subPrefixPattern),
+    ];
+    final vars = [...whereVars, ...orderVars];
 
     // 1. Try with artwork / thumbnail / mediaId
     var row = await customSelect(

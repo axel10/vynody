@@ -439,34 +439,40 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
             totalDuration: Duration(milliseconds: totalDurationMs),
             coverImagePath: representativeSong?.thumbnailPath ?? (representativeSong != null ? scanner.metadataMap[representativeSong.path]?.thumbnailPath : null),
             topHeader: isPortrait ? SizedBox(height: headerHeight) : null,
-            coverWidget: representativeSong != null
-                ? SongThumbnail(
-                    path: representativeSong.path,
-                    id: representativeSong.id,
-                    thumbnailPath: representativeSong.thumbnailPath,
-                    bytes: representativeSong.artworkBytes,
-                    size: 100,
-                    width: 100,
-                    height: 100,
-                    borderRadius: BorderRadius.zero,
-                  )
-                : Container(
-                    width: 100,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          HSLColor.fromAHSL(1.0, (folder.path.hashCode.abs() % 360).toDouble(), 0.65, 0.45).toColor(),
-                          HSLColor.fromAHSL(1.0, ((folder.path.hashCode.abs() % 360 + 40) % 360).toDouble(), 0.75, 0.35).toColor(),
-                        ],
-                      ),
-                    ),
-                    child: const Center(
-                      child: Icon(Icons.folder_rounded, size: 40, color: Colors.white70),
-                    ),
+            coverWidget: () {
+              final defaultCover = Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      HSLColor.fromAHSL(1.0, (folder.path.hashCode.abs() % 360).toDouble(), 0.65, 0.45).toColor(),
+                      HSLColor.fromAHSL(1.0, ((folder.path.hashCode.abs() % 360 + 40) % 360).toDouble(), 0.75, 0.35).toColor(),
+                    ],
                   ),
+                ),
+                child: const Center(
+                  child: Icon(Icons.folder_rounded, size: 40, color: Colors.white70),
+                ),
+              );
+              if (representativeSong != null) {
+                return SongThumbnail(
+                  path: representativeSong.path,
+                  id: representativeSong.id,
+                  thumbnailPath: representativeSong.thumbnailPath,
+                  artworkPath: representativeSong.artworkPath,
+                  bytes: representativeSong.artworkBytes,
+                  size: 100,
+                  width: 100,
+                  height: 100,
+                  borderRadius: BorderRadius.zero,
+                  fallbackWidget: defaultCover,
+                );
+              }
+              return defaultCover;
+            }(),
             actionButtons: [
               FolderPlayActionButtons(
                 totalSongsCount: folder.allSongs.length,

@@ -132,6 +132,7 @@ class ScannerFolderSorter {
         order: settings.order,
       );
       folder.files.sort(comparator);
+      folder.representativeSongCache = null;
     }
   }
 
@@ -169,6 +170,7 @@ class ScannerFolderSorter {
     }
 
     folder.files.sort(comparator);
+    folder.representativeSongCache = null;
 
     for (final subFolder in folder.subFolders) {
       sortFolderRecursive(subFolder, criteria: criteria, order: order);
@@ -188,6 +190,7 @@ class ScannerFolderSorter {
       order: settings.order,
     );
     folder.files.sort(comparator);
+    folder.representativeSongCache = null;
 
     for (final subFolder in folder.subFolders) {
       sortFolderRecursiveForTree(subFolder, resolveSettings: resolveSettings);

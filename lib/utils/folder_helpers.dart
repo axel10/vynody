@@ -6,42 +6,48 @@ import 'layout_constants.dart';
 
 const double folderPageMaxWidth = kFolderPageMaxWidth;
 
+bool hasSongArtwork(MusicFile? file) =>
+    file != null &&
+    ((file.artworkPath != null && file.artworkPath!.isNotEmpty) ||
+        (file.thumbnailPath != null && file.thumbnailPath!.isNotEmpty) ||
+        (file.artworkBytes != null && file.artworkBytes!.isNotEmpty));
+
 MusicFile? findRepresentativeSong(MusicFolder folder) {
-  if (folder.representativeSongCache != null) return folder.representativeSongCache;
+  if (folder.representativeSongCache != null &&
+      hasSongArtwork(folder.representativeSongCache)) {
+    return folder.representativeSongCache;
+  }
   if (folder.isEmpty) return null;
 
-  final fileWithArtwork = folder.files.firstWhereOrNull(
-    (s) =>
-        (s.artworkPath != null && s.artworkPath!.isNotEmpty) ||
-        (s.thumbnailPath != null && s.thumbnailPath!.isNotEmpty) ||
-        (s.artworkBytes != null && s.artworkBytes!.isNotEmpty),
-  );
+  final fileWithArtwork = folder.files.firstWhereOrNull(hasSongArtwork);
   if (fileWithArtwork != null) {
     folder.representativeSongCache = fileWithArtwork;
     return fileWithArtwork;
   }
 
-  final allSongWithArtwork = folder.allSongs.firstWhereOrNull(
-    (s) =>
-        (s.artworkPath != null && s.artworkPath!.isNotEmpty) ||
-        (s.thumbnailPath != null && s.thumbnailPath!.isNotEmpty) ||
-        (s.artworkBytes != null && s.artworkBytes!.isNotEmpty),
-  );
-  if (allSongWithArtwork != null) {
-    folder.representativeSongCache = allSongWithArtwork;
-    return allSongWithArtwork;
+  for (final sub in folder.subFolders) {
+    final subRep = findRepresentativeSong(sub);
+    if (subRep != null && hasSongArtwork(subRep)) {
+      folder.representativeSongCache = subRep;
+      return subRep;
+    }
   }
 
+  // 3. Fallback when thumbnails have not been generated yet (e.g. freshly scanned):
+  // Pick the first candidate song (direct files first, then subfolders) in current sort order
+  // so SongThumbnail can trigger lazy thumbnail extraction without requiring user to drill down.
+  // Note: we intentionally do not cache unparsed fallback songs in representativeSongCache.
   if (folder.files.isNotEmpty) {
-    final rep = folder.files.first;
-    folder.representativeSongCache = rep;
-    return rep;
+    return folder.files.first;
   }
-  if (folder.allSongs.isNotEmpty) {
-    final rep = folder.allSongs.first;
-    folder.representativeSongCache = rep;
-    return rep;
+
+  for (final sub in folder.subFolders) {
+    final subRep = findRepresentativeSong(sub);
+    if (subRep != null) {
+      return subRep;
+    }
   }
+
   return null;
 }
 
