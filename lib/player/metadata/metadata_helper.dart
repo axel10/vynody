@@ -1181,9 +1181,17 @@ class MetadataHelper {
     return null;
   }
 
+  static Never _throwTagLibNotSupported() {
+    final probeError = taglib.TagLibFile.lastSupportProbeError;
+    if (probeError != null) {
+      throw UnsupportedError('TagLib is not supported: $probeError');
+    }
+    throw UnsupportedError('TagLib is not supported.');
+  }
+
   static TagLibMetadata readMetadataIsolate(String path) {
     if (!taglib.TagLibFile.isSupported) {
-      throw UnsupportedError('TagLib is not supported.');
+      _throwTagLibNotSupported();
     }
     final tagFile = taglib.TagLibFile.open(path);
     if (tagFile == null) {
@@ -1215,7 +1223,7 @@ class MetadataHelper {
 
   static TagLibMetadata readMetadataWithImageIsolate(String path) {
     if (!taglib.TagLibFile.isSupported) {
-      throw UnsupportedError('TagLib is not supported.');
+      _throwTagLibNotSupported();
     }
     final tagFile = taglib.TagLibFile.open(path);
     if (tagFile == null) {
@@ -1257,7 +1265,7 @@ class MetadataHelper {
     }
 
     if (!taglib.TagLibFile.isSupported) {
-      throw UnsupportedError('TagLib is not supported.');
+      _throwTagLibNotSupported();
     }
     final tagFile = await taglib.TagLibFile.openAsync(path);
     if (tagFile == null) {
@@ -1298,7 +1306,7 @@ class MetadataHelper {
     }
 
     if (!taglib.TagLibFile.isSupported) {
-      throw UnsupportedError('TagLib is not supported.');
+      _throwTagLibNotSupported();
     }
     final tagFile = await taglib.TagLibFile.openAsync(path);
     if (tagFile == null) {
@@ -1417,7 +1425,7 @@ class MetadataHelper {
       final file = File(path);
       try {
         if (!taglib.TagLibFile.isSupported) {
-          throw UnsupportedError('TagLib is not supported.');
+          _throwTagLibNotSupported();
         }
         final tagFile = await taglib.TagLibFile.openAsync(path);
         if (tagFile == null) {
