@@ -59,7 +59,12 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
         !widget.isHidden;
 
     final bottomPadding = MediaQuery.of(context).padding.bottom;
-    final totalBottomOffset = bottomPadding + 8.0 + widget.additionalBottomOffset;
+    final isIOS = Theme.of(context).platform == TargetPlatform.iOS;
+// iPhone 上 34 - 14 = 20pt；Android 上有小白条就取小白条高度(16~20)，无小白条保底 12dp
+final safeBottom = isIOS
+    ? (bottomPadding - 14.0)
+    : (bottomPadding > 0 ? bottomPadding : 12.0);
+    final totalBottomOffset = safeBottom + widget.additionalBottomOffset;
     final totalRightOffset = 16.0 + widget.rightDrawerWidth;
 
     return AnimatedPositioned(
