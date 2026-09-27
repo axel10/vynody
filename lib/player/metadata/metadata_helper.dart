@@ -23,6 +23,7 @@ Future<Map<String, dynamic>?> _buildArtworkFiles({
   int thumbnailSize = vynodyArtworkThumbnailSize,
 }) async {
   try {
+    await AudioCoreController.ensureRustLibInitialized();
     final result = await generateTrackArtwork(
       path: songPath,
       artworkBytes: data,
