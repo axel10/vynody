@@ -136,29 +136,27 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
       return;
     }
 
-    if (Platform.isAndroid || Platform.isIOS) {
-      final scanner = ref.read(scannerServiceProvider);
-      final existingPath = scanner.metadataMap[widget.path]?.thumbnailPath;
-      if (existingPath != null && existingPath.isNotEmpty) {
-        _artworkFilePath = existingPath;
+    final scanner = ref.read(scannerServiceProvider);
+    final existingPath = scanner.metadataMap[widget.path]?.thumbnailPath;
+    if (existingPath != null && existingPath.isNotEmpty && File(existingPath).existsSync()) {
+      _artworkFilePath = existingPath;
+      _artworkQueried = true;
+      return;
+    }
+    if (Platform.isAndroid && widget.id != null) {
+      final cacheKey = '${widget.id}_$_bucketedSize';
+      if (_artworkCache.containsKey(cacheKey)) {
+        final cachedPath = _artworkCache[cacheKey];
+        _artworkFilePath = cachedPath;
         _artworkQueried = true;
-        return;
-      }
-      if (widget.id != null) {
-        final cacheKey = '${widget.id}_$_bucketedSize';
-        if (_artworkCache.containsKey(cacheKey)) {
-          final cachedPath = _artworkCache[cacheKey];
-          _artworkFilePath = cachedPath;
-          _artworkQueried = true;
-          if (cachedPath != null && cachedPath.isNotEmpty) {
-            scanner.updateSongThumbnailPath(widget.path, cachedPath);
-          }
-        } else {
-          _queryArtwork(widget.id!);
+        if (cachedPath != null && cachedPath.isNotEmpty) {
+          scanner.updateSongThumbnailPath(widget.path, cachedPath);
         }
       } else {
-        _triggerLoad();
+        _queryArtwork(widget.id!);
       }
+    } else {
+      _triggerLoad();
     }
   }
 
@@ -468,11 +466,8 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
       }
       // Still fetching or no artwork — show fallback without flickering.
       return _fallbackIcon(layoutWidth, layoutHeight, radius);
-    } else if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
-      // Metadata not yet in map, or the cached entry still lacks a thumbnail.
-      if (metadata == null || metadata.thumbnailPath == null) {
-        _triggerLoad();
-      }
+    } else if (metadata == null || metadata.thumbnailPath == null) {
+      _triggerLoad();
     }
 
     return _fallbackIcon(layoutWidth, layoutHeight, radius);

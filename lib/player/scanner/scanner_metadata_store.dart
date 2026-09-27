@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -171,50 +172,76 @@ class ScannerMetadataStore {
     _logTiming('loadMetadataForPath($path)', stopwatch);
   }
 
+  final Set<String> _thumbnailsInFlight = {};
+  int _activeThumbnailLoads = 0;
+  static const int _maxConcurrentThumbnailLoads = 2;
+  final List<void Function()> _thumbnailQueue = [];
+
   Future<void> loadThumbnailForPath(String path) async {
     final cached = _metadataMap[path];
     if (cached != null && (cached.thumbnailPath?.isNotEmpty ?? false)) {
       return;
     }
-
-    final stopwatch = Stopwatch()..start();
-    if (!await PlaybackSessionManager.songExists(path)) {
-      await purgeMissingSongPath(path);
-      stopwatch.stop();
-      _logTiming('loadThumbnailForPath missing($path)', stopwatch);
+    if (!_thumbnailsInFlight.add(path)) {
       return;
     }
 
-    final db = MetadataDatabase();
-    SongMetadata? metadata = await db.getSongMetadata(path);
-    if (metadata == null || (metadata.thumbnailPath?.isEmpty ?? true)) {
-      final result = await MetadataHelper.processMetadata(
-        path,
-        generateThumbnail: true,
-      );
-      metadata = result?.$1 ?? metadata;
+    if (_activeThumbnailLoads >= _maxConcurrentThumbnailLoads) {
+      final completer = Completer<void>();
+      _thumbnailQueue.add(() {
+        completer.complete();
+      });
+      await completer.future;
     }
+    _activeThumbnailLoads++;
 
-    if (metadata != null) {
-      final mergedMetadata = metadata.copyWith(
-        sourceFlags: _mergeSourceFlags(
-          _metadataMap[path]?.sourceFlags,
-          metadata.sourceFlags,
-        ),
-      );
-      final albumChanged = _albumRelevantMetadataChanged(
-        _metadataMap[path],
-        mergedMetadata,
-      );
-      _metadataMap[path] = mergedMetadata;
-      _onMetadataMutated();
-      if (albumChanged) {
-        _onAlbumMetadataMutated();
+    try {
+      final stopwatch = Stopwatch()..start();
+      if (!await PlaybackSessionManager.songExists(path)) {
+        await purgeMissingSongPath(path);
+        stopwatch.stop();
+        _logTiming('loadThumbnailForPath missing($path)', stopwatch);
+        return;
       }
-      _notifyListeners();
+
+      final db = MetadataDatabase();
+      SongMetadata? metadata = await db.getSongMetadata(path);
+      if (metadata == null || (metadata.thumbnailPath?.isEmpty ?? true)) {
+        final result = await MetadataHelper.processMetadata(
+          path,
+          generateThumbnail: true,
+        );
+        metadata = result?.$1 ?? metadata;
+      }
+
+      if (metadata != null) {
+        final mergedMetadata = metadata.copyWith(
+          sourceFlags: _mergeSourceFlags(
+            _metadataMap[path]?.sourceFlags,
+            metadata.sourceFlags,
+          ),
+        );
+        final albumChanged = _albumRelevantMetadataChanged(
+          _metadataMap[path],
+          mergedMetadata,
+        );
+        _metadataMap[path] = mergedMetadata;
+        _onMetadataMutated();
+        if (albumChanged) {
+          _onAlbumMetadataMutated();
+        }
+        _scheduleMetadataNotify();
+      }
+      stopwatch.stop();
+      _logTiming('loadThumbnailForPath($path)', stopwatch);
+    } finally {
+      _activeThumbnailLoads--;
+      _thumbnailsInFlight.remove(path);
+      if (_thumbnailQueue.isNotEmpty) {
+        final next = _thumbnailQueue.removeAt(0);
+        next();
+      }
     }
-    stopwatch.stop();
-    _logTiming('loadThumbnailForPath($path)', stopwatch);
   }
 
   void updateMetadataForPath(

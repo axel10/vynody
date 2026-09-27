@@ -9,7 +9,6 @@ import 'package:on_audio_query/on_audio_query.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:media_scanner/media_scanner.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:collection/collection.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -641,19 +640,6 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     return !_shouldSkipShortAudioDuration(song.duration);
   }
 
-  Future<bool> _shouldRunArtworkScanForFile(
-    String filePath, {
-    required bool hasArtwork,
-    required bool hasMetadataError,
-  }) async {
-    if (hasArtwork) {
-      return true;
-    }
-    if (!hasMetadataError) {
-      return false;
-    }
-    return MetadataHelper.hasEmbeddedArtwork(filePath);
-  }
 
   @override
   void notifyListeners() {
@@ -2279,25 +2265,11 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       return null;
     }
 
-    final preprocessResult = await _preprocessChangedFiles(
+    await _preprocessChangedFiles(
       classification.pathsFor(ScanFileStage.full),
       scanState,
       existingMetadataByPath: existingMetadataByPath,
     );
-    final artworkPendingImageOnlyPaths =
-        await _filterImageOnlyPathsNeedingArtwork(
-          classification.pathsFor(ScanFileStage.imageOnly),
-          scanState,
-          existingMetadataByPath: existingMetadataByPath,
-        );
-
-    final artworkPendingPaths = [
-      ...preprocessResult.artworkPendingPaths,
-      ...artworkPendingImageOnlyPaths,
-    ];
-    if (artworkPendingPaths.isNotEmpty) {
-      await _applyArtworkAndThemeToChangedFiles(artworkPendingPaths, scanState);
-    }
 
     if (classification.pathsFor(ScanFileStage.unchanged).isNotEmpty &&
         !_metadataStore.containsPath(normalizedPath)) {
@@ -2635,34 +2607,12 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
             skippedPaths.add(filePath);
             continue;
           }
-          final hasArtwork = result['hasArtwork'] as bool? ?? false;
-          final hasMetadataError = (result['error'] as String?) != null;
-          final shouldRunArtworkScan = await _shouldRunArtworkScanForFile(
-            filePath,
-            hasArtwork: hasArtwork,
-            hasMetadataError: hasMetadataError,
-          );
-          if (!shouldRunArtworkScan) {
-            final processedAt =
-                metadata.lastModifiedTime ??
-                DateTime.now().millisecondsSinceEpoch;
-            metadata = metadata.copyWith(
-              artworkPath: null,
-              thumbnailPath: null,
-              artworkWidth: null,
-              artworkHeight: null,
-              themeColorsBlob: null,
-              metadataImgScanned: processedAt,
-            );
-            scanState.completedCount++;
-          } else {
-            artworkPendingPaths.add(filePath);
-          }
           metadataBatch.add(metadata);
           keptPaths.add(filePath);
           _metadataStore.cacheMetadata(metadata);
           _pendingStage3IncrementalMetadata.add(metadata);
           scanState.preprocessedCount++;
+          scanState.completedCount++;
         } catch (e) {
           debugPrint('Metadata batch scan error for $filePath: $e');
         } finally {
@@ -2697,96 +2647,6 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     );
   }
 
-  Future<List<String>> _filterImageOnlyPathsNeedingArtwork(
-    List<String> imageOnlyPaths,
-    ScanProgressState scanState, {
-    required Map<String, SongMetadata> existingMetadataByPath,
-    bool Function()? shouldCancel,
-  }) async {
-    if (imageOnlyPaths.isEmpty) return const <String>[];
-
-    final db = MetadataDatabase();
-    final sortedPaths = imageOnlyPaths.toList()..sort(_compareNaturally);
-    final artworkPendingPaths = <String>[];
-    const batchSize = 200;
-
-    for (var start = 0; start < sortedPaths.length; start += batchSize) {
-      if (shouldCancel?.call() ?? false) {
-        return artworkPendingPaths;
-      }
-      final end = start + batchSize < sortedPaths.length
-          ? start + batchSize
-          : sortedPaths.length;
-      final chunk = sortedPaths.sublist(start, end);
-      final results = await MetadataHelper.readMetadataBatch(
-        chunk,
-        getImage: false,
-      );
-      if (shouldCancel?.call() ?? false) {
-        return artworkPendingPaths;
-      }
-
-      final metadataBatch = <SongMetadata>[];
-      for (final result in results) {
-        if (shouldCancel?.call() ?? false) {
-          return artworkPendingPaths;
-        }
-        final filePath = result['path'] as String? ?? '';
-        if (filePath.isEmpty) continue;
-
-        try {
-          final existing =
-              existingMetadataByPath[_pathLookupKey(filePath)] ??
-              _metadataStore.getMetadata(filePath) ??
-              await db.getSongMetadata(filePath);
-          if (existing == null) {
-            artworkPendingPaths.add(filePath);
-            continue;
-          }
-
-          final hasArtwork = result['hasArtwork'] as bool? ?? false;
-          final hasMetadataError = (result['error'] as String?) != null;
-          final shouldRunArtworkScan = await _shouldRunArtworkScanForFile(
-            filePath,
-            hasArtwork: hasArtwork,
-            hasMetadataError: hasMetadataError,
-          );
-          if (shouldRunArtworkScan) {
-            artworkPendingPaths.add(filePath);
-            continue;
-          }
-
-          final processedAt =
-              existing.lastModifiedTime ??
-              DateTime.now().millisecondsSinceEpoch;
-          final updatedMetadata = existing.copyWith(
-            artworkPath: null,
-            thumbnailPath: null,
-            artworkWidth: null,
-            artworkHeight: null,
-            themeColorsBlob: null,
-            metadataImgScanned: processedAt,
-          );
-          metadataBatch.add(updatedMetadata);
-          _metadataStore.cacheMetadata(updatedMetadata);
-          existingMetadataByPath[_pathLookupKey(filePath)] = updatedMetadata;
-          scanState.completedCount++;
-        } catch (e) {
-          debugPrint('Image-only artwork probe error for $filePath: $e');
-          artworkPendingPaths.add(filePath);
-        } finally {
-          _emitScanProgress(scanState, filePath);
-        }
-      }
-
-      if (metadataBatch.isNotEmpty) {
-        await db.insertOrUpdateSongsMerged(metadataBatch);
-      }
-      await Future.delayed(const Duration(milliseconds: 1));
-    }
-
-    return artworkPendingPaths;
-  }
 
   void _removeRootsFromScannedTree(Iterable<String> roots) {
     final normalizedRoots = _normalizeDeclaredRootPaths(roots);
@@ -3011,17 +2871,17 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
         .toSet();
   }
 
-  Future<_RootArtworkScanJob?> _processDiscoveredPaths(
+  Future<void> _processDiscoveredPaths(
     List<ScanDiscoveredFile> discoveredFiles,
     ScanProgressState scanState,
     int scanToken, {
     required String rootPath,
   }) async {
     if (discoveredFiles.isEmpty) {
-      return null;
+      return;
     }
     if (!_isScanTokenCurrent(scanToken) || !_isScanRootStillActive(rootPath)) {
-      return null;
+      return;
     }
 
     final classification = await _timeScanStep(
@@ -3034,7 +2894,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       ),
     );
     if (!_isScanTokenCurrent(scanToken) || !_isScanRootStillActive(rootPath)) {
-      return null;
+      return;
     }
     final existingMetadataByPath = Map<String, SongMetadata>.from(
       classification.existingMetadataByPath,
@@ -3075,6 +2935,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     if (skippedKnownPaths.isNotEmpty) {
       _metadataStore.deleteMissingFromCache(skippedKnownPaths);
     }
+    scanState.completedCount += unchangedPaths.length + imageOnlyPaths.length;
 
     Timer? stage3UiSyncTimer;
     try {
@@ -3100,24 +2961,9 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       );
       if (!_isScanTokenCurrent(scanToken) ||
           !_isScanRootStillActive(rootPath)) {
-        return null;
+        return;
       }
       final keptFullPaths = preprocessResult.keptPaths;
-      final artworkPendingImageOnlyPaths = await _timeScanStep(
-        'stage 3.1 preprocess image-only artwork batch',
-        () => _filterImageOnlyPathsNeedingArtwork(
-          imageOnlyPaths,
-          scanState,
-          existingMetadataByPath: existingMetadataByPath,
-          shouldCancel: () =>
-              !_isScanTokenCurrent(scanToken) ||
-              !_isScanRootStillActive(rootPath),
-        ),
-      );
-      if (!_isScanTokenCurrent(scanToken) ||
-          !_isScanRootStillActive(rootPath)) {
-        return null;
-      }
 
       final visiblePaths = <String>[
         ...unchangedPaths,
@@ -3135,7 +2981,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       });
       if (!_isScanTokenCurrent(scanToken) ||
           !_isScanRootStillActive(rootPath)) {
-        return null;
+        return;
       }
 
       await Future<void>.delayed(Duration.zero);
@@ -3146,199 +2992,12 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       });
       scanState.pendingMetadataPaths.addAll(visiblePaths);
       notifyListeners();
-
-      return _RootArtworkScanJob(
-        rootPath: rootPath,
-        visiblePaths: visiblePaths,
-        artworkPendingPaths: [
-          ...preprocessResult.artworkPendingPaths,
-          ...artworkPendingImageOnlyPaths,
-        ],
-      );
     } finally {
       stage3UiSyncTimer?.cancel();
       _pendingStage3IncrementalMetadata.clear();
     }
   }
 
-  Future<void> _applyArtworkAndThemeToChangedFiles(
-    List<String> imageOnlyPaths,
-    ScanProgressState scanState, {
-    bool Function()? shouldCancel,
-  }) async {
-    if (imageOnlyPaths.isEmpty) return;
-
-    final sortedPaths = imageOnlyPaths.toList()..sort(_compareNaturally);
-    final totalStopwatch = Stopwatch()..start();
-    final supportDir = await getApplicationSupportDirectory();
-    final controller = _playerController ?? AudioCoreController();
-    if (!controller.isInitialized) {
-      await controller.initialize();
-    }
-
-    final db = MetadataDatabase();
-    final artworkThemeService = TrackArtworkThemeService(db: db);
-    final metadataBatch = <SongMetadata>[];
-    final progressStopwatch = Stopwatch()..start();
-    String? lastProcessedPath;
-
-    Future<void> flushMetadataBatch() async {
-      if (metadataBatch.isEmpty) return;
-      final batchToFlush = List<SongMetadata>.from(metadataBatch);
-      metadataBatch.clear();
-      await db.insertOrUpdateSongsMerged(batchToFlush);
-    }
-
-    void tryEmitThrottledProgress(String filePath, {bool force = false}) {
-      lastProcessedPath = filePath;
-      if (force || progressStopwatch.elapsedMilliseconds >= 1000) {
-        progressStopwatch.reset();
-        _emitScanProgress(scanState, filePath);
-      }
-    }
-
-    final concurrency = (Platform.numberOfProcessors * 0.75).round().clamp(
-      4,
-      16,
-    );
-
-    try {
-      var nextIndex = 0;
-      Future<void> worker() async {
-        while (nextIndex < sortedPaths.length) {
-          if (shouldCancel?.call() ?? false) return;
-          final currentIndex = nextIndex++;
-          final filePath = sortedPaths[currentIndex];
-
-          final metadata = await _processArtworkAndThemeWithAudioCore(
-            filePath: filePath,
-            controller: controller,
-            supportDirPath: supportDir.path,
-            scanState: scanState,
-            db: db,
-            artworkThemeService: artworkThemeService,
-            shouldCancel: shouldCancel,
-          );
-
-          if (metadata != null) {
-            metadataBatch.add(metadata);
-            tryEmitThrottledProgress(metadata.path);
-            if (metadataBatch.length >= 100) {
-              await flushMetadataBatch();
-            }
-          }
-        }
-      }
-
-      await Future.wait(List.generate(concurrency, (_) => worker()));
-
-      await flushMetadataBatch();
-      if (lastProcessedPath != null) {
-        tryEmitThrottledProgress(lastProcessedPath!, force: true);
-      }
-    } catch (e) {
-      debugPrint(
-        'AudioCore artwork scan failed, falling back to serial mode: $e',
-      );
-      final fallbackStopwatch = Stopwatch()..start();
-      for (final filePath in sortedPaths) {
-        if (shouldCancel?.call() ?? false) {
-          await flushMetadataBatch();
-          return;
-        }
-        final metadata = await _processArtworkAndThemeWithAudioCore(
-          filePath: filePath,
-          controller: controller,
-          supportDirPath: supportDir.path,
-          scanState: scanState,
-          db: db,
-          artworkThemeService: artworkThemeService,
-          shouldCancel: shouldCancel,
-        );
-        if (metadata != null) {
-          metadataBatch.add(metadata);
-          tryEmitThrottledProgress(metadata.path);
-        }
-        if (metadataBatch.length >= 100) {
-          await flushMetadataBatch();
-        }
-      }
-      await flushMetadataBatch();
-      if (lastProcessedPath != null) {
-        tryEmitThrottledProgress(lastProcessedPath!, force: true);
-      }
-      fallbackStopwatch.stop();
-      _logScanTiming('stage 4 fallback serial total', fallbackStopwatch);
-    }
-
-    totalStopwatch.stop();
-    _logScanTiming('stage 4 preprocess artwork/theme total', totalStopwatch);
-  }
-
-  Future<SongMetadata?> _processArtworkAndThemeWithAudioCore({
-    required String filePath,
-    required AudioCoreController controller,
-    required String supportDirPath,
-    required ScanProgressState scanState,
-    required MetadataDatabase db,
-    required TrackArtworkThemeService artworkThemeService,
-    bool Function()? shouldCancel,
-  }) async {
-    final totalStopwatch = Stopwatch()..start();
-
-    try {
-      if (shouldCancel?.call() ?? false) {
-        return null;
-      }
-      final baseMetadata =
-          _metadataStore.getMetadata(filePath) ??
-          await db.getSongMetadata(filePath);
-      if (baseMetadata == null) {
-        return null;
-      }
-
-      final nativeStopwatch = Stopwatch()..start();
-      final processedAt =
-          baseMetadata.lastModifiedTime ??
-          DateTime.now().millisecondsSinceEpoch;
-
-      final artwork = await artworkThemeService.getTrackArtworkTheme(
-        filePath,
-        controller: controller,
-        cacheRootPath: supportDirPath,
-        saveLargeArtwork: false,
-        thumbnailSize: vynodyArtworkThumbnailSize,
-        saveToDatabase: false,
-        existingMetadata: baseMetadata,
-      );
-      nativeStopwatch.stop();
-      _logScanTiming('stage 4 native artwork $filePath', nativeStopwatch);
-
-      if (shouldCancel?.call() ?? false) {
-        return null;
-      }
-
-      var updatedMetadata = baseMetadata.copyWith(
-        artworkPath: artwork?.artworkPath ?? baseMetadata.artworkPath,
-        thumbnailPath: artwork?.thumbnailPath ?? baseMetadata.thumbnailPath,
-        artworkWidth: artwork?.artworkWidth ?? baseMetadata.artworkWidth,
-        artworkHeight: artwork?.artworkHeight ?? baseMetadata.artworkHeight,
-        themeColorsBlob:
-            artwork?.themeColorsBlob ?? baseMetadata.themeColorsBlob,
-        metadataImgScanned: processedAt,
-      );
-
-      _metadataStore.cacheMetadata(updatedMetadata);
-      scanState.completedCount++;
-      return updatedMetadata;
-    } catch (e) {
-      debugPrint('AudioCore artwork/theme scan error for $filePath: $e');
-      return null;
-    } finally {
-      totalStopwatch.stop();
-      _logScanTiming('stage 4 item $filePath total', totalStopwatch);
-    }
-  }
 
   SongMetadata _buildScannedMetadataFromBatchResult(
     String filePath,
@@ -3436,7 +3095,6 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     required Iterable<String> Function() rootsProvider,
     required bool clearScannedRoots,
   }) async {
-    final artworkJobs = <_RootArtworkScanJob>[];
     notifyListeners();
 
     final totalStopwatch = Stopwatch()..start();
@@ -3516,15 +3174,12 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
           continue;
         }
 
-        final artworkJob = await _processDiscoveredPaths(
+        await _processDiscoveredPaths(
           discoveredPaths,
           scanState,
           scanToken,
           rootPath: path,
         );
-        if (artworkJob != null) {
-          artworkJobs.add(artworkJob);
-        }
 
         if (!_isScanTokenCurrent(scanToken) || !_isScanRootStillActive(path)) {
           debugPrint(
@@ -3534,45 +3189,6 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
             (existing) => _pathsEqual(existing.path, path),
           );
           continue;
-        }
-      }
-
-      if (_isScanTokenCurrent(scanToken)) {
-        _scanCoordinator.beginArtworkPhase(scanToken);
-        for (final job in artworkJobs) {
-          if (!_isScanTokenCurrent(scanToken) ||
-              !_isScanRootStillActive(job.rootPath)) {
-            continue;
-          }
-
-          if (job.artworkPendingPaths.isEmpty) {
-            continue;
-          }
-
-          _scanCoordinator.setActiveRootPath(job.rootPath);
-          await _timeScanStep(
-            'stage 4 preprocess artwork/theme batch for ${job.rootPath}',
-            () => _applyArtworkAndThemeToChangedFiles(
-              job.artworkPendingPaths,
-              scanState,
-              shouldCancel: () =>
-                  !_isScanTokenCurrent(scanToken) ||
-                  !_isScanRootStillActive(job.rootPath),
-            ),
-          );
-
-          if (!_isScanTokenCurrent(scanToken) ||
-              !_isScanRootStillActive(job.rootPath)) {
-            continue;
-          }
-
-          await _timeScanStep(
-            'stage 4.2 rebuild root tree from metadata for ${job.rootPath}',
-            () => _rebuildScannedRootFolderFromMetadata(
-              job.rootPath,
-              job.visiblePaths,
-            ),
-          );
         }
       }
 
@@ -3802,8 +3418,8 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
               (resolvedFlags & ~SongSourceFlags.external) |
               SongSourceFlags.rootScan;
         }
-      } else if (resolvedFlags == null) {
-        resolvedFlags = SongSourceFlags.external;
+      } else {
+        resolvedFlags ??= SongSourceFlags.external;
       }
 
       final lastModified =
@@ -4313,14 +3929,3 @@ class RootPathAddResult {
   bool get accessDenied => status == RootPathAddStatus.persistentAccessDenied;
 }
 
-class _RootArtworkScanJob {
-  const _RootArtworkScanJob({
-    required this.rootPath,
-    required this.visiblePaths,
-    required this.artworkPendingPaths,
-  });
-
-  final String rootPath;
-  final List<String> visiblePaths;
-  final List<String> artworkPendingPaths;
-}
