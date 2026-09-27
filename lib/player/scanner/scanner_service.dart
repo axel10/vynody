@@ -100,7 +100,8 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
   final Map<String, String> _linuxDocumentIds = {};
   final Map<String, int> _rootSongCounts = {};
   final Map<String, int> _rootSongDurations = {};
-  final Map<String, SongMetadata?> _rootRepresentativeSongs = {};
+  final Map<String, SongMetadata?> _folderRepresentativeSongs = {};
+  final Map<String, String> _folderRepresentativeSongPaths = {};
   final Set<String> _loadedRootPaths = {};
   Set<String>? _cachedActiveScanRootLookupKeys;
 
@@ -218,64 +219,118 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     return _rootSongDurations[normalized] ?? 0;
   }
 
-  final Set<String> _pendingRepresentativeSongFetches = {};
-
   MusicFile? getRepresentativeSongForFolder(MusicFolder folder) {
-    final memoryRep = findRepresentativeSong(folder);
-    final normalized = _normalizePath(folder.path);
-    final cached = _rootRepresentativeSongs[normalized];
-
-    bool hasArtwork(MusicFile file) =>
-        (file.artworkPath != null && file.artworkPath!.isNotEmpty) ||
-        (file.thumbnailPath != null && file.thumbnailPath!.isNotEmpty) ||
-        (file.artworkBytes != null && file.artworkBytes!.isNotEmpty);
-
-    if (memoryRep != null && hasArtwork(memoryRep)) {
-      return memoryRep;
+    if (folder.representativeSongCache != null) {
+      return folder.representativeSongCache;
     }
 
-    if (cached != null) {
-      final cachedMusicFile = _treeBuilder.musicFileFromSongMetadata(cached);
-      if (hasArtwork(cachedMusicFile)) {
-        return cachedMusicFile;
+    final normalized = _normalizePath(folder.path);
+
+    final cachedMeta = _folderRepresentativeSongs[normalized];
+    if (cachedMeta != null) {
+      final file = _treeBuilder.musicFileFromSongMetadata(cachedMeta);
+      folder.representativeSongCache = file;
+      return file;
+    }
+
+    final songPath = _folderRepresentativeSongPaths[normalized];
+    if (songPath != null) {
+      final meta = _metadataStore.getMetadata(songPath);
+      if (meta != null) {
+        _folderRepresentativeSongs[normalized] = meta;
+        final file = _treeBuilder.musicFileFromSongMetadata(meta);
+        folder.representativeSongCache = file;
+        return file;
       }
     }
 
-    if (memoryRep != null) {
-      return memoryRep;
-    }
-
-    if (cached != null) {
-      return _treeBuilder.musicFileFromSongMetadata(cached);
-    }
-
-    if (!_pendingRepresentativeSongFetches.contains(normalized)) {
-      _pendingRepresentativeSongFetches.add(normalized);
-      unawaited(_loadRepresentativeSongForPath(normalized));
-    }
-
+    // FolderCovers table is the sole source of truth for folder representative covers.
+    // If not recorded in FolderCovers cache, return null directly.
     return null;
   }
 
-  Future<void> _loadRepresentativeSongForPath(String normalizedPath) async {
-    try {
-      final sortSettings = _resolveSortSettingsForFolder(normalizedPath);
-      final songMeta = await _repository.getRepresentativeSongUnderPath(
-        normalizedPath,
-        criteria: sortSettings.criteria,
-        order: sortSettings.order,
-      );
-      _rootRepresentativeSongs[normalizedPath] = songMeta;
-      if (songMeta != null) {
-        _metadataStore.cacheMetadata(songMeta);
-        notifyListeners();
+  List<MusicFolder>? _findFolderChainInTree(
+    MusicFolder current,
+    String targetNormalized,
+  ) {
+    if (_normalizePath(current.path) == targetNormalized) {
+      return [current];
+    }
+    for (final sub in current.subFolders) {
+      final chain = _findFolderChainInTree(sub, targetNormalized);
+      if (chain != null) {
+        return [current, ...chain];
       }
-    } catch (e) {
-      debugPrint(
-        '[ScannerService] Failed to load representative song for $normalizedPath: $e',
+    }
+    return null;
+  }
+
+  List<MusicFolder>? findFolderChain(String path) {
+    final normalized = _normalizePath(path);
+    for (final root in _scannedRootFolders) {
+      final chain = _findFolderChainInTree(root, normalized);
+      if (chain != null) return chain;
+    }
+    if (_systemMediaFolder != null) {
+      final chain = _findFolderChainInTree(_systemMediaFolder!, normalized);
+      if (chain != null) return chain;
+    }
+    return null;
+  }
+
+  Future<void> refreshFolderCoverChain(String folderPath) async {
+    final chain = findFolderChain(folderPath);
+    if (chain == null || chain.isEmpty) return;
+
+    final updatedCovers = <String, String>{};
+    final removedFolderPaths = <String>[];
+    bool hasChanged = false;
+
+    // Traverse upwards from target folder (chain.last) to root (chain.first)
+    for (int i = chain.length - 1; i >= 0; i--) {
+      final folder = chain[i];
+      final normFolder = _normalizePath(folder.path);
+      final oldSongPath = _folderRepresentativeSongPaths[normFolder];
+
+      final newRep = evaluateRepresentativeSongForFolder(
+        folder,
+        metadataByPath: _metadataStore.metadataMap,
+        normalizePath: _normalizePath,
       );
-    } finally {
-      _pendingRepresentativeSongFetches.remove(normalizedPath);
+      folder.representativeSongCache = newRep;
+      final newSongPath = newRep != null ? _normalizePath(newRep.path) : null;
+
+      // Early-exit check: if representative song did not change and this is an ancestor, stop bubbling up!
+      if (newSongPath == oldSongPath && i < chain.length - 1) {
+        break;
+      }
+
+      if (newSongPath != oldSongPath) {
+        hasChanged = true;
+      }
+
+      if (newSongPath != null) {
+        _folderRepresentativeSongPaths[normFolder] = newSongPath;
+        final meta = _metadataStore.getMetadata(newSongPath);
+        if (meta != null) {
+          _folderRepresentativeSongs[normFolder] = meta;
+        }
+        updatedCovers[normFolder] = newSongPath;
+      } else {
+        _folderRepresentativeSongPaths.remove(normFolder);
+        _folderRepresentativeSongs.remove(normFolder);
+        removedFolderPaths.add(normFolder);
+      }
+    }
+
+    if (updatedCovers.isNotEmpty) {
+      await _repository.batchUpsertFolderCovers(updatedCovers);
+    }
+    if (removedFolderPaths.isNotEmpty) {
+      await _repository.removeFolderCoversForPaths(removedFolderPaths);
+    }
+    if (hasChanged) {
+      notifyListeners();
     }
   }
 
@@ -292,8 +347,15 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       }
       final updated = existingMeta.copyWith(thumbnailPath: thumbnailPath);
       _metadataStore.cacheMetadata(updated);
+      final normSongPath = _normalizePath(path);
+      for (final entry in _folderRepresentativeSongs.entries) {
+        if (entry.value != null && _normalizePath(entry.value!.path) == normSongPath) {
+          _folderRepresentativeSongs[entry.key] = updated;
+        }
+      }
       await MetadataDatabase().insertOrUpdateSong(updated);
       notifyListeners();
+      unawaited(refreshFolderCoverChain(p.dirname(path)));
     } else {
       final db = MetadataDatabase();
       final dbMetadata = await db.getSongMetadata(path);
@@ -305,8 +367,15 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
         }
         final updated = dbMetadata.copyWith(thumbnailPath: thumbnailPath);
         _metadataStore.cacheMetadata(updated);
+        final normSongPath = _normalizePath(path);
+        for (final entry in _folderRepresentativeSongs.entries) {
+          if (entry.value != null && _normalizePath(entry.value!.path) == normSongPath) {
+            _folderRepresentativeSongs[entry.key] = updated;
+          }
+        }
         await db.insertOrUpdateSong(updated);
         notifyListeners();
+        unawaited(refreshFolderCoverChain(p.dirname(path)));
       }
     }
   }
@@ -486,7 +555,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
         final normalized = _normalizePath(path);
         _rootSongCounts[normalized] = count;
         if (repSongMeta != null) {
-          _rootRepresentativeSongs[normalized] = repSongMeta;
+          _folderRepresentativeSongs[normalized] = repSongMeta;
         }
 
         results.add(MusicFolder(path: path, name: p.basename(path)));
@@ -796,7 +865,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       _timeScanStepSync('stage sortAndNotify sync navigation state', () {
         _syncNavigationStateToLatestTree();
       });
-      unawaited(_refreshRootRepresentativeSongs());
+      unawaited(_refreshAllFolderRepresentativeSongs());
       _timeScanStepSync('stage sortAndNotify notify listeners', () {
         notifyListeners();
       });
@@ -806,57 +875,52 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _refreshRootRepresentativeSongs() async {
-    final nextCache = <String, SongMetadata?>{};
+  Future<void> _refreshAllFolderRepresentativeSongs() async {
+    final allCovers = <String, String>{};
 
     if (_systemMediaFolder != null) {
-      final repFile = findRepresentativeSong(_systemMediaFolder!);
-      if (repFile != null) {
-        final songMeta = await _repository.getSongMetadata(repFile.path);
+      final systemCovers = computeFolderCoversBottomUp(
+        _systemMediaFolder!,
+        metadataByPath: _metadataStore.metadataMap,
+        normalizePath: _normalizePath,
+      );
+      allCovers.addAll(systemCovers);
+    }
+
+    for (final root in _scannedRootFolders) {
+      final rootCovers = computeFolderCoversBottomUp(
+        root,
+        metadataByPath: _metadataStore.metadataMap,
+        normalizePath: _normalizePath,
+      );
+      allCovers.addAll(rootCovers);
+    }
+
+    if (allCovers.isNotEmpty) {
+      _folderRepresentativeSongPaths.addAll(allCovers);
+      for (final entry in allCovers.entries) {
+        final songMeta = _metadataStore.getMetadata(entry.value);
         if (songMeta != null) {
-          nextCache['system'] = songMeta;
+          _folderRepresentativeSongs[entry.key] = songMeta;
         }
       }
+      await _repository.batchUpsertFolderCovers(allCovers);
+      notifyListeners();
     }
+  }
 
-    for (final root in _roots.rootPaths) {
-      final normalized = _normalizePath(root);
-      final sortSettings = _resolveSortSettingsForFolder(normalized);
-
-      final scanned = _scannedRootFolders.firstWhereOrNull(
-        (f) => ScannerPathUtils.pathsEqual(f.path, normalized),
-      );
-      if (scanned != null) {
-        final repFile = findRepresentativeSong(scanned);
-        if (repFile != null) {
-          final songMeta = await _repository.getSongMetadata(repFile.path);
-          final hasArtwork =
-              songMeta != null &&
-              ((songMeta.artworkPath != null &&
-                      songMeta.artworkPath!.isNotEmpty) ||
-                  (songMeta.thumbnailPath != null &&
-                      songMeta.thumbnailPath!.isNotEmpty));
-          if (hasArtwork) {
-            nextCache[normalized] = songMeta;
-            continue;
-          }
-        }
+  Future<void> _loadCachedFolderCoversFromDatabase() async {
+    try {
+      final covers = await _repository.getAllFolderRepresentativeMetadata();
+      for (final entry in covers.entries) {
+        final normPath = _normalizePath(entry.key);
+        _folderRepresentativeSongs[normPath] = entry.value;
+        _folderRepresentativeSongPaths[normPath] = _normalizePath(entry.value.path);
+        _metadataStore.cacheMetadata(entry.value);
       }
-
-      final repSong = await _repository.getRepresentativeSongUnderPath(
-        normalized,
-        criteria: sortSettings.criteria,
-        order: sortSettings.order,
-      );
-      if (repSong != null) {
-        nextCache[normalized] = repSong;
-      }
+    } catch (e) {
+      debugPrint('[ScannerService] Failed to load cached folder covers: $e');
     }
-
-    _rootRepresentativeSongs
-      ..clear()
-      ..addAll(nextCache);
-    notifyListeners();
   }
 
   Future<void> _init() async {
@@ -921,6 +985,10 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       await _timeInitStep('load sort settings', _loadSortSettings);
       await _timeInitStep('load scan settings', _loadScanSettings);
       await _timeInitStep('load remote roots', loadRemoteRoots);
+      await _timeInitStep(
+        'load cached folder covers from database',
+        _loadCachedFolderCoversFromDatabase,
+      );
       final cachedSongs = const <SongMetadata>[];
       await _timeInitStep(
         'load cached root folders from database',
@@ -1860,7 +1928,9 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
 
         _rootSongCounts[root] = count;
         _rootSongDurations[root] = duration;
-        _rootRepresentativeSongs[root] = repSong;
+        if (repSong != null) {
+          _folderRepresentativeSongs[root] = repSong;
+        }
 
         if (repSong != null && seedMetadataCache) {
           _metadataStore.cacheMetadata(repSong);
@@ -2006,6 +2076,9 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
           smallFolders,
           resolveSettings: _resolveSortSettingsForFolder,
         );
+      }
+      for (final folder in modifiedFolders) {
+        unawaited(refreshFolderCoverChain(folder.path));
       }
       _rebuildDisplayedRootFolders();
       _syncNavigationStateToLatestTree(affectedRootPath: rootPath);
@@ -2658,6 +2731,16 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     _scannedRootFolders.removeWhere(
       (folder) => normalizedRoots.any((root) => _pathsEqual(folder.path, root)),
     );
+    final separator = Platform.isWindows ? '\\' : '/';
+    bool matchesAnyRoot(String path) {
+      return normalizedRoots.any((root) {
+        if (_pathsEqual(path, root)) return true;
+        final prefix = root.endsWith(separator) ? root : '$root$separator';
+        return path.startsWith(prefix);
+      });
+    }
+    _folderRepresentativeSongs.removeWhere((path, _) => matchesAnyRoot(path));
+    _folderRepresentativeSongPaths.removeWhere((path, _) => matchesAnyRoot(path));
   }
 
   Future<void> _purgeRemovedRootsFromMetadataCache(
@@ -2667,6 +2750,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     if (normalizedRoots.isEmpty) return;
 
     await _repository.unbindRootPaths(normalizedRoots);
+    await _repository.removeFolderCoversUnderRoots(normalizedRoots);
 
     final sweepResult = await _repository.sweepOrphanSongs();
     if (sweepResult.deletedPaths.isEmpty) return;

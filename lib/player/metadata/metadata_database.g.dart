@@ -7221,6 +7221,282 @@ class RemoteSongsCompanion extends UpdateCompanion<RemoteSong> {
   }
 }
 
+class $FolderCoversTable extends FolderCovers
+    with TableInfo<$FolderCoversTable, FolderCover> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $FolderCoversTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _folderPathMeta = const VerificationMeta(
+    'folderPath',
+  );
+  @override
+  late final GeneratedColumn<String> folderPath = GeneratedColumn<String>(
+    'folderPath',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _songPathMeta = const VerificationMeta(
+    'songPath',
+  );
+  @override
+  late final GeneratedColumn<String> songPath = GeneratedColumn<String>(
+    'songPath',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMillisMeta = const VerificationMeta(
+    'updatedAtMillis',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAtMillis = GeneratedColumn<int>(
+    'updatedAtMillis',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [folderPath, songPath, updatedAtMillis];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'folder_covers';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<FolderCover> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('folderPath')) {
+      context.handle(
+        _folderPathMeta,
+        folderPath.isAcceptableOrUnknown(data['folderPath']!, _folderPathMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_folderPathMeta);
+    }
+    if (data.containsKey('songPath')) {
+      context.handle(
+        _songPathMeta,
+        songPath.isAcceptableOrUnknown(data['songPath']!, _songPathMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_songPathMeta);
+    }
+    if (data.containsKey('updatedAtMillis')) {
+      context.handle(
+        _updatedAtMillisMeta,
+        updatedAtMillis.isAcceptableOrUnknown(
+          data['updatedAtMillis']!,
+          _updatedAtMillisMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMillisMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {folderPath};
+  @override
+  FolderCover map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return FolderCover(
+      folderPath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}folderPath'],
+      )!,
+      songPath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}songPath'],
+      )!,
+      updatedAtMillis: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updatedAtMillis'],
+      )!,
+    );
+  }
+
+  @override
+  $FolderCoversTable createAlias(String alias) {
+    return $FolderCoversTable(attachedDatabase, alias);
+  }
+}
+
+class FolderCover extends DataClass implements Insertable<FolderCover> {
+  final String folderPath;
+  final String songPath;
+  final int updatedAtMillis;
+  const FolderCover({
+    required this.folderPath,
+    required this.songPath,
+    required this.updatedAtMillis,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['folderPath'] = Variable<String>(folderPath);
+    map['songPath'] = Variable<String>(songPath);
+    map['updatedAtMillis'] = Variable<int>(updatedAtMillis);
+    return map;
+  }
+
+  FolderCoversCompanion toCompanion(bool nullToAbsent) {
+    return FolderCoversCompanion(
+      folderPath: Value(folderPath),
+      songPath: Value(songPath),
+      updatedAtMillis: Value(updatedAtMillis),
+    );
+  }
+
+  factory FolderCover.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return FolderCover(
+      folderPath: serializer.fromJson<String>(json['folderPath']),
+      songPath: serializer.fromJson<String>(json['songPath']),
+      updatedAtMillis: serializer.fromJson<int>(json['updatedAtMillis']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'folderPath': serializer.toJson<String>(folderPath),
+      'songPath': serializer.toJson<String>(songPath),
+      'updatedAtMillis': serializer.toJson<int>(updatedAtMillis),
+    };
+  }
+
+  FolderCover copyWith({
+    String? folderPath,
+    String? songPath,
+    int? updatedAtMillis,
+  }) => FolderCover(
+    folderPath: folderPath ?? this.folderPath,
+    songPath: songPath ?? this.songPath,
+    updatedAtMillis: updatedAtMillis ?? this.updatedAtMillis,
+  );
+  FolderCover copyWithCompanion(FolderCoversCompanion data) {
+    return FolderCover(
+      folderPath: data.folderPath.present
+          ? data.folderPath.value
+          : this.folderPath,
+      songPath: data.songPath.present ? data.songPath.value : this.songPath,
+      updatedAtMillis: data.updatedAtMillis.present
+          ? data.updatedAtMillis.value
+          : this.updatedAtMillis,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FolderCover(')
+          ..write('folderPath: $folderPath, ')
+          ..write('songPath: $songPath, ')
+          ..write('updatedAtMillis: $updatedAtMillis')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(folderPath, songPath, updatedAtMillis);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is FolderCover &&
+          other.folderPath == this.folderPath &&
+          other.songPath == this.songPath &&
+          other.updatedAtMillis == this.updatedAtMillis);
+}
+
+class FolderCoversCompanion extends UpdateCompanion<FolderCover> {
+  final Value<String> folderPath;
+  final Value<String> songPath;
+  final Value<int> updatedAtMillis;
+  final Value<int> rowid;
+  const FolderCoversCompanion({
+    this.folderPath = const Value.absent(),
+    this.songPath = const Value.absent(),
+    this.updatedAtMillis = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  FolderCoversCompanion.insert({
+    required String folderPath,
+    required String songPath,
+    required int updatedAtMillis,
+    this.rowid = const Value.absent(),
+  }) : folderPath = Value(folderPath),
+       songPath = Value(songPath),
+       updatedAtMillis = Value(updatedAtMillis);
+  static Insertable<FolderCover> custom({
+    Expression<String>? folderPath,
+    Expression<String>? songPath,
+    Expression<int>? updatedAtMillis,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (folderPath != null) 'folderPath': folderPath,
+      if (songPath != null) 'songPath': songPath,
+      if (updatedAtMillis != null) 'updatedAtMillis': updatedAtMillis,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  FolderCoversCompanion copyWith({
+    Value<String>? folderPath,
+    Value<String>? songPath,
+    Value<int>? updatedAtMillis,
+    Value<int>? rowid,
+  }) {
+    return FolderCoversCompanion(
+      folderPath: folderPath ?? this.folderPath,
+      songPath: songPath ?? this.songPath,
+      updatedAtMillis: updatedAtMillis ?? this.updatedAtMillis,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (folderPath.present) {
+      map['folderPath'] = Variable<String>(folderPath.value);
+    }
+    if (songPath.present) {
+      map['songPath'] = Variable<String>(songPath.value);
+    }
+    if (updatedAtMillis.present) {
+      map['updatedAtMillis'] = Variable<int>(updatedAtMillis.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FolderCoversCompanion(')
+          ..write('folderPath: $folderPath, ')
+          ..write('songPath: $songPath, ')
+          ..write('updatedAtMillis: $updatedAtMillis, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$MetadataDriftDatabase extends GeneratedDatabase {
   _$MetadataDriftDatabase(QueryExecutor e) : super(e);
   $MetadataDriftDatabaseManager get managers =>
@@ -7240,6 +7516,7 @@ abstract class _$MetadataDriftDatabase extends GeneratedDatabase {
       $ArtistImageCachesTable(this);
   late final $ArtworkCachesTable artworkCaches = $ArtworkCachesTable(this);
   late final $RemoteSongsTable remoteSongs = $RemoteSongsTable(this);
+  late final $FolderCoversTable folderCovers = $FolderCoversTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -7256,6 +7533,7 @@ abstract class _$MetadataDriftDatabase extends GeneratedDatabase {
     artistImageCaches,
     artworkCaches,
     remoteSongs,
+    folderCovers,
   ];
 }
 
@@ -10753,6 +11031,182 @@ typedef $$RemoteSongsTableProcessedTableManager =
       RemoteSong,
       PrefetchHooks Function()
     >;
+typedef $$FolderCoversTableCreateCompanionBuilder =
+    FolderCoversCompanion Function({
+      required String folderPath,
+      required String songPath,
+      required int updatedAtMillis,
+      Value<int> rowid,
+    });
+typedef $$FolderCoversTableUpdateCompanionBuilder =
+    FolderCoversCompanion Function({
+      Value<String> folderPath,
+      Value<String> songPath,
+      Value<int> updatedAtMillis,
+      Value<int> rowid,
+    });
+
+class $$FolderCoversTableFilterComposer
+    extends Composer<_$MetadataDriftDatabase, $FolderCoversTable> {
+  $$FolderCoversTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get folderPath => $composableBuilder(
+    column: $table.folderPath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get songPath => $composableBuilder(
+    column: $table.songPath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAtMillis => $composableBuilder(
+    column: $table.updatedAtMillis,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$FolderCoversTableOrderingComposer
+    extends Composer<_$MetadataDriftDatabase, $FolderCoversTable> {
+  $$FolderCoversTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get folderPath => $composableBuilder(
+    column: $table.folderPath,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get songPath => $composableBuilder(
+    column: $table.songPath,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get updatedAtMillis => $composableBuilder(
+    column: $table.updatedAtMillis,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$FolderCoversTableAnnotationComposer
+    extends Composer<_$MetadataDriftDatabase, $FolderCoversTable> {
+  $$FolderCoversTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get folderPath => $composableBuilder(
+    column: $table.folderPath,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get songPath =>
+      $composableBuilder(column: $table.songPath, builder: (column) => column);
+
+  GeneratedColumn<int> get updatedAtMillis => $composableBuilder(
+    column: $table.updatedAtMillis,
+    builder: (column) => column,
+  );
+}
+
+class $$FolderCoversTableTableManager
+    extends
+        RootTableManager<
+          _$MetadataDriftDatabase,
+          $FolderCoversTable,
+          FolderCover,
+          $$FolderCoversTableFilterComposer,
+          $$FolderCoversTableOrderingComposer,
+          $$FolderCoversTableAnnotationComposer,
+          $$FolderCoversTableCreateCompanionBuilder,
+          $$FolderCoversTableUpdateCompanionBuilder,
+          (
+            FolderCover,
+            BaseReferences<
+              _$MetadataDriftDatabase,
+              $FolderCoversTable,
+              FolderCover
+            >,
+          ),
+          FolderCover,
+          PrefetchHooks Function()
+        > {
+  $$FolderCoversTableTableManager(
+    _$MetadataDriftDatabase db,
+    $FolderCoversTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$FolderCoversTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$FolderCoversTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$FolderCoversTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> folderPath = const Value.absent(),
+                Value<String> songPath = const Value.absent(),
+                Value<int> updatedAtMillis = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => FolderCoversCompanion(
+                folderPath: folderPath,
+                songPath: songPath,
+                updatedAtMillis: updatedAtMillis,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String folderPath,
+                required String songPath,
+                required int updatedAtMillis,
+                Value<int> rowid = const Value.absent(),
+              }) => FolderCoversCompanion.insert(
+                folderPath: folderPath,
+                songPath: songPath,
+                updatedAtMillis: updatedAtMillis,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$FolderCoversTableProcessedTableManager =
+    ProcessedTableManager<
+      _$MetadataDriftDatabase,
+      $FolderCoversTable,
+      FolderCover,
+      $$FolderCoversTableFilterComposer,
+      $$FolderCoversTableOrderingComposer,
+      $$FolderCoversTableAnnotationComposer,
+      $$FolderCoversTableCreateCompanionBuilder,
+      $$FolderCoversTableUpdateCompanionBuilder,
+      (
+        FolderCover,
+        BaseReferences<
+          _$MetadataDriftDatabase,
+          $FolderCoversTable,
+          FolderCover
+        >,
+      ),
+      FolderCover,
+      PrefetchHooks Function()
+    >;
 
 class $MetadataDriftDatabaseManager {
   final _$MetadataDriftDatabase _db;
@@ -10782,4 +11236,6 @@ class $MetadataDriftDatabaseManager {
       $$ArtworkCachesTableTableManager(_db, _db.artworkCaches);
   $$RemoteSongsTableTableManager get remoteSongs =>
       $$RemoteSongsTableTableManager(_db, _db.remoteSongs);
+  $$FolderCoversTableTableManager get folderCovers =>
+      $$FolderCoversTableTableManager(_db, _db.folderCovers);
 }

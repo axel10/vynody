@@ -13,6 +13,7 @@ part of 'metadata_database.dart';
     ArtistImageCaches,
     ArtworkCaches,
     RemoteSongs,
+    FolderCovers,
   ],
 )
 class MetadataDriftDatabase extends _$MetadataDriftDatabase {
@@ -21,7 +22,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   static final MetadataDriftDatabase instance = MetadataDriftDatabase._();
 
   @override
-  int get schemaVersion => 33;
+  int get schemaVersion => 34;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -379,6 +380,13 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
         await _addColumnIfMissing(m, 'songs', 'albumArtist', 'TEXT');
         await _addColumnIfMissing(m, 'remote_songs', 'albumArtist', 'TEXT');
       }
+      if (from < 34) {
+        final migrator = createMigrator();
+        final exists = await _tableExists(folderCovers.actualTableName);
+        if (!exists) {
+          await migrator.createTable(folderCovers);
+        }
+      }
     },
   );
 
@@ -647,121 +655,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   }) async {
     final normalized = _normalizePath(rootPath);
     if (normalized.isEmpty) return null;
-
-    final isDesc = order == SortOrder.descending;
-    final dir = isDesc ? 'DESC' : 'ASC';
-
-    final String orderByClause = switch (criteria) {
-      SortCriteria.title =>
-        'COALESCE(NULLIF(title, \'\'), path) $dir, path $dir',
-      SortCriteria.trackNumber =>
-        isDesc
-            ? 'CASE WHEN trackNumber IS NOT NULL THEN 0 ELSE 1 END, trackNumber DESC, path DESC'
-            : 'CASE WHEN trackNumber IS NOT NULL THEN 0 ELSE 1 END, trackNumber ASC, path ASC',
-      SortCriteria.filename =>
-        'path $dir',
-    };
-
-    if (normalized.startsWith('system/')) {
-      final relativePath = normalized.substring('system/'.length);
-      final separator = Platform.isWindows ? '\\' : '/';
-      final prefixPattern = relativePath.endsWith(separator) ? '$relativePath%' : '$relativePath$separator%';
-      final subPrefixPattern = relativePath.endsWith(separator) ? '$relativePath%$separator%' : '$relativePath$separator%$separator%';
-
-      final depthOrder = 'CASE WHEN (path = ? OR path = ? OR (path LIKE ? AND path NOT LIKE ?)) THEN 0 ELSE 1 END, $orderByClause';
-      final whereVars = [
-        Variable(SongSourceFlags.systemMedia),
-        Variable(relativePath),
-        Variable(prefixPattern),
-        Variable(normalized),
-        Variable('$normalized%'),
-      ];
-      final orderVars = [
-        Variable(relativePath),
-        Variable(normalized),
-        Variable(prefixPattern),
-        Variable(subPrefixPattern),
-      ];
-      final vars = [...whereVars, ...orderVars];
-
-      var row = await customSelect(
-        '''
-        SELECT *
-        FROM songs
-        WHERE (sourceFlags & ?) != 0
-          AND (path = ? OR path LIKE ? OR path = ? OR path LIKE ?)
-          AND deletedAt IS NULL
-          AND (NULLIF(artworkPath, '') IS NOT NULL OR NULLIF(thumbnailPath, '') IS NOT NULL)
-        ORDER BY $depthOrder
-        LIMIT 1
-        ''',
-        variables: vars,
-        readsFrom: {songs},
-      ).getSingleOrNull();
-
-      row ??= await customSelect(
-        '''
-        SELECT *
-        FROM songs
-        WHERE (sourceFlags & ?) != 0
-          AND (path = ? OR path LIKE ? OR path = ? OR path LIKE ?)
-          AND deletedAt IS NULL
-        ORDER BY $depthOrder
-        LIMIT 1
-        ''',
-        variables: vars,
-        readsFrom: {songs},
-      ).getSingleOrNull();
-
-      return row == null ? null : _songFromQueryRow(row);
-    }
-
-    final separator = Platform.isWindows ? '\\' : '/';
-    final prefixPattern = normalized.endsWith(separator) ? '$normalized%' : '$normalized$separator%';
-    final subPrefixPattern = normalized.endsWith(separator) ? '$normalized%$separator%' : '$normalized$separator%$separator%';
-
-    final depthOrder = 'CASE WHEN (path = ? OR (path LIKE ? AND path NOT LIKE ?)) THEN 0 ELSE 1 END, $orderByClause';
-    final whereVars = [
-      Variable(normalized),
-      Variable(prefixPattern),
-    ];
-    final orderVars = [
-      Variable(normalized),
-      Variable(prefixPattern),
-      Variable(subPrefixPattern),
-    ];
-    final vars = [...whereVars, ...orderVars];
-
-    // 1. Try with artwork / thumbnail / mediaId
-    var row = await customSelect(
-      '''
-      SELECT *
-      FROM songs
-      WHERE (path = ? OR path LIKE ?)
-        AND deletedAt IS NULL
-        AND (NULLIF(artworkPath, '') IS NOT NULL OR NULLIF(thumbnailPath, '') IS NOT NULL)
-      ORDER BY $depthOrder
-      LIMIT 1
-      ''',
-      variables: vars,
-      readsFrom: {songs},
-    ).getSingleOrNull();
-
-    // 2. Try without artwork
-    row ??= await customSelect(
-      '''
-      SELECT *
-      FROM songs
-      WHERE (path = ? OR path LIKE ?)
-        AND deletedAt IS NULL
-      ORDER BY $depthOrder
-      LIMIT 1
-      ''',
-      variables: vars,
-      readsFrom: {songs},
-    ).getSingleOrNull();
-
-    return row == null ? null : _songFromQueryRow(row);
+    return getFolderRepresentativeMetadata(normalized);
   }
 
   Future<List<SongMetadata>> getSystemMediaSongs() async {
@@ -1711,6 +1605,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   Future<void> clearAllSongs() async {
     final rows = await select(songs).get();
     await delete(songs).go();
+    await delete(folderCovers).go();
     await _deleteThumbnailFiles(rows.map((row) => row.thumbnailPath));
   }
 
@@ -2031,6 +1926,16 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
     }
 
     _deleteThumbnailFiles(thumbnailPathsToDelete).ignore();
+
+    if (deletedPaths.isNotEmpty) {
+      for (var i = 0; i < deletedPaths.length; i += chunkSize) {
+        final end = (i + chunkSize < deletedPaths.length)
+            ? i + chunkSize
+            : deletedPaths.length;
+        final chunk = deletedPaths.sublist(i, end);
+        await (delete(folderCovers)..where((t) => t.songPath.isIn(chunk))).go();
+      }
+    }
 
     return RootScanSweepResult(
       deletedPaths: deletedPaths,
@@ -3244,6 +3149,113 @@ class RemoteSongs extends Table {
 
   @override
   List<String> get customConstraints => const ['UNIQUE(virtualUri)'];
+}
+
+class FolderCovers extends Table {
+  @override
+  String get tableName => 'folder_covers';
+
+  TextColumn get folderPath => text().named('folderPath')();
+  TextColumn get songPath => text().named('songPath')();
+  IntColumn get updatedAtMillis => integer().named('updatedAtMillis')();
+
+  @override
+  Set<Column> get primaryKey => {folderPath};
+}
+
+extension MetadataFolderCoversOps on MetadataDriftDatabase {
+  Future<void> batchUpsertFolderCovers(Map<String, String> covers) async {
+    if (covers.isEmpty) return;
+    final now = DateTime.now().millisecondsSinceEpoch;
+    await batch((b) {
+      for (final entry in covers.entries) {
+        b.insert(
+          folderCovers,
+          FolderCoversCompanion(
+            folderPath: Value(_normalizePath(entry.key)),
+            songPath: Value(_normalizePath(entry.value)),
+            updatedAtMillis: Value(now),
+          ),
+          mode: InsertMode.insertOrReplace,
+        );
+      }
+    });
+  }
+
+  Future<void> upsertFolderCover(String folderPath, String songPath) async {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    await into(folderCovers).insert(
+      FolderCoversCompanion(
+        folderPath: Value(_normalizePath(folderPath)),
+        songPath: Value(_normalizePath(songPath)),
+        updatedAtMillis: Value(now),
+      ),
+      mode: InsertMode.insertOrReplace,
+    );
+  }
+
+  Future<Map<String, String>> getAllFolderCovers() async {
+    final rows = await select(folderCovers).get();
+    final result = <String, String>{};
+    for (final row in rows) {
+      result[row.folderPath] = row.songPath;
+    }
+    return result;
+  }
+
+  Future<Map<String, SongMetadata>> getAllFolderRepresentativeMetadata() async {
+    final query = select(folderCovers).join([
+      innerJoin(songs, songs.path.equalsExp(folderCovers.songPath)),
+    ])..where(songs.deletedAt.isNull());
+
+    final rows = await query.get();
+    final result = <String, SongMetadata>{};
+    for (final row in rows) {
+      final coverRow = row.readTable(folderCovers);
+      final songRow = row.readTable(songs);
+      result[coverRow.folderPath] = _songFromTableRow(songRow);
+    }
+    return result;
+  }
+
+  Future<SongMetadata?> getFolderRepresentativeMetadata(String folderPath) async {
+    final normalized = _normalizePath(folderPath);
+    if (normalized.isEmpty) return null;
+    final query = select(folderCovers).join([
+      innerJoin(songs, songs.path.equalsExp(folderCovers.songPath)),
+    ])..where(
+        folderCovers.folderPath.equals(normalized) & songs.deletedAt.isNull(),
+      );
+
+    final row = await query.getSingleOrNull();
+    if (row == null) return null;
+    return _songFromTableRow(row.readTable(songs));
+  }
+
+  Future<void> removeFolderCoversForPaths(Iterable<String> folderPaths) async {
+    final normalized = folderPaths.map(_normalizePath).toSet();
+    if (normalized.isEmpty) return;
+    await (delete(folderCovers)..where((tbl) => tbl.folderPath.isIn(normalized))).go();
+  }
+
+  Future<void> removeFolderCoversUnderRoots(Iterable<String> rootPaths) async {
+    final normalizedRoots =
+        rootPaths.map(_normalizePath).where((p) => p.isNotEmpty).toList();
+    if (normalizedRoots.isEmpty) return;
+
+    for (final root in normalizedRoots) {
+      final separator = Platform.isWindows ? '\\' : '/';
+      final prefixPattern =
+          root.endsWith(separator) ? '$root%' : '$root$separator%';
+      await (delete(folderCovers)
+            ..where(
+              (tbl) =>
+                  tbl.folderPath.equals(root) |
+                  tbl.folderPath.like(prefixPattern),
+            ))
+          .go();
+    }
+  }
 }
 
 void _setupSqliteInIsolate([Object? db]) {}

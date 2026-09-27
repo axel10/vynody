@@ -4,6 +4,8 @@ import 'package:vynody/models/music_folder.dart';
 import 'package:vynody/player/scanner/scanner_service.dart';
 import 'layout_constants.dart';
 
+import 'package:vynody/player/metadata/metadata_database.dart';
+
 const double folderPageMaxWidth = kFolderPageMaxWidth;
 
 bool hasSongArtwork(MusicFile? file) =>
@@ -12,43 +14,114 @@ bool hasSongArtwork(MusicFile? file) =>
         (file.thumbnailPath != null && file.thumbnailPath!.isNotEmpty) ||
         (file.artworkBytes != null && file.artworkBytes!.isNotEmpty));
 
-MusicFile? findRepresentativeSong(MusicFolder folder) {
+/// Evaluates representative song for a single folder [folder].
+/// Priority 1: Direct file with artwork
+/// Priority 2: Direct subfolder representative with artwork
+/// Priority 3: Fallback to first direct file
+/// Priority 4: Fallback to first subfolder representative
+MusicFile? evaluateRepresentativeSongForFolder(
+  MusicFolder folder, {
+  Map<String, SongMetadata>? metadataByPath,
+  String Function(String path)? normalizePath,
+}) {
+  bool hasArtwork(MusicFile file) {
+    if (hasSongArtwork(file)) return true;
+    if (metadataByPath != null) {
+      final meta = metadataByPath[file.path];
+      if (meta != null) {
+        return (meta.artworkPath != null && meta.artworkPath!.isNotEmpty) ||
+            (meta.thumbnailPath != null && meta.thumbnailPath!.isNotEmpty);
+      }
+    }
+    return false;
+  }
+
+  // Priority 1: Direct file with artwork
+  MusicFile? selected = folder.files.firstWhereOrNull(hasArtwork);
+
+  // Priority 2: Subfolder representative with artwork
+  if (selected == null) {
+    for (final sub in folder.subFolders) {
+      final subRep = sub.representativeSongCache;
+      if (subRep != null && hasArtwork(subRep)) {
+        selected = subRep;
+        break;
+      }
+    }
+  }
+
+  // Priority 3: Fallback to first direct file
+  selected ??= folder.files.firstOrNull;
+
+  // Priority 4: Fallback to first subfolder representative
+  if (selected == null) {
+    for (final sub in folder.subFolders) {
+      final subRep = sub.representativeSongCache;
+      if (subRep != null) {
+        selected = subRep;
+        break;
+      }
+    }
+  }
+
+  return selected;
+}
+
+/// Computes representative songs for all folders in the subtree rooted at [root]
+/// using a bottom-up (post-order DFS) traversal.
+/// Returns a map of `normalizedFolderPath -> normalizedSongPath`.
+Map<String, String> computeFolderCoversBottomUp(
+  MusicFolder root, {
+  Map<String, SongMetadata>? metadataByPath,
+  String Function(String path)? normalizePath,
+}) {
+  final result = <String, String>{};
+  final normalize = normalizePath ?? (p) => p;
+
+  void postOrder(MusicFolder folder) {
+    // 1. Recurse into all subfolders first (bottom-up)
+    for (final sub in folder.subFolders) {
+      postOrder(sub);
+    }
+
+    // 2. Select representative song for this folder
+    final selected = evaluateRepresentativeSongForFolder(
+      folder,
+      metadataByPath: metadataByPath,
+      normalizePath: normalizePath,
+    );
+
+    if (selected != null) {
+      final normFolder = normalize(folder.path);
+      final normSong = normalize(selected.path);
+      result[normFolder] = normSong;
+      folder.representativeSongCache = selected;
+    } else {
+      folder.representativeSongCache = null;
+    }
+  }
+
+  postOrder(root);
+  return result;
+}
+
+MusicFile? findRepresentativeSong(
+  MusicFolder folder, {
+  Map<String, SongMetadata>? metadataByPath,
+  String Function(String path)? normalizePath,
+}) {
   if (folder.representativeSongCache != null &&
       hasSongArtwork(folder.representativeSongCache)) {
     return folder.representativeSongCache;
   }
   if (folder.isEmpty) return null;
 
-  final fileWithArtwork = folder.files.firstWhereOrNull(hasSongArtwork);
-  if (fileWithArtwork != null) {
-    folder.representativeSongCache = fileWithArtwork;
-    return fileWithArtwork;
-  }
-
-  for (final sub in folder.subFolders) {
-    final subRep = findRepresentativeSong(sub);
-    if (subRep != null && hasSongArtwork(subRep)) {
-      folder.representativeSongCache = subRep;
-      return subRep;
-    }
-  }
-
-  // 3. Fallback when thumbnails have not been generated yet (e.g. freshly scanned):
-  // Pick the first candidate song (direct files first, then subfolders) in current sort order
-  // so SongThumbnail can trigger lazy thumbnail extraction without requiring user to drill down.
-  // Note: we intentionally do not cache unparsed fallback songs in representativeSongCache.
-  if (folder.files.isNotEmpty) {
-    return folder.files.first;
-  }
-
-  for (final sub in folder.subFolders) {
-    final subRep = findRepresentativeSong(sub);
-    if (subRep != null) {
-      return subRep;
-    }
-  }
-
-  return null;
+  computeFolderCoversBottomUp(
+    folder,
+    metadataByPath: metadataByPath,
+    normalizePath: normalizePath,
+  );
+  return folder.representativeSongCache;
 }
 
 

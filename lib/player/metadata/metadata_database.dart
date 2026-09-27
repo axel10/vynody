@@ -598,6 +598,26 @@ class MetadataDatabase {
         order: order,
       );
 
+  Future<void> batchUpsertFolderCovers(Map<String, String> covers) =>
+      _db.batchUpsertFolderCovers(covers);
+
+  Future<void> upsertFolderCover(String folderPath, String songPath) =>
+      _db.upsertFolderCover(folderPath, songPath);
+
+  Future<Map<String, String>> getAllFolderCovers() => _db.getAllFolderCovers();
+
+  Future<Map<String, SongMetadata>> getAllFolderRepresentativeMetadata() =>
+      _db.getAllFolderRepresentativeMetadata();
+
+  Future<SongMetadata?> getFolderRepresentativeMetadata(String folderPath) =>
+      _db.getFolderRepresentativeMetadata(folderPath);
+
+  Future<void> removeFolderCoversForPaths(Iterable<String> folderPaths) =>
+      _db.removeFolderCoversForPaths(folderPaths);
+
+  Future<void> removeFolderCoversUnderRoots(Iterable<String> rootPaths) =>
+      _db.removeFolderCoversUnderRoots(rootPaths);
+
   Future<List<SongMetadata>> getSystemMediaSongs() =>
       _db.getSystemMediaSongs();
 

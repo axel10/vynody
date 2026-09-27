@@ -43,6 +43,34 @@ class ScannerRepository {
     );
   }
 
+  Future<void> batchUpsertFolderCovers(Map<String, String> covers) {
+    return _database.batchUpsertFolderCovers(covers);
+  }
+
+  Future<void> upsertFolderCover(String folderPath, String songPath) {
+    return _database.upsertFolderCover(folderPath, songPath);
+  }
+
+  Future<Map<String, String>> getAllFolderCovers() {
+    return _database.getAllFolderCovers();
+  }
+
+  Future<Map<String, SongMetadata>> getAllFolderRepresentativeMetadata() {
+    return _database.getAllFolderRepresentativeMetadata();
+  }
+
+  Future<SongMetadata?> getFolderRepresentativeMetadata(String folderPath) {
+    return _database.getFolderRepresentativeMetadata(folderPath);
+  }
+
+  Future<void> removeFolderCoversForPaths(Iterable<String> folderPaths) {
+    return _database.removeFolderCoversForPaths(folderPaths);
+  }
+
+  Future<void> removeFolderCoversUnderRoots(Iterable<String> rootPaths) {
+    return _database.removeFolderCoversUnderRoots(rootPaths);
+  }
+
   Future<List<SongMetadata>> getSystemMediaSongs() {
     return _database.getSystemMediaSongs();
   }
