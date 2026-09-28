@@ -321,6 +321,7 @@ class ScannerTreeBuilder {
       themeColorsBlob: song.themeColorsBlob,
       waveformBlob: song.waveformBlob,
       lastModifiedTime: song.lastModifiedTime,
+      hasArtwork: song.hasArtwork,
     );
   }
 
@@ -340,6 +341,7 @@ class ScannerTreeBuilder {
       themeColorsBlob: metadata?.themeColorsBlob,
       waveformBlob: metadata?.waveformBlob,
       lastModifiedTime: metadata?.lastModifiedTime,
+      hasArtwork: metadata?.hasArtwork,
     );
   }
 
@@ -458,6 +460,7 @@ class ScannerTreeBuilder {
       artworkHeight: resolvedMetadata?.artworkHeight,
       themeColorsBlob: resolvedMetadata?.themeColorsBlob,
       lastModifiedTime: resolvedMetadata?.lastModifiedTime,
+      hasArtwork: resolvedMetadata?.hasArtwork,
     );
   }
 

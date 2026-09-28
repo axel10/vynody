@@ -57,6 +57,7 @@ abstract class SongMetadata with _$SongMetadata {
     int? deletedAt,
     List<String>? genres,
     @Default(false) bool isAppModified,
+    bool? hasArtwork,
   }) = _SongMetadata;
 
   bool get isModified => isAppModified;
@@ -85,6 +86,7 @@ abstract class SongMetadata with _$SongMetadata {
       'deletedAt': deletedAt,
       'genres': genres != null ? jsonEncode(genres) : null,
       'isAppModified': isAppModified ? 1 : 0,
+      'hasArtwork': hasArtwork == true ? 1 : (hasArtwork == false ? 0 : null),
     };
   }
 
@@ -119,6 +121,9 @@ abstract class SongMetadata with _$SongMetadata {
       deletedAt: map['deletedAt'],
       genres: genres,
       isAppModified: map['isAppModified'] == 1 || map['isAppModified'] == true,
+      hasArtwork: map['hasArtwork'] == null
+          ? null
+          : (map['hasArtwork'] == 1 || map['hasArtwork'] == true),
     );
   }
 }

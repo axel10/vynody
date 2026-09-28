@@ -91,11 +91,17 @@ class FolderCoverResolver {
         ..sort(compareSongsByTitle);
 
       for (final file in sortedFiles) {
-        // Fast-path: if the in-memory object already has known artwork bytes or paths, accept immediately
+        // Fast-path: if the in-memory object already has known artwork bytes or paths or hasArtwork flag, accept immediately
         if ((file.artworkPath != null && file.artworkPath!.isNotEmpty) ||
             (file.thumbnailPath != null && file.thumbnailPath!.isNotEmpty) ||
-            (file.artworkBytes != null && file.artworkBytes!.isNotEmpty)) {
+            (file.artworkBytes != null && file.artworkBytes!.isNotEmpty) ||
+            file.hasArtwork == true) {
           return file;
+        }
+
+        // If file is known to have no artwork, skip probing
+        if (file.hasArtwork == false) {
+          continue;
         }
 
         // Lazy short-circuit TagLib probing
@@ -133,8 +139,13 @@ class FolderCoverResolver {
       for (final file in sortedFiles) {
         if ((file.artworkPath != null && file.artworkPath!.isNotEmpty) ||
             (file.thumbnailPath != null && file.thumbnailPath!.isNotEmpty) ||
-            (file.artworkBytes != null && file.artworkBytes!.isNotEmpty)) {
+            (file.artworkBytes != null && file.artworkBytes!.isNotEmpty) ||
+            file.hasArtwork == true) {
           return file;
+        }
+
+        if (file.hasArtwork == false) {
+          continue;
         }
 
         final hasCover = probeCoverSync(file.path);
@@ -189,9 +200,14 @@ class FolderCoverResolver {
         for (final file in sortedFiles) {
           if ((file.artworkPath != null && file.artworkPath!.isNotEmpty) ||
               (file.thumbnailPath != null && file.thumbnailPath!.isNotEmpty) ||
-              (file.artworkBytes != null && file.artworkBytes!.isNotEmpty)) {
+              (file.artworkBytes != null && file.artworkBytes!.isNotEmpty) ||
+              file.hasArtwork == true) {
             directRep = file;
             break;
+          }
+
+          if (file.hasArtwork == false) {
+            continue;
           }
 
           final hasCover = probeCoverSync(file.path);
@@ -252,9 +268,14 @@ class FolderCoverResolver {
         for (final file in sortedFiles) {
           if ((file.artworkPath != null && file.artworkPath!.isNotEmpty) ||
               (file.thumbnailPath != null && file.thumbnailPath!.isNotEmpty) ||
-              (file.artworkBytes != null && file.artworkBytes!.isNotEmpty)) {
+              (file.artworkBytes != null && file.artworkBytes!.isNotEmpty) ||
+              file.hasArtwork == true) {
             directRep = file;
             break;
+          }
+
+          if (file.hasArtwork == false) {
+            continue;
           }
 
           final hasCover = await probeCover(file.path);

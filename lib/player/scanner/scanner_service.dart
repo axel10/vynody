@@ -888,13 +888,13 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       return;
     }
 
-    final rawCovers = await FolderCoverResolver.computeAllFolderCoversInBackground(
-      foldersToProcess,
-    );
-
     final allCovers = <String, String>{};
-    for (final entry in rawCovers.entries) {
-      allCovers[_normalizePath(entry.key)] = _normalizePath(entry.value);
+    for (final root in foldersToProcess) {
+      final covers = FolderCoverResolver.computeFolderCoversBottomUpSync(
+        root,
+        normalizePath: _normalizePath,
+      );
+      allCovers.addAll(covers);
     }
 
     final staleCovers = _folderRepresentativeSongPaths.keys

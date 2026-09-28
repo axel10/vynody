@@ -50,6 +50,32 @@ void main() {
       expect(probedPaths, equals(['/music/z.mp3'])); // Short-circuited! Did not probe BBB or CCC
     });
 
+    test('evaluateRepresentativeSongForFolder uses hasArtwork true directly without probe and skips hasArtwork false', () async {
+      const songNoArt = MusicFile(path: '/music/no.mp3', name: 'no.mp3', title: 'AAA', hasArtwork: false);
+      const songHasArt = MusicFile(path: '/music/yes.mp3', name: 'yes.mp3', title: 'BBB', hasArtwork: true);
+      const songUnknown = MusicFile(path: '/music/unk.mp3', name: 'unk.mp3', title: 'CCC');
+
+      final probedPaths = <String>[];
+      Future<bool> mockProbe(String path) async {
+        probedPaths.add(path);
+        return true;
+      }
+
+      final folder = MusicFolder(
+        path: '/music',
+        name: 'music',
+        files: [songNoArt, songHasArt, songUnknown],
+      );
+
+      final rep = await FolderCoverResolver.evaluateRepresentativeSongForFolder(
+        folder,
+        probeCover: mockProbe,
+      );
+
+      expect(rep, equals(songHasArt));
+      expect(probedPaths, isEmpty); // Zero I/O probes! songNoArt skipped, songHasArt chosen directly!
+    });
+
     test('computeFolderCoversBottomUp computes leaves first and bubbles up correctly', () async {
       // Subfolder has a file with cover
       const subSongNoCover = MusicFile(path: '/music/sub/1.mp3', name: '1.mp3', title: '1');

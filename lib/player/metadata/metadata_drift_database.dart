@@ -22,7 +22,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   static final MetadataDriftDatabase instance = MetadataDriftDatabase._();
 
   @override
-  int get schemaVersion => 34;
+  int get schemaVersion => 35;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -386,6 +386,9 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
         if (!exists) {
           await migrator.createTable(folderCovers);
         }
+      }
+      if (from < 35) {
+        await _addColumnIfMissing(m, 'songs', 'hasArtwork', 'INTEGER');
       }
     },
   );
@@ -2338,6 +2341,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       deletedAt: row.read<int?>('deletedAt'),
       genres: _decodeGenres(row.read<String?>('genres')),
       isAppModified: row.read<bool?>('isAppModified') ?? false,
+      hasArtwork: row.read<bool?>('hasArtwork'),
     );
   }
 
@@ -2366,6 +2370,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       deletedAt: row.deletedAt,
       genres: _decodeGenres(row.genres),
       isAppModified: row.isAppModified,
+      hasArtwork: row.hasArtwork,
     );
   }
 
@@ -2396,6 +2401,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       deletedAt: Value(song.deletedAt),
       genres: Value(song.genres == null ? null : jsonEncode(song.genres)),
       isAppModified: Value(song.isAppModified),
+      hasArtwork: Value(song.hasArtwork),
       lastSeenRootScanSessionId: lastSeenRootScanSessionId == null
           ? const Value.absent()
           : Value(lastSeenRootScanSessionId),
@@ -2649,6 +2655,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
         createdAt: row.read<int?>('createdAt'),
         genres: _decodeGenres(row.read<String?>('genres')),
         isAppModified: row.read<bool?>('isAppModified') ?? false,
+        hasArtwork: row.read<bool?>('hasArtwork'),
       ),
       playCount: row.read<int>('playCount'),
       lastPlayedAt: row.read<int?>('lastPlayedAt'),
@@ -2959,6 +2966,8 @@ class Songs extends Table {
   TextColumn get genres => text().nullable().named('genres')();
   BoolColumn get isAppModified =>
       boolean().withDefault(const Constant(false)).named('isAppModified')();
+  BoolColumn get hasArtwork =>
+      boolean().nullable().named('hasArtwork')();
   IntColumn get lastSeenRootScanSessionId =>
       integer().nullable().named('lastSeenRootScanSessionId')();
 

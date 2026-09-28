@@ -30,6 +30,7 @@ abstract class MusicFile with _$MusicFile {
     int? lastModifiedTime,
     MusicLyric? lyrics,
     @Default(false) bool isMissing,
+    bool? hasArtwork,
   }) = _MusicFile;
 
   static final Map<String, List<double>> _waveformMemoryCache = {};

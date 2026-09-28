@@ -276,6 +276,7 @@ class ScannerScanPipeline {
       createdAt: existing?.createdAt ?? now,
       genres: existing?.genres,
       isAppModified: existing?.isAppModified ?? false,
+      hasArtwork: (result['hasArtwork'] as bool?) ?? existing?.hasArtwork,
     );
   }
 
