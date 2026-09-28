@@ -1,3 +1,5 @@
+import 'dart:isolate';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_taglib/flutter_taglib.dart' as taglib;
 
@@ -5,6 +7,7 @@ import 'package:vynody/models/music_file.dart';
 import 'package:vynody/models/music_folder.dart';
 
 typedef CoverProbeFunction = Future<bool> Function(String filePath);
+typedef CoverProbeFunctionSync = bool Function(String filePath);
 
 /// Resolver responsible for determining representative songs for folders.
 ///
@@ -19,14 +22,15 @@ typedef CoverProbeFunction = Future<bool> Function(String filePath);
 class FolderCoverResolver {
   const FolderCoverResolver._();
 
-  /// Default probe function using lightweight `flutter_taglib` tag inspection.
+  /// Default synchronous probe function using lightweight `flutter_taglib` tag inspection.
   /// Does not decode or extract heavy image byte payloads.
-  static Future<bool> defaultProbeSongHasCover(String filePath) async {
+  /// Best suited for execution within background worker isolates.
+  static bool defaultProbeSongHasCoverSync(String filePath) {
     try {
       if (!taglib.TagLibFile.isSupported) {
         return false;
       }
-      final tagFile = await taglib.TagLibFile.openAsync(filePath);
+      final tagFile = taglib.TagLibFile.open(filePath);
       if (tagFile == null) {
         return false;
       }
@@ -35,6 +39,20 @@ class FolderCoverResolver {
       } finally {
         tagFile.close();
       }
+    } catch (e) {
+      debugPrint('[FolderCoverResolver] TagLib sync cover probe error for $filePath: $e');
+      return false;
+    }
+  }
+
+  /// Default probe function offloading TagLib FFI inspection to a background isolate
+  /// so that it never blocks the Flutter UI thread / Main Isolate.
+  static Future<bool> defaultProbeSongHasCover(String filePath) async {
+    try {
+      if (!taglib.TagLibFile.isSupported) {
+        return false;
+      }
+      return await Isolate.run(() => defaultProbeSongHasCoverSync(filePath));
     } catch (e) {
       debugPrint('[FolderCoverResolver] TagLib cover probe error for $filePath: $e');
       return false;
@@ -103,6 +121,104 @@ class FolderCoverResolver {
     return null;
   }
 
+  /// Evaluates representative song for a single folder [folder] synchronously.
+  static MusicFile? evaluateRepresentativeSongForFolderSync(
+    MusicFolder folder, {
+    CoverProbeFunctionSync probeCoverSync = defaultProbeSongHasCoverSync,
+  }) {
+    if (folder.files.isNotEmpty) {
+      final sortedFiles = List<MusicFile>.from(folder.files)
+        ..sort(compareSongsByTitle);
+
+      for (final file in sortedFiles) {
+        if ((file.artworkPath != null && file.artworkPath!.isNotEmpty) ||
+            (file.thumbnailPath != null && file.thumbnailPath!.isNotEmpty) ||
+            (file.artworkBytes != null && file.artworkBytes!.isNotEmpty)) {
+          return file;
+        }
+
+        final hasCover = probeCoverSync(file.path);
+        if (hasCover) {
+          return file;
+        }
+      }
+    }
+
+    if (folder.subFolders.isNotEmpty) {
+      final sortedSubFolders = List<MusicFolder>.from(folder.subFolders)
+        ..sort(compareFoldersByName);
+      for (final sub in sortedSubFolders) {
+        final subRep = sub.representativeSongCache;
+        if (subRep != null) {
+          return subRep;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  /// Computes representative songs for all folders in the subtree rooted at [root]
+  /// synchronously using a bottom-up (post-order DFS) traversal.
+  ///
+  /// Returns a map of `normalizedFolderPath -> normalizedSongPath`.
+  static Map<String, String> computeFolderCoversBottomUpSync(
+    MusicFolder root, {
+    CoverProbeFunctionSync probeCoverSync = defaultProbeSongHasCoverSync,
+    String Function(String path)? normalizePath,
+  }) {
+    final result = <String, String>{};
+    final normalize = normalizePath ?? (p) => p;
+
+    MusicFile? postOrder(MusicFolder folder) {
+      MusicFile? firstSubRep;
+      if (folder.subFolders.isNotEmpty) {
+        final sortedSubFolders = List<MusicFolder>.from(folder.subFolders)
+          ..sort(compareFoldersByName);
+        for (final sub in sortedSubFolders) {
+          final subRep = postOrder(sub);
+          firstSubRep ??= subRep;
+        }
+      }
+
+      MusicFile? directRep;
+      if (folder.files.isNotEmpty) {
+        final sortedFiles = List<MusicFile>.from(folder.files)
+          ..sort(compareSongsByTitle);
+
+        for (final file in sortedFiles) {
+          if ((file.artworkPath != null && file.artworkPath!.isNotEmpty) ||
+              (file.thumbnailPath != null && file.thumbnailPath!.isNotEmpty) ||
+              (file.artworkBytes != null && file.artworkBytes!.isNotEmpty)) {
+            directRep = file;
+            break;
+          }
+
+          final hasCover = probeCoverSync(file.path);
+          if (hasCover) {
+            directRep = file;
+            break;
+          }
+        }
+      }
+
+      final selected = directRep ?? firstSubRep;
+      if (selected != null) {
+        folder.representativeSongCache = selected;
+        final normFolder = normalize(folder.path);
+        final normSong = normalize(selected.path);
+        result[normFolder] = normSong;
+      } else {
+        folder.representativeSongCache = null;
+      }
+
+      return selected;
+    }
+
+    postOrder(root);
+    return result;
+  }
+
   /// Computes representative songs for all folders in the subtree rooted at [root]
   /// using a bottom-up (post-order DFS) traversal.
   ///
@@ -167,4 +283,28 @@ class FolderCoverResolver {
     await postOrder(root);
     return result;
   }
+
+  /// Computes representative songs for multiple root folders completely in a background isolate.
+  /// Returns a unified map of `folderPath -> representativeSongPath`.
+  static Future<Map<String, String>> computeAllFolderCoversInBackground(
+    List<MusicFolder> rootFolders,
+  ) async {
+    if (rootFolders.isEmpty) {
+      return const <String, String>{};
+    }
+    return await compute(_computeAllFolderCoversWorker, rootFolders);
+  }
+}
+
+/// Top-level worker function for background isolate computation.
+Map<String, String> _computeAllFolderCoversWorker(List<MusicFolder> folders) {
+  final allCovers = <String, String>{};
+  for (final root in folders) {
+    final covers = FolderCoverResolver.computeFolderCoversBottomUpSync(
+      root,
+      probeCoverSync: FolderCoverResolver.defaultProbeSongHasCoverSync,
+    );
+    allCovers.addAll(covers);
+  }
+  return allCovers;
 }

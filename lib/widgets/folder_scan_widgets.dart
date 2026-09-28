@@ -50,6 +50,7 @@ class ScanProgressInfo {
 class ScanProgressInfoNotifier extends Notifier<ScanProgressInfo> {
   StreamSubscription<ScanProgress>? _localProgressSub;
   ScannerService? _observedScanner;
+  ScanProgressInfo? _lastLocalProgressInfo;
 
   @override
   ScanProgressInfo build() {
@@ -66,6 +67,7 @@ class ScanProgressInfoNotifier extends Notifier<ScanProgressInfo> {
       _localProgressSub?.cancel();
       _localProgressSub = null;
       _observedScanner = null;
+      _lastLocalProgressInfo = null;
     });
 
     return _calculateState(localScanner, remoteProgress);
@@ -73,13 +75,16 @@ class ScanProgressInfoNotifier extends Notifier<ScanProgressInfo> {
 
   void _handleLocalProgress(ScanProgress progress) {
     final localScanner = ref.read(scannerServiceProvider);
-    if (!localScanner.isScanning) return;
+    if (!localScanner.isScanning) {
+      _lastLocalProgressInfo = null;
+      return;
+    }
 
     final discovered = progress.discoveredCount;
     final completed = progress.completedCount;
     final ratio = discovered > 0 ? (completed / discovered).clamp(0.0, 1.0) : null;
 
-    state = ScanProgressInfo(
+    final newInfo = ScanProgressInfo(
       isScanning: true,
       progress: ratio,
       discoveredCount: discovered,
@@ -87,6 +92,8 @@ class ScanProgressInfoNotifier extends Notifier<ScanProgressInfo> {
       currentFile: progress.filePath,
       serverName: null,
     );
+    _lastLocalProgressInfo = newInfo;
+    state = newInfo;
   }
 
   ScanProgressInfo _calculateState(
@@ -108,15 +115,10 @@ class ScanProgressInfoNotifier extends Notifier<ScanProgressInfo> {
     }
 
     if (localScanner.isScanning) {
-      return ScanProgressInfo(
-        isScanning: true,
-        progress: state.progress,
-        discoveredCount: state.discoveredCount,
-        completedCount: state.completedCount,
-        currentFile: state.currentFile,
-      );
+      return _lastLocalProgressInfo ?? const ScanProgressInfo(isScanning: true);
     }
 
+    _lastLocalProgressInfo = null;
     return const ScanProgressInfo(isScanning: false);
   }
 }

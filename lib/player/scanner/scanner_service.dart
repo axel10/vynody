@@ -806,7 +806,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
   }) {
     if (scope == SortScope.currentFolder &&
         _updateFolderSortSettings(folderPath: folderPath, criteria: criteria)) {
-      _sortAndNotify();
+      _sortAndNotify(refreshCovers: false);
       return;
     }
 
@@ -816,7 +816,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
 
     _globalSortCriteria = criteria;
     unawaited(_saveGlobalSortSettings());
-    _sortAndNotify();
+    _sortAndNotify(refreshCovers: false);
   }
 
   void setSortOrder(
@@ -826,7 +826,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
   }) {
     if (scope == SortScope.currentFolder &&
         _updateFolderSortSettings(folderPath: folderPath, order: order)) {
-      _sortAndNotify();
+      _sortAndNotify(refreshCovers: false);
       return;
     }
 
@@ -836,10 +836,10 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
 
     _globalSortOrder = order;
     unawaited(_saveGlobalSortSettings());
-    _sortAndNotify();
+    _sortAndNotify(refreshCovers: false);
   }
 
-  void _sortAndNotify() {
+  void _sortAndNotify({bool refreshCovers = true}) {
     final totalStopwatch = Stopwatch()..start();
     try {
       _timeScanStepSync('stage sortAndNotify sort scanned root folders', () {
@@ -865,7 +865,9 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       _timeScanStepSync('stage sortAndNotify sync navigation state', () {
         _syncNavigationStateToLatestTree();
       });
-      unawaited(_refreshAllFolderRepresentativeSongs());
+      if (refreshCovers) {
+        unawaited(_refreshAllFolderRepresentativeSongs());
+      }
       _timeScanStepSync('stage sortAndNotify notify listeners', () {
         notifyListeners();
       });
@@ -876,22 +878,23 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> _refreshAllFolderRepresentativeSongs() async {
-    final allCovers = <String, String>{};
-
+    final foldersToProcess = <MusicFolder>[];
     if (_systemMediaFolder != null) {
-      final systemCovers = await FolderCoverResolver.computeFolderCoversBottomUp(
-        _systemMediaFolder!,
-        normalizePath: _normalizePath,
-      );
-      allCovers.addAll(systemCovers);
+      foldersToProcess.add(_systemMediaFolder!);
+    }
+    foldersToProcess.addAll(_scannedRootFolders);
+
+    if (foldersToProcess.isEmpty) {
+      return;
     }
 
-    for (final root in _scannedRootFolders) {
-      final rootCovers = await FolderCoverResolver.computeFolderCoversBottomUp(
-        root,
-        normalizePath: _normalizePath,
-      );
-      allCovers.addAll(rootCovers);
+    final rawCovers = await FolderCoverResolver.computeAllFolderCoversInBackground(
+      foldersToProcess,
+    );
+
+    final allCovers = <String, String>{};
+    for (final entry in rawCovers.entries) {
+      allCovers[_normalizePath(entry.key)] = _normalizePath(entry.value);
     }
 
     final staleCovers = _folderRepresentativeSongPaths.keys
