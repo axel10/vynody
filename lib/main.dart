@@ -668,17 +668,16 @@ class _MyAppState extends ConsumerState<MyApp>
               data: mediaQuery.copyWith(
                 size: scaledSize,
                 devicePixelRatio: mediaQuery.devicePixelRatio * scale,
-                textScaler: TextScaler.linear(scale),
+                padding: mediaQuery.padding / scale,
+                viewInsets: mediaQuery.viewInsets / scale,
+                viewPadding: mediaQuery.viewPadding / scale,
               ),
-              child: Transform.scale(
-                scale: scale,
-                alignment: Alignment.topLeft,
-                child: OverflowBox(
+              child: SizedBox(
+                width: mediaQuery.size.width,
+                height: mediaQuery.size.height,
+                child: FittedBox(
+                  fit: BoxFit.contain,
                   alignment: Alignment.topLeft,
-                  minWidth: 0.0,
-                  maxWidth: double.infinity,
-                  minHeight: 0.0,
-                  maxHeight: double.infinity,
                   child: SizedBox(
                     width: scaledSize.width,
                     height: scaledSize.height,
