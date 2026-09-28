@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
@@ -136,6 +138,8 @@ class SongTile extends ConsumerWidget {
       ),
     );
 
+    final isDesktop = !kIsWeb && (Platform.isMacOS || Platform.isWindows || Platform.isLinux);
+
     // Build trailing widget (more button or drag handle)
     Widget? trailingWidget;
     if (effectiveSelectionMode) {
@@ -150,22 +154,37 @@ class SongTile extends ConsumerWidget {
         );
       }
     } else {
-      trailingWidget = Builder(
-        builder: (buttonContext) {
-          return IconButton(
-            icon: Icon(
-              Icons.more_vert_rounded,
-              size: 20,
+      if (isDesktop) {
+        // Desktop: show drag handle for reordering without more button (context menu on right click)
+        if (dragHandle != null) {
+          trailingWidget = IconTheme(
+            data: theme.iconTheme.copyWith(
               color: isCurrent && !isMissing
                   ? theme.colorScheme.primary
-                  : null,
+                  : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
             ),
-            onPressed: onMorePressed != null
-                ? () => onMorePressed!(buttonContext)
-                : null,
+            child: dragHandle!,
           );
-        },
-      );
+        }
+      } else {
+        // Mobile: show more button in normal mode; drag handle replaces it when in selection mode
+        if (onMorePressed != null) {
+          trailingWidget = Builder(
+            builder: (buttonContext) {
+              return IconButton(
+                icon: Icon(
+                  Icons.more_vert_rounded,
+                  size: 20,
+                  color: isCurrent && !isMissing
+                      ? theme.colorScheme.primary
+                      : null,
+                ),
+                onPressed: () => onMorePressed!(buttonContext),
+              );
+            },
+          );
+        }
+      }
     }
 
     // Colors
@@ -291,7 +310,7 @@ class SongTile extends ConsumerWidget {
 
     return DraggableSongItem(
       song: song,
-      enabled: !isMissing && enableDrag && dragHandle == null,
+      enabled: !isMissing && enableDrag,
       isSelected: effectiveSelected,
       isSelectionMode: effectiveSelectionMode,
       selectedPaths: selectedPaths,

@@ -110,13 +110,16 @@ class _QueueSongTileState extends State<QueueSongTile> {
                 if (widget.showDragHandle)
                   ReorderableDragStartListener(
                     index: widget.index,
-                    child: Padding(
-                      padding: const EdgeInsets.only(right: 6),
-                      child: Icon(
-                        Icons.drag_handle_rounded,
-                        size: 16,
-                        color: theme.colorScheme.onSurface.withValues(
-                          alpha: _isHovered ? 0.6 : 0.25,
+                    child: MouseRegion(
+                      cursor: SystemMouseCursors.grab,
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: 6),
+                        child: Icon(
+                          Icons.drag_handle_rounded,
+                          size: 16,
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: _isHovered ? 0.6 : 0.25,
+                          ),
                         ),
                       ),
                     ),

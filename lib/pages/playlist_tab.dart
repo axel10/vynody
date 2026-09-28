@@ -523,7 +523,13 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab>
                             selectedPaths: selectedSongPaths,
                             dragHandle: ReorderableDragStartListener(
                               index: index,
-                              child: const Icon(Icons.drag_handle),
+                              child: const MouseRegion(
+                                cursor: SystemMouseCursors.grab,
+                                child: Padding(
+                                  padding: EdgeInsets.symmetric(horizontal: 4.0),
+                                  child: Icon(Icons.drag_handle_rounded),
+                                ),
+                              ),
                             ),
                             onTap: () {
                               if (isMissing) {

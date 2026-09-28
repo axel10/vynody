@@ -522,7 +522,13 @@ class _QueuePageState extends ConsumerState<QueuePage>
                                     isHighlighted: _highlightedIndex == index,
                                     dragHandle: ReorderableDragStartListener(
                                       index: index,
-                                      child: const Icon(Icons.drag_handle),
+                                      child: const MouseRegion(
+                                        cursor: SystemMouseCursors.grab,
+                                        child: Padding(
+                                          padding: EdgeInsets.symmetric(horizontal: 4.0),
+                                          child: Icon(Icons.drag_handle_rounded),
+                                        ),
+                                      ),
                                     ),
                                     onTap: () {
                                       if (isMissing) {
