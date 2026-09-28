@@ -5,6 +5,7 @@ import 'package:flutter_taglib/flutter_taglib.dart' as taglib;
 
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/models/music_folder.dart';
+import 'package:vynody/player/scanner/scanner_path_utils.dart';
 
 typedef CoverProbeFunction = Future<bool> Function(String filePath);
 typedef CoverProbeFunctionSync = bool Function(String filePath);
@@ -332,7 +333,12 @@ class FolderCoverResolver {
     if (rootFolders.isEmpty) {
       return const <String, String>{};
     }
-    return await compute(_computeAllFolderCoversWorker, rootFolders);
+    try {
+      return await compute(_computeAllFolderCoversWorker, rootFolders);
+    } catch (e) {
+      debugPrint('[FolderCoverResolver] Background cover computation failed: $e');
+      return const <String, String>{};
+    }
   }
 }
 
@@ -343,6 +349,7 @@ Map<String, String> _computeAllFolderCoversWorker(List<MusicFolder> folders) {
     final covers = FolderCoverResolver.computeFolderCoversBottomUpSync(
       root,
       probeCoverSync: FolderCoverResolver.defaultProbeSongHasCoverSync,
+      normalizePath: ScannerPathUtils.normalizePath,
     );
     allCovers.addAll(covers);
   }

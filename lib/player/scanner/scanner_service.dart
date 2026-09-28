@@ -242,6 +242,13 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
         folder.representativeSongCache = file;
         return file;
       }
+      final directSong = folder.files.firstWhereOrNull(
+        (f) => _pathsEqual(f.path, songPath),
+      );
+      if (directSong != null) {
+        folder.representativeSongCache = directSong;
+        return directSong;
+      }
     }
 
     // FolderCovers table is the sole source of truth for folder representative covers.
@@ -909,14 +916,9 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       return;
     }
 
-    final allCovers = <String, String>{};
-    for (final root in foldersToProcess) {
-      final covers = FolderCoverResolver.computeFolderCoversBottomUpSync(
-        root,
-        normalizePath: _normalizePath,
-      );
-      allCovers.addAll(covers);
-    }
+    final allCovers = await FolderCoverResolver.computeAllFolderCoversInBackground(
+      foldersToProcess,
+    );
 
     final staleCovers = <String>[];
     for (final root in foldersToProcess) {
@@ -949,8 +951,31 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       }
       await _repository.batchUpsertFolderCovers(allCovers);
     }
+
+    for (final root in foldersToProcess) {
+      _syncRepresentativeSongCaches(root, allCovers);
+    }
+
     if (allCovers.isNotEmpty || staleCovers.isNotEmpty) {
       notifyListeners();
+    }
+  }
+
+  void _syncRepresentativeSongCaches(MusicFolder folder, Map<String, String> covers) {
+    final normPath = _normalizePath(folder.path);
+    final songPath = covers[normPath];
+    if (songPath != null) {
+      final meta = _folderRepresentativeSongs[normPath] ?? _metadataStore.getMetadata(songPath);
+      if (meta != null) {
+        folder.representativeSongCache = _treeBuilder.musicFileFromSongMetadata(meta);
+      } else {
+        folder.representativeSongCache = folder.files.firstWhereOrNull((f) => _pathsEqual(f.path, songPath));
+      }
+    } else {
+      folder.representativeSongCache = null;
+    }
+    for (final sub in folder.subFolders) {
+      _syncRepresentativeSongCaches(sub, covers);
     }
   }
 
