@@ -594,6 +594,7 @@ class SettingsService extends ChangeNotifier {
   static const String _keyRegularWindowWidth = 'regular_window_width';
   static const String _keyRegularWindowHeight = 'regular_window_height';
   static const String _keyRegularWindowMaximized = 'regular_window_maximized';
+  static const String _keyRightQueueDrawerOpen = 'right_queue_drawer_open';
   static const String _keySmallWindowWidth = 'small_window_width';
   static const String _keySmallWindowHeight = 'small_window_height';
   static const String _keySmallWindowBottomPanelMode =
@@ -668,6 +669,13 @@ class SettingsService extends ChangeNotifier {
 
   late final _regularWindowMaximizedProperty = SettingProperty<bool>(
     key: _keyRegularWindowMaximized,
+    defaultValue: false,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
+  late final _isRightQueueDrawerOpenProperty = SettingProperty<bool>(
+    key: _keyRightQueueDrawerOpen,
     defaultValue: false,
     prefs: _prefs,
     onChanged: notifyListeners,
@@ -3412,6 +3420,12 @@ class SettingsService extends ChangeNotifier {
 
   set isRegularWindowMaximized(bool value) {
     _regularWindowMaximizedProperty.value = value;
+  }
+
+  bool get isRightQueueDrawerOpen => _isRightQueueDrawerOpenProperty.value;
+
+  set isRightQueueDrawerOpen(bool value) {
+    _isRightQueueDrawerOpenProperty.value = value;
   }
 
   bool get enableDesktopLyrics =>

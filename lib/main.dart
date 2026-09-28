@@ -33,6 +33,7 @@ import 'widgets/volume_controls.dart';
 import 'pages/main_layout_riverpod.dart';
 import 'package:flutter_desktop_lyrics/flutter_desktop_lyrics.dart';
 import 'package:vynody/player/platform/standalone_queue_window_manager.dart';
+import 'package:vynody/player/platform/right_queue_drawer_controller.dart';
 import 'package:vynody/standalone_queue_app.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -299,7 +300,9 @@ void main(List<String> args) async {
     await windowManager.ensureInitialized();
     WindowOptions windowOptions = WindowOptions(
       size: settingsService.savedRegularWindowSize,
-      minimumSize: const Size(400, 650),
+      minimumSize: settingsService.isRightQueueDrawerOpen
+          ? kDrawerOpenMinWindowSize
+          : kDefaultRegularMinWindowSize,
       center: true,
       backgroundColor: Colors.transparent,
       skipTaskbar: false,

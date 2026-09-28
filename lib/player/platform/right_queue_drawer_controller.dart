@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
+import 'package:vynody/player/audio/audio_riverpod.dart';
 
 const double kRightQueueDrawerWidth = 340.0;
 const double kMinComfortableWindowWidth = 920.0;
@@ -14,7 +15,24 @@ class RightQueueDrawerNotifier extends Notifier<bool> {
   Size? _sizeBeforeAutoExpand;
 
   @override
-  bool build() => false;
+  bool build() {
+    if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
+      try {
+        return ref.read(settingsServiceProvider).isRightQueueDrawerOpen;
+      } catch (_) {
+        return false;
+      }
+    }
+    return false;
+  }
+
+  void _persistState(bool isOpen) {
+    if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
+      try {
+        ref.read(settingsServiceProvider).isRightQueueDrawerOpen = isOpen;
+      } catch (_) {}
+    }
+  }
 
   /// Toggles the drawer state
   Future<void> toggle() async {
@@ -62,6 +80,7 @@ class RightQueueDrawerNotifier extends Notifier<bool> {
     }
 
     state = true;
+    _persistState(true);
   }
 
   /// Closes the drawer. Restores the minimum window size to [kDefaultRegularMinWindowSize]
@@ -70,6 +89,7 @@ class RightQueueDrawerNotifier extends Notifier<bool> {
     if (!state) return;
 
     state = false;
+    _persistState(false);
 
     if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
       try {
