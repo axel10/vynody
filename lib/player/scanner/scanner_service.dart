@@ -878,11 +878,32 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> _refreshAllFolderRepresentativeSongs() async {
-    final foldersToProcess = <MusicFolder>[];
+    final allRoots = <String>[];
     if (_systemMediaFolder != null) {
-      foldersToProcess.add(_systemMediaFolder!);
+      allRoots.add(_systemMediaFolder!.path);
     }
-    foldersToProcess.addAll(_scannedRootFolders);
+    for (final root in _scannedRootFolders) {
+      allRoots.add(root.path);
+    }
+    await _refreshFolderCoversForRoots(allRoots);
+  }
+
+  Future<void> _refreshFolderCoversForRoots(Iterable<String> rootPaths) async {
+    final foldersToProcess = <MusicFolder>[];
+    for (final rootPath in rootPaths) {
+      if (rootPath == 'system' || rootPath.startsWith('system/')) {
+        if (_systemMediaFolder != null && !foldersToProcess.contains(_systemMediaFolder)) {
+          foldersToProcess.add(_systemMediaFolder!);
+        }
+      } else {
+        final rootFolder = _scannedRootFolders.firstWhereOrNull(
+          (f) => _pathsEqual(f.path, rootPath),
+        );
+        if (rootFolder != null && !foldersToProcess.contains(rootFolder)) {
+          foldersToProcess.add(rootFolder);
+        }
+      }
+    }
 
     if (foldersToProcess.isEmpty) {
       return;
@@ -897,9 +918,19 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       allCovers.addAll(covers);
     }
 
-    final staleCovers = _folderRepresentativeSongPaths.keys
-        .where((folder) => !allCovers.containsKey(folder))
-        .toList();
+    final staleCovers = <String>[];
+    for (final root in foldersToProcess) {
+      final normRoot = _normalizePath(root.path);
+      for (final folderPath in _folderRepresentativeSongPaths.keys) {
+        final isUnderThisRoot = normRoot == 'system'
+            ? folderPath == 'system' || folderPath.startsWith('system/')
+            : _pathContains(normRoot, folderPath) || _pathsEqual(normRoot, folderPath);
+        if (isUnderThisRoot && !allCovers.containsKey(folderPath)) {
+          staleCovers.add(folderPath);
+        }
+      }
+    }
+
     if (staleCovers.isNotEmpty) {
       for (final folder in staleCovers) {
         _folderRepresentativeSongPaths.remove(folder);
@@ -2292,7 +2323,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       final directory = Directory(normalizedDirectory);
       if (!await directory.exists()) {
         await _removeDirectoryFromLibrary(normalizedDirectory);
-        _refreshAffectedRootsFromCache(affectedRoots);
+        await _refreshAffectedRootsFromCache(affectedRoots);
         notifyListeners();
         return;
       }
@@ -2322,7 +2353,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
         await _upsertIncrementalSongPath(filePath, scanState: scanState);
       }
 
-      _refreshAffectedRootsFromCache(affectedRoots);
+      await _refreshAffectedRootsFromCache(affectedRoots);
       notifyListeners();
     } finally {
       _scanCoordinator.completeIncrementalPhase();
@@ -2949,13 +2980,14 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     _upsertScannedRootFolder(rootFolder);
   }
 
-  void _refreshAffectedRootsFromCache(Iterable<String> affectedRoots) {
+  Future<void> _refreshAffectedRootsFromCache(Iterable<String> affectedRoots) async {
     for (final rootPath in affectedRoots) {
       _rebuildScannedRootFolderFromCache(rootPath);
     }
     if (affectedRoots.isNotEmpty) {
       _rebuildDisplayedRootFolders();
       _syncNavigationStateToLatestTree();
+      await _refreshFolderCoversForRoots(affectedRoots);
     }
   }
 

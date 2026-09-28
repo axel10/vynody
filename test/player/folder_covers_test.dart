@@ -234,5 +234,35 @@ void main() {
       expect(remaining.containsKey('/root/sub1/nested'), isFalse);
       expect(remaining.containsKey('/other'), isTrue);
     });
+
+    test('evaluateRepresentativeSongForFolder updates representative when contents change', () async {
+      final songA = const MusicFile(path: '/music/pop/a.mp3', name: 'a.mp3', title: 'Song A', artworkPath: '/art/a.jpg');
+      final songB = const MusicFile(path: '/music/pop/b.mp3', name: 'b.mp3', title: 'Song B', artworkPath: '/art/b.jpg');
+
+      final popFolder = MusicFolder(
+        path: '/music/pop',
+        name: 'pop',
+        files: [songB],
+      );
+
+      var rep = await FolderCoverResolver.evaluateRepresentativeSongForFolder(popFolder);
+      expect(rep?.path, equals('/music/pop/b.mp3'));
+
+      // Add songA (title alphabetically before songB)
+      popFolder.files.add(songA);
+      rep = await FolderCoverResolver.evaluateRepresentativeSongForFolder(popFolder);
+      expect(rep?.path, equals('/music/pop/a.mp3'));
+
+      // Remove songs, fallback to subfolder representative
+      popFolder.files.clear();
+      final subFolder = MusicFolder(
+        path: '/music/pop/dance',
+        name: 'dance',
+      )..representativeSongCache = songB;
+      popFolder.subFolders.add(subFolder);
+      rep = await FolderCoverResolver.evaluateRepresentativeSongForFolder(popFolder);
+      expect(rep?.path, equals('/music/pop/b.mp3'));
+    });
   });
 }
+
