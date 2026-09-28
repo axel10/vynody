@@ -59,9 +59,25 @@ class FolderCoverResolver {
     }
   }
 
-  /// Strictly compares songs by Title ascending (case-insensitive).
-  /// Falls back to filename ascending if title is empty or missing.
-  static int compareSongsByTitle(MusicFile a, MusicFile b) {
+  /// Strictly compares songs for folder cover resolution:
+  /// 1. Prioritizes valid positive track numbers (trackNumber > 0) in ascending order.
+  /// 2. If track numbers are identical or missing/non-positive, falls back to Title ascending (case-insensitive).
+  /// 3. If titles are empty/missing, falls back to filename ascending.
+  static int compareSongsForFolderCover(MusicFile a, MusicFile b) {
+    final hasTrackA = a.trackNumber != null && a.trackNumber! > 0;
+    final hasTrackB = b.trackNumber != null && b.trackNumber! > 0;
+
+    if (hasTrackA && hasTrackB) {
+      final trackCompare = a.trackNumber!.compareTo(b.trackNumber!);
+      if (trackCompare != 0) {
+        return trackCompare;
+      }
+    } else if (hasTrackA && !hasTrackB) {
+      return -1;
+    } else if (!hasTrackA && hasTrackB) {
+      return 1;
+    }
+
     final titleA = (a.title != null && a.title!.trim().isNotEmpty)
         ? a.title!.trim()
         : a.name;
@@ -71,6 +87,9 @@ class FolderCoverResolver {
     return titleA.toLowerCase().compareTo(titleB.toLowerCase());
   }
 
+  /// Alias for backward compatibility.
+  static int compareSongsByTitle(MusicFile a, MusicFile b) => compareSongsForFolderCover(a, b);
+
   /// Strictly compares folders by Name ascending (case-insensitive).
   static int compareFoldersByName(MusicFolder a, MusicFolder b) {
     return a.name.toLowerCase().compareTo(b.name.toLowerCase());
@@ -78,7 +97,7 @@ class FolderCoverResolver {
 
   /// Evaluates representative song for a single folder [folder].
   ///
-  /// Evaluates files sorted strictly by title ascending, probing each file lazily
+  /// Evaluates files sorted strictly by track number then title ascending, probing each file lazily
   /// until the first song with a cover is found.
   /// If no direct files have a cover, returns the first subfolder's representative song
   /// in deterministic folder name ascending order.
@@ -88,7 +107,7 @@ class FolderCoverResolver {
   }) async {
     if (folder.files.isNotEmpty) {
       final sortedFiles = List<MusicFile>.from(folder.files)
-        ..sort(compareSongsByTitle);
+        ..sort(compareSongsForFolderCover);
 
       for (final file in sortedFiles) {
         // Fast-path: if the in-memory object already has known artwork bytes or paths or hasArtwork flag, accept immediately
@@ -134,7 +153,7 @@ class FolderCoverResolver {
   }) {
     if (folder.files.isNotEmpty) {
       final sortedFiles = List<MusicFile>.from(folder.files)
-        ..sort(compareSongsByTitle);
+        ..sort(compareSongsForFolderCover);
 
       for (final file in sortedFiles) {
         if ((file.artworkPath != null && file.artworkPath!.isNotEmpty) ||
@@ -195,7 +214,7 @@ class FolderCoverResolver {
       MusicFile? directRep;
       if (folder.files.isNotEmpty) {
         final sortedFiles = List<MusicFile>.from(folder.files)
-          ..sort(compareSongsByTitle);
+          ..sort(compareSongsForFolderCover);
 
         for (final file in sortedFiles) {
           if ((file.artworkPath != null && file.artworkPath!.isNotEmpty) ||
@@ -263,7 +282,7 @@ class FolderCoverResolver {
       MusicFile? directRep;
       if (folder.files.isNotEmpty) {
         final sortedFiles = List<MusicFile>.from(folder.files)
-          ..sort(compareSongsByTitle);
+          ..sort(compareSongsForFolderCover);
 
         for (final file in sortedFiles) {
           if ((file.artworkPath != null && file.artworkPath!.isNotEmpty) ||

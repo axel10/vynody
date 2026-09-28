@@ -5,20 +5,34 @@ import 'package:vynody/player/scanner/folder_cover_resolver.dart';
 
 void main() {
   group('FolderCoverResolver', () {
-    test('compareSongsByTitle sorts by title ascending, falling back to name', () {
-      const songA = MusicFile(path: '/a.mp3', name: 'Z.mp3', title: 'Apple');
-      const songB = MusicFile(path: '/b.mp3', name: 'A.mp3', title: 'Banana');
-      const songC = MusicFile(path: '/c.mp3', name: 'Cat.mp3');
-      const songD = MusicFile(path: '/d.mp3', name: 'Dog.mp3');
+    test('compareSongsForFolderCover prioritizes trackNumber then falls back to title and name', () {
+      const track1SongZ = MusicFile(path: '/1z.mp3', name: 'Z.mp3', title: 'Zebra', trackNumber: 1);
+      const track2SongA = MusicFile(path: '/2a.mp3', name: 'A.mp3', title: 'Apple', trackNumber: 2);
+      const track2SongB = MusicFile(path: '/2b.mp3', name: 'B.mp3', title: 'Banana', trackNumber: 2);
+      const noTrackSongA = MusicFile(path: '/na.mp3', name: 'A.mp3', title: 'Apple');
+      const noTrackSongZ = MusicFile(path: '/nz.mp3', name: 'Z.mp3', title: 'Zebra');
+      const noTrackNoTitleCat = MusicFile(path: '/cat.mp3', name: 'Cat.mp3');
+      const noTrackNoTitleDog = MusicFile(path: '/dog.mp3', name: 'Dog.mp3');
 
-      final list = [songD, songB, songC, songA];
-      list.sort(FolderCoverResolver.compareSongsByTitle);
+      final list = [
+        noTrackSongZ,
+        noTrackNoTitleDog,
+        track2SongB,
+        noTrackSongA,
+        track1SongZ,
+        noTrackNoTitleCat,
+        track2SongA,
+      ];
+      list.sort(FolderCoverResolver.compareSongsForFolderCover);
 
       expect(list.map((s) => s.path).toList(), [
-        '/a.mp3', // Title: Apple
-        '/b.mp3', // Title: Banana
-        '/c.mp3', // Name: Cat.mp3
-        '/d.mp3', // Name: Dog.mp3
+        '/1z.mp3',  // Track 1 (even though Title is Zebra)
+        '/2a.mp3',  // Track 2, Title Apple
+        '/2b.mp3',  // Track 2, Title Banana
+        '/na.mp3',  // No track, Title Apple
+        '/cat.mp3', // No track, Name Cat.mp3
+        '/dog.mp3', // No track, Name Dog.mp3
+        '/nz.mp3',  // No track, Title Zebra
       ]);
     });
 
