@@ -59,6 +59,8 @@ dependencies:
   crypto: ^3.0.6
   xml: ^6.5.0
   dart_smb2: ^0.1.2
+  dart_webdav:
+    path: ./dart_webdav
 
   window_manager: 
     git: 

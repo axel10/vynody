@@ -322,6 +322,13 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "3.1.7"
+  dart_webdav:
+    dependency: "direct main"
+    description:
+      path: dart_webdav
+      relative: true
+    source: path
+    version: "0.1.0"
   dbus:
     dependency: "direct main"
     description:

@@ -1,459 +1,109 @@
 import 'dart:convert';
-import 'dart:io';
+import 'package:dart_webdav/dart_webdav.dart' as dw;
 import 'package:dio/dio.dart';
-import 'package:dio/io.dart';
-import 'package:path/path.dart' as p;
-import 'package:xml/xml.dart';
-import '../../library/music_file_utils.dart';
 import '../remote_server_models.dart';
 
-class WebDavFile {
-  final String path;
-  final String name;
-  final bool isDirectory;
-  final int contentLength;
-  final DateTime? lastModified;
-  final String? contentType;
-
-  const WebDavFile({
-    required this.path,
-    required this.name,
-    required this.isDirectory,
-    required this.contentLength,
-    this.lastModified,
-    this.contentType,
-  });
-
-  bool get isAudio => !isDirectory && MusicFileUtils.isMusicFilePath(name);
-
-  bool get isImage {
-    if (isDirectory) return false;
-    final ext = p.extension(name).toLowerCase();
-    return const {'.jpg', '.jpeg', '.png', '.webp'}.contains(ext);
-  }
-
-  bool get isLyric {
-    if (isDirectory) return false;
-    final ext = p.extension(name).toLowerCase();
-    return ext == '.lrc';
-  }
-}
+// Re-export WebDavFile and WebDavException so callers don't need direct package imports
+export 'package:dart_webdav/dart_webdav.dart'
+    show WebDavFile, WebDavException, WebDavConnectionResult;
 
 /// Common client interface for hierarchical remote file systems (WebDAV, SMB, etc.).
 abstract class RemoteDirectoryClient {
-  Future<List<WebDavFile>> listFiles(String path);
+  Future<List<dw.WebDavFile>> listFiles(String path);
 }
 
+/// Vynody WebDAV client powered by the robust `dart_webdav` engine.
 class WebDavClient implements RemoteDirectoryClient {
   final RemoteServer server;
   final String password;
-  late final Dio _dio;
+  final dw.WebDavClient _inner;
 
   WebDavClient({
     required this.server,
     required this.password,
     Dio? customDio,
-  }) {
-    _dio = customDio ??
-        Dio(
-          BaseOptions(
+  }) : _inner = dw.WebDavClient.basic(
+          baseUrl: server.url,
+          username: server.username,
+          password: password,
+          options: dw.WebDavClientOptions(
+            ignoreSsl: server.ignoreSsl,
             connectTimeout: const Duration(seconds: 10),
             receiveTimeout: const Duration(seconds: 15),
             sendTimeout: const Duration(seconds: 10),
-            headers: {'User-Agent': 'Vynody/1.19.0'},
+            userAgent: 'Vynody/1.19.0',
           ),
+          customDio: customDio,
         );
 
-    if (server.ignoreSsl && customDio == null) {
-      final adapter = _dio.httpClientAdapter;
-      if (adapter is IOHttpClientAdapter) {
-        adapter.createHttpClient = () {
-          final client = HttpClient();
-          client.badCertificateCallback = (cert, host, port) => true;
-          return client;
-        };
-      }
-    }
-  }
+  /// Access the underlying high-performance [dw.WebDavClient] directly for streaming or advanced operations.
+  dw.WebDavClient get inner => _inner;
 
-  String get baseUrl {
-    var raw = server.url.trim();
-    if (!raw.startsWith('http://') && !raw.startsWith('https://')) {
-      raw = 'http://$raw';
-    }
-    return raw.replaceAll(RegExp(r'/+$'), '');
-  }
+  String get baseUrl => _inner.baseUrl;
 
   String get basicAuthHeader {
     final credentials = '${server.username}:$password';
     return 'Basic ${base64Encode(utf8.encode(credentials))}';
   }
 
-  Map<String, String> get authHeaders => {
-        'Authorization': basicAuthHeader,
-      };
+  Map<String, String> get authHeaders => _inner.authHeaders;
 
   /// Safely encodes a relative or absolute URL path segment-by-segment.
   /// Converts `#` to `%23`, `+` to `%2B`, spaces to `%20`, brackets, etc.
   /// Idempotent (does not double-encode already percent-encoded strings).
-  static String safeEncodePath(String path) {
-    if (path.isEmpty) return path;
-    final isAbsolute = path.startsWith('/');
-    final segments = path.split('/').map((seg) {
-      if (seg.isEmpty) return seg;
-      try {
-        final decoded = Uri.decodeComponent(seg);
-        return Uri.encodeComponent(decoded);
-      } catch (_) {
-        return Uri.encodeComponent(seg);
-      }
-    }).toList();
-    var result = segments.join('/');
-    if (isAbsolute && !result.startsWith('/')) {
-      result = '/$result';
-    }
-    return result;
-  }
+  static String safeEncodePath(String path) => dw.SafeUrlEncoder.encodePath(path);
 
-  static String safeEncodeUrl(String url) {
-    if (url.isEmpty) return url;
-    try {
-      final schemeEnd = url.indexOf('://');
-      if (schemeEnd > 0) {
-        final scheme = url.substring(0, schemeEnd);
-        final rest = url.substring(schemeEnd + 3);
-        final pathStart = rest.indexOf('/');
-        if (pathStart >= 0) {
-          final hostPart = rest.substring(0, pathStart);
-          final rawPath = rest.substring(pathStart);
-          final queryIdx = rawPath.indexOf('?');
-          if (queryIdx >= 0) {
-            final pathOnly = rawPath.substring(0, queryIdx);
-            final queryPart = rawPath.substring(queryIdx);
-            return '$scheme://$hostPart${safeEncodePath(pathOnly)}$queryPart';
-          }
-          return '$scheme://$hostPart${safeEncodePath(rawPath)}';
-        }
-        return '$scheme://$rest';
-      }
-      return safeEncodePath(url);
-    } catch (_) {
-      try {
-        final decoded = Uri.decodeFull(url);
-        return Uri.encodeFull(decoded);
-      } catch (_) {
-        return url;
-      }
-    }
-  }
+  /// Normalizes and encodes a full URL safely.
+  static String safeEncodeUrl(String url) => dw.SafeUrlEncoder.encodeUrl(url);
 
-  String buildStreamUrl(String relativePath) {
-    return buildFullUrl(relativePath, includeAuth: true);
-  }
+  /// Builds a playable stream URL with inline authentication credentials.
+  String buildStreamUrl(String relativePath) =>
+      _inner.buildStreamUrl(relativePath);
 
-  String buildFullUrl(String relativePath, {bool includeAuth = false}) {
-    var path = relativePath.trim();
-    if (!path.startsWith('/')) {
-      path = '/$path';
-    }
-    final parsedBase = Uri.tryParse(baseUrl) ?? Uri.tryParse(Uri.encodeFull(baseUrl));
-    String rawUrl;
-    if (parsedBase != null) {
-      final authPrefix = includeAuth && server.username.isNotEmpty
-          ? '${Uri.encodeComponent(server.username)}${password.isNotEmpty ? ':${Uri.encodeComponent(password)}' : ''}@'
-          : '';
-      final origin =
-          '${parsedBase.scheme}://$authPrefix${parsedBase.host}${parsedBase.hasPort ? ':${parsedBase.port}' : ''}';
-      if (parsedBase.path.isNotEmpty && parsedBase.path != '/') {
-        final basePath = parsedBase.path.replaceAll(RegExp(r'/+$'), '');
-        if (path == basePath || path.startsWith('$basePath/')) {
-          rawUrl = '$origin$path';
-        } else {
-          rawUrl = '$origin$basePath$path';
-        }
-      } else {
-        rawUrl = '$origin$path';
-      }
-    } else {
-      rawUrl = '$baseUrl$path';
-    }
-    return safeEncodeUrl(rawUrl);
-  }
+  /// Builds a fully-qualified, safe percent-encoded URL for the given relative path.
+  String buildFullUrl(String relativePath, {bool includeAuth = false}) =>
+      _inner.buildFullUrl(relativePath, includeAuth: includeAuth);
 
-  /// Attempts a PROPFIND Depth: 0 request against a specific path.
-  Future<int?> _probePath(String path) async {
-    try {
-      final url = buildFullUrl(path);
-      final response = await _dio.request<String>(
-        url,
-        options: Options(
-          method: 'PROPFIND',
-          headers: {
-            ...authHeaders,
-            'Depth': '0',
-            'Content-Type': 'application/xml; charset=utf-8',
-          },
-          responseType: ResponseType.plain,
-          validateStatus: (status) => status != null,
-        ),
-      );
-      return response.statusCode;
-    } catch (_) {
-      return null;
-    }
-  }
-
-  /// Tests WebDAV connection with a Depth: 0 PROPFIND request and auto-detection fallback.
+  /// Tests WebDAV connection with auto-detection fallback.
   Future<ConnectionTestResult> testConnection() async {
-    final customPath = server.customPath?.trim();
-    final hasExplicitCustomPath =
-        customPath != null && customPath.isNotEmpty && customPath != '/';
-    final initialPath = hasExplicitCustomPath ? customPath : '/';
-
-    try {
-      final url = buildFullUrl(initialPath);
-
-      final response = await _dio.request<String>(
-        url,
-        options: Options(
-          method: 'PROPFIND',
-          headers: {
-            ...authHeaders,
-            'Depth': '0',
-            'Content-Type': 'application/xml; charset=utf-8',
-          },
-          responseType: ResponseType.plain,
-        ),
+    final result = await _inner.testConnection(explicitPath: server.customPath);
+    if (result.success) {
+      return ConnectionTestResult.success(
+        message: result.message,
+        serverVersion: result.serverVersion,
+        detectedCustomPath: result.detectedCustomPath,
       );
-
-      final statusCode = response.statusCode ?? 0;
-      if (statusCode == 200 || statusCode == 207) {
-        return ConnectionTestResult.success(
-          message: 'WebDAV connected successfully',
-          serverVersion: 'WebDAV (HTTP 207 Multi-Status)',
-          detectedCustomPath: hasExplicitCustomPath ? customPath : null,
-        );
-      }
-    } on DioException catch (e) {
-      final statusCode = e.response?.statusCode;
-      if (statusCode == 401) {
-        return const ConnectionTestResult.failure(
-          '401 Unauthorized: Invalid WebDAV username or password',
-        );
-      }
-
-      // If root path or 404/405 error, probe fallback paths (e.g. AList /dav, NAS /webdav)
-      if (!hasExplicitCustomPath || statusCode == 404 || statusCode == 405) {
-        const candidatePaths = ['/dav', '/webdav', '/remote.php/webdav'];
-        for (final candidate in candidatePaths) {
-          if (candidate == initialPath) continue;
-          final probeStatus = await _probePath(candidate);
-          if (probeStatus == 200 || probeStatus == 207) {
-            return ConnectionTestResult.success(
-              message:
-                  'WebDAV connected successfully (Auto-detected: $candidate)',
-              serverVersion: 'WebDAV (Auto-detected: $candidate)',
-              detectedCustomPath: candidate,
-            );
-          }
-        }
-      }
-
-      if (statusCode == 405) {
-        return const ConnectionTestResult.failure(
-          '405 Method Not Allowed: The root path does not support WebDAV. If using AList, try setting path to /dav.',
-        );
-      }
-      if (statusCode == 404) {
-        return const ConnectionTestResult.failure(
-          '404 Not Found: Specified WebDAV path does not exist',
-        );
-      }
-      return ConnectionTestResult.failure(
-        'Connection failed: ${e.message ?? e.toString()}',
-      );
-    } catch (e) {
-      return ConnectionTestResult.failure('Error: $e');
+    } else {
+      return ConnectionTestResult.failure(result.message);
     }
-
-    return const ConnectionTestResult.failure(
-      'Unable to connect to WebDAV server',
-    );
   }
 
   /// Lists files and directories inside the given path using PROPFIND (Depth: 1).
   @override
-  Future<List<WebDavFile>> listFiles(String path) async {
+  Future<List<dw.WebDavFile>> listFiles(String path) async {
     try {
-      final url = buildFullUrl(path);
-      final response = await _dio.request<String>(
-        url,
-        options: Options(
-          method: 'PROPFIND',
-          headers: {
-            ...authHeaders,
-            'Depth': '1',
-            'Content-Type': 'application/xml; charset=utf-8',
-          },
-          responseType: ResponseType.plain,
-        ),
-      );
-
-      final rawXml = response.data;
-      if (rawXml == null || rawXml.isEmpty) return const [];
-
-      return parsePropfindXml(rawXml, requestPath: path);
-    } on DioException catch (e) {
-      // If root path was requested and returned 405/404, try /dav fallback
-      if (path == '/' &&
-          (e.response?.statusCode == 405 || e.response?.statusCode == 404)) {
-        final fallbackUrl = buildFullUrl('/dav');
-        final response = await _dio.request<String>(
-          fallbackUrl,
-          options: Options(
-            method: 'PROPFIND',
-            headers: {
-              ...authHeaders,
-              'Depth': '1',
-              'Content-Type': 'application/xml; charset=utf-8',
-            },
-            responseType: ResponseType.plain,
-          ),
-        );
-        final rawXml = response.data;
-        if (rawXml != null && rawXml.isNotEmpty) {
-          return parsePropfindXml(rawXml, requestPath: '/dav');
-        }
+      return await _inner.listFiles(path);
+    } on dw.WebDavException catch (e) {
+      // If root path was requested and returned 405/404, fallback to /dav
+      if (path == '/' && (e.statusCode == 405 || e.statusCode == 404)) {
+        try {
+          return await _inner.listFiles('/dav');
+        } catch (_) {}
       }
       rethrow;
     }
   }
 
   /// Parses PROPFIND Multi-Status XML response into a list of [WebDavFile].
-  static List<WebDavFile> parsePropfindXml(String xmlString, {String? requestPath}) {
-    final document = XmlDocument.parse(xmlString);
-    final responseNodes = document.findAllElements('response', namespace: '*').toList();
-    final List<WebDavFile> results = [];
-
-    // Normalize target requested path (e.g. '/dav' or '/dav/test')
-    String? cleanReqPath;
-    if (requestPath != null && requestPath.trim().isNotEmpty) {
-      var pStr = requestPath.trim();
-      try {
-        pStr = Uri.decodeFull(pStr).trim();
-      } catch (_) {}
-      final schemeIdx = pStr.indexOf('://');
-      if (schemeIdx > 0) {
-        final pathStart = pStr.indexOf('/', schemeIdx + 3);
-        pStr = pathStart >= 0 ? pStr.substring(pathStart) : '/';
-      }
-      pStr = pStr.replaceAll(RegExp(r'/+$'), '');
-      if (pStr.isNotEmpty) {
-        cleanReqPath = pStr.startsWith('/') ? pStr : '/$pStr';
-      }
-    }
-
-    for (int i = 0; i < responseNodes.length; i++) {
-      final resp = responseNodes[i];
-      final hrefEl = resp.findElements('href', namespace: '*').firstOrNull;
-      if (hrefEl == null) continue;
-
-      var rawHref = hrefEl.innerText.trim();
-      var decodedHref = rawHref;
-      try {
-        decodedHref = Uri.decodeFull(rawHref);
-      } catch (_) {}
-
-      var cleanHref = decodedHref;
-      final schemeIdx = cleanHref.indexOf('://');
-      if (schemeIdx > 0) {
-        final pathStart = cleanHref.indexOf('/', schemeIdx + 3);
-        cleanHref = pathStart >= 0 ? cleanHref.substring(pathStart) : '/';
-      }
-      cleanHref = cleanHref.replaceAll(RegExp(r'/+$'), '');
-      if (!cleanHref.startsWith('/')) {
-        cleanHref = '/$cleanHref';
-      }
-
-      // Skip the container folder itself (parent) in Depth: 1 PROPFIND
-      if (responseNodes.length > 1 && i == 0) {
-        // RFC 4918: First response node in Depth:1 response is always the target container
-        continue;
-      }
-      if (cleanReqPath != null && cleanHref == cleanReqPath) {
-        continue;
-      }
-
-      final propStat = resp.findElements('propstat', namespace: '*').firstOrNull;
-      final prop = propStat?.findElements('prop', namespace: '*').firstOrNull;
-
-      bool isDirectory = false;
-      int contentLength = 0;
-      DateTime? lastModified;
-      String? contentType;
-
-      if (prop != null) {
-        final resType = prop.findElements('resourcetype', namespace: '*').firstOrNull;
-        if (resType != null && resType.findElements('collection', namespace: '*').isNotEmpty) {
-          isDirectory = true;
-        }
-
-        final lenEl = prop.findElements('getcontentlength', namespace: '*').firstOrNull;
-        if (lenEl != null) {
-          contentLength = int.tryParse(lenEl.innerText.trim()) ?? 0;
-        }
-
-        final modEl = prop.findElements('getlastmodified', namespace: '*').firstOrNull;
-        if (modEl != null) {
-          try {
-            lastModified = HttpDate.parse(modEl.innerText.trim());
-          } catch (_) {}
-        }
-
-        final typeEl = prop.findElements('getcontenttype', namespace: '*').firstOrNull;
-        if (typeEl != null) {
-          contentType = typeEl.innerText.trim();
-        }
-      }
-
-      var name = p.basename(cleanHref);
-      if (name.isEmpty) {
-        name = cleanHref;
-      }
-
-      results.add(
-        WebDavFile(
-          path: cleanHref.isEmpty ? '/' : cleanHref,
-          name: name,
-          isDirectory: isDirectory,
-          contentLength: contentLength,
-          lastModified: lastModified,
-          contentType: contentType,
-        ),
-      );
-    }
-
-    return results;
-  }
+  static List<dw.WebDavFile> parsePropfindXml(String xmlString, {String? requestPath}) =>
+      dw.PropFindXmlParser.parseFiles(xmlString, requestPath: requestPath);
 
   /// Downloads text content of a file (e.g. .lrc lyrics file).
   Future<String?> getFileContent(String relativeOrFullPath) async {
     try {
-      final url = relativeOrFullPath.startsWith('http://') || relativeOrFullPath.startsWith('https://')
-          ? safeEncodeUrl(relativeOrFullPath)
-          : buildFullUrl(relativeOrFullPath);
-
-      final response = await _dio.get<String>(
-        url,
-        options: Options(
-          headers: authHeaders,
-          responseType: ResponseType.plain,
-        ),
-      );
-      return response.data;
+      return await _inner.getText(relativeOrFullPath);
     } catch (_) {
       return null;
     }
   }
 }
-
