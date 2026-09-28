@@ -954,6 +954,26 @@ class LrcUtils {
     return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}.$fraction';
   }
 
+  /// 将单行歌词格式化为 LRC 字符串。
+  /// 如果该行包含逐字打轴信息（`words`），则序列化为 Enhanced LRC 格式（例如 `[00:01.00]字[00:01.50]字`）。
+  static String formatLyricLine(LyricLine line) {
+    if (!line.isTimed) return line.text;
+    final words = line.words;
+    if (words != null && words.isNotEmpty) {
+      final buffer = StringBuffer();
+      for (final word in words) {
+        buffer.write('[${formatLrcTimestamp(word.timestamp)}]${word.text}');
+      }
+      return buffer.toString();
+    }
+    return '[${formatLrcTimestamp(line.timestamp)}]${line.text}';
+  }
+
+  /// 将歌词行列表格式化为完整的 LRC 文本。
+  static String formatLyrics(List<LyricLine> lines) {
+    return lines.map(formatLyricLine).join('\n');
+  }
+
   static String cleanGeneratedLyricsText(String? text) {
     final trimmed = text?.trim();
     if (trimmed == null || trimmed.isEmpty) return '';

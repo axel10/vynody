@@ -992,20 +992,24 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     } else if (selected == 'save_lyrics_to_file') {
       final currentSong = ref.read(audioCurrentMusicProvider);
       if (currentSong != null) {
-        final lyricsToSave = _hasTimedLyrics(displayLines)
-            ? displayLines
-                .map(
-                  (line) => line.isTimed
-                      ? '[${LrcUtils.formatLrcTimestamp(line.timestamp)}]${line.text}'
-                      : line.text,
-                )
-                .join('\n')
-            : displayPlainLyrics;
+        final displayLyrics = _lyricsForDisplay();
+        final rawText = lyricsState.currentLyricsText.trim().isNotEmpty
+            ? lyricsState.currentLyricsText.trim()
+            : (displayLyrics?.plainText.trim() ?? '');
+
+        final String lyricsToSave;
+        if (rawText.isNotEmpty &&
+            LrcUtils.parseTimedLyrics(rawText).any((line) => line.isTimed)) {
+          lyricsToSave = rawText;
+        } else if (_hasTimedLyrics(displayLines)) {
+          lyricsToSave = LrcUtils.formatLyrics(displayLines);
+        } else {
+          lyricsToSave = displayPlainLyrics;
+        }
 
         showToast(l10n.writingLyrics);
 
         final settings = ref.read(settingsServiceProvider);
-        final displayLyrics = _lyricsForDisplay();
         final saveToLrc = settings.lyricsSaveMethod == LyricsSaveMethod.lrcFile ||
             (settings.lyricsSaveMethod == LyricsSaveMethod.original &&
                 displayLyrics?.source == 'external');

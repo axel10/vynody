@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:vynody/models/lyric_line.dart';
 import 'package:vynody/utils/lrc_utils.dart';
 
 void main() {
@@ -466,4 +467,90 @@ Third line of song
       expect(stripped, contains('纯音乐，请欣赏'));
     });
   });
+
+  group('LrcUtils.formatLyrics and formatLyricLine', () {
+    test('formats standard timed line without words', () {
+      const line = LyricLine(
+        timestamp: Duration(seconds: 12, milliseconds: 340),
+        text: 'Hello World',
+        isTimed: true,
+      );
+      expect(LrcUtils.formatLyricLine(line), '[00:12.34]Hello World');
+    });
+
+    test('formats untimed line', () {
+      const line = LyricLine(
+        timestamp: Duration.zero,
+        text: 'Untimed line',
+        isTimed: false,
+      );
+      expect(LrcUtils.formatLyricLine(line), 'Untimed line');
+    });
+
+    test('formats word-by-word timed line with words', () {
+      const line = LyricLine(
+        timestamp: Duration(seconds: 1),
+        text: '我爱你',
+        isTimed: true,
+        words: [
+          LyricWord(
+            timestamp: Duration(seconds: 1),
+            durationMs: 500,
+            text: '我',
+          ),
+          LyricWord(
+            timestamp: Duration(milliseconds: 1500),
+            durationMs: 500,
+            text: '爱',
+          ),
+          LyricWord(
+            timestamp: Duration(seconds: 2),
+            durationMs: 500,
+            text: '你',
+          ),
+        ],
+      );
+      expect(
+        LrcUtils.formatLyricLine(line),
+        '[00:01.00]我[00:01.50]爱[00:02.00]你',
+      );
+    });
+
+    test('formats multi-line list to full LRC string', () {
+      const lines = [
+        LyricLine(
+          timestamp: Duration(seconds: 1),
+          text: '我爱你',
+          isTimed: true,
+          words: [
+            LyricWord(
+              timestamp: Duration(seconds: 1),
+              durationMs: 500,
+              text: '我',
+            ),
+            LyricWord(
+              timestamp: Duration(milliseconds: 1500),
+              durationMs: 500,
+              text: '爱',
+            ),
+            LyricWord(
+              timestamp: Duration(seconds: 2),
+              durationMs: 500,
+              text: '你',
+            ),
+          ],
+        ),
+        LyricLine(
+          timestamp: Duration(seconds: 5),
+          text: '中国',
+          isTimed: true,
+        ),
+      ];
+      expect(
+        LrcUtils.formatLyrics(lines),
+        '[00:01.00]我[00:01.50]爱[00:02.00]你\n[00:05.00]中国',
+      );
+    });
+  });
 }
+

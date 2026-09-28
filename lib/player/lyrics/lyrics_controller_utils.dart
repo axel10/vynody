@@ -91,13 +91,7 @@ class LyricsControllerSupport {
       return lyrics.plainText.trim();
     }
 
-    return lyrics.syncedLines
-        .map((line) {
-          if (!line.isTimed) return line.text.trimRight();
-          return '[${LrcUtils.formatLrcTimestamp(line.timestamp)}] ${line.text}';
-        })
-        .join('\n')
-        .trim();
+    return LrcUtils.formatLyrics(lyrics.syncedLines).trim();
   }
 
   String lyricsIdForSong(MusicFile song, {String? sourceLyrics}) {
