@@ -152,6 +152,7 @@ class IsSettingsPageActiveNotifier extends Notifier<bool> {
   bool build() => false;
 
   void set(bool value) {
+    if (!ref.mounted) return;
     if (state != value) {
       state = value;
     }
