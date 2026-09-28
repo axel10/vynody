@@ -156,7 +156,7 @@ class _GlobalDropTargetState extends ConsumerState<GlobalDropTarget> {
 
   @override
   Widget build(BuildContext context) {
-    if (!widget.enable) {
+    if (!widget.enable || !DropDataUtils.isPlatformSupported) {
       return widget.child;
     }
 

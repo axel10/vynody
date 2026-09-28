@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:super_drag_and_drop/super_drag_and_drop.dart';
 import 'package:vynody/models/music_file.dart';
@@ -6,6 +7,12 @@ import 'package:vynody/models/music_file.dart';
 /// Centralized utility for extracting file paths from SuperDragAndDrop events and sessions.
 class DropDataUtils {
   const DropDataUtils._();
+
+  /// Indicates whether the current platform supports desktop native drag-and-drop.
+  /// Automatically disabled in unit/widget test environments (`FLUTTER_TEST`).
+  static bool get isPlatformSupported =>
+      !Platform.environment.containsKey('FLUTTER_TEST') &&
+      (Platform.isWindows || Platform.isMacOS || Platform.isLinux);
 
   /// Indicates whether an in-app drag session (initiated via [DesktopDraggableWrapper]) is currently active.
   /// Used by global backdrop targets to avoid swallowing internal drag operations.

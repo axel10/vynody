@@ -147,7 +147,7 @@ class _QueueFileDropTargetState extends State<QueueFileDropTarget> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    if (!widget.enabled) {
+    if (!widget.enabled || !DropDataUtils.isPlatformSupported) {
       return widget.child;
     }
 

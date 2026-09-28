@@ -200,8 +200,7 @@ class DesktopDraggableWrapper extends StatelessWidget {
     this.allowedOperations,
   });
 
-  static bool get isPlatformSupported =>
-      Platform.isWindows || Platform.isMacOS || Platform.isLinux;
+  static bool get isPlatformSupported => DropDataUtils.isPlatformSupported;
 
   @override
   Widget build(BuildContext context) {
