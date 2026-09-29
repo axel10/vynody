@@ -37,7 +37,7 @@ void main() {
       await storage.write(key: 'my_key', value: 'secret_value_42');
 
       // Check stored value in SharedPreferences is encrypted
-      final storedRaw = prefs.getString('my_key');
+      final storedRaw = prefs.getString('app_sec:my_key');
       expect(storedRaw, isNotNull);
       expect(storedRaw!.startsWith('enc:v1:'), isTrue);
       expect(storedRaw, isNot(contains('secret_value_42')));
@@ -67,14 +67,14 @@ void main() {
       final migrationStorage = AppSecureStorage(prefs, fakeLegacy);
 
       // Value should not be in prefs initially
-      expect(prefs.getString('migrated_token'), isNull);
+      expect(prefs.getString('app_sec:migrated_token'), isNull);
 
       // Read triggers transparent migration
       final val = await migrationStorage.read(key: 'migrated_token');
       expect(val, equals('sk-secret-12345'));
 
       // Now should be saved & encrypted in prefs
-      final storedRaw = prefs.getString('migrated_token');
+      final storedRaw = prefs.getString('app_sec:migrated_token');
       expect(storedRaw, isNotNull);
       expect(storedRaw!.startsWith('enc:v1:'), isTrue);
 

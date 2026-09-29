@@ -87,9 +87,9 @@ class AppSecureStorage {
       return decrypt(raw);
     }
 
-    // Check legacy un-prefixed key in SharedPreferences (if previously stored as encrypted string)
+    // Check legacy un-prefixed key in SharedPreferences (if previously stored as encrypted string or plaintext)
     final dynamic legacyRaw = prefs.get(key);
-    if (legacyRaw is String && legacyRaw.startsWith(_prefix)) {
+    if (legacyRaw is String) {
       final decrypted = decrypt(legacyRaw);
       await write(key: key, value: decrypted);
       try {
@@ -125,7 +125,7 @@ class AppSecureStorage {
     final raw = _prefs.getString(modernKey);
     if (raw != null) return decrypt(raw);
     final dynamic legacyRaw = _prefs.get(key);
-    if (legacyRaw is String && legacyRaw.startsWith(_prefix)) {
+    if (legacyRaw is String) {
       return decrypt(legacyRaw);
     }
     return null;
@@ -143,7 +143,7 @@ class AppSecureStorage {
     final prefs = await _getPrefs();
     await prefs.remove('$_storageKeyPrefix$key');
     final dynamic legacyRaw = prefs.get(key);
-    if (legacyRaw is String && legacyRaw.startsWith(_prefix)) {
+    if (legacyRaw != null) {
       await prefs.remove(key);
     }
     try {
@@ -156,7 +156,7 @@ class AppSecureStorage {
     final prefs = await _getPrefs();
     if (prefs.containsKey('$_storageKeyPrefix$key')) return true;
     final dynamic legacyRaw = prefs.get(key);
-    if (legacyRaw is String && legacyRaw.startsWith(_prefix)) return true;
+    if (legacyRaw is String) return true;
     try {
       return await _effectiveLegacyStorage.containsKey(key: key);
     } catch (_) {
