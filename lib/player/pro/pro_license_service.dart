@@ -168,13 +168,21 @@ class ProLicenseService extends ChangeNotifier {
     }
   }
 
+  void _updateState(LicenseState newState) {
+    if (_state != newState) {
+      _state = newState;
+      if (!_disposed) {
+        notifyListeners();
+      }
+    }
+  }
+
   Future<void> _init() async {
     // 1. If running GitHub Community build, permanently unlock.
     if (AppChannel.isGitHubRelease) {
-      _state = const LicenseState(type: LicenseType.unlimitedCommunity);
       final prefs = _prefs ?? await SharedPreferences.getInstance();
       await prefs.setBool(_kTrialResetV2132Key, true);
-      notifyListeners();
+      _updateState(const LicenseState(type: LicenseType.unlimitedCommunity));
       return;
     }
 
@@ -189,24 +197,25 @@ class ProLicenseService extends ChangeNotifier {
           final remainingDays = res['remainingDays'] as int? ?? 0;
 
           if (isProPurchased) {
-            _state = const LicenseState(type: LicenseType.purchasedPro);
-            notifyListeners();
+            _updateState(const LicenseState(type: LicenseType.purchasedPro));
             return;
           } else if (isTrial && remainingDays > 0) {
-            _state = LicenseState(
-              type: LicenseType.activeTrial,
-              trialTotalDays: ProConfig.trialDays,
-              trialDaysRemaining: remainingDays.clamp(1, ProConfig.trialDays),
+            _updateState(
+              LicenseState(
+                type: LicenseType.activeTrial,
+                trialTotalDays: ProConfig.trialDays,
+                trialDaysRemaining: remainingDays.clamp(1, ProConfig.trialDays),
+              ),
             );
-            notifyListeners();
             return;
           } else if (isTrial && remainingDays <= 0) {
-            _state = const LicenseState(
-              type: LicenseType.expiredTrial,
-              trialTotalDays: ProConfig.trialDays,
-              trialDaysRemaining: 0,
+            _updateState(
+              const LicenseState(
+                type: LicenseType.expiredTrial,
+                trialTotalDays: ProConfig.trialDays,
+                trialDaysRemaining: 0,
+              ),
             );
-            notifyListeners();
             return;
           }
         }
@@ -220,9 +229,8 @@ class ProLicenseService extends ChangeNotifier {
 
     final isPurchased = prefs.getBool(_kProPurchasedKey) ?? false;
     if (isPurchased) {
-      _state = const LicenseState(type: LicenseType.purchasedPro);
       await prefs.setBool(_kTrialResetV2132Key, true);
-      notifyListeners();
+      _updateState(const LicenseState(type: LicenseType.purchasedPro));
       return;
     }
 
@@ -252,25 +260,26 @@ class ProLicenseService extends ChangeNotifier {
     final remainingDays = remainingDifference.inDays + (remainingDifference.inHours % 24 > 0 ? 1 : 0);
 
     if (now.isBefore(expireTime) && remainingDays > 0) {
-      _state = LicenseState(
-        type: LicenseType.activeTrial,
-        trialTotalDays: ProConfig.trialDays,
-        trialDaysRemaining: remainingDays.clamp(1, ProConfig.trialDays),
-        firstLaunchTime: firstLaunchTime,
-        trialExpireTime: expireTime,
+      _updateState(
+        LicenseState(
+          type: LicenseType.activeTrial,
+          trialTotalDays: ProConfig.trialDays,
+          trialDaysRemaining: remainingDays.clamp(1, ProConfig.trialDays),
+          firstLaunchTime: firstLaunchTime,
+          trialExpireTime: expireTime,
+        ),
       );
     } else {
-      _state = LicenseState(
-        type: LicenseType.expiredTrial,
-        trialTotalDays: ProConfig.trialDays,
-        trialDaysRemaining: 0,
-        firstLaunchTime: firstLaunchTime,
-        trialExpireTime: expireTime,
+      _updateState(
+        LicenseState(
+          type: LicenseType.expiredTrial,
+          trialTotalDays: ProConfig.trialDays,
+          trialDaysRemaining: 0,
+          firstLaunchTime: firstLaunchTime,
+          trialExpireTime: expireTime,
+        ),
       );
     }
-
-    if (_disposed) return;
-    notifyListeners();
   }
 
   /// Refresh license status (e.g. after returning from Microsoft Store or App Store).
@@ -284,12 +293,10 @@ class ProLicenseService extends ChangeNotifier {
     await prefs.setBool(_kProPurchasedKey, purchased);
     if (_disposed) return;
     if (purchased) {
-      _state = _state.copyWith(type: LicenseType.purchasedPro);
+      _updateState(_state.copyWith(type: LicenseType.purchasedPro));
     } else {
       await _init();
     }
-    if (_disposed) return;
-    notifyListeners();
   }
 
   /// Unified method to reset the trial period back to full duration.

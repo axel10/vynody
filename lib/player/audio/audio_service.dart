@@ -173,10 +173,6 @@ class AudioService extends Notifier<AudioSnapshot> {
         settingsService.prefs.getDouble(_previousVolumeStorageKey) ?? 100.0;
     _isMuted = settingsService.prefs.getBool(_isMutedStorageKey) ?? false;
 
-    final isProUnlocked = ref.read(isProUnlockedProvider);
-    _userVisualizerEnabled =
-        isProUnlocked && settingsService.isVisualizerEnabled;
-
     final initialFadeEnabled = settingsService.enableFadeEffect;
     final streamCacheManager = AudioStreamCacheManager(
       maxCacheSizeBytesGetter: () => settingsService.remoteCacheMaxSizeBytes,
@@ -193,6 +189,10 @@ class AudioService extends Notifier<AudioSnapshot> {
       ),
       streamCacheManager: streamCacheManager,
     );
+
+    final isProUnlocked = ref.read(isProUnlockedProvider);
+    _userVisualizerEnabled =
+        isProUnlocked && settingsService.isVisualizerEnabled;
 
     _player.setUriResolver((rawUri) async {
       if (RemoteMediaResolver.isRemoteUri(rawUri)) {
