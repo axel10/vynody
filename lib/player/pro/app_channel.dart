@@ -1,3 +1,6 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
+
 /// Represents the distribution channel of the application.
 enum AppDistributionChannel {
   /// GitHub release / Sideloading (Full-featured version, unlocked by default).
@@ -30,6 +33,10 @@ class AppChannel {
 
   /// Current active distribution channel.
   static AppDistributionChannel get current {
+    // iOS is exclusively distributed via App Store, so all iOS builds (including local debug) default to store.
+    if (!kIsWeb && Platform.isIOS) {
+      return AppDistributionChannel.store;
+    }
     if (_isStoreBuildLegacy || _isAppStoreBuildLegacy) {
       return AppDistributionChannel.store;
     }

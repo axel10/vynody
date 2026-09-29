@@ -6,14 +6,17 @@ if [ -d "$HOME/.cargo/bin" ]; then
 fi
 
 
-is_archive=0
-if [ "$ACTION" = "archive" ] || [ "$ACTION" = "install" ]; then
-  is_archive=1
+# If building iOS target or performing an archive/install on any Apple platform, default to store channel
+is_store_target=0
+if [ "$PLATFORM_NAME" = "iphoneos" ] || [ "$PLATFORM_NAME" = "iphonesimulator" ]; then
+  is_store_target=1
+elif [ "$ACTION" = "archive" ] || [ "$ACTION" = "install" ]; then
+  is_store_target=1
 elif [ -n "$TARGET_BUILD_DIR" ] && [ "${TARGET_BUILD_DIR#*ArchiveIntermediates}" != "$TARGET_BUILD_DIR" ]; then
-  is_archive=1
+  is_store_target=1
 fi
 
-if [ "$is_archive" -eq 1 ]; then
+if [ "$is_store_target" -eq 1 ]; then
   is_channel_set=0
   if [ -n "$DART_DEFINES" ]; then
     OLD_IFS="$IFS"
@@ -38,6 +41,6 @@ if [ "$is_archive" -eq 1 ]; then
     else
       export DART_DEFINES="$STORE_DEF"
     fi
-    echo "[Vynody Build] Xcode Archive build detected ($ACTION). Defaulting distribution channel to CHANNEL=store."
+    echo "[Vynody Build] iOS/Archive build detected ($ACTION / $PLATFORM_NAME). Defaulting distribution channel to CHANNEL=store."
   fi
 fi
