@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
+import 'package:vynody/player/scanner/scanner_path_utils.dart';
 import 'package:vynody/utils/m3u_utils.dart';
 import 'package:vynody/utils/list_reorder_utils.dart';
 
@@ -60,7 +61,7 @@ class Playlist {
           (json['songs'] as List<dynamic>?)
               ?.map(
                 (s) => MusicFile(
-                  path: s['path'] as String,
+                  path: ScannerPathUtils.resolveIosSandboxPath(s['path'] as String),
                   name: s['name'] as String,
                   title: s['title'] as String?,
                   artist: s['artist'] as String?,
@@ -69,7 +70,9 @@ class Playlist {
                   durationMillis: s['durationMillis'] as int?,
                   id: s['id'] as int?,
                   mediaUri: s['mediaUri'] as String?,
-                  thumbnailPath: s['thumbnailPath'] as String?,
+                  thumbnailPath: s['thumbnailPath'] != null
+                      ? ScannerPathUtils.resolveIosSandboxPath(s['thumbnailPath'] as String)
+                      : null,
                   artworkWidth: s['artworkWidth'] as int?,
                   artworkHeight: s['artworkHeight'] as int?,
                   themeColorsBlob: s['themeColorsBlob'] != null

@@ -7,6 +7,7 @@ import 'package:vynody/models/music_folder.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/player/metadata/metadata_helper.dart';
 import 'package:vynody/player/audio/playback_session_manager.dart';
+import 'package:vynody/player/scanner/scanner_path_utils.dart';
 
 class ScannerMetadataStore {
   ScannerMetadataStore({
@@ -46,7 +47,15 @@ class ScannerMetadataStore {
 
   Map<String, SongMetadata> get metadataMap => _metadataMap;
 
-  SongMetadata? getMetadata(String path) => _metadataMap[path];
+  SongMetadata? getMetadata(String path) {
+    final direct = _metadataMap[path];
+    if (direct != null) return direct;
+    final resolved = ScannerPathUtils.resolveIosSandboxPath(path);
+    if (resolved != path) {
+      return _metadataMap[resolved];
+    }
+    return null;
+  }
 
   void replaceAllMetadata(Iterable<SongMetadata> metadataList) {
     _metadataMap

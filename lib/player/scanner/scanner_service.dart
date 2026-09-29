@@ -225,34 +225,46 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     }
 
     final normalized = _normalizePath(folder.path);
+    final resolvedNormalized = _normalizePath(ScannerPathUtils.resolveIosSandboxPath(folder.path));
 
-    final cachedMeta = _folderRepresentativeSongs[normalized];
+    final cachedMeta = _folderRepresentativeSongs[normalized] ?? _folderRepresentativeSongs[resolvedNormalized];
     if (cachedMeta != null) {
       final file = _treeBuilder.musicFileFromSongMetadata(cachedMeta);
       folder.representativeSongCache = file;
+      debugPrint('[FolderCover] getRepresentativeSongForFolder hit cachedMeta for ${folder.path} -> ${file.path}');
       return file;
     }
 
-    final songPath = _folderRepresentativeSongPaths[normalized];
+    final songPath = _folderRepresentativeSongPaths[normalized] ?? _folderRepresentativeSongPaths[resolvedNormalized];
     if (songPath != null) {
-      final meta = _metadataStore.getMetadata(songPath);
+      final resolvedSongPath = ScannerPathUtils.resolveIosSandboxPath(songPath);
+      final meta = _metadataStore.getMetadata(songPath) ?? _metadataStore.getMetadata(resolvedSongPath);
       if (meta != null) {
         _folderRepresentativeSongs[normalized] = meta;
         final file = _treeBuilder.musicFileFromSongMetadata(meta);
         folder.representativeSongCache = file;
+        debugPrint('[FolderCover] getRepresentativeSongForFolder hit songPath for ${folder.path} -> ${file.path}');
         return file;
       }
       final directSong = folder.files.firstWhereOrNull(
-        (f) => _pathsEqual(f.path, songPath),
+        (f) => _pathsEqual(f.path, songPath) || _pathsEqual(f.path, resolvedSongPath),
       );
       if (directSong != null) {
         folder.representativeSongCache = directSong;
+        debugPrint('[FolderCover] getRepresentativeSongForFolder hit directSong for ${folder.path} -> ${directSong.path}');
         return directSong;
       }
     }
 
-    // FolderCovers table is the sole source of truth for folder representative covers.
-    // If not recorded in FolderCovers cache, return null directly.
+    // Fallback: evaluate on-the-fly from folder tree so UI always has a cover!
+    final direct = FolderCoverResolver.evaluateRepresentativeSongForFolderSync(folder);
+    if (direct != null) {
+      folder.representativeSongCache = direct;
+      debugPrint('[FolderCover] getRepresentativeSongForFolder hit fallback direct for ${folder.path} -> ${direct.path}');
+      return direct;
+    }
+
+    debugPrint('[FolderCover] getRepresentativeSongForFolder returned null for ${folder.path} (subFolders=${folder.subFolders.length}, files=${folder.files.length})');
     return null;
   }
 
@@ -982,11 +994,22 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> _loadCachedFolderCoversFromDatabase() async {
     try {
       final covers = await _repository.getAllFolderRepresentativeMetadata();
+      debugPrint('[FolderCover] _loadCachedFolderCoversFromDatabase loaded ${covers.length} covers from DB');
       for (final entry in covers.entries) {
-        final normPath = _normalizePath(entry.key);
-        _folderRepresentativeSongs[normPath] = entry.value;
-        _folderRepresentativeSongPaths[normPath] = _normalizePath(entry.value.path);
-        _metadataStore.cacheMetadata(entry.value);
+        final resolvedFolder = ScannerPathUtils.resolveIosSandboxPath(entry.key);
+        final normPath = _normalizePath(resolvedFolder);
+        final resolvedSong = entry.value.copyWith(
+          path: ScannerPathUtils.resolveIosSandboxPath(entry.value.path),
+          thumbnailPath: entry.value.thumbnailPath != null
+              ? ScannerPathUtils.resolveIosSandboxPath(entry.value.thumbnailPath!)
+              : null,
+          artworkPath: entry.value.artworkPath != null
+              ? ScannerPathUtils.resolveIosSandboxPath(entry.value.artworkPath!)
+              : null,
+        );
+        _folderRepresentativeSongs[normPath] = resolvedSong;
+        _folderRepresentativeSongPaths[normPath] = _normalizePath(resolvedSong.path);
+        _metadataStore.cacheMetadata(resolvedSong);
       }
     } catch (e) {
       debugPrint('[ScannerService] Failed to load cached folder covers: $e');

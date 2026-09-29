@@ -170,6 +170,9 @@ class ScannerPathUtils {
   static String? _currentIosDocDir;
   static String? _currentIosLibDir;
 
+  static String? get docDir => _currentIosDocDir;
+  static String? get libDir => _currentIosLibDir;
+
   static void setIosSandboxDirs({String? docDir, String? libDir}) {
     if (docDir != null && docDir.isNotEmpty) {
       _currentIosDocDir = normalizePath(docDir);
@@ -226,9 +229,9 @@ class ScannerPathUtils {
     // 2. Library / Application Support container matching
     if (libDir != null && libDir.isNotEmpty) {
       final libMatch = RegExp(
-        r'(?:^|/)(?:private/)?var/mobile/Containers/Data/Application/[^/]+/Library/(?:Application Support/)?(?:/(.*))?$',
+        r'(?:^|/)(?:private/)?var/mobile/Containers/Data/Application/[^/]+/Library(?:/Application Support)?(?:/(.*))?$',
       ).firstMatch(trimmed) ?? RegExp(
-        r'/Containers/Data/Application/[^/]+/Library/(?:Application Support/)?(?:/(.*))?$',
+        r'/Containers/Data/Application/[^/]+/Library(?:/Application Support)?(?:/(.*))?$',
       ).firstMatch(trimmed);
 
       if (libMatch != null) {

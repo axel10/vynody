@@ -31,7 +31,8 @@ class FolderCoverResolver {
       if (!taglib.TagLibFile.isSupported) {
         return false;
       }
-      final tagFile = taglib.TagLibFile.open(filePath);
+      final resolved = ScannerPathUtils.resolveIosSandboxPath(filePath);
+      final tagFile = taglib.TagLibFile.open(resolved);
       if (tagFile == null) {
         return false;
       }
@@ -137,8 +138,10 @@ class FolderCoverResolver {
       final sortedSubFolders = List<MusicFolder>.from(folder.subFolders)
         ..sort(compareFoldersByName);
       for (final sub in sortedSubFolders) {
-        final subRep = sub.representativeSongCache;
+        final subRep = sub.representativeSongCache ??
+            await evaluateRepresentativeSongForFolder(sub, probeCover: probeCover);
         if (subRep != null) {
+          sub.representativeSongCache = subRep;
           return subRep;
         }
       }
@@ -179,8 +182,10 @@ class FolderCoverResolver {
       final sortedSubFolders = List<MusicFolder>.from(folder.subFolders)
         ..sort(compareFoldersByName);
       for (final sub in sortedSubFolders) {
-        final subRep = sub.representativeSongCache;
+        final subRep = sub.representativeSongCache ??
+            evaluateRepresentativeSongForFolderSync(sub, probeCoverSync: probeCoverSync);
         if (subRep != null) {
+          sub.representativeSongCache = subRep;
           return subRep;
         }
       }

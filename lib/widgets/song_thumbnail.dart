@@ -13,6 +13,7 @@ import 'package:vynody/player/remote/remote_service_providers.dart';
 import 'package:vynody/player/metadata/metadata_helper.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/models/album_summary.dart';
+import 'package:vynody/player/scanner/scanner_path_utils.dart';
 
 class SongThumbnail extends ConsumerStatefulWidget {
   final String path;
@@ -50,10 +51,14 @@ class SongThumbnail extends ConsumerStatefulWidget {
     this.height,
     this.borderRadius,
     this.fallbackWidget,
-  })  : path = song.path,
+  })  : path = ScannerPathUtils.resolveIosSandboxPath(song.path),
         id = song.id,
-        thumbnailPath = song.thumbnailPath,
-        artworkPath = song.artworkPath,
+        thumbnailPath = song.thumbnailPath != null
+            ? ScannerPathUtils.resolveIosSandboxPath(song.thumbnailPath!)
+            : null,
+        artworkPath = song.artworkPath != null
+            ? ScannerPathUtils.resolveIosSandboxPath(song.artworkPath!)
+            : null,
         bytes = song.artworkBytes;
 
   /// Factory constructor for an [AlbumSummary].
@@ -65,10 +70,14 @@ class SongThumbnail extends ConsumerStatefulWidget {
     this.height,
     this.borderRadius,
     this.fallbackWidget,
-  })  : path = album.representativeSong.path,
+  })  : path = ScannerPathUtils.resolveIosSandboxPath(album.representativeSong.path),
         id = album.representativeSong.id,
-        thumbnailPath = album.representativeSong.thumbnailPath,
-        artworkPath = album.representativeSong.artworkPath,
+        thumbnailPath = album.representativeSong.thumbnailPath != null
+            ? ScannerPathUtils.resolveIosSandboxPath(album.representativeSong.thumbnailPath!)
+            : null,
+        artworkPath = album.representativeSong.artworkPath != null
+            ? ScannerPathUtils.resolveIosSandboxPath(album.representativeSong.artworkPath!)
+            : null,
         bytes = album.representativeSong.artworkBytes;
 
   /// Factory constructor for a [SongMetadata] database record.
@@ -80,10 +89,14 @@ class SongThumbnail extends ConsumerStatefulWidget {
     this.height,
     this.borderRadius,
     this.fallbackWidget,
-  })  : path = metadata.path,
+  })  : path = ScannerPathUtils.resolveIosSandboxPath(metadata.path),
         id = metadata.id,
-        thumbnailPath = metadata.thumbnailPath,
-        artworkPath = metadata.artworkPath,
+        thumbnailPath = metadata.thumbnailPath != null
+            ? ScannerPathUtils.resolveIosSandboxPath(metadata.thumbnailPath!)
+            : null,
+        artworkPath = metadata.artworkPath != null
+            ? ScannerPathUtils.resolveIosSandboxPath(metadata.artworkPath!)
+            : null,
         bytes = null;
 
   @override
@@ -142,7 +155,12 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
     }
 
     final scanner = ref.read(scannerServiceProvider);
-    final existingPath = scanner.metadataMap[widget.path]?.thumbnailPath;
+    final rawExisting = widget.thumbnailPath ??
+        scanner.metadataMap[widget.path]?.thumbnailPath ??
+        _artworkFilePath;
+    final existingPath = rawExisting != null
+        ? ScannerPathUtils.resolveIosSandboxPath(rawExisting)
+        : null;
     if (existingPath != null && existingPath.isNotEmpty && File(existingPath).existsSync()) {
       _artworkFilePath = existingPath;
       _artworkQueried = true;
@@ -360,8 +378,11 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
             : (_remoteThumbnailCache[widget.path]?.isNotEmpty ?? false)
                 ? _remoteThumbnailCache[widget.path]
                 : metadata?.thumbnailPath;
-    final imagePath = (rawImagePath != null && rawImagePath.isNotEmpty && File(rawImagePath).existsSync())
-        ? rawImagePath
+    final resolvedImagePath = rawImagePath != null
+        ? ScannerPathUtils.resolveIosSandboxPath(rawImagePath)
+        : null;
+    final imagePath = (resolvedImagePath != null && resolvedImagePath.isNotEmpty && File(resolvedImagePath).existsSync())
+        ? resolvedImagePath
         : null;
 
     final double dpr = MediaQuery.of(context).devicePixelRatio;

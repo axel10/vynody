@@ -22,6 +22,10 @@ void main() {
       const oldSubFolder = '/var/mobile/Containers/Data/Application/OLD-UUID-9999/Documents/vynody/Music';
       final resolvedSub = ScannerPathUtils.resolveIosSandboxPath(oldSubFolder);
       expect(resolvedSub, '/var/mobile/Containers/Data/Application/NEW-UUID-1234/Documents/vynody/Music');
+
+      const oldThumbPath = '/private/var/mobile/Containers/Data/Application/OLD-UUID-9999/Library/Application Support/thumbnails/abc12345.jpg';
+      final resolvedThumb = ScannerPathUtils.resolveIosSandboxPath(oldThumbPath);
+      expect(resolvedThumb, '/var/mobile/Containers/Data/Application/NEW-UUID-1234/Library/Application Support/thumbnails/abc12345.jpg');
     });
 
     test('isSandboxInternalPath correctly detects sandbox paths', () {
