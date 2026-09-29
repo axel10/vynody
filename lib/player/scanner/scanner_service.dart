@@ -1075,6 +1075,11 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       _timeInitStepSync('notify listeners after init', () {
         notifyListeners();
       });
+      // Mark scanner ready as soon as database and root configurations are ready,
+      // without blocking callers (like playback restore) on the potentially slow scan().
+      if (!_readyCompleter.isCompleted) {
+        _readyCompleter.complete();
+      }
       // Auto scan on startup
       await _timeInitStep('startup scan', scan);
       _startRootAvailabilityTimer();

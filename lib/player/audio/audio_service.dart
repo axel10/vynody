@@ -483,7 +483,16 @@ class AudioService extends Notifier<AudioSnapshot> {
     _restoringPlaybackSession = true;
     try {
       if (Platform.isIOS || Platform.isMacOS) {
-        await ref.read(scannerServiceProvider).ready;
+        try {
+          await ref.read(scannerServiceProvider).ready.timeout(
+            const Duration(seconds: 5),
+            onTimeout: () {
+              debugPrint('AudioService: scanner ready timed out during restore');
+            },
+          );
+        } catch (e) {
+          debugPrint('AudioService: scanner ready error during restore: $e');
+        }
       }
       if (_queue.isNotEmpty || _currentSource != null) {
         debugPrint(
@@ -563,7 +572,11 @@ class AudioService extends Notifier<AudioSnapshot> {
         );
         if (restorePosition > Duration.zero &&
             _player.player.currentState != PlayerState.error) {
-          await seek(restorePosition);
+          try {
+            await seek(restorePosition);
+          } catch (e) {
+            debugPrint('AudioService: failed to seek during restore: $e');
+          }
         }
 
         _position = restorePosition;
