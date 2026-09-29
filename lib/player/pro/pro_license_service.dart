@@ -4,13 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vynody/dialogs/upgrade_to_pro_dialog.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/pro/app_channel.dart';
 import 'package:vynody/player/pro/pro_models.dart';
 import 'package:vynody/player/settings/settings_service.dart';
+import 'package:vynody/utils/platform_secure_vault.dart';
 import 'package:vynody/utils/secure_storage.dart';
 
 const String _kFirstLaunchTimeKey = 'vynody_license_first_launch_epoch_ms';
@@ -22,23 +22,16 @@ const String _kPendingTrialResetNoticeKey = 'vynody_pending_trial_reset_v2_13_2_
 class ProLicenseService extends ChangeNotifier {
   ProLicenseService({
     SharedPreferences? prefs,
-    FlutterSecureStorage? keychainStorage,
+    PlatformSecureVault? vault,
   })  : _prefs = prefs,
-        _keychainStorage = keychainStorage ??
-            const FlutterSecureStorage(
-              iOptions: IOSOptions(
-                accessibility: KeychainAccessibility.first_unlock,
-              ),
-            ),
-        _hasInjectedKeychain = keychainStorage != null,
+        _vault = vault ?? platformSecureVault,
         _pendingTrialResetNotice = prefs?.getBool(_kPendingTrialResetNoticeKey) ?? false,
         _state = _computeInitialState(prefs) {
     _init();
   }
 
   final SharedPreferences? _prefs;
-  final FlutterSecureStorage _keychainStorage;
-  final bool _hasInjectedKeychain;
+  final PlatformSecureVault _vault;
   static const _secureStorage = appSecureStorage;
 
   LicenseState _state;
@@ -133,7 +126,7 @@ class ProLicenseService extends ChangeNotifier {
 
   LicenseState get state => _state;
 
-  /// Reads the trial start timestamp from SharedPreferences, Windows PasswordVault, or Keychain.
+  /// Reads the trial start timestamp from SharedPreferences or PlatformSecureVault.
   Future<int?> _readPersistentFirstLaunchMs(SharedPreferences prefs) async {
     // 1. Fast check in SharedPreferences
     final prefMs = _safeGetInt(prefs, _kFirstLaunchTimeKey);
@@ -141,37 +134,17 @@ class ProLicenseService extends ChangeNotifier {
       return prefMs;
     }
 
-    // 2. Windows: check PasswordVault via native MethodChannel
-    if (Platform.isWindows) {
-      try {
-        const channel = MethodChannel('vynody/single_instance');
-        final dynamic vaultMs = await channel.invokeMethod('getSecureVaultTrialTime');
-        if (vaultMs is int && vaultMs > 0) {
-          await prefs.setInt(_kFirstLaunchTimeKey, vaultMs);
-          return vaultMs;
-        }
-      } catch (e) {
-        debugPrint('[ProLicenseService] Failed to read trial time from PasswordVault: $e');
+    // 2. Cross-platform secure vault (Windows PasswordVault / iOS & Android Keychain)
+    final vaultVal = await _vault.read(_kFirstLaunchTimeKey);
+    if (vaultVal != null) {
+      final parsed = int.tryParse(vaultVal);
+      if (parsed != null && parsed > 0) {
+        await prefs.setInt(_kFirstLaunchTimeKey, parsed);
+        return parsed;
       }
     }
 
-    // 3. iOS / Android: check Keychain / Keystore via FlutterSecureStorage
-    if (Platform.isIOS || Platform.isAndroid || _hasInjectedKeychain) {
-      try {
-        final secureVal = await _keychainStorage.read(key: _kFirstLaunchTimeKey);
-        if (secureVal != null) {
-          final parsed = int.tryParse(secureVal);
-          if (parsed != null && parsed > 0) {
-            await prefs.setInt(_kFirstLaunchTimeKey, parsed);
-            return parsed;
-          }
-        }
-      } catch (e) {
-        debugPrint('[ProLicenseService] Failed to read trial time from Keychain: $e');
-      }
-    }
-
-    // 4. Apple/Other fallback: check legacy SecureStorage
+    // 3. Apple/Other fallback: check legacy SecureStorage
     try {
       final secureVal = await _secureStorage.read(key: _kFirstLaunchTimeKey);
       if (secureVal != null) {
@@ -188,29 +161,13 @@ class ProLicenseService extends ChangeNotifier {
     return null;
   }
 
-  /// Writes the trial start timestamp to SharedPreferences, Windows PasswordVault, and Keychain.
+  /// Writes the trial start timestamp to SharedPreferences and PlatformSecureVault.
   Future<void> _writePersistentFirstLaunchMs(SharedPreferences prefs, int epochMs) async {
     if (prefs.get(_kFirstLaunchTimeKey) is String) {
       await prefs.remove(_kFirstLaunchTimeKey);
     }
     await prefs.setInt(_kFirstLaunchTimeKey, epochMs);
-
-    if (Platform.isWindows) {
-      try {
-        const channel = MethodChannel('vynody/single_instance');
-        await channel.invokeMethod('setSecureVaultTrialTime', {'epochMs': epochMs});
-      } catch (e) {
-        debugPrint('[ProLicenseService] Failed to write trial time to PasswordVault: $e');
-      }
-    }
-
-    if (Platform.isIOS || Platform.isAndroid || _hasInjectedKeychain) {
-      try {
-        await _keychainStorage.write(key: _kFirstLaunchTimeKey, value: epochMs.toString());
-      } catch (e) {
-        debugPrint('[ProLicenseService] Failed to write trial time to Keychain: $e');
-      }
-    }
+    await _vault.write(_kFirstLaunchTimeKey, epochMs.toString());
 
     try {
       await _secureStorage.write(key: _kFirstLaunchTimeKey, value: epochMs.toString());
@@ -226,31 +183,11 @@ class ProLicenseService extends ChangeNotifier {
       return true;
     }
 
-    // 2. Windows: check PasswordVault
-    if (Platform.isWindows) {
-      try {
-        const channel = MethodChannel('vynody/single_instance');
-        final dynamic res = await channel.invokeMethod('getSecureVaultTrialResetV2132');
-        if (res == true) {
-          await prefs.setBool(_kTrialResetV2132Key, true);
-          return true;
-        }
-      } catch (e) {
-        debugPrint('[ProLicenseService] Failed to read trial reset status from PasswordVault: $e');
-      }
-    }
-
-    // 3. iOS / Android: check Keychain / Keystore via FlutterSecureStorage
-    if (Platform.isIOS || Platform.isAndroid || _hasInjectedKeychain) {
-      try {
-        final secureVal = await _keychainStorage.read(key: _kTrialResetV2132Key);
-        if (secureVal == 'true' || secureVal == '1') {
-          await prefs.setBool(_kTrialResetV2132Key, true);
-          return true;
-        }
-      } catch (e) {
-        debugPrint('[ProLicenseService] Failed to read trial reset status from Keychain: $e');
-      }
+    // 2. Cross-platform secure vault (Windows PasswordVault / iOS & Android Keychain)
+    final val = await _vault.read(_kTrialResetV2132Key);
+    if (val == 'true' || val == '1') {
+      await prefs.setBool(_kTrialResetV2132Key, true);
+      return true;
     }
 
     return false;
@@ -259,26 +196,10 @@ class ProLicenseService extends ChangeNotifier {
   /// Writes whether the v2.13.2 trial reset has executed to persistent storage layers.
   Future<void> _writePersistentTrialResetV2132(SharedPreferences prefs, bool done) async {
     await prefs.setBool(_kTrialResetV2132Key, done);
-
-    if (Platform.isWindows) {
-      try {
-        const channel = MethodChannel('vynody/single_instance');
-        await channel.invokeMethod('setSecureVaultTrialResetV2132', {'done': done});
-      } catch (e) {
-        debugPrint('[ProLicenseService] Failed to write trial reset status to PasswordVault: $e');
-      }
-    }
-
-    if (Platform.isIOS || Platform.isAndroid || _hasInjectedKeychain) {
-      try {
-        if (done) {
-          await _keychainStorage.write(key: _kTrialResetV2132Key, value: 'true');
-        } else {
-          await _keychainStorage.delete(key: _kTrialResetV2132Key);
-        }
-      } catch (e) {
-        debugPrint('[ProLicenseService] Failed to write trial reset status to Keychain: $e');
-      }
+    if (done) {
+      await _vault.write(_kTrialResetV2132Key, 'true');
+    } else {
+      await _vault.delete(_kTrialResetV2132Key);
     }
   }
 

@@ -207,6 +207,86 @@ bool FlutterWindow::OnCreate() {
           } catch (...) {
             result_ptr->Error("PURCHASE_EXCEPTION", "Unknown winrt exception");
           }
+        } else if (call.method_name() == "getSecureVaultString") {
+          try {
+            std::string key_str;
+            if (auto args = std::get_if<flutter::EncodableMap>(call.arguments())) {
+              auto it = args->find(flutter::EncodableValue("key"));
+              if (it != args->end() && std::holds_alternative<std::string>(it->second)) {
+                key_str = std::get<std::string>(it->second);
+              }
+            }
+            if (key_str.empty()) {
+              result->Success(flutter::EncodableValue());
+              return;
+            }
+            std::wstring key_w(key_str.begin(), key_str.end());
+            winrt::Windows::Security::Credentials::PasswordVault vault;
+            auto cred = vault.Retrieve(L"VynodyApp", winrt::hstring(key_w));
+            cred.RetrievePassword();
+            std::wstring pass_w = cred.Password().c_str();
+            std::string pass_str(pass_w.begin(), pass_w.end());
+            result->Success(flutter::EncodableValue(pass_str));
+          } catch (...) {
+            result->Success(flutter::EncodableValue());
+          }
+        } else if (call.method_name() == "setSecureVaultString") {
+          try {
+            std::string key_str;
+            std::string val_str;
+            if (auto args = std::get_if<flutter::EncodableMap>(call.arguments())) {
+              auto it = args->find(flutter::EncodableValue("key"));
+              if (it != args->end() && std::holds_alternative<std::string>(it->second)) {
+                key_str = std::get<std::string>(it->second);
+              }
+              auto it_val = args->find(flutter::EncodableValue("value"));
+              if (it_val != args->end() && std::holds_alternative<std::string>(it_val->second)) {
+                val_str = std::get<std::string>(it_val->second);
+              }
+            }
+            if (key_str.empty()) {
+              result->Success(flutter::EncodableValue(false));
+              return;
+            }
+            std::wstring key_w(key_str.begin(), key_str.end());
+            std::wstring val_w(val_str.begin(), val_str.end());
+            winrt::Windows::Security::Credentials::PasswordVault vault;
+            try {
+              auto existing = vault.Retrieve(L"VynodyApp", winrt::hstring(key_w));
+              vault.Remove(existing);
+            } catch (...) {}
+            if (!val_str.empty()) {
+              winrt::Windows::Security::Credentials::PasswordCredential cred(
+                  L"VynodyApp", winrt::hstring(key_w), winrt::hstring(val_w));
+              vault.Add(cred);
+            }
+            result->Success(flutter::EncodableValue(true));
+          } catch (const std::exception& ex) {
+            result->Error("VAULT_EXCEPTION", ex.what());
+          } catch (...) {
+            result->Error("VAULT_EXCEPTION", "Unknown error writing to PasswordVault");
+          }
+        } else if (call.method_name() == "deleteSecureVaultString") {
+          try {
+            std::string key_str;
+            if (auto args = std::get_if<flutter::EncodableMap>(call.arguments())) {
+              auto it = args->find(flutter::EncodableValue("key"));
+              if (it != args->end() && std::holds_alternative<std::string>(it->second)) {
+                key_str = std::get<std::string>(it->second);
+              }
+            }
+            if (!key_str.empty()) {
+              std::wstring key_w(key_str.begin(), key_str.end());
+              winrt::Windows::Security::Credentials::PasswordVault vault;
+              try {
+                auto existing = vault.Retrieve(L"VynodyApp", winrt::hstring(key_w));
+                vault.Remove(existing);
+              } catch (...) {}
+            }
+            result->Success(flutter::EncodableValue(true));
+          } catch (...) {
+            result->Success(flutter::EncodableValue(false));
+          }
         } else if (call.method_name() == "getSecureVaultTrialTime") {
           try {
             winrt::Windows::Security::Credentials::PasswordVault vault;

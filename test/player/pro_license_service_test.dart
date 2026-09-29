@@ -7,6 +7,7 @@ import 'package:vynody/player/pro/app_channel.dart';
 import 'package:vynody/player/pro/pro_license_service.dart';
 import 'package:vynody/player/pro/pro_models.dart';
 import 'package:vynody/player/settings/settings_service.dart';
+import 'package:vynody/utils/platform_secure_vault.dart';
 import 'package:vynody/utils/secure_storage.dart';
 
 void main() {
@@ -212,7 +213,7 @@ void main() {
 
       final service = ProLicenseService(
         prefs: prefs,
-        keychainStorage: fakeKeychain,
+        vault: PlatformSecureVault(secureStorage: fakeKeychain),
       );
 
       await Future<void>.delayed(const Duration(milliseconds: 50));
