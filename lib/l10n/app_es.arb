@@ -1985,5 +1985,9 @@
   "navidromePlaylist": "Lista de Navidrome",
   "unknownPlaylist": "Lista desconocida",
   "loadingServerPlaylists": "Cargando listas del servidor...",
-  "jellyfinMediaDeletionPermissionHint": " (Comprueba si el usuario de Jellyfin tiene el permiso \"Permitir eliminar medios\")"
+  "jellyfinMediaDeletionPermissionHint": " (Comprueba si el usuario de Jellyfin tiene el permiso \"Permitir eliminar medios\")",
+  "trialResetDialogTitle": "Periodo de prueba restablecido",
+  "trialResetDialogSubtitle": "Prueba Pro completa de {days} días restaurada",
+  "trialResetDialogMessage": "Debido a problemas en versiones anteriores, hemos restablecido su periodo de prueba Pro de {days} días. Todas las funciones prémium están activas nuevamente. ¡Gracias por su comprensión y apoyo!",
+  "trialResetDialogButton": "Empezar"
 }

@@ -5089,6 +5089,22 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get jellyfinMediaDeletionPermissionHint =>
       '（请检查 Jellyfin 用户是否开启“允许删除媒体”权限）';
+
+  @override
+  String get trialResetDialogTitle => '试用期已重置';
+
+  @override
+  String trialResetDialogSubtitle(Object days) {
+    return '已为您重新开启 $days 天 Pro 完整试用';
+  }
+
+  @override
+  String trialResetDialogMessage(Object days) {
+    return '由于之前版本存在影响体验的已知问题，新版本已为您重新重置了 $days 天的完整 Pro 试用期。所有高级功能已恢复可用，感谢您的支持与理解！';
+  }
+
+  @override
+  String get trialResetDialogButton => '开始体验';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -10176,4 +10192,20 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   @override
   String get jellyfinMediaDeletionPermissionHint =>
       '（請檢查 Jellyfin 使用者是否開啟「允許刪除媒體」權限）';
+
+  @override
+  String get trialResetDialogTitle => '試用期已重置';
+
+  @override
+  String trialResetDialogSubtitle(Object days) {
+    return '已為您重新開啟 $days 天 Pro 完整試用';
+  }
+
+  @override
+  String trialResetDialogMessage(Object days) {
+    return '由於之前版本存在影響體驗的已知問題，新版本已為您重新重置了 $days 天的完整 Pro 試用期。所有高級功能已恢復可用，感謝您的支持與理解！';
+  }
+
+  @override
+  String get trialResetDialogButton => '開始體驗';
 }

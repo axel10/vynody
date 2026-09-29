@@ -5416,4 +5416,20 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get jellyfinMediaDeletionPermissionHint =>
       ' (Bitte prüfen Sie, ob der Jellyfin-Benutzer die Berechtigung \"Medienlöschung zulassen\" hat)';
+
+  @override
+  String get trialResetDialogTitle => 'Testphase zurückgesetzt';
+
+  @override
+  String trialResetDialogSubtitle(Object days) {
+    return 'Vollständige $days-tägige Pro-Testphase wiederhergestellt';
+  }
+
+  @override
+  String trialResetDialogMessage(Object days) {
+    return 'Aufgrund von Problemen in vorherigen Versionen wurde Ihr $days-tägiger Pro-Testzeitraum zurückgesetzt. Alle Premium-Funktionen sind wieder verfügbar. Vielen Dank für Ihre Unterstützung!';
+  }
+
+  @override
+  String get trialResetDialogButton => 'Loslegen';
 }

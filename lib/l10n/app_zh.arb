@@ -3427,5 +3427,27 @@
   "jellyfinMediaDeletionPermissionHint": "（请检查 Jellyfin 用户是否开启“允许删除媒体”权限）",
   "@jellyfinMediaDeletionPermissionHint": {
     "description": "Permission hint when deleting playlist fails on Jellyfin"
+  },
+  "trialResetDialogTitle": "试用期已重置",
+  "@trialResetDialogTitle": {
+    "description": "Title of the trial period reset notice dialog"
+  },
+  "trialResetDialogSubtitle": "已为您重新开启 {days} 天 Pro 完整试用",
+  "@trialResetDialogSubtitle": {
+    "description": "Subtitle of the trial period reset notice dialog",
+    "placeholders": {
+      "days": {}
+    }
+  },
+  "trialResetDialogMessage": "由于之前版本存在影响体验的已知问题，新版本已为您重新重置了 {days} 天的完整 Pro 试用期。所有高级功能已恢复可用，感谢您的支持与理解！",
+  "@trialResetDialogMessage": {
+    "description": "Message of the trial period reset notice dialog",
+    "placeholders": {
+      "days": {}
+    }
+  },
+  "trialResetDialogButton": "开始体验",
+  "@trialResetDialogButton": {
+    "description": "Button to dismiss the trial period reset notice dialog"
   }
 }

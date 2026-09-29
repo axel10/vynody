@@ -5427,4 +5427,20 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get jellyfinMediaDeletionPermissionHint =>
       ' (Vérifiez si l\'utilisateur Jellyfin a la permission \"Autoriser la suppression de médias\")';
+
+  @override
+  String get trialResetDialogTitle => 'Période d\'essai réinitialisée';
+
+  @override
+  String trialResetDialogSubtitle(Object days) {
+    return 'Essai Pro complet de $days jours restauré';
+  }
+
+  @override
+  String trialResetDialogMessage(Object days) {
+    return 'En raison de problèmes dans les versions précédentes, nous avons réinitialisé votre période d\'essai Pro de $days jours. Toutes les fonctionnalités premium sont à nouveau actives. Merci pour votre patience et votre soutien !';
+  }
+
+  @override
+  String get trialResetDialogButton => 'Commencer';
 }

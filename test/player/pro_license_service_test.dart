@@ -102,6 +102,61 @@ void main() {
       unlockedContainer.dispose();
       lockedContainer.dispose();
     });
+
+    test('v2.13.2 Trial Reset resets expired trial for existing users and flags pending notice', () async {
+      final oldExpiredLaunch = DateTime.now().subtract(const Duration(days: 30)).millisecondsSinceEpoch;
+      SharedPreferences.setMockInitialValues({
+        'vynody_license_first_launch_epoch_ms': oldExpiredLaunch,
+        // 'vynody_trial_reset_v2_13_2_done' is not set
+      });
+      final prefs = await SharedPreferences.getInstance();
+      final service = ProLicenseService(prefs: prefs);
+
+      if (!AppChannel.isGitHubRelease) {
+        // Wait for async _init
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+
+        expect(service.state.isInTrial, isTrue);
+        expect(service.state.trialDaysRemaining, ProConfig.trialDays);
+        expect(service.pendingTrialResetNotice, isTrue);
+        expect(prefs.getBool('vynody_trial_reset_v2_13_2_done'), isTrue);
+
+        await service.consumeTrialResetNotice();
+        expect(service.pendingTrialResetNotice, isFalse);
+        expect(prefs.getBool('vynody_pending_trial_reset_v2_13_2_notice'), isFalse);
+      }
+    });
+
+    test('v2.13.2 Trial Reset skips purchased Pro users', () async {
+      SharedPreferences.setMockInitialValues({
+        'vynody_license_first_launch_epoch_ms': 1000,
+        'vynody_license_pro_purchased': true,
+      });
+      final prefs = await SharedPreferences.getInstance();
+      final service = ProLicenseService(prefs: prefs);
+
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      expect(service.state.isPermanentlyUnlocked, isTrue);
+      expect(service.pendingTrialResetNotice, isFalse);
+      expect(prefs.getBool('vynody_trial_reset_v2_13_2_done'), isTrue);
+    });
+
+    test('Fresh install on v2.13.2+ initializes trial normally without triggering notice dialog', () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final service = ProLicenseService(prefs: prefs);
+
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      if (!AppChannel.isGitHubRelease) {
+        expect(service.state.isInTrial, isTrue);
+        expect(service.state.trialDaysRemaining, ProConfig.trialDays);
+        expect(service.pendingTrialResetNotice, isFalse);
+        expect(prefs.getBool('vynody_trial_reset_v2_13_2_done'), isTrue);
+        expect(prefs.getBool('vynody_pending_trial_reset_v2_13_2_notice'), isNot(isTrue));
+      }
+    });
   });
 }
 

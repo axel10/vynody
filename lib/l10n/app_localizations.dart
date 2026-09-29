@@ -9501,6 +9501,30 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'（请检查 Jellyfin 用户是否开启“允许删除媒体”权限）'**
   String get jellyfinMediaDeletionPermissionHint;
+
+  /// Title of the trial period reset notice dialog
+  ///
+  /// In zh, this message translates to:
+  /// **'试用期已重置'**
+  String get trialResetDialogTitle;
+
+  /// Subtitle of the trial period reset notice dialog
+  ///
+  /// In zh, this message translates to:
+  /// **'已为您重新开启 {days} 天 Pro 完整试用'**
+  String trialResetDialogSubtitle(Object days);
+
+  /// Message of the trial period reset notice dialog
+  ///
+  /// In zh, this message translates to:
+  /// **'由于之前版本存在影响体验的已知问题，新版本已为您重新重置了 {days} 天的完整 Pro 试用期。所有高级功能已恢复可用，感谢您的支持与理解！'**
+  String trialResetDialogMessage(Object days);
+
+  /// Button to dismiss the trial period reset notice dialog
+  ///
+  /// In zh, this message translates to:
+  /// **'开始体验'**
+  String get trialResetDialogButton;
 }
 
 class _AppLocalizationsDelegate

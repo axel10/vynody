@@ -5179,4 +5179,20 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String get jellyfinMediaDeletionPermissionHint =>
       ' (Jellyfin 사용자에게 \"미디어 삭제 허용\" 권한이 있는지 확인하세요)';
+
+  @override
+  String get trialResetDialogTitle => '체험 기간 재설정 완료';
+
+  @override
+  String trialResetDialogSubtitle(Object days) {
+    return '$days일간의 Pro 무료 체험이 다시 시작되었습니다';
+  }
+
+  @override
+  String trialResetDialogMessage(Object days) {
+    return '이전 버전의 오류로 인해 $days일간의 Pro 무료 체험 기간이 새로 재설정되었습니다. 모든 프리미엄 기능을 다시 이용하실 수 있습니다. 이용해 주셔서 감사합니다!';
+  }
+
+  @override
+  String get trialResetDialogButton => '체험 시작';
 }

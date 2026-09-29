@@ -1985,5 +1985,9 @@
   "navidromePlaylist": "Navidrome-Wiedergabeliste",
   "unknownPlaylist": "Unbekannte Wiedergabeliste",
   "loadingServerPlaylists": "Server-Wiedergabelisten werden geladen...",
-  "jellyfinMediaDeletionPermissionHint": " (Bitte prüfen Sie, ob der Jellyfin-Benutzer die Berechtigung \"Medienlöschung zulassen\" hat)"
+  "jellyfinMediaDeletionPermissionHint": " (Bitte prüfen Sie, ob der Jellyfin-Benutzer die Berechtigung \"Medienlöschung zulassen\" hat)",
+  "trialResetDialogTitle": "Testphase zurückgesetzt",
+  "trialResetDialogSubtitle": "Vollständige {days}-tägige Pro-Testphase wiederhergestellt",
+  "trialResetDialogMessage": "Aufgrund von Problemen in vorherigen Versionen wurde Ihr {days}-tägiger Pro-Testzeitraum zurückgesetzt. Alle Premium-Funktionen sind wieder verfügbar. Vielen Dank für Ihre Unterstützung!",
+  "trialResetDialogButton": "Loslegen"
 }

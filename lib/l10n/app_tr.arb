@@ -2109,5 +2109,9 @@
   "navidromePlaylist": "Navidrome Çalma Listesi",
   "unknownPlaylist": "Bilinmeyen Çalma Listesi",
   "loadingServerPlaylists": "Sunucu çalma listeleri yükleniyor...",
-  "jellyfinMediaDeletionPermissionHint": " (Lütfen Jellyfin kullanıcısının \"Medya silmeye izin ver\" yetkisi olup olmadığını kontrol edin)"
+  "jellyfinMediaDeletionPermissionHint": " (Lütfen Jellyfin kullanıcısının \"Medya silmeye izin ver\" yetkisi olup olmadığını kontrol edin)",
+  "trialResetDialogTitle": "Deneme Süresi Sıfırlandı",
+  "trialResetDialogSubtitle": "{days} günlük Pro deneme süresi geri yüklendi",
+  "trialResetDialogMessage": "Önceki sürümlerdeki sorunlar nedeniyle {days} günlük Pro deneme süreniz sıfırlandı. Tüm premium özellikler yeniden kullanılabilir. Anlayışınız ve desteğiniz için teşekkür ederiz!",
+  "trialResetDialogButton": "Başla"
 }

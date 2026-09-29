@@ -2084,5 +2084,9 @@
   "navidromePlaylist": "Navidrome プレイリスト",
   "unknownPlaylist": "不明なプレイリスト",
   "loadingServerPlaylists": "サーバーのプレイリストを読み込み中...",
-  "jellyfinMediaDeletionPermissionHint": "（Jellyfin ユーザーに「メディアの削除を許可」権限があるか確認してください）"
+  "jellyfinMediaDeletionPermissionHint": "（Jellyfin ユーザーに「メディアの削除を許可」権限があるか確認してください）",
+  "trialResetDialogTitle": "試用期間がリセットされました",
+  "trialResetDialogSubtitle": "{days}日間のPro無料試用が再開されました",
+  "trialResetDialogMessage": "以前のバージョンにおける不具合により、Pro機能の {days} 日間無料試用期間をリセットいたしました。すべてのプレミアム機能がご利用いただけます。ご理解とご支援に感謝いたします！",
+  "trialResetDialogButton": "始める"
 }

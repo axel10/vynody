@@ -33,6 +33,7 @@ import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/player/audio/playback_source.dart';
 import 'main_layout_riverpod.dart';
 import '../dialogs/music_folders_dialog.dart';
+import '../dialogs/trial_reset_notice_dialog.dart';
 import '../widgets/desktop_window_title_bar.dart';
 import '../widgets/floating_dock_bottom_bar.dart';
 import '../widgets/playback_hero_card.dart';
@@ -206,8 +207,31 @@ class _MainLayoutState extends ConsumerState<MainLayout>
       GlobalKey<FoldersPageState>();
 
   bool _isOnboardingDialogOpen = false;
+  bool _isTrialResetNoticeDialogOpen = false;
 
   MainLayoutUiController get _ui => _uiController;
+
+  Future<void> _checkAndShowTrialResetNotice() async {
+    if (_isTrialResetNoticeDialogOpen || _isOnboardingDialogOpen || !mounted) return;
+    final proService = ref.read(proLicenseServiceProvider);
+    if (!proService.pendingTrialResetNotice) return;
+
+    _isTrialResetNoticeDialogOpen = true;
+    await Future<void>.delayed(const Duration(milliseconds: 350));
+    if (!mounted) {
+      _isTrialResetNoticeDialogOpen = false;
+      return;
+    }
+
+    await proService.consumeTrialResetNotice();
+    if (!mounted) {
+      _isTrialResetNoticeDialogOpen = false;
+      return;
+    }
+
+    await showTrialResetNoticeDialog(context);
+    _isTrialResetNoticeDialogOpen = false;
+  }
 
   void _handleDesktopPointerActivity(PointerEvent event) {
     final settings = ref.read(settingsServiceProvider);
@@ -307,6 +331,8 @@ class _MainLayoutState extends ConsumerState<MainLayout>
       }
       if (needOnboarding) {
         _triggerOnboardingFlow();
+      } else {
+        _checkAndShowTrialResetNotice();
       }
     });
 
@@ -881,11 +907,30 @@ class _MainLayoutState extends ConsumerState<MainLayout>
 
     final settings = ref.read(settingsServiceProvider);
     settings.hasShownOnboarding = true;
+
+    if (ref.read(trialResetNoticePendingProvider)) {
+      _checkAndShowTrialResetNotice();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+
+    // Listen for pending trial reset notice
+    ref.listen<bool>(
+      trialResetNoticePendingProvider,
+      (previous, next) {
+        if (next && !_isTrialResetNoticeDialogOpen && !_isOnboardingDialogOpen) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              _checkAndShowTrialResetNotice();
+            }
+          });
+        }
+      },
+    );
+
     // Listen for onboarding status change (e.g. reset from settings)
     ref.listen<bool>(
       settingsServiceProvider.select((s) => s.hasShownOnboarding),

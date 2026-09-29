@@ -2368,5 +2368,9 @@
   "navidromePlaylist": "Navidrome Playlist",
   "unknownPlaylist": "Unknown Playlist",
   "loadingServerPlaylists": "Loading server playlists...",
-  "jellyfinMediaDeletionPermissionHint": " (Please check if Jellyfin user has \"Allow media deletion\" permission)"
+  "jellyfinMediaDeletionPermissionHint": " (Please check if Jellyfin user has \"Allow media deletion\" permission)",
+  "trialResetDialogTitle": "Trial Period Reset",
+  "trialResetDialogSubtitle": "Full {days}-day Pro trial restored",
+  "trialResetDialogMessage": "Due to known issues in previous versions affecting user experience, we have reset your full {days}-day Pro trial. All premium features are now active. Thank you for your support and patience!",
+  "trialResetDialogButton": "Get Started"
 }

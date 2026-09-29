@@ -5377,4 +5377,20 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get jellyfinMediaDeletionPermissionHint =>
       ' (Lütfen Jellyfin kullanıcısının \"Medya silmeye izin ver\" yetkisi olup olmadığını kontrol edin)';
+
+  @override
+  String get trialResetDialogTitle => 'Deneme Süresi Sıfırlandı';
+
+  @override
+  String trialResetDialogSubtitle(Object days) {
+    return '$days günlük Pro deneme süresi geri yüklendi';
+  }
+
+  @override
+  String trialResetDialogMessage(Object days) {
+    return 'Önceki sürümlerdeki sorunlar nedeniyle $days günlük Pro deneme süreniz sıfırlandı. Tüm premium özellikler yeniden kullanılabilir. Anlayışınız ve desteğiniz için teşekkür ederiz!';
+  }
+
+  @override
+  String get trialResetDialogButton => 'Başla';
 }

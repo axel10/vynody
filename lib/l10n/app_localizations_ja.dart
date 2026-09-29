@@ -5174,4 +5174,20 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get jellyfinMediaDeletionPermissionHint =>
       '（Jellyfin ユーザーに「メディアの削除を許可」権限があるか確認してください）';
+
+  @override
+  String get trialResetDialogTitle => '試用期間がリセットされました';
+
+  @override
+  String trialResetDialogSubtitle(Object days) {
+    return '$days日間のPro無料試用が再開されました';
+  }
+
+  @override
+  String trialResetDialogMessage(Object days) {
+    return '以前のバージョンにおける不具合により、Pro機能の $days 日間無料試用期間をリセットいたしました。すべてのプレミアム機能がご利用いただけます。ご理解とご支援に感謝いたします！';
+  }
+
+  @override
+  String get trialResetDialogButton => '始める';
 }
