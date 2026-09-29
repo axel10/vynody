@@ -32,6 +32,8 @@ import 'widgets/app_global_shortcuts.dart';
 import 'widgets/volume_controls.dart';
 import 'pages/main_layout_riverpod.dart';
 import 'package:flutter_desktop_lyrics/flutter_desktop_lyrics.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:vynody/player/scanner/scanner_path_utils.dart';
 import 'package:vynody/player/platform/standalone_queue_window_manager.dart';
 import 'package:vynody/player/platform/right_queue_drawer_controller.dart';
 import 'package:vynody/standalone_queue_app.dart';
@@ -196,6 +198,18 @@ void main(List<String> args) async {
 
   if (Platform.isAndroid) {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  }
+  if (Platform.isIOS || Platform.isMacOS) {
+    try {
+      final docDir = await getApplicationDocumentsDirectory();
+      final libDir = await getApplicationSupportDirectory();
+      ScannerPathUtils.setIosSandboxDirs(
+        docDir: docDir.path,
+        libDir: libDir.path,
+      );
+    } catch (e) {
+      AppLog.log('Failed to initialize iOS sandbox directories: $e', mirrorToConsole: true);
+    }
   }
   AppOrientationManager.init();
   AppLog.log('main start args=$args', mirrorToConsole: true);

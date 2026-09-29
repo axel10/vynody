@@ -2317,17 +2317,25 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   List<String> get songPaths => const [];
 
   SongMetadata _songFromQueryRow(QueryRow row) {
+    final rawPath = row.read<String>('path');
+    final rawArtwork = row.read<String?>('artworkPath');
+    final rawThumbnail = row.read<String?>('thumbnailPath');
+
     return SongMetadata(
       id: row.read<int?>('id'),
       mediaId: row.read<int?>('mediaId'),
-      path: row.read<String>('path'),
+      path: ScannerPathUtils.resolveIosSandboxPath(rawPath),
       title: row.read<String?>('title') ?? 'Unknown',
       album: row.read<String?>('album') ?? 'Unknown',
       artist: row.read<String?>('artist') ?? 'Unknown',
       albumArtist: row.read<String?>('albumArtist'),
       duration: row.read<int?>('duration'),
-      artworkPath: row.read<String?>('artworkPath'),
-      thumbnailPath: row.read<String?>('thumbnailPath'),
+      artworkPath: rawArtwork != null
+          ? ScannerPathUtils.resolveIosSandboxPath(rawArtwork)
+          : null,
+      thumbnailPath: rawThumbnail != null
+          ? ScannerPathUtils.resolveIosSandboxPath(rawThumbnail)
+          : null,
       artworkWidth: row.read<int?>('artworkWidth'),
       artworkHeight: row.read<int?>('artworkHeight'),
       trackNumber: row.read<int?>('trackNumber'),
@@ -2349,14 +2357,18 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
     return SongMetadata(
       id: row.id,
       mediaId: row.mediaId,
-      path: row.path,
+      path: ScannerPathUtils.resolveIosSandboxPath(row.path),
       title: row.title ?? 'Unknown',
       album: row.album ?? 'Unknown',
       artist: row.artist ?? 'Unknown',
       albumArtist: row.albumArtist,
       duration: row.duration,
-      artworkPath: row.artworkPath,
-      thumbnailPath: row.thumbnailPath,
+      artworkPath: row.artworkPath != null
+          ? ScannerPathUtils.resolveIosSandboxPath(row.artworkPath!)
+          : null,
+      thumbnailPath: row.thumbnailPath != null
+          ? ScannerPathUtils.resolveIosSandboxPath(row.thumbnailPath!)
+          : null,
       artworkWidth: row.artworkWidth,
       artworkHeight: row.artworkHeight,
       trackNumber: row.trackNumber,
@@ -2633,16 +2645,24 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   }
 
   LibraryInsightSongRecord _libraryInsightSongRecordFromRow(QueryRow row) {
+    final rawPath = row.read<String>('path');
+    final rawArtwork = row.read<String?>('artworkPath');
+    final rawThumbnail = row.read<String?>('thumbnailPath');
+
     return LibraryInsightSongRecord(
       song: SongMetadata(
         id: row.read<int?>('id'),
-        path: row.read<String>('path'),
+        path: ScannerPathUtils.resolveIosSandboxPath(rawPath),
         title: row.read<String?>('title') ?? 'Unknown',
         album: row.read<String?>('album') ?? 'Unknown',
         artist: row.read<String?>('artist') ?? 'Unknown',
         duration: row.read<int?>('duration'),
-        artworkPath: row.read<String?>('artworkPath'),
-        thumbnailPath: row.read<String?>('thumbnailPath'),
+        artworkPath: rawArtwork != null
+            ? ScannerPathUtils.resolveIosSandboxPath(rawArtwork)
+            : null,
+        thumbnailPath: rawThumbnail != null
+            ? ScannerPathUtils.resolveIosSandboxPath(rawThumbnail)
+            : null,
         artworkWidth: row.read<int?>('artworkWidth'),
         artworkHeight: row.read<int?>('artworkHeight'),
         trackNumber: row.read<int?>('trackNumber'),
@@ -2666,6 +2686,11 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
     try {
       final docDir = await getApplicationDocumentsDirectory();
       final currentSandbox = p.dirname(docDir.path);
+
+      ScannerPathUtils.setIosSandboxDirs(
+        docDir: docDir.path,
+        libDir: p.join(currentSandbox, 'Library', 'Application Support'),
+      );
 
       // Ensure the sharing directory is created so it's never grayed out in the files app!
       final sharingFolderPath = p.join(docDir.path, 'Vynody Music');
@@ -2732,56 +2757,67 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
 
       if (oldSandboxPrefix != null && oldSandboxPrefix != currentSandbox) {
         final oldPrefix = oldSandboxPrefix;
+        final oldPrefixNoPrivate = oldPrefix.replaceFirst(RegExp(r'^/private'), '');
+        final oldPrefixWithPrivate = oldPrefixNoPrivate.startsWith('/')
+            ? '/private$oldPrefixNoPrivate'
+            : '/private/$oldPrefixNoPrivate';
+
+        final currentSandboxNoPrivate = currentSandbox.replaceFirst(RegExp(r'^/private'), '');
+        final currentSandboxWithPrivate = currentSandboxNoPrivate.startsWith('/')
+            ? '/private$currentSandboxNoPrivate'
+            : '/private/$currentSandboxNoPrivate';
+
         debugPrint('[PathMigration] Sandbox UUID change detected on iOS.');
         debugPrint('[PathMigration] Old sandbox: $oldPrefix');
         debugPrint('[PathMigration] Current sandbox: $currentSandbox');
 
-        // 1. Update songs table
-        await customStatement(
-          'UPDATE songs SET path = REPLACE(path, ?, ?), '
-          'artworkPath = REPLACE(artworkPath, ?, ?), '
-          'thumbnailPath = REPLACE(thumbnailPath, ?, ?) '
-          'WHERE path LIKE ? OR artworkPath LIKE ? OR thumbnailPath LIKE ?',
-          <Object>[
-            oldPrefix,
-            currentSandbox,
-            oldPrefix,
-            currentSandbox,
-            oldPrefix,
-            currentSandbox,
-            '$oldPrefix%',
-            '$oldPrefix%',
-            '$oldPrefix%',
-          ],
-        );
+        // 1. Update songs table (replace both with /private and without /private)
+        for (final pair in [
+          (oldPrefixWithPrivate, currentSandboxWithPrivate),
+          (oldPrefixNoPrivate, currentSandboxNoPrivate),
+        ]) {
+          await customStatement(
+            'UPDATE songs SET path = REPLACE(path, ?, ?), '
+            'artworkPath = REPLACE(artworkPath, ?, ?), '
+            'thumbnailPath = REPLACE(thumbnailPath, ?, ?) '
+            'WHERE path LIKE ? OR artworkPath LIKE ? OR thumbnailPath LIKE ?',
+            <Object>[
+              pair.$1,
+              pair.$2,
+              pair.$1,
+              pair.$2,
+              pair.$1,
+              pair.$2,
+              '%${pair.$1}%',
+              '%${pair.$1}%',
+              '%${pair.$1}%',
+            ],
+          );
 
-        // 2. Update song_play_history table
-        await customStatement(
-          'UPDATE song_play_history SET songPath = REPLACE(songPath, ?, ?) '
-          'WHERE songPath LIKE ?',
-          <Object>[oldPrefix, currentSandbox, '$oldPrefix%'],
-        );
+          await customStatement(
+            'UPDATE song_play_history SET songPath = REPLACE(songPath, ?, ?) '
+            'WHERE songPath LIKE ?',
+            <Object>[pair.$1, pair.$2, '%${pair.$1}%'],
+          );
 
-        // 3. Update lyrics_cache table (cacheKey contains the filePath)
-        await customStatement(
-          'UPDATE lyrics_cache SET cacheKey = REPLACE(cacheKey, ?, ?) '
-          'WHERE cacheKey LIKE ?',
-          <Object>[oldPrefix, currentSandbox, '%$oldPrefix%'],
-        );
+          await customStatement(
+            'UPDATE lyrics_cache SET cacheKey = REPLACE(cacheKey, ?, ?) '
+            'WHERE cacheKey LIKE ?',
+            <Object>[pair.$1, pair.$2, '%${pair.$1}%'],
+          );
 
-        // 4. Update lyrics_translation_cache table
-        await customStatement(
-          'UPDATE lyrics_translation_cache SET cacheKey = REPLACE(cacheKey, ?, ?) '
-          'WHERE cacheKey LIKE ?',
-          <Object>[oldPrefix, currentSandbox, '%$oldPrefix%'],
-        );
+          await customStatement(
+            'UPDATE lyrics_translation_cache SET cacheKey = REPLACE(cacheKey, ?, ?) '
+            'WHERE cacheKey LIKE ?',
+            <Object>[pair.$1, pair.$2, '%${pair.$1}%'],
+          );
 
-        // 5. Update artist_image_cache table
-        await customStatement(
-          'UPDATE artist_image_cache SET imagePath = REPLACE(imagePath, ?, ?) '
-          'WHERE imagePath LIKE ?',
-          <Object>[oldPrefix, currentSandbox, '$oldPrefix%'],
-        );
+          await customStatement(
+            'UPDATE artist_image_cache SET imagePath = REPLACE(imagePath, ?, ?) '
+            'WHERE imagePath LIKE ?',
+            <Object>[pair.$1, pair.$2, '%${pair.$1}%'],
+          );
+        }
 
         // 6. Migrate root_paths in SharedPreferences
         final rootPaths = prefs.getStringList('root_paths');

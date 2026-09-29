@@ -846,22 +846,38 @@ class AudioService extends Notifier<AudioSnapshot> {
         }
 
         final current = _queue[_currentIndex];
-        if (await _songExists(current.path)) {
+        final resolvedPath = ScannerPathUtils.resolveIosSandboxPath(current.path);
+        if (resolvedPath != current.path) {
+          final resolvedThumbnail = current.thumbnailPath != null
+              ? ScannerPathUtils.resolveIosSandboxPath(current.thumbnailPath!)
+              : null;
+          final resolvedArtwork = current.artworkPath != null
+              ? ScannerPathUtils.resolveIosSandboxPath(current.artworkPath!)
+              : null;
+          _queue[_currentIndex] = current.copyWith(
+            path: resolvedPath,
+            thumbnailPath: resolvedThumbnail,
+            artworkPath: resolvedArtwork,
+          );
+        }
+        final effectiveSong = _queue[_currentIndex];
+
+        if (await _songExists(effectiveSong.path)) {
           _lastMissingCurrentTrackPathHandled = null;
-          await _syncCurrentPlaybackSong(current);
+          await _syncCurrentPlaybackSong(effectiveSong);
           if (skippedAny) {
             _showMissingSongNotice(skipped: true);
           }
           return;
         }
 
-        if (_lastMissingCurrentTrackPathHandled == current.path) {
+        if (_lastMissingCurrentTrackPathHandled == effectiveSong.path) {
           if (skippedAny) {
             _showMissingSongNotice(skipped: true);
           }
           return;
         }
-        _lastMissingCurrentTrackPathHandled = current.path;
+        _lastMissingCurrentTrackPathHandled = effectiveSong.path;
 
         setSongMissingStateByPath(current.path, true);
         skippedAny = true;
@@ -1436,7 +1452,22 @@ class AudioService extends Notifier<AudioSnapshot> {
       _currentIndex = newIndex;
       _lastMissingCurrentTrackPathHandled = null;
       if (_currentIndex >= 0 && _currentIndex < _queue.length) {
-        final song = _queue[_currentIndex];
+        var song = _queue[_currentIndex];
+        final resolvedPath = ScannerPathUtils.resolveIosSandboxPath(song.path);
+        if (resolvedPath != song.path) {
+          final resolvedThumbnail = song.thumbnailPath != null
+              ? ScannerPathUtils.resolveIosSandboxPath(song.thumbnailPath!)
+              : null;
+          final resolvedArtwork = song.artworkPath != null
+              ? ScannerPathUtils.resolveIosSandboxPath(song.artworkPath!)
+              : null;
+          song = song.copyWith(
+            path: resolvedPath,
+            thumbnailPath: resolvedThumbnail,
+            artworkPath: resolvedArtwork,
+          );
+          _queue[_currentIndex] = song;
+        }
         if (song.path.isNotEmpty &&
             !song.path.startsWith('content://') &&
             !RemoteMediaResolver.isRemoteUri(song.path) &&

@@ -13,6 +13,7 @@ import 'package:vynody/player/audio/app_playback_mode.dart';
 import 'package:vynody/player/audio/playback_source.dart';
 import 'package:vynody/player/remote/proxy/remote_media_resolver.dart';
 import 'package:vynody/player/metadata/metadata_helper.dart';
+import 'package:vynody/player/scanner/scanner_path_utils.dart';
 
 class RandomPlaybackData {
   const RandomPlaybackData({
@@ -196,6 +197,13 @@ class PlaybackSessionManager {
             return true;
           }
         }
+      }
+    }
+
+    if (Platform.isIOS || Platform.isMacOS) {
+      final resolved = ScannerPathUtils.resolveIosSandboxPath(path);
+      if (File(resolved).existsSync()) {
+        return true;
       }
     }
 
@@ -386,8 +394,20 @@ MusicFile _musicFileFromSessionJson(Map<String, dynamic> json) {
     themeColorsBlob = base64Decode(rawThemeColorsBlob);
   }
 
+  final rawPath = json['path'] as String? ?? '';
+  final rawThumbnail = json['thumbnailPath'] as String?;
+  final rawArtwork = json['artworkPath'] as String?;
+
+  final resolvedPath = ScannerPathUtils.resolveIosSandboxPath(rawPath);
+  final resolvedThumbnail = rawThumbnail != null
+      ? ScannerPathUtils.resolveIosSandboxPath(rawThumbnail)
+      : null;
+  final resolvedArtwork = rawArtwork != null
+      ? ScannerPathUtils.resolveIosSandboxPath(rawArtwork)
+      : null;
+
   return MusicFile(
-    path: json['path'] as String? ?? '',
+    path: resolvedPath,
     name: json['name'] as String? ?? '',
     title: json['title'] as String?,
     artist: json['artist'] as String?,
@@ -395,8 +415,8 @@ MusicFile _musicFileFromSessionJson(Map<String, dynamic> json) {
     trackNumber: (json['trackNumber'] as num?)?.toInt(),
     id: (json['id'] as num?)?.toInt(),
     mediaUri: json['mediaUri'] as String?,
-    thumbnailPath: json['thumbnailPath'] as String?,
-    artworkPath: json['artworkPath'] as String?,
+    thumbnailPath: resolvedThumbnail,
+    artworkPath: resolvedArtwork,
     artworkWidth: (json['artworkWidth'] as num?)?.toInt(),
     artworkHeight: (json['artworkHeight'] as num?)?.toInt(),
     durationMillis: (json['durationMillis'] as num?)?.toInt(),

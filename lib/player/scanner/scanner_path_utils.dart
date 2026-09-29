@@ -166,5 +166,77 @@ class ScannerPathUtils {
     }
     return cleaned;
   }
+
+  static String? _currentIosDocDir;
+  static String? _currentIosLibDir;
+
+  static void setIosSandboxDirs({String? docDir, String? libDir}) {
+    if (docDir != null && docDir.isNotEmpty) {
+      _currentIosDocDir = normalizePath(docDir);
+    }
+    if (libDir != null && libDir.isNotEmpty) {
+      _currentIosLibDir = normalizePath(libDir);
+    }
+  }
+
+  /// Resolves an iOS / macOS sandbox path that may contain a stale container UUID
+  /// to the current application container directory.
+  static String resolveIosSandboxPath(String path) {
+    if (path.isEmpty || (!Platform.isIOS && !Platform.isMacOS)) {
+      return path;
+    }
+    final trimmed = path.trim();
+    if (trimmed.startsWith('content://') ||
+        trimmed.startsWith('http://') ||
+        trimmed.startsWith('https://') ||
+        trimmed.startsWith('asset://') ||
+        trimmed.startsWith('fd://')) {
+      return trimmed;
+    }
+
+    // If file directly exists as-is, no need to transform
+    if (File(trimmed).existsSync()) {
+      return trimmed;
+    }
+
+    final docDir = _currentIosDocDir;
+    final libDir = _currentIosLibDir;
+
+    // 1. Documents container matching (supports /var/mobile, /private/var/mobile, and Simulator)
+    if (docDir != null && docDir.isNotEmpty) {
+      final docMatch = RegExp(
+        r'(?:^|/)(?:private/)?var/mobile/Containers/Data/Application/[^/]+/Documents/(.+)$',
+      ).firstMatch(trimmed) ?? RegExp(
+        r'/Containers/Data/Application/[^/]+/Documents/(.+)$',
+      ).firstMatch(trimmed);
+
+      if (docMatch != null) {
+        final subPath = docMatch.group(1)!;
+        final resolved = p.join(docDir, subPath);
+        if (File(resolved).existsSync() || !File(trimmed).existsSync()) {
+          return resolved;
+        }
+      }
+    }
+
+    // 2. Library / Application Support container matching
+    if (libDir != null && libDir.isNotEmpty) {
+      final libMatch = RegExp(
+        r'(?:^|/)(?:private/)?var/mobile/Containers/Data/Application/[^/]+/Library/(?:Application Support/)?(.+)$',
+      ).firstMatch(trimmed) ?? RegExp(
+        r'/Containers/Data/Application/[^/]+/Library/(?:Application Support/)?(.+)$',
+      ).firstMatch(trimmed);
+
+      if (libMatch != null) {
+        final subPath = libMatch.group(1)!;
+        final resolved = p.join(libDir, subPath);
+        if (File(resolved).existsSync() || !File(trimmed).existsSync()) {
+          return resolved;
+        }
+      }
+    }
+
+    return trimmed;
+  }
 }
 
