@@ -35,6 +35,7 @@ class ScannerPathUtils {
       }
       return normalized;
     } else {
+      String result;
       if (!trimmed.contains('//') &&
           !trimmed.contains('/./') &&
           !trimmed.contains('/../') &&
@@ -44,13 +45,18 @@ class ScannerPathUtils {
         if (s.length > 1 && s.endsWith('/')) {
           s = s.substring(0, s.length - 1);
         }
-        return s;
+        result = s;
+      } else {
+        var normalized = p.normalize(trimmed);
+        if (normalized.length > 1 && normalized.endsWith('/')) {
+          normalized = normalized.substring(0, normalized.length - 1);
+        }
+        result = normalized;
       }
-      var normalized = p.normalize(trimmed);
-      if (normalized.length > 1 && normalized.endsWith('/')) {
-        normalized = normalized.substring(0, normalized.length - 1);
+      if ((Platform.isIOS || Platform.isMacOS) && result.startsWith('/private/var/')) {
+        result = result.substring('/private'.length);
       }
-      return normalized;
+      return result;
     }
   }
 

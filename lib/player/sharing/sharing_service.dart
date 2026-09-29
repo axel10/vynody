@@ -540,29 +540,8 @@ class SharingService {
       }
     }
 
-    // Check if we should skip creating the directory synchronously on Android (if using SAF)
-    bool shouldCreateDir = true;
-    if (Platform.isAndroid && savedPath.isNotEmpty) {
-      final mapping = await AndroidSafStorageHelper.findBestMapping(basePath);
-      if (mapping != null) {
-        shouldCreateDir = false;
-      }
-    }
-
-    if (shouldCreateDir) {
-      final dir = Directory(_sharingFolderPath);
-      if (!dir.existsSync()) {
-        try {
-          dir.createSync(recursive: true);
-        } catch (e) {
-          debugPrint('[SharingService] Failed to create sharing directory: $e');
-          // Fallback to app documents
-          final appDoc = await getApplicationDocumentsDirectory();
-          _sharingFolderPath = p.join(appDoc.path, 'Vynody Music');
-          Directory(_sharingFolderPath).createSync(recursive: true);
-        }
-      }
-    }
+    // Note: We intentionally do NOT create the directory here or register it in scanner upfront.
+    // Directories will be created on-demand and registered in scanner when files are actually received.
   }
 
   Future<String> getDefaultSharingFolderPath() async {
@@ -590,7 +569,6 @@ class SharingService {
   Future<void> resetSharingFolderPathToDefault() async {
     _ref.read(settingsServiceProvider).lanSharingFolderPath = '';
     await _resolveSharingPath();
-    await _ensureRegisteredInScanner();
   }
 
   Future<void> updateSharingFolderPath(String newPath) async {
@@ -600,7 +578,6 @@ class SharingService {
     }
     _ref.read(settingsServiceProvider).lanSharingFolderPath = newPath;
     _sharingFolderPath = newPath;
-    await _ensureRegisteredInScanner();
   }
 
   Future<bool> checkSharingFolderWritable([String? pathToCheck]) async {
@@ -621,7 +598,22 @@ class SharingService {
     try {
       final dir = Directory(target);
       if (!dir.existsSync()) {
-        dir.createSync(recursive: true);
+        // Probe nearest existing ancestor directory to avoid preemptively creating empty directories.
+        var checkDir = dir;
+        while (!checkDir.existsSync() && checkDir.path != checkDir.parent.path) {
+          checkDir = checkDir.parent;
+        }
+        final probeFile = File(
+          p.join(
+            checkDir.path,
+            '.probe_write_${DateTime.now().microsecondsSinceEpoch}',
+          ),
+        );
+        probeFile.writeAsStringSync('probe', flush: true);
+        if (probeFile.existsSync()) {
+          probeFile.deleteSync();
+        }
+        return true;
       }
       final probeFile = File(
         p.join(
@@ -1808,6 +1800,10 @@ class SharingService {
       } else {
         // Atomic rename from temp file (.vynody_tmp) to final targetPath
         final finalFile = File(targetPath);
+        final parentDir = finalFile.parent;
+        if (!await parentDir.exists()) {
+          await parentDir.create(recursive: true);
+        }
         if (await finalFile.exists()) {
           try {
             await finalFile.delete();

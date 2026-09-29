@@ -84,5 +84,18 @@ void main() {
         '/var/mobile/Containers/Data/Application/NEW-UUID-1234/Documents/vynody',
       ]);
     });
+
+    test('pathsEqual and normalization matches /private/var and /var on iOS/macOS', () {
+      const withPrivate = '/private/var/mobile/Containers/Data/Application/UUID-1234/Documents';
+      const withoutPrivate = '/var/mobile/Containers/Data/Application/UUID-1234/Documents';
+
+      expect(ScannerPathUtils.pathsEqual(withPrivate, withoutPrivate), isTrue);
+      expect(ScannerPathUtils.pathsEqual(withoutPrivate, withPrivate), isTrue);
+
+      final normalizedList = ScannerPathUtils.normalizeDeclaredRootPaths([withPrivate, withoutPrivate]);
+      expect(normalizedList.length, 1);
+      expect(normalizedList.first, withoutPrivate);
+    });
   });
 }
+
