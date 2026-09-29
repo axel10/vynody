@@ -248,6 +248,43 @@ bool FlutterWindow::OnCreate() {
           } catch (...) {
             result->Error("VAULT_EXCEPTION", "Unknown error writing to PasswordVault");
           }
+        } else if (call.method_name() == "getSecureVaultTrialResetV2132") {
+          try {
+            winrt::Windows::Security::Credentials::PasswordVault vault;
+            auto cred = vault.Retrieve(L"VynodyApp", L"TrialResetV2132Done");
+            cred.RetrievePassword();
+            std::wstring pass = cred.Password().c_str();
+            result->Success(flutter::EncodableValue(pass == L"1" || pass == L"true"));
+          } catch (...) {
+            result->Success(flutter::EncodableValue(false));
+          }
+        } else if (call.method_name() == "setSecureVaultTrialResetV2132") {
+          try {
+            bool done = false;
+            if (auto args = std::get_if<flutter::EncodableMap>(call.arguments())) {
+              auto it = args->find(flutter::EncodableValue("done"));
+              if (it != args->end()) {
+                if (std::holds_alternative<bool>(it->second)) {
+                  done = std::get<bool>(it->second);
+                }
+              }
+            }
+            winrt::Windows::Security::Credentials::PasswordVault vault;
+            try {
+              auto existing = vault.Retrieve(L"VynodyApp", L"TrialResetV2132Done");
+              vault.Remove(existing);
+            } catch (...) {}
+            if (done) {
+              winrt::Windows::Security::Credentials::PasswordCredential cred(
+                  L"VynodyApp", L"TrialResetV2132Done", L"1");
+              vault.Add(cred);
+            }
+            result->Success(flutter::EncodableValue(true));
+          } catch (const std::exception& ex) {
+            result->Error("VAULT_EXCEPTION", ex.what());
+          } catch (...) {
+            result->Error("VAULT_EXCEPTION", "Unknown error writing to PasswordVault");
+          }
         } else {
           result->NotImplemented();
         }

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vynody/dialogs/upgrade_to_pro_dialog.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
@@ -19,14 +20,25 @@ const String _kPendingTrialResetNoticeKey = 'vynody_pending_trial_reset_v2_13_2_
 
 /// Service managing trial periods and license verification.
 class ProLicenseService extends ChangeNotifier {
-  ProLicenseService({SharedPreferences? prefs})
-      : _prefs = prefs,
+  ProLicenseService({
+    SharedPreferences? prefs,
+    FlutterSecureStorage? keychainStorage,
+  })  : _prefs = prefs,
+        _keychainStorage = keychainStorage ??
+            const FlutterSecureStorage(
+              iOptions: IOSOptions(
+                accessibility: KeychainAccessibility.first_unlock,
+              ),
+            ),
+        _hasInjectedKeychain = keychainStorage != null,
         _pendingTrialResetNotice = prefs?.getBool(_kPendingTrialResetNoticeKey) ?? false,
         _state = _computeInitialState(prefs) {
     _init();
   }
 
   final SharedPreferences? _prefs;
+  final FlutterSecureStorage _keychainStorage;
+  final bool _hasInjectedKeychain;
   static const _secureStorage = appSecureStorage;
 
   LicenseState _state;
@@ -143,7 +155,23 @@ class ProLicenseService extends ChangeNotifier {
       }
     }
 
-    // 3. Apple/Other: check Keychain via FlutterSecureStorage
+    // 3. iOS / Android: check Keychain / Keystore via FlutterSecureStorage
+    if (Platform.isIOS || Platform.isAndroid || _hasInjectedKeychain) {
+      try {
+        final secureVal = await _keychainStorage.read(key: _kFirstLaunchTimeKey);
+        if (secureVal != null) {
+          final parsed = int.tryParse(secureVal);
+          if (parsed != null && parsed > 0) {
+            await prefs.setInt(_kFirstLaunchTimeKey, parsed);
+            return parsed;
+          }
+        }
+      } catch (e) {
+        debugPrint('[ProLicenseService] Failed to read trial time from Keychain: $e');
+      }
+    }
+
+    // 4. Apple/Other fallback: check legacy SecureStorage
     try {
       final secureVal = await _secureStorage.read(key: _kFirstLaunchTimeKey);
       if (secureVal != null) {
@@ -176,10 +204,81 @@ class ProLicenseService extends ChangeNotifier {
       }
     }
 
+    if (Platform.isIOS || Platform.isAndroid || _hasInjectedKeychain) {
+      try {
+        await _keychainStorage.write(key: _kFirstLaunchTimeKey, value: epochMs.toString());
+      } catch (e) {
+        debugPrint('[ProLicenseService] Failed to write trial time to Keychain: $e');
+      }
+    }
+
     try {
       await _secureStorage.write(key: _kFirstLaunchTimeKey, value: epochMs.toString());
     } catch (e) {
       debugPrint('[ProLicenseService] Failed to write trial time to SecureStorage: $e');
+    }
+  }
+
+  /// Reads whether the v2.13.2 trial reset has already been executed across storage layers.
+  Future<bool> _readPersistentTrialResetV2132(SharedPreferences prefs) async {
+    // 1. Fast check in SharedPreferences
+    if (prefs.getBool(_kTrialResetV2132Key) == true) {
+      return true;
+    }
+
+    // 2. Windows: check PasswordVault
+    if (Platform.isWindows) {
+      try {
+        const channel = MethodChannel('vynody/single_instance');
+        final dynamic res = await channel.invokeMethod('getSecureVaultTrialResetV2132');
+        if (res == true) {
+          await prefs.setBool(_kTrialResetV2132Key, true);
+          return true;
+        }
+      } catch (e) {
+        debugPrint('[ProLicenseService] Failed to read trial reset status from PasswordVault: $e');
+      }
+    }
+
+    // 3. iOS / Android: check Keychain / Keystore via FlutterSecureStorage
+    if (Platform.isIOS || Platform.isAndroid || _hasInjectedKeychain) {
+      try {
+        final secureVal = await _keychainStorage.read(key: _kTrialResetV2132Key);
+        if (secureVal == 'true' || secureVal == '1') {
+          await prefs.setBool(_kTrialResetV2132Key, true);
+          return true;
+        }
+      } catch (e) {
+        debugPrint('[ProLicenseService] Failed to read trial reset status from Keychain: $e');
+      }
+    }
+
+    return false;
+  }
+
+  /// Writes whether the v2.13.2 trial reset has executed to persistent storage layers.
+  Future<void> _writePersistentTrialResetV2132(SharedPreferences prefs, bool done) async {
+    await prefs.setBool(_kTrialResetV2132Key, done);
+
+    if (Platform.isWindows) {
+      try {
+        const channel = MethodChannel('vynody/single_instance');
+        await channel.invokeMethod('setSecureVaultTrialResetV2132', {'done': done});
+      } catch (e) {
+        debugPrint('[ProLicenseService] Failed to write trial reset status to PasswordVault: $e');
+      }
+    }
+
+    if (Platform.isIOS || Platform.isAndroid || _hasInjectedKeychain) {
+      try {
+        if (done) {
+          await _keychainStorage.write(key: _kTrialResetV2132Key, value: 'true');
+        } else {
+          await _keychainStorage.delete(key: _kTrialResetV2132Key);
+        }
+      } catch (e) {
+        debugPrint('[ProLicenseService] Failed to write trial reset status to Keychain: $e');
+      }
     }
   }
 
@@ -206,7 +305,7 @@ class ProLicenseService extends ChangeNotifier {
 
     // 1. If running GitHub Community build, permanently unlock.
     if (AppChannel.isGitHubRelease) {
-      await prefs.setBool(_kTrialResetV2132Key, true);
+      await _writePersistentTrialResetV2132(prefs, true);
       _updateState(const LicenseState(type: LicenseType.unlimitedCommunity));
       return;
     }
@@ -253,16 +352,16 @@ class ProLicenseService extends ChangeNotifier {
 
     final isPurchased = prefs.getBool(_kProPurchasedKey) ?? false;
     if (isPurchased) {
-      await prefs.setBool(_kTrialResetV2132Key, true);
+      await _writePersistentTrialResetV2132(prefs, true);
       _updateState(const LicenseState(type: LicenseType.purchasedPro));
       return;
     }
 
-    final hasResetV2132 = prefs.getBool(_kTrialResetV2132Key) ?? false;
+    final hasResetV2132 = await _readPersistentTrialResetV2132(prefs);
     int? firstLaunchMs = await _readPersistentFirstLaunchMs(prefs);
 
     if (!hasResetV2132) {
-      await prefs.setBool(_kTrialResetV2132Key, true);
+      await _writePersistentTrialResetV2132(prefs, true);
       final isExistingUser = firstLaunchMs != null && firstLaunchMs > 0;
       await resetTrialPeriod(triggerPendingNotice: isExistingUser);
       return;

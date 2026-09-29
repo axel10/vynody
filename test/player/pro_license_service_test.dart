@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
@@ -197,6 +198,108 @@ void main() {
       expect(await secure.read(key: 'my_test_key'), 'secret_string');
       expect(secure.readSync(key: 'my_test_key'), 'secret_string');
     });
+
+    test('App reinstallation scenario: recovers trial reset status and original launch time from Keychain', () async {
+      final oldExpiredLaunch = DateTime.now().subtract(const Duration(days: 30)).millisecondsSinceEpoch;
+      final fakeKeychain = _FakeFlutterSecureStorage({
+        'vynody_trial_reset_v2_13_2_done': 'true',
+        'vynody_license_first_launch_epoch_ms': oldExpiredLaunch.toString(),
+      });
+
+      // User uninstalled the app -> SharedPreferences is completely wiped/empty
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+
+      final service = ProLicenseService(
+        prefs: prefs,
+        keychainStorage: fakeKeychain,
+      );
+
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      if (!AppChannel.isGitHubRelease) {
+        // Must NOT reset trial again
+        expect(service.state.isInTrial, isFalse);
+        expect(service.state.type, LicenseType.expiredTrial);
+        // Must NOT trigger notice dialog
+        expect(service.pendingTrialResetNotice, isFalse);
+        // SharedPreferences should have been restored from Keychain
+        expect(prefs.getBool('vynody_trial_reset_v2_13_2_done'), isTrue);
+        expect(prefs.getInt('vynody_license_first_launch_epoch_ms'), oldExpiredLaunch);
+      }
+    });
   });
+}
+
+class _FakeFlutterSecureStorage extends FlutterSecureStorage {
+  final Map<String, String> store;
+  _FakeFlutterSecureStorage([Map<String, String>? initial]) : store = initial ?? {};
+
+  @override
+  Future<String?> read({
+    required String key,
+    IOSOptions? iOptions,
+    AndroidOptions? aOptions,
+    LinuxOptions? lOptions,
+    WebOptions? webOptions,
+    MacOsOptions? mOptions,
+    WindowsOptions? wOptions,
+  }) async {
+    return store[key];
+  }
+
+  @override
+  Future<void> write({
+    required String key,
+    required String? value,
+    IOSOptions? iOptions,
+    AndroidOptions? aOptions,
+    LinuxOptions? lOptions,
+    WebOptions? webOptions,
+    MacOsOptions? mOptions,
+    WindowsOptions? wOptions,
+  }) async {
+    if (value != null) {
+      store[key] = value;
+    }
+  }
+
+  @override
+  Future<void> delete({
+    required String key,
+    IOSOptions? iOptions,
+    AndroidOptions? aOptions,
+    LinuxOptions? lOptions,
+    WebOptions? webOptions,
+    MacOsOptions? mOptions,
+    WindowsOptions? wOptions,
+  }) async {
+    store.remove(key);
+  }
+
+  @override
+  Future<bool> containsKey({
+    required String key,
+    IOSOptions? iOptions,
+    AndroidOptions? aOptions,
+    LinuxOptions? lOptions,
+    WebOptions? webOptions,
+    MacOsOptions? mOptions,
+    WindowsOptions? wOptions,
+  }) async {
+    return store.containsKey(key);
+  }
+
+  @override
+  Future<void> deleteAll({
+    IOSOptions? iOptions,
+    AndroidOptions? aOptions,
+    LinuxOptions? lOptions,
+    WebOptions? webOptions,
+    MacOsOptions? mOptions,
+    WindowsOptions? wOptions,
+  }) async {
+    store.clear();
+  }
 }
 
