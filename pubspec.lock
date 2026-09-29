@@ -325,9 +325,11 @@ packages:
   dart_webdav:
     dependency: "direct main"
     description:
-      path: dart_webdav
-      relative: true
-    source: path
+      path: "."
+      ref: master
+      resolved-ref: f694500cf041ef6d25ec0af42cf5b512c24071ea
+      url: "https://github.com/axel10/dart_webdav"
+    source: git
     version: "0.1.0"
   dbus:
     dependency: "direct main"

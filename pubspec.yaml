@@ -60,7 +60,9 @@ dependencies:
   xml: ^6.5.0
   dart_smb2: ^0.1.2
   dart_webdav:
-    path: ./dart_webdav
+    git: 
+      url: https://github.com/axel10/dart_webdav
+      ref: master
 
   window_manager: 
     git: 
