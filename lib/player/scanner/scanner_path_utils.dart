@@ -194,8 +194,8 @@ class ScannerPathUtils {
       return trimmed;
     }
 
-    // If file directly exists as-is, no need to transform
-    if (File(trimmed).existsSync()) {
+    // If file or directory directly exists as-is, no need to transform
+    if (File(trimmed).existsSync() || Directory(trimmed).existsSync()) {
       return trimmed;
     }
 
@@ -205,15 +205,19 @@ class ScannerPathUtils {
     // 1. Documents container matching (supports /var/mobile, /private/var/mobile, and Simulator)
     if (docDir != null && docDir.isNotEmpty) {
       final docMatch = RegExp(
-        r'(?:^|/)(?:private/)?var/mobile/Containers/Data/Application/[^/]+/Documents/(.+)$',
+        r'(?:^|/)(?:private/)?var/mobile/Containers/Data/Application/[^/]+/Documents(?:/(.*))?$',
       ).firstMatch(trimmed) ?? RegExp(
-        r'/Containers/Data/Application/[^/]+/Documents/(.+)$',
+        r'/Containers/Data/Application/[^/]+/Documents(?:/(.*))?$',
       ).firstMatch(trimmed);
 
       if (docMatch != null) {
-        final subPath = docMatch.group(1)!;
-        final resolved = p.join(docDir, subPath);
-        if (File(resolved).existsSync() || !File(trimmed).existsSync()) {
+        final subPath = docMatch.group(1);
+        final resolved = (subPath == null || subPath.isEmpty)
+            ? docDir
+            : p.join(docDir, subPath);
+        if (File(resolved).existsSync() ||
+            Directory(resolved).existsSync() ||
+            (!File(trimmed).existsSync() && !Directory(trimmed).existsSync())) {
           return resolved;
         }
       }
@@ -222,21 +226,45 @@ class ScannerPathUtils {
     // 2. Library / Application Support container matching
     if (libDir != null && libDir.isNotEmpty) {
       final libMatch = RegExp(
-        r'(?:^|/)(?:private/)?var/mobile/Containers/Data/Application/[^/]+/Library/(?:Application Support/)?(.+)$',
+        r'(?:^|/)(?:private/)?var/mobile/Containers/Data/Application/[^/]+/Library/(?:Application Support/)?(?:/(.*))?$',
       ).firstMatch(trimmed) ?? RegExp(
-        r'/Containers/Data/Application/[^/]+/Library/(?:Application Support/)?(.+)$',
+        r'/Containers/Data/Application/[^/]+/Library/(?:Application Support/)?(?:/(.*))?$',
       ).firstMatch(trimmed);
 
       if (libMatch != null) {
-        final subPath = libMatch.group(1)!;
-        final resolved = p.join(libDir, subPath);
-        if (File(resolved).existsSync() || !File(trimmed).existsSync()) {
+        final subPath = libMatch.group(1);
+        final resolved = (subPath == null || subPath.isEmpty)
+            ? libDir
+            : p.join(libDir, subPath);
+        if (File(resolved).existsSync() ||
+            Directory(resolved).existsSync() ||
+            (!File(trimmed).existsSync() && !Directory(trimmed).existsSync())) {
           return resolved;
         }
       }
     }
 
     return trimmed;
+  }
+
+  /// Checks if a path belongs to the iOS/macOS application sandbox.
+  static bool isSandboxInternalPath(String path) {
+    if (!Platform.isIOS && !Platform.isMacOS) return false;
+    final trimmed = normalizePath(path);
+    if (trimmed.contains('/Containers/Data/Application/')) {
+      return true;
+    }
+    if (_currentIosDocDir != null &&
+        (pathsEqual(_currentIosDocDir!, trimmed) ||
+            pathContains(_currentIosDocDir!, trimmed))) {
+      return true;
+    }
+    if (_currentIosLibDir != null &&
+        (pathsEqual(_currentIosLibDir!, trimmed) ||
+            pathContains(_currentIosLibDir!, trimmed))) {
+      return true;
+    }
+    return false;
   }
 }
 

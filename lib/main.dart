@@ -361,8 +361,18 @@ void main(List<String> args) async {
   await cleanupLyricsAiTempArtifacts();
   // 优化内存占用：将默认 100MB / 1000 张的图片缓存限制调整为更合理的 40MB / 100 张
   PaintingBinding.instance.imageCache.maximumSizeBytes = 40 * 1024 * 1024;
-  PaintingBinding.instance.imageCache.maximumSize = 100;
-
+  if (Platform.isIOS || Platform.isMacOS) {
+    try {
+      final docDir = await getApplicationDocumentsDirectory();
+      final currentSandbox = p.dirname(docDir.path);
+      ScannerPathUtils.setIosSandboxDirs(
+        docDir: docDir.path,
+        libDir: p.join(currentSandbox, 'Library', 'Application Support'),
+      );
+    } catch (e) {
+      AppLog.log('failed to set iOS sandbox dirs: $e', mirrorToConsole: true);
+    }
+  }
 
   AppLog.log('calling runApp', mirrorToConsole: true);
   MemoryTrace.snapshot('main:runApp');

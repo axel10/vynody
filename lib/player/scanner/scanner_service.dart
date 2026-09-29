@@ -1547,6 +1547,15 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       return true;
     }
 
+    if (Platform.isIOS || Platform.isMacOS) {
+      final resolved = ScannerPathUtils.resolveIosSandboxPath(normalizedPath);
+      try {
+        return Directory(resolved).existsSync();
+      } catch (e) {
+        return false;
+      }
+    }
+
     try {
       return Directory(normalizedPath).existsSync();
     } catch (e, st) {
@@ -1641,6 +1650,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
 
   Future<void> _syncAppleScopedAccessState() async {
     if (!_supportsPersistentAccess) return;
+    await ready;
 
     final currentRoots = List<String>.from(_roots.rootPaths);
     for (final path in currentRoots) {

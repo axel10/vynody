@@ -549,18 +549,46 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
         ? '/'
         : (Platform.isWindows ? '\\' : '/');
     final prefixPattern = normalized.endsWith(separator) ? '$normalized%' : '$normalized$separator%';
-    final rows = await customSelect(
-      '''
-      SELECT *
-      FROM songs
-      WHERE (path = ? OR path LIKE ?)
-        AND deletedAt IS NULL
-      ORDER BY LOWER(path) ASC
-      ''',
-      variables: [Variable(normalized), Variable(prefixPattern)],
-      readsFrom: {songs},
-    ).get();
+    final sandboxSuffix = _extractIosSandboxSuffix(normalized);
+
+    final List<QueryRow> rows;
+    if (sandboxSuffix != null) {
+      final legacyPattern = '%/Containers/Data/Application/%$sandboxSuffix%';
+      rows = await customSelect(
+        '''
+        SELECT *
+        FROM songs
+        WHERE (path = ? OR path LIKE ? OR path LIKE ?)
+          AND deletedAt IS NULL
+        ORDER BY LOWER(path) ASC
+        ''',
+        variables: [Variable(normalized), Variable(prefixPattern), Variable(legacyPattern)],
+        readsFrom: {songs},
+      ).get();
+    } else {
+      rows = await customSelect(
+        '''
+        SELECT *
+        FROM songs
+        WHERE (path = ? OR path LIKE ?)
+          AND deletedAt IS NULL
+        ORDER BY LOWER(path) ASC
+        ''',
+        variables: [Variable(normalized), Variable(prefixPattern)],
+        readsFrom: {songs},
+      ).get();
+    }
     return rows.map(_songFromQueryRow).toList(growable: false);
+  }
+
+  static String? _extractIosSandboxSuffix(String path) {
+    if (!Platform.isIOS && !Platform.isMacOS) return null;
+    final match = RegExp(
+      r'(?:^|/)(?:private/)?var/mobile/Containers/Data/Application/[^/]+(/(?:Documents|Library)(?:/.*)?)$',
+    ).firstMatch(path) ?? RegExp(
+      r'/Containers/Data/Application/[^/]+(/(?:Documents|Library)(?:/.*)?)$',
+    ).firstMatch(path);
+    return match?.group(1);
   }
 
   Future<int> getSongCountUnderPath(String rootPath) async {
@@ -594,16 +622,33 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
         ? '/'
         : (Platform.isWindows ? '\\' : '/');
     final prefixPattern = normalized.endsWith(separator) ? '$normalized%' : '$normalized$separator%';
-    final row = await customSelect(
-      '''
-      SELECT COUNT(*) AS c
-      FROM songs
-      WHERE (path = ? OR path LIKE ?)
-        AND deletedAt IS NULL
-      ''',
-      variables: [Variable(normalized), Variable(prefixPattern)],
-      readsFrom: {songs},
-    ).getSingle();
+    final sandboxSuffix = _extractIosSandboxSuffix(normalized);
+
+    final QueryRow row;
+    if (sandboxSuffix != null) {
+      final legacyPattern = '%/Containers/Data/Application/%$sandboxSuffix%';
+      row = await customSelect(
+        '''
+        SELECT COUNT(*) AS c
+        FROM songs
+        WHERE (path = ? OR path LIKE ? OR path LIKE ?)
+          AND deletedAt IS NULL
+        ''',
+        variables: [Variable(normalized), Variable(prefixPattern), Variable(legacyPattern)],
+        readsFrom: {songs},
+      ).getSingle();
+    } else {
+      row = await customSelect(
+        '''
+        SELECT COUNT(*) AS c
+        FROM songs
+        WHERE (path = ? OR path LIKE ?)
+          AND deletedAt IS NULL
+        ''',
+        variables: [Variable(normalized), Variable(prefixPattern)],
+        readsFrom: {songs},
+      ).getSingle();
+    }
     return row.read<int>('c');
   }
 
@@ -638,16 +683,33 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
         ? '/'
         : (Platform.isWindows ? '\\' : '/');
     final prefixPattern = normalized.endsWith(separator) ? '$normalized%' : '$normalized$separator%';
-    final row = await customSelect(
-      '''
-      SELECT SUM(duration) AS s
-      FROM songs
-      WHERE (path = ? OR path LIKE ?)
-        AND deletedAt IS NULL
-      ''',
-      variables: [Variable(normalized), Variable(prefixPattern)],
-      readsFrom: {songs},
-    ).getSingle();
+    final sandboxSuffix = _extractIosSandboxSuffix(normalized);
+
+    final QueryRow row;
+    if (sandboxSuffix != null) {
+      final legacyPattern = '%/Containers/Data/Application/%$sandboxSuffix%';
+      row = await customSelect(
+        '''
+        SELECT SUM(duration) AS s
+        FROM songs
+        WHERE (path = ? OR path LIKE ? OR path LIKE ?)
+          AND deletedAt IS NULL
+        ''',
+        variables: [Variable(normalized), Variable(prefixPattern), Variable(legacyPattern)],
+        readsFrom: {songs},
+      ).getSingle();
+    } else {
+      row = await customSelect(
+        '''
+        SELECT SUM(duration) AS s
+        FROM songs
+        WHERE (path = ? OR path LIKE ?)
+          AND deletedAt IS NULL
+        ''',
+        variables: [Variable(normalized), Variable(prefixPattern)],
+        readsFrom: {songs},
+      ).getSingle();
+    }
     return row.read<int?>('s') ?? 0;
   }
 
@@ -2354,21 +2416,35 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   }
 
   SongMetadata _songFromTableRow(Song row) {
+    final resolvedPath = ScannerPathUtils.resolveIosSandboxPath(row.path);
+    final resolvedArtwork = row.artworkPath != null
+        ? ScannerPathUtils.resolveIosSandboxPath(row.artworkPath!)
+        : null;
+    final resolvedThumbnail = row.thumbnailPath != null
+        ? ScannerPathUtils.resolveIosSandboxPath(row.thumbnailPath!)
+        : null;
+
+    if (Platform.isIOS &&
+        (resolvedPath != row.path ||
+            resolvedArtwork != row.artworkPath ||
+            resolvedThumbnail != row.thumbnailPath)) {
+      unawaited(customStatement(
+        'UPDATE songs SET path = ?, artworkPath = ?, thumbnailPath = ? WHERE id = ?',
+        <Object?>[resolvedPath, resolvedArtwork, resolvedThumbnail, row.id],
+      ));
+    }
+
     return SongMetadata(
       id: row.id,
       mediaId: row.mediaId,
-      path: ScannerPathUtils.resolveIosSandboxPath(row.path),
+      path: resolvedPath,
       title: row.title ?? 'Unknown',
       album: row.album ?? 'Unknown',
       artist: row.artist ?? 'Unknown',
       albumArtist: row.albumArtist,
       duration: row.duration,
-      artworkPath: row.artworkPath != null
-          ? ScannerPathUtils.resolveIosSandboxPath(row.artworkPath!)
-          : null,
-      thumbnailPath: row.thumbnailPath != null
-          ? ScannerPathUtils.resolveIosSandboxPath(row.thumbnailPath!)
-          : null,
+      artworkPath: resolvedArtwork,
+      thumbnailPath: resolvedThumbnail,
       artworkWidth: row.artworkWidth,
       artworkHeight: row.artworkHeight,
       trackNumber: row.trackNumber,
@@ -2649,20 +2725,37 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
     final rawArtwork = row.read<String?>('artworkPath');
     final rawThumbnail = row.read<String?>('thumbnailPath');
 
+    final resolvedPath = ScannerPathUtils.resolveIosSandboxPath(rawPath);
+    final resolvedArtwork = rawArtwork != null
+        ? ScannerPathUtils.resolveIosSandboxPath(rawArtwork)
+        : null;
+    final resolvedThumbnail = rawThumbnail != null
+        ? ScannerPathUtils.resolveIosSandboxPath(rawThumbnail)
+        : null;
+
+    if (Platform.isIOS &&
+        (resolvedPath != rawPath ||
+            resolvedArtwork != rawArtwork ||
+            resolvedThumbnail != rawThumbnail)) {
+      final id = row.read<int?>('id');
+      if (id != null) {
+        unawaited(customStatement(
+          'UPDATE songs SET path = ?, artworkPath = ?, thumbnailPath = ? WHERE id = ?',
+          <Object?>[resolvedPath, resolvedArtwork, resolvedThumbnail, id],
+        ));
+      }
+    }
+
     return LibraryInsightSongRecord(
       song: SongMetadata(
         id: row.read<int?>('id'),
-        path: ScannerPathUtils.resolveIosSandboxPath(rawPath),
+        path: resolvedPath,
         title: row.read<String?>('title') ?? 'Unknown',
         album: row.read<String?>('album') ?? 'Unknown',
         artist: row.read<String?>('artist') ?? 'Unknown',
         duration: row.read<int?>('duration'),
-        artworkPath: rawArtwork != null
-            ? ScannerPathUtils.resolveIosSandboxPath(rawArtwork)
-            : null,
-        thumbnailPath: rawThumbnail != null
-            ? ScannerPathUtils.resolveIosSandboxPath(rawThumbnail)
-            : null,
+        artworkPath: resolvedArtwork,
+        thumbnailPath: resolvedThumbnail,
         artworkWidth: row.read<int?>('artworkWidth'),
         artworkHeight: row.read<int?>('artworkHeight'),
         trackNumber: row.read<int?>('trackNumber'),
@@ -2823,8 +2916,13 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
         final rootPaths = prefs.getStringList('root_paths');
         if (rootPaths != null) {
           final updatedRootPaths = rootPaths.map((p) {
-            if (p.contains(oldPrefix)) {
-              return p.replaceAll(oldPrefix, currentSandbox);
+            final resolved = ScannerPathUtils.resolveIosSandboxPath(p);
+            if (resolved != p) return resolved;
+            if (p.contains(oldPrefixNoPrivate)) {
+              return p.replaceAll(oldPrefixNoPrivate, currentSandboxNoPrivate);
+            }
+            if (p.contains(oldPrefixWithPrivate)) {
+              return p.replaceAll(oldPrefixWithPrivate, currentSandboxWithPrivate);
             }
             return p;
           }).toList();

@@ -32,7 +32,23 @@ class ScannerServiceRoots {
   }) async {
     final prefs = await SharedPreferences.getInstance();
     final paths = prefs.getStringList('root_paths') ?? [];
-    final normalizedPaths = ScannerPathUtils.normalizeDeclaredRootPaths(paths);
+
+    var migratedAny = false;
+    final resolvedPaths = paths.map((p) {
+      if (Platform.isIOS || Platform.isMacOS) {
+        final resolved = ScannerPathUtils.resolveIosSandboxPath(p);
+        if (resolved != p) {
+          migratedAny = true;
+          return resolved;
+        }
+      }
+      return p;
+    }).toList();
+
+    final normalizedPaths = ScannerPathUtils.normalizeDeclaredRootPaths(resolvedPaths);
+    if (migratedAny) {
+      await prefs.setStringList('root_paths', normalizedPaths);
+    }
 
     final removedPaths = <String>[];
     final retainedPaths = <String>[];
@@ -44,6 +60,13 @@ class ScannerServiceRoots {
         } catch (e) {
           debugPrint('Persistent access check failed for $path: $e');
           keepPath = false;
+        }
+      }
+
+      // Safeguard: Never drop an application sandbox internal directory on iOS/macOS!
+      if (!keepPath && (Platform.isIOS || Platform.isMacOS)) {
+        if (ScannerPathUtils.isSandboxInternalPath(path)) {
+          keepPath = true;
         }
       }
 
