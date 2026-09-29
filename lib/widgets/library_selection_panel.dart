@@ -105,7 +105,8 @@ class _LibrarySelectionPanelState extends ConsumerState<LibrarySelectionPanel> {
     final isAllSelected = widget.isAllSelected ??
         (widget.selectedSongs.length == widget.allSongs.length &&
             widget.allSongs.isNotEmpty);
-    final isEmpty = widget.isSelectionEmpty ?? widget.selectedSongs.isEmpty;
+    final isSongSelectionEmpty = widget.selectedSongs.isEmpty;
+    final isEmpty = widget.isSelectionEmpty ?? isSongSelectionEmpty;
     final isSingleSelected = !isEmpty && widget.selectedSongs.length == 1;
 
     final isRemote = widget.selectedSongs.isNotEmpty &&
@@ -140,7 +141,7 @@ class _LibrarySelectionPanelState extends ConsumerState<LibrarySelectionPanel> {
             context: context,
             icon: Icons.queue_play_next_rounded,
             label: l10n.playNext,
-            onPressed: isEmpty
+            onPressed: (isEmpty || isSongSelectionEmpty)
                 ? null
                 : () async {
                     if (widget.onPlayNext != null) {
@@ -158,7 +159,7 @@ class _LibrarySelectionPanelState extends ConsumerState<LibrarySelectionPanel> {
             context: context,
             icon: Icons.queue_music_rounded,
             label: l10n.addToQueue,
-            onPressed: isEmpty
+            onPressed: (isEmpty || isSongSelectionEmpty)
                 ? null
                 : () async {
                     if (widget.onAddToQueue != null) {
@@ -176,7 +177,7 @@ class _LibrarySelectionPanelState extends ConsumerState<LibrarySelectionPanel> {
             context: context,
             icon: Icons.playlist_add_rounded,
             label: l10n.addToPlaylist,
-            onPressed: isEmpty
+            onPressed: (isEmpty || isSongSelectionEmpty)
                 ? null
                 : () async {
                     if (widget.onAddToPlaylist != null) {
@@ -216,6 +217,7 @@ class _LibrarySelectionPanelState extends ConsumerState<LibrarySelectionPanel> {
           );
         }
         final canEditTags = !isEmpty &&
+            !isSongSelectionEmpty &&
             !isRemote &&
             widget.selectedSongs.any((s) => !RemoteMediaResolver.isRemoteUri(s.path));
         secondaryActions.add(
@@ -290,7 +292,7 @@ class _LibrarySelectionPanelState extends ConsumerState<LibrarySelectionPanel> {
               context: context,
               icon: Icons.library_add_rounded,
               label: widget.addToMediaLibraryLabel ?? l10n.addToMediaLibrary,
-              onPressed: isEmpty ? null : widget.onAddToMediaLibrary,
+              onPressed: (isEmpty || isSongSelectionEmpty) ? null : widget.onAddToMediaLibrary,
             ),
           );
         }
@@ -300,7 +302,7 @@ class _LibrarySelectionPanelState extends ConsumerState<LibrarySelectionPanel> {
               context: context,
               icon: Icons.download_rounded,
               label: l10n.downloadSong.contains('下载') ? '下载' : 'Download',
-              onPressed: isEmpty ? null : widget.onDownload,
+              onPressed: (isEmpty || isSongSelectionEmpty) ? null : widget.onDownload,
             ),
           );
         }
@@ -323,7 +325,7 @@ class _LibrarySelectionPanelState extends ConsumerState<LibrarySelectionPanel> {
                 (widget.onAddToCloudFavorites != null
                     ? l10n.addToLocalFavorites
                     : l10n.addToFavorites),
-            onPressed: isEmpty
+            onPressed: (isEmpty || isSongSelectionEmpty)
                 ? null
                 : () async {
                     if (widget.onAddToFavorites != null) {
@@ -358,7 +360,7 @@ class _LibrarySelectionPanelState extends ConsumerState<LibrarySelectionPanel> {
               context: context,
               icon: widget.cloudFavoritesIcon ?? Icons.cloud_done_rounded,
               label: widget.cloudFavoritesLabel ?? l10n.addToCloudFavorites,
-              onPressed: isEmpty ? null : widget.onAddToCloudFavorites,
+              onPressed: (isEmpty || isSongSelectionEmpty) ? null : widget.onAddToCloudFavorites,
             ),
           );
         }
@@ -378,6 +380,7 @@ class _LibrarySelectionPanelState extends ConsumerState<LibrarySelectionPanel> {
           );
         }
         final canEditTags = !isEmpty &&
+            !isSongSelectionEmpty &&
             !isRemote &&
             widget.selectedSongs.any((s) => !RemoteMediaResolver.isRemoteUri(s.path));
         secondaryActions.add(
@@ -452,7 +455,7 @@ class _LibrarySelectionPanelState extends ConsumerState<LibrarySelectionPanel> {
               context: context,
               icon: Icons.library_add_rounded,
               label: widget.addToMediaLibraryLabel ?? l10n.addToMediaLibrary,
-              onPressed: isEmpty ? null : widget.onAddToMediaLibrary,
+              onPressed: (isEmpty || isSongSelectionEmpty) ? null : widget.onAddToMediaLibrary,
             ),
           );
         }
@@ -462,7 +465,7 @@ class _LibrarySelectionPanelState extends ConsumerState<LibrarySelectionPanel> {
               context: context,
               icon: Icons.download_rounded,
               label: l10n.downloadSong.contains('下载') ? '下载' : 'Download',
-              onPressed: isEmpty ? null : widget.onDownload,
+              onPressed: (isEmpty || isSongSelectionEmpty) ? null : widget.onDownload,
             ),
           );
         }
@@ -483,7 +486,7 @@ class _LibrarySelectionPanelState extends ConsumerState<LibrarySelectionPanel> {
           context: context,
           icon: Icons.sync_rounded,
           label: l10n.transcodeAction,
-          onPressed: isEmpty
+          onPressed: (isEmpty || isSongSelectionEmpty)
               ? null
               : () async {
                   if (widget.onTranscode != null) {

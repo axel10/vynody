@@ -600,6 +600,8 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
                         selectedSongs: selectedRootSongs,
                         allSongs: allRootSongs,
                         title: selectionLabel,
+                        isSelectionEmpty: widget.selectedRootPaths.isEmpty,
+                        isAllSelected: widget.selectedRootPaths.length == rootFolders.length && rootFolders.isNotEmpty,
                         hideSongProperties: true,
                         onToggleSelectAll: () {
                           final isAllSelected =
