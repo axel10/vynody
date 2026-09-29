@@ -1040,45 +1040,50 @@ class _SharingPageState extends ConsumerState<SharingPage>
                                           : null,
                                     ),
                                   ),
-                                  const SizedBox(height: 2),
-                                  ScrollConfiguration(
-                                    behavior: ScrollConfiguration.of(context)
-                                        .copyWith(
-                                      dragDevices: {
-                                        PointerDeviceKind.touch,
-                                        PointerDeviceKind.mouse,
-                                        PointerDeviceKind.trackpad,
-                                        PointerDeviceKind.stylus,
-                                      },
-                                      scrollbars: false,
-                                    ),
-                                    child: SingleChildScrollView(
-                                      scrollDirection: Axis.horizontal,
-                                      physics: const BouncingScrollPhysics(),
-                                      child: Tooltip(
-                                        message: currentFolderPath,
-                                        waitDuration:
-                                            const Duration(seconds: 1),
-                                        child: Text(
-                                          currentFolderPath,
-                                          maxLines: 1,
-                                          softWrap: false,
-                                          style: TextStyle(
-                                            color: theme.colorScheme.onSurface
-                                                .withValues(alpha: 0.6),
-                                            fontSize: 12,
+                                  if (currentFolderPath.isNotEmpty) ...[
+                                    const SizedBox(height: 2),
+                                    ScrollConfiguration(
+                                      behavior: ScrollConfiguration.of(context)
+                                          .copyWith(
+                                        dragDevices: {
+                                          PointerDeviceKind.touch,
+                                          PointerDeviceKind.mouse,
+                                          PointerDeviceKind.trackpad,
+                                          PointerDeviceKind.stylus,
+                                        },
+                                        scrollbars: false,
+                                      ),
+                                      child: SingleChildScrollView(
+                                        scrollDirection: Axis.horizontal,
+                                        physics: const BouncingScrollPhysics(),
+                                        child: Tooltip(
+                                          message: currentFolderPath,
+                                          waitDuration:
+                                              const Duration(seconds: 1),
+                                          child: Text(
+                                            currentFolderPath,
+                                            maxLines: 1,
+                                            softWrap: false,
+                                            style: TextStyle(
+                                              color: isReceiveDirWarning
+                                                  ? theme.colorScheme.onSurface
+                                                      .withValues(alpha: 0.5)
+                                                  : theme.colorScheme.onSurface
+                                                      .withValues(alpha: 0.6),
+                                              fontSize: 12,
+                                            ),
                                           ),
                                         ),
                                       ),
                                     ),
-                                  ),
+                                  ],
                                   if (!_isFolderWritable) ...[
-                                    const SizedBox(height: 4),
+                                    const SizedBox(height: 3),
                                     Row(
                                       children: [
                                         Icon(
                                           Icons.warning_amber_rounded,
-                                          size: 14,
+                                          size: 13,
                                           color: theme.colorScheme.error,
                                         ),
                                         const SizedBox(width: 4),
@@ -1097,12 +1102,12 @@ class _SharingPageState extends ConsumerState<SharingPage>
                                       ],
                                     ),
                                   ] else if (isInternalDir) ...[
-                                    const SizedBox(height: 4),
+                                    const SizedBox(height: 3),
                                     Row(
                                       children: [
                                         Icon(
                                           Icons.warning_amber_rounded,
-                                          size: 14,
+                                          size: 13,
                                           color: theme.colorScheme.error,
                                         ),
                                         const SizedBox(width: 4),
