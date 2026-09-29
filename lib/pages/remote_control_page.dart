@@ -13,7 +13,7 @@ import 'package:vynody/player/pro/pro_license_service.dart';
 import 'package:vynody/player/pro/pro_models.dart';
 import 'package:vynody/widgets/desktop_window_title_bar.dart';
 import 'package:vynody/widgets/playing_equalizer_icon.dart';
-import 'package:vynody/widgets/pro/pro_badge.dart';
+
 
 class RemoteControlPage extends ConsumerStatefulWidget {
   final LanDevice device;
@@ -518,22 +518,14 @@ class _RemoteControlPageState extends ConsumerState<RemoteControlPage>
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Row(
-                  children: [
-                    Flexible(
-                      child: Text(
-                        deviceName,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    const ProBadge(),
-                  ],
+                Text(
+                  deviceName,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 Row(
                   children: [

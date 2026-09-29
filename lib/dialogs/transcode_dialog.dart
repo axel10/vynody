@@ -22,7 +22,7 @@ import 'package:vynody/player/remote/remote_service_providers.dart';
 import 'package:vynody/player/sharing/sharing_riverpod.dart';
 import 'package:vynody/utils/app_snack_bar.dart';
 import 'package:vynody/utils/song_context_menu_utils.dart';
-import 'package:vynody/widgets/pro/pro_badge.dart';
+
 
 class TranscodeSubmitSummary {
   const TranscodeSubmitSummary({
@@ -553,19 +553,11 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  l10n.transcodeTitle,
-                                  style:
-                                      theme.textTheme.headlineSmall?.copyWith(
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                const ProBadge(),
-                              ],
+                            Text(
+                              l10n.transcodeTitle,
+                              style: theme.textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                             const SizedBox(height: 6),
                             Text(

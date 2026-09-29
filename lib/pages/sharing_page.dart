@@ -746,8 +746,6 @@ class _SharingPageState extends ConsumerState<SharingPage>
                     const Icon(Icons.share_outlined, size: 18),
                     const SizedBox(width: 6),
                     Text(l10n.tabLanSharing),
-                    const SizedBox(width: 6),
-                    const ProBadge(),
                   ],
                 ),
               ),
