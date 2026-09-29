@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../player/metadata/metadata_database.dart';
 import 'package:oktoast/oktoast.dart';
 import '../../models/music_file.dart';
 import '../../player/audio/audio_riverpod.dart';
@@ -65,6 +67,8 @@ class _RemoteAlbumDetailPageState
   String? _highlightedSongPath;
   Timer? _highlightTimer;
 
+  bool _isRevalidating = false;
+
   @override
   void initState() {
     super.initState();
@@ -78,6 +82,10 @@ class _RemoteAlbumDetailPageState
   @override
   void didUpdateWidget(RemoteAlbumDetailPage oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.albumId != widget.albumId ||
+        oldWidget.server.id != widget.server.id) {
+      _loadAlbumDetails();
+    }
     if (widget.highlightedSongPath != null &&
         widget.highlightedSongPath != oldWidget.highlightedSongPath) {
       _scrollToTrack(widget.highlightedSongPath!);
@@ -146,12 +154,75 @@ class _RemoteAlbumDetailPageState
     await SongLocatorHelper.locateCurrentPlayingSong(ref, context);
   }
 
-  Future<void> _loadAlbumDetails() async {
+  Future<void> _loadAlbumDetails({bool forceRefresh = false}) async {
+    // 1. Try reading from SQLite cache first for instant UI (SWR)
+    if (!forceRefresh && _tracks.isEmpty) {
+      try {
+        final cache = await MetadataDatabase().getRemoteLibraryCache(
+          serverId: widget.server.id,
+          category: 'album_detail_${widget.albumId}',
+        );
+        if (cache != null && mounted) {
+          final data = jsonDecode(cache.dataJson) as Map<String, dynamic>;
+          final album = data['album'] as Map<String, dynamic>?;
+          final songList = (data['songs'] as List?)
+                  ?.whereType<Map<String, dynamic>>()
+                  .toList() ??
+              [];
+          final client = RemoteMediaLibraryClient.create(
+            server: widget.server,
+            password: widget.password,
+          );
+          final parsedTracks = songList.map(client.buildMusicFile).toList();
+          final isStarred = data['isStarred'] == true;
+
+          if (parsedTracks.isNotEmpty || album != null) {
+            setState(() {
+              _albumData = album;
+              _tracks = parsedTracks;
+              _isStarred = isStarred;
+              _isLoading = false;
+              _error = null;
+            });
+
+            if (_highlightedSongPath != null) {
+              final targetPath = _highlightedSongPath!;
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                _scrollToTrack(targetPath);
+              });
+            }
+
+            _revalidateAlbumDetails();
+            return;
+          }
+        }
+      } catch (_) {}
+    }
+
+    if (!forceRefresh && _tracks.isNotEmpty) {
+      _revalidateAlbumDetails();
+      return;
+    }
+
     setState(() {
       _isLoading = true;
       _error = null;
     });
 
+    await _fetchAndApplyAlbumDetails(isBackground: false);
+  }
+
+  Future<void> _revalidateAlbumDetails() async {
+    if (_isRevalidating || !mounted) return;
+    _isRevalidating = true;
+    try {
+      await _fetchAndApplyAlbumDetails(isBackground: true);
+    } finally {
+      _isRevalidating = false;
+    }
+  }
+
+  Future<void> _fetchAndApplyAlbumDetails({required bool isBackground}) async {
     try {
       final client = RemoteMediaLibraryClient.create(
         server: widget.server,
@@ -159,7 +230,7 @@ class _RemoteAlbumDetailPageState
       );
       final album = await client.getAlbum(widget.albumId);
       if (album == null) {
-        if (!mounted) return;
+        if (!mounted || isBackground) return;
         final l10n = AppLocalizations.of(context)!;
         setState(() {
           _error = l10n.albumNotFound;
@@ -170,9 +241,11 @@ class _RemoteAlbumDetailPageState
 
       final songList = album['song'] as List?;
       final List<MusicFile> parsedTracks = [];
+      final List<Map<String, dynamic>> rawSongs = [];
       if (songList != null) {
         for (final item in songList) {
           if (item is Map<String, dynamic>) {
+            rawSongs.add(item);
             parsedTracks.add(
               client.buildMusicFile(item),
             );
@@ -182,21 +255,51 @@ class _RemoteAlbumDetailPageState
 
       final isStarred = album['starred'] != null;
       if (!mounted) return;
-      setState(() {
-        _albumData = album;
-        _tracks = parsedTracks;
-        _isStarred = isStarred;
-        _isLoading = false;
-      });
 
-      if (_highlightedSongPath != null) {
+      bool hasChanged = true;
+      if (isBackground && _tracks.isNotEmpty) {
+        if (_tracks.length == parsedTracks.length && _isStarred == isStarred) {
+          hasChanged = false;
+          for (int i = 0; i < _tracks.length; i++) {
+            if (_tracks[i].path != parsedTracks[i].path ||
+                _tracks[i].title != parsedTracks[i].title) {
+              hasChanged = true;
+              break;
+            }
+          }
+        }
+      }
+
+      if (!isBackground || hasChanged) {
+        setState(() {
+          _albumData = album;
+          _tracks = parsedTracks;
+          _isStarred = isStarred;
+          _isLoading = false;
+          _error = null;
+        });
+      }
+
+      if (_highlightedSongPath != null && !isBackground) {
         final targetPath = _highlightedSongPath!;
         WidgetsBinding.instance.addPostFrameCallback((_) {
           _scrollToTrack(targetPath);
         });
       }
+
+      final cachePayload = {
+        'album': album,
+        'isStarred': isStarred,
+        'songs': rawSongs,
+      };
+      unawaited(MetadataDatabase().saveRemoteLibraryCache(
+        serverId: widget.server.id,
+        category: 'album_detail_${widget.albumId}',
+        dataJson: jsonEncode(cachePayload),
+        count: parsedTracks.length,
+      ));
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted || isBackground) return;
       setState(() {
         _error = e.toString();
         _isLoading = false;
@@ -330,9 +433,12 @@ class _RemoteAlbumDetailPageState
               : Stack(
                   children: [
                     Positioned.fill(
-                      child: CustomScrollView(
-                        controller: _scrollController,
-                        slivers: [
+                      child: RefreshIndicator(
+                        onRefresh: () => _loadAlbumDetails(forceRefresh: true),
+                        child: CustomScrollView(
+                          controller: _scrollController,
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          slivers: [
                           // Header Container
                           SliverToBoxAdapter(
                             child: Container(
@@ -634,6 +740,7 @@ class _RemoteAlbumDetailPageState
                           ),
                           SliverToBoxAdapter(child: SizedBox(height: bottomOffset)),
                         ],
+                        ),
                       ),
                     ),
                     AnimatedSelectionPanel(

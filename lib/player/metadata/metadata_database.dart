@@ -583,6 +583,37 @@ class MetadataDatabase {
   Future<List<SongMetadata>> getRemoteSongsByServerId(String serverId) =>
       _db.getRemoteSongsByServerId(serverId);
 
+  Future<void> saveRemoteLibraryCache({
+    required String serverId,
+    required String category,
+    required String dataJson,
+    int? count,
+  }) =>
+      _db.saveRemoteLibraryCache(
+        serverId: serverId,
+        category: category,
+        dataJson: dataJson,
+        count: count,
+      );
+
+  Future<({String dataJson, int? count, int updatedAtMillis})?> getRemoteLibraryCache({
+    required String serverId,
+    required String category,
+  }) =>
+      _db.getRemoteLibraryCache(
+        serverId: serverId,
+        category: category,
+      );
+
+  Future<void> clearRemoteLibraryCache({
+    required String serverId,
+    String? category,
+  }) =>
+      _db.clearRemoteLibraryCache(
+        serverId: serverId,
+        category: category,
+      );
+
   Future<List<SongMetadata>> getAllSongMetadata() => _db.getAllSongMetadata();
 
   Future<List<SongMetadata>> getSongsUnderPath(String rootPath) =>

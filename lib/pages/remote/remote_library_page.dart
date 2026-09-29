@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../player/metadata/metadata_database.dart';
 import '../../models/music_file.dart';
 import '../../player/audio/audio_riverpod.dart';
 import '../../player/remote/remote_server_models.dart';
@@ -581,6 +583,76 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
     super.dispose();
   }
 
+  bool _isMapListEqual(
+    List<Map<String, dynamic>> a,
+    List<Map<String, dynamic>> b, [
+    String idKey = 'id',
+  ]) {
+    if (identical(a, b)) return true;
+    if (a.length != b.length) return false;
+    for (int i = 0; i < a.length; i++) {
+      if (a[i][idKey]?.toString() != b[i][idKey]?.toString()) return false;
+      if (a[i]['title'] != b[i]['title'] ||
+          a[i]['name'] != b[i]['name'] ||
+          a[i]['starred'] != b[i]['starred'] ||
+          a[i]['isFavorite'] != b[i]['isFavorite'] ||
+          a[i]['songCount'] != b[i]['songCount']) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  bool _isSongListEqual(List<MusicFile> a, List<MusicFile> b) {
+    if (identical(a, b)) return true;
+    if (a.length != b.length) return false;
+    for (int i = 0; i < a.length; i++) {
+      if (a[i].path != b[i].path ||
+          a[i].title != b[i].title ||
+          a[i].artist != b[i].artist) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  bool _setEquals(Set<String> a, Set<String> b) {
+    if (a.length != b.length) return false;
+    return a.containsAll(b);
+  }
+
+  bool _isRevalidatingAlbums = false;
+
+  Future<void> _revalidateAlbums() async {
+    if (_isRevalidatingAlbums || !mounted) return;
+    _isRevalidatingAlbums = true;
+    try {
+      final list = await _client.getAlbumList(type: _albumSortType, size: 500);
+      if (!mounted) return;
+      if (!_isMapListEqual(_albums, list)) {
+        setState(() {
+          _albums = list;
+        });
+      }
+      final session = ref.read(activeRemoteSessionProvider);
+      if (session != null && session.server.id == widget.server.id) {
+        ref.read(activeRemoteSessionProvider.notifier).updateNavidromeAlbums(
+              list,
+              sortType: _albumSortType,
+            );
+      }
+      unawaited(MetadataDatabase().saveRemoteLibraryCache(
+        serverId: widget.server.id,
+        category: 'albums_$_albumSortType',
+        dataJson: jsonEncode(list),
+        count: list.length,
+      ));
+    } catch (_) {
+    } finally {
+      _isRevalidatingAlbums = false;
+    }
+  }
+
   Future<void> _loadAlbums({bool forceRefresh = false}) async {
     if (widget.server.type == RemoteServerType.jellyfin &&
         (_albumSortType == 'recent' || _albumSortType == 'frequent')) {
@@ -600,7 +672,31 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
         _albumsError = null;
         _connectionError = null;
       });
+      _revalidateAlbums();
       return;
+    }
+
+    if (!forceRefresh && _albums.isEmpty) {
+      try {
+        final cache = await MetadataDatabase().getRemoteLibraryCache(
+          serverId: widget.server.id,
+          category: 'albums_$_albumSortType',
+        );
+        if (cache != null && mounted) {
+          final list = (jsonDecode(cache.dataJson) as List)
+              .cast<Map<String, dynamic>>();
+          if (list.isNotEmpty) {
+            setState(() {
+              _albums = list;
+              _isLoadingAlbums = false;
+              _albumsError = null;
+              _connectionError = null;
+            });
+            _revalidateAlbums();
+            return;
+          }
+        }
+      } catch (_) {}
     }
 
     setState(() {
@@ -622,6 +718,12 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
               sortType: _albumSortType,
             );
       });
+      unawaited(MetadataDatabase().saveRemoteLibraryCache(
+        serverId: widget.server.id,
+        category: 'albums_$_albumSortType',
+        dataJson: jsonEncode(list),
+        count: list.length,
+      ));
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -631,6 +733,48 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
           _connectionError = e.toString();
         }
       });
+    }
+  }
+
+  bool _isRevalidatingArtists = false;
+
+  Future<void> _revalidateArtists() async {
+    if (_isRevalidatingArtists || !mounted) return;
+    _isRevalidatingArtists = true;
+    try {
+      final list = await _client.getArtists();
+      if (!mounted) return;
+      final preStarred = list
+          .where((a) => a['isFavorite'] == true || a['starred'] != null)
+          .map((a) => a['id']?.toString() ?? '')
+          .where((id) => id.isNotEmpty);
+
+      if (!_isMapListEqual(_artists, list)) {
+        setState(() {
+          _artists = list;
+          _starredArtistIds.addAll(preStarred);
+          if (_selectedArtistId == null && list.isNotEmpty) {
+            _selectedArtistId = list.first['id'] as String?;
+          }
+        });
+      }
+      final session = ref.read(activeRemoteSessionProvider);
+      if (session != null && session.server.id == widget.server.id) {
+        ref.read(activeRemoteSessionProvider.notifier).updateNavidromeArtists(
+              artists: list,
+              selectedArtistId: _selectedArtistId,
+            );
+      }
+      unawaited(MetadataDatabase().saveRemoteLibraryCache(
+        serverId: widget.server.id,
+        category: 'artists',
+        dataJson: jsonEncode(list),
+        count: list.length,
+      ));
+      _fetchStarredArtists();
+    } catch (_) {
+    } finally {
+      _isRevalidatingArtists = false;
     }
   }
 
@@ -651,7 +795,43 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
         _artistsError = null;
         _connectionError = null;
       });
+      _revalidateArtists();
       return;
+    }
+
+    if (!forceRefresh && _artists.isEmpty) {
+      try {
+        final cache = await MetadataDatabase().getRemoteLibraryCache(
+          serverId: widget.server.id,
+          category: 'artists',
+        );
+        if (cache != null && mounted) {
+          final list = (jsonDecode(cache.dataJson) as List)
+              .cast<Map<String, dynamic>>();
+          final starredCache = await MetadataDatabase().getRemoteLibraryCache(
+            serverId: widget.server.id,
+            category: 'artists_starred',
+          );
+          final starredSet = starredCache != null
+              ? (jsonDecode(starredCache.dataJson) as List).cast<String>().toSet()
+              : <String>{};
+
+          if (list.isNotEmpty) {
+            setState(() {
+              _artists = list;
+              _starredArtistIds
+                ..clear()
+                ..addAll(starredSet);
+              _selectedArtistId ??= list.first['id'] as String?;
+              _isLoadingArtists = false;
+              _artistsError = null;
+              _connectionError = null;
+            });
+            _revalidateArtists();
+            return;
+          }
+        }
+      } catch (_) {}
     }
 
     setState(() {
@@ -682,6 +862,12 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
               selectedArtistId: _selectedArtistId,
             );
       });
+      unawaited(MetadataDatabase().saveRemoteLibraryCache(
+        serverId: widget.server.id,
+        category: 'artists',
+        dataJson: jsonEncode(list),
+        count: list.length,
+      ));
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -710,8 +896,75 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
         ref.read(activeRemoteSessionProvider.notifier).updateNavidromeArtists(
               starredArtistIds: _starredArtistIds,
             );
+        unawaited(MetadataDatabase().saveRemoteLibraryCache(
+          serverId: widget.server.id,
+          category: 'artists_starred',
+          dataJson: jsonEncode(_starredArtistIds.toList()),
+        ));
       }
     } catch (_) {}
+  }
+
+  bool _isRevalidatingSongs = false;
+
+  Future<void> _revalidateSongs() async {
+    if (_isRevalidatingSongs || !mounted) return;
+    _isRevalidatingSongs = true;
+    try {
+      final rawSongs = await _client.getSongs(
+        count: 500,
+        offset: 0,
+      );
+      if (!mounted) return;
+      final newParsedSongs = <MusicFile>[];
+      final newStarred = <String>{};
+      for (final raw in rawSongs) {
+        final song = _client.buildMusicFile(raw);
+        newParsedSongs.add(song);
+        if (raw['starred'] != null) {
+          final id = raw['id']?.toString() ?? song.id.toString();
+          newStarred.add(id);
+        }
+      }
+
+      final currentFirstPage = _songs.take(newParsedSongs.length).toList();
+      final songsChanged = !_isSongListEqual(currentFirstPage, newParsedSongs);
+      final starredChanged = !_setEquals(_starredSongIds, newStarred);
+
+      if (songsChanged || starredChanged) {
+        setState(() {
+          if (_songs.length > newParsedSongs.length) {
+            _songs = [...newParsedSongs, ..._songs.skip(newParsedSongs.length)];
+          } else {
+            _songs = newParsedSongs;
+          }
+          _starredSongIds.addAll(newStarred);
+        });
+
+        ref.read(activeRemoteSessionProvider.notifier).updateNavidromeSongs(
+              songs: _songs,
+              starredSongIds: _starredSongIds,
+              hasMore: _hasMoreSongs,
+              songOffset: _songOffset,
+            );
+      }
+
+      unawaited(MetadataDatabase().saveRemoteLibraryCache(
+        serverId: widget.server.id,
+        category: 'songs',
+        dataJson: jsonEncode(rawSongs),
+        count: rawSongs.length,
+      ));
+      unawaited(MetadataDatabase().saveRemoteLibraryCache(
+        serverId: widget.server.id,
+        category: 'songs_starred',
+        dataJson: jsonEncode(newStarred.toList()),
+      ));
+      _fetchStarredSongs();
+    } catch (_) {
+    } finally {
+      _isRevalidatingSongs = false;
+    }
   }
 
   Future<void> _loadSongs({bool forceRefresh = false, bool loadMore = false}) async {
@@ -731,7 +984,53 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
         _songsError = null;
         _connectionError = null;
       });
+      _revalidateSongs();
       return;
+    }
+
+    if (!forceRefresh && !loadMore && _songs.isEmpty) {
+      try {
+        final cache = await MetadataDatabase().getRemoteLibraryCache(
+          serverId: widget.server.id,
+          category: 'songs',
+        );
+        if (cache != null && mounted) {
+          final rawSongs = (jsonDecode(cache.dataJson) as List)
+              .cast<Map<String, dynamic>>();
+          final starredCache = await MetadataDatabase().getRemoteLibraryCache(
+            serverId: widget.server.id,
+            category: 'songs_starred',
+          );
+          final starredSet = starredCache != null
+              ? (jsonDecode(starredCache.dataJson) as List).cast<String>().toSet()
+              : <String>{};
+
+          if (rawSongs.isNotEmpty) {
+            final parsedSongs = <MusicFile>[];
+            for (final raw in rawSongs) {
+              final song = _client.buildMusicFile(raw);
+              parsedSongs.add(song);
+              if (raw['starred'] != null) {
+                final id = raw['id']?.toString() ?? song.id.toString();
+                starredSet.add(id);
+              }
+            }
+            setState(() {
+              _songs = parsedSongs;
+              _starredSongIds
+                ..clear()
+                ..addAll(starredSet);
+              _songOffset = parsedSongs.length;
+              _hasMoreSongs = true;
+              _isLoadingSongs = false;
+              _songsError = null;
+              _connectionError = null;
+            });
+            _revalidateSongs();
+            return;
+          }
+        }
+      } catch (_) {}
     }
 
     if (loadMore) {
@@ -787,6 +1086,20 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
 
       _fetchStarredSongs();
 
+      if (!loadMore) {
+        unawaited(MetadataDatabase().saveRemoteLibraryCache(
+          serverId: widget.server.id,
+          category: 'songs',
+          dataJson: jsonEncode(rawSongs),
+          count: rawSongs.length,
+        ));
+        unawaited(MetadataDatabase().saveRemoteLibraryCache(
+          serverId: widget.server.id,
+          category: 'songs_starred',
+          dataJson: jsonEncode(_starredSongIds.toList()),
+        ));
+      }
+
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         ref.read(activeRemoteSessionProvider.notifier).updateNavidromeSongs(
@@ -823,6 +1136,11 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
         ref.read(activeRemoteSessionProvider.notifier).updateNavidromeSongs(
               starredSongIds: _starredSongIds,
             );
+        unawaited(MetadataDatabase().saveRemoteLibraryCache(
+          serverId: widget.server.id,
+          category: 'songs_starred',
+          dataJson: jsonEncode(_starredSongIds.toList()),
+        ));
       }
     } catch (_) {}
   }
@@ -844,6 +1162,11 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
     ref.read(activeRemoteSessionProvider.notifier).updateNavidromeSongs(
           starredSongIds: _starredSongIds,
         );
+    unawaited(MetadataDatabase().saveRemoteLibraryCache(
+      serverId: widget.server.id,
+      category: 'songs_starred',
+      dataJson: jsonEncode(_starredSongIds.toList()),
+    ));
 
     final success = isCurrentlyStarred
         ? await _client.unstar(id: trackId)
@@ -860,6 +1183,11 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
       ref.read(activeRemoteSessionProvider.notifier).updateNavidromeSongs(
             starredSongIds: _starredSongIds,
           );
+      unawaited(MetadataDatabase().saveRemoteLibraryCache(
+        serverId: widget.server.id,
+        category: 'songs_starred',
+        dataJson: jsonEncode(_starredSongIds.toList()),
+      ));
     }
   }
 
@@ -871,7 +1199,7 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
     try {
       final list = await _client.getPlaylists();
       if (!mounted) return;
-      if (!_isPlaylistSelectionMode) {
+      if (!_isPlaylistSelectionMode && !_isMapListEqual(_playlists, list)) {
         setState(() {
           _playlists = list;
         });
@@ -885,6 +1213,12 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
               selectedPlaylistId: _selectedPlaylistId,
             );
       }
+      unawaited(MetadataDatabase().saveRemoteLibraryCache(
+        serverId: widget.server.id,
+        category: 'playlists',
+        dataJson: jsonEncode(list),
+        count: list.length,
+      ));
     } catch (_) {
       // Ignore background revalidation error
     } finally {
@@ -910,6 +1244,30 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
       return;
     }
 
+    if (!forceRefresh && _playlists.isEmpty) {
+      try {
+        final cache = await MetadataDatabase().getRemoteLibraryCache(
+          serverId: widget.server.id,
+          category: 'playlists',
+        );
+        if (cache != null && mounted) {
+          final list = (jsonDecode(cache.dataJson) as List)
+              .cast<Map<String, dynamic>>();
+          if (list.isNotEmpty) {
+            setState(() {
+              _playlists = list;
+              _selectedPlaylistId ??= _starredPlaylistId;
+              _isLoadingPlaylists = false;
+              _playlistsError = null;
+              _connectionError = null;
+            });
+            _revalidatePlaylists();
+            return;
+          }
+        }
+      } catch (_) {}
+    }
+
     setState(() {
       _isLoadingPlaylists = true;
       _playlistsError = null;
@@ -932,6 +1290,12 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
               selectedPlaylistId: _selectedPlaylistId,
             );
       });
+      unawaited(MetadataDatabase().saveRemoteLibraryCache(
+        serverId: widget.server.id,
+        category: 'playlists',
+        dataJson: jsonEncode(list),
+        count: list.length,
+      ));
     } catch (e) {
       if (!mounted) return;
       setState(() {

@@ -7551,6 +7551,379 @@ class FolderCoversCompanion extends UpdateCompanion<FolderCover> {
   }
 }
 
+class $RemoteLibraryCachesTable extends RemoteLibraryCaches
+    with TableInfo<$RemoteLibraryCachesTable, RemoteLibraryCache> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $RemoteLibraryCachesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _serverIdMeta = const VerificationMeta(
+    'serverId',
+  );
+  @override
+  late final GeneratedColumn<String> serverId = GeneratedColumn<String>(
+    'serverId',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _categoryMeta = const VerificationMeta(
+    'category',
+  );
+  @override
+  late final GeneratedColumn<String> category = GeneratedColumn<String>(
+    'category',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _dataJsonMeta = const VerificationMeta(
+    'dataJson',
+  );
+  @override
+  late final GeneratedColumn<String> dataJson = GeneratedColumn<String>(
+    'dataJson',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _countMeta = const VerificationMeta('count');
+  @override
+  late final GeneratedColumn<int> count = GeneratedColumn<int>(
+    'count',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _updatedAtMillisMeta = const VerificationMeta(
+    'updatedAtMillis',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAtMillis = GeneratedColumn<int>(
+    'updatedAtMillis',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    serverId,
+    category,
+    dataJson,
+    count,
+    updatedAtMillis,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'remote_library_caches';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<RemoteLibraryCache> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('serverId')) {
+      context.handle(
+        _serverIdMeta,
+        serverId.isAcceptableOrUnknown(data['serverId']!, _serverIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_serverIdMeta);
+    }
+    if (data.containsKey('category')) {
+      context.handle(
+        _categoryMeta,
+        category.isAcceptableOrUnknown(data['category']!, _categoryMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_categoryMeta);
+    }
+    if (data.containsKey('dataJson')) {
+      context.handle(
+        _dataJsonMeta,
+        dataJson.isAcceptableOrUnknown(data['dataJson']!, _dataJsonMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dataJsonMeta);
+    }
+    if (data.containsKey('count')) {
+      context.handle(
+        _countMeta,
+        count.isAcceptableOrUnknown(data['count']!, _countMeta),
+      );
+    }
+    if (data.containsKey('updatedAtMillis')) {
+      context.handle(
+        _updatedAtMillisMeta,
+        updatedAtMillis.isAcceptableOrUnknown(
+          data['updatedAtMillis']!,
+          _updatedAtMillisMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMillisMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {serverId, category};
+  @override
+  RemoteLibraryCache map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return RemoteLibraryCache(
+      serverId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}serverId'],
+      )!,
+      category: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}category'],
+      )!,
+      dataJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}dataJson'],
+      )!,
+      count: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}count'],
+      ),
+      updatedAtMillis: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updatedAtMillis'],
+      )!,
+    );
+  }
+
+  @override
+  $RemoteLibraryCachesTable createAlias(String alias) {
+    return $RemoteLibraryCachesTable(attachedDatabase, alias);
+  }
+}
+
+class RemoteLibraryCache extends DataClass
+    implements Insertable<RemoteLibraryCache> {
+  final String serverId;
+  final String category;
+  final String dataJson;
+  final int? count;
+  final int updatedAtMillis;
+  const RemoteLibraryCache({
+    required this.serverId,
+    required this.category,
+    required this.dataJson,
+    this.count,
+    required this.updatedAtMillis,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['serverId'] = Variable<String>(serverId);
+    map['category'] = Variable<String>(category);
+    map['dataJson'] = Variable<String>(dataJson);
+    if (!nullToAbsent || count != null) {
+      map['count'] = Variable<int>(count);
+    }
+    map['updatedAtMillis'] = Variable<int>(updatedAtMillis);
+    return map;
+  }
+
+  RemoteLibraryCachesCompanion toCompanion(bool nullToAbsent) {
+    return RemoteLibraryCachesCompanion(
+      serverId: Value(serverId),
+      category: Value(category),
+      dataJson: Value(dataJson),
+      count: count == null && nullToAbsent
+          ? const Value.absent()
+          : Value(count),
+      updatedAtMillis: Value(updatedAtMillis),
+    );
+  }
+
+  factory RemoteLibraryCache.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return RemoteLibraryCache(
+      serverId: serializer.fromJson<String>(json['serverId']),
+      category: serializer.fromJson<String>(json['category']),
+      dataJson: serializer.fromJson<String>(json['dataJson']),
+      count: serializer.fromJson<int?>(json['count']),
+      updatedAtMillis: serializer.fromJson<int>(json['updatedAtMillis']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'serverId': serializer.toJson<String>(serverId),
+      'category': serializer.toJson<String>(category),
+      'dataJson': serializer.toJson<String>(dataJson),
+      'count': serializer.toJson<int?>(count),
+      'updatedAtMillis': serializer.toJson<int>(updatedAtMillis),
+    };
+  }
+
+  RemoteLibraryCache copyWith({
+    String? serverId,
+    String? category,
+    String? dataJson,
+    Value<int?> count = const Value.absent(),
+    int? updatedAtMillis,
+  }) => RemoteLibraryCache(
+    serverId: serverId ?? this.serverId,
+    category: category ?? this.category,
+    dataJson: dataJson ?? this.dataJson,
+    count: count.present ? count.value : this.count,
+    updatedAtMillis: updatedAtMillis ?? this.updatedAtMillis,
+  );
+  RemoteLibraryCache copyWithCompanion(RemoteLibraryCachesCompanion data) {
+    return RemoteLibraryCache(
+      serverId: data.serverId.present ? data.serverId.value : this.serverId,
+      category: data.category.present ? data.category.value : this.category,
+      dataJson: data.dataJson.present ? data.dataJson.value : this.dataJson,
+      count: data.count.present ? data.count.value : this.count,
+      updatedAtMillis: data.updatedAtMillis.present
+          ? data.updatedAtMillis.value
+          : this.updatedAtMillis,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RemoteLibraryCache(')
+          ..write('serverId: $serverId, ')
+          ..write('category: $category, ')
+          ..write('dataJson: $dataJson, ')
+          ..write('count: $count, ')
+          ..write('updatedAtMillis: $updatedAtMillis')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(serverId, category, dataJson, count, updatedAtMillis);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is RemoteLibraryCache &&
+          other.serverId == this.serverId &&
+          other.category == this.category &&
+          other.dataJson == this.dataJson &&
+          other.count == this.count &&
+          other.updatedAtMillis == this.updatedAtMillis);
+}
+
+class RemoteLibraryCachesCompanion extends UpdateCompanion<RemoteLibraryCache> {
+  final Value<String> serverId;
+  final Value<String> category;
+  final Value<String> dataJson;
+  final Value<int?> count;
+  final Value<int> updatedAtMillis;
+  final Value<int> rowid;
+  const RemoteLibraryCachesCompanion({
+    this.serverId = const Value.absent(),
+    this.category = const Value.absent(),
+    this.dataJson = const Value.absent(),
+    this.count = const Value.absent(),
+    this.updatedAtMillis = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  RemoteLibraryCachesCompanion.insert({
+    required String serverId,
+    required String category,
+    required String dataJson,
+    this.count = const Value.absent(),
+    required int updatedAtMillis,
+    this.rowid = const Value.absent(),
+  }) : serverId = Value(serverId),
+       category = Value(category),
+       dataJson = Value(dataJson),
+       updatedAtMillis = Value(updatedAtMillis);
+  static Insertable<RemoteLibraryCache> custom({
+    Expression<String>? serverId,
+    Expression<String>? category,
+    Expression<String>? dataJson,
+    Expression<int>? count,
+    Expression<int>? updatedAtMillis,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (serverId != null) 'serverId': serverId,
+      if (category != null) 'category': category,
+      if (dataJson != null) 'dataJson': dataJson,
+      if (count != null) 'count': count,
+      if (updatedAtMillis != null) 'updatedAtMillis': updatedAtMillis,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  RemoteLibraryCachesCompanion copyWith({
+    Value<String>? serverId,
+    Value<String>? category,
+    Value<String>? dataJson,
+    Value<int?>? count,
+    Value<int>? updatedAtMillis,
+    Value<int>? rowid,
+  }) {
+    return RemoteLibraryCachesCompanion(
+      serverId: serverId ?? this.serverId,
+      category: category ?? this.category,
+      dataJson: dataJson ?? this.dataJson,
+      count: count ?? this.count,
+      updatedAtMillis: updatedAtMillis ?? this.updatedAtMillis,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (serverId.present) {
+      map['serverId'] = Variable<String>(serverId.value);
+    }
+    if (category.present) {
+      map['category'] = Variable<String>(category.value);
+    }
+    if (dataJson.present) {
+      map['dataJson'] = Variable<String>(dataJson.value);
+    }
+    if (count.present) {
+      map['count'] = Variable<int>(count.value);
+    }
+    if (updatedAtMillis.present) {
+      map['updatedAtMillis'] = Variable<int>(updatedAtMillis.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RemoteLibraryCachesCompanion(')
+          ..write('serverId: $serverId, ')
+          ..write('category: $category, ')
+          ..write('dataJson: $dataJson, ')
+          ..write('count: $count, ')
+          ..write('updatedAtMillis: $updatedAtMillis, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$MetadataDriftDatabase extends GeneratedDatabase {
   _$MetadataDriftDatabase(QueryExecutor e) : super(e);
   $MetadataDriftDatabaseManager get managers =>
@@ -7571,6 +7944,8 @@ abstract class _$MetadataDriftDatabase extends GeneratedDatabase {
   late final $ArtworkCachesTable artworkCaches = $ArtworkCachesTable(this);
   late final $RemoteSongsTable remoteSongs = $RemoteSongsTable(this);
   late final $FolderCoversTable folderCovers = $FolderCoversTable(this);
+  late final $RemoteLibraryCachesTable remoteLibraryCaches =
+      $RemoteLibraryCachesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -7588,6 +7963,7 @@ abstract class _$MetadataDriftDatabase extends GeneratedDatabase {
     artworkCaches,
     remoteSongs,
     folderCovers,
+    remoteLibraryCaches,
   ];
 }
 
@@ -11282,6 +11658,224 @@ typedef $$FolderCoversTableProcessedTableManager =
       FolderCover,
       PrefetchHooks Function()
     >;
+typedef $$RemoteLibraryCachesTableCreateCompanionBuilder =
+    RemoteLibraryCachesCompanion Function({
+      required String serverId,
+      required String category,
+      required String dataJson,
+      Value<int?> count,
+      required int updatedAtMillis,
+      Value<int> rowid,
+    });
+typedef $$RemoteLibraryCachesTableUpdateCompanionBuilder =
+    RemoteLibraryCachesCompanion Function({
+      Value<String> serverId,
+      Value<String> category,
+      Value<String> dataJson,
+      Value<int?> count,
+      Value<int> updatedAtMillis,
+      Value<int> rowid,
+    });
+
+class $$RemoteLibraryCachesTableFilterComposer
+    extends Composer<_$MetadataDriftDatabase, $RemoteLibraryCachesTable> {
+  $$RemoteLibraryCachesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get serverId => $composableBuilder(
+    column: $table.serverId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get category => $composableBuilder(
+    column: $table.category,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get dataJson => $composableBuilder(
+    column: $table.dataJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get count => $composableBuilder(
+    column: $table.count,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAtMillis => $composableBuilder(
+    column: $table.updatedAtMillis,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$RemoteLibraryCachesTableOrderingComposer
+    extends Composer<_$MetadataDriftDatabase, $RemoteLibraryCachesTable> {
+  $$RemoteLibraryCachesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get serverId => $composableBuilder(
+    column: $table.serverId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get category => $composableBuilder(
+    column: $table.category,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get dataJson => $composableBuilder(
+    column: $table.dataJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get count => $composableBuilder(
+    column: $table.count,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get updatedAtMillis => $composableBuilder(
+    column: $table.updatedAtMillis,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$RemoteLibraryCachesTableAnnotationComposer
+    extends Composer<_$MetadataDriftDatabase, $RemoteLibraryCachesTable> {
+  $$RemoteLibraryCachesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get serverId =>
+      $composableBuilder(column: $table.serverId, builder: (column) => column);
+
+  GeneratedColumn<String> get category =>
+      $composableBuilder(column: $table.category, builder: (column) => column);
+
+  GeneratedColumn<String> get dataJson =>
+      $composableBuilder(column: $table.dataJson, builder: (column) => column);
+
+  GeneratedColumn<int> get count =>
+      $composableBuilder(column: $table.count, builder: (column) => column);
+
+  GeneratedColumn<int> get updatedAtMillis => $composableBuilder(
+    column: $table.updatedAtMillis,
+    builder: (column) => column,
+  );
+}
+
+class $$RemoteLibraryCachesTableTableManager
+    extends
+        RootTableManager<
+          _$MetadataDriftDatabase,
+          $RemoteLibraryCachesTable,
+          RemoteLibraryCache,
+          $$RemoteLibraryCachesTableFilterComposer,
+          $$RemoteLibraryCachesTableOrderingComposer,
+          $$RemoteLibraryCachesTableAnnotationComposer,
+          $$RemoteLibraryCachesTableCreateCompanionBuilder,
+          $$RemoteLibraryCachesTableUpdateCompanionBuilder,
+          (
+            RemoteLibraryCache,
+            BaseReferences<
+              _$MetadataDriftDatabase,
+              $RemoteLibraryCachesTable,
+              RemoteLibraryCache
+            >,
+          ),
+          RemoteLibraryCache,
+          PrefetchHooks Function()
+        > {
+  $$RemoteLibraryCachesTableTableManager(
+    _$MetadataDriftDatabase db,
+    $RemoteLibraryCachesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$RemoteLibraryCachesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$RemoteLibraryCachesTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$RemoteLibraryCachesTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> serverId = const Value.absent(),
+                Value<String> category = const Value.absent(),
+                Value<String> dataJson = const Value.absent(),
+                Value<int?> count = const Value.absent(),
+                Value<int> updatedAtMillis = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => RemoteLibraryCachesCompanion(
+                serverId: serverId,
+                category: category,
+                dataJson: dataJson,
+                count: count,
+                updatedAtMillis: updatedAtMillis,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String serverId,
+                required String category,
+                required String dataJson,
+                Value<int?> count = const Value.absent(),
+                required int updatedAtMillis,
+                Value<int> rowid = const Value.absent(),
+              }) => RemoteLibraryCachesCompanion.insert(
+                serverId: serverId,
+                category: category,
+                dataJson: dataJson,
+                count: count,
+                updatedAtMillis: updatedAtMillis,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$RemoteLibraryCachesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$MetadataDriftDatabase,
+      $RemoteLibraryCachesTable,
+      RemoteLibraryCache,
+      $$RemoteLibraryCachesTableFilterComposer,
+      $$RemoteLibraryCachesTableOrderingComposer,
+      $$RemoteLibraryCachesTableAnnotationComposer,
+      $$RemoteLibraryCachesTableCreateCompanionBuilder,
+      $$RemoteLibraryCachesTableUpdateCompanionBuilder,
+      (
+        RemoteLibraryCache,
+        BaseReferences<
+          _$MetadataDriftDatabase,
+          $RemoteLibraryCachesTable,
+          RemoteLibraryCache
+        >,
+      ),
+      RemoteLibraryCache,
+      PrefetchHooks Function()
+    >;
 
 class $MetadataDriftDatabaseManager {
   final _$MetadataDriftDatabase _db;
@@ -11313,4 +11907,6 @@ class $MetadataDriftDatabaseManager {
       $$RemoteSongsTableTableManager(_db, _db.remoteSongs);
   $$FolderCoversTableTableManager get folderCovers =>
       $$FolderCoversTableTableManager(_db, _db.folderCovers);
+  $$RemoteLibraryCachesTableTableManager get remoteLibraryCaches =>
+      $$RemoteLibraryCachesTableTableManager(_db, _db.remoteLibraryCaches);
 }

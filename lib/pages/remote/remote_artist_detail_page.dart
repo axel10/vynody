@@ -1,7 +1,10 @@
+import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oktoast/oktoast.dart';
+import '../../player/metadata/metadata_database.dart';
 import '../../models/music_file.dart';
 import '../../player/audio/audio_riverpod.dart';
 import '../../player/audio/playback_source.dart';
@@ -127,6 +130,7 @@ class _RemoteAlbumSectionData {
   final int? songCount;
   final int? duration;
   final List<MusicFile> songs;
+  final List<Map<String, dynamic>> rawSongs;
 
   _RemoteAlbumSectionData({
     required this.id,
@@ -137,7 +141,41 @@ class _RemoteAlbumSectionData {
     this.songCount,
     this.duration,
     required this.songs,
+    this.rawSongs = const [],
   });
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    'artist': artist,
+    'coverArt': coverArt,
+    'year': year,
+    'songCount': songCount,
+    'duration': duration,
+    'rawSongs': rawSongs,
+  };
+
+  static _RemoteAlbumSectionData fromJson(
+    Map<String, dynamic> json,
+    RemoteMediaLibraryClient client,
+  ) {
+    final rawList = (json['rawSongs'] as List?)
+            ?.whereType<Map<String, dynamic>>()
+            .toList() ??
+        [];
+    final songs = rawList.map(client.buildMusicFile).toList();
+    return _RemoteAlbumSectionData(
+      id: json['id'] as String? ?? '',
+      name: json['name'] as String? ?? '',
+      artist: json['artist'] as String? ?? '',
+      coverArt: json['coverArt'] as String?,
+      year: json['year'] as int?,
+      songCount: json['songCount'] as int? ?? songs.length,
+      duration: json['duration'] as int?,
+      songs: songs,
+      rawSongs: rawList,
+    );
+  }
 }
 
 class _RemoteArtistDetailContentState
@@ -150,6 +188,7 @@ class _RemoteArtistDetailContentState
   Map<String, dynamic>? _artistInfo;
   bool _isStarred = false;
   String _resolvedArtistId = '';
+  bool _isRevalidating = false;
 
   @override
   void initState() {
@@ -169,24 +208,86 @@ class _RemoteArtistDetailContentState
     }
   }
 
-  Future<void> _loadArtistData() async {
+  Future<void> _loadArtistData({bool forceRefresh = false}) async {
+    final targetId = widget.artistId;
+    final client = RemoteMediaLibraryClient.create(
+      server: widget.server,
+      password: widget.password,
+    );
+
+    // 1. Try reading from SQLite cache first for instant UI (SWR)
+    if (!forceRefresh && _albumSections.isEmpty) {
+      try {
+        final cache = await MetadataDatabase().getRemoteLibraryCache(
+          serverId: widget.server.id,
+          category: 'artist_detail_$targetId',
+        );
+        if (cache != null && mounted) {
+          final data = jsonDecode(cache.dataJson) as Map<String, dynamic>;
+          final rawSections = (data['sections'] as List?)
+                  ?.whereType<Map<String, dynamic>>()
+                  .toList() ??
+              [];
+          final parsedSections = rawSections
+              .map((s) => _RemoteAlbumSectionData.fromJson(s, client))
+              .toList();
+
+          final accumulatedSongs = <MusicFile>[];
+          for (final sec in parsedSections) {
+            accumulatedSongs.addAll(sec.songs);
+          }
+
+          if (parsedSections.isNotEmpty || accumulatedSongs.isNotEmpty) {
+            setState(() {
+              _albumSections = parsedSections;
+              _allSongs = accumulatedSongs;
+              _artistInfo = data['artistInfo'] as Map<String, dynamic>?;
+              _isStarred = data['isStarred'] == true;
+              _isLoading = false;
+              _error = null;
+            });
+            // Revalidate in background
+            _revalidateArtistData(client);
+            return;
+          }
+        }
+      } catch (_) {}
+    }
+
+    if (!forceRefresh && _albumSections.isNotEmpty) {
+      _revalidateArtistData(client);
+      return;
+    }
+
     setState(() {
       _isLoading = true;
       _error = null;
     });
 
-    try {
-      final client = RemoteMediaLibraryClient.create(
-        server: widget.server,
-        password: widget.password,
-      );
+    await _fetchAndApplyArtistData(client, isBackground: false);
+  }
 
+  Future<void> _revalidateArtistData(RemoteMediaLibraryClient client) async {
+    if (_isRevalidating || !mounted) return;
+    _isRevalidating = true;
+    try {
+      await _fetchAndApplyArtistData(client, isBackground: true);
+    } finally {
+      _isRevalidating = false;
+    }
+  }
+
+  Future<void> _fetchAndApplyArtistData(
+    RemoteMediaLibraryClient client, {
+    required bool isBackground,
+  }) async {
+    try {
       final artistMap = await client.getArtist(
         widget.artistId,
         artistName: widget.artistName,
       );
       if (artistMap == null) {
-        if (!mounted) return;
+        if (!mounted || isBackground) return;
         final l10n = AppLocalizations.of(context)!;
         setState(() {
           _error = l10n.artistNotFound;
@@ -224,10 +325,12 @@ class _RemoteArtistDetailContentState
 
       // If artist has songs directly (some Subsonic servers return directory format)
       final dynamic directSongs = artistMap['song'];
+      final List<Map<String, dynamic>> directRawSongs = [];
       final List<MusicFile> songsFromArtist = [];
       if (directSongs is List) {
         for (final s in directSongs) {
           if (s is Map<String, dynamic>) {
+            directRawSongs.add(s);
             songsFromArtist.add(
               client.buildMusicFile(s),
             );
@@ -253,12 +356,14 @@ class _RemoteArtistDetailContentState
           final duration = albumMeta['duration'] as int?;
 
           List<MusicFile> albumTracks = [];
+          List<Map<String, dynamic>> rawSongData = [];
           try {
             final fullAlbum = await client.getAlbum(albumId);
             final songData = fullAlbum?['song'] as List?;
             if (songData != null) {
               for (final s in songData) {
                 if (s is Map<String, dynamic>) {
+                  rawSongData.add(s);
                   albumTracks.add(
                     client.buildMusicFile(s),
                   );
@@ -276,6 +381,7 @@ class _RemoteArtistDetailContentState
             songCount: songCount ?? albumTracks.length,
             duration: duration,
             songs: albumTracks,
+            rawSongs: rawSongData,
           );
         }).toList();
 
@@ -287,11 +393,16 @@ class _RemoteArtistDetailContentState
       } else if (songsFromArtist.isNotEmpty) {
         // Group songs by album if albums array wasn't provided directly
         final Map<String, List<MusicFile>> byAlbum = {};
-        for (final song in songsFromArtist) {
+        final Map<String, List<Map<String, dynamic>>> byAlbumRaw = {};
+        for (int i = 0; i < songsFromArtist.length; i++) {
+          final song = songsFromArtist[i];
+          final raw = directRawSongs[i];
           final albumName = song.album ?? 'Singles';
           byAlbum.putIfAbsent(albumName, () => []).add(song);
+          byAlbumRaw.putIfAbsent(albumName, () => []).add(raw);
         }
         byAlbum.forEach((albumName, sList) {
+          final rawList = byAlbumRaw[albumName] ?? [];
           sections.add(
             _RemoteAlbumSectionData(
               id: widget.artistId,
@@ -300,6 +411,7 @@ class _RemoteArtistDetailContentState
               coverArt: widget.coverArtId,
               songCount: sList.length,
               songs: sList,
+              rawSongs: rawList,
             ),
           );
           accumulatedSongs.addAll(sList);
@@ -314,15 +426,49 @@ class _RemoteArtistDetailContentState
           artistMap['isFavorite'] == true ||
           (effectiveId.isNotEmpty &&
               sessionStarred?.contains(effectiveId) == true);
+
       if (!mounted) return;
-      setState(() {
-        _albumSections = sections;
-        _allSongs = accumulatedSongs;
-        _isStarred = isStarred;
-        _isLoading = false;
-      });
+
+      bool hasChanged = true;
+      if (isBackground && _albumSections.isNotEmpty) {
+        if (_allSongs.length == accumulatedSongs.length &&
+            _isStarred == isStarred &&
+            _albumSections.length == sections.length) {
+          hasChanged = false;
+          for (int i = 0; i < _allSongs.length; i++) {
+            if (_allSongs[i].path != accumulatedSongs[i].path ||
+                _allSongs[i].title != accumulatedSongs[i].title) {
+              hasChanged = true;
+              break;
+            }
+          }
+        }
+      }
+
+      if (!isBackground || hasChanged) {
+        setState(() {
+          _albumSections = sections;
+          _allSongs = accumulatedSongs;
+          _isStarred = isStarred;
+          _isLoading = false;
+          _error = null;
+        });
+      }
+
+      final cachePayload = {
+        'artistMap': artistMap,
+        'artistInfo': _artistInfo,
+        'isStarred': isStarred,
+        'sections': sections.map((s) => s.toJson()).toList(),
+      };
+      unawaited(MetadataDatabase().saveRemoteLibraryCache(
+        serverId: widget.server.id,
+        category: 'artist_detail_${widget.artistId}',
+        dataJson: jsonEncode(cachePayload),
+        count: accumulatedSongs.length,
+      ));
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted || isBackground) return;
       setState(() {
         _error = e.toString();
         _isLoading = false;
@@ -418,7 +564,7 @@ class _RemoteArtistDetailContentState
       children: [
         Positioned.fill(
           child: RefreshIndicator(
-            onRefresh: _loadArtistData,
+            onRefresh: () => _loadArtistData(forceRefresh: true),
             child: CustomScrollView(
               slivers: [
                 // Artist Header (Styled similarly to local ArtistDetailContent)

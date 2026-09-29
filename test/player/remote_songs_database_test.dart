@@ -217,6 +217,68 @@ void main() {
       expect(activeSongs.first.path, songReadded);
     });
   });
+
+  group('RemoteLibraryCaches Table Tests', () {
+    test('saves, retrieves, and clears remote library cache', () async {
+      const serverId = 'test_navidrome_server';
+      const category = 'songs';
+      const dataJson = '[{"id":"101","title":"Cached Track"}]';
+
+      // 1. Initially empty
+      final initial = await db.getRemoteLibraryCache(
+        serverId: serverId,
+        category: category,
+      );
+      expect(initial, isNull);
+
+      // 2. Save cache
+      await db.saveRemoteLibraryCache(
+        serverId: serverId,
+        category: category,
+        dataJson: dataJson,
+        count: 1,
+      );
+
+      // 3. Retrieve cache
+      final retrieved = await db.getRemoteLibraryCache(
+        serverId: serverId,
+        category: category,
+      );
+      expect(retrieved, isNotNull);
+      expect(retrieved!.dataJson, dataJson);
+      expect(retrieved.count, 1);
+      expect(retrieved.updatedAtMillis, greaterThan(0));
+
+      // 4. Update on conflict
+      const updatedJson = '[{"id":"101","title":"Cached Track"},{"id":"102","title":"Track 2"}]';
+      await db.saveRemoteLibraryCache(
+        serverId: serverId,
+        category: category,
+        dataJson: updatedJson,
+        count: 2,
+      );
+      final updated = await db.getRemoteLibraryCache(
+        serverId: serverId,
+        category: category,
+      );
+      expect(updated, isNotNull);
+      expect(updated!.dataJson, updatedJson);
+      expect(updated.count, 2);
+
+      // 5. Clear specific category
+      await db.clearRemoteLibraryCache(
+        serverId: serverId,
+        category: category,
+      );
+      expect(
+        await db.getRemoteLibraryCache(
+          serverId: serverId,
+          category: category,
+        ),
+        isNull,
+      );
+    });
+  });
 }
 
 class _TestPathProviderPlatform extends PathProviderPlatform

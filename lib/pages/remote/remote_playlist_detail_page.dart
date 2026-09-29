@@ -1,10 +1,12 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oktoast/oktoast.dart';
 
 import '../../models/music_file.dart';
+import '../../player/metadata/metadata_database.dart';
 import '../../player/audio/audio_riverpod.dart';
 import '../../player/audio/playback_source.dart';
 import '../../player/remote/remote_server_models.dart';
@@ -336,6 +338,59 @@ class _RemotePlaylistDetailContentState
       }
     }
 
+    // Try reading from SQLite cache first for instant UI (SWR)
+    if (!forceRefresh && _tracks.isEmpty) {
+      try {
+        final cacheCategory = _isStarredView
+            ? 'starred_songs_detail'
+            : 'playlist_detail_${widget.playlistId}';
+        final cache = await MetadataDatabase().getRemoteLibraryCache(
+          serverId: widget.server.id,
+          category: cacheCategory,
+        );
+        if (cache != null && mounted) {
+          final data = jsonDecode(cache.dataJson) as Map<String, dynamic>;
+          final client = RemoteMediaLibraryClient.create(
+            server: widget.server,
+            password: widget.password,
+          );
+          final rawSongs = (data['songs'] as List?)
+                  ?.whereType<Map<String, dynamic>>()
+                  .toList() ??
+              [];
+          final parsedTracks = rawSongs.map(client.buildMusicFile).toList();
+          final starred = (data['starredIds'] as List?)
+                  ?.map((e) => e.toString())
+                  .toSet() ??
+              {};
+          final plData = data['playlistData'] as Map<String, dynamic>?;
+
+          if (parsedTracks.isNotEmpty || plData != null) {
+            setState(() {
+              _playlistData = plData;
+              _currentName =
+                  plData?['name'] as String? ?? widget.playlistName;
+              _tracks = parsedTracks;
+              _starredSongIds
+                ..clear()
+                ..addAll(starred);
+              _isLoading = false;
+              _error = null;
+            });
+
+            if (_highlightedSongPath != null) {
+              final targetPath = _highlightedSongPath!;
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                _scrollToTrack(targetPath);
+              });
+            }
+            _revalidatePlaylistDetails();
+            return;
+          }
+        }
+      } catch (_) {}
+    }
+
     setState(() {
       _isLoading = true;
       _error = null;
@@ -350,12 +405,14 @@ class _RemotePlaylistDetailContentState
       if (_isStarredView) {
         final songList = await client.getStarredSongs();
         final List<MusicFile> parsedTracks = [];
+        final List<Map<String, dynamic>> rawSongs = [];
         final Set<String> starred = {};
         int totalDur = 0;
 
         for (final item in songList) {
           final song = client.buildMusicFile(item);
           parsedTracks.add(song);
+          rawSongs.add(item);
           final trackId = item['id']?.toString() ?? song.id.toString();
           starred.add(trackId);
           if (item['duration'] is int) {
@@ -378,6 +435,18 @@ class _RemotePlaylistDetailContentState
             ..addAll(starred);
           _isLoading = false;
         });
+
+        final cachePayload = {
+          'playlistData': data,
+          'starredIds': starred.toList(),
+          'songs': rawSongs,
+        };
+        unawaited(MetadataDatabase().saveRemoteLibraryCache(
+          serverId: widget.server.id,
+          category: 'starred_songs_detail',
+          dataJson: jsonEncode(cachePayload),
+          count: parsedTracks.length,
+        ));
 
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;
@@ -417,6 +486,7 @@ class _RemotePlaylistDetailContentState
 
       final songList = pl['entry'] as List?;
       final List<MusicFile> parsedTracks = [];
+      final List<Map<String, dynamic>> rawSongs = [];
       final Set<String> starred = {};
 
       if (songList != null) {
@@ -424,6 +494,7 @@ class _RemotePlaylistDetailContentState
           if (item is Map<String, dynamic>) {
             final song = client.buildMusicFile(item);
             parsedTracks.add(song);
+            rawSongs.add(item);
             if (item['starred'] != null) {
               final trackId = item['id']?.toString() ?? song.id.toString();
               starred.add(trackId);
@@ -442,6 +513,18 @@ class _RemotePlaylistDetailContentState
           ..addAll(starred);
         _isLoading = false;
       });
+
+      final cachePayload = {
+        'playlistData': pl,
+        'starredIds': starred.toList(),
+        'songs': rawSongs,
+      };
+      unawaited(MetadataDatabase().saveRemoteLibraryCache(
+        serverId: widget.server.id,
+        category: 'playlist_detail_${widget.playlistId}',
+        dataJson: jsonEncode(cachePayload),
+        count: parsedTracks.length,
+      ));
 
       if (_highlightedSongPath != null) {
         final targetPath = _highlightedSongPath!;
@@ -549,6 +632,18 @@ class _RemotePlaylistDetailContentState
           }
           widget.onPlaylistModified?.call();
         }
+
+        final cachePayload = {
+          'playlistData': data,
+          'starredIds': starred.toList(),
+          'songs': songList.whereType<Map<String, dynamic>>().toList(),
+        };
+        unawaited(MetadataDatabase().saveRemoteLibraryCache(
+          serverId: widget.server.id,
+          category: 'starred_songs_detail',
+          dataJson: jsonEncode(cachePayload),
+          count: parsedTracks.length,
+        ));
         return;
       }
 
@@ -557,6 +652,7 @@ class _RemotePlaylistDetailContentState
 
       final songList = pl['entry'] as List?;
       final List<MusicFile> parsedTracks = [];
+      final List<Map<String, dynamic>> rawSongs = [];
       final Set<String> starred = {};
 
       if (songList != null) {
@@ -564,6 +660,7 @@ class _RemotePlaylistDetailContentState
           if (item is Map<String, dynamic>) {
             final song = client.buildMusicFile(item);
             parsedTracks.add(song);
+            rawSongs.add(item);
             if (item['starred'] != null) {
               final trackId = item['id']?.toString() ?? song.id.toString();
               starred.add(trackId);
@@ -612,6 +709,18 @@ class _RemotePlaylistDetailContentState
         }
         widget.onPlaylistModified?.call();
       }
+
+      final cachePayload = {
+        'playlistData': pl,
+        'starredIds': starred.toList(),
+        'songs': rawSongs,
+      };
+      unawaited(MetadataDatabase().saveRemoteLibraryCache(
+        serverId: widget.server.id,
+        category: 'playlist_detail_${widget.playlistId}',
+        dataJson: jsonEncode(cachePayload),
+        count: parsedTracks.length,
+      ));
     } catch (_) {
       // Revalidation silently catches network errors
     } finally {

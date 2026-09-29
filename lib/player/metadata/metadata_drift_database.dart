@@ -14,6 +14,7 @@ part of 'metadata_database.dart';
     ArtworkCaches,
     RemoteSongs,
     FolderCovers,
+    RemoteLibraryCaches,
   ],
 )
 class MetadataDriftDatabase extends _$MetadataDriftDatabase {
@@ -22,7 +23,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   static final MetadataDriftDatabase instance = MetadataDriftDatabase._();
 
   @override
-  int get schemaVersion => 35;
+  int get schemaVersion => 36;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -393,6 +394,13 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       }
       if (from < 35) {
         await _addColumnIfMissing(m, 'songs', 'hasArtwork', 'INTEGER');
+      }
+      if (from < 36) {
+        final migrator = createMigrator();
+        final exists = await _tableExists(remoteLibraryCaches.actualTableName);
+        if (!exists) {
+          await migrator.createTable(remoteLibraryCaches);
+        }
       }
     },
   );
@@ -3301,6 +3309,83 @@ class FolderCovers extends Table {
 
   @override
   Set<Column> get primaryKey => {folderPath};
+}
+
+class RemoteLibraryCaches extends Table {
+  @override
+  String get tableName => 'remote_library_caches';
+
+  TextColumn get serverId => text().named('serverId')();
+  TextColumn get category => text().named('category')(); // 'songs', 'albums', 'artists', 'playlists', 'starred_songs'
+  TextColumn get dataJson => text().named('dataJson')();
+  IntColumn get count => integer().nullable().named('count')();
+  IntColumn get updatedAtMillis => integer().named('updatedAtMillis')();
+
+  @override
+  Set<Column> get primaryKey => {serverId, category};
+}
+
+extension MetadataRemoteLibraryCachesOps on MetadataDriftDatabase {
+  Future<void> saveRemoteLibraryCache({
+    required String serverId,
+    required String category,
+    required String dataJson,
+    int? count,
+  }) async {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final cleanServerId = serverId.trim();
+    if (cleanServerId.isEmpty) return;
+
+    await into(remoteLibraryCaches).insertOnConflictUpdate(
+      RemoteLibraryCachesCompanion(
+        serverId: Value(cleanServerId),
+        category: Value(category),
+        dataJson: Value(dataJson),
+        count: Value(count),
+        updatedAtMillis: Value(now),
+      ),
+    );
+  }
+
+  Future<({String dataJson, int? count, int updatedAtMillis})?> getRemoteLibraryCache({
+    required String serverId,
+    required String category,
+  }) async {
+    final cleanServerId = serverId.trim();
+    if (cleanServerId.isEmpty) return null;
+
+    final row = await (select(remoteLibraryCaches)
+          ..where((t) =>
+              t.serverId.equals(cleanServerId) & t.category.equals(category))
+          ..limit(1))
+        .getSingleOrNull();
+
+    if (row == null) return null;
+    return (
+      dataJson: row.dataJson,
+      count: row.count,
+      updatedAtMillis: row.updatedAtMillis,
+    );
+  }
+
+  Future<void> clearRemoteLibraryCache({
+    required String serverId,
+    String? category,
+  }) async {
+    final cleanServerId = serverId.trim();
+    if (cleanServerId.isEmpty) return;
+
+    if (category != null) {
+      await (delete(remoteLibraryCaches)
+            ..where((t) =>
+                t.serverId.equals(cleanServerId) & t.category.equals(category)))
+          .go();
+    } else {
+      await (delete(remoteLibraryCaches)
+            ..where((t) => t.serverId.equals(cleanServerId)))
+          .go();
+    }
+  }
 }
 
 extension MetadataFolderCoversOps on MetadataDriftDatabase {
