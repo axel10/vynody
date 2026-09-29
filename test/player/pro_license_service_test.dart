@@ -142,7 +142,9 @@ void main() {
 
       expect(service.state.isPermanentlyUnlocked, isTrue);
       expect(service.pendingTrialResetNotice, isFalse);
-      expect(prefs.getBool('vynody_trial_reset_v2_13_2_done'), isTrue);
+      if (!AppChannel.isGitHubRelease) {
+        expect(prefs.getBool('vynody_trial_reset_v2_13_2_done'), isTrue);
+      }
     });
 
     test('Fresh install on v2.13.2+ initializes trial normally without triggering notice dialog', () async {

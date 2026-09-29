@@ -126,15 +126,9 @@ class ProLicenseService extends ChangeNotifier {
 
   LicenseState get state => _state;
 
-  /// Reads the trial start timestamp from SharedPreferences or PlatformSecureVault.
+  /// Reads the trial start timestamp with PlatformSecureVault as the authoritative source of truth.
   Future<int?> _readPersistentFirstLaunchMs(SharedPreferences prefs) async {
-    // 1. Fast check in SharedPreferences
-    final prefMs = _safeGetInt(prefs, _kFirstLaunchTimeKey);
-    if (prefMs != null && prefMs > 0) {
-      return prefMs;
-    }
-
-    // 2. Cross-platform secure vault (Windows PasswordVault / iOS & Android Keychain)
+    // 1. Authoritative check in PlatformSecureVault (survives app reinstallation / data wipe)
     final vaultVal = await _vault.read(_kFirstLaunchTimeKey);
     if (vaultVal != null) {
       final parsed = int.tryParse(vaultVal);
@@ -144,18 +138,26 @@ class ProLicenseService extends ChangeNotifier {
       }
     }
 
-    // 3. Apple/Other fallback: check legacy SecureStorage
+    // 2. Check legacy SecureStorage
     try {
       final secureVal = await _secureStorage.read(key: _kFirstLaunchTimeKey);
       if (secureVal != null) {
         final parsed = int.tryParse(secureVal);
         if (parsed != null && parsed > 0) {
           await prefs.setInt(_kFirstLaunchTimeKey, parsed);
+          await _vault.write(_kFirstLaunchTimeKey, parsed.toString());
           return parsed;
         }
       }
     } catch (e) {
       debugPrint('[ProLicenseService] Failed to read trial time from SecureStorage: $e');
+    }
+
+    // 3. Fallback check in SharedPreferences (for legacy data prior to vault implementation)
+    final prefMs = _safeGetInt(prefs, _kFirstLaunchTimeKey);
+    if (prefMs != null && prefMs > 0) {
+      await _vault.write(_kFirstLaunchTimeKey, prefMs.toString());
+      return prefMs;
     }
 
     return null;
@@ -176,21 +178,13 @@ class ProLicenseService extends ChangeNotifier {
     }
   }
 
-  /// Reads whether the v2.13.2 trial reset has already been executed across storage layers.
+  /// Reads whether the v2.13.2 trial reset has already been executed.
+  /// PlatformSecureVault (PasswordVault / Keychain) is the authoritative source of truth.
   Future<bool> _readPersistentTrialResetV2132(SharedPreferences prefs) async {
-    // 1. Fast check in SharedPreferences
-    if (prefs.getBool(_kTrialResetV2132Key) == true) {
-      return true;
-    }
-
-    // 2. Cross-platform secure vault (Windows PasswordVault / iOS & Android Keychain)
     final val = await _vault.read(_kTrialResetV2132Key);
-    if (val == 'true' || val == '1') {
-      await prefs.setBool(_kTrialResetV2132Key, true);
-      return true;
-    }
-
-    return false;
+    final isDone = val == 'true' || val == '1';
+    await prefs.setBool(_kTrialResetV2132Key, isDone);
+    return isDone;
   }
 
   /// Writes whether the v2.13.2 trial reset has executed to persistent storage layers.
@@ -226,7 +220,6 @@ class ProLicenseService extends ChangeNotifier {
 
     // 1. If running GitHub Community build, permanently unlock.
     if (AppChannel.isGitHubRelease) {
-      await _writePersistentTrialResetV2132(prefs, true);
       _updateState(const LicenseState(type: LicenseType.unlimitedCommunity));
       return;
     }
