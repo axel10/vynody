@@ -52,6 +52,18 @@ class ProLicenseService extends ChangeNotifier {
     super.dispose();
   }
 
+  static int? _safeGetInt(SharedPreferences? prefs, String key) {
+    if (prefs == null) return null;
+    final dynamic val = prefs.get(key);
+    if (val is int) return val;
+    if (val is num) return val.toInt();
+    if (val is String) {
+      final decrypted = AppSecureStorage.decrypt(val);
+      return int.tryParse(decrypted) ?? int.tryParse(val);
+    }
+    return null;
+  }
+
   static LicenseState _computeInitialState(SharedPreferences? prefs) {
     if (AppChannel.isGitHubRelease) {
       return const LicenseState(type: LicenseType.unlimitedCommunity);
@@ -64,7 +76,7 @@ class ProLicenseService extends ChangeNotifier {
     }
 
     final hasResetV2132 = prefs.getBool(_kTrialResetV2132Key) ?? false;
-    final firstLaunchMs = prefs.getInt(_kFirstLaunchTimeKey);
+    final firstLaunchMs = _safeGetInt(prefs, _kFirstLaunchTimeKey);
 
     // If updating to 2.13.2+ and reset hasn't executed yet, provide full active trial immediately
     if (!hasResetV2132 && firstLaunchMs != null && firstLaunchMs > 0) {
@@ -112,7 +124,7 @@ class ProLicenseService extends ChangeNotifier {
   /// Reads the trial start timestamp from SharedPreferences, Windows PasswordVault, or Keychain.
   Future<int?> _readPersistentFirstLaunchMs(SharedPreferences prefs) async {
     // 1. Fast check in SharedPreferences
-    final prefMs = prefs.getInt(_kFirstLaunchTimeKey);
+    final prefMs = _safeGetInt(prefs, _kFirstLaunchTimeKey);
     if (prefMs != null && prefMs > 0) {
       return prefMs;
     }
@@ -150,6 +162,9 @@ class ProLicenseService extends ChangeNotifier {
 
   /// Writes the trial start timestamp to SharedPreferences, Windows PasswordVault, and Keychain.
   Future<void> _writePersistentFirstLaunchMs(SharedPreferences prefs, int epochMs) async {
+    if (prefs.get(_kFirstLaunchTimeKey) is String) {
+      await prefs.remove(_kFirstLaunchTimeKey);
+    }
     await prefs.setInt(_kFirstLaunchTimeKey, epochMs);
 
     if (Platform.isWindows) {
@@ -178,9 +193,19 @@ class ProLicenseService extends ChangeNotifier {
   }
 
   Future<void> _init() async {
+    final prefs = _prefs ?? await SharedPreferences.getInstance();
+
+    // Clean up any legacy dirty String trial timestamp from earlier buggy releases
+    if (prefs.get(_kFirstLaunchTimeKey) is String) {
+      final cleanMs = _safeGetInt(prefs, _kFirstLaunchTimeKey);
+      await prefs.remove(_kFirstLaunchTimeKey);
+      if (cleanMs != null && cleanMs > 0) {
+        await prefs.setInt(_kFirstLaunchTimeKey, cleanMs);
+      }
+    }
+
     // 1. If running GitHub Community build, permanently unlock.
     if (AppChannel.isGitHubRelease) {
-      final prefs = _prefs ?? await SharedPreferences.getInstance();
       await prefs.setBool(_kTrialResetV2132Key, true);
       _updateState(const LicenseState(type: LicenseType.unlimitedCommunity));
       return;
@@ -225,7 +250,6 @@ class ProLicenseService extends ChangeNotifier {
     }
 
     // 3. Store build fallback: Check storage for purchase or trial timestamps.
-    final prefs = _prefs ?? await SharedPreferences.getInstance();
 
     final isPurchased = prefs.getBool(_kProPurchasedKey) ?? false;
     if (isPurchased) {

@@ -6,6 +6,7 @@ import 'package:vynody/player/pro/app_channel.dart';
 import 'package:vynody/player/pro/pro_license_service.dart';
 import 'package:vynody/player/pro/pro_models.dart';
 import 'package:vynody/player/settings/settings_service.dart';
+import 'package:vynody/utils/secure_storage.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -156,6 +157,45 @@ void main() {
         expect(prefs.getBool('vynody_trial_reset_v2_13_2_done'), isTrue);
         expect(prefs.getBool('vynody_pending_trial_reset_v2_13_2_notice'), isNot(isTrue));
       }
+    });
+
+    test('ProLicenseService safely handles String type in vynody_license_first_launch_epoch_ms without crashing', () async {
+      final nowMs = DateTime.now().millisecondsSinceEpoch;
+      // Simulate AppSecureStorage encryption string or raw string stored by earlier bug
+      final encryptedVal = AppSecureStorage.encrypt(nowMs.toString());
+      SharedPreferences.setMockInitialValues({
+        'vynody_license_first_launch_epoch_ms': encryptedVal,
+        'vynody_trial_reset_v2_13_2_done': true,
+      });
+      final prefs = await SharedPreferences.getInstance();
+
+      // Synchronous constructor should NOT throw type 'String' is not a subtype of type 'int?'
+      final service = ProLicenseService(prefs: prefs);
+      expect(service.state, isNotNull);
+
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      // After init, dirty data in SharedPreferences should be healed to int
+      final healedVal = prefs.get('vynody_license_first_launch_epoch_ms');
+      expect(healedVal, isA<int>());
+      expect(healedVal, nowMs);
+    });
+
+    test('AppSecureStorage uses namespaced prefix and does not overwrite normal SharedPreferences keys', () async {
+      SharedPreferences.setMockInitialValues({
+        'my_test_key': 12345,
+      });
+      final prefs = await SharedPreferences.getInstance();
+      final secure = AppSecureStorage(prefs);
+
+      await secure.write(key: 'my_test_key', value: 'secret_string');
+
+      // The raw prefs key should remain integer 12345
+      expect(prefs.getInt('my_test_key'), 12345);
+
+      // Secure storage should read the encrypted secret string
+      expect(await secure.read(key: 'my_test_key'), 'secret_string');
+      expect(secure.readSync(key: 'my_test_key'), 'secret_string');
     });
   });
 }

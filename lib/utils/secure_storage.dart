@@ -31,6 +31,7 @@ class AppSecureStorage {
   FlutterSecureStorage get _effectiveLegacyStorage =>
       _legacyStorage ?? _defaultLegacyStorage;
 
+  static const String _storageKeyPrefix = 'app_sec:';
   static const String _prefix = 'enc:v1:';
   static const List<int> _saltBytes = [
     0x56, 0x79, 0x6E, 0x6F, 0x64, 0x79, 0x5F, 0x53,
@@ -80,9 +81,21 @@ class AppSecureStorage {
   /// the value to encrypted preferences, and cleans up the legacy entry.
   Future<String?> read({required String key}) async {
     final prefs = await _getPrefs();
-    final raw = prefs.getString(key);
+    final modernKey = '$_storageKeyPrefix$key';
+    final raw = prefs.getString(modernKey);
     if (raw != null) {
       return decrypt(raw);
+    }
+
+    // Check legacy un-prefixed key in SharedPreferences (if previously stored as encrypted string)
+    final dynamic legacyRaw = prefs.get(key);
+    if (legacyRaw is String && legacyRaw.startsWith(_prefix)) {
+      final decrypted = decrypt(legacyRaw);
+      await write(key: key, value: decrypted);
+      try {
+        await prefs.remove(key);
+      } catch (_) {}
+      return decrypted;
     }
 
     // Attempt transparent migration from legacy flutter_secure_storage
@@ -108,22 +121,31 @@ class AppSecureStorage {
   /// Note: Only checks the current encrypted preferences.
   String? readSync({required String key}) {
     if (_prefs == null) return null;
-    final raw = _prefs.getString(key);
-    if (raw == null) return null;
-    return decrypt(raw);
+    final modernKey = '$_storageKeyPrefix$key';
+    final raw = _prefs.getString(modernKey);
+    if (raw != null) return decrypt(raw);
+    final dynamic legacyRaw = _prefs.get(key);
+    if (legacyRaw is String && legacyRaw.startsWith(_prefix)) {
+      return decrypt(legacyRaw);
+    }
+    return null;
   }
 
   /// Writes an encrypted value for the given [key].
   Future<void> write({required String key, required String value}) async {
     final prefs = await _getPrefs();
     final encrypted = encrypt(value);
-    await prefs.setString(key, encrypted);
+    await prefs.setString('$_storageKeyPrefix$key', encrypted);
   }
 
   /// Deletes the value for the given [key] from both modern and legacy storage.
   Future<void> delete({required String key}) async {
     final prefs = await _getPrefs();
-    await prefs.remove(key);
+    await prefs.remove('$_storageKeyPrefix$key');
+    final dynamic legacyRaw = prefs.get(key);
+    if (legacyRaw is String && legacyRaw.startsWith(_prefix)) {
+      await prefs.remove(key);
+    }
     try {
       await _effectiveLegacyStorage.delete(key: key);
     } catch (_) {}
@@ -132,7 +154,9 @@ class AppSecureStorage {
   /// Checks if [key] exists in either modern or legacy storage.
   Future<bool> containsKey({required String key}) async {
     final prefs = await _getPrefs();
-    if (prefs.containsKey(key)) return true;
+    if (prefs.containsKey('$_storageKeyPrefix$key')) return true;
+    final dynamic legacyRaw = prefs.get(key);
+    if (legacyRaw is String && legacyRaw.startsWith(_prefix)) return true;
     try {
       return await _effectiveLegacyStorage.containsKey(key: key);
     } catch (_) {
@@ -140,10 +164,13 @@ class AppSecureStorage {
     }
   }
 
-  /// Deletes all keys (note: use with care).
+  /// Deletes all encrypted keys managed by AppSecureStorage.
   Future<void> deleteAll() async {
     final prefs = await _getPrefs();
-    await prefs.clear();
+    final keysToRemove = prefs.getKeys().where((k) => k.startsWith(_storageKeyPrefix)).toList();
+    for (final k in keysToRemove) {
+      await prefs.remove(k);
+    }
     try {
       await _effectiveLegacyStorage.deleteAll();
     } catch (_) {}
