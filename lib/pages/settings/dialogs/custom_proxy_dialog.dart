@@ -91,7 +91,7 @@ class _CustomProxyConfigDialogState extends State<CustomProxyConfigDialog> {
 
     setState(() {
       _isTesting = true;
-      _statusText = '';
+      _statusText = l10n.testingConnectionProgress;
     });
 
     final success = await AppProxyManager.instance.testProxyConnection(
@@ -117,90 +117,150 @@ class _CustomProxyConfigDialogState extends State<CustomProxyConfigDialog> {
       title: Text(l10n.proxySettingsTitle),
       content: SizedBox(
         width: 460,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: Row(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Flexible(
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(
-                      Icons.info_outline_rounded,
-                      size: 18,
-                      color: theme.hintColor,
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.info_outline_rounded,
+                            size: 18,
+                            color: theme.hintColor,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              l10n.proxyModeCustomDesc,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.hintColor,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        l10n.proxyModeCustomDesc,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.hintColor,
-                        ),
+                    TextField(
+                      controller: _hostController,
+                      decoration: InputDecoration(
+                        labelText: l10n.proxyHost,
+                        hintText: l10n.proxyHostHint,
+                        border: const OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.dns_rounded),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _portController,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      decoration: InputDecoration(
+                        labelText: l10n.proxyPort,
+                        hintText: l10n.proxyPortHint,
+                        border: const OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.numbers_rounded),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _bypassController,
+                      maxLines: 2,
+                      decoration: InputDecoration(
+                        labelText: l10n.proxyBypass,
+                        hintText: l10n.proxyBypassHint,
+                        border: const OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.alt_route_rounded),
                       ),
                     ),
                   ],
                 ),
               ),
-              TextField(
-                controller: _hostController,
-                decoration: InputDecoration(
-                  labelText: l10n.proxyHost,
-                  hintText: l10n.proxyHostHint,
-                  border: const OutlineInputBorder(),
-                  prefixIcon: const Icon(Icons.dns_rounded),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _portController,
-                keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                decoration: InputDecoration(
-                  labelText: l10n.proxyPort,
-                  hintText: l10n.proxyPortHint,
-                  border: const OutlineInputBorder(),
-                  prefixIcon: const Icon(Icons.numbers_rounded),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _bypassController,
-                maxLines: 2,
-                decoration: InputDecoration(
-                  labelText: l10n.proxyBypass,
-                  hintText: l10n.proxyBypassHint,
-                  border: const OutlineInputBorder(),
-                  prefixIcon: const Icon(Icons.alt_route_rounded),
-                ),
-              ),
-              if (_statusText.isNotEmpty) ...[
-                const SizedBox(height: 14),
-                Row(
-                  children: [
-                    Icon(
-                      _statusSuccess
-                          ? Icons.check_circle_outline_rounded
-                          : Icons.error_outline_rounded,
-                      size: 18,
-                      color: _statusSuccess ? Colors.green : Colors.red,
+            ),
+            if (_statusText.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              AnimatedSize(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeInOut,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _statusSuccess
+                        ? Colors.green.withValues(alpha: 0.12)
+                        : (_isTesting
+                            ? theme.colorScheme.surfaceContainerHighest
+                            : Colors.red.withValues(alpha: 0.12)),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: _statusSuccess
+                          ? Colors.green.withValues(alpha: 0.4)
+                          : (_isTesting
+                              ? Colors.transparent
+                              : Colors.red.withValues(alpha: 0.4)),
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        _statusText,
-                        style: TextStyle(
-                          fontSize: 13,
+                  ),
+                  child: Row(
+                    children: [
+                      if (_isTesting)
+                        const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      else
+                        Icon(
+                          _statusSuccess
+                              ? Icons.check_circle_outline_rounded
+                              : Icons.error_outline_rounded,
+                          size: 18,
                           color: _statusSuccess ? Colors.green : Colors.red,
                         ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          _statusText,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: _statusSuccess
+                                ? Colors.green
+                                : (_isTesting
+                                    ? theme.colorScheme.onSurface
+                                    : Colors.red),
+                          ),
+                        ),
                       ),
-                    ),
-                  ],
+                      if (!_isTesting)
+                        InkWell(
+                          borderRadius: BorderRadius.circular(12),
+                          onTap: () {
+                            setState(() {
+                              _statusText = '';
+                            });
+                          },
+                          child: Icon(
+                            Icons.close,
+                            size: 16,
+                            color: theme.colorScheme.onSurfaceVariant
+                                .withValues(alpha: 0.7),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
-              ],
+              ),
             ],
-          ),
+          ],
         ),
       ),
       actions: [
@@ -208,15 +268,16 @@ class _CustomProxyConfigDialogState extends State<CustomProxyConfigDialog> {
           onPressed: _isTesting ? null : () => Navigator.of(context).pop(),
           child: Text(l10n.cancel),
         ),
-        TextButton(
+        TextButton.icon(
           onPressed: _isTesting ? null : _testConnection,
-          child: _isTesting
+          icon: _isTesting
               ? const SizedBox(
-                  width: 16,
-                  height: 16,
+                  width: 14,
+                  height: 14,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : Text(l10n.proxyTestConnection),
+              : const Icon(Icons.network_ping_rounded, size: 16),
+          label: Text(l10n.proxyTestConnection),
         ),
         FilledButton(
           onPressed: () {

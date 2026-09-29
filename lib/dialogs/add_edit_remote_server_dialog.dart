@@ -577,111 +577,152 @@ class _AddEditRemoteServerDialogState
                             },
                           ),
                         ],
-                        if (_testResult != null) ...[
-                          const SizedBox(height: 10),
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: _testResult!.isSuccess
-                                  ? Colors.green.withValues(alpha: 0.12)
-                                  : Colors.red.withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                color: _testResult!.isSuccess
-                                    ? Colors.green.withValues(alpha: 0.4)
-                                    : Colors.red.withValues(alpha: 0.4),
-                              ),
-                            ),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Icon(
-                                  _testResult!.isSuccess
-                                      ? Icons.check_circle_outline
-                                      : Icons.error_outline,
-                                  color: _testResult!.isSuccess
-                                      ? Colors.green
-                                      : Colors.red,
-                                ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        _testResult!.isSuccess
-                                            ? '${l10n.connectionSuccess} (${_testResult!.serverVersion ?? ""})'
-                                            : l10n.connectionFailed,
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: _testResult!.isSuccess
-                                              ? Colors.green
-                                              : Colors.red,
-                                        ),
-                                      ),
-                                      if (_testResult!.songCount != null)
-                                        Text('Songs found: ${_testResult!.songCount}'),
-                                      if (_testResult!.isSuccess && _testResult!.detectedCustomPath != null)
-                                        Text(
-                                          'Auto-detected path: ${_testResult!.detectedCustomPath}',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w500,
-                                            color: Colors.green.shade800,
-                                          ),
-                                        ),
-                                      if (_testResult!.isSuccess &&
-                                          _testResult!.availableShares != null &&
-                                          _testResult!.availableShares!.isNotEmpty) ...[
-                                        const SizedBox(height: 8),
-                                        Text(
-                                          '检测到以下共享文件夹 (点击填入):',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w600,
-                                            color: theme.colorScheme.onSurface,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Wrap(
-                                          spacing: 6,
-                                          runSpacing: 4,
-                                          children: _testResult!.availableShares!.map((share) {
-                                            final isSelected = _customPathController.text.trim() == share;
-                                            return ActionChip(
-                                              avatar: const Icon(Icons.folder_shared, size: 14),
-                                              label: Text(share),
-                                              backgroundColor: isSelected
-                                                  ? theme.colorScheme.primaryContainer
-                                                  : null,
-                                              onPressed: () {
-                                                setState(() {
-                                                  _customPathController.text = share;
-                                                });
-                                              },
-                                            );
-                                          }).toList(),
-                                        ),
-                                      ],
-                                      if (!_testResult!.isSuccess)
-                                        Text(
-                                          _testResult!.message,
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: theme.colorScheme.onSurfaceVariant,
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
                       ],
                     ),
                   ),
                 ),
+                if (_testResult != null) ...[
+                  const SizedBox(height: 12),
+                  AnimatedSize(
+                    duration: const Duration(milliseconds: 200),
+                    curve: Curves.easeInOut,
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: _testResult!.isSuccess
+                            ? Colors.green.withValues(alpha: 0.12)
+                            : Colors.red.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: _testResult!.isSuccess
+                              ? Colors.green.withValues(alpha: 0.4)
+                              : Colors.red.withValues(alpha: 0.4),
+                        ),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            _testResult!.isSuccess
+                                ? Icons.check_circle_outline
+                                : Icons.error_outline,
+                            color: _testResult!.isSuccess
+                                ? Colors.green
+                                : Colors.red,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxHeight: 130),
+                              child: SingleChildScrollView(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      _testResult!.isSuccess
+                                          ? '${l10n.connectionSuccess} (${_testResult!.serverVersion ?? ""})'
+                                          : l10n.connectionFailed,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: _testResult!.isSuccess
+                                            ? Colors.green
+                                            : Colors.red,
+                                      ),
+                                    ),
+                                    if (_testResult!.songCount != null)
+                                      Text(
+                                        'Songs found: ${_testResult!.songCount}',
+                                        style: const TextStyle(fontSize: 12),
+                                      ),
+                                    if (_testResult!.isSuccess &&
+                                        _testResult!.detectedCustomPath != null)
+                                      Text(
+                                        'Auto-detected path: ${_testResult!.detectedCustomPath}',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w500,
+                                          color: Colors.green.shade800,
+                                        ),
+                                      ),
+                                    if (_testResult!.isSuccess &&
+                                        _testResult!.availableShares != null &&
+                                        _testResult!.availableShares!.isNotEmpty) ...[
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        '检测到以下共享文件夹 (点击填入):',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: theme.colorScheme.onSurface,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Wrap(
+                                        spacing: 6,
+                                        runSpacing: 4,
+                                        children: _testResult!.availableShares!
+                                            .map((share) {
+                                          final isSelected =
+                                              _customPathController.text
+                                                      .trim() ==
+                                                  share;
+                                          return ActionChip(
+                                            avatar: const Icon(
+                                                Icons.folder_shared,
+                                                size: 14),
+                                            label: Text(share),
+                                            backgroundColor: isSelected
+                                                ? theme.colorScheme
+                                                    .primaryContainer
+                                                : null,
+                                            onPressed: () {
+                                              setState(() {
+                                                _customPathController.text =
+                                                    share;
+                                              });
+                                            },
+                                          );
+                                        }).toList(),
+                                      ),
+                                    ],
+                                    if (!_testResult!.isSuccess &&
+                                        _testResult!.message.isNotEmpty) ...[
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        _testResult!.message,
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: theme
+                                              .colorScheme.onSurfaceVariant,
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                          InkWell(
+                            borderRadius: BorderRadius.circular(12),
+                            onTap: () {
+                              setState(() {
+                                _testResult = null;
+                              });
+                            },
+                            child: Icon(
+                              Icons.close,
+                              size: 16,
+                              color: theme.colorScheme.onSurfaceVariant
+                                  .withValues(alpha: 0.7),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 16),
                 LayoutBuilder(
                   builder: (context, constraints) {

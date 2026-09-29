@@ -150,91 +150,157 @@ class _CustomProviderConfigDialogState
         width: 480,
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: Row(
-                children: [
-                  Icon(Icons.info_outline_rounded,
-                      size: 18,
-                      color: Theme.of(context).hintColor),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      l10n.customProviderOnlyTranslation,
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodySmall
-                          ?.copyWith(color: Theme.of(context).hintColor),
+            Flexible(
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: Row(
+                        children: [
+                          Icon(Icons.info_outline_rounded,
+                              size: 18,
+                              color: Theme.of(context).hintColor),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              l10n.customProviderOnlyTranslation,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(color: Theme.of(context).hintColor),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
-              ),
-            ),
-            TextField(
-              controller: _nameController,
-              decoration: InputDecoration(
-                labelText: l10n.providerLabel,
-                hintText: 'My Provider',
-                border: const OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _baseUrlController,
-              decoration: InputDecoration(
-                labelText: l10n.baseUrl,
-                hintText: 'https://api.openai.com/v1',
-                border: const OutlineInputBorder(),
-                helperText: l10n.openaiCompatibleEndpoint,
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _apiKeyController,
-              obscureText: _obscureApiKey,
-              enableSuggestions: false,
-              autocorrect: false,
-              decoration: InputDecoration(
-                labelText: l10n.apiKey,
-                hintText: l10n.pleaseEnterApiKeyHint,
-                border: const OutlineInputBorder(),
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    _obscureApiKey
-                        ? Icons.visibility_off_rounded
-                        : Icons.visibility_rounded,
-                  ),
-                  onPressed: () {
-                    setState(() {
-                      _obscureApiKey = !_obscureApiKey;
-                    });
-                  },
+                    TextField(
+                      controller: _nameController,
+                      decoration: InputDecoration(
+                        labelText: l10n.providerLabel,
+                        hintText: 'My Provider',
+                        border: const OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _baseUrlController,
+                      decoration: InputDecoration(
+                        labelText: l10n.baseUrl,
+                        hintText: 'https://api.openai.com/v1',
+                        border: const OutlineInputBorder(),
+                        helperText: l10n.openaiCompatibleEndpoint,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _apiKeyController,
+                      obscureText: _obscureApiKey,
+                      enableSuggestions: false,
+                      autocorrect: false,
+                      decoration: InputDecoration(
+                        labelText: l10n.apiKey,
+                        hintText: l10n.pleaseEnterApiKeyHint,
+                        border: const OutlineInputBorder(),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscureApiKey
+                                ? Icons.visibility_off_rounded
+                                : Icons.visibility_rounded,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _obscureApiKey = !_obscureApiKey;
+                            });
+                          },
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
             if (_statusText.isNotEmpty) ...[
               const SizedBox(height: 12),
-              Row(
-                children: [
-                  Icon(
-                    _statusSuccess
-                        ? Icons.check_circle_outline_rounded
-                        : Icons.error_outline_rounded,
-                    size: 18,
-                    color: _statusSuccess ? Colors.green : Colors.red,
+              AnimatedSize(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeInOut,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
                   ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      _statusText,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: _statusSuccess ? Colors.green : Colors.red,
-                      ),
+                  decoration: BoxDecoration(
+                    color: _statusSuccess
+                        ? Colors.green.withValues(alpha: 0.12)
+                        : (_isTesting
+                            ? Theme.of(context)
+                                .colorScheme
+                                .surfaceContainerHighest
+                            : Colors.red.withValues(alpha: 0.12)),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: _statusSuccess
+                          ? Colors.green.withValues(alpha: 0.4)
+                          : (_isTesting
+                              ? Colors.transparent
+                              : Colors.red.withValues(alpha: 0.4)),
                     ),
                   ),
-                ],
+                  child: Row(
+                    children: [
+                      if (_isTesting)
+                        const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      else
+                        Icon(
+                          _statusSuccess
+                              ? Icons.check_circle_outline_rounded
+                              : Icons.error_outline_rounded,
+                          size: 18,
+                          color: _statusSuccess ? Colors.green : Colors.red,
+                        ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          _statusText,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: _statusSuccess
+                                ? Colors.green
+                                : (_isTesting
+                                    ? Theme.of(context).colorScheme.onSurface
+                                    : Colors.red),
+                          ),
+                        ),
+                      ),
+                      if (!_isTesting)
+                        InkWell(
+                          borderRadius: BorderRadius.circular(12),
+                          onTap: () {
+                            setState(() {
+                              _statusText = '';
+                            });
+                          },
+                          child: Icon(
+                            Icons.close,
+                            size: 16,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurfaceVariant
+                                .withValues(alpha: 0.7),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
               ),
             ],
           ],
@@ -251,9 +317,18 @@ class _CustomProviderConfigDialogState
           onPressed: _isTesting ? null : _clearAndSave,
           child: Text(l10n.clear),
         ),
-        TextButton(
+        TextButton.icon(
           onPressed: _isTesting ? null : _testConnection,
-          child: Text(_isTesting ? l10n.testingConnection : l10n.testConnection),
+          icon: _isTesting
+              ? const SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.network_ping_rounded, size: 16),
+          label: Text(
+            _isTesting ? l10n.testingConnection : l10n.testConnection,
+          ),
         ),
         FilledButton(
           onPressed: () {
