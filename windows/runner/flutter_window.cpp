@@ -220,12 +220,11 @@ bool FlutterWindow::OnCreate() {
               result->Success(flutter::EncodableValue());
               return;
             }
-            std::wstring key_w(key_str.begin(), key_str.end());
+            winrt::hstring key_w = winrt::to_hstring(key_str);
             winrt::Windows::Security::Credentials::PasswordVault vault;
-            auto cred = vault.Retrieve(L"VynodyApp", winrt::hstring(key_w));
+            auto cred = vault.Retrieve(L"VynodyApp", key_w);
             cred.RetrievePassword();
-            std::wstring pass_w = cred.Password().c_str();
-            std::string pass_str(pass_w.begin(), pass_w.end());
+            std::string pass_str = winrt::to_string(cred.Password());
             result->Success(flutter::EncodableValue(pass_str));
           } catch (...) {
             result->Success(flutter::EncodableValue());
@@ -248,16 +247,16 @@ bool FlutterWindow::OnCreate() {
               result->Success(flutter::EncodableValue(false));
               return;
             }
-            std::wstring key_w(key_str.begin(), key_str.end());
-            std::wstring val_w(val_str.begin(), val_str.end());
+            winrt::hstring key_w = winrt::to_hstring(key_str);
+            winrt::hstring val_w = winrt::to_hstring(val_str);
             winrt::Windows::Security::Credentials::PasswordVault vault;
             try {
-              auto existing = vault.Retrieve(L"VynodyApp", winrt::hstring(key_w));
+              auto existing = vault.Retrieve(L"VynodyApp", key_w);
               vault.Remove(existing);
             } catch (...) {}
             if (!val_str.empty()) {
               winrt::Windows::Security::Credentials::PasswordCredential cred(
-                  L"VynodyApp", winrt::hstring(key_w), winrt::hstring(val_w));
+                  L"VynodyApp", key_w, val_w);
               vault.Add(cred);
             }
             result->Success(flutter::EncodableValue(true));
@@ -276,10 +275,10 @@ bool FlutterWindow::OnCreate() {
               }
             }
             if (!key_str.empty()) {
-              std::wstring key_w(key_str.begin(), key_str.end());
+              winrt::hstring key_w = winrt::to_hstring(key_str);
               winrt::Windows::Security::Credentials::PasswordVault vault;
               try {
-                auto existing = vault.Retrieve(L"VynodyApp", winrt::hstring(key_w));
+                auto existing = vault.Retrieve(L"VynodyApp", key_w);
                 vault.Remove(existing);
               } catch (...) {}
             }
