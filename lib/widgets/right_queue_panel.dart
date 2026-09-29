@@ -267,10 +267,20 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
     final currentIndex = ref.read(audioCurrentIndexProvider);
     if (currentIndex >= 0 && currentIndex < queue.length) {
       if (_scrollController.hasClients) {
-        final offset = (currentIndex * 56.0) - 100;
+        const double itemHeight = 54.0;
+        final double viewportHeight = _scrollController.position.viewportDimension;
+        double targetOffset = (currentIndex * itemHeight) - (viewportHeight / 2) + (itemHeight / 2);
+
+        final maxScroll = _scrollController.position.maxScrollExtent;
+        if (targetOffset < 0) {
+          targetOffset = 0;
+        } else if (targetOffset > maxScroll) {
+          targetOffset = maxScroll;
+        }
+
         _scrollController.animateTo(
-          offset.clamp(0.0, _scrollController.position.maxScrollExtent),
-          duration: const Duration(milliseconds: 250),
+          targetOffset,
+          duration: const Duration(milliseconds: 300),
           curve: Curves.easeInOut,
         );
       }

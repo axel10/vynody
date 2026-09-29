@@ -60,7 +60,7 @@ class _MiniQueueViewState extends ConsumerState<MiniQueueView> {
 
     if (currentIndex >= 0 && currentIndex < queue.length) {
       if (_scrollController.hasClients) {
-        const double itemHeight = 50.0;
+        const double itemHeight = 56.0;
         final double viewportHeight = _scrollController.position.viewportDimension;
         double targetOffset = (currentIndex * itemHeight) - (viewportHeight / 2) + (itemHeight / 2);
 
@@ -172,6 +172,7 @@ class _MiniQueueViewState extends ConsumerState<MiniQueueView> {
                   : ListView.builder(
                       controller: _scrollController,
                       itemCount: queue.length,
+                      itemExtent: 56.0,
                       padding: const EdgeInsets.only(bottom: 16.0),
                       itemBuilder: (context, index) {
                         final song = queue[index];

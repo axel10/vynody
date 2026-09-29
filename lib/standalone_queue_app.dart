@@ -641,10 +641,20 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
   void _scrollToCurrent() {
     if (_currentIndex >= 0 && _currentIndex < _queue.length) {
       if (_scrollController.hasClients) {
-        final offset = (_currentIndex * 56.0) - 100;
+        const double itemHeight = 54.0;
+        final double viewportHeight = _scrollController.position.viewportDimension;
+        double targetOffset = (_currentIndex * itemHeight) - (viewportHeight / 2) + (itemHeight / 2);
+
+        final maxScroll = _scrollController.position.maxScrollExtent;
+        if (targetOffset < 0) {
+          targetOffset = 0;
+        } else if (targetOffset > maxScroll) {
+          targetOffset = maxScroll;
+        }
+
         _scrollController.animateTo(
-          offset.clamp(0.0, _scrollController.position.maxScrollExtent),
-          duration: const Duration(milliseconds: 250),
+          targetOffset,
+          duration: const Duration(milliseconds: 300),
           curve: Curves.easeInOut,
         );
       }

@@ -143,10 +143,19 @@ class _RemoteControlPageState extends ConsumerState<RemoteControlPage>
   void _scrollToCurrentTrack(int currentIndex) {
     if (!_queueScrollController.hasClients || currentIndex < 0) return;
     const itemHeight = 68.0;
-    final targetOffset = (currentIndex * itemHeight) - 100.0;
+    final viewportHeight = _queueScrollController.position.viewportDimension;
+    double targetOffset = (currentIndex * itemHeight) - (viewportHeight / 2) + (itemHeight / 2);
+
+    final maxScroll = _queueScrollController.position.maxScrollExtent;
+    if (targetOffset < 0) {
+      targetOffset = 0;
+    } else if (targetOffset > maxScroll) {
+      targetOffset = maxScroll;
+    }
+
     _queueScrollController.animateTo(
-      targetOffset.clamp(0.0, _queueScrollController.position.maxScrollExtent),
-      duration: const Duration(milliseconds: 350),
+      targetOffset,
+      duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
     );
   }
