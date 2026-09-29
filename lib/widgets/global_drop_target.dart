@@ -6,6 +6,7 @@ import 'package:super_drag_and_drop/super_drag_and_drop.dart';
 import '../l10n/app_localizations.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/library/music_file_utils.dart';
+import 'package:vynody/player/scanner/scanner_path_utils.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/utils/drop_data_utils.dart';
@@ -50,7 +51,8 @@ class _GlobalDropTargetState extends ConsumerState<GlobalDropTarget> {
           followLinks: false,
         )) {
           if (item is File) {
-            if (MusicFileUtils.isMusicFilePath(item.path)) {
+            if (!ScannerPathUtils.isHiddenOrExcludedPath(item.path, rootPath: dir.path) &&
+                MusicFileUtils.isMusicFilePath(item.path)) {
               results.add(
                 MusicFile(path: item.path, name: p.basename(item.path)),
               );

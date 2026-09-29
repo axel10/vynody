@@ -7,6 +7,7 @@ import 'package:path/path.dart' as p;
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/library/music_file_utils.dart';
+import 'package:vynody/player/scanner/scanner_path_utils.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/player/remote/clients/remote_media_library_client.dart';
 import 'package:vynody/player/remote/clients/smb_client.dart';
@@ -70,7 +71,9 @@ class MediaDropImportService {
         try {
           final dirSongs = <MusicFile>[];
           await for (final item in dir.list(recursive: true, followLinks: false)) {
-            if (item is File && MusicFileUtils.isMusicFilePath(item.path)) {
+            if (item is File &&
+                !ScannerPathUtils.isHiddenOrExcludedPath(item.path, rootPath: dir.path) &&
+                MusicFileUtils.isMusicFilePath(item.path)) {
               dirSongs.add(MusicFile(path: item.path, name: p.basename(item.path)));
             }
           }

@@ -6,6 +6,7 @@ import 'package:oktoast/oktoast.dart';
 import '../utils/file_selector_helper.dart';
 import 'package:path/path.dart' as p;
 import 'package:vynody/player/library/music_file_utils.dart';
+import 'package:vynody/player/scanner/scanner_path_utils.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/sharing/sharing_riverpod.dart';
 import 'package:vynody/player/sharing/sharing_service.dart';
@@ -336,7 +337,9 @@ class _SharingPageState extends ConsumerState<SharingPage>
       try {
         final entries = dir.listSync(recursive: true);
         for (final entry in entries) {
-          if (entry is File && MusicFileUtils.isMusicFilePath(entry.path)) {
+          if (entry is File &&
+              !ScannerPathUtils.isHiddenOrExcludedPath(entry.path, rootPath: dirPath) &&
+              MusicFileUtils.isMusicFilePath(entry.path)) {
             musicFiles.add(entry.path);
           }
         }

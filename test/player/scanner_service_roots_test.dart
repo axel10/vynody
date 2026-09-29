@@ -46,6 +46,54 @@ void main() {
         isFalse,
       );
     });
+
+    test('isHiddenOrExcludedPath identifies trash and hidden files/directories correctly', () {
+      const root = '/var/mobile/Containers/Data/Application/UUID/Documents/Music';
+
+      // Within root cases
+      expect(
+        ScannerPathUtils.isHiddenOrExcludedPath(
+          '$root/.trash/song.mp3',
+          rootPath: root,
+        ),
+        isTrue,
+      );
+      expect(
+        ScannerPathUtils.isHiddenOrExcludedPath(
+          '$root/Rock/.Trash/song.mp3',
+          rootPath: root,
+        ),
+        isTrue,
+      );
+      expect(
+        ScannerPathUtils.isHiddenOrExcludedPath(
+          '$root/.hidden_song.mp3',
+          rootPath: root,
+        ),
+        isTrue,
+      );
+      expect(
+        ScannerPathUtils.isHiddenOrExcludedPath(
+          '$root/Rock/song.mp3',
+          rootPath: root,
+        ),
+        isFalse,
+      );
+
+      // Without rootPath (absolute path check)
+      expect(
+        ScannerPathUtils.isHiddenOrExcludedPath('/some/path/.trash/file.flac'),
+        isTrue,
+      );
+      expect(
+        ScannerPathUtils.isHiddenOrExcludedPath('/some/path/.trashes/file.flac'),
+        isTrue,
+      );
+      expect(
+        ScannerPathUtils.isHiddenOrExcludedPath('/some/path/normal/file.flac'),
+        isFalse,
+      );
+    });
   });
 
   group('ScannerServiceRoots dynamic resolution on load', () {

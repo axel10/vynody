@@ -178,7 +178,7 @@ class ScannerDirectoryScanner {
         }
 
         if (entity is File &&
-            !_shouldSkipAppleDoubleFile(entity.path) &&
+            !_shouldSkipFile(entity.path, rootPath: directory.path) &&
             MusicFileUtils.isMusicFilePath(entity.path)) {
           final filePath = entity.path;
           int? lastModified;
@@ -455,7 +455,7 @@ class ScannerDirectoryScanner {
               pendingDirectories.add((entity.path, currentDepth + 1));
             }
           } else if (entity is File &&
-              !_shouldSkipAppleDoubleFile(entity.path) &&
+              !_shouldSkipFile(entity.path, rootPath: path) &&
               MusicFileUtils.isMusicFilePath(entity.path)) {
             final filePath = entity.path;
             int? lastModified;
@@ -506,7 +506,7 @@ class ScannerDirectoryScanner {
       }
 
       if (entity is File &&
-          !_shouldSkipAppleDoubleFile(entity.path) &&
+          !_shouldSkipFile(entity.path, rootPath: rootDir.path) &&
           MusicFileUtils.isMusicFilePath(entity.path)) {
         final filePath = entity.path;
         int? lastModified;
@@ -613,7 +613,7 @@ Future<void> _discoverMusicFilesIsolateEntry(
             pendingDirectories.add((entity.path, currentDepth + 1));
           }
         } else if (entity is File &&
-            !_shouldSkipAppleDoubleFile(entity.path) &&
+            !_shouldSkipFile(entity.path, rootPath: request.rootPath) &&
             MusicFileUtils.isMusicFilePath(entity.path)) {
           int? lastModified;
           try {
@@ -665,6 +665,16 @@ bool _shouldSkipDirectory(String path) {
   }
   if (Platform.isWindows &&
       _windowsProtectedDirectoryNames.contains(name.toLowerCase())) {
+    return true;
+  }
+  return false;
+}
+
+bool _shouldSkipFile(String path, {String? rootPath}) {
+  if (ScannerPathUtils.isHiddenOrExcludedPath(path, rootPath: rootPath)) {
+    return true;
+  }
+  if (_shouldSkipAppleDoubleFile(path)) {
     return true;
   }
   return false;

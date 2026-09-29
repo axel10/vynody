@@ -107,5 +107,61 @@ void main() {
         }
       },
     );
+
+    test(
+      'discoverMusicFiles skips .trash, .Trash, and hidden directories or files',
+      () async {
+        final tempDirectory = await Directory.systemTemp.createTemp(
+          'scanner_directory_scanner_trash_test_',
+        );
+
+        try {
+          final normalSong = File(p.join(tempDirectory.path, 'song.mp3'));
+          await normalSong.writeAsBytes(List<int>.filled(8, 1));
+
+          final nestedNormalDir = Directory(p.join(tempDirectory.path, 'Albums', 'Rock'));
+          await nestedNormalDir.create(recursive: true);
+          final nestedNormalSong = File(p.join(nestedNormalDir.path, 'album_song.flac'));
+          await nestedNormalSong.writeAsBytes(List<int>.filled(8, 2));
+
+          // .trash directory (like Obsidian / iOS)
+          final trashDir = Directory(p.join(tempDirectory.path, '.trash'));
+          await trashDir.create();
+          final trashSong = File(p.join(trashDir.path, 'deleted_song.mp3'));
+          await trashSong.writeAsBytes(List<int>.filled(8, 3));
+
+          // .Trash directory (like iOS / macOS)
+          final upperTrashDir = Directory(p.join(tempDirectory.path, 'Albums', '.Trash'));
+          await upperTrashDir.create();
+          final upperTrashSong = File(p.join(upperTrashDir.path, 'recycled.mp3'));
+          await upperTrashSong.writeAsBytes(List<int>.filled(8, 4));
+
+          // Hidden file starting with '.'
+          final hiddenSong = File(p.join(tempDirectory.path, '.hidden_song.mp3'));
+          await hiddenSong.writeAsBytes(List<int>.filled(8, 5));
+
+          final scanner = ScannerDirectoryScanner(emitScanProgress: (_, _) {});
+          final scanState = ScanProgressState(
+            comparePaths: (a, b) => a.compareTo(b),
+          );
+
+          final discovered = await scanner.discoverMusicFiles(
+            tempDirectory.path,
+            scanState,
+          );
+
+          final discoveredPaths = discovered.map((f) => f.path).toSet();
+          expect(discoveredPaths, contains(normalSong.path));
+          expect(discoveredPaths, contains(nestedNormalSong.path));
+          expect(discoveredPaths, isNot(contains(trashSong.path)));
+          expect(discoveredPaths, isNot(contains(upperTrashSong.path)));
+          expect(discoveredPaths, isNot(contains(hiddenSong.path)));
+        } finally {
+          if (await tempDirectory.exists()) {
+            await tempDirectory.delete(recursive: true);
+          }
+        }
+      },
+    );
   });
 }

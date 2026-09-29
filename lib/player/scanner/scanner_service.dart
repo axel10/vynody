@@ -2489,12 +2489,20 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       return;
     }
 
-    final hasMatchingRoot = _roots.rootPaths.any(
+    final matchingRoot = _roots.rootPaths.cast<String?>().firstWhere(
       (root) =>
-          _pathContains(root, normalizedPath) ||
+          _pathContains(root!, normalizedPath) ||
           _pathsEqual(root, normalizedPath),
+      orElse: () => null,
     );
-    if (!hasMatchingRoot) {
+    if (matchingRoot == null) {
+      return;
+    }
+
+    if (ScannerPathUtils.isHiddenOrExcludedPath(
+      normalizedPath,
+      rootPath: matchingRoot,
+    )) {
       return;
     }
 

@@ -275,5 +275,55 @@ class ScannerPathUtils {
     }
     return false;
   }
+
+  static const Set<String> _windowsProtectedDirectoryNames = {
+    r'$recycle.bin',
+    'system volume information',
+  };
+
+  /// Checks if any segment of [path] (or segments relative to [rootPath])
+  /// represents a hidden directory/file (starts with '.') or a system/trash directory.
+  static bool isHiddenOrExcludedPath(String path, {String? rootPath}) {
+    final lower = path.toLowerCase();
+    if (lower.contains('/.trash/') ||
+        lower.contains(r'\.trash\') ||
+        lower.contains('/.trashes/') ||
+        lower.contains(r'\.trashes\') ||
+        lower.contains('/.trash-') ||
+        lower.contains(r'\.trash-')) {
+      return true;
+    }
+
+    String relative;
+    if (rootPath != null && rootPath.isNotEmpty) {
+      try {
+        final normalizedRoot = normalizePath(rootPath);
+        final normalizedFile = normalizePath(path);
+        if (p.isWithin(normalizedRoot, normalizedFile)) {
+          relative = p.relative(normalizedFile, from: normalizedRoot);
+        } else {
+          final rel = p.relative(path, from: rootPath);
+          relative = rel.startsWith('..') ? p.basename(path) : rel;
+        }
+      } catch (_) {
+        relative = p.basename(path);
+      }
+    } else {
+      relative = p.basename(path);
+    }
+
+    final segments = p.split(relative);
+    for (final segment in segments) {
+      if (segment.isEmpty || segment == '.' || segment == '..') continue;
+      if (segment.startsWith('.')) {
+        return true;
+      }
+      if (Platform.isWindows &&
+          _windowsProtectedDirectoryNames.contains(segment.toLowerCase())) {
+        return true;
+      }
+    }
+    return false;
+  }
 }
 
