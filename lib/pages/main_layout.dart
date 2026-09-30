@@ -1445,7 +1445,6 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                                   !isCoverFlowImmersive)
                               ? (20.0 +
                                     MediaQuery.of(context).padding.bottom +
-                                    uiState.snackBarOffset +
                                     (((isRootSelectionMode &&
                                                 _currentIndex == 0) ||
                                             (isPlaylistSelectionMode &&
@@ -1580,7 +1579,6 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                               ? kRightQueueDrawerWidth
                               : 0.0,
                           additionalBottomOffset:
-                              uiState.snackBarOffset +
                               (((isRootSelectionMode && _currentIndex == 0) ||
                                       (isPlaylistSelectionMode &&
                                           _currentIndex == 2) ||

@@ -22,7 +22,6 @@ class _MiniPlayerWrapperState extends ConsumerState<MiniPlayerWrapper> {
   @override
   Widget build(BuildContext context) {
     final currentMusic = ref.watch(audioCurrentMusicProvider);
-    final uiState = ref.watch(mainLayoutUiControllerProvider);
     final isLandscape =
         MediaQuery.of(context).orientation == Orientation.landscape;
     final selectionScope = ref.watch(librarySelectionScopeProvider);
@@ -36,9 +35,7 @@ class _MiniPlayerWrapperState extends ConsumerState<MiniPlayerWrapper> {
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeOutCubic,
           bottom: showPlayer
-              ? (20.0 +
-                    MediaQuery.of(context).padding.bottom +
-                    uiState.snackBarOffset)
+              ? (20.0 + MediaQuery.of(context).padding.bottom)
               : -120.0,
           left: 0,
           right: 0,

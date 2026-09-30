@@ -1,78 +1,139 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../pages/main_layout_riverpod.dart';
+import 'package:oktoast/oktoast.dart';
 
 class AppSnackBar {
-  static Timer? _autoDismissTimer;
-
   static void show(
     BuildContext context,
     WidgetRef? ref,
     SnackBar snackBar, {
     double? offset,
-    Duration duration = const Duration(seconds: 4),
+    Duration duration = const Duration(seconds: 3),
   }) {
-    final messenger = ScaffoldMessenger.of(context);
-    MainLayoutUiController? controller;
-    if (ref != null) {
-      try {
-        controller = ref.read(mainLayoutUiControllerProvider.notifier);
-      } catch (_) {}
-    } else {
-      try {
-        controller = ProviderScope.containerOf(context, listen: false)
-            .read(mainLayoutUiControllerProvider.notifier);
-      } catch (_) {}
-    }
+    // Dismiss any active messenger snackbars if any were hanging around
+    try {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    } catch (_) {}
 
-    // Cancel any previous timer
-    _autoDismissTimer?.cancel();
-
-    // Dismiss any active snackbar immediately to avoid queuing and layout collision
-    messenger.clearSnackBars();
-    final effectiveOffset = offset ?? (snackBar.action != null ? 80.0 : 70.0);
-    controller?.setSnackBarOffset(effectiveOffset);
-
-    // Use passed duration or snackBar's own duration if set
     final effectiveDuration = snackBar.duration != const Duration(milliseconds: 4000)
         ? snackBar.duration
         : duration;
 
-    final snackBarToDisplay = SnackBar(
-      key: snackBar.key,
-      content: snackBar.content,
-      backgroundColor: snackBar.backgroundColor,
-      elevation: snackBar.elevation,
-      margin: snackBar.margin,
-      padding: snackBar.padding,
-      width: snackBar.width,
-      shape: snackBar.shape,
-      behavior: snackBar.behavior,
-      action: snackBar.action,
-      actionOverflowThreshold: snackBar.actionOverflowThreshold,
-      showCloseIcon: snackBar.showCloseIcon ?? true,
-      closeIconColor: snackBar.closeIconColor,
+    final action = snackBar.action;
+    final content = snackBar.content;
+
+    // If there is an action, display a rich floating toast capsule with the action button
+    if (action != null) {
+      showToastWidget(
+        Material(
+          color: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            decoration: BoxDecoration(
+              color: snackBar.backgroundColor ?? const Color(0xEB1C1D22),
+              borderRadius: BorderRadius.circular(18.0),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x33000000),
+                  blurRadius: 16.0,
+                  offset: Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Flexible(
+                  child: DefaultTextStyle(
+                    style: const TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFFF2F2F5),
+                      height: 1.3,
+                      letterSpacing: 0.15,
+                    ),
+                    child: content,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                InkWell(
+                  onTap: () {
+                    dismissAllToast();
+                    action.onPressed();
+                  },
+                  borderRadius: BorderRadius.circular(8),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8.0,
+                      vertical: 4.0,
+                    ),
+                    child: Text(
+                      action.label,
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w600,
+                        color: action.textColor ??
+                            Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        context: context,
+        duration: effectiveDuration,
+        handleTouch: true,
+      );
+      return;
+    }
+
+    // If content is plain Text, use global styled showToast
+    if (content is Text) {
+      final text = content.data ?? content.textSpan?.toPlainText() ?? '';
+      if (text.isNotEmpty) {
+        showToast(
+          text,
+          duration: effectiveDuration,
+          context: context,
+        );
+        return;
+      }
+    }
+
+    // Otherwise render widget inside toast widget
+    showToastWidget(
+      Material(
+        color: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 11.0),
+          decoration: BoxDecoration(
+            color: snackBar.backgroundColor ?? const Color(0xEB1C1D22),
+            borderRadius: BorderRadius.circular(18.0),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x33000000),
+                blurRadius: 16.0,
+                offset: Offset(0, 4),
+              ),
+            ],
+          ),
+          child: DefaultTextStyle(
+            style: const TextStyle(
+              fontSize: 13.5,
+              fontWeight: FontWeight.w500,
+              color: Color(0xFFF2F2F5),
+              height: 1.3,
+              letterSpacing: 0.15,
+            ),
+            child: content,
+          ),
+        ),
+      ),
+      context: context,
       duration: effectiveDuration,
-      animation: snackBar.animation,
-      onVisible: snackBar.onVisible,
-      dismissDirection: snackBar.dismissDirection ?? DismissDirection.horizontal,
-      clipBehavior: snackBar.clipBehavior,
     );
-
-    final controllerEntry = messenger.showSnackBar(snackBarToDisplay);
-
-    controllerEntry.closed.then((reason) {
-      _autoDismissTimer?.cancel();
-      controller?.setSnackBarOffset(0.0);
-    });
-
-    // Fallback timer to guarantee dismissal even if Flutter's internal timer is skipped by accessibleNavigation or desktop mouse events
-    _autoDismissTimer = Timer(effectiveDuration + const Duration(milliseconds: 300), () {
-      try {
-        messenger.hideCurrentSnackBar();
-      } catch (_) {}
-    });
   }
 }
 
