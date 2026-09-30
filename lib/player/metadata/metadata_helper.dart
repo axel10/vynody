@@ -1428,7 +1428,17 @@ class MetadataHelper {
         if (!taglib.TagLibFile.isSupported) {
           _throwTagLibNotSupported();
         }
-        final tagFile = await taglib.TagLibFile.openAsync(path);
+        try {
+          if (file.existsSync() && file.lengthSync() == 0) {
+            await Future<void>.delayed(const Duration(milliseconds: 50));
+          }
+        } catch (_) {}
+
+        var tagFile = await taglib.TagLibFile.openAsync(path);
+        if (tagFile == null) {
+          await Future<void>.delayed(const Duration(milliseconds: 50));
+          tagFile = await taglib.TagLibFile.openAsync(path);
+        }
         if (tagFile == null) {
           throw Exception('Failed to open file via TagLib.');
         }

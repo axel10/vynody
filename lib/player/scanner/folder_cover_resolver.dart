@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:isolate';
 
 import 'package:flutter/foundation.dart';
@@ -32,7 +33,22 @@ class FolderCoverResolver {
         return false;
       }
       final resolved = ScannerPathUtils.resolveIosSandboxPath(filePath);
-      final tagFile = taglib.TagLibFile.open(resolved);
+      final file = File(resolved);
+      if (!file.existsSync()) {
+        return false;
+      }
+      try {
+        if (file.lengthSync() == 0) {
+          return false;
+        }
+      } catch (_) {}
+
+      var tagFile = taglib.TagLibFile.open(resolved);
+      if (tagFile == null) {
+        // Retry once briefly in case file was locked during restore/move
+        sleep(const Duration(milliseconds: 50));
+        tagFile = taglib.TagLibFile.open(resolved);
+      }
       if (tagFile == null) {
         return false;
       }

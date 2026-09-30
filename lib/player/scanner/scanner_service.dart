@@ -219,8 +219,30 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     return _rootSongDurations[normalized] ?? 0;
   }
 
+  void _updateFolderRepSongCache(MusicFolder folder, String songPath, SongMetadata updated) {
+    if (folder.representativeSongCache != null &&
+        (_pathsEqual(folder.representativeSongCache!.path, songPath) ||
+            _pathsEqual(
+              ScannerPathUtils.resolveIosSandboxPath(folder.representativeSongCache!.path),
+              ScannerPathUtils.resolveIosSandboxPath(songPath),
+            ))) {
+      folder.representativeSongCache = _treeBuilder.musicFileFromSongMetadata(updated);
+    }
+    for (final sub in folder.subFolders) {
+      _updateFolderRepSongCache(sub, songPath, updated);
+    }
+  }
+
   MusicFile? getRepresentativeSongForFolder(MusicFolder folder) {
     if (folder.representativeSongCache != null) {
+      final rep = folder.representativeSongCache!;
+      final resolvedRepPath = ScannerPathUtils.resolveIosSandboxPath(rep.path);
+      final latestMeta = _metadataStore.getMetadata(rep.path) ?? _metadataStore.getMetadata(resolvedRepPath);
+      if (latestMeta != null &&
+          (rep.thumbnailPath?.isEmpty ?? true) &&
+          (latestMeta.thumbnailPath?.isNotEmpty ?? false)) {
+        folder.representativeSongCache = _treeBuilder.musicFileFromSongMetadata(latestMeta);
+      }
       return folder.representativeSongCache;
     }
 
@@ -370,6 +392,12 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
           _folderRepresentativeSongs[entry.key] = updated;
         }
       }
+      for (final root in _scannedRootFolders) {
+        _updateFolderRepSongCache(root, path, updated);
+      }
+      if (_systemMediaFolder != null) {
+        _updateFolderRepSongCache(_systemMediaFolder!, path, updated);
+      }
       await MetadataDatabase().insertOrUpdateSong(updated);
       notifyListeners();
       unawaited(refreshFolderCoverChain(p.dirname(path)));
@@ -389,6 +417,12 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
           if (entry.value != null && _normalizePath(entry.value!.path) == normSongPath) {
             _folderRepresentativeSongs[entry.key] = updated;
           }
+        }
+        for (final root in _scannedRootFolders) {
+          _updateFolderRepSongCache(root, path, updated);
+        }
+        if (_systemMediaFolder != null) {
+          _updateFolderRepSongCache(_systemMediaFolder!, path, updated);
         }
         await db.insertOrUpdateSong(updated);
         notifyListeners();
@@ -2421,6 +2455,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       }
 
       await _refreshAffectedRootsFromCache(affectedRoots);
+      unawaited(refreshFolderCoverChain(normalizedDirectory));
       notifyListeners();
     } finally {
       _scanCoordinator.completeIncrementalPhase();
