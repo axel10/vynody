@@ -2940,14 +2940,14 @@ class AudioService extends Notifier<AudioSnapshot> {
     final shouldShiftCurrentIndex =
         _currentIndex >= 0 && insertAt <= _currentIndex;
 
-    for (var i = 0; i < songs.length; i++) {
-      final song = songs[i];
-      _queue.insert(insertAt + i, song);
-      await _player.playlist.insertTrack(
-        insertAt + i,
-        _audioTrackForSong(song),
-      );
-    }
+    _queue.insertAll(insertAt, songs);
+
+    final tracks = songs.map(_audioTrackForSong).toList(growable: false);
+    await _player.playlist.insertTracks(
+      insertAt,
+      tracks,
+      reconcile: false,
+    );
 
     if (shouldShiftCurrentIndex) {
       _currentIndex += songs.length;
@@ -3000,14 +3000,14 @@ class AudioService extends Notifier<AudioSnapshot> {
         ? _currentIndex + 1
         : _queue.length;
 
-    for (var i = 0; i < songs.length; i++) {
-      final song = songs[i];
-      _queue.insert(insertAt + i, song);
-      await _player.playlist.insertTrack(
-        insertAt + i,
-        _audioTrackForSong(song),
-      );
-    }
+    _queue.insertAll(insertAt, songs);
+
+    final tracks = songs.map(_audioTrackForSong).toList(growable: false);
+    await _player.playlist.insertTracks(
+      insertAt,
+      tracks,
+      reconcile: false,
+    );
 
     _startQueueBackgroundProcessing(priorityPath: currentMusic?.path);
     notifyListeners();
