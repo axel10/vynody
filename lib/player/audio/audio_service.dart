@@ -872,9 +872,6 @@ class AudioService extends Notifier<AudioSnapshot> {
         }
 
         if (_lastMissingCurrentTrackPathHandled == effectiveSong.path) {
-          if (skippedAny) {
-            _showMissingSongNotice(skipped: true);
-          }
           return;
         }
         _lastMissingCurrentTrackPathHandled = effectiveSong.path;
@@ -886,11 +883,13 @@ class AudioService extends Notifier<AudioSnapshot> {
         final newIndex = _player.playlist.currentIndex ?? -1;
         if (!success || newIndex < 0 || newIndex >= _queue.length) {
           await _player.player.pause(bypassGuard: true);
+          await _player.clearPlayback();
+          await _player.playlist.clear();
           _isPlaying = false;
           _currentIndex = -1;
           _duration = Duration.zero;
           _position = Duration.zero;
-          _lastMissingCurrentTrackPathHandled = null;
+          _lastMissingCurrentTrackPathHandled = effectiveSong.path;
           if (skippedAny) {
             _showMissingSongNotice(skipped: true);
           }
@@ -900,6 +899,17 @@ class AudioService extends Notifier<AudioSnapshot> {
 
         _currentIndex = newIndex;
         attempts++;
+      }
+      if (_currentIndex >= 0 &&
+          _currentIndex < _queue.length &&
+          !await _songExists(_queue[_currentIndex].path)) {
+        await _player.player.pause(bypassGuard: true);
+        await _player.clearPlayback();
+        await _player.playlist.clear();
+        _isPlaying = false;
+        _currentIndex = -1;
+        _duration = Duration.zero;
+        _position = Duration.zero;
       }
       if (skippedAny) {
         _showMissingSongNotice(skipped: true);
@@ -1435,6 +1445,9 @@ class AudioService extends Notifier<AudioSnapshot> {
 
     final int newIndex = _player.playlist.currentIndex ?? -1;
     if (newIndex != _currentIndex && !_isTransitioning) {
+      if (_currentIndex < 0 && !_isPlaying) {
+        return;
+      }
       if (_sleepTimerWaitingForTrackEnd &&
           _sleepTimerWaitingTrackPath != null &&
           (newIndex < 0 ||
@@ -1450,7 +1463,6 @@ class AudioService extends Notifier<AudioSnapshot> {
         _lastActionNext = true; // 记录为自动切歌
       }
       _currentIndex = newIndex;
-      _lastMissingCurrentTrackPathHandled = null;
       if (_currentIndex >= 0 && _currentIndex < _queue.length) {
         var song = _queue[_currentIndex];
         final resolvedPath = ScannerPathUtils.resolveIosSandboxPath(song.path);
@@ -1468,13 +1480,18 @@ class AudioService extends Notifier<AudioSnapshot> {
           );
           _queue[_currentIndex] = song;
         }
-        if (song.path.isNotEmpty &&
-            !song.path.startsWith('content://') &&
-            !RemoteMediaResolver.isRemoteUri(song.path) &&
-            !File(song.path).existsSync()) {
-          unawaited(_skipMissingCurrentTrack());
+        if (song.isMissing ||
+            (song.path.isNotEmpty &&
+                !song.path.startsWith('content://') &&
+                !RemoteMediaResolver.isRemoteUri(song.path) &&
+                !File(song.path).existsSync())) {
+          if (_lastMissingCurrentTrackPathHandled != song.path) {
+            _lastMissingCurrentTrackPathHandled = song.path;
+            unawaited(_skipMissingCurrentTrack());
+          }
           return;
         }
+        _lastMissingCurrentTrackPathHandled = null;
         _logLyricsDebug(
           'track changed -> index=$_currentIndex title="${song.displayName}" '
           'path="${song.path}" duration=$_duration active=$isLyricsActive',
