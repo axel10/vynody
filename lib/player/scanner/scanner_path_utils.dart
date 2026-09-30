@@ -203,20 +203,15 @@ class ScannerPathUtils {
       return trimmed;
     }
 
-    // If file or directory directly exists as-is, no need to transform
-    if (File(trimmed).existsSync() || Directory(trimmed).existsSync()) {
-      return trimmed;
-    }
-
     final docDir = _currentIosDocDir;
     final libDir = _currentIosLibDir;
 
-    // 1. Documents container matching (supports /var/mobile, /private/var/mobile, and Simulator)
+    // 1. Documents container matching (supports /var/mobile, /private/var/mobile, FileProvider, and Simulator)
     if (docDir != null && docDir.isNotEmpty) {
       final docMatch = RegExp(
-        r'(?:^|/)(?:private/)?var/mobile/Containers/Data/Application/[^/]+/Documents(?:/(.*))?$',
+        r'(?:^|/)(?:(?:private/)?var/mobile/Containers/(?:Data/Application|Shared/AppGroup)/[^/]+(?:/[^/]+)*/)?Documents(?:/(.*))?$',
       ).firstMatch(trimmed) ?? RegExp(
-        r'/Containers/Data/Application/[^/]+/Documents(?:/(.*))?$',
+        r'/(?:[^/]+/)*Documents(?:/(.*))?$',
       ).firstMatch(trimmed);
 
       if (docMatch != null) {
@@ -235,9 +230,9 @@ class ScannerPathUtils {
     // 2. Library / Application Support container matching
     if (libDir != null && libDir.isNotEmpty) {
       final libMatch = RegExp(
-        r'(?:^|/)(?:private/)?var/mobile/Containers/Data/Application/[^/]+/Library(?:/Application Support)?(?:/(.*))?$',
+        r'(?:^|/)(?:(?:private/)?var/mobile/Containers/(?:Data/Application|Shared/AppGroup)/[^/]+(?:/[^/]+)*/)?Library(?:/Application Support)?(?:/(.*))?$',
       ).firstMatch(trimmed) ?? RegExp(
-        r'/Containers/Data/Application/[^/]+/Library(?:/Application Support)?(?:/(.*))?$',
+        r'/(?:[^/]+/)*Library(?:/Application Support)?(?:/(.*))?$',
       ).firstMatch(trimmed);
 
       if (libMatch != null) {
@@ -251,6 +246,11 @@ class ScannerPathUtils {
           return resolved;
         }
       }
+    }
+
+    // If file or directory directly exists as-is, no need to transform
+    if (File(trimmed).existsSync() || Directory(trimmed).existsSync()) {
+      return trimmed;
     }
 
     return trimmed;
@@ -271,6 +271,17 @@ class ScannerPathUtils {
     if (_currentIosLibDir != null &&
         (pathsEqual(_currentIosLibDir!, trimmed) ||
             pathContains(_currentIosLibDir!, trimmed))) {
+      return true;
+    }
+    final resolved = resolveIosSandboxPath(trimmed);
+    if (_currentIosDocDir != null &&
+        (pathsEqual(_currentIosDocDir!, resolved) ||
+            pathContains(_currentIosDocDir!, resolved))) {
+      return true;
+    }
+    if (_currentIosLibDir != null &&
+        (pathsEqual(_currentIosLibDir!, resolved) ||
+            pathContains(_currentIosLibDir!, resolved))) {
       return true;
     }
     return false;

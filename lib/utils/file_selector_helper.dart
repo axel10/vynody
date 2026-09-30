@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:file_selector/file_selector.dart' as file_selector;
+import 'package:vynody/player/scanner/scanner_path_utils.dart';
 
 export 'package:file_picker/file_picker.dart' show FileType;
 
@@ -15,11 +16,16 @@ class FileSelectorHelper {
   ///
   /// Uses [file_selector] on Windows, Linux, and macOS, and [file_picker] on other platforms.
   static Future<String?> pickDirectory({bool lockParentWindow = true}) async {
+    String? path;
     if (_useFileSelector) {
-      return file_selector.getDirectoryPath();
+      path = await file_selector.getDirectoryPath();
     } else {
-      return FilePicker.getDirectoryPath(lockParentWindow: lockParentWindow);
+      path = await FilePicker.getDirectoryPath(lockParentWindow: lockParentWindow);
     }
+    if (path != null && (Platform.isIOS || Platform.isMacOS)) {
+      path = ScannerPathUtils.resolveIosSandboxPath(path);
+    }
+    return path;
   }
 
   /// Picks a single file path.

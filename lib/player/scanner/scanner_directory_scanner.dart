@@ -493,37 +493,49 @@ class ScannerDirectoryScanner {
     final discoveredFiles = <ScanDiscoveredFile>[];
     var processedEntries = 0;
 
-    await for (final entity in rootDir.list(
-      recursive: true,
-      followLinks: false,
-    )) {
-      if (shouldCancel?.call() ?? false) {
+    try {
+      final stream = rootDir
+          .list(recursive: true, followLinks: false)
+          .handleError((Object error, StackTrace st) {
         debugPrint(
-          '[ScannerDirectoryScanner] apple inline discovery cancelled '
-          'root=${rootDir.path} discovered=${discoveredFiles.length}',
+          '[ScannerDirectoryScanner] apple inline listing item error: $error',
         );
-        return discoveredFiles;
-      }
+      });
 
-      if (entity is File &&
-          !_shouldSkipFile(entity.path, rootPath: rootDir.path) &&
-          MusicFileUtils.isMusicFilePath(entity.path)) {
-        final filePath = entity.path;
-        int? lastModified;
-        try {
-          lastModified = entity.lastModifiedSync().millisecondsSinceEpoch;
-        } catch (_) {}
-        discoveredFiles.add(
-          ScanDiscoveredFile(path: filePath, lastModifiedTime: lastModified),
-        );
-        scanState.discoveredCount++;
-        _emitScanProgress(scanState, filePath);
-      }
+      await for (final entity in stream) {
+        if (shouldCancel?.call() ?? false) {
+          debugPrint(
+            '[ScannerDirectoryScanner] apple inline discovery cancelled '
+            'root=${rootDir.path} discovered=${discoveredFiles.length}',
+          );
+          return discoveredFiles;
+        }
 
-      processedEntries++;
-      if (processedEntries % 256 == 0) {
-        await Future<void>.delayed(Duration.zero);
+        if (entity is File &&
+            !_shouldSkipFile(entity.path, rootPath: rootDir.path) &&
+            MusicFileUtils.isMusicFilePath(entity.path)) {
+          final filePath = entity.path;
+          int? lastModified;
+          try {
+            lastModified = entity.lastModifiedSync().millisecondsSinceEpoch;
+          } catch (_) {}
+          discoveredFiles.add(
+            ScanDiscoveredFile(path: filePath, lastModifiedTime: lastModified),
+          );
+          scanState.discoveredCount++;
+          _emitScanProgress(scanState, filePath);
+        }
+
+        processedEntries++;
+        if (processedEntries % 256 == 0) {
+          await Future<void>.delayed(Duration.zero);
+        }
       }
+    } catch (e, st) {
+      debugPrint(
+        '[ScannerDirectoryScanner] apple inline discovery error '
+        'root=${rootDir.path}: $e\n$st',
+      );
     }
 
     return discoveredFiles;

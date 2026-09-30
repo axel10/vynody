@@ -23,6 +23,10 @@ void main() {
       final resolvedSub = ScannerPathUtils.resolveIosSandboxPath(oldSubFolder);
       expect(resolvedSub, '/var/mobile/Containers/Data/Application/NEW-UUID-1234/Documents/vynody/Music');
 
+      const fileProviderPath = '/private/var/mobile/Containers/Shared/AppGroup/GROUP-UUID-5678/File Provider Storage/Documents/MyMusic';
+      final resolvedProvider = ScannerPathUtils.resolveIosSandboxPath(fileProviderPath);
+      expect(resolvedProvider, '/var/mobile/Containers/Data/Application/NEW-UUID-1234/Documents/MyMusic');
+
       const oldThumbPath = '/private/var/mobile/Containers/Data/Application/OLD-UUID-9999/Library/Application Support/thumbnails/abc12345.jpg';
       final resolvedThumb = ScannerPathUtils.resolveIosSandboxPath(oldThumbPath);
       expect(resolvedThumb, '/var/mobile/Containers/Data/Application/NEW-UUID-1234/Library/Application Support/thumbnails/abc12345.jpg');
