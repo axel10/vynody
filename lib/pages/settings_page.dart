@@ -214,16 +214,38 @@ class SettingsPageState extends ConsumerState<SettingsPage> {
           elevation: 0,
           color: colorScheme.surfaceContainerLow,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(14),
             side: BorderSide(
               color: colorScheme.outlineVariant.withValues(alpha: 0.35),
             ),
           ),
           child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            leading: Icon(
-              item.icon ?? item.section.icon,
-              color: colorScheme.primary,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+            leading: Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: item.section.iconGradient,
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(9),
+                boxShadow: [
+                  BoxShadow(
+                    color: item.section.iconGradient.first.withValues(alpha: 0.3),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Center(
+                child: Icon(
+                  item.icon ?? item.section.icon,
+                  size: 18,
+                  color: Colors.white,
+                ),
+              ),
             ),
             title: Text(
               title,
@@ -278,26 +300,28 @@ class SettingsPageState extends ConsumerState<SettingsPage> {
     );
   }
 
-  Widget _buildHomeSectionTile(
-    BuildContext context, {
-    required IconData icon,
-    required String title,
-    required VoidCallback onTap,
-  }) {
-    final theme = Theme.of(context);
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      minTileHeight: 60,
-      leading: Icon(icon),
-      title: Text(title, style: theme.textTheme.titleMedium),
-      trailing: const Icon(Icons.chevron_right_rounded),
-      onTap: onTap,
-    );
-  }
-
   Widget _buildHomeBody(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
     final isSearching = _searchQuery.trim().isNotEmpty;
+
+    final group1 = [
+      SettingsSection.general,
+      SettingsSection.audio,
+    ];
+    final group2 = [
+      SettingsSection.scanning,
+      SettingsSection.tags,
+      SettingsSection.transcode,
+      SettingsSection.lyrics,
+      SettingsSection.acoustid,
+    ];
+    final group3 = [
+      SettingsSection.storage,
+      SettingsSection.shortcuts,
+      if (Platform.isWindows) SettingsSection.windows,
+    ];
+    final group4 = [
+      SettingsSection.about,
+    ];
 
     return Column(
       children: [
@@ -319,74 +343,26 @@ class SettingsPageState extends ConsumerState<SettingsPage> {
           child: isSearching
               ? _buildSearchResultsView(context)
               : ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
                   children: [
-                    _buildHomeSectionTile(
-                      context,
-                      icon: Icons.tune_rounded,
-                      title: l10n.generalSectionTitle,
-                      onTap: () => _openSection(SettingsSection.general),
+                    _SettingsGroupCard(
+                      sections: group1,
+                      onSectionTap: _openSection,
                     ),
-                    _buildHomeSectionTile(
-                      context,
-                      icon: Icons.graphic_eq_rounded,
-                      title: l10n.audioSettings,
-                      onTap: () => _openSection(SettingsSection.audio),
+                    const SizedBox(height: 14),
+                    _SettingsGroupCard(
+                      sections: group2,
+                      onSectionTap: _openSection,
                     ),
-                    _buildHomeSectionTile(
-                      context,
-                      icon: Icons.search_rounded,
-                      title: l10n.scanSectionTitle,
-                      onTap: () => _openSection(SettingsSection.scanning),
+                    const SizedBox(height: 14),
+                    _SettingsGroupCard(
+                      sections: group3,
+                      onSectionTap: _openSection,
                     ),
-                    _buildHomeSectionTile(
-                      context,
-                      icon: Icons.label_outline_rounded,
-                      title: l10n.tags,
-                      onTap: () => _openSection(SettingsSection.tags),
-                    ),
-                    _buildHomeSectionTile(
-                      context,
-                      icon: Icons.swap_horiz_rounded,
-                      title: l10n.transcodeSectionTitle,
-                      onTap: () => _openSection(SettingsSection.transcode),
-                    ),
-                    _buildHomeSectionTile(
-                      context,
-                      icon: Icons.auto_awesome_rounded,
-                      title: l10n.lyricsSectionTitle,
-                      onTap: () => _openSection(SettingsSection.lyrics),
-                    ),
-                    _buildHomeSectionTile(
-                      context,
-                      icon: Icons.radar_rounded,
-                      title: l10n.acoustidSectionTitle,
-                      onTap: () => _openSection(SettingsSection.acoustid),
-                    ),
-                    _buildHomeSectionTile(
-                      context,
-                      icon: Icons.storage_rounded,
-                      title: l10n.storageAndCache,
-                      onTap: () => _openSection(SettingsSection.storage),
-                    ),
-                    _buildHomeSectionTile(
-                      context,
-                      icon: Icons.keyboard_rounded,
-                      title: l10n.shortcutSettingsTitle,
-                      onTap: () => _openSection(SettingsSection.shortcuts),
-                    ),
-                    if (Platform.isWindows)
-                      _buildHomeSectionTile(
-                        context,
-                        icon: Icons.open_in_new_rounded,
-                        title: l10n.windowsSettingsTitle,
-                        onTap: () => _openSection(SettingsSection.windows),
-                      ),
-                    _buildHomeSectionTile(
-                      context,
-                      icon: Icons.info_outline_rounded,
-                      title: l10n.about,
-                      onTap: () => _openSection(SettingsSection.about),
+                    const SizedBox(height: 14),
+                    _SettingsGroupCard(
+                      sections: group4,
+                      onSectionTap: _openSection,
                     ),
                   ],
                 ),
@@ -626,14 +602,28 @@ class SettingsPageState extends ConsumerState<SettingsPage> {
                 child: ListTile(
                   horizontalTitleGap: 12,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(10),
                   ),
                   selected: isSelected,
                   selectedTileColor: theme.colorScheme.primaryContainer.withValues(alpha: 0.4),
                   selectedColor: theme.colorScheme.primary,
                   textColor: theme.colorScheme.onSurfaceVariant,
                   iconColor: theme.colorScheme.onSurfaceVariant,
-                  leading: Icon(icon, size: 20),
+                  leading: Container(
+                    width: 28,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: section.iconGradient,
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(7),
+                    ),
+                    child: Center(
+                      child: Icon(icon, size: 16, color: Colors.white),
+                    ),
+                  ),
                   title: Text(
                     title,
                     maxLines: 1,
@@ -824,6 +814,123 @@ class SettingsPageState extends ConsumerState<SettingsPage> {
         _goHome();
       },
       child: content,
+    );
+  }
+}
+
+class _SettingsGroupCard extends StatelessWidget {
+  final List<SettingsSection> sections;
+  final void Function(SettingsSection) onSectionTap;
+
+  const _SettingsGroupCard({
+    required this.sections,
+    required this.onSectionTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (sections.isEmpty) return const SizedBox.shrink();
+
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark
+            ? theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.45)
+            : theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.15 : 0.04),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(
+          color: theme.dividerColor.withValues(alpha: isDark ? 0.12 : 0.06),
+          width: 0.8,
+        ),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: Column(
+          children: [
+            for (int i = 0; i < sections.length; i++) ...[
+              _buildTile(context, sections[i]),
+              if (i < sections.length - 1)
+                Padding(
+                  padding: const EdgeInsets.only(left: 68, right: 16),
+                  child: Divider(
+                    height: 1,
+                    thickness: 0.6,
+                    color: theme.dividerColor.withValues(alpha: 0.1),
+                  ),
+                ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTile(BuildContext context, SettingsSection section) {
+    final theme = Theme.of(context);
+    final title = section.title(context);
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => onSectionTap(section),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: section.iconGradient,
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: [
+                    BoxShadow(
+                      color: section.iconGradient.first.withValues(alpha: 0.35),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: Icon(
+                    section.icon,
+                    size: 20,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Text(
+                  title,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+              Icon(
+                Icons.chevron_right_rounded,
+                size: 20,
+                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
