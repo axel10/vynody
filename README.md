@@ -67,25 +67,22 @@ Beyond fast media library indexing, lightweight system footprints, and smooth lo
   <img src="https://raw.githubusercontent.com/axel10/vynody/refs/heads/main/assets/readme/en/folder_mobile.jpg" width="32%" alt="Folder (Mobile)">
 </p>
 
-## Features Overview
+## Features
 
-- **Full Cross-Platform Support**: Desktop (Windows / macOS / Linux) and mobile (iOS / Android).
-- **Platform-Specific Native Audio Backends**: Tailored audio engines chosen for optimal performance on each OS.
-- **Windows WASAPI Exclusive Mode**: Direct, bit-perfect audio stream output.
-- **Local Media Library**: Fast scanning, incremental indexing, and comprehensive library organization.
-- **Audio Fingerprinting & Tag Completion**: Matches AcoustID and MusicBrainz to complete missing metadata and album artwork.
-- **Enhanced Lyric Capabilities**:
-  - LRCLIB integration for instant lyric search and matching
-  - AI-assisted timeline generation (including word-by-word / Karaoke sync)
-  - Multilingual AI translation with bilingual displays
-- **Song Recognition**: Acoustic fingerprinting to identify unknown audio files.
-- **LAN Sharing & Sync**: Serverless file transfer and bidirectional playlist, lyric, and translation sync across local devices.
-- **Sleep Timer**: Built-in countdown timer for automatic playback shutoff.
-- **Remote Music Libraries (Navidrome, Jellyfin, WebDAV, SMB)**:
-  - Stream directly from self-hosted Navidrome / Jellyfin instances
-  - Mount WebDAV / SMB remote storage with chunked metadata parsing to instantly display song tags without downloading complete audio files
-- **Immersive Visuals**: Dynamic audio spectrum, waveforms, dynamic background palette extraction, and customizable progress bar styles.
-- **Desktop Enhancements**: Playback queue drawer, floating quick-access panels, and global keyboard shortcuts.
+- **Full Cross-Platform Native Experience**: Supports Windows, macOS, Linux, iOS, and Android with platform-optimized native audio engines.
+- **Windows WASAPI Exclusive Mode**: Direct, bit-perfect audio output bypassing system mixers.
+- **Fast Local Library & Instant Indexing**: Intelligent scanning with millisecond-level incremental updates and ultra-low CPU/RAM usage.
+- **Audio Fingerprinting & Tag Completion**: Powered by AcoustID and MusicBrainz to identify unknown tracks and automatically fill metadata & high-res artwork.
+- **Comprehensive Lyric Capabilities**:
+  - **LRCLIB Integration**: Instant lyric search and automatic matching.
+  - **AI-Powered Generation**: Generates precise timestamped lyrics with **word-by-word (Karaoke)** sync and timeline corrections.
+  - **Multilingual Translation**: One-click translation with dual-language display.
+- **Serverless Local Network (LAN) Sync**: Auto-discovery of local instances to seamlessly transfer music files, bidirectionally sync **Playlists**, lyric caches, and translation databases, plus a browser Web interface for instant uploads/downloads.
+- **Universal Remote Music Libraries**:
+  - **Streaming Servers**: Connect to self-hosted **Navidrome** and **Jellyfin** instances.
+  - **Remote Storage**: Mount **WebDAV** and **SMB** shares with on-demand chunked header parsing to immediately display tags without full song downloads.
+- **Immersive Visuals & Desktop Interaction**: Real-time audio spectrum, waveforms, dynamic album art color extraction, multiple progress bar styles, desktop queue drawer, and global shortcuts.
+- **Sleep Timer**: Countdown timer for automatic bedtime playback shutoff.
 
 ## Architecture & Audio Engines
 
@@ -105,36 +102,6 @@ Vynody uses **Flutter** across all platforms for UI presentation and system inte
 - **Remote Services & Protocols**: LRCLIB (lyrics), Navidrome / Jellyfin (streaming), WebDAV / SMB (remote storage & on-demand metadata parsing)
 - **Audio Intelligence**: AcoustID (fingerprints), MusicBrainz (metadata), configurable AI models (lyrics & translation)
 - **Networking**: UDP broadcast discovery + embedded HTTP sharing server
-
-## Core Capabilities
-
-### 1. Local Playback & Media Library
-- Fast directory scanning and instant incremental updates on library changes.
-- Flexible browsing by albums, artists, tracks, and directory structures.
-- Ultra-low RAM and CPU usage, ideal for persistent background playback.
-
-### 2. Metadata & Tag Completion
-- Identifies audio files using acoustic fingerprints.
-- Matches against AcoustID and MusicBrainz databases.
-- Auto-populates missing track titles, artists, album names, and high-res cover art.
-
-### 3. Lyrics Search, AI Generation & Translation
-- Connects to LRCLIB for synced lyrics.
-- Generates precise timestamps and word-by-word synced lyrics via AI.
-- Translates lyrics to your target language with bilingual viewing.
-
-### 4. Song Recognition
-- Extracts acoustic fingerprints from local clips to identify unknown tracks.
-
-### 5. Local Network (LAN) Sharing
-- Auto-discovery of Vynody instances on the same subnet.
-- Fast transfer of individual tracks or complete album folder trees.
-- Syncs local playlists, lyric caches, timelines, and translation databases across devices.
-- Built-in browser web interface for uploading/downloading tracks from any web browser.
-
-### 6. Remote Music Libraries (Navidrome, Jellyfin, WebDAV, SMB)
-- **Media Streaming (Navidrome & Jellyfin)**: Seamless connection to personal streaming servers for browsing playlists, albums, and remote streaming.
-- **Remote Storage (WebDAV & SMB)**: Mount remote network shares with on-demand header parsing via chunked requests to extract ID3/metadata tags directly without downloading whole audio files.
 
 ## Development & Setup
 
