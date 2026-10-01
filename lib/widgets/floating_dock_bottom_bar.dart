@@ -471,24 +471,69 @@ final safeBottom = isIOS
       ),
     ];
 
+    final activeIndex = widget.currentIndex.clamp(0, tabs.length - 1);
+    final indicatorColor = isPlayback
+        ? Colors.white.withValues(alpha: 0.20)
+        : theme.colorScheme.primaryContainer.withValues(
+            alpha: isDark ? 0.45 : 0.7,
+          );
+
     return Container(
       height: 52,
       padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 4.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: tabs.map((tab) {
-          final isSelected = widget.currentIndex == tab.index;
-          return Expanded(
-            child: _TabButton(
-              item: tab,
-              isSelected: isSelected,
-              isPlayback: isPlayback,
-              theme: theme,
-              isDark: isDark,
-              onTap: () => widget.onDestinationSelected(tab.index),
-            ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final tabCount = tabs.length;
+          final tabWidth = constraints.maxWidth / tabCount;
+          const pillWidth = 52.0;
+          const pillHeight = 34.0;
+          final pillLeft =
+              (activeIndex * tabWidth) + ((tabWidth - pillWidth) / 2);
+          final pillTop =
+              ((constraints.maxHeight - pillHeight) / 2).clamp(0.0, double.infinity);
+
+          return Stack(
+            children: [
+              // 1. 底层平移滑动的胶囊高亮背景
+              AnimatedPositioned(
+                duration: const Duration(milliseconds: 280),
+                curve: Curves.easeOutCubic,
+                left: pillLeft,
+                top: pillTop,
+                width: pillWidth,
+                height: pillHeight,
+                child: IgnorePointer(
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    curve: Curves.easeOutCubic,
+                    decoration: BoxDecoration(
+                      color: indicatorColor,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                ),
+              ),
+
+              // 2. 上层各 Tab 按钮交互区域与图标
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: tabs.map((tab) {
+                  final isSelected = widget.currentIndex == tab.index;
+                  return Expanded(
+                    child: _TabButton(
+                      item: tab,
+                      isSelected: isSelected,
+                      isPlayback: isPlayback,
+                      theme: theme,
+                      isDark: isDark,
+                      onTap: () => widget.onDestinationSelected(tab.index),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ],
           );
-        }).toList(),
+        },
       ),
     );
   }
@@ -529,8 +574,8 @@ class _TabButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final activeColor = isPlayback ? Colors.white : theme.colorScheme.primary;
     final inactiveColor = isPlayback
-        ? Colors.white.withValues(alpha: 0.65)
-        : (isDark ? Colors.white60 : Colors.black54);
+        ? Colors.white.withValues(alpha: 0.80)
+        : theme.colorScheme.onSurfaceVariant;
 
     return AppTooltip(
       message: item.label,
@@ -547,27 +592,28 @@ class _TabButton extends StatelessWidget {
               child: InkWell(
                 borderRadius: BorderRadius.circular(16),
                 onTap: onTap,
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  curve: Curves.easeOutCubic,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14.0,
-                    vertical: 6.0,
-                  ),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16),
-                    color: isSelected
-                        ? (isPlayback
-                            ? Colors.white.withValues(alpha: 0.20)
-                            : theme.colorScheme.primaryContainer.withValues(
-                                alpha: isDark ? 0.45 : 0.7,
-                              ))
-                        : Colors.transparent,
-                  ),
-                  child: Icon(
-                    isSelected ? item.selectedIcon : item.icon,
-                    size: 22,
-                    color: isSelected ? activeColor : inactiveColor,
+                child: SizedBox(
+                  width: 52,
+                  height: 34,
+                  child: Center(
+                    child: AnimatedCrossFade(
+                      duration: const Duration(milliseconds: 200),
+                      firstCurve: Curves.easeOutCubic,
+                      secondCurve: Curves.easeOutCubic,
+                      crossFadeState: isSelected
+                          ? CrossFadeState.showSecond
+                          : CrossFadeState.showFirst,
+                      firstChild: Icon(
+                        item.icon,
+                        size: 22,
+                        color: inactiveColor,
+                      ),
+                      secondChild: Icon(
+                        item.selectedIcon,
+                        size: 22,
+                        color: activeColor,
+                      ),
+                    ),
                   ),
                 ),
               ),

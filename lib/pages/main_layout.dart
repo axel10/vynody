@@ -663,9 +663,22 @@ class _MainLayoutState extends ConsumerState<MainLayout>
       await _openSettingsPage();
       return;
     }
-    if (index == _currentIndex) {
+    // 在普通主页面（0: 文件夹, 2: 曲库, 3: 队列, 4: 共享）之间切换时：
+    // 原位直接 setState，无需销毁重建 MainLayout，使侧边 Rail / 底部 Dock 的胶囊平移动画流畅播放！
+    if (_currentIndex != 1 && index != 1) {
+      if (_currentIndex != 1) {
+        ref.read(previousMainTabIndexProvider.notifier).setIndex(_currentIndex);
+      }
+      ref.read(mainTabIndexProvider.notifier).setIndex(index);
+      _currentBaseTabIndex = index;
+      Tooltip.dismissAllToolTips();
+      setState(() {
+        _currentIndex = index;
+      });
       return;
     }
+
+    // 涉及播放页（进入/退出播放页 index: 1）时，调用 navigateToMainTab 以完整保留 Hero 封面放大与路由转场动画
     if (_currentIndex != 1) {
       ref.read(previousMainTabIndexProvider.notifier).setIndex(_currentIndex);
     }
@@ -687,18 +700,6 @@ class _MainLayoutState extends ConsumerState<MainLayout>
         context,
       ).push(MaterialPageRoute<void>(builder: (_) => const SettingsPage()));
     }
-  }
-
-  Widget _buildTooltipIcon({
-    required String message,
-    required IconData icon,
-    Color? color,
-    double? size,
-  }) {
-    return AppTooltip(
-      message: message,
-      child: Icon(icon, color: color, size: size),
-    );
   }
 
   Widget _buildCurrentPage(
@@ -745,137 +746,6 @@ class _MainLayoutState extends ConsumerState<MainLayout>
     }
   }
 
-
-  List<NavigationRailDestination> _buildRailDestinations(
-    BuildContext context,
-    bool isPlayback,
-  ) {
-    final l10n = AppLocalizations.of(context)!;
-    // Keep the destination box close to the rail's built-in M3 geometry.
-    // A much taller custom box makes the hover/indicator highlight appear
-    // vertically offset because NavigationRail positions it from the icon size.
-    const iconBoxSize = 32.0;
-
-    Widget railIcon(Widget child) {
-      return SizedBox(
-        width: iconBoxSize,
-        height: iconBoxSize,
-        child: Center(child: child),
-      );
-    }
-
-    const verticalPadding = 10.0;
-    return [
-      NavigationRailDestination(
-        padding: const EdgeInsets.symmetric(vertical: verticalPadding),
-        icon: railIcon(
-          _buildTooltipIcon(
-            message: l10n.file,
-            icon: Icons.folder_outlined,
-            color: isPlayback ? Colors.white70 : null,
-          ),
-        ),
-        selectedIcon: railIcon(
-          _buildTooltipIcon(
-            message: l10n.file,
-            icon: Icons.folder,
-            color: isPlayback ? Colors.white : null,
-          ),
-        ),
-        label: Text(l10n.file),
-      ),
-      NavigationRailDestination(
-        padding: const EdgeInsets.symmetric(vertical: verticalPadding),
-        icon: railIcon(
-          _buildTooltipIcon(
-            message: l10n.play,
-            icon: Icons.play_circle_outline,
-            color: isPlayback ? Colors.white70 : null,
-          ),
-        ),
-        selectedIcon: railIcon(
-          _buildTooltipIcon(
-            message: l10n.play,
-            icon: Icons.play_circle,
-            color: isPlayback ? Colors.white : null,
-          ),
-        ),
-        label: Text(l10n.play),
-      ),
-      NavigationRailDestination(
-        padding: const EdgeInsets.symmetric(vertical: verticalPadding),
-        icon: railIcon(
-          _buildTooltipIcon(
-            message: l10n.list,
-            icon: Icons.playlist_play_outlined,
-            color: isPlayback ? Colors.white70 : null,
-          ),
-        ),
-        selectedIcon: railIcon(
-          _buildTooltipIcon(
-            message: l10n.list,
-            icon: Icons.playlist_play,
-            color: isPlayback ? Colors.white : null,
-          ),
-        ),
-        label: Text(l10n.list),
-      ),
-      NavigationRailDestination(
-        padding: const EdgeInsets.symmetric(vertical: verticalPadding),
-        icon: railIcon(
-          _buildTooltipIcon(
-            message: l10n.queueTab,
-            icon: Icons.queue_music_outlined,
-            color: isPlayback ? Colors.white70 : null,
-          ),
-        ),
-        selectedIcon: railIcon(
-          _buildTooltipIcon(
-            message: l10n.queueTab,
-            icon: Icons.queue_music,
-            color: isPlayback ? Colors.white : null,
-          ),
-        ),
-        label: Text(l10n.queueTab),
-      ),
-      NavigationRailDestination(
-        padding: const EdgeInsets.symmetric(vertical: verticalPadding),
-        icon: railIcon(
-          _buildTooltipIcon(
-            message: l10n.share,
-            icon: Icons.share_outlined,
-            color: isPlayback ? Colors.white70 : null,
-          ),
-        ),
-        selectedIcon: railIcon(
-          _buildTooltipIcon(
-            message: l10n.share,
-            icon: Icons.share,
-            color: isPlayback ? Colors.white : null,
-          ),
-        ),
-        label: Text(l10n.share),
-      ),
-      NavigationRailDestination(
-        padding: const EdgeInsets.symmetric(vertical: verticalPadding),
-        icon: railIcon(
-          _buildTooltipIcon(
-            message: l10n.settings,
-            icon: Icons.settings_outlined,
-            color: isPlayback ? Colors.white70 : null,
-          ),
-        ),
-        selectedIcon: railIcon(
-          _buildTooltipIcon(
-            message: l10n.settings,
-            icon: Icons.settings,
-            color: isPlayback ? Colors.white : null,
-          ),
-        ),
-        label: Text(l10n.settings),
-      ),
-    ];
-  }
 
   Future<void> _triggerOnboardingFlow() async {
     if (_isOnboardingDialogOpen || !mounted) return;
@@ -1380,15 +1250,14 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                                       end: navBgOpacityTarget,
                                     ),
                                     builder: (context, animatedOpacity, child) {
-                                      return NavigationRail(
-                                        leading: isDesktop
-                                            ? const SizedBox(height: 32)
-                                            : null,
+                                      return _SlidingNavigationRail(
+                                        isDesktop: isDesktop,
                                         backgroundColor: Color.lerp(
-                                          navBgBaseColor.withValues(alpha: 0.0),
-                                          navBgBaseColor,
-                                          animatedOpacity,
-                                        ),
+                                              navBgBaseColor.withValues(alpha: 0.0),
+                                              navBgBaseColor,
+                                              animatedOpacity,
+                                            ) ??
+                                            navBgBaseColor,
                                         selectedIndex: _currentIndex,
                                         onDestinationSelected: (index) {
                                           if (index == 1) {
@@ -1396,20 +1265,15 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                                           }
                                           _onDestinationSelected(index);
                                         },
-                                        labelType: NavigationRailLabelType.none,
-                                        minWidth: 80,
-                                        useIndicator: true,
                                         indicatorColor: Color.lerp(
-                                          navIndicatorBaseColor.withValues(
-                                            alpha: 0.0,
-                                          ),
-                                          navIndicatorBaseColor,
-                                          animatedOpacity,
-                                        ),
-                                        destinations: _buildRailDestinations(
-                                          context,
-                                          isPlayback,
-                                        ),
+                                              navIndicatorBaseColor.withValues(
+                                                alpha: 0.0,
+                                              ),
+                                              navIndicatorBaseColor,
+                                              animatedOpacity,
+                                            ) ??
+                                            navIndicatorBaseColor,
+                                        isPlayback: isPlayback,
                                       );
                                     },
                                   ),
@@ -1598,6 +1462,169 @@ class _MainLayoutState extends ConsumerState<MainLayout>
 
     return mainAppWidget;
   }
+}
 
+class _SlidingNavigationRail extends StatelessWidget {
+  final int selectedIndex;
+  final ValueChanged<int> onDestinationSelected;
+  final Color backgroundColor;
+  final Color indicatorColor;
+  final bool isPlayback;
+  final bool isDesktop;
 
+  const _SlidingNavigationRail({
+    required this.selectedIndex,
+    required this.onDestinationSelected,
+    required this.backgroundColor,
+    required this.indicatorColor,
+    required this.isPlayback,
+    required this.isDesktop,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+
+    final destinations = [
+      (
+        index: 0,
+        label: l10n.file,
+        icon: Icons.folder_outlined,
+        selectedIcon: Icons.folder,
+      ),
+      (
+        index: 1,
+        label: l10n.play,
+        icon: Icons.play_circle_outline,
+        selectedIcon: Icons.play_circle,
+      ),
+      (
+        index: 2,
+        label: l10n.list,
+        icon: Icons.playlist_play_outlined,
+        selectedIcon: Icons.playlist_play,
+      ),
+      (
+        index: 3,
+        label: l10n.queueTab,
+        icon: Icons.queue_music_outlined,
+        selectedIcon: Icons.queue_music,
+      ),
+      (
+        index: 4,
+        label: l10n.share,
+        icon: Icons.share_outlined,
+        selectedIcon: Icons.share,
+      ),
+      (
+        index: 5,
+        label: l10n.settings,
+        icon: Icons.settings_outlined,
+        selectedIcon: Icons.settings,
+      ),
+    ];
+
+    const double leadingHeight = 32.0;
+    const double itemHeight = 52.0;
+    const double pillWidth = 56.0;
+    const double pillHeight = 32.0;
+
+    final activeIndex = selectedIndex.clamp(0, destinations.length - 1);
+    final pillLeft = (80.0 - pillWidth) / 2;
+    final pillTop =
+        (activeIndex * itemHeight) + ((itemHeight - pillHeight) / 2);
+
+    final activeColor = isPlayback ? Colors.white : theme.colorScheme.primary;
+    final inactiveColor = isPlayback
+        ? Colors.white.withValues(alpha: 0.80)
+        : theme.colorScheme.onSurfaceVariant;
+
+    return Container(
+      width: 80,
+      color: backgroundColor,
+      child: Column(
+        children: [
+          if (isDesktop) const SizedBox(height: leadingHeight),
+          SizedBox(
+            height: destinations.length * itemHeight,
+            child: Stack(
+              children: [
+                // 1. 纵向平移滑动的胶囊指示器
+                AnimatedPositioned(
+                  duration: const Duration(milliseconds: 280),
+                  curve: Curves.easeOutCubic,
+                  left: pillLeft,
+                  top: pillTop,
+                  width: pillWidth,
+                  height: pillHeight,
+                  child: IgnorePointer(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: indicatorColor,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                  ),
+                ),
+
+                // 2. 目标 Tab 按钮列表
+                Column(
+                  children: destinations.map((d) {
+                    final isSelected = selectedIndex == d.index;
+                    return SizedBox(
+                      width: 80,
+                      height: itemHeight,
+                      child: Center(
+                        child: AppTooltip(
+                          message: d.label,
+                          child: MouseRegion(
+                            cursor: SystemMouseCursors.click,
+                            child: Material(
+                              color: Colors.transparent,
+                              borderRadius: BorderRadius.circular(16),
+                              clipBehavior: Clip.antiAlias,
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(16),
+                                onTap: () => onDestinationSelected(d.index),
+                                child: SizedBox(
+                                  width: pillWidth,
+                                  height: pillHeight,
+                                  child: Center(
+                                    child: AnimatedCrossFade(
+                                      duration:
+                                          const Duration(milliseconds: 200),
+                                      firstCurve: Curves.easeOutCubic,
+                                      secondCurve: Curves.easeOutCubic,
+                                      crossFadeState: isSelected
+                                          ? CrossFadeState.showSecond
+                                          : CrossFadeState.showFirst,
+                                      firstChild: Icon(
+                                        d.icon,
+                                        size: 22,
+                                        color: inactiveColor,
+                                      ),
+                                      secondChild: Icon(
+                                        d.selectedIcon,
+                                        size: 22,
+                                        color: activeColor,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
