@@ -32,7 +32,7 @@ Vynody is developed using a modern **Vibe Coding** (AI-assisted development) wor
 
 Beyond fast media library indexing, lightweight system footprints, and smooth local playback, Vynody brings **unique and advanced features** rarely found in traditional players:
 - **Karaoke-style word-by-word synced lyrics and AI timeline generation**
-- **Serverless cross-device LAN syncing for music tracks and lyrics**
+- **Serverless cross-device LAN syncing for music tracks, playlists, and lyrics**
 - **Customizable themes and progress bar visual styles**
 - **Deep native platform optimization** across Windows, macOS, Linux, iOS, and Android.
 
@@ -79,7 +79,7 @@ Beyond fast media library indexing, lightweight system footprints, and smooth lo
   - AI-assisted timeline generation (including word-by-word / Karaoke sync)
   - Multilingual AI translation with bilingual displays
 - **Song Recognition**: Acoustic fingerprinting to identify unknown audio files.
-- **LAN Sharing & Sync**: Serverless file transfer and bidirectional lyric/translation sync across local devices.
+- **LAN Sharing & Sync**: Serverless file transfer and bidirectional playlist, lyric, and translation sync across local devices.
 - **Sleep Timer**: Built-in countdown timer for automatic playback shutoff.
 - **Remote Music Libraries (Navidrome, Jellyfin, WebDAV, SMB)**:
   - Stream directly from self-hosted Navidrome / Jellyfin instances
@@ -129,7 +129,7 @@ Vynody uses **Flutter** across all platforms for UI presentation and system inte
 ### 5. Local Network (LAN) Sharing
 - Auto-discovery of Vynody instances on the same subnet.
 - Fast transfer of individual tracks or complete album folder trees.
-- Syncs local lyric caches, timelines, and translation databases across devices.
+- Syncs local playlists, lyric caches, timelines, and translation databases across devices.
 - Built-in browser web interface for uploading/downloading tracks from any web browser.
 
 ### 6. Remote Music Libraries (Navidrome, Jellyfin, WebDAV, SMB)
