@@ -81,9 +81,9 @@ Beyond fast media library indexing, lightweight system footprints, and smooth lo
 - **Song Recognition**: Acoustic fingerprinting to identify unknown audio files.
 - **LAN Sharing & Sync**: Serverless file transfer and bidirectional lyric/translation sync across local devices.
 - **Sleep Timer**: Built-in countdown timer for automatic playback shutoff.
-- **Remote Music Libraries (Navidrome & WebDAV)**:
-  - Stream directly from self-hosted Navidrome instances
-  - Mount WebDAV storage with HTTP Range chunked metadata parsing to instantly display song tags without downloading complete audio files
+- **Remote Music Libraries (Navidrome, Jellyfin, WebDAV, SMB)**:
+  - Stream directly from self-hosted Navidrome / Jellyfin instances
+  - Mount WebDAV / SMB remote storage with chunked metadata parsing to instantly display song tags without downloading complete audio files
 - **Immersive Visuals**: Dynamic audio spectrum, waveforms, dynamic background palette extraction, and customizable progress bar styles.
 - **Desktop Enhancements**: Playback queue drawer, floating quick-access panels, and global keyboard shortcuts.
 
@@ -95,14 +95,14 @@ Vynody uses **Flutter** across all platforms for UI presentation and system inte
 | :--- | :--- | :--- |
 | **Windows** | Audio Core (Rust) | Rodio backend integrated with FFmpeg decoding; supports WASAPI Exclusive mode |
 | **Linux** | Audio Core (Rust) | Rodio backend integrated with FFmpeg decoding |
-| **macOS** | Audio Core (Rust) | Rodio backend with FFmpeg decoding & AVFoundation fallback |
-| **iOS** | Audio Core (Rust) | Rodio backend with FFmpeg decoding & AVFoundation fallback |
+| **macOS** | Audio Core (Rust) | Rodio backend, **AVFoundation decoding prioritized with FFmpeg fallback** |
+| **iOS** | Audio Core (Rust) | Rodio backend, **AVFoundation decoding prioritized with FFmpeg fallback** |
 | **Android** | ExoPlayer (Media3) | Leverages Android Audio Offload for hardware-level low power consumption |
 
 **Core Tech Stack & Integrations:**
 - **UI & Architecture**: Flutter 3.x + Riverpod state management
 - **Database**: SQLite + Drift for high-speed local indexing and caching
-- **Online Services**: LRCLIB (lyrics), Navidrome (streaming), WebDAV (remote storage)
+- **Remote Services & Protocols**: LRCLIB (lyrics), Navidrome / Jellyfin (streaming), WebDAV / SMB (remote storage & on-demand metadata parsing)
 - **Audio Intelligence**: AcoustID (fingerprints), MusicBrainz (metadata), configurable AI models (lyrics & translation)
 - **Networking**: UDP broadcast discovery + embedded HTTP sharing server
 
@@ -132,9 +132,9 @@ Vynody uses **Flutter** across all platforms for UI presentation and system inte
 - Syncs local lyric caches, timelines, and translation databases across devices.
 - Built-in browser web interface for uploading/downloading tracks from any web browser.
 
-### 6. Remote Music Libraries (Navidrome & WebDAV)
-- **Navidrome**: Seamless connection to personal streaming servers.
-- **WebDAV with Header-Only Parsing**: Uses HTTP Range requests to extract ID3/metadata tags directly, allowing instant display of song lists without downloading complete files.
+### 6. Remote Music Libraries (Navidrome, Jellyfin, WebDAV, SMB)
+- **Media Streaming (Navidrome & Jellyfin)**: Seamless connection to personal streaming servers for browsing playlists, albums, and remote streaming.
+- **Remote Storage (WebDAV & SMB)**: Mount remote network shares with on-demand header parsing via chunked requests to extract ID3/metadata tags directly without downloading whole audio files.
 
 ## Development & Setup
 

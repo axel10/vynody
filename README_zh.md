@@ -81,9 +81,9 @@ Vynody 是一款界面美观、功能丰富且极低资源占用的跨平台本�
 - **听歌识曲**：基于音频指纹精准识别未知音频文件。
 - **本地局域网共享与同步**：免服务器在多设备间互传音乐文件、双向同步歌词与翻译缓存。
 - **睡眠定时器**：支持倒计时自动停止播放。
-- **远程音乐库（Navidrome 与 WebDAV）**：
-  - 支持连接自建 Navidrome 服务器串流播放
-  - 支持挂载 WebDAV 远程存储，并通过 HTTP Range 分段请求实现无需下载整曲即可直接解析展示元数据
+- **远程音乐库（Navidrome、Jellyfin、WebDAV、SMB）**：
+  - 支持连接自建 Navidrome / Jellyfin 服务器串流播放与媒体库浏览
+  - 支持挂载 WebDAV 与 SMB 远程存储，并通过分段按需读取实现无需下载整曲即可直接解析展示元数据
 - **沉浸式播放视觉**：动态频谱、波形图、封面实时取色背景与多种可选进度条样式。
 - **桌面端专属交互**：播放队列抽屉、快捷悬浮弹窗与全局快捷键。
 
@@ -95,14 +95,14 @@ Vynody 在全平台统一使用 **Flutter** 作为前端 UI 和系统交互引�
 | :--- | :--- | :--- |
 | **Windows** | Audio Core (Rust) | 基于 Rodio 对接 FFmpeg 解码，支持 WASAPI 独占模式 |
 | **Linux** | Audio Core (Rust) | 基于 Rodio 对接 FFmpeg 解码 |
-| **macOS** | Audio Core (Rust) | 基于 Rodio 对接 FFmpeg 解码，融合 AVFoundation 兜底 |
-| **iOS** | Audio Core (Rust) | 基于 Rodio 对接 FFmpeg 解码，融合 AVFoundation 兜底 |
+| **macOS** | Audio Core (Rust) | 基于 Rodio，**AVFoundation 解码优先，FFmpeg 解码兜底** |
+| **iOS** | Audio Core (Rust) | 基于 Rodio，**AVFoundation 解码优先，FFmpeg 解码兜底** |
 | **Android** | ExoPlayer (Media3) | 接入 Android 系统音频硬件卸载（Audio Offload），实现超低功耗 |
 
 **核心技术栈与服务：**
 - **UI & 架构**：Flutter 3.x + Riverpod 状态管理
 - **本地数据库**：SQLite + Drift（毫秒级本地曲库与缓存检索）
-- **网络与远程库**：LRCLIB（歌词）、Navidrome（串流）、WebDAV（轻量元数据解析）
+- **远程与网络库**：LRCLIB（歌词）、Navidrome / Jellyfin（媒体服务串流）、WebDAV / SMB（轻量元数据按需解析与串流）
 - **音频智能**：AcoustID（音频指纹）、MusicBrainz（标签补全）、可配置 AI 服务商（歌词与翻译）
 - **局域网互联**：UDP 广播发现 + 内置 HTTP 共享传输服务
 
@@ -137,9 +137,9 @@ Vynody 在全平台统一使用 **Flutter** 作为前端 UI 和系统交互引�
 - 支持设备之间双向同步歌词与翻译缓存
 - 支持通过浏览器直接访问本机 Web 端进行文件上传与下载
 
-### 6. 远程音乐库（Navidrome 与 WebDAV）
-- **Navidrome 接入**：连接个人 Navidrome 音乐服务器，在线浏览与串流播放
-- **WebDAV 挂载与轻量解析**：利用 HTTP Range 分段请求直接读取远程音频文件头部标签，无需将整首歌曲下载到本地即可快速展示标题、艺术家与专辑信息
+### 6. 远程音乐库（Navidrome、Jellyfin、WebDAV、SMB）
+- **流媒体服务接入（Navidrome & Jellyfin）**：连接个人 Navidrome / Jellyfin 音乐服务器，在线浏览歌单、专辑与串流播放
+- **远程存储挂载（WebDAV & SMB）**：直接挂载 WebDAV / SMB 服务，通过 HTTP Range / 分段请求直接读取音频文件头部标签，无需将整首歌曲下载到本地即可快速展示标题、艺术家与专辑信息
 
 ## 开发与运行
 
