@@ -2370,7 +2370,7 @@ abstract class AppLocalizations {
   /// No description provided for @effects.
   ///
   /// In zh, this message translates to:
-  /// **'特效'**
+  /// **'音效'**
   String get effects;
 
   /// No description provided for @playbackSpeed.

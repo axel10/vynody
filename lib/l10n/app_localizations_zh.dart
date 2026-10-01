@@ -1186,7 +1186,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get savePresetPrompt => '保存当前调节的 EQ 频段增益、低音增强和前置增益';
 
   @override
-  String get effects => '特效';
+  String get effects => '音效';
 
   @override
   String get playbackSpeed => '播放速度';
@@ -6289,7 +6289,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get savePresetPrompt => '儲存目前調節的 EQ 頻段增益、低音增強和前置增益';
 
   @override
-  String get effects => '特效';
+  String get effects => '音效';
 
   @override
   String get playbackSpeed => '播放速度';

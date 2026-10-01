@@ -92,8 +92,9 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildHeader(audio, config, l10n),
-                      const SizedBox(height: 14),
+                      _buildDragHandle(),
+                      _buildEqualizerHeader(audio, config, l10n),
+                      const SizedBox(height: 10),
                       _buildPresetBar(
                         audio,
                         config,
@@ -313,7 +314,26 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
     );
   }
 
-  Widget _buildHeader(
+  Widget _buildDragHandle() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Center(
+      child: Container(
+        width: 36,
+        height: 4,
+        margin: const EdgeInsets.only(bottom: 16),
+        decoration: BoxDecoration(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.2)
+              : Colors.black.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(2),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEqualizerHeader(
     AudioService audio,
     EqualizerConfig config,
     AppLocalizations l10n,
@@ -325,19 +345,20 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Text(
               l10n.equalizer,
               style: TextStyle(
-                color: isDark ? Colors.white : theme.colorScheme.onSurface,
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.1,
+                color: isDark
+                    ? Colors.white70
+                    : theme.colorScheme.onSurfaceVariant,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(height: 2),
+            const SizedBox(width: 8),
             Text(
               config.enabled
                   ? l10n.equalizerEnabledStatus
@@ -352,11 +373,15 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
             ),
           ],
         ),
-        Switch(
-          value: config.enabled,
-          activeThumbColor: accentColor,
-          activeTrackColor: accentColor.withValues(alpha: 0.5),
-          onChanged: (val) => audio.setEqualizerEnabled(val),
+        Transform.scale(
+          scale: 0.85,
+          alignment: Alignment.centerRight,
+          child: Switch(
+            value: config.enabled,
+            activeThumbColor: accentColor,
+            activeTrackColor: accentColor.withValues(alpha: 0.5),
+            onChanged: (val) => audio.setEqualizerEnabled(val),
+          ),
         ),
       ],
     );

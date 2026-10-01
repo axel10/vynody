@@ -987,7 +987,7 @@
   "custom": "自定义",
   "noCustomPresets": "暂无自定义预设",
   "savePresetPrompt": "保存当前调节的 EQ 频段增益、低音增强和前置增益",
-  "effects": "特效",
+  "effects": "音效",
   "playbackSpeed": "播放速度",
   "playbackSpeedLimit5x": "5倍速上限",
   "normal": "正常",
