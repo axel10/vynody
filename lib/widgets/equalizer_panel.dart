@@ -92,9 +92,8 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildDragHandle(),
-                      _buildEqualizerHeader(audio, config, l10n),
-                      const SizedBox(height: 10),
+                      _buildHeader(audio, config, l10n),
+                      const SizedBox(height: 14),
                       _buildPresetBar(
                         audio,
                         config,
@@ -314,26 +313,7 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
     );
   }
 
-  Widget _buildDragHandle() {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    return Center(
-      child: Container(
-        width: 36,
-        height: 4,
-        margin: const EdgeInsets.only(bottom: 16),
-        decoration: BoxDecoration(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.2)
-              : Colors.black.withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(2),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEqualizerHeader(
+  Widget _buildHeader(
     AudioService audio,
     EqualizerConfig config,
     AppLocalizations l10n,
@@ -345,20 +325,19 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Row(
-          mainAxisSize: MainAxisSize.min,
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               l10n.equalizer,
               style: TextStyle(
-                color: isDark
-                    ? Colors.white70
-                    : theme.colorScheme.onSurfaceVariant,
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
+                color: isDark ? Colors.white : theme.colorScheme.onSurface,
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.1,
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(height: 2),
             Text(
               config.enabled
                   ? l10n.equalizerEnabledStatus
@@ -373,15 +352,11 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
             ),
           ],
         ),
-        Transform.scale(
-          scale: 0.85,
-          alignment: Alignment.centerRight,
-          child: Switch(
-            value: config.enabled,
-            activeThumbColor: accentColor,
-            activeTrackColor: accentColor.withValues(alpha: 0.5),
-            onChanged: (val) => audio.setEqualizerEnabled(val),
-          ),
+        Switch(
+          value: config.enabled,
+          activeThumbColor: accentColor,
+          activeTrackColor: accentColor.withValues(alpha: 0.5),
+          onChanged: (val) => audio.setEqualizerEnabled(val),
         ),
       ],
     );
@@ -2156,7 +2131,6 @@ class _Knob extends StatefulWidget {
 
 class _KnobState extends State<_Knob> {
   double _dragValue = 0;
-  double? _lastAngle;
 
   @override
   void initState() {
@@ -2172,68 +2146,32 @@ class _KnobState extends State<_Knob> {
     }
   }
 
-  double? _getAngle(Offset localPosition, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final delta = localPosition - center;
-    if (delta.distanceSquared < 16) {
-      return null;
-    }
-    return math.atan2(delta.dy, delta.dx);
-  }
-
-  void _onPanStart(DragStartDetails details, Size size) {
-    _lastAngle = _getAngle(details.localPosition, size);
-  }
-
-  void _onPanUpdate(DragUpdateDetails details, Size size) {
-    final currentAngle = _getAngle(details.localPosition, size);
-    if (currentAngle == null) return;
-
-    if (_lastAngle == null) {
-      _lastAngle = currentAngle;
-      return;
-    }
-
-    var deltaAngle = currentAngle - _lastAngle!;
-
-    // Normalize deltaAngle across the -pi / pi boundary
-    if (deltaAngle > math.pi) {
-      deltaAngle -= 2 * math.pi;
-    } else if (deltaAngle < -math.pi) {
-      deltaAngle += 2 * math.pi;
-    }
-
-    // sweepAngleTotal for 270 degrees
-    const sweepAngleTotal = 1.5 * math.pi;
-    final valueDelta =
-        (deltaAngle / sweepAngleTotal) * (widget.max - widget.min);
-
-    setState(() {
-      _dragValue = (_dragValue + valueDelta).clamp(widget.min, widget.max);
-    });
-    _lastAngle = currentAngle;
-    widget.onChanged(_dragValue);
-  }
-
-  void _onPanEnd(DragEndDetails details) {
-    _lastAngle = null;
-  }
-
-  void _onPanCancel() {
-    _lastAngle = null;
-  }
-
   @override
   Widget build(BuildContext context) {
-    final knobSize = Size(widget.size, widget.size);
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onPanStart: (details) => _onPanStart(details, knobSize),
-      onPanUpdate: (details) => _onPanUpdate(details, knobSize),
-      onPanEnd: _onPanEnd,
-      onPanCancel: _onPanCancel,
+      onVerticalDragUpdate: (details) {
+        final delta = details.primaryDelta! / widget.size;
+        setState(() {
+          _dragValue = (_dragValue - delta * (widget.max - widget.min)).clamp(
+            widget.min,
+            widget.max,
+          );
+        });
+        widget.onChanged(_dragValue);
+      },
+      onHorizontalDragUpdate: (details) {
+        final delta = details.primaryDelta! / widget.size;
+        setState(() {
+          _dragValue = (_dragValue + delta * (widget.max - widget.min)).clamp(
+            widget.min,
+            widget.max,
+          );
+        });
+        widget.onChanged(_dragValue);
+      },
       child: CustomPaint(
-        size: knobSize,
+        size: Size(widget.size, widget.size),
         painter: _KnobPainter(
           context: context,
           value: _dragValue,
