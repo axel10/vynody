@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/app_localizations.dart';
+import '../widgets/app_bottom_sheet.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 
 enum _SleepTimerSheetMode { configure, active }
@@ -88,32 +89,16 @@ class _SleepTimerSheetState extends ConsumerState<SleepTimerSheet> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    return BackdropFilter(
-      filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-      child: Container(
-        decoration: BoxDecoration(
-          color: isDark
-              ? Colors.black.withValues(alpha: 0.78)
-              : theme.colorScheme.surface.withValues(alpha: 0.9),
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-          border: Border.all(
-            color: isDark
-                ? Colors.white.withValues(alpha: 0.1)
-                : theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
-            width: 1,
-          ),
-        ),
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
-        child: SafeArea(
-          top: false,
-          child: SingleChildScrollView(
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 220),
-              child: _mode == _SleepTimerSheetMode.active
-                  ? _buildActiveView(context, remaining, l10n)
-                  : _buildConfigureView(context, l10n),
-            ),
-          ),
+    return AppBottomSheet(
+      maxWidth: 600,
+      landscapeMaxWidth: 760,
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
+      child: SingleChildScrollView(
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 220),
+          child: _mode == _SleepTimerSheetMode.active
+              ? _buildActiveView(context, remaining, l10n)
+              : _buildConfigureView(context, l10n),
         ),
       ),
     );

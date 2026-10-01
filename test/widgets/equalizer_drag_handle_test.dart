@@ -10,7 +10,6 @@ import 'package:vynody/player/audio/app_playback_mode.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/audio/audio_snapshot.dart';
 import 'package:vynody/player/audio/equalizer_presets.dart';
-import 'package:vynody/player/settings/settings_service.dart';
 import 'package:vynody/widgets/equalizer_panel.dart';
 import 'package:vynody/l10n/app_localizations.dart';
 

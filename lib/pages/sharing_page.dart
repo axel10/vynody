@@ -23,6 +23,7 @@ import 'package:vynody/player/pro/pro_license_service.dart';
 import 'package:vynody/player/pro/pro_models.dart';
 import 'package:vynody/widgets/pro/pro_badge.dart';
 import 'package:vynody/l10n/app_localizations.dart';
+import '../widgets/app_bottom_sheet.dart';
 import '../utils/song_context_menu_utils.dart';
 import 'package:vynody/player/remote/remote_server_models.dart';
 import 'package:vynody/player/remote/remote_server_riverpod.dart';
@@ -78,30 +79,18 @@ class _SharingPageState extends ConsumerState<SharingPage>
 
     if (!mounted) return;
 
-    await showModalBottomSheet(
+    await showAppModalBottomSheet(
       context: context,
-      useRootNavigator: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
       builder: (ctx) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 8.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 36,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+        return AppBottomSheet(
+          maxWidth: 540,
+          landscapeMaxWidth: 680,
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
                   child: Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
@@ -166,11 +155,10 @@ class _SharingPageState extends ConsumerState<SharingPage>
                 ),
               ],
             ),
-          ),
-        );
-      },
-    );
-  }
+          );
+        },
+      );
+    }
 
   Future<void> _handleReceiveDirectoryTap() async {
     final l10n = AppLocalizations.of(context)!;

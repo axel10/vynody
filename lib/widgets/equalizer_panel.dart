@@ -9,6 +9,7 @@ import 'package:vynody/player/audio/equalizer_presets.dart';
 import 'package:vynody/player/settings/settings_service.dart';
 import '../l10n/app_localizations.dart';
 import '../utils/app_snack_bar.dart';
+import 'app_bottom_sheet.dart';
 
 class EqualizerPanel extends ConsumerStatefulWidget {
   const EqualizerPanel({super.key});
@@ -59,77 +60,47 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
     final isDark = theme.brightness == Brightness.dark;
     final accentColor = theme.colorScheme.primary;
 
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: () => Navigator.of(context).pop(),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-        child: Align(
-          alignment: Alignment.bottomCenter,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () {},
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 800),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: isDark
-                      ? Colors.black.withValues(alpha: 0.75)
-                      : theme.colorScheme.surface.withValues(alpha: 0.95),
-                  borderRadius:
-                      const BorderRadius.vertical(top: Radius.circular(32)),
-                  border: Border.all(
-                    color: isDark
-                        ? Colors.white.withValues(alpha: 0.1)
-                        : theme.colorScheme.outlineVariant
-                            .withValues(alpha: 0.3),
-                    width: 1,
-                  ),
-                ),
-                padding: const EdgeInsets.fromLTRB(24, 10, 24, 40),
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildDragHandle(theme, isDark),
-                      const SizedBox(height: 10),
-                      _buildHeader(audio, config, l10n),
-                      const SizedBox(height: 14),
-                      _buildPresetBar(
-                        audio,
-                        config,
-                        accentColor,
-                        bandCount,
-                        frequencies,
-                        l10n,
-                      ),
-                      const SizedBox(height: 18),
-                      _buildEqSliders(
-                        audio,
-                        config,
-                        accentColor,
-                        bandCount,
-                        frequencies,
-                      ),
-                      const SizedBox(height: 28),
-                      _buildBottomControls(audio, config, accentColor, l10n),
-                      const SizedBox(height: 24),
-                      Divider(
-                        height: 1,
-                        color: isDark
-                            ? Colors.white10
-                            : theme.colorScheme.outlineVariant
-                                .withValues(alpha: 0.5),
-                      ),
-                      const SizedBox(height: 24),
-                      _buildSpeedControl(audio, playbackSpeed, accentColor, l10n),
-                    ],
-                  ),
-                ),
-              ),
+    return AppBottomSheet(
+      maxWidth: 800,
+      landscapeMaxWidth: 1040,
+      padding: const EdgeInsets.fromLTRB(24, 0, 24, 40),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 10),
+            _buildHeader(audio, config, l10n),
+            const SizedBox(height: 14),
+            _buildPresetBar(
+              audio,
+              config,
+              accentColor,
+              bandCount,
+              frequencies,
+              l10n,
             ),
-          ),
+            const SizedBox(height: 18),
+            _buildEqSliders(
+              audio,
+              config,
+              accentColor,
+              bandCount,
+              frequencies,
+            ),
+            const SizedBox(height: 28),
+            _buildBottomControls(audio, config, accentColor, l10n),
+            const SizedBox(height: 24),
+            Divider(
+              height: 1,
+              color: isDark
+                  ? Colors.white10
+                  : theme.colorScheme.outlineVariant
+                      .withValues(alpha: 0.5),
+            ),
+            const SizedBox(height: 24),
+            _buildSpeedControl(audio, playbackSpeed, accentColor, l10n),
+          ],
         ),
       ),
     );
@@ -312,28 +283,6 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
           ],
         ),
       ],
-    );
-  }
-
-  Widget _buildDragHandle(ThemeData theme, bool isDark) {
-    return Center(
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () => Navigator.of(context).pop(),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 6.0, horizontal: 16.0),
-          child: Container(
-            width: 36,
-            height: 4,
-            decoration: BoxDecoration(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.25)
-                  : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.35),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-        ),
-      ),
     );
   }
 

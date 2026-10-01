@@ -10,6 +10,7 @@ import '../utils/app_snack_bar.dart';
 import '../utils/file_selector_helper.dart';
 import '../utils/playlist_name.dart';
 import '../utils/selection_utils.dart';
+import '../widgets/app_bottom_sheet.dart';
 import 'sort_options_dialog.dart';
 
 /// 统一的播放列表选择与管理弹窗
@@ -456,20 +457,7 @@ class _PlaylistManagerDialogState
     final content = Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (widget.asBottomSheet) ...[
-          const SizedBox(height: 8),
-          Center(
-            child: Container(
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ),
-          const SizedBox(height: 4),
-        ],
+
         // 头部导航/操作栏
         if (!_isSelectionMode) ...[
           Padding(
@@ -885,22 +873,12 @@ class _PlaylistManagerDialogState
     );
 
     if (widget.asBottomSheet) {
-      return Container(
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
-          borderRadius: const BorderRadius.vertical(
-            top: Radius.circular(24),
-          ),
-        ),
-        child: SafeArea(
-          top: false,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              maxHeight: MediaQuery.of(context).size.height * 0.8,
-            ),
-            child: content,
-          ),
-        ),
+      return AppBottomSheet(
+        maxWidth: 680,
+        landscapeMaxWidth: 860,
+        maxHeightFactor: 0.85,
+        padding: EdgeInsets.zero,
+        child: content,
       );
     }
 
