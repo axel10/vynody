@@ -44,11 +44,13 @@ Vynody 是一款界面美观、功能丰富且极低资源占用的跨平台本�
   <a href="https://apps.microsoft.com/detail/9nmzrzz6rsd3"><img src="https://get.microsoft.com/images/en-us%20dark.svg" height="42" alt="从 Microsoft Store 获取"></a>
 </p>
 
-| 平台 | 获取渠道 | 链接 |
+| 平台 | 获取渠道 | 说明 / 链接 |
 | :--- | :--- | :--- |
-| **iOS / macOS** | Apple App Store | [前往 App Store 下载](https://apps.apple.com/app/id6799339894) |
-| **Windows** | 微软应用商店 | [前往 Microsoft Store 获取](https://apps.microsoft.com/detail/9nmzrzz6rsd3) |
-| **全部平台** | GitHub Releases | [GitHub Releases 下载页面](https://github.com/axel10/vynody/releases) |
+| **Windows** | 微软应用商店 / GitHub | [Microsoft Store](https://apps.microsoft.com/detail/9nmzrzz6rsd3) · [GitHub Releases (免费版)](https://github.com/axel10/vynody/releases) |
+| **macOS** | Mac App Store / GitHub | [Mac App Store](https://apps.apple.com/app/id6799339894) · [GitHub Releases (免费版)](https://github.com/axel10/vynody/releases) |
+| **iOS** | Apple App Store | [前往 App Store 下载](https://apps.apple.com/app/id6799339894) |
+| **Android** | GitHub Releases | [下载 APK 安装包 (免费版)](https://github.com/axel10/vynody/releases) |
+| **Linux** | GitHub Releases | [GitHub Releases (免费版)](https://github.com/axel10/vynody/releases) |
 
 ## 截图
 

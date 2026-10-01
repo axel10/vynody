@@ -44,11 +44,13 @@ Beyond fast media library indexing, lightweight system footprints, and smooth lo
   <a href="https://apps.microsoft.com/detail/9nmzrzz6rsd3"><img src="https://get.microsoft.com/images/en-us%20dark.svg" height="42" alt="Get it from Microsoft"></a>
 </p>
 
-| Platform | Channel | Link |
+| Platform | Channel | Note / Link |
 | :--- | :--- | :--- |
-| **iOS / macOS** | Apple App Store | [Download on App Store](https://apps.apple.com/app/id6799339894) |
-| **Windows** | Microsoft Store | [Get from Microsoft Store](https://apps.microsoft.com/detail/9nmzrzz6rsd3) |
-| **All Platforms** | GitHub Releases | [GitHub Releases](https://github.com/axel10/vynody/releases) |
+| **Windows** | Microsoft Store / GitHub | [Microsoft Store](https://apps.microsoft.com/detail/9nmzrzz6rsd3) · [GitHub Releases (Free)](https://github.com/axel10/vynody/releases) |
+| **macOS** | Mac App Store / GitHub | [Mac App Store](https://apps.apple.com/app/id6799339894) · [GitHub Releases (Free)](https://github.com/axel10/vynody/releases) |
+| **iOS** | Apple App Store | [Download on App Store](https://apps.apple.com/app/id6799339894) |
+| **Android** | GitHub Releases | [Download APK (Free)](https://github.com/axel10/vynody/releases) |
+| **Linux** | GitHub Releases | [GitHub Releases (Free)](https://github.com/axel10/vynody/releases) |
 
 ## Screenshots
 
