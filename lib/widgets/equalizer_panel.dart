@@ -1237,7 +1237,7 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
           accentColor: accentColor,
           onChanged: (val) => audio.setBassBoost(val),
         ),
-        const SizedBox(width: 40),
+        const SizedBox(width: 24),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1245,21 +1245,48 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    l10n.preampGain,
-                    style: TextStyle(
-                      color: isDark
-                          ? Colors.white70
-                          : theme.colorScheme.onSurfaceVariant,
-                      fontSize: 14,
-                    ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        l10n.preampGain,
+                        style: TextStyle(
+                          color: isDark
+                              ? Colors.white70
+                              : theme.colorScheme.onSurfaceVariant,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      IconButton(
+                        icon: const Icon(Icons.restart_alt_rounded, size: 16),
+                        onPressed: config.preampDb.abs() < 0.05
+                            ? null
+                            : () => audio.setEqualizerPreamp(0.0),
+                        tooltip: l10n.reset,
+                        color: accentColor,
+                        disabledColor:
+                            isDark ? Colors.white24 : Colors.black12,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(
+                          minWidth: 24,
+                          minHeight: 24,
+                        ),
+                        style: IconButton.styleFrom(
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                      ),
+                    ],
                   ),
-                  Text(
-                    '${config.preampDb.toStringAsFixed(1)} dB',
-                    style: TextStyle(
-                      color: accentColor,
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
+                  GestureDetector(
+                    onDoubleTap: () => audio.setEqualizerPreamp(0.0),
+                    child: Text(
+                      '${config.preampDb > 0 ? '+' : ''}${config.preampDb.toStringAsFixed(1)} dB',
+                      style: TextStyle(
+                        color: accentColor,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ],
@@ -1288,15 +1315,6 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
               ),
             ],
           ),
-        ),
-        const SizedBox(width: 16),
-        IconButton(
-          onPressed: () => audio.resetEqualizerDefaults(),
-          icon: Icon(
-            Icons.refresh,
-            color: isDark ? Colors.white54 : theme.colorScheme.onSurfaceVariant,
-          ),
-          tooltip: l10n.reset,
         ),
       ],
     );
