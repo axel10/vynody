@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/app_localizations.dart';
@@ -17,6 +15,7 @@ import 'song_tag_completion_riverpod.dart';
 import 'package:vynody/utils/app_snack_bar.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/remote/proxy/remote_media_resolver.dart';
+import '../widgets/app_bottom_sheet.dart';
 
 enum _SummaryCondition { title, artist, album, duration }
 
@@ -503,7 +502,7 @@ class _SongTagCompletionSheetState
     final isDark = theme.brightness == Brightness.dark;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 18, 12, 8),
+      padding: const EdgeInsets.fromLTRB(20, 4, 12, 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -1022,48 +1021,29 @@ class _SongTagCompletionSheetState
       songTagCompletionControllerProvider(widget.songPath),
     );
     final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
-    return SafeArea(
-      top: false,
-      child: FractionallySizedBox(
-        heightFactor: 0.88,
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
-          child: Container(
-            decoration: BoxDecoration(
-              color: isDark ? Colors.black.withValues(alpha: 0.82) : theme.colorScheme.surface.withValues(alpha: 0.95),
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(32),
-              ),
-              border: Border.all(
-                color: isDark ? Colors.white.withValues(alpha: 0.08) : theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
-                width: 1,
-              ),
-            ),
-            child: Stack(
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildHeader(context, l10n, controller),
-                    _buildSummary(context, l10n, controller),
-                    const SizedBox(height: 14),
-                    Expanded(child: _buildBody(context, l10n, controller)),
-                  ],
-                ),
-                if (controller.isApplying)
-                  Positioned.fill(
-                    child: ColoredBox(
-                      color: Colors.black.withValues(alpha: 0.35),
-                      child: const Center(child: CircularProgressIndicator()),
-                    ),
-                  ),
-              ],
-            ),
+    return AppBottomSheet(
+      maxHeightFactor: 0.88,
+      padding: EdgeInsets.zero,
+      child: Stack(
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildHeader(context, l10n, controller),
+              _buildSummary(context, l10n, controller),
+              const SizedBox(height: 14),
+              Expanded(child: _buildBody(context, l10n, controller)),
+            ],
           ),
-        ),
+          if (controller.isApplying)
+            Positioned.fill(
+              child: ColoredBox(
+                color: Colors.black.withValues(alpha: 0.35),
+                child: const Center(child: CircularProgressIndicator()),
+              ),
+            ),
+        ],
       ),
     );
   }

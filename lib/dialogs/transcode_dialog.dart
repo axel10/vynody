@@ -9,6 +9,7 @@ import 'package:path/path.dart' as p;
 import '../l10n/app_localizations.dart';
 import 'package:vynody/models/music_file.dart';
 import '../widgets/song_thumbnail.dart';
+import '../widgets/app_bottom_sheet.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import '../transcode/transcode_models.dart';
 import '../transcode/transcode_preset.dart';
@@ -532,21 +533,14 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
     final theme = Theme.of(context);
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
-    return SafeArea(
-      top: false,
-      child: FractionallySizedBox(
-        heightFactor: 0.92,
-        child: Material(
-          color: theme.colorScheme.surface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-          clipBehavior: Clip.antiAlias,
-          child: Padding(
-            padding: EdgeInsets.only(bottom: bottomInset),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 18, 12, 8),
+    return AppBottomSheet(
+      maxHeightFactor: 0.92,
+      padding: EdgeInsets.only(bottom: bottomInset),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 4, 12, 8),
                   child: Row(
                     children: [
                       Expanded(
@@ -661,10 +655,7 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
                 ),
               ],
             ),
-          ),
-        ),
-      ),
-    );
+          );
   }
 
   Widget _buildFilesList(AppLocalizations l10n) {

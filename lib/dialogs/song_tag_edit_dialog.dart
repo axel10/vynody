@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../utils/file_selector_helper.dart';
 
 import '../l10n/app_localizations.dart';
+import '../widgets/app_bottom_sheet.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
@@ -611,34 +612,14 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
         ? l10n.batchEditSongTagsDescription
         : l10n.editSongTagsDescription;
 
-    return SafeArea(
-      top: false,
-      child: FractionallySizedBox(
-        heightFactor: 0.88,
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-          child: Container(
-            decoration: BoxDecoration(
-              color: isDark
-                  ? Colors.black.withValues(alpha: 0.86)
-                  : theme.colorScheme.surface.withValues(alpha: 0.95),
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(32),
-              ),
-              border: Border.all(
-                color: isDark
-                    ? Colors.white.withValues(alpha: 0.08)
-                    : theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
-                width: 1,
-              ),
-            ),
-            child: Padding(
-              padding: EdgeInsets.only(bottom: bottomInset),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 18, 12, 8),
+    return AppBottomSheet(
+      maxHeightFactor: 0.88,
+      padding: EdgeInsets.only(bottom: bottomInset),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 4, 12, 8),
                     child: Row(
                       children: [
                         Expanded(
@@ -1002,11 +983,7 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
                   ),
                 ],
               ),
-            ),
-          ),
-        ),
-      ),
-    );
+            );
   }
 
   Widget _buildField({
