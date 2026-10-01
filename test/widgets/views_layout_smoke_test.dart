@@ -326,14 +326,17 @@ void main() {
   });
 
   group('Layout Smoke Tests - Media Library All Tabs & Switching', () {
-    testWidgets('LibraryPage - switches through all 6 tabs without errors', (tester) async {
-      tester.view.physicalSize = const Size(1290, 2796);
+    testWidgets('LibraryPage - switches through all 6 tabs in landscape without errors', (tester) async {
+      tester.view.physicalSize = const Size(2796, 1290);
       tester.view.devicePixelRatio = 3.0;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
 
       await tester.pumpWidget(
-        createTestWidget(child: const LibraryPage()),
+        createTestWidget(
+          child: const LibraryPage(),
+          logicalSize: const Size(932, 430),
+        ),
       );
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
@@ -349,6 +352,33 @@ void main() {
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 350));
         expect(tester.takeException(), isNull);
+      }
+    });
+
+    testWidgets('LibraryPage - renders hierarchical menu in portrait and navigates to subpage', (tester) async {
+      tester.view.physicalSize = const Size(1290, 2796);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(
+        createTestWidget(child: const LibraryPage()),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(tester.takeException(), isNull);
+
+      // In portrait mode, TabBar should not be present; menu items should be displayed
+      expect(find.byType(Tab), findsNothing);
+      expect(find.byType(LibrarySubPage), findsNothing);
+
+      // Find one of the menu items (e.g. Playlist or Albums) and tap
+      final albumFinder = find.text('Albums');
+      if (albumFinder.evaluate().isNotEmpty) {
+        await tester.tap(albumFinder.first);
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 350));
+        expect(find.byType(LibrarySubPage), findsOneWidget);
       }
     });
 
