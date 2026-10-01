@@ -37,7 +37,7 @@ dependencies:
     git:
       url: https://github.com/rozpo/on_audio_query
       path: packages/on_audio_query
-      ref: main
+      ref: 83a6c7026e6d95d675d9fc379780e4e59a5cb228
   media_scanner: ^2.2.0
   # (metadata_god removed)
   file_picker: ^11.0.2
@@ -62,18 +62,18 @@ dependencies:
   dart_webdav:
     git: 
       url: https://github.com/axel10/dart_webdav
-      ref: master
+      ref: f694500cf041ef6d25ec0af42cf5b512c24071ea
 
   window_manager: 
     git: 
       url: https://github.com/axel10/window_manager
       path: packages/window_manager
-      ref: main
+      ref: 2ce213c03de85654bae826b7993d362e67075344
   desktop_multi_window:
     git:
       url: https://github.com/axel10/flutter-plugins
       path: packages/desktop_multi_window
-      ref: main
+      ref: d7881ae4d97b4eda5a3eb1b9f0d2bef51a022385
 
   super_drag_and_drop:
     path: ./super_native_extensions/super_drag_and_drop
@@ -87,11 +87,11 @@ dependencies:
   mesh_gradient: 
     git:
       url: https://github.com/axel10/mesh-gradient
-      ref: main
+      ref: f905517482c75750403d08a6b5658c85b4b15832
   windows_taskbar:
     git:
       url: https://github.com/axel10/windows_taskbar
-      ref: master
+      ref: e5ff1f094b4376b5b81999d9da6c423177e90bba
   smtc_windows: ^1.1.0
   audio_service: ^0.18.18 
   audio_session: ^0.2.3
@@ -104,11 +104,11 @@ dependencies:
   proxy_getter:
     git:
       url: https://github.com/axel10/proxy_getter
-      ref: main
+      ref: 79cfd7fafca874a5b3d63637ba06ec297ac575b1
   mobile_storage_listener:
     git:
       url: https://github.com/axel10/mobile_storage_listener
-      ref: master
+      ref: 4aa23cc8d84b784d62befb6f39cf3bd963c6acb7
 
   worker_manager: ^7.2.9
   shimmer: ^3.0.0
@@ -121,12 +121,12 @@ dependencies:
     # path: audio_core
     git:
       url: https://github.com/axel10/audio_core
-      ref: main
+      ref: 628e182f1a1c216e019ef10199b7f1ca52239c27
 
   flutter_taglib:
     git:
       url: https://github.com/axel10/flutter_taglib
-      ref: master
+      ref: d2d184ae781e42b5ccd349b36b81a3a7465af9a8
 
   watcher: ^1.2.1
   pasteboard: ^0.5.0
@@ -136,16 +136,16 @@ dependencies:
   flutter_desktop_tray:
     git:
       url: https://github.com/axel10/flutter_desktop_tray
-      ref: main
+      ref: fd97a5b9204b5279e9ad39be752e34ef8306e946
   flutter_desktop_lyrics: 
     git:
       url: https://github.com/axel10/flutter_desktop_lyrics
-      ref: master
+      ref: cbaf3458e79efd34016ca1cc3f76e53c890960a0
   dbus: ^0.7.14
   linux_directory_access:
     git:
       url: https://github.com/axel10/linux_directory_access
-      ref: master
+      ref: 00e56143332934dead82e9b4667832a376030246
   flutter_reorderable_grid_view: ^5.7.0
 
 dev_dependencies:
@@ -282,52 +282,56 @@ dependency_overrides:
   permission_handler_windows:
     git:
       url: https://github.com/localsend/permission_handler_windows_noop.git
-      ref: main
+      ref: 2dadd8afbf81e0e3e4791d7144e689555e58f649
   bonsoir:
     git:
       url: https://github.com/axel10/Bonsoir
       path: packages/bonsoir
-      ref: main
+      ref: ef784d54c893913fd87417ee408b5931a78e073c
   bonsoir_windows:
     git:
       url: https://github.com/axel10/Bonsoir
       path: packages/bonsoir_windows
-      ref: main
+      ref: ef784d54c893913fd87417ee408b5931a78e073c
   # flutter_desktop_tray:
   #     path: ./flutter_desktop_tray
   # bonsoir:
   #   path: ./Bonsoir/packages/bonsoir
   # bonsoir_windows:
   #   path: ./Bonsoir/packages/bonsoir_windows
+  flutter_taglib:
+    git:
+      url: https://github.com/axel10/flutter_taglib
+      ref: d2d184ae781e42b5ccd349b36b81a3a7465af9a8
   audio_core:
     path: ./audio_core
   desktop_multi_window:
     git: 
       url: https://github.com/axel10/flutter-plugins
       path: packages/desktop_multi_window
-      ref: main
+      ref: d7881ae4d97b4eda5a3eb1b9f0d2bef51a022385
   # desktop_multi_window:
   #   path: ./flutter-plugins/packages/desktop_multi_window
   irondash_engine_context:
     git:
       url: https://github.com/axel10/irondash
       path: engine_context/dart
-      ref: main
+      ref: 1a017a2af2fd598f5bfc86ea7920f4678adcb515
   super_drag_and_drop:
     git: 
       url: https://github.com/axel10/super_native_extensions
       path: super_drag_and_drop
-      ref: main
+      ref: a6b1fe1471e8f7af354bedcfb0c89f42bcf24d16
   super_clipboard:
     git: 
       url: https://github.com/axel10/super_native_extensions
       path: super_clipboard
-      ref: main
+      ref: a6b1fe1471e8f7af354bedcfb0c89f42bcf24d16
   super_native_extensions:
     git: 
       url: https://github.com/axel10/super_native_extensions
       path: super_native_extensions
-      ref: main
+      ref: a6b1fe1471e8f7af354bedcfb0c89f42bcf24d16
   sqlparser: 0.44.4
 
   #   mobile_storage_listener:

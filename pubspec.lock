@@ -100,7 +100,7 @@ packages:
     dependency: "direct main"
     description:
       path: "packages/bonsoir"
-      ref: main
+      ref: ef784d54c893913fd87417ee408b5931a78e073c
       resolved-ref: ef784d54c893913fd87417ee408b5931a78e073c
       url: "https://github.com/axel10/Bonsoir"
     source: git
@@ -141,7 +141,7 @@ packages:
     dependency: "direct overridden"
     description:
       path: "packages/bonsoir_windows"
-      ref: main
+      ref: ef784d54c893913fd87417ee408b5931a78e073c
       resolved-ref: ef784d54c893913fd87417ee408b5931a78e073c
       url: "https://github.com/axel10/Bonsoir"
     source: git
@@ -326,7 +326,7 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: master
+      ref: f694500cf041ef6d25ec0af42cf5b512c24071ea
       resolved-ref: f694500cf041ef6d25ec0af42cf5b512c24071ea
       url: "https://github.com/axel10/dart_webdav"
     source: git
@@ -343,7 +343,7 @@ packages:
     dependency: "direct main"
     description:
       path: "packages/desktop_multi_window"
-      ref: main
+      ref: d7881ae4d97b4eda5a3eb1b9f0d2bef51a022385
       resolved-ref: d7881ae4d97b4eda5a3eb1b9f0d2bef51a022385
       url: "https://github.com/axel10/flutter-plugins"
     source: git
@@ -533,7 +533,7 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: master
+      ref: cbaf3458e79efd34016ca1cc3f76e53c890960a0
       resolved-ref: cbaf3458e79efd34016ca1cc3f76e53c890960a0
       url: "https://github.com/axel10/flutter_desktop_lyrics"
     source: git
@@ -542,7 +542,7 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: main
+      ref: fd97a5b9204b5279e9ad39be752e34ef8306e946
       resolved-ref: fd97a5b9204b5279e9ad39be752e34ef8306e946
       url: "https://github.com/axel10/flutter_desktop_tray"
     source: git
@@ -665,7 +665,7 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: master
+      ref: d2d184ae781e42b5ccd349b36b81a3a7465af9a8
       resolved-ref: d2d184ae781e42b5ccd349b36b81a3a7465af9a8
       url: "https://github.com/axel10/flutter_taglib"
     source: git
@@ -830,7 +830,7 @@ packages:
     dependency: "direct overridden"
     description:
       path: "engine_context/dart"
-      ref: main
+      ref: "1a017a2af2fd598f5bfc86ea7920f4678adcb515"
       resolved-ref: "1a017a2af2fd598f5bfc86ea7920f4678adcb515"
       url: "https://github.com/axel10/irondash"
     source: git
@@ -927,7 +927,7 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: master
+      ref: "00e56143332934dead82e9b4667832a376030246"
       resolved-ref: "00e56143332934dead82e9b4667832a376030246"
       url: "https://github.com/axel10/linux_directory_access"
     source: git
@@ -984,7 +984,7 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: main
+      ref: f905517482c75750403d08a6b5658c85b4b15832
       resolved-ref: f905517482c75750403d08a6b5658c85b4b15832
       url: "https://github.com/axel10/mesh-gradient"
     source: git
@@ -1009,7 +1009,7 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: master
+      ref: "4aa23cc8d84b784d62befb6f39cf3bd963c6acb7"
       resolved-ref: "4aa23cc8d84b784d62befb6f39cf3bd963c6acb7"
       url: "https://github.com/axel10/mobile_storage_listener"
     source: git
@@ -1058,7 +1058,7 @@ packages:
     dependency: "direct main"
     description:
       path: "packages/on_audio_query"
-      ref: main
+      ref: "83a6c7026e6d95d675d9fc379780e4e59a5cb228"
       resolved-ref: "83a6c7026e6d95d675d9fc379780e4e59a5cb228"
       url: "https://github.com/rozpo/on_audio_query"
     source: git
@@ -1228,7 +1228,7 @@ packages:
     dependency: "direct overridden"
     description:
       path: "."
-      ref: main
+      ref: "2dadd8afbf81e0e3e4791d7144e689555e58f649"
       resolved-ref: "2dadd8afbf81e0e3e4791d7144e689555e58f649"
       url: "https://github.com/localsend/permission_handler_windows_noop.git"
     source: git
@@ -1301,7 +1301,7 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: main
+      ref: "79cfd7fafca874a5b3d63637ba06ec297ac575b1"
       resolved-ref: "79cfd7fafca874a5b3d63637ba06ec297ac575b1"
       url: "https://github.com/axel10/proxy_getter"
     source: git
@@ -1619,7 +1619,7 @@ packages:
     dependency: "direct overridden"
     description:
       path: super_clipboard
-      ref: main
+      ref: a6b1fe1471e8f7af354bedcfb0c89f42bcf24d16
       resolved-ref: a6b1fe1471e8f7af354bedcfb0c89f42bcf24d16
       url: "https://github.com/axel10/super_native_extensions"
     source: git
@@ -1628,7 +1628,7 @@ packages:
     dependency: "direct main"
     description:
       path: super_drag_and_drop
-      ref: main
+      ref: a6b1fe1471e8f7af354bedcfb0c89f42bcf24d16
       resolved-ref: a6b1fe1471e8f7af354bedcfb0c89f42bcf24d16
       url: "https://github.com/axel10/super_native_extensions"
     source: git
@@ -1637,7 +1637,7 @@ packages:
     dependency: "direct overridden"
     description:
       path: super_native_extensions
-      ref: main
+      ref: a6b1fe1471e8f7af354bedcfb0c89f42bcf24d16
       resolved-ref: a6b1fe1471e8f7af354bedcfb0c89f42bcf24d16
       url: "https://github.com/axel10/super_native_extensions"
     source: git
@@ -1838,7 +1838,7 @@ packages:
     dependency: "direct main"
     description:
       path: "packages/window_manager"
-      ref: main
+      ref: "2ce213c03de85654bae826b7993d362e67075344"
       resolved-ref: "2ce213c03de85654bae826b7993d362e67075344"
       url: "https://github.com/axel10/window_manager"
     source: git
@@ -1847,7 +1847,7 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: master
+      ref: e5ff1f094b4376b5b81999d9da6c423177e90bba
       resolved-ref: e5ff1f094b4376b5b81999d9da6c423177e90bba
       url: "https://github.com/axel10/windows_taskbar"
     source: git
