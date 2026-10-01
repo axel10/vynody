@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <a href="#简体中文">简体中文</a> | <a href="#english">English</a>
+  <b>English</b> | <a href="README_zh.md">简体中文</a>
 </p>
 
 <p align="center">
@@ -22,251 +22,21 @@
 
 ---
 
-## 简体中文
+Vynody is a visually refined, feature-rich, and lightweight cross-platform local music player. Built with Flutter for a sleek modern UI and integrated with platform-specific native audio backends, it delivers a unified experience while unlocking low-level hardware audio capabilities across all platforms.
 
-Vynody 是一款以本地音乐播放为核心的跨平台播放器，使用 Flutter 构建界面，并根据不同平台接入对应的原生音频内核，兼顾统一体验与底层能力。
+## Why Vynody?
 
-项目当前面向以下平台：
+I am both a music enthusiast and a software developer. For a long time, the local music player ecosystem across different platforms has been severely fragmented—either plagued by dated UIs, bloated resource usage, or jarring inconsistencies across devices. To craft a clean, pure, and cohesive listening experience, I decided to build this application.
 
-- Windows
-- Linux
-- macOS
-- iOS
-- Android
+Vynody is developed using a modern **Vibe Coding** (AI-assisted development) workflow. After months of intensive iterations and real-device testing, Vynody offers solid stability, maturity, and performance for daily use.
 
-### 下载与安装
+Beyond fast media library indexing, lightweight system footprints, and smooth local playback, Vynody brings **unique and advanced features** rarely found in traditional players:
+- **Karaoke-style word-by-word synced lyrics and AI timeline generation**
+- **Serverless cross-device LAN syncing for music tracks and lyrics**
+- **Customizable themes and progress bar visual styles**
+- **Deep native platform optimization** across Windows, macOS, Linux, iOS, and Android.
 
-<p align="center">
-  <a href="https://apps.apple.com/app/id6799339894"><img src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg" height="42" alt="在 App Store 下载"></a>
-  &nbsp;&nbsp;
-  <a href="https://apps.microsoft.com/detail/9nmzrzz6rsd3"><img src="https://get.microsoft.com/images/en-us%20dark.svg" height="42" alt="从 Microsoft Store 获取"></a>
-</p>
-
-| 平台 | 获取渠道 | 链接 |
-| :--- | :--- | :--- |
-| **iOS / macOS** | Apple App Store | [前往 App Store 下载](https://apps.apple.com/app/id6799339894) |
-| **Windows** | 微软应用商店 | [前往 Microsoft Store 获取](https://apps.microsoft.com/detail/9nmzrzz6rsd3) |
-| **全部平台** | GitHub Releases | [GitHub Releases 下载页面](https://github.com/axel10/vynody/releases) |
-
-### 截图
-
-<p align="center">
-  <img src="https://raw.githubusercontent.com/axel10/vynody/refs/heads/main/assets/readme/general_playback_pc.jpg" alt="播放界面">
-  <img src="https://raw.githubusercontent.com/axel10/vynody/refs/heads/main/assets/readme/general_lyric_pc.jpg" alt="歌词界面">
-  <img src="https://raw.githubusercontent.com/axel10/vynody/refs/heads/main/assets/readme/zh/folder_pc.jpg" alt="文件夹">
-  <img src="https://raw.githubusercontent.com/axel10/vynody/refs/heads/main/assets/readme/zh/album_pc.jpg" alt="专辑">
-  <img src="https://raw.githubusercontent.com/axel10/vynody/refs/heads/main/assets/readme/zh/navidrome_pc.jpg" alt="Navidrome">
-  <img src="https://raw.githubusercontent.com/axel10/vynody/refs/heads/main/assets/readme/zh/share_pc.jpg" alt="局域网共享">
-</p>
-
-<p align="center">
-  <img src="https://raw.githubusercontent.com/axel10/vynody/refs/heads/main/assets/readme/general_playback_mobile.jpg" width="32%" alt="播放界面 (移动端)">
-  <img src="https://raw.githubusercontent.com/axel10/vynody/refs/heads/main/assets/readme/general_lyric_mobile.jpg" width="32%" alt="歌词界面 (移动端)">
-  <img src="https://raw.githubusercontent.com/axel10/vynody/refs/heads/main/assets/readme/zh/folder_mobile.jpg" width="32%" alt="文件夹 (移动端)">
-</p>
-
-### 特性概览
-
-- 跨平台本地音乐播放器，覆盖桌面端与移动端
-- 多平台原生播放内核接入，按平台选择更合适的实现
-- Windows 支持 WASAPI 独占模式，实现独占式音频输出
-- 本地媒体库扫描、增量更新与歌曲管理
-- 歌曲标签在线补全，支持通过音频指纹补全元数据
-- 歌词搜索、AI 生成与翻译，支持 LRCLIB 获取、AI 生成时间轴歌词和多语言翻译
-- 听歌识曲能力，基于音频指纹进行歌曲识别
-- 本地局域网歌词与音乐文件共享
-- 睡眠定时器
-- **远程音乐库（Navidrome 与 WebDAV）**：支持连接 Navidrome 服务器与 WebDAV 存储进行远程串流播放；WebDAV 支持无需下载整首歌曲即可在列表中直接解析展示歌曲元数据
-- 歌词相关增强能力，包括在线搜索、缓存、AI 生成、翻译与时间轴处理
-- 频谱、波形、封面取色等播放界面增强体验
-
-### 平台播放内核
-
-Vynody 并不是所有平台都共用同一套播放器内核，而是按平台采用不同实现：
-
-| 平台 | 播放内核 |
-| :--- | :--- |
-| Windows | Audio Core（Rust，支持 WASAPI 独占模式） |
-| Linux | Audio Core（Rust） |
-| macOS | Audio Core（Rust / AVFoundation + FFmpeg 兜底） |
-| iOS | Audio Core（Rust / AVFoundation + FFmpeg 兜底） |
-| Android | ExoPlayer（Media3 + FFmpeg 兜底） |
-
-这种设计的目标是：在保证跨平台 UI 一致性的同时，尽量利用各平台成熟的底层音频能力。
-
-### 核心能力
-
-#### 1. 本地播放与媒体库
-
-- 扫描本地文件夹并建立媒体库
-- 支持文件变更后的增量更新
-- 提供专辑、艺术家、歌曲等常见浏览方式
-- 面向本地播放器场景，强调稳定播放与日常管理效率
-
-#### 2. 歌曲标签在线补全
-
-针对标签不完整或信息缺失的音频文件，Vynody 支持在线补全歌曲元数据。
-
-- 使用音频指纹识别歌曲
-- 结合 AcoustID 与 MusicBrainz 匹配结果
-- 补全标题、艺术家、专辑等标签信息
-- 支持封面等元数据的补充
-
-这部分能力尤其适合整理来源较杂、标签质量不一致的本地曲库。
-
-#### 3. 歌词搜索、AI 生成与翻译
-
-项目内置在线歌词搜索与获取能力，当前可接入：
-
-- LRCLIB
-
-可用于：
-
-- 搜索匹配当前歌曲的在线歌词
-- 获取纯文本歌词或带时间轴歌词
-- 将歌词与本地歌曲关联并缓存
-- 对已有歌词做进一步整理和时间轴处理
-- 通过已配置的 AI 服务商，根据音频生成带时间轴歌词
-- 为已有的纯文本歌词生成或校正时间轴
-- 将歌词翻译为指定目标语言，并缓存翻译结果
-
-AI 歌词生成和翻译需要在应用设置中配置受支持服务商的 API Key。生成结果可能需要人工检查和微调。
-
-#### 4. 听歌识曲
-
-Vynody 支持基于音频指纹的歌曲识别能力，可用于：
-
-- 识别本地音频文件对应的歌曲
-- 为歌曲标签补全提供候选结果
-- 辅助整理未知来源或缺失元数据的文件
-
-#### 5. 睡眠定时器
-
-内置睡眠定时器，适合夜间听歌或临睡前使用。
-
-- 支持设置播放停止倒计时
-- 支持查看剩余时间
-- 支持手动取消
-
-#### 6. 局域网歌词与音乐文件共享
-
-Vynody 内置局域网共享能力，可在同一网络下与其他设备交换音乐文件和歌词数据。
-
-- 自动发现局域网内运行中的 Vynody 设备
-- 支持发送单个音乐文件
-- 支持发送整个音乐文件夹，并保留相对目录结构
-- 支持设备之间双向同步歌词缓存与翻译缓存
-- 支持通过浏览器访问本机共享页面，进行上传或下载
-
-这项能力适合在多台设备之间迁移曲库，或者把一台设备上整理好的歌词同步到另一台设备。
-
-#### 7. 远程音乐库（Navidrome 与 WebDAV）
-
-Vynody 支持无缝接入远程音乐服务器与云端存储：
-
-- **Navidrome 服务接入**：连接自建 Navidrome 音乐服务器，在线浏览艺术家、专辑、歌单并直接串流播放。
-- **WebDAV 远程存储**：支持挂载标准 WebDAV 服务作为远程音乐目录浏览并播放。
-- **WebDAV 轻量元数据解析**：利用 HTTP Range 分段请求快速读取音频文件头部标签，无需下载整首歌曲即可在歌曲列表中直接解析并展示标题、艺术家、专辑及时长等完整元数据信息。
-
-### 技术架构
-
-项目整体采用“Flutter UI + 平台原生音频实现”的思路：
-
-- Flutter：负责跨平台界面与交互
-- Audio Core（Rust / Native）：承担 Windows、Linux、macOS 和 iOS 的核心音频播放、转码与元数据能力（Apple 平台融合 AVFoundation 与 FFmpeg 兜底）
-- ExoPlayer：承担 Android 平台播放能力（通过 Audio Core 插件集成）
-- SQLite / Drift：用于本地媒体库与缓存管理
-
-在线相关能力主要包括：
-
-- LRCLIB：在线歌词获取
-- Navidrome & WebDAV：远程音频串流与基于分段请求的轻量元数据按需解析
-- 可配置 AI 服务商：歌词生成、时间轴生成与歌词翻译
-- AcoustID：音频指纹识别
-- MusicBrainz：标签与元数据补全
-
-局域网共享相关能力主要包括：
-
-- UDP 广播发现局域网设备
-- 内置 HTTP 共享服务
-- 歌词缓存导入、导出与冲突处理
-
-### 开发与运行
-
-#### 基本依赖
-
-- Flutter SDK
-- Rust toolchain
-- 对应平台的原生构建环境
-
-不同平台还需要各自的系统依赖，例如：
-
-- Android：Android Studio / SDK / NDK（按项目实际配置）
-- iOS / macOS：Xcode 与 Apple 平台构建环境
-- Windows：Visual Studio C++ 构建工具
-- Linux：Flutter Desktop 与系统开发依赖
-
-#### 拉取项目
-
-```bash
-git clone --recurse-submodules https://github.com/axel10/vynody
-cd vynody
-```
-> 💡 *如果您之前已经克隆了仓库但未使用 `--recurse-submodules`，请在构建前运行 `git submodule update --init` 以初始化 `audio_core` 模块。*
-
-#### 运行
-
-```bash
-flutter pub get
-flutter run -d <device-id>
-```
-
-如果你是在桌面平台首次构建，通常还需要先确认 Flutter Desktop 与 Rust 工具链都已经可用。
-
-### 可配置能力
-
-项目中已经包含或预留了多项可配置能力，常见包括：
-
-- 播放相关设置
-- 歌词来源与歌词处理相关设置
-- AI 服务商 API Key、歌词生成模型、翻译模型与翻译目标语言
-- AcoustID API Key
-- 外观、主题、可视化效果
-- 快捷键与交互行为
-
-如果你准备长期使用歌曲标签补全和音频指纹识别，建议配置自己的 AcoustID API Key。
-
-### 贡献
-
-欢迎提交 issue 或 pull request。
-
-如果你要参与开发，建议至少先完成以下检查：
-
-```bash
-flutter test
-```
-
-并尽量保持代码风格与现有工程结构一致。
-
-#### License
-
-本项目基于 [GPL-3.0](LICENSE) 开源。
-
----
-
-## English
-
-Vynody is a cross-platform, local music player designed with a focus on local playback. It features a Flutter-based user interface and integrates platform-specific native audio engines, combining a unified user experience with deep native capabilities.
-
-The project currently targets the following platforms:
-
-- Windows
-- Linux
-- macOS
-- iOS
-- Android
-
-### Downloads
+## Downloads
 
 <p align="center">
   <a href="https://apps.apple.com/app/id6799339894"><img src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg" height="42" alt="Download on the App Store"></a>
@@ -280,7 +50,7 @@ The project currently targets the following platforms:
 | **Windows** | Microsoft Store | [Get from Microsoft Store](https://apps.microsoft.com/detail/9nmzrzz6rsd3) |
 | **All Platforms** | GitHub Releases | [GitHub Releases](https://github.com/axel10/vynody/releases) |
 
-### Screenshots
+## Screenshots
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/axel10/vynody/refs/heads/main/assets/readme/general_playback_pc.jpg" alt="Playback">
@@ -297,184 +67,103 @@ The project currently targets the following platforms:
   <img src="https://raw.githubusercontent.com/axel10/vynody/refs/heads/main/assets/readme/en/folder_mobile.jpg" width="32%" alt="Folder (Mobile)">
 </p>
 
-### Features Overview
+## Features Overview
 
-- **Cross-Platform Local Music Player**: Supports both desktop and mobile platforms.
-- **Platform-Specific Native Audio Engines**: Integrates native audio backends optimized for each platform.
-- **WASAPI Exclusive Mode**: Supports exclusive-mode playback on Windows for direct audio output.
-- **Local Media Library**: Supports scanning local folders, incremental library updates, and song management.
-- **Online Tag Metadata Completion**: Supports fetching missing track metadata via audio fingerprinting.
-- **Lyrics Search, AI Generation & Translation**: Fetch lyrics from LRCLIB, generate synced lyrics or timelines with AI, and translate lyrics into a selected language.
-- **Song Recognition**: Identifies songs using audio fingerprinting.
-- **Local LAN Sharing**: Easily share lyrics and music files across devices on the same local network.
-- **Sleep Timer**: Built-in countdown timer for automatic playback stop.
-- **Remote Music Libraries (Navidrome & WebDAV)**: Connects to Navidrome music servers and WebDAV storage for remote streaming; WebDAV supports direct metadata parsing and display in song lists without downloading whole audio files.
-- **Enhanced Lyric Features**: Supports online search, local caching, AI-powered generation and translation, and lyric timeline adjustments.
-- **Visual Enhancements**: Features audio spectrum, waveform display, cover art color extraction, and more.
+- **Full Cross-Platform Support**: Desktop (Windows / macOS / Linux) and mobile (iOS / Android).
+- **Platform-Specific Native Audio Backends**: Tailored audio engines chosen for optimal performance on each OS.
+- **Windows WASAPI Exclusive Mode**: Direct, bit-perfect audio stream output.
+- **Local Media Library**: Fast scanning, incremental indexing, and comprehensive library organization.
+- **Audio Fingerprinting & Tag Completion**: Matches AcoustID and MusicBrainz to complete missing metadata and album artwork.
+- **Enhanced Lyric Capabilities**:
+  - LRCLIB integration for instant lyric search and matching
+  - AI-assisted timeline generation (including word-by-word / Karaoke sync)
+  - Multilingual AI translation with bilingual displays
+- **Song Recognition**: Acoustic fingerprinting to identify unknown audio files.
+- **LAN Sharing & Sync**: Serverless file transfer and bidirectional lyric/translation sync across local devices.
+- **Sleep Timer**: Built-in countdown timer for automatic playback shutoff.
+- **Remote Music Libraries (Navidrome & WebDAV)**:
+  - Stream directly from self-hosted Navidrome instances
+  - Mount WebDAV storage with HTTP Range chunked metadata parsing to instantly display song tags without downloading complete audio files
+- **Immersive Visuals**: Dynamic audio spectrum, waveforms, dynamic background palette extraction, and customizable progress bar styles.
+- **Desktop Enhancements**: Playback queue drawer, floating quick-access panels, and global keyboard shortcuts.
 
-### Platform Audio Engines
+## Architecture & Audio Engines
 
-Vynody does not use a single shared audio backend across all platforms. Instead, it utilizes the most suitable engine for each operating system:
+Vynody uses **Flutter** across all platforms for UI presentation and system interaction, paired with platform-tailored native audio backends:
 
-| Platform | Audio Engine / Backend |
-| :--- | :--- |
-| Windows | Audio Core (Rust, including WASAPI exclusive mode) |
-| Linux | Audio Core (Rust) |
-| macOS | Audio Core (Rust / AVFoundation + FFmpeg fallback) |
-| iOS | Audio Core (Rust / AVFoundation + FFmpeg fallback) |
-| Android | ExoPlayer (Media3 + FFmpeg fallback) |
+| Platform | Audio Engine | Implementation |
+| :--- | :--- | :--- |
+| **Windows** | Audio Core (Rust) | Rodio backend integrated with FFmpeg decoding; supports WASAPI Exclusive mode |
+| **Linux** | Audio Core (Rust) | Rodio backend integrated with FFmpeg decoding |
+| **macOS** | Audio Core (Rust) | Rodio backend with FFmpeg decoding & AVFoundation fallback |
+| **iOS** | Audio Core (Rust) | Rodio backend with FFmpeg decoding & AVFoundation fallback |
+| **Android** | ExoPlayer (Media3) | Leverages Android Audio Offload for hardware-level low power consumption |
 
-This design achieves a consistent cross-platform UI while fully leveraging the mature, low-level audio capabilities of each platform.
+**Core Tech Stack & Integrations:**
+- **UI & Architecture**: Flutter 3.x + Riverpod state management
+- **Database**: SQLite + Drift for high-speed local indexing and caching
+- **Online Services**: LRCLIB (lyrics), Navidrome (streaming), WebDAV (remote storage)
+- **Audio Intelligence**: AcoustID (fingerprints), MusicBrainz (metadata), configurable AI models (lyrics & translation)
+- **Networking**: UDP broadcast discovery + embedded HTTP sharing server
 
-### Core Capabilities
+## Core Capabilities
 
-#### 1. Local Playback & Media Library
+### 1. Local Playback & Media Library
+- Fast directory scanning and instant incremental updates on library changes.
+- Flexible browsing by albums, artists, tracks, and directory structures.
+- Ultra-low RAM and CPU usage, ideal for persistent background playback.
 
-- Scans local directories to build a media library.
-- Supports incremental updates on folder changes.
-- Organizes tracks by albums, artists, songs, and more.
-- Tailored for offline music playback with a focus on stability and metadata organization.
+### 2. Metadata & Tag Completion
+- Identifies audio files using acoustic fingerprints.
+- Matches against AcoustID and MusicBrainz databases.
+- Auto-populates missing track titles, artists, album names, and high-res cover art.
 
-#### 2. Online Metadata & Tag Completion
+### 3. Lyrics Search, AI Generation & Translation
+- Connects to LRCLIB for synced lyrics.
+- Generates precise timestamps and word-by-word synced lyrics via AI.
+- Translates lyrics to your target language with bilingual viewing.
 
-For audio files with incomplete tags or missing metadata, Vynody supports online completion:
+### 4. Song Recognition
+- Extracts acoustic fingerprints from local clips to identify unknown tracks.
 
-- Uses audio fingerprinting to identify tracks.
-- Matches tracks against AcoustID and MusicBrainz.
-- Fills in missing details like title, artist, album, and covers.
-- Perfect for organizing local music libraries with mixed sources and poor metadata quality.
+### 5. Local Network (LAN) Sharing
+- Auto-discovery of Vynody instances on the same subnet.
+- Fast transfer of individual tracks or complete album folder trees.
+- Syncs local lyric caches, timelines, and translation databases across devices.
+- Built-in browser web interface for uploading/downloading tracks from any web browser.
 
-#### 3. Lyrics Search, AI Generation & Translation
+### 6. Remote Music Libraries (Navidrome & WebDAV)
+- **Navidrome**: Seamless connection to personal streaming servers.
+- **WebDAV with Header-Only Parsing**: Uses HTTP Range requests to extract ID3/metadata tags directly, allowing instant display of song lists without downloading complete files.
 
-The player includes built-in lyrics search and retrieval, currently integrated with:
+## Development & Setup
 
-- LRCLIB
+### Prerequisites
+- Flutter SDK (3.x)
+- Rust toolchain (with `cargo`)
+- Native build toolchain for your target OS (Xcode / Visual Studio / Android SDK & NDK)
 
-Features include:
-- Searching online lyrics matching the current track.
-- Fetching plain text or synced (timestamped) lyrics.
-- Associating and caching fetched lyrics with local songs.
-- Editing and aligning lyric timelines.
-- Generating synced lyrics from an audio file with a configured AI provider.
-- Generating or correcting a timeline for existing plain-text lyrics.
-- Translating lyrics into a selected target language and caching the result.
-
-AI lyric generation and translation require an API key for a supported provider, configured in the app settings. Generated results may need review and manual adjustment.
-
-#### 4. Song Recognition
-
-Built-in audio fingerprinting enables identifying unknown audio files:
-
-- Identifies tracks from local audio fragments.
-- Offers metadata candidates for tag editing.
-- Helps organize legacy files with missing names or tags.
-
-#### 5. Sleep Timer
-
-A built-in countdown timer designed for bedtime listening:
-
-- Configurable countdown timer to stop playback.
-- Displays remaining time.
-- Allows manual cancellation at any time.
-
-#### 6. LAN Sharing (Music & Lyrics)
-
-Vynody includes built-in local area network sharing capabilities to transfer music and lyrics between devices on the same subnet:
-
-- Automatically discovers running Vynody instances on the local network.
-- Sends individual music files.
-- Sends entire music folders while preserving the relative folder structures.
-- Bi-directionally syncs lyric caches and translation caches between devices.
-
-Perfect for syncing or migrating your local library between computers and mobile devices.
-
-#### 7. Remote Music Libraries (Navidrome & WebDAV)
-
-Vynody supports seamless integration with remote audio servers and cloud storage:
-
-- **Navidrome Integration**: Connect to your self-hosted Navidrome music server to browse artists, albums, playlists, and stream tracks directly.
-- **WebDAV Remote Storage**: Mount and browse standard WebDAV servers as remote music directories.
-- **Header-Only Metadata Extraction for WebDAV**: Efficiently parses audio tags (ID3/metadata, duration, title, artist, album) via HTTP Range requests without downloading full song files, allowing the song list to instantly display comprehensive metadata.
-
-### Architecture
-
-The project follows a "Flutter UI + Platform Native Audio Backend" architecture:
-
-- **Flutter**: Handles the cross-platform UI and user interactions.
-- **Audio Core (Rust / Native)**: Powers playback, transcoding, waveform/spectrum, and metadata on Windows, Linux, macOS, and iOS (with AVFoundation & FFmpeg fallbacks).
-- **ExoPlayer**: Powers Android playback (integrated via Audio Core plugin).
-- **SQLite / Drift**: Manages the local media library database and cache.
-
-Online services and libraries used:
-- **LRCLIB**: Online lyrics source.
-- **Navidrome & WebDAV**: Remote audio streaming and on-demand metadata parsing.
-- **Configurable AI Providers**: Lyric generation, timeline generation, and lyric translation.
-- **AcoustID**: Audio fingerprinting.
-- **MusicBrainz**: Metadata matching.
-
-LAN sharing capabilities:
-- **UDP Broadcast**: Peer discovery on the local network.
-- **Embedded HTTP Server**: Hosts the sharing service and web UI.
-- **Web-based File Transfer**: Browser interface for uploading/downloading tracks.
-- **Conflict Resolution**: Logic for merging and importing lyric caches.
-
-### Development & Setup
-
-#### Prerequisites
-
-- Flutter SDK
-- Rust toolchain
-- Build tools corresponding to your target platform
-
-Platform-specific setup requirements:
-- **Android**: Android Studio / SDK / NDK.
-- **iOS / macOS**: Xcode and Apple development environment.
-- **Windows**: Visual Studio C++ Build Tools.
-- **Linux**: Flutter Desktop requirements and development libraries.
-
-#### Cloning the Project
-
+### Cloning
 ```bash
 git clone --recurse-submodules https://github.com/axel10/vynody
 cd vynody
 ```
-> 💡 *If you already cloned the repository without `--recurse-submodules`, run `git submodule update --init` to initialize the `audio_core` module before building.*
+> 💡 *If you cloned without `--recurse-submodules`, run `git submodule update --init` before building.*
 
-#### Running the App
-
+### Running
 ```bash
 flutter pub get
 flutter run -d <device-id>
 ```
 
-When building for a desktop platform for the first time, ensure that both the Flutter Desktop environment and the Rust toolchain are correctly configured.
+## Contributing
 
-### Configuration
-
-The player supports various user settings, including:
-
-- Playback behaviors.
-- Lyrics sources and processing adjustments.
-- AI provider API keys, lyric generation models, translation models, and target language.
-- AcoustID API Key.
-- Visual themes, skins, and spectrum visualizers.
-- Hotkeys and shortcuts.
-
-> [!TIP]
-> If you plan to heavily use audio fingerprinting and metadata completion, we recommend getting and configuring your own AcoustID API Key.
-
-### Contributing
-
-Issues and Pull Requests are welcome!
-
-Before contributing code, please run the tests and ensure they pass:
+Issues and Pull Requests are welcome! Before submitting code, please ensure tests pass:
 
 ```bash
 flutter test
 ```
 
-Please adhere to the existing code style and structure.
+## License
 
-#### License
-
-This project is open-source and licensed under the [GPL-3.0 License](LICENSE).
+Licensed under the [GPL-3.0 License](LICENSE).
