@@ -763,6 +763,8 @@
   },
   "songDeletedSkipped": "Şarkı silindi, atlandı",
   "songDeleted": "Şarkı silindi",
+  "songCorruptedSkipped": "Şarkı bozuk, atlandı",
+  "songCorrupted": "Şarkı bozuk",
   "lyricsTaskUploading": "Yükleniyor",
   "lyricsTaskWaiting": "Hazır olması bekleniyor",
   "lyricsTaskRequesting": "İstek gönderiliyor",

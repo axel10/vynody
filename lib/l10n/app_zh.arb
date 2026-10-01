@@ -1264,6 +1264,8 @@
   },
   "songDeletedSkipped": "歌曲已删除，已跳过",
   "songDeleted": "歌曲已删除",
+  "songCorruptedSkipped": "歌曲损坏，已跳过",
+  "songCorrupted": "歌曲已损坏",
   "lyricsTaskUploading": "上传中",
   "lyricsTaskWaiting": "等待就绪",
   "lyricsTaskRequesting": "请求中",

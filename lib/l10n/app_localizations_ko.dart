@@ -1829,6 +1829,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get songDeleted => '노래 삭제됨';
 
   @override
+  String get songCorruptedSkipped => '손상된 노래, 건너뜀';
+
+  @override
+  String get songCorrupted => '노래 손상됨';
+
+  @override
   String get lyricsTaskUploading => '업로드 중';
 
   @override

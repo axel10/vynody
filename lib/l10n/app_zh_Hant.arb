@@ -587,6 +587,8 @@
   "targetTimeLabel": "目標時間 {duration}",
   "songDeletedSkipped": "歌曲已刪除，已略過",
   "songDeleted": "歌曲已刪除",
+  "songCorruptedSkipped": "歌曲損壞，已略過",
+  "songCorrupted": "歌曲已損壞",
   "lyricsTaskUploading": "上傳中",
   "lyricsTaskWaiting": "等待就緒",
   "lyricsTaskRequesting": "請求中",

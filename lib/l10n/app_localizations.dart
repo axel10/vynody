@@ -3531,6 +3531,18 @@ abstract class AppLocalizations {
   /// **'歌曲已删除'**
   String get songDeleted;
 
+  /// No description provided for @songCorruptedSkipped.
+  ///
+  /// In zh, this message translates to:
+  /// **'歌曲损坏，已跳过'**
+  String get songCorruptedSkipped;
+
+  /// No description provided for @songCorrupted.
+  ///
+  /// In zh, this message translates to:
+  /// **'歌曲已损坏'**
+  String get songCorrupted;
+
   /// No description provided for @lyricsTaskUploading.
   ///
   /// In zh, this message translates to:

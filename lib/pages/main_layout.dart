@@ -44,6 +44,7 @@ import '../widgets/global_scan_progress_watcher.dart';
 import 'package:vynody/player/platform/right_queue_drawer_controller.dart';
 import '../widgets/right_queue_panel.dart';
 import 'package:vynody/utils/deleted_song_snack.dart';
+import 'package:vynody/utils/corrupted_song_snack.dart';
 import 'package:vynody/utils/app_snack_bar.dart';
 
 int _currentBaseTabIndex = 0;
@@ -294,6 +295,10 @@ class _MainLayoutState extends ConsumerState<MainLayout>
       if (!mounted) return;
       showDeletedSongSnack(context, ref, skipped: skipped);
     });
+    _audioService.setCorruptedSongNoticeHandler(({required bool skipped}) {
+      if (!mounted) return;
+      showCorruptedSongSnack(context, ref, skipped: skipped);
+    });
     _audioService.setRemotePlaybackErrorHandler((message) {
       if (!mounted) return;
       final l10n = AppLocalizations.of(context);
@@ -372,6 +377,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
       windowManager.removeListener(this);
     }
     _audioService.setMissingSongNoticeHandler(null);
+    _audioService.setCorruptedSongNoticeHandler(null);
     _audioService.setRemotePlaybackErrorHandler(null);
     super.dispose();
   }

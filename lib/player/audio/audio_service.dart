@@ -83,6 +83,7 @@ class AudioService extends Notifier<AudioSnapshot> {
   ScannerService? _scannerService;
   PlaylistService? _playlistService;
   void Function({required bool skipped})? _missingSongNoticeHandler;
+  void Function({required bool skipped})? _corruptedSongNoticeHandler;
   void Function(String message)? _remotePlaybackErrorHandler;
   bool _isLyricsActive = false;
   bool _lastDesktopLyricsEnabled = false;
@@ -815,12 +816,22 @@ class AudioService extends Notifier<AudioSnapshot> {
     _missingSongNoticeHandler = handler;
   }
 
+  void setCorruptedSongNoticeHandler(
+    void Function({required bool skipped})? handler,
+  ) {
+    _corruptedSongNoticeHandler = handler;
+  }
+
   void setRemotePlaybackErrorHandler(void Function(String message)? handler) {
     _remotePlaybackErrorHandler = handler;
   }
 
   void _showMissingSongNotice({required bool skipped}) {
     _missingSongNoticeHandler?.call(skipped: skipped);
+  }
+
+  void _showCorruptedSongNotice({required bool skipped}) {
+    _corruptedSongNoticeHandler?.call(skipped: skipped);
   }
 
   void _showRemotePlaybackError(String message) {
@@ -1375,6 +1386,15 @@ class AudioService extends Notifier<AudioSnapshot> {
             currentMusic != null &&
             RemoteMediaResolver.isRemoteUri(currentMusic!.path)) {
           _showRemotePlaybackError(currentAppL10n.cannotConnectToMediaServer);
+        } else {
+          _showCorruptedSongNotice(skipped: true);
+        }
+
+        if (!_isTransitioning && _queue.isNotEmpty) {
+          unawaited(() async {
+            debugPrint('[AudioService] Auto-advancing due to playback error on ${currentMusic?.path}');
+            await next();
+          }());
         }
       }
     } else {
@@ -3313,8 +3333,19 @@ class AudioService extends Notifier<AudioSnapshot> {
       } else {
         if (_playbackMode == AppPlaybackMode.autoQueueLoop) {
           await _handleQueueFinished();
+        } else {
+          _isPlaying = false;
+          _duration = Duration.zero;
+          _position = Duration.zero;
+          notifyListeners();
         }
       }
+    } catch (e) {
+      debugPrint('[AudioService] next() error: $e');
+      _isPlaying = false;
+      _duration = Duration.zero;
+      _position = Duration.zero;
+      notifyListeners();
     } finally {
       _isTransitioning = false;
       _logPlaybackTrace(
@@ -3355,12 +3386,27 @@ class AudioService extends Notifier<AudioSnapshot> {
             _player.playlist.activePlaylistId ??
             _player.playlist.queuePlaylistId,
       );
-      _currentIndex = index;
+      final newIndex = _player.playlist.currentIndex ?? index;
+      if (newIndex >= 0 && newIndex < _queue.length && _player.player.currentState != PlayerState.error) {
+        _currentIndex = newIndex;
+        _position = Duration.zero;
+        final actualSong = _queue[_currentIndex];
+        _resetPlaybackTrackingForSong(actualSong);
+        notifyListeners();
+        await _syncCurrentPlaybackSong(actualSong);
+        _startQueueBackgroundProcessing(priorityPath: actualSong.path);
+      } else {
+        _isPlaying = false;
+        _position = Duration.zero;
+        _duration = Duration.zero;
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('[AudioService] playAtIndex($index) error: $e');
+      _isPlaying = false;
       _position = Duration.zero;
-      _resetPlaybackTrackingForSong(song);
+      _duration = Duration.zero;
       notifyListeners();
-      await _syncCurrentPlaybackSong(song);
-      _startQueueBackgroundProcessing(priorityPath: song.path);
     } finally {
       _isTransitioning = false;
       _logPlaybackTrace(
@@ -3516,8 +3562,19 @@ class AudioService extends Notifier<AudioSnapshot> {
       } else {
         if (_playbackMode == AppPlaybackMode.autoQueueLoop) {
           await _handleQueuePrevious();
+        } else {
+          _isPlaying = false;
+          _duration = Duration.zero;
+          _position = Duration.zero;
+          notifyListeners();
         }
       }
+    } catch (e) {
+      debugPrint('[AudioService] previous() error: $e');
+      _isPlaying = false;
+      _duration = Duration.zero;
+      _position = Duration.zero;
+      notifyListeners();
     } finally {
       _isTransitioning = false;
       _logPlaybackTrace(

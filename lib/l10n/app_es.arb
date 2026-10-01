@@ -699,6 +699,8 @@
   },
   "songDeletedSkipped": "Canción eliminada, saltada",
   "songDeleted": "Canción eliminada",
+  "songCorruptedSkipped": "Canción dañada, saltada",
+  "songCorrupted": "Canción dañada",
   "lyricsTaskUploading": "Subiendo",
   "lyricsTaskWaiting": "Esperando",
   "lyricsTaskRequesting": "Solicitando",

@@ -1895,6 +1895,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get songDeleted => 'Chanson supprimée';
 
   @override
+  String get songCorruptedSkipped => 'Chanson corrompue, ignorée';
+
+  @override
+  String get songCorrupted => 'Chanson corrompue';
+
+  @override
   String get lyricsTaskUploading => 'Téléversement';
 
   @override

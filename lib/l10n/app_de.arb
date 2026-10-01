@@ -699,6 +699,8 @@
   },
   "songDeletedSkipped": "Song gelöscht, übersprungen",
   "songDeleted": "Song gelöscht",
+  "songCorruptedSkipped": "Song beschädigt, übersprungen",
+  "songCorrupted": "Song beschädigt",
   "lyricsTaskUploading": "Hochladen",
   "lyricsTaskWaiting": "Warten",
   "lyricsTaskRequesting": "Anfrage läuft",

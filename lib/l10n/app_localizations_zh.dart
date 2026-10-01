@@ -1805,6 +1805,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get songDeleted => '歌曲已删除';
 
   @override
+  String get songCorruptedSkipped => '歌曲损坏，已跳过';
+
+  @override
+  String get songCorrupted => '歌曲已损坏';
+
+  @override
   String get lyricsTaskUploading => '上传中';
 
   @override
@@ -6906,6 +6912,12 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get songDeleted => '歌曲已刪除';
+
+  @override
+  String get songCorruptedSkipped => '歌曲損壞，已略過';
+
+  @override
+  String get songCorrupted => '歌曲已損壞';
 
   @override
   String get lyricsTaskUploading => '上傳中';

@@ -699,6 +699,8 @@
   },
   "songDeletedSkipped": "노래 삭제됨, 건너뜀",
   "songDeleted": "노래 삭제됨",
+  "songCorruptedSkipped": "손상된 노래, 건너뜀",
+  "songCorrupted": "노래 손상됨",
   "lyricsTaskUploading": "업로드 중",
   "lyricsTaskWaiting": "대기 중",
   "lyricsTaskRequesting": "요청 중",

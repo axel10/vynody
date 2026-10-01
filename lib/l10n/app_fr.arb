@@ -699,6 +699,8 @@
   },
   "songDeletedSkipped": "Chanson supprimée, ignorée",
   "songDeleted": "Chanson supprimée",
+  "songCorruptedSkipped": "Chanson corrompue, ignorée",
+  "songCorrupted": "Chanson corrompue",
   "lyricsTaskUploading": "Téléversement",
   "lyricsTaskWaiting": "En attente",
   "lyricsTaskRequesting": "Requête en cours",

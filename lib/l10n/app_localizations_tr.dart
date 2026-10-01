@@ -1875,6 +1875,12 @@ class AppLocalizationsTr extends AppLocalizations {
   String get songDeleted => 'Şarkı silindi';
 
   @override
+  String get songCorruptedSkipped => 'Şarkı bozuk, atlandı';
+
+  @override
+  String get songCorrupted => 'Şarkı bozuk';
+
+  @override
   String get lyricsTaskUploading => 'Yükleniyor';
 
   @override

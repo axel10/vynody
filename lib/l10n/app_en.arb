@@ -727,6 +727,8 @@
   },
   "songDeletedSkipped": "Song deleted, skipped",
   "songDeleted": "Song deleted",
+  "songCorruptedSkipped": "Song corrupted, skipped",
+  "songCorrupted": "Song corrupted",
   "lyricsTaskUploading": "Uploading",
   "lyricsTaskWaiting": "Waiting",
   "lyricsTaskRequesting": "Requesting",

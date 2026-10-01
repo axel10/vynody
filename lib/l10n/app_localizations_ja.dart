@@ -1826,6 +1826,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get songDeleted => '曲が削除されました';
 
   @override
+  String get songCorruptedSkipped => '曲が破損しているためスキップしました';
+
+  @override
+  String get songCorrupted => '曲が破損しています';
+
+  @override
   String get lyricsTaskUploading => 'アップロード中';
 
   @override

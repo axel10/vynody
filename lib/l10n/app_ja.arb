@@ -699,6 +699,8 @@
   },
   "songDeletedSkipped": "曲が削除されたためスキップしました",
   "songDeleted": "曲が削除されました",
+  "songCorruptedSkipped": "曲が破損しているためスキップしました",
+  "songCorrupted": "曲が破損しています",
   "lyricsTaskUploading": "アップロード中",
   "lyricsTaskWaiting": "待機中",
   "lyricsTaskRequesting": "リクエスト中",
