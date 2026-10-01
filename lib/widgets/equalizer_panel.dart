@@ -86,12 +86,14 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
                     width: 1,
                   ),
                 ),
-                padding: const EdgeInsets.fromLTRB(24, 16, 24, 40),
+                padding: const EdgeInsets.fromLTRB(24, 10, 24, 40),
                 child: SingleChildScrollView(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      _buildDragHandle(theme, isDark),
+                      const SizedBox(height: 10),
                       _buildHeader(audio, config, l10n),
                       const SizedBox(height: 14),
                       _buildPresetBar(
@@ -310,6 +312,28 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
           ],
         ),
       ],
+    );
+  }
+
+  Widget _buildDragHandle(ThemeData theme, bool isDark) {
+    return Center(
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => Navigator.of(context).pop(),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6.0, horizontal: 16.0),
+          child: Container(
+            width: 36,
+            height: 4,
+            decoration: BoxDecoration(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.25)
+                  : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.35),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
