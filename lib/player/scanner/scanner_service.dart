@@ -1237,13 +1237,9 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     String path, {
     String? persistentDocumentId,
   }) async {
-    var targetPath = path;
-    if (Platform.isIOS || Platform.isMacOS) {
-      targetPath = ScannerPathUtils.resolveIosSandboxPath(targetPath);
-    }
-    final normalizedPath = _normalizePath(targetPath);
+    final normalizedPath = _normalizePath(path);
     debugPrint(
-      '[ScannerService] addRootPath: path=$path, resolvedPath=$targetPath, normalizedPath=$normalizedPath, persistentDocumentId=$persistentDocumentId, _linuxFlatpak=$_linuxFlatpak',
+      '[ScannerService] addRootPath: path=$path, normalizedPath=$normalizedPath, persistentDocumentId=$persistentDocumentId, _linuxFlatpak=$_linuxFlatpak',
     );
     if (Platform.isLinux && _linuxFlatpak && persistentDocumentId != null) {
       _linuxDocumentIds[normalizedPath] = persistentDocumentId;

@@ -194,17 +194,37 @@ class ScannerPathUtils {
     if (path.isEmpty || (!Platform.isIOS && !Platform.isMacOS)) {
       return path;
     }
-    final trimmed = path.trim();
-    if (trimmed.startsWith('content://') ||
-        trimmed.startsWith('http://') ||
-        trimmed.startsWith('https://') ||
-        trimmed.startsWith('asset://') ||
-        trimmed.startsWith('fd://')) {
-      return trimmed;
+    final rawTrimmed = path.trim();
+    if (rawTrimmed.startsWith('content://') ||
+        rawTrimmed.startsWith('http://') ||
+        rawTrimmed.startsWith('https://') ||
+        rawTrimmed.startsWith('asset://') ||
+        rawTrimmed.startsWith('fd://') ||
+        rawTrimmed.contains('://')) {
+      return rawTrimmed;
     }
+    final trimmed = normalizePath(rawTrimmed);
 
     final docDir = _currentIosDocDir;
     final libDir = _currentIosLibDir;
+
+    // If already pointing to current app's sandbox, return normalized path
+    if (docDir != null && (pathsEqual(docDir, trimmed) || pathContains(docDir, trimmed))) {
+      return trimmed;
+    }
+    if (libDir != null && (pathsEqual(libDir, trimmed) || pathContains(libDir, trimmed))) {
+      return trimmed;
+    }
+
+    // If the path exists as-is on the filesystem (e.g. valid external folder/file from another app container or iCloud),
+    // do not rewrite it to our own sandbox!
+    try {
+      if (FileSystemEntity.typeSync(trimmed) != FileSystemEntityType.notFound) {
+        return trimmed;
+      }
+    } catch (_) {
+      // Ignored if file system permission or check fails
+    }
 
     // 1. Documents container matching (supports /var/mobile, /private/var/mobile, FileProvider, and Simulator)
     if (docDir != null && docDir.isNotEmpty) {
@@ -219,11 +239,7 @@ class ScannerPathUtils {
         final resolved = (subPath == null || subPath.isEmpty)
             ? docDir
             : p.join(docDir, subPath);
-        if (File(resolved).existsSync() ||
-            Directory(resolved).existsSync() ||
-            (!File(trimmed).existsSync() && !Directory(trimmed).existsSync())) {
-          return resolved;
-        }
+        return resolved;
       }
     }
 
@@ -240,29 +256,17 @@ class ScannerPathUtils {
         final resolved = (subPath == null || subPath.isEmpty)
             ? libDir
             : p.join(libDir, subPath);
-        if (File(resolved).existsSync() ||
-            Directory(resolved).existsSync() ||
-            (!File(trimmed).existsSync() && !Directory(trimmed).existsSync())) {
-          return resolved;
-        }
+        return resolved;
       }
-    }
-
-    // If file or directory directly exists as-is, no need to transform
-    if (File(trimmed).existsSync() || Directory(trimmed).existsSync()) {
-      return trimmed;
     }
 
     return trimmed;
   }
 
-  /// Checks if a path belongs to the iOS/macOS application sandbox.
+  /// Checks if a path belongs to the current iOS/macOS application sandbox.
   static bool isSandboxInternalPath(String path) {
     if (!Platform.isIOS && !Platform.isMacOS) return false;
     final trimmed = normalizePath(path);
-    if (trimmed.contains('/Containers/Data/Application/')) {
-      return true;
-    }
     if (_currentIosDocDir != null &&
         (pathsEqual(_currentIosDocDir!, trimmed) ||
             pathContains(_currentIosDocDir!, trimmed))) {
@@ -271,17 +275,6 @@ class ScannerPathUtils {
     if (_currentIosLibDir != null &&
         (pathsEqual(_currentIosLibDir!, trimmed) ||
             pathContains(_currentIosLibDir!, trimmed))) {
-      return true;
-    }
-    final resolved = resolveIosSandboxPath(trimmed);
-    if (_currentIosDocDir != null &&
-        (pathsEqual(_currentIosDocDir!, resolved) ||
-            pathContains(_currentIosDocDir!, resolved))) {
-      return true;
-    }
-    if (_currentIosLibDir != null &&
-        (pathsEqual(_currentIosLibDir!, resolved) ||
-            pathContains(_currentIosLibDir!, resolved))) {
       return true;
     }
     return false;

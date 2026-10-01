@@ -595,6 +595,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
 
   static String? _extractIosSandboxSuffix(String path) {
     if (!Platform.isIOS && !Platform.isMacOS) return null;
+    if (!ScannerPathUtils.isSandboxInternalPath(path)) return null;
     final match = RegExp(
       r'(?:^|/)(?:private/)?var/mobile/Containers/Data/Application/[^/]+(/(?:Documents|Library)(?:/.*)?)$',
     ).firstMatch(path) ?? RegExp(

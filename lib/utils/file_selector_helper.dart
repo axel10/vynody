@@ -1,8 +1,8 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:file_selector/file_selector.dart' as file_selector;
-import 'package:vynody/player/scanner/scanner_path_utils.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 
 export 'package:file_picker/file_picker.dart' show FileType;
 
@@ -14,16 +14,22 @@ class FileSelectorHelper {
 
   /// Picks a directory path.
   ///
-  /// Uses [file_selector] on Windows, Linux, and macOS, and [file_picker] on other platforms.
+  /// Uses `audio_core.player` method channel on iOS to retain security-scoped permissions and persist bookmarks,
+  /// [file_selector] on Windows, Linux, and macOS, and [file_picker] on other platforms.
   static Future<String?> pickDirectory({bool lockParentWindow = true}) async {
     String? path;
-    if (_useFileSelector) {
+    if (Platform.isIOS) {
+      try {
+        path = await const MethodChannel(
+          'audio_core.player',
+        ).invokeMethod<String>('pickAndAuthorizeDirectory');
+      } catch (e) {
+        debugPrint('[FileSelectorHelper] pickAndAuthorizeDirectory failed: $e');
+      }
+    } else if (_useFileSelector) {
       path = await file_selector.getDirectoryPath();
     } else {
       path = await FilePicker.getDirectoryPath(lockParentWindow: lockParentWindow);
-    }
-    if (path != null && (Platform.isIOS || Platform.isMacOS)) {
-      path = ScannerPathUtils.resolveIosSandboxPath(path);
     }
     return path;
   }

@@ -35,9 +35,9 @@ void main() {
     test('isSandboxInternalPath correctly detects sandbox paths', () {
       expect(
         ScannerPathUtils.isSandboxInternalPath(
-          '/var/mobile/Containers/Data/Application/ANY-UUID/Documents/vynody',
+          '/var/mobile/Containers/Data/Application/OTHER-APP-UUID/Documents/vynody',
         ),
-        isTrue,
+        isFalse,
       );
       expect(
         ScannerPathUtils.isSandboxInternalPath(
