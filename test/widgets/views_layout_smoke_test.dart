@@ -370,7 +370,7 @@ void main() {
 
       // In portrait mode, TabBar should not be present; menu items should be displayed
       expect(find.byType(Tab), findsNothing);
-      expect(find.byType(LibrarySubPage), findsNothing);
+      expect(find.byType(AlbumsTab), findsNothing);
 
       // Find one of the menu items (e.g. Playlist or Albums) and tap
       final albumFinder = find.text('Albums');
@@ -378,7 +378,7 @@ void main() {
         await tester.tap(albumFinder.first);
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 350));
-        expect(find.byType(LibrarySubPage), findsOneWidget);
+        expect(find.byType(AlbumsTab), findsOneWidget);
       }
     });
 
