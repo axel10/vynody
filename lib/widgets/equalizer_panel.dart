@@ -2131,6 +2131,7 @@ class _Knob extends StatefulWidget {
 
 class _KnobState extends State<_Knob> {
   double _dragValue = 0;
+  double? _lastAngle;
 
   @override
   void initState() {
@@ -2146,21 +2147,68 @@ class _KnobState extends State<_Knob> {
     }
   }
 
+  double? _getAngle(Offset localPosition, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final delta = localPosition - center;
+    if (delta.distanceSquared < 16) {
+      return null;
+    }
+    return math.atan2(delta.dy, delta.dx);
+  }
+
+  void _onPanStart(DragStartDetails details, Size size) {
+    _lastAngle = _getAngle(details.localPosition, size);
+  }
+
+  void _onPanUpdate(DragUpdateDetails details, Size size) {
+    final currentAngle = _getAngle(details.localPosition, size);
+    if (currentAngle == null) return;
+
+    if (_lastAngle == null) {
+      _lastAngle = currentAngle;
+      return;
+    }
+
+    var deltaAngle = currentAngle - _lastAngle!;
+
+    // Normalize deltaAngle across the -pi / pi boundary
+    if (deltaAngle > math.pi) {
+      deltaAngle -= 2 * math.pi;
+    } else if (deltaAngle < -math.pi) {
+      deltaAngle += 2 * math.pi;
+    }
+
+    // sweepAngleTotal for 270 degrees
+    const sweepAngleTotal = 1.5 * math.pi;
+    final valueDelta =
+        (deltaAngle / sweepAngleTotal) * (widget.max - widget.min);
+
+    setState(() {
+      _dragValue = (_dragValue + valueDelta).clamp(widget.min, widget.max);
+    });
+    _lastAngle = currentAngle;
+    widget.onChanged(_dragValue);
+  }
+
+  void _onPanEnd(DragEndDetails details) {
+    _lastAngle = null;
+  }
+
+  void _onPanCancel() {
+    _lastAngle = null;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final knobSize = Size(widget.size, widget.size);
     return GestureDetector(
-      onVerticalDragUpdate: (details) {
-        final delta = details.primaryDelta! / widget.size;
-        setState(() {
-          _dragValue = (_dragValue - delta * (widget.max - widget.min)).clamp(
-            widget.min,
-            widget.max,
-          );
-        });
-        widget.onChanged(_dragValue);
-      },
+      behavior: HitTestBehavior.opaque,
+      onPanStart: (details) => _onPanStart(details, knobSize),
+      onPanUpdate: (details) => _onPanUpdate(details, knobSize),
+      onPanEnd: _onPanEnd,
+      onPanCancel: _onPanCancel,
       child: CustomPaint(
-        size: Size(widget.size, widget.size),
+        size: knobSize,
         painter: _KnobPainter(
           context: context,
           value: _dragValue,
