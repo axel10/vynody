@@ -194,6 +194,8 @@ class PlaybackHeroCardUiTuning {
   static const double waveformBarGap = 2.0; // 波形柱子间隙
   static const double waveformBarWidthLandscape = 4.5; // 横屏下波形柱子宽度
   static const double waveformBarGapLandscape = 2; // 横屏下波形柱子间隙
+  static const double waveformOverlayAudioInfoGap = 6.0; // 竖屏滚动波形进度条底部音频信息间隙
+  static const double waveformOverlayAudioInfoHeight = 16.0; // 竖屏滚动波形进度条底部音频信息高度
 
   // 竖屏滚动波形进度条上悬浮按钮及时间胶囊阴影参数 (Portrait scrolling waveform overlay shadow tuning)
   // 整体阴影不透明度总控系数 (Master shadow opacity multiplier: 0.0 为完全无投影, 1.0 为默认强度)

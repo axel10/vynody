@@ -342,24 +342,26 @@ class PlaybackAudioInfoLabel extends ConsumerWidget {
     final details = detailsAsync.asData?.value;
     final text = formatAudioSpec(details);
 
-    if (text.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      child: Text(
-        text,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: TextStyle(
-          color: Colors.white70,
-          fontSize: math.max(
-            PlaybackHeroCardUiTuning.minProgressTimeFontSize,
-            11 * controlsScale,
+    return SizedBox(
+      height: PlaybackHeroCardUiTuning.waveformOverlayAudioInfoHeight *
+          controlsScale,
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          child: Text(
+            text,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: math.max(
+                PlaybackHeroCardUiTuning.minProgressTimeFontSize,
+                11 * controlsScale,
+              ),
+              fontWeight: FontWeight.w500,
+              letterSpacing: 0.2,
+            ),
           ),
-          fontWeight: FontWeight.w500,
-          letterSpacing: 0.2,
         ),
       ),
     );

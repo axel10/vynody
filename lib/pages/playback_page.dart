@@ -1109,7 +1109,10 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                                                       .waveformStaticPortraitHeight
                                                 : 48.0)) +
                                         (isOverlayStyle
-                                            ? 0.0
+                                            ? (PlaybackHeroCardUiTuning
+                                                    .waveformOverlayAudioInfoGap +
+                                                PlaybackHeroCardUiTuning
+                                                    .waveformOverlayAudioInfoHeight)
                                             : (8.0 +
                                                   PlaybackHeroCardUiTuning
                                                       .controlsTimeRowHeight +

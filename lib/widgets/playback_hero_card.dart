@@ -352,7 +352,8 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard> {
                     ? PlaybackHeroCardUiTuning.waveformStaticPortraitHeight
                     : 48.0)) +
             (isOverlayStyle
-                ? 0.0
+                ? (PlaybackHeroCardUiTuning.waveformOverlayAudioInfoGap +
+                    PlaybackHeroCardUiTuning.waveformOverlayAudioInfoHeight)
                 : (8.0 +
                       PlaybackHeroCardUiTuning.controlsTimeRowHeight +
                       PlaybackHeroCardUiTuning.controlsRowPortraitGap +
@@ -860,7 +861,8 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard> {
                 ? PlaybackHeroCardUiTuning.waveformStaticPortraitHeight
                 : 48.0)) +
         (isOverlayStyle
-            ? 0.0
+            ? (PlaybackHeroCardUiTuning.waveformOverlayAudioInfoGap +
+                PlaybackHeroCardUiTuning.waveformOverlayAudioInfoHeight)
             : (8.0 +
                   PlaybackHeroCardUiTuning.controlsTimeRowHeight +
                   PlaybackHeroCardUiTuning.controlsRowPortraitGap +
