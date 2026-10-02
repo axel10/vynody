@@ -240,6 +240,7 @@ class _ArtistsTabState extends ConsumerState<ArtistsTab>
                             child: _ArtistDetailPane(
                               artist: selectedArtist,
                               emptyLabel: noArtistsLabel,
+                              hasBottomPanel: showBottomPanel,
                             ),
                           ),
                         ],
@@ -715,10 +716,12 @@ class _ArtistDetailPane extends StatelessWidget {
   const _ArtistDetailPane({
     required this.artist,
     required this.emptyLabel,
+    this.hasBottomPanel = false,
   });
 
   final ArtistSummary? artist;
   final String emptyLabel;
+  final bool hasBottomPanel;
 
   @override
   Widget build(BuildContext context) {
@@ -767,6 +770,8 @@ class _ArtistDetailPane extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         child: ArtistDetailContent(
           artist: currentArtist,
+          showSelectionPanel: false,
+          hasBottomPanel: hasBottomPanel,
         ),
       ),
     );

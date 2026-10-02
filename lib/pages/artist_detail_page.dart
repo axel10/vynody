@@ -50,9 +50,13 @@ class ArtistDetailContent extends ConsumerStatefulWidget {
   const ArtistDetailContent({
     super.key,
     required this.artist,
+    this.showSelectionPanel = true,
+    this.hasBottomPanel = false,
   });
 
   final ArtistSummary artist;
+  final bool showSelectionPanel;
+  final bool hasBottomPanel;
 
   @override
   ConsumerState<ArtistDetailContent> createState() => _ArtistDetailContentState();
@@ -210,7 +214,8 @@ class _ArtistDetailContentState extends ConsumerState<ArtistDetailContent>
                 height: MiniPlayerUiTuning.getListBottomPadding(
                   context,
                   hasPlayingMusic: currentMusic != null,
-                  isSelectionMode: isSelectionMode,
+                  isSelectionMode: widget.hasBottomPanel ||
+                      (isSelectionMode && widget.showSelectionPanel),
                   selectionPanelHeight: 220.0,
                 ),
               ),
@@ -218,7 +223,7 @@ class _ArtistDetailContentState extends ConsumerState<ArtistDetailContent>
           ],
         ),
         AnimatedSelectionPanel(
-          isVisible: isSelectionMode,
+          isVisible: isSelectionMode && widget.showSelectionPanel,
           child: LibrarySelectionPanel(
             key: const ValueKey('library-selection-panel'),
             selectedSongs: selectedSongs,
