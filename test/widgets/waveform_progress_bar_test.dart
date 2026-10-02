@@ -118,4 +118,66 @@ void main() {
     expect(seekedProgress, isNotNull);
     expect(seekedProgress!, greaterThan(0.5));
   });
+
+  testWidgets(
+    'WaveformProgressBar delays seek at song end and cancels if user drags again',
+    (WidgetTester tester) async {
+      double currentProgress = 0.95;
+      double? seekedProgress;
+
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              body: Center(
+                child: SizedBox(
+                  width: 300,
+                  height: 80,
+                  child: WaveformProgressBar(
+                    waveform: List.generate(100, (i) => 0.5),
+                    progress: currentProgress,
+                    duration: const Duration(seconds: 200),
+                    isPlaying: false,
+                    isScrolling: true,
+                    barWidth: 6.0,
+                    barGap: 4.0,
+                    onScrubbing: (_) {},
+                    onSeek: (val) {
+                      seekedProgress = val;
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      // Fling left strongly towards the end of the song
+      await tester.fling(
+        find.byType(WaveformProgressBar),
+        const Offset(-150, 0),
+        1000,
+      );
+      // Wait for inertia to reach end
+      await tester.pump(const Duration(milliseconds: 100));
+
+      // At 100ms, it just reached the end, delay timer is running, seek has NOT happened yet
+      expect(seekedProgress, isNull);
+
+      // Now user drags again before the 600ms delay timer fires
+      await tester.drag(
+        find.byType(WaveformProgressBar),
+        const Offset(50, 0), // drag right back into song
+      );
+      await tester.pump(const Duration(milliseconds: 50));
+
+      // Release slow drag
+      await tester.pumpAndSettle();
+
+      // Seek happened at dragged back position, NOT at 1.0!
+      expect(seekedProgress, isNotNull);
+      expect(seekedProgress!, lessThan(1.0));
+    },
+  );
 }

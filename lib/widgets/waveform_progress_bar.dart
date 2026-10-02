@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/physics.dart';
@@ -70,6 +71,7 @@ class _WaveformProgressBarState extends ConsumerState<WaveformProgressBar>
   bool _isInertia = false;
   double _lastInertiaX = 0;
   double _inertiaTotalWaveformWidth = 1.0;
+  Timer? _endOfSongSeekTimer;
   bool _suspendedForBackground = false;
 
   // Double speed fast forward states
@@ -111,6 +113,7 @@ class _WaveformProgressBarState extends ConsumerState<WaveformProgressBar>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _cancelEndOfSongSeekTimer();
     _animationController.dispose();
     _stopInertia();
     _inertiaController.dispose();
@@ -132,7 +135,7 @@ class _WaveformProgressBarState extends ConsumerState<WaveformProgressBar>
         : Duration.zero;
     _lastFrameTime = elapsed;
 
-    if (_isDragging || _isInertia) {
+    if (_isDragging || _isInertia || _endOfSongSeekTimer != null) {
       return;
     }
 
@@ -157,6 +160,7 @@ class _WaveformProgressBarState extends ConsumerState<WaveformProgressBar>
     if (widget.isPlaying &&
         !_isDragging &&
         !_isInertia &&
+        _endOfSongSeekTimer == null &&
         !_suspendedForBackground &&
         !widget.isWindowMinimized &&
         !widget.isTransitioning) {
@@ -172,7 +176,23 @@ class _WaveformProgressBarState extends ConsumerState<WaveformProgressBar>
     }
   }
 
+  void _cancelEndOfSongSeekTimer() {
+    _endOfSongSeekTimer?.cancel();
+    _endOfSongSeekTimer = null;
+  }
+
+  void _scheduleEndOfSongSeek() {
+    _cancelEndOfSongSeekTimer();
+    _endOfSongSeekTimer = Timer(const Duration(milliseconds: 600), () {
+      if (!mounted) return;
+      _endOfSongSeekTimer = null;
+      widget.onSeek(1.0);
+      _updateTickerState();
+    });
+  }
+
   void _startInertia(double velocityX, double totalWaveformWidth) {
+    _cancelEndOfSongSeekTimer();
     _inertiaController.stop();
     _isInertia = true;
     _isDragging = false;
@@ -182,13 +202,15 @@ class _WaveformProgressBarState extends ConsumerState<WaveformProgressBar>
 
     // Apply gentle velocity scaling and clamping so the waveform slides only a short distance
     // without accidental large skips across songs.
-    final double dampedVelocity = (velocityX * 0.25).clamp(-450.0, 450.0);
+    final double dampedVelocity = (velocityX * 0.35).clamp(-800.0, 800.0);
 
-    // Strong damping factor (0.02) to decelerate quickly and smoothly over a short distance
+    // Damping factor (0.035) with practical velocity tolerance so it slides smoothly
+    // for a short distance and finishes as soon as velocity drops below 15 px/s.
     final simulation = FrictionSimulation(
-      0.02,
+      0.035,
       0.0,
       dampedVelocity,
+      tolerance: const Tolerance(velocity: 15.0, distance: 0.5),
     );
 
     _inertiaController.animateWith(simulation);
@@ -211,10 +233,19 @@ class _WaveformProgressBarState extends ConsumerState<WaveformProgressBar>
     _smoothProgressNotifier.value = newProgress;
     widget.onScrubbing(newProgress);
 
-    // Stop if reached the ends of the audio track
-    if ((newProgress <= 0.0 && deltaProgress < 0) ||
-        (newProgress >= 1.0 && deltaProgress > 0)) {
+    // When inertia reaches start, stop immediately
+    if (newProgress <= 0.0 && deltaProgress < 0) {
       _finishInertia();
+      return;
+    }
+
+    // When inertia reaches song end, pause and delay seek to give user a chance to drag back
+    if (newProgress >= 1.0 && deltaProgress > 0) {
+      _stopInertia();
+      _smoothProgressNotifier.value = 1.0;
+      widget.onScrubbing(1.0);
+      _scheduleEndOfSongSeek();
+      return;
     }
   }
 
@@ -231,8 +262,13 @@ class _WaveformProgressBarState extends ConsumerState<WaveformProgressBar>
     if (!_isInertia) return;
     _isInertia = false;
     _inertiaController.stop();
-    widget.onSeek(_smoothProgressNotifier.value);
-    _updateTickerState();
+
+    if (_smoothProgressNotifier.value >= 0.999) {
+      _scheduleEndOfSongSeek();
+    } else {
+      widget.onSeek(_smoothProgressNotifier.value);
+      _updateTickerState();
+    }
   }
 
   void _stopInertia() {
@@ -307,6 +343,7 @@ class _WaveformProgressBarState extends ConsumerState<WaveformProgressBar>
   void didUpdateWidget(WaveformProgressBar oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (!listEquals(widget.waveform, oldWidget.waveform)) {
+      _cancelEndOfSongSeekTimer();
       _stopInertia();
       _targetWaveform = _getEffectiveWaveform(widget.waveform);
 
@@ -320,8 +357,15 @@ class _WaveformProgressBarState extends ConsumerState<WaveformProgressBar>
       _animationController.forward(from: 0);
     }
 
+    if (oldWidget.isPlaying != widget.isPlaying) {
+      _cancelEndOfSongSeekTimer();
+      _stopInertia();
+      _isDragging = false;
+    }
+
     // Check if progress or play state changed
-    final bool isInteracting = _isDragging || _isInertia;
+    final bool isInteracting =
+        _isDragging || _isInertia || _endOfSongSeekTimer != null;
     final double diff = (widget.progress - _smoothProgressNotifier.value).abs();
     final double snapThreshold = widget.duration.inMilliseconds > 0
         ? 1000.0 / widget.duration.inMilliseconds
@@ -379,6 +423,7 @@ class _WaveformProgressBarState extends ConsumerState<WaveformProgressBar>
           },
           child: GestureDetector(
             onHorizontalDragStart: (details) {
+              _cancelEndOfSongSeekTimer();
               _stopInertia();
               _isDragging = true;
               _dragStartX = details.localPosition.dx;
@@ -443,6 +488,7 @@ class _WaveformProgressBarState extends ConsumerState<WaveformProgressBar>
               }
             },
             onHorizontalDragCancel: () {
+              _cancelEndOfSongSeekTimer();
               _stopInertia();
               _isDragging = false;
               widget.onSeek(_smoothProgressNotifier.value);
@@ -452,7 +498,9 @@ class _WaveformProgressBarState extends ConsumerState<WaveformProgressBar>
               _updateTickerState();
             },
             onTapDown: (details) {
-              final bool wasInertia = _isInertia;
+              final bool wasInteracting =
+                  _isInertia || _endOfSongSeekTimer != null;
+              _cancelEndOfSongSeekTimer();
               _stopInertia();
               if (!widget.isScrolling) {
                 final double newProgress = (details.localPosition.dx / width)
@@ -460,12 +508,13 @@ class _WaveformProgressBarState extends ConsumerState<WaveformProgressBar>
                 widget.onScrubbing(newProgress);
                 widget.onSeek(newProgress);
                 _smoothProgressNotifier.value = newProgress;
-              } else if (wasInertia) {
+              } else if (wasInteracting) {
                 widget.onSeek(_smoothProgressNotifier.value);
                 _updateTickerState();
               }
             },
             onLongPressStart: (details) {
+              _cancelEndOfSongSeekTimer();
               _stopInertia();
               if (!ref
                   .read(settingsServiceProvider)
