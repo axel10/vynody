@@ -9,6 +9,7 @@ import 'package:vynody/models/album_summary.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/audio/playback_source.dart';
+import 'package:vynody/player/library/playlist_service.dart';
 import 'package:vynody/utils/song_context_menu_utils.dart';
 import '../widgets/album_cover.dart';
 import '../widgets/remote_media_badge.dart';
@@ -210,7 +211,24 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage>
                     },
                     onSecondaryTapDown: (details) {
                       if (!isSelectionMode) {
-                        showSongBottomSheet(context, ref, song);
+                        showSongContextMenu(
+                          context,
+                          details.globalPosition,
+                          song: song,
+                          songs: [song],
+                          mode: SongContextMenuMode.full,
+                          onPlayNext: () =>
+                              ref.read(audioServiceProvider).enqueueNext([song]),
+                          onAddToQueue: () =>
+                              ref.read(audioServiceProvider).appendToQueue([song]),
+                          onAddToPlaylist: () async {
+                            await showAddSongsToPlaylistDialog(
+                              context,
+                              ref.read(playlistServiceProvider),
+                              [song],
+                            );
+                          },
+                        );
                       }
                     },
                     onToggleSelection: () {

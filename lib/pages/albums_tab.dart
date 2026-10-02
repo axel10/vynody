@@ -28,6 +28,7 @@ import 'package:vynody/player/settings/settings_service.dart';
 import 'main_layout_riverpod.dart';
 import 'package:vynody/utils/layout_constants.dart';
 import '../widgets/draggable_album_item.dart';
+import '../widgets/album_bottom_sheet.dart';
 import '../utils/app_snack_bar.dart';
 
 class AlbumsTab extends ConsumerStatefulWidget {
@@ -388,8 +389,14 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab>
                                                 isHeroEnabled: _is3DView,
                                                 onToggleSelection: toggleSelection,
                                                 onEnterSelectionMode: enterSelectionMode,
-                                                onAlbumContextMenu: (album) =>
-                                                    _showAlbumContextMenu(context, ref, album),
+                                                onAlbumContextMenu: (album, position) =>
+                                                    showAlbumContextMenu(
+                                                      context: context,
+                                                      globalPosition: position,
+                                                      ref: ref,
+                                                      album: album,
+                                                      onMultiSelect: (id) => enterSelectionMode(id),
+                                                    ),
                                                 onExit3DView: () {
                                                   setState(() {
                                                     _is3DView = false;
@@ -606,6 +613,7 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab>
                     enterSelectionMode(album.id);
                   }
                 },
+                onMultiSelect: (id) => enterSelectionMode(id),
               );
             },
             childCount: albums.length,
@@ -663,6 +671,7 @@ class _AlbumCard extends ConsumerWidget {
     this.isHeroEnabled = true,
     this.onTap,
     this.onLongPress,
+    this.onMultiSelect,
   });
 
   final AlbumSummary album;
@@ -671,6 +680,7 @@ class _AlbumCard extends ConsumerWidget {
   final bool isHeroEnabled;
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
+  final void Function(String albumId)? onMultiSelect;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -739,14 +749,25 @@ class _AlbumCard extends ConsumerWidget {
         behavior: HitTestBehavior.opaque,
         onSecondaryTapDown: (details) {
           if (!isSelectionMode) {
-            _showAlbumContextMenu(context, ref, album);
+            showAlbumContextMenu(
+              context: context,
+              globalPosition: details.globalPosition,
+              ref: ref,
+              album: album,
+              onMultiSelect: onMultiSelect,
+            );
           }
         },
         onLongPress: () {
           if (onLongPress != null) {
             onLongPress!();
           } else if (!isSelectionMode) {
-            _showAlbumContextMenu(context, ref, album);
+            showAlbumBottomSheet(
+              context: context,
+              ref: ref,
+              album: album,
+              onMultiSelect: onMultiSelect,
+            );
           }
         },
         child: InkWell(
@@ -876,214 +897,6 @@ class _AlbumCard extends ConsumerWidget {
     );
   }
 }
-
-Future<void> _showAlbumContextMenu(
-  BuildContext context,
-  WidgetRef ref,
-  AlbumSummary album,
-) async {
-    final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
-
-    final selected = await showModalBottomSheet<String>(
-      context: context,
-      useRootNavigator: true,
-      backgroundColor: Colors.transparent,
-      elevation: 0,
-      isScrollControlled: true,
-      builder: (context) => GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () => Navigator.pop(context),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            child: Align(
-              alignment: Alignment.bottomCenter,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 680),
-                child: GestureDetector(
-                  onTap: () {}, // Prevent taps on the card itself from closing the sheet
-                  child: Material(
-                    elevation: 16,
-                    color: theme.colorScheme.surface,
-                    shadowColor: Colors.black26,
-                    borderRadius: BorderRadius.circular(12),
-                    clipBehavior: Clip.antiAlias,
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // Header showing Album title and artwork
-                          Row(
-                            children: [
-                              AlbumCover(
-                                album: album,
-                                size: 52,
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      album.title,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: theme.textTheme.titleMedium?.copyWith(
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      album.artist,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: theme.textTheme.bodyMedium?.copyWith(
-                                        color: theme.colorScheme.onSurfaceVariant,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          const Divider(height: 1),
-                          const SizedBox(height: 8),
-                          // Actions list
-                          _buildBottomSheetItem(
-                            context: context,
-                            value: 'play_all',
-                            label: l10n.playAll,
-                            icon: Icons.play_arrow_rounded,
-                          ),
-                          _buildBottomSheetItem(
-                            context: context,
-                            value: 'shuffle',
-                            label: l10n.shufflePlay,
-                            icon: Icons.shuffle_rounded,
-                          ),
-                          _buildBottomSheetItem(
-                            context: context,
-                            value: 'play_next',
-                            label: l10n.playNext,
-                            icon: Icons.queue_play_next_rounded,
-                          ),
-                          _buildBottomSheetItem(
-                            context: context,
-                            value: 'add_to_playlist',
-                            label: l10n.addToPlaylist,
-                            icon: Icons.playlist_add_rounded,
-                          ),
-                          _buildBottomSheetItem(
-                            context: context,
-                            value: 'add_to_favorites',
-                            label: l10n.addToFavorites,
-                            icon: Icons.favorite_border_rounded,
-                          ),
-                          _buildBottomSheetItem(
-                            context: context,
-                            value: 'copy_album',
-                            label: l10n.copyAlbumTitle,
-                            icon: Icons.copy_rounded,
-                          ),
-                          _buildBottomSheetItem(
-                            context: context,
-                            value: 'copy_artist',
-                            label: l10n.copyArtistName,
-                            icon: Icons.person_rounded,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-
-    if (!context.mounted || selected == null) return;
-
-    switch (selected) {
-      case 'play_all':
-        await ref.read(audioServiceProvider).playPlaylist(
-          album.songs,
-          source: PlaybackSource(
-            type: PlaybackSourceType.album,
-            id: album.id,
-            name: album.title,
-          ),
-        );
-        break;
-      case 'shuffle':
-        await ref.read(audioServiceProvider).playPlaylist(
-          List.of(album.songs)..shuffle(),
-          source: PlaybackSource(
-            type: PlaybackSourceType.album,
-            id: album.id,
-            name: album.title,
-          ),
-        );
-        break;
-      case 'play_next':
-        await ref.read(audioServiceProvider).enqueueNext(album.songs);
-        break;
-      case 'add_to_playlist':
-        await showAddSongsToPlaylistDialog(
-          context,
-          ref.read(playlistServiceProvider),
-          album.songs,
-        );
-        break;
-      case 'add_to_favorites':
-        for (final song in album.songs) {
-          await ref.read(playlistServiceProvider).addSongToFavorite(song);
-        }
-        if (context.mounted) {
-          AppSnackBar.show(
-            context,
-            ref,
-            SnackBar(
-              content: Text('${l10n.addToFavorites} · ${album.trackCount}'),
-            ),
-          );
-        }
-        break;
-      case 'copy_album':
-        await Clipboard.setData(ClipboardData(text: album.title));
-        break;
-      case 'copy_artist':
-        await Clipboard.setData(ClipboardData(text: album.artist));
-        break;
-    }
-  }
-
-  Widget _buildBottomSheetItem({
-    required BuildContext context,
-    required String value,
-    required String label,
-    required IconData icon,
-  }) {
-    final theme = Theme.of(context);
-    return ListTile(
-      leading: Icon(icon, color: theme.colorScheme.onSurfaceVariant),
-      title: Text(
-        label,
-        style: theme.textTheme.bodyLarge?.copyWith(
-          color: theme.colorScheme.onSurface,
-        ),
-      ),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      onTap: () => Navigator.pop(context, value),
-    );
-  }
 
 class _AlbumsToolbar extends ConsumerWidget {
   const _AlbumsToolbar({

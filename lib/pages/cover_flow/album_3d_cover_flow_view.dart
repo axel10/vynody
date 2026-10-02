@@ -33,7 +33,7 @@ class Album3DCoverFlowView extends ConsumerStatefulWidget {
   final ValueChanged<String> onToggleSelection;
   final ValueChanged<String> onEnterSelectionMode;
   final VoidCallback? onExit3DView;
-  final ValueChanged<AlbumSummary>? onAlbumContextMenu;
+  final void Function(AlbumSummary album, Offset position)? onAlbumContextMenu;
 
   @override
   ConsumerState<Album3DCoverFlowView> createState() =>
@@ -429,10 +429,10 @@ class Album3DCoverFlowViewState extends ConsumerState<Album3DCoverFlowView>
                                 widget.onEnterSelectionMode(album.id);
                               }
                             },
-                            onSecondaryTapDown: (_) {
+                            onSecondaryTapDown: (details) {
                               if (!widget.isSelectionMode) {
                                 if (widget.onAlbumContextMenu != null) {
-                                  widget.onAlbumContextMenu!(album);
+                                  widget.onAlbumContextMenu!(album, details.globalPosition);
                                 }
                               }
                             },

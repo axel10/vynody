@@ -7,6 +7,7 @@ import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/audio/audio_service.dart';
 import 'package:vynody/player/library/library_insights_service.dart';
+import 'package:vynody/player/library/playlist_service.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/utils/song_context_menu_utils.dart';
 import 'song_thumbnail.dart';
@@ -548,7 +549,22 @@ class _SongListItem extends ConsumerWidget {
         behavior: HitTestBehavior.opaque,
         onSecondaryTapDown: (details) async {
           if (!isSelectionMode) {
-            await showSongBottomSheet(context, ref, song);
+            await showSongContextMenu(
+              context,
+              details.globalPosition,
+              song: song,
+              songs: [song],
+              mode: SongContextMenuMode.full,
+              onPlayNext: () => ref.read(audioServiceProvider).enqueueNext([song]),
+              onAddToQueue: () => ref.read(audioServiceProvider).appendToQueue([song]),
+              onAddToPlaylist: () async {
+                await showAddSongsToPlaylistDialog(
+                  context,
+                  ref.read(playlistServiceProvider),
+                  [song],
+                );
+              },
+            );
           }
         },
         child: AnimatedContainer(

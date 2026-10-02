@@ -19,6 +19,7 @@ import '../dialogs/sort_options_dialog.dart';
 import '../dialogs/library_source_filter_dialog.dart';
 import 'package:vynody/player/library/library_source_filter.dart';
 import 'package:vynody/player/settings/settings_service.dart';
+import '../widgets/artist_bottom_sheet.dart';
 
 class ArtistsTab extends ConsumerStatefulWidget {
   final double contentTopPadding;
@@ -353,6 +354,7 @@ class _ArtistsTabState extends ConsumerState<ArtistsTab>
                                   }
                                 },
                                 onSelectionToggled: () => toggleSelection(artist.queryKey),
+                                onMultiSelect: (key) => enterSelectionMode(key),
                               );
                             },
                             childCount: visibleArtists.length * 2 - 1,
@@ -542,6 +544,7 @@ class _ArtistListPane extends StatelessWidget {
                           : null,
                       onTap: () => onArtistSelected(artist),
                       onLongPress: onArtistLongPressed != null ? () => onArtistLongPressed!(artist) : null,
+                      onMultiSelect: onArtistLongPressed != null ? (key) => onArtistLongPressed!(artist) : null,
                       onSelectionToggled: () => onArtistSelected(artist),
                     ),
                   );
@@ -562,6 +565,7 @@ class _ArtistListItem extends ConsumerWidget {
     this.selectedArtists,
     this.onSelectionToggled,
     this.onLongPress,
+    this.onMultiSelect,
   });
 
   final ArtistSummary artist;
@@ -572,6 +576,7 @@ class _ArtistListItem extends ConsumerWidget {
   final List<ArtistSummary>? selectedArtists;
   final VoidCallback? onSelectionToggled;
   final VoidCallback? onLongPress;
+  final void Function(String artistKey)? onMultiSelect;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -609,10 +614,12 @@ class _ArtistListItem extends ConsumerWidget {
             behavior: HitTestBehavior.opaque,
             onSecondaryTapDown: (details) {
               if (!isSelectionMode) {
-                _showArtistContextMenuForArtist(
-                  context,
-                  ref,
-                  artist,
+                showArtistContextMenu(
+                  context: context,
+                  globalPosition: details.globalPosition,
+                  ref: ref,
+                  artist: artist,
+                  onMultiSelect: onMultiSelect,
                 );
               }
             },
@@ -620,10 +627,11 @@ class _ArtistListItem extends ConsumerWidget {
               if (onLongPress != null) {
                 onLongPress!();
               } else if (!isSelectionMode) {
-                _showArtistContextMenuForArtist(
-                  context,
-                  ref,
-                  artist,
+                showArtistBottomSheet(
+                  context: context,
+                  ref: ref,
+                  artist: artist,
+                  onMultiSelect: onMultiSelect,
                 );
               }
             },
@@ -776,187 +784,6 @@ class _ArtistDetailPane extends StatelessWidget {
       ),
     );
   }
-}
-
-Future<void> _showArtistContextMenuForArtist(
-  BuildContext context,
-  WidgetRef ref,
-  ArtistSummary artist,
-) async {
-  final l10n = AppLocalizations.of(context)!;
-  final theme = Theme.of(context);
-  final subtitleParts = <String>[
-    l10n.songCount(artist.songCount),
-    if ((artist.country?.trim().isNotEmpty ?? false)) artist.country!.trim(),
-  ];
-  if (artist.disambiguation?.trim().isNotEmpty ?? false) {
-    subtitleParts.add(artist.disambiguation!.trim());
-  }
-
-  final selected = await showModalBottomSheet<String>(
-    context: context,
-    useRootNavigator: true,
-    backgroundColor: Colors.transparent,
-    elevation: 0,
-    isScrollControlled: true,
-    builder: (context) => GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: () => Navigator.pop(context),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-          child: Align(
-            alignment: Alignment.bottomCenter,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 680),
-              child: GestureDetector(
-                onTap: () {}, // Prevent taps on the card itself from closing the sheet
-                child: Material(
-                  elevation: 16,
-                  color: theme.colorScheme.surface,
-                  shadowColor: Colors.black26,
-                  borderRadius: BorderRadius.circular(12),
-                  clipBehavior: Clip.antiAlias,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Header showing Artist name and avatar
-                        Row(
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(14),
-                              child: const SizedBox(
-                                width: 52,
-                                height: 52,
-                                child: Center(child: ArtistAvatar(diameter: 52)),
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    artist.name,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: theme.textTheme.titleMedium?.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    subtitleParts.join(' · '),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: theme.textTheme.bodyMedium?.copyWith(
-                                      color: theme.colorScheme.onSurfaceVariant,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        const Divider(height: 1),
-                        const SizedBox(height: 8),
-                        // Actions list
-                        _buildArtistBottomSheetItem(
-                          context: context,
-                          value: 'play_all',
-                          label: l10n.playAll,
-                          icon: Icons.play_arrow_rounded,
-                        ),
-                        _buildArtistBottomSheetItem(
-                          context: context,
-                          value: 'shuffle',
-                          label: l10n.shufflePlay,
-                          icon: Icons.shuffle_rounded,
-                        ),
-                        _buildArtistBottomSheetItem(
-                          context: context,
-                          value: 'view_details',
-                          label: l10n.viewArtistDetails,
-                          icon: Icons.person_rounded,
-                        ),
-                        _buildArtistBottomSheetItem(
-                          context: context,
-                          value: 'copy_artist',
-                          label: l10n.copyArtistName,
-                          icon: Icons.copy_rounded,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    ),
-  );
-
-  if (!context.mounted || selected == null) return;
-
-  switch (selected) {
-    case 'play_all':
-      await ref.read(audioServiceProvider).playPlaylist(
-        artist.songs,
-        source: PlaybackSource(
-          type: PlaybackSourceType.artist,
-          id: artist.queryKey,
-          name: artist.name,
-        ),
-      );
-      break;
-    case 'shuffle':
-      await ref.read(audioServiceProvider).playPlaylist(
-        List.of(artist.songs)..shuffle(),
-        source: PlaybackSource(
-          type: PlaybackSourceType.artist,
-          id: artist.queryKey,
-          name: artist.name,
-        ),
-      );
-      break;
-    case 'view_details':
-      Navigator.of(context).push(
-        MaterialPageRoute<void>(
-          builder: (_) => ArtistDetailPage(artist: artist),
-        ),
-      );
-      break;
-    case 'copy_artist':
-      await Clipboard.setData(ClipboardData(text: artist.name));
-      break;
-  }
-}
-
-Widget _buildArtistBottomSheetItem({
-  required BuildContext context,
-  required String value,
-  required String label,
-  required IconData icon,
-}) {
-  final theme = Theme.of(context);
-  return ListTile(
-    leading: Icon(icon, color: theme.colorScheme.onSurfaceVariant),
-    title: Text(
-      label,
-      style: theme.textTheme.bodyLarge?.copyWith(
-        color: theme.colorScheme.onSurface,
-      ),
-    ),
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(12),
-    ),
-    onTap: () => Navigator.pop(context, value),
-  );
 }
 
 class _ArtistsToolbar extends ConsumerWidget {

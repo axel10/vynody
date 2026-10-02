@@ -7,6 +7,7 @@ import 'package:vynody/models/artist_summary.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/audio/playback_source.dart';
+import 'package:vynody/player/library/playlist_service.dart';
 import 'package:vynody/utils/song_context_menu_utils.dart';
 import '../widgets/song_thumbnail.dart';
 import '../widgets/remote_media_badge.dart';
@@ -192,7 +193,24 @@ class _ArtistDetailContentState extends ConsumerState<ArtistDetailContent>
                     },
                     onSongSecondaryTapDown: (details, song) {
                       if (!isSelectionMode) {
-                        showSongBottomSheet(context, ref, song);
+                        showSongContextMenu(
+                          context,
+                          details.globalPosition,
+                          song: song,
+                          songs: [song],
+                          mode: SongContextMenuMode.full,
+                          onPlayNext: () =>
+                              ref.read(audioServiceProvider).enqueueNext([song]),
+                          onAddToQueue: () =>
+                              ref.read(audioServiceProvider).appendToQueue([song]),
+                          onAddToPlaylist: () async {
+                            await showAddSongsToPlaylistDialog(
+                              context,
+                              ref.read(playlistServiceProvider),
+                              [song],
+                            );
+                          },
+                        );
                       }
                     },
                     onSongLongPress: (song) {
