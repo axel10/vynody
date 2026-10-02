@@ -70,6 +70,7 @@ class PlaybackProgressSection extends ConsumerWidget {
     final isWaveformEnabled = progressBarStyle != ProgressBarStyle.standard;
     final isScrollingWaveform = progressBarStyle == ProgressBarStyle.scrollingWaveform;
     final isFullWaveform = progressBarStyle == ProgressBarStyle.fullWaveform;
+    final isInlineInfo = isLandscape || isFullWaveform || !isWaveformEnabled;
     final currentThemeColorsMap = ref.watch(audioCurrentThemeColorsMapProvider);
     final controlIconColor =
         currentThemeColorsMap['darkVibrant'] ??
@@ -212,85 +213,154 @@ class PlaybackProgressSection extends ConsumerWidget {
             padding: const EdgeInsets.symmetric(
               horizontal: horizontalPadding,
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: Stack(
+              alignment: Alignment.center,
               children: [
-                if (isLandscape || isFullWaveform || !isWaveformEnabled)
-                  Text(
-                    formatDuration(overridePosition ?? position),
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: math.max(
-                        PlaybackHeroCardUiTuning.minProgressTimeFontSize,
-                        12 * controlsScale,
-                      ),
-                    ),
-                  )
-                else
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(100),
-                      boxShadow: PlaybackHeroCardUiTuning.waveformOverlayTimeCapsuleShadow(
-                        controlsScale,
-                      ),
-                    ),
-                    child: Text(
-                      formatDuration(overridePosition ?? position),
-                      style: TextStyle(
-                        color: controlIconColor,
-                        fontSize: math.max(
-                          PlaybackHeroCardUiTuning.minProgressTimeFontSize,
-                          11 * controlsScale,
+                if (isInlineInfo)
+                  Positioned.fill(
+                    child: Align(
+                      alignment: Alignment.center,
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 56.0 * controlsScale,
                         ),
-                        fontWeight: FontWeight.w600,
+                        child: PlaybackAudioInfoLabel(
+                          controlsScale: controlsScale,
+                        ),
                       ),
                     ),
                   ),
-                if (isLandscape || isFullWaveform || !isWaveformEnabled)
-                  Text(
-                    formatDuration(duration),
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: math.max(
-                        PlaybackHeroCardUiTuning.minProgressTimeFontSize,
-                        12 * controlsScale,
-                      ),
-                    ),
-                  )
-                else
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(100),
-                      boxShadow: PlaybackHeroCardUiTuning.waveformOverlayTimeCapsuleShadow(
-                        controlsScale,
-                      ),
-                    ),
-                    child: Text(
-                      formatDuration(duration),
-                      style: TextStyle(
-                        color: controlIconColor,
-                        fontSize: math.max(
-                          PlaybackHeroCardUiTuning.minProgressTimeFontSize,
-                          11 * controlsScale,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    if (isInlineInfo)
+                      Text(
+                        formatDuration(overridePosition ?? position),
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: math.max(
+                            PlaybackHeroCardUiTuning.minProgressTimeFontSize,
+                            12 * controlsScale,
+                          ),
+                          fontFeatures: const [FontFeature.tabularFigures()],
                         ),
-                        fontWeight: FontWeight.w600,
+                      )
+                    else
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(100),
+                          boxShadow: PlaybackHeroCardUiTuning.waveformOverlayTimeCapsuleShadow(
+                            controlsScale,
+                          ),
+                        ),
+                        child: Text(
+                          formatDuration(overridePosition ?? position),
+                          style: TextStyle(
+                            color: controlIconColor,
+                            fontSize: math.max(
+                              PlaybackHeroCardUiTuning.minProgressTimeFontSize,
+                              11 * controlsScale,
+                            ),
+                            fontWeight: FontWeight.w600,
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
+                    if (isInlineInfo)
+                      Text(
+                        formatDuration(duration),
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: math.max(
+                            PlaybackHeroCardUiTuning.minProgressTimeFontSize,
+                            12 * controlsScale,
+                          ),
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
+                      )
+                    else
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(100),
+                          boxShadow: PlaybackHeroCardUiTuning.waveformOverlayTimeCapsuleShadow(
+                            controlsScale,
+                          ),
+                        ),
+                        child: Text(
+                          formatDuration(duration),
+                          style: TextStyle(
+                            color: controlIconColor,
+                            fontSize: math.max(
+                              PlaybackHeroCardUiTuning.minProgressTimeFontSize,
+                              11 * controlsScale,
+                            ),
+                            fontWeight: FontWeight.w600,
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ],
             ),
           ),
+          if (!isInlineInfo) ...[
+            SizedBox(height: 5.0 * controlsScale),
+            Center(
+              child: PlaybackAudioInfoLabel(
+                controlsScale: controlsScale,
+              ),
+            ),
+          ],
         ],
+      ),
+    );
+  }
+}
+
+class PlaybackAudioInfoLabel extends ConsumerWidget {
+  final double controlsScale;
+
+  const PlaybackAudioInfoLabel({
+    super.key,
+    required this.controlsScale,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final detailsAsync = ref.watch(currentAudioDetailsProvider);
+    final details = detailsAsync.asData?.value;
+    final text = formatAudioSpec(details);
+
+    if (text.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: Text(
+        text,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          color: Colors.white70,
+          fontSize: math.max(
+            PlaybackHeroCardUiTuning.minProgressTimeFontSize,
+            11 * controlsScale,
+          ),
+          fontWeight: FontWeight.w500,
+          letterSpacing: 0.2,
+        ),
       ),
     );
   }
@@ -430,6 +500,7 @@ class PlaybackOverlayProgressTimeLayer extends ConsumerWidget {
                               shadows: const [
                                 Shadow(color: Colors.black45, blurRadius: 4),
                               ],
+                              fontFeatures: const [FontFeature.tabularFigures()],
                             ),
                           )
                         : Container(
@@ -454,6 +525,7 @@ class PlaybackOverlayProgressTimeLayer extends ConsumerWidget {
                                   11 * controlsScale,
                                 ),
                                 fontWeight: FontWeight.bold,
+                                fontFeatures: const [FontFeature.tabularFigures()],
                               ),
                             ),
                           ),
@@ -475,6 +547,7 @@ class PlaybackOverlayProgressTimeLayer extends ConsumerWidget {
                               shadows: const [
                                 Shadow(color: Colors.black45, blurRadius: 4),
                               ],
+                              fontFeatures: const [FontFeature.tabularFigures()],
                             ),
                           )
                         : Container(
@@ -499,6 +572,7 @@ class PlaybackOverlayProgressTimeLayer extends ConsumerWidget {
                                   11 * controlsScale,
                                 ),
                                 fontWeight: FontWeight.bold,
+                                fontFeatures: const [FontFeature.tabularFigures()],
                               ),
                             ),
                           ),

@@ -1123,6 +1123,12 @@ class PlaybackControls extends ConsumerWidget {
               mainControlsRow,
             ],
           ),
+          SizedBox(
+            height: 6.0 * controlsScale,
+          ),
+          PlaybackAudioInfoLabel(
+            controlsScale: controlsScale,
+          ),
         ],
       );
     }

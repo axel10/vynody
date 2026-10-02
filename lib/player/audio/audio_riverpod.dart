@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:path/path.dart' as p;
 import 'package:audio_core/audio_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -283,3 +284,109 @@ final audioCurrentVisualizerOptionsProvider =
 final songMetadataProvider = StreamProvider.family<SongMetadata?, String>((ref, path) {
   return MetadataDatabase().watchSongMetadata(path);
 });
+
+final currentAudioDetailsProvider = FutureProvider<AudioDetails?>((ref) async {
+  final currentMusic = ref.watch(audioCurrentMusicProvider);
+  if (currentMusic == null) return null;
+  final audioService = ref.watch(audioServiceProvider);
+  try {
+    final details = await audioService.getAudioDetails(
+      path: currentMusic.path,
+      fallbackMediaUri: currentMusic.name,
+    );
+    var formatName = details.formatName.trim();
+    var codecName = details.codecName.trim();
+    if (formatName.toLowerCase() == 'cache' || formatName.toLowerCase() == 'tmp') {
+      formatName = '';
+    }
+    if (codecName.toLowerCase() == 'cache' || codecName.toLowerCase() == 'tmp') {
+      codecName = '';
+    }
+
+    if (formatName.isEmpty || codecName.isEmpty) {
+      var ext = p.extension(currentMusic.name).replaceAll('.', '').toLowerCase();
+      if (ext.contains('?')) ext = ext.split('?').first;
+      if (ext == 'cache' || ext == 'tmp') ext = '';
+      if (ext.isNotEmpty) {
+        if (formatName.isEmpty) {
+          formatName = (ext == 'mpeg') ? 'mp3' : (ext == 'mp4' ? 'm4a' : ext);
+        }
+        if (codecName.isEmpty) {
+          if (ext == 'mp3' || ext == 'mpeg') {
+            codecName = 'mp3';
+          } else if (ext == 'm4a' || ext == 'mp4') {
+            codecName = 'aac';
+          } else {
+            codecName = ext;
+          }
+        }
+      }
+    }
+
+    return details.copyWith(
+      formatName: formatName,
+      codecName: codecName,
+    );
+  } catch (_) {
+    var ext = p.extension(currentMusic.path).replaceAll('.', '').toLowerCase();
+    if (ext.contains('?')) ext = ext.split('?').first;
+    if (ext.isEmpty || ext == 'cache' || ext == 'tmp') {
+      ext = p.extension(currentMusic.name).replaceAll('.', '').toLowerCase();
+      if (ext.contains('?')) ext = ext.split('?').first;
+    }
+    if (ext == 'cache' || ext == 'tmp') ext = '';
+    final formatName = (ext == 'mpeg') ? 'mp3' : (ext == 'mp4' ? 'm4a' : (ext.isNotEmpty ? ext : ''));
+    String codecName = formatName;
+    if (formatName == 'mp3' || formatName == 'mpeg') {
+      codecName = 'mp3';
+    } else if (formatName == 'm4a' || formatName == 'mp4') {
+      codecName = 'aac';
+    }
+    return AudioDetails(
+      formatName: formatName,
+      codecName: codecName,
+      duration: Duration.zero,
+      bitrate: 0,
+      sampleRate: 0,
+      channels: 0,
+      bitrateMode: '',
+      fileSize: 0,
+    );
+  }
+});
+
+String formatAudioSpec(AudioDetails? details) {
+  if (details == null) return '';
+
+  final parts = <String>[];
+
+  // 1. Format
+  final rawFormat = details.formatName.isNotEmpty
+      ? details.formatName
+      : details.codecName;
+  if (rawFormat.isNotEmpty) {
+    parts.add(rawFormat.toUpperCase());
+  }
+
+  // 2. Bit depth (e.g. 16bit, 24bit)
+  if (details.bitDepth != null && details.bitDepth! > 0) {
+    parts.add('${details.bitDepth}bit');
+  }
+
+  // 3. Sample rate (e.g. 44.1 kHz, 48 kHz, 96 kHz)
+  if (details.sampleRate > 0) {
+    final inKhz = details.sampleRate / 1000.0;
+    final formattedSr = details.sampleRate % 1000 == 0
+        ? inKhz.toInt().toString()
+        : inKhz.toStringAsFixed(1);
+    parts.add('$formattedSr kHz');
+  }
+
+  // 4. Bitrate (e.g. 320 kbps, 1411 kbps)
+  if (details.bitrate > 0) {
+    final kbps = (details.bitrate / 1000).round();
+    parts.add('$kbps kbps');
+  }
+
+  return parts.join(' · ');
+}
