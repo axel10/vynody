@@ -29,6 +29,7 @@ import '../dialogs/sleep_timer_sheet.dart';
 import '../dialogs/playlist_mode_sheet.dart';
 import 'package:vynody/utils/memory_trace.dart';
 import '../widgets/equalizer_panel.dart';
+import '../widgets/app_bottom_sheet.dart';
 import '../widgets/lyrics_task_status_banner.dart';
 import '../widgets/playback_ui_tuning.dart';
 import '../widgets/mini_queue_view.dart';
@@ -311,11 +312,9 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
     await _ensureRegularWindowMode();
     if (!context.mounted) return;
 
-    showModalBottomSheet(
+    showAppAdaptiveModal(
       context: context,
       useRootNavigator: true,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
       builder: (context) => const EqualizerPanel(),
     );
   }

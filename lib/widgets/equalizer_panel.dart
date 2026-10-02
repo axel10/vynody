@@ -60,17 +60,20 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
     final isDark = theme.brightness == Brightness.dark;
     final accentColor = theme.colorScheme.primary;
 
-    return AppBottomSheet(
-      maxWidth: 800,
+    final isDialog = AppAdaptiveSheetScope.isDialogMode(context);
+
+    return AppAdaptiveSheet(
+      sheetMaxWidth: 800,
+      dialogMaxWidth: 760,
       landscapeMaxWidth: 1040,
-      padding: const EdgeInsets.fromLTRB(24, 0, 24, 40),
+      padding: EdgeInsets.fromLTRB(24, isDialog ? 20 : 0, 24, isDialog ? 28 : 40),
       child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 10),
-            _buildHeader(audio, config, l10n),
+            if (!isDialog) const SizedBox(height: 10),
+            _buildHeader(audio, config, l10n, isDialog: isDialog),
             const SizedBox(height: 14),
             _buildPresetBar(
               audio,
@@ -289,8 +292,9 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
   Widget _buildHeader(
     AudioService audio,
     EqualizerConfig config,
-    AppLocalizations l10n,
-  ) {
+    AppLocalizations l10n, {
+    bool isDialog = false,
+  }) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final accentColor = theme.colorScheme.primary;
@@ -298,38 +302,56 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              l10n.equalizer,
-              style: TextStyle(
-                color: isDark ? Colors.white : theme.colorScheme.onSurface,
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.1,
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                l10n.equalizer,
+                style: TextStyle(
+                  color: isDark ? Colors.white : theme.colorScheme.onSurface,
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.1,
+                ),
               ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              config.enabled
-                  ? l10n.equalizerEnabledStatus
-                  : l10n.equalizerDisabledStatus,
-              style: TextStyle(
-                color: isDark
-                    ? Colors.white.withValues(alpha: 0.5)
-                    : theme.colorScheme.onSurfaceVariant
-                        .withValues(alpha: 0.7),
-                fontSize: 12,
+              const SizedBox(height: 2),
+              Text(
+                config.enabled
+                    ? l10n.equalizerEnabledStatus
+                    : l10n.equalizerDisabledStatus,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.5)
+                      : theme.colorScheme.onSurfaceVariant
+                          .withValues(alpha: 0.7),
+                  fontSize: 12,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-        Switch(
-          value: config.enabled,
-          activeThumbColor: accentColor,
-          activeTrackColor: accentColor.withValues(alpha: 0.5),
-          onChanged: (val) => audio.setEqualizerEnabled(val),
+        const SizedBox(width: 8),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Switch(
+              value: config.enabled,
+              activeThumbColor: accentColor,
+              activeTrackColor: accentColor.withValues(alpha: 0.5),
+              onChanged: (val) => audio.setEqualizerEnabled(val),
+            ),
+            if (isDialog) ...[
+              const SizedBox(width: 8),
+              IconButton(
+                icon: const Icon(Icons.close),
+                tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ],
+          ],
         ),
       ],
     );
