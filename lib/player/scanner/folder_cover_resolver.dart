@@ -167,9 +167,12 @@ class FolderCoverResolver {
   }
 
   /// Evaluates representative song for a single folder [folder] synchronously.
+  ///
+  /// When [probeCoverSync] is omitted or null, only checks known in-memory artwork
+  /// attributes to avoid blocking the main UI thread with synchronous file/TagLib I/O.
   static MusicFile? evaluateRepresentativeSongForFolderSync(
     MusicFolder folder, {
-    CoverProbeFunctionSync probeCoverSync = defaultProbeSongHasCoverSync,
+    CoverProbeFunctionSync? probeCoverSync,
   }) {
     if (folder.files.isNotEmpty) {
       final sortedFiles = List<MusicFile>.from(folder.files)
@@ -187,9 +190,11 @@ class FolderCoverResolver {
           continue;
         }
 
-        final hasCover = probeCoverSync(file.path);
-        if (hasCover) {
-          return file;
+        if (probeCoverSync != null) {
+          final hasCover = probeCoverSync(file.path);
+          if (hasCover) {
+            return file;
+          }
         }
       }
     }

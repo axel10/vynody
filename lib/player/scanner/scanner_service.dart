@@ -253,7 +253,6 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     if (cachedMeta != null) {
       final file = _treeBuilder.musicFileFromSongMetadata(cachedMeta);
       folder.representativeSongCache = file;
-      debugPrint('[FolderCover] getRepresentativeSongForFolder hit cachedMeta for ${folder.path} -> ${file.path}');
       return file;
     }
 
@@ -265,7 +264,6 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
         _folderRepresentativeSongs[normalized] = meta;
         final file = _treeBuilder.musicFileFromSongMetadata(meta);
         folder.representativeSongCache = file;
-        debugPrint('[FolderCover] getRepresentativeSongForFolder hit songPath for ${folder.path} -> ${file.path}');
         return file;
       }
       final directSong = folder.files.firstWhereOrNull(
@@ -273,7 +271,6 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       );
       if (directSong != null) {
         folder.representativeSongCache = directSong;
-        debugPrint('[FolderCover] getRepresentativeSongForFolder hit directSong for ${folder.path} -> ${directSong.path}');
         return directSong;
       }
     }
@@ -282,11 +279,9 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     final direct = FolderCoverResolver.evaluateRepresentativeSongForFolderSync(folder);
     if (direct != null) {
       folder.representativeSongCache = direct;
-      debugPrint('[FolderCover] getRepresentativeSongForFolder hit fallback direct for ${folder.path} -> ${direct.path}');
       return direct;
     }
 
-    debugPrint('[FolderCover] getRepresentativeSongForFolder returned null for ${folder.path} (subFolders=${folder.subFolders.length}, files=${folder.files.length})');
     return null;
   }
 
@@ -1954,6 +1949,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
         );
         notifyListeners();
 
+        unawaited(_refreshFolderCoversForRoots(['system']));
         unawaited(_processAndSaveAndroidSongsBackground(keptEntries));
         return;
       }
@@ -2034,6 +2030,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
         );
         notifyListeners();
 
+        unawaited(_refreshFolderCoversForRoots(['system']));
         unawaited(_processAndSaveIosSongsBackground(keptSongs));
       }
     } catch (e) {
@@ -2259,6 +2256,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       songIdOf: (entry) => int.tryParse(entry.id),
       sourceMask: SongSourceFlags.systemMedia,
     );
+    unawaited(_refreshFolderCoversForRoots(['system']));
   }
 
   Future<void> _processAndSaveIosSongsBackground(List<SongModel> songs) async {
@@ -2268,6 +2266,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       songIdOf: (song) => song.id,
       sourceMask: SongSourceFlags.systemMedia,
     );
+    unawaited(_refreshFolderCoversForRoots(['system']));
   }
 
   Future<Map<String, SongMetadata>> _buildScannedMetadataMap<T>(

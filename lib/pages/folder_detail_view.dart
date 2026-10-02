@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
@@ -77,8 +77,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
   List<MusicFile> _matchedSongs = [];
   Timer? _searchDebounce;
   String? _lastHighlightedPath;
-  bool _isCoverVisible = true;
-  bool _showStatusBarOverlay = false;
+  final ValueNotifier<bool> _isCoverVisible = ValueNotifier<bool>(true);
   final ValueNotifier<double> _scrollProgress = ValueNotifier<double>(0.0);
   String? _cachedFolderKey;
   int? _cachedTotalDurationMs;
@@ -166,7 +165,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
     _searchController = TextEditingController();
     final targetOffset = ref.read(scannerServiceProvider).getFolderScrollOffset(_effectiveFolder.path);
     _localScrollController = ScrollController(initialScrollOffset: targetOffset);
-    _isCoverVisible = targetOffset < 160.0;
+    _isCoverVisible.value = targetOffset < 160.0;
     _scrollProgress.value = (targetOffset / 160.0).clamp(0.0, 1.0);
     _localScrollController.addListener(_onScroll);
 
@@ -194,9 +193,6 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
 
   void _onScroll() {
     final offset = _localScrollController.offset;
-    final statusBarHeight = MediaQuery.of(context).padding.top;
-    final headerHeight = 64.0 + statusBarHeight;
-
     ref.read(scannerServiceProvider).setFolderScrollOffset(
       _effectiveFolder.path,
       offset,
@@ -204,30 +200,8 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
     final isVisible = offset < 160.0;
     final progress = (offset / 160.0).clamp(0.0, 1.0);
     _scrollProgress.value = progress;
-    if (isVisible != _isCoverVisible) {
-      setState(() {
-        _isCoverVisible = isVisible;
-      });
-    }
-
-    bool showOverlay = false;
-    if (offset > headerHeight) {
-      final direction = _localScrollController.position.userScrollDirection;
-      if (direction == ScrollDirection.reverse) {
-        showOverlay = true;
-      } else if (direction == ScrollDirection.forward) {
-        showOverlay = false;
-      } else {
-        showOverlay = _showStatusBarOverlay;
-      }
-    } else {
-      showOverlay = false;
-    }
-
-    if (showOverlay != _showStatusBarOverlay) {
-      setState(() {
-        _showStatusBarOverlay = showOverlay;
-      });
+    if (isVisible != _isCoverVisible.value) {
+      _isCoverVisible.value = isVisible;
     }
   }
 
@@ -239,6 +213,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
     _localScrollController.dispose();
     _breadcrumbsScrollController.dispose();
     _scrollProgress.dispose();
+    _isCoverVisible.dispose();
     super.dispose();
   }
 
@@ -425,14 +400,17 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
         physics: const AlwaysScrollableScrollPhysics(
           parent: BouncingScrollPhysics(),
         ),
-        cacheExtent: 1000.0,
+        scrollCacheExtent: const ScrollCacheExtent.pixels(250.0),
         slivers: [
         if (!isPortrait)
           SliverToBoxAdapter(
             child: SizedBox(height: headerHeight),
           ),
         SliverToBoxAdapter(
-          child: FolderHeaderBanner(
+          child: ValueListenableBuilder<bool>(
+            valueListenable: _isCoverVisible,
+            builder: (context, isCoverVisible, _) {
+              return FolderHeaderBanner(
             title: folder.name,
             subtitle: ScannerPathUtils.cleanDisplayPath(folder.path),
             songsCount: folder.allSongs.length,
@@ -516,7 +494,9 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
               });
             },
             heroTag: 'folder-cover-${folder.path}',
-            isHeroModeEnabled: _isCoverVisible,
+            isHeroModeEnabled: isCoverVisible,
+              );
+            },
           ),
         ),
         if (folder.path == 'system' && !hasPermission)

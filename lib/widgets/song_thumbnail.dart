@@ -117,6 +117,7 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
   static final LinkedHashMap<String, String> _remoteUrlCache = LinkedHashMap<String, String>();
   static final LinkedHashMap<String, String> _remoteThumbnailCache = LinkedHashMap<String, String>();
   static final Set<String> _failedRemoteUrls = <String>{};
+  static final Set<String> _verifiedExistingPaths = <String>{};
 
   @override
   void initState() {
@@ -129,17 +130,23 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
       final existingPath = widget.thumbnailPath ??
           ref.read(scannerServiceProvider).metadataMap[widget.path]?.thumbnailPath ??
           _artworkFilePath;
-      if (existingPath != null && existingPath.isNotEmpty && File(existingPath).existsSync()) {
-        _artworkFilePath = existingPath;
-        _artworkQueried = true;
-        return;
+      if (existingPath != null && existingPath.isNotEmpty) {
+        if (_verifiedExistingPaths.contains(existingPath) || File(existingPath).existsSync()) {
+          _verifiedExistingPaths.add(existingPath);
+          _artworkFilePath = existingPath;
+          _artworkQueried = true;
+          return;
+        }
       }
       if (_remoteThumbnailCache.containsKey(widget.path)) {
         final cached = _remoteThumbnailCache[widget.path];
-        if (cached != null && cached.isNotEmpty && File(cached).existsSync()) {
-          _artworkFilePath = cached;
-          _artworkQueried = true;
-          return;
+        if (cached != null && cached.isNotEmpty) {
+          if (_verifiedExistingPaths.contains(cached) || File(cached).existsSync()) {
+            _verifiedExistingPaths.add(cached);
+            _artworkFilePath = cached;
+            _artworkQueried = true;
+            return;
+          }
         }
       }
 
@@ -161,10 +168,16 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
     final existingPath = rawExisting != null
         ? ScannerPathUtils.resolveIosSandboxPath(rawExisting)
         : null;
-    if (existingPath != null && existingPath.isNotEmpty && File(existingPath).existsSync()) {
-      _artworkFilePath = existingPath;
-      _artworkQueried = true;
-      return;
+    if (existingPath != null && existingPath.isNotEmpty) {
+      if (_verifiedExistingPaths.contains(existingPath) || File(existingPath).existsSync()) {
+        _verifiedExistingPaths.add(existingPath);
+        if (_verifiedExistingPaths.length > 2000) {
+          _verifiedExistingPaths.clear();
+        }
+        _artworkFilePath = existingPath;
+        _artworkQueried = true;
+        return;
+      }
     }
     if (Platform.isAndroid && widget.id != null) {
       final cacheKey = '${widget.id}_$_bucketedSize';
