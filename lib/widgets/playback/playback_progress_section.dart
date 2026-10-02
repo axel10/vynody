@@ -235,13 +235,9 @@ class PlaybackProgressSection extends ConsumerWidget {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(100),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.1),
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
+                      boxShadow: PlaybackHeroCardUiTuning.waveformOverlayTimeCapsuleShadow(
+                        controlsScale,
+                      ),
                     ),
                     child: Text(
                       formatDuration(overridePosition ?? position),
@@ -275,13 +271,9 @@ class PlaybackProgressSection extends ConsumerWidget {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(100),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.1),
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
+                      boxShadow: PlaybackHeroCardUiTuning.waveformOverlayTimeCapsuleShadow(
+                        controlsScale,
+                      ),
                     ),
                     child: Text(
                       formatDuration(duration),
@@ -448,13 +440,9 @@ class PlaybackOverlayProgressTimeLayer extends ConsumerWidget {
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(100),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.1),
-                                  blurRadius: 4,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
+                              boxShadow: PlaybackHeroCardUiTuning.waveformOverlayTimeCapsuleShadow(
+                                controlsScale,
+                              ),
                             ),
                             child: Text(
                               formatDuration(overridePosition ?? position),
@@ -497,13 +485,9 @@ class PlaybackOverlayProgressTimeLayer extends ConsumerWidget {
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(100),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.1),
-                                  blurRadius: 4,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
+                              boxShadow: PlaybackHeroCardUiTuning.waveformOverlayTimeCapsuleShadow(
+                                controlsScale,
+                              ),
                             ),
                             child: Text(
                               formatDuration(duration),

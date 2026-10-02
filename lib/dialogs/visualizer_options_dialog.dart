@@ -85,7 +85,6 @@ class VisualizerOptionsDialog extends ConsumerWidget {
     final isAuto = settings.isAutoMode;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
     final bottomInset = MediaQuery.paddingOf(context).bottom;
 
     return SingleChildScrollView(
@@ -95,10 +94,11 @@ class VisualizerOptionsDialog extends ConsumerWidget {
         children: [
           _buildSectionCard(
             context: context,
+            padding: EdgeInsets.zero,
             child: SwitchListTile.adaptive(
-              contentPadding: isPortrait ? EdgeInsets.zero : const EdgeInsets.symmetric(horizontal: 12),
-              shape: isPortrait ? null : RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18),
               ),
               title: Text(
                 l10n.autoMode,
@@ -692,15 +692,15 @@ class VisualizerOptionsDialog extends ConsumerWidget {
           const SizedBox(height: 12),
           _buildSectionCard(
             context: context,
+            padding: EdgeInsets.zero,
             child: SwitchListTile(
-              contentPadding: isPortrait
-                  ? EdgeInsets.zero
-                  : const EdgeInsets.symmetric(horizontal: 12),
-              shape: isPortrait
-                  ? null
-                  : RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 4,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18),
+              ),
               title: Text(
                 l10n.expandPortraitLyricsControlsOnScroll,
                 style: TextStyle(

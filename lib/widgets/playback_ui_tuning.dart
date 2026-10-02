@@ -198,6 +198,94 @@ class PlaybackHeroCardUiTuning {
   static const double waveformBarWidthLandscape = 4.5; // 横屏下波形柱子宽度
   static const double waveformBarGapLandscape = 2; // 横屏下波形柱子间隙
 
+  // 竖屏滚动波形进度条上悬浮按钮及时间胶囊阴影参数 (Portrait scrolling waveform overlay shadow tuning)
+  // 整体阴影不透明度总控系数 (Master shadow opacity multiplier: 0.0 为完全无投影, 1.0 为默认强度)
+  static const double waveformOverlayShadowMasterOpacity = 0.7;
+
+  // 次级按钮阴影参数 (上一曲/下一曲/功能键)
+  static const double waveformOverlaySecondaryAmbientShadowAlpha = 0.28;
+  static const double waveformOverlaySecondaryAmbientBlurRadius = 10.0;
+  static const double waveformOverlaySecondaryAmbientSpreadRadius = 1.0;
+  static const double waveformOverlaySecondaryAmbientOffsetY = 4.0;
+  static const double waveformOverlaySecondaryKeyShadowAlpha = 0.16;
+  static const double waveformOverlaySecondaryKeyBlurRadius = 3.0;
+  static const double waveformOverlaySecondaryKeyOffsetY = 1.0;
+
+  // 主播放/暂停按钮阴影参数
+  static const double waveformOverlayPlayAmbientShadowAlpha = 0.35;
+  static const double waveformOverlayPlayAmbientBlurRadius = 16.0;
+  static const double waveformOverlayPlayAmbientSpreadRadius = 2.0;
+  static const double waveformOverlayPlayAmbientOffsetY = 6.0;
+  static const double waveformOverlayPlayKeyShadowAlpha = 0.20;
+  static const double waveformOverlayPlayKeyBlurRadius = 4.0;
+  static const double waveformOverlayPlayKeyOffsetY = 2.0;
+
+  // 时间胶囊阴影参数
+  static const double waveformOverlayTimeCapsuleAmbientShadowAlpha = 0.22;
+  static const double waveformOverlayTimeCapsuleAmbientBlurRadius = 8.0;
+  static const double waveformOverlayTimeCapsuleAmbientSpreadRadius = 0.5;
+  static const double waveformOverlayTimeCapsuleAmbientOffsetY = 3.0;
+  static const double waveformOverlayTimeCapsuleKeyShadowAlpha = 0.12;
+  static const double waveformOverlayTimeCapsuleKeyBlurRadius = 2.0;
+  static const double waveformOverlayTimeCapsuleKeyOffsetY = 1.0;
+
+  /// 次级按钮双层阴影生成方法
+  static List<BoxShadow> waveformOverlaySecondaryButtonShadow(double controlsScale) => [
+    BoxShadow(
+      color: Colors.black.withValues(
+        alpha: (waveformOverlaySecondaryAmbientShadowAlpha * waveformOverlayShadowMasterOpacity).clamp(0.0, 1.0),
+      ),
+      blurRadius: waveformOverlaySecondaryAmbientBlurRadius * controlsScale,
+      spreadRadius: waveformOverlaySecondaryAmbientSpreadRadius * controlsScale,
+      offset: Offset(0, waveformOverlaySecondaryAmbientOffsetY * controlsScale),
+    ),
+    BoxShadow(
+      color: Colors.black.withValues(
+        alpha: (waveformOverlaySecondaryKeyShadowAlpha * waveformOverlayShadowMasterOpacity).clamp(0.0, 1.0),
+      ),
+      blurRadius: waveformOverlaySecondaryKeyBlurRadius * controlsScale,
+      offset: Offset(0, waveformOverlaySecondaryKeyOffsetY * controlsScale),
+    ),
+  ];
+
+  /// 主播放/暂停按钮双层阴影生成方法
+  static List<BoxShadow> waveformOverlayPlayButtonShadow(double controlsScale) => [
+    BoxShadow(
+      color: Colors.black.withValues(
+        alpha: (waveformOverlayPlayAmbientShadowAlpha * waveformOverlayShadowMasterOpacity).clamp(0.0, 1.0),
+      ),
+      blurRadius: waveformOverlayPlayAmbientBlurRadius * controlsScale,
+      spreadRadius: waveformOverlayPlayAmbientSpreadRadius * controlsScale,
+      offset: Offset(0, waveformOverlayPlayAmbientOffsetY * controlsScale),
+    ),
+    BoxShadow(
+      color: Colors.black.withValues(
+        alpha: (waveformOverlayPlayKeyShadowAlpha * waveformOverlayShadowMasterOpacity).clamp(0.0, 1.0),
+      ),
+      blurRadius: waveformOverlayPlayKeyBlurRadius * controlsScale,
+      offset: Offset(0, waveformOverlayPlayKeyOffsetY * controlsScale),
+    ),
+  ];
+
+  /// 时间胶囊双层阴影生成方法
+  static List<BoxShadow> waveformOverlayTimeCapsuleShadow(double controlsScale) => [
+    BoxShadow(
+      color: Colors.black.withValues(
+        alpha: (waveformOverlayTimeCapsuleAmbientShadowAlpha * waveformOverlayShadowMasterOpacity).clamp(0.0, 1.0),
+      ),
+      blurRadius: waveformOverlayTimeCapsuleAmbientBlurRadius * controlsScale,
+      spreadRadius: waveformOverlayTimeCapsuleAmbientSpreadRadius * controlsScale,
+      offset: Offset(0, waveformOverlayTimeCapsuleAmbientOffsetY * controlsScale),
+    ),
+    BoxShadow(
+      color: Colors.black.withValues(
+        alpha: (waveformOverlayTimeCapsuleKeyShadowAlpha * waveformOverlayShadowMasterOpacity).clamp(0.0, 1.0),
+      ),
+      blurRadius: waveformOverlayTimeCapsuleKeyBlurRadius * controlsScale,
+      offset: Offset(0, waveformOverlayTimeCapsuleKeyOffsetY * controlsScale),
+    ),
+  ];
+
   // 控件区理想高度计算及缩放基准 (Ideal height calculation and scaling base)
   // 减小此值会让按钮和文字在相同屏幕宽度下显得更大
   static const double pControlsScaleBase = 375.0; // 竖屏缩放基准

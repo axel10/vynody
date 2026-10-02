@@ -789,13 +789,9 @@ class PlaybackControls extends ConsumerWidget {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: Colors.white,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.12),
-                blurRadius: 10 * controlsScale,
-                offset: const Offset(0, 3),
-              ),
-            ],
+            boxShadow: PlaybackHeroCardUiTuning.waveformOverlaySecondaryButtonShadow(
+              controlsScale,
+            ),
           ),
           child: IconButton(
             padding: EdgeInsets.zero,
@@ -1019,13 +1015,9 @@ class PlaybackControls extends ConsumerWidget {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: Colors.white,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.12),
-                      blurRadius: 10 * controlsScale,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
+                  boxShadow: PlaybackHeroCardUiTuning.waveformOverlayPlayButtonShadow(
+                    controlsScale,
+                  ),
                 ),
                 child: AnimatedPlayPauseButton(
                   isPlaying: isPlaying,
