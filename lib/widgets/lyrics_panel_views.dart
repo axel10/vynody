@@ -589,6 +589,7 @@ class _LyricsPanelTimedLyricsViewState
 
                               final bool shouldBlur =
                                   widget.hasTimedLyrics &&
+                                  widget.activeIndex >= 0 &&
                                   widget.isFocusMode &&
                                   !isActive &&
                                   !isHovered &&
@@ -695,6 +696,7 @@ class _LyricsPanelTimedLyricsViewState
 
                               final Widget resultWidget;
                               final bool isInStaggerRange =
+                                  !widget.isGenerating &&
                                   widget.isFocusMode &&
                                   index >= widget.firstVisibleIndex - 10 &&
                                   index <= widget.firstVisibleIndex + 30;
