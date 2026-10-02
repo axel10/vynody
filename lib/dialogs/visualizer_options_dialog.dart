@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:audio_core/audio_core.dart';
@@ -13,6 +14,7 @@ import 'package:vynody/player/settings/settings_service.dart';
 import 'package:vynody/player/pro/pro_license_service.dart';
 import 'package:vynody/player/pro/pro_models.dart';
 import 'package:vynody/widgets/pro/pro_badge.dart';
+import '../widgets/app_bottom_sheet.dart';
 
 import 'playback_button_layout_dialog.dart';
 import 'progress_bar_style_dialog.dart';
@@ -37,64 +39,85 @@ class VisualizerOptionsDialog extends ConsumerWidget {
       child: StatefulBuilder(
         builder: (context, setDialogState) {
           final l10n = AppLocalizations.of(context)!;
-          final screenWidth = MediaQuery.of(context).size.width;
-          final double horizontalInset = (screenWidth * 0.05).clamp(12.0, 40.0);
+          final media = MediaQuery.of(context);
+          final isDialog = AppAdaptiveSheetScope.isDialogMode(context);
 
-          return AlertDialog(
-            backgroundColor: isDark ? const Color(0xFF101114) : theme.colorScheme.surface,
-            surfaceTintColor: Colors.transparent,
-            insetPadding: EdgeInsets.symmetric(horizontal: horizontalInset, vertical: 24.0),
-            titlePadding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
-            contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 20),
-            title: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  l10n.visualizerSettings,
-                  style: TextStyle(
-                    color: isDark ? Colors.white : theme.colorScheme.onSurface,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 14),
-                TabBar(
-                  tabs: [
-                    Tab(text: l10n.algorithm),
-                    Tab(text: l10n.appearance),
-                    Tab(text: l10n.buttonLayoutSettings),
-                  ],
-                  labelColor: theme.colorScheme.primary,
-                  unselectedLabelColor: isDark ? Colors.white70 : theme.colorScheme.onSurfaceVariant,
-                  indicatorColor: theme.colorScheme.primary,
-                  dividerColor: Colors.transparent,
-                ),
-              ],
+          final effectiveMaxHeight = media.size.height * 0.85;
+          final targetHeight = isDialog
+              ? math.min(580.0, effectiveMaxHeight - 48.0)
+              : math.min(720.0, effectiveMaxHeight - 24.0);
+          final sheetHeight = math.max(320.0, targetHeight);
+
+          return AppAdaptiveSheet(
+            sheetMaxWidth: 800,
+            dialogMaxWidth: 740,
+            landscapeMaxWidth: 1000,
+            maxHeightFactor: 0.9,
+            padding: EdgeInsets.fromLTRB(
+              24,
+              isDialog ? 20 : 0,
+              24,
+              isDialog ? 20 : 28,
             ),
-            content: SizedBox(
-              width: 660,
-              height: 520,
-              child: TabBarView(
+            child: SizedBox(
+              height: sheetHeight,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _buildAlgorithmTab(context, ref, setDialogState),
-                  _buildAppearanceTab(context, ref, settings, setDialogState),
-                  PlaybackButtonLayoutView(
-                    settings: settings,
-                    onChanged: () => setDialogState(() {}),
+                  if (!isDialog) const SizedBox(height: 4),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          l10n.visualizerSettings,
+                          style: TextStyle(
+                            color: isDark ? Colors.white : theme.colorScheme.onSurface,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.8,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  TabBar(
+                    tabs: [
+                      Tab(text: l10n.algorithm),
+                      Tab(text: l10n.appearance),
+                      Tab(text: l10n.buttonLayoutSettings),
+                    ],
+                    labelColor: theme.colorScheme.primary,
+                    unselectedLabelColor: isDark
+                        ? Colors.white70
+                        : theme.colorScheme.onSurfaceVariant,
+                    indicatorColor: theme.colorScheme.primary,
+                    dividerColor: isDark ? Colors.white10 : Colors.black12,
+                  ),
+                  const SizedBox(height: 12),
+                  Expanded(
+                    child: TabBarView(
+                      children: [
+                        _buildAlgorithmTab(context, ref, setDialogState),
+                        _buildAppearanceTab(context, ref, settings, setDialogState),
+                        PlaybackButtonLayoutView(
+                          settings: settings,
+                          onChanged: () => setDialogState(() {}),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text(
-                  AppLocalizations.of(context)!.confirm,
-                  style: TextStyle(color: theme.colorScheme.primary),
-                ),
-              ),
-            ],
           );
         },
       ),
@@ -1675,18 +1698,22 @@ class VisualizerOptionsDialog extends ConsumerWidget {
               : Colors.black.withValues(alpha: 0.06),
         ),
       ),
-      child: child,
+      child: Material(
+        type: MaterialType.transparency,
+        child: child,
+      ),
     );
   }
 }
 
-void showVisualizerOptionsDialog(
+Future<void> showVisualizerOptionsDialog(
   BuildContext context,
   AudioService audio,
   SettingsService settings,
 ) {
-  showDialog(
+  return showAppAdaptiveModal(
     context: context,
+    useRootNavigator: true,
     builder: (context) =>
         VisualizerOptionsDialog(audio: audio, settings: settings),
   );
