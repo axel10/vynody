@@ -533,8 +533,11 @@ class AppAdaptiveSheet extends StatelessWidget {
       resolvedHeight = sheetHeight;
     } else if (expandHeight) {
       resolvedHeight = isDialog
-          ? math.min(600.0, math.max(320.0, effectiveMaxHeight - 48.0))
-          : math.min(560.0, math.max(360.0, math.min(effectiveMaxHeight - 24.0, media.size.height * 0.72)));
+          ? math.min(640.0, math.max(320.0, effectiveMaxHeight - 48.0))
+          : math.min(
+              780.0,
+              math.max(360.0, math.min(effectiveMaxHeight - 24.0, media.size.height * 0.80)),
+            );
     }
     if (resolvedHeight != null) {
       resolvedHeight = math.min(resolvedHeight, effectiveMaxHeight);
