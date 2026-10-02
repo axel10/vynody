@@ -177,8 +177,8 @@ class PlaybackHeroCardUiTuning {
   static const double topButtonsHorizontalPadding = 0.0; // 顶部按钮行的水平内边距
   static const double topButtonsIconSize = 22.0; // 顶部按钮图标的基础大小
   static const double topButtonsInnerGap = 8.0; // 按钮之间的间距
-
-  static const double waveformOverlayHeight = 200.0;
+  // 竖屏下滚动波形进度条高度
+  static const double waveformOverlayHeight = 180.0;
   static const double waveformOverlayTimeSide = 20.0;
   static const double waveformOverlayTimeBottom = 10.0;
   static const double waveformStaticPortraitHeight = 52.0; // 竖屏下静态全景波形进度条的高度
@@ -195,7 +195,7 @@ class PlaybackHeroCardUiTuning {
   static const double waveformBarWidthLandscape = 4.5; // 横屏下波形柱子宽度
   static const double waveformBarGapLandscape = 2; // 横屏下波形柱子间隙
   static const double waveformOverlayAudioInfoGap = 6.0; // 竖屏滚动波形进度条底部音频信息间隙
-  static const double waveformOverlayAudioInfoHeight = 16.0; // 竖屏滚动波形进度条底部音频信息高度
+  static const double waveformOverlayAudioInfoHeight = 12.0; // 竖屏滚动波形进度条底部音频信息高度
 
   // 竖屏滚动波形进度条上悬浮按钮及时间胶囊阴影参数 (Portrait scrolling waveform overlay shadow tuning)
   // 整体阴影不透明度总控系数 (Master shadow opacity multiplier: 0.0 为完全无投影, 1.0 为默认强度)
