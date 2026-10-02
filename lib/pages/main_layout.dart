@@ -49,26 +49,6 @@ import 'package:vynody/utils/app_snack_bar.dart';
 
 int _currentBaseTabIndex = 0;
 
-class _PlaybackEnterSlideAnimation extends Animation<Offset>
-    with AnimationWithParentMixin<double> {
-  _PlaybackEnterSlideAnimation(this.parent);
-
-  @override
-  final Animation<double> parent;
-
-  @override
-  Offset get value {
-    // 退出离开播放页时（reverse 状态）不执行下沉位移，保持原地淡出，
-    // 避免与封面 Hero 飞回收缩动画产生视觉撕裂与剥离割裂感。
-    if (parent.status == AnimationStatus.reverse ||
-        parent.status == AnimationStatus.dismissed) {
-      return Offset.zero;
-    }
-    final progress = Curves.easeOutCubic.transform(parent.value);
-    return Offset(0.0, 1.0 - progress);
-  }
-}
-
 Route<void> buildMainLayoutRoute({
   required List<String> args,
   required int initialIndex,
@@ -78,22 +58,27 @@ Route<void> buildMainLayoutRoute({
     settings: RouteSettings(name: 'main-tab-$initialIndex'),
     pageBuilder: (context, animation, secondaryAnimation) =>
         MainLayout(args: args, initialIndex: initialIndex),
-    transitionDuration: const Duration(milliseconds: 350),
-    reverseTransitionDuration: const Duration(milliseconds: 350),
+    transitionDuration: const Duration(milliseconds: 320),
+    reverseTransitionDuration: const Duration(milliseconds: 280),
     transitionsBuilder: (context, animation, secondaryAnimation, child) {
       if (initialIndex == 1) {
-        final slideAnimation = _PlaybackEnterSlideAnimation(animation);
-        final fadeCurvedAnimation = CurvedAnimation(
-          parent: animation,
-          curve: Curves.easeOut,
-          reverseCurve: Curves.easeOutCubic,
+        // 进入播放页：自底向上滑入；退出播放页：自顶向下滑出收起
+        // 注意：在 reverse (pop) 期间，Flutter 传入 animation 的 value 是从 1.0 递减到 0.0。
+        // 若 reverseCurve 设为 easeIn，会导致动画前半段极快、后半段在屏幕底端近乎停滞并在路由销毁时突兀消失；
+        // 使用 easeOutCubic 能让退场动画在后半段保持充足动量完整滑出视口。
+        final slideAnimation = Tween<Offset>(
+          begin: const Offset(0.0, 1.0),
+          end: Offset.zero,
+        ).animate(
+          CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOutCubic,
+            reverseCurve: Curves.easeOutCubic,
+          ),
         );
         return SlideTransition(
           position: slideAnimation,
-          child: FadeTransition(
-            opacity: Tween<double>(begin: 0.0, end: 1.0).animate(fadeCurvedAnimation),
-            child: child,
-          ),
+          child: child,
         );
       } else if (fromIndex == 1) {
         final curvedAnimation = CurvedAnimation(
@@ -684,7 +669,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
       return;
     }
 
-    // 涉及播放页（进入/退出播放页 index: 1）时，调用 navigateToMainTab 以完整保留 Hero 封面放大与路由转场动画
+    // 涉及播放页（进入/退出播放页 index: 1）时，调用 navigateToMainTab 以执行上下平移路由转场动画
     if (_currentIndex != 1) {
       ref.read(previousMainTabIndexProvider.notifier).setIndex(_currentIndex);
     }
