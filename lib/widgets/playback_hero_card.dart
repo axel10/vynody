@@ -426,7 +426,6 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard> {
                       tLand: tLand,
                       progressBarStyle: progressBarStyle,
                       isSmallWindow: isSmallWindow,
-                      lyricsStyle: settings.lyricsStyle,
                       collapseButtonsInLandscapeLyrics:
                           collapseButtonsInLandscapeLyrics,
                       uiScale: settings.uiScale,
@@ -444,7 +443,6 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard> {
                       tLand: tLand,
                       progressBarStyle: progressBarStyle,
                       isSmallWindow: isSmallWindow,
-                      lyricsStyle: settings.lyricsStyle,
                       collapseButtonsInLandscapeLyrics:
                           collapseButtonsInLandscapeLyrics,
                       uiScale: settings.uiScale,
@@ -481,7 +479,6 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard> {
                       onPointerSignal: (pointerSignal) {
                         if (!effectiveIsLandscape &&
                             effectiveIsLyricsMode &&
-                            settings.lyricsStyle == LyricsStyle.apple &&
                             expandPortraitLyricsControlsOnScroll) {
                           if (pointerSignal is PointerScrollEvent) {
                             _handleLyricsScrollDelta(
@@ -493,7 +490,6 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard> {
                         onNotification: (notification) {
                           if (!effectiveIsLandscape &&
                               effectiveIsLyricsMode &&
-                              settings.lyricsStyle == LyricsStyle.apple &&
                               expandPortraitLyricsControlsOnScroll) {
                             if (notification is ScrollStartNotification) {
                               _lyricsScrollDeltaAccumulator = 0.0;
@@ -838,7 +834,6 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard> {
     required double tLand,
     required ProgressBarStyle progressBarStyle,
     required bool isSmallWindow,
-    required LyricsStyle lyricsStyle,
     bool collapseButtonsInLandscapeLyrics = true,
     double uiScale = 1.0,
     double portraitControlsExpandProgress = 0.0,
@@ -1040,11 +1035,7 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard> {
         ? (1.0 + (width - 1920.0) * 0.00018).clamp(1.0, 1.35)
         : 1.0;
 
-    final double wFactor = ((width - 960.0) / 720.0).clamp(0.0, 1.0);
-    final double hFactor = ((height - 580.0) / 520.0).clamp(0.0, 1.0);
-    final double spaceFactor = lyricsStyle == LyricsStyle.apple
-        ? wFactor
-        : math.min(wFactor, hFactor);
+    final double spaceFactor = wFactor;
 
     final double lLyricsPreferredCoverSide =
         (PlaybackHeroCardUiTuning.lLyricsPreferredCoverSide +
@@ -1053,11 +1044,7 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard> {
         math.max(1.0, uiScale * 0.95);
     final double lLyricsSpaceControlsScale = collapseButtonsInLandscapeLyrics
         ? (highResControlsScale *
-            (PlaybackHeroCardUiTuning.lLyricsBaseControlsScale +
-                (lyricsStyle == LyricsStyle.apple
-                    ? 0.0
-                    : spaceFactor *
-                        PlaybackHeroCardUiTuning.lLyricsMaxControlsExpansion)) *
+            PlaybackHeroCardUiTuning.lLyricsBaseControlsScale *
             uiScale)
         : lNormalControlsScale;
 
@@ -1070,31 +1057,13 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard> {
       height - minVerticalReservedSpace,
     );
 
-    final double lLyricsColumnWidth;
-    final double lLyricsLyricsLeft;
-    final double lLyricsLyricsWidth;
-
-    if (lyricsStyle == LyricsStyle.apple) {
-      final double rightRatio =
-          PlaybackHeroCardUiTuning.appleLyricsRightPanelRatio;
-      final double leftRatio = 1.0 - rightRatio;
-      lLyricsColumnWidth = width * leftRatio;
-      lLyricsLyricsLeft = width * leftRatio + 24.0;
-      lLyricsLyricsWidth = math.max(0.0, width * rightRatio - 24.0 - 48.0);
-    } else {
-      final double lLyricsMaxColumnWidth = math.min(width * 0.45, 800.0);
-      final double targetColumnWidth =
-          math.max(width * 0.22, 380.0) * math.max(1.0, uiScale * 0.85);
-      lLyricsColumnWidth = targetColumnWidth.clamp(
-        math.min(380.0, lLyricsMaxColumnWidth),
-        lLyricsMaxColumnWidth,
-      );
-      lLyricsLyricsLeft =
-          lLyricsOuterLeftPadding +
-          lLyricsColumnWidth +
-          lLyricsInnerLeftPadding;
-      lLyricsLyricsWidth = math.max(0.0, width - lLyricsLyricsLeft - 32.0);
-    }
+    final double rightRatio =
+        PlaybackHeroCardUiTuning.appleLyricsRightPanelRatio;
+    final double leftRatio = 1.0 - rightRatio;
+    final double lLyricsColumnWidth = width * leftRatio;
+    final double lLyricsLyricsLeft = width * leftRatio + 24.0;
+    final double lLyricsLyricsWidth =
+        math.max(0.0, width * rightRatio - 24.0 - 48.0);
 
     final double lLyricsInfoControlsScale = lLyricsSpaceControlsScale;
     final double lLyricsInfoHeight =
@@ -1134,9 +1103,7 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard> {
         lLyricsSpaceControlsScale;
 
     final double maxHorizontalSpace =
-        lyricsStyle == LyricsStyle.apple
-            ? math.max(120.0, lLyricsColumnWidth - 48.0)
-            : lLyricsColumnWidth;
+        math.max(120.0, lLyricsColumnWidth - 48.0);
 
     final double nonCoverHeight =
         lLyricsInfoHeight +
@@ -1242,11 +1209,9 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard> {
     final double lLyricsInfoLeft;
     final double lLyricsControlsLeft;
 
-    final double leftColumnStart =
-        lyricsStyle == LyricsStyle.apple ? 0.0 : lLyricsOuterLeftPadding;
+    const double leftColumnStart = 0.0;
     final double leftAreaCenter = leftColumnStart + lLyricsColumnWidth / 2;
-    final double minLeftMargin =
-        lyricsStyle == LyricsStyle.apple ? 24.0 : lLyricsOuterLeftPadding;
+    const double minLeftMargin = 24.0;
 
     lLyricsCoverLeft = (leftAreaCenter - lLyricsCoverSide / 2).clamp(
       minLeftMargin,

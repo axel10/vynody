@@ -12,7 +12,8 @@ import '../player/settings/settings_service.dart';
 Future<void> showLyricsFontScaleDialog(
   BuildContext context,
   WidgetRef ref, {
-  required LyricsStyle lyricsStyle,
+  @Deprecated('Traditional lyrics style has been removed.')
+  LyricsStyle? lyricsStyle,
 }) async {
   final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
 
@@ -46,9 +47,7 @@ Future<void> showLyricsFontScaleDialog(
                 child: Consumer(
                   builder: (context, ref, child) {
                     final settings = ref.watch(settingsServiceProvider);
-                    final currentScale = lyricsStyle == LyricsStyle.apple
-                        ? settings.lyricsFontScaleApple
-                        : settings.lyricsFontScaleTraditional;
+                    final currentScale = settings.lyricsFontScale;
                     final l10n = AppLocalizations.of(context)!;
 
                     return Row(
@@ -59,11 +58,7 @@ Future<void> showLyricsFontScaleDialog(
                           child: IconButton(
                             icon: const Icon(Icons.format_size_rounded, color: Colors.white, size: 20),
                             onPressed: () {
-                              if (lyricsStyle == LyricsStyle.apple) {
-                                ref.read(settingsServiceProvider).resetLyricsFontScaleApple();
-                              } else {
-                                ref.read(settingsServiceProvider).resetLyricsFontScaleTraditional();
-                              }
+                              ref.read(settingsServiceProvider).resetLyricsFontScale();
                             },
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(),
@@ -89,11 +84,7 @@ Future<void> showLyricsFontScaleDialog(
                               onChanged: (value) {
                                 // Round to one decimal place to avoid floating point precision issues
                                 final rounded = (value * 10).round() / 10.0;
-                                if (lyricsStyle == LyricsStyle.apple) {
-                                  ref.read(settingsServiceProvider).lyricsFontScaleApple = rounded;
-                                } else {
-                                  ref.read(settingsServiceProvider).lyricsFontScaleTraditional = rounded;
-                                }
+                                ref.read(settingsServiceProvider).lyricsFontScale = rounded;
                               },
                             ),
                           ),

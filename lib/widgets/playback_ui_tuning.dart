@@ -31,7 +31,6 @@ class PlaybackPageUiTuning {
   static const double portraitTopPadding = 8.0;
   static const double lyricsTopPadding = 8.0;
 
-  static const double traditionalLyricsVerticalPadding = 20.0; // 传统歌词面板每行歌词之间的间距
   static const double appleLyricsVerticalPadding = 10.0; // 苹果样式歌词面板每行歌词之间的间距
   static const double appleLyricsInactiveOpacity = 0.40; // 苹果样式歌词非当前行不透明度（包含翻译及逐字歌词未唱到部分）
   static const double appleLyricsActiveTranslationOpacity = 0.80; // 苹果样式逐字歌词当前行翻译的不透明度（柔和高亮，与主歌词流光层次分明）
@@ -52,7 +51,6 @@ class PlaybackPageUiTuning {
   static const double appleLyricsScrollOffsetFactor = 10.0; // 滚动对齐偏移系数 (乘以 lyricsFontScale)
   static const double appleLyricsTopFadeHeightFactor = 12.0; // 顶部渐变遮罩高度系数 (乘以 lyricsFontScale)
   static const double appleLyricsBottomFadeLength = 120.0; // 苹果样式歌词底部渐变过渡区长度
-  static const double traditionalLyricsBottomFadeLength = 80.0; // 传统样式歌词底部渐变过渡区长度
 
   static double appleLyricsTopPadding(double lyricsFontScale, {bool isSmallWin = false}) {
     return appleLyricsTopPaddingFactor * lyricsFontScale;
@@ -83,7 +81,6 @@ class PlaybackPageUiTuning {
   static const double lyricsPanelWidthReference = 360.0;
   static const double lyricsPanelWidthGrowFactor = 0.0015;
   static const double lyricsPanelWidthShrinkFactor = 0.0025;
-  static const double traditionalLyricsMaxWidthClamp = 560.0; // 传统歌词模式下用于计算字体缩放的最大面板宽度
   static const double appleLyricsMaxWidthClamp = 560.0; // 苹果样式歌词模式下用于计算字体缩放的最大面板宽度
   static const double appleLyricsLandscapeMaxWidthClamp = 800.0; // 苹果样式歌词在横屏下用于计算字体缩放的最大面板宽度
   static const double appleLyricsBaseScreenWidth = 1920.0; // 苹果样式歌词高分辨率适配的基准屏幕宽度

@@ -66,7 +66,8 @@ extension VisualizerStyleX on VisualizerStyle {
   };
 }
 
-enum LyricsStyle { traditional, apple }
+@Deprecated('Traditional lyrics style has been removed. Only apple style is supported.')
+enum LyricsStyle { apple }
 
 final class LyricsAiModelSelection {
   const LyricsAiModelSelection({required this.provider, required this.modelId});
@@ -2257,16 +2258,11 @@ class SettingsService extends ChangeNotifier {
     _lyricsSaveMethodProperty.value = value.name;
   }
 
-  LyricsStyle get lyricsStyle {
-    return LyricsStyle.values.firstWhere(
-      (style) => style.name == _lyricsStyleProperty.value,
-      orElse: () => LyricsStyle.apple,
-    );
-  }
+  @Deprecated('Traditional lyrics style has been removed. Only apple style is supported.')
+  LyricsStyle get lyricsStyle => LyricsStyle.apple;
 
-  set lyricsStyle(LyricsStyle value) {
-    _lyricsStyleProperty.value = value.name;
-  }
+  @Deprecated('Traditional lyrics style has been removed. Only apple style is supported.')
+  set lyricsStyle(LyricsStyle value) {}
 
   String get lyricsFontFamily => _lyricsFontFamilyProperty.value;
   set lyricsFontFamily(String value) {
@@ -2286,17 +2282,17 @@ class SettingsService extends ChangeNotifier {
     _lyricsCjkFontFamilyProperty.value = value.trim();
   }
 
-  double get lyricsFontScale => lyricsFontScaleTraditional;
-  set lyricsFontScale(double value) => lyricsFontScaleTraditional = value;
-
-  double get lyricsFontScaleTraditional =>
-      _lyricsFontScaleTraditionalProperty.value;
-  set lyricsFontScaleTraditional(double value) =>
-      _lyricsFontScaleTraditionalProperty.value = value;
-
-  double get lyricsFontScaleApple => _lyricsFontScaleAppleProperty.value;
-  set lyricsFontScaleApple(double value) =>
+  double get lyricsFontScale => _lyricsFontScaleAppleProperty.value;
+  set lyricsFontScale(double value) =>
       _lyricsFontScaleAppleProperty.value = value;
+
+  double get lyricsFontScaleApple => lyricsFontScale;
+  set lyricsFontScaleApple(double value) => lyricsFontScale = value;
+
+  @Deprecated('Traditional lyrics style has been removed.')
+  double get lyricsFontScaleTraditional => lyricsFontScale;
+  @Deprecated('Traditional lyrics style has been removed.')
+  set lyricsFontScaleTraditional(double value) => lyricsFontScale = value;
 
   LyricsAiProvider get lyricsAiProvider => generationPrimaryModel.provider;
   set lyricsAiProvider(LyricsAiProvider value) {
@@ -3149,15 +3145,16 @@ class SettingsService extends ChangeNotifier {
   }
 
   void resetLyricsFontScale() {
-    resetLyricsFontScaleTraditional();
-  }
-
-  void resetLyricsFontScaleTraditional() {
-    _lyricsFontScaleTraditionalProperty.reset();
+    _lyricsFontScaleAppleProperty.reset();
   }
 
   void resetLyricsFontScaleApple() {
-    _lyricsFontScaleAppleProperty.reset();
+    resetLyricsFontScale();
+  }
+
+  @Deprecated('Traditional lyrics style has been removed.')
+  void resetLyricsFontScaleTraditional() {
+    resetLyricsFontScale();
   }
 
   void resetLyricsFonts() {

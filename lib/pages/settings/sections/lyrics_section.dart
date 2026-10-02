@@ -104,31 +104,6 @@ class LyricsSection extends ConsumerWidget {
     );
   }
 
-  Widget _buildLyricsStyleSection(
-    BuildContext context,
-    SettingsService settings,
-  ) {
-    final l10n = AppLocalizations.of(context)!;
-    return SettingsDropdownTile<LyricsStyle>(
-      title: l10n.lyricsStyleLabel,
-      subtitle: l10n.lyricsStyleDescription,
-      value: settings.lyricsStyle,
-      options: [
-        SettingsDropdownOption<LyricsStyle>(
-          value: LyricsStyle.traditional,
-          label: l10n.lyricsStyleTraditional,
-        ),
-        SettingsDropdownOption<LyricsStyle>(
-          value: LyricsStyle.apple,
-          label: l10n.lyricsStyleApple,
-        ),
-      ],
-      onChanged: (newValue) {
-        if (newValue == null) return;
-        settings.lyricsStyle = newValue;
-      },
-    );
-  }
 
   Widget _buildLyricsFontSection(
     BuildContext context,
@@ -923,7 +898,6 @@ class LyricsSection extends ConsumerWidget {
           children: [
             _buildLyricsTranslationLanguageSection(context, settings),
             _buildLyricsSaveMethodSection(context, settings),
-            _buildLyricsStyleSection(context, settings),
             _buildLyricsFontSection(context, settings),
           ],
         ),
