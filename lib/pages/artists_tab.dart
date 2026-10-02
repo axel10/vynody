@@ -19,7 +19,7 @@ import '../dialogs/sort_options_dialog.dart';
 import '../dialogs/library_source_filter_dialog.dart';
 import 'package:vynody/player/library/library_source_filter.dart';
 import 'package:vynody/player/settings/settings_service.dart';
-import '../widgets/artist_bottom_sheet.dart';
+import '../widgets/artist_context_menu.dart';
 
 class ArtistsTab extends ConsumerStatefulWidget {
   final double contentTopPadding;

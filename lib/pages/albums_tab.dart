@@ -28,7 +28,7 @@ import 'package:vynody/player/settings/settings_service.dart';
 import 'main_layout_riverpod.dart';
 import 'package:vynody/utils/layout_constants.dart';
 import '../widgets/draggable_album_item.dart';
-import '../widgets/album_bottom_sheet.dart';
+import '../widgets/album_context_menu.dart';
 import '../utils/app_snack_bar.dart';
 
 class AlbumsTab extends ConsumerStatefulWidget {
