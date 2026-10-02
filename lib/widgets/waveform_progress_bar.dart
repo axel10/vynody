@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/physics.dart';
 import 'package:flutter/scheduler.dart' show Ticker;
 import 'dart:math' as math;
 import 'dart:ui';
@@ -56,6 +57,7 @@ class _WaveformProgressBarState extends ConsumerState<WaveformProgressBar>
   double _dragStartProgress = 0;
 
   late AnimationController _animationController;
+  late AnimationController _inertiaController;
   late List<double> _animatedWaveform;
   List<double> _sourceWaveform = [];
   List<double> _targetWaveform = [];
@@ -65,6 +67,9 @@ class _WaveformProgressBarState extends ConsumerState<WaveformProgressBar>
   Ticker? _ticker;
   Duration? _lastFrameTime;
   bool _isDragging = false;
+  bool _isInertia = false;
+  double _lastInertiaX = 0;
+  double _inertiaTotalWaveformWidth = 1.0;
   bool _suspendedForBackground = false;
 
   // Double speed fast forward states
@@ -80,6 +85,10 @@ class _WaveformProgressBarState extends ConsumerState<WaveformProgressBar>
       vsync: this,
       duration: const Duration(milliseconds: 400),
     );
+
+    _inertiaController = AnimationController.unbounded(vsync: this);
+    _inertiaController.addListener(_onInertiaTick);
+    _inertiaController.addStatusListener(_onInertiaStatusChanged);
 
     _animatedWaveform = _getEffectiveWaveform(widget.waveform);
     _targetWaveform = List.from(_animatedWaveform);
@@ -103,6 +112,8 @@ class _WaveformProgressBarState extends ConsumerState<WaveformProgressBar>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _animationController.dispose();
+    _stopInertia();
+    _inertiaController.dispose();
     _ticker?.dispose();
     _smoothProgressNotifier.dispose();
     if (_isDoubleSpeedActive || _isDoubleSpeedLocked) {
@@ -121,10 +132,7 @@ class _WaveformProgressBarState extends ConsumerState<WaveformProgressBar>
         : Duration.zero;
     _lastFrameTime = elapsed;
 
-    if (_isDragging) {
-      if (_smoothProgressNotifier.value != widget.progress) {
-        _smoothProgressNotifier.value = widget.progress.clamp(0.0, 1.0);
-      }
+    if (_isDragging || _isInertia) {
       return;
     }
 
@@ -148,6 +156,7 @@ class _WaveformProgressBarState extends ConsumerState<WaveformProgressBar>
   void _updateTickerState() {
     if (widget.isPlaying &&
         !_isDragging &&
+        !_isInertia &&
         !_suspendedForBackground &&
         !widget.isWindowMinimized &&
         !widget.isTransitioning) {
@@ -160,6 +169,76 @@ class _WaveformProgressBarState extends ConsumerState<WaveformProgressBar>
         _ticker!.stop();
         _lastFrameTime = null;
       }
+    }
+  }
+
+  void _startInertia(double velocityX, double totalWaveformWidth) {
+    _inertiaController.stop();
+    _isInertia = true;
+    _isDragging = false;
+    _lastInertiaX = 0.0;
+    _inertiaTotalWaveformWidth = math.max(1.0, totalWaveformWidth);
+    _inertiaController.value = 0.0;
+
+    // Apply gentle velocity scaling and clamping so the waveform slides only a short distance
+    // without accidental large skips across songs.
+    final double dampedVelocity = (velocityX * 0.25).clamp(-450.0, 450.0);
+
+    // Strong damping factor (0.02) to decelerate quickly and smoothly over a short distance
+    final simulation = FrictionSimulation(
+      0.02,
+      0.0,
+      dampedVelocity,
+    );
+
+    _inertiaController.animateWith(simulation);
+  }
+
+  void _onInertiaTick() {
+    if (!_isInertia) return;
+
+    final double currentX = _inertiaController.value;
+    final double deltaX = currentX - _lastInertiaX;
+    _lastInertiaX = currentX;
+
+    if (_inertiaTotalWaveformWidth <= 0) return;
+
+    // deltaX > 0 means swiping right (waveform moves right, progress decreases)
+    final double deltaProgress = -deltaX / _inertiaTotalWaveformWidth;
+    final double oldProgress = _smoothProgressNotifier.value;
+    final double newProgress = (oldProgress + deltaProgress).clamp(0.0, 1.0);
+
+    _smoothProgressNotifier.value = newProgress;
+    widget.onScrubbing(newProgress);
+
+    // Stop if reached the ends of the audio track
+    if ((newProgress <= 0.0 && deltaProgress < 0) ||
+        (newProgress >= 1.0 && deltaProgress > 0)) {
+      _finishInertia();
+    }
+  }
+
+  void _onInertiaStatusChanged(AnimationStatus status) {
+    if (status == AnimationStatus.completed ||
+        status == AnimationStatus.dismissed) {
+      if (_isInertia) {
+        _finishInertia();
+      }
+    }
+  }
+
+  void _finishInertia() {
+    if (!_isInertia) return;
+    _isInertia = false;
+    _inertiaController.stop();
+    widget.onSeek(_smoothProgressNotifier.value);
+    _updateTickerState();
+  }
+
+  void _stopInertia() {
+    if (_isInertia) {
+      _isInertia = false;
+      _inertiaController.stop();
     }
   }
 
@@ -228,6 +307,7 @@ class _WaveformProgressBarState extends ConsumerState<WaveformProgressBar>
   void didUpdateWidget(WaveformProgressBar oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (!listEquals(widget.waveform, oldWidget.waveform)) {
+      _stopInertia();
       _targetWaveform = _getEffectiveWaveform(widget.waveform);
 
       // 如果长度不一致，先将当前波形缩放到目标长度，以便进行逐点插值动画
@@ -241,6 +321,7 @@ class _WaveformProgressBarState extends ConsumerState<WaveformProgressBar>
     }
 
     // Check if progress or play state changed
+    final bool isInteracting = _isDragging || _isInertia;
     final double diff = (widget.progress - _smoothProgressNotifier.value).abs();
     final double snapThreshold = widget.duration.inMilliseconds > 0
         ? 1000.0 / widget.duration.inMilliseconds
@@ -248,10 +329,14 @@ class _WaveformProgressBarState extends ConsumerState<WaveformProgressBar>
 
     // Snap immediately on large leaps (seeks/song changes) or when not playing or when transitioning ended
     if (!widget.isTransitioning &&
-        (diff > snapThreshold || !widget.isPlaying || _isDragging)) {
-      _smoothProgressNotifier.value = widget.progress.clamp(0.0, 1.0);
+        (diff > snapThreshold || !widget.isPlaying || isInteracting)) {
+      if (!isInteracting) {
+        _smoothProgressNotifier.value = widget.progress.clamp(0.0, 1.0);
+      }
     } else if (oldWidget.isTransitioning && !widget.isTransitioning) {
-      _smoothProgressNotifier.value = widget.progress.clamp(0.0, 1.0);
+      if (!isInteracting) {
+        _smoothProgressNotifier.value = widget.progress.clamp(0.0, 1.0);
+      }
     }
 
     _updateTickerState();
@@ -294,9 +379,10 @@ class _WaveformProgressBarState extends ConsumerState<WaveformProgressBar>
           },
           child: GestureDetector(
             onHorizontalDragStart: (details) {
+              _stopInertia();
               _isDragging = true;
               _dragStartX = details.localPosition.dx;
-              _dragStartProgress = widget.progress;
+              _dragStartProgress = _smoothProgressNotifier.value;
               if (!widget.isScrolling) {
                 final double newProgress = (details.localPosition.dx / width)
                     .clamp(0.0, 1.0);
@@ -306,7 +392,8 @@ class _WaveformProgressBarState extends ConsumerState<WaveformProgressBar>
                   _hoverProgress = newProgress;
                 });
               } else {
-                _smoothProgressNotifier.value = widget.progress.clamp(0.0, 1.0);
+                _smoothProgressNotifier.value =
+                    _smoothProgressNotifier.value.clamp(0.0, 1.0);
               }
               _updateTickerState();
             },
@@ -339,27 +426,52 @@ class _WaveformProgressBarState extends ConsumerState<WaveformProgressBar>
               }
             },
             onHorizontalDragEnd: (details) {
+              final double velocityX = details.primaryVelocity ?? 0.0;
+              const double minInertiaVelocity = 80.0;
+
+              if (widget.isScrolling &&
+                  velocityX.abs() >= minInertiaVelocity &&
+                  totalWaveformWidth > 0) {
+                _startInertia(velocityX, totalWaveformWidth);
+              } else {
+                _isDragging = false;
+                widget.onSeek(_smoothProgressNotifier.value);
+                setState(() {
+                  _hoverProgress = null;
+                });
+                _updateTickerState();
+              }
+            },
+            onHorizontalDragCancel: () {
+              _stopInertia();
+              _isDragging = false;
               widget.onSeek(_smoothProgressNotifier.value);
               setState(() {
-                _isDragging = false;
                 _hoverProgress = null;
               });
               _updateTickerState();
             },
             onTapDown: (details) {
+              final bool wasInertia = _isInertia;
+              _stopInertia();
               if (!widget.isScrolling) {
                 final double newProgress = (details.localPosition.dx / width)
                     .clamp(0.0, 1.0);
                 widget.onScrubbing(newProgress);
                 widget.onSeek(newProgress);
                 _smoothProgressNotifier.value = newProgress;
+              } else if (wasInertia) {
+                widget.onSeek(_smoothProgressNotifier.value);
+                _updateTickerState();
               }
             },
             onLongPressStart: (details) {
+              _stopInertia();
               if (!ref
                   .read(settingsServiceProvider)
-                  .enableWaveformLongPressSeek)
+                  .enableWaveformLongPressSeek) {
                 return;
+              }
               if (details.localPosition.dx > width / 2) {
                 final audioService = ref.read(audioServiceProvider);
                 if (!_isDoubleSpeedLocked) {
@@ -396,8 +508,9 @@ class _WaveformProgressBarState extends ConsumerState<WaveformProgressBar>
               }
             },
             onLongPressMoveUpdate: (details) {
-              if (!_isDoubleSpeedActive || _longPressStartOffset == null)
+              if (!_isDoubleSpeedActive || _longPressStartOffset == null) {
                 return;
+              }
               final double deltaY =
                   details.localPosition.dy - _longPressStartOffset!.dy;
               if (!_isDoubleSpeedLocked) {
