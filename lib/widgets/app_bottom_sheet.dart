@@ -281,6 +281,47 @@ class AppAdaptiveSheet extends StatelessWidget {
   /// 抽屉/弹窗主体内容
   final Widget child;
 
+  /// 浮层主标题文本，自动使用主题加粗大字号并支持单行省略
+  final String? title;
+
+  /// 自定义主标题组件（优先级高于 [title]）
+  final Widget? titleWidget;
+
+  /// 浮层副标题文本
+  final String? subtitle;
+
+  /// 自定义副标题组件（优先级高于 [subtitle]）
+  final Widget? subtitleWidget;
+
+  /// 标题栏右侧自定义组件（例如 Switch、重置按钮等，位于关闭按钮左侧）
+  final Widget? headerTrailing;
+
+  /// 标题栏下方组件（例如 TabBar、分段控制器等）
+  final Widget? headerBottom;
+
+  /// 标题栏外围内边距，为 null 时自动根据形态适配
+  final EdgeInsetsGeometry? headerPadding;
+
+  /// 是否显示右上角关闭按钮。
+  /// 为 null 时：若设置了标题或处于 Dialog 模式，则默认自动显示；
+  /// 显式指定 true/false 时严格遵从配置。
+  final bool? showCloseButton;
+
+  /// 点击关闭按钮时的回调，默认为 Navigator.of(context).pop()
+  final VoidCallback? onClose;
+
+  /// 是否让高度撑开至当前屏幕和模式下的推荐最大高度，常用于含 [TabBarView]、可滚动长列表或自适应内容
+  final bool expandHeight;
+
+  /// 统一指定高度（在屏幕最大比例内生效）
+  final double? height;
+
+  /// 仅在居中 Dialog 模式下的推荐目标高度
+  final double? dialogHeight;
+
+  /// 仅在底部抽屉 Bottom Sheet 模式下的推荐目标高度
+  final double? sheetHeight;
+
   /// 窄屏（Bottom Sheet）模式下的最大宽度，默认 720
   final double sheetMaxWidth;
 
@@ -305,7 +346,7 @@ class AppAdaptiveSheet extends StatelessWidget {
   /// 点击顶部横条时的回调，默认 pop
   final VoidCallback? onDragHandleTap;
 
-  /// 内容区域外围内边距
+  /// 内容区域外围内边距。未指定时根据是否拥有 Header 与当前形态自动适配
   final EdgeInsetsGeometry? padding;
 
   /// 卡片背景色，默认自适应毛玻璃半透明背景
@@ -329,9 +370,25 @@ class AppAdaptiveSheet extends StatelessWidget {
   /// 点击卡片外部空白区域是否自动关闭，默认 true
   final bool barrierDismissible;
 
+  /// Bottom Sheet 模式下是否启用 SafeArea 底部安全区保护，默认 true
+  final bool useSafeArea;
+
   const AppAdaptiveSheet({
     super.key,
     required this.child,
+    this.title,
+    this.titleWidget,
+    this.subtitle,
+    this.subtitleWidget,
+    this.headerTrailing,
+    this.headerBottom,
+    this.headerPadding,
+    this.showCloseButton,
+    this.onClose,
+    this.expandHeight = false,
+    this.height,
+    this.dialogHeight,
+    this.sheetHeight,
     this.sheetMaxWidth = 720,
     this.dialogMaxWidth = 680,
     this.landscapeMaxWidth = 960,
@@ -348,7 +405,102 @@ class AppAdaptiveSheet extends StatelessWidget {
     this.dialogRadius = 24,
     this.maxHeightFactor = 0.85,
     this.barrierDismissible = true,
+    this.useSafeArea = true,
   });
+
+  Widget? _buildHeader({
+    required BuildContext context,
+    required bool isDark,
+    required ThemeData theme,
+    required bool isDialog,
+    required VoidCallback handleClose,
+  }) {
+    final effectiveTitleWidget = titleWidget ??
+        (title != null
+            ? Text(
+                title!,
+                style: TextStyle(
+                  color: isDark ? Colors.white : theme.colorScheme.onSurface,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.8,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              )
+            : null);
+
+    final effectiveSubtitleWidget = subtitleWidget ??
+        (subtitle != null
+            ? Text(
+                subtitle!,
+                style: TextStyle(
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.5)
+                      : theme.colorScheme.onSurfaceVariant
+                          .withValues(alpha: 0.7),
+                  fontSize: 12,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              )
+            : null);
+
+    final effectiveShowClose = showCloseButton ??
+        (effectiveTitleWidget != null || isDialog);
+
+    if (effectiveTitleWidget == null &&
+        effectiveSubtitleWidget == null &&
+        headerTrailing == null &&
+        !effectiveShowClose) {
+      return null;
+    }
+
+    final effectiveHeaderPadding = headerPadding ??
+        EdgeInsets.fromLTRB(
+          24,
+          isDialog ? 20 : 4,
+          effectiveShowClose ? 14 : 24,
+          headerBottom != null ? 6 : 8,
+        );
+
+    return Padding(
+      padding: effectiveHeaderPadding,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          if (effectiveTitleWidget != null || effectiveSubtitleWidget != null)
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ?effectiveTitleWidget,
+                  if (effectiveSubtitleWidget != null) ...[
+                    const SizedBox(height: 2),
+                    effectiveSubtitleWidget,
+                  ],
+                ],
+              ),
+            )
+          else
+            const Spacer(),
+          if (headerTrailing != null) ...[
+            const SizedBox(width: 8),
+            headerTrailing!,
+          ],
+          if (effectiveShowClose) ...[
+            const SizedBox(width: 4),
+            IconButton(
+              icon: const Icon(Icons.close),
+              tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
+              onPressed: handleClose,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -373,6 +525,47 @@ class AppAdaptiveSheet extends StatelessWidget {
           );
     final effectiveMaxHeight = media.size.height * maxHeightFactor;
 
+    // 解析目标高度
+    double? resolvedHeight = height;
+    if (isDialog && dialogHeight != null) {
+      resolvedHeight = dialogHeight;
+    } else if (!isDialog && sheetHeight != null) {
+      resolvedHeight = sheetHeight;
+    } else if (expandHeight) {
+      resolvedHeight = isDialog
+          ? math.min(600.0, math.max(320.0, effectiveMaxHeight - 48.0))
+          : math.min(560.0, math.max(360.0, math.min(effectiveMaxHeight - 24.0, media.size.height * 0.72)));
+    }
+    if (resolvedHeight != null) {
+      resolvedHeight = math.min(resolvedHeight, effectiveMaxHeight);
+    }
+
+    final handleClose = onClose ?? () => Navigator.of(context).pop();
+
+    // 构建头部组件
+    final headerWidget = _buildHeader(
+      context: context,
+      isDark: isDark,
+      theme: theme,
+      isDialog: isDialog,
+      handleClose: handleClose,
+    );
+
+    // 智能内边距解析：
+    // - 水平与顶部内边距保持标准的 24px 水平与适度顶边距
+    // - 底边距统一设为 0.0，使内部内容区域（如 SingleChildScrollView / ListView / TabBarView）
+    //   的滚动视口能完整延伸至卡片底端边缘，避免外层 Padding 在底部截断视口导致“底部显示不全/留死空白”；
+    //   具体的底部收尾留白由子组件内部自然控制。
+    final effectivePadding = padding ??
+        EdgeInsets.fromLTRB(
+          24,
+          (headerWidget != null || headerBottom != null)
+              ? 8
+              : (isDialog ? 20 : 8),
+          24,
+          0.0,
+        );
+
     final defaultBgColor = isDark
         ? Colors.black.withValues(alpha: isDialog ? 0.82 : 0.78)
         : theme.colorScheme.surface.withValues(alpha: isDialog ? 0.98 : 0.95);
@@ -381,11 +574,13 @@ class AppAdaptiveSheet extends StatelessWidget {
         ? Colors.white.withValues(alpha: isDialog ? 0.12 : 0.1)
         : theme.colorScheme.outlineVariant.withValues(alpha: isDialog ? 0.4 : 0.3);
 
+    final borderRadius = isDialog
+        ? BorderRadius.circular(dialogRadius)
+        : BorderRadius.vertical(top: Radius.circular(sheetTopRadius));
+
     final cardDecoration = BoxDecoration(
       color: backgroundColor ?? defaultBgColor,
-      borderRadius: isDialog
-          ? BorderRadius.circular(dialogRadius)
-          : BorderRadius.vertical(top: Radius.circular(sheetTopRadius)),
+      borderRadius: borderRadius,
       border: Border.all(
         color: borderColor ?? defaultBorderColor,
         width: 1,
@@ -402,27 +597,43 @@ class AppAdaptiveSheet extends StatelessWidget {
           : null,
     );
 
-    Widget cardContent = Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (!isDialog && showDragHandle)
-          AppDragHandle(
-            onTap: onDragHandleTap,
-            onVerticalDragEnd: (details) {
-              if (details.primaryVelocity != null &&
-                  details.primaryVelocity! > 250) {
-                Navigator.of(context).pop();
-              }
-            },
+    final children = <Widget>[
+      if (!isDialog && showDragHandle)
+        AppDragHandle(
+          onTap: onDragHandleTap,
+          onVerticalDragEnd: (details) {
+            if (details.primaryVelocity != null &&
+                details.primaryVelocity! > 250) {
+              handleClose();
+            }
+          },
+        ),
+      ?headerWidget,
+      if (headerBottom != null)
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0),
+          child: headerBottom!,
+        ),
+      if (resolvedHeight != null)
+        Expanded(
+          child: Padding(
+            padding: effectivePadding,
+            child: child,
           ),
+        )
+      else
         Flexible(
           child: Padding(
-            padding: padding ?? EdgeInsets.zero,
+            padding: effectivePadding,
             child: child,
           ),
         ),
-      ],
+    ];
+
+    Widget cardContent = Column(
+      mainAxisSize: resolvedHeight != null ? MainAxisSize.max : MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: children,
     );
 
     Widget sheetCard = GestureDetector(
@@ -437,12 +648,17 @@ class AppAdaptiveSheet extends StatelessWidget {
           duration: const Duration(milliseconds: 320),
           curve: Curves.easeOutCubic,
           decoration: cardDecoration,
-          child: isDialog
-              ? cardContent
-              : SafeArea(
-                  top: false,
-                  child: cardContent,
-                ),
+          height: resolvedHeight,
+          child: ClipRRect(
+            borderRadius: borderRadius,
+            child: (isDialog || !useSafeArea)
+                ? cardContent
+                : SafeArea(
+                    top: false,
+                    bottom: false,
+                    child: cardContent,
+                  ),
+          ),
         ),
       ),
     );

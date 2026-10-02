@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:audio_core/audio_core.dart';
@@ -39,84 +38,36 @@ class VisualizerOptionsDialog extends ConsumerWidget {
       child: StatefulBuilder(
         builder: (context, setDialogState) {
           final l10n = AppLocalizations.of(context)!;
-          final media = MediaQuery.of(context);
-          final isDialog = AppAdaptiveSheetScope.isDialogMode(context);
-
-          final effectiveMaxHeight = media.size.height * 0.85;
-          final targetHeight = isDialog
-              ? math.min(580.0, effectiveMaxHeight - 48.0)
-              : math.min(720.0, effectiveMaxHeight - 24.0);
-          final sheetHeight = math.max(320.0, targetHeight);
 
           return AppAdaptiveSheet(
+            title: l10n.visualizerSettings,
             sheetMaxWidth: 800,
             dialogMaxWidth: 740,
             landscapeMaxWidth: 1000,
-            maxHeightFactor: 0.9,
-            padding: EdgeInsets.fromLTRB(
-              24,
-              isDialog ? 20 : 0,
-              24,
-              isDialog ? 20 : 28,
+            dialogHeight: 560,
+            sheetHeight: 540,
+            headerBottom: TabBar(
+              tabs: [
+                Tab(text: l10n.algorithm),
+                Tab(text: l10n.appearance),
+                Tab(text: l10n.buttonLayoutSettings),
+              ],
+              labelColor: theme.colorScheme.primary,
+              unselectedLabelColor: isDark
+                  ? Colors.white70
+                  : theme.colorScheme.onSurfaceVariant,
+              indicatorColor: theme.colorScheme.primary,
+              dividerColor: isDark ? Colors.white10 : Colors.black12,
             ),
-            child: SizedBox(
-              height: sheetHeight,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  if (!isDialog) const SizedBox(height: 4),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          l10n.visualizerSettings,
-                          style: TextStyle(
-                            color: isDark ? Colors.white : theme.colorScheme.onSurface,
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 0.8,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      IconButton(
-                        icon: const Icon(Icons.close),
-                        tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
-                        onPressed: () => Navigator.of(context).pop(),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  TabBar(
-                    tabs: [
-                      Tab(text: l10n.algorithm),
-                      Tab(text: l10n.appearance),
-                      Tab(text: l10n.buttonLayoutSettings),
-                    ],
-                    labelColor: theme.colorScheme.primary,
-                    unselectedLabelColor: isDark
-                        ? Colors.white70
-                        : theme.colorScheme.onSurfaceVariant,
-                    indicatorColor: theme.colorScheme.primary,
-                    dividerColor: isDark ? Colors.white10 : Colors.black12,
-                  ),
-                  const SizedBox(height: 12),
-                  Expanded(
-                    child: TabBarView(
-                      children: [
-                        _buildAlgorithmTab(context, ref, setDialogState),
-                        _buildAppearanceTab(context, ref, settings, setDialogState),
-                        PlaybackButtonLayoutView(
-                          settings: settings,
-                          onChanged: () => setDialogState(() {}),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+            child: TabBarView(
+              children: [
+                _buildAlgorithmTab(context, ref, setDialogState),
+                _buildAppearanceTab(context, ref, settings, setDialogState),
+                PlaybackButtonLayoutView(
+                  settings: settings,
+                  onChanged: () => setDialogState(() {}),
+                ),
+              ],
             ),
           );
         },

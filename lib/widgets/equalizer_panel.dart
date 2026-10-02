@@ -60,21 +60,30 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
     final isDark = theme.brightness == Brightness.dark;
     final accentColor = theme.colorScheme.primary;
 
-    final isDialog = AppAdaptiveSheetScope.isDialogMode(context);
-
     return AppAdaptiveSheet(
       sheetMaxWidth: 800,
       dialogMaxWidth: 760,
       landscapeMaxWidth: 1040,
-      padding: EdgeInsets.fromLTRB(24, isDialog ? 20 : 0, 24, isDialog ? 28 : 40),
+      title: l10n.equalizer,
+      subtitle: config.enabled
+          ? l10n.equalizerEnabledStatus
+          : l10n.equalizerDisabledStatus,
+      headerTrailing: Switch(
+        value: config.enabled,
+        activeThumbColor: accentColor,
+        activeTrackColor: accentColor.withValues(alpha: 0.5),
+        onChanged: (val) => audio.setEqualizerEnabled(val),
+      ),
       child: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(
+          parent: AlwaysScrollableScrollPhysics(),
+        ),
+        padding: const EdgeInsets.only(bottom: 24.0),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (!isDialog) const SizedBox(height: 10),
-            _buildHeader(audio, config, l10n, isDialog: isDialog),
-            const SizedBox(height: 14),
+            const SizedBox(height: 8),
             _buildPresetBar(
               audio,
               config,
@@ -289,73 +298,7 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
     );
   }
 
-  Widget _buildHeader(
-    AudioService audio,
-    EqualizerConfig config,
-    AppLocalizations l10n, {
-    bool isDialog = false,
-  }) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final accentColor = theme.colorScheme.primary;
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                l10n.equalizer,
-                style: TextStyle(
-                  color: isDark ? Colors.white : theme.colorScheme.onSurface,
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.1,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                config.enabled
-                    ? l10n.equalizerEnabledStatus
-                    : l10n.equalizerDisabledStatus,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: isDark
-                      ? Colors.white.withValues(alpha: 0.5)
-                      : theme.colorScheme.onSurfaceVariant
-                          .withValues(alpha: 0.7),
-                  fontSize: 12,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 8),
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Switch(
-              value: config.enabled,
-              activeThumbColor: accentColor,
-              activeTrackColor: accentColor.withValues(alpha: 0.5),
-              onChanged: (val) => audio.setEqualizerEnabled(val),
-            ),
-            if (isDialog) ...[
-              const SizedBox(width: 8),
-              IconButton(
-                icon: const Icon(Icons.close),
-                tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
-                onPressed: () => Navigator.of(context).pop(),
-              ),
-            ],
-          ],
-        ),
-      ],
-    );
-  }
 
   Widget _buildPresetBar(
     AudioService audio,
