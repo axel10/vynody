@@ -66,6 +66,7 @@ class AudioService extends Notifier<AudioSnapshot> {
   bool _isMuted = false;
   final MetadataDatabase _db = MetadataDatabase();
   final List<MusicFile> _queue = [];
+  final Map<String, Uint8List> _artworkCache = {};
   int _currentIndex = -1;
   bool? _lastActionNext;
   bool _isTransitioning = false;
@@ -1946,6 +1947,7 @@ class AudioService extends Notifier<AudioSnapshot> {
 
   static String safeDecodeUri(String? uri) {
     if (uri == null) return '';
+    if (!uri.contains('%')) return uri;
     try {
       return Uri.decodeFull(uri);
     } catch (_) {
@@ -1955,11 +1957,40 @@ class AudioService extends Notifier<AudioSnapshot> {
 
   Uint8List? getCachedArtwork(String? path) {
     if (path == null) return null;
+    final cached = _artworkCache[path];
+    if (cached != null) return cached;
+    if (path.contains('%')) {
+      final decoded = safeDecodeUri(path);
+      final decodedCached = _artworkCache[decoded];
+      if (decodedCached != null) {
+        _artworkCache[path] = decodedCached;
+        return decodedCached;
+      }
+    }
+    if (currentMusic?.path == path && currentMusic?.artworkBytes != null) {
+      final bytes = currentMusic!.artworkBytes!;
+      if (_artworkCache.length > 200) {
+        _artworkCache.remove(_artworkCache.keys.first);
+      }
+      _artworkCache[path] = bytes;
+      return bytes;
+    }
     final decoded = safeDecodeUri(path);
     final song = _queue.firstWhereOrNull(
-      (s) => s.path == path || safeDecodeUri(s.path) == decoded,
+      (s) => s.path == path || s.path == decoded || (s.path.contains('%') && safeDecodeUri(s.path) == decoded),
     );
-    return song?.artworkBytes;
+    final bytes = song?.artworkBytes;
+    if (bytes != null) {
+      if (_artworkCache.length > 200) {
+        _artworkCache.remove(_artworkCache.keys.first);
+      }
+      _artworkCache[path] = bytes;
+      if (decoded != path) {
+        _artworkCache[decoded] = bytes;
+      }
+      return bytes;
+    }
+    return null;
   }
 
   void setCachedArtwork(
@@ -1967,11 +1998,18 @@ class AudioService extends Notifier<AudioSnapshot> {
     Uint8List artworkBytes, {
     String? thumbnailPath,
   }) {
-    bool modified = false;
+    if (_artworkCache.length > 200) {
+      _artworkCache.remove(_artworkCache.keys.first);
+    }
+    _artworkCache[path] = artworkBytes;
     final decoded = safeDecodeUri(path);
+    if (decoded != path) {
+      _artworkCache[decoded] = artworkBytes;
+    }
+    bool modified = false;
     for (int i = 0; i < _queue.length; i++) {
       final qPath = _queue[i].path;
-      if (qPath == path || safeDecodeUri(qPath) == decoded) {
+      if (qPath == path || qPath == decoded || (qPath.contains('%') && safeDecodeUri(qPath) == decoded)) {
         if (_queue[i].artworkBytes == null ||
             (_queue[i].thumbnailPath == null && thumbnailPath != null)) {
           _queue[i] = _queue[i].copyWith(

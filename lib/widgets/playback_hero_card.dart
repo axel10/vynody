@@ -382,33 +382,68 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard> {
           lyricsBottomTabBarHeight: widget.lyricsBottomTabBarHeight,
         );
 
-        return TweenAnimationBuilder<double>(
-          duration: animDuration,
-          curve: animCurve,
-          tween: Tween<double>(end: effectiveIsLandscape ? 1.0 : 0.0),
-          child: lyricsPanelWidget,
-          builder: (context, tLand, child) {
+        final progressBarStyle =
+            ref.watch(effectiveProgressBarStyleProvider);
+        final collapseButtonsInLandscapeLyrics = ref.watch(
+          settingsServiceProvider.select(
+            (s) => s.collapseButtonsInLandscapeLyrics,
+          ),
+        );
+
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final width = constraints.maxWidth.roundToDouble();
+            final height = constraints.maxHeight.roundToDouble();
+
             return TweenAnimationBuilder<double>(
               duration: animDuration,
               curve: animCurve,
-              tween: Tween<double>(
-                begin: 0.0,
-                end: effectiveIsLyricsMode ? 1.0 : 0.0,
-              ),
-              child: child,
-              builder: (context, tLyrics, child) {
-                return LayoutBuilder(
-                  builder: (context, constraints) {
-                    final width = constraints.maxWidth.roundToDouble();
-                    final height = constraints.maxHeight.roundToDouble();
-                    final progressBarStyle =
-                        ref.watch(effectiveProgressBarStyleProvider);
-                    final collapseButtonsInLandscapeLyrics = ref.watch(
-                      settingsServiceProvider.select(
-                        (s) => s.collapseButtonsInLandscapeLyrics,
-                      ),
-                    );
+              tween: Tween<double>(end: effectiveIsLandscape ? 1.0 : 0.0),
+              child: lyricsPanelWidget,
+              builder: (context, tLand, child) {
+                final coverNormalLayout = _buildPlaybackCardLayout(
+                  context,
+                  width: width,
+                  height: height,
+                  tLyrics: 0.0,
+                  tLand: tLand,
+                  progressBarStyle: progressBarStyle,
+                  isSmallWindow: isSmallWindow,
+                  collapseButtonsInLandscapeLyrics:
+                      collapseButtonsInLandscapeLyrics,
+                  uiScale: settings.uiScale,
+                  portraitControlsExpandProgress:
+                      portraitControlsExpandProgress,
+                  lyricsBottomTabBarHeight: widget.lyricsBottomTabBarHeight,
+                  lyricsBottomSpacerHeight: widget.lyricsBottomSpacerHeight,
+                );
 
+                final endLayout = _buildPlaybackCardLayout(
+                  context,
+                  width: width,
+                  height: height,
+                  tLyrics: 1.0,
+                  tLand: tLand,
+                  progressBarStyle: progressBarStyle,
+                  isSmallWindow: isSmallWindow,
+                  collapseButtonsInLandscapeLyrics:
+                      collapseButtonsInLandscapeLyrics,
+                  uiScale: settings.uiScale,
+                  portraitControlsExpandProgress:
+                      portraitControlsExpandProgress,
+                  lyricsBottomTabBarHeight: widget.lyricsBottomTabBarHeight,
+                  lyricsBottomSpacerHeight: widget.lyricsBottomSpacerHeight,
+                );
+
+                return TweenAnimationBuilder<double>(
+                  duration: animDuration,
+                  curve: animCurve,
+                  tween: Tween<double>(
+                    begin: 0.0,
+                    end: effectiveIsLyricsMode ? 1.0 : 0.0,
+                  ),
+                  child: child,
+                  builder: (context, tLyrics, child) {
                     final bool isTransitioning =
                         (tLyrics > 0.0 && tLyrics < 1.0) ||
                         (tLand > 0.0 && tLand < 1.0);
@@ -418,40 +453,6 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard> {
 
                     final double targetTLyrics =
                         effectiveIsLyricsMode ? 1.0 : 0.0;
-
-                    final coverNormalLayout = _buildPlaybackCardLayout(
-                      context,
-                      width: width,
-                      height: height,
-                      tLyrics: 0.0,
-                      tLand: tLand,
-                      progressBarStyle: progressBarStyle,
-                      isSmallWindow: isSmallWindow,
-                      collapseButtonsInLandscapeLyrics:
-                          collapseButtonsInLandscapeLyrics,
-                      uiScale: settings.uiScale,
-                      portraitControlsExpandProgress:
-                          portraitControlsExpandProgress,
-                      lyricsBottomTabBarHeight: widget.lyricsBottomTabBarHeight,
-                      lyricsBottomSpacerHeight: widget.lyricsBottomSpacerHeight,
-                    );
-
-                    final endLayout = _buildPlaybackCardLayout(
-                      context,
-                      width: width,
-                      height: height,
-                      tLyrics: 1.0,
-                      tLand: tLand,
-                      progressBarStyle: progressBarStyle,
-                      isSmallWindow: isSmallWindow,
-                      collapseButtonsInLandscapeLyrics:
-                          collapseButtonsInLandscapeLyrics,
-                      uiScale: settings.uiScale,
-                      portraitControlsExpandProgress:
-                          portraitControlsExpandProgress,
-                      lyricsBottomTabBarHeight: widget.lyricsBottomTabBarHeight,
-                      lyricsBottomSpacerHeight: widget.lyricsBottomSpacerHeight,
-                    );
 
                     final layout = _lerpPlaybackCardLayout(
                       coverNormalLayout,
@@ -476,7 +477,9 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard> {
                         ? 0.0
                         : (tLyrics * portraitControlsExpandProgress);
 
-                    return Listener(
+                    return ExcludeSemantics(
+                      excluding: isTransitioning,
+                      child: Listener(
                       onPointerSignal: (pointerSignal) {
                         if (!effectiveIsLandscape &&
                             effectiveIsLyricsMode &&
@@ -689,16 +692,18 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard> {
                                     final double currentSize = optimize
                                         ? coverNormalLayout.cover.width
                                         : layout.cover.width;
-                                    final Widget coverWidget = SizeLogger(
-                                      name: 'Cover',
-                                      child: PlaybackAlbumArt(
-                                        currentSize: currentSize,
-                                        cacheWidthSize:
-                                            coverNormalLayout.cover.width,
-                                        isNext: widget.isNext,
-                                        onCoverTap: widget.onCoverTap,
-                                        onCarouselAnimationComplete:
-                                            widget.onCarouselAnimationComplete,
+                                    final Widget coverWidget = RepaintBoundary(
+                                      child: SizeLogger(
+                                        name: 'Cover',
+                                        child: PlaybackAlbumArt(
+                                          currentSize: currentSize,
+                                          cacheWidthSize:
+                                              coverNormalLayout.cover.width,
+                                          isNext: widget.isNext,
+                                          onCoverTap: widget.onCoverTap,
+                                          onCarouselAnimationComplete:
+                                              widget.onCarouselAnimationComplete,
+                                        ),
                                       ),
                                     );
                                     if (optimize) {
@@ -816,8 +821,7 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard> {
                         ),
                       ),
                     ),
-                  );
-                },
+                  ),
                 );
               },
             );
@@ -825,6 +829,8 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard> {
         );
       },
     );
+  },
+);
   }
 
   _PlaybackCardLayout _buildPlaybackCardLayout(
@@ -1050,8 +1056,6 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard> {
             uiScale)
         : lNormalControlsScale;
 
-    const lLyricsOuterLeftPadding = 48.0;
-    const lLyricsInnerLeftPadding = 16.0;
     final double minVerticalReservedSpace =
         PlaybackHeroCardUiTuning.lLyricsVerticalMargin * 2.0;
     final lLyricsAvailableHeight = math.max(
