@@ -364,7 +364,7 @@ class AppAdaptiveSheet extends StatelessWidget {
   /// Dialog 四周圆角半径，默认 24
   final double dialogRadius;
 
-  /// 最大高度占屏幕的比例（0.0 ~ 1.0），默认 0.85
+  /// 最大高度占屏幕的比例（0.0 ~ 1.0），默认 0.92（尽量充分展开内容，同时顶部保留舒适的退出点击区）
   final double maxHeightFactor;
 
   /// 点击卡片外部空白区域是否自动关闭，默认 true
@@ -403,7 +403,7 @@ class AppAdaptiveSheet extends StatelessWidget {
     this.blurSigma = 20,
     this.sheetTopRadius = 32,
     this.dialogRadius = 24,
-    this.maxHeightFactor = 0.85,
+    this.maxHeightFactor = 0.92,
     this.barrierDismissible = true,
     this.useSafeArea = true,
   });
@@ -523,7 +523,15 @@ class AppAdaptiveSheet extends StatelessWidget {
             isLandscape ? landscapeMaxWidth : sheetMaxWidth,
             media.size.width,
           );
-    final effectiveMaxHeight = media.size.height * maxHeightFactor;
+    // 在底部抽屉模式下，顶部保留适度的空白点击区域（状态栏高度 + 舒适的背景点击间隙），方便用户点击背景遮罩退出
+    final topDismissPadding =
+        isDialog ? 0.0 : math.max(media.padding.top + 36.0, 48.0);
+    final effectiveMaxHeight = isDialog
+        ? media.size.height * maxHeightFactor
+        : math.min(
+            media.size.height * maxHeightFactor,
+            math.max(200.0, media.size.height - topDismissPadding),
+          );
 
     // 解析目标高度
     double? resolvedHeight = height;
@@ -533,11 +541,8 @@ class AppAdaptiveSheet extends StatelessWidget {
       resolvedHeight = sheetHeight;
     } else if (expandHeight) {
       resolvedHeight = isDialog
-          ? math.min(640.0, math.max(320.0, effectiveMaxHeight - 48.0))
-          : math.min(
-              780.0,
-              math.max(360.0, math.min(effectiveMaxHeight - 24.0, media.size.height * 0.80)),
-            );
+          ? math.min(820.0, math.max(360.0, effectiveMaxHeight - 32.0))
+          : effectiveMaxHeight;
     }
     if (resolvedHeight != null) {
       resolvedHeight = math.min(resolvedHeight, effectiveMaxHeight);

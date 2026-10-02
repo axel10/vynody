@@ -61,11 +61,9 @@ Future<void> showTranscodeDialog(
     return;
   }
 
-  final summary = await showModalBottomSheet<TranscodeSubmitSummary>(
+  final summary = await showAppAdaptiveModal<TranscodeSubmitSummary>(
     context: context,
     useRootNavigator: true,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
     builder: (_) => TranscodeDialog(songs: songs),
   );
 
@@ -533,54 +531,28 @@ class _TranscodeDialogState extends ConsumerState<TranscodeDialog> {
     final theme = Theme.of(context);
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
-    return AppBottomSheet(
-      maxHeightFactor: 0.92,
+    final title = l10n.transcodeTitle;
+    final subtitle = widget.songs.length == 1
+        ? p.basename(widget.songs.first.path)
+        : l10n.transcodeSongCount(widget.songs.length);
+
+    return AppAdaptiveSheet(
+      title: title,
+      subtitle: subtitle,
+      sheetMaxWidth: 780,
+      dialogMaxWidth: 760,
+      landscapeMaxWidth: 1040,
+      expandHeight: true,
+      dialogHeight: 760,
       padding: EdgeInsets.only(bottom: bottomInset),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 4, 12, 8),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              l10n.transcodeTitle,
-                              style: theme.textTheme.headlineSmall?.copyWith(
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              widget.songs.length == 1
-                                  ? p.basename(widget.songs.first.path)
-                                  : l10n.transcodeSongCount(
-                                      widget.songs.length,
-                                    ),
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: _isSubmitting
-                            ? null
-                            : () => Navigator.of(context).pop(),
-                        icon: const Icon(Icons.close_rounded),
-                      ),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-                    children: [
-                      _buildFilesList(l10n),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+              children: [
+                _buildFilesList(l10n),
                       const SizedBox(height: 16),
                       _buildFormatSection(l10n),
                       const SizedBox(height: 16),

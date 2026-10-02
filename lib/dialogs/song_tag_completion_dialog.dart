@@ -493,140 +493,77 @@ class _SongTagCompletionSheetState
     Navigator.of(context).pop((result, shouldSaveToSource));
   }
 
-  Widget _buildHeader(
+  Widget _buildSearchField(
     BuildContext context,
     AppLocalizations l10n,
-    SongTagCompletionController controller,
+    ThemeData theme,
+    bool isDark,
   ) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 4, 12, 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      l10n.tagCompletion,
-                      style: TextStyle(
-                        color: isDark ? Colors.white : theme.colorScheme.onSurface,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      l10n.tagCompletionDescription,
-                      style: TextStyle(
-                        color: isDark ? Colors.white.withValues(alpha: 0.6) : theme.colorScheme.onSurfaceVariant,
-                        fontSize: 12,
-                        height: 1.35,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              IconButton(
-                onPressed: _toggleMusicBrainzSearchPanel,
-                icon: Icon(
-                  _isMusicBrainzSearchExpanded
-                      ? Icons.search_off_rounded
-                      : Icons.search_rounded,
-                  color: _hasMusicBrainzSearchQuery
-                      ? const Color(0xFF46D27A)
-                      : (isDark ? Colors.white70 : theme.colorScheme.onSurfaceVariant),
-                ),
-                tooltip: _isMusicBrainzSearchExpanded
-                    ? l10n.closeSearch
-                    : l10n.searchReleaseTitles,
-              ),
-              IconButton(
-                onPressed: controller.isMusicBrainzLoading
-                    ? null
-                    : _loadMatches,
-                icon: Icon(
-                  Icons.refresh_rounded,
-                  color: isDark ? Colors.white70 : theme.colorScheme.onSurfaceVariant,
-                ),
-                tooltip: l10n.refreshResults,
-              ),
-              IconButton(
-                onPressed: () => Navigator.of(context).pop(),
-                icon: Icon(
-                  Icons.close_rounded,
-                  color: isDark ? Colors.white70 : theme.colorScheme.onSurfaceVariant,
-                ),
-                tooltip: l10n.close,
-              ),
-            ],
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+      alignment: Alignment.topCenter,
+      child: TextField(
+        controller: _musicBrainzSearchController,
+        focusNode: _musicBrainzSearchFocusNode,
+        style: TextStyle(
+          color: isDark ? Colors.white : theme.colorScheme.onSurface,
+        ),
+        cursorColor: theme.colorScheme.primary,
+        decoration: InputDecoration(
+          hintText: l10n.filterMusicBrainzReleaseTitle,
+          hintStyle: TextStyle(
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.35)
+                : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
           ),
-          AnimatedSize(
-            duration: const Duration(milliseconds: 220),
-            curve: Curves.easeOutCubic,
-            alignment: Alignment.topCenter,
-            child: _isMusicBrainzSearchExpanded
-                ? Padding(
-                    padding: const EdgeInsets.only(top: 10),
-                    child: TextField(
-                      controller: _musicBrainzSearchController,
-                      focusNode: _musicBrainzSearchFocusNode,
-                      style: TextStyle(color: isDark ? Colors.white : theme.colorScheme.onSurface),
-                      cursorColor: theme.colorScheme.primary,
-                      decoration: InputDecoration(
-                        hintText: l10n.filterMusicBrainzReleaseTitle,
-                        hintStyle: TextStyle(
-                          color: isDark ? Colors.white.withValues(alpha: 0.35) : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
-                        ),
-                        prefixIcon: Icon(
-                          Icons.search_rounded,
-                          color: isDark ? Colors.white.withValues(alpha: 0.45) : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
-                        ),
-                        suffixIcon: _hasMusicBrainzSearchQuery
-                            ? IconButton(
-                                onPressed: _clearMusicBrainzSearch,
-                                icon: Icon(
-                                  Icons.clear_rounded,
-                                  color: isDark ? Colors.white.withValues(alpha: 0.55) : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-                                ),
-                                tooltip: l10n.clearSearch,
-                              )
-                            : null,
-                        filled: true,
-                        fillColor: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.black.withValues(alpha: 0.04),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          borderSide: BorderSide.none,
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          borderSide: BorderSide(
-                            color: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.black.withValues(alpha: 0.06),
-                          ),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          borderSide: BorderSide(
-                            color: theme.colorScheme.primary,
-                            width: 1.1,
-                          ),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 12,
-                        ),
-                      ),
-                    ),
-                  )
-                : const SizedBox.shrink(),
+          prefixIcon: Icon(
+            Icons.search_rounded,
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.45)
+                : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
           ),
-        ],
+          suffixIcon: _hasMusicBrainzSearchQuery
+              ? IconButton(
+                  onPressed: _clearMusicBrainzSearch,
+                  icon: Icon(
+                    Icons.clear_rounded,
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.55)
+                        : theme.colorScheme.onSurfaceVariant
+                            .withValues(alpha: 0.7),
+                  ),
+                  tooltip: l10n.clearSearch,
+                )
+              : null,
+          filled: true,
+          fillColor: isDark
+              ? Colors.white.withValues(alpha: 0.06)
+              : Colors.black.withValues(alpha: 0.04),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.06)
+                  : Colors.black.withValues(alpha: 0.06),
+            ),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(
+              color: theme.colorScheme.primary,
+              width: 1.1,
+            ),
+          ),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 14,
+            vertical: 12,
+          ),
+        ),
       ),
     );
   }
@@ -1021,16 +958,57 @@ class _SongTagCompletionSheetState
       songTagCompletionControllerProvider(widget.songPath),
     );
     final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
-    return AppBottomSheet(
-      maxHeightFactor: 0.88,
-      padding: EdgeInsets.zero,
+    return AppAdaptiveSheet(
+      asDialog: false,
+      title: l10n.tagCompletion,
+      subtitle: l10n.tagCompletionDescription,
+      sheetMaxWidth: 860,
+      landscapeMaxWidth: 1060,
+      expandHeight: true,
+      maxHeightFactor: 0.94,
+      headerTrailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            onPressed: _toggleMusicBrainzSearchPanel,
+            icon: Icon(
+              _isMusicBrainzSearchExpanded
+                  ? Icons.search_off_rounded
+                  : Icons.search_rounded,
+              color: _hasMusicBrainzSearchQuery
+                  ? const Color(0xFF46D27A)
+                  : (isDark
+                      ? Colors.white70
+                      : theme.colorScheme.onSurfaceVariant),
+            ),
+            tooltip: _isMusicBrainzSearchExpanded
+                ? l10n.closeSearch
+                : l10n.searchReleaseTitles,
+          ),
+          IconButton(
+            onPressed: controller.isMusicBrainzLoading ? null : _loadMatches,
+            icon: Icon(
+              Icons.refresh_rounded,
+              color: isDark
+                  ? Colors.white70
+                  : theme.colorScheme.onSurfaceVariant,
+            ),
+            tooltip: l10n.refreshResults,
+          ),
+        ],
+      ),
       child: Stack(
         children: [
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildHeader(context, l10n, controller),
+              if (_isMusicBrainzSearchExpanded) ...[
+                _buildSearchField(context, l10n, theme, isDark),
+                const SizedBox(height: 10),
+              ],
               _buildSummary(context, l10n, controller),
               const SizedBox(height: 14),
               Expanded(child: _buildBody(context, l10n, controller)),

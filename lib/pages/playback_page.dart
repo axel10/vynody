@@ -320,11 +320,9 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
   }
 
   void _showSleepTimerSheet(BuildContext context) {
-    showModalBottomSheet(
+    showAppAdaptiveModal(
       context: context,
       useRootNavigator: true,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
       builder: (context) => const SleepTimerSheet(),
     );
   }
@@ -350,11 +348,9 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
     final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context)!;
     final popped =
-        await showModalBottomSheet<(MusicBrainzTagSelectionResult, bool)>(
+        await showAppModalBottomSheet<(MusicBrainzTagSelectionResult, bool)>(
           context: context,
           useRootNavigator: true,
-          isScrollControlled: true,
-          backgroundColor: Colors.transparent,
           builder: (context) => SongTagCompletionSheet(
             songPath: song.path,
             currentTitle: song.displayName,

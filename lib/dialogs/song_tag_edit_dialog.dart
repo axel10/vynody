@@ -42,11 +42,9 @@ Future<SongTagEditResult?> showSongTagEditSheet(
   final targetSongs = songs ?? (song != null ? [song] : <MusicFile>[]);
   if (targetSongs.isEmpty) return Future.value(null);
 
-  return showModalBottomSheet<SongTagEditResult>(
+  return showAppAdaptiveModal<SongTagEditResult>(
     context: context,
     useRootNavigator: true,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
     builder: (context) => SongTagEditSheet(songs: targetSongs),
   );
 }
@@ -92,6 +90,7 @@ Future<void> applySongTagEditResult(
         ? l10n.songTagsSavedToSourceFileAndApp
         : l10n.songTagsSavedToApp;
   }
+  if (!context.mounted) return;
   AppSnackBar.show(context, ref, SnackBar(content: Text(message)));
 }
 
@@ -612,63 +611,23 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
         ? l10n.batchEditSongTagsDescription
         : l10n.editSongTagsDescription;
 
-    return AppBottomSheet(
-      maxHeightFactor: 0.88,
+    return AppAdaptiveSheet(
+      title: headerTitle,
+      subtitle: headerDescription,
+      sheetMaxWidth: 760,
+      dialogMaxWidth: 720,
+      landscapeMaxWidth: 980,
+      expandHeight: true,
+      dialogHeight: 700,
       padding: EdgeInsets.only(bottom: bottomInset),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 4, 12, 8),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                headerTitle,
-                                style: TextStyle(
-                                  color: isDark
-                                      ? Colors.white
-                                      : theme.colorScheme.onSurface,
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                headerDescription,
-                                style: TextStyle(
-                                  color: isDark
-                                      ? Colors.white.withValues(alpha: 0.6)
-                                      : theme.colorScheme.onSurfaceVariant,
-                                  fontSize: 12,
-                                  height: 1.35,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        IconButton(
-                          onPressed: _isSaving
-                              ? null
-                              : () => Navigator.of(context).pop(),
-                          icon: Icon(
-                            Icons.close_rounded,
-                            color: isDark
-                                ? Colors.white70
-                                : theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Expanded(
-                    child: ListView(
-                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-                      children: [
-                        Center(
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+              children: [
+                Center(
                           child: GestureDetector(
                             onTap: _isSaving ? null : _showArtworkOptions,
                             child: Stack(

@@ -86,48 +86,25 @@ class _SleepTimerSheetState extends ConsumerState<SleepTimerSheet> {
   Widget build(BuildContext context) {
     final remaining = ref.watch(audioSleepTimerRemainingProvider);
     final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final isActive = _mode == _SleepTimerSheetMode.active;
 
-    return AppBottomSheet(
-      maxWidth: 600,
+    return AppAdaptiveSheet(
+      sheetMaxWidth: 600,
+      dialogMaxWidth: 560,
       landscapeMaxWidth: 760,
-      padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
+      title: isActive ? l10n.sleepTimerRunningTitle : l10n.sleepTimerTitle,
+      subtitle: isActive
+          ? l10n.sleepTimerRunningDescription
+          : l10n.sleepTimerDescription,
       child: SingleChildScrollView(
+        padding: const EdgeInsets.only(bottom: 24.0),
         child: AnimatedSwitcher(
           duration: const Duration(milliseconds: 220),
-          child: _mode == _SleepTimerSheetMode.active
+          child: isActive
               ? _buildActiveView(context, remaining, l10n)
               : _buildConfigureView(context, l10n),
         ),
       ),
-    );
-  }
-
-  Widget _buildTitle(BuildContext context, String title, String subtitle) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: TextStyle(
-            color: isDark ? Colors.white : theme.colorScheme.onSurface,
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          subtitle,
-          style: TextStyle(
-            color: isDark ? Colors.white70 : theme.colorScheme.onSurfaceVariant,
-            fontSize: 13,
-          ),
-        ),
-      ],
     );
   }
 
@@ -140,8 +117,7 @@ class _SleepTimerSheetState extends ConsumerState<SleepTimerSheet> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _buildTitle(context, l10n.sleepTimerTitle, l10n.sleepTimerDescription),
-        const SizedBox(height: 18),
+        const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
             color: isDark
@@ -244,12 +220,7 @@ class _SleepTimerSheetState extends ConsumerState<SleepTimerSheet> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _buildTitle(
-          context,
-          l10n.sleepTimerRunningTitle,
-          l10n.sleepTimerRunningDescription,
-        ),
-        const SizedBox(height: 22),
+        const SizedBox(height: 12),
         Center(
           child: Text(
             _formatDuration(displayRemaining),

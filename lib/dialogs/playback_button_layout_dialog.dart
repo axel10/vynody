@@ -235,7 +235,8 @@ class _PlaybackButtonLayoutViewState extends State<PlaybackButtonLayoutView> {
     final bottomInset = MediaQuery.paddingOf(context).bottom;
 
     return ListView(
-      padding: EdgeInsets.only(top: 8, bottom: math.max(32.0, bottomInset + 16.0)),
+      padding:
+          EdgeInsets.only(top: 8, bottom: math.max(16.0, bottomInset + 12.0)),
       children: [
         // 1. 7 按钮行排序
         Row(

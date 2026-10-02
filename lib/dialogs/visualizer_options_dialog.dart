@@ -33,11 +33,6 @@ class VisualizerOptionsDialog extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final media = MediaQuery.sizeOf(context);
-    final adaptiveSheetHeight = math.min(
-      media.height * 0.80,
-      760.0,
-    ).clamp(520.0, 760.0);
 
     return DefaultTabController(
       length: 3,
@@ -48,10 +43,10 @@ class VisualizerOptionsDialog extends ConsumerWidget {
           return AppAdaptiveSheet(
             title: l10n.visualizerSettings,
             sheetMaxWidth: 800,
-            dialogMaxWidth: 740,
-            landscapeMaxWidth: 1000,
-            dialogHeight: 580,
-            sheetHeight: adaptiveSheetHeight,
+            dialogMaxWidth: 760,
+            landscapeMaxWidth: 1040,
+            dialogHeight: 740,
+            expandHeight: true,
             headerBottom: TabBar(
               tabs: [
                 Tab(text: l10n.algorithm),
@@ -94,7 +89,7 @@ class VisualizerOptionsDialog extends ConsumerWidget {
     final bottomInset = MediaQuery.paddingOf(context).bottom;
 
     return SingleChildScrollView(
-      padding: EdgeInsets.only(top: 8, bottom: math.max(32.0, bottomInset + 16.0)),
+      padding: EdgeInsets.only(top: 8, bottom: math.max(16.0, bottomInset + 12.0)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -543,7 +538,7 @@ class VisualizerOptionsDialog extends ConsumerWidget {
     final bottomInset = MediaQuery.paddingOf(context).bottom;
 
     return SingleChildScrollView(
-      padding: EdgeInsets.only(top: 8, bottom: math.max(32.0, bottomInset + 16.0)),
+      padding: EdgeInsets.only(top: 8, bottom: math.max(16.0, bottomInset + 12.0)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
