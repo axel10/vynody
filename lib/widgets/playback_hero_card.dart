@@ -1035,7 +1035,7 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard> {
         ? (1.0 + (width - 1920.0) * 0.00018).clamp(1.0, 1.35)
         : 1.0;
 
-    final double spaceFactor = wFactor;
+    final double spaceFactor = ((width - 960.0) / 720.0).clamp(0.0, 1.0);
 
     final double lLyricsPreferredCoverSide =
         (PlaybackHeroCardUiTuning.lLyricsPreferredCoverSide +

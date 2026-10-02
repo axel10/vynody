@@ -573,8 +573,7 @@ class _LyricsPanelTimedLyricsViewState
                                       ],
                                     ],
                                   ),
-                                ),
-                              );
+                                );
 
                               final double lineTop = lineTops[index];
                               final double lineHeight =
