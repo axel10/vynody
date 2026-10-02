@@ -661,18 +661,27 @@ class _MyAppState extends ConsumerState<MyApp>
 
   @override
   Widget build(BuildContext context) {
-    final settings = ref.watch(settingsServiceProvider);
-    final themeColor = settings.themeColor;
+    final themeColor = ref.watch(
+      settingsServiceProvider.select((s) => s.themeColor),
+    );
+    final effectiveLocale = ref.watch(
+      settingsServiceProvider.select((s) => s.effectiveLocale),
+    );
+    final themeMode = ref.watch(
+      settingsServiceProvider.select((s) => s.themeMode),
+    );
+    final scale = ref.watch(
+      settingsServiceProvider.select((s) => s.uiScale),
+    );
     Widget app = MaterialApp(
         title: 'Vynody',
-        locale: settings.effectiveLocale,
+        locale: effectiveLocale,
         theme: _buildTheme(Brightness.light, themeColor),
         darkTheme: _buildTheme(Brightness.dark, themeColor),
-        themeMode: settings.themeMode,
+        themeMode: themeMode,
         builder: (context, child) {
           final theme = Theme.of(context);
           final isDark = theme.brightness == Brightness.dark;
-          final scale = settings.uiScale;
           final mediaQuery = MediaQuery.of(context);
           final isLandscape =
               mediaQuery.orientation == Orientation.landscape ||

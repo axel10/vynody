@@ -378,6 +378,7 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard> {
 
         final lyricsPanelWidget = _LyricsPanelTransitionWrapper(
           isTransitioning: isTransitioningNotifier,
+          isLyricsMode: effectiveIsLyricsMode,
           lyricsBottomSpacerHeight: effectiveLyricsBottomSpacer,
           lyricsBottomTabBarHeight: widget.lyricsBottomTabBarHeight,
         );
@@ -535,10 +536,6 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard> {
                                       child: RepaintBoundary(
                                         child: Consumer(
                                           builder: (context, ref, childWidget) {
-                                            if (tLyrics == 0.0 &&
-                                                !effectiveIsLyricsMode) {
-                                              return const SizedBox.shrink();
-                                            }
                                             if (isTransitioningNotifier.value !=
                                                 optimize) {
                                               Future.microtask(() {
@@ -546,13 +543,23 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard> {
                                                     optimize;
                                               });
                                             }
-                                            if (widget.lyricsKey != null) {
-                                              return KeyedSubtree(
-                                                key: widget.lyricsKey,
-                                                child: child!,
-                                              );
-                                            }
-                                            return child!;
+                                            final bool isOffstage =
+                                                tLyrics == 0.0 &&
+                                                !effectiveIsLyricsMode;
+                                            final Widget lyricsWidget =
+                                                widget.lyricsKey != null
+                                                    ? KeyedSubtree(
+                                                        key: widget.lyricsKey,
+                                                        child: child!,
+                                                      )
+                                                    : child!;
+                                            return Offstage(
+                                              offstage: isOffstage,
+                                              child: TickerMode(
+                                                enabled: !isOffstage,
+                                                child: lyricsWidget,
+                                              ),
+                                            );
                                           },
                                         ),
                                       ),
@@ -1481,11 +1488,13 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard> {
 
 class _LyricsPanelTransitionWrapper extends StatefulWidget {
   final ValueNotifier<bool> isTransitioning;
+  final bool isLyricsMode;
   final double lyricsBottomSpacerHeight;
   final double lyricsBottomTabBarHeight;
 
   const _LyricsPanelTransitionWrapper({
     required this.isTransitioning,
+    required this.isLyricsMode,
     required this.lyricsBottomSpacerHeight,
     required this.lyricsBottomTabBarHeight,
   });
@@ -1536,7 +1545,9 @@ class _LyricsPanelTransitionWrapperState
       builder: (context, ref, child) {
         final currentIndex = ref.watch(audioCurrentIndexProvider);
         final currentMusic = ref.watch(audioCurrentMusicProvider);
-        final position = ref.watch(audioPositionProvider);
+        final position = (widget.isLyricsMode || _isTransitioning)
+            ? ref.watch(audioPositionProvider)
+            : ref.read(audioPositionProvider);
         final currentThemeColorsMap = ref.watch(
           audioCurrentThemeColorsMapProvider,
         );
