@@ -564,17 +564,6 @@ class _FolderPortraitHeaderBanner extends StatelessWidget {
     final desktopTitleBarHeight = isDesktop ? 28.0 : 0.0;
     final hasTopHeader = topHeader != null;
 
-    final routeAnimation = ModalRoute.of(context)?.animation;
-    final darkOverlayAnimation = routeAnimation != null
-        ? CurvedAnimation(parent: routeAnimation, curve: Curves.easeOut)
-        : null;
-    final foregroundAnimation = routeAnimation != null
-        ? CurvedAnimation(
-            parent: routeAnimation,
-            curve: const Interval(0.15, 1.0, curve: Curves.easeOutCubic),
-          )
-        : null;
-
     return LayoutBuilder(
       builder: (context, constraints) {
         final isWideScreen = constraints.maxWidth >= 680;
@@ -650,33 +639,23 @@ class _FolderPortraitHeaderBanner extends StatelessWidget {
                     ],
                     // Gradient overlay for text readability (Dark mode: dark gradient, Light mode: light surface gradient)
                     if (hasImage)
-                      AnimatedBuilder(
-                        animation: routeAnimation ?? const AlwaysStoppedAnimation(1.0),
-                        builder: (context, child) {
-                          final opacity = (darkOverlayAnimation?.value ?? 1.0).clamp(0.0, 1.0);
-                          return Opacity(
-                            opacity: opacity,
-                            child: child,
-                          );
-                        },
-                        child: Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: isDark
-                                  ? [
-                                      Colors.black.withValues(alpha: 0.35),
-                                      Colors.black.withValues(alpha: 0.55),
-                                      Colors.black.withValues(alpha: 0.85),
-                                    ]
-                                  : [
-                                      theme.colorScheme.surface.withValues(alpha: 0.25),
-                                      theme.colorScheme.surface.withValues(alpha: 0.60),
-                                      theme.colorScheme.surface.withValues(alpha: 0.92),
-                                    ],
-                              stops: const [0.0, 0.45, 1.0],
-                            ),
+                      Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: isDark
+                                ? [
+                                    Colors.black.withValues(alpha: 0.35),
+                                    Colors.black.withValues(alpha: 0.55),
+                                    Colors.black.withValues(alpha: 0.85),
+                                  ]
+                                : [
+                                    theme.colorScheme.surface.withValues(alpha: 0.25),
+                                    theme.colorScheme.surface.withValues(alpha: 0.60),
+                                    theme.colorScheme.surface.withValues(alpha: 0.92),
+                                  ],
+                            stops: const [0.0, 0.45, 1.0],
                           ),
                         ),
                       ),
@@ -687,32 +666,15 @@ class _FolderPortraitHeaderBanner extends StatelessWidget {
           ),
 
           // 2. Foreground content layer
-            AnimatedBuilder(
-              animation: routeAnimation ?? const AlwaysStoppedAnimation(1.0),
-              builder: (context, child) {
-                if (routeAnimation == null) {
-                  return child!;
-                }
-                final progress = (foregroundAnimation?.value ?? 1.0).clamp(0.0, 1.0);
-                final opacity = progress;
-                final offsetY = 14.0 * (1.0 - progress);
-                return Opacity(
-                  opacity: opacity,
-                  child: Transform.translate(
-                    offset: Offset(0, offsetY),
-                    child: child,
-                  ),
-                );
-              },
-              child: Padding(
-                padding: EdgeInsets.only(
-                  top: hasTopHeader
-                      ? 0
-                      : (statusBarTop > 0
-                          ? statusBarTop + desktopTitleBarHeight + 8
-                          : desktopTitleBarHeight + 16),
-                  left: 16,
-                  right: 16,
+          Padding(
+            padding: EdgeInsets.only(
+              top: hasTopHeader
+                  ? 0
+                  : (statusBarTop > 0
+                      ? statusBarTop + desktopTitleBarHeight + 8
+                      : desktopTitleBarHeight + 16),
+              left: 16,
+              right: 16,
                   bottom: 16,
                 ),
                 child: Column(
@@ -934,7 +896,6 @@ class _FolderPortraitHeaderBanner extends StatelessWidget {
                   ],
                 ),
               ),
-            ),
             // 3. Hairline scanning progress bar at bottom of the banner
             const Positioned(
               left: 0,
