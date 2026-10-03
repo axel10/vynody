@@ -67,6 +67,57 @@ class AudioService extends Notifier<AudioSnapshot> {
   final MetadataDatabase _db = MetadataDatabase();
   final List<MusicFile> _queue = [];
   final Map<String, Uint8List> _artworkCache = {};
+  static const int _maxAudioDetailsCacheSize = 100;
+  final Map<String, ({AudioDetails details, int? lastModifiedTime, int? fileSize})>
+      _audioDetailsCache = {};
+
+  AudioDetails? getCachedAudioDetails(
+    String path, {
+    int? lastModifiedTime,
+    int? fileSize,
+  }) {
+    final entry = _audioDetailsCache.remove(path);
+    if (entry == null) return null;
+
+    if (lastModifiedTime != null &&
+        entry.lastModifiedTime != null &&
+        lastModifiedTime != entry.lastModifiedTime) {
+      return null;
+    }
+    if (fileSize != null &&
+        entry.fileSize != null &&
+        fileSize != entry.fileSize) {
+      return null;
+    }
+
+    _audioDetailsCache[path] = entry;
+    return entry.details;
+  }
+
+  void setCachedAudioDetails(
+    String path,
+    AudioDetails details, {
+    int? lastModifiedTime,
+    int? fileSize,
+  }) {
+    _audioDetailsCache.remove(path);
+    _audioDetailsCache[path] = (
+      details: details,
+      lastModifiedTime: lastModifiedTime,
+      fileSize: fileSize,
+    );
+    if (_audioDetailsCache.length > _maxAudioDetailsCacheSize) {
+      _audioDetailsCache.remove(_audioDetailsCache.keys.first);
+    }
+  }
+
+  void clearAudioDetailsCache([String? path]) {
+    if (path != null) {
+      _audioDetailsCache.remove(path);
+    } else {
+      _audioDetailsCache.clear();
+    }
+  }
   int _currentIndex = -1;
   bool? _lastActionNext;
   bool _isTransitioning = false;
@@ -2072,6 +2123,7 @@ class AudioService extends Notifier<AudioSnapshot> {
     SongMetadata metadata, {
     Uint8List? artworkBytes,
   }) async {
+    clearAudioDetailsCache(metadata.path);
     bool queueChanged = false;
     for (var i = 0; i < _queue.length; i++) {
       final song = _queue[i];
@@ -3019,7 +3071,32 @@ class AudioService extends Notifier<AudioSnapshot> {
   Future<AudioDetails> getAudioDetails({
     required String path,
     String? fallbackMediaUri,
+    bool forceRefresh = false,
+    int? lastModifiedTime,
+    int? fileSize,
   }) async {
+    if (!forceRefresh) {
+      final cached = getCachedAudioDetails(
+        path,
+        lastModifiedTime: lastModifiedTime,
+        fileSize: fileSize,
+      );
+      if (cached != null) return cached;
+    }
+
+    int? mtime = lastModifiedTime;
+    int? size = fileSize;
+    if (!RemoteMediaResolver.isRemoteUri(path) && (mtime == null || size == null)) {
+      try {
+        final file = File(path);
+        if (file.existsSync()) {
+          mtime ??= file.lastModifiedSync().millisecondsSinceEpoch;
+          size ??= file.lengthSync();
+        }
+      } catch (_) {}
+    }
+
+    AudioDetails details;
     if (RemoteMediaResolver.isRemoteUri(path)) {
       final info = RemoteMediaResolver.parseUri(path);
       if (info != null) {
@@ -3032,18 +3109,32 @@ class AudioService extends Notifier<AudioSnapshot> {
             cacheKey,
           );
           if (await cacheFile.exists()) {
-            return _player.engine.getAudioDetails(
+            details = await _player.engine.getAudioDetails(
               path: cacheFile.path,
               fallbackMediaUri: fallbackMediaUri ?? path,
             );
+            setCachedAudioDetails(
+              path,
+              details,
+              lastModifiedTime: mtime,
+              fileSize: size,
+            );
+            return details;
           }
         }
       }
     }
-    return _player.engine.getAudioDetails(
+    details = await _player.engine.getAudioDetails(
       path: path,
       fallbackMediaUri: fallbackMediaUri,
     );
+    setCachedAudioDetails(
+      path,
+      details,
+      lastModifiedTime: mtime,
+      fileSize: size,
+    );
+    return details;
   }
 
   Future<void> enqueueNext(List<MusicFile> songs) async {

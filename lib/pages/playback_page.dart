@@ -172,6 +172,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
     String? sourcePath,
   ) {
     if (!mounted) return;
+    ref.read(currentAudioDetailsProvider.notifier).loadRefinedImmediately();
     if (sourcePath != null && artworkBytes != null && artworkBytes.isNotEmpty) {
       _fileArtworkBytesCache[sourcePath] = artworkBytes;
     }

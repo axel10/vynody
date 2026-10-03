@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:audio_core/audio_core.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
+import 'package:vynody/models/music_file.dart';
 
 void main() {
   group('formatAudioSpec', () {
@@ -84,4 +85,34 @@ void main() {
       expect(formatAudioSpec(details88k), equals('ALAC · 24bit · 88.2 kHz · 1800 kbps'));
     });
   });
+
+  group('CurrentAudioDetailsNotifier fast path', () {
+    test('buildFastAudioDetails extracts extension format and duration instantly', () {
+      const music = MusicFile(
+        path: '/storage/music/song.flac',
+        name: 'song.flac',
+        durationMillis: 185000,
+      );
+
+      final fast = CurrentAudioDetailsNotifier.buildFastAudioDetails(music);
+      expect(fast.formatName, equals('flac'));
+      expect(fast.codecName, equals('flac'));
+      expect(fast.duration.inMilliseconds, equals(185000));
+      expect(fast.sampleRate, equals(0));
+      expect(formatAudioSpec(fast), equals('FLAC'));
+    });
+
+    test('buildFastAudioDetails maps m4a to aac', () {
+      const music = MusicFile(
+        path: '/storage/music/track.m4a',
+        name: 'track.m4a',
+      );
+
+      final fast = CurrentAudioDetailsNotifier.buildFastAudioDetails(music);
+      expect(fast.formatName, equals('m4a'));
+      expect(fast.codecName, equals('aac'));
+      expect(formatAudioSpec(fast), equals('M4A'));
+    });
+  });
 }
+

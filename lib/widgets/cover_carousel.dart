@@ -755,8 +755,11 @@ class _CoverItemState extends ConsumerState<_CoverItem> {
   @override
   Widget build(BuildContext context) {
     final double devicePixelRatio = MediaQuery.of(context).devicePixelRatio;
+    final coverImage = _buildCoverImage();
+
     return AnimatedBuilder(
       animation: widget.animation,
+      child: coverImage,
       builder: (context, child) {
         final double pageOffset = widget.animation.value - widget.itemIndex;
         final double opacity = (1 - pageOffset.abs() * 1.2).clamp(0.0, 1.0);
@@ -833,7 +836,7 @@ class _CoverItemState extends ConsumerState<_CoverItem> {
                             ],
                     ),
                     clipBehavior: isAnimating ? Clip.hardEdge : Clip.antiAlias,
-                    child: _buildCoverImage(isCentered, isAnimating),
+                    child: child,
                   ),
                 ),
               ),
@@ -844,7 +847,7 @@ class _CoverItemState extends ConsumerState<_CoverItem> {
     );
   }
 
-  Widget _buildCoverImage(bool isCentered, bool isAnimating) {
+  Widget _buildCoverImage() {
     final bool isLowMidEnd = ref.read(isLowMidEndDeviceProvider);
     final int finalCacheWidth = PlaybackArtworkTuning.calculateCoverCacheWidth(
       context,
@@ -863,7 +866,7 @@ class _CoverItemState extends ConsumerState<_CoverItem> {
         height: double.infinity,
         gaplessPlayback: true,
         cacheWidth: finalCacheWidth,
-        filterQuality: isCentered ? FilterQuality.low : FilterQuality.medium,
+        filterQuality: FilterQuality.low,
       );
     }
 
@@ -876,7 +879,7 @@ class _CoverItemState extends ConsumerState<_CoverItem> {
         height: double.infinity,
         gaplessPlayback: true,
         cacheWidth: finalCacheWidth,
-        filterQuality: isCentered ? FilterQuality.low : FilterQuality.medium,
+        filterQuality: FilterQuality.low,
       );
     }
 
@@ -888,7 +891,7 @@ class _CoverItemState extends ConsumerState<_CoverItem> {
         height: double.infinity,
         gaplessPlayback: true,
         cacheWidth: finalCacheWidth,
-        filterQuality: isCentered ? FilterQuality.low : FilterQuality.medium,
+        filterQuality: FilterQuality.low,
       );
     } else {
       final thumbPath = widget.musicFile.thumbnailPath;
@@ -902,9 +905,7 @@ class _CoverItemState extends ConsumerState<_CoverItem> {
             height: double.infinity,
             gaplessPlayback: true,
             cacheWidth: finalCacheWidth,
-            filterQuality: isCentered
-                ? FilterQuality.low
-                : FilterQuality.medium,
+            filterQuality: FilterQuality.low,
           );
         }
       }
@@ -920,9 +921,7 @@ class _CoverItemState extends ConsumerState<_CoverItem> {
             height: double.infinity,
             gaplessPlayback: true,
             cacheWidth: finalCacheWidth,
-            filterQuality: isCentered
-                ? FilterQuality.low
-                : FilterQuality.medium,
+            filterQuality: FilterQuality.low,
           );
         }
       }

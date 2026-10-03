@@ -285,53 +285,14 @@ final songMetadataProvider = StreamProvider.family<SongMetadata?, String>((ref, 
   return MetadataDatabase().watchSongMetadata(path);
 });
 
-final currentAudioDetailsProvider = FutureProvider<AudioDetails?>((ref) async {
-  final currentMusic = ref.watch(audioCurrentMusicProvider);
-  if (currentMusic == null) return null;
-  final audioService = ref.watch(audioServiceProvider);
-  try {
-    final details = await audioService.getAudioDetails(
-      path: currentMusic.path,
-      fallbackMediaUri: currentMusic.name,
-    );
-    var formatName = details.formatName.trim();
-    var codecName = details.codecName.trim();
-    if (formatName.toLowerCase() == 'cache' || formatName.toLowerCase() == 'tmp') {
-      formatName = '';
-    }
-    if (codecName.toLowerCase() == 'cache' || codecName.toLowerCase() == 'tmp') {
-      codecName = '';
-    }
+class CurrentAudioDetailsNotifier extends AsyncNotifier<AudioDetails?> {
+  Timer? _debounceTimer;
 
-    if (formatName.isEmpty || codecName.isEmpty) {
-      var ext = p.extension(currentMusic.name).replaceAll('.', '').toLowerCase();
-      if (ext.contains('?')) ext = ext.split('?').first;
-      if (ext == 'cache' || ext == 'tmp') ext = '';
-      if (ext.isNotEmpty) {
-        if (formatName.isEmpty) {
-          formatName = (ext == 'mpeg') ? 'mp3' : (ext == 'mp4' ? 'm4a' : ext);
-        }
-        if (codecName.isEmpty) {
-          if (ext == 'mp3' || ext == 'mpeg') {
-            codecName = 'mp3';
-          } else if (ext == 'm4a' || ext == 'mp4') {
-            codecName = 'aac';
-          } else {
-            codecName = ext;
-          }
-        }
-      }
-    }
-
-    return details.copyWith(
-      formatName: formatName,
-      codecName: codecName,
-    );
-  } catch (_) {
-    var ext = p.extension(currentMusic.path).replaceAll('.', '').toLowerCase();
+  static AudioDetails buildFastAudioDetails(MusicFile music) {
+    var ext = p.extension(music.path).replaceAll('.', '').toLowerCase();
     if (ext.contains('?')) ext = ext.split('?').first;
     if (ext.isEmpty || ext == 'cache' || ext == 'tmp') {
-      ext = p.extension(currentMusic.name).replaceAll('.', '').toLowerCase();
+      ext = p.extension(music.name).replaceAll('.', '').toLowerCase();
       if (ext.contains('?')) ext = ext.split('?').first;
     }
     if (ext == 'cache' || ext == 'tmp') ext = '';
@@ -342,10 +303,14 @@ final currentAudioDetailsProvider = FutureProvider<AudioDetails?>((ref) async {
     } else if (formatName == 'm4a' || formatName == 'mp4') {
       codecName = 'aac';
     }
+    final duration = music.durationMillis != null && music.durationMillis! > 0
+        ? Duration(milliseconds: music.durationMillis!)
+        : Duration.zero;
+
     return AudioDetails(
       formatName: formatName,
       codecName: codecName,
-      duration: Duration.zero,
+      duration: duration,
       bitrate: 0,
       sampleRate: 0,
       channels: 0,
@@ -353,7 +318,138 @@ final currentAudioDetailsProvider = FutureProvider<AudioDetails?>((ref) async {
       fileSize: 0,
     );
   }
-});
+
+  @override
+  Future<AudioDetails?> build() async {
+    _debounceTimer?.cancel();
+    final currentMusic = ref.watch(audioCurrentMusicProvider);
+    if (currentMusic == null) return null;
+
+    final audioService = ref.read(audioServiceProvider);
+    final cached = audioService.getCachedAudioDetails(
+      currentMusic.path,
+      lastModifiedTime: currentMusic.lastModifiedTime,
+    );
+
+    // 如果内存缓存已有且包含采样率等精细信息，并且文件修改时间匹配，直接秒开
+    if (cached != null && cached.sampleRate > 0) {
+      return cached;
+    }
+
+    // 优先秒开展示 Fast AudioDetails，完全不走任何 TagLib FFI，0ms 阻塞保证轮播动画丝滑
+    final fastDetails = cached ?? buildFastAudioDetails(currentMusic);
+
+    // 延迟 350ms（等待轮播动画结束并防抖用户快速划歌），随后后台异步读取 TagLib 详细信息
+    _debounceTimer = Timer(const Duration(milliseconds: 350), () {
+      _loadRefinedDetails(currentMusic);
+    });
+
+    ref.onDispose(() {
+      _debounceTimer?.cancel();
+    });
+
+    return fastDetails;
+  }
+
+  /// 供外部在轮播动画完成（onCarouselAnimationComplete）时立即唤起深度解析，无需等待剩余防抖时间
+  void loadRefinedImmediately() {
+    _debounceTimer?.cancel();
+    final currentMusic = ref.read(audioCurrentMusicProvider);
+    if (currentMusic != null) {
+      _loadRefinedDetails(currentMusic);
+    }
+  }
+
+  Future<void> _loadRefinedDetails(MusicFile music) async {
+    final audioService = ref.read(audioServiceProvider);
+
+    final cached = audioService.getCachedAudioDetails(
+      music.path,
+      lastModifiedTime: music.lastModifiedTime,
+    );
+    if (cached != null && cached.sampleRate > 0) {
+      if (ref.read(audioCurrentMusicProvider)?.path == music.path) {
+        state = AsyncData(cached);
+      }
+      return;
+    }
+
+    try {
+      final details = await audioService.getAudioDetails(
+        path: music.path,
+        fallbackMediaUri: music.name,
+        forceRefresh: true,
+        lastModifiedTime: music.lastModifiedTime,
+      );
+
+      var formatName = details.formatName.trim();
+      var codecName = details.codecName.trim();
+      if (formatName.toLowerCase() == 'cache' || formatName.toLowerCase() == 'tmp') {
+        formatName = '';
+      }
+      if (codecName.toLowerCase() == 'cache' || codecName.toLowerCase() == 'tmp') {
+        codecName = '';
+      }
+
+      if (formatName.isEmpty || codecName.isEmpty) {
+        var ext = p.extension(music.name).replaceAll('.', '').toLowerCase();
+        if (ext.contains('?')) ext = ext.split('?').first;
+        if (ext == 'cache' || ext == 'tmp') ext = '';
+        if (ext.isNotEmpty) {
+          if (formatName.isEmpty) {
+            formatName = (ext == 'mpeg') ? 'mp3' : (ext == 'mp4' ? 'm4a' : ext);
+          }
+          if (codecName.isEmpty) {
+            if (ext == 'mp3' || ext == 'mpeg') {
+              codecName = 'mp3';
+            } else if (ext == 'm4a' || ext == 'mp4') {
+              codecName = 'aac';
+            } else {
+              codecName = ext;
+            }
+          }
+        }
+      }
+
+      final refined = details.copyWith(
+        formatName: formatName,
+        codecName: codecName,
+      );
+
+      audioService.setCachedAudioDetails(
+        music.path,
+        refined,
+        lastModifiedTime: music.lastModifiedTime,
+      );
+
+      // 若从文件读取到的真实时长与数据库记录存在显著差异（>1秒）或数据库缺失时长，以文件为准校准数据库
+      if (refined.duration.inMilliseconds > 0) {
+        final scanner = ref.read(scannerServiceProvider);
+        final existing = scanner.metadataMap[music.path];
+        if (existing != null &&
+            (existing.duration == null ||
+                (existing.duration! - refined.duration.inMilliseconds).abs() > 1000)) {
+          final updated = existing.copyWith(
+            duration: refined.duration.inMilliseconds,
+          );
+          unawaited(MetadataDatabase().insertOrUpdateSong(updated));
+          scanner.updateMetadataForPath(updated);
+        }
+      }
+
+      if (ref.read(audioCurrentMusicProvider)?.path == music.path) {
+        state = AsyncData(refined);
+      }
+    } catch (_) {
+      // 出错时保持原有 fastDetails，不影响播放
+    }
+  }
+}
+
+final currentAudioDetailsProvider =
+    AsyncNotifierProvider<CurrentAudioDetailsNotifier, AudioDetails?>(
+  CurrentAudioDetailsNotifier.new,
+);
 
 String formatAudioSpec(AudioDetails? details) {
   if (details == null) return '';
