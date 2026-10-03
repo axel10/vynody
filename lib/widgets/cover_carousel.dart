@@ -403,7 +403,12 @@ class _CoverCarouselState extends State<CoverCarousel>
               final isSettled = (_animationController.value - index).abs() < 0.01 &&
                   !_animationController.isAnimating &&
                   !_isDragging;
-              if (musicFile.path == widget.playlist[widget.currentIndex].path && bytes != null && isSettled) {
+              final isCurrentIndexValid = widget.currentIndex >= 0 &&
+                  widget.currentIndex < widget.playlist.length;
+              if (isCurrentIndexValid &&
+                  musicFile.path == widget.playlist[widget.currentIndex].path &&
+                  bytes != null &&
+                  isSettled) {
                 widget.onAnimationComplete?.call(
                   bytes,
                   musicFile.path,

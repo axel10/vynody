@@ -105,7 +105,7 @@ class PlaybackAlbumArt extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final playlist = ref.watch(audioPlaybackQueueProvider);
     final currentIndex = ref.watch(audioCurrentIndexProvider);
-    if (playlist.isEmpty) {
+    if (playlist.isEmpty || currentIndex < 0 || currentIndex >= playlist.length) {
       return Center(
         child: Container(
           width: currentSize * 0.8,

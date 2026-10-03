@@ -5,6 +5,7 @@ analyzer:
     - "tray_manager/**"
     - "flutter-media-session/**"
     - "build-flatpak/**"
+    - "build-dir/**"
     - "build/**"
     - ".dart_tool/**"
     - "Bonsoir/**"
