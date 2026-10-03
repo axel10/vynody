@@ -114,7 +114,7 @@ class ScannerServiceRoots {
   Future<void> refreshRootWatchers() async {
     if (_isDisposed()) return;
 
-    if (!kIsWeb && (Platform.isIOS || Platform.isAndroid)) {
+    if (!kIsWeb && (Platform.isIOS || Platform.isAndroid || Platform.isLinux)) {
       for (final subscription in _rootWatchSubscriptions.values) {
         await subscription.cancel();
       }

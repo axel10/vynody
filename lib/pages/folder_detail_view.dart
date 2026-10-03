@@ -838,6 +838,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
           onSortPressed: () => _showSortDialog(context, scanner),
           onClearAllSelection: widget.onClearAllSelection,
           scrollController: _breadcrumbsScrollController,
+          onRefresh: _handleRefresh,
         ),
       ),
     );

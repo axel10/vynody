@@ -20,6 +20,7 @@ void main() {
   Widget buildTestNavBar({
     required MusicFolder currentFolder,
     required List<MusicFolder> navigationHistory,
+    VoidCallback? onRefresh,
   }) {
     return ProviderScope(
       overrides: [
@@ -37,6 +38,7 @@ void main() {
             currentFolder: currentFolder,
             navigationHistory: navigationHistory,
             onSortPressed: () {},
+            onRefresh: onRefresh,
           ),
         ),
       ),
@@ -86,5 +88,36 @@ void main() {
     expect(find.text('系统媒体库'), findsOneWidget);
     expect(find.text('download'), findsOneWidget);
     expect(find.text('test'), findsOneWidget);
+  });
+
+  testWidgets('FolderHeaderNavBar renders refresh button and triggers onRefresh', (tester) async {
+    final folder = MusicFolder(name: 'music', path: '/home/music', files: [], subFolders: []);
+    var refreshed = false;
+
+    // Without onRefresh: no refresh icon
+    await tester.pumpWidget(
+      buildTestNavBar(
+        currentFolder: folder,
+        navigationHistory: [],
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.refresh_rounded), findsNothing);
+
+    // With onRefresh: refresh icon appears and can be tapped
+    await tester.pumpWidget(
+      buildTestNavBar(
+        currentFolder: folder,
+        navigationHistory: [],
+        onRefresh: () => refreshed = true,
+      ),
+    );
+    await tester.pumpAndSettle();
+    final refreshBtn = find.byIcon(Icons.refresh_rounded);
+    expect(refreshBtn, findsOneWidget);
+
+    await tester.tap(refreshBtn);
+    await tester.pump();
+    expect(refreshed, isTrue);
   });
 }

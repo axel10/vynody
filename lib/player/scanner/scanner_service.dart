@@ -168,7 +168,10 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
 
   Future<void> loadRootFolderSongs(String rootPath) async {
     final normalized = _normalizePath(rootPath);
-    if (_loadedRootPaths.contains(normalized)) return;
+    final hasScannedFolder = _scannedRootFolders.any(
+      (f) => _pathsEqual(f.path, normalized),
+    );
+    if (_loadedRootPaths.contains(normalized) && hasScannedFolder) return;
 
     final songs = await _repository.getSongsUnderPath(normalized);
     final cachedFolder = _buildCachedFolderTree(
@@ -2540,7 +2543,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   void _enqueueWatchedPath(String path) {
-    if (_isDisposed || _mediaObserverPaused) return;
+    if (_isDisposed || _mediaObserverPaused || isScanning || Platform.isLinux) return;
 
     final normalizedPath = _normalizePath(path);
     if (normalizedPath.isEmpty) {
@@ -3494,6 +3497,9 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     } catch (e) {
       debugPrint('Scan error: $e');
     } finally {
+      _pendingDirectoryRescanPaths.clear();
+      _directoryRescanTimer?.cancel();
+      _directoryRescanTimer = null;
       try {
         await _timeScanStep(
           'populate watched mtimes from library',

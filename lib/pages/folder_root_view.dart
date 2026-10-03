@@ -696,6 +696,7 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
           onLocateCurrentSong: widget.onLocateCurrentSong,
           onSortPressed: widget.onToggleSortMode,
           isSortActive: widget.isSortMode,
+          onRefresh: _handleRefresh,
         ),
       ),
     );

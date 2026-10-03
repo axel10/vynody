@@ -24,6 +24,7 @@ class FolderHeaderNavBar extends ConsumerWidget {
     this.isSortActive = false,
     this.onClearAllSelection,
     this.scrollController,
+    this.onRefresh,
   });
 
   final bool isOverlay;
@@ -36,6 +37,7 @@ class FolderHeaderNavBar extends ConsumerWidget {
   final bool isSortActive;
   final VoidCallback? onClearAllSelection;
   final ScrollController? scrollController;
+  final VoidCallback? onRefresh;
 
   void _handleLocate(WidgetRef ref, BuildContext context) {
     if (onLocateCurrentSong != null) {
@@ -131,6 +133,8 @@ class FolderHeaderNavBar extends ConsumerWidget {
             onSelected: (value) {
               if (value == 'locate') {
                 _handleLocate(ref, context);
+              } else if (value == 'refresh') {
+                onRefresh?.call();
               } else if (value == 'sort') {
                 onSortPressed();
               } else if (value == 'view_mode') {
@@ -150,6 +154,17 @@ class FolderHeaderNavBar extends ConsumerWidget {
                       const Icon(Icons.my_location_rounded, size: 20),
                       const SizedBox(width: 12),
                       Text(l10n.locateCurrentSong),
+                    ],
+                  ),
+                ),
+              if (onRefresh != null)
+                PopupMenuItem(
+                  value: 'refresh',
+                  child: Row(
+                    children: [
+                      const Icon(Icons.refresh_rounded, size: 20),
+                      const SizedBox(width: 12),
+                      Text(l10n.refresh),
                     ],
                   ),
                 ),
@@ -261,6 +276,18 @@ class FolderHeaderNavBar extends ConsumerWidget {
             ),
             onPressed: onSortPressed,
           ),
+          if (onRefresh != null)
+            FolderNavIconButton(
+              style: style,
+              tooltip: l10n.refresh,
+              icon: Icon(
+                Icons.refresh_rounded,
+                size: 20,
+                color: style.iconColor,
+                shadows: style.shadows,
+              ),
+              onPressed: onRefresh,
+            ),
         ],
       );
     }
