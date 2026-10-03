@@ -758,7 +758,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get showPlaybackAudioInfoDescription =>
-      'Mostrar formato de audio, frecuencia de muestreo y tasa de bits debajo de la barra de progreso';
+      'Mostrar formato de audio, frecuencia de muestreo y tasa de bits debajo de los controles de reproducción';
 
   @override
   String get waveformLongPressSeekSpeed =>

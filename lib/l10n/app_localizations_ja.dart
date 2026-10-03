@@ -738,7 +738,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get showPlaybackAudioInfoDescription =>
-      'プログレスバーの下にオーディオ形式、サンプリングレート、ビットレートなどを表示します';
+      '再生コントロールの下にオーディオ形式、サンプリングレート、ビットレートなどを表示します';
 
   @override
   String get waveformLongPressSeekSpeed => '波形長押し早送り速度';

@@ -251,7 +251,7 @@
   "progressBarStyleFullWaveform": "フル波形（静止）",
   "progressBarStyleScrollingWaveform": "スクロール波形",
   "showPlaybackAudioInfo": "オーディオスペック情報を表示",
-  "showPlaybackAudioInfoDescription": "プログレスバーの下にオーディオ形式、サンプリングレート、ビットレートなどを表示します",
+  "showPlaybackAudioInfoDescription": "再生コントロールの下にオーディオ形式、サンプリングレート、ビットレートなどを表示します",
   "waveformLongPressSeekSpeed": "波形長押し早送り速度",
   "waveformLongPressSeekSpeedDescription": "スクロール波形プログレスバーを長押しした時の早送り再生速度（×）",
   "enableWaveformLongPressSeek": "波形長押し早送りを有効化",

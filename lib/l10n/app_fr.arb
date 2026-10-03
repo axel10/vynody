@@ -251,7 +251,7 @@
   "progressBarStyleFullWaveform": "Forme d'onde complète",
   "progressBarStyleScrollingWaveform": "Forme d'onde défilante",
   "showPlaybackAudioInfo": "Afficher les informations audio",
-  "showPlaybackAudioInfoDescription": "Afficher le format audio, le taux d'échantillonnage et le débit binaire sous la barre de progression",
+  "showPlaybackAudioInfoDescription": "Afficher le format audio, le taux d'échantillonnage et le débit binaire sous les commandes de lecture",
   "waveformLongPressSeekSpeed": "Vitesse d'avance appui long",
   "waveformLongPressSeekSpeedDescription": "Vitesse de lecture en maintenant la barre d'onde (×)",
   "enableWaveformLongPressSeek": "Activer l'avance rapide par appui long",

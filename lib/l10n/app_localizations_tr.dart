@@ -752,7 +752,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get showPlaybackAudioInfoDescription =>
-      'İlerleme çubuğunun altında ses formatı, örnekleme hızı ve bit hızını göster';
+      'Oynatma kontrollerinin altında ses formatı, örnekleme hızı ve bit hızını göster';
 
   @override
   String get waveformLongPressSeekSpeed =>

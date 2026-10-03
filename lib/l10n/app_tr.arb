@@ -315,7 +315,7 @@
   "progressBarStyleFullWaveform": "Tam Dalga Formu",
   "progressBarStyleScrollingWaveform": "Kayan Dalga Formu",
   "showPlaybackAudioInfo": "Ses Özelliklerini Göster",
-  "showPlaybackAudioInfoDescription": "İlerleme çubuğunun altında ses formatı, örnekleme hızı ve bit hızını göster",
+  "showPlaybackAudioInfoDescription": "Oynatma kontrollerinin altında ses formatı, örnekleme hızı ve bit hızını göster",
   "waveformLongPressSeekSpeed": "Dalga Formu Uzun Basarak Sarma Hızı",
   "waveformLongPressSeekSpeedDescription": "Dalga formuna uzun basıldığında sarma hızını ayarlar",
   "enableWaveformLongPressSeek": "Dalga Formuna Uzun Basarak Sarmayı Etkinleştir",

@@ -739,7 +739,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get showPlaybackAudioInfoDescription =>
-      '진행 바 아래에 오디오 포맷, 샘플링 레이트, 비트레이트 정보 표시';
+      '재생 컨트롤 아래에 오디오 포맷, 샘플링 레이트, 비트레이트 정보 표시';
 
   @override
   String get waveformLongPressSeekSpeed => '파형 길게 누르기 빨리감기 속도';

@@ -757,7 +757,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get showPlaybackAudioInfoDescription =>
-      'Afficher le format audio, le taux d\'échantillonnage et le débit binaire sous la barre de progression';
+      'Afficher le format audio, le taux d\'échantillonnage et le débit binaire sous les commandes de lecture';
 
   @override
   String get waveformLongPressSeekSpeed => 'Vitesse d\'avance appui long';

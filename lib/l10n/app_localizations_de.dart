@@ -755,7 +755,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get showPlaybackAudioInfoDescription =>
-      'Format, Samplerate und Bitrate unter dem Fortschrittsbalken anzeigen';
+      'Format, Samplerate und Bitrate unter der Wiedergabesteuerung anzeigen';
 
   @override
   String get waveformLongPressSeekSpeed =>
