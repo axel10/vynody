@@ -798,9 +798,9 @@
   "@waveformLongPressSeekSpeed": {
     "description": "Long-press waveform progress bar fast-forward speed label"
   },
-  "waveformLongPressSeekSpeedDescription": "长按波形进度条右侧时快进的播放速度（×）",
+  "waveformLongPressSeekSpeedDescription": "长按滚动波形进度条时快进的播放速度（×）",
   "enableWaveformLongPressSeek": "启用长按波形快进",
-  "enableWaveformLongPressSeekDescription": "长按波形进度条右侧区域启用快进播放",
+  "enableWaveformLongPressSeekDescription": "长按滚动波形进度条启用快进播放",
   "clearWaveformCache": "清除全曲波形缓存",
   "clearWaveformCacheDescription": "清空数据库中已缓存的歌曲波形数据并重新提取",
   "waveformCacheCleared": "已清除全曲波形缓存",

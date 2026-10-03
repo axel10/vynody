@@ -1518,7 +1518,7 @@ abstract class AppLocalizations {
   /// No description provided for @waveformLongPressSeekSpeedDescription.
   ///
   /// In zh, this message translates to:
-  /// **'长按波形进度条右侧时快进的播放速度（×）'**
+  /// **'长按滚动波形进度条时快进的播放速度（×）'**
   String get waveformLongPressSeekSpeedDescription;
 
   /// No description provided for @enableWaveformLongPressSeek.
@@ -1530,7 +1530,7 @@ abstract class AppLocalizations {
   /// No description provided for @enableWaveformLongPressSeekDescription.
   ///
   /// In zh, this message translates to:
-  /// **'长按波形进度条右侧区域启用快进播放'**
+  /// **'长按滚动波形进度条启用快进播放'**
   String get enableWaveformLongPressSeekDescription;
 
   /// No description provided for @clearWaveformCache.

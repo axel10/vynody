@@ -742,13 +742,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get waveformLongPressSeekSpeed => '长按波形快进速度';
 
   @override
-  String get waveformLongPressSeekSpeedDescription => '长按波形进度条右侧时快进的播放速度（×）';
+  String get waveformLongPressSeekSpeedDescription => '长按滚动波形进度条时快进的播放速度（×）';
 
   @override
   String get enableWaveformLongPressSeek => '启用长按波形快进';
 
   @override
-  String get enableWaveformLongPressSeekDescription => '长按波形进度条右侧区域启用快进播放';
+  String get enableWaveformLongPressSeekDescription => '长按滚动波形进度条启用快进播放';
 
   @override
   String get clearWaveformCache => '清除全曲波形缓存';
@@ -5857,13 +5857,13 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get waveformLongPressSeekSpeed => '長按波形快進速度';
 
   @override
-  String get waveformLongPressSeekSpeedDescription => '長按波形進度條右側時快進的播放速度（×）';
+  String get waveformLongPressSeekSpeedDescription => '長按滾動波形進度條時快進的播放速度（×）';
 
   @override
   String get enableWaveformLongPressSeek => '啟用長按波形快進';
 
   @override
-  String get enableWaveformLongPressSeekDescription => '長按波形進度條右側區域啟用快進播放';
+  String get enableWaveformLongPressSeekDescription => '長按滾動波形進度條啟用快進播放';
 
   @override
   String get clearWaveformCache => '清除全曲波形快取';

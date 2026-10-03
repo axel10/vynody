@@ -745,14 +745,14 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get waveformLongPressSeekSpeedDescription =>
-      '波形プログレスバーの右側を長押しした時の早送り再生速度（×）';
+      'スクロール波形プログレスバーを長押しした時の早送り再生速度（×）';
 
   @override
   String get enableWaveformLongPressSeek => '波形長押し早送りを有効化';
 
   @override
   String get enableWaveformLongPressSeekDescription =>
-      '波形プログレスバーの右側を長押しして早送り再生を有効にします';
+      'スクロール波形プログレスバーを長押しして早送り再生を有効にします';
 
   @override
   String get clearWaveformCache => '全曲波形キャッシュをクリア';

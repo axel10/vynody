@@ -756,14 +756,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get waveformLongPressSeekSpeedDescription =>
-      'Playback speed when holding the right side of the waveform progress bar (×)';
+      'Playback speed when holding the scrolling waveform progress bar (×)';
 
   @override
   String get enableWaveformLongPressSeek => 'Enable Long-press Waveform Seek';
 
   @override
   String get enableWaveformLongPressSeekDescription =>
-      'Hold the right side of the waveform progress bar to fast-forward playback';
+      'Hold the scrolling waveform progress bar to fast-forward playback';
 
   @override
   String get clearWaveformCache => 'Clear Waveform Cache';

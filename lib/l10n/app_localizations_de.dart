@@ -763,7 +763,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get waveformLongPressSeekSpeedDescription =>
-      'Wiedergabegeschwindigkeit beim Gedrückthalten der rechten Seite der Wellenform-Leiste (×)';
+      'Wiedergabegeschwindigkeit beim Gedrückthalten der Wellenform-Leiste (×)';
 
   @override
   String get enableWaveformLongPressSeek =>
@@ -771,7 +771,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get enableWaveformLongPressSeekDescription =>
-      'Zum Vorspulen die rechte Seite der Wellenform-Leiste gedrückt halten';
+      'Zum Vorspulen die Wellenform-Leiste gedrückt halten';
 
   @override
   String get clearWaveformCache => 'Wellenform-Cache leeren';

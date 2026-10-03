@@ -140,8 +140,10 @@ class _WaveformProgressBarState extends ConsumerState<WaveformProgressBar>
     }
 
     if (widget.isPlaying && widget.duration.inMicroseconds > 0) {
+      final double currentSpeed =
+          ref.read(audioServiceStateProvider).playbackSpeed;
       final double deltaProgress =
-          delta.inMicroseconds / widget.duration.inMicroseconds;
+          (delta.inMicroseconds * currentSpeed) / widget.duration.inMicroseconds;
       double newProgress = _smoothProgressNotifier.value + deltaProgress;
 
       // Gently nudge towards the target progress to correct any time drift
@@ -388,6 +390,13 @@ class _WaveformProgressBarState extends ConsumerState<WaveformProgressBar>
 
   @override
   Widget build(BuildContext context) {
+    final bool isLongPressEnabled = widget.isScrolling &&
+        ref.watch(
+          settingsServiceProvider.select(
+            (s) => s.enableWaveformLongPressSeek,
+          ),
+        );
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final double width = constraints.maxWidth;
@@ -513,96 +522,109 @@ class _WaveformProgressBarState extends ConsumerState<WaveformProgressBar>
                 _updateTickerState();
               }
             },
-            onLongPressStart: (details) {
-              _cancelEndOfSongSeekTimer();
-              _stopInertia();
-              if (!ref
-                  .read(settingsServiceProvider)
-                  .enableWaveformLongPressSeek) {
-                return;
-              }
-              if (details.localPosition.dx > width / 2) {
-                final audioService = ref.read(audioServiceProvider);
-                if (!_isDoubleSpeedLocked) {
-                  _originalSpeed = ref
-                      .read(audioServiceStateProvider)
-                      .playbackSpeed;
-                  audioService.setPlaybackSpeed(
-                    ref
-                        .read(settingsServiceProvider)
-                        .waveformLongPressSeekSpeed,
-                  );
-                  setState(() {
-                    _isDoubleSpeedActive = true;
-                    _longPressStartOffset = details.localPosition;
-                  });
-                  showToast(
-                    AppLocalizations.of(
-                      context,
-                    )!.doubleSpeedPlayingSwipeUpToLock,
-                    dismissOtherToast: true,
-                  );
-                } else {
-                  setState(() {
-                    _isDoubleSpeedActive = true;
-                    _longPressStartOffset = details.localPosition;
-                  });
-                  showToast(
-                    AppLocalizations.of(
-                      context,
-                    )!.doubleSpeedLockedSwipeDownToUnlock,
-                    dismissOtherToast: true,
-                  );
-                }
-              }
-            },
-            onLongPressMoveUpdate: (details) {
-              if (!_isDoubleSpeedActive || _longPressStartOffset == null) {
-                return;
-              }
-              final double deltaY =
-                  details.localPosition.dy - _longPressStartOffset!.dy;
-              if (!_isDoubleSpeedLocked) {
-                if (deltaY < -30) {
-                  setState(() {
-                    _isDoubleSpeedLocked = true;
-                    _longPressStartOffset = details.localPosition;
-                  });
-                  showToast(
-                    AppLocalizations.of(
-                      context,
-                    )!.doubleSpeedLockedSwipeDownToUnlock,
-                    dismissOtherToast: true,
-                  );
-                }
-              } else {
-                if (deltaY > 30) {
-                  final audioService = ref.read(audioServiceProvider);
-                  audioService.setPlaybackSpeed(_originalSpeed);
-                  setState(() {
-                    _isDoubleSpeedLocked = false;
-                    _isDoubleSpeedActive = false;
-                    _longPressStartOffset = null;
-                  });
-                  showToast(
-                    AppLocalizations.of(context)!.doubleSpeedUnlocked,
-                    dismissOtherToast: true,
-                  );
-                }
-              }
-            },
-            onLongPressEnd: (details) {
-              if (_isDoubleSpeedActive) {
-                if (!_isDoubleSpeedLocked) {
-                  final audioService = ref.read(audioServiceProvider);
-                  audioService.setPlaybackSpeed(_originalSpeed);
-                }
-                setState(() {
-                  _isDoubleSpeedActive = false;
-                  _longPressStartOffset = null;
-                });
-              }
-            },
+            onLongPressStart: isLongPressEnabled
+                ? (details) {
+                    _cancelEndOfSongSeekTimer();
+                    _stopInertia();
+                    final audioService = ref.read(audioServiceProvider);
+                    if (!_isDoubleSpeedLocked) {
+                      _originalSpeed = ref
+                          .read(audioServiceStateProvider)
+                          .playbackSpeed;
+                      audioService.setPlaybackSpeed(
+                        ref
+                            .read(settingsServiceProvider)
+                            .waveformLongPressSeekSpeed,
+                      );
+                      setState(() {
+                        _isDoubleSpeedActive = true;
+                        _longPressStartOffset = details.localPosition;
+                      });
+                      showToast(
+                        AppLocalizations.of(
+                          context,
+                        )!.doubleSpeedPlayingSwipeUpToLock,
+                        dismissOtherToast: true,
+                      );
+                    } else {
+                      setState(() {
+                        _isDoubleSpeedActive = true;
+                        _longPressStartOffset = details.localPosition;
+                      });
+                      showToast(
+                        AppLocalizations.of(
+                          context,
+                        )!.doubleSpeedLockedSwipeDownToUnlock,
+                        dismissOtherToast: true,
+                      );
+                    }
+                  }
+                : null,
+            onLongPressMoveUpdate: isLongPressEnabled
+                ? (details) {
+                    if (!_isDoubleSpeedActive || _longPressStartOffset == null) {
+                      return;
+                    }
+                    final double deltaY =
+                        details.localPosition.dy - _longPressStartOffset!.dy;
+                    if (!_isDoubleSpeedLocked) {
+                      if (deltaY < -30) {
+                        setState(() {
+                          _isDoubleSpeedLocked = true;
+                          _longPressStartOffset = details.localPosition;
+                        });
+                        showToast(
+                          AppLocalizations.of(
+                            context,
+                          )!.doubleSpeedLockedSwipeDownToUnlock,
+                          dismissOtherToast: true,
+                        );
+                      }
+                    } else {
+                      if (deltaY > 30) {
+                        final audioService = ref.read(audioServiceProvider);
+                        audioService.setPlaybackSpeed(_originalSpeed);
+                        setState(() {
+                          _isDoubleSpeedLocked = false;
+                          _isDoubleSpeedActive = false;
+                          _longPressStartOffset = null;
+                        });
+                        showToast(
+                          AppLocalizations.of(context)!.doubleSpeedUnlocked,
+                          dismissOtherToast: true,
+                        );
+                      }
+                    }
+                  }
+                : null,
+            onLongPressEnd: isLongPressEnabled
+                ? (details) {
+                    if (_isDoubleSpeedActive) {
+                      if (!_isDoubleSpeedLocked) {
+                        final audioService = ref.read(audioServiceProvider);
+                        audioService.setPlaybackSpeed(_originalSpeed);
+                      }
+                      setState(() {
+                        _isDoubleSpeedActive = false;
+                        _longPressStartOffset = null;
+                      });
+                    }
+                  }
+                : null,
+            onLongPressCancel: isLongPressEnabled
+                ? () {
+                    if (_isDoubleSpeedActive) {
+                      if (!_isDoubleSpeedLocked) {
+                        final audioService = ref.read(audioServiceProvider);
+                        audioService.setPlaybackSpeed(_originalSpeed);
+                      }
+                      setState(() {
+                        _isDoubleSpeedActive = false;
+                        _longPressStartOffset = null;
+                      });
+                    }
+                  }
+                : null,
             child: Stack(
               clipBehavior: Clip.none,
               children: [

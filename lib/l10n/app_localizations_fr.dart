@@ -764,7 +764,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get waveformLongPressSeekSpeedDescription =>
-      'Vitesse de lecture en maintenant le côté droit de la barre d\'onde (×)';
+      'Vitesse de lecture en maintenant la barre d\'onde (×)';
 
   @override
   String get enableWaveformLongPressSeek =>
@@ -772,7 +772,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get enableWaveformLongPressSeekDescription =>
-      'Maintenez le côté droit de la barre d\'onde pour une lecture accélérée';
+      'Maintenez la barre d\'onde pour une lecture accélérée';
 
   @override
   String get clearWaveformCache => 'Vider le cache des formes d\'onde';
