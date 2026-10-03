@@ -440,7 +440,7 @@ class _PlaybackButtonLayoutViewState extends State<PlaybackButtonLayoutView> {
           context: context,
           child: _buildDropdownTile(
             context: context,
-            label: l10n.lyricsHeaderRightButtonTitle,
+            label: l10n.mainControlsRightButton,
             value: _lyricsHeaderButton,
             onChanged: (val) {
               if (val != null) _saveLyricsHeaderButton(val);
@@ -498,15 +498,17 @@ class _PlaybackButtonLayoutViewState extends State<PlaybackButtonLayoutView> {
 
     return Row(
       children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: isDark ? Colors.white : theme.colorScheme.onSurface,
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: isDark ? Colors.white : theme.colorScheme.onSurface,
+            ),
           ),
         ),
-        const Spacer(),
+        const SizedBox(width: 12),
         PopupMenuButton<String>(
           onSelected: onChanged,
           borderRadius: BorderRadius.circular(12),
