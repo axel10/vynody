@@ -734,6 +734,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get progressBarStyleScrollingWaveform => 'スクロール波形';
 
   @override
+  String get showPlaybackAudioInfo => 'オーディオスペック情報を表示';
+
+  @override
+  String get showPlaybackAudioInfoDescription =>
+      'プログレスバーの下にオーディオ形式、サンプリングレート、ビットレートなどを表示します';
+
+  @override
   String get waveformLongPressSeekSpeed => '波形長押し早送り速度';
 
   @override

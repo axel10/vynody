@@ -753,6 +753,13 @@ class AppLocalizationsFr extends AppLocalizations {
   String get progressBarStyleScrollingWaveform => 'Forme d\'onde défilante';
 
   @override
+  String get showPlaybackAudioInfo => 'Afficher les informations audio';
+
+  @override
+  String get showPlaybackAudioInfoDescription =>
+      'Afficher le format audio, le taux d\'échantillonnage et le débit binaire sous la barre de progression';
+
+  @override
   String get waveformLongPressSeekSpeed => 'Vitesse d\'avance appui long';
 
   @override

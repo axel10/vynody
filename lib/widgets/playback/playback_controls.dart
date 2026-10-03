@@ -1119,13 +1119,17 @@ class PlaybackControls extends ConsumerWidget {
               mainControlsRow,
             ],
           ),
-          SizedBox(
-            height: PlaybackHeroCardUiTuning.waveformOverlayAudioInfoGap *
-                controlsScale,
-          ),
-          PlaybackAudioInfoLabel(
-            controlsScale: controlsScale,
-          ),
+          if (ref.watch(
+            settingsServiceProvider.select((s) => s.showPlaybackAudioInfo),
+          )) ...[
+            SizedBox(
+              height: PlaybackHeroCardUiTuning.waveformOverlayAudioInfoGap *
+                  controlsScale,
+            ),
+            PlaybackAudioInfoLabel(
+              controlsScale: controlsScale,
+            ),
+          ],
         ],
       );
     }

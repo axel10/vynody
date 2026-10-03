@@ -250,6 +250,8 @@
   "progressBarStyleStandard": "표준 슬라이더",
   "progressBarStyleFullWaveform": "전체 파형 (정적)",
   "progressBarStyleScrollingWaveform": "스크롤 파형",
+  "showPlaybackAudioInfo": "오디오 스펙 정보 표시",
+  "showPlaybackAudioInfoDescription": "진행 바 아래에 오디오 포맷, 샘플링 레이트, 비트레이트 정보 표시",
   "waveformLongPressSeekSpeed": "파형 길게 누르기 빨리감기 속도",
   "waveformLongPressSeekSpeedDescription": "파형 진행 표시줄 오른쪽을 길게 누를 때 빨리감기 재생 속도(×)",
   "enableWaveformLongPressSeek": "파형 길게 누르기 빨리감기 사용",

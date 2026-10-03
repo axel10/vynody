@@ -751,6 +751,13 @@ class AppLocalizationsDe extends AppLocalizations {
   String get progressBarStyleScrollingWaveform => 'Scrollende Wellenform';
 
   @override
+  String get showPlaybackAudioInfo => 'Audio-Spezifikationen anzeigen';
+
+  @override
+  String get showPlaybackAudioInfoDescription =>
+      'Format, Samplerate und Bitrate unter dem Fortschrittsbalken anzeigen';
+
+  @override
   String get waveformLongPressSeekSpeed =>
       'Spulgeschwindigkeit bei langem Drücken';
 

@@ -227,6 +227,8 @@
   "progressBarStyleStandard": "標準滑桿",
   "progressBarStyleFullWaveform": "全景靜態波形",
   "progressBarStyleScrollingWaveform": "居中滾動波形",
+  "showPlaybackAudioInfo": "顯示音訊規格資訊",
+  "showPlaybackAudioInfoDescription": "在播放進度條下方顯示音訊格式、取樣率和位元率等詳細資訊",
   "waveformLongPressSeekSpeed": "長按波形快進速度",
   "waveformLongPressSeekSpeedDescription": "長按波形進度條右側時快進的播放速度（×）",
   "enableWaveformLongPressSeek": "啟用長按波形快進",

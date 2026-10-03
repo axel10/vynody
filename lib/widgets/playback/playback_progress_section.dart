@@ -72,6 +72,9 @@ class PlaybackProgressSection extends ConsumerWidget {
     final isFullWaveform = progressBarStyle == ProgressBarStyle.fullWaveform;
     final isInlineInfo = isLandscape || isFullWaveform || !isWaveformEnabled;
     final currentThemeColorsMap = ref.watch(audioCurrentThemeColorsMapProvider);
+    final showAudioInfo = ref.watch(
+      settingsServiceProvider.select((s) => s.showPlaybackAudioInfo),
+    );
     final controlIconColor =
         currentThemeColorsMap['darkVibrant'] ??
         currentThemeColorsMap['darkMuted'] ??
@@ -216,7 +219,7 @@ class PlaybackProgressSection extends ConsumerWidget {
             child: Stack(
               alignment: Alignment.center,
               children: [
-                if (isInlineInfo)
+                if (isInlineInfo && showAudioInfo)
                   Positioned.fill(
                     child: Align(
                       alignment: Alignment.center,
@@ -314,7 +317,7 @@ class PlaybackProgressSection extends ConsumerWidget {
               ],
             ),
           ),
-          if (!isInlineInfo) ...[
+          if (!isInlineInfo && showAudioInfo) ...[
             SizedBox(height: 5.0 * controlsScale),
             Center(
               child: PlaybackAudioInfoLabel(
@@ -338,6 +341,12 @@ class PlaybackAudioInfoLabel extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final showAudioInfo = ref.watch(
+      settingsServiceProvider.select((s) => s.showPlaybackAudioInfo),
+    );
+    if (!showAudioInfo) {
+      return const SizedBox.shrink();
+    }
     final detailsAsync = ref.watch(currentAudioDetailsProvider);
     final details = detailsAsync.asData?.value;
     final text = formatAudioSpec(details);

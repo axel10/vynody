@@ -250,6 +250,8 @@
   "progressBarStyleStandard": "Control deslizante estándar",
   "progressBarStyleFullWaveform": "Forma de onda completa",
   "progressBarStyleScrollingWaveform": "Forma de onda desplazable",
+  "showPlaybackAudioInfo": "Mostrar información de audio",
+  "showPlaybackAudioInfoDescription": "Mostrar formato de audio, frecuencia de muestreo y tasa de bits debajo de la barra de progreso",
   "waveformLongPressSeekSpeed": "Velocidad de avance con pulsación larga",
   "waveformLongPressSeekSpeedDescription": "Velocidad de reproducción al mantener pulsado el lado derecho de la barra de onda (×)",
   "enableWaveformLongPressSeek": "Activar avance con pulsación larga en onda",

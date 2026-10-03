@@ -250,6 +250,8 @@
   "progressBarStyleStandard": "Standard-Schieberegler",
   "progressBarStyleFullWaveform": "Gesamte Wellenform",
   "progressBarStyleScrollingWaveform": "Scrollende Wellenform",
+  "showPlaybackAudioInfo": "Audio-Spezifikationen anzeigen",
+  "showPlaybackAudioInfoDescription": "Format, Samplerate und Bitrate unter dem Fortschrittsbalken anzeigen",
   "waveformLongPressSeekSpeed": "Spulgeschwindigkeit bei langem Drücken",
   "waveformLongPressSeekSpeedDescription": "Wiedergabegeschwindigkeit beim Gedrückthalten der rechten Seite der Wellenform-Leiste (×)",
   "enableWaveformLongPressSeek": "Wellenform-Vorspulen per langem Drücken aktivieren",

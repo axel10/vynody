@@ -748,6 +748,13 @@ class AppLocalizationsTr extends AppLocalizations {
   String get progressBarStyleScrollingWaveform => 'Kayan Dalga Formu';
 
   @override
+  String get showPlaybackAudioInfo => 'Ses Özelliklerini Göster';
+
+  @override
+  String get showPlaybackAudioInfoDescription =>
+      'İlerleme çubuğunun altında ses formatı, örnekleme hızı ve bit hızını göster';
+
+  @override
   String get waveformLongPressSeekSpeed =>
       'Dalga Formu Uzun Basarak Sarma Hızı';
 

@@ -735,6 +735,13 @@ class AppLocalizationsKo extends AppLocalizations {
   String get progressBarStyleScrollingWaveform => '스크롤 파형';
 
   @override
+  String get showPlaybackAudioInfo => '오디오 스펙 정보 표시';
+
+  @override
+  String get showPlaybackAudioInfoDescription =>
+      '진행 바 아래에 오디오 포맷, 샘플링 레이트, 비트레이트 정보 표시';
+
+  @override
   String get waveformLongPressSeekSpeed => '파형 길게 누르기 빨리감기 속도';
 
   @override

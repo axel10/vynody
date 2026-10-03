@@ -258,6 +258,8 @@
   "progressBarStyleStandard": "Standard Slider",
   "progressBarStyleFullWaveform": "Full Waveform",
   "progressBarStyleScrollingWaveform": "Scrolling Waveform",
+  "showPlaybackAudioInfo": "Show Audio Spec Info",
+  "showPlaybackAudioInfoDescription": "Display audio format, sample rate, and bitrate specifications below the progress bar",
   "waveformLongPressSeekSpeed": "Long-press Waveform Seek Speed",
   "waveformLongPressSeekSpeedDescription": "Playback speed when holding the right side of the waveform progress bar (×)",
   "enableWaveformLongPressSeek": "Enable Long-press Waveform Seek",

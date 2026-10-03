@@ -1497,6 +1497,18 @@ abstract class AppLocalizations {
   /// **'居中滚动波形'**
   String get progressBarStyleScrollingWaveform;
 
+  /// No description provided for @showPlaybackAudioInfo.
+  ///
+  /// In zh, this message translates to:
+  /// **'显示音频规格信息'**
+  String get showPlaybackAudioInfo;
+
+  /// No description provided for @showPlaybackAudioInfoDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'在播放进度条下方显示音频格式、采样率和比特率等详细信息'**
+  String get showPlaybackAudioInfoDescription;
+
   /// Long-press waveform progress bar fast-forward speed label
   ///
   /// In zh, this message translates to:

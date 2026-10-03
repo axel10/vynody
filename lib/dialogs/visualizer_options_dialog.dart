@@ -49,8 +49,8 @@ class VisualizerOptionsDialog extends ConsumerWidget {
             expandHeight: true,
             headerBottom: TabBar(
               tabs: [
-                Tab(text: l10n.algorithm),
                 Tab(text: l10n.appearance),
+                Tab(text: l10n.algorithm),
                 Tab(text: l10n.buttonLayoutSettings),
               ],
               labelColor: theme.colorScheme.primary,
@@ -62,8 +62,8 @@ class VisualizerOptionsDialog extends ConsumerWidget {
             ),
             child: TabBarView(
               children: [
-                _buildAlgorithmTab(context, ref, setDialogState),
                 _buildAppearanceTab(context, ref, settings, setDialogState),
+                _buildAlgorithmTab(context, ref, setDialogState),
                 PlaybackButtonLayoutView(
                   settings: settings,
                   onChanged: () => setDialogState(() {}),
@@ -550,79 +550,135 @@ class VisualizerOptionsDialog extends ConsumerWidget {
           _buildSectionCard(
             context: context,
             padding: EdgeInsets.zero,
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(18),
-                onTap: () async {
-                  await showProgressBarStyleDialog(context, ref, settings);
-                  setDialogState(() {});
-                },
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color:
-                              theme.colorScheme.primary.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(10),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(18),
+              child: Column(
+                children: [
+                  Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () async {
+                        await showProgressBarStyleDialog(context, ref, settings);
+                        setDialogState(() {});
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
                         ),
-                        child: Icon(
-                          Icons.linear_scale_rounded,
-                          color: theme.colorScheme.primary,
-                          size: 20,
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
+                        child: Row(
                           children: [
-                            Text(
-                              l10n.progressBarStyle,
-                              style: TextStyle(
-                                color: isDark
-                                    ? Colors.white
-                                    : theme.colorScheme.onSurface,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color:
+                                    theme.colorScheme.primary.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Icon(
+                                Icons.linear_scale_rounded,
+                                color: theme.colorScheme.primary,
+                                size: 20,
                               ),
                             ),
-                            const SizedBox(height: 2),
-                            Text(
-                              getProgressBarStyleLabel(
-                                l10n,
-                                (isProUnlocked ||
-                                        settings.progressBarStyle ==
-                                            ProgressBarStyle.standard)
-                                    ? settings.progressBarStyle
-                                    : ProgressBarStyle.standard,
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    l10n.progressBarStyle,
+                                    style: TextStyle(
+                                      color: isDark
+                                          ? Colors.white
+                                          : theme.colorScheme.onSurface,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    getProgressBarStyleLabel(
+                                      l10n,
+                                      (isProUnlocked ||
+                                              settings.progressBarStyle ==
+                                                  ProgressBarStyle.standard)
+                                          ? settings.progressBarStyle
+                                          : ProgressBarStyle.standard,
+                                    ),
+                                    style: TextStyle(
+                                      color: isDark
+                                          ? Colors.white70
+                                          : theme.colorScheme.onSurfaceVariant,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
                               ),
-                              style: TextStyle(
-                                color: isDark
-                                    ? Colors.white70
-                                    : theme.colorScheme.onSurfaceVariant,
-                                fontSize: 12,
-                              ),
+                            ),
+                            Icon(
+                              Icons.chevron_right_rounded,
+                              color: theme.colorScheme.onSurface
+                                  .withValues(alpha: isDark ? 0.5 : 0.4),
+                              size: 20,
                             ),
                           ],
                         ),
                       ),
-                      Icon(
-                        Icons.chevron_right_rounded,
-                        color: theme.colorScheme.onSurface
-                            .withValues(alpha: isDark ? 0.5 : 0.4),
+                    ),
+                  ),
+                  Divider(
+                    height: 1,
+                    thickness: 1,
+                    indent: 16,
+                    endIndent: 16,
+                    color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.06),
+                  ),
+                  SwitchListTile(
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 4,
+                    ),
+                    secondary: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(
+                        Icons.info_outline_rounded,
+                        color: theme.colorScheme.primary,
                         size: 20,
                       ),
-                    ],
+                    ),
+                    title: Text(
+                      l10n.showPlaybackAudioInfo,
+                      style: TextStyle(
+                        color: isDark ? Colors.white : theme.colorScheme.onSurface,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    subtitle: Text(
+                      l10n.showPlaybackAudioInfoDescription,
+                      style: TextStyle(
+                        color: isDark
+                            ? Colors.white70
+                            : theme.colorScheme.onSurfaceVariant,
+                        fontSize: 12,
+                      ),
+                    ),
+                    value: settings.showPlaybackAudioInfo,
+                    activeThumbColor: theme.colorScheme.primary,
+                    activeTrackColor:
+                        theme.colorScheme.primary.withValues(alpha: 0.5),
+                    onChanged: (val) {
+                      settings.showPlaybackAudioInfo = val;
+                      setDialogState(() {});
+                    },
                   ),
-                ),
+                ],
               ),
             ),
           ),

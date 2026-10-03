@@ -792,6 +792,8 @@
   "progressBarStyleStandard": "标准滑块",
   "progressBarStyleFullWaveform": "全景静态波形",
   "progressBarStyleScrollingWaveform": "居中滚动波形",
+  "showPlaybackAudioInfo": "显示音频规格信息",
+  "showPlaybackAudioInfoDescription": "在播放进度条下方显示音频格式、采样率和比特率等详细信息",
   "waveformLongPressSeekSpeed": "长按波形快进速度",
   "@waveformLongPressSeekSpeed": {
     "description": "Long-press waveform progress bar fast-forward speed label"

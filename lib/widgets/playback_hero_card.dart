@@ -326,6 +326,9 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard> {
         !effectiveIsLandscape;
 
     final progressBarStyle = ref.watch(effectiveProgressBarStyleProvider);
+    final bool showAudioInfo = ref.watch(
+      settingsServiceProvider.select((s) => s.showPlaybackAudioInfo),
+    );
     final bool isScrollingWaveform =
         progressBarStyle == ProgressBarStyle.scrollingWaveform;
     final bool isFullWaveform =
@@ -352,8 +355,10 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard> {
                     ? PlaybackHeroCardUiTuning.waveformStaticPortraitHeight
                     : 48.0)) +
             (isOverlayStyle
-                ? (PlaybackHeroCardUiTuning.waveformOverlayAudioInfoGap +
-                    PlaybackHeroCardUiTuning.waveformOverlayAudioInfoHeight)
+                ? (showAudioInfo
+                    ? (PlaybackHeroCardUiTuning.waveformOverlayAudioInfoGap +
+                        PlaybackHeroCardUiTuning.waveformOverlayAudioInfoHeight)
+                    : 0.0)
                 : (8.0 +
                       PlaybackHeroCardUiTuning.controlsTimeRowHeight +
                       PlaybackHeroCardUiTuning.controlsRowPortraitGap +
@@ -417,6 +422,7 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard> {
                       portraitControlsExpandProgress,
                   lyricsBottomTabBarHeight: widget.lyricsBottomTabBarHeight,
                   lyricsBottomSpacerHeight: widget.lyricsBottomSpacerHeight,
+                  showAudioInfo: showAudioInfo,
                 );
 
                 final endLayout = _buildPlaybackCardLayout(
@@ -434,6 +440,7 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard> {
                       portraitControlsExpandProgress,
                   lyricsBottomTabBarHeight: widget.lyricsBottomTabBarHeight,
                   lyricsBottomSpacerHeight: widget.lyricsBottomSpacerHeight,
+                  showAudioInfo: showAudioInfo,
                 );
 
                 return TweenAnimationBuilder<double>(
@@ -822,6 +829,7 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard> {
     double portraitControlsExpandProgress = 0.0,
     double lyricsBottomTabBarHeight = 0.0,
     double lyricsBottomSpacerHeight = 0.0,
+    bool showAudioInfo = true,
   }) {
     final double scaleFactor = isSmallWindow ? 0.82 : 1.0;
     final bool isWaveformEnabled =
@@ -843,8 +851,10 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard> {
                 ? PlaybackHeroCardUiTuning.waveformStaticPortraitHeight
                 : 48.0)) +
         (isOverlayStyle
-            ? (PlaybackHeroCardUiTuning.waveformOverlayAudioInfoGap +
-                PlaybackHeroCardUiTuning.waveformOverlayAudioInfoHeight)
+            ? (showAudioInfo
+                ? (PlaybackHeroCardUiTuning.waveformOverlayAudioInfoGap +
+                    PlaybackHeroCardUiTuning.waveformOverlayAudioInfoHeight)
+                : 0.0)
             : (8.0 +
                   PlaybackHeroCardUiTuning.controlsTimeRowHeight +
                   PlaybackHeroCardUiTuning.controlsRowPortraitGap +

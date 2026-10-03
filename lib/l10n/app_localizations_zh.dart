@@ -733,6 +733,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get progressBarStyleScrollingWaveform => '居中滚动波形';
 
   @override
+  String get showPlaybackAudioInfo => '显示音频规格信息';
+
+  @override
+  String get showPlaybackAudioInfoDescription => '在播放进度条下方显示音频格式、采样率和比特率等详细信息';
+
+  @override
   String get waveformLongPressSeekSpeed => '长按波形快进速度';
 
   @override
@@ -5840,6 +5846,12 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get progressBarStyleScrollingWaveform => '居中滾動波形';
+
+  @override
+  String get showPlaybackAudioInfo => '顯示音訊規格資訊';
+
+  @override
+  String get showPlaybackAudioInfoDescription => '在播放進度條下方顯示音訊格式、取樣率和位元率等詳細資訊';
 
   @override
   String get waveformLongPressSeekSpeed => '長按波形快進速度';
