@@ -328,15 +328,10 @@ class PlaybackAudioInfoLabel extends ConsumerWidget {
     final details = ref.watch(currentAudioDetailsProvider);
     final text = formatAudioSpec(details);
 
-    final Alignment effectiveAlignment = (alignment as Alignment?) ??
-        (isLandscape
-            ? (Alignment.lerp(Alignment.center, Alignment.centerLeft, tLyrics) ??
-                Alignment.center)
-            : Alignment.center);
+    final Alignment effectiveAlignment =
+        (alignment as Alignment?) ?? Alignment.center;
 
-    final double horizontalPad = isLandscape
-        ? (lerpDouble(8.0, 0.0, tLyrics) ?? 0.0)
-        : 8.0;
+    const double horizontalPad = 8.0;
 
     final double fontSize = isLandscape
         ? math.max(
