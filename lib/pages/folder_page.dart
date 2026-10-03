@@ -441,6 +441,7 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
             key: ValueKey('folder-page-${folder.path}'),
             child: FolderDetailView(
               folder: folder,
+              navigationHistory: navigationHistory.sublist(0, i),
               onOpenPlayback: widget.onOpenPlayback,
               isSelectionMode: _isSelectionMode,
               selectedSongPaths: _selectedSongPaths,
@@ -489,6 +490,7 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
           key: ValueKey('folder-page-${currentFolder.path}'),
           child: FolderDetailView(
             folder: currentFolder,
+            navigationHistory: navigationHistory,
             onOpenPlayback: widget.onOpenPlayback,
             isSelectionMode: _isSelectionMode,
             selectedSongPaths: _selectedSongPaths,

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vynody/l10n/app_localizations.dart';
 import 'package:vynody/models/music_folder.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
+import 'package:vynody/player/scanner/scanner_path_utils.dart';
 import 'package:vynody/player/settings/settings_service.dart';
 import 'package:vynody/utils/song_locator_helper.dart';
 import 'folder_nav_bar_scaffold.dart';
@@ -78,6 +79,10 @@ class FolderHeaderNavBar extends ConsumerWidget {
       // Subfolder View breadcrumbs
       for (int i = 0; i < navigationHistory.length; i++) {
         final folder = navigationHistory[i];
+        if (currentFolder != null &&
+            ScannerPathUtils.pathsEqual(folder.path, currentFolder!.path)) {
+          continue;
+        }
         items.add(FolderBreadcrumbSeparator(style: style));
         items.add(
           FolderBreadcrumbItem(

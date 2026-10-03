@@ -44,6 +44,7 @@ class FolderDetailView extends ConsumerStatefulWidget {
     required this.onShowFolderBottomSheet,
     required this.onShowFolderContextMenu,
     this.highlightedSongPath,
+    this.navigationHistory,
   });
 
   final MusicFolder folder;
@@ -62,6 +63,7 @@ class FolderDetailView extends ConsumerStatefulWidget {
   final void Function(MusicFolder, {required bool isRoot}) onShowFolderBottomSheet;
   final void Function(MusicFolder, Offset, {required bool isRoot}) onShowFolderContextMenu;
   final String? highlightedSongPath;
+  final List<MusicFolder>? navigationHistory;
 
   @override
   ConsumerState<FolderDetailView> createState() => _FolderDetailViewState();
@@ -830,7 +832,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
           isOverlay: isOverlay,
           scrollProgress: _scrollProgress,
           currentFolder: current,
-          navigationHistory: scanner.navigationHistory,
+          navigationHistory: widget.navigationHistory ?? scanner.navigationHistory,
           onGoBack: widget.onGoBack,
           onLocateCurrentSong: widget.onLocateCurrentSong,
           onSortPressed: () => _showSortDialog(context, scanner),
