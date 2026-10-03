@@ -3,6 +3,7 @@ import 'package:audio_core/audio_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oktoast/oktoast.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vynody/l10n/app_localizations.dart';
 import 'package:vynody/player/audio/app_playback_mode.dart';
@@ -16,12 +17,22 @@ void main() {
   testWidgets('WaveformProgressBar renders and handles drag with inertia', (
     WidgetTester tester,
   ) async {
+    final testAudio = _TestAudioService();
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    final settings = SettingsService(prefs);
+
     double currentProgress = 0.5;
     double? seekedProgress;
     double? scrubbedProgress;
 
     await tester.pumpWidget(
       ProviderScope(
+        overrides: [
+          audioServiceProvider.overrideWith((ref) => testAudio),
+          audioServiceStateProvider.overrideWith(() => testAudio),
+          settingsServiceProvider.overrideWith((ref) => settings),
+        ],
         child: MaterialApp(
           home: Scaffold(
             body: Center(
@@ -81,11 +92,21 @@ void main() {
   testWidgets('WaveformProgressBar stops inertia on tap down', (
     WidgetTester tester,
   ) async {
+    final testAudio = _TestAudioService();
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    final settings = SettingsService(prefs);
+
     double currentProgress = 0.5;
     double? seekedProgress;
 
     await tester.pumpWidget(
       ProviderScope(
+        overrides: [
+          audioServiceProvider.overrideWith((ref) => testAudio),
+          audioServiceStateProvider.overrideWith(() => testAudio),
+          settingsServiceProvider.overrideWith((ref) => settings),
+        ],
         child: MaterialApp(
           home: Scaffold(
             body: Center(
@@ -131,11 +152,21 @@ void main() {
   testWidgets(
     'WaveformProgressBar delays seek at song end and cancels if user drags again',
     (WidgetTester tester) async {
+      final testAudio = _TestAudioService();
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final settings = SettingsService(prefs);
+
       double currentProgress = 0.95;
       double? seekedProgress;
 
       await tester.pumpWidget(
         ProviderScope(
+          overrides: [
+            audioServiceProvider.overrideWith((ref) => testAudio),
+            audioServiceStateProvider.overrideWith(() => testAudio),
+            settingsServiceProvider.overrideWith((ref) => settings),
+          ],
           child: MaterialApp(
             home: Scaffold(
               body: Center(
@@ -207,22 +238,24 @@ void main() {
             audioServiceStateProvider.overrideWith(() => testAudio),
             settingsServiceProvider.overrideWith((ref) => settings),
           ],
-          child: MaterialApp(
-            localizationsDelegates: AppLocalizations.localizationsDelegates,
-            supportedLocales: AppLocalizations.supportedLocales,
-            home: Scaffold(
-              body: Center(
-                child: SizedBox(
-                  width: 300,
-                  height: 80,
-                  child: WaveformProgressBar(
-                    waveform: List.generate(100, (i) => 0.5),
-                    progress: 0.5,
-                    duration: const Duration(seconds: 200),
-                    isPlaying: true,
-                    isScrolling: true,
-                    onScrubbing: (_) {},
-                    onSeek: (_) {},
+          child: OKToast(
+            child: MaterialApp(
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: Scaffold(
+                body: Center(
+                  child: SizedBox(
+                    width: 300,
+                    height: 80,
+                    child: WaveformProgressBar(
+                      waveform: List.generate(100, (i) => 0.5),
+                      progress: 0.5,
+                      duration: const Duration(seconds: 200),
+                      isPlaying: true,
+                      isScrolling: true,
+                      onScrubbing: (_) {},
+                      onSeek: (_) {},
+                    ),
                   ),
                 ),
               ),
@@ -254,6 +287,9 @@ void main() {
       await rightGesture.up();
       await tester.pump();
       expect(testAudio.currentSpeed, equals(1.0));
+
+      dismissAllToast(showAnim: false);
+      await tester.pump(const Duration(seconds: 3));
     },
   );
 
