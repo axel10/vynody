@@ -469,11 +469,6 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard> {
                     final double translationY =
                         layout.lyrics.top - endLayout.lyrics.top;
 
-                    final double infoTranslationX =
-                        layout.info.left - targetLayout.info.left;
-                    final double infoTranslationY =
-                        layout.info.top - targetLayout.info.top;
-
                     final double topButtonsCollapseT = effectiveIsLandscape
                         ? 0.0
                         : (tLyrics * portraitControlsExpandProgress);
@@ -738,69 +733,40 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard> {
                                 ),
                               ),
                             Positioned(
-                              top: optimize
-                                  ? targetLayout.info.top
-                                  : layout.info.top,
-                              left: optimize
-                                  ? targetLayout.info.left
-                                  : layout.info.left,
-                              width: optimize
-                                  ? targetLayout.info.width
-                                  : layout.info.width,
-                              height: (optimize
-                                      ? targetLayout.info.height
-                                      : layout.info.height) +
+                              top: layout.info.top,
+                              left: layout.info.left,
+                              width: layout.info.width,
+                              height: layout.info.height +
                                   (effectiveIsLandscape ? 24.0 : 0.0),
-                              child: Transform.translate(
-                                offset: optimize
-                                    ? Offset(infoTranslationX, infoTranslationY)
-                                    : Offset.zero,
-                                child: Builder(
-                                  builder: (context) {
-                                    final Alignment targetInfoAlignment =
-                                        (collapseButtonsInLandscapeLyrics ||
-                                                !effectiveIsLandscape)
-                                            ? Alignment.centerLeft
-                                            : Alignment.center;
-                                    return FittedBox(
-                                      fit: BoxFit.scaleDown,
-                                      alignment: optimize
-                                          ? Alignment.lerp(
-                                              Alignment.center,
-                                              Alignment.lerp(
-                                                Alignment.center,
-                                                targetInfoAlignment,
-                                                targetTLyrics,
-                                              )!,
-                                              tLand,
-                                            )!
-                                          : Alignment.lerp(
-                                              Alignment.center,
-                                              Alignment.lerp(
-                                                Alignment.center,
-                                                targetInfoAlignment,
-                                                tLyrics,
-                                              )!,
-                                              tLand,
-                                            )!,
-                                      child: SizedBox(
-                                        width: optimize
-                                            ? targetLayout.info.width
-                                            : layout.info.width,
+                              child: Builder(
+                                builder: (context) {
+                                  final Alignment targetInfoAlignment =
+                                      (collapseButtonsInLandscapeLyrics ||
+                                              !effectiveIsLandscape)
+                                          ? Alignment.centerLeft
+                                          : Alignment.center;
+                                  return FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    alignment: Alignment.lerp(
+                                      Alignment.center,
+                                      Alignment.lerp(
+                                        Alignment.center,
+                                        targetInfoAlignment,
+                                        tLyrics,
+                                      )!,
+                                      tLand,
+                                    )!,
+                                    child: SizedBox(
+                                      width: layout.info.width,
+                                      child: RepaintBoundary(
                                         child: SizeLogger(
                                           name: 'TrackInfo',
                                           child: PlaybackTrackInfo(
                                             currentMusic: currentMusic,
-                                            align: optimize
-                                                ? targetLayout.trackInfoAlign
-                                                : layout.trackInfoAlign,
-                                            lyricsModeT: optimize
-                                                ? targetTLyrics
-                                                : tLyrics,
+                                            align: layout.trackInfoAlign,
+                                            lyricsModeT: tLyrics,
                                             landscapeT: tLand,
-                                            controlsScale: optimize
-                                                ? targetLayout.controlsScale
-                                                : layout.controlsScale,
+                                            controlsScale: layout.controlsScale,
                                             showVisualizerToggle:
                                                 widget.showVisualizerToggle,
                                             onShowMoreMenu:
@@ -822,9 +788,9 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard> {
                                           ),
                                         ),
                                       ),
-                                    );
-                                  },
-                                ),
+                                    ),
+                                  );
+                                },
                               ),
                             ),
                           ],
