@@ -141,7 +141,7 @@ class _WaveformProgressBarState extends ConsumerState<WaveformProgressBar>
 
     if (widget.isPlaying && widget.duration.inMicroseconds > 0) {
       final double currentSpeed =
-          ref.read(audioServiceStateProvider).playbackSpeed;
+          ref.read(audioSnapshotProvider).playbackSpeed;
       final double deltaProgress =
           (delta.inMicroseconds * currentSpeed) / widget.duration.inMicroseconds;
       double newProgress = _smoothProgressNotifier.value + deltaProgress;
@@ -529,7 +529,7 @@ class _WaveformProgressBarState extends ConsumerState<WaveformProgressBar>
                     final audioService = ref.read(audioServiceProvider);
                     if (!_isDoubleSpeedLocked) {
                       _originalSpeed = ref
-                          .read(audioServiceStateProvider)
+                          .read(audioSnapshotProvider)
                           .playbackSpeed;
                       audioService.setPlaybackSpeed(
                         ref

@@ -37,6 +37,7 @@ final isLowMidEndDeviceProvider = Provider<bool>((ref) {
   return ref.watch(_asyncLowMidEndDeviceProvider).asData?.value ?? true;
 });
 
+@visibleForTesting
 final audioServiceStateProvider = NotifierProvider<AudioService, AudioSnapshot>(
   AudioService.new,
 );
