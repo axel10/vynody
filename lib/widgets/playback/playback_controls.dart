@@ -287,14 +287,10 @@ class PlaybackControls extends ConsumerWidget {
       0.0,
       math.min(width - 32.0, buttonsRowWidth * widthFactor),
     );
-    final pLyricsWidth = math.max(0.0, layoutWidth);
 
     final unifiedWidth = effectiveIsLandscape
         ? math.max(0.0, lerpDouble(buttonsRowWidth, layoutWidth, tLyrics)!)
-        : math.max(
-            0.0,
-            lerpDouble(pNormalWidth, pLyricsWidth, tLyrics)!,
-          );
+        : pNormalWidth;
 
     final double topButtonsIconSizeScaled =
         PlaybackHeroCardUiTuning.topButtonsIconSize * controlsScale;
@@ -1060,9 +1056,9 @@ class PlaybackControls extends ConsumerWidget {
         (useOverlayStyle ? 72.0 : 60.0) * controlsScale;
     final double mainControlsNormalOverflow = mainControlsOverflowOffset;
     final double mainControlsLyricsOverflow = useOverlayStyle
-        ? 0.0
+        ? mainControlsOverflowOffset
         : ((40.0 - 24.0) / 2) * controlsScale;
-    final double effectiveMainControlsOverflow = effectiveIsLandscape
+    final double effectiveMainControlsOverflow = (effectiveIsLandscape || useOverlayStyle)
         ? mainControlsOverflowOffset
         : lerpDouble(
             mainControlsNormalOverflow,

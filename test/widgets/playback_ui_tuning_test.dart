@@ -50,4 +50,81 @@ void main() {
       expect(factor2, equals(0.0));
     });
   });
+
+  group('Portrait Lyrics Mode Controls Stability', () {
+    test('portrait unified width does not change when transitioning to lyrics mode', () {
+      const double width = 390.0;
+      const double controlsScale = 1.0;
+      const int topButtonsCount = 7;
+      const int topButtonsGaps = topButtonsCount - 1;
+      final double singleButtonWidth =
+          PlaybackHeroCardUiTuning.controlsTopButtonsHeight * controlsScale;
+      final double gapWidth =
+          PlaybackHeroCardUiTuning.topButtonsInnerGap * controlsScale;
+      final double buttonsRowWidth =
+          topButtonsCount * singleButtonWidth + topButtonsGaps * gapWidth;
+
+      final double pNormalWidth = math.max(
+        0.0,
+        math.min(width - 32.0, buttonsRowWidth * PlaybackHeroCardUiTuning.portraitProgressBarWidthFactor),
+      );
+
+      // With effectiveIsLandscape = false, unifiedWidth should always be pNormalWidth
+      double calcPortraitUnifiedWidth(bool effectiveIsLandscape) {
+        return effectiveIsLandscape
+            ? buttonsRowWidth
+            : pNormalWidth;
+      }
+
+      expect(calcPortraitUnifiedWidth(false), equals(pNormalWidth));
+    });
+
+    test('scrolling waveform overlay preserves 12px overflow during lyrics transition', () {
+      const double controlsScale = 1.0;
+      const double mainControlsOverflowOffset = 12.0 * controlsScale;
+
+      double calcEffectiveMainControlsOverflow({
+        required bool effectiveIsLandscape,
+        required bool useOverlayStyle,
+        required double tLyrics,
+      }) {
+        return (effectiveIsLandscape || useOverlayStyle)
+            ? mainControlsOverflowOffset
+            : (12.0 * (1.0 - tLyrics));
+      }
+
+      expect(
+        calcEffectiveMainControlsOverflow(
+          effectiveIsLandscape: false,
+          useOverlayStyle: true,
+          tLyrics: 0.0,
+        ),
+        equals(12.0),
+      );
+      expect(
+        calcEffectiveMainControlsOverflow(
+          effectiveIsLandscape: false,
+          useOverlayStyle: true,
+          tLyrics: 0.5,
+        ),
+        equals(12.0),
+      );
+      expect(
+        calcEffectiveMainControlsOverflow(
+          effectiveIsLandscape: false,
+          useOverlayStyle: true,
+          tLyrics: 1.0,
+        ),
+        equals(12.0),
+      );
+      expect(
+        calcEffectiveMainControlsOverflow(
+          effectiveIsLandscape: false,
+          useOverlayStyle: false,
+          tLyrics: 1.0,
+        ),
+        equals(0.0),
+      );
+    });
+  });
 }

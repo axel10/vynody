@@ -623,9 +623,10 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard> {
                                       : Alignment.topCenter,
                                   child: Consumer(
                                     builder: (context, ref, child) {
-                                      final double layoutWidth = optimize
-                                          ? targetLayout.controls.width
-                                          : layout.controls.width;
+                                      final double layoutWidth =
+                                          (effectiveIsLandscape && optimize)
+                                              ? targetLayout.controls.width
+                                              : layout.controls.width;
                                       return SizedBox(
                                         key: const ValueKey(
                                           'controls_sizing_box',
@@ -636,12 +637,14 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard> {
                                           child: PlaybackControls(
                                             width: width,
                                             layoutWidth: layoutWidth,
-                                            controlsScale: optimize
-                                                ? targetLayout.controlsScale
-                                                : layout.controlsScale,
-                                            tLyrics: optimize
-                                                ? targetTLyrics
-                                                : tLyrics,
+                                            controlsScale:
+                                                (effectiveIsLandscape && optimize)
+                                                    ? targetLayout.controlsScale
+                                                    : layout.controlsScale,
+                                            tLyrics:
+                                                (effectiveIsLandscape && optimize)
+                                                    ? targetTLyrics
+                                                    : tLyrics,
                                             topButtonsCollapseT:
                                                 topButtonsCollapseT,
                                             isLandscape: effectiveIsLandscape,
@@ -1350,8 +1353,8 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard> {
       ),
       pLyrics: _PlaybackPaneLayout(
         top: pLyricsControlsTop,
-        left: 24.0,
-        width: math.max(0.0, width - 48.0),
+        left: (width - math.min(width, pNormalControlsWidth)) / 2,
+        width: math.min(width, pNormalControlsWidth),
         height: pLyricsControlsHeight,
         opacity: pLyricsControlsOpacity,
       ),
