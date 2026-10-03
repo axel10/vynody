@@ -302,7 +302,7 @@ dependency_overrides:
   flutter_taglib:
     git:
       url: https://github.com/axel10/flutter_taglib
-      ref: d2d184ae781e42b5ccd349b36b81a3a7465af9a8
+      ref: db00308409fdbd4a078e3db7aa5d67731c6e2284
   audio_core:
     path: ./audio_core
   desktop_multi_window:

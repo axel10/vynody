@@ -344,6 +344,10 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard> {
             (size.width / PlaybackHeroCardUiTuning.pControlsScaleBase)
                 .clamp(0.9, 1.15) *
             (isSmallWindow ? 0.82 : 1.0);
+        final double audioInfoHeight = showAudioInfo
+            ? (PlaybackHeroCardUiTuning.audioInfoGap +
+                PlaybackHeroCardUiTuning.audioInfoHeight)
+            : 0.0;
         final double pNormalControlsBaseIdealHeight =
             PlaybackHeroCardUiTuning.controlsTopButtonsHeight +
             (isOverlayStyle
@@ -355,14 +359,12 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard> {
                     ? PlaybackHeroCardUiTuning.waveformStaticPortraitHeight
                     : 48.0)) +
             (isOverlayStyle
-                ? (showAudioInfo
-                    ? (PlaybackHeroCardUiTuning.waveformOverlayAudioInfoGap +
-                        PlaybackHeroCardUiTuning.waveformOverlayAudioInfoHeight)
-                    : 0.0)
+                ? 0.0
                 : (8.0 +
                       PlaybackHeroCardUiTuning.controlsTimeRowHeight +
                       PlaybackHeroCardUiTuning.controlsRowPortraitGap +
-                      PlaybackHeroCardUiTuning.controlsMainButtonsHeight));
+                      PlaybackHeroCardUiTuning.controlsMainButtonsHeight)) +
+            audioInfoHeight;
         final double expandedControlsHeight = math.max(
           110.0,
           pNormalControlsBaseIdealHeight * pNormalScale,
@@ -840,6 +842,10 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard> {
         progressBarStyle == ProgressBarStyle.fullWaveform;
     final bool isOverlayStyle = isScrollingWaveform;
 
+    final double audioInfoHeight = showAudioInfo
+        ? (PlaybackHeroCardUiTuning.audioInfoGap +
+            PlaybackHeroCardUiTuning.audioInfoHeight)
+        : 0.0;
     final pNormalControlsBaseIdealHeight =
         PlaybackHeroCardUiTuning.controlsTopButtonsHeight +
         (isOverlayStyle
@@ -851,14 +857,12 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard> {
                 ? PlaybackHeroCardUiTuning.waveformStaticPortraitHeight
                 : 48.0)) +
         (isOverlayStyle
-            ? (showAudioInfo
-                ? (PlaybackHeroCardUiTuning.waveformOverlayAudioInfoGap +
-                    PlaybackHeroCardUiTuning.waveformOverlayAudioInfoHeight)
-                : 0.0)
+            ? 0.0
             : (8.0 +
                   PlaybackHeroCardUiTuning.controlsTimeRowHeight +
                   PlaybackHeroCardUiTuning.controlsRowPortraitGap +
-                  PlaybackHeroCardUiTuning.controlsMainButtonsHeight));
+                  PlaybackHeroCardUiTuning.controlsMainButtonsHeight)) +
+        audioInfoHeight;
 
     final pNormalControlsWidth =
         width * PlaybackHeroCardUiTuning.portraitControlsWidthFactor;
@@ -999,7 +1003,8 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard> {
         PlaybackHeroCardUiTuning.controlsTimeGap +
         16.0 + // 实际时间行高度 (在 controlsScale 缩放前，实际 Text 高度约为 16.0)
         PlaybackHeroCardUiTuning.controlsRowLandscapeMainGap +
-        60.0; // 实际主播放按钮行高度
+        60.0 + // 实际主播放按钮行高度
+        audioInfoHeight;
 
     final double maxControlsHeight = math.max(
       height * 0.65,
@@ -1065,7 +1070,7 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard> {
         lLyricsInfoControlsScale;
 
     final double lLyricsControlsBaseIdealHeight =
-        collapseButtonsInLandscapeLyrics
+        (collapseButtonsInLandscapeLyrics
             ? ((isWaveformEnabled
                     ? PlaybackHeroCardUiTuning.waveformLandscapeHeight
                     : 48.0) +
@@ -1081,7 +1086,8 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard> {
                 PlaybackHeroCardUiTuning.controlsTimeGap +
                 16.0 + // 实际时间行高度
                 PlaybackHeroCardUiTuning.controlsRowLandscapeGap + // 歌词模式下 gap 为 controlsRowLandscapeGap (12.0)
-                60.0); // 实际主播放按钮行高度
+                60.0)) + // 实际主播放按钮行高度
+        audioInfoHeight;
     final double lLyricsControlsHeight =
         lLyricsControlsBaseIdealHeight * lLyricsSpaceControlsScale;
 

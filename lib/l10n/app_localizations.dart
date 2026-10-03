@@ -1506,7 +1506,7 @@ abstract class AppLocalizations {
   /// No description provided for @showPlaybackAudioInfoDescription.
   ///
   /// In zh, this message translates to:
-  /// **'在播放进度条下方显示音频格式、采样率和比特率等详细信息'**
+  /// **'在播放控制下方显示音频格式、采样率和比特率等详细信息'**
   String get showPlaybackAudioInfoDescription;
 
   /// Long-press waveform progress bar fast-forward speed label

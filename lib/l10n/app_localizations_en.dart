@@ -749,7 +749,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get showPlaybackAudioInfoDescription =>
-      'Display audio format, sample rate, and bitrate specifications below the progress bar';
+      'Display audio format, sample rate, and bitrate specifications below playback controls';
 
   @override
   String get waveformLongPressSeekSpeed => 'Long-press Waveform Seek Speed';

@@ -1115,19 +1115,20 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                                                       .waveformStaticPortraitHeight
                                                 : 48.0)) +
                                         (isOverlayStyle
-                                            ? (showAudioInfo
-                                                ? (PlaybackHeroCardUiTuning
-                                                        .waveformOverlayAudioInfoGap +
-                                                    PlaybackHeroCardUiTuning
-                                                        .waveformOverlayAudioInfoHeight)
-                                                : 0.0)
+                                            ? 0.0
                                             : (8.0 +
                                                   PlaybackHeroCardUiTuning
                                                       .controlsTimeRowHeight +
                                                   PlaybackHeroCardUiTuning
                                                       .controlsRowPortraitGap +
                                                   PlaybackHeroCardUiTuning
-                                                      .controlsMainButtonsHeight))) *
+                                                      .controlsMainButtonsHeight)) +
+                                        (showAudioInfo
+                                            ? (PlaybackHeroCardUiTuning
+                                                    .audioInfoGap +
+                                                PlaybackHeroCardUiTuning
+                                                    .audioInfoHeight)
+                                            : 0.0)) *
                                     scaleFactor;
 
                                 final pNormalScale =

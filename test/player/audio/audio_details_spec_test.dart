@@ -22,7 +22,7 @@ void main() {
         fileSize: 45000000,
       );
 
-      expect(formatAudioSpec(details), equals('FLAC · 24bit · 96 kHz · 2840 kbps'));
+      expect(formatAudioSpec(details), equals('FLAC · 24BIT · 96 kHz · 2840 kbps'));
     });
 
     test('formats MP3 CBR details correctly without bit depth', () {
@@ -54,7 +54,7 @@ void main() {
         fileSize: 50000000,
       );
 
-      expect(formatAudioSpec(details), equals('WAV · 16bit · 44.1 kHz · 1411 kbps'));
+      expect(formatAudioSpec(details), equals('WAV · 16BIT · 44.1 kHz · 1411 kbps'));
     });
 
     test('handles fractional sample rates such as 88.2 kHz and 48 kHz integer', () {
@@ -82,7 +82,7 @@ void main() {
         bitrateMode: 'vbr',
         fileSize: 20000000,
       );
-      expect(formatAudioSpec(details88k), equals('ALAC · 24bit · 88.2 kHz · 1800 kbps'));
+      expect(formatAudioSpec(details88k), equals('ALAC · 24BIT · 88.2 kHz · 1800 kbps'));
     });
   });
 

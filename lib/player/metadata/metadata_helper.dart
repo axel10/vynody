@@ -715,6 +715,12 @@ class MetadataHelper {
       String? albumArtist;
       int? duration;
       int? trackNumber;
+      int? bitrate;
+      int? sampleRate;
+      int? channels;
+      int? bitDepth;
+      String? format;
+      String? codec;
 
       try {
         final targetPath = await resolveReadTargetPath(filePath);
@@ -734,6 +740,12 @@ class MetadataHelper {
         albumArtist = metadata.albumArtist;
         duration = metadata.duration?.inMilliseconds;
         trackNumber = metadata.trackNumber;
+        bitrate = metadata.bitrate;
+        sampleRate = metadata.sampleRate;
+        channels = metadata.channels;
+        bitDepth = metadata.bitDepth;
+        format = metadata.format;
+        codec = metadata.codec;
         artworkData = metadata.pictures.isNotEmpty
             ? metadata.pictures.first.bytes
             : null;
@@ -869,6 +881,12 @@ class MetadataHelper {
         createdAt: createdAt,
         sourceFlags: resolvedSourceFlags,
         isAppModified: existing?.isAppModified ?? false,
+        bitrate: bitrate ?? existing?.bitrate,
+        sampleRate: sampleRate ?? existing?.sampleRate,
+        channels: channels ?? existing?.channels,
+        bitDepth: bitDepth ?? existing?.bitDepth,
+        format: format ?? existing?.format,
+        codec: codec ?? existing?.codec,
       );
 
       // 5. 将解析结果存入数据库
@@ -1249,6 +1267,7 @@ class MetadataHelper {
       final bitrate = tagFile.bitrate > 0 ? tagFile.bitrate * 1000 : null;
       final sampleRate = tagFile.sampleRate > 0 ? tagFile.sampleRate : null;
       final channels = tagFile.channels > 0 ? tagFile.channels : null;
+      final bitDepth = tagFile.bitDepth;
       final format = tagFile.format;
 
       return TagLibMetadata(
@@ -1263,6 +1282,7 @@ class MetadataHelper {
         bitrate: bitrate,
         sampleRate: sampleRate,
         channels: channels,
+        bitDepth: bitDepth,
         format: format,
       );
     } finally {
@@ -1290,6 +1310,7 @@ class MetadataHelper {
       final bitrate = tagFile.bitrate > 0 ? tagFile.bitrate * 1000 : null;
       final sampleRate = tagFile.sampleRate > 0 ? tagFile.sampleRate : null;
       final channels = tagFile.channels > 0 ? tagFile.channels : null;
+      final bitDepth = tagFile.bitDepth;
       final format = tagFile.format;
 
       return TagLibMetadata(
@@ -1304,6 +1325,7 @@ class MetadataHelper {
         bitrate: bitrate,
         sampleRate: sampleRate,
         channels: channels,
+        bitDepth: bitDepth,
         format: format,
       );
     } finally {
@@ -1336,6 +1358,11 @@ class MetadataHelper {
       final duration = tagFile.duration;
       final trackNumber = tagFile.track;
       final hasArtwork = tagFile.hasCover;
+      final bitrate = tagFile.bitrate > 0 ? tagFile.bitrate * 1000 : null;
+      final sampleRate = tagFile.sampleRate > 0 ? tagFile.sampleRate : null;
+      final channels = tagFile.channels > 0 ? tagFile.channels : null;
+      final bitDepth = tagFile.bitDepth;
+      final format = tagFile.format;
 
       return TagLibMetadata(
         title: title.isNotEmpty ? title : null,
@@ -1346,6 +1373,11 @@ class MetadataHelper {
         trackNumber: trackNumber > 0 ? trackNumber : null,
         hasArtwork: hasArtwork,
         pictures: const [],
+        bitrate: bitrate,
+        sampleRate: sampleRate,
+        channels: channels,
+        bitDepth: bitDepth,
+        format: format,
       );
     } finally {
       tagFile.close();
@@ -1378,6 +1410,11 @@ class MetadataHelper {
       final trackNumber = tagFile.track;
       final hasArtwork = tagFile.hasCover;
       final pictures = tagFile.pictures;
+      final bitrate = tagFile.bitrate > 0 ? tagFile.bitrate * 1000 : null;
+      final sampleRate = tagFile.sampleRate > 0 ? tagFile.sampleRate : null;
+      final channels = tagFile.channels > 0 ? tagFile.channels : null;
+      final bitDepth = tagFile.bitDepth;
+      final format = tagFile.format;
 
       return TagLibMetadata(
         title: title.isNotEmpty ? title : null,
@@ -1388,6 +1425,11 @@ class MetadataHelper {
         trackNumber: trackNumber > 0 ? trackNumber : null,
         hasArtwork: hasArtwork,
         pictures: pictures,
+        bitrate: bitrate,
+        sampleRate: sampleRate,
+        channels: channels,
+        bitDepth: bitDepth,
+        format: format,
       );
     } finally {
       tagFile.close();
@@ -1442,6 +1484,7 @@ class MetadataHelper {
           final bitrate = item.bitrate > 0 ? item.bitrate * 1000 : null;
           final sampleRate = item.sampleRate > 0 ? item.sampleRate : null;
           final channels = item.channels > 0 ? item.channels : null;
+          final bitDepth = item.bitDepth;
           var ext = p.extension(originalPath).replaceAll('.', '').toLowerCase();
           if (ext.contains('?')) ext = ext.split('?').first;
           String? format;
@@ -1470,6 +1513,7 @@ class MetadataHelper {
             'bitrate': bitrate,
             'sampleRate': sampleRate,
             'channels': channels,
+            'bitDepth': bitDepth,
             'format': format,
             'codec': codec,
             'error': isSuccess ? null : (item.error ?? 'Failed to read metadata'),
@@ -1534,6 +1578,7 @@ class MetadataHelper {
           final bitrate = tagFile.bitrate > 0 ? tagFile.bitrate * 1000 : null;
           final sampleRate = tagFile.sampleRate > 0 ? tagFile.sampleRate : null;
           final channels = tagFile.channels > 0 ? tagFile.channels : null;
+          final bitDepth = tagFile.bitDepth;
           var ext = p.extension(path).replaceAll('.', '').toLowerCase();
           if (ext.contains('?')) ext = ext.split('?').first;
           String? format = tagFile.format?.trim().isNotEmpty == true ? tagFile.format!.trim() : null;
@@ -1568,6 +1613,7 @@ class MetadataHelper {
             'bitrate': bitrate,
             'sampleRate': sampleRate,
             'channels': channels,
+            'bitDepth': bitDepth,
             'format': format,
             'codec': codec,
             'error': null,

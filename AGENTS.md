@@ -21,6 +21,10 @@ flutter run -d <device-id>               # dev run on a device
 3. **During development:** Run only tests relevant to the modified code (e.g. `flutter test test/path/to/specific_test.dart` or `./scripts/run_tests.sh test/player/`).
 4. **Before `git push`:** Run full test suite via `./scripts/run_tests.sh` (or `./scripts/run_tests.sh --batch`), which automatically executes both main project tests and `audio_core` tests.
 
+## Development principles & Agent guidelines
+
+- **不确定方案时切勿擅自动手：** 遇到有多种实现路径、技术选型不确定或涉及底层架构变更（例如是否走 TagLib、是否自写解析器、是否引入新依赖等）的情况，**禁止自作主张直接编码动手**。必须先向用户说明有哪些可行方案及其优劣利弊，**在得到用户的明确答复或确认后再行动手实现**。
+
 ## Architecture notes
 
 - **State management:** Riverpod (`flutter_riverpod` v3). Providers live co-located with their domain code (e.g., `lib/player/audio/` has audio providers).

@@ -72,9 +72,6 @@ class PlaybackProgressSection extends ConsumerWidget {
     final isFullWaveform = progressBarStyle == ProgressBarStyle.fullWaveform;
     final isInlineInfo = isLandscape || isFullWaveform || !isWaveformEnabled;
     final currentThemeColorsMap = ref.watch(audioCurrentThemeColorsMapProvider);
-    final showAudioInfo = ref.watch(
-      settingsServiceProvider.select((s) => s.showPlaybackAudioInfo),
-    );
     final controlIconColor =
         currentThemeColorsMap['darkVibrant'] ??
         currentThemeColorsMap['darkMuted'] ??
@@ -216,115 +213,88 @@ class PlaybackProgressSection extends ConsumerWidget {
             padding: const EdgeInsets.symmetric(
               horizontal: horizontalPadding,
             ),
-            child: Stack(
-              alignment: Alignment.center,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                if (isInlineInfo && showAudioInfo)
-                  Positioned.fill(
-                    child: Align(
-                      alignment: Alignment.center,
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 56.0 * controlsScale,
+                if (isInlineInfo)
+                  Text(
+                    formatDuration(overridePosition ?? position),
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: math.max(
+                        PlaybackHeroCardUiTuning.minProgressTimeFontSize,
+                        12 * controlsScale,
+                      ),
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+                  )
+                else
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(100),
+                      boxShadow: PlaybackHeroCardUiTuning.waveformOverlayTimeCapsuleShadow(
+                        controlsScale,
+                      ),
+                    ),
+                    child: Text(
+                      formatDuration(overridePosition ?? position),
+                      style: TextStyle(
+                        color: controlIconColor,
+                        fontSize: math.max(
+                          PlaybackHeroCardUiTuning.minProgressTimeFontSize,
+                          11 * controlsScale,
                         ),
-                        child: PlaybackAudioInfoLabel(
-                          controlsScale: controlsScale,
-                        ),
+                        fontWeight: FontWeight.w600,
+                        fontFeatures: const [FontFeature.tabularFigures()],
                       ),
                     ),
                   ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    if (isInlineInfo)
-                      Text(
-                        formatDuration(overridePosition ?? position),
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: math.max(
-                            PlaybackHeroCardUiTuning.minProgressTimeFontSize,
-                            12 * controlsScale,
-                          ),
-                          fontFeatures: const [FontFeature.tabularFigures()],
-                        ),
-                      )
-                    else
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 3,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(100),
-                          boxShadow: PlaybackHeroCardUiTuning.waveformOverlayTimeCapsuleShadow(
-                            controlsScale,
-                          ),
-                        ),
-                        child: Text(
-                          formatDuration(overridePosition ?? position),
-                          style: TextStyle(
-                            color: controlIconColor,
-                            fontSize: math.max(
-                              PlaybackHeroCardUiTuning.minProgressTimeFontSize,
-                              11 * controlsScale,
-                            ),
-                            fontWeight: FontWeight.w600,
-                            fontFeatures: const [FontFeature.tabularFigures()],
-                          ),
-                        ),
+                if (isInlineInfo)
+                  Text(
+                    formatDuration(duration),
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: math.max(
+                        PlaybackHeroCardUiTuning.minProgressTimeFontSize,
+                        12 * controlsScale,
                       ),
-                    if (isInlineInfo)
-                      Text(
-                        formatDuration(duration),
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: math.max(
-                            PlaybackHeroCardUiTuning.minProgressTimeFontSize,
-                            12 * controlsScale,
-                          ),
-                          fontFeatures: const [FontFeature.tabularFigures()],
-                        ),
-                      )
-                    else
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 3,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(100),
-                          boxShadow: PlaybackHeroCardUiTuning.waveformOverlayTimeCapsuleShadow(
-                            controlsScale,
-                          ),
-                        ),
-                        child: Text(
-                          formatDuration(duration),
-                          style: TextStyle(
-                            color: controlIconColor,
-                            fontSize: math.max(
-                              PlaybackHeroCardUiTuning.minProgressTimeFontSize,
-                              11 * controlsScale,
-                            ),
-                            fontWeight: FontWeight.w600,
-                            fontFeatures: const [FontFeature.tabularFigures()],
-                          ),
-                        ),
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+                  )
+                else
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(100),
+                      boxShadow: PlaybackHeroCardUiTuning.waveformOverlayTimeCapsuleShadow(
+                        controlsScale,
                       ),
-                  ],
-                ),
+                    ),
+                    child: Text(
+                      formatDuration(duration),
+                      style: TextStyle(
+                        color: controlIconColor,
+                        fontSize: math.max(
+                          PlaybackHeroCardUiTuning.minProgressTimeFontSize,
+                          11 * controlsScale,
+                        ),
+                        fontWeight: FontWeight.w600,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
-          if (!isInlineInfo && showAudioInfo) ...[
-            SizedBox(height: 5.0 * controlsScale),
-            Center(
-              child: PlaybackAudioInfoLabel(
-                controlsScale: controlsScale,
-              ),
-            ),
-          ],
         ],
       ),
     );
@@ -333,10 +303,18 @@ class PlaybackProgressSection extends ConsumerWidget {
 
 class PlaybackAudioInfoLabel extends ConsumerWidget {
   final double controlsScale;
+  final bool isLandscape;
+  final double tLyrics;
+  final AlignmentGeometry? alignment;
+  final double? width;
 
   const PlaybackAudioInfoLabel({
     super.key,
     required this.controlsScale,
+    this.isLandscape = false,
+    this.tLyrics = 0.0,
+    this.alignment,
+    this.width,
   });
 
   @override
@@ -350,22 +328,39 @@ class PlaybackAudioInfoLabel extends ConsumerWidget {
     final details = ref.watch(currentAudioDetailsProvider);
     final text = formatAudioSpec(details);
 
-    return SizedBox(
-      height: PlaybackHeroCardUiTuning.waveformOverlayAudioInfoHeight *
-          controlsScale,
-      child: Center(
+    final Alignment effectiveAlignment = (alignment as Alignment?) ??
+        (isLandscape
+            ? (Alignment.lerp(Alignment.center, Alignment.centerLeft, tLyrics) ??
+                Alignment.center)
+            : Alignment.center);
+
+    final double horizontalPad = isLandscape
+        ? (lerpDouble(8.0, 0.0, tLyrics) ?? 0.0)
+        : 8.0;
+
+    final double fontSize = isLandscape
+        ? math.max(
+            PlaybackHeroCardUiTuning.minProgressTimeFontSize,
+            12 * controlsScale,
+          )
+        : math.max(
+            9.0,
+            10.0 * controlsScale,
+          );
+
+    Widget content = SizedBox(
+      height: PlaybackHeroCardUiTuning.audioInfoHeight * controlsScale,
+      child: Align(
+        alignment: effectiveAlignment,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8),
+          padding: EdgeInsets.symmetric(horizontal: horizontalPad),
           child: Text(
             text,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               color: Colors.white70,
-              fontSize: math.max(
-                PlaybackHeroCardUiTuning.minProgressTimeFontSize,
-                12 * controlsScale,
-              ),
+              fontSize: fontSize,
               fontWeight: FontWeight.w500,
               letterSpacing: 0.2,
             ),
@@ -373,6 +368,15 @@ class PlaybackAudioInfoLabel extends ConsumerWidget {
         ),
       ),
     );
+
+    if (width != null) {
+      content = SizedBox(
+        width: width,
+        child: content,
+      );
+    }
+
+    return content;
   }
 }
 

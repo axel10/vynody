@@ -391,6 +391,11 @@ class CurrentAudioDetailsNotifier extends Notifier<AudioDetails?> {
         refined,
         lastModifiedTime: currentMusic.lastModifiedTime,
       );
+      if (refined.bitDepth == null && _formatMayHaveBitDepth(refined.formatName)) {
+        _debounceTimer = Timer(const Duration(milliseconds: 350), () {
+          _loadRefinedDetails(currentMusic);
+        });
+      }
       return refined;
     }
 
@@ -403,6 +408,25 @@ class CurrentAudioDetailsNotifier extends Notifier<AudioDetails?> {
     });
 
     return fastDetails;
+  }
+
+  static bool _formatMayHaveBitDepth(String format) {
+    final f = format.toLowerCase().trim();
+    return f == 'flac' ||
+        f == 'wav' ||
+        f == 'wave' ||
+        f == 'aiff' ||
+        f == 'aif' ||
+        f == 'ape' ||
+        f == 'wv' ||
+        f == 'wavpack' ||
+        f == 'alac' ||
+        f == 'm4a' ||
+        f == 'mp4' ||
+        f == 'dsf' ||
+        f == 'dff' ||
+        f == 'tta' ||
+        f == 'wma';
   }
 
   AudioDetails _refineFormatNames(AudioDetails details, MusicFile music) {
@@ -446,7 +470,9 @@ class CurrentAudioDetailsNotifier extends Notifier<AudioDetails?> {
     _debounceTimer?.cancel();
     final currentMusic = ref.read(audioCurrentMusicProvider);
     if (currentMusic != null) {
-      if (state == null || state?.sampleRate == 0) {
+      if (state == null ||
+          state?.sampleRate == 0 ||
+          (state?.bitDepth == null && _formatMayHaveBitDepth(state?.formatName ?? ''))) {
         _loadRefinedDetails(currentMusic);
       }
     }
@@ -459,7 +485,9 @@ class CurrentAudioDetailsNotifier extends Notifier<AudioDetails?> {
       music.path,
       lastModifiedTime: music.lastModifiedTime,
     );
-    if (cached != null && cached.sampleRate > 0) {
+    if (cached != null &&
+        cached.sampleRate > 0 &&
+        (cached.bitDepth != null || !_formatMayHaveBitDepth(cached.formatName))) {
       if (ref.read(audioCurrentMusicProvider)?.path == music.path) {
         state = cached;
       }
@@ -492,7 +520,8 @@ class CurrentAudioDetailsNotifier extends Notifier<AudioDetails?> {
         final needsAudioInfoUpdate = existing.sampleRate == null ||
             existing.sampleRate == 0 ||
             existing.bitrate == null ||
-            existing.format == null;
+            existing.format == null ||
+            (existing.bitDepth == null && refined.bitDepth != null);
 
         if (needsDurationUpdate || needsAudioInfoUpdate) {
           final updated = existing.copyWith(
@@ -538,9 +567,9 @@ String formatAudioSpec(AudioDetails? details) {
     parts.add(rawFormat.toUpperCase());
   }
 
-  // 2. Bit depth (e.g. 16bit, 24bit)
+  // 2. Bit depth (e.g. 16BIT, 24BIT)
   if (details.bitDepth != null && details.bitDepth! > 0) {
-    parts.add('${details.bitDepth}bit');
+    parts.add('${details.bitDepth}BIT');
   }
 
   // 3. Sample rate (e.g. 44.1 kHz, 48 kHz, 96 kHz)

@@ -1123,11 +1123,12 @@ class PlaybackControls extends ConsumerWidget {
             settingsServiceProvider.select((s) => s.showPlaybackAudioInfo),
           )) ...[
             SizedBox(
-              height: PlaybackHeroCardUiTuning.waveformOverlayAudioInfoGap *
-                  controlsScale,
+              height: PlaybackHeroCardUiTuning.audioInfoGap * controlsScale,
             ),
             PlaybackAudioInfoLabel(
               controlsScale: controlsScale,
+              isLandscape: false,
+              width: unifiedWidth,
             ),
           ],
         ],
@@ -1192,6 +1193,19 @@ class PlaybackControls extends ConsumerWidget {
                 controlsScale,
           ),
           mainControlsRow,
+          if (ref.watch(
+            settingsServiceProvider.select((s) => s.showPlaybackAudioInfo),
+          )) ...[
+            SizedBox(
+              height: PlaybackHeroCardUiTuning.audioInfoGap * controlsScale,
+            ),
+            PlaybackAudioInfoLabel(
+              controlsScale: controlsScale,
+              isLandscape: effectiveIsLandscape,
+              tLyrics: tLyrics,
+              width: unifiedWidth,
+            ),
+          ],
         ],
       );
     }
@@ -1232,6 +1246,18 @@ class PlaybackControls extends ConsumerWidget {
               PlaybackHeroCardUiTuning.controlsRowPortraitGap * controlsScale,
         ),
         mainControlsRow,
+        if (ref.watch(
+          settingsServiceProvider.select((s) => s.showPlaybackAudioInfo),
+        )) ...[
+          SizedBox(
+            height: PlaybackHeroCardUiTuning.audioInfoGap * controlsScale,
+          ),
+          PlaybackAudioInfoLabel(
+            controlsScale: controlsScale,
+            isLandscape: false,
+            width: unifiedWidth,
+          ),
+        ],
       ],
     );
   }
