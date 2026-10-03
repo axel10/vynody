@@ -191,6 +191,8 @@ class _MainLayoutState extends ConsumerState<MainLayout>
   late final MainLayoutUiController _uiController;
   final GlobalKey<FoldersPageState> _foldersPageKey =
       GlobalKey<FoldersPageState>();
+  final GlobalKey<LibraryPageState> _libraryPageKey =
+      GlobalKey<LibraryPageState>();
 
   bool _isOnboardingDialogOpen = false;
   bool _isTrialResetNoticeDialogOpen = false;
@@ -260,9 +262,14 @@ class _MainLayoutState extends ConsumerState<MainLayout>
     }
 
     // 如果在曲库页且当前处于 3D 唱片封面流视图，则返回普通网格视图并恢复竖屏
-    if (_currentIndex == 2 && ref.read(isAlbum3DViewActiveProvider)) {
-      ref.read(isAlbum3DViewActiveProvider.notifier).set(false);
-      return;
+    if (_currentIndex == 2) {
+      if (ref.read(isAlbum3DViewActiveProvider)) {
+        ref.read(isAlbum3DViewActiveProvider.notifier).set(false);
+        return;
+      }
+      if (_libraryPageKey.currentState?.handleBackPressed() ?? false) {
+        return;
+      }
     }
 
     // 如果在目录页，且当前处于非根目录，则返回上一级目录
@@ -716,6 +723,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
         return Padding(
           padding: const EdgeInsets.only(top: 0, left: 0),
           child: LibraryPage(
+            key: _libraryPageKey,
             initialTabIndex: widget.initialLibraryTabIndex,
             initialAlbums3DView: widget.initialAlbums3DView,
             initialAlbums3DIndex: widget.initialAlbums3DIndex,

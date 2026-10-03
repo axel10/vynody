@@ -379,6 +379,18 @@ void main() {
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 350));
         expect(find.byType(AlbumsTab), findsOneWidget);
+
+        // Test handleBackPressed returns true and pops back to portrait index view
+        final libraryState = tester.state<LibraryPageState>(find.byType(LibraryPage));
+        final handled = libraryState.handleBackPressed();
+        expect(handled, isTrue);
+
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 350));
+        expect(find.byType(AlbumsTab), findsNothing);
+
+        // Subsequent back press at index view should return false
+        expect(libraryState.handleBackPressed(), isFalse);
       }
     });
 

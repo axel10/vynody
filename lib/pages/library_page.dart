@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:ui';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -38,19 +39,23 @@ class LibraryPage extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<LibraryPage> createState() => _LibraryPageState();
+  ConsumerState<LibraryPage> createState() => LibraryPageState();
 }
 
-class _LibraryPageState extends ConsumerState<LibraryPage>
+class LibraryPageState extends ConsumerState<LibraryPage>
     with SingleTickerProviderStateMixin {
   late final TabController _tabController;
   int _tabIndex = 0;
   int? _portraitSubIndex;
   bool? _wasLandscape;
+  final GlobalKey<NavigatorState> _portraitNavigatorKey =
+      GlobalKey<NavigatorState>();
+  late final HeroController _heroController;
 
   @override
   void initState() {
     super.initState();
+    _heroController = HeroController();
     _tabIndex = widget.initialTabIndex;
     if (widget.initialAlbums3DView) {
       _portraitSubIndex = 4;
@@ -78,8 +83,25 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
 
   @override
   void dispose() {
+    _heroController.dispose();
     _tabController.dispose();
     super.dispose();
+  }
+
+  Page<dynamic> _buildPage({
+    required LocalKey key,
+    required Widget child,
+  }) {
+    if (Platform.isIOS || Platform.isMacOS) {
+      return CupertinoPage<dynamic>(
+        key: key,
+        child: child,
+      );
+    }
+    return MaterialPage<dynamic>(
+      key: key,
+      child: child,
+    );
   }
 
   void _openSubPage(int index) {
@@ -96,9 +118,23 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
 
   void _closeSubPage() {
     ref.read(librarySelectionScopeProvider.notifier).clear();
-    setState(() {
-      _portraitSubIndex = null;
-    });
+    if (_portraitSubIndex != null) {
+      setState(() {
+        _portraitSubIndex = null;
+      });
+    }
+  }
+
+  bool handleBackPressed() {
+    if (_portraitNavigatorKey.currentState?.canPop() ?? false) {
+      _portraitNavigatorKey.currentState?.maybePop();
+      return true;
+    }
+    if (_portraitSubIndex != null) {
+      _closeSubPage();
+      return true;
+    }
+    return false;
   }
 
   @override
@@ -253,22 +289,32 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
 
   /// 竖屏模式：一级目录入口 / 二级页面切换
   Widget _buildPortraitLayout(BuildContext context) {
-    return PopScope(
-      canPop: _portraitSubIndex == null,
-      onPopInvokedWithResult: (didPop, result) {
-        if (didPop) return;
-        if (_portraitSubIndex != null) {
-          _closeSubPage();
-        }
-      },
-      child: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 250),
-        switchInCurve: Curves.easeOutCubic,
-        switchOutCurve: Curves.easeInCubic,
-        child: _portraitSubIndex == null
-            ? _buildPortraitIndexView(context)
-            : _buildPortraitSubPageView(context, _portraitSubIndex!),
+    final pages = <Page<dynamic>>[
+      _buildPage(
+        key: const ValueKey('library-portrait-index'),
+        child: _buildPortraitIndexView(context),
       ),
+    ];
+
+    if (_portraitSubIndex != null) {
+      pages.add(
+        _buildPage(
+          key: ValueKey('library-portrait-sub-$_portraitSubIndex'),
+          child: _buildPortraitSubPageView(context, _portraitSubIndex!),
+        ),
+      );
+    }
+
+    return Navigator(
+      key: _portraitNavigatorKey,
+      pages: pages,
+      observers: [_heroController],
+      onDidRemovePage: (page) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          _closeSubPage();
+        });
+      },
     );
   }
 
