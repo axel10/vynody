@@ -353,20 +353,92 @@ class CurrentAudioDetailsNotifier extends Notifier<AudioDetails?> {
       lastModifiedTime: currentMusic.lastModifiedTime,
     );
 
-    // 如果内存缓存已有且包含采样率等精细信息，并且文件修改时间匹配，直接秒开
+    // 1. 如果内存缓存已有且包含采样率等精细信息，并且文件修改时间匹配，直接秒开
     if (cached != null && cached.sampleRate > 0) {
       return cached;
     }
 
-    // 优先秒开展示 Fast AudioDetails，完全不走任何 TagLib FFI，0ms 阻塞保证轮播动画丝滑
+    // 2. 优先从数据库缓存（MusicFile 或 ScannerMetadataStore）中读取音频信息
+    AudioDetails? dbDetails;
+    if (currentMusic.sampleRate != null && currentMusic.sampleRate! > 0) {
+      dbDetails = currentMusic.toAudioDetails();
+    } else {
+      final scanner = ref.read(scannerServiceProvider);
+      final meta = scanner.metadataMap[currentMusic.path];
+      if (meta != null && meta.sampleRate != null && meta.sampleRate! > 0) {
+        dbDetails = AudioDetails(
+          formatName: meta.format ?? '',
+          codecName: meta.codec ?? meta.format ?? '',
+          duration: meta.duration != null && meta.duration! > 0
+              ? Duration(milliseconds: meta.duration!)
+              : (currentMusic.durationMillis != null
+                  ? Duration(milliseconds: currentMusic.durationMillis!)
+                  : Duration.zero),
+          bitrate: meta.bitrate ?? 0,
+          sampleRate: meta.sampleRate ?? 0,
+          channels: meta.channels ?? 0,
+          bitDepth: meta.bitDepth,
+          bitrateMode: '',
+          fileSize: 0,
+        );
+      }
+    }
+
+    if (dbDetails != null && dbDetails.sampleRate > 0) {
+      final refined = _refineFormatNames(dbDetails, currentMusic);
+      audioService.setCachedAudioDetails(
+        currentMusic.path,
+        refined,
+        lastModifiedTime: currentMusic.lastModifiedTime,
+      );
+      return refined;
+    }
+
+    // 3. 内存和数据库均无精细音频信息（未扫描或老版本旧数据），先秒开展示 Fast AudioDetails，完全不走任何 TagLib FFI
     final fastDetails = cached ?? buildFastAudioDetails(currentMusic);
 
-    // 延迟 350ms（等待轮播动画结束并防抖用户快速划歌），随后后台异步读取 TagLib 详细信息
+    // 延迟 350ms（等待轮播动画结束并防抖用户快速划歌），随后后台异步读取 TagLib 详细信息并写回数据库
     _debounceTimer = Timer(const Duration(milliseconds: 350), () {
       _loadRefinedDetails(currentMusic);
     });
 
     return fastDetails;
+  }
+
+  AudioDetails _refineFormatNames(AudioDetails details, MusicFile music) {
+    var formatName = details.formatName.trim();
+    var codecName = details.codecName.trim();
+    if (formatName.toLowerCase() == 'cache' || formatName.toLowerCase() == 'tmp') {
+      formatName = '';
+    }
+    if (codecName.toLowerCase() == 'cache' || codecName.toLowerCase() == 'tmp') {
+      codecName = '';
+    }
+
+    if (formatName.isEmpty || codecName.isEmpty) {
+      var ext = p.extension(music.name).replaceAll('.', '').toLowerCase();
+      if (ext.contains('?')) ext = ext.split('?').first;
+      if (ext == 'cache' || ext == 'tmp') ext = '';
+      if (ext.isNotEmpty) {
+        if (formatName.isEmpty) {
+          formatName = (ext == 'mpeg') ? 'mp3' : (ext == 'mp4' ? 'm4a' : ext);
+        }
+        if (codecName.isEmpty) {
+          if (ext == 'mp3' || ext == 'mpeg') {
+            codecName = 'mp3';
+          } else if (ext == 'm4a' || ext == 'mp4') {
+            codecName = 'aac';
+          } else {
+            codecName = ext;
+          }
+        }
+      }
+    }
+
+    return details.copyWith(
+      formatName: formatName,
+      codecName: codecName,
+    );
   }
 
   /// 供外部在轮播动画完成（onCarouselAnimationComplete）时立即唤起深度解析，无需等待剩余防抖时间
@@ -402,39 +474,7 @@ class CurrentAudioDetailsNotifier extends Notifier<AudioDetails?> {
         lastModifiedTime: music.lastModifiedTime,
       );
 
-      var formatName = details.formatName.trim();
-      var codecName = details.codecName.trim();
-      if (formatName.toLowerCase() == 'cache' || formatName.toLowerCase() == 'tmp') {
-        formatName = '';
-      }
-      if (codecName.toLowerCase() == 'cache' || codecName.toLowerCase() == 'tmp') {
-        codecName = '';
-      }
-
-      if (formatName.isEmpty || codecName.isEmpty) {
-        var ext = p.extension(music.name).replaceAll('.', '').toLowerCase();
-        if (ext.contains('?')) ext = ext.split('?').first;
-        if (ext == 'cache' || ext == 'tmp') ext = '';
-        if (ext.isNotEmpty) {
-          if (formatName.isEmpty) {
-            formatName = (ext == 'mpeg') ? 'mp3' : (ext == 'mp4' ? 'm4a' : ext);
-          }
-          if (codecName.isEmpty) {
-            if (ext == 'mp3' || ext == 'mpeg') {
-              codecName = 'mp3';
-            } else if (ext == 'm4a' || ext == 'mp4') {
-              codecName = 'aac';
-            } else {
-              codecName = ext;
-            }
-          }
-        }
-      }
-
-      final refined = details.copyWith(
-        formatName: formatName,
-        codecName: codecName,
-      );
+      final refined = _refineFormatNames(details, music);
 
       audioService.setCachedAudioDetails(
         music.path,
@@ -442,15 +482,29 @@ class CurrentAudioDetailsNotifier extends Notifier<AudioDetails?> {
         lastModifiedTime: music.lastModifiedTime,
       );
 
-      // 若从文件读取到的真实时长与数据库记录存在显著差异（>1秒）或数据库缺失时长，以文件为准校准数据库
-      if (refined.duration.inMilliseconds > 0) {
-        final scanner = ref.read(scannerServiceProvider);
-        final existing = scanner.metadataMap[music.path];
-        if (existing != null &&
+      // 写回数据库和 ScannerStore，使后续播放无需再次解析，直接优先从数据库缓存读
+      final scanner = ref.read(scannerServiceProvider);
+      final existing = scanner.metadataMap[music.path];
+      if (existing != null) {
+        final needsDurationUpdate = refined.duration.inMilliseconds > 0 &&
             (existing.duration == null ||
-                (existing.duration! - refined.duration.inMilliseconds).abs() > 1000)) {
+                (existing.duration! - refined.duration.inMilliseconds).abs() > 1000);
+        final needsAudioInfoUpdate = existing.sampleRate == null ||
+            existing.sampleRate == 0 ||
+            existing.bitrate == null ||
+            existing.format == null;
+
+        if (needsDurationUpdate || needsAudioInfoUpdate) {
           final updated = existing.copyWith(
-            duration: refined.duration.inMilliseconds,
+            duration: refined.duration.inMilliseconds > 0
+                ? refined.duration.inMilliseconds
+                : existing.duration,
+            sampleRate: refined.sampleRate > 0 ? refined.sampleRate : existing.sampleRate,
+            bitrate: refined.bitrate > 0 ? refined.bitrate : existing.bitrate,
+            channels: refined.channels > 0 ? refined.channels : existing.channels,
+            bitDepth: refined.bitDepth ?? existing.bitDepth,
+            format: refined.formatName.isNotEmpty ? refined.formatName : existing.format,
+            codec: refined.codecName.isNotEmpty ? refined.codecName : existing.codec,
           );
           unawaited(MetadataDatabase().insertOrUpdateSong(updated));
           scanner.updateMetadataForPath(updated);

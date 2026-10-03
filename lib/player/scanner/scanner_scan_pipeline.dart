@@ -277,6 +277,12 @@ class ScannerScanPipeline {
       genres: existing?.genres,
       isAppModified: existing?.isAppModified ?? false,
       hasArtwork: (result['hasArtwork'] as bool?) ?? existing?.hasArtwork,
+      bitrate: result['bitrate'] as int? ?? (hasError ? existing?.bitrate : null) ?? existing?.bitrate,
+      sampleRate: result['sampleRate'] as int? ?? (hasError ? existing?.sampleRate : null) ?? existing?.sampleRate,
+      channels: result['channels'] as int? ?? (hasError ? existing?.channels : null) ?? existing?.channels,
+      bitDepth: result['bitDepth'] as int? ?? (hasError ? existing?.bitDepth : null) ?? existing?.bitDepth,
+      format: result['format'] as String? ?? (hasError ? existing?.format : null) ?? existing?.format,
+      codec: result['codec'] as String? ?? (hasError ? existing?.codec : null) ?? existing?.codec,
     );
   }
 

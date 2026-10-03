@@ -153,5 +153,75 @@ void main() {
       expect(metadata.artist, equals('Unknown Artist'));
       expect(metadata.trackNumber, isNull);
     });
+
+    test('buildScannedMetadataFromBatchResult populates audio details and converts to AudioDetails', () {
+      final pipeline = ScannerScanPipeline(
+        normalizePath: (p) => p,
+        pathLookupKey: (p) => p,
+        metadataStore: ScannerMetadataStore(
+          rootFolders: () => [],
+          systemMediaFolder: () => null,
+          notifyListeners: () {},
+          scheduleMetadataNotify: () {},
+          onMetadataMutated: () {},
+          onAlbumMetadataMutated: () {},
+          notifySongMissingState: (_, __) {},
+          normalizePath: (p) => p,
+          pathsEqual: (a, b) => a == b,
+        ),
+      );
+
+      final batchResult = {
+        'path': '/music/song.flac',
+        'title': 'High Res Track',
+        'album': 'Audiophile Album',
+        'artist': 'HiFi Artist',
+        'duration': 240000,
+        'trackNumber': 1,
+        'bitrate': 1411200,
+        'sampleRate': 96000,
+        'channels': 2,
+        'bitDepth': 24,
+        'format': 'FLAC',
+        'codec': 'flac',
+      };
+
+      final metadata = pipeline.buildScannedMetadataFromBatchResult(
+        '/music/song.flac',
+        batchResult,
+      );
+
+      expect(metadata.bitrate, equals(1411200));
+      expect(metadata.sampleRate, equals(96000));
+      expect(metadata.channels, equals(2));
+      expect(metadata.bitDepth, equals(24));
+      expect(metadata.format, equals('FLAC'));
+      expect(metadata.codec, equals('flac'));
+
+      final musicFile = MusicFile(
+        path: metadata.path,
+        name: 'song.flac',
+        title: metadata.title,
+        artist: metadata.artist,
+        album: metadata.album,
+        durationMillis: metadata.duration,
+        bitrate: metadata.bitrate,
+        sampleRate: metadata.sampleRate,
+        channels: metadata.channels,
+        bitDepth: metadata.bitDepth,
+        format: metadata.format,
+        codec: metadata.codec,
+      );
+
+      final audioDetails = musicFile.toAudioDetails();
+      expect(audioDetails, isNotNull);
+      expect(audioDetails!.formatName, equals('FLAC'));
+      expect(audioDetails.codecName, equals('flac'));
+      expect(audioDetails.sampleRate, equals(96000));
+      expect(audioDetails.channels, equals(2));
+      expect(audioDetails.bitrate, equals(1411200));
+      expect(audioDetails.bitDepth, equals(24));
+    });
   });
 }
+

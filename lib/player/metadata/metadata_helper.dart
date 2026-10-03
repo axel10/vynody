@@ -963,13 +963,29 @@ class MetadataHelper {
         'path': targetPath,
         'token': RootIsolateToken.instance,
       });
+      String? format = metadata.format;
+      if (format == null || format.isEmpty) {
+        var ext = p.extension(filePath).replaceAll('.', '').toLowerCase();
+        if (ext.contains('?')) ext = ext.split('?').first;
+        if (ext != 'cache' && ext != 'tmp' && ext.isNotEmpty) {
+          format = (ext == 'mpeg') ? 'mp3' : (ext == 'mp4' ? 'm4a' : ext);
+        }
+      }
+
       return SongMetadata(
         path: filePath,
         title: metadata.title ?? p.basenameWithoutExtension(filePath),
         album: metadata.album ?? 'Unknown Album',
         artist: metadata.artist ?? 'Unknown Artist',
+        albumArtist: metadata.albumArtist,
         duration: metadata.duration?.inMilliseconds,
         trackNumber: metadata.trackNumber,
+        hasArtwork: metadata.hasArtwork,
+        bitrate: metadata.bitrate,
+        sampleRate: metadata.sampleRate,
+        channels: metadata.channels,
+        bitDepth: metadata.bitDepth,
+        format: format,
       );
     } catch (e) {
       debugPrint('Error reading metadata from file $filePath: $e');
@@ -1230,6 +1246,10 @@ class MetadataHelper {
       final duration = tagFile.duration;
       final trackNumber = tagFile.track;
       final hasArtwork = tagFile.hasCover;
+      final bitrate = tagFile.bitrate > 0 ? tagFile.bitrate * 1000 : null;
+      final sampleRate = tagFile.sampleRate > 0 ? tagFile.sampleRate : null;
+      final channels = tagFile.channels > 0 ? tagFile.channels : null;
+      final format = tagFile.format;
 
       return TagLibMetadata(
         title: title.isNotEmpty ? title : null,
@@ -1240,6 +1260,10 @@ class MetadataHelper {
         trackNumber: trackNumber > 0 ? trackNumber : null,
         hasArtwork: hasArtwork,
         pictures: const [],
+        bitrate: bitrate,
+        sampleRate: sampleRate,
+        channels: channels,
+        format: format,
       );
     } finally {
       tagFile.close();
@@ -1263,6 +1287,10 @@ class MetadataHelper {
       final trackNumber = tagFile.track;
       final hasArtwork = tagFile.hasCover;
       final pictures = tagFile.pictures;
+      final bitrate = tagFile.bitrate > 0 ? tagFile.bitrate * 1000 : null;
+      final sampleRate = tagFile.sampleRate > 0 ? tagFile.sampleRate : null;
+      final channels = tagFile.channels > 0 ? tagFile.channels : null;
+      final format = tagFile.format;
 
       return TagLibMetadata(
         title: title.isNotEmpty ? title : null,
@@ -1273,6 +1301,10 @@ class MetadataHelper {
         trackNumber: trackNumber > 0 ? trackNumber : null,
         hasArtwork: hasArtwork,
         pictures: pictures,
+        bitrate: bitrate,
+        sampleRate: sampleRate,
+        channels: channels,
+        format: format,
       );
     } finally {
       tagFile.close();
@@ -1407,6 +1439,24 @@ class MetadataHelper {
             lastModified = File(originalPath).lastModifiedSync().millisecondsSinceEpoch;
           } catch (_) {}
 
+          final bitrate = item.bitrate > 0 ? item.bitrate * 1000 : null;
+          final sampleRate = item.sampleRate > 0 ? item.sampleRate : null;
+          final channels = item.channels > 0 ? item.channels : null;
+          var ext = p.extension(originalPath).replaceAll('.', '').toLowerCase();
+          if (ext.contains('?')) ext = ext.split('?').first;
+          String? format;
+          String? codec;
+          if (ext != 'cache' && ext != 'tmp' && ext.isNotEmpty) {
+            format = (ext == 'mpeg') ? 'mp3' : (ext == 'mp4' ? 'm4a' : ext);
+            if (format == 'mp3') {
+              codec = 'mp3';
+            } else if (format == 'm4a' || format == 'mp4') {
+              codec = 'aac';
+            } else {
+              codec = format;
+            }
+          }
+
           results.add(<String, dynamic>{
             'path': originalPath,
             'title': title,
@@ -1417,6 +1467,11 @@ class MetadataHelper {
             'hasArtwork': hasArtwork,
             'artworkBytes': artworkBytes,
             'lastModifiedTime': lastModified,
+            'bitrate': bitrate,
+            'sampleRate': sampleRate,
+            'channels': channels,
+            'format': format,
+            'codec': codec,
             'error': isSuccess ? null : (item.error ?? 'Failed to read metadata'),
           });
         }
@@ -1476,6 +1531,28 @@ class MetadataHelper {
           final hasArtwork = tagFile.hasCover;
           final artworkBytes = getImage && hasArtwork ? tagFile.coverData : null;
           final lastModified = _safeLastModifiedMillis(file);
+          final bitrate = tagFile.bitrate > 0 ? tagFile.bitrate * 1000 : null;
+          final sampleRate = tagFile.sampleRate > 0 ? tagFile.sampleRate : null;
+          final channels = tagFile.channels > 0 ? tagFile.channels : null;
+          var ext = p.extension(path).replaceAll('.', '').toLowerCase();
+          if (ext.contains('?')) ext = ext.split('?').first;
+          String? format = tagFile.format?.trim().isNotEmpty == true ? tagFile.format!.trim() : null;
+          if (format == null || format.isEmpty) {
+            if (ext != 'cache' && ext != 'tmp' && ext.isNotEmpty) {
+              format = (ext == 'mpeg') ? 'mp3' : (ext == 'mp4' ? 'm4a' : ext);
+            }
+          }
+          String? codec;
+          if (format != null) {
+            final fLower = format.toLowerCase();
+            if (fLower == 'mp3' || fLower == 'mpeg') {
+              codec = 'mp3';
+            } else if (fLower == 'm4a' || fLower == 'mp4') {
+              codec = 'aac';
+            } else {
+              codec = format;
+            }
+          }
 
           results.add(<String, dynamic>{
             'path': path,
@@ -1488,6 +1565,11 @@ class MetadataHelper {
             'lastModifiedTime': lastModified,
             'hasArtwork': hasArtwork,
             'artworkBytes': artworkBytes,
+            'bitrate': bitrate,
+            'sampleRate': sampleRate,
+            'channels': channels,
+            'format': format,
+            'codec': codec,
             'error': null,
           });
         } finally {
@@ -1649,18 +1731,14 @@ class MetadataHelper {
     try {
       final db = MetadataDatabase();
       var metadata = await db.getSongMetadata(filePath);
-      if (metadata == null) {
-        metadata = await readMetadataFromFile(filePath);
-      }
+      metadata ??= await readMetadataFromFile(filePath);
 
-      if (metadata == null) {
-        metadata = SongMetadata(
-          path: filePath,
-          title: p.basenameWithoutExtension(filePath),
-          album: 'Unknown Album',
-          artist: 'Unknown Artist',
-        );
-      }
+      metadata ??= SongMetadata(
+        path: filePath,
+        title: p.basenameWithoutExtension(filePath),
+        album: 'Unknown Album',
+        artist: 'Unknown Artist',
+      );
 
       Uint8List? artworkBytes;
       if (metadata.artworkPath != null && metadata.artworkPath!.isNotEmpty) {
@@ -1670,9 +1748,7 @@ class MetadataHelper {
         }
       }
 
-      if (artworkBytes == null) {
-        artworkBytes = await decodeEmbeddedArtwork(filePath);
-      }
+      artworkBytes ??= await decodeEmbeddedArtwork(filePath);
 
       final success = await _writeSelectionMetadataToFile(
         filePath: filePath,
@@ -1807,6 +1883,12 @@ class TagLibMetadata {
   final int? trackNumber;
   final bool hasArtwork;
   final List<taglib.Picture> pictures;
+  final int? bitrate;
+  final int? sampleRate;
+  final int? channels;
+  final int? bitDepth;
+  final String? format;
+  final String? codec;
 
   TagLibMetadata({
     this.title,
@@ -1817,6 +1899,12 @@ class TagLibMetadata {
     this.trackNumber,
     required this.hasArtwork,
     required this.pictures,
+    this.bitrate,
+    this.sampleRate,
+    this.channels,
+    this.bitDepth,
+    this.format,
+    this.codec,
   });
 }
 

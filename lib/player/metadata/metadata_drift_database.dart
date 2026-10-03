@@ -23,7 +23,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   static final MetadataDriftDatabase instance = MetadataDriftDatabase._();
 
   @override
-  int get schemaVersion => 36;
+  int get schemaVersion => 37;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -401,6 +401,14 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
         if (!exists) {
           await migrator.createTable(remoteLibraryCaches);
         }
+      }
+      if (from < 37) {
+        await _addColumnIfMissing(m, 'songs', 'bitrate', 'INTEGER');
+        await _addColumnIfMissing(m, 'songs', 'sampleRate', 'INTEGER');
+        await _addColumnIfMissing(m, 'songs', 'channels', 'INTEGER');
+        await _addColumnIfMissing(m, 'songs', 'bitDepth', 'INTEGER');
+        await _addColumnIfMissing(m, 'songs', 'format', 'TEXT');
+        await _addColumnIfMissing(m, 'songs', 'codec', 'TEXT');
       }
     },
   );
@@ -2425,6 +2433,12 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       genres: _decodeGenres(row.read<String?>('genres')),
       isAppModified: row.read<bool?>('isAppModified') ?? false,
       hasArtwork: row.read<bool?>('hasArtwork'),
+      bitrate: row.read<int?>('bitrate'),
+      sampleRate: row.read<int?>('sampleRate'),
+      channels: row.read<int?>('channels'),
+      bitDepth: row.read<int?>('bitDepth'),
+      format: row.read<String?>('format'),
+      codec: row.read<String?>('codec'),
     );
   }
 
@@ -2472,6 +2486,12 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       genres: _decodeGenres(row.genres),
       isAppModified: row.isAppModified,
       hasArtwork: row.hasArtwork,
+      bitrate: row.bitrate,
+      sampleRate: row.sampleRate,
+      channels: row.channels,
+      bitDepth: row.bitDepth,
+      format: row.format,
+      codec: row.codec,
     );
   }
 
@@ -2503,6 +2523,12 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       genres: Value(song.genres == null ? null : jsonEncode(song.genres)),
       isAppModified: Value(song.isAppModified),
       hasArtwork: Value(song.hasArtwork),
+      bitrate: Value(song.bitrate),
+      sampleRate: Value(song.sampleRate),
+      channels: Value(song.channels),
+      bitDepth: Value(song.bitDepth),
+      format: Value(song.format),
+      codec: Value(song.codec),
       lastSeenRootScanSessionId: lastSeenRootScanSessionId == null
           ? const Value.absent()
           : Value(lastSeenRootScanSessionId),
@@ -3108,6 +3134,12 @@ class Songs extends Table {
       boolean().withDefault(const Constant(false)).named('isAppModified')();
   BoolColumn get hasArtwork =>
       boolean().nullable().named('hasArtwork')();
+  IntColumn get bitrate => integer().nullable().named('bitrate')();
+  IntColumn get sampleRate => integer().nullable().named('sampleRate')();
+  IntColumn get channels => integer().nullable().named('channels')();
+  IntColumn get bitDepth => integer().nullable().named('bitDepth')();
+  TextColumn get format => text().nullable().named('format')();
+  TextColumn get codec => text().nullable().named('codec')();
   IntColumn get lastSeenRootScanSessionId =>
       integer().nullable().named('lastSeenRootScanSessionId')();
 

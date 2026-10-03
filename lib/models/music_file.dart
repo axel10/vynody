@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'package:audio_core/audio_core.dart';
 import 'package:path/path.dart' as p;
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'music_lyric.dart';
@@ -31,7 +32,34 @@ abstract class MusicFile with _$MusicFile {
     MusicLyric? lyrics,
     @Default(false) bool isMissing,
     bool? hasArtwork,
+    int? bitrate,
+    int? sampleRate,
+    int? channels,
+    int? bitDepth,
+    String? format,
+    String? codec,
   }) = _MusicFile;
+
+  AudioDetails? toAudioDetails() {
+    if (sampleRate == null && bitrate == null && format == null) {
+      return null;
+    }
+    final fmt = format ?? '';
+    final cdc = codec ?? fmt;
+    return AudioDetails(
+      formatName: fmt,
+      codecName: cdc,
+      duration: durationMillis != null && durationMillis! > 0
+          ? Duration(milliseconds: durationMillis!)
+          : Duration.zero,
+      bitrate: bitrate ?? 0,
+      sampleRate: sampleRate ?? 0,
+      channels: channels ?? 0,
+      bitDepth: bitDepth,
+      bitrateMode: '',
+      fileSize: 0,
+    );
+  }
 
   static final Map<String, List<double>> _waveformMemoryCache = {};
   static final List<String> _waveformMemoryCacheKeys = [];

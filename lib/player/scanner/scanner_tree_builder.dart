@@ -322,6 +322,12 @@ class ScannerTreeBuilder {
       waveformBlob: song.waveformBlob,
       lastModifiedTime: song.lastModifiedTime,
       hasArtwork: song.hasArtwork,
+      bitrate: song.bitrate,
+      sampleRate: song.sampleRate,
+      channels: song.channels,
+      bitDepth: song.bitDepth,
+      format: song.format,
+      codec: song.codec,
     );
   }
 
@@ -342,6 +348,12 @@ class ScannerTreeBuilder {
       waveformBlob: metadata?.waveformBlob,
       lastModifiedTime: metadata?.lastModifiedTime,
       hasArtwork: metadata?.hasArtwork,
+      bitrate: metadata?.bitrate,
+      sampleRate: metadata?.sampleRate,
+      channels: metadata?.channels,
+      bitDepth: metadata?.bitDepth,
+      format: metadata?.format,
+      codec: metadata?.codec,
     );
   }
 

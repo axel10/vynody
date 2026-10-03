@@ -60,6 +60,12 @@ abstract class SongMetadata with _$SongMetadata {
     List<String>? genres,
     @Default(false) bool isAppModified,
     bool? hasArtwork,
+    int? bitrate,
+    int? sampleRate,
+    int? channels,
+    int? bitDepth,
+    String? format,
+    String? codec,
   }) = _SongMetadata;
 
   bool get isModified => isAppModified;
@@ -89,6 +95,12 @@ abstract class SongMetadata with _$SongMetadata {
       'genres': genres != null ? jsonEncode(genres) : null,
       'isAppModified': isAppModified ? 1 : 0,
       'hasArtwork': hasArtwork == true ? 1 : (hasArtwork == false ? 0 : null),
+      'bitrate': bitrate,
+      'sampleRate': sampleRate,
+      'channels': channels,
+      'bitDepth': bitDepth,
+      'format': format,
+      'codec': codec,
     };
   }
 
@@ -126,6 +138,12 @@ abstract class SongMetadata with _$SongMetadata {
       hasArtwork: map['hasArtwork'] == null
           ? null
           : (map['hasArtwork'] == 1 || map['hasArtwork'] == true),
+      bitrate: map['bitrate'],
+      sampleRate: map['sampleRate'],
+      channels: map['channels'],
+      bitDepth: map['bitDepth'],
+      format: map['format'],
+      codec: map['codec'],
     );
   }
 }

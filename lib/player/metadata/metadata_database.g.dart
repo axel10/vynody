@@ -271,6 +271,68 @@ class $SongsTable extends Songs with TableInfo<$SongsTable, Song> {
       'CHECK ("hasArtwork" IN (0, 1))',
     ),
   );
+  static const VerificationMeta _bitrateMeta = const VerificationMeta(
+    'bitrate',
+  );
+  @override
+  late final GeneratedColumn<int> bitrate = GeneratedColumn<int>(
+    'bitrate',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _sampleRateMeta = const VerificationMeta(
+    'sampleRate',
+  );
+  @override
+  late final GeneratedColumn<int> sampleRate = GeneratedColumn<int>(
+    'sampleRate',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _channelsMeta = const VerificationMeta(
+    'channels',
+  );
+  @override
+  late final GeneratedColumn<int> channels = GeneratedColumn<int>(
+    'channels',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _bitDepthMeta = const VerificationMeta(
+    'bitDepth',
+  );
+  @override
+  late final GeneratedColumn<int> bitDepth = GeneratedColumn<int>(
+    'bitDepth',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _formatMeta = const VerificationMeta('format');
+  @override
+  late final GeneratedColumn<String> format = GeneratedColumn<String>(
+    'format',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _codecMeta = const VerificationMeta('codec');
+  @override
+  late final GeneratedColumn<String> codec = GeneratedColumn<String>(
+    'codec',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _lastSeenRootScanSessionIdMeta =
       const VerificationMeta('lastSeenRootScanSessionId');
   @override
@@ -308,6 +370,12 @@ class $SongsTable extends Songs with TableInfo<$SongsTable, Song> {
     genres,
     isAppModified,
     hasArtwork,
+    bitrate,
+    sampleRate,
+    channels,
+    bitDepth,
+    format,
+    codec,
     lastSeenRootScanSessionId,
   ];
   @override
@@ -504,6 +572,42 @@ class $SongsTable extends Songs with TableInfo<$SongsTable, Song> {
         hasArtwork.isAcceptableOrUnknown(data['hasArtwork']!, _hasArtworkMeta),
       );
     }
+    if (data.containsKey('bitrate')) {
+      context.handle(
+        _bitrateMeta,
+        bitrate.isAcceptableOrUnknown(data['bitrate']!, _bitrateMeta),
+      );
+    }
+    if (data.containsKey('sampleRate')) {
+      context.handle(
+        _sampleRateMeta,
+        sampleRate.isAcceptableOrUnknown(data['sampleRate']!, _sampleRateMeta),
+      );
+    }
+    if (data.containsKey('channels')) {
+      context.handle(
+        _channelsMeta,
+        channels.isAcceptableOrUnknown(data['channels']!, _channelsMeta),
+      );
+    }
+    if (data.containsKey('bitDepth')) {
+      context.handle(
+        _bitDepthMeta,
+        bitDepth.isAcceptableOrUnknown(data['bitDepth']!, _bitDepthMeta),
+      );
+    }
+    if (data.containsKey('format')) {
+      context.handle(
+        _formatMeta,
+        format.isAcceptableOrUnknown(data['format']!, _formatMeta),
+      );
+    }
+    if (data.containsKey('codec')) {
+      context.handle(
+        _codecMeta,
+        codec.isAcceptableOrUnknown(data['codec']!, _codecMeta),
+      );
+    }
     if (data.containsKey('lastSeenRootScanSessionId')) {
       context.handle(
         _lastSeenRootScanSessionIdMeta,
@@ -618,6 +722,30 @@ class $SongsTable extends Songs with TableInfo<$SongsTable, Song> {
         DriftSqlType.bool,
         data['${effectivePrefix}hasArtwork'],
       ),
+      bitrate: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}bitrate'],
+      ),
+      sampleRate: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sampleRate'],
+      ),
+      channels: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}channels'],
+      ),
+      bitDepth: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}bitDepth'],
+      ),
+      format: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}format'],
+      ),
+      codec: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}codec'],
+      ),
       lastSeenRootScanSessionId: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}lastSeenRootScanSessionId'],
@@ -656,6 +784,12 @@ class Song extends DataClass implements Insertable<Song> {
   final String? genres;
   final bool isAppModified;
   final bool? hasArtwork;
+  final int? bitrate;
+  final int? sampleRate;
+  final int? channels;
+  final int? bitDepth;
+  final String? format;
+  final String? codec;
   final int? lastSeenRootScanSessionId;
   const Song({
     required this.id,
@@ -682,6 +816,12 @@ class Song extends DataClass implements Insertable<Song> {
     this.genres,
     required this.isAppModified,
     this.hasArtwork,
+    this.bitrate,
+    this.sampleRate,
+    this.channels,
+    this.bitDepth,
+    this.format,
+    this.codec,
     this.lastSeenRootScanSessionId,
   });
   @override
@@ -752,6 +892,24 @@ class Song extends DataClass implements Insertable<Song> {
     map['isAppModified'] = Variable<bool>(isAppModified);
     if (!nullToAbsent || hasArtwork != null) {
       map['hasArtwork'] = Variable<bool>(hasArtwork);
+    }
+    if (!nullToAbsent || bitrate != null) {
+      map['bitrate'] = Variable<int>(bitrate);
+    }
+    if (!nullToAbsent || sampleRate != null) {
+      map['sampleRate'] = Variable<int>(sampleRate);
+    }
+    if (!nullToAbsent || channels != null) {
+      map['channels'] = Variable<int>(channels);
+    }
+    if (!nullToAbsent || bitDepth != null) {
+      map['bitDepth'] = Variable<int>(bitDepth);
+    }
+    if (!nullToAbsent || format != null) {
+      map['format'] = Variable<String>(format);
+    }
+    if (!nullToAbsent || codec != null) {
+      map['codec'] = Variable<String>(codec);
     }
     if (!nullToAbsent || lastSeenRootScanSessionId != null) {
       map['lastSeenRootScanSessionId'] = Variable<int>(
@@ -829,6 +987,24 @@ class Song extends DataClass implements Insertable<Song> {
       hasArtwork: hasArtwork == null && nullToAbsent
           ? const Value.absent()
           : Value(hasArtwork),
+      bitrate: bitrate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(bitrate),
+      sampleRate: sampleRate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sampleRate),
+      channels: channels == null && nullToAbsent
+          ? const Value.absent()
+          : Value(channels),
+      bitDepth: bitDepth == null && nullToAbsent
+          ? const Value.absent()
+          : Value(bitDepth),
+      format: format == null && nullToAbsent
+          ? const Value.absent()
+          : Value(format),
+      codec: codec == null && nullToAbsent
+          ? const Value.absent()
+          : Value(codec),
       lastSeenRootScanSessionId:
           lastSeenRootScanSessionId == null && nullToAbsent
           ? const Value.absent()
@@ -868,6 +1044,12 @@ class Song extends DataClass implements Insertable<Song> {
       genres: serializer.fromJson<String?>(json['genres']),
       isAppModified: serializer.fromJson<bool>(json['isAppModified']),
       hasArtwork: serializer.fromJson<bool?>(json['hasArtwork']),
+      bitrate: serializer.fromJson<int?>(json['bitrate']),
+      sampleRate: serializer.fromJson<int?>(json['sampleRate']),
+      channels: serializer.fromJson<int?>(json['channels']),
+      bitDepth: serializer.fromJson<int?>(json['bitDepth']),
+      format: serializer.fromJson<String?>(json['format']),
+      codec: serializer.fromJson<String?>(json['codec']),
       lastSeenRootScanSessionId: serializer.fromJson<int?>(
         json['lastSeenRootScanSessionId'],
       ),
@@ -901,6 +1083,12 @@ class Song extends DataClass implements Insertable<Song> {
       'genres': serializer.toJson<String?>(genres),
       'isAppModified': serializer.toJson<bool>(isAppModified),
       'hasArtwork': serializer.toJson<bool?>(hasArtwork),
+      'bitrate': serializer.toJson<int?>(bitrate),
+      'sampleRate': serializer.toJson<int?>(sampleRate),
+      'channels': serializer.toJson<int?>(channels),
+      'bitDepth': serializer.toJson<int?>(bitDepth),
+      'format': serializer.toJson<String?>(format),
+      'codec': serializer.toJson<String?>(codec),
       'lastSeenRootScanSessionId': serializer.toJson<int?>(
         lastSeenRootScanSessionId,
       ),
@@ -932,6 +1120,12 @@ class Song extends DataClass implements Insertable<Song> {
     Value<String?> genres = const Value.absent(),
     bool? isAppModified,
     Value<bool?> hasArtwork = const Value.absent(),
+    Value<int?> bitrate = const Value.absent(),
+    Value<int?> sampleRate = const Value.absent(),
+    Value<int?> channels = const Value.absent(),
+    Value<int?> bitDepth = const Value.absent(),
+    Value<String?> format = const Value.absent(),
+    Value<String?> codec = const Value.absent(),
     Value<int?> lastSeenRootScanSessionId = const Value.absent(),
   }) => Song(
     id: id ?? this.id,
@@ -970,6 +1164,12 @@ class Song extends DataClass implements Insertable<Song> {
     genres: genres.present ? genres.value : this.genres,
     isAppModified: isAppModified ?? this.isAppModified,
     hasArtwork: hasArtwork.present ? hasArtwork.value : this.hasArtwork,
+    bitrate: bitrate.present ? bitrate.value : this.bitrate,
+    sampleRate: sampleRate.present ? sampleRate.value : this.sampleRate,
+    channels: channels.present ? channels.value : this.channels,
+    bitDepth: bitDepth.present ? bitDepth.value : this.bitDepth,
+    format: format.present ? format.value : this.format,
+    codec: codec.present ? codec.value : this.codec,
     lastSeenRootScanSessionId: lastSeenRootScanSessionId.present
         ? lastSeenRootScanSessionId.value
         : this.lastSeenRootScanSessionId,
@@ -1028,6 +1228,14 @@ class Song extends DataClass implements Insertable<Song> {
       hasArtwork: data.hasArtwork.present
           ? data.hasArtwork.value
           : this.hasArtwork,
+      bitrate: data.bitrate.present ? data.bitrate.value : this.bitrate,
+      sampleRate: data.sampleRate.present
+          ? data.sampleRate.value
+          : this.sampleRate,
+      channels: data.channels.present ? data.channels.value : this.channels,
+      bitDepth: data.bitDepth.present ? data.bitDepth.value : this.bitDepth,
+      format: data.format.present ? data.format.value : this.format,
+      codec: data.codec.present ? data.codec.value : this.codec,
       lastSeenRootScanSessionId: data.lastSeenRootScanSessionId.present
           ? data.lastSeenRootScanSessionId.value
           : this.lastSeenRootScanSessionId,
@@ -1061,6 +1269,12 @@ class Song extends DataClass implements Insertable<Song> {
           ..write('genres: $genres, ')
           ..write('isAppModified: $isAppModified, ')
           ..write('hasArtwork: $hasArtwork, ')
+          ..write('bitrate: $bitrate, ')
+          ..write('sampleRate: $sampleRate, ')
+          ..write('channels: $channels, ')
+          ..write('bitDepth: $bitDepth, ')
+          ..write('format: $format, ')
+          ..write('codec: $codec, ')
           ..write('lastSeenRootScanSessionId: $lastSeenRootScanSessionId')
           ..write(')'))
         .toString();
@@ -1092,6 +1306,12 @@ class Song extends DataClass implements Insertable<Song> {
     genres,
     isAppModified,
     hasArtwork,
+    bitrate,
+    sampleRate,
+    channels,
+    bitDepth,
+    format,
+    codec,
     lastSeenRootScanSessionId,
   ]);
   @override
@@ -1125,6 +1345,12 @@ class Song extends DataClass implements Insertable<Song> {
           other.genres == this.genres &&
           other.isAppModified == this.isAppModified &&
           other.hasArtwork == this.hasArtwork &&
+          other.bitrate == this.bitrate &&
+          other.sampleRate == this.sampleRate &&
+          other.channels == this.channels &&
+          other.bitDepth == this.bitDepth &&
+          other.format == this.format &&
+          other.codec == this.codec &&
           other.lastSeenRootScanSessionId == this.lastSeenRootScanSessionId);
 }
 
@@ -1153,6 +1379,12 @@ class SongsCompanion extends UpdateCompanion<Song> {
   final Value<String?> genres;
   final Value<bool> isAppModified;
   final Value<bool?> hasArtwork;
+  final Value<int?> bitrate;
+  final Value<int?> sampleRate;
+  final Value<int?> channels;
+  final Value<int?> bitDepth;
+  final Value<String?> format;
+  final Value<String?> codec;
   final Value<int?> lastSeenRootScanSessionId;
   const SongsCompanion({
     this.id = const Value.absent(),
@@ -1179,6 +1411,12 @@ class SongsCompanion extends UpdateCompanion<Song> {
     this.genres = const Value.absent(),
     this.isAppModified = const Value.absent(),
     this.hasArtwork = const Value.absent(),
+    this.bitrate = const Value.absent(),
+    this.sampleRate = const Value.absent(),
+    this.channels = const Value.absent(),
+    this.bitDepth = const Value.absent(),
+    this.format = const Value.absent(),
+    this.codec = const Value.absent(),
     this.lastSeenRootScanSessionId = const Value.absent(),
   });
   SongsCompanion.insert({
@@ -1206,6 +1444,12 @@ class SongsCompanion extends UpdateCompanion<Song> {
     this.genres = const Value.absent(),
     this.isAppModified = const Value.absent(),
     this.hasArtwork = const Value.absent(),
+    this.bitrate = const Value.absent(),
+    this.sampleRate = const Value.absent(),
+    this.channels = const Value.absent(),
+    this.bitDepth = const Value.absent(),
+    this.format = const Value.absent(),
+    this.codec = const Value.absent(),
     this.lastSeenRootScanSessionId = const Value.absent(),
   }) : path = Value(path);
   static Insertable<Song> custom({
@@ -1233,6 +1477,12 @@ class SongsCompanion extends UpdateCompanion<Song> {
     Expression<String>? genres,
     Expression<bool>? isAppModified,
     Expression<bool>? hasArtwork,
+    Expression<int>? bitrate,
+    Expression<int>? sampleRate,
+    Expression<int>? channels,
+    Expression<int>? bitDepth,
+    Expression<String>? format,
+    Expression<String>? codec,
     Expression<int>? lastSeenRootScanSessionId,
   }) {
     return RawValuesInsertable({
@@ -1261,6 +1511,12 @@ class SongsCompanion extends UpdateCompanion<Song> {
       if (genres != null) 'genres': genres,
       if (isAppModified != null) 'isAppModified': isAppModified,
       if (hasArtwork != null) 'hasArtwork': hasArtwork,
+      if (bitrate != null) 'bitrate': bitrate,
+      if (sampleRate != null) 'sampleRate': sampleRate,
+      if (channels != null) 'channels': channels,
+      if (bitDepth != null) 'bitDepth': bitDepth,
+      if (format != null) 'format': format,
+      if (codec != null) 'codec': codec,
       if (lastSeenRootScanSessionId != null)
         'lastSeenRootScanSessionId': lastSeenRootScanSessionId,
     });
@@ -1291,6 +1547,12 @@ class SongsCompanion extends UpdateCompanion<Song> {
     Value<String?>? genres,
     Value<bool>? isAppModified,
     Value<bool?>? hasArtwork,
+    Value<int?>? bitrate,
+    Value<int?>? sampleRate,
+    Value<int?>? channels,
+    Value<int?>? bitDepth,
+    Value<String?>? format,
+    Value<String?>? codec,
     Value<int?>? lastSeenRootScanSessionId,
   }) {
     return SongsCompanion(
@@ -1318,6 +1580,12 @@ class SongsCompanion extends UpdateCompanion<Song> {
       genres: genres ?? this.genres,
       isAppModified: isAppModified ?? this.isAppModified,
       hasArtwork: hasArtwork ?? this.hasArtwork,
+      bitrate: bitrate ?? this.bitrate,
+      sampleRate: sampleRate ?? this.sampleRate,
+      channels: channels ?? this.channels,
+      bitDepth: bitDepth ?? this.bitDepth,
+      format: format ?? this.format,
+      codec: codec ?? this.codec,
       lastSeenRootScanSessionId:
           lastSeenRootScanSessionId ?? this.lastSeenRootScanSessionId,
     );
@@ -1398,6 +1666,24 @@ class SongsCompanion extends UpdateCompanion<Song> {
     if (hasArtwork.present) {
       map['hasArtwork'] = Variable<bool>(hasArtwork.value);
     }
+    if (bitrate.present) {
+      map['bitrate'] = Variable<int>(bitrate.value);
+    }
+    if (sampleRate.present) {
+      map['sampleRate'] = Variable<int>(sampleRate.value);
+    }
+    if (channels.present) {
+      map['channels'] = Variable<int>(channels.value);
+    }
+    if (bitDepth.present) {
+      map['bitDepth'] = Variable<int>(bitDepth.value);
+    }
+    if (format.present) {
+      map['format'] = Variable<String>(format.value);
+    }
+    if (codec.present) {
+      map['codec'] = Variable<String>(codec.value);
+    }
     if (lastSeenRootScanSessionId.present) {
       map['lastSeenRootScanSessionId'] = Variable<int>(
         lastSeenRootScanSessionId.value,
@@ -1433,6 +1719,12 @@ class SongsCompanion extends UpdateCompanion<Song> {
           ..write('genres: $genres, ')
           ..write('isAppModified: $isAppModified, ')
           ..write('hasArtwork: $hasArtwork, ')
+          ..write('bitrate: $bitrate, ')
+          ..write('sampleRate: $sampleRate, ')
+          ..write('channels: $channels, ')
+          ..write('bitDepth: $bitDepth, ')
+          ..write('format: $format, ')
+          ..write('codec: $codec, ')
           ..write('lastSeenRootScanSessionId: $lastSeenRootScanSessionId')
           ..write(')'))
         .toString();
@@ -7993,6 +8285,12 @@ typedef $$SongsTableCreateCompanionBuilder =
       Value<String?> genres,
       Value<bool> isAppModified,
       Value<bool?> hasArtwork,
+      Value<int?> bitrate,
+      Value<int?> sampleRate,
+      Value<int?> channels,
+      Value<int?> bitDepth,
+      Value<String?> format,
+      Value<String?> codec,
       Value<int?> lastSeenRootScanSessionId,
     });
 typedef $$SongsTableUpdateCompanionBuilder =
@@ -8021,6 +8319,12 @@ typedef $$SongsTableUpdateCompanionBuilder =
       Value<String?> genres,
       Value<bool> isAppModified,
       Value<bool?> hasArtwork,
+      Value<int?> bitrate,
+      Value<int?> sampleRate,
+      Value<int?> channels,
+      Value<int?> bitDepth,
+      Value<String?> format,
+      Value<String?> codec,
       Value<int?> lastSeenRootScanSessionId,
     });
 
@@ -8150,6 +8454,36 @@ class $$SongsTableFilterComposer
 
   ColumnFilters<bool> get hasArtwork => $composableBuilder(
     column: $table.hasArtwork,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get bitrate => $composableBuilder(
+    column: $table.bitrate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sampleRate => $composableBuilder(
+    column: $table.sampleRate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get channels => $composableBuilder(
+    column: $table.channels,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get bitDepth => $composableBuilder(
+    column: $table.bitDepth,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get format => $composableBuilder(
+    column: $table.format,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get codec => $composableBuilder(
+    column: $table.codec,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -8288,6 +8622,36 @@ class $$SongsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get bitrate => $composableBuilder(
+    column: $table.bitrate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sampleRate => $composableBuilder(
+    column: $table.sampleRate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get channels => $composableBuilder(
+    column: $table.channels,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get bitDepth => $composableBuilder(
+    column: $table.bitDepth,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get format => $composableBuilder(
+    column: $table.format,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get codec => $composableBuilder(
+    column: $table.codec,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get lastSeenRootScanSessionId => $composableBuilder(
     column: $table.lastSeenRootScanSessionId,
     builder: (column) => ColumnOrderings(column),
@@ -8403,6 +8767,26 @@ class $$SongsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<int> get bitrate =>
+      $composableBuilder(column: $table.bitrate, builder: (column) => column);
+
+  GeneratedColumn<int> get sampleRate => $composableBuilder(
+    column: $table.sampleRate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get channels =>
+      $composableBuilder(column: $table.channels, builder: (column) => column);
+
+  GeneratedColumn<int> get bitDepth =>
+      $composableBuilder(column: $table.bitDepth, builder: (column) => column);
+
+  GeneratedColumn<String> get format =>
+      $composableBuilder(column: $table.format, builder: (column) => column);
+
+  GeneratedColumn<String> get codec =>
+      $composableBuilder(column: $table.codec, builder: (column) => column);
+
   GeneratedColumn<int> get lastSeenRootScanSessionId => $composableBuilder(
     column: $table.lastSeenRootScanSessionId,
     builder: (column) => column,
@@ -8461,6 +8845,12 @@ class $$SongsTableTableManager
                 Value<String?> genres = const Value.absent(),
                 Value<bool> isAppModified = const Value.absent(),
                 Value<bool?> hasArtwork = const Value.absent(),
+                Value<int?> bitrate = const Value.absent(),
+                Value<int?> sampleRate = const Value.absent(),
+                Value<int?> channels = const Value.absent(),
+                Value<int?> bitDepth = const Value.absent(),
+                Value<String?> format = const Value.absent(),
+                Value<String?> codec = const Value.absent(),
                 Value<int?> lastSeenRootScanSessionId = const Value.absent(),
               }) => SongsCompanion(
                 id: id,
@@ -8487,6 +8877,12 @@ class $$SongsTableTableManager
                 genres: genres,
                 isAppModified: isAppModified,
                 hasArtwork: hasArtwork,
+                bitrate: bitrate,
+                sampleRate: sampleRate,
+                channels: channels,
+                bitDepth: bitDepth,
+                format: format,
+                codec: codec,
                 lastSeenRootScanSessionId: lastSeenRootScanSessionId,
               ),
           createCompanionCallback:
@@ -8515,6 +8911,12 @@ class $$SongsTableTableManager
                 Value<String?> genres = const Value.absent(),
                 Value<bool> isAppModified = const Value.absent(),
                 Value<bool?> hasArtwork = const Value.absent(),
+                Value<int?> bitrate = const Value.absent(),
+                Value<int?> sampleRate = const Value.absent(),
+                Value<int?> channels = const Value.absent(),
+                Value<int?> bitDepth = const Value.absent(),
+                Value<String?> format = const Value.absent(),
+                Value<String?> codec = const Value.absent(),
                 Value<int?> lastSeenRootScanSessionId = const Value.absent(),
               }) => SongsCompanion.insert(
                 id: id,
@@ -8541,6 +8943,12 @@ class $$SongsTableTableManager
                 genres: genres,
                 isAppModified: isAppModified,
                 hasArtwork: hasArtwork,
+                bitrate: bitrate,
+                sampleRate: sampleRate,
+                channels: channels,
+                bitDepth: bitDepth,
+                format: format,
+                codec: codec,
                 lastSeenRootScanSessionId: lastSeenRootScanSessionId,
               ),
           withReferenceMapper: (p0) => p0
