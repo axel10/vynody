@@ -470,6 +470,9 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
     final isDark = theme.brightness == Brightness.dark;
     final bool isDesktop =
         Platform.isWindows || Platform.isLinux || Platform.isMacOS;
+    final double safeTopPadding =
+        isDesktop ? 32.0 : MediaQuery.of(context).padding.top;
+    final double topPadding = safeTopPadding + kToolbarHeight;
 
     final String title = switch (subIndex) {
       0 => l10n.playlist,
@@ -482,62 +485,73 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
     };
 
     final Widget child = switch (subIndex) {
-      0 => const PlaylistTab(),
-      1 => const RecentlyPlayedTab(),
-      2 => const MostPlayedTab(),
-      3 => const RecentlyAddedTab(),
+      0 => PlaylistTab(contentTopPadding: topPadding),
+      1 => RecentlyPlayedTab(contentTopPadding: topPadding),
+      2 => MostPlayedTab(contentTopPadding: topPadding),
+      3 => RecentlyAddedTab(contentTopPadding: topPadding),
       4 => AlbumsTab(
           initial3DView: widget.initialAlbums3DView,
           initial3DIndex: widget.initialAlbums3DIndex,
+          contentTopPadding: topPadding,
         ),
-      5 => const ArtistsTab(),
+      5 => ArtistsTab(contentTopPadding: topPadding),
       _ => const SizedBox.shrink(),
     };
 
     return Scaffold(
       key: ValueKey('portrait_subpage_$subIndex'),
-      appBar: PreferredSize(
-        preferredSize: Size.fromHeight(
-          kToolbarHeight + (isDesktop ? 32.0 : 0.0),
-        ),
-        child: Container(
-          padding: EdgeInsets.only(top: isDesktop ? 32.0 : 0.0),
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surface.withValues(
-              alpha: isDark ? 0.75 : 0.85,
-            ),
-            border: Border(
-              bottom: BorderSide(
-                color: theme.dividerColor.withValues(alpha: 0.1),
-                width: 0.8,
-              ),
-            ),
-          ),
-          child: ClipRect(
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-              child: AppBar(
-                leading: IconButton(
-                  icon: const Icon(
-                    Icons.arrow_back_ios_new_rounded,
-                    size: 20,
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          child,
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: topPadding,
+            child: ClipRect(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                child: Container(
+                  padding: EdgeInsets.only(top: safeTopPadding),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surface.withValues(
+                      alpha: isDark ? 0.70 : 0.82,
+                    ),
+                    border: Border(
+                      bottom: BorderSide(
+                        color: theme.dividerColor.withValues(alpha: 0.12),
+                        width: 0.8,
+                      ),
+                    ),
                   ),
-                  tooltip: l10n.goBack,
-                  onPressed: _closeSubPage,
+                  child: AppBar(
+                    primary: false,
+                    forceMaterialTransparency: true,
+                    scrolledUnderElevation: 0,
+                    surfaceTintColor: Colors.transparent,
+                    leading: IconButton(
+                      icon: const Icon(
+                        Icons.arrow_back_ios_new_rounded,
+                        size: 20,
+                      ),
+                      tooltip: l10n.goBack,
+                      onPressed: _closeSubPage,
+                    ),
+                    title: Text(
+                      title,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    centerTitle: true,
+                    elevation: 0,
+                    backgroundColor: Colors.transparent,
+                  ),
                 ),
-                title: Text(
-                  title,
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
-                centerTitle: true,
-                elevation: 0,
-                backgroundColor: Colors.transparent,
               ),
             ),
           ),
-        ),
+        ],
       ),
-      body: child,
     );
   }
 }
