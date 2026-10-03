@@ -96,7 +96,7 @@ final class LyricsAiTranslationProgressSnapshot {
 final class LyricsAiTranslationStreamProcessor {
   LyricsAiTranslationStreamProcessor({
     required LyricsAiTranslationPreparation preparation,
-    this.emitPartialLineForStreaming = true,
+    this.emitPartialLineForStreaming = false,
   }) : _preparation = preparation;
 
   final LyricsAiTranslationPreparation _preparation;

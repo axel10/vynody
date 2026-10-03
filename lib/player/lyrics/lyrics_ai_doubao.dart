@@ -378,6 +378,7 @@ class LyricsAiDoubaoClient {
     required String lyrics,
     required String modelId,
     String targetLanguageCode = 'zh',
+    void Function(String stage)? onStageChanged,
     void Function(List<String> translatedLines, String translatedText)?
     onProgress,
     CancelToken? cancelToken,
@@ -425,6 +426,7 @@ class LyricsAiDoubaoClient {
         model: modelId,
         data: requestData,
       );
+      onStageChanged?.call('requesting');
       final response = await _client.post(
         'https://ark.cn-beijing.volces.com/api/v3/responses',
         data: requestData,
@@ -443,6 +445,7 @@ class LyricsAiDoubaoClient {
       if (body == null || body.stream == null) {
         return _l10n().doubaoEmptyStreamingResponse;
       }
+      onStageChanged?.call('generating');
 
       final textStream = body.stream.cast<List<int>>().transform(utf8.decoder);
       await for (final line in textStream.transform(const LineSplitter())) {
@@ -466,6 +469,11 @@ class LyricsAiDoubaoClient {
         if (onProgress != null && snapshot != null) {
           onProgress(snapshot.visibleLines, snapshot.visibleText);
         }
+      }
+
+      final finalSnapshot = processor.buildProgressSnapshot(force: true);
+      if (onProgress != null && finalSnapshot != null) {
+        onProgress(finalSnapshot.visibleLines, finalSnapshot.visibleText);
       }
 
       if (!processor.hasReceivedAnyChunk ||

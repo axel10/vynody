@@ -1229,6 +1229,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     required List<LyricLine> displayLines,
     required List<double> itemCenters,
     bool isGenerating = false,
+    bool isTranslating = false,
   }) {
     if (layoutRevision == _lastLayoutRevision) {
       return;
@@ -1237,7 +1238,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     _lastLayoutRevision = layoutRevision;
     if (!hasTimedLyrics) return;
 
-    if (isGenerating) {
+    if (isGenerating || isTranslating) {
       _scheduleScrollIfNeeded(
         force: false,
         animate: true,
@@ -1740,6 +1741,11 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
             _oldItemCenters!.isNotEmpty &&
             itemCenters.isNotEmpty) {
           final currentOffset = _scrollController.offset;
+          final double topPadding = PlaybackPageUiTuning.appleLyricsTopPadding(
+            calculatedFontScale,
+            isSmallWin: isSmallWin,
+          );
+          final viewportTopInColumn = math.max(0.0, currentOffset - topPadding);
           final int k;
           if (_isFocusMode &&
               activeIndex >= 0 &&
@@ -1747,7 +1753,17 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
               activeIndex < _oldItemCenters!.length) {
             k = activeIndex;
           } else {
-            k = _findClosestLineIndex(currentOffset, _oldItemCenters!);
+            int candidate = 0;
+            for (int i = 0;
+                i < _oldItemCenters!.length && i < _oldLineHeights!.length;
+                i++) {
+              final bottom = _oldItemCenters![i] + _oldLineHeights![i] / 2;
+              if (bottom > viewportTopInColumn) {
+                candidate = i;
+                break;
+              }
+            }
+            k = candidate;
           }
           if (k >= 0 &&
               k < _oldItemCenters!.length &&
@@ -1803,6 +1819,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
               displayLines: displayLines,
               itemCenters: itemCenters,
               isGenerating: isGenerating,
+              isTranslating: isTranslating,
             );
           } else {
             final bool transitionEnded =

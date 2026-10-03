@@ -11,6 +11,8 @@ import 'package:vynody/utils/language_code_utils.dart';
 import 'package:vynody/player/lyrics/lyrics_cache_models.dart';
 import 'package:vynody/player/lyrics/lyrics_controller_context.dart';
 import 'package:vynody/player/lyrics/lyrics_controller_utils.dart';
+import 'package:vynody/player/lyrics/lyrics_generation_display_state.dart';
+import 'package:vynody/player/lyrics/lyrics_generation_phase.dart';
 import 'package:vynody/player/settings/settings_service.dart';
 
 class _LyricsTranslationRequest {
@@ -125,6 +127,11 @@ class LyricsTranslationCoordinator {
       if (_context.lyricsAiCancelToken == cancelToken) {
         _context.lyricsAiCancelToken = null;
       }
+      if (_context.lyricsGenerationDisplayState.songPath == song.path) {
+        _context.updateLyricsGenerationDisplayState(
+          const LyricsGenerationDisplayState(),
+        );
+      }
       _context.updateSongTaskState(
         song.path,
         (current) => current.copyWith(
@@ -196,18 +203,62 @@ class LyricsTranslationCoordinator {
       ),
     );
 
-    try {
-      List<String> latestTranslatedLines = const [];
-      String latestTranslatedText = '';
+    final initialModelLabel =
+        _context.lyricsAiService.currentTranslationModelLabel;
+    _context.updateLyricsGenerationDisplayState(
+      LyricsGenerationDisplayState(
+        songPath: request.songPath,
+        statusLabel: _l10n().translatingLyrics,
+        modelLabel: initialModelLabel,
+        phase: LyricsGenerationPhase.requesting,
+        progress: 0.0,
+      ),
+    );
 
+    List<String> latestTranslatedLines = const [];
+    String latestTranslatedText = '';
+
+    try {
       final errorMessage = await _context.lyricsAiService.translateLyricsStream(
         lyrics: request.sourceLyrics,
         targetLanguageCode: request.languageCode,
         onModelLabelChanged: _updateTranslationModelLabel,
+        onStageChanged: (stage) {
+          final current = _context.lyricsGenerationDisplayState;
+          final phase = switch (stage) {
+            'requesting' => LyricsGenerationPhase.requesting,
+            'generating' => LyricsGenerationPhase.generating,
+            _ => current.phase,
+          };
+          _context.updateLyricsGenerationDisplayState(
+            current.copyWith(
+              songPath: request.songPath,
+              phase: phase,
+            ),
+          );
+        },
         cancelToken: cancelToken,
         onProgress: (translatedLines, translatedText) {
+          final current = _context.lyricsGenerationDisplayState;
+          if (current.phase != LyricsGenerationPhase.generating) {
+            _context.updateLyricsGenerationDisplayState(
+              current.copyWith(
+                songPath: request.songPath,
+                phase: LyricsGenerationPhase.generating,
+              ),
+            );
+          }
           latestTranslatedLines = translatedLines;
           latestTranslatedText = translatedText;
+          _syncTranslatedLyricsToSong(
+            request.songPath,
+            request.lyricsId,
+            request.languageCode,
+            translatedLines,
+            translatedText,
+            cacheKey: request.cacheKey,
+            bumpLayoutRevision: false,
+          );
         },
       );
       if (errorMessage == null) {
@@ -234,6 +285,7 @@ class LyricsTranslationCoordinator {
             latestTranslatedLines,
             latestTranslatedText,
             cacheKey: request.cacheKey,
+            bumpLayoutRevision: false,
           );
 
           _context.translatedLyricsKeys.add(request.translationKey);
@@ -246,11 +298,36 @@ class LyricsTranslationCoordinator {
         return null;
       }
 
+      if (latestTranslatedLines.any((line) => line.trim().isNotEmpty) ||
+          latestTranslatedText.trim().isNotEmpty) {
+        try {
+          await _saveTranslatedLyricsToDatabase(
+            songPath: request.songPath,
+            cacheKey: request.cacheKey,
+            languageCode: request.languageCode,
+          );
+        } catch (dbError) {
+          debugPrint('[LyricsController] Failed to save partial translation on error: $dbError');
+        }
+      }
+
       if (cancelToken.isCancelled || errorMessage == 'cancelled') {
         return null;
       }
       return errorMessage;
     } catch (e) {
+      if (latestTranslatedLines.any((line) => line.trim().isNotEmpty) ||
+          latestTranslatedText.trim().isNotEmpty) {
+        try {
+          await _saveTranslatedLyricsToDatabase(
+            songPath: request.songPath,
+            cacheKey: request.cacheKey,
+            languageCode: request.languageCode,
+          );
+        } catch (dbError) {
+          debugPrint('[LyricsController] Failed to save partial translation on error: $dbError');
+        }
+      }
       if (cancelToken.isCancelled || (e is DioException && CancelToken.isCancel(e))) {
         debugPrint('[LyricsController] lyrics translation cancelled by user.');
         return null;
@@ -266,6 +343,11 @@ class LyricsTranslationCoordinator {
           translationStatus: '',
         ),
       );
+      if (_context.lyricsGenerationDisplayState.songPath == request.songPath) {
+        _context.updateLyricsGenerationDisplayState(
+          const LyricsGenerationDisplayState(),
+        );
+      }
     }
   }
 

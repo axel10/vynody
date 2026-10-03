@@ -149,6 +149,13 @@ class LyricsAiService {
     return _modelLabel(effectiveModel);
   }
 
+  String get currentTranslationModelLabel {
+    final effectiveModel = _translationPrimaryModel.modelId.trim().isNotEmpty
+        ? _translationPrimaryModel
+        : _generationPrimaryModel;
+    return _modelLabel(effectiveModel);
+  }
+
   String get currentGenerationProviderTag =>
       _config.activeGenerationProviderTag;
 
@@ -219,6 +226,7 @@ class LyricsAiService {
     void Function(List<String> translatedLines, String translatedText)?
     onProgress,
     void Function(String? modelLabel)? onModelLabelChanged,
+    void Function(String stage)? onStageChanged,
     String? modelId,
     CancelToken? cancelToken,
   }) async {
@@ -266,6 +274,7 @@ class LyricsAiService {
         continue;
       }
       onModelLabelChanged?.call(_modelLabel(candidate));
+      onStageChanged?.call('requesting');
       final error = await switch (candidate.provider) {
         LyricsAiProvider.googleAiStudio => _translateWithGoogleAiStudio(
           apiKey: apiKey,
@@ -274,6 +283,7 @@ class LyricsAiService {
           sourceLines: sourceLines,
           blankLineIndexes: blankLineIndexes,
           targetLineCount: targetLineCount,
+          onStageChanged: onStageChanged,
           onProgress: onProgress,
           cancelToken: cancelToken,
         ),
@@ -284,6 +294,7 @@ class LyricsAiService {
           sourceLines: sourceLines,
           blankLineIndexes: blankLineIndexes,
           targetLineCount: targetLineCount,
+          onStageChanged: onStageChanged,
           onProgress: onProgress,
           cancelToken: cancelToken,
         ),
@@ -292,6 +303,7 @@ class LyricsAiService {
           lyrics: lyrics,
           modelId: candidate.modelId,
           targetLanguageCode: targetLanguageCode,
+          onStageChanged: onStageChanged,
           onProgress: onProgress,
           cancelToken: cancelToken,
         ),
@@ -302,6 +314,7 @@ class LyricsAiService {
           sourceLines: sourceLines,
           blankLineIndexes: blankLineIndexes,
           targetLineCount: targetLineCount,
+          onStageChanged: onStageChanged,
           onProgress: onProgress,
           cancelToken: cancelToken,
         ),
@@ -312,6 +325,7 @@ class LyricsAiService {
           sourceLines: sourceLines,
           blankLineIndexes: blankLineIndexes,
           targetLineCount: targetLineCount,
+          onStageChanged: onStageChanged,
           onProgress: onProgress,
           cancelToken: cancelToken,
         ),
@@ -863,6 +877,7 @@ class LyricsAiService {
     required List<String> sourceLines,
     required List<int> blankLineIndexes,
     required int targetLineCount,
+    void Function(String stage)? onStageChanged,
     void Function(List<String> translatedLines, String translatedText)?
     onProgress,
     CancelToken? cancelToken,
@@ -902,6 +917,7 @@ class LyricsAiService {
         model: modelId,
         data: requestData,
       );
+      onStageChanged?.call('requesting');
       final response = await _client.post(
         url,
         data: requestData,
@@ -917,6 +933,7 @@ class LyricsAiService {
       if (body == null || body.stream == null) {
         return _l10n().geminiEmptyStreamingResponse;
       }
+      onStageChanged?.call('generating');
 
       Timer? printTimer;
 
@@ -1006,6 +1023,7 @@ class LyricsAiService {
     required List<String> sourceLines,
     required List<int> blankLineIndexes,
     required int targetLineCount,
+    void Function(String stage)? onStageChanged,
     void Function(List<String> translatedLines, String translatedText)?
     onProgress,
     CancelToken? cancelToken,
@@ -1036,6 +1054,7 @@ class LyricsAiService {
         model: modelId,
         data: requestData,
       );
+      onStageChanged?.call('requesting');
       final response = await _client.post(
         'https://openrouter.ai/api/v1/chat/completions',
         data: requestData,
@@ -1053,6 +1072,7 @@ class LyricsAiService {
       if (body == null || body.stream == null) {
         return _l10n().openRouterEmptyStreamingResponse;
       }
+      onStageChanged?.call('generating');
 
       final textStream = body.stream.cast<List<int>>().transform(utf8.decoder);
       await for (final line in textStream.transform(const LineSplitter())) {
@@ -1082,6 +1102,10 @@ class LyricsAiService {
         if (onProgress != null && snapshot != null) {
           onProgress(snapshot.visibleLines, snapshot.visibleText);
         }
+      }
+      final finalSnapshot = processor.buildProgressSnapshot(force: true);
+      if (onProgress != null && finalSnapshot != null) {
+        onProgress(finalSnapshot.visibleLines, finalSnapshot.visibleText);
       }
       if (!processor.hasReceivedAnyChunk ||
           processor.finalVisibleText.trim().isEmpty) {
@@ -1131,6 +1155,7 @@ class LyricsAiService {
     required List<String> sourceLines,
     required List<int> blankLineIndexes,
     required int targetLineCount,
+    void Function(String stage)? onStageChanged,
     void Function(List<String> translatedLines, String translatedText)?
     onProgress,
     CancelToken? cancelToken,
@@ -1156,6 +1181,7 @@ class LyricsAiService {
         model: modelId,
         data: requestData,
       );
+      onStageChanged?.call('requesting');
       final response = await _client.post(
         'https://api.deepseek.com/chat/completions',
         data: requestData,
@@ -1173,6 +1199,7 @@ class LyricsAiService {
       if (body == null || body.stream == null) {
         return _l10n().deepseekEmptyStreamingResponse;
       }
+      onStageChanged?.call('generating');
 
       final textStream = body.stream.cast<List<int>>().transform(utf8.decoder);
       await for (final line in textStream.transform(const LineSplitter())) {
@@ -1203,6 +1230,10 @@ class LyricsAiService {
         if (onProgress != null && snapshot != null) {
           onProgress(snapshot.visibleLines, snapshot.visibleText);
         }
+      }
+      final finalSnapshot = processor.buildProgressSnapshot(force: true);
+      if (onProgress != null && finalSnapshot != null) {
+        onProgress(finalSnapshot.visibleLines, finalSnapshot.visibleText);
       }
 
       if (!processor.hasReceivedAnyChunk ||
@@ -1237,6 +1268,7 @@ class LyricsAiService {
     required List<String> sourceLines,
     required List<int> blankLineIndexes,
     required int targetLineCount,
+    void Function(String stage)? onStageChanged,
     void Function(List<String> translatedLines, String translatedText)?
     onProgress,
     CancelToken? cancelToken,
@@ -1272,6 +1304,7 @@ class LyricsAiService {
       final apiUrl = baseUrl.endsWith('/')
           ? '${baseUrl}chat/completions'
           : '$baseUrl/chat/completions';
+      onStageChanged?.call('requesting');
       final response = await _client.post(
         apiUrl,
         data: requestData,
@@ -1289,6 +1322,7 @@ class LyricsAiService {
       if (body == null || body.stream == null) {
         return _l10n().customProviderEmptyStreamingResponse;
       }
+      onStageChanged?.call('generating');
 
       final textStream = body.stream.cast<List<int>>().transform(utf8.decoder);
       await for (final line in textStream.transform(const LineSplitter())) {
@@ -1319,6 +1353,10 @@ class LyricsAiService {
         if (onProgress != null && snapshot != null) {
           onProgress(snapshot.visibleLines, snapshot.visibleText);
         }
+      }
+      final finalSnapshot = processor.buildProgressSnapshot(force: true);
+      if (onProgress != null && finalSnapshot != null) {
+        onProgress(finalSnapshot.visibleLines, finalSnapshot.visibleText);
       }
 
       if (!processor.hasReceivedAnyChunk ||

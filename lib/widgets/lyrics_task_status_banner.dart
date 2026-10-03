@@ -123,9 +123,14 @@ class _LyricsTaskStatusBannerState extends ConsumerState<LyricsTaskStatusBanner>
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final accent = colorScheme.primary;
-    final fallbackModelLabel = ref
-        .read(lyricsAiServiceProvider)
-        .currentGenerationModelLabel;
+    final isTranslationActive = summary.activeSong != null &&
+        ref
+            .read(lyricsControllerProvider.notifier)
+            .taskStateForSong(summary.activeSong!.path)
+            .isTranslationBusy;
+    final fallbackModelLabel = isTranslationActive
+        ? ref.read(lyricsAiServiceProvider).currentTranslationModelLabel
+        : ref.read(lyricsAiServiceProvider).currentGenerationModelLabel;
     final modelLabel = generationState.modelLabel.trim().isNotEmpty
         ? generationState.modelLabel.trim()
         : fallbackModelLabel;
