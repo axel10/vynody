@@ -316,10 +316,13 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
     final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
     final double headerHeight = FolderNavBarScaffold.getBarHeight(context);
 
-    final rootList = RefreshIndicator(
-      edgeOffset: headerHeight,
-      onRefresh: _handleRefresh,
-      child: CustomScrollView(
+    final rootList = LayoutBuilder(
+      builder: (context, constraints) {
+        final double crossAxisExtent = constraints.maxWidth;
+        return RefreshIndicator(
+          edgeOffset: headerHeight,
+          onRefresh: _handleRefresh,
+          child: CustomScrollView(
         key: const PageStorageKey<String>('root_folders_scroll_view'),
         controller: _localScrollController,
         physics: const AlwaysScrollableScrollPhysics(
@@ -463,6 +466,7 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
             hasPermission: hasPermission,
             systemMediaTitle: l10n.systemMediaLibrary,
             systemMediaSubtitle: l10n.needPermissionToScan,
+            crossAxisExtent: crossAxisExtent,
             onNavigateTo: widget.onNavigateTo,
             onFolderTap: (folder, index) {
               SelectionActionHelper.handleItemTap(
@@ -508,6 +512,7 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
               servers: matchedRemoteServers,
               viewMode: settings.folderViewMode,
               isSortMode: widget.isSortMode,
+              crossAxisExtent: crossAxisExtent,
               onOpenServer: (server) => _openRemoteServer(context, server),
               bottomPadding: remoteServersBottomPadding,
             ),
@@ -522,6 +527,7 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
             currentSongPath: currentMusic?.path,
             isPlaying: ref.watch(audioIsPlayingProvider),
             bottomPadding: rootListBottomPadding,
+            crossAxisExtent: crossAxisExtent,
             onSongTap: (file, fileIndex) async {
               unawaited(() async {
                 try {
@@ -561,6 +567,8 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
         ],
       ],
       ),
+    );
+      },
     );
 
     return Scaffold(

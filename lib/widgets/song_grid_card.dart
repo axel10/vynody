@@ -119,9 +119,10 @@ class SongGridCard extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                AspectRatio(
-                  aspectRatio: 1.0,
-                  child: Hero(
+                ExcludeSemantics(
+                  child: AspectRatio(
+                    aspectRatio: 1.0,
+                    child: Hero(
                     tag: 'song-cover-${song.path}',
                     child: ClipRRect(
                       borderRadius: const BorderRadius.vertical(top: Radius.circular(11)),
@@ -186,6 +187,7 @@ class SongGridCard extends ConsumerWidget {
                     ),
                   ),
                 ),
+              ),
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),

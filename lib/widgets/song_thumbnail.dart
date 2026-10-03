@@ -394,7 +394,7 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
     final resolvedImagePath = rawImagePath != null
         ? ScannerPathUtils.resolveIosSandboxPath(rawImagePath)
         : null;
-    final imagePath = (resolvedImagePath != null && resolvedImagePath.isNotEmpty && File(resolvedImagePath).existsSync())
+    final imagePath = (resolvedImagePath != null && resolvedImagePath.isNotEmpty)
         ? resolvedImagePath
         : null;
 

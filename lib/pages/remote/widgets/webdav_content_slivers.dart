@@ -33,6 +33,8 @@ class WebDavSubfoldersSliver extends ConsumerWidget {
   final VoidCallback? onToggleSelectionMode;
   final void Function(WebDavFile folder)? onShowFolderBottomSheet;
 
+  final double? crossAxisExtent;
+
   const WebDavSubfoldersSliver({
     super.key,
     required this.folders,
@@ -47,6 +49,7 @@ class WebDavSubfoldersSliver extends ConsumerWidget {
     this.onToggleFolderSelection,
     this.onToggleSelectionMode,
     this.onShowFolderBottomSheet,
+    this.crossAxisExtent,
   });
 
   @override
@@ -74,15 +77,13 @@ class WebDavSubfoldersSliver extends ConsumerWidget {
     }
 
     if (isGrid) {
-      return SliverLayoutBuilder(
-        builder: (context, constraints) {
-          final width = constraints.crossAxisExtent;
-          final crossAxisCount = getFolderGridCrossAxisCount(width);
-          final childAspectRatio = calculateFolderGridChildAspectRatio(
-            context,
-            width,
-            crossAxisCount,
-          );
+      final width = crossAxisExtent ?? MediaQuery.sizeOf(context).width;
+      final crossAxisCount = getFolderGridCrossAxisCount(width);
+      final childAspectRatio = calculateFolderGridChildAspectRatio(
+        context,
+        width,
+        crossAxisCount,
+      );
 
           return SliverPadding(
             padding: const EdgeInsets.only(
@@ -140,8 +141,6 @@ class WebDavSubfoldersSliver extends ConsumerWidget {
               ),
             ),
           );
-        },
-      );
     } else {
       final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
       return SliverPadding(
@@ -254,24 +253,25 @@ class WebDavSongsSliver extends ConsumerWidget {
     this.onSongSecondaryTapDown,
     this.onSongMorePressed,
     required this.bottomPadding,
+    this.crossAxisExtent,
   });
+
+  final double? crossAxisExtent;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isSongGrid = viewMode == FolderViewMode.grid;
 
     if (isSongGrid) {
-      return SliverLayoutBuilder(
-        builder: (context, constraints) {
-          final width = constraints.crossAxisExtent;
-          final crossAxisCount = getFolderGridCrossAxisCount(width);
-          final childAspectRatio = calculateFolderGridChildAspectRatio(
-            context,
-            width,
-            crossAxisCount,
-          );
+      final width = crossAxisExtent ?? MediaQuery.sizeOf(context).width;
+      final crossAxisCount = getFolderGridCrossAxisCount(width);
+      final childAspectRatio = calculateFolderGridChildAspectRatio(
+        context,
+        width,
+        crossAxisCount,
+      );
 
-          return SliverPadding(
+      return SliverPadding(
             padding: const EdgeInsets.only(
               top: 8,
               bottom: 8,
@@ -342,8 +342,6 @@ class WebDavSongsSliver extends ConsumerWidget {
               ),
             ),
           );
-        },
-      );
     } else {
       final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
       return SliverPadding(

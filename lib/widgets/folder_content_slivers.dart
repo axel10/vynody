@@ -129,6 +129,7 @@ class FolderSubfoldersSliver extends StatelessWidget {
   final void Function(MusicFolder, {required bool isRoot})? onShowFolderBottomSheet;
   final void Function(MusicFolder, Offset position, {required bool isRoot})? onShowFolderContextMenu;
   final double? bottomPadding;
+  final double? crossAxisExtent;
 
   const FolderSubfoldersSliver({
     super.key,
@@ -151,6 +152,7 @@ class FolderSubfoldersSliver extends StatelessWidget {
     this.onShowFolderBottomSheet,
     this.onShowFolderContextMenu,
     this.bottomPadding,
+    this.crossAxisExtent,
   });
 
   @override
@@ -164,17 +166,15 @@ class FolderSubfoldersSliver extends StatelessWidget {
         return const SliverToBoxAdapter(child: SizedBox.shrink());
       }
 
-      return SliverLayoutBuilder(
-        builder: (context, constraints) {
-          final width = constraints.crossAxisExtent;
-          final crossAxisCount = getFolderGridCrossAxisCount(width);
-          final childAspectRatio = calculateFolderGridChildAspectRatio(
-            context,
-            width,
-            crossAxisCount,
-          );
+      final width = crossAxisExtent ?? MediaQuery.sizeOf(context).width;
+      final crossAxisCount = getFolderGridCrossAxisCount(width);
+      final childAspectRatio = calculateFolderGridChildAspectRatio(
+        context,
+        width,
+        crossAxisCount,
+      );
 
-          final paddingBottom = bottomPadding ?? (isRoot ? 160.0 : 0.0);
+      final paddingBottom = bottomPadding ?? (isRoot ? 160.0 : 0.0);
 
           if (isRoot && isSortMode && !isSelectionMode) {
             final List<MusicFolder> allFoldersWithSystem = [];
@@ -389,8 +389,6 @@ class FolderSubfoldersSliver extends StatelessWidget {
               ),
             ),
           );
-        },
-      );
     } else {
       final totalItemCount = folders.length + (showSystemMedia ? 1 : 0);
       if (totalItemCount == 0) {
@@ -621,6 +619,7 @@ class FolderSongsSliver extends StatelessWidget {
   final void Function(MusicFile song, BuildContext context)? onSongMorePressed;
   final double topPadding;
   final double bottomPadding;
+  final double? crossAxisExtent;
 
   const FolderSongsSliver({
     super.key,
@@ -637,6 +636,7 @@ class FolderSongsSliver extends StatelessWidget {
     this.onSongMorePressed,
     this.topPadding = 8.0,
     this.bottomPadding = 160.0,
+    this.crossAxisExtent,
   });
 
   @override
@@ -648,58 +648,54 @@ class FolderSongsSliver extends StatelessWidget {
     final isSongGrid = viewMode == FolderViewMode.grid;
 
     if (isSongGrid) {
-      return SliverLayoutBuilder(
-        builder: (context, constraints) {
-          final width = constraints.crossAxisExtent;
-          final crossAxisCount = getFolderGridCrossAxisCount(width);
-          final childAspectRatio = calculateFolderGridChildAspectRatio(
-            context,
-            width,
-            crossAxisCount,
-          );
+      final width = crossAxisExtent ?? MediaQuery.sizeOf(context).width;
+      final crossAxisCount = getFolderGridCrossAxisCount(width);
+      final childAspectRatio = calculateFolderGridChildAspectRatio(
+        context,
+        width,
+        crossAxisCount,
+      );
 
-          return SliverPadding(
-            padding: EdgeInsets.only(
-              top: topPadding,
-              bottom: bottomPadding,
-              left: 16,
-              right: 16,
-            ),
-            sliver: SliverGrid(
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: crossAxisCount,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-                childAspectRatio: childAspectRatio,
-              ),
-              delegate: SliverChildBuilderDelegate(
-                (context, fileIndex) {
-                  final file = songs[fileIndex];
-                  final isCurrent = currentSongPath == file.path;
-                  final isSelected = selectedSongPaths.contains(file.path);
+      return SliverPadding(
+        padding: EdgeInsets.only(
+          top: topPadding,
+          bottom: bottomPadding,
+          left: 16,
+          right: 16,
+        ),
+        sliver: SliverGrid(
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            crossAxisSpacing: 16,
+            mainAxisSpacing: 16,
+            childAspectRatio: childAspectRatio,
+          ),
+          delegate: SliverChildBuilderDelegate(
+            (context, fileIndex) {
+              final file = songs[fileIndex];
+              final isCurrent = currentSongPath == file.path;
+              final isSelected = selectedSongPaths.contains(file.path);
 
-                  return HoverableCard(
-                    child: SongGridCard(
-                      song: file,
-                      isCurrent: isCurrent,
-                      isPlaying: isPlaying,
-                      isSelected: isSelected,
-                      isSelectionMode: isSelectionMode,
-                      selectedPaths: selectedSongPaths,
-                      isHighlighted: highlightedSongPath == file.path,
-                      onTap: () => onSongTap(file, fileIndex),
-                      onLongPress: () => onSongLongPress?.call(file),
-                      onSecondaryTapDown: (details) {
-                        onSongSecondaryTapDown(file, details);
-                      },
-                    ),
-                  );
-                },
-                childCount: songs.length,
-              ),
-            ),
-          );
-        },
+              return HoverableCard(
+                child: SongGridCard(
+                  song: file,
+                  isCurrent: isCurrent,
+                  isPlaying: isPlaying,
+                  isSelected: isSelected,
+                  isSelectionMode: isSelectionMode,
+                  selectedPaths: selectedSongPaths,
+                  isHighlighted: highlightedSongPath == file.path,
+                  onTap: () => onSongTap(file, fileIndex),
+                  onLongPress: () => onSongLongPress?.call(file),
+                  onSecondaryTapDown: (details) {
+                    onSongSecondaryTapDown(file, details);
+                  },
+                ),
+              );
+            },
+            childCount: songs.length,
+          ),
+        ),
       );
     } else {
       final isPortrait =

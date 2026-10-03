@@ -86,9 +86,10 @@ class FolderGridCard extends StatelessWidget {
       coverWidget = defaultCoverWidget;
     }
 
-    final cardCover = ClipRRect(
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
-      child: Stack(
+    final cardCover = ExcludeSemantics(
+      child: ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
+        child: Stack(
         fit: StackFit.expand,
         children: [
           coverWidget,
@@ -145,7 +146,8 @@ class FolderGridCard extends StatelessWidget {
                 ),
               ),
             ),
-        ],
+          ],
+        ),
       ),
     );
 

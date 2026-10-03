@@ -125,7 +125,7 @@ class _FolderHeaderBannerState extends ConsumerState<FolderHeaderBanner> {
     final l10n = AppLocalizations.of(context)!;
     final durationText = _formatDurationText(l10n);
 
-    final hasImage = _resolvedPath != null && File(_resolvedPath!).existsSync();
+    final hasImage = _resolvedPath != null && _resolvedPath!.isNotEmpty;
     final coverFile = hasImage ? File(_resolvedPath!) : null;
     final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
     final isWideOrSquare = hasImage && (_aspectRatio == null || _aspectRatio! >= 0.85);
@@ -202,6 +202,7 @@ class _OverscrollStretchBuilder extends StatefulWidget {
 
 class _OverscrollStretchBuilderState extends State<_OverscrollStretchBuilder> {
   ScrollPosition? _position;
+  double _lastOverscroll = 0.0;
 
   @override
   void didChangeDependencies() {
@@ -222,7 +223,13 @@ class _OverscrollStretchBuilderState extends State<_OverscrollStretchBuilder> {
   }
 
   void _onScroll() {
-    if (mounted) {
+    if (!mounted) return;
+    final pos = _position;
+    final currentOverscroll = (pos != null && pos.hasPixels && pos.pixels < 0)
+        ? -pos.pixels
+        : 0.0;
+    if (currentOverscroll != _lastOverscroll) {
+      _lastOverscroll = currentOverscroll;
       setState(() {});
     }
   }

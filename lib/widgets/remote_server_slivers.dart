@@ -381,6 +381,7 @@ class RemoteServersSliver extends ConsumerWidget {
   final bool isSortMode;
   final void Function(RemoteServer server) onOpenServer;
   final double bottomPadding;
+  final double? crossAxisExtent;
 
   const RemoteServersSliver({
     super.key,
@@ -389,6 +390,7 @@ class RemoteServersSliver extends ConsumerWidget {
     this.isSortMode = false,
     required this.onOpenServer,
     this.bottomPadding = 160.0,
+    this.crossAxisExtent,
   });
 
   @override
@@ -401,17 +403,15 @@ class RemoteServersSliver extends ConsumerWidget {
         viewMode == FolderViewMode.hybrid || viewMode == FolderViewMode.grid;
 
     if (isGrid) {
-      return SliverLayoutBuilder(
-        builder: (context, constraints) {
-          final width = constraints.crossAxisExtent;
-          final crossAxisCount = getFolderGridCrossAxisCount(width);
-          final childAspectRatio = calculateFolderGridChildAspectRatio(
-            context,
-            width,
-            crossAxisCount,
-          );
+      final width = crossAxisExtent ?? MediaQuery.sizeOf(context).width;
+      final crossAxisCount = getFolderGridCrossAxisCount(width);
+      final childAspectRatio = calculateFolderGridChildAspectRatio(
+        context,
+        width,
+        crossAxisCount,
+      );
 
-          if (isSortMode) {
+      if (isSortMode) {
             return SliverPadding(
               padding: EdgeInsets.only(
                 top: 8,
@@ -516,8 +516,6 @@ class RemoteServersSliver extends ConsumerWidget {
               ),
             ),
           );
-        },
-      );
     } else {
       final isPortrait =
           MediaQuery.of(context).orientation == Orientation.portrait;

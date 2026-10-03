@@ -391,10 +391,13 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
 
     final double headerHeight = FolderNavBarScaffold.getBarHeight(context);
 
-    final Widget scrollBody = RefreshIndicator(
-      edgeOffset: headerHeight,
-      onRefresh: _handleRefresh,
-      child: CustomScrollView(
+    final Widget scrollBody = LayoutBuilder(
+      builder: (context, constraints) {
+        final double crossAxisExtent = constraints.maxWidth;
+        return RefreshIndicator(
+          edgeOffset: headerHeight,
+          onRefresh: _handleRefresh,
+          child: CustomScrollView(
         key: PageStorageKey<String>('folder-detail-${folder.path}'),
         controller: _localScrollController,
         physics: const AlwaysScrollableScrollPhysics(
@@ -541,6 +544,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
             isSelectionMode: widget.isSelectionMode,
             selectedFolderPaths: widget.selectedFolderPaths,
             isRoot: false,
+            crossAxisExtent: crossAxisExtent,
             onNavigateTo: widget.onNavigateTo,
             onFolderTap: (subfolder, subfolderIndex) {
               SelectionActionHelper.handleItemTap(
@@ -588,6 +592,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
             isSelectionMode: widget.isSelectionMode,
             selectedSongPaths: widget.selectedSongPaths,
             highlightedSongPath: activeHighlightedSongPath,
+            crossAxisExtent: crossAxisExtent,
             onSongTap: (file, fileIndex) async {
               SelectionActionHelper.handleItemTap(
                 index: fileIndex,
@@ -705,6 +710,8 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
         ),
       ],
       ),
+    );
+      },
     );
 
     final selectedSongs = showSelectionPanel ? _getSelectedSongs() : <MusicFile>[];
