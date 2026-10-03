@@ -285,8 +285,10 @@ final songMetadataProvider = StreamProvider.family<SongMetadata?, String>((ref, 
   return MetadataDatabase().watchSongMetadata(path);
 });
 
-class CurrentAudioDetailsNotifier extends AsyncNotifier<AudioDetails?> {
+class CurrentAudioDetailsNotifier extends Notifier<AudioDetails?> {
   Timer? _debounceTimer;
+  String? _currentPath;
+  int? _currentLastModifiedTime;
 
   static AudioDetails buildFastAudioDetails(MusicFile music) {
     var ext = p.extension(music.path).replaceAll('.', '').toLowerCase();
@@ -320,10 +322,30 @@ class CurrentAudioDetailsNotifier extends AsyncNotifier<AudioDetails?> {
   }
 
   @override
-  Future<AudioDetails?> build() async {
-    _debounceTimer?.cancel();
+  AudioDetails? build() {
+    ref.onDispose(() {
+      _debounceTimer?.cancel();
+    });
+
     final currentMusic = ref.watch(audioCurrentMusicProvider);
-    if (currentMusic == null) return null;
+    if (currentMusic == null) {
+      _currentPath = null;
+      _currentLastModifiedTime = null;
+      _debounceTimer?.cancel();
+      return null;
+    }
+
+    // 若同一首歌曲（路径及修改时间未改变），且当前已经持有有效解析结果（无论是 fast 还是 refined），
+    // 则直接保留现有状态，避免因后台队列更新（波形/封面/主题色等变更）触发无意义的重置与闪烁
+    if (_currentPath == currentMusic.path &&
+        _currentLastModifiedTime == currentMusic.lastModifiedTime &&
+        state != null) {
+      return state;
+    }
+
+    _currentPath = currentMusic.path;
+    _currentLastModifiedTime = currentMusic.lastModifiedTime;
+    _debounceTimer?.cancel();
 
     final audioService = ref.read(audioServiceProvider);
     final cached = audioService.getCachedAudioDetails(
@@ -344,10 +366,6 @@ class CurrentAudioDetailsNotifier extends AsyncNotifier<AudioDetails?> {
       _loadRefinedDetails(currentMusic);
     });
 
-    ref.onDispose(() {
-      _debounceTimer?.cancel();
-    });
-
     return fastDetails;
   }
 
@@ -356,7 +374,9 @@ class CurrentAudioDetailsNotifier extends AsyncNotifier<AudioDetails?> {
     _debounceTimer?.cancel();
     final currentMusic = ref.read(audioCurrentMusicProvider);
     if (currentMusic != null) {
-      _loadRefinedDetails(currentMusic);
+      if (state == null || state?.sampleRate == 0) {
+        _loadRefinedDetails(currentMusic);
+      }
     }
   }
 
@@ -369,7 +389,7 @@ class CurrentAudioDetailsNotifier extends AsyncNotifier<AudioDetails?> {
     );
     if (cached != null && cached.sampleRate > 0) {
       if (ref.read(audioCurrentMusicProvider)?.path == music.path) {
-        state = AsyncData(cached);
+        state = cached;
       }
       return;
     }
@@ -438,7 +458,7 @@ class CurrentAudioDetailsNotifier extends AsyncNotifier<AudioDetails?> {
       }
 
       if (ref.read(audioCurrentMusicProvider)?.path == music.path) {
-        state = AsyncData(refined);
+        state = refined;
       }
     } catch (_) {
       // 出错时保持原有 fastDetails，不影响播放
@@ -447,7 +467,7 @@ class CurrentAudioDetailsNotifier extends AsyncNotifier<AudioDetails?> {
 }
 
 final currentAudioDetailsProvider =
-    AsyncNotifierProvider<CurrentAudioDetailsNotifier, AudioDetails?>(
+    NotifierProvider<CurrentAudioDetailsNotifier, AudioDetails?>(
   CurrentAudioDetailsNotifier.new,
 );
 

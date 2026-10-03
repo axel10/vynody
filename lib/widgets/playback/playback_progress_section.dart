@@ -347,8 +347,7 @@ class PlaybackAudioInfoLabel extends ConsumerWidget {
     if (!showAudioInfo) {
       return const SizedBox.shrink();
     }
-    final detailsAsync = ref.watch(currentAudioDetailsProvider);
-    final details = detailsAsync.asData?.value;
+    final details = ref.watch(currentAudioDetailsProvider);
     final text = formatAudioSpec(details);
 
     return SizedBox(
