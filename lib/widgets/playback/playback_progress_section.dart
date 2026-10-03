@@ -356,7 +356,7 @@ class PlaybackAudioInfoLabel extends ConsumerWidget {
               color: Colors.white70,
               fontSize: math.max(
                 PlaybackHeroCardUiTuning.minProgressTimeFontSize,
-                11 * controlsScale,
+                12 * controlsScale,
               ),
               fontWeight: FontWeight.w500,
               letterSpacing: 0.2,
