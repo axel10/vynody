@@ -15,8 +15,6 @@ import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/remote/proxy/remote_media_resolver.dart';
 import 'package:vynody/player/settings/track_artwork_theme_service.dart';
 import 'package:vynody/utils/memory_trace.dart';
-import 'package:device_info_plus/device_info_plus.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:vynody/widgets/playback_ui_tuning.dart';
 
 class CoverCarousel extends StatefulWidget {
@@ -621,17 +619,7 @@ class _CoverItemState extends ConsumerState<_CoverItem> {
       if (widget.musicFile.id != null) {
         var hasPermission = true;
         if (Platform.isAndroid) {
-          try {
-            final deviceInfo = DeviceInfoPlugin();
-            final androidInfo = await deviceInfo.androidInfo;
-            if (androidInfo.version.sdkInt >= 33) {
-              hasPermission = await Permission.audio.isGranted;
-            } else {
-              hasPermission = await Permission.storage.isGranted;
-            }
-          } catch (_) {
-            hasPermission = false;
-          }
+          hasPermission = await MetadataHelper.hasAndroidAudioPermission();
         }
 
         final isSystemMedia = widget.musicFile.mediaUri != null || widget.musicFile.path.startsWith('content://');

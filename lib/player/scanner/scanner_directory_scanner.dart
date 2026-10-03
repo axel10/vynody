@@ -9,8 +9,6 @@ import 'package:path/path.dart' as p;
 import 'package:vynody/player/library/music_file_utils.dart';
 import 'package:vynody/player/scanner/scanner_path_utils.dart';
 import 'package:vynody/player/scanner/scanner_scan_support.dart';
-import 'package:device_info_plus/device_info_plus.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:vynody/player/metadata/metadata_helper.dart';
 
 const Set<String> _windowsProtectedDirectoryNames = {
@@ -33,18 +31,7 @@ class ScannerDirectoryScanner {
 
   Future<bool> _hasAndroidPermissions() async {
     if (!Platform.isAndroid) return true;
-    try {
-      final deviceInfo = DeviceInfoPlugin();
-      final androidInfo = await deviceInfo.androidInfo;
-      if (androidInfo.version.sdkInt >= 33) {
-        return await Permission.audio.isGranted;
-      } else {
-        return await Permission.storage.isGranted;
-      }
-    } catch (e) {
-      debugPrint('[ScannerDirectoryScanner] _hasAndroidPermissions check failed: $e');
-      return false;
-    }
+    return MetadataHelper.hasAndroidAudioPermission();
   }
 
   Future<List<ScanDiscoveredFile>> discoverMusicFiles(

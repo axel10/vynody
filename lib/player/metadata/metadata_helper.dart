@@ -91,17 +91,41 @@ class MetadataHelper {
   /// Stores the last error message during metadata saving.
   static String? lastWriteError;
 
-  /// 统一检查 Android 音频媒体权限
-  static Future<bool> hasAndroidAudioPermission() async {
+  /// Cached Android SDK version. Unlikely to change during app runtime.
+  static int? _cachedAndroidSdkInt;
+
+  /// Cached Android audio permission result.
+  static bool? _cachedAndroidAudioPermission;
+  static DateTime? _permissionCacheTimestamp;
+  static const Duration _permissionCacheTtl = Duration(seconds: 30);
+
+  /// Invalidate cached permission status (e.g. when app resumes or user grants permission)
+  static void invalidatePermissionCache() {
+    _cachedAndroidAudioPermission = null;
+    _permissionCacheTimestamp = null;
+  }
+
+  /// 统一检查 Android 音频媒体权限（带内存缓存与自动失效机制，避免启动遍历时成千上万次 IPC 通信）
+  static Future<bool> hasAndroidAudioPermission({bool forceRefresh = false}) async {
     if (!Platform.isAndroid) return true;
+    final now = DateTime.now();
+    if (!forceRefresh &&
+        _cachedAndroidAudioPermission != null &&
+        _permissionCacheTimestamp != null &&
+        now.difference(_permissionCacheTimestamp!) < _permissionCacheTtl) {
+      return _cachedAndroidAudioPermission!;
+    }
     try {
-      final deviceInfo = DeviceInfoPlugin();
-      final androidInfo = await deviceInfo.androidInfo;
-      if (androidInfo.version.sdkInt >= 33) {
-        return await Permission.audio.isGranted;
+      _cachedAndroidSdkInt ??= (await DeviceInfoPlugin().androidInfo).version.sdkInt;
+      final bool granted;
+      if (_cachedAndroidSdkInt! >= 33) {
+        granted = await Permission.audio.isGranted;
       } else {
-        return await Permission.storage.isGranted;
+        granted = await Permission.storage.isGranted;
       }
+      _cachedAndroidAudioPermission = granted;
+      _permissionCacheTimestamp = now;
+      return granted;
     } catch (e) {
       debugPrint('[MetadataHelper] hasAndroidAudioPermission check failed: $e');
       return false;

@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:isolate';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_taglib/flutter_taglib.dart' as taglib;
@@ -63,14 +62,15 @@ class FolderCoverResolver {
     }
   }
 
-  /// Default probe function offloading TagLib FFI inspection to a background isolate
-  /// so that it never blocks the Flutter UI thread / Main Isolate.
+  /// Default probe function using lightweight TagLib inspection.
+  /// Uses synchronous TagLib FFI probe directly, avoiding the heavy overhead
+  /// of allocating and destroying a new Dart VM Isolate per song.
   static Future<bool> defaultProbeSongHasCover(String filePath) async {
     try {
       if (!taglib.TagLibFile.isSupported) {
         return false;
       }
-      return await Isolate.run(() => defaultProbeSongHasCoverSync(filePath));
+      return defaultProbeSongHasCoverSync(filePath);
     } catch (e) {
       debugPrint('[FolderCoverResolver] TagLib cover probe error for $filePath: $e');
       return false;

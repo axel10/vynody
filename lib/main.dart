@@ -23,6 +23,7 @@ import 'utils/app_orientation_manager.dart';
 import 'utils/memory_trace.dart';
 import 'package:vynody/player/sharing/security/tls_certificate_service.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
+import 'package:vynody/player/metadata/metadata_helper.dart';
 import 'package:vynody/player/platform/desktop_tray_service.dart';
 import 'package:vynody/player/lyrics/custom_font_service.dart';
 import 'package:vynody/player/pro/iap_service.dart';
@@ -476,6 +477,7 @@ class _MyAppState extends ConsumerState<MyApp>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
     if (state == AppLifecycleState.resumed) {
+      MetadataHelper.invalidatePermissionCache();
       final license = ref.read(proLicenseServiceProvider).state;
       if (!license.isPermanentlyUnlocked && !AppChannel.isGitHubRelease) {
         ref.read(iapServiceProvider).syncPurchasesSilently();

@@ -368,6 +368,31 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
+  final Set<String> _pendingFolderCoverRefreshPaths = <String>{};
+  Timer? _folderCoverRefreshTimer;
+
+  /// Enqueues a debounced folder cover refresh.
+  /// Deduplicates calls when many song thumbnails or tags update simultaneously in the same directory.
+  void enqueueFolderCoverChainRefresh(String folderPath) {
+    final norm = _normalizePath(folderPath);
+    if (norm.isEmpty) return;
+    _pendingFolderCoverRefreshPaths.add(norm);
+    _folderCoverRefreshTimer ??= Timer(const Duration(milliseconds: 200), () {
+      _folderCoverRefreshTimer = null;
+      unawaited(_flushPendingFolderCoverRefreshes());
+    });
+  }
+
+  Future<void> _flushPendingFolderCoverRefreshes() async {
+    if (_pendingFolderCoverRefreshPaths.isEmpty || _isDisposed) return;
+    final paths = _pendingFolderCoverRefreshPaths.toList(growable: false);
+    _pendingFolderCoverRefreshPaths.clear();
+    for (final path in paths) {
+      if (_isDisposed) break;
+      await refreshFolderCoverChain(path);
+    }
+  }
+
   Future<void> updateSongThumbnailPath(
     String path,
     String thumbnailPath,
@@ -395,7 +420,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       }
       await MetadataDatabase().insertOrUpdateSong(updated);
       notifyListeners();
-      unawaited(refreshFolderCoverChain(p.dirname(path)));
+      enqueueFolderCoverChainRefresh(p.dirname(path));
     } else {
       final db = MetadataDatabase();
       final dbMetadata = await db.getSongMetadata(path);
@@ -421,7 +446,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
         }
         await db.insertOrUpdateSong(updated);
         notifyListeners();
-        unawaited(refreshFolderCoverChain(p.dirname(path)));
+        enqueueFolderCoverChainRefresh(p.dirname(path));
       }
     }
   }
@@ -1132,8 +1157,11 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       if (!_readyCompleter.isCompleted) {
         _readyCompleter.complete();
       }
-      // Auto scan on startup
-      await _timeInitStep('startup scan', scan);
+      // Auto scan on startup: delay slightly so first frame and initial UI animations settle smoothly
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+      if (!_isDisposed) {
+        await _timeInitStep('startup scan', scan);
+      }
       _startRootAvailabilityTimer();
     } finally {
       totalStopwatch.stop();
@@ -1786,15 +1814,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
   Future<bool> _checkPermissions({bool request = true}) async {
     if (Platform.isAndroid) {
       if (!request) {
-        final deviceInfo = DeviceInfoPlugin();
-        final androidInfo = await deviceInfo.androidInfo;
-        if (androidInfo.version.sdkInt >= 33) {
-          final status = await Permission.audio.status;
-          return status.isGranted;
-        } else {
-          final status = await Permission.storage.status;
-          return status.isGranted;
-        }
+        return MetadataHelper.hasAndroidAudioPermission();
       }
 
       final controller = _playerController;
@@ -1806,6 +1826,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
         debugPrint(
           '[ScannerService] AudioCoreController permission result=$granted',
         );
+        MetadataHelper.invalidatePermissionCache();
         return granted;
       }
 
@@ -1816,6 +1837,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
         'sdkInt=${androidInfo.version.sdkInt}',
       );
 
+      bool granted = false;
       if (androidInfo.version.sdkInt >= 33) {
         // Android 13+ requires Permission.audio
         var status = await Permission.audio.status;
@@ -1826,7 +1848,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
             '[ScannerService] Permission.audio requested status=$status',
           );
         }
-        return status.isGranted;
+        granted = status.isGranted;
       } else {
         // Legacy storage permission
         var status = await Permission.storage.status;
@@ -1839,8 +1861,10 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
             '[ScannerService] Permission.storage requested status=$status',
           );
         }
-        return status.isGranted;
+        granted = status.isGranted;
       }
+      MetadataHelper.invalidatePermissionCache();
+      return granted;
     }
     return true; // Assume granted on other platforms for now
   }
@@ -2217,7 +2241,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
         );
       }
       for (final folder in modifiedFolders) {
-        unawaited(refreshFolderCoverChain(folder.path));
+        enqueueFolderCoverChainRefresh(folder.path);
       }
       _rebuildDisplayedRootFolders();
       _syncNavigationStateToLatestTree(affectedRootPath: rootPath);
@@ -2450,7 +2474,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       }
 
       await _refreshAffectedRootsFromCache(affectedRoots);
-      unawaited(refreshFolderCoverChain(normalizedDirectory));
+      enqueueFolderCoverChainRefresh(normalizedDirectory);
       notifyListeners();
     } finally {
       _scanCoordinator.completeIncrementalPhase();
@@ -4131,7 +4155,9 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     _directoryRescanTimer?.cancel();
     _directoryRescanTimer = null;
     _pendingDirectoryRescanPaths.clear();
-    _watchedFileMtimes.clear();
+    _folderCoverRefreshTimer?.cancel();
+    _folderCoverRefreshTimer = null;
+    _pendingFolderCoverRefreshPaths.clear();
     _scanNotifyTimer?.cancel();
     _rootAvailabilityRefreshTimer?.cancel();
     _scanProgressController.close();
