@@ -146,6 +146,7 @@ class LyricsPanelTimedLyricsView extends StatefulWidget {
     required this.maxWidth,
     required this.isGenerating,
     this.isTranslating = false,
+    this.isTranslationAppearing = false,
     this.isTransitioning = false,
     this.isLowMidEnd = false,
     this.lyricsFontFamily = '',
@@ -179,6 +180,7 @@ class LyricsPanelTimedLyricsView extends StatefulWidget {
   final double maxWidth;
   final bool isGenerating;
   final bool isTranslating;
+  final bool isTranslationAppearing;
   final bool isTransitioning;
   final bool isLowMidEnd;
   final String lyricsFontFamily;
@@ -476,7 +478,8 @@ class _LyricsPanelTimedLyricsViewState
                                           key: ValueKey(
                                             'apple_trans_${index}_$effectiveLang',
                                           ),
-                                          animate: widget.isTranslating,
+                                          animate: widget.isTranslating ||
+                                              widget.isTranslationAppearing,
                                           index: index,
                                           activeIndex: widget.activeIndex,
                                           isLeftAligned: isLeftAligned,

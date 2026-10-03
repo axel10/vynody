@@ -1844,7 +1844,12 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
           );
         });
 
+        final bool isTranslationAppearing =
+            (_lastBuiltIsTranslating == true && !isTranslating) ||
+            (_lastBuiltShowTranslation == false && showLyricsTranslation);
+
         final bool needsRebuild = _cachedLyricsView == null ||
+            isTranslationAppearing ||
             activeIndex != _lastBuiltActiveIndex ||
             displayLines != _lastBuiltDisplayLines ||
             constraints.maxWidth != _lastBuiltMaxWidth ||
@@ -1941,6 +1946,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
             maxWidth: constraints.maxWidth,
             isGenerating: isGenerating,
             isTranslating: isTranslating,
+            isTranslationAppearing: isTranslationAppearing,
             isTransitioning: widget.isTransitioning,
             isLowMidEnd: isLowMidEnd,
           );

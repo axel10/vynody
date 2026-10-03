@@ -197,68 +197,63 @@ class LyricsTranslationCoordinator {
     );
 
     try {
+      List<String> latestTranslatedLines = const [];
+      String latestTranslatedText = '';
+
       final errorMessage = await _context.lyricsAiService.translateLyricsStream(
         lyrics: request.sourceLyrics,
         targetLanguageCode: request.languageCode,
         onModelLabelChanged: _updateTranslationModelLabel,
         cancelToken: cancelToken,
         onProgress: (translatedLines, translatedText) {
+          latestTranslatedLines = translatedLines;
+          latestTranslatedText = translatedText;
+        },
+      );
+      if (errorMessage == null) {
+        final hasContent = latestTranslatedLines.any((line) => line.trim().isNotEmpty) ||
+            latestTranslatedText.trim().isNotEmpty;
+        if (hasContent) {
+          if (_context.isLyricsPanelScrolling()) {
+            _context.stashPendingLyricsTranslationUpdate(
+              songPath: request.songPath,
+              cacheKey: request.cacheKey,
+              languageCode: request.languageCode,
+              lyricsId: request.lyricsId,
+              translatedLines: latestTranslatedLines,
+              translatedText: latestTranslatedText,
+              completed: true,
+            );
+            return null;
+          }
+
           _syncTranslatedLyricsToSong(
             request.songPath,
             request.lyricsId,
             request.languageCode,
-            translatedLines,
-            translatedText,
+            latestTranslatedLines,
+            latestTranslatedText,
             cacheKey: request.cacheKey,
           );
-        },
-      );
-      if (errorMessage == null) {
-        if (_context.isLyricsPanelScrolling()) {
-          final pending =
-              _context.pendingLyricsTranslationUpdates[request.songPath];
-          if (pending != null) {
-            _context.stashPendingLyricsTranslationUpdate(
-              songPath: pending.songPath,
-              cacheKey: request.cacheKey,
-              languageCode: pending.languageCode,
-              lyricsId: pending.lyricsId,
-              translatedLines: pending.translatedLines,
-              translatedText: pending.translatedText,
-              completed: true,
-            );
-          }
-          return null;
-        }
 
-        _context.translatedLyricsKeys.add(request.translationKey);
-        await _saveTranslatedLyricsToDatabase(
-          songPath: request.songPath,
-          cacheKey: request.cacheKey,
-          languageCode: request.languageCode,
-        );
+          _context.translatedLyricsKeys.add(request.translationKey);
+          await _saveTranslatedLyricsToDatabase(
+            songPath: request.songPath,
+            cacheKey: request.cacheKey,
+            languageCode: request.languageCode,
+          );
+        }
         return null;
       }
-
-      await _saveTranslatedLyricsToDatabase(
-        songPath: request.songPath,
-        cacheKey: request.cacheKey,
-        languageCode: request.languageCode,
-      );
 
       if (cancelToken.isCancelled || errorMessage == 'cancelled') {
         return null;
       }
       return errorMessage;
     } catch (e) {
-      try {
-        await _saveTranslatedLyricsToDatabase(
-          songPath: request.songPath,
-          cacheKey: request.cacheKey,
-          languageCode: request.languageCode,
-        );
-      } catch (dbError) {
-        debugPrint('[LyricsController] Failed to save partial translation on error: $dbError');
+      if (cancelToken.isCancelled || (e is DioException && CancelToken.isCancel(e))) {
+        debugPrint('[LyricsController] lyrics translation cancelled by user.');
+        return null;
       }
       rethrow;
     } finally {
