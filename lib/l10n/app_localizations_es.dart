@@ -1359,6 +1359,12 @@ class AppLocalizationsEs extends AppLocalizations {
   String get changeArtwork => 'Cambiar carátula';
 
   @override
+  String get chooseFromPhotos => 'Elegir de Fotos';
+
+  @override
+  String get chooseFromFiles => 'Elegir de Archivos';
+
+  @override
   String get clearArtwork => 'Limpiar carátula';
 
   @override

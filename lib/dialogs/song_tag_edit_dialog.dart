@@ -265,12 +265,12 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
     }
   }
 
-  Future<void> _pickArtwork() async {
+  Future<void> _pickArtwork({bool fromGallery = false}) async {
     try {
       final path = await FileSelectorHelper.pickFile(
         label: 'Images',
         extensions: const ['jpg', 'jpeg', 'png', 'webp', 'bmp'],
-        fileType: FileType.image,
+        fileType: fromGallery ? FileType.image : FileType.custom,
       );
 
       if (path != null) {
@@ -372,8 +372,10 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final isMobile = Platform.isIOS || Platform.isAndroid;
 
-    if (!_isArtworkMixed &&
+    if (!isMobile &&
+        !_isArtworkMixed &&
         (_artworkBytes == null || (_isArtworkModified && _artworkBytes!.isEmpty))) {
       await _pickArtwork();
       return;
@@ -415,12 +417,27 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  ListTile(
-                    leading: Icon(Icons.photo_library_rounded,
-                        color: theme.colorScheme.primary),
-                    title: Text(l10n.changeArtwork),
-                    onTap: () => Navigator.of(context).pop('change'),
-                  ),
+                  if (isMobile) ...[
+                    ListTile(
+                      leading: Icon(Icons.photo_library_rounded,
+                          color: theme.colorScheme.primary),
+                      title: Text(l10n.chooseFromPhotos),
+                      onTap: () => Navigator.of(context).pop('pick_gallery'),
+                    ),
+                    ListTile(
+                      leading: Icon(Icons.folder_open_rounded,
+                          color: theme.colorScheme.primary),
+                      title: Text(l10n.chooseFromFiles),
+                      onTap: () => Navigator.of(context).pop('pick_file'),
+                    ),
+                  ] else ...[
+                    ListTile(
+                      leading: Icon(Icons.photo_library_rounded,
+                          color: theme.colorScheme.primary),
+                      title: Text(l10n.changeArtwork),
+                      onTap: () => Navigator.of(context).pop('change'),
+                    ),
+                  ],
                   if (hasArtwork)
                     ListTile(
                       leading: Icon(Icons.file_download_outlined,
@@ -428,13 +445,14 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
                       title: Text(l10n.exportArtwork),
                       onTap: () => Navigator.of(context).pop('export'),
                     ),
-                  ListTile(
-                    leading:
-                        const Icon(Icons.delete_rounded, color: Colors.redAccent),
-                    title: Text(l10n.clearArtwork,
-                        style: const TextStyle(color: Colors.redAccent)),
-                    onTap: () => Navigator.of(context).pop('clear'),
-                  ),
+                  if (hasArtwork)
+                    ListTile(
+                      leading:
+                          const Icon(Icons.delete_rounded, color: Colors.redAccent),
+                      title: Text(l10n.clearArtwork,
+                          style: const TextStyle(color: Colors.redAccent)),
+                      onTap: () => Navigator.of(context).pop('clear'),
+                    ),
                   ListTile(
                     leading: const Icon(Icons.close_rounded),
                     title: Text(l10n.cancel),
@@ -449,8 +467,10 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
       },
     );
 
-    if (action == 'change') {
-      await _pickArtwork();
+    if (action == 'pick_gallery') {
+      await _pickArtwork(fromGallery: true);
+    } else if (action == 'pick_file' || action == 'change') {
+      await _pickArtwork(fromGallery: false);
     } else if (action == 'export') {
       await _exportArtwork();
     } else if (action == 'clear') {

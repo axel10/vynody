@@ -490,6 +490,8 @@
   "editTagsAction": "Editar etiquetas",
   "editSongTagsTitle": "Editar etiquetas de la canción",
   "changeArtwork": "Cambiar carátula",
+  "chooseFromPhotos": "Elegir de Fotos",
+  "chooseFromFiles": "Elegir de Archivos",
   "clearArtwork": "Limpiar carátula",
   "exportArtwork": "Exportar carátula",
   "exportArtworkSuccess": "Carátula exportada correctamente",

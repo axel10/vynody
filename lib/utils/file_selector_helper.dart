@@ -52,13 +52,13 @@ class FileSelectorHelper {
       );
       return file?.path;
     } else {
+      final effectiveType = fileType == FileType.any && extensions != null
+          ? FileType.custom
+          : fileType;
       final result = await FilePicker.pickFiles(
-        type: fileType == FileType.any && extensions != null
-            ? FileType.custom
-            : fileType,
-        allowedExtensions: fileType == FileType.any && extensions != null
-            ? extensions
-            : null,
+        type: effectiveType,
+        allowedExtensions:
+            effectiveType == FileType.custom ? extensions : null,
         allowMultiple: false,
       );
       if (result == null || result.files.isEmpty) return null;
@@ -84,13 +84,13 @@ class FileSelectorHelper {
       );
       return files.map((file) => file.path).toList();
     } else {
+      final effectiveType = fileType == FileType.any && extensions != null
+          ? FileType.custom
+          : fileType;
       final result = await FilePicker.pickFiles(
-        type: fileType == FileType.any && extensions != null
-            ? FileType.custom
-            : fileType,
-        allowedExtensions: fileType == FileType.any && extensions != null
-            ? extensions
-            : null,
+        type: effectiveType,
+        allowedExtensions:
+            effectiveType == FileType.custom ? extensions : null,
         allowMultiple: true,
       );
       if (result == null) return null;

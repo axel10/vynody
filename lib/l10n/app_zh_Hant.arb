@@ -410,6 +410,8 @@
   "editTagsAction": "編輯標籤",
   "editSongTagsTitle": "編輯歌曲標籤",
   "changeArtwork": "更換封面",
+  "chooseFromPhotos": "從相簿選取",
+  "chooseFromFiles": "從檔案選取",
   "clearArtwork": "清除封面",
   "exportArtwork": "匯出封面",
   "exportArtworkSuccess": "封面已成功匯出",

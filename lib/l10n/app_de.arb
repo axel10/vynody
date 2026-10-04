@@ -490,6 +490,8 @@
   "editTagsAction": "Tags bearbeiten",
   "editSongTagsTitle": "Song-Tags bearbeiten",
   "changeArtwork": "Cover ändern",
+  "chooseFromPhotos": "Aus Fotos auswählen",
+  "chooseFromFiles": "Aus Dateien auswählen",
   "clearArtwork": "Cover entfernen",
   "exportArtwork": "Cover exportieren",
   "exportArtworkSuccess": "Cover erfolgreich exportiert",

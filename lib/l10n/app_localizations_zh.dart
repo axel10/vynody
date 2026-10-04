@@ -1305,6 +1305,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get changeArtwork => '更换封面';
 
   @override
+  String get chooseFromPhotos => '从相册选择';
+
+  @override
+  String get chooseFromFiles => '从文件选择';
+
+  @override
   String get clearArtwork => '清除封面';
 
   @override
@@ -6418,6 +6424,12 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get changeArtwork => '更換封面';
+
+  @override
+  String get chooseFromPhotos => '從相簿選取';
+
+  @override
+  String get chooseFromFiles => '從檔案選取';
 
   @override
   String get clearArtwork => '清除封面';

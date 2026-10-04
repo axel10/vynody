@@ -490,6 +490,8 @@
   "editTagsAction": "Modifier les tags",
   "editSongTagsTitle": "Modifier les étiquettes de la chanson",
   "changeArtwork": "Changer la pochette",
+  "chooseFromPhotos": "Choisir dans Photos",
+  "chooseFromFiles": "Choisir dans Fichiers",
   "clearArtwork": "Effacer la pochette",
   "exportArtwork": "Exporter la pochette",
   "exportArtworkSuccess": "Pochette exportée avec succès",

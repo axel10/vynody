@@ -1358,6 +1358,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get changeArtwork => 'Changer la pochette';
 
   @override
+  String get chooseFromPhotos => 'Choisir dans Photos';
+
+  @override
+  String get chooseFromFiles => 'Choisir dans Fichiers';
+
+  @override
   String get clearArtwork => 'Effacer la pochette';
 
   @override

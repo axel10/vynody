@@ -1318,6 +1318,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get changeArtwork => '커버 변경';
 
   @override
+  String get chooseFromPhotos => '사진에서 선택';
+
+  @override
+  String get chooseFromFiles => '파일에서 선택';
+
+  @override
   String get clearArtwork => '커버 지우기';
 
   @override

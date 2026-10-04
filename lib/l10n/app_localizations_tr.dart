@@ -1344,6 +1344,12 @@ class AppLocalizationsTr extends AppLocalizations {
   String get changeArtwork => 'Kapağı Değiştir';
 
   @override
+  String get chooseFromPhotos => 'Fotoğraflardan Seç';
+
+  @override
+  String get chooseFromFiles => 'Dosyalardan Seç';
+
+  @override
   String get clearArtwork => 'Kapağı Temizle';
 
   @override

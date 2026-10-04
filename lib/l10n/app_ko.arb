@@ -490,6 +490,8 @@
   "editTagsAction": "태그 편집",
   "editSongTagsTitle": "노래 태그 편집",
   "changeArtwork": "커버 변경",
+  "chooseFromPhotos": "사진에서 선택",
+  "chooseFromFiles": "파일에서 선택",
   "clearArtwork": "커버 지우기",
   "exportArtwork": "커버 내보내기",
   "exportArtworkSuccess": "커버를 성공적으로 내보냈습니다",

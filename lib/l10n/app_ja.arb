@@ -490,6 +490,8 @@
   "editTagsAction": "タグを編集",
   "editSongTagsTitle": "楽曲タグを編集",
   "changeArtwork": "カバーを変更",
+  "chooseFromPhotos": "写真から選択",
+  "chooseFromFiles": "ファイルから選択",
   "clearArtwork": "カバーをクリア",
   "exportArtwork": "カバーをエクスポート",
   "exportArtworkSuccess": "カバーをエクスポートしました",

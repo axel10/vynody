@@ -1313,6 +1313,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get changeArtwork => 'カバーを変更';
 
   @override
+  String get chooseFromPhotos => '写真から選択';
+
+  @override
+  String get chooseFromFiles => 'ファイルから選択';
+
+  @override
   String get clearArtwork => 'カバーをクリア';
 
   @override

@@ -498,6 +498,8 @@
   "editTagsAction": "Edit Tags",
   "editSongTagsTitle": "Edit Song Tags",
   "changeArtwork": "Change Cover",
+  "chooseFromPhotos": "Choose from Photos",
+  "chooseFromFiles": "Choose from Files",
   "clearArtwork": "Clear Cover",
   "exportArtwork": "Export Cover",
   "exportArtworkSuccess": "Cover exported successfully",

@@ -554,6 +554,8 @@
   "editTagsAction": "Etiketleri Düzenle",
   "editSongTagsTitle": "Şarkı Etiketlerini Düzenle",
   "changeArtwork": "Kapağı Değiştir",
+  "chooseFromPhotos": "Fotoğraflardan Seç",
+  "chooseFromFiles": "Dosyalardan Seç",
   "clearArtwork": "Kapağı Temizle",
   "exportArtwork": "Kapağı Dışa Aktar",
   "exportArtworkSuccess": "Kapak başarıyla dışa aktarıldı",

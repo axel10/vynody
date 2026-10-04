@@ -2595,6 +2595,18 @@ abstract class AppLocalizations {
   /// **'更换封面'**
   String get changeArtwork;
 
+  /// No description provided for @chooseFromPhotos.
+  ///
+  /// In zh, this message translates to:
+  /// **'从相册选择'**
+  String get chooseFromPhotos;
+
+  /// No description provided for @chooseFromFiles.
+  ///
+  /// In zh, this message translates to:
+  /// **'从文件选择'**
+  String get chooseFromFiles;
+
   /// No description provided for @clearArtwork.
   ///
   /// In zh, this message translates to:

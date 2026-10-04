@@ -1358,6 +1358,12 @@ class AppLocalizationsDe extends AppLocalizations {
   String get changeArtwork => 'Cover ändern';
 
   @override
+  String get chooseFromPhotos => 'Aus Fotos auswählen';
+
+  @override
+  String get chooseFromFiles => 'Aus Dateien auswählen';
+
+  @override
   String get clearArtwork => 'Cover entfernen';
 
   @override

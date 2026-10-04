@@ -1035,6 +1035,8 @@
   "editTagsAction": "编辑标签",
   "editSongTagsTitle": "编辑歌曲标签",
   "changeArtwork": "更换封面",
+  "chooseFromPhotos": "从相册选择",
+  "chooseFromFiles": "从文件选择",
   "clearArtwork": "清除封面",
   "exportArtwork": "导出封面",
   "exportArtworkSuccess": "封面已成功导出",
