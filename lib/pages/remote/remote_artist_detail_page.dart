@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oktoast/oktoast.dart';
@@ -11,6 +10,7 @@ import '../../player/audio/playback_source.dart';
 import '../../player/remote/remote_server_models.dart';
 import '../../player/remote/remote_server_riverpod.dart';
 import '../../player/remote/clients/remote_media_library_client.dart';
+import '../../widgets/album_detail_widgets.dart';
 import '../../widgets/remote_artwork_widget.dart';
 import '../../widgets/mini_player_wrapper.dart';
 import '../../widgets/playing_equalizer_icon.dart';
@@ -24,13 +24,14 @@ import '../../widgets/library_selection_scope.dart';
 import 'remote_download_manager_page.dart';
 import 'widgets/remote_library_selection_actions.dart';
 
-class RemoteArtistDetailPage extends ConsumerWidget {
+class RemoteArtistDetailPage extends ConsumerStatefulWidget {
   final RemoteServer server;
   final String password;
   final String artistId;
   final String artistName;
   final String? coverArtId;
   final int? albumCount;
+  final VoidCallback? onGoBack;
 
   const RemoteArtistDetailPage({
     super.key,
@@ -40,59 +41,111 @@ class RemoteArtistDetailPage extends ConsumerWidget {
     required this.artistName,
     this.coverArtId,
     this.albumCount,
+    this.onGoBack,
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
+  ConsumerState<RemoteArtistDetailPage> createState() =>
+      _RemoteArtistDetailPageState();
+}
 
-    Widget content = Scaffold(
-      appBar: AppBar(
-        scrolledUnderElevation: 0,
-        surfaceTintColor: Colors.transparent,
-        title: Text(artistName),
-        actions: [
-          IconButton(
-            icon: Badge(
-              isLabelVisible: ref.watch(activeDownloadsCountProvider) > 0,
-              label: Text('${ref.watch(activeDownloadsCountProvider)}'),
-              child: const Icon(Icons.download_rounded, size: 20),
-            ),
-            tooltip: l10n.downloadManager,
-            onPressed: () {
-              Navigator.of(context, rootNavigator: true).push(
-                MaterialPageRoute(
-                  builder: (_) => const RemoteDownloadManagerPage(),
-                ),
-              );
+class _RemoteArtistDetailPageState
+    extends ConsumerState<RemoteArtistDetailPage> {
+  late final ScrollController _scrollController;
+  final ValueNotifier<bool> _isHeaderVisible = ValueNotifier<bool>(true);
+  final ValueNotifier<double> _scrollProgress = ValueNotifier<double>(0.0);
+  bool _isLoading = true;
+  bool _hasError = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController()..addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    final offset = _scrollController.offset;
+    final isVisible = offset < 140.0;
+    final progress = (offset / 100.0).clamp(0.0, 1.0);
+    _scrollProgress.value = progress;
+    if (isVisible != _isHeaderVisible.value) {
+      _isHeaderVisible.value = isVisible;
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    _isHeaderVisible.dispose();
+    _scrollProgress.dispose();
+    super.dispose();
+  }
+
+  static double getBarHeight(BuildContext context) =>
+      AlbumDetailNavBar.getBarHeight(context);
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final double barHeight = getBarHeight(context);
+
+    final Widget content = Scaffold(
+      body: Stack(
+        children: [
+          RemoteArtistDetailContent(
+            server: widget.server,
+            password: widget.password,
+            artistId: widget.artistId,
+            artistName: widget.artistName,
+            coverArtId: widget.coverArtId,
+            albumCount: widget.albumCount,
+            scrollController: _scrollController,
+            topPadding: barHeight + 8,
+            onLoadingStateChanged: (isLoading, hasError) {
+              if (_isLoading != isLoading || _hasError != hasError) {
+                setState(() {
+                  _isLoading = isLoading;
+                  _hasError = hasError;
+                });
+              }
             },
+          ),
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: AlbumDetailNavBar(
+              title: widget.artistName,
+              scrollProgress: (_isLoading || _hasError)
+                  ? const AlwaysStoppedAnimation(1.0)
+                  : _scrollProgress,
+              isCoverVisible: (_isLoading || _hasError)
+                  ? const AlwaysStoppedAnimation(false)
+                  : _isHeaderVisible,
+              onGoBack: widget.onGoBack ?? () => Navigator.of(context).maybePop(),
+              actions: [
+                IconButton(
+                  icon: Badge(
+                    isLabelVisible: ref.watch(activeDownloadsCountProvider) > 0,
+                    label: Text('${ref.watch(activeDownloadsCountProvider)}'),
+                    child: const Icon(Icons.download_rounded, size: 20),
+                  ),
+                  tooltip: l10n.downloadManager,
+                  onPressed: () {
+                    Navigator.of(context, rootNavigator: true).push(
+                      MaterialPageRoute(
+                        builder: (_) => const RemoteDownloadManagerPage(),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
           ),
         ],
       ),
-      body: RemoteArtistDetailContent(
-        server: server,
-        password: password,
-        artistId: artistId,
-        artistName: artistName,
-        coverArtId: coverArtId,
-        albumCount: albumCount,
-      ),
     );
-
-    final bool isDesktop =
-        Platform.isWindows || Platform.isLinux || Platform.isMacOS;
-
-    if (isDesktop) {
-      content = Material(
-        color: Theme.of(context).colorScheme.surface,
-        child: Column(
-          children: [
-            const SizedBox(height: 32),
-            Expanded(child: content),
-          ],
-        ),
-      );
-    }
 
     return MiniPlayerWrapper(child: content);
   }
@@ -105,6 +158,9 @@ class RemoteArtistDetailContent extends ConsumerStatefulWidget {
   final String artistName;
   final String? coverArtId;
   final int? albumCount;
+  final ScrollController? scrollController;
+  final double topPadding;
+  final void Function(bool isLoading, bool hasError)? onLoadingStateChanged;
 
   const RemoteArtistDetailContent({
     super.key,
@@ -114,6 +170,9 @@ class RemoteArtistDetailContent extends ConsumerStatefulWidget {
     required this.artistName,
     this.coverArtId,
     this.albumCount,
+    this.scrollController,
+    this.topPadding = 0.0,
+    this.onLoadingStateChanged,
   });
 
   @override
@@ -246,6 +305,7 @@ class _RemoteArtistDetailContentState
               _isLoading = false;
               _error = null;
             });
+            widget.onLoadingStateChanged?.call(false, false);
             // Revalidate in background
             _revalidateArtistData(client);
             return;
@@ -263,6 +323,7 @@ class _RemoteArtistDetailContentState
       _isLoading = true;
       _error = null;
     });
+    widget.onLoadingStateChanged?.call(true, false);
 
     await _fetchAndApplyArtistData(client, isBackground: false);
   }
@@ -293,6 +354,7 @@ class _RemoteArtistDetailContentState
           _error = l10n.artistNotFound;
           _isLoading = false;
         });
+        widget.onLoadingStateChanged?.call(false, true);
         return;
       }
 
@@ -453,6 +515,9 @@ class _RemoteArtistDetailContentState
           _isLoading = false;
           _error = null;
         });
+        if (!isBackground) {
+          widget.onLoadingStateChanged?.call(false, false);
+        }
       }
 
       final cachePayload = {
@@ -473,6 +538,7 @@ class _RemoteArtistDetailContentState
         _error = e.toString();
         _isLoading = false;
       });
+      widget.onLoadingStateChanged?.call(false, true);
     }
   }
 
@@ -566,21 +632,44 @@ class _RemoteArtistDetailContentState
           child: RefreshIndicator(
             onRefresh: () => _loadArtistData(forceRefresh: true),
             child: CustomScrollView(
+              controller: widget.scrollController,
+              physics: const AlwaysScrollableScrollPhysics(
+                parent: BouncingScrollPhysics(),
+              ),
               slivers: [
                 // Artist Header (Styled similarly to local ArtistDetailContent)
                 SliverToBoxAdapter(
-                  child: Container(
-                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [headerColor, theme.colorScheme.surface],
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  child: OverscrollStretchBuilder(
+                    builder: (context, overscroll) => Stack(
                       children: [
+                        Positioned(
+                          top: -overscroll,
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  headerColor,
+                                  theme.colorScheme.surface,
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        Container(
+                          padding: EdgeInsets.fromLTRB(
+                            20,
+                            widget.topPadding > 0 ? widget.topPadding : 20,
+                            20,
+                            18,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
                         Text(
                           l10n.artistLabel.toUpperCase(),
                           style: theme.textTheme.labelLarge?.copyWith(
@@ -734,7 +823,10 @@ class _RemoteArtistDetailContentState
                       ],
                     ),
                   ),
-                ),
+                ],
+              ),
+            ),
+          ),
 
                 if (_albumSections.isEmpty)
                   SliverFillRemaining(

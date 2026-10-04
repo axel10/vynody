@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -7,8 +6,8 @@ import 'package:vynody/models/artist_summary.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/audio/playback_source.dart';
-import 'package:vynody/player/library/playlist_service.dart';
 import 'package:vynody/utils/song_context_menu_utils.dart';
+import '../widgets/album_detail_widgets.dart';
 import '../widgets/song_thumbnail.dart';
 import '../widgets/remote_media_badge.dart';
 import '../widgets/mini_player_wrapper.dart';
@@ -16,32 +15,79 @@ import '../widgets/library_selection_panel.dart';
 import '../widgets/library_selection_scope.dart';
 import '../widgets/draggable_song_item.dart';
 
-class ArtistDetailPage extends ConsumerWidget {
-  const ArtistDetailPage({super.key, required this.artist});
+class ArtistDetailPage extends ConsumerStatefulWidget {
+  const ArtistDetailPage({
+    super.key,
+    required this.artist,
+    this.onGoBack,
+  });
 
   final ArtistSummary artist;
+  final VoidCallback? onGoBack;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    Widget content = Scaffold(
-      appBar: AppBar(title: Text(artist.name)),
-      body: ArtistDetailContent(artist: artist),
-    );
+  ConsumerState<ArtistDetailPage> createState() => _ArtistDetailPageState();
+}
 
-    final bool isDesktop =
-        Platform.isWindows || Platform.isLinux || Platform.isMacOS;
+class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
+  late final ScrollController _scrollController;
+  final ValueNotifier<bool> _isHeaderVisible = ValueNotifier<bool>(true);
+  final ValueNotifier<double> _scrollProgress = ValueNotifier<double>(0.0);
 
-    if (isDesktop) {
-      content = Material(
-        color: Theme.of(context).colorScheme.surface,
-        child: Column(
-          children: [
-            const SizedBox(height: 32),
-            Expanded(child: content),
-          ],
-        ),
-      );
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController()..addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    final offset = _scrollController.offset;
+    final isVisible = offset < 140.0;
+    final progress = (offset / 100.0).clamp(0.0, 1.0);
+    _scrollProgress.value = progress;
+    if (isVisible != _isHeaderVisible.value) {
+      _isHeaderVisible.value = isVisible;
     }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    _isHeaderVisible.dispose();
+    _scrollProgress.dispose();
+    super.dispose();
+  }
+
+  static double getBarHeight(BuildContext context) =>
+      AlbumDetailNavBar.getBarHeight(context);
+
+  @override
+  Widget build(BuildContext context) {
+    final double barHeight = getBarHeight(context);
+
+    final Widget content = Scaffold(
+      body: Stack(
+        children: [
+          ArtistDetailContent(
+            artist: widget.artist,
+            scrollController: _scrollController,
+            topPadding: barHeight + 8,
+          ),
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: AlbumDetailNavBar(
+              title: widget.artist.name,
+              scrollProgress: _scrollProgress,
+              isCoverVisible: _isHeaderVisible,
+              onGoBack: widget.onGoBack ?? () => Navigator.of(context).maybePop(),
+            ),
+          ),
+        ],
+      ),
+    );
 
     return MiniPlayerWrapper(child: content);
   }
@@ -53,11 +99,15 @@ class ArtistDetailContent extends ConsumerStatefulWidget {
     required this.artist,
     this.showSelectionPanel = true,
     this.hasBottomPanel = false,
+    this.scrollController,
+    this.topPadding = 0.0,
   });
 
   final ArtistSummary artist;
   final bool showSelectionPanel;
   final bool hasBottomPanel;
+  final ScrollController? scrollController;
+  final double topPadding;
 
   @override
   ConsumerState<ArtistDetailContent> createState() => _ArtistDetailContentState();
@@ -107,36 +157,62 @@ class _ArtistDetailContentState extends ConsumerState<ArtistDetailContent>
     return Stack(
       children: [
         CustomScrollView(
+          controller: widget.scrollController,
+          physics: const AlwaysScrollableScrollPhysics(
+            parent: BouncingScrollPhysics(),
+          ),
           slivers: [
             SliverToBoxAdapter(
-              child: Container(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [headerColor, theme.colorScheme.surface],
-                  ),
-                ),
-                child: _ArtistInfo(
-                  artist: widget.artist,
-                  onPlayAll: () => audio.playPlaylist(
-                    displaySongs,
-                    source: PlaybackSource(
-                      type: PlaybackSourceType.artist,
-                      id: widget.artist.queryKey,
-                      name: widget.artist.name,
-                    ),
-                  ),
-                  onShufflePlay: () => audio.playPlaylist(
-                    List.of(displaySongs)..shuffle(),
-                    source: PlaybackSource(
-                      type: PlaybackSourceType.artist,
-                      id: widget.artist.queryKey,
-                      name: widget.artist.name,
-                    ),
-                  ),
-                ),
+              child: OverscrollStretchBuilder(
+                builder: (context, overscroll) {
+                  return Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Positioned(
+                        top: -overscroll,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [headerColor, theme.colorScheme.surface],
+                            ),
+                          ),
+                        ),
+                      ),
+                      Container(
+                        padding: EdgeInsets.fromLTRB(
+                          20,
+                          widget.topPadding > 0 ? widget.topPadding : 20,
+                          20,
+                          16,
+                        ),
+                        child: _ArtistInfo(
+                          artist: widget.artist,
+                          onPlayAll: () => audio.playPlaylist(
+                            displaySongs,
+                            source: PlaybackSource(
+                              type: PlaybackSourceType.artist,
+                              id: widget.artist.queryKey,
+                              name: widget.artist.name,
+                            ),
+                          ),
+                          onShufflePlay: () => audio.playPlaylist(
+                            List.of(displaySongs)..shuffle(),
+                            source: PlaybackSource(
+                              type: PlaybackSourceType.artist,
+                              id: widget.artist.queryKey,
+                              name: widget.artist.name,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
             ),
             if (albumSections.isEmpty)
