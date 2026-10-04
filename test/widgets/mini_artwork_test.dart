@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
-import 'package:vynody/player/scanner/scanner_service.dart';
 import 'package:vynody/widgets/mini_player_widgets.dart';
 import 'package:vynody/widgets/song_thumbnail.dart';
 
@@ -11,8 +10,11 @@ void main() {
   testWidgets('MiniArtwork renders fallback icon when currentMusic is null',
       (tester) async {
     await tester.pumpWidget(
-      const ProviderScope(
-        child: MaterialApp(
+      ProviderScope(
+        overrides: [
+          audioCurrentMusicProvider.overrideWithValue(null),
+        ],
+        child: const MaterialApp(
           home: Scaffold(
             body: MiniArtwork(),
           ),

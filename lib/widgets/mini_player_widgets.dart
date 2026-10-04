@@ -19,7 +19,6 @@ class MiniArtwork extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final currentMusic = ref.watch(audioCurrentMusicProvider);
-    final audioService = ref.watch(audioServiceProvider);
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final fallbackWidget = Container(
@@ -40,6 +39,7 @@ class MiniArtwork extends ConsumerWidget {
       return fallbackWidget;
     }
 
+    final audioService = ref.watch(audioServiceProvider);
     final memoryBytes = currentMusic.artworkBytes ??
         audioService.getCachedArtwork(currentMusic.path);
 

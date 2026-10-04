@@ -42,7 +42,7 @@ import 'package:vynody/player/sharing/sharing_service.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:mobile_storage_listener/mobile_storage_event.dart';
 import 'package:mobile_storage_listener/mobile_storage_listener_platform_interface.dart';
-
+import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:vynody/models/album_summary.dart';
 import 'screenshot_paths.dart';
 
@@ -74,6 +74,22 @@ export 'package:vynody/player/sharing/sharing_riverpod.dart';
 export 'package:vynody/player/sharing/sharing_service.dart';
 export 'package:vynody/widgets/equalizer_panel.dart';
 export 'screenshot_paths.dart';
+
+class FakePathProviderPlatform extends Fake
+    with MockPlatformInterfaceMixin
+    implements PathProviderPlatform {
+  final Directory tempDir;
+  FakePathProviderPlatform(this.tempDir);
+
+  @override
+  Future<String?> getApplicationSupportPath() async => tempDir.path;
+
+  @override
+  Future<String?> getApplicationDocumentsPath() async => tempDir.path;
+
+  @override
+  Future<String?> getTemporaryPath() async => tempDir.path;
+}
 
 /// Helper function to resolve full output path
 File resolveMacosScreenshotOutputFile(String pathOrFilename) => ScreenshotPaths.resolve(pathOrFilename);
@@ -807,6 +823,15 @@ class MockScannerService extends ScannerService {
 
   @override
   Map<String, SongMetadata> get metadataMap => _metadataMap;
+
+  @override
+  Future<SongMetadata?> getSongMetadata(String path) async => _metadataMap[path];
+
+  @override
+  Future<void> loadThumbnailForPath(String path) async {}
+
+  @override
+  Future<void> loadMetadataForPath(String path) async {}
 }
 
 /// Test Settings Service with bypassed timers
@@ -977,6 +1002,16 @@ Future<Uint8List> captureMacosWindow({
   Locale locale = const Locale('zh'),
 }) async {
   await loadMacosTestFonts();
+
+  final tempDir = Directory.systemTemp.createTempSync('macos_harness_path_');
+  PathProviderPlatform.instance = FakePathProviderPlatform(tempDir);
+  addTearDown(() {
+    try {
+      if (tempDir.existsSync()) {
+        tempDir.deleteSync(recursive: true);
+      }
+    } catch (_) {}
+  });
 
   TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
     const MethodChannel('window_manager'),
