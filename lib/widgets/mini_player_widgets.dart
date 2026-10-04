@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
@@ -12,6 +11,8 @@ import 'package:vynody/player/audio/audio_service.dart';
 import 'package:vynody/utils/playback_utils.dart';
 import '../l10n/app_localizations.dart';
 
+import 'song_thumbnail.dart';
+
 class MiniArtwork extends ConsumerWidget {
   const MiniArtwork({super.key});
 
@@ -20,73 +21,40 @@ class MiniArtwork extends ConsumerWidget {
     final currentMusic = ref.watch(audioCurrentMusicProvider);
     final audioService = ref.watch(audioServiceProvider);
 
-    final thumbPath = currentMusic?.thumbnailPath;
-    final artPath = currentMusic?.artworkPath;
-    final hasValidThumbnail =
-        thumbPath != null && File(thumbPath).existsSync();
-    final hasValidArtworkPath = artPath != null && File(artPath).existsSync();
-    final memoryBytes = currentMusic?.artworkBytes ??
-        (currentMusic != null
-            ? audioService.getCachedArtwork(currentMusic.path)
-            : null);
-    final hasMemoryBytes = memoryBytes != null && memoryBytes.isNotEmpty;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final fallbackWidget = Container(
+      width: 36,
+      height: 36,
+      decoration: BoxDecoration(
+        color: isDark ? Colors.grey[900] : Colors.grey[200],
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Icon(
+        Icons.music_note,
+        color: isDark ? Colors.white : Colors.black54,
+        size: 20,
+      ),
+    );
 
-    ImageProvider? imageProvider;
-    if (hasValidThumbnail) {
-      imageProvider = ResizeImage(
-        FileImage(File(thumbPath)),
-        width: 120,
-        height: 120,
-        allowUpscaling: false,
-      );
-    } else if (hasValidArtworkPath) {
-      imageProvider = ResizeImage(
-        FileImage(File(artPath)),
-        width: 120,
-        height: 120,
-        allowUpscaling: false,
-      );
-    } else if (hasMemoryBytes) {
-      imageProvider = ResizeImage(
-        MemoryImage(memoryBytes),
-        width: 120,
-        height: 120,
-        allowUpscaling: false,
-      );
+    if (currentMusic == null) {
+      return fallbackWidget;
     }
 
-    final hasImage = imageProvider != null;
+    final memoryBytes = currentMusic.artworkBytes ??
+        audioService.getCachedArtwork(currentMusic.path);
 
-    return ClipRRect(
+    final songForThumbnail = memoryBytes != null && memoryBytes.isNotEmpty
+        ? currentMusic.copyWith(artworkBytes: memoryBytes)
+        : currentMusic;
+
+    return SongThumbnail.fromSong(
+      songForThumbnail,
+      key: ValueKey('${currentMusic.path}_${memoryBytes?.hashCode ?? 0}'),
+      size: 36,
+      width: 36,
+      height: 36,
       borderRadius: BorderRadius.circular(6),
-      child: Material(
-        type: MaterialType.transparency,
-        child: Container(
-          width: 36,
-          height: 36,
-          color: hasImage
-              ? Colors.transparent
-              : (Theme.of(context).brightness == Brightness.dark
-                  ? Colors.grey[900]
-                  : Colors.grey[200]),
-          child: hasImage
-              ? Image(
-                  image: imageProvider,
-                  fit: BoxFit.cover,
-                  width: 36,
-                  height: 36,
-                  gaplessPlayback: true,
-                  filterQuality: FilterQuality.medium,
-                )
-              : Icon(
-                  Icons.music_note,
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? Colors.white
-                      : Colors.black54,
-                  size: 20,
-                ),
-        ),
-      ),
+      fallbackWidget: fallbackWidget,
     );
   }
 }
