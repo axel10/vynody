@@ -193,6 +193,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
       GlobalKey<FoldersPageState>();
   final GlobalKey<LibraryPageState> _libraryPageKey =
       GlobalKey<LibraryPageState>();
+  final Set<int> _visitedTabs = <int>{};
 
   bool _isOnboardingDialogOpen = false;
   bool _isTrialResetNoticeDialogOpen = false;
@@ -313,6 +314,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
         ? 0
         : (needOnboarding ? 0 : widget.initialIndex);
     _currentIndex = initialIndex;
+    _visitedTabs.add(_currentIndex);
     _lastVolume = ref.read(audioVolumeProvider);
     _audioService = ref.read(audioServiceProvider);
     _uiController = ref.read(mainLayoutUiControllerProvider.notifier);
@@ -706,43 +708,52 @@ class _MainLayoutState extends ConsumerState<MainLayout>
     bool isCoverFlowImmersive,
   ) {
     final bool isPlayback = _currentIndex == 1;
-    final double leftPadding = (useSidebar && !isPlayback) ? 80.0 : 0.0;
-
-    switch (_currentIndex) {
-      case 0:
-        return Padding(
-          padding: EdgeInsets.only(top: 0, left: leftPadding),
-          child: FoldersPage(
-            key: _foldersPageKey,
-            onOpenPlayback: () => _onDestinationSelected(1),
-          ),
-        );
-      case 1:
-        return const PlaybackPage();
-      case 2:
-        return Padding(
-          padding: const EdgeInsets.only(top: 0, left: 0),
-          child: LibraryPage(
-            key: _libraryPageKey,
-            initialTabIndex: widget.initialLibraryTabIndex,
-            initialAlbums3DView: widget.initialAlbums3DView,
-            initialAlbums3DIndex: widget.initialAlbums3DIndex,
-            useSidebar: useSidebar,
-          ),
-        );
-      case 3:
-        return Padding(
-          padding: EdgeInsets.only(top: 0, left: leftPadding),
-          child: const QueuePage(),
-        );
-      case 4:
-        return Padding(
-          padding: EdgeInsets.only(top: isDesktop ? 32 : 0, left: leftPadding),
-          child: const SharingPage(),
-        );
-      default:
-        return const SizedBox.shrink();
+    if (isPlayback) {
+      return const PlaybackPage();
     }
+
+    _visitedTabs.add(_currentIndex);
+    final double leftPadding = useSidebar ? 80.0 : 0.0;
+
+    return IndexedStack(
+      index: _currentIndex.clamp(0, 4),
+      children: [
+        _visitedTabs.contains(0)
+            ? Padding(
+                padding: EdgeInsets.only(top: 0, left: leftPadding),
+                child: FoldersPage(
+                  key: _foldersPageKey,
+                  onOpenPlayback: () => _onDestinationSelected(1),
+                ),
+              )
+            : const SizedBox.shrink(),
+        const SizedBox.shrink(),
+        _visitedTabs.contains(2)
+            ? Padding(
+                padding: const EdgeInsets.only(top: 0, left: 0),
+                child: LibraryPage(
+                  key: _libraryPageKey,
+                  initialTabIndex: widget.initialLibraryTabIndex,
+                  initialAlbums3DView: widget.initialAlbums3DView,
+                  initialAlbums3DIndex: widget.initialAlbums3DIndex,
+                  useSidebar: useSidebar,
+                ),
+              )
+            : const SizedBox.shrink(),
+        _visitedTabs.contains(3)
+            ? Padding(
+                padding: EdgeInsets.only(top: 0, left: leftPadding),
+                child: const QueuePage(),
+              )
+            : const SizedBox.shrink(),
+        _visitedTabs.contains(4)
+            ? Padding(
+                padding: EdgeInsets.only(top: isDesktop ? 32 : 0, left: leftPadding),
+                child: const SharingPage(),
+              )
+            : const SizedBox.shrink(),
+      ],
+    );
   }
 
 
