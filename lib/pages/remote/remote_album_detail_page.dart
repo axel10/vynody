@@ -1,7 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../player/metadata/metadata_database.dart';
@@ -13,6 +11,7 @@ import '../../player/remote/remote_server_models.dart';
 import '../../player/remote/remote_server_riverpod.dart';
 import '../../player/remote/clients/remote_media_library_client.dart';
 import '../../widgets/remote_artwork_widget.dart';
+import '../../widgets/album_detail_widgets.dart';
 import '../../widgets/mini_player_wrapper.dart';
 import '../../widgets/playing_equalizer_icon.dart';
 import '../../dialogs/remote_playlist_dialog.dart';
@@ -62,8 +61,9 @@ class _RemoteAlbumDetailPageState
   Map<String, dynamic>? _albumData;
   List<MusicFile> _tracks = [];
   bool _isStarred = false;
-  final ScrollController _scrollController = ScrollController();
-  bool _isCoverVisible = true;
+  late final ScrollController _scrollController;
+  final ValueNotifier<bool> _isCoverVisible = ValueNotifier<bool>(true);
+  final ValueNotifier<double> _scrollProgress = ValueNotifier<double>(0.0);
   String? _highlightedSongPath;
   Timer? _highlightTimer;
 
@@ -72,7 +72,7 @@ class _RemoteAlbumDetailPageState
   @override
   void initState() {
     super.initState();
-    _scrollController.addListener(_onScroll);
+    _scrollController = ScrollController()..addListener(_onScroll);
     if (widget.highlightedSongPath != null) {
       _highlightedSongPath = widget.highlightedSongPath;
     }
@@ -93,18 +93,22 @@ class _RemoteAlbumDetailPageState
   }
 
   void _onScroll() {
-    final isVisible = _scrollController.offset < 200.0;
-    if (isVisible != _isCoverVisible) {
-      setState(() {
-        _isCoverVisible = isVisible;
-      });
+    final offset = _scrollController.offset;
+    final isVisible = offset < 220.0;
+    final progress = (offset / 140.0).clamp(0.0, 1.0);
+    _scrollProgress.value = progress;
+    if (isVisible != _isCoverVisible.value) {
+      _isCoverVisible.value = isVisible;
     }
   }
 
   @override
   void dispose() {
     _highlightTimer?.cancel();
+    _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
+    _isCoverVisible.dispose();
+    _scrollProgress.dispose();
     super.dispose();
   }
 
@@ -330,6 +334,9 @@ class _RemoteAlbumDetailPageState
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final isPortrait =
+        MediaQuery.of(context).orientation == Orientation.portrait;
     final currentMusic = ref.watch(audioCurrentMusicProvider);
     final coverId = widget.coverArtId ?? _albumData?['coverArt'] as String?;
     final artist = widget.artistName ??
@@ -337,9 +344,6 @@ class _RemoteAlbumDetailPageState
         l10n.unknownArtist;
     final year = _albumData?['year'] as int?;
     final genre = _albumData?['genre'] as String?;
-    final headerColor = theme.colorScheme.secondaryContainer.withValues(
-      alpha: 0.65,
-    );
 
     final bottomOffset = MiniPlayerUiTuning.getListBottomPadding(
       context,
@@ -355,156 +359,224 @@ class _RemoteAlbumDetailPageState
             _albumData?['title'] as String? ??
             widget.albumName);
 
-    Widget content = Scaffold(
-      appBar: AppBar(
-        scrolledUnderElevation: 0,
-        surfaceTintColor: Colors.transparent,
-        title: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 200),
-          child: _isCoverVisible
-              ? const SizedBox.shrink()
-              : Text(
-                  albumTitle,
-                  key: const ValueKey('album_title'),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
+    final double barHeight = AlbumDetailNavBar.getBarHeight(context);
+
+    final metadataWidget = Wrap(
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        _InfoChip(
+          label: l10n.songCount(_tracks.length),
+          isOverlay: isPortrait && isDark,
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.my_location_rounded, size: 20),
-            tooltip: l10n.locateCurrentSong,
-            onPressed: _locateCurrentSong,
+        if (year != null && year > 0)
+          _InfoChip(
+            label: '$year',
+            isOverlay: isPortrait && isDark,
           ),
-          Consumer(
-            builder: (context, ref, child) {
-              final activeCount = ref.watch(activeDownloadsCountProvider);
-              return IconButton(
-                icon: Badge(
-                  isLabelVisible: activeCount > 0,
-                  label: Text('$activeCount'),
-                  child: const Icon(Icons.download_rounded, size: 20),
-                ),
-                tooltip: l10n.downloadManager,
-                onPressed: () {
-                  Navigator.of(context, rootNavigator: true).push(
-                    MaterialPageRoute(
-                      builder: (_) => const RemoteDownloadManagerPage(),
+        if (genre != null && genre.isNotEmpty)
+          _InfoChip(
+            label: genre,
+            isOverlay: isPortrait && isDark,
+          ),
+      ],
+    );
+
+    final outlinedStyle = (isPortrait && isDark)
+        ? OutlinedButton.styleFrom(
+            foregroundColor: Colors.white,
+            side: BorderSide(color: Colors.white.withValues(alpha: 0.4)),
+          )
+        : null;
+
+    final actionButtons = [
+      FilledButton.icon(
+        onPressed: _tracks.isNotEmpty ? () => _playAll(shuffle: false) : null,
+        icon: const Icon(Icons.play_arrow_rounded, size: 20),
+        label: Text(l10n.playAll),
+      ),
+      OutlinedButton.icon(
+        onPressed: _tracks.isNotEmpty ? () => _playAll(shuffle: true) : null,
+        icon: const Icon(Icons.shuffle_rounded, size: 18),
+        label: Text(l10n.shufflePlay),
+        style: outlinedStyle,
+      ),
+      OutlinedButton.icon(
+        onPressed: _tracks.isNotEmpty
+            ? () => RemoteAddToPlaylistDialog.show(
+                  context,
+                  ref: ref,
+                  server: widget.server,
+                  password: widget.password,
+                  songs: _tracks,
+                )
+            : null,
+        icon: const Icon(Icons.playlist_add_rounded, size: 18),
+        label: Text(l10n.addToPlaylist),
+        style: outlinedStyle,
+      ),
+      OutlinedButton.icon(
+        onPressed: _tracks.isNotEmpty
+            ? () async {
+                final notifier =
+                    ref.read(remoteDownloadTasksProvider.notifier);
+                await notifier.enqueueRemoteTracks(
+                  server: widget.server,
+                  password: widget.password,
+                  songs: _tracks,
+                  collectionName: widget.albumName,
+                );
+                if (context.mounted) {
+                  AppSnackBar.show(
+                    context,
+                    ref,
+                    SnackBar(
+                      content: Text(
+                        l10n.batchAddedToDownloadQueue(_tracks.length),
+                      ),
+                      action: SnackBarAction(
+                        label: l10n.viewDownloadProgress,
+                        onPressed: () {
+                          Navigator.of(context, rootNavigator: true).push(
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  const RemoteDownloadManagerPage(),
+                            ),
+                          );
+                        },
+                      ),
                     ),
                   );
-                },
+                }
+              }
+            : null,
+        icon: const Icon(Icons.download_rounded, size: 18),
+        label: Text(l10n.download),
+        style: outlinedStyle,
+      ),
+      OutlinedButton.icon(
+        onPressed: () async {
+          final l10n = AppLocalizations.of(context)!;
+          final client = RemoteMediaLibraryClient.create(
+            server: widget.server,
+            password: widget.password,
+          );
+          if (_isStarred) {
+            final ok = await client.unstar(albumId: widget.albumId);
+            if (ok && mounted) {
+              setState(() => _isStarred = false);
+              showToast(l10n.unstarredSuccess);
+            }
+          } else {
+            final ok = await client.star(albumId: widget.albumId);
+            if (ok && mounted) {
+              setState(() => _isStarred = true);
+              showToast(l10n.starredSuccess);
+            }
+          }
+        },
+        icon: Icon(
+          _isStarred ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+          size: 18,
+          color: _isStarred
+              ? theme.colorScheme.primary
+              : ((isPortrait && isDark) ? Colors.white : null),
+        ),
+        label: Text(
+          l10n.btnFavorite,
+          style: TextStyle(
+            color: _isStarred
+                ? theme.colorScheme.primary
+                : ((isPortrait && isDark) ? Colors.white : null),
+          ),
+        ),
+        style: outlinedStyle,
+      ),
+    ];
+
+    final navActions = [
+      IconButton(
+        icon: const Icon(Icons.my_location_rounded, size: 20),
+        tooltip: l10n.locateCurrentSong,
+        onPressed: _locateCurrentSong,
+      ),
+      Consumer(
+        builder: (context, ref, child) {
+          final activeCount = ref.watch(activeDownloadsCountProvider);
+          return IconButton(
+            icon: Badge(
+              isLabelVisible: activeCount > 0,
+              label: Text('$activeCount'),
+              child: const Icon(Icons.download_rounded, size: 20),
+            ),
+            tooltip: l10n.downloadManager,
+            onPressed: () {
+              Navigator.of(context, rootNavigator: true).push(
+                MaterialPageRoute(
+                  builder: (_) => const RemoteDownloadManagerPage(),
+                ),
               );
             },
-          ),
-        ],
+          );
+        },
       ),
-      body: _isLoading
-          ? const Center(
-              child: SizedBox(
-                width: 32,
-                height: 32,
-                child: CircularProgressIndicator(strokeWidth: 3),
-              ),
-            )
-          : _error != null
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.error_outline_rounded,
-                          size: 48,
-                          color: theme.colorScheme.error,
-                        ),
-                        const SizedBox(height: 12),
-                        Text(l10n.errorWithMessage(_error!), textAlign: TextAlign.center),
-                        const SizedBox(height: 16),
-                        FilledButton.icon(
-                          onPressed: _loadAlbumDetails,
-                          icon: const Icon(Icons.refresh_rounded),
-                          label: Text(l10n.retry),
-                        ),
-                      ],
+    ];
+
+    final Widget scrollBody = RefreshIndicator(
+      onRefresh: () => _loadAlbumDetails(forceRefresh: true),
+      child: CustomScrollView(
+        controller: _scrollController,
+        physics: const AlwaysScrollableScrollPhysics(
+          parent: BouncingScrollPhysics(),
+        ),
+        slivers: [
+          if (!isPortrait)
+            SliverToBoxAdapter(
+              child: SizedBox(height: barHeight),
+            ),
+          SliverToBoxAdapter(
+            child: isPortrait
+                ? AlbumPortraitHeaderBanner(
+                    title: albumTitle,
+                    subtitle: artist,
+                    tagLabel: l10n.albumLabel.toUpperCase(),
+                    metadata: metadataWidget,
+                    actionButtons: actionButtons,
+                    coverBackground: RemoteArtworkWidget(
+                      server: widget.server,
+                      password: widget.password,
+                      coverArtId: coverId,
+                      size: 400,
+                      fit: BoxFit.cover,
+                      borderRadius: BorderRadius.zero,
+                    ),
+                    coverWidget: RemoteArtworkWidget(
+                      server: widget.server,
+                      password: widget.password,
+                      coverArtId: coverId,
+                      size: 160,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    barHeight: barHeight,
+                  )
+                : AlbumLandscapeHeaderBanner(
+                    title: albumTitle,
+                    subtitle: artist,
+                    tagLabel: l10n.albumLabel.toUpperCase(),
+                    metadata: metadataWidget,
+                    actionButtons: actionButtons,
+                    coverWidget: RemoteArtworkWidget(
+                      server: widget.server,
+                      password: widget.password,
+                      coverArtId: coverId,
+                      size: 200,
+                      borderRadius: BorderRadius.circular(16),
                     ),
                   ),
-                )
-              : Stack(
-                  children: [
-                    Positioned.fill(
-                      child: RefreshIndicator(
-                        onRefresh: () => _loadAlbumDetails(forceRefresh: true),
-                        child: CustomScrollView(
-                          controller: _scrollController,
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          slivers: [
-                          // Header Container
-                          SliverToBoxAdapter(
-                            child: Container(
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                  colors: [headerColor, theme.colorScheme.surface],
-                                ),
-                              ),
-                              child: Align(
-                                alignment: Alignment.topCenter,
-                                child: ConstrainedBox(
-                                  constraints: const BoxConstraints(maxWidth: kSingleColumnContentMaxWidth),
-                                  child: Padding(
-                                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-                                    child: LayoutBuilder(
-                                      builder: (context, constraints) {
-                                        final isWide = constraints.maxWidth >= 700;
-                                        final cover = RemoteArtworkWidget(
-                                          server: widget.server,
-                                          password: widget.password,
-                                          coverArtId: coverId,
-                                          size: isWide
-                                              ? 200
-                                              : math.min(200, constraints.maxWidth),
-                                          borderRadius: BorderRadius.circular(16),
-                                        );
-                                        final info = _buildAlbumInfo(
-                                          theme,
-                                          albumTitle,
-                                          artist,
-                                          year,
-                                          genre,
-                                        );
-
-                                        if (isWide) {
-                                          return Row(
-                                            crossAxisAlignment: CrossAxisAlignment.end,
-                                            children: [
-                                              cover,
-                                              const SizedBox(width: 24),
-                                              Expanded(child: info),
-                                            ],
-                                          );
-                                        }
-
-                                        return Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Center(child: cover),
-                                            const SizedBox(height: 20),
-                                            info,
-                                          ],
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-
-                          const SliverToBoxAdapter(child: SizedBox(height: 8)),
-
-                          // Track List
+          ),
+          const SliverToBoxAdapter(child: SizedBox(height: 8)),
+          // Track List
                           SliverFixedExtentList.builder(
                             itemExtent: 52.0,
                             itemCount: _tracks.length,
@@ -740,253 +812,142 @@ class _RemoteAlbumDetailPageState
                           ),
                           SliverToBoxAdapter(child: SizedBox(height: bottomOffset)),
                         ],
-                        ),
                       ),
+                    );
+
+    final Widget content = Scaffold(
+      body: Stack(
+        children: [
+          if (_isLoading)
+            const Center(
+              child: SizedBox(
+                width: 32,
+                height: 32,
+                child: CircularProgressIndicator(strokeWidth: 3),
+              ),
+            )
+          else if (_error != null)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.error_outline_rounded,
+                      size: 48,
+                      color: theme.colorScheme.error,
                     ),
-                    AnimatedSelectionPanel(
-                      isVisible: isSelectionMode,
-                      child: LibrarySelectionPanel(
-                        key: const ValueKey('remote-album-selection-panel'),
-                        selectedSongs: selectedSongs,
-                        allSongs: _tracks,
-                        onToggleSelectAll: () => toggleSelectAllSongs(_tracks),
-                        onCancel: cancelSongSelection,
-                        onAddToFavorites: () =>
-                            RemoteLibrarySelectionActions.handleBatchAddToLocalFavorites(
-                          context: context,
-                          ref: ref,
-                          onFetchSongs: () async => selectedSongs,
-                          onClearSelection: cancelSongSelection,
-                        ),
-                        onAddToCloudFavorites: () =>
-                            RemoteLibrarySelectionActions.handleBatchAddToCloudFavorites(
-                          context: context,
-                          ref: ref,
-                          server: widget.server,
-                          password: widget.password,
-                          onFetchSongs: () async => selectedSongs,
-                          onClearSelection: cancelSongSelection,
-                          onStarredChanged: (starredIds) {
-                            ref
-                                .read(activeRemoteSessionProvider.notifier)
-                                .updateNavidromeSongs(
-                                  starredSongIds: {
-                                    ...?ref
-                                        .read(activeRemoteSessionProvider)
-                                        ?.navidromeStarredSongIds,
-                                    ...starredIds,
-                                  },
-                                );
-                          },
-                        ),
-                        onDownload: () async {
-                          final sel = List<MusicFile>.from(selectedSongs);
-                          if (sel.isEmpty) return;
-                          final notifier =
-                              ref.read(remoteDownloadTasksProvider.notifier);
-                          await notifier.enqueueRemoteTracks(
-                            server: widget.server,
-                            password: widget.password,
-                            songs: sel,
-                            collectionName: widget.albumName,
-                          );
-                          cancelSongSelection();
-                          if (context.mounted) {
-                            AppSnackBar.show(
-                              context,
-                              ref,
-                              SnackBar(
-                                content: Text(
-                                  l10n.batchAddedToDownloadQueue(sel.length),
-                                ),
-                                action: SnackBarAction(
-                                  label: l10n.viewDownloadProgress,
-                                  onPressed: () {
-                                    Navigator.of(context, rootNavigator: true)
-                                        .push(
-                                      MaterialPageRoute(
-                                        builder: (_) =>
-                                            const RemoteDownloadManagerPage(),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ),
-                            );
-                          }
-                        },
-                      ),
+                    const SizedBox(height: 12),
+                    Text(l10n.errorWithMessage(_error!), textAlign: TextAlign.center),
+                    const SizedBox(height: 16),
+                    FilledButton.icon(
+                      onPressed: _loadAlbumDetails,
+                      icon: const Icon(Icons.refresh_rounded),
+                      label: Text(l10n.retry),
                     ),
                   ],
                 ),
-    );
-
-    final bool isDesktop =
-        Platform.isWindows || Platform.isLinux || Platform.isMacOS;
-
-    if (isDesktop) {
-      content = Material(
-        color: theme.colorScheme.surface,
-        child: Column(
-          children: [
-            const SizedBox(height: 32),
-            Expanded(child: content),
-          ],
-        ),
-      );
-    }
-
-    return MiniPlayerWrapper(child: content);
-  }
-
-  Widget _buildAlbumInfo(
-    ThemeData theme,
-    String albumTitle,
-    String artist,
-    int? year,
-    String? genre,
-  ) {
-    final l10n = AppLocalizations.of(context)!;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          l10n.albumLabel.toUpperCase(),
-          style: theme.textTheme.labelMedium?.copyWith(
-            color: theme.colorScheme.secondary,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 1.1,
+              ),
+            )
+          else
+            scrollBody,
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: AlbumDetailNavBar(
+              title: albumTitle,
+              scrollProgress: (_isLoading || _error != null)
+                  ? const AlwaysStoppedAnimation(1.0)
+                  : _scrollProgress,
+              isCoverVisible: (_isLoading || _error != null)
+                  ? const AlwaysStoppedAnimation(false)
+                  : _isCoverVisible,
+              onGoBack: () => Navigator.of(context).maybePop(),
+              actions: navActions,
+            ),
           ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          albumTitle,
-          style: theme.textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          artist,
-          style: TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w500,
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-        const SizedBox(height: 10),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            _InfoChip(label: l10n.songCount(_tracks.length)),
-            if (year != null && year > 0) _InfoChip(label: '$year'),
-            if (genre != null && genre.isNotEmpty) _InfoChip(label: genre),
-          ],
-        ),
-        const SizedBox(height: 18),
-        Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          children: [
-            FilledButton.icon(
-              onPressed: _tracks.isNotEmpty ? () => _playAll(shuffle: false) : null,
-              icon: const Icon(Icons.play_arrow_rounded, size: 20),
-              label: Text(l10n.playAll),
-            ),
-            OutlinedButton.icon(
-              onPressed: _tracks.isNotEmpty ? () => _playAll(shuffle: true) : null,
-              icon: const Icon(Icons.shuffle_rounded, size: 18),
-              label: Text(l10n.shufflePlay),
-            ),
-            OutlinedButton.icon(
-              onPressed: _tracks.isNotEmpty
-                  ? () => RemoteAddToPlaylistDialog.show(
-                        context,
-                        ref: ref,
-                        server: widget.server,
-                        password: widget.password,
-                        songs: _tracks,
-                      )
-                  : null,
-              icon: const Icon(Icons.playlist_add_rounded, size: 18),
-              label: Text(l10n.addToPlaylist),
-            ),
-            OutlinedButton.icon(
-              onPressed: _tracks.isNotEmpty
-                  ? () async {
-                      final notifier =
-                          ref.read(remoteDownloadTasksProvider.notifier);
-                      await notifier.enqueueRemoteTracks(
-                        server: widget.server,
-                        password: widget.password,
-                        songs: _tracks,
-                        collectionName: widget.albumName,
-                      );
-                      if (mounted) {
-                        AppSnackBar.show(
-                          context,
-                          ref,
-                          SnackBar(
-                            content: Text(
-                              l10n.batchAddedToDownloadQueue(_tracks.length),
-                            ),
-                            action: SnackBarAction(
-                              label: l10n.viewDownloadProgress,
-                              onPressed: () {
-                                Navigator.of(context, rootNavigator: true).push(
-                                  MaterialPageRoute(
-                                    builder: (_) =>
-                                        const RemoteDownloadManagerPage(),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                        );
-                      }
-                    }
-                  : null,
-              icon: const Icon(Icons.download_rounded, size: 18),
-              label: Text(l10n.download),
-            ),
-            OutlinedButton.icon(
-              onPressed: () async {
-                final l10n = AppLocalizations.of(context)!;
-                final client = RemoteMediaLibraryClient.create(
+          if (!_isLoading && _error == null)
+            AnimatedSelectionPanel(
+              isVisible: isSelectionMode,
+              child: LibrarySelectionPanel(
+                key: const ValueKey('remote-album-selection-panel'),
+                selectedSongs: selectedSongs,
+                allSongs: _tracks,
+                onToggleSelectAll: () => toggleSelectAllSongs(_tracks),
+                onCancel: cancelSongSelection,
+                onAddToFavorites: () =>
+                    RemoteLibrarySelectionActions.handleBatchAddToLocalFavorites(
+                  context: context,
+                  ref: ref,
+                  onFetchSongs: () async => selectedSongs,
+                  onClearSelection: cancelSongSelection,
+                ),
+                onAddToCloudFavorites: () =>
+                    RemoteLibrarySelectionActions.handleBatchAddToCloudFavorites(
+                  context: context,
+                  ref: ref,
                   server: widget.server,
                   password: widget.password,
-                );
-                if (_isStarred) {
-                  final ok = await client.unstar(albumId: widget.albumId);
-                  if (ok && mounted) {
-                    setState(() => _isStarred = false);
-                    showToast(l10n.unstarredSuccess);
-                  }
-                } else {
-                  final ok = await client.star(albumId: widget.albumId);
-                  if (ok && mounted) {
-                    setState(() => _isStarred = true);
-                    showToast(l10n.starredSuccess);
-                  }
-                }
-              },
-              icon: Icon(
-                _isStarred ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                size: 18,
-                color: _isStarred ? theme.colorScheme.primary : null,
-              ),
-              label: Text(
-                l10n.btnFavorite,
-                style: TextStyle(
-                  color: _isStarred ? theme.colorScheme.primary : null,
+                  onFetchSongs: () async => selectedSongs,
+                  onClearSelection: cancelSongSelection,
+                  onStarredChanged: (starredIds) {
+                    ref
+                        .read(activeRemoteSessionProvider.notifier)
+                        .updateNavidromeSongs(
+                          starredSongIds: {
+                            ...?ref
+                                .read(activeRemoteSessionProvider)
+                                ?.navidromeStarredSongIds,
+                            ...starredIds,
+                          },
+                        );
+                  },
                 ),
+                onDownload: () async {
+                  final sel = List<MusicFile>.from(selectedSongs);
+                  if (sel.isEmpty) return;
+                  final notifier =
+                      ref.read(remoteDownloadTasksProvider.notifier);
+                  await notifier.enqueueRemoteTracks(
+                    server: widget.server,
+                    password: widget.password,
+                    songs: sel,
+                    collectionName: widget.albumName,
+                  );
+                  cancelSongSelection();
+                  if (context.mounted) {
+                    AppSnackBar.show(
+                      context,
+                      ref,
+                      SnackBar(
+                        content: Text(
+                          l10n.batchAddedToDownloadQueue(sel.length),
+                        ),
+                        action: SnackBarAction(
+                          label: l10n.viewDownloadProgress,
+                          onPressed: () {
+                            Navigator.of(context, rootNavigator: true)
+                                .push(
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    const RemoteDownloadManagerPage(),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    );
+                  }
+                },
               ),
             ),
-          ],
-        ),
-      ],
+        ],
+      ),
     );
+
+    return MiniPlayerWrapper(child: content);
   }
 
   String _formatDuration(int millis) {
@@ -998,23 +959,32 @@ class _RemoteAlbumDetailPageState
 }
 
 class _InfoChip extends StatelessWidget {
-  const _InfoChip({required this.label});
+  const _InfoChip({
+    required this.label,
+    this.isOverlay = false,
+  });
 
   final String label;
+  final bool isOverlay;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest,
+        color: isOverlay && isDark
+            ? Colors.white.withValues(alpha: 0.15)
+            : theme.colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
         label,
         style: theme.textTheme.bodySmall?.copyWith(
-          color: theme.colorScheme.onSurfaceVariant,
+          color: isOverlay && isDark
+              ? Colors.white.withValues(alpha: 0.95)
+              : theme.colorScheme.onSurfaceVariant,
           fontWeight: FontWeight.w600,
         ),
       ),
