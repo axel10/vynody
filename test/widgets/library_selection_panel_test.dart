@@ -173,5 +173,47 @@ void main() {
 
     expect(textButtons.last, equals('转码'));
   });
+
+  testWidgets(
+      'LibrarySelectionPanel applies 20pt bottom padding on iOS with 34pt bottom safe area',
+      (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          theme: ThemeData(platform: TargetPlatform.iOS),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('zh'),
+          home: MediaQuery(
+            data: const MediaQueryData(
+              padding: EdgeInsets.only(bottom: 34.0),
+            ),
+            child: Scaffold(
+              body: LibrarySelectionPanel(
+                selectedSongs: [sampleSong],
+                allSongs: [sampleSong],
+                onToggleSelectAll: () {},
+                onCancel: () {},
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final paddingWidget = tester.widget<Padding>(
+      find
+          .descendant(
+            of: find.byType(LibrarySelectionPanel),
+            matching: find.byType(Padding),
+          )
+          .first,
+    );
+    expect(
+      paddingWidget.padding,
+      equals(const EdgeInsets.fromLTRB(16, 0, 16, 20.0)),
+    );
+  });
 }
 

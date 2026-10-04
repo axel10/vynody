@@ -531,10 +531,20 @@ class _LibrarySelectionPanelState extends ConsumerState<LibrarySelectionPanel> {
       ...secondaryActionRows,
     ];
 
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
+    final isIOS = Theme.of(context).platform == TargetPlatform.iOS;
+    // iPhone 上 34 - 14 = 20pt；Android 上有小白条就取小白条高度(16~20)，无小白条保底 12dp
+    final safeBottom = isIOS
+        ? (bottomPadding > 0
+            ? (bottomPadding - 14.0).clamp(12.0, double.infinity)
+            : 12.0)
+        : (bottomPadding > 0 ? bottomPadding : 12.0);
+
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      padding: EdgeInsets.fromLTRB(16, 0, 16, safeBottom),
       child: SafeArea(
         top: false,
+        bottom: false,
         child: Center(
           child: ConstrainedBox(
             constraints: BoxConstraints(maxWidth: isLandscape ? 620 : 372),
