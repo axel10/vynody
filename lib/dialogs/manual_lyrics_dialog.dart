@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
+import '../widgets/app_bottom_sheet.dart';
 
 Future<String?> showManualLyricsDialog(
   BuildContext context, {
   required String initialLyrics,
 }) async {
-  return showDialog<String?>(
+  return showAppAdaptiveModal<String?>(
     context: context,
+    useRootNavigator: true,
     builder: (dialogContext) {
       final l10n = AppLocalizations.of(dialogContext)!;
       return _ManualLyricsDialog(
@@ -55,40 +57,64 @@ class _ManualLyricsDialogState extends State<_ManualLyricsDialog> {
     super.dispose();
   }
 
+  void _submit() {
+    Navigator.of(context).pop(_controller.text.trim());
+  }
+
   @override
   Widget build(BuildContext context) {
-    final currentValue = _controller.text;
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
-    return AlertDialog(
-      title: Text(widget.title),
-      content: SizedBox(
-        width: 520,
-        child: TextField(
-          controller: _controller,
-          autofocus: true,
-          keyboardType: TextInputType.multiline,
-          textInputAction: TextInputAction.newline,
-          maxLines: 14,
-          minLines: 8,
-          decoration: InputDecoration(
-            hintText: widget.hintText,
-            alignLabelWithHint: true,
+    return AppAdaptiveSheet(
+      title: widget.title,
+      sheetMaxWidth: 720,
+      dialogMaxWidth: 640,
+      dialogHeight: 560,
+      expandHeight: true,
+      padding: EdgeInsets.fromLTRB(24, 8, 24, bottomInset),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: TextField(
+              controller: _controller,
+              autofocus: true,
+              keyboardType: TextInputType.multiline,
+              textInputAction: TextInputAction.newline,
+              maxLines: null,
+              expands: true,
+              textAlignVertical: TextAlignVertical.top,
+              decoration: InputDecoration(
+                hintText: widget.hintText,
+                alignLabelWithHint: true,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                contentPadding: const EdgeInsets.all(16),
+              ),
+              onChanged: (_) {
+                setState(() {});
+              },
+            ),
           ),
-          onChanged: (_) {
-            setState(() {});
-          },
-        ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text(widget.cancelLabel),
+              ),
+              const SizedBox(width: 12),
+              FilledButton(
+                onPressed: _submit,
+                child: Text(widget.confirmLabel),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+        ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(widget.cancelLabel),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.of(context).pop(currentValue.trim()),
-          child: Text(widget.confirmLabel),
-        ),
-      ],
     );
   }
 }

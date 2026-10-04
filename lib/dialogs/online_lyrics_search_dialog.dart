@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:vynody/player/lyrics/lyrics_service.dart';
 import 'package:vynody/utils/localized_text.dart';
 import 'package:vynody/utils/app_snack_bar.dart';
+import '../widgets/app_bottom_sheet.dart';
 
 AppLocalizations _l10n() => currentAppL10n;
 
@@ -27,8 +28,9 @@ Future<LyricTrack?> showOnlineLyricsSearchDialog({
   String? queryAlbum,
   Duration? queryDuration,
 }) {
-  return showDialog<LyricTrack>(
+  return showAppAdaptiveModal<LyricTrack>(
     context: context,
+    useRootNavigator: true,
     builder: (dialogContext) {
       return _OnlineLyricsSearchDialog(
         queryTitle: queryTitle,
@@ -229,184 +231,180 @@ class _OnlineLyricsSearchDialogState extends State<_OnlineLyricsSearchDialog> {
     );
   }
 
+  Widget _buildSearchBar(BuildContext context, AppLocalizations l10n) {
+    return TextField(
+      controller: _searchController,
+      textInputAction: TextInputAction.search,
+      onSubmitted: (_) => _reloadTracks(),
+      decoration: InputDecoration(
+        hintText: l10n.searchLyricsPlaceholder,
+        prefixIcon: const Icon(Icons.search_rounded),
+        suffixIcon: ValueListenableBuilder<TextEditingValue>(
+          valueListenable: _searchController,
+          builder: (context, value, _) {
+            return Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (value.text.isNotEmpty)
+                  IconButton(
+                    icon: const Icon(Icons.clear_rounded),
+                    onPressed: () {
+                      _searchController.clear();
+                    },
+                  ),
+                IconButton(
+                  onPressed: _isLoading ? null : _reloadTracks,
+                  icon: const Icon(Icons.send_rounded),
+                  tooltip: l10n.requery,
+                ),
+              ],
+            );
+          },
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(28),
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 12,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
-    final dialogWidth = MediaQuery.sizeOf(
-      context,
-    ).width.clamp(320.0, 780.0).toDouble();
-    final listHeight = (MediaQuery.sizeOf(context).height * 0.48)
-        .clamp(220.0, 480.0)
-        .toDouble();
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
-    return AlertDialog(
-      title: Text(l10n.onlineLyricsResults),
-      content: SizedBox(
-        width: dialogWidth,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: TextField(
-                controller: _searchController,
-                textInputAction: TextInputAction.search,
-                onSubmitted: (_) => _reloadTracks(),
-                decoration: InputDecoration(
-                  hintText: l10n.searchLyricsPlaceholder,
-                  prefixIcon: const Icon(Icons.search_rounded),
-                  suffixIcon: ValueListenableBuilder<TextEditingValue>(
-                    valueListenable: _searchController,
-                    builder: (context, value, _) {
-                      return Row(
-                        mainAxisSize: MainAxisSize.min,
+    final Widget content;
+    if (_isLoading) {
+      content = Center(
+        child: CircularProgressIndicator(
+          color: theme.colorScheme.primary,
+        ),
+      );
+    } else if (_tracks.isEmpty) {
+      content = Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+          child: Text(
+            _lastErrorMessage?.trim().isNotEmpty == true
+                ? _lastErrorMessage!
+                : l10n.noMatchingResults,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+      );
+    } else {
+      content = ListView.separated(
+        padding: const EdgeInsets.only(top: 4, bottom: 24),
+        itemCount: _tracks.length,
+        separatorBuilder: (context, separatorIndex) =>
+            const SizedBox(height: 8),
+        itemBuilder: (context, index) {
+          final scoredTrack = _tracks[index];
+          final track = scoredTrack.track;
+          return Material(
+            color: theme.colorScheme.surfaceContainerHighest
+                .withValues(alpha: 0.36),
+            borderRadius: BorderRadius.circular(14),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(14),
+              onTap: () => Navigator.of(context).pop(track),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  14,
+                  12,
+                  10,
+                  12,
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    CircleAvatar(
+                      radius: 18,
+                      backgroundColor:
+                          theme.colorScheme.primaryContainer,
+                      foregroundColor:
+                          theme.colorScheme.onPrimaryContainer,
+                      child: Text('${index + 1}'),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment:
+                            CrossAxisAlignment.start,
                         children: [
-                          if (value.text.isNotEmpty)
-                            IconButton(
-                              icon: const Icon(Icons.clear_rounded),
-                              onPressed: () {
-                                _searchController.clear();
-                              },
-                            ),
-                          IconButton(
-                            onPressed: _isLoading ? null : _reloadTracks,
-                            icon: const Icon(Icons.send_rounded),
-                            tooltip: l10n.requery,
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  track.displayTitle.isNotEmpty
+                                      ? track.displayTitle
+                                      : l10n.untitledLyrics,
+                                  style: theme.textTheme.titleMedium
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              _buildMatchScoreBadge(scoredTrack.score, theme),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            '${l10n.durationLabel}：${_formatDuration(track.duration)}',
+                          ),
+                          Text(
+                            '${l10n.albumLabel}：${_textOrDash(track.albumName)}',
+                          ),
+                          Text(
+                            '${l10n.artistLabel}：${_textOrDash(track.artistName)}',
+                          ),
+                          Text(
+                            track.hasSyncedLyrics
+                                ? '${l10n.hasTimeline}：${l10n.yes}'
+                                : '${l10n.hasTimeline}：${l10n.no}',
                           ),
                         ],
-                      );
-                    },
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(28),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    IconButton(
+                      tooltip: l10n.viewLyricsDetails,
+                      onPressed: () {
+                        _showLyricsDetailDialog(context, track);
+                      },
+                      icon: const Icon(Icons.info_outline),
+                    ),
+                  ],
                 ),
               ),
             ),
-            SizedBox(
-              height: listHeight,
-              child: _isLoading
-                  ? Center(
-                      child: CircularProgressIndicator(
-                        color: theme.colorScheme.primary,
-                      ),
-                    )
-                  : _tracks.isEmpty
-                      ? Center(
-                          child: Text(
-                            _lastErrorMessage?.trim().isNotEmpty == true
-                                ? _lastErrorMessage!
-                                : l10n.noMatchingResults,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                        )
-                      : ListView.separated(
-                          itemCount: _tracks.length,
-                          separatorBuilder: (context, separatorIndex) =>
-                              const SizedBox(height: 8),
-                          itemBuilder: (context, index) {
-                            final scoredTrack = _tracks[index];
-                            final track = scoredTrack.track;
-                            return Material(
-                              color: theme.colorScheme.surfaceContainerHighest
-                                  .withValues(alpha: 0.36),
-                              borderRadius: BorderRadius.circular(14),
-                              child: InkWell(
-                                borderRadius: BorderRadius.circular(14),
-                                onTap: () => Navigator.of(context).pop(track),
-                                child: Padding(
-                                  padding: const EdgeInsets.fromLTRB(
-                                    14,
-                                    12,
-                                    10,
-                                    12,
-                                  ),
-                                  child: Row(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      CircleAvatar(
-                                        radius: 18,
-                                        backgroundColor:
-                                            theme.colorScheme.primaryContainer,
-                                        foregroundColor:
-                                            theme.colorScheme.onPrimaryContainer,
-                                        child: Text('${index + 1}'),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Row(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: [
-                                                Expanded(
-                                                  child: Text(
-                                                    track.displayTitle.isNotEmpty
-                                                        ? track.displayTitle
-                                                        : l10n.untitledLyrics,
-                                                    style: theme.textTheme.titleMedium
-                                                        ?.copyWith(
-                                                          fontWeight: FontWeight.w700,
-                                                        ),
-                                                  ),
-                                                ),
-                                                const SizedBox(width: 8),
-                                                _buildMatchScoreBadge(scoredTrack.score, theme),
-                                              ],
-                                            ),
-                                            const SizedBox(height: 6),
-                                            Text(
-                                              '${l10n.durationLabel}：${_formatDuration(track.duration)}',
-                                            ),
-                                            Text(
-                                              '${l10n.albumLabel}：${_textOrDash(track.albumName)}',
-                                            ),
-                                            Text(
-                                              '${l10n.artistLabel}：${_textOrDash(track.artistName)}',
-                                            ),
-                                            Text(
-                                              track.hasSyncedLyrics
-                                                  ? '${l10n.hasTimeline}：${l10n.yes}'
-                                                  : '${l10n.hasTimeline}：${l10n.no}',
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      const SizedBox(width: 6),
-                                      IconButton(
-                                        tooltip: l10n.viewLyricsDetails,
-                                        onPressed: () {
-                                          _showLyricsDetailDialog(context, track);
-                                        },
-                                        icon: const Icon(Icons.info_outline),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-            ),
-          ],
-        ),
+          );
+        },
+      );
+    }
+
+    return AppAdaptiveSheet(
+      title: l10n.onlineLyricsResults,
+      sheetMaxWidth: 720,
+      dialogMaxWidth: 680,
+      dialogHeight: 580,
+      expandHeight: true,
+      padding: EdgeInsets.fromLTRB(24, 8, 24, bottomInset),
+      headerBottom: Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: _buildSearchBar(context, l10n),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(l10n.close),
-        ),
-      ],
+      child: content,
     );
   }
 
@@ -419,61 +417,56 @@ class _OnlineLyricsSearchDialogState extends State<_OnlineLyricsSearchDialog> {
         : track.plainLyrics?.trim() ?? '';
     final l10n = AppLocalizations.of(context)!;
 
-    await showDialog<void>(
+    await showAppAdaptiveModal<void>(
       context: context,
+      useRootNavigator: true,
       builder: (detailContext) {
         final theme = Theme.of(detailContext);
-        return AlertDialog(
-          title: Text(
-            track.displayTitle.isNotEmpty
-                ? track.displayTitle
-                : l10n.lyricsDetails,
-          ),
-          content: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 720, maxHeight: 520),
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _DetailLine(
-                    label: l10n.durationLabel,
-                    value: _formatDuration(track.duration),
+        return AppAdaptiveSheet(
+          title: track.displayTitle.isNotEmpty
+              ? track.displayTitle
+              : l10n.lyricsDetails,
+          dialogMaxWidth: 640,
+          sheetMaxWidth: 720,
+          dialogHeight: 520,
+          expandHeight: true,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.only(bottom: 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _DetailLine(
+                  label: l10n.durationLabel,
+                  value: _formatDuration(track.duration),
+                ),
+                _DetailLine(
+                  label: l10n.albumLabel,
+                  value: _textOrDash(track.albumName),
+                ),
+                _DetailLine(
+                  label: l10n.artistLabel,
+                  value: _textOrDash(track.artistName),
+                ),
+                _DetailLine(
+                  label: l10n.hasTimeline,
+                  value: track.hasSyncedLyrics ? l10n.yes : l10n.no,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  l10n.lyricsContent,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
                   ),
-                  _DetailLine(
-                    label: l10n.albumLabel,
-                    value: _textOrDash(track.albumName),
-                  ),
-                  _DetailLine(
-                    label: l10n.artistLabel,
-                    value: _textOrDash(track.artistName),
-                  ),
-                  _DetailLine(
-                    label: l10n.hasTimeline,
-                    value: track.hasSyncedLyrics ? l10n.yes : l10n.no,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    l10n.lyricsContent,
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  SelectableText(
-                    lyricsText.isEmpty ? l10n.noLyricsContent : lyricsText,
-                    style: theme.textTheme.bodyMedium?.copyWith(height: 1.55),
-                  ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 10),
+                SelectableText(
+                  lyricsText.isEmpty ? l10n.noLyricsContent : lyricsText,
+                  style: theme.textTheme.bodyMedium?.copyWith(height: 1.55),
+                ),
+              ],
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(detailContext).pop(),
-              child: Text(l10n.close),
-            ),
-          ],
         );
       },
     );

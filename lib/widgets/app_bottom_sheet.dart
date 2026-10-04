@@ -796,13 +796,16 @@ class _AppAdaptiveSheetState extends State<AppAdaptiveSheet>
           height: resolvedHeight,
           child: ClipRRect(
             borderRadius: borderRadius,
-            child: (isDialog || !widget.useSafeArea)
-                ? cardContent
-                : SafeArea(
-                    top: false,
-                    bottom: false,
-                    child: cardContent,
-                  ),
+            child: Material(
+              type: MaterialType.transparency,
+              child: (isDialog || !widget.useSafeArea)
+                  ? cardContent
+                  : SafeArea(
+                      top: false,
+                      bottom: false,
+                      child: cardContent,
+                    ),
+            ),
           ),
         ),
       ),
