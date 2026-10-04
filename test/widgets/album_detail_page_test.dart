@@ -14,6 +14,7 @@ import 'package:vynody/pages/album_detail_page.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/scanner/scanner_service.dart';
 import 'package:vynody/player/settings/settings_service.dart';
+import 'package:vynody/widgets/album_detail_widgets.dart';
 
 import 'helpers/mobile_screenshot_harness.dart';
 
@@ -38,6 +39,7 @@ void main() {
   late AlbumSummary sampleAlbum;
   late MockAudioService audioService;
   late MockScannerService scannerService;
+  late dynamic demoData;
 
   setUpAll(() async {
     testTempDir = await Directory.systemTemp.createTemp('album_detail_test_');
@@ -46,7 +48,7 @@ void main() {
     final prefs = await SharedPreferences.getInstance();
     settingsService = TestSettingsService(prefs);
 
-    final demoData = createDemoLibraryData(
+    demoData = createDemoLibraryData(
       basePath: '/test/music',
       demoItems: defaultDemoListEn,
     );
@@ -95,7 +97,9 @@ void main() {
       snapshot: snapshot,
       visualizerStream: const Stream.empty(),
     );
+  });
 
+  setUp(() {
     scannerService = MockScannerService(
       rootFolders: [],
       metadataMap: demoData.metadataMap,
@@ -160,5 +164,36 @@ void main() {
 
     // Verify that the title in the frosted glass top bar becomes visible after scrolling
     expect(find.byKey(const ValueKey('album_title')), findsOneWidget);
+  });
+
+  testWidgets('AlbumDetailPage - landscape mode renders banner aligned with track list', (tester) async {
+    // Landscape dimensions
+    tester.view.physicalSize = const Size(1280 * 2, 800 * 2);
+    tester.view.devicePixelRatio = 2.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    await tester.pumpWidget(
+      buildTestApp(
+        child: AlbumDetailPage(album: sampleAlbum),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Verify AlbumLandscapeHeaderBanner is rendered
+    expect(find.byType(AlbumLandscapeHeaderBanner), findsOneWidget);
+
+    // Verify album title and artist
+    expect(find.text(sampleAlbum.title), findsWidgets);
+    expect(find.text(sampleAlbum.artist), findsWidgets);
+
+    // Verify play buttons
+    expect(find.byIcon(Icons.play_arrow), findsOneWidget);
+    expect(find.byIcon(Icons.shuffle), findsOneWidget);
+
+    // Verify Divider in landscape banner
+    expect(find.byType(Divider), findsWidgets);
   });
 }

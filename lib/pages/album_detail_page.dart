@@ -129,25 +129,48 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage>
         ),
         icon: const Icon(Icons.play_arrow),
         label: Text(l10n.playAll),
-      ),
-      OutlinedButton.icon(
-        onPressed: () => audio.playPlaylist(
-          List.of(widget.album.songs)..shuffle(),
-          source: PlaybackSource(
-            type: PlaybackSourceType.album,
-            id: widget.album.id,
-            name: widget.album.title,
-          ),
-        ),
-        icon: const Icon(Icons.shuffle),
-        label: Text(l10n.shufflePlay),
-        style: (isPortrait && isDark)
-            ? OutlinedButton.styleFrom(
-                foregroundColor: Colors.white,
-                side: BorderSide(color: Colors.white.withValues(alpha: 0.4)),
+        style: !isPortrait
+            ? FilledButton.styleFrom(
+                shape: const StadiumBorder(),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               )
             : null,
       ),
+      isPortrait
+          ? OutlinedButton.icon(
+              onPressed: () => audio.playPlaylist(
+                List.of(widget.album.songs)..shuffle(),
+                source: PlaybackSource(
+                  type: PlaybackSourceType.album,
+                  id: widget.album.id,
+                  name: widget.album.title,
+                ),
+              ),
+              icon: const Icon(Icons.shuffle),
+              label: Text(l10n.shufflePlay),
+              style: isDark
+                  ? OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      side: BorderSide(color: Colors.white.withValues(alpha: 0.4)),
+                    )
+                  : null,
+            )
+          : FilledButton.tonalIcon(
+              onPressed: () => audio.playPlaylist(
+                List.of(widget.album.songs)..shuffle(),
+                source: PlaybackSource(
+                  type: PlaybackSourceType.album,
+                  id: widget.album.id,
+                  name: widget.album.title,
+                ),
+              ),
+              icon: const Icon(Icons.shuffle),
+              label: Text(l10n.shufflePlay),
+              style: FilledButton.styleFrom(
+                shape: const StadiumBorder(),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              ),
+            ),
     ];
 
     final Widget scrollBody = CustomScrollView(
@@ -182,7 +205,7 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage>
                   actionButtons: actionButtons,
                   coverWidget: AlbumCover(
                     album: widget.album,
-                    size: 200,
+                    size: 220,
                     enableHero: true,
                   ),
                 ),
@@ -401,6 +424,9 @@ class _AlbumSongItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final isPortrait =
+        MediaQuery.of(context).orientation == Orientation.portrait;
     final durationLabel = _formatDuration(song.durationMillis);
     final trackLabel = '${index + 1}'.padLeft(2, '0');
     final isTileSelected = isSelectionMode ? isSelected : isCurrent;
@@ -434,72 +460,88 @@ class _AlbumSongItem extends StatelessWidget {
             ),
           );
 
-    final tileWidget = Material(
-      color: isTileSelected
-          ? theme.colorScheme.primaryContainer.withValues(alpha: 0.35)
-          : Colors.transparent,
-      child: InkWell(
-        enableFeedback: false,
-        canRequestFocus: false,
-        onTap: onTap,
-        onLongPress: onLongPress,
-        onSecondaryTapDown: onSecondaryTapDown,
-        child: Align(
-          alignment: Alignment.center,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: kSingleColumnContentMaxWidth),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-              child: Row(
-                children: [
-                  leadingWidget,
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Flexible(
-                              child: Text(
-                                song.displayName,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: theme.textTheme.bodyLarge?.copyWith(
-                                  color: isCurrent ? theme.colorScheme.primary : null,
-                                  fontWeight: isCurrent ? FontWeight.w700 : null,
-                                ),
-                              ),
-                            ),
-                            RemoteMediaBadge.songTrailing(
-                              song: song,
-                              isMixed: showRemoteIndicator,
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          song.artist ?? unknownArtist,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
+    final tileWidget = Align(
+      alignment: Alignment.center,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: kSingleColumnContentMaxWidth),
+        child: Container(
+          decoration: (!isPortrait)
+              ? BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(
+                      color: theme.colorScheme.outlineVariant.withValues(
+                        alpha: isDark ? 0.5 : 0.4,
+                      ),
+                      width: 0.8,
                     ),
                   ),
-                  if (durationLabel != null) ...[
-                    const SizedBox(width: 12),
-                    Text(
-                      durationLabel,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
+                )
+              : null,
+          child: Material(
+            color: isTileSelected
+                ? theme.colorScheme.primaryContainer.withValues(alpha: 0.35)
+                : Colors.transparent,
+            borderRadius: !isPortrait ? BorderRadius.circular(8) : BorderRadius.zero,
+            child: InkWell(
+              borderRadius: !isPortrait ? BorderRadius.circular(8) : BorderRadius.zero,
+              enableFeedback: false,
+              canRequestFocus: false,
+              onTap: onTap,
+              onLongPress: onLongPress,
+              onSecondaryTapDown: onSecondaryTapDown,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                child: Row(
+                  children: [
+                    leadingWidget,
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  song.displayName,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.bodyLarge?.copyWith(
+                                    color: isCurrent ? theme.colorScheme.primary : null,
+                                    fontWeight: isCurrent ? FontWeight.w700 : null,
+                                  ),
+                                ),
+                              ),
+                              RemoteMediaBadge.songTrailing(
+                                song: song,
+                                isMixed: showRemoteIndicator,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            song.artist ?? unknownArtist,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
+                    if (durationLabel != null) ...[
+                      const SizedBox(width: 12),
+                      Text(
+                        durationLabel,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
             ),
           ),

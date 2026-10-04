@@ -4,6 +4,8 @@ import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import 'package:vynody/utils/layout_constants.dart';
+
 /// Contextual style properties computed by [AlbumDetailNavBar].
 class AlbumDetailNavBarStyle {
   final Color navBackgroundColor;
@@ -424,75 +426,101 @@ class AlbumLandscapeHeaderBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final headerColor = theme.colorScheme.secondaryContainer.withValues(
-      alpha: 0.65,
-    );
+    final isDark = theme.brightness == Brightness.dark;
 
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [headerColor, theme.colorScheme.surface],
-        ),
-        border: Border.all(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2),
-        ),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
+    return Align(
+      alignment: Alignment.center,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: kSingleColumnContentMaxWidth),
         child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              coverWidget,
-              const SizedBox(width: 24),
-              Expanded(
-                child: Column(
+              Padding(
+                padding: const EdgeInsets.only(top: 16, bottom: 24),
+                child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (tagLabel != null && tagLabel!.isNotEmpty) ...[
-                      Text(
-                        tagLabel!,
-                        style: theme.textTheme.labelMedium?.copyWith(
-                          color: theme.colorScheme.secondary,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 1.1,
-                        ),
+                    Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(
+                              alpha: isDark ? 0.35 : 0.12,
+                            ),
+                            blurRadius: 18,
+                            spreadRadius: 0,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 6),
-                    ],
-                    Text(
-                      title,
-                      style: theme.textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: coverWidget,
                       ),
                     ),
-                    if (subtitle != null && subtitle!.isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      Text(
-                        subtitle!,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
+                    const SizedBox(width: 28),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (tagLabel != null && tagLabel!.isNotEmpty) ...[
+                            Text(
+                              tagLabel!,
+                              style: theme.textTheme.labelMedium?.copyWith(
+                                color: theme.colorScheme.secondary,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 1.1,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                          ],
+                          Text(
+                            title,
+                            style: theme.textTheme.headlineMedium?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.5,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          if (subtitle != null && subtitle!.isNotEmpty) ...[
+                            const SizedBox(height: 8),
+                            Text(
+                              subtitle!,
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                color: theme.colorScheme.primary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                          if (metadata != null) ...[
+                            const SizedBox(height: 10),
+                            metadata!,
+                          ],
+                          if (actionButtons.isNotEmpty) ...[
+                            const SizedBox(height: 20),
+                            Wrap(
+                              spacing: 12,
+                              runSpacing: 12,
+                              children: actionButtons,
+                            ),
+                          ],
+                        ],
                       ),
-                    ],
-                    if (metadata != null) ...[
-                      const SizedBox(height: 12),
-                      metadata!,
-                    ],
-                    if (actionButtons.isNotEmpty) ...[
-                      const SizedBox(height: 20),
-                      Wrap(
-                        spacing: 12,
-                        runSpacing: 12,
-                        children: actionButtons,
-                      ),
-                    ],
+                    ),
                   ],
+                ),
+              ),
+              Divider(
+                height: 1,
+                thickness: 1.0,
+                color: theme.colorScheme.outlineVariant.withValues(
+                  alpha: isDark ? 0.5 : 0.4,
                 ),
               ),
             ],

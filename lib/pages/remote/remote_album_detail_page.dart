@@ -388,13 +388,24 @@ class _RemoteAlbumDetailPageState
             foregroundColor: Colors.white,
             side: BorderSide(color: Colors.white.withValues(alpha: 0.4)),
           )
-        : null;
+        : (!isPortrait
+            ? OutlinedButton.styleFrom(
+                shape: const StadiumBorder(),
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 11),
+              )
+            : null);
 
     final actionButtons = [
       FilledButton.icon(
         onPressed: _tracks.isNotEmpty ? () => _playAll(shuffle: false) : null,
         icon: const Icon(Icons.play_arrow_rounded, size: 20),
         label: Text(l10n.playAll),
+        style: !isPortrait
+            ? FilledButton.styleFrom(
+                shape: const StadiumBorder(),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              )
+            : null,
       ),
       OutlinedButton.icon(
         onPressed: _tracks.isNotEmpty ? () => _playAll(shuffle: true) : null,
@@ -570,12 +581,12 @@ class _RemoteAlbumDetailPageState
                       server: widget.server,
                       password: widget.password,
                       coverArtId: coverId,
-                      size: 200,
-                      borderRadius: BorderRadius.circular(16),
+                      size: 220,
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
           ),
-          const SliverToBoxAdapter(child: SizedBox(height: 8)),
+          if (isPortrait) const SliverToBoxAdapter(child: SizedBox(height: 8)),
           // Track List
                           SliverFixedExtentList.builder(
                             itemExtent: 52.0,
@@ -634,58 +645,74 @@ class _RemoteAlbumDetailPageState
                                     toggleSongSelection(song.path);
                                   }
                                 },
-                                child: AnimatedContainer(
-                                  duration: const Duration(milliseconds: 300),
-                                  curve: Curves.easeInOut,
-                                  decoration: BoxDecoration(
-                                    color: isSelectionMode && isSelected
-                                        ? theme.colorScheme.primaryContainer
-                                            .withValues(alpha: 0.35)
-                                        : (isHighlighted
-                                            ? theme.colorScheme.primaryContainer
-                                                .withValues(alpha: 0.6)
-                                            : (isPlaying
-                                                ? theme.colorScheme.primaryContainer
-                                                    .withValues(alpha: 0.35)
-                                                : Colors.transparent)),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Material(
-                                    color: Colors.transparent,
-                                    borderRadius: BorderRadius.circular(8),
-                                    child: InkWell(
-                                      borderRadius: BorderRadius.circular(8),
-                                      onTap: () {
-                                        handleSongTap(
-                                          index: index,
-                                          songPath: song.path,
-                                          allSongs: _tracks,
-                                          onNormalTap: () async {
-                                            final audioService =
-                                                ref.read(audioServiceProvider);
-                                            await audioService.playPlaylist(
-                                              _tracks,
-                                              initialIndex: index,
-                                              source: PlaybackSource(
-                                                type: PlaybackSourceType.album,
-                                                id: 'remote-${widget.server.id}-${widget.albumId}',
-                                                name: widget.albumName,
+                                child: Align(
+                                  alignment: Alignment.center,
+                                  child: ConstrainedBox(
+                                    constraints: const BoxConstraints(
+                                      maxWidth: kSingleColumnContentMaxWidth,
+                                    ),
+                                    child: Container(
+                                      decoration: (!isPortrait)
+                                          ? BoxDecoration(
+                                              border: Border(
+                                                bottom: BorderSide(
+                                                  color: theme
+                                                      .colorScheme.outlineVariant
+                                                      .withValues(
+                                                    alpha: isDark ? 0.5 : 0.4,
+                                                  ),
+                                                  width: 0.8,
+                                                ),
                                               ),
-                                            );
-                                          },
-                                        );
-                                      },
-                                      child: Align(
-                                        alignment: Alignment.center,
-                                        child: ConstrainedBox(
-                                          constraints:
-                                              const BoxConstraints(maxWidth: kSingleColumnContentMaxWidth),
-                                          child: Padding(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 16,
-                                              vertical: 6,
-                                            ),
-                                            child: Row(
+                                            )
+                                          : null,
+                                      child: AnimatedContainer(
+                                        duration: const Duration(milliseconds: 300),
+                                        curve: Curves.easeInOut,
+                                        decoration: BoxDecoration(
+                                          color: isSelectionMode && isSelected
+                                              ? theme.colorScheme.primaryContainer
+                                                  .withValues(alpha: 0.35)
+                                              : (isHighlighted
+                                                  ? theme.colorScheme.primaryContainer
+                                                      .withValues(alpha: 0.6)
+                                                  : (isPlaying
+                                                      ? theme.colorScheme.primaryContainer
+                                                          .withValues(alpha: 0.35)
+                                                      : Colors.transparent)),
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: Material(
+                                          color: Colors.transparent,
+                                          borderRadius: BorderRadius.circular(8),
+                                          child: InkWell(
+                                            borderRadius: BorderRadius.circular(8),
+                                            onTap: () {
+                                              handleSongTap(
+                                                index: index,
+                                                songPath: song.path,
+                                                allSongs: _tracks,
+                                                onNormalTap: () async {
+                                                  final audioService =
+                                                      ref.read(audioServiceProvider);
+                                                  await audioService.playPlaylist(
+                                                    _tracks,
+                                                    initialIndex: index,
+                                                    source: PlaybackSource(
+                                                      type: PlaybackSourceType.album,
+                                                      id: 'remote-${widget.server.id}-${widget.albumId}',
+                                                      name: widget.albumName,
+                                                    ),
+                                                  );
+                                                },
+                                              );
+                                            },
+                                            child: Padding(
+                                              padding: const EdgeInsets.symmetric(
+                                                horizontal: 16,
+                                                vertical: 6,
+                                              ),
+                                              child: Row(
                                               children: [
                                                 SizedBox(
                                                   width: _tracks.length >= 100 ? 40 : 32,
@@ -806,9 +833,10 @@ class _RemoteAlbumDetailPageState
                                   ),
                                 ),
                               ),
-                              ),
-                            );
-                          },
+                            ),
+                          ),
+                        );
+                      },
                           ),
                           SliverToBoxAdapter(child: SizedBox(height: bottomOffset)),
                         ],
