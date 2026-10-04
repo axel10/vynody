@@ -7,8 +7,17 @@ class AppDragHandle extends StatelessWidget {
   /// 点击横条的回调，默认行为为关闭当前弹出的抽屉 [Navigator.pop]
   final VoidCallback? onTap;
 
+  /// 竖向拖拽开始回调
+  final GestureDragStartCallback? onVerticalDragStart;
+
+  /// 竖向拖拽更新回调
+  final GestureDragUpdateCallback? onVerticalDragUpdate;
+
   /// 竖向拖拽结束回调（如下拉关闭）
   final GestureDragEndCallback? onVerticalDragEnd;
+
+  /// 竖向拖拽取消回调
+  final GestureDragCancelCallback? onVerticalDragCancel;
 
   /// 横条的颜色，未指定时自适应亮色/暗色主题
   final Color? color;
@@ -25,7 +34,10 @@ class AppDragHandle extends StatelessWidget {
   const AppDragHandle({
     super.key,
     this.onTap,
+    this.onVerticalDragStart,
+    this.onVerticalDragUpdate,
     this.onVerticalDragEnd,
+    this.onVerticalDragCancel,
     this.color,
     this.width = 36,
     this.height = 4,
@@ -42,25 +54,25 @@ class AppDragHandle extends StatelessWidget {
             ? Colors.white.withValues(alpha: 0.25)
             : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.35));
 
-    return Center(
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap ?? () => Navigator.of(context).pop(),
-        onVerticalDragEnd: onVerticalDragEnd ??
-            (details) {
-              if (details.primaryVelocity != null &&
-                  details.primaryVelocity! > 250) {
-                Navigator.of(context).pop();
-              }
-            },
-        child: Padding(
-          padding: padding,
-          child: Container(
-            width: width,
-            height: height,
-            decoration: BoxDecoration(
-              color: handleColor,
-              borderRadius: BorderRadius.circular(height / 2),
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap ?? () => Navigator.of(context).pop(),
+      onVerticalDragStart: onVerticalDragStart,
+      onVerticalDragUpdate: onVerticalDragUpdate,
+      onVerticalDragEnd: onVerticalDragEnd,
+      onVerticalDragCancel: onVerticalDragCancel,
+      child: SizedBox(
+        width: double.infinity,
+        child: Center(
+          child: Padding(
+            padding: padding,
+            child: Container(
+              width: width,
+              height: height,
+              decoration: BoxDecoration(
+                color: handleColor,
+                borderRadius: BorderRadius.circular(height / 2),
+              ),
             ),
           ),
         ),
@@ -277,7 +289,7 @@ class AppAdaptiveSheetScope extends InheritedWidget {
 /// - 窄屏 / 竖屏下：呈现为带顶部药丸横条、底部贴合圆角的 Bottom Sheet
 /// - 宽屏 / 横屏 / 桌面端：呈现为四周全圆角、精致阴影、居中浮动的 Dialog 弹窗
 /// - 横竖屏或窗口缩放时无缝平滑变形过渡，无需重开
-class AppAdaptiveSheet extends StatelessWidget {
+class AppAdaptiveSheet extends StatefulWidget {
   /// 抽屉/弹窗主体内容
   final Widget child;
 
@@ -408,6 +420,106 @@ class AppAdaptiveSheet extends StatelessWidget {
     this.useSafeArea = true,
   });
 
+  @override
+  State<AppAdaptiveSheet> createState() => _AppAdaptiveSheetState();
+}
+
+class _AppAdaptiveSheetState extends State<AppAdaptiveSheet>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _animController;
+  Animation<double>? _offsetAnimation;
+  double _dragOffset = 0.0;
+  bool _isDragging = false;
+  bool _isDismissing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 220),
+    );
+    _animController.addListener(() {
+      if (_offsetAnimation != null) {
+        setState(() {
+          _dragOffset = _offsetAnimation!.value;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _animController.dispose();
+    super.dispose();
+  }
+
+  void _handleDragStart(DragStartDetails details) {
+    if (_isDismissing) return;
+    _animController.stop();
+    _isDragging = true;
+  }
+
+  void _handleDragUpdate(DragUpdateDetails details) {
+    if (_isDismissing || !_isDragging) return;
+    final delta = details.primaryDelta ?? 0.0;
+    setState(() {
+      if (_dragOffset + delta < 0) {
+        // 向上拖拽阻尼（系数 0.25），最多向上拉伸 24px
+        _dragOffset = math.max(-24.0, _dragOffset + delta * 0.25);
+      } else {
+        // 向下拖拽 1:1 跟随手指位移
+        _dragOffset += delta;
+      }
+    });
+  }
+
+  void _handleDragEnd(
+    DragEndDetails details, {
+    required double effectiveMaxHeight,
+    required VoidCallback handleClose,
+  }) {
+    if (_isDismissing || !_isDragging) return;
+    _isDragging = false;
+    final velocity = details.primaryVelocity ?? 0.0;
+
+    // 当向下拖动超过 80 像素，或者向下的滑动速度达到 280 像素/秒以上时触发平滑关闭
+    if (_dragOffset > 80.0 || velocity > 280.0) {
+      _dismiss(handleClose);
+    } else {
+      _restorePosition();
+    }
+  }
+
+  void _handleDragCancel() {
+    if (_isDismissing || !_isDragging) return;
+    _isDragging = false;
+    _restorePosition();
+  }
+
+  void _restorePosition() {
+    if (_dragOffset == 0.0) return;
+    _animController.stop();
+    _animController.duration = const Duration(milliseconds: 220);
+    _offsetAnimation = Tween<double>(
+      begin: _dragOffset,
+      end: 0.0,
+    ).animate(
+      CurvedAnimation(
+        parent: _animController,
+        curve: Curves.easeOutCubic,
+      ),
+    );
+    _animController.forward(from: 0.0);
+  }
+
+  void _dismiss(VoidCallback handleClose) {
+    if (_isDismissing) return;
+    _isDismissing = true;
+    _animController.stop();
+    handleClose();
+  }
+
   Widget? _buildHeader({
     required BuildContext context,
     required bool isDark,
@@ -415,10 +527,10 @@ class AppAdaptiveSheet extends StatelessWidget {
     required bool isDialog,
     required VoidCallback handleClose,
   }) {
-    final effectiveTitleWidget = titleWidget ??
-        (title != null
+    final effectiveTitleWidget = widget.titleWidget ??
+        (widget.title != null
             ? Text(
-                title!,
+                widget.title!,
                 style: TextStyle(
                   color: isDark ? Colors.white : theme.colorScheme.onSurface,
                   fontSize: 20,
@@ -430,10 +542,10 @@ class AppAdaptiveSheet extends StatelessWidget {
               )
             : null);
 
-    final effectiveSubtitleWidget = subtitleWidget ??
-        (subtitle != null
+    final effectiveSubtitleWidget = widget.subtitleWidget ??
+        (widget.subtitle != null
             ? Text(
-                subtitle!,
+                widget.subtitle!,
                 style: TextStyle(
                   color: isDark
                       ? Colors.white.withValues(alpha: 0.5)
@@ -446,22 +558,22 @@ class AppAdaptiveSheet extends StatelessWidget {
               )
             : null);
 
-    final effectiveShowClose = showCloseButton ??
+    final effectiveShowClose = widget.showCloseButton ??
         (effectiveTitleWidget != null || isDialog);
 
     if (effectiveTitleWidget == null &&
         effectiveSubtitleWidget == null &&
-        headerTrailing == null &&
+        widget.headerTrailing == null &&
         !effectiveShowClose) {
       return null;
     }
 
-    final effectiveHeaderPadding = headerPadding ??
+    final effectiveHeaderPadding = widget.headerPadding ??
         EdgeInsets.fromLTRB(
           24,
           isDialog ? 20 : 4,
           effectiveShowClose ? 14 : 24,
-          headerBottom != null ? 6 : 8,
+          widget.headerBottom != null ? 6 : 8,
         );
 
     return Padding(
@@ -485,9 +597,9 @@ class AppAdaptiveSheet extends StatelessWidget {
             )
           else
             const Spacer(),
-          if (headerTrailing != null) ...[
+          if (widget.headerTrailing != null) ...[
             const SizedBox(width: 8),
-            headerTrailing!,
+            widget.headerTrailing!,
           ],
           if (effectiveShowClose) ...[
             const SizedBox(width: 4),
@@ -508,38 +620,43 @@ class AppAdaptiveSheet extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
     final media = MediaQuery.of(context);
 
-    final isDialog = asDialog ??
+    final isDialog = widget.asDialog ??
         AppAdaptiveSheetScope.isDialogMode(
           context,
-          breakpoint: breakpoint,
-          checkOrientation: checkOrientation,
+          breakpoint: widget.breakpoint,
+          checkOrientation: widget.checkOrientation,
         );
+
+    if (isDialog && _dragOffset != 0.0) {
+      _dragOffset = 0.0;
+      _animController.stop();
+    }
 
     final isLandscape = media.orientation == Orientation.landscape;
 
     final effectiveMaxWidth = isDialog
-        ? math.min(dialogMaxWidth, math.max(0.0, media.size.width - 48.0))
+        ? math.min(widget.dialogMaxWidth, math.max(0.0, media.size.width - 48.0))
         : math.min(
-            isLandscape ? landscapeMaxWidth : sheetMaxWidth,
+            isLandscape ? widget.landscapeMaxWidth : widget.sheetMaxWidth,
             media.size.width,
           );
     // 在底部抽屉模式下，顶部保留适度的空白点击区域（状态栏高度 + 舒适的背景点击间隙），方便用户点击背景遮罩退出
     final topDismissPadding =
         isDialog ? 0.0 : math.max(media.padding.top + 36.0, 48.0);
     final effectiveMaxHeight = isDialog
-        ? media.size.height * maxHeightFactor
+        ? media.size.height * widget.maxHeightFactor
         : math.min(
-            media.size.height * maxHeightFactor,
+            media.size.height * widget.maxHeightFactor,
             math.max(200.0, media.size.height - topDismissPadding),
           );
 
     // 解析目标高度
-    double? resolvedHeight = height;
-    if (isDialog && dialogHeight != null) {
-      resolvedHeight = dialogHeight;
-    } else if (!isDialog && sheetHeight != null) {
-      resolvedHeight = sheetHeight;
-    } else if (expandHeight) {
+    double? resolvedHeight = widget.height;
+    if (isDialog && widget.dialogHeight != null) {
+      resolvedHeight = widget.dialogHeight;
+    } else if (!isDialog && widget.sheetHeight != null) {
+      resolvedHeight = widget.sheetHeight;
+    } else if (widget.expandHeight) {
       resolvedHeight = isDialog
           ? math.min(820.0, math.max(360.0, effectiveMaxHeight - 32.0))
           : effectiveMaxHeight;
@@ -548,7 +665,13 @@ class AppAdaptiveSheet extends StatelessWidget {
       resolvedHeight = math.min(resolvedHeight, effectiveMaxHeight);
     }
 
-    final handleClose = onClose ?? () => Navigator.of(context).pop();
+    final handleClose = widget.onClose ??
+        () {
+          final nav = Navigator.maybeOf(context);
+          if (nav != null && nav.canPop()) {
+            nav.pop();
+          }
+        };
 
     // 构建头部组件
     final headerWidget = _buildHeader(
@@ -564,10 +687,10 @@ class AppAdaptiveSheet extends StatelessWidget {
     // - 底边距统一设为 0.0，使内部内容区域（如 SingleChildScrollView / ListView / TabBarView）
     //   的滚动视口能完整延伸至卡片底端边缘，避免外层 Padding 在底部截断视口导致“底部显示不全/留死空白”；
     //   具体的底部收尾留白由子组件内部自然控制。
-    final effectivePadding = padding ??
+    final effectivePadding = widget.padding ??
         EdgeInsets.fromLTRB(
           24,
-          (headerWidget != null || headerBottom != null)
+          (headerWidget != null || widget.headerBottom != null)
               ? 8
               : (isDialog ? 20 : 8),
           24,
@@ -583,14 +706,14 @@ class AppAdaptiveSheet extends StatelessWidget {
         : theme.colorScheme.outlineVariant.withValues(alpha: isDialog ? 0.4 : 0.3);
 
     final borderRadius = isDialog
-        ? BorderRadius.circular(dialogRadius)
-        : BorderRadius.vertical(top: Radius.circular(sheetTopRadius));
+        ? BorderRadius.circular(widget.dialogRadius)
+        : BorderRadius.vertical(top: Radius.circular(widget.sheetTopRadius));
 
     final cardDecoration = BoxDecoration(
-      color: backgroundColor ?? defaultBgColor,
+      color: widget.backgroundColor ?? defaultBgColor,
       borderRadius: borderRadius,
       border: Border.all(
-        color: borderColor ?? defaultBorderColor,
+        color: widget.borderColor ?? defaultBorderColor,
         width: 1,
       ),
       boxShadow: isDialog
@@ -606,34 +729,48 @@ class AppAdaptiveSheet extends StatelessWidget {
     );
 
     final children = <Widget>[
-      if (!isDialog && showDragHandle)
-        AppDragHandle(
-          onTap: onDragHandleTap,
-          onVerticalDragEnd: (details) {
-            if (details.primaryVelocity != null &&
-                details.primaryVelocity! > 250) {
-              handleClose();
-            }
-          },
-        ),
-      ?headerWidget,
-      if (headerBottom != null)
+      if (!isDialog && (widget.showDragHandle || headerWidget != null))
+        GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onVerticalDragStart: _handleDragStart,
+          onVerticalDragUpdate: _handleDragUpdate,
+          onVerticalDragEnd: (details) => _handleDragEnd(
+            details,
+            effectiveMaxHeight: effectiveMaxHeight,
+            handleClose: handleClose,
+          ),
+          onVerticalDragCancel: _handleDragCancel,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (widget.showDragHandle)
+                AppDragHandle(
+                  onTap: widget.onDragHandleTap ?? () => _dismiss(handleClose),
+                ),
+              ?headerWidget,
+            ],
+          ),
+        )
+      else
+        ?headerWidget,
+      if (widget.headerBottom != null)
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24.0),
-          child: headerBottom!,
+          child: widget.headerBottom!,
         ),
       if (resolvedHeight != null)
         Expanded(
           child: Padding(
             padding: effectivePadding,
-            child: child,
+            child: widget.child,
           ),
         )
       else
         Flexible(
           child: Padding(
             padding: effectivePadding,
-            child: child,
+            child: widget.child,
           ),
         ),
     ];
@@ -659,7 +796,7 @@ class AppAdaptiveSheet extends StatelessWidget {
           height: resolvedHeight,
           child: ClipRRect(
             borderRadius: borderRadius,
-            child: (isDialog || !useSafeArea)
+            child: (isDialog || !widget.useSafeArea)
                 ? cardContent
                 : SafeArea(
                     top: false,
@@ -671,6 +808,13 @@ class AppAdaptiveSheet extends StatelessWidget {
       ),
     );
 
+    Widget positionedCard = isDialog
+        ? sheetCard
+        : Transform.translate(
+            offset: Offset(0.0, _dragOffset),
+            child: sheetCard,
+          );
+
     final alignedCard = AnimatedAlign(
       duration: const Duration(milliseconds: 320),
       curve: Curves.easeOutCubic,
@@ -679,19 +823,22 @@ class AppAdaptiveSheet extends StatelessWidget {
         padding: isDialog
             ? const EdgeInsets.symmetric(horizontal: 24, vertical: 24)
             : EdgeInsets.zero,
-        child: sheetCard,
+        child: positionedCard,
       ),
     );
 
     return AppAdaptiveSheetScope(
       isDialog: isDialog,
-      onClose: () => Navigator.of(context).pop(),
+      onClose: handleClose,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onTap: barrierDismissible ? () => Navigator.of(context).pop() : null,
-        child: blurSigma > 0
+        onTap: widget.barrierDismissible ? handleClose : null,
+        child: widget.blurSigma > 0
             ? BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: blurSigma, sigmaY: blurSigma),
+                filter: ImageFilter.blur(
+                  sigmaX: widget.blurSigma,
+                  sigmaY: widget.blurSigma,
+                ),
                 child: alignedCard,
               )
             : alignedCard,

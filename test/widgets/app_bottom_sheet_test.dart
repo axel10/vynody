@@ -307,5 +307,50 @@ void main() {
       expect(find.text('Live Morph Content'), findsOneWidget);
       expect(find.byType(AppDragHandle), findsOneWidget);
     });
+
+    testWidgets('dragging handle downwards translates sheet and dismissing pops route', (tester) async {
+      tester.view.physicalSize = const Size(400, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => ElevatedButton(
+                onPressed: () {
+                  showAppAdaptiveModal(
+                    context: context,
+                    builder: (modalCtx) => const AppAdaptiveSheet(
+                      child: Text('Draggable Modal Sheet'),
+                    ),
+                  );
+                },
+                child: const Text('Open Modal'),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Open Modal'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Draggable Modal Sheet'), findsOneWidget);
+      final handleFinder = find.byType(AppDragHandle);
+      expect(handleFinder, findsOneWidget);
+
+      // 1. Drag down slightly (30px) - should not dismiss the sheet
+      await tester.drag(handleFinder, const Offset(0, 30));
+      await tester.pumpAndSettle();
+      expect(find.text('Draggable Modal Sheet'), findsOneWidget);
+
+      // 2. Drag down significantly (> 80px) - should dismiss the sheet
+      await tester.drag(handleFinder, const Offset(0, 120));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Draggable Modal Sheet'), findsNothing);
+    });
   });
 }
