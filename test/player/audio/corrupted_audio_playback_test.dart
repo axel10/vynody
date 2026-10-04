@@ -130,4 +130,24 @@ void main() {
     expect(playlist.currentTrack, isNull);
     expect(parent.cleared, isTrue);
   });
+
+  test('in queueLoop mode, auto skips corrupted song and loops back to first valid song', () async {
+    const track1 = AudioTrack(id: '1', uri: '/music/track1.mp3', title: 'Track 1');
+    const track2 = AudioTrack(id: '2', uri: '/music/corrupted.mp3', title: 'Corrupted Track');
+
+    parent.corruptedUris.add('/music/corrupted.mp3');
+
+    playlist.setMode(PlaylistMode.queueLoop);
+    await playlist.addTracks([track1, track2]);
+    expect(playlist.currentIndex, 0);
+
+    final success = await playlist.playNext();
+
+    expect(success, isTrue);
+    expect(playlist.currentIndex, 0);
+    expect(playlist.currentTrack?.id, '1');
+    expect(parent.lastLoadedTrack?.id, '1');
+  });
 }
+
+

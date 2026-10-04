@@ -1439,14 +1439,8 @@ class AudioService extends Notifier<AudioSnapshot> {
             RemoteMediaResolver.isRemoteUri(currentMusic!.path)) {
           _showRemotePlaybackError(currentAppL10n.cannotConnectToMediaServer);
         } else {
-          _showCorruptedSongNotice(skipped: true);
-        }
-
-        if (!_isTransitioning && _queue.isNotEmpty) {
-          unawaited(() async {
-            debugPrint('[AudioService] Auto-advancing due to playback error on ${currentMusic?.path}');
-            await next();
-          }());
+          final hasNextSong = _player.playlist.hasNext;
+          _showCorruptedSongNotice(skipped: hasNextSong);
         }
       }
     } else {
