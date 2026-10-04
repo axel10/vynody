@@ -1059,10 +1059,12 @@ class WordWordLyricsWidget extends ConsumerStatefulWidget {
 class _WordWordLyricsWidgetState extends ConsumerState<WordWordLyricsWidget>
     with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late final Ticker _ticker;
-  Duration _lastObservedPosition = Duration.zero;
-  DateTime _lastObservedAt = DateTime.now();
+  Duration _basePosition = Duration.zero;
+  DateTime _baseWallClock = DateTime.now();
+  Duration _pausedElapsed = Duration.zero;
   bool _isPlaying = false;
   bool _isBackgroundSuspended = false;
+  bool _isInitialized = false;
 
   TextStyle _styleWithForeground(TextStyle base, Paint foreground) {
     return TextStyle(
@@ -1092,6 +1094,28 @@ class _WordWordLyricsWidgetState extends ConsumerState<WordWordLyricsWidget>
       fontFamilyFallback: base.fontFamilyFallback,
       overflow: base.overflow,
     );
+  }
+
+  void _syncBaseline({Duration? seekPosition}) {
+    _basePosition = seekPosition ?? ref.read(audioPositionProvider);
+    _baseWallClock = DateTime.now();
+    _pausedElapsed = Duration.zero;
+    _isInitialized = true;
+  }
+
+  Duration _calculateCurrentPosition(double speed) {
+    if (!_isInitialized) {
+      return ref.read(audioPositionProvider);
+    }
+    final rawElapsed = _isPlaying
+        ? _pausedElapsed + DateTime.now().difference(_baseWallClock)
+        : _pausedElapsed;
+    if ((speed - 1.0).abs() > 0.001 && speed > 0) {
+      final scaledElapsedMs =
+          (rawElapsed.inMicroseconds * speed / 1000).round();
+      return _basePosition + Duration(milliseconds: scaledElapsedMs);
+    }
+    return _basePosition + rawElapsed;
   }
 
   @override
@@ -1147,7 +1171,14 @@ class _WordWordLyricsWidgetState extends ConsumerState<WordWordLyricsWidget>
   void didUpdateWidget(covariant WordWordLyricsWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.isActive != widget.isActive) {
+      if (widget.isActive) {
+        _syncBaseline();
+      } else {
+        _isInitialized = false;
+      }
       _updateTickerState();
+    } else if (widget.isActive && oldWidget.words != widget.words) {
+      _syncBaseline();
     }
   }
 
@@ -1200,33 +1231,49 @@ class _WordWordLyricsWidgetState extends ConsumerState<WordWordLyricsWidget>
       );
     }
 
-    final position = ref.watch(audioPositionProvider);
     final isPlaying = ref.watch(audioIsPlayingProvider);
+    final speed =
+        ref.watch(audioSnapshotProvider.select((s) => s.playbackSpeed));
 
-    if (position != _lastObservedPosition || isPlaying != _isPlaying) {
-      _lastObservedPosition = position;
-      _lastObservedAt = DateTime.now();
+    // Listen to major position jump (e.g. user drag seek bar or skip)
+    // without triggering rebuilds on normal 120ms kernel ticks:
+    ref.listen<Duration>(audioPositionProvider, (previous, next) {
+      if (!widget.isActive || !_isInitialized) return;
+      final currentPos = _calculateCurrentPosition(speed);
+      final jump = (next - currentPos).inMilliseconds.abs();
+      if (jump > 300) {
+        _syncBaseline(seekPosition: next);
+        if (mounted) {
+          setState(() {});
+        }
+      }
+    });
+
+    if (!_isInitialized) {
+      _syncBaseline();
+      _isPlaying = isPlaying;
+      _updateTickerState();
+    } else if (isPlaying != _isPlaying) {
+      if (!isPlaying) {
+        _pausedElapsed += DateTime.now().difference(_baseWallClock);
+      } else {
+        _baseWallClock = DateTime.now();
+      }
       _isPlaying = isPlaying;
       _updateTickerState();
     }
 
-    final Duration currentPosition;
-    if (_isPlaying) {
-      final elapsed = DateTime.now().difference(_lastObservedAt);
-      currentPosition = _lastObservedPosition + elapsed;
-    } else {
-      currentPosition = _lastObservedPosition;
-    }
+    final currentPosition = _calculateCurrentPosition(speed);
 
     final currentMusic = ref.watch(audioCurrentMusicProvider);
     final timelineOffsetMs =
         currentMusic?.lyrics?.timelineOffset.inMilliseconds ?? 0;
     final currentMs = currentPosition.inMilliseconds - timelineOffsetMs;
 
-    final now = DateTime.now();
-    if (now.difference(_lastLogTime).inMilliseconds >= 250 &&
+    final logNow = DateTime.now();
+    if (logNow.difference(_lastLogTime).inMilliseconds >= 250 &&
         validWords.isNotEmpty) {
-      _lastLogTime = now;
+      _lastLogTime = logNow;
     }
 
     // Check if any word is in active transition (0.0 < progress < 1.0)
@@ -1311,9 +1358,12 @@ class _WordWordLyricsWidgetState extends ConsumerState<WordWordLyricsWidget>
             ),
           ));
         } else {
+          final fallbackColor =
+              Color.lerp(widget.inactiveColor, widget.activeColor, progress) ??
+                  widget.inactiveColor;
           spans.add(TextSpan(
             text: word.text,
-            style: widget.lineStyle.copyWith(color: widget.activeColor),
+            style: widget.lineStyle.copyWith(color: fallbackColor),
           ));
         }
       }
