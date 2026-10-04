@@ -278,22 +278,8 @@ class RemoteLibrarySongsView extends ConsumerStatefulWidget {
 class _RemoteLibrarySongsViewState
     extends ConsumerState<RemoteLibrarySongsView>
     with AutomaticKeepAliveClientMixin {
-  late final ScrollController _scrollController;
-
   @override
   bool get wantKeepAlive => true;
-
-  @override
-  void initState() {
-    super.initState();
-    _scrollController = ScrollController();
-  }
-
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
-  }
 
   String _formatTrackDuration(int? seconds) {
     if (seconds == null || seconds <= 0) return '--:--';
@@ -513,9 +499,7 @@ class _RemoteLibrarySongsViewState
       child: RefreshIndicator(
         onRefresh: widget.onRefresh,
         child: Scrollbar(
-          controller: _scrollController,
           child: CustomScrollView(
-            controller: _scrollController,
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
               // Header action bar
