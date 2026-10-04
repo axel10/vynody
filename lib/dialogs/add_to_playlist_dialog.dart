@@ -4,6 +4,7 @@ import '../models/music_file.dart';
 import '../player/library/playlist_service.dart';
 import '../utils/app_snack_bar.dart';
 import '../utils/playlist_name.dart';
+import '../widgets/app_bottom_sheet.dart';
 import '../widgets/song_thumbnail.dart';
 
 /// A modern, responsive dialog for adding songs to a playlist.
@@ -26,8 +27,9 @@ class AddToPlaylistDialog extends StatefulWidget {
     VoidCallback? onPlaylistCreatedOrUpdated,
   }) async {
     if (songs.isEmpty) return;
-    await showDialog<void>(
+    await showAppAdaptiveModal<void>(
       context: context,
+      useRootNavigator: true,
       builder: (dialogContext) => AddToPlaylistDialog(
         playlistService: playlistService,
         songs: songs,
@@ -282,246 +284,156 @@ class _AddToPlaylistDialogState extends State<AddToPlaylistDialog> {
             return name.contains(_searchQuery.toLowerCase());
           }).toList();
 
-    return Dialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(24),
-      ),
-      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(
-          maxWidth: 420,
-          minWidth: 320,
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Header
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primaryContainer,
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Icon(
-                        Icons.playlist_add_rounded,
-                        color: theme.colorScheme.onPrimaryContainer,
-                        size: 24,
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            l10n.addToPlaylist,
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.surfaceContainerHighest,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Text(
-                              l10n.songCount(widget.songs.length),
-                              style: theme.textTheme.labelSmall?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
-              // Search Bar (shown when there are multiple playlists)
-              if (allPlaylists.length >= 5) ...[
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: TextField(
-                    controller: _searchController,
-                    decoration: InputDecoration(
-                      hintText: l10n.search,
-                      prefixIcon: const Icon(Icons.search_rounded, size: 20),
-                      suffixIcon: _searchQuery.isNotEmpty
-                          ? IconButton(
-                              icon: const Icon(Icons.clear_rounded, size: 18),
-                              onPressed: () {
-                                _searchController.clear();
-                                setState(() {
-                                  _searchQuery = '';
-                                });
-                              },
-                            )
-                          : null,
-                      isDense: true,
-                      filled: true,
-                      fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 10,
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: BorderSide.none,
-                      ),
-                    ),
-                    onChanged: (val) {
-                      setState(() {
-                        _searchQuery = val.trim();
-                      });
-                    },
+    return AppAdaptiveSheet(
+      title: l10n.addToPlaylist,
+      subtitle: l10n.songCount(widget.songs.length),
+      sheetMaxWidth: 720,
+      dialogMaxWidth: 560,
+      dialogHeight: 560,
+      expandHeight: true,
+      padding: EdgeInsets.fromLTRB(24, 8, 24, bottomInset),
+      headerTrailing: FilledButton.tonalIcon(
+        onPressed: _showCreatePlaylistDialog,
+        icon: const Icon(Icons.add_rounded, size: 18),
+        label: Text(l10n.createNewList),
+      ),
+      headerBottom: allPlaylists.length >= 5
+          ? Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  hintText: l10n.search,
+                  prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                  suffixIcon: _searchQuery.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear_rounded, size: 18),
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() {
+                              _searchQuery = '';
+                            });
+                          },
+                        )
+                      : null,
+                  isDense: true,
+                  filled: true,
+                  fillColor: theme.colorScheme.surfaceContainerHighest
+                      .withValues(alpha: 0.5),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide.none,
                   ),
                 ),
-                const SizedBox(height: 12),
-              ],
-
-              // Playlist List Content
-              SizedBox(
-                height: 280,
-                child: filteredPlaylists.isEmpty
-                    ? Center(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 24),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.queue_music_rounded,
-                                size: 40,
-                                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                l10n.emptyList,
-                                style: TextStyle(
-                                  color: theme.colorScheme.onSurfaceVariant,
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      )
-                    : ListView.builder(
-                        itemCount: filteredPlaylists.length,
-                        itemBuilder: (context, index) {
-                          final playlist = filteredPlaylists[index];
-                          final name = localizedPlaylistName(context, playlist);
-                          final songCount = playlist.songs.length;
-
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 3),
-                            child: Material(
-                              color: Colors.transparent,
-                              borderRadius: BorderRadius.circular(14),
-                              child: InkWell(
-                                borderRadius: BorderRadius.circular(14),
-                                onTap: () => _addSongsToPlaylist(playlist),
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 8,
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      _buildLeadingIcon(playlist, theme),
-                                      const SizedBox(width: 14),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Text(
-                                              name,
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.w600,
-                                                fontSize: 14,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 2),
-                                            Text(
-                                              l10n.songCount(songCount),
-                                              style: TextStyle(
-                                                color: theme.colorScheme.onSurfaceVariant,
-                                                fontSize: 12,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      Icon(
-                                        Icons.add_circle_outline_rounded,
-                                        size: 20,
-                                        color: theme.colorScheme.primary.withValues(alpha: 0.75),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
+                onChanged: (val) {
+                  setState(() {
+                    _searchQuery = val.trim();
+                  });
+                },
               ),
-              const SizedBox(height: 16),
-
-              // Bottom Actions
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
+            )
+          : null,
+      child: filteredPlaylists.isEmpty
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: TextButton.styleFrom(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                      ),
-                      child: Text(l10n.cancel),
+                    Icon(
+                      Icons.queue_music_rounded,
+                      size: 40,
+                      color: theme.colorScheme.onSurfaceVariant
+                          .withValues(alpha: 0.4),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(height: 8),
+                    Text(
+                      l10n.emptyList,
+                      style: TextStyle(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
                     FilledButton.icon(
                       onPressed: _showCreatePlaylistDialog,
                       icon: const Icon(Icons.add_rounded, size: 18),
                       label: Text(l10n.createNewList),
-                      style: FilledButton.styleFrom(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                      ),
                     ),
                   ],
                 ),
               ),
-            ],
-          ),
-        ),
-      ),
+            )
+          : ListView.builder(
+              padding: const EdgeInsets.only(top: 4, bottom: 20),
+              itemCount: filteredPlaylists.length,
+              itemBuilder: (context, index) {
+                final playlist = filteredPlaylists[index];
+                final name = localizedPlaylistName(context, playlist);
+                final songCount = playlist.songs.length;
+
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 3),
+                  child: Material(
+                    color: Colors.transparent,
+                    borderRadius: BorderRadius.circular(14),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(14),
+                      onTap: () => _addSongsToPlaylist(playlist),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 8,
+                        ),
+                        child: Row(
+                          children: [
+                            _buildLeadingIcon(playlist, theme),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    name,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    l10n.songCount(songCount),
+                                    style: TextStyle(
+                                      color: theme.colorScheme.onSurfaceVariant,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Icon(
+                              Icons.add_circle_outline_rounded,
+                              size: 20,
+                              color: theme.colorScheme.primary
+                                  .withValues(alpha: 0.75),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
     );
   }
 }

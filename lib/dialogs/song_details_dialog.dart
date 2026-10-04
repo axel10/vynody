@@ -9,10 +9,12 @@ import 'package:vynody/player/audio/audio_service.dart';
 import 'package:vynody/player/remote/proxy/remote_media_resolver.dart';
 import 'package:vynody/widgets/song_thumbnail.dart';
 import 'package:vynody/l10n/app_localizations.dart';
+import '../widgets/app_bottom_sheet.dart';
 
 Future<void> showSongDetailsDialog(BuildContext context, MusicFile song) async {
-  await showDialog(
+  await showAppAdaptiveModal<void>(
     context: context,
+    useRootNavigator: true,
     builder: (dialogContext) {
       return _SongDetailsDialog(song: song);
     },
@@ -158,173 +160,162 @@ class _SongDetailsDialogState extends ConsumerState<_SongDetailsDialog> {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
 
-    return AlertDialog(
-      title: Text(l10n.songProperties),
-      content: SizedBox(
-        width: 480,
-        child: FutureBuilder<AudioDetails>(
-          future: _detailsFuture,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const SizedBox(
-                height: 200,
-                child: Center(
-                  child: CircularProgressIndicator(),
-                ),
-              );
-            }
+    return AppAdaptiveSheet(
+      title: l10n.songProperties,
+      sheetMaxWidth: 720,
+      dialogMaxWidth: 560,
+      dialogHeight: 560,
+      expandHeight: true,
+      child: FutureBuilder<AudioDetails>(
+        future: _detailsFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          }
 
-            final details = snapshot.data;
-            if (details == null) {
-              return SizedBox(
-                height: 200,
-                child: Center(
-                  child: Text(
-                    l10n.noPropertiesAvailable,
-                  ),
-                ),
-              );
-            }
+          final details = snapshot.data;
+          if (details == null) {
+            return Center(
+              child: Text(
+                l10n.noPropertiesAvailable,
+              ),
+            );
+          }
 
-            final isRemote = RemoteMediaResolver.isRemoteUri(widget.song.path);
-            final isUncachedCloud = isRemote && details.bitrate == 0 && details.sampleRate == 0;
+          final isRemote = RemoteMediaResolver.isRemoteUri(widget.song.path);
+          final isUncachedCloud = isRemote && details.bitrate == 0 && details.sampleRate == 0;
 
-            final rows = [
+          final rows = [
+            _DetailRow(
+              label: l10n.detailFilePath,
+              value: widget.song.path,
+              selectable: true,
+            ),
+            _DetailRow(
+              label: l10n.detailFormat,
+              value: details.formatName.isNotEmpty ? details.formatName.toUpperCase() : '—',
+            ),
+            _DetailRow(
+              label: l10n.detailCodec,
+              value: details.codecName.isNotEmpty ? details.codecName.toUpperCase() : '—',
+            ),
+            _DetailRow(
+              label: l10n.detailDuration,
+              value: details.duration > Duration.zero ? _formatDuration(details.duration) : '—',
+            ),
+            _DetailRow(
+              label: l10n.detailFileSize,
+              value: details.fileSize > 0 ? _formatFileSize(details.fileSize) : '—',
+            ),
+            _DetailRow(
+              label: l10n.detailBitrate,
+              value: details.bitrate > 0 ? '${(details.bitrate / 1000).round()} kbps' : '—',
+            ),
+            _DetailRow(
+              label: l10n.detailSampleRate,
+              value: details.sampleRate > 0 ? '${details.sampleRate} Hz' : '—',
+            ),
+            _DetailRow(
+              label: l10n.detailChannels,
+              value: details.channels > 0 ? _formatChannels(details.channels, l10n) : '—',
+            ),
+            if (details.bitDepth != null && details.bitDepth! > 0)
               _DetailRow(
-                label: l10n.detailFilePath,
-                value: widget.song.path,
-                selectable: true,
+                label: l10n.detailBitDepth,
+                value: '${details.bitDepth} bit',
               ),
-              _DetailRow(
-                label: l10n.detailFormat,
-                value: details.formatName.isNotEmpty ? details.formatName.toUpperCase() : '—',
-              ),
-              _DetailRow(
-                label: l10n.detailCodec,
-                value: details.codecName.isNotEmpty ? details.codecName.toUpperCase() : '—',
-              ),
-              _DetailRow(
-                label: l10n.detailDuration,
-                value: details.duration > Duration.zero ? _formatDuration(details.duration) : '—',
-              ),
-              _DetailRow(
-                label: l10n.detailFileSize,
-                value: details.fileSize > 0 ? _formatFileSize(details.fileSize) : '—',
-              ),
-              _DetailRow(
-                label: l10n.detailBitrate,
-                value: details.bitrate > 0 ? '${(details.bitrate / 1000).round()} kbps' : '—',
-              ),
-              _DetailRow(
-                label: l10n.detailSampleRate,
-                value: details.sampleRate > 0 ? '${details.sampleRate} Hz' : '—',
-              ),
-              _DetailRow(
-                label: l10n.detailChannels,
-                value: details.channels > 0 ? _formatChannels(details.channels, l10n) : '—',
-              ),
-              if (details.bitDepth != null && details.bitDepth! > 0)
-                _DetailRow(
-                  label: l10n.detailBitDepth,
-                  value: '${details.bitDepth} bit',
-                ),
-            ];
+          ];
 
-            return SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Song info header card
-                  Row(
-                    children: [
-                      SongThumbnail.fromSong(
-                        widget.song,
-                        size: 64,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              widget.song.displayName,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              widget.song.artist ?? l10n.unknownArtist,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              widget.song.album ?? l10n.unknownAlbum,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  const Divider(),
-                  const SizedBox(height: 8),
-                  // Attributes table
-                  ...rows,
-                  if (isUncachedCloud) ...[
-                    const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
+          return SingleChildScrollView(
+            padding: const EdgeInsets.only(bottom: 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Song info header card
+                Row(
+                  children: [
+                    SongThumbnail.fromSong(
+                      widget.song,
+                      size: 64,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(
-                            Icons.info_outline_rounded,
-                            size: 18,
-                            color: theme.colorScheme.onSurfaceVariant,
+                          Text(
+                            widget.song.displayName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              l10n.remoteAudioNotCachedHint,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
-                              ),
+                          const SizedBox(height: 4),
+                          Text(
+                            widget.song.artist ?? l10n.unknownArtist,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            widget.song.album ?? l10n.unknownAlbum,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
                             ),
                           ),
                         ],
                       ),
                     ),
                   ],
+                ),
+                const SizedBox(height: 16),
+                const Divider(),
+                const SizedBox(height: 8),
+                // Attributes table
+                ...rows,
+                if (isUncachedCloud) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.info_outline_rounded,
+                          size: 18,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            l10n.remoteAudioNotCachedHint,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
-              ),
-            );
-          },
-        ),
+              ],
+            ),
+          );
+        },
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(l10n.close),
-        ),
-      ],
     );
   }
 }

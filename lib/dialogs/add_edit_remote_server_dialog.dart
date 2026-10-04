@@ -5,6 +5,7 @@ import 'package:oktoast/oktoast.dart';
 import 'package:vynody/l10n/app_localizations.dart';
 import 'package:vynody/player/remote/remote_server_models.dart';
 import 'package:vynody/player/remote/remote_server_riverpod.dart';
+import '../widgets/app_bottom_sheet.dart';
 
 class AddEditRemoteServerDialog extends ConsumerStatefulWidget {
   final RemoteServer? server;
@@ -12,8 +13,9 @@ class AddEditRemoteServerDialog extends ConsumerStatefulWidget {
   const AddEditRemoteServerDialog({super.key, this.server});
 
   static Future<bool?> show(BuildContext context, {RemoteServer? server}) {
-    return showDialog<bool>(
+    return showAppAdaptiveModal<bool>(
       context: context,
+      useRootNavigator: true,
       builder: (context) => AddEditRemoteServerDialog(server: server),
     );
   }
@@ -237,127 +239,125 @@ class _AddEditRemoteServerDialogState
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
+    final media = MediaQuery.of(context);
     final isDesktop = theme.platform == TargetPlatform.macOS ||
         theme.platform == TargetPlatform.windows ||
         theme.platform == TargetPlatform.linux;
-    final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
+    final isPortrait = media.orientation == Orientation.portrait;
     final useDropdown = !isDesktop && isPortrait;
+    final bottomInset = media.viewInsets.bottom;
 
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      insetPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 620, maxHeight: 720),
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  children: [
-                    Icon(
-                      _getServerIcon(_serverType),
-                      color: theme.colorScheme.primary,
-                      size: 28,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        _isEditing ? l10n.editRemoteServer : l10n.addRemoteServer,
-                        style: theme.textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.of(context).pop(false),
-                    ),
-                  ],
+    return AppAdaptiveSheet(
+      dialogMaxWidth: 600,
+      sheetMaxWidth: 680,
+      landscapeMaxWidth: 860,
+      dialogHeight: 680,
+      expandHeight: true,
+      padding: EdgeInsets.fromLTRB(24, 8, 24, max(16.0, bottomInset + 16.0)),
+      titleWidget: Row(
+        children: [
+          Icon(
+            _getServerIcon(_serverType),
+            color: theme.colorScheme.primary,
+            size: 24,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              _isEditing ? l10n.editRemoteServer : l10n.addRemoteServer,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+      headerBottom: !useDropdown
+          ? Padding(
+              padding: const EdgeInsets.only(bottom: 8.0),
+              child: SegmentedButton<RemoteServerType>(
+                showSelectedIcon: false,
+                style: SegmentedButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
                 ),
-                const SizedBox(height: 16),
-                if (!useDropdown) ...[
-                  SegmentedButton<RemoteServerType>(
-                    showSelectedIcon: false,
-                    style: SegmentedButton.styleFrom(
-                      visualDensity: VisualDensity.compact,
+                segments: const [
+                  ButtonSegment(
+                    value: RemoteServerType.subsonic,
+                    icon: Icon(Icons.library_music_rounded, size: 18),
+                    label: Text(
+                      'Navidrome',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      softWrap: false,
                     ),
-                    segments: const [
-                      ButtonSegment(
-                        value: RemoteServerType.subsonic,
-                        icon: Icon(Icons.library_music_rounded, size: 18),
-                        label: Text(
-                          'Navidrome',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          softWrap: false,
-                        ),
-                      ),
-                      ButtonSegment(
-                        value: RemoteServerType.jellyfin,
-                        icon: Icon(Icons.movie_filter_outlined, size: 18),
-                        label: Text(
-                          'Jellyfin',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          softWrap: false,
-                        ),
-                      ),
-                      ButtonSegment(
-                        value: RemoteServerType.webdav,
-                        icon: Icon(Icons.folder_copy_outlined, size: 18),
-                        label: Text(
-                          'WebDAV',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          softWrap: false,
-                        ),
-                      ),
-                      ButtonSegment(
-                        value: RemoteServerType.smb,
-                        icon: Icon(Icons.dns_outlined, size: 18),
-                        label: Text(
-                          'SMB',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          softWrap: false,
-                        ),
-                      ),
-                    ],
-                    selected: {_serverType},
-                    onSelectionChanged: (selected) {
-                      setState(() {
-                        _serverType = selected.first;
-                        _testResult = null;
-                      });
-                    },
                   ),
-                  const SizedBox(height: 16),
+                  ButtonSegment(
+                    value: RemoteServerType.jellyfin,
+                    icon: Icon(Icons.movie_filter_outlined, size: 18),
+                    label: Text(
+                      'Jellyfin',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      softWrap: false,
+                    ),
+                  ),
+                  ButtonSegment(
+                    value: RemoteServerType.webdav,
+                    icon: Icon(Icons.folder_copy_outlined, size: 18),
+                    label: Text(
+                      'WebDAV',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      softWrap: false,
+                    ),
+                  ),
+                  ButtonSegment(
+                    value: RemoteServerType.smb,
+                    icon: Icon(Icons.dns_outlined, size: 18),
+                    label: Text(
+                      'SMB',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      softWrap: false,
+                    ),
+                  ),
                 ],
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        if (useDropdown) ...[
-                          DropdownButtonFormField<RemoteServerType>(
-                            value: _serverType,
-                            isExpanded: true,
-                            decoration: InputDecoration(
-                              labelText: l10n.serverType,
-                              prefixIcon: Icon(_getServerIcon(_serverType)),
-                              border: const OutlineInputBorder(),
-                            ),
-                            items: RemoteServerType.values.map((type) {
-                              return DropdownMenuItem(
-                                value: type,
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
+                selected: {_serverType},
+                onSelectionChanged: (selected) {
+                  setState(() {
+                    _serverType = selected.first;
+                    _testResult = null;
+                  });
+                },
+              ),
+            )
+          : null,
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (useDropdown) ...[
+                      DropdownButtonFormField<RemoteServerType>(
+                        initialValue: _serverType,
+                        isExpanded: true,
+                        decoration: InputDecoration(
+                          labelText: l10n.serverType,
+                          prefixIcon: Icon(_getServerIcon(_serverType)),
+                          border: const OutlineInputBorder(),
+                        ),
+                        items: RemoteServerType.values.map((type) {
+                          return DropdownMenuItem(
+                            value: type,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Icon(_getServerIcon(type), size: 20),
                                     const SizedBox(width: 10),
@@ -783,8 +783,6 @@ class _AddEditRemoteServerDialogState
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-}
+        );
+      }
+    }

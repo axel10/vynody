@@ -16,36 +16,20 @@ import 'sort_options_dialog.dart';
 /// 统一的播放列表选择与管理弹窗
 /// 兼具快速切换当前歌单、新建歌单、排序、重命名、单项/批量删除、导入导出等完整功能。
 class PlaylistManagerDialog extends ConsumerStatefulWidget {
-  final bool asBottomSheet;
+  /// 是否强制以 BottomSheet 形式展示（为 null 时由 [AppAdaptiveSheet] 根据屏幕宽度和横竖屏自适应）
+  final bool? asBottomSheet;
 
   const PlaylistManagerDialog({
     super.key,
-    required this.asBottomSheet,
+    this.asBottomSheet,
   });
 
   static Future<void> show(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDesktop = theme.platform == TargetPlatform.macOS ||
-        theme.platform == TargetPlatform.windows ||
-        theme.platform == TargetPlatform.linux;
-    final isWide = MediaQuery.of(context).size.width > 600;
-
-    if (isDesktop || isWide) {
-      return showDialog<void>(
-        context: context,
-        builder: (dialogContext) =>
-            const PlaylistManagerDialog(asBottomSheet: false),
-      );
-    } else {
-      return showModalBottomSheet<void>(
-        context: context,
-        useRootNavigator: true,
-        isScrollControlled: true,
-        backgroundColor: Colors.transparent,
-        builder: (sheetContext) =>
-            const PlaylistManagerDialog(asBottomSheet: true),
-      );
-    }
+    return showAppAdaptiveModal<void>(
+      context: context,
+      useRootNavigator: true,
+      builder: (context) => const PlaylistManagerDialog(),
+    );
   }
 
   @override
@@ -454,15 +438,23 @@ class _PlaylistManagerDialogState
     final isAllSelected = deletablePlaylists.isNotEmpty &&
         _selectedPlaylistIds.length >= deletablePlaylists.length;
 
-    final content = Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
+    final isDialog = widget.asBottomSheet != null
+        ? !widget.asBottomSheet!
+        : AppAdaptiveSheetScope.isDialogMode(context);
 
-        // 头部导航/操作栏
-        if (!_isSelectionMode) ...[
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 8, 8),
-            child: Row(
+    return AppAdaptiveSheet(
+      asDialog: widget.asBottomSheet != null ? !widget.asBottomSheet! : null,
+      dialogMaxWidth: 500,
+      sheetMaxWidth: 680,
+      landscapeMaxWidth: 860,
+      dialogHeight: 640,
+      expandHeight: true,
+      padding: EdgeInsets.zero,
+      showCloseButton: !_isSelectionMode && isDialog,
+      headerPadding: const EdgeInsets.fromLTRB(16, 12, 12, 8),
+      titleWidget: !_isSelectionMode
+          ? Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
                   padding: const EdgeInsets.all(8),
@@ -477,36 +469,62 @@ class _PlaylistManagerDialogState
                   ),
                 ),
                 const SizedBox(width: 12),
-                Expanded(
-                  child: Row(
-                    children: [
-                      Text(
-                        l10n.playlist,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.surfaceContainerHighest,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          '${playlists.length}',
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ],
+                Text(
+                  l10n.playlist,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    '${playlists.length}',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            )
+          : Row(
+              children: [
+                IconButton(
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  tooltip: l10n.cancel,
+                  icon: const Icon(Icons.close_rounded),
+                  onPressed: () {
+                    setState(() {
+                      _isSelectionMode = false;
+                      _selectedPlaylistIds.clear();
+                    });
+                  },
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    l10n.selectedPlaylistsCount(_selectedPlaylistIds.length),
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+      headerTrailing: !_isSelectionMode
+          ? Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
                 IconButton(
                   tooltip: l10n.createNewPlaylist,
                   icon: const Icon(Icons.add_rounded),
@@ -527,227 +545,11 @@ class _PlaylistManagerDialogState
                       });
                     },
                   ),
-                if (!widget.asBottomSheet)
-                  IconButton(
-                    tooltip: l10n.cancel,
-                    icon: const Icon(Icons.close_rounded),
-                    onPressed: () => Navigator.pop(context),
-                  ),
               ],
-            ),
-          ),
-          const Divider(height: 1),
-          // 快捷导入条
-          InkWell(
-            onTap: () => _importM3uPlaylist(context),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 10,
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.file_download_outlined,
-                    size: 20,
-                    color: theme.colorScheme.primary,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      l10n.importPlaylist,
-                      style: TextStyle(
-                        color: theme.colorScheme.primary,
-                        fontWeight: FontWeight.w500,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ),
-                  Icon(
-                    Icons.chevron_right_rounded,
-                    size: 20,
-                    color: theme.colorScheme.primary.withValues(alpha: 0.6),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const Divider(height: 1),
-          // 歌单列表（支持拖拽重排与点击切换）
-          Flexible(
-            child: ReorderableListView.builder(
-              shrinkWrap: true,
-              buildDefaultDragHandles: false,
-              itemCount: playlists.length,
-              onReorder: (oldIndex, newIndex) {
-                ref.read(settingsServiceProvider).playlistSortField =
-                    PlaylistSortField.custom;
-                ref
-                    .read(playlistServiceProvider)
-                    .reorderPlaylist(oldIndex, newIndex);
-              },
-              itemBuilder: (context, index) {
-                final playlist = playlists[index];
-                final isFav = _isFavoritePlaylist(playlist);
-                final isCurrent = playlist.id == currentPlaylist?.id;
-
-                return ListTile(
-                  key: ValueKey(playlist.id),
-                  tileColor: isCurrent
-                      ? theme.colorScheme.primaryContainer.withValues(alpha: 0.28)
-                      : null,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 2,
-                  ),
-                  leading: isFav
-                      ? Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: Colors.redAccent.withValues(alpha: 0.14),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: const Icon(
-                            Icons.favorite_rounded,
-                            color: Colors.redAccent,
-                            size: 20,
-                          ),
-                        )
-                      : Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: isCurrent
-                                ? theme.colorScheme.primaryContainer
-                                : theme.colorScheme.surfaceContainerHighest,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Icon(
-                            Icons.playlist_play_rounded,
-                            color: isCurrent
-                                ? theme.colorScheme.primary
-                                : theme.colorScheme.onSurfaceVariant,
-                            size: 24,
-                          ),
-                        ),
-                  title: Text(
-                    localizedPlaylistName(context, playlist),
-                    style: TextStyle(
-                      fontWeight:
-                          isCurrent ? FontWeight.bold : FontWeight.w500,
-                      color: isCurrent
-                          ? theme.colorScheme.primary
-                          : theme.colorScheme.onSurface,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  subtitle: Text(
-                    '${l10n.songCount(playlist.songs.length)} · ${_formatDate(playlist.updatedAt)}',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        tooltip: l10n.more,
-                        icon: const Icon(Icons.more_vert_rounded),
-                        onPressed: () => _showPlaylistOptions(context, playlist),
-                      ),
-                      ReorderableDragStartListener(
-                        index: index,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                          child: Icon(
-                            Icons.drag_handle_rounded,
-                            color: theme.colorScheme.outline.withValues(alpha: 0.7),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  onTap: () {
-                    SelectionActionHelper.handleItemTap(
-                      index: index,
-                      itemKey: playlist.id,
-                      items: playlists,
-                      keySelector: (p) => p.id,
-                      isSelectionMode: _isSelectionMode,
-                      selectedKeys: _selectedPlaylistIds,
-                      lastAnchorIndex: _lastAnchorIndex,
-                      onUpdateAnchor: (a) =>
-                          setState(() => _lastAnchorIndex = a),
-                      onSetSelection: (keys) => setState(() {
-                        _isSelectionMode = true;
-                        _selectedPlaylistIds
-                          ..clear()
-                          ..addAll(
-                            keys.where(
-                              (id) =>
-                                  deletablePlaylists.any((p) => p.id == id),
-                            ),
-                          );
-                      }),
-                      onToggleSelection: (key) => setState(() {
-                        if (isFav) return;
-                        _isSelectionMode = true;
-                        if (_selectedPlaylistIds.contains(key)) {
-                          _selectedPlaylistIds.remove(key);
-                        } else {
-                          _selectedPlaylistIds.add(key);
-                        }
-                      }),
-                      onEnterSelectionMode: () =>
-                          setState(() => _isSelectionMode = true),
-                      onNormalTap: () {
-                        playlistService.setCurrentPlaylist(playlist.id);
-                        Navigator.pop(context);
-                      },
-                    );
-                  },
-                  onLongPress: isFav
-                      ? null
-                      : () {
-                          setState(() {
-                            _lastAnchorIndex = index;
-                            _isSelectionMode = true;
-                            _selectedPlaylistIds.add(playlist.id);
-                          });
-                        },
-                );
-              },
-            ),
-          ),
-        ] else ...[
-          // 批量选择管理模式
-          Padding(
-            padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
-            child: Row(
+            )
+          : Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                IconButton(
-                  tooltip: l10n.cancel,
-                  icon: const Icon(Icons.close_rounded),
-                  onPressed: () {
-                    setState(() {
-                      _isSelectionMode = false;
-                      _selectedPlaylistIds.clear();
-                    });
-                  },
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    l10n.selectedPlaylistsCount(_selectedPlaylistIds.length),
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
                 if (deletablePlaylists.isNotEmpty)
                   IconButton(
                     tooltip: isAllSelected ? l10n.deselectAll : l10n.selectAll,
@@ -785,116 +587,276 @@ class _PlaylistManagerDialogState
                 ),
               ],
             ),
-          ),
+      child: Column(
+        children: [
           const Divider(height: 1),
-          Flexible(
-            child: ListView.builder(
-              shrinkWrap: true,
-              itemCount: playlists.length,
-              itemBuilder: (context, index) {
-                final playlist = playlists[index];
-                final isFav = _isFavoritePlaylist(playlist);
-                final isSelected =
-                    _selectedPlaylistIds.contains(playlist.id);
+          if (!_isSelectionMode) ...[
+            // 快捷导入条
+            InkWell(
+              onTap: () => _importM3uPlaylist(context),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.file_download_outlined,
+                      size: 20,
+                      color: theme.colorScheme.primary,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        l10n.importPlaylist,
+                        style: TextStyle(
+                          color: theme.colorScheme.primary,
+                          fontWeight: FontWeight.w500,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      size: 20,
+                      color: theme.colorScheme.primary.withValues(alpha: 0.6),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const Divider(height: 1),
+          ],
+          // 歌单列表（支持拖拽重排与点击切换）
+          Expanded(
+            child: _isSelectionMode
+                ? ListView.builder(
+                    itemCount: playlists.length,
+                    itemBuilder: (context, index) {
+                      final playlist = playlists[index];
+                      final isFav = _isFavoritePlaylist(playlist);
+                      final isSelected =
+                          _selectedPlaylistIds.contains(playlist.id);
 
-                if (isFav) {
-                  return ListTile(
-                    enabled: false,
-                    leading: const Icon(
-                      Icons.favorite_rounded,
-                      color: Colors.grey,
-                    ),
-                    title: Text(
-                      localizedPlaylistName(context, playlist),
-                      style: TextStyle(color: theme.disabledColor),
-                    ),
-                    subtitle: Text(
-                      '${l10n.songCount(playlist.songs.length)} · ${_formatDate(playlist.updatedAt)}',
-                      style: TextStyle(color: theme.disabledColor),
-                    ),
-                  );
-                }
+                      if (isFav) {
+                        return ListTile(
+                          enabled: false,
+                          leading: const Icon(
+                            Icons.favorite_rounded,
+                            color: Colors.grey,
+                          ),
+                          title: Text(
+                            localizedPlaylistName(context, playlist),
+                            style: TextStyle(color: theme.disabledColor),
+                          ),
+                          subtitle: Text(
+                            '${l10n.songCount(playlist.songs.length)} · ${_formatDate(playlist.updatedAt)}',
+                            style: TextStyle(color: theme.disabledColor),
+                          ),
+                        );
+                      }
 
-                return ListTile(
-                  selected: isSelected,
-                  leading: Checkbox(
-                    value: isSelected,
-                    onChanged: (val) {
-                      setState(() {
-                        if (val == true) {
-                          _selectedPlaylistIds.add(playlist.id);
-                        } else {
-                          _selectedPlaylistIds.remove(playlist.id);
-                        }
-                      });
+                      return ListTile(
+                        selected: isSelected,
+                        leading: Checkbox(
+                          value: isSelected,
+                          onChanged: (val) {
+                            setState(() {
+                              if (val == true) {
+                                _selectedPlaylistIds.add(playlist.id);
+                              } else {
+                                _selectedPlaylistIds.remove(playlist.id);
+                              }
+                            });
+                          },
+                        ),
+                        title: Text(localizedPlaylistName(context, playlist)),
+                        subtitle: Text(
+                          '${l10n.songCount(playlist.songs.length)} · ${_formatDate(playlist.updatedAt)}',
+                        ),
+                        onTap: () {
+                          SelectionActionHelper.handleItemTap(
+                            index: index,
+                            itemKey: playlist.id,
+                            items: playlists,
+                            keySelector: (p) => p.id,
+                            isSelectionMode: true,
+                            selectedKeys: _selectedPlaylistIds,
+                            lastAnchorIndex: _lastAnchorIndex,
+                            onUpdateAnchor: (a) =>
+                                setState(() => _lastAnchorIndex = a),
+                            onSetSelection: (keys) => setState(() {
+                              _selectedPlaylistIds
+                                ..clear()
+                                ..addAll(
+                                  keys.where(
+                                    (id) =>
+                                        deletablePlaylists.any((p) => p.id == id),
+                                  ),
+                                );
+                            }),
+                            onToggleSelection: (key) => setState(() {
+                              if (_selectedPlaylistIds.contains(key)) {
+                                _selectedPlaylistIds.remove(key);
+                              } else {
+                                _selectedPlaylistIds.add(key);
+                              }
+                            }),
+                          );
+                        },
+                      );
+                    },
+                  )
+                : ReorderableListView.builder(
+                    buildDefaultDragHandles: false,
+                    itemCount: playlists.length,
+                    onReorder: (oldIndex, newIndex) {
+                      ref.read(settingsServiceProvider).playlistSortField =
+                          PlaylistSortField.custom;
+                      ref
+                          .read(playlistServiceProvider)
+                          .reorderPlaylist(oldIndex, newIndex);
+                    },
+                    itemBuilder: (context, index) {
+                      final playlist = playlists[index];
+                      final isFav = _isFavoritePlaylist(playlist);
+                      final isCurrent = playlist.id == currentPlaylist?.id;
+
+                      return ListTile(
+                        key: ValueKey(playlist.id),
+                        tileColor: isCurrent
+                            ? theme.colorScheme.primaryContainer.withValues(alpha: 0.28)
+                            : null,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 2,
+                        ),
+                        leading: isFav
+                            ? Container(
+                                width: 40,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  color: Colors.redAccent.withValues(alpha: 0.14),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: const Icon(
+                                  Icons.favorite_rounded,
+                                  color: Colors.redAccent,
+                                  size: 20,
+                                ),
+                              )
+                            : Container(
+                                width: 40,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  color: isCurrent
+                                      ? theme.colorScheme.primaryContainer
+                                      : theme.colorScheme.surfaceContainerHighest,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Icon(
+                                  Icons.playlist_play_rounded,
+                                  color: isCurrent
+                                      ? theme.colorScheme.primary
+                                      : theme.colorScheme.onSurfaceVariant,
+                                  size: 24,
+                                ),
+                              ),
+                        title: Text(
+                          localizedPlaylistName(context, playlist),
+                          style: TextStyle(
+                            fontWeight:
+                                isCurrent ? FontWeight.bold : FontWeight.w500,
+                            color: isCurrent
+                                ? theme.colorScheme.primary
+                                : theme.colorScheme.onSurface,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        subtitle: Text(
+                          '${l10n.songCount(playlist.songs.length)} · ${_formatDate(playlist.updatedAt)}',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              tooltip: l10n.more,
+                              icon: const Icon(Icons.more_vert_rounded),
+                              onPressed: () => _showPlaylistOptions(context, playlist),
+                            ),
+                            ReorderableDragStartListener(
+                              index: index,
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                                child: Icon(
+                                  Icons.drag_handle_rounded,
+                                  color: theme.colorScheme.outline.withValues(alpha: 0.7),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        onTap: () {
+                          SelectionActionHelper.handleItemTap(
+                            index: index,
+                            itemKey: playlist.id,
+                            items: playlists,
+                            keySelector: (p) => p.id,
+                            isSelectionMode: _isSelectionMode,
+                            selectedKeys: _selectedPlaylistIds,
+                            lastAnchorIndex: _lastAnchorIndex,
+                            onUpdateAnchor: (a) =>
+                                setState(() => _lastAnchorIndex = a),
+                            onSetSelection: (keys) => setState(() {
+                              _isSelectionMode = true;
+                              _selectedPlaylistIds
+                                ..clear()
+                                ..addAll(
+                                  keys.where(
+                                    (id) =>
+                                        deletablePlaylists.any((p) => p.id == id),
+                                  ),
+                                );
+                            }),
+                            onToggleSelection: (key) => setState(() {
+                              if (isFav) return;
+                              _isSelectionMode = true;
+                              if (_selectedPlaylistIds.contains(key)) {
+                                _selectedPlaylistIds.remove(key);
+                              } else {
+                                _selectedPlaylistIds.add(key);
+                              }
+                            }),
+                            onEnterSelectionMode: () =>
+                                setState(() => _isSelectionMode = true),
+                            onNormalTap: () {
+                              playlistService.setCurrentPlaylist(playlist.id);
+                              Navigator.pop(context);
+                            },
+                          );
+                        },
+                        onLongPress: isFav
+                            ? null
+                            : () {
+                                setState(() {
+                                  _lastAnchorIndex = index;
+                                  _isSelectionMode = true;
+                                  _selectedPlaylistIds.add(playlist.id);
+                                });
+                              },
+                      );
                     },
                   ),
-                  title: Text(localizedPlaylistName(context, playlist)),
-                  subtitle: Text(
-                    '${l10n.songCount(playlist.songs.length)} · ${_formatDate(playlist.updatedAt)}',
-                  ),
-                  onTap: () {
-                    SelectionActionHelper.handleItemTap(
-                      index: index,
-                      itemKey: playlist.id,
-                      items: playlists,
-                      keySelector: (p) => p.id,
-                      isSelectionMode: true,
-                      selectedKeys: _selectedPlaylistIds,
-                      lastAnchorIndex: _lastAnchorIndex,
-                      onUpdateAnchor: (a) =>
-                          setState(() => _lastAnchorIndex = a),
-                      onSetSelection: (keys) => setState(() {
-                        _selectedPlaylistIds
-                          ..clear()
-                          ..addAll(
-                            keys.where(
-                              (id) =>
-                                  deletablePlaylists.any((p) => p.id == id),
-                            ),
-                          );
-                      }),
-                      onToggleSelection: (key) => setState(() {
-                        if (_selectedPlaylistIds.contains(key)) {
-                          _selectedPlaylistIds.remove(key);
-                        } else {
-                          _selectedPlaylistIds.add(key);
-                        }
-                      }),
-                    );
-                  },
-                );
-              },
-            ),
           ),
+          const SizedBox(height: 8),
         ],
-        const SizedBox(height: 8),
-      ],
-    );
-
-    if (widget.asBottomSheet) {
-      return AppBottomSheet(
-        maxWidth: 680,
-        landscapeMaxWidth: 860,
-        maxHeightFactor: 0.85,
-        padding: EdgeInsets.zero,
-        child: content,
-      );
-    }
-
-    return Dialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(24),
-      ),
-      clipBehavior: Clip.antiAlias,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxWidth: 480,
-          minWidth: 340,
-          maxHeight: MediaQuery.of(context).size.height * 0.8,
-        ),
-        child: content,
       ),
     );
   }
