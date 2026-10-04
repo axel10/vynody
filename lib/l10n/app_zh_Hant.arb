@@ -1704,5 +1704,8 @@
   "trialResetDialogTitle": "試用期已重置",
   "trialResetDialogSubtitle": "已為您重新開啟 {days} 天 Pro 完整試用",
   "trialResetDialogMessage": "由於之前版本存在影響體驗的已知問題，新版本已為您重新重置了 {days} 天的完整 Pro 試用期。所有高級功能已恢復可用，感謝您的支持與理解！",
-  "trialResetDialogButton": "開始體驗"
+  "trialResetDialogButton": "開始體驗",
+  "eqClippingWarning": "音量過大，為了防止爆音請降低前置增益",
+  "eqAutoPreamp": "自動降益",
+  "eqAutoPreampTooltip": "自動調低前置增益以防止爆音"
 }

@@ -5466,4 +5466,15 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get trialResetDialogButton => 'Empezar';
+
+  @override
+  String get eqClippingWarning =>
+      'Volumen demasiado alto. Reduce la ganancia de previo para evitar distorsión.';
+
+  @override
+  String get eqAutoPreamp => 'Preamp auto';
+
+  @override
+  String get eqAutoPreampTooltip =>
+      'Reduce automáticamente la ganancia de previo para evitar distorsión';
 }

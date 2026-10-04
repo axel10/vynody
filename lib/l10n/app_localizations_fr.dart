@@ -5462,4 +5462,15 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get trialResetDialogButton => 'Commencer';
+
+  @override
+  String get eqClippingWarning =>
+      'Volume trop élevé. Réduisez le gain du préampli pour éviter la saturation.';
+
+  @override
+  String get eqAutoPreamp => 'Préampli auto';
+
+  @override
+  String get eqAutoPreampTooltip =>
+      'Réduire automatiquement le gain du préampli pour éviter la saturation';
 }

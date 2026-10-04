@@ -1995,5 +1995,8 @@
   "trialResetDialogTitle": "체험 기간 재설정 완료",
   "trialResetDialogSubtitle": "{days}일간의 Pro 무료 체험이 다시 시작되었습니다",
   "trialResetDialogMessage": "이전 버전의 오류로 인해 {days}일간의 Pro 무료 체험 기간이 새로 재설정되었습니다. 모든 프리미엄 기능을 다시 이용하실 수 있습니다. 이용해 주셔서 감사합니다!",
-  "trialResetDialogButton": "체험 시작"
+  "trialResetDialogButton": "체험 시작",
+  "eqClippingWarning": "음량이 너무 큽니다. 클리핑(음 왜곡)을 방지하려면 프리앰프 게인을 낮추세요.",
+  "eqAutoPreamp": "자동 감쇠",
+  "eqAutoPreampTooltip": "클리핑을 방지하기 위해 프리앰프 게인을 자동으로 낮춥니다"
 }

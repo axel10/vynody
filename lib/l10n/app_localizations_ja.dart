@@ -5209,4 +5209,13 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get trialResetDialogButton => '始める';
+
+  @override
+  String get eqClippingWarning => '音量が大きすぎます。音割れを防ぐためプリアンプゲインを下げてください。';
+
+  @override
+  String get eqAutoPreamp => '自動減衰';
+
+  @override
+  String get eqAutoPreampTooltip => '音割れを防ぐためにプリアンプゲインを自動で下げます';
 }

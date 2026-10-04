@@ -5412,4 +5412,15 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get trialResetDialogButton => 'Başla';
+
+  @override
+  String get eqClippingWarning =>
+      'Ses çok yüksek. Bozulmayı önlemek için ön kazancı düşürün.';
+
+  @override
+  String get eqAutoPreamp => 'Otomatik Ön Kazanç';
+
+  @override
+  String get eqAutoPreampTooltip =>
+      'Bozulmayı önlemek için ön kazancı otomatik olarak azaltın';
 }

@@ -2094,5 +2094,8 @@
   "trialResetDialogTitle": "試用期間がリセットされました",
   "trialResetDialogSubtitle": "{days}日間のPro無料試用が再開されました",
   "trialResetDialogMessage": "以前のバージョンにおける不具合により、Pro機能の {days} 日間無料試用期間をリセットいたしました。すべてのプレミアム機能がご利用いただけます。ご理解とご支援に感謝いたします！",
-  "trialResetDialogButton": "始める"
+  "trialResetDialogButton": "始める",
+  "eqClippingWarning": "音量が大きすぎます。音割れを防ぐためプリアンプゲインを下げてください。",
+  "eqAutoPreamp": "自動減衰",
+  "eqAutoPreampTooltip": "音割れを防ぐためにプリアンプゲインを自動で下げます"
 }

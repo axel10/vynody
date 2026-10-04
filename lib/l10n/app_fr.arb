@@ -1995,5 +1995,8 @@
   "trialResetDialogTitle": "Période d'essai réinitialisée",
   "trialResetDialogSubtitle": "Essai Pro complet de {days} jours restauré",
   "trialResetDialogMessage": "En raison de problèmes dans les versions précédentes, nous avons réinitialisé votre période d'essai Pro de {days} jours. Toutes les fonctionnalités premium sont à nouveau actives. Merci pour votre patience et votre soutien !",
-  "trialResetDialogButton": "Commencer"
+  "trialResetDialogButton": "Commencer",
+  "eqClippingWarning": "Volume trop élevé. Réduisez le gain du préampli pour éviter la saturation.",
+  "eqAutoPreamp": "Préampli auto",
+  "eqAutoPreampTooltip": "Réduire automatiquement le gain du préampli pour éviter la saturation"
 }

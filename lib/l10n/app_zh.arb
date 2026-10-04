@@ -3455,5 +3455,17 @@
   "trialResetDialogButton": "开始体验",
   "@trialResetDialogButton": {
     "description": "Button to dismiss the trial period reset notice dialog"
+  },
+  "eqClippingWarning": "音量过大，为了防止爆音请降低前置增益",
+  "@eqClippingWarning": {
+    "description": "Warning message displayed when EQ band total gain exceeds 0dB"
+  },
+  "eqAutoPreamp": "自动降益",
+  "@eqAutoPreamp": {
+    "description": "Button text to automatically adjust preamp to prevent clipping"
+  },
+  "eqAutoPreampTooltip": "自动调低前置增益以防止爆音",
+  "@eqAutoPreampTooltip": {
+    "description": "Tooltip for auto preamp button"
   }
 }

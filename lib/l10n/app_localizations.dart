@@ -9561,6 +9561,24 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'开始体验'**
   String get trialResetDialogButton;
+
+  /// Warning message displayed when EQ band total gain exceeds 0dB
+  ///
+  /// In zh, this message translates to:
+  /// **'音量过大，为了防止爆音请降低前置增益'**
+  String get eqClippingWarning;
+
+  /// Button text to automatically adjust preamp to prevent clipping
+  ///
+  /// In zh, this message translates to:
+  /// **'自动降益'**
+  String get eqAutoPreamp;
+
+  /// Tooltip for auto preamp button
+  ///
+  /// In zh, this message translates to:
+  /// **'自动调低前置增益以防止爆音'**
+  String get eqAutoPreampTooltip;
 }
 
 class _AppLocalizationsDelegate

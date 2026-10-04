@@ -1995,5 +1995,8 @@
   "trialResetDialogTitle": "Testphase zurückgesetzt",
   "trialResetDialogSubtitle": "Vollständige {days}-tägige Pro-Testphase wiederhergestellt",
   "trialResetDialogMessage": "Aufgrund von Problemen in vorherigen Versionen wurde Ihr {days}-tägiger Pro-Testzeitraum zurückgesetzt. Alle Premium-Funktionen sind wieder verfügbar. Vielen Dank für Ihre Unterstützung!",
-  "trialResetDialogButton": "Loslegen"
+  "trialResetDialogButton": "Loslegen",
+  "eqClippingWarning": "Lautstärke zu hoch. Vorverstärkung reduzieren, um Übersteuern zu vermeiden.",
+  "eqAutoPreamp": "Auto-Preamp",
+  "eqAutoPreampTooltip": "Vorverstärkung automatisch reduzieren, um Übersteuern zu vermeiden"
 }

@@ -5214,4 +5214,13 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get trialResetDialogButton => '체험 시작';
+
+  @override
+  String get eqClippingWarning => '음량이 너무 큽니다. 클리핑(음 왜곡)을 방지하려면 프리앰프 게인을 낮추세요.';
+
+  @override
+  String get eqAutoPreamp => '자동 감쇠';
+
+  @override
+  String get eqAutoPreampTooltip => '클리핑을 방지하기 위해 프리앰프 게인을 자동으로 낮춥니다';
 }

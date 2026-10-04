@@ -60,6 +60,29 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
     final isDark = theme.brightness == Brightness.dark;
     final accentColor = theme.colorScheme.primary;
 
+    double maxEffectiveGain = -100.0;
+    double maxBandGain = 0.0;
+    if (config.bassBoostDb > 0.05) {
+      final bassEff = config.bassBoostDb + config.preampDb;
+      if (bassEff > maxEffectiveGain) {
+        maxEffectiveGain = bassEff;
+      }
+      if (config.bassBoostDb > maxBandGain) {
+        maxBandGain = config.bassBoostDb;
+      }
+    }
+    for (int i = 0; i < bandCount; i++) {
+      final g = i < config.bandGainsDb.length ? config.bandGainsDb[i] : 0.0;
+      final eff = g + config.preampDb;
+      if (eff > maxEffectiveGain) {
+        maxEffectiveGain = eff;
+      }
+      if (g > maxBandGain) {
+        maxBandGain = g;
+      }
+    }
+    final bool hasClipping = config.enabled && maxEffectiveGain > 0.05;
+
     return AppAdaptiveSheet(
       sheetMaxWidth: 800,
       dialogMaxWidth: 760,
@@ -101,7 +124,14 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
               frequencies,
             ),
             const SizedBox(height: 28),
-            _buildBottomControls(audio, config, accentColor, l10n),
+            _buildBottomControls(
+              audio,
+              config,
+              accentColor,
+              l10n,
+              hasClipping: hasClipping,
+              maxBandGain: maxBandGain,
+            ),
             const SizedBox(height: 24),
             Divider(
               height: 1,
@@ -1033,6 +1063,11 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
             final gain = index < config.bandGainsDb.length
                 ? config.bandGainsDb[index]
                 : 0.0;
+            final isClipping =
+                config.enabled && (gain + config.preampDb) > 0.05;
+            final warningColor =
+                isDark ? const Color(0xFFFF6B6B) : const Color(0xFFD32F2F);
+            final sliderColor = isClipping ? warningColor : accentColor;
 
             final sliderItem = Column(
               children: [
@@ -1050,18 +1085,22 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
                           child: Text(
                             _formatGain(gain),
                             style: TextStyle(
-                              color: gain.abs() < 0.05
-                                  ? (isDark
-                                      ? Colors.white.withValues(alpha: 0.4)
-                                      : theme.colorScheme.onSurfaceVariant
-                                          .withValues(alpha: 0.5))
-                                  : (isDark
-                                      ? Colors.white
-                                      : theme.colorScheme.onSurface),
+                              color: isClipping
+                                  ? warningColor
+                                  : (gain.abs() < 0.05
+                                      ? (isDark
+                                          ? Colors.white.withValues(alpha: 0.4)
+                                          : theme.colorScheme.onSurfaceVariant
+                                              .withValues(alpha: 0.5))
+                                      : (isDark
+                                          ? Colors.white
+                                          : theme.colorScheme.onSurface)),
                               fontSize: 10,
-                              fontWeight: gain.abs() < 0.05
-                                  ? FontWeight.normal
-                                  : FontWeight.w600,
+                              fontWeight: isClipping
+                                  ? FontWeight.bold
+                                  : (gain.abs() < 0.05
+                                      ? FontWeight.normal
+                                      : FontWeight.w600),
                               fontFeatures: const [
                                 FontFeature.tabularFigures()
                               ],
@@ -1078,7 +1117,7 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
                     value: gain,
                     min: -12.0,
                     max: 12.0,
-                    activeColor: accentColor,
+                    activeColor: sliderColor,
                     onChanged: (val) => audio.setEqualizerBandGain(index, val),
                   ),
                 ),
@@ -1090,11 +1129,13 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
                         ? _formatFreq(frequencies[index])
                         : '',
                     style: TextStyle(
-                      color: isDark
-                          ? Colors.white.withValues(alpha: 0.6)
-                          : theme.colorScheme.onSurfaceVariant,
+                      color: isClipping
+                          ? warningColor
+                          : (isDark
+                              ? Colors.white.withValues(alpha: 0.6)
+                              : theme.colorScheme.onSurfaceVariant),
                       fontSize: 10,
-                      fontWeight: FontWeight.w500,
+                      fontWeight: isClipping ? FontWeight.bold : FontWeight.w500,
                     ),
                   ),
                 ),
@@ -1160,10 +1201,18 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
     AudioService audio,
     EqualizerConfig config,
     Color accentColor,
-    AppLocalizations l10n,
-  ) {
+    AppLocalizations l10n, {
+    bool hasClipping = false,
+    double maxBandGain = 0.0,
+  }) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final warningColor =
+        isDark ? const Color(0xFFFF6B6B) : const Color(0xFFD32F2F);
+
+    final isBassBoostClipping = config.enabled &&
+        (config.bassBoostDb + config.preampDb) > 0.05 &&
+        config.bassBoostDb > 0.05;
 
     return Row(
       children: [
@@ -1173,6 +1222,8 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
           min: 0,
           max: 12,
           accentColor: accentColor,
+          isClipping: isBassBoostClipping,
+          warningColor: warningColor,
           onChanged: (val) => audio.setBassBoost(val),
         ),
         const SizedBox(width: 24),
@@ -1221,7 +1272,7 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
                     child: Text(
                       '${config.preampDb > 0 ? '+' : ''}${config.preampDb.toStringAsFixed(1)} dB',
                       style: TextStyle(
-                        color: accentColor,
+                        color: hasClipping ? warningColor : accentColor,
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
                       ),
@@ -1244,12 +1295,97 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
                   value: config.preampDb.clamp(-12.0, 12.0),
                   min: -12.0,
                   max: 12.0,
-                  activeColor: accentColor,
+                  activeColor: hasClipping && config.preampDb > 0
+                      ? warningColor
+                      : accentColor,
                   inactiveColor: isDark
                       ? Colors.white12
                       : theme.colorScheme.outlineVariant,
                   onChanged: (val) => audio.setEqualizerPreamp(val),
                 ),
+              ),
+              const SizedBox(height: 4),
+              ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 24),
+                child: hasClipping
+                    ? Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.only(top: 2.5),
+                            child: Icon(
+                              Icons.warning_amber_rounded,
+                              color: warningColor,
+                              size: 14,
+                            ),
+                          ),
+                          const SizedBox(width: 5),
+                          Expanded(
+                            child: Wrap(
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              spacing: 6,
+                              runSpacing: 4,
+                              children: [
+                                Text(
+                                  l10n.eqClippingWarning,
+                                  style: TextStyle(
+                                    color: warningColor,
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w600,
+                                    height: 1.3,
+                                  ),
+                                ),
+                                InkWell(
+                                  onTap: () {
+                                    final safePreamp =
+                                        (-maxBandGain).clamp(-12.0, 0.0);
+                                    audio.setEqualizerPreamp(safePreamp);
+                                  },
+                                  borderRadius: BorderRadius.circular(6),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 7,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: warningColor.withValues(
+                                        alpha: isDark ? 0.22 : 0.12,
+                                      ),
+                                      borderRadius: BorderRadius.circular(6),
+                                      border: Border.all(
+                                        color: warningColor.withValues(
+                                          alpha: isDark ? 0.45 : 0.3,
+                                        ),
+                                        width: 0.8,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.auto_fix_high_rounded,
+                                          size: 11,
+                                          color: warningColor,
+                                        ),
+                                        const SizedBox(width: 3),
+                                        Text(
+                                          l10n.eqAutoPreamp,
+                                          style: TextStyle(
+                                            color: warningColor,
+                                            fontSize: 10.5,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      )
+                    : const SizedBox.shrink(),
               ),
             ],
           ),
@@ -1265,17 +1401,25 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
     required double max,
     required Color accentColor,
     required ValueChanged<double> onChanged,
+    bool isClipping = false,
+    Color? warningColor,
   }) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final effectiveWarningColor = warningColor ??
+        (isDark ? const Color(0xFFFF6B6B) : const Color(0xFFD32F2F));
+    final effectiveColor = isClipping ? effectiveWarningColor : accentColor;
 
     return Column(
       children: [
         Text(
           label,
           style: TextStyle(
-            color: isDark ? Colors.white70 : theme.colorScheme.onSurfaceVariant,
+            color: isClipping
+                ? effectiveWarningColor
+                : (isDark ? Colors.white70 : theme.colorScheme.onSurfaceVariant),
             fontSize: 12,
+            fontWeight: isClipping ? FontWeight.bold : FontWeight.normal,
           ),
         ),
         const SizedBox(height: 12),
@@ -1284,14 +1428,14 @@ class _EqualizerPanelState extends ConsumerState<EqualizerPanel> {
           min: min,
           max: max,
           size: 64,
-          themeColor: accentColor,
+          themeColor: effectiveColor,
           onChanged: onChanged,
         ),
         const SizedBox(height: 8),
         Text(
           '${value > 0 ? '+' : ''}${value.toStringAsFixed(1)} dB',
           style: TextStyle(
-            color: accentColor,
+            color: effectiveColor,
             fontSize: 12,
             fontWeight: FontWeight.bold,
           ),

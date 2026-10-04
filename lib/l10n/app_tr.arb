@@ -2119,5 +2119,8 @@
   "trialResetDialogTitle": "Deneme Süresi Sıfırlandı",
   "trialResetDialogSubtitle": "{days} günlük Pro deneme süresi geri yüklendi",
   "trialResetDialogMessage": "Önceki sürümlerdeki sorunlar nedeniyle {days} günlük Pro deneme süreniz sıfırlandı. Tüm premium özellikler yeniden kullanılabilir. Anlayışınız ve desteğiniz için teşekkür ederiz!",
-  "trialResetDialogButton": "Başla"
+  "trialResetDialogButton": "Başla",
+  "eqClippingWarning": "Ses çok yüksek. Bozulmayı önlemek için ön kazancı düşürün.",
+  "eqAutoPreamp": "Otomatik Ön Kazanç",
+  "eqAutoPreampTooltip": "Bozulmayı önlemek için ön kazancı otomatik olarak azaltın"
 }

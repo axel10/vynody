@@ -1995,5 +1995,8 @@
   "trialResetDialogTitle": "Periodo de prueba restablecido",
   "trialResetDialogSubtitle": "Prueba Pro completa de {days} días restaurada",
   "trialResetDialogMessage": "Debido a problemas en versiones anteriores, hemos restablecido su periodo de prueba Pro de {days} días. Todas las funciones prémium están activas nuevamente. ¡Gracias por su comprensión y apoyo!",
-  "trialResetDialogButton": "Empezar"
+  "trialResetDialogButton": "Empezar",
+  "eqClippingWarning": "Volumen demasiado alto. Reduce la ganancia de previo para evitar distorsión.",
+  "eqAutoPreamp": "Preamp auto",
+  "eqAutoPreampTooltip": "Reduce automáticamente la ganancia de previo para evitar distorsión"
 }

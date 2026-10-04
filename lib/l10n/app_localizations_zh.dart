@@ -5123,6 +5123,15 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get trialResetDialogButton => '开始体验';
+
+  @override
+  String get eqClippingWarning => '音量过大，为了防止爆音请降低前置增益';
+
+  @override
+  String get eqAutoPreamp => '自动降益';
+
+  @override
+  String get eqAutoPreampTooltip => '自动调低前置增益以防止爆音';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -10244,4 +10253,13 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get trialResetDialogButton => '開始體驗';
+
+  @override
+  String get eqClippingWarning => '音量過大，為了防止爆音請降低前置增益';
+
+  @override
+  String get eqAutoPreamp => '自動降益';
+
+  @override
+  String get eqAutoPreampTooltip => '自動調低前置增益以防止爆音';
 }

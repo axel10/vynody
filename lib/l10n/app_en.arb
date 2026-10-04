@@ -2378,5 +2378,8 @@
   "trialResetDialogTitle": "Trial Period Reset",
   "trialResetDialogSubtitle": "Full {days}-day Pro trial restored",
   "trialResetDialogMessage": "Due to known issues in previous versions affecting user experience, we have reset your full {days}-day Pro trial. All premium features are now active. Thank you for your support and patience!",
-  "trialResetDialogButton": "Get Started"
+  "trialResetDialogButton": "Get Started",
+  "eqClippingWarning": "Volume is too high. Reduce preamp gain to avoid clipping.",
+  "eqAutoPreamp": "Auto Preamp",
+  "eqAutoPreampTooltip": "Automatically reduce preamp gain to prevent clipping"
 }

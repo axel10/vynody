@@ -5451,4 +5451,15 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get trialResetDialogButton => 'Loslegen';
+
+  @override
+  String get eqClippingWarning =>
+      'Lautstärke zu hoch. Vorverstärkung reduzieren, um Übersteuern zu vermeiden.';
+
+  @override
+  String get eqAutoPreamp => 'Auto-Preamp';
+
+  @override
+  String get eqAutoPreampTooltip =>
+      'Vorverstärkung automatisch reduzieren, um Übersteuern zu vermeiden';
 }
