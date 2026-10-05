@@ -1429,8 +1429,17 @@ class AudioService extends Notifier<AudioSnapshot> {
       return;
     }
 
+    if (_playbackMode == AppPlaybackMode.queue &&
+        _currentIndex >= _queue.length - 1) {
+      await _player.player.pause(bypassGuard: true);
+      _isPlaying = false;
+      _position = Duration.zero;
+      notifyListeners();
+      return;
+    }
+
     if (_playbackMode == AppPlaybackMode.autoQueueLoop &&
-        !hasNextSong &&
+        _currentIndex >= _queue.length - 1 &&
         !_isHandlingQueueFinished) {
       await _handleQueueFinished();
       return;
@@ -3453,16 +3462,18 @@ class AudioService extends Notifier<AudioSnapshot> {
           queue: _queue,
           currentTrack: currentMusic,
         );
-      } else if (_playbackMode == AppPlaybackMode.queueLoop) {
-        targetIndex = (_currentIndex + 1) % _queue.length;
-      } else if (_playbackMode == AppPlaybackMode.queue ||
-          _playbackMode == AppPlaybackMode.autoQueueLoop) {
+      } else if (_playbackMode == AppPlaybackMode.autoQueueLoop) {
         if (_currentIndex < _queue.length - 1) {
           targetIndex = _currentIndex + 1;
-        } else if (_playbackMode == AppPlaybackMode.autoQueueLoop) {
+        } else {
           await _handleQueueFinished();
           return;
         }
+      } else {
+        final baseIndex = (_currentIndex >= 0 && _currentIndex < _queue.length)
+            ? _currentIndex
+            : -1;
+        targetIndex = (baseIndex + 1) % _queue.length;
       }
 
       if (targetIndex != null && targetIndex >= 0 && targetIndex < _queue.length) {
@@ -3485,11 +3496,11 @@ class AudioService extends Notifier<AudioSnapshot> {
               queue: _queue,
               currentTrack: targetSong,
             );
-          } else if (_playbackMode == AppPlaybackMode.queueLoop) {
-            targetIndex = (targetIndex + 1) % _queue.length;
-          } else {
+          } else if (_playbackMode == AppPlaybackMode.autoQueueLoop) {
             targetIndex =
                 targetIndex + 1 < _queue.length ? targetIndex + 1 : null;
+          } else {
+            targetIndex = (targetIndex + 1) % _queue.length;
           }
         }
 
@@ -3528,6 +3539,7 @@ class AudioService extends Notifier<AudioSnapshot> {
       if (_playbackMode == AppPlaybackMode.autoQueueLoop) {
         await _handleQueueFinished();
       } else {
+        await _player.player.pause(bypassGuard: true);
         _isPlaying = false;
         _duration = Duration.zero;
         _position = Duration.zero;
@@ -3751,16 +3763,18 @@ class AudioService extends Notifier<AudioSnapshot> {
           queue: _queue,
           currentTrack: currentMusic,
         );
-      } else if (_playbackMode == AppPlaybackMode.queueLoop) {
-        targetIndex = (_currentIndex - 1 + _queue.length) % _queue.length;
-      } else if (_playbackMode == AppPlaybackMode.queue ||
-          _playbackMode == AppPlaybackMode.autoQueueLoop) {
+      } else if (_playbackMode == AppPlaybackMode.autoQueueLoop) {
         if (_currentIndex > 0) {
           targetIndex = _currentIndex - 1;
-        } else if (_playbackMode == AppPlaybackMode.autoQueueLoop) {
+        } else {
           await _handleQueuePrevious();
           return;
         }
+      } else {
+        final baseIndex = (_currentIndex >= 0 && _currentIndex < _queue.length)
+            ? _currentIndex
+            : 0;
+        targetIndex = (baseIndex - 1 + _queue.length) % _queue.length;
       }
 
       if (targetIndex != null &&
@@ -3785,11 +3799,11 @@ class AudioService extends Notifier<AudioSnapshot> {
               queue: _queue,
               currentTrack: targetSong,
             );
-          } else if (_playbackMode == AppPlaybackMode.queueLoop) {
-            targetIndex = (targetIndex - 1 + _queue.length) % _queue.length;
-          } else {
+          } else if (_playbackMode == AppPlaybackMode.autoQueueLoop) {
             targetIndex =
                 targetIndex - 1 >= 0 ? targetIndex - 1 : null;
+          } else {
+            targetIndex = (targetIndex - 1 + _queue.length) % _queue.length;
           }
         }
 
@@ -3827,7 +3841,10 @@ class AudioService extends Notifier<AudioSnapshot> {
 
       if (_playbackMode == AppPlaybackMode.autoQueueLoop) {
         await _handleQueuePrevious();
+      } else if (isRandomMode && targetIndex == null) {
+        await seek(Duration.zero);
       } else {
+        await _player.player.pause(bypassGuard: true);
         _isPlaying = false;
         _duration = Duration.zero;
         _position = Duration.zero;
