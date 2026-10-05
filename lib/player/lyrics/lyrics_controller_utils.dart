@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -12,6 +14,7 @@ import 'package:vynody/player/lyrics/lyrics_cache_models.dart';
 import 'package:vynody/player/lyrics/lyrics_controller_context.dart';
 import 'package:vynody/player/lyrics/lyrics_generation_phase.dart';
 import 'package:vynody/player/lyrics/lyrics_service.dart';
+import 'package:vynody/player/lyrics/timeline/lyrics_timeline.dart';
 import 'package:vynody/player/metadata/metadata_helper.dart';
 
 class LyricsControllerSupport {
@@ -202,8 +205,9 @@ class LyricsControllerSupport {
   }
 
   Future<void> updateLyricsTimelineOffsetForCurrentSong(
-    Duration timelineOffset,
-  ) async {
+    Duration timelineOffset, {
+    bool recordTimeline = true,
+  }) async {
     final song = _context.currentMusic();
     if (song == null) return;
 
@@ -213,12 +217,31 @@ class LyricsControllerSupport {
     final normalizedOffset = normalizeTimelineOffset(timelineOffset);
     if (lyrics.timelineOffset == normalizedOffset) return;
 
+    final previousOffset = lyrics.timelineOffset.inMilliseconds;
+    final newOffset = normalizedOffset.inMilliseconds;
+
     final updatedLyrics = lyrics.copyWith(timelineOffset: normalizedOffset);
     final updatedSong = replaceCurrentSongIfPath(
       song.path,
       (currentSong) => currentSong.copyWith(lyrics: updatedLyrics),
     );
     if (updatedSong == null) return;
+
+    if (recordTimeline && lyrics.plainText.trim().isNotEmpty) {
+      final offsetDiff = newOffset - previousOffset;
+      final offsetText = '${offsetDiff >= 0 ? "+" : ""}${offsetDiff}ms';
+      unawaited(
+        LyricsTimelineService.instance.recordSnapshot(
+          cacheKey: song.path,
+          actionType: LyricsTimelineActionType.timelineAdjust,
+          description: 'Offset $offsetText',
+          lyrics: lyrics.plainText,
+          timelineOffsetMillis: newOffset,
+          previousLyrics: lyrics.plainText,
+          previousOffsetMillis: previousOffset,
+        ),
+      );
+    }
 
     _context.bumpRevision();
     await saveLyricsCacheForSong(updatedSong);
@@ -227,9 +250,13 @@ class LyricsControllerSupport {
   Future<void> fillLyricsForCurrentSong(
     String lyricsText, {
     LyricsCacheSource source = LyricsCacheSource.manualAdjust,
+    bool recordTimeline = true,
   }) async {
     final song = _context.currentMusic();
     if (song == null) return;
+
+    final previousLyrics = song.lyrics?.plainText ?? '';
+    final previousOffset = song.lyrics?.timelineOffset.inMilliseconds ?? 0;
 
     cancelOngoingLyricsFetch(
       reason: source == LyricsCacheSource.lrclib
@@ -337,6 +364,32 @@ class LyricsControllerSupport {
       await prefs.setString('selected_lyric_source_$cacheKey', '${source.dbValue}|');
     } catch (e) {
       debugPrint('[LyricsController] Failed to cache manual lyrics: $e');
+    }
+
+    if (recordTimeline) {
+      final actionType = source == LyricsCacheSource.lrclib
+          ? LyricsTimelineActionType.onlineMatch
+          : (source == LyricsCacheSource.external
+              ? LyricsTimelineActionType.importFile
+              : LyricsTimelineActionType.manualEdit);
+      final desc = source == LyricsCacheSource.lrclib
+          ? 'Online Match'
+          : (source == LyricsCacheSource.external
+              ? 'Imported'
+              : 'Manual Edit');
+
+      unawaited(
+        LyricsTimelineService.instance.recordSnapshot(
+          cacheKey: song.path,
+          actionType: actionType,
+          description: desc,
+          lyrics: filledLyrics.plainText,
+          translation: parsedResult.translatedLines?.join('\n'),
+          timelineOffsetMillis: filledLyrics.timelineOffset.inMilliseconds,
+          previousLyrics: previousLyrics,
+          previousOffsetMillis: previousOffset,
+        ),
+      );
     }
   }
 

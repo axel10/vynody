@@ -533,6 +533,21 @@ class MetadataDatabase {
     String cacheKey,
   ) => _db.watchLyricsTranslationCaches(cacheKey);
 
+  Future<int> insertLyricsHistory(LyricsHistoriesCompanion companion) =>
+      _db.insertLyricsHistory(companion);
+
+  Future<List<LyricsHistory>> getLyricsHistories(
+    String cacheKey, {
+    int limit = 10,
+  }) =>
+      _db.getLyricsHistories(cacheKey, limit: limit);
+
+  Future<void> trimLyricsHistories(String cacheKey, {int maxCount = 10}) =>
+      _db.trimLyricsHistories(cacheKey, maxCount: maxCount);
+
+  Future<int> clearLyricsHistoriesByKey(String cacheKey) =>
+      _db.clearLyricsHistoriesByKey(cacheKey);
+
   Future<void> insertOrUpdateAcoustIDCache(AcoustIDCacheRecord record) =>
       _db.insertOrUpdateAcoustIDCache(record);
 

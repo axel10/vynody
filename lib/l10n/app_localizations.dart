@@ -9579,6 +9579,90 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'自动调低前置增益以防止爆音'**
   String get eqAutoPreampTooltip;
+
+  /// Title for lyrics timeline history feature
+  ///
+  /// In zh, this message translates to:
+  /// **'歌词时间线'**
+  String get lyricsTimelineTitle;
+
+  /// Subtitle describing lyrics timeline feature
+  ///
+  /// In zh, this message translates to:
+  /// **'最多保留最近10次修改快照，可随时对比与还原'**
+  String get lyricsTimelineSubtitle;
+
+  /// Button to restore a selected lyrics version
+  ///
+  /// In zh, this message translates to:
+  /// **'恢复此版本'**
+  String get restoreThisVersion;
+
+  /// Notice when no lyrics history is found
+  ///
+  /// In zh, this message translates to:
+  /// **'暂无历史修改记录'**
+  String get noTimelineHistory;
+
+  /// Hint text when lyrics timeline history is empty
+  ///
+  /// In zh, this message translates to:
+  /// **'在编辑、平移时间轴或导入歌词后，修改快照将自动记录在此'**
+  String get noTimelineHistoryHint;
+
+  /// Tag indicating the currently active lyrics version
+  ///
+  /// In zh, this message translates to:
+  /// **'当前版本'**
+  String get currentVersion;
+
+  /// Action tag for manual lyrics edit
+  ///
+  /// In zh, this message translates to:
+  /// **'手动编辑'**
+  String get timelineActionManualEdit;
+
+  /// Action tag for timeline offset adjustment
+  ///
+  /// In zh, this message translates to:
+  /// **'时间轴调整'**
+  String get timelineActionTimelineAdjust;
+
+  /// Action tag for online lyrics match
+  ///
+  /// In zh, this message translates to:
+  /// **'在线匹配'**
+  String get timelineActionOnlineMatch;
+
+  /// Action tag for importing lyrics file
+  ///
+  /// In zh, this message translates to:
+  /// **'文件导入'**
+  String get timelineActionImportFile;
+
+  /// Action tag for AI generated lyrics
+  ///
+  /// In zh, this message translates to:
+  /// **'AI 生成'**
+  String get timelineActionAiGenerate;
+
+  /// Action tag for baseline lyrics
+  ///
+  /// In zh, this message translates to:
+  /// **'初始歌词'**
+  String get timelineActionInitial;
+
+  /// Action tag for rollback
+  ///
+  /// In zh, this message translates to:
+  /// **'版本回滚'**
+  String get timelineActionRestore;
+
+  /// Toast message after restoring lyrics version
+  ///
+  /// In zh, this message translates to:
+  /// **'已成功恢复该版本歌词'**
+  String get lyricsRestoredSuccess;
 }
 
 class _AppLocalizationsDelegate

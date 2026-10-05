@@ -5473,4 +5473,46 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get eqAutoPreampTooltip =>
       'Réduire automatiquement le gain du préampli pour éviter la saturation';
+
+  @override
+  String get lyricsTimelineTitle => '歌词时间线';
+
+  @override
+  String get lyricsTimelineSubtitle => '最多保留最近10次修改快照，可随时对比与还原';
+
+  @override
+  String get restoreThisVersion => '恢复此版本';
+
+  @override
+  String get noTimelineHistory => '暂无历史修改记录';
+
+  @override
+  String get noTimelineHistoryHint => '在编辑、平移时间轴或导入歌词后，修改快照将自动记录在此';
+
+  @override
+  String get currentVersion => '当前版本';
+
+  @override
+  String get timelineActionManualEdit => '手动编辑';
+
+  @override
+  String get timelineActionTimelineAdjust => '时间轴调整';
+
+  @override
+  String get timelineActionOnlineMatch => '在线匹配';
+
+  @override
+  String get timelineActionImportFile => '文件导入';
+
+  @override
+  String get timelineActionAiGenerate => 'AI 生成';
+
+  @override
+  String get timelineActionInitial => '初始歌词';
+
+  @override
+  String get timelineActionRestore => '版本回滚';
+
+  @override
+  String get lyricsRestoredSuccess => '已成功恢复该版本歌词';
 }

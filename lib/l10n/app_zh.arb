@@ -3467,5 +3467,61 @@
   "eqAutoPreampTooltip": "自动调低前置增益以防止爆音",
   "@eqAutoPreampTooltip": {
     "description": "Tooltip for auto preamp button"
+  },
+  "lyricsTimelineTitle": "歌词时间线",
+  "@lyricsTimelineTitle": {
+    "description": "Title for lyrics timeline history feature"
+  },
+  "lyricsTimelineSubtitle": "最多保留最近10次修改快照，可随时对比与还原",
+  "@lyricsTimelineSubtitle": {
+    "description": "Subtitle describing lyrics timeline feature"
+  },
+  "restoreThisVersion": "恢复此版本",
+  "@restoreThisVersion": {
+    "description": "Button to restore a selected lyrics version"
+  },
+  "noTimelineHistory": "暂无历史修改记录",
+  "@noTimelineHistory": {
+    "description": "Notice when no lyrics history is found"
+  },
+  "noTimelineHistoryHint": "在编辑、平移时间轴或导入歌词后，修改快照将自动记录在此",
+  "@noTimelineHistoryHint": {
+    "description": "Hint text when lyrics timeline history is empty"
+  },
+  "currentVersion": "当前版本",
+  "@currentVersion": {
+    "description": "Tag indicating the currently active lyrics version"
+  },
+  "timelineActionManualEdit": "手动编辑",
+  "@timelineActionManualEdit": {
+    "description": "Action tag for manual lyrics edit"
+  },
+  "timelineActionTimelineAdjust": "时间轴调整",
+  "@timelineActionTimelineAdjust": {
+    "description": "Action tag for timeline offset adjustment"
+  },
+  "timelineActionOnlineMatch": "在线匹配",
+  "@timelineActionOnlineMatch": {
+    "description": "Action tag for online lyrics match"
+  },
+  "timelineActionImportFile": "文件导入",
+  "@timelineActionImportFile": {
+    "description": "Action tag for importing lyrics file"
+  },
+  "timelineActionAiGenerate": "AI 生成",
+  "@timelineActionAiGenerate": {
+    "description": "Action tag for AI generated lyrics"
+  },
+  "timelineActionInitial": "初始歌词",
+  "@timelineActionInitial": {
+    "description": "Action tag for baseline lyrics"
+  },
+  "timelineActionRestore": "版本回滚",
+  "@timelineActionRestore": {
+    "description": "Action tag for rollback"
+  },
+  "lyricsRestoredSuccess": "已成功恢复该版本歌词",
+  "@lyricsRestoredSuccess": {
+    "description": "Toast message after restoring lyrics version"
   }
 }

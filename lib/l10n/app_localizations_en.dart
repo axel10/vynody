@@ -5398,4 +5398,48 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get eqAutoPreampTooltip =>
       'Automatically reduce preamp gain to prevent clipping';
+
+  @override
+  String get lyricsTimelineTitle => 'Lyrics Timeline';
+
+  @override
+  String get lyricsTimelineSubtitle =>
+      'Keeps up to 10 latest modification snapshots for quick rollback';
+
+  @override
+  String get restoreThisVersion => 'Restore this version';
+
+  @override
+  String get noTimelineHistory => 'No modification history';
+
+  @override
+  String get noTimelineHistoryHint =>
+      'Snapshots will be automatically recorded here when you edit, adjust timeline, or import lyrics';
+
+  @override
+  String get currentVersion => 'Current';
+
+  @override
+  String get timelineActionManualEdit => 'Manual Edit';
+
+  @override
+  String get timelineActionTimelineAdjust => 'Timeline Adjusted';
+
+  @override
+  String get timelineActionOnlineMatch => 'Online Match';
+
+  @override
+  String get timelineActionImportFile => 'File Imported';
+
+  @override
+  String get timelineActionAiGenerate => 'AI Generated';
+
+  @override
+  String get timelineActionInitial => 'Initial';
+
+  @override
+  String get timelineActionRestore => 'Rollback';
+
+  @override
+  String get lyricsRestoredSuccess => 'Lyrics restored successfully';
 }

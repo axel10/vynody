@@ -15,6 +15,7 @@ part of 'metadata_database.dart';
     RemoteSongs,
     FolderCovers,
     RemoteLibraryCaches,
+    LyricsHistories,
   ],
 )
 class MetadataDriftDatabase extends _$MetadataDriftDatabase {
@@ -23,7 +24,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   static final MetadataDriftDatabase instance = MetadataDriftDatabase._();
 
   @override
-  int get schemaVersion => 37;
+  int get schemaVersion => 38;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -409,6 +410,12 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
         await _addColumnIfMissing(m, 'songs', 'bitDepth', 'INTEGER');
         await _addColumnIfMissing(m, 'songs', 'format', 'TEXT');
         await _addColumnIfMissing(m, 'songs', 'codec', 'TEXT');
+      }
+      if (from < 38) {
+        final exists = await _tableExists(lyricsHistories.actualTableName);
+        if (!exists) {
+          await m.createTable(lyricsHistories);
+        }
       }
     },
   );
@@ -2122,6 +2129,48 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
     )..where((t) => t.cacheKey.equals(normalizedCacheKey))).go();
   }
 
+  Future<int> insertLyricsHistory(LyricsHistoriesCompanion companion) async {
+    return into(lyricsHistories).insert(companion);
+  }
+
+  Future<List<LyricsHistory>> getLyricsHistories(
+    String cacheKey, {
+    int limit = 10,
+  }) async {
+    final normalized = cacheKey.trim();
+    if (normalized.isEmpty) return const [];
+    return (select(lyricsHistories)
+          ..where((t) => t.cacheKey.equals(normalized))
+          ..orderBy([(t) => OrderingTerm.desc(t.createdAtMillis)])
+          ..limit(limit))
+        .get();
+  }
+
+  Future<int> deleteLyricsHistoryById(int id) async {
+    return (delete(lyricsHistories)..where((t) => t.id.equals(id))).go();
+  }
+
+  Future<void> trimLyricsHistories(String cacheKey, {int maxCount = 10}) async {
+    final normalized = cacheKey.trim();
+    if (normalized.isEmpty) return;
+
+    final all = await (select(lyricsHistories)
+          ..where((t) => t.cacheKey.equals(normalized))
+          ..orderBy([(t) => OrderingTerm.desc(t.createdAtMillis)]))
+        .get();
+
+    if (all.length > maxCount) {
+      final toDeleteIds = all.sublist(maxCount).map((e) => e.id).toList();
+      await (delete(lyricsHistories)..where((t) => t.id.isIn(toDeleteIds))).go();
+    }
+  }
+
+  Future<int> clearLyricsHistoriesByKey(String cacheKey) async {
+    final normalized = cacheKey.trim();
+    if (normalized.isEmpty) return 0;
+    return (delete(lyricsHistories)..where((t) => t.cacheKey.equals(normalized))).go();
+  }
+
   Future<List<LyricsCacheRecord>> getAllLyricsCaches() async {
     final rows = await select(lyricsCaches).get();
     return rows.map(_lyricsCacheFromRow).toList(growable: false);
@@ -3189,6 +3238,21 @@ class LyricsCaches extends Table {
 
   @override
   List<String> get customConstraints => const ['UNIQUE(cacheKey, source, languageCode)'];
+}
+
+class LyricsHistories extends Table {
+  @override
+  String get tableName => 'lyrics_history';
+
+  IntColumn get id => integer().autoIncrement().named('id')();
+  TextColumn get cacheKey => text().named('cacheKey')();
+  TextColumn get actionType => text().named('actionType')();
+  TextColumn get description => text().named('description')();
+  TextColumn get lyrics => text().named('lyrics')();
+  TextColumn get translation => text().nullable().named('translation')();
+  IntColumn get timelineOffsetMillis =>
+      integer().withDefault(const Constant(0)).named('timelineOffsetMillis')();
+  IntColumn get createdAtMillis => integer().named('createdAtMillis')();
 }
 
 class AcoustidCaches extends Table {

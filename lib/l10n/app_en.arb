@@ -2381,5 +2381,19 @@
   "trialResetDialogButton": "Get Started",
   "eqClippingWarning": "Volume is too high. Reduce preamp gain to avoid clipping.",
   "eqAutoPreamp": "Auto Preamp",
-  "eqAutoPreampTooltip": "Automatically reduce preamp gain to prevent clipping"
+  "eqAutoPreampTooltip": "Automatically reduce preamp gain to prevent clipping",
+  "lyricsTimelineTitle": "Lyrics Timeline",
+  "lyricsTimelineSubtitle": "Keeps up to 10 latest modification snapshots for quick rollback",
+  "restoreThisVersion": "Restore this version",
+  "noTimelineHistory": "No modification history",
+  "noTimelineHistoryHint": "Snapshots will be automatically recorded here when you edit, adjust timeline, or import lyrics",
+  "currentVersion": "Current",
+  "timelineActionManualEdit": "Manual Edit",
+  "timelineActionTimelineAdjust": "Timeline Adjusted",
+  "timelineActionOnlineMatch": "Online Match",
+  "timelineActionImportFile": "File Imported",
+  "timelineActionAiGenerate": "AI Generated",
+  "timelineActionInitial": "Initial",
+  "timelineActionRestore": "Rollback",
+  "lyricsRestoredSuccess": "Lyrics restored successfully"
 }

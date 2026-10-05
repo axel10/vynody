@@ -8216,6 +8216,529 @@ class RemoteLibraryCachesCompanion extends UpdateCompanion<RemoteLibraryCache> {
   }
 }
 
+class $LyricsHistoriesTable extends LyricsHistories
+    with TableInfo<$LyricsHistoriesTable, LyricsHistory> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LyricsHistoriesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _cacheKeyMeta = const VerificationMeta(
+    'cacheKey',
+  );
+  @override
+  late final GeneratedColumn<String> cacheKey = GeneratedColumn<String>(
+    'cacheKey',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _actionTypeMeta = const VerificationMeta(
+    'actionType',
+  );
+  @override
+  late final GeneratedColumn<String> actionType = GeneratedColumn<String>(
+    'actionType',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _descriptionMeta = const VerificationMeta(
+    'description',
+  );
+  @override
+  late final GeneratedColumn<String> description = GeneratedColumn<String>(
+    'description',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _lyricsMeta = const VerificationMeta('lyrics');
+  @override
+  late final GeneratedColumn<String> lyrics = GeneratedColumn<String>(
+    'lyrics',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _translationMeta = const VerificationMeta(
+    'translation',
+  );
+  @override
+  late final GeneratedColumn<String> translation = GeneratedColumn<String>(
+    'translation',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _timelineOffsetMillisMeta =
+      const VerificationMeta('timelineOffsetMillis');
+  @override
+  late final GeneratedColumn<int> timelineOffsetMillis = GeneratedColumn<int>(
+    'timelineOffsetMillis',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _createdAtMillisMeta = const VerificationMeta(
+    'createdAtMillis',
+  );
+  @override
+  late final GeneratedColumn<int> createdAtMillis = GeneratedColumn<int>(
+    'createdAtMillis',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    cacheKey,
+    actionType,
+    description,
+    lyrics,
+    translation,
+    timelineOffsetMillis,
+    createdAtMillis,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'lyrics_history';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<LyricsHistory> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('cacheKey')) {
+      context.handle(
+        _cacheKeyMeta,
+        cacheKey.isAcceptableOrUnknown(data['cacheKey']!, _cacheKeyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_cacheKeyMeta);
+    }
+    if (data.containsKey('actionType')) {
+      context.handle(
+        _actionTypeMeta,
+        actionType.isAcceptableOrUnknown(data['actionType']!, _actionTypeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_actionTypeMeta);
+    }
+    if (data.containsKey('description')) {
+      context.handle(
+        _descriptionMeta,
+        description.isAcceptableOrUnknown(
+          data['description']!,
+          _descriptionMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_descriptionMeta);
+    }
+    if (data.containsKey('lyrics')) {
+      context.handle(
+        _lyricsMeta,
+        lyrics.isAcceptableOrUnknown(data['lyrics']!, _lyricsMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_lyricsMeta);
+    }
+    if (data.containsKey('translation')) {
+      context.handle(
+        _translationMeta,
+        translation.isAcceptableOrUnknown(
+          data['translation']!,
+          _translationMeta,
+        ),
+      );
+    }
+    if (data.containsKey('timelineOffsetMillis')) {
+      context.handle(
+        _timelineOffsetMillisMeta,
+        timelineOffsetMillis.isAcceptableOrUnknown(
+          data['timelineOffsetMillis']!,
+          _timelineOffsetMillisMeta,
+        ),
+      );
+    }
+    if (data.containsKey('createdAtMillis')) {
+      context.handle(
+        _createdAtMillisMeta,
+        createdAtMillis.isAcceptableOrUnknown(
+          data['createdAtMillis']!,
+          _createdAtMillisMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMillisMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  LyricsHistory map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LyricsHistory(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      cacheKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}cacheKey'],
+      )!,
+      actionType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}actionType'],
+      )!,
+      description: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}description'],
+      )!,
+      lyrics: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}lyrics'],
+      )!,
+      translation: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}translation'],
+      ),
+      timelineOffsetMillis: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}timelineOffsetMillis'],
+      )!,
+      createdAtMillis: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}createdAtMillis'],
+      )!,
+    );
+  }
+
+  @override
+  $LyricsHistoriesTable createAlias(String alias) {
+    return $LyricsHistoriesTable(attachedDatabase, alias);
+  }
+}
+
+class LyricsHistory extends DataClass implements Insertable<LyricsHistory> {
+  final int id;
+  final String cacheKey;
+  final String actionType;
+  final String description;
+  final String lyrics;
+  final String? translation;
+  final int timelineOffsetMillis;
+  final int createdAtMillis;
+  const LyricsHistory({
+    required this.id,
+    required this.cacheKey,
+    required this.actionType,
+    required this.description,
+    required this.lyrics,
+    this.translation,
+    required this.timelineOffsetMillis,
+    required this.createdAtMillis,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['cacheKey'] = Variable<String>(cacheKey);
+    map['actionType'] = Variable<String>(actionType);
+    map['description'] = Variable<String>(description);
+    map['lyrics'] = Variable<String>(lyrics);
+    if (!nullToAbsent || translation != null) {
+      map['translation'] = Variable<String>(translation);
+    }
+    map['timelineOffsetMillis'] = Variable<int>(timelineOffsetMillis);
+    map['createdAtMillis'] = Variable<int>(createdAtMillis);
+    return map;
+  }
+
+  LyricsHistoriesCompanion toCompanion(bool nullToAbsent) {
+    return LyricsHistoriesCompanion(
+      id: Value(id),
+      cacheKey: Value(cacheKey),
+      actionType: Value(actionType),
+      description: Value(description),
+      lyrics: Value(lyrics),
+      translation: translation == null && nullToAbsent
+          ? const Value.absent()
+          : Value(translation),
+      timelineOffsetMillis: Value(timelineOffsetMillis),
+      createdAtMillis: Value(createdAtMillis),
+    );
+  }
+
+  factory LyricsHistory.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LyricsHistory(
+      id: serializer.fromJson<int>(json['id']),
+      cacheKey: serializer.fromJson<String>(json['cacheKey']),
+      actionType: serializer.fromJson<String>(json['actionType']),
+      description: serializer.fromJson<String>(json['description']),
+      lyrics: serializer.fromJson<String>(json['lyrics']),
+      translation: serializer.fromJson<String?>(json['translation']),
+      timelineOffsetMillis: serializer.fromJson<int>(
+        json['timelineOffsetMillis'],
+      ),
+      createdAtMillis: serializer.fromJson<int>(json['createdAtMillis']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'cacheKey': serializer.toJson<String>(cacheKey),
+      'actionType': serializer.toJson<String>(actionType),
+      'description': serializer.toJson<String>(description),
+      'lyrics': serializer.toJson<String>(lyrics),
+      'translation': serializer.toJson<String?>(translation),
+      'timelineOffsetMillis': serializer.toJson<int>(timelineOffsetMillis),
+      'createdAtMillis': serializer.toJson<int>(createdAtMillis),
+    };
+  }
+
+  LyricsHistory copyWith({
+    int? id,
+    String? cacheKey,
+    String? actionType,
+    String? description,
+    String? lyrics,
+    Value<String?> translation = const Value.absent(),
+    int? timelineOffsetMillis,
+    int? createdAtMillis,
+  }) => LyricsHistory(
+    id: id ?? this.id,
+    cacheKey: cacheKey ?? this.cacheKey,
+    actionType: actionType ?? this.actionType,
+    description: description ?? this.description,
+    lyrics: lyrics ?? this.lyrics,
+    translation: translation.present ? translation.value : this.translation,
+    timelineOffsetMillis: timelineOffsetMillis ?? this.timelineOffsetMillis,
+    createdAtMillis: createdAtMillis ?? this.createdAtMillis,
+  );
+  LyricsHistory copyWithCompanion(LyricsHistoriesCompanion data) {
+    return LyricsHistory(
+      id: data.id.present ? data.id.value : this.id,
+      cacheKey: data.cacheKey.present ? data.cacheKey.value : this.cacheKey,
+      actionType: data.actionType.present
+          ? data.actionType.value
+          : this.actionType,
+      description: data.description.present
+          ? data.description.value
+          : this.description,
+      lyrics: data.lyrics.present ? data.lyrics.value : this.lyrics,
+      translation: data.translation.present
+          ? data.translation.value
+          : this.translation,
+      timelineOffsetMillis: data.timelineOffsetMillis.present
+          ? data.timelineOffsetMillis.value
+          : this.timelineOffsetMillis,
+      createdAtMillis: data.createdAtMillis.present
+          ? data.createdAtMillis.value
+          : this.createdAtMillis,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LyricsHistory(')
+          ..write('id: $id, ')
+          ..write('cacheKey: $cacheKey, ')
+          ..write('actionType: $actionType, ')
+          ..write('description: $description, ')
+          ..write('lyrics: $lyrics, ')
+          ..write('translation: $translation, ')
+          ..write('timelineOffsetMillis: $timelineOffsetMillis, ')
+          ..write('createdAtMillis: $createdAtMillis')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    cacheKey,
+    actionType,
+    description,
+    lyrics,
+    translation,
+    timelineOffsetMillis,
+    createdAtMillis,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LyricsHistory &&
+          other.id == this.id &&
+          other.cacheKey == this.cacheKey &&
+          other.actionType == this.actionType &&
+          other.description == this.description &&
+          other.lyrics == this.lyrics &&
+          other.translation == this.translation &&
+          other.timelineOffsetMillis == this.timelineOffsetMillis &&
+          other.createdAtMillis == this.createdAtMillis);
+}
+
+class LyricsHistoriesCompanion extends UpdateCompanion<LyricsHistory> {
+  final Value<int> id;
+  final Value<String> cacheKey;
+  final Value<String> actionType;
+  final Value<String> description;
+  final Value<String> lyrics;
+  final Value<String?> translation;
+  final Value<int> timelineOffsetMillis;
+  final Value<int> createdAtMillis;
+  const LyricsHistoriesCompanion({
+    this.id = const Value.absent(),
+    this.cacheKey = const Value.absent(),
+    this.actionType = const Value.absent(),
+    this.description = const Value.absent(),
+    this.lyrics = const Value.absent(),
+    this.translation = const Value.absent(),
+    this.timelineOffsetMillis = const Value.absent(),
+    this.createdAtMillis = const Value.absent(),
+  });
+  LyricsHistoriesCompanion.insert({
+    this.id = const Value.absent(),
+    required String cacheKey,
+    required String actionType,
+    required String description,
+    required String lyrics,
+    this.translation = const Value.absent(),
+    this.timelineOffsetMillis = const Value.absent(),
+    required int createdAtMillis,
+  }) : cacheKey = Value(cacheKey),
+       actionType = Value(actionType),
+       description = Value(description),
+       lyrics = Value(lyrics),
+       createdAtMillis = Value(createdAtMillis);
+  static Insertable<LyricsHistory> custom({
+    Expression<int>? id,
+    Expression<String>? cacheKey,
+    Expression<String>? actionType,
+    Expression<String>? description,
+    Expression<String>? lyrics,
+    Expression<String>? translation,
+    Expression<int>? timelineOffsetMillis,
+    Expression<int>? createdAtMillis,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (cacheKey != null) 'cacheKey': cacheKey,
+      if (actionType != null) 'actionType': actionType,
+      if (description != null) 'description': description,
+      if (lyrics != null) 'lyrics': lyrics,
+      if (translation != null) 'translation': translation,
+      if (timelineOffsetMillis != null)
+        'timelineOffsetMillis': timelineOffsetMillis,
+      if (createdAtMillis != null) 'createdAtMillis': createdAtMillis,
+    });
+  }
+
+  LyricsHistoriesCompanion copyWith({
+    Value<int>? id,
+    Value<String>? cacheKey,
+    Value<String>? actionType,
+    Value<String>? description,
+    Value<String>? lyrics,
+    Value<String?>? translation,
+    Value<int>? timelineOffsetMillis,
+    Value<int>? createdAtMillis,
+  }) {
+    return LyricsHistoriesCompanion(
+      id: id ?? this.id,
+      cacheKey: cacheKey ?? this.cacheKey,
+      actionType: actionType ?? this.actionType,
+      description: description ?? this.description,
+      lyrics: lyrics ?? this.lyrics,
+      translation: translation ?? this.translation,
+      timelineOffsetMillis: timelineOffsetMillis ?? this.timelineOffsetMillis,
+      createdAtMillis: createdAtMillis ?? this.createdAtMillis,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (cacheKey.present) {
+      map['cacheKey'] = Variable<String>(cacheKey.value);
+    }
+    if (actionType.present) {
+      map['actionType'] = Variable<String>(actionType.value);
+    }
+    if (description.present) {
+      map['description'] = Variable<String>(description.value);
+    }
+    if (lyrics.present) {
+      map['lyrics'] = Variable<String>(lyrics.value);
+    }
+    if (translation.present) {
+      map['translation'] = Variable<String>(translation.value);
+    }
+    if (timelineOffsetMillis.present) {
+      map['timelineOffsetMillis'] = Variable<int>(timelineOffsetMillis.value);
+    }
+    if (createdAtMillis.present) {
+      map['createdAtMillis'] = Variable<int>(createdAtMillis.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LyricsHistoriesCompanion(')
+          ..write('id: $id, ')
+          ..write('cacheKey: $cacheKey, ')
+          ..write('actionType: $actionType, ')
+          ..write('description: $description, ')
+          ..write('lyrics: $lyrics, ')
+          ..write('translation: $translation, ')
+          ..write('timelineOffsetMillis: $timelineOffsetMillis, ')
+          ..write('createdAtMillis: $createdAtMillis')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$MetadataDriftDatabase extends GeneratedDatabase {
   _$MetadataDriftDatabase(QueryExecutor e) : super(e);
   $MetadataDriftDatabaseManager get managers =>
@@ -8238,6 +8761,9 @@ abstract class _$MetadataDriftDatabase extends GeneratedDatabase {
   late final $FolderCoversTable folderCovers = $FolderCoversTable(this);
   late final $RemoteLibraryCachesTable remoteLibraryCaches =
       $RemoteLibraryCachesTable(this);
+  late final $LyricsHistoriesTable lyricsHistories = $LyricsHistoriesTable(
+    this,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -8256,6 +8782,7 @@ abstract class _$MetadataDriftDatabase extends GeneratedDatabase {
     remoteSongs,
     folderCovers,
     remoteLibraryCaches,
+    lyricsHistories,
   ];
 }
 
@@ -12284,6 +12811,277 @@ typedef $$RemoteLibraryCachesTableProcessedTableManager =
       RemoteLibraryCache,
       PrefetchHooks Function()
     >;
+typedef $$LyricsHistoriesTableCreateCompanionBuilder =
+    LyricsHistoriesCompanion Function({
+      Value<int> id,
+      required String cacheKey,
+      required String actionType,
+      required String description,
+      required String lyrics,
+      Value<String?> translation,
+      Value<int> timelineOffsetMillis,
+      required int createdAtMillis,
+    });
+typedef $$LyricsHistoriesTableUpdateCompanionBuilder =
+    LyricsHistoriesCompanion Function({
+      Value<int> id,
+      Value<String> cacheKey,
+      Value<String> actionType,
+      Value<String> description,
+      Value<String> lyrics,
+      Value<String?> translation,
+      Value<int> timelineOffsetMillis,
+      Value<int> createdAtMillis,
+    });
+
+class $$LyricsHistoriesTableFilterComposer
+    extends Composer<_$MetadataDriftDatabase, $LyricsHistoriesTable> {
+  $$LyricsHistoriesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get cacheKey => $composableBuilder(
+    column: $table.cacheKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get actionType => $composableBuilder(
+    column: $table.actionType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get lyrics => $composableBuilder(
+    column: $table.lyrics,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get translation => $composableBuilder(
+    column: $table.translation,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get timelineOffsetMillis => $composableBuilder(
+    column: $table.timelineOffsetMillis,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAtMillis => $composableBuilder(
+    column: $table.createdAtMillis,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$LyricsHistoriesTableOrderingComposer
+    extends Composer<_$MetadataDriftDatabase, $LyricsHistoriesTable> {
+  $$LyricsHistoriesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get cacheKey => $composableBuilder(
+    column: $table.cacheKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get actionType => $composableBuilder(
+    column: $table.actionType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get lyrics => $composableBuilder(
+    column: $table.lyrics,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get translation => $composableBuilder(
+    column: $table.translation,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get timelineOffsetMillis => $composableBuilder(
+    column: $table.timelineOffsetMillis,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAtMillis => $composableBuilder(
+    column: $table.createdAtMillis,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$LyricsHistoriesTableAnnotationComposer
+    extends Composer<_$MetadataDriftDatabase, $LyricsHistoriesTable> {
+  $$LyricsHistoriesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get cacheKey =>
+      $composableBuilder(column: $table.cacheKey, builder: (column) => column);
+
+  GeneratedColumn<String> get actionType => $composableBuilder(
+    column: $table.actionType,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get lyrics =>
+      $composableBuilder(column: $table.lyrics, builder: (column) => column);
+
+  GeneratedColumn<String> get translation => $composableBuilder(
+    column: $table.translation,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get timelineOffsetMillis => $composableBuilder(
+    column: $table.timelineOffsetMillis,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get createdAtMillis => $composableBuilder(
+    column: $table.createdAtMillis,
+    builder: (column) => column,
+  );
+}
+
+class $$LyricsHistoriesTableTableManager
+    extends
+        RootTableManager<
+          _$MetadataDriftDatabase,
+          $LyricsHistoriesTable,
+          LyricsHistory,
+          $$LyricsHistoriesTableFilterComposer,
+          $$LyricsHistoriesTableOrderingComposer,
+          $$LyricsHistoriesTableAnnotationComposer,
+          $$LyricsHistoriesTableCreateCompanionBuilder,
+          $$LyricsHistoriesTableUpdateCompanionBuilder,
+          (
+            LyricsHistory,
+            BaseReferences<
+              _$MetadataDriftDatabase,
+              $LyricsHistoriesTable,
+              LyricsHistory
+            >,
+          ),
+          LyricsHistory,
+          PrefetchHooks Function()
+        > {
+  $$LyricsHistoriesTableTableManager(
+    _$MetadataDriftDatabase db,
+    $LyricsHistoriesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$LyricsHistoriesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$LyricsHistoriesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$LyricsHistoriesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> cacheKey = const Value.absent(),
+                Value<String> actionType = const Value.absent(),
+                Value<String> description = const Value.absent(),
+                Value<String> lyrics = const Value.absent(),
+                Value<String?> translation = const Value.absent(),
+                Value<int> timelineOffsetMillis = const Value.absent(),
+                Value<int> createdAtMillis = const Value.absent(),
+              }) => LyricsHistoriesCompanion(
+                id: id,
+                cacheKey: cacheKey,
+                actionType: actionType,
+                description: description,
+                lyrics: lyrics,
+                translation: translation,
+                timelineOffsetMillis: timelineOffsetMillis,
+                createdAtMillis: createdAtMillis,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String cacheKey,
+                required String actionType,
+                required String description,
+                required String lyrics,
+                Value<String?> translation = const Value.absent(),
+                Value<int> timelineOffsetMillis = const Value.absent(),
+                required int createdAtMillis,
+              }) => LyricsHistoriesCompanion.insert(
+                id: id,
+                cacheKey: cacheKey,
+                actionType: actionType,
+                description: description,
+                lyrics: lyrics,
+                translation: translation,
+                timelineOffsetMillis: timelineOffsetMillis,
+                createdAtMillis: createdAtMillis,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$LyricsHistoriesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$MetadataDriftDatabase,
+      $LyricsHistoriesTable,
+      LyricsHistory,
+      $$LyricsHistoriesTableFilterComposer,
+      $$LyricsHistoriesTableOrderingComposer,
+      $$LyricsHistoriesTableAnnotationComposer,
+      $$LyricsHistoriesTableCreateCompanionBuilder,
+      $$LyricsHistoriesTableUpdateCompanionBuilder,
+      (
+        LyricsHistory,
+        BaseReferences<
+          _$MetadataDriftDatabase,
+          $LyricsHistoriesTable,
+          LyricsHistory
+        >,
+      ),
+      LyricsHistory,
+      PrefetchHooks Function()
+    >;
 
 class $MetadataDriftDatabaseManager {
   final _$MetadataDriftDatabase _db;
@@ -12317,4 +13115,6 @@ class $MetadataDriftDatabaseManager {
       $$FolderCoversTableTableManager(_db, _db.folderCovers);
   $$RemoteLibraryCachesTableTableManager get remoteLibraryCaches =>
       $$RemoteLibraryCachesTableTableManager(_db, _db.remoteLibraryCaches);
+  $$LyricsHistoriesTableTableManager get lyricsHistories =>
+      $$LyricsHistoriesTableTableManager(_db, _db.lyricsHistories);
 }

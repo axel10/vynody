@@ -31,6 +31,7 @@ import 'package:vynody/player/lyrics/lyrics_controller.dart';
 import 'package:vynody/player/lyrics/lyrics_controller_state.dart';
 import 'package:vynody/player/lyrics/lyrics_riverpod.dart';
 import 'package:vynody/player/lyrics/lyrics_song_task_state.dart';
+import 'package:vynody/player/lyrics/timeline/lyrics_timeline.dart';
 import 'package:vynody/utils/lrc_utils.dart';
 import 'lyrics_panel_views.dart';
 import 'playback_ui_tuning.dart';
@@ -557,6 +558,13 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
           icon: Icons.edit_note_rounded,
           context: context,
         ),
+        buildContextMenuItem<String>(
+          value: 'lyrics_timeline',
+          enabled: hasCurrentSong,
+          label: l10n.lyricsTimelineTitle,
+          icon: Icons.history_rounded,
+          context: context,
+        ),
         if (lyricsState.hasLyrics)
           buildContextMenuItem<String>(
             value: 'generate',
@@ -720,6 +728,12 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
               enabled: hasCurrentSong,
               label: l10n.enterLyricsTitle,
               icon: Icons.edit_note_rounded,
+            ),
+            LyricsOptionItem(
+              value: 'lyrics_timeline',
+              enabled: hasCurrentSong,
+              label: l10n.lyricsTimelineTitle,
+              icon: Icons.history_rounded,
             ),
             LyricsOptionItem(
               value: 'search_online_lyrics',
@@ -1066,6 +1080,8 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       await _showTimelineAdjustmentPanel(displayLines);
     } else if (selected == 'fill_lyrics') {
       await _showManualLyricsDialog(displayPlainLyrics);
+    } else if (selected == 'lyrics_timeline') {
+      await _showLyricsTimelineSheet(displayPlainLyrics);
     } else if (selected == 'adjust_lyrics_font') {
       if (context.mounted) {
         await showLyricsFontScaleDialog(context, ref);
@@ -1108,6 +1124,42 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     if (!mounted || submittedLyrics == null) return;
 
     await _lyricsControllerActions.fillLyricsForCurrentSong(submittedLyrics);
+  }
+
+  Future<void> _showLyricsTimelineSheet(String displayPlainLyrics) async {
+    final currentSong = ref.read(audioCurrentMusicProvider);
+    if (currentSong == null) return;
+
+    final l10n = AppLocalizations.of(context)!;
+    final currentOffsetMillis = (_timelineOffsetSeconds * 1000).round();
+
+    final selectedVersion = await showLyricsTimelineDialog(
+      context,
+      cacheKey: currentSong.path,
+      currentLyrics: displayPlainLyrics,
+      currentOffsetMillis: currentOffsetMillis,
+    );
+
+    if (!mounted || selectedVersion == null) return;
+
+    await _lyricsControllerActions.fillLyricsForCurrentSong(
+      selectedVersion.lyrics,
+      source: LyricsCacheSource.manualAdjust,
+      recordTimeline: false,
+    );
+
+    final restoredOffset = Duration(milliseconds: selectedVersion.timelineOffsetMillis);
+    await _lyricsControllerActions.updateLyricsTimelineOffsetForCurrentSong(
+      restoredOffset,
+      recordTimeline: false,
+    );
+
+    if (mounted) {
+      setState(() {
+        _timelineOffsetSeconds = selectedVersion.timelineOffsetMillis / 1000.0;
+      });
+      showToast(l10n.lyricsRestoredSuccess);
+    }
   }
 
   Future<void> _searchOnlineLyrics() async {
