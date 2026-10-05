@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../widgets/app_bottom_sheet.dart';
 import 'lyrics_timeline_entry.dart';
-import 'lyrics_timeline_repository.dart';
 import 'lyrics_timeline_service.dart';
 
 Future<LyricsTimelineEntry?> showLyricsTimelineDialog(
@@ -137,13 +136,15 @@ class _LyricsTimelineModalState extends ConsumerState<_LyricsTimelineModal> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
+    final service = ref.watch(lyricsTimelineServiceProvider);
+    final maxHistoryCount = service.maxHistoryCount;
     final countSubtitle = _history.isNotEmpty
-        ? ' (${_history.length}/${LyricsTimelineRepository.maxHistoryCount})'
+        ? ' (${_history.length}/$maxHistoryCount)'
         : '';
 
     return AppAdaptiveSheet(
       title: '${l10n.lyricsTimelineTitle}$countSubtitle',
-      subtitle: l10n.lyricsTimelineSubtitle,
+      subtitle: l10n.lyricsTimelineSubtitle(maxHistoryCount),
       dialogMaxWidth: 720,
       dialogHeight: 520,
       sheetMaxWidth: 720,

@@ -3,17 +3,34 @@ import 'package:vynody/player/metadata/metadata_database.dart';
 import 'lyrics_timeline_entry.dart';
 
 class LyricsTimelineRepository {
-  LyricsTimelineRepository({MetadataDatabase? db})
-      : _db = db ?? MetadataDatabase();
+  LyricsTimelineRepository({
+    MetadataDatabase? db,
+    int Function()? maxCountProvider,
+  })  : _db = db ?? MetadataDatabase(),
+        _maxCountProvider = maxCountProvider;
 
   final MetadataDatabase _db;
-  static const int maxHistoryCount = 10;
+  final int Function()? _maxCountProvider;
 
-  Future<List<LyricsTimelineEntry>> getHistory(String cacheKey) async {
+  static int Function()? globalMaxCountProvider;
+  static const int defaultMaxHistoryCount = 30;
+  static const int maxAllowedHistoryCount = 50;
+  static const int minAllowedHistoryCount = 10;
+
+  int get maxHistoryCount =>
+      _maxCountProvider?.call() ??
+      globalMaxCountProvider?.call() ??
+      defaultMaxHistoryCount;
+
+  Future<List<LyricsTimelineEntry>> getHistory(
+    String cacheKey, {
+    int? limit,
+  }) async {
     final normalized = cacheKey.trim();
     if (normalized.isEmpty) return const [];
 
-    final rows = await _db.getLyricsHistories(normalized, limit: maxHistoryCount);
+    final effectiveLimit = limit ?? maxHistoryCount;
+    final rows = await _db.getLyricsHistories(normalized, limit: effectiveLimit);
     return rows.map((r) => LyricsTimelineEntry(
       id: r.id,
       cacheKey: r.cacheKey,

@@ -5467,7 +5467,31 @@ class AppLocalizationsDe extends AppLocalizations {
   String get lyricsTimelineTitle => '歌词时间线';
 
   @override
-  String get lyricsTimelineSubtitle => '最多保留最近10次修改快照，可随时对比与还原';
+  String lyricsTimelineSubtitle(int count) {
+    return '最多保留最近$count次修改快照，可随时对比与还原';
+  }
+
+  @override
+  String get lyricsTimelineMaxHistoryLabel => '歌词时间线记录上限';
+
+  @override
+  String get lyricsTimelineMaxHistoryDescription =>
+      '单首歌曲最多保留的历史修改版本数量（最高 50 条）';
+
+  @override
+  String lyricsTimelineMaxHistoryCountOption(int count) {
+    return '$count 条';
+  }
+
+  @override
+  String lyricsTimelineMaxHistoryCountOptionDefault(int count) {
+    return '$count 条（默认）';
+  }
+
+  @override
+  String lyricsTimelineMaxHistoryCountOptionMax(int count) {
+    return '$count 条（最高）';
+  }
 
   @override
   String get restoreThisVersion => '恢复此版本';

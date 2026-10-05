@@ -104,6 +104,37 @@ class LyricsSection extends ConsumerWidget {
     );
   }
 
+  Widget _buildLyricsTimelineMaxHistorySection(
+    BuildContext context,
+    SettingsService settings,
+  ) {
+    final l10n = AppLocalizations.of(context)!;
+    final options = SettingsService.lyricsTimelineMaxHistoryCountOptions.map((count) {
+      final String label;
+      if (count == SettingsService.defaultLyricsTimelineMaxHistoryCount) {
+        label = l10n.lyricsTimelineMaxHistoryCountOptionDefault(count);
+      } else if (count == SettingsService.maxLyricsTimelineHistoryCount) {
+        label = l10n.lyricsTimelineMaxHistoryCountOptionMax(count);
+      } else {
+        label = l10n.lyricsTimelineMaxHistoryCountOption(count);
+      }
+      return SettingsDropdownOption<int>(
+        value: count,
+        label: label,
+      );
+    }).toList();
+
+    return SettingsDropdownTile<int>(
+      title: l10n.lyricsTimelineMaxHistoryLabel,
+      subtitle: l10n.lyricsTimelineMaxHistoryDescription,
+      value: settings.lyricsTimelineMaxHistoryCount,
+      options: options,
+      onChanged: (newValue) {
+        if (newValue == null) return;
+        settings.lyricsTimelineMaxHistoryCount = newValue;
+      },
+    );
+  }
 
   Widget _buildLyricsFontSection(
     BuildContext context,
@@ -899,6 +930,7 @@ class LyricsSection extends ConsumerWidget {
             _buildLyricsTranslationLanguageSection(context, settings),
             _buildLyricsSaveMethodSection(context, settings),
             _buildLyricsFontSection(context, settings),
+            _buildLyricsTimelineMaxHistorySection(context, settings),
           ],
         ),
         SettingsGroupCard(

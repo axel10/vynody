@@ -14,7 +14,10 @@ class LyricsTimelineService {
 
   final LyricsTimelineRepository _repository;
 
-  /// Retrieves the history of modifications for a given song cacheKey (up to 10 entries, newest first).
+  /// The current maximum number of history entries retained per song.
+  int get maxHistoryCount => _repository.maxHistoryCount;
+
+  /// Retrieves the history of modifications for a given song cacheKey (up to [maxHistoryCount] entries, newest first).
   Future<List<LyricsTimelineEntry>> getHistory(String cacheKey) {
     return _repository.getHistory(cacheKey);
   }

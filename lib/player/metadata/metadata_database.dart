@@ -538,11 +538,11 @@ class MetadataDatabase {
 
   Future<List<LyricsHistory>> getLyricsHistories(
     String cacheKey, {
-    int limit = 10,
+    int limit = 30,
   }) =>
       _db.getLyricsHistories(cacheKey, limit: limit);
 
-  Future<void> trimLyricsHistories(String cacheKey, {int maxCount = 10}) =>
+  Future<void> trimLyricsHistories(String cacheKey, {int maxCount = 30}) =>
       _db.trimLyricsHistories(cacheKey, maxCount: maxCount);
 
   Future<int> clearLyricsHistoriesByKey(String cacheKey) =>

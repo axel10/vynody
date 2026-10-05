@@ -5403,8 +5403,31 @@ class AppLocalizationsEn extends AppLocalizations {
   String get lyricsTimelineTitle => 'Lyrics Timeline';
 
   @override
-  String get lyricsTimelineSubtitle =>
-      'Keeps up to 10 latest modification snapshots for quick rollback';
+  String lyricsTimelineSubtitle(int count) {
+    return 'Keeps up to $count latest modification snapshots for quick rollback';
+  }
+
+  @override
+  String get lyricsTimelineMaxHistoryLabel => 'Lyrics Timeline History Limit';
+
+  @override
+  String get lyricsTimelineMaxHistoryDescription =>
+      'Maximum number of historical modification versions kept per song (up to 50)';
+
+  @override
+  String lyricsTimelineMaxHistoryCountOption(int count) {
+    return '$count records';
+  }
+
+  @override
+  String lyricsTimelineMaxHistoryCountOptionDefault(int count) {
+    return '$count records (Default)';
+  }
+
+  @override
+  String lyricsTimelineMaxHistoryCountOptionMax(int count) {
+    return '$count records (Max)';
+  }
 
   @override
   String get restoreThisVersion => 'Restore this version';

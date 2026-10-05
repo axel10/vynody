@@ -2135,7 +2135,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
 
   Future<List<LyricsHistory>> getLyricsHistories(
     String cacheKey, {
-    int limit = 10,
+    int limit = 30,
   }) async {
     final normalized = cacheKey.trim();
     if (normalized.isEmpty) return const [];
@@ -2150,7 +2150,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
     return (delete(lyricsHistories)..where((t) => t.id.equals(id))).go();
   }
 
-  Future<void> trimLyricsHistories(String cacheKey, {int maxCount = 10}) async {
+  Future<void> trimLyricsHistories(String cacheKey, {int maxCount = 30}) async {
     final normalized = cacheKey.trim();
     if (normalized.isEmpty) return;
 

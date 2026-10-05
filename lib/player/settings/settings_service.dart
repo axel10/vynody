@@ -13,6 +13,7 @@ import 'package:vynody/utils/language_code_utils.dart';
 
 import 'package:vynody/player/scanner/scanner_sorting.dart';
 import 'package:vynody/player/library/playlist_service.dart';
+import 'package:vynody/player/lyrics/timeline/lyrics_timeline_repository.dart';
 import 'package:vynody/utils/app_proxy_manager.dart';
 import 'package:vynody/utils/localized_text.dart';
 
@@ -427,6 +428,18 @@ class SettingsService extends ChangeNotifier {
       'main_controls_right_button';
   static const String _keyLyricsHeaderRightButton =
       'lyrics_header_right_button';
+  static const String _keyLyricsTimelineMaxHistoryCount =
+      'lyrics_timeline_max_history_count';
+  static const int defaultLyricsTimelineMaxHistoryCount = 30;
+  static const int minLyricsTimelineHistoryCount = 10;
+  static const int maxLyricsTimelineHistoryCount = 50;
+  static const List<int> lyricsTimelineMaxHistoryCountOptions = [
+    10,
+    20,
+    30,
+    40,
+    50,
+  ];
 
   static const String _keyCollapseButtonsInLandscapeLyrics =
       'collapse_buttons_in_landscape_lyrics';
@@ -1153,6 +1166,13 @@ class SettingsService extends ChangeNotifier {
   late final _lyricsSaveMethodProperty = SettingProperty<String>(
     key: _keyLyricsSaveMethod,
     defaultValue: LyricsSaveMethod.original.name,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
+  late final _lyricsTimelineMaxHistoryCountProperty = SettingProperty<int>(
+    key: _keyLyricsTimelineMaxHistoryCount,
+    defaultValue: defaultLyricsTimelineMaxHistoryCount,
     prefs: _prefs,
     onChanged: notifyListeners,
   );
@@ -2063,6 +2083,8 @@ class SettingsService extends ChangeNotifier {
     LocalizedText.overrideLanguageCode =
         _prefs.getString(_keyLocale) ?? 'system';
     _syncProxyToManager();
+    LyricsTimelineRepository.globalMaxCountProvider =
+        () => lyricsTimelineMaxHistoryCount;
   }
 
   final AppSecureStorage? _secureStorage;
@@ -2264,6 +2286,19 @@ class SettingsService extends ChangeNotifier {
 
   set lyricsSaveMethod(LyricsSaveMethod value) {
     _lyricsSaveMethodProperty.value = value.name;
+  }
+
+  int get lyricsTimelineMaxHistoryCount =>
+      _lyricsTimelineMaxHistoryCountProperty.value.clamp(
+        minLyricsTimelineHistoryCount,
+        maxLyricsTimelineHistoryCount,
+      );
+
+  set lyricsTimelineMaxHistoryCount(int value) {
+    _lyricsTimelineMaxHistoryCountProperty.value = value.clamp(
+      minLyricsTimelineHistoryCount,
+      maxLyricsTimelineHistoryCount,
+    );
   }
 
   @Deprecated('Traditional lyrics style has been removed. Only apple style is supported.')

@@ -9589,8 +9589,38 @@ abstract class AppLocalizations {
   /// Subtitle describing lyrics timeline feature
   ///
   /// In zh, this message translates to:
-  /// **'最多保留最近10次修改快照，可随时对比与还原'**
-  String get lyricsTimelineSubtitle;
+  /// **'最多保留最近{count}次修改快照，可随时对比与还原'**
+  String lyricsTimelineSubtitle(int count);
+
+  /// Label for lyrics timeline max history count setting
+  ///
+  /// In zh, this message translates to:
+  /// **'歌词时间线记录上限'**
+  String get lyricsTimelineMaxHistoryLabel;
+
+  /// Description for lyrics timeline max history count setting
+  ///
+  /// In zh, this message translates to:
+  /// **'单首歌曲最多保留的历史修改版本数量（最高 50 条）'**
+  String get lyricsTimelineMaxHistoryDescription;
+
+  /// Option label for history count option
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 条'**
+  String lyricsTimelineMaxHistoryCountOption(int count);
+
+  /// Option label for default history count option
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 条（默认）'**
+  String lyricsTimelineMaxHistoryCountOptionDefault(int count);
+
+  /// Option label for maximum history count option
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 条（最高）'**
+  String lyricsTimelineMaxHistoryCountOptionMax(int count);
 
   /// Button to restore a selected lyrics version
   ///

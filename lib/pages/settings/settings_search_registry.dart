@@ -279,6 +279,13 @@ final List<SettingSearchItem> settingsSearchRegistry = [
     description: (l10n) => l10n.lyricsSaveMethodDescription,
   ),
   SettingSearchItem(
+    id: 'lyrics.timeline_max_history',
+    section: SettingsSection.lyrics,
+    icon: Icons.history_rounded,
+    title: (l10n) => l10n.lyricsTimelineMaxHistoryLabel,
+    description: (l10n) => l10n.lyricsTimelineMaxHistoryDescription,
+  ),
+  SettingSearchItem(
     id: 'lyrics.style',
     section: SettingsSection.lyrics,
     icon: Icons.style_rounded,

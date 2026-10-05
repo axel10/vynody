@@ -3472,9 +3472,49 @@
   "@lyricsTimelineTitle": {
     "description": "Title for lyrics timeline history feature"
   },
-  "lyricsTimelineSubtitle": "最多保留最近10次修改快照，可随时对比与还原",
+  "lyricsTimelineSubtitle": "最多保留最近{count}次修改快照，可随时对比与还原",
   "@lyricsTimelineSubtitle": {
-    "description": "Subtitle describing lyrics timeline feature"
+    "description": "Subtitle describing lyrics timeline feature",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "lyricsTimelineMaxHistoryLabel": "歌词时间线记录上限",
+  "@lyricsTimelineMaxHistoryLabel": {
+    "description": "Label for lyrics timeline max history count setting"
+  },
+  "lyricsTimelineMaxHistoryDescription": "单首歌曲最多保留的历史修改版本数量（最高 50 条）",
+  "@lyricsTimelineMaxHistoryDescription": {
+    "description": "Description for lyrics timeline max history count setting"
+  },
+  "lyricsTimelineMaxHistoryCountOption": "{count} 条",
+  "@lyricsTimelineMaxHistoryCountOption": {
+    "description": "Option label for history count option",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "lyricsTimelineMaxHistoryCountOptionDefault": "{count} 条（默认）",
+  "@lyricsTimelineMaxHistoryCountOptionDefault": {
+    "description": "Option label for default history count option",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "lyricsTimelineMaxHistoryCountOptionMax": "{count} 条（最高）",
+  "@lyricsTimelineMaxHistoryCountOptionMax": {
+    "description": "Option label for maximum history count option",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "restoreThisVersion": "恢复此版本",
   "@restoreThisVersion": {

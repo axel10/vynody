@@ -89,12 +89,12 @@ void main() {
       expect(history.first.description, 'Edit 1');
     });
 
-    test('strictly limits history to 10 entries (FIFO)', () async {
+    test('strictly limits history to default 30 entries (FIFO)', () async {
       const cacheKey = 'song-3';
 
-      for (int i = 1; i <= 15; i++) {
+      for (int i = 1; i <= 35; i++) {
         // Sleep slightly to guarantee different timestamps
-        await Future.delayed(const Duration(milliseconds: 5));
+        await Future.delayed(const Duration(milliseconds: 2));
         await service.recordSnapshot(
           cacheKey: cacheKey,
           actionType: LyricsTimelineActionType.manualEdit,
@@ -104,11 +104,35 @@ void main() {
       }
 
       final history = await service.getHistory(cacheKey);
-      expect(history.length, 10);
+      expect(history.length, 30);
 
-      // Latest should be Version 15
+      // Latest should be Version 35
+      expect(history.first.description, 'Version 35');
+      // Oldest retained should be Version 6 (35 - 30 + 1)
+      expect(history.last.description, 'Version 6');
+    });
+
+    test('respects custom max count from maxCountProvider', () async {
+      final customRepo = LyricsTimelineRepository(
+        db: db,
+        maxCountProvider: () => 10,
+      );
+      final customService = LyricsTimelineService(repository: customRepo);
+      const cacheKey = 'song-custom-limit';
+
+      for (int i = 1; i <= 15; i++) {
+        await Future.delayed(const Duration(milliseconds: 2));
+        await customService.recordSnapshot(
+          cacheKey: cacheKey,
+          actionType: LyricsTimelineActionType.manualEdit,
+          description: 'Version $i',
+          lyrics: '[00:0$i.00]Line $i',
+        );
+      }
+
+      final history = await customService.getHistory(cacheKey);
+      expect(history.length, 10);
       expect(history.first.description, 'Version 15');
-      // Oldest retained should be Version 6 (15 - 10 + 1)
       expect(history.last.description, 'Version 6');
     });
 
