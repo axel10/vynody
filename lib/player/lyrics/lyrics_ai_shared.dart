@@ -34,7 +34,7 @@ final class LyricsAiPromptBuilder {
   static String buildConvertToKaraokePrompt({
     required String lyrics,
   }) {
-    final targetLyrics = lyrics.trim();
+    final targetLyrics = LrcUtils.stripWordTimestamps(lyrics).trim();
     return '这是这首歌的歌词和音频，请将歌词转换为卡拉OK逐字时间轴格式（word-by-word LRC / Enhanced LRC）。\n'
         '要求：\n'
         '1. 严格保持原歌词的分行结构和行数不变，原歌词有几行输出就必须是几行！绝对禁止在词与词、字与字之间换行！\n'
@@ -61,11 +61,12 @@ final class LyricsAiPromptBuilder {
     final targetLanguageName = LyricsAiTranslationTextHelper.targetLanguageName(
       targetLanguageCode,
     );
+    final targetLyrics = LrcUtils.stripWordTimestamps(lyrics).trim();
     return '将以下歌词翻译成$targetLanguageName，仅输出目标译文不输出其他内容。不要输出原文。'
         '请保留完整时间轴和原有分行顺序，不要删减、合并、重排任何一行，也不要自行补充空行、编号或解释。'
         '如果输入中带有时间轴，请在输出中原样保留对应时间轴，程序会在后处理去掉时间轴。'
         '总结整首歌的意境并结合上下文尽量意译。如果无标题不要自行生成标题。\n'
-        '${lyrics.trim()}';
+        '$targetLyrics';
   }
 }
 

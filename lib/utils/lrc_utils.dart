@@ -404,6 +404,13 @@ class LrcUtils {
     }
 
     if (wordMatches.isEmpty) {
+      if (_lxWordTagPattern.hasMatch(remainingContent)) {
+        final lxLine = _parseLxWordLine(line);
+        if (lxLine != null) {
+          targetList.add(lxLine);
+          return;
+        }
+      }
       final text = remainingContent.trim();
       for (final timestamp in effectiveTimestamps) {
         targetList.add(LyricLine(timestamp: timestamp, text: text, isTimed: true));
@@ -955,11 +962,16 @@ class LrcUtils {
   }
 
   /// 将单行歌词格式化为 LRC 字符串。
-  /// 如果该行包含逐字打轴信息（`words`），则序列化为 Enhanced LRC 格式（例如 `[00:01.00]字[00:01.50]字`）。
-  static String formatLyricLine(LyricLine line) {
+  /// 如果 [includeWordTimestamps] 为 true 且该行包含逐字打轴信息（`words`），
+  /// 则序列化为 Enhanced LRC 格式（例如 `[00:01.00]字[00:01.50]字`）；
+  /// 否则仅格式化为逐行同步歌词 `[00:01.00]字字`。
+  static String formatLyricLine(
+    LyricLine line, {
+    bool includeWordTimestamps = true,
+  }) {
     if (!line.isTimed) return line.text;
     final words = line.words;
-    if (words != null && words.isNotEmpty) {
+    if (includeWordTimestamps && words != null && words.isNotEmpty) {
       final buffer = StringBuffer();
       for (final word in words) {
         buffer.write('[${formatLrcTimestamp(word.timestamp)}]${word.text}');
@@ -970,8 +982,34 @@ class LrcUtils {
   }
 
   /// 将歌词行列表格式化为完整的 LRC 文本。
-  static String formatLyrics(List<LyricLine> lines) {
-    return lines.map(formatLyricLine).join('\n');
+  /// [includeWordTimestamps] 控制是否保留逐字时间戳（默认 true）。
+  static String formatLyrics(
+    List<LyricLine> lines, {
+    bool includeWordTimestamps = true,
+  }) {
+    return lines
+        .map(
+          (line) => formatLyricLine(
+            line,
+            includeWordTimestamps: includeWordTimestamps,
+          ),
+        )
+        .join('\n');
+  }
+
+  /// 将歌词行列表格式化为逐行同步歌词文本（不包含行内逐字时间戳）。
+  static String formatLineSyncedLyrics(List<LyricLine> lines) {
+    return formatLyrics(lines, includeWordTimestamps: false);
+  }
+
+  /// 将可能包含逐字时间戳（Enhanced LRC、LX 格式或 awlrc）的歌词文本转换为逐行同步歌词文本。
+  static String stripWordTimestamps(String? lyrics) {
+    if (lyrics == null || lyrics.trim().isEmpty) return '';
+    final parsed = parseTimedLyrics(lyrics);
+    if (parsed.isEmpty || !parsed.any((line) => line.isTimed)) {
+      return lyrics.trim();
+    }
+    return formatLineSyncedLyrics(parsed);
   }
 
   static String cleanGeneratedLyricsText(String? text) {

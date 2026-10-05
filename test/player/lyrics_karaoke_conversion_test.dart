@@ -266,5 +266,37 @@ void main() {
       final timedParsed = LrcUtils.parseTimedLyrics(timedLyrics);
       expect(timedParsed.any((line) => line.isTimed), isTrue);
     });
+
+    test('buildConvertToKaraokePrompt strips existing word timestamps to line-synced lyrics', () {
+      const existingKaraoke =
+          '[00:01.00]Hello [00:01.50]world\n[00:05.00]Second [00:05.60]line';
+      final prompt = LyricsAiPromptBuilder.buildConvertToKaraokePrompt(
+        lyrics: existingKaraoke,
+      );
+
+      final lyricsPart = prompt.split('待转换歌词如下：\n').last;
+      expect(
+        lyricsPart,
+        '[00:01.00]Hello world\n[00:05.00]Second line',
+      );
+      expect(lyricsPart, isNot(contains('[00:01.50]')));
+      expect(lyricsPart, isNot(contains('[00:05.60]')));
+    });
+
+    test('buildTranslateLyricsPrompt strips existing word timestamps to line-synced lyrics', () {
+      const existingKaraoke =
+          '[00:01.00]Hello [00:01.50]world\n[00:05.00]Second [00:05.60]line';
+      final prompt = LyricsAiPromptBuilder.buildTranslateLyricsPrompt(
+        lyrics: existingKaraoke,
+        targetLanguageCode: 'zh',
+      );
+
+      expect(
+        prompt,
+        endsWith('[00:01.00]Hello world\n[00:05.00]Second line'),
+      );
+      expect(prompt, isNot(contains('[00:01.50]')));
+      expect(prompt, isNot(contains('[00:05.60]')));
+    });
   });
 }

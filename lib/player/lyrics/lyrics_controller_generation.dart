@@ -795,26 +795,14 @@ class LyricsGenerationCoordinator {
   String _karaokeSourceLyricsForSong(MusicFile song) {
     final lyrics = song.lyrics;
     if (lyrics != null && lyrics.isSynced) {
-      if (LrcUtils.parseTimedLyrics(lyrics.plainText).any((line) => line.isTimed)) {
-        return lyrics.plainText.trim();
-      }
-      return _support.lyricsTextWithTimestamps(lyrics);
+      return _support.lineSyncedLyricsText(lyrics);
     }
     final state = _context.getState();
     if (state.currentLyricsLines.any((line) => line.isTimed)) {
-      final rawText = state.currentLyricsText.trim();
-      if (LrcUtils.parseTimedLyrics(rawText).any((line) => line.isTimed)) {
-        return rawText;
-      }
-      return state.currentLyricsLines
-          .map((line) {
-            if (!line.isTimed) return line.text.trimRight();
-            return '[${LrcUtils.formatLrcTimestamp(line.timestamp)}]${line.text}';
-          })
-          .join('\n')
-          .trim();
+      return LrcUtils.formatLineSyncedLyrics(state.currentLyricsLines).trim();
     }
-    return _timelineSourceLyricsForSong(song);
+    final fallbackLyrics = _timelineSourceLyricsForSong(song);
+    return LrcUtils.stripWordTimestamps(fallbackLyrics).trim();
   }
 }
 

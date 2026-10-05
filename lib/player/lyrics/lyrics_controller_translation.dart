@@ -7,6 +7,7 @@ import 'package:vynody/models/music_file.dart';
 import 'package:vynody/models/music_lyric.dart';
 import 'package:vynody/models/music_lyric_translation.dart';
 import 'package:vynody/utils/localized_text.dart';
+import 'package:vynody/utils/lrc_utils.dart';
 import 'package:vynody/utils/language_code_utils.dart';
 import 'package:vynody/player/lyrics/lyrics_cache_models.dart';
 import 'package:vynody/player/lyrics/lyrics_controller_context.dart';
@@ -391,14 +392,21 @@ class LyricsTranslationCoordinator {
 
   String _lyricsSourceForTranslation(MusicFile song) {
     final lyrics = song.lyrics;
-    if (lyrics?.syncedLines.isNotEmpty == true) {
-      return _support.lyricsTextWithTimestamps(lyrics!);
+    if (lyrics != null) {
+      final text = _support.lineSyncedLyricsText(lyrics);
+      if (text.isNotEmpty) {
+        return text;
+      }
     }
-    final plainText = lyrics?.plainText.trim() ?? '';
-    if (plainText.isNotEmpty) {
-      return plainText;
+    final state = _context.state;
+    if (state.currentLyricsLines.any((line) => line.isTimed)) {
+      return LrcUtils.formatLineSyncedLyrics(state.currentLyricsLines).trim();
     }
-    return _context.state.currentLyricsText.trim();
+    final currentText = state.currentLyricsText.trim();
+    if (currentText.isNotEmpty) {
+      return LrcUtils.stripWordTimestamps(currentText).trim();
+    }
+    return '';
   }
 
   void _syncTranslatedLyricsToSong(

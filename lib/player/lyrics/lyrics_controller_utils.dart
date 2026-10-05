@@ -86,12 +86,25 @@ class LyricsControllerSupport {
     return LrcUtils.stripTimestamps(lyrics.plainText).trim();
   }
 
-  String lyricsTextWithTimestamps(MusicLyric lyrics) {
+  String lyricsTextWithTimestamps(
+    MusicLyric lyrics, {
+    bool includeWordTimestamps = true,
+  }) {
     if (lyrics.syncedLines.isEmpty) {
+      if (!includeWordTimestamps) {
+        return LrcUtils.stripWordTimestamps(lyrics.plainText).trim();
+      }
       return lyrics.plainText.trim();
     }
 
-    return LrcUtils.formatLyrics(lyrics.syncedLines).trim();
+    return LrcUtils.formatLyrics(
+      lyrics.syncedLines,
+      includeWordTimestamps: includeWordTimestamps,
+    ).trim();
+  }
+
+  String lineSyncedLyricsText(MusicLyric lyrics) {
+    return lyricsTextWithTimestamps(lyrics, includeWordTimestamps: false);
   }
 
   String lyricsIdForSong(MusicFile song, {String? sourceLyrics}) {

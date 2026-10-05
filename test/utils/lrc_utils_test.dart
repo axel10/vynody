@@ -551,6 +551,74 @@ Third line of song
         '[00:01.00]我[00:01.50]爱[00:02.00]你\n[00:05.00]中国',
       );
     });
+
+    test('formatLineSyncedLyrics formats word-by-word lines as clean line-synced lyrics', () {
+      const lines = [
+        LyricLine(
+          timestamp: Duration(seconds: 1),
+          text: '我爱你',
+          isTimed: true,
+          words: [
+            LyricWord(
+              timestamp: Duration(seconds: 1),
+              durationMs: 500,
+              text: '我',
+            ),
+            LyricWord(
+              timestamp: Duration(milliseconds: 1500),
+              durationMs: 500,
+              text: '爱',
+            ),
+            LyricWord(
+              timestamp: Duration(seconds: 2),
+              durationMs: 500,
+              text: '你',
+            ),
+          ],
+        ),
+        LyricLine(
+          timestamp: Duration(seconds: 5),
+          text: '中国',
+          isTimed: true,
+        ),
+      ];
+      expect(
+        LrcUtils.formatLineSyncedLyrics(lines),
+        '[00:01.00]我爱你\n[00:05.00]中国',
+      );
+    });
+
+    test('stripWordTimestamps converts Enhanced LRC to line-synced lyrics', () {
+      const raw = '[00:01.00]我[00:01.50]爱[00:02.00]你\n[00:05.00]中国';
+      expect(
+        LrcUtils.stripWordTimestamps(raw),
+        '[00:01.00]我爱你\n[00:05.00]中国',
+      );
+    });
+
+    test('stripWordTimestamps converts LX format karaoke to line-synced lyrics', () {
+      const raw = '[00:01.00]<0,500>我<500,500>爱<1000,500>你\n[00:05.00]中国';
+      expect(
+        LrcUtils.stripWordTimestamps(raw),
+        '[00:01.00]我爱你\n[00:05.00]中国',
+      );
+    });
+
+    test('stripWordTimestamps preserves already line-synced lyrics', () {
+      const raw = '[00:01.00]Hello world\n[00:05.00]Second line';
+      expect(
+        LrcUtils.stripWordTimestamps(raw),
+        '[00:01.00]Hello world\n[00:05.00]Second line',
+      );
+    });
+
+    test('stripWordTimestamps preserves untimed text', () {
+      const raw = 'Hello world\nSecond line';
+      expect(
+        LrcUtils.stripWordTimestamps(raw),
+        'Hello world\nSecond line',
+      );
+    });
   });
 }
 
