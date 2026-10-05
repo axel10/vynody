@@ -24,6 +24,7 @@ import '../dialogs/online_lyrics_search_dialog.dart';
 import '../dialogs/timeline_adjustment_dialog.dart';
 import '../dialogs/lyrics_font_scale_dialog.dart';
 import '../dialogs/lyrics_font_picker_dialog.dart';
+import '../dialogs/lyrics_options_sheet.dart';
 import '../utils/app_snack_bar.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/lyrics/lyrics_controller.dart';
@@ -31,7 +32,6 @@ import 'package:vynody/player/lyrics/lyrics_controller_state.dart';
 import 'package:vynody/player/lyrics/lyrics_riverpod.dart';
 import 'package:vynody/player/lyrics/lyrics_song_task_state.dart';
 import 'package:vynody/utils/lrc_utils.dart';
-import 'lyrics_panel_toasts.dart';
 import 'lyrics_panel_views.dart';
 import 'playback_ui_tuning.dart';
 import 'app_context_menu.dart';
@@ -545,152 +545,301 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
         (settings.lyricsSaveMethod == LyricsSaveMethod.original &&
             displayLyrics?.source == 'external');
 
-    final items = <PopupMenuEntry<String>>[
-      buildContextMenuItem<String>(
-        value: 'fill_lyrics',
-        enabled: hasCurrentSong,
-        label: l10n.enterLyricsTitle,
-        icon: Icons.edit_note_rounded,
-        context: context,
-      ),
-      if (lyricsState.hasLyrics)
-        buildContextMenuItem<String>(
-          value: 'generate',
-          enabled: hasCurrentSong && !taskState.isGenerationBusy,
-          label: l10n.generateLyrics,
-          icon: Icons.auto_awesome_rounded,
-          context: context,
-        ),
-      if (lyricsState.hasLyrics)
-        buildContextMenuItem<String>(
-          value: 'generate_timeline',
-          enabled: hasCurrentSong && !taskState.isGenerationBusy,
-          label: l10n.generateTimeline,
-          icon: Icons.timer_rounded,
-          context: context,
-        ),
-      if (lyricsState.hasLyrics && _hasTimedLyrics(displayLines))
-        buildContextMenuItem<String>(
-          value: 'convert_to_karaoke',
-          enabled: hasCurrentSong && !taskState.isGenerationBusy,
-          label: l10n.convertToKaraoke,
-          icon: Icons.mic_external_on_rounded,
-          context: context,
-        ),
-      if (!requeryOnly &&
-          _hasTimedLyrics(displayLines) &&
-          lyricsState.hasLyrics)
-        const PopupMenuDivider(),
-      if (!requeryOnly &&
-          _hasTimedLyrics(displayLines) &&
-          lyricsState.hasLyrics)
-        buildContextMenuItem<String>(
-          value: 'adjust_timeline',
-          enabled: hasCurrentSong,
-          label: l10n.timelineAdjustmentTitle,
-          icon: Icons.more_time_rounded,
-          context: context,
-        ),
-      if (!requeryOnly && _hasTimedLyrics(displayLines))
-        buildContextMenuItem<String>(
-          value: 'return_to_current_line',
-          enabled: hasCurrentSong,
-          label: l10n.returnToCurrentLine,
-          icon: Icons.filter_center_focus_rounded,
-          context: context,
-        ),
-      if (!requeryOnly)
-        buildContextMenuItem<String>(
-          value: 'translate',
-          enabled: hasCurrentSong && !taskState.isTranslationBusy,
-          label: l10n.translateLyrics,
-          icon: Icons.translate_rounded,
-          context: context,
-        ),
-      if (!requeryOnly && hasTranslation)
-        buildContextMenuItem<String>(
-          value: 'copy_translation_results',
-          label: l10n.copyTranslationResults,
-          icon: Icons.copy_rounded,
-          context: context,
-        ),
-      buildContextMenuItem<String>(
-        value: 'search_online_lyrics',
-        enabled: hasCurrentSong,
-        label: l10n.selectOnlineLyrics,
-        icon: Icons.cloud_download_rounded,
-        context: context,
-      ),
-      if (!requeryOnly)
-        buildContextMenuItem<String>(
-          value: 'clear_lyrics_cache',
-          enabled: hasCurrentSong && lyricsState.hasLyrics,
-          label: l10n.clearLyricsCache,
-          icon: Icons.delete_sweep_rounded,
-          context: context,
-        ),
-      if (!requeryOnly)
-        buildContextMenuItem<String>(
-          value: 'clear_translation_cache',
-          enabled: hasCurrentSong && lyricsState.hasLyrics,
-          label: l10n.clearTranslationCache,
-          icon: Icons.delete_outline_rounded,
-          context: context,
-        ),
-      if (!requeryOnly)
-        buildContextMenuItem<String>(
-          value: 'save_lyrics_to_file',
-          enabled: hasCurrentSong &&
-              (lyricsState.hasLyrics ||
-                  (lyricsState.currentLyricsText.isEmpty &&
-                      lyricsState.lyricsSearchAttempted)) &&
-              ref.read(audioCurrentMusicProvider) != null &&
-              (saveToLrc || isMetadataWritable(ref.read(audioCurrentMusicProvider)!.path)),
-          label: l10n.writeLyricsToFile,
-          icon: Icons.save_alt_rounded,
-          context: context,
-        ),
-      if (!requeryOnly && availableSources.length > 1)
-        buildContextMenuItem<String>(
-          value: 'select_lyrics_source',
-          enabled: hasCurrentSong,
-          label: l10n.selectLyricSource,
-          icon: Icons.source_rounded,
-          context: context,
-        ),
-      if (requeryOnly)
-        buildContextMenuItem<String>(
-          value: 'requery',
-          enabled:
-              hasCurrentSong &&
-              !lyricsState.isLyricsLoading &&
-              !taskState.isGenerationBusy,
-          label: l10n.requery,
-          icon: Icons.refresh_rounded,
-          context: context,
-        ),
-      const PopupMenuDivider(),
-      buildContextMenuItem<String>(
-        value: 'adjust_lyrics_font',
-        enabled: true,
-        label: l10n.adjustLyricsFont,
-        icon: Icons.format_size_rounded,
-        context: context,
-      ),
-      buildContextMenuItem<String>(
-        value: 'select_lyrics_font',
-        enabled: true,
-        label: l10n.selectLyricsFont,
-        icon: Icons.font_download_outlined,
-        context: context,
-      ),
-    ];
+    final isDesktop = Platform.isWindows || Platform.isMacOS || Platform.isLinux;
+    final String? selected;
 
-    final selected = await AppContextMenu.show<String>(
-      context: context,
-      position: globalPosition,
-      items: items,
-    );
+    if (isDesktop) {
+      final items = <PopupMenuEntry<String>>[
+        buildContextMenuItem<String>(
+          value: 'fill_lyrics',
+          enabled: hasCurrentSong,
+          label: l10n.enterLyricsTitle,
+          icon: Icons.edit_note_rounded,
+          context: context,
+        ),
+        if (lyricsState.hasLyrics)
+          buildContextMenuItem<String>(
+            value: 'generate',
+            enabled: hasCurrentSong && !taskState.isGenerationBusy,
+            label: l10n.generateLyrics,
+            icon: Icons.auto_awesome_rounded,
+            context: context,
+          ),
+        if (lyricsState.hasLyrics)
+          buildContextMenuItem<String>(
+            value: 'generate_timeline',
+            enabled: hasCurrentSong && !taskState.isGenerationBusy,
+            label: l10n.generateTimeline,
+            icon: Icons.timer_rounded,
+            context: context,
+          ),
+        if (lyricsState.hasLyrics && _hasTimedLyrics(displayLines))
+          buildContextMenuItem<String>(
+            value: 'convert_to_karaoke',
+            enabled: hasCurrentSong && !taskState.isGenerationBusy,
+            label: l10n.convertToKaraoke,
+            icon: Icons.mic_external_on_rounded,
+            context: context,
+          ),
+        if (!requeryOnly &&
+            _hasTimedLyrics(displayLines) &&
+            lyricsState.hasLyrics)
+          const PopupMenuDivider(),
+        if (!requeryOnly &&
+            _hasTimedLyrics(displayLines) &&
+            lyricsState.hasLyrics)
+          buildContextMenuItem<String>(
+            value: 'adjust_timeline',
+            enabled: hasCurrentSong,
+            label: l10n.timelineAdjustmentTitle,
+            icon: Icons.more_time_rounded,
+            context: context,
+          ),
+        if (!requeryOnly && _hasTimedLyrics(displayLines))
+          buildContextMenuItem<String>(
+            value: 'return_to_current_line',
+            enabled: hasCurrentSong,
+            label: l10n.returnToCurrentLine,
+            icon: Icons.filter_center_focus_rounded,
+            context: context,
+          ),
+        if (!requeryOnly)
+          buildContextMenuItem<String>(
+            value: 'translate',
+            enabled: hasCurrentSong && !taskState.isTranslationBusy,
+            label: l10n.translateLyrics,
+            icon: Icons.translate_rounded,
+            context: context,
+          ),
+        if (!requeryOnly && hasTranslation)
+          buildContextMenuItem<String>(
+            value: 'copy_translation_results',
+            label: l10n.copyTranslationResults,
+            icon: Icons.copy_rounded,
+            context: context,
+          ),
+        buildContextMenuItem<String>(
+          value: 'search_online_lyrics',
+          enabled: hasCurrentSong,
+          label: l10n.selectOnlineLyrics,
+          icon: Icons.cloud_download_rounded,
+          context: context,
+        ),
+        if (!requeryOnly)
+          buildContextMenuItem<String>(
+            value: 'clear_lyrics_cache',
+            enabled: hasCurrentSong && lyricsState.hasLyrics,
+            label: l10n.clearLyricsCache,
+            icon: Icons.delete_sweep_rounded,
+            context: context,
+          ),
+        if (!requeryOnly)
+          buildContextMenuItem<String>(
+            value: 'clear_translation_cache',
+            enabled: hasCurrentSong && lyricsState.hasLyrics,
+            label: l10n.clearTranslationCache,
+            icon: Icons.delete_outline_rounded,
+            context: context,
+          ),
+        if (!requeryOnly)
+          buildContextMenuItem<String>(
+            value: 'save_lyrics_to_file',
+            enabled: hasCurrentSong &&
+                (lyricsState.hasLyrics ||
+                    (lyricsState.currentLyricsText.isEmpty &&
+                        lyricsState.lyricsSearchAttempted)) &&
+                ref.read(audioCurrentMusicProvider) != null &&
+                (saveToLrc || isMetadataWritable(ref.read(audioCurrentMusicProvider)!.path)),
+            label: l10n.writeLyricsToFile,
+            icon: Icons.save_alt_rounded,
+            context: context,
+          ),
+        if (!requeryOnly && availableSources.length > 1)
+          buildContextMenuItem<String>(
+            value: 'select_lyrics_source',
+            enabled: hasCurrentSong,
+            label: l10n.selectLyricSource,
+            icon: Icons.source_rounded,
+            context: context,
+          ),
+        if (requeryOnly)
+          buildContextMenuItem<String>(
+            value: 'requery',
+            enabled:
+                hasCurrentSong &&
+                !lyricsState.isLyricsLoading &&
+                !taskState.isGenerationBusy,
+            label: l10n.requery,
+            icon: Icons.refresh_rounded,
+            context: context,
+          ),
+        const PopupMenuDivider(),
+        buildContextMenuItem<String>(
+          value: 'adjust_lyrics_font',
+          enabled: true,
+          label: l10n.adjustLyricsFont,
+          icon: Icons.format_size_rounded,
+          context: context,
+        ),
+        buildContextMenuItem<String>(
+          value: 'select_lyrics_font',
+          enabled: true,
+          label: l10n.selectLyricsFont,
+          icon: Icons.font_download_outlined,
+          context: context,
+        ),
+      ];
+
+      selected = await AppContextMenu.show<String>(
+        context: context,
+        position: globalPosition,
+        items: items,
+      );
+    } else {
+      final groups = <LyricsOptionGroup>[
+        LyricsOptionGroup(
+          items: [
+            if (!requeryOnly && _hasTimedLyrics(displayLines))
+              LyricsOptionItem(
+                value: 'return_to_current_line',
+                enabled: hasCurrentSong,
+                label: l10n.returnToCurrentLine,
+                icon: Icons.filter_center_focus_rounded,
+              ),
+            if (!requeryOnly &&
+                _hasTimedLyrics(displayLines) &&
+                lyricsState.hasLyrics)
+              LyricsOptionItem(
+                value: 'adjust_timeline',
+                enabled: hasCurrentSong,
+                label: l10n.timelineAdjustmentTitle,
+                icon: Icons.more_time_rounded,
+              ),
+            LyricsOptionItem(
+              value: 'fill_lyrics',
+              enabled: hasCurrentSong,
+              label: l10n.enterLyricsTitle,
+              icon: Icons.edit_note_rounded,
+            ),
+            LyricsOptionItem(
+              value: 'search_online_lyrics',
+              enabled: hasCurrentSong,
+              label: l10n.selectOnlineLyrics,
+              icon: Icons.cloud_download_rounded,
+            ),
+            if (requeryOnly)
+              LyricsOptionItem(
+                value: 'requery',
+                enabled:
+                    hasCurrentSong &&
+                    !lyricsState.isLyricsLoading &&
+                    !taskState.isGenerationBusy,
+                label: l10n.requery,
+                icon: Icons.refresh_rounded,
+              ),
+            if (!requeryOnly && availableSources.length > 1)
+              LyricsOptionItem(
+                value: 'select_lyrics_source',
+                enabled: hasCurrentSong,
+                label: l10n.selectLyricSource,
+                icon: Icons.source_rounded,
+              ),
+          ],
+        ),
+        if (lyricsState.hasLyrics || (!requeryOnly && hasTranslation))
+          LyricsOptionGroup(
+            items: [
+              if (lyricsState.hasLyrics) ...[
+                LyricsOptionItem(
+                  value: 'generate',
+                  enabled: hasCurrentSong && !taskState.isGenerationBusy,
+                  label: l10n.generateLyrics,
+                  icon: Icons.auto_awesome_rounded,
+                ),
+                LyricsOptionItem(
+                  value: 'generate_timeline',
+                  enabled: hasCurrentSong && !taskState.isGenerationBusy,
+                  label: l10n.generateTimeline,
+                  icon: Icons.timer_rounded,
+                ),
+                if (_hasTimedLyrics(displayLines))
+                  LyricsOptionItem(
+                    value: 'convert_to_karaoke',
+                    enabled: hasCurrentSong && !taskState.isGenerationBusy,
+                    label: l10n.convertToKaraoke,
+                    icon: Icons.mic_external_on_rounded,
+                  ),
+              ],
+              if (!requeryOnly)
+                LyricsOptionItem(
+                  value: 'translate',
+                  enabled: hasCurrentSong && !taskState.isTranslationBusy,
+                  label: l10n.translateLyrics,
+                  icon: Icons.translate_rounded,
+                ),
+              if (!requeryOnly && hasTranslation)
+                LyricsOptionItem(
+                  value: 'copy_translation_results',
+                  label: l10n.copyTranslationResults,
+                  icon: Icons.copy_rounded,
+                ),
+            ],
+          ),
+        if (!requeryOnly)
+          LyricsOptionGroup(
+            items: [
+              LyricsOptionItem(
+                value: 'save_lyrics_to_file',
+                enabled: hasCurrentSong &&
+                    (lyricsState.hasLyrics ||
+                        (lyricsState.currentLyricsText.isEmpty &&
+                            lyricsState.lyricsSearchAttempted)) &&
+                    ref.read(audioCurrentMusicProvider) != null &&
+                    (saveToLrc || isMetadataWritable(ref.read(audioCurrentMusicProvider)!.path)),
+                label: l10n.writeLyricsToFile,
+                icon: Icons.save_alt_rounded,
+              ),
+              LyricsOptionItem(
+                value: 'clear_lyrics_cache',
+                enabled: hasCurrentSong && lyricsState.hasLyrics,
+                label: l10n.clearLyricsCache,
+                icon: Icons.delete_sweep_rounded,
+                isDestructive: true,
+              ),
+              LyricsOptionItem(
+                value: 'clear_translation_cache',
+                enabled: hasCurrentSong && lyricsState.hasLyrics,
+                label: l10n.clearTranslationCache,
+                icon: Icons.delete_outline_rounded,
+                isDestructive: true,
+              ),
+            ],
+          ),
+        LyricsOptionGroup(
+          items: [
+            LyricsOptionItem(
+              value: 'adjust_lyrics_font',
+              enabled: true,
+              label: l10n.adjustLyricsFont,
+              icon: Icons.format_size_rounded,
+            ),
+            LyricsOptionItem(
+              value: 'select_lyrics_font',
+              enabled: true,
+              label: l10n.selectLyricsFont,
+              icon: Icons.font_download_outlined,
+            ),
+          ],
+        ),
+      ];
+
+      selected = await showLyricsOptionsSheet(
+        context,
+        groups: groups,
+        title: l10n.lyricsSectionTitle,
+        subtitle: currentSong?.displayName,
+      );
+    }
 
     if (!mounted || !context.mounted) return;
 
@@ -1539,7 +1688,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     final lyricsState = ref.watch(lyricsControllerProvider);
     final currentSong = ref.watch(audioCurrentMusicProvider);
     final currentSongTaskState = _taskStateForSongPath(currentSong?.path);
-    final lyricsStyle = ref.watch(
+    ref.watch(
       settingsServiceProvider.select((settings) => settings.lyricsStyle),
     );
     final isSmallWin = ref.watch(
