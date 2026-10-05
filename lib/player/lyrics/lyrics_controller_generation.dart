@@ -19,6 +19,7 @@ import 'package:vynody/player/lyrics/lyrics_generation_phase.dart';
 import 'package:vynody/player/lyrics/lyrics_generation_result.dart';
 import 'package:vynody/player/lyrics/lyrics_ai_service.dart';
 import 'package:vynody/player/lyrics/lyrics_service.dart';
+import 'package:vynody/player/lyrics/timeline/lyrics_timeline.dart';
 
 typedef _LyricsGenerationInvoker =
     Future<LyricsGenerationResult> Function(
@@ -761,6 +762,20 @@ class LyricsGenerationCoordinator {
       await _context.lyricsCacheRepository.saveLyricsCache(record);
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('selected_lyric_source_${record.cacheKey}', '${record.source.dbValue}|${record.languageCode}');
+
+      if (song.path.isNotEmpty && generatedLyrics.trim().isNotEmpty) {
+        unawaited(
+          LyricsTimelineService.instance.recordSnapshot(
+            cacheKey: song.path,
+            actionType: LyricsTimelineActionType.aiGenerate,
+            description: 'AI Generated',
+            lyrics: generatedLyrics,
+            timelineOffsetMillis: song.lyrics?.timelineOffset.inMilliseconds ?? 0,
+            previousLyrics: song.lyrics?.plainText,
+            previousOffsetMillis: song.lyrics?.timelineOffset.inMilliseconds ?? 0,
+          ),
+        );
+      }
     } catch (e) {
       debugPrint('[LyricsController] Failed to cache generated lyrics: $e');
     }

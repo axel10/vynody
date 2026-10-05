@@ -13,6 +13,7 @@ import 'package:vynody/utils/lyrics_id_utils.dart';
 import 'package:vynody/utils/lrc_utils.dart';
 import 'package:vynody/models/lyric_line.dart';
 import 'package:vynody/player/lyrics/lyrics_cache_repository.dart';
+import 'package:vynody/player/lyrics/timeline/lyrics_timeline_service.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/player/remote/proxy/remote_media_resolver.dart';
 
@@ -554,6 +555,16 @@ class LyricsService {
           updatedAtMillis: DateTime.now().millisecondsSinceEpoch,
         );
         await _cacheRepository.saveLyricsCache(record);
+        if (query.filePath.isNotEmpty) {
+          unawaited(
+            LyricsTimelineService.instance.ensureInitialSnapshot(
+              cacheKey: query.filePath,
+              lyrics: rawLyrics,
+              timelineOffsetMillis: 0,
+              description: 'Local LRC',
+            ),
+          );
+        }
       } catch (e) {
         debugPrint('[Lyrics] Failed to cache local LRC lyrics: $e');
       }
@@ -655,6 +666,16 @@ class LyricsService {
             updatedAtMillis: DateTime.now().millisecondsSinceEpoch,
           );
           await _cacheRepository.saveLyricsCache(record);
+          if (query.filePath.isNotEmpty) {
+            unawaited(
+              LyricsTimelineService.instance.ensureInitialSnapshot(
+                cacheKey: query.filePath,
+                lyrics: rawLyrics,
+                timelineOffsetMillis: 0,
+                description: 'Embedded',
+              ),
+            );
+          }
         } catch (e) {
           debugPrint('[Lyrics] Failed to cache embedded lyrics: $e');
         }

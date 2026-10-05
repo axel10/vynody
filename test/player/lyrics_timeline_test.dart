@@ -66,6 +66,33 @@ void main() {
       expect(history[1].lyrics, '[00:01.00]Original baseline lyrics');
     });
 
+    test('ensureInitialSnapshot creates baseline snapshot if history is empty', () async {
+      const cacheKey = 'song-embedded-1';
+
+      await service.ensureInitialSnapshot(
+        cacheKey: cacheKey,
+        lyrics: '[00:01.00]Embedded lyrics content',
+        description: 'Embedded',
+      );
+
+      final history = await service.getHistory(cacheKey);
+      expect(history.length, 1);
+      expect(history.first.actionType, LyricsTimelineActionType.initial);
+      expect(history.first.description, 'Embedded');
+      expect(history.first.lyrics, '[00:01.00]Embedded lyrics content');
+
+      // Calling again is a no-op
+      await service.ensureInitialSnapshot(
+        cacheKey: cacheKey,
+        lyrics: '[00:01.00]Different lyrics',
+        description: 'Different',
+      );
+
+      final historyAfter = await service.getHistory(cacheKey);
+      expect(historyAfter.length, 1);
+      expect(historyAfter.first.description, 'Embedded');
+    });
+
     test('deduplicates consecutive identical snapshots', () async {
       const cacheKey = 'song-2';
 

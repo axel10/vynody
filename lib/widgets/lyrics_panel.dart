@@ -1133,6 +1133,18 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     final l10n = AppLocalizations.of(context)!;
     final currentOffsetMillis = (_timelineOffsetSeconds * 1000).round();
 
+    final currentSource = currentSong.lyrics?.source;
+    if (displayPlainLyrics.trim().isNotEmpty &&
+        (currentSource == 'embedded' || currentSource == 'local_lrc')) {
+      await LyricsTimelineService.instance.ensureInitialSnapshot(
+        cacheKey: currentSong.path,
+        lyrics: displayPlainLyrics,
+        timelineOffsetMillis: currentOffsetMillis,
+        description: currentSource == 'embedded' ? 'Embedded' : 'Local LRC',
+      );
+      if (!mounted) return;
+    }
+
     final selectedVersion = await showLyricsTimelineDialog(
       context,
       cacheKey: currentSong.path,

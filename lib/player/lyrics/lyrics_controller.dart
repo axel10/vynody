@@ -23,6 +23,7 @@ import 'package:vynody/player/lyrics/lyrics_controller_state.dart';
 import 'package:vynody/player/lyrics/lyrics_controller_translation.dart';
 import 'package:vynody/player/lyrics/lyrics_controller_utils.dart';
 import 'package:vynody/player/lyrics/lyrics_riverpod.dart';
+import 'package:vynody/player/lyrics/timeline/lyrics_timeline_service.dart';
 import 'package:vynody/player/remote/proxy/remote_media_resolver.dart';
 import 'package:vynody/player/lyrics/lyrics_service.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
@@ -685,6 +686,23 @@ class LyricsController extends Notifier<LyricsControllerState> {
       selectedRecord,
       translations: translations,
     );
+
+    if (selectedRecord.source == LyricsCacheSource.embedded ||
+        selectedRecord.source == LyricsCacheSource.external) {
+      final raw = selectedRecord.syncedLyrics ?? '';
+      if (raw.trim().isNotEmpty) {
+        unawaited(
+          LyricsTimelineService.instance.ensureInitialSnapshot(
+            cacheKey: songPath,
+            lyrics: raw,
+            timelineOffsetMillis: selectedRecord.timelineOffsetMillis,
+            description: selectedRecord.source == LyricsCacheSource.embedded
+                ? 'Embedded'
+                : 'Local LRC',
+          ),
+        );
+      }
+    }
 
     if (currentSong.lyrics == nextLyrics) {
       return;

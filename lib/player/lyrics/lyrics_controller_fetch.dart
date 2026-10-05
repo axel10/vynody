@@ -15,6 +15,7 @@ import 'package:vynody/player/lyrics/lyrics_controller_context.dart';
 import 'package:vynody/player/lyrics/lyrics_controller_utils.dart';
 import 'package:vynody/player/lyrics/lyrics_generation_phase.dart';
 import 'package:vynody/player/lyrics/lyrics_service.dart';
+import 'package:vynody/player/lyrics/timeline/lyrics_timeline_service.dart';
 
 class LyricsFetchCoordinator {
   LyricsFetchCoordinator(this._context, this._support);
@@ -163,6 +164,21 @@ class LyricsFetchCoordinator {
       if (updated != null) {
         unawaited(_context.watchLyricsCacheForSong(updated));
         unawaited(_support.restoreCachedTranslations(updated));
+      }
+
+      if (result != null &&
+          (result.source == 'embedded' || result.source == 'local_lrc') &&
+          song.path.isNotEmpty &&
+          rawLyricsText.trim().isNotEmpty) {
+        unawaited(
+          LyricsTimelineService.instance.ensureInitialSnapshot(
+            cacheKey: song.path,
+            lyrics: rawLyricsText,
+            translation: parsedResult.translatedLines?.join('\n'),
+            timelineOffsetMillis: 0,
+            description: result.source == 'embedded' ? 'Embedded' : 'Local LRC',
+          ),
+        );
       }
 
       _support.logDebug(

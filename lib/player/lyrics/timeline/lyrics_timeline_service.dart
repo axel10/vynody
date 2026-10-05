@@ -22,6 +22,39 @@ class LyricsTimelineService {
     return _repository.getHistory(cacheKey);
   }
 
+  /// Ensures an 'initial' baseline snapshot exists in the timeline for [cacheKey].
+  ///
+  /// If the timeline history for this song is completely empty and [lyrics] is non-empty,
+  /// an initial entry will be created and saved.
+  /// If history already exists, this is a no-op.
+  Future<void> ensureInitialSnapshot({
+    required String cacheKey,
+    required String lyrics,
+    String? translation,
+    int timelineOffsetMillis = 0,
+    String? description,
+  }) async {
+    final normalizedKey = cacheKey.trim();
+    if (normalizedKey.isEmpty) return;
+
+    final trimmedLyrics = lyrics.trim();
+    if (trimmedLyrics.isEmpty) return;
+
+    final existingHistory = await _repository.getHistory(normalizedKey);
+    if (existingHistory.isNotEmpty) return;
+
+    final initialEntry = LyricsTimelineEntry(
+      cacheKey: normalizedKey,
+      actionType: LyricsTimelineActionType.initial,
+      description: description ?? 'Initial',
+      lyrics: trimmedLyrics,
+      translation: translation?.trim(),
+      timelineOffsetMillis: timelineOffsetMillis,
+      createdAtMillis: DateTime.now().millisecondsSinceEpoch,
+    );
+    await _repository.saveEntry(initialEntry);
+  }
+
   /// Records a snapshot into the timeline.
   ///
   /// If the history for this [cacheKey] is currently empty and [previousLyrics] is non-empty,
@@ -52,7 +85,8 @@ class LyricsTimelineService {
     if (existingHistory.isEmpty &&
         previousLyrics != null &&
         previousLyrics.trim().isNotEmpty &&
-        previousLyrics.trim() != trimmedLyrics) {
+        (previousLyrics.trim() != trimmedLyrics ||
+            previousOffsetMillis != timelineOffsetMillis)) {
       final initialEntry = LyricsTimelineEntry(
         cacheKey: normalizedKey,
         actionType: LyricsTimelineActionType.initial,
