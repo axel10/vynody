@@ -12,7 +12,6 @@ import 'package:vynody/models/music_lyric.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import '../l10n/app_localizations.dart';
 import 'package:vynody/player/lyrics/lyrics_controller_state.dart';
-import 'package:vynody/player/settings/settings_service.dart';
 import 'playback_ui_tuning.dart';
 
 class LyricsPanelEmptyState extends StatelessWidget {
@@ -1074,35 +1073,6 @@ class _WordWordLyricsWidgetState extends ConsumerState<WordWordLyricsWidget>
   bool _isBackgroundSuspended = false;
   bool _isInitialized = false;
 
-  TextStyle _styleWithForeground(TextStyle base, Paint foreground) {
-    return TextStyle(
-      inherit: base.inherit,
-      color: null,
-      backgroundColor: base.backgroundColor,
-      fontSize: base.fontSize,
-      fontWeight: base.fontWeight,
-      fontStyle: base.fontStyle,
-      letterSpacing: base.letterSpacing,
-      wordSpacing: base.wordSpacing,
-      textBaseline: base.textBaseline,
-      height: base.height,
-      leadingDistribution: base.leadingDistribution,
-      locale: base.locale,
-      foreground: foreground,
-      background: base.background,
-      shadows: base.shadows,
-      fontFeatures: base.fontFeatures,
-      fontVariations: base.fontVariations,
-      decoration: base.decoration,
-      decorationColor: base.decorationColor,
-      decorationStyle: base.decorationStyle,
-      decorationThickness: base.decorationThickness,
-      debugLabel: base.debugLabel,
-      fontFamily: base.fontFamily,
-      fontFamilyFallback: base.fontFamilyFallback,
-      overflow: base.overflow,
-    );
-  }
 
   void _syncBaseline({Duration? seekPosition}) {
     _basePosition = seekPosition ?? ref.read(audioPositionProvider);
@@ -1173,7 +1143,6 @@ class _WordWordLyricsWidgetState extends ConsumerState<WordWordLyricsWidget>
     }
   }
 
-  DateTime _lastLogTime = DateTime.fromMillisecondsSinceEpoch(0);
 
   @override
   void didUpdateWidget(covariant WordWordLyricsWidget oldWidget) {
@@ -1223,20 +1192,16 @@ class _WordWordLyricsWidgetState extends ConsumerState<WordWordLyricsWidget>
       );
     }
 
+    final fullText = validWords.map((w) => w.text).join();
+
+    final inactiveChild = Text(
+      fullText,
+      style: widget.lineStyle.copyWith(color: widget.inactiveColor),
+      textAlign: widget.isLeftAligned ? TextAlign.left : TextAlign.center,
+    );
+
     if (!widget.isActive) {
-      return ExcludeSemantics(
-        child: Text.rich(
-          TextSpan(
-            children: validWords.map((word) {
-              return TextSpan(
-                text: word.text,
-                style: widget.lineStyle.copyWith(color: widget.inactiveColor),
-              );
-            }).toList(growable: false),
-          ),
-          textAlign: widget.isLeftAligned ? TextAlign.left : TextAlign.center,
-        ),
-      );
+      return ExcludeSemantics(child: inactiveChild);
     }
 
     final isPlaying = ref.watch(audioIsPlayingProvider);
@@ -1278,38 +1243,26 @@ class _WordWordLyricsWidgetState extends ConsumerState<WordWordLyricsWidget>
         currentMusic?.lyrics?.timelineOffset.inMilliseconds ?? 0;
     final currentMs = currentPosition.inMilliseconds - timelineOffsetMs;
 
-    final logNow = DateTime.now();
-    if (logNow.difference(_lastLogTime).inMilliseconds >= 250 &&
-        validWords.isNotEmpty) {
-      _lastLogTime = logNow;
-    }
+    final activeChild = Text(
+      fullText,
+      style: widget.lineStyle.copyWith(color: widget.activeColor),
+      textAlign: widget.isLeftAligned ? TextAlign.left : TextAlign.center,
+    );
 
-    // Check if any word is in active transition (0.0 < progress < 1.0)
-    bool hasTransitioningWord = false;
-    for (final word in validWords) {
-      final startMs = word.timestamp.inMilliseconds;
-      final durationMs = word.durationMs;
-      if (currentMs > startMs && currentMs < startMs + durationMs && durationMs > 0) {
-        hasTransitioningWord = true;
-        break;
-      }
-    }
+    final maxWidth = widget.layoutMaxWidth ?? double.infinity;
+    final textPainter = TextPainter(
+      text: TextSpan(text: fullText, style: widget.lineStyle),
+      textDirection: Directionality.of(context),
+      textAlign: widget.isLeftAligned ? TextAlign.left : TextAlign.center,
+      textScaler: MediaQuery.textScalerOf(context),
+      locale: Localizations.maybeLocaleOf(context),
+    )..layout(maxWidth: maxWidth.isFinite && maxWidth > 0 ? maxWidth : double.infinity);
 
-    final fullText = validWords.map((w) => w.text).join();
-    TextPainter? textPainter;
-    if (hasTransitioningWord) {
-      final maxWidth = widget.layoutMaxWidth ?? double.infinity;
-      textPainter = TextPainter(
-        text: TextSpan(text: fullText, style: widget.lineStyle),
-        textDirection: Directionality.of(context),
-        textAlign: widget.isLeftAligned ? TextAlign.left : TextAlign.center,
-        textScaler: MediaQuery.textScalerOf(context),
-        locale: Localizations.maybeLocaleOf(context),
-      )..layout(maxWidth: maxWidth.isFinite && maxWidth > 0 ? maxWidth : double.infinity);
-    }
-
+    final path = Path();
     int charOffset = 0;
-    final spans = <InlineSpan>[];
+    bool allCompleted = true;
+    bool anyStarted = false;
+
     for (final word in validWords) {
       final wordLen = word.text.length;
       final startMs = word.timestamp.inMilliseconds;
@@ -1322,71 +1275,93 @@ class _WordWordLyricsWidgetState extends ConsumerState<WordWordLyricsWidget>
         progress = (currentMs - startMs) / durationMs;
       }
 
-      if (progress <= 0.0) {
-        spans.add(TextSpan(
-          text: word.text,
-          style: widget.lineStyle.copyWith(color: widget.inactiveColor),
-        ));
-      } else if (progress >= 1.0) {
-        spans.add(TextSpan(
-          text: word.text,
-          style: widget.lineStyle.copyWith(color: widget.activeColor),
-        ));
-      } else {
-        const double softEdge = 0.15;
-        final double center = -softEdge + progress * (1.0 + 2 * softEdge);
-        final double start = (center - softEdge / 2).clamp(0.0, 1.0);
-        final double end = (center + softEdge / 2).clamp(0.0, 1.0);
-
-        final boxes = textPainter?.getBoxesForSelection(
+      if (progress < 1.0) {
+        allCompleted = false;
+      }
+      if (progress > 0.0) {
+        anyStarted = true;
+        final boxes = textPainter.getBoxesForSelection(
           TextSelection(
             baseOffset: charOffset,
             extentOffset: charOffset + wordLen,
           ),
         );
 
-        if (boxes != null && boxes.isNotEmpty) {
-          final box = boxes.first;
-          final shader = ui.Gradient.linear(
-            Offset(box.left, 0),
-            Offset(box.right, 0),
-            [
-              widget.activeColor,
-              widget.activeColor,
-              widget.inactiveColor,
-              widget.inactiveColor,
-            ],
-            [0.0, start, end, 1.0],
-          );
-          spans.add(TextSpan(
-            text: word.text,
-            style: _styleWithForeground(
-              widget.lineStyle,
-              Paint()..shader = shader,
-            ),
-          ));
+        if (progress >= 1.0) {
+          for (final box in boxes) {
+            path.addRect(Rect.fromLTRB(box.left, box.top, box.right, box.bottom));
+          }
         } else {
-          final fallbackColor =
-              Color.lerp(widget.inactiveColor, widget.activeColor, progress) ??
-                  widget.inactiveColor;
-          spans.add(TextSpan(
-            text: word.text,
-            style: widget.lineStyle.copyWith(color: fallbackColor),
-          ));
+          final p = progress.clamp(0.0, 1.0);
+          if (boxes.length == 1) {
+            final box = boxes.first;
+            final isRtl = box.direction == TextDirection.rtl;
+            final clipWidth = (box.right - box.left) * p;
+            final rect = isRtl
+                ? Rect.fromLTRB(box.right - clipWidth, box.top, box.right, box.bottom)
+                : Rect.fromLTRB(box.left, box.top, box.left + clipWidth, box.bottom);
+            path.addRect(rect);
+          } else if (boxes.isNotEmpty) {
+            final totalW = boxes.fold<double>(0.0, (sum, b) => sum + (b.right - b.left));
+            double remainingClip = totalW * p;
+            for (final box in boxes) {
+              final w = box.right - box.left;
+              final isRtl = box.direction == TextDirection.rtl;
+              if (remainingClip >= w) {
+                path.addRect(Rect.fromLTRB(box.left, box.top, box.right, box.bottom));
+                remainingClip -= w;
+              } else if (remainingClip > 0) {
+                final rect = isRtl
+                    ? Rect.fromLTRB(box.right - remainingClip, box.top, box.right, box.bottom)
+                    : Rect.fromLTRB(box.left, box.top, box.left + remainingClip, box.bottom);
+                path.addRect(rect);
+                remainingClip = 0;
+              }
+            }
+          }
         }
       }
 
       charOffset += wordLen;
     }
 
+    textPainter.dispose();
+
+    if (!anyStarted) {
+      return ExcludeSemantics(child: inactiveChild);
+    }
+
+    if (allCompleted) {
+      return ExcludeSemantics(child: activeChild);
+    }
+
     return ExcludeSemantics(
-      child: Text.rich(
-        TextSpan(children: spans),
-        textAlign: widget.isLeftAligned ? TextAlign.left : TextAlign.center,
+      child: Stack(
+        alignment: widget.isLeftAligned ? Alignment.centerLeft : Alignment.center,
+        children: [
+          inactiveChild,
+          ClipPath(
+            clipper: _KaraokeProgressClipper(path),
+            child: activeChild,
+          ),
+        ],
       ),
     );
   }
 }
+
+class _KaraokeProgressClipper extends CustomClipper<Path> {
+  final Path path;
+
+  const _KaraokeProgressClipper(this.path);
+
+  @override
+  Path getClip(Size size) => path;
+
+  @override
+  bool shouldReclip(covariant _KaraokeProgressClipper oldClipper) => true;
+}
+
 
 class WordHighlightText extends StatelessWidget {
   const WordHighlightText({
