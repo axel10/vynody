@@ -1906,6 +1906,7 @@ class LyricsAiService {
       qualityTier: TranscodeQualityTier.medium,
       bitRate: 128000,
       bitRateMode: BitRateMode.cbr,
+      channels: 2,
       valueOrigin: TranscodeValueOrigin.customized,
       outputDirectory: tempDir.path,
       useSystemEncoder: false,
