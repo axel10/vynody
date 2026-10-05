@@ -77,7 +77,7 @@ class LyricsOptionsSheet extends StatelessWidget {
       child: ListView.separated(
         shrinkWrap: true,
         physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.only(top: 4, bottom: 24, left: 16, right: 16),
+        padding: const EdgeInsets.only(top: 4, bottom: 24),
         itemCount: validGroups.length,
         separatorBuilder: (context, index) => Divider(
           height: 16,
