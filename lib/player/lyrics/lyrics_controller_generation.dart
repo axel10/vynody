@@ -349,6 +349,7 @@ class LyricsGenerationCoordinator {
             generatedLyrics: progressLyrics.plainText,
             syncedLines: progressLyrics.syncedLines,
             source: databaseSource,
+            recordTimeline: false,
           ));
         },
       );
@@ -366,6 +367,7 @@ class LyricsGenerationCoordinator {
             generatedLyrics: lastProgressText!,
             syncedLines: lastSyncedLines,
             source: databaseSource,
+            recordTimeline: false,
           );
         }
         return null;
@@ -382,6 +384,7 @@ class LyricsGenerationCoordinator {
             generatedLyrics: lastProgressText!,
             syncedLines: lastSyncedLines,
             source: databaseSource,
+            recordTimeline: false,
           );
         }
         return result.errorMessage ?? _l10n().generationFailed;
@@ -402,6 +405,7 @@ class LyricsGenerationCoordinator {
         generatedLyrics: lyrics.plainText,
         syncedLines: lyrics.syncedLines,
         source: databaseSource,
+        recordTimeline: true,
       );
       return null;
     } catch (e) {
@@ -414,6 +418,7 @@ class LyricsGenerationCoordinator {
             generatedLyrics: lastProgressText!,
             syncedLines: lastSyncedLines,
             source: databaseSource,
+            recordTimeline: false,
           );
         } catch (dbError) {
           debugPrint(
@@ -737,6 +742,7 @@ class LyricsGenerationCoordinator {
     required String generatedLyrics,
     required List<LyricLine> syncedLines,
     LyricsCacheSource source = LyricsCacheSource.aiGenerate,
+    bool recordTimeline = true,
   }) async {
     try {
       final duration = await _support.resolveLyricsDuration(song);
@@ -763,12 +769,17 @@ class LyricsGenerationCoordinator {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('selected_lyric_source_${record.cacheKey}', '${record.source.dbValue}|${record.languageCode}');
 
-      if (song.path.isNotEmpty && generatedLyrics.trim().isNotEmpty) {
+      if (recordTimeline && song.path.isNotEmpty && generatedLyrics.trim().isNotEmpty) {
+        final description = source == LyricsCacheSource.aiKaraoke
+            ? 'AI Karaoke'
+            : (source == LyricsCacheSource.aiTimeline
+                ? 'AI Timeline'
+                : 'AI Generated');
         unawaited(
           LyricsTimelineService.instance.recordSnapshot(
             cacheKey: song.path,
             actionType: LyricsTimelineActionType.aiGenerate,
-            description: 'AI Generated',
+            description: description,
             lyrics: generatedLyrics,
             timelineOffsetMillis: song.lyrics?.timelineOffset.inMilliseconds ?? 0,
             previousLyrics: song.lyrics?.plainText,
