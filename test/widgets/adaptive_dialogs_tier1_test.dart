@@ -1,20 +1,47 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
+import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vynody/dialogs/add_edit_remote_server_dialog.dart';
 import 'package:vynody/dialogs/add_to_playlist_dialog.dart';
 import 'package:vynody/dialogs/playlist_manager_dialog.dart';
 import 'package:vynody/l10n/app_localizations.dart';
-import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/library/playlist_service.dart';
-import 'package:vynody/player/settings/settings_service.dart';
 import 'package:vynody/widgets/app_bottom_sheet.dart';
 
 import 'helpers/mobile_screenshot_harness.dart';
 
+class _FakePathProviderPlatform extends Fake
+    with MockPlatformInterfaceMixin
+    implements PathProviderPlatform {
+  final Directory tempDir;
+  _FakePathProviderPlatform(this.tempDir);
+
+  @override
+  Future<String?> getApplicationSupportPath() async => tempDir.path;
+
+  @override
+  Future<String?> getApplicationDocumentsPath() async => tempDir.path;
+}
+
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  late Directory tempDir;
+
+  setUp(() async {
+    tempDir = await Directory.systemTemp.createTemp('tier1_test_');
+    PathProviderPlatform.instance = _FakePathProviderPlatform(tempDir);
+    SharedPreferences.setMockInitialValues({});
+  });
+
+  tearDown(() async {
+    if (await tempDir.exists()) {
+      await tempDir.delete(recursive: true);
+    }
+  });
+
   const dummySong = MusicFile(
     id: 1,
     name: 'Song Title',
@@ -30,11 +57,14 @@ void main() {
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() => tester.view.resetPhysicalSize());
 
-      final playlistService = PlaylistService();
-      // Add playlists so total count >= 5 to trigger search bar
-      for (var i = 1; i <= 5; i++) {
-        await playlistService.createPlaylist('Playlist $i');
-      }
+      late PlaylistService playlistService;
+      await tester.runAsync(() async {
+        playlistService = PlaylistService();
+        // Add playlists so total count >= 5 to trigger search bar
+        for (var i = 1; i <= 5; i++) {
+          await playlistService.createPlaylist('Playlist $i');
+        }
+      });
 
       await tester.pumpWidget(
         ProviderScope(
@@ -128,14 +158,16 @@ void main() {
       addTearDown(() => tester.view.resetPhysicalSize());
 
       await tester.pumpWidget(
-        MaterialApp(
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          home: Scaffold(
-            body: Builder(
-              builder: (context) => ElevatedButton(
-                onPressed: () => AddEditRemoteServerDialog.show(context),
-                child: const Text('Add Server'),
+        ProviderScope(
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: Scaffold(
+              body: Builder(
+                builder: (context) => ElevatedButton(
+                  onPressed: () => AddEditRemoteServerDialog.show(context),
+                  child: const Text('Add Server'),
+                ),
               ),
             ),
           ),

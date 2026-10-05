@@ -357,15 +357,19 @@ class _AddEditRemoteServerDialogState
                           return DropdownMenuItem(
                             value: type,
                             child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(_getServerIcon(type), size: 20),
-                                    const SizedBox(width: 10),
-                                    Text(type.displayName),
-                                  ],
+                              children: [
+                                Icon(_getServerIcon(type), size: 20),
+                                const SizedBox(width: 10),
+                                Flexible(
+                                  child: Text(
+                                    type.displayName,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ),
-                              );
-                            }).toList(),
+                              ],
+                            ),
+                          );
+                        }).toList(),
                             onChanged: (val) {
                               if (val != null && val != _serverType) {
                                 WidgetsBinding.instance
