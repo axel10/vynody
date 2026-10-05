@@ -48,6 +48,7 @@ import 'package:vynody/utils/list_reorder_utils.dart';
 import 'package:vynody/utils/localized_text.dart';
 import 'package:vynody/player/remote/proxy/remote_media_resolver.dart';
 import 'package:vynody/player/pro/pro_license_service.dart';
+import 'package:vynody/player/audio/queue_random_manager.dart';
 
 class AudioService extends Notifier<AudioSnapshot> {
   static const String _volumeStorageKey = 'player_volume';
@@ -55,6 +56,7 @@ class AudioService extends Notifier<AudioSnapshot> {
   static const String _isMutedStorageKey = 'player_is_muted';
 
   late final AudioCoreController _player;
+  final QueueRandomManager _randomManager = QueueRandomManager();
   AppPlaybackMode _playbackMode = AppPlaybackMode.queue;
   PlaybackSource? _currentSource;
   bool _isHandlingQueueFinished = false;
@@ -147,6 +149,7 @@ class AudioService extends Notifier<AudioSnapshot> {
   String? _sleepTimerWaitingTrackPath;
   int _lastWaveformChunks = -1;
   StreamSubscription<List<double>>? _currentWaveformSubscription;
+  StreamSubscription<String?>? _trackEndedSubscription;
   bool _disposed = false;
   bool _restoringPlaybackSession = false;
   bool _playbackSessionReady = false;
@@ -382,6 +385,9 @@ class AudioService extends Notifier<AudioSnapshot> {
         : null;
     _player.addListener(_handlePlayerChanges);
     _player.equalizer.addListener(notifyListeners);
+    _trackEndedSubscription = _player.onTrackEnded.listen((_) {
+      _handleTrackEnded();
+    });
     _settingsListener = () {
       if (_disposed) return;
       final fadeEnabled = settingsService.enableFadeEffect;
@@ -563,7 +569,6 @@ class AudioService extends Notifier<AudioSnapshot> {
       }
 
       _stopPlaybackSessionAutoSaveTimer();
-      await _player.playlist.resetPlaybackState();
 
       _queue
         ..clear()
@@ -577,17 +582,8 @@ class AudioService extends Notifier<AudioSnapshot> {
       _resetPlaybackTrackingForSong(null);
       notifyListeners();
 
-      await _player.playlist.ensureQueuePlaylist();
-      final tracks = _queue.map(_audioTrackForSong).toList(growable: false);
-      await _player.playlist.addTracksToPlaylist(
-        _player.playlist.queuePlaylistId,
-        tracks,
-        reconcile: false,
-      );
-
       _playbackMode = session.playbackMode;
       _currentSource = session.source;
-      _player.playlist.setMode(_playbackMode.toCoreMode());
 
       final restoredIndex =
           await PlaybackSessionManager.resolveRestoredQueueIndex(session);
@@ -600,14 +596,13 @@ class AudioService extends Notifier<AudioSnapshot> {
           await _player.beginScopedAccess(path: currentSong.path);
         }
         try {
-          await _player.playlist.setActivePlaylist(
-            _player.playlist.queuePlaylistId,
-            startIndex: restoredIndex,
+          await _player.playTrackUri(
+            currentSong.path,
             autoPlay: false,
           );
         } catch (e) {
           debugPrint(
-            'AudioService: setActivePlaylist during restore failed (offline/unreachable): $e',
+            'AudioService: playTrackUri during restore failed (offline/unreachable): $e',
           );
         }
 
@@ -661,7 +656,6 @@ class AudioService extends Notifier<AudioSnapshot> {
         _lastActionNext = null;
         _isTransitioning = false;
         _resetPlaybackTrackingForSong(null);
-        await _player.playlist.clear();
         await _sessionManager.clearFromPrefs(settingsService.prefs);
       }
 
@@ -680,14 +674,14 @@ class AudioService extends Notifier<AudioSnapshot> {
 
   Future<void> _restoreRandomPlaybackSession(RandomPlaybackData random) async {
     if (!random.enabled) {
-      _player.playlist.setRandomPolicy(null);
+      _randomManager.setPolicy(null);
       return;
     }
 
     _applyRandomPolicy(globalSongs: _queue);
 
-    _player.playlist.restoreRandomPlaybackState(
-      policy: _player.playlist.randomPolicy,
+    _randomManager.restoreState(
+      policy: _randomManager.policy,
       history: random.history,
       historyCursor: random.historyCursor,
       deck: random.deck,
@@ -764,13 +758,13 @@ class AudioService extends Notifier<AudioSnapshot> {
   RandomPlaybackData _captureRandomPlaybackSession() {
     return RandomPlaybackData(
       enabled: isRandomMode,
-      history: _player.playlist.randomHistory.toList(),
-      historyCursor: _player.playlist.historyCursor,
-      deck: List<String>.unmodifiable(_player.playlist.currentDeck),
-      deckCursor: _player.playlist.deckCursor,
-      deckSignature: _player.playlist.deckSignature,
-      stashedNextTrackId: _player.playlist.stashedNextTrackId,
-      stashedForTrackId: _player.playlist.stashedForTrackId,
+      history: _randomManager.history.toList(),
+      historyCursor: _randomManager.historyCursor,
+      deck: List<String>.unmodifiable(_randomManager.currentDeck),
+      deckCursor: _randomManager.deckCursor,
+      deckSignature: _randomManager.deckSignature,
+      stashedNextTrackId: _randomManager.stashedNextTrackId,
+      stashedForTrackId: _randomManager.stashedForTrackId,
     );
   }
 
@@ -942,12 +936,22 @@ class AudioService extends Notifier<AudioSnapshot> {
         setSongMissingStateByPath(current.path, true);
         skippedAny = true;
 
-        final success = await _player.playlist.playNext();
-        final newIndex = _player.playlist.currentIndex ?? -1;
-        if (!success || newIndex < 0 || newIndex >= _queue.length) {
+        int? nextIndex;
+        if (isRandomMode) {
+          nextIndex = _randomManager.resolveAdjacentIndex(
+            next: true,
+            queue: _queue,
+            currentTrack: effectiveSong,
+          );
+        } else if (_playbackMode == AppPlaybackMode.queueLoop) {
+          nextIndex = (_currentIndex + 1) % _queue.length;
+        } else if (_currentIndex + 1 < _queue.length) {
+          nextIndex = _currentIndex + 1;
+        }
+
+        if (nextIndex == null || nextIndex < 0 || nextIndex >= _queue.length) {
           await _player.player.pause(bypassGuard: true);
           await _player.clearPlayback();
-          await _player.playlist.clear();
           _isPlaying = false;
           _currentIndex = -1;
           _duration = Duration.zero;
@@ -960,7 +964,7 @@ class AudioService extends Notifier<AudioSnapshot> {
           return;
         }
 
-        _currentIndex = newIndex;
+        _currentIndex = nextIndex;
         attempts++;
       }
       if (_currentIndex >= 0 &&
@@ -968,7 +972,6 @@ class AudioService extends Notifier<AudioSnapshot> {
           !await _songExists(_queue[_currentIndex].path)) {
         await _player.player.pause(bypassGuard: true);
         await _player.clearPlayback();
-        await _player.playlist.clear();
         _isPlaying = false;
         _currentIndex = -1;
         _duration = Duration.zero;
@@ -1378,6 +1381,64 @@ class AudioService extends Notifier<AudioSnapshot> {
     );
   }
 
+  bool get hasNextSong {
+    if (_queue.isEmpty) return false;
+    if (_playbackMode == AppPlaybackMode.single) return false;
+    if (_playbackMode == AppPlaybackMode.singleLoop) return true;
+    if (_playbackMode == AppPlaybackMode.autoQueueLoop) return true;
+    if (_playbackMode == AppPlaybackMode.queueLoop) return true;
+    if (isRandomMode) return true;
+    return _currentIndex < _queue.length - 1;
+  }
+
+  bool get hasPreviousSong {
+    if (_queue.isEmpty) return false;
+    if (_position.inSeconds >= 3) return true;
+    if (_playbackMode == AppPlaybackMode.queueLoop) return true;
+    if (isRandomMode) return (_randomManager.historyCursor ?? 0) > 0;
+    return _currentIndex > 0;
+  }
+
+  Future<void> _handleTrackEnded() async {
+    if (_isTransitioning || _queue.isEmpty) return;
+
+    if (_sleepTimerWaitingForTrackEnd &&
+        currentMusic?.path == _sleepTimerWaitingTrackPath) {
+      _sleepTimerWaitingForTrackEnd = false;
+      _sleepTimerWaitingTrackPath = null;
+      _sleepTimerStopAfterCurrentSong = false;
+      _sleepTimerDuration = null;
+      await _stopPlaybackForSleepTimer();
+      notifyListeners();
+      return;
+    }
+
+    if (_playbackMode == AppPlaybackMode.single) {
+      await _player.player.pause(bypassGuard: true);
+      _isPlaying = false;
+      _position = Duration.zero;
+      notifyListeners();
+      return;
+    }
+
+    if (_playbackMode == AppPlaybackMode.singleLoop) {
+      if (_currentIndex >= 0 && _currentIndex < _queue.length) {
+        final song = _queue[_currentIndex];
+        await _player.playTrackUri(song.path, autoPlay: true);
+      }
+      return;
+    }
+
+    if (_playbackMode == AppPlaybackMode.autoQueueLoop &&
+        !hasNextSong &&
+        !_isHandlingQueueFinished) {
+      await _handleQueueFinished();
+      return;
+    }
+
+    await next();
+  }
+
   void _handlePlayerChanges() {
     _isPlaying = _player.player.isPlaying;
     _duration = _player.player.duration;
@@ -1439,8 +1500,8 @@ class AudioService extends Notifier<AudioSnapshot> {
             RemoteMediaResolver.isRemoteUri(currentMusic!.path)) {
           _showRemotePlaybackError(currentAppL10n.cannotConnectToMediaServer);
         } else {
-          final hasNextSong = _player.playlist.hasNext;
-          _showCorruptedSongNotice(skipped: hasNextSong);
+          final hasNext = hasNextSong;
+          _showCorruptedSongNotice(skipped: hasNext);
         }
       }
     } else {
@@ -1489,92 +1550,27 @@ class AudioService extends Notifier<AudioSnapshot> {
     }
     _logPositionDebug();
 
-    if (_sleepTimerWaitingForTrackEnd &&
-        _player.player.currentState == PlayerState.completed &&
-        currentMusic?.path == _sleepTimerWaitingTrackPath) {
-      _sleepTimerWaitingForTrackEnd = false;
-      _sleepTimerWaitingTrackPath = null;
-      _sleepTimerStopAfterCurrentSong = false;
-      _sleepTimerDuration = null;
-      unawaited(_stopPlaybackForSleepTimer());
-      notifyListeners();
-      return;
-    }
-
     if (_player.player.currentState == PlayerState.completed &&
-        !_player.playlist.hasNext &&
-        _playbackMode == AppPlaybackMode.autoQueueLoop &&
-        !_isHandlingQueueFinished) {
-      unawaited(_handleQueueFinished());
+        !_isTransitioning &&
+        _isPlaying) {
+      unawaited(_handleTrackEnded());
       return;
     }
 
-    final int newIndex = _player.playlist.currentIndex ?? -1;
-    if (newIndex != _currentIndex && !_isTransitioning) {
-      if (_currentIndex < 0 && !_isPlaying) {
-        return;
+    // Self-healing: if player's current path changed outside Vynody's knowledge
+    final activePath = _player.player.currentPath;
+    if (activePath != null &&
+        !_isTransitioning &&
+        _currentIndex >= 0 &&
+        _currentIndex < _queue.length &&
+        activePath != _queue[_currentIndex].path) {
+      final newIndex = _queue.indexWhere((s) => s.path == activePath);
+      if (newIndex >= 0) {
+        _currentIndex = newIndex;
+        final song = _queue[newIndex];
+        unawaited(_syncCurrentPlaybackSong(song));
+        _notifyIfNeeded(force: true);
       }
-      if (_sleepTimerWaitingForTrackEnd &&
-          _sleepTimerWaitingTrackPath != null &&
-          (newIndex < 0 ||
-              newIndex >= _queue.length ||
-              _queue[newIndex].path != _sleepTimerWaitingTrackPath)) {
-        _player.cancelStopAfterCurrentTrack();
-        _sleepTimerWaitingForTrackEnd = false;
-        _sleepTimerWaitingTrackPath = null;
-        _sleepTimerStopAfterCurrentSong = false;
-      }
-      // 检测到歌曲切换
-      if (_currentIndex >= 0) {
-        _lastActionNext = true; // 记录为自动切歌
-      }
-      _currentIndex = newIndex;
-      if (_currentIndex >= 0 && _currentIndex < _queue.length) {
-        var song = _queue[_currentIndex];
-        final resolvedPath = ScannerPathUtils.resolveIosSandboxPath(song.path);
-        if (resolvedPath != song.path) {
-          final resolvedThumbnail = song.thumbnailPath != null
-              ? ScannerPathUtils.resolveIosSandboxPath(song.thumbnailPath!)
-              : null;
-          final resolvedArtwork = song.artworkPath != null
-              ? ScannerPathUtils.resolveIosSandboxPath(song.artworkPath!)
-              : null;
-          song = song.copyWith(
-            path: resolvedPath,
-            thumbnailPath: resolvedThumbnail,
-            artworkPath: resolvedArtwork,
-          );
-          _queue[_currentIndex] = song;
-        }
-        if (song.isMissing ||
-            (song.path.isNotEmpty &&
-                !song.path.startsWith('content://') &&
-                !RemoteMediaResolver.isRemoteUri(song.path) &&
-                !File(song.path).existsSync())) {
-          if (_lastMissingCurrentTrackPathHandled != song.path) {
-            _lastMissingCurrentTrackPathHandled = song.path;
-            unawaited(_skipMissingCurrentTrack());
-          }
-          return;
-        }
-        _lastMissingCurrentTrackPathHandled = null;
-        _logLyricsDebug(
-          'track changed -> index=$_currentIndex title="${song.displayName}" '
-          'path="${song.path}" duration=$_duration active=$isLyricsActive',
-        );
-        unawaited(
-          // 发起元数据更新和后台处理
-          _updateCurrentMetadata(song).then((_) {
-            _windowsIntegration?.updateMetadata(_queue[newIndex]);
-            _androidIntegration?.updateMetadata(_queue[newIndex]);
-            _darwinIntegration?.updateMetadata(_queue[newIndex]);
-            _linuxIntegration?.updateMetadata(_queue[newIndex]);
-            _startQueueBackgroundProcessing();
-          }),
-        );
-        unawaited(_refreshCurrentWaveform());
-      }
-      _notifyIfNeeded(force: true);
     }
 
     _windowsIntegration?.updateTimeline(_position, _duration);
@@ -1701,7 +1697,6 @@ class AudioService extends Notifier<AudioSnapshot> {
 
   void setPlaybackMode(AppPlaybackMode mode) {
     _playbackMode = mode;
-    _player.playlist.setMode(mode.toCoreMode());
     notifyListeners();
     unawaited(_persistPlaybackSession());
   }
@@ -1844,8 +1839,6 @@ class AudioService extends Notifier<AudioSnapshot> {
       newIndex: newIndex,
     );
 
-    _player.playlist.moveTrack(oldIndex, newIndex);
-
     _startQueueBackgroundProcessing();
     notifyListeners();
     unawaited(_persistPlaybackSession());
@@ -1862,10 +1855,6 @@ class AudioService extends Notifier<AudioSnapshot> {
         _currentIndex = updatedIndex;
       }
     }
-    final tracks = _queue.map(_audioTrackForSong).toList(growable: false);
-    final activePlaylistId =
-        _player.playlist.activePlaylistId ?? _player.playlist.queuePlaylistId;
-    await _player.playlist.updatePlaylistTracks(activePlaylistId, tracks);
     _startQueueBackgroundProcessing();
     notifyListeners();
     unawaited(_persistPlaybackSession());
@@ -1956,7 +1945,7 @@ class AudioService extends Notifier<AudioSnapshot> {
 
   int get currentIndex => _currentIndex;
 
-  bool get isRandomMode => _player.playlist.randomPolicy != null;
+  bool get isRandomMode => _randomManager.policy != null;
   AudioSnapshot get snapshot => AudioSnapshot(
     isPlaying: _isPlaying,
     isBuffering: isBuffering,
@@ -2071,38 +2060,38 @@ class AudioService extends Notifier<AudioSnapshot> {
   }
 
   bool get isShuffleRandomMode =>
-      _player.playlist.randomPolicy?.label == 'shuffleRandom';
+      _randomManager.policy?.label == 'shuffleRandom';
 
-  int? get historyCursor => _player.playlist.historyCursor;
+  int? get historyCursor => _randomManager.historyCursor;
 
   List<MusicFile> get randomHistory {
-    final history = _player.playlist.randomHistory;
+    final history = _randomManager.history;
     return history.map((entry) {
       if (entry.trackIndex >= 0 && entry.trackIndex < _queue.length) {
         return _queue[entry.trackIndex];
       }
+      final match = _queue.firstWhereOrNull((s) => s.path == entry.trackId);
+      if (match != null) return match;
       return MusicFile(
-        path: entry.trackId, // Fallback if index invalid
+        path: entry.trackId,
         name: 'Unknown',
       );
     }).toList();
   }
 
   List<MusicFile> get randomQueue {
-    final deck = _player.playlist.currentDeck;
+    final deck = _randomManager.currentDeck;
     return deck.map((id) {
-      final index = int.tryParse(id) ?? -1;
-      if (index >= 0 && index < _queue.length) {
-        return _queue[index];
-      }
+      final match = _queue.firstWhereOrNull((s) => s.path == id);
+      if (match != null) return match;
       return MusicFile(
-        path: id, // Fallback
+        path: id,
         name: 'Unknown',
       );
     }).toList();
   }
 
-  int? get deckCursor => _player.playlist.deckCursor;
+  int? get deckCursor => _randomManager.deckCursor;
 
   double get progress => _duration.inMilliseconds > 0
       ? _position.inMilliseconds / _duration.inMilliseconds
@@ -2805,8 +2794,6 @@ class AudioService extends Notifier<AudioSnapshot> {
     if (songs.isEmpty) return;
 
     final safeIndex = startIndex.clamp(0, songs.length - 1);
-    final tracks = songs.map(_audioTrackForSong).toList(growable: false);
-
     final current = songs[safeIndex];
 
     if (Platform.isIOS || Platform.isMacOS) {
@@ -2816,23 +2803,18 @@ class AudioService extends Notifier<AudioSnapshot> {
       }
     }
 
-    await _player.playlist.ensureQueuePlaylist();
-    if (clearPlayerQueue) {
-      await _player.playlist.clear();
-    }
-
-    await _player.playlist.addTracksToPlaylist(
-      _player.playlist.queuePlaylistId,
-      tracks,
-    );
-
-    await _player.playlist.setActivePlaylist(
-      _player.playlist.queuePlaylistId,
-      startIndex: safeIndex,
+    await _player.playTrackUri(
+      current.path,
       autoPlay: true,
+      fadeSetting: _player.player.fadeSettings,
     );
 
     _currentIndex = safeIndex;
+    _randomManager.reconcile(
+      queue: songs,
+      currentTrack: current,
+      currentIndex: safeIndex,
+    );
     await _syncCurrentPlaybackSong(current);
     await _player.player.setVolume(_volume / 100.0);
     if (startBackgroundProcessing) {
@@ -2879,13 +2861,18 @@ class AudioService extends Notifier<AudioSnapshot> {
         final existingIndex = _queue.indexWhere((s) => s.path == song.path);
         if (existingIndex >= 0) {
           _currentIndex = existingIndex;
-          await _player.playlist.setActivePlaylist(
-            _player.playlist.queuePlaylistId,
-            startIndex: existingIndex,
+          await _player.playTrackUri(
+            song.path,
             autoPlay: true,
+            fadeSetting: _player.player.fadeSettings,
           );
           _position = Duration.zero;
           _resetPlaybackTrackingForSong(_queue[existingIndex]);
+          _randomManager.reconcile(
+            queue: _queue,
+            currentTrack: _queue[existingIndex],
+            currentIndex: existingIndex,
+          );
           await _syncCurrentPlaybackSong(_queue[existingIndex]);
           await _player.player.setVolume(_volume / 100.0);
           _startQueueBackgroundProcessing(priorityPath: song.path);
@@ -2902,13 +2889,19 @@ class AudioService extends Notifier<AudioSnapshot> {
         _queue.insert(targetIndex, song);
         _currentIndex = targetIndex;
 
-        await _player.insertAndPlayTrack(
-          _audioTrackForSong(song),
-          index: targetIndex,
+        await _player.playTrackUri(
+          song.path,
+          autoPlay: true,
+          fadeSetting: _player.player.fadeSettings,
         );
 
         _position = Duration.zero;
         _resetPlaybackTrackingForSong(song);
+        _randomManager.reconcile(
+          queue: _queue,
+          currentTrack: song,
+          currentIndex: targetIndex,
+        );
         await _syncCurrentPlaybackSong(song);
         await _player.player.setVolume(_volume / 100.0);
         _startQueueBackgroundProcessing(priorityPath: song.path);
@@ -3002,8 +2995,11 @@ class AudioService extends Notifier<AudioSnapshot> {
       return;
     }
 
-    final tracks = songs.map(_audioTrackForSong).toList(growable: false);
-    await _player.playlist.addTracks(tracks);
+    _randomManager.reconcile(
+      queue: _queue,
+      currentTrack: currentMusic,
+      currentIndex: _currentIndex >= 0 ? _currentIndex : null,
+    );
     _startQueueBackgroundProcessing();
     notifyListeners();
     unawaited(_persistPlaybackSession());
@@ -3015,12 +3011,10 @@ class AudioService extends Notifier<AudioSnapshot> {
     if (songs.isEmpty) return;
 
     _queue.addAll(songs);
-
-    final tracks = songs.map(_audioTrackForSong).toList(growable: false);
-    await _player.playlist.addTracksToPlaylist(
-      _player.playlist.queuePlaylistId,
-      tracks,
-      reconcile: false,
+    _randomManager.reconcile(
+      queue: _queue,
+      currentTrack: currentMusic,
+      currentIndex: _currentIndex >= 0 ? _currentIndex : null,
     );
 
     _startQueueBackgroundProcessing();
@@ -3046,16 +3040,15 @@ class AudioService extends Notifier<AudioSnapshot> {
 
     _queue.insertAll(insertAt, songs);
 
-    final tracks = songs.map(_audioTrackForSong).toList(growable: false);
-    await _player.playlist.insertTracks(
-      insertAt,
-      tracks,
-      reconcile: false,
-    );
-
     if (shouldShiftCurrentIndex) {
       _currentIndex += songs.length;
     }
+
+    _randomManager.reconcile(
+      queue: _queue,
+      currentTrack: currentMusic,
+      currentIndex: _currentIndex >= 0 ? _currentIndex : null,
+    );
 
     _startQueueBackgroundProcessing(priorityPath: currentMusic?.path);
     notifyListeners();
@@ -3144,12 +3137,10 @@ class AudioService extends Notifier<AudioSnapshot> {
         : _queue.length;
 
     _queue.insertAll(insertAt, songs);
-
-    final tracks = songs.map(_audioTrackForSong).toList(growable: false);
-    await _player.playlist.insertTracks(
-      insertAt,
-      tracks,
-      reconcile: false,
+    _randomManager.reconcile(
+      queue: _queue,
+      currentTrack: currentMusic,
+      currentIndex: _currentIndex >= 0 ? _currentIndex : null,
     );
 
     _startQueueBackgroundProcessing(priorityPath: currentMusic?.path);
@@ -3160,7 +3151,6 @@ class AudioService extends Notifier<AudioSnapshot> {
   Future<void> removeFromPlaylist(int index) async {
     if (index >= 0 && index < _queue.length) {
       _queue.removeAt(index);
-      await _player.playlist.removeTrackAt(index);
       if (currentMusic?.path != null) {
         final updatedIndex = _queue.indexWhere(
           (song) => song.path == currentMusic?.path,
@@ -3169,6 +3159,11 @@ class AudioService extends Notifier<AudioSnapshot> {
           _currentIndex = updatedIndex;
         }
       }
+      _randomManager.reconcile(
+        queue: _queue,
+        currentTrack: currentMusic,
+        currentIndex: _currentIndex >= 0 ? _currentIndex : null,
+      );
       _startQueueBackgroundProcessing();
       notifyListeners();
       unawaited(_persistPlaybackSession());
@@ -3183,7 +3178,6 @@ class AudioService extends Notifier<AudioSnapshot> {
       final index = sortedIndices[i];
       if (index >= 0 && index < _queue.length) {
         _queue.removeAt(index);
-        await _player.playlist.removeTrackAt(index);
       }
     }
 
@@ -3200,6 +3194,11 @@ class AudioService extends Notifier<AudioSnapshot> {
       _currentIndex = -1;
     }
 
+    _randomManager.reconcile(
+      queue: _queue,
+      currentTrack: currentMusic,
+      currentIndex: _currentIndex >= 0 ? _currentIndex : null,
+    );
     _startQueueBackgroundProcessing();
     notifyListeners();
     unawaited(_persistPlaybackSession());
@@ -3256,22 +3255,22 @@ class AudioService extends Notifier<AudioSnapshot> {
     _queue.clear();
     _queue.addAll(remainingQueue);
 
-    final tracks =
-        remainingQueue.map(_audioTrackForSong).toList(growable: false);
-    final activePlaylistId =
-        _player.playlist.activePlaylistId ?? _player.playlist.queuePlaylistId;
-    await _player.playlist.updatePlaylistTracks(activePlaylistId, tracks);
-
     if (isCurrentSongRemoved) {
       final targetIndex =
           _currentIndex.clamp(0, remainingQueue.length - 1).toInt();
       _currentIndex = targetIndex;
       final nextSong = remainingQueue[targetIndex];
+      _randomManager.reconcile(
+        queue: _queue,
+        currentTrack: nextSong,
+        currentIndex: targetIndex,
+      );
       if (wasPlaying) {
         try {
-          await _player.playTrack(
-            _audioTrackForSong(nextSong),
-            preferredPlaylistId: activePlaylistId,
+          await _player.playTrackUri(
+            nextSong.path,
+            autoPlay: true,
+            fadeSetting: _player.player.fadeSettings,
           );
           _position = Duration.zero;
           _resetPlaybackTrackingForSong(nextSong);
@@ -3292,6 +3291,11 @@ class AudioService extends Notifier<AudioSnapshot> {
     } else if (currentPath != null) {
       final newIndex = remainingQueue.indexWhere((s) => s.path == currentPath);
       _currentIndex = newIndex != -1 ? newIndex : 0;
+      _randomManager.reconcile(
+        queue: _queue,
+        currentTrack: currentMusic,
+        currentIndex: _currentIndex >= 0 ? _currentIndex : null,
+      );
     }
 
     _startQueueBackgroundProcessing();
@@ -3310,7 +3314,8 @@ class AudioService extends Notifier<AudioSnapshot> {
     _currentSource = null;
     await _clearCurrentMusicState();
 
-    await _player.playlist.clear();
+    await _player.clearPlayback();
+    _randomManager.reconcile(queue: _queue, currentTrack: null);
     _duration = Duration.zero;
     _position = Duration.zero;
     _isPlaying = false;
@@ -3430,6 +3435,8 @@ class AudioService extends Notifier<AudioSnapshot> {
 
   Future<void> next() async {
     if (_isTransitioning) return;
+    if (_queue.isEmpty) return;
+
     _isTransitioning = true;
     _lastActionNext = true;
     _logPlaybackTrace(
@@ -3437,31 +3444,94 @@ class AudioService extends Notifier<AudioSnapshot> {
       'transitioning=$_isTransitioning',
     );
     notifyListeners();
+
     try {
-      final success = await _player.playlist.playNext();
-      _logPlaybackTrace(
-        'next() playlist.playNext() -> success=$success '
-        'playlistIndex=${_player.playlist.currentIndex}',
-      );
-      if (success) {
-        final newIndex = _player.playlist.currentIndex ?? -1;
-        if (newIndex >= 0 && newIndex < _queue.length) {
-          _currentIndex = newIndex;
-          notifyListeners();
-          final song = _queue[_currentIndex];
-          _logPlaybackTrace('next() sync target -> ${_debugSongLabel(song)}');
-          await _syncCurrentPlaybackSong(song);
-          _startQueueBackgroundProcessing(priorityPath: song.path);
-        }
-      } else {
-        if (_playbackMode == AppPlaybackMode.autoQueueLoop) {
+      int? targetIndex;
+      if (isRandomMode) {
+        targetIndex = _randomManager.resolveAdjacentIndex(
+          next: true,
+          queue: _queue,
+          currentTrack: currentMusic,
+        );
+      } else if (_playbackMode == AppPlaybackMode.queueLoop) {
+        targetIndex = (_currentIndex + 1) % _queue.length;
+      } else if (_playbackMode == AppPlaybackMode.queue ||
+          _playbackMode == AppPlaybackMode.autoQueueLoop) {
+        if (_currentIndex < _queue.length - 1) {
+          targetIndex = _currentIndex + 1;
+        } else if (_playbackMode == AppPlaybackMode.autoQueueLoop) {
           await _handleQueueFinished();
-        } else {
-          _isPlaying = false;
-          _duration = Duration.zero;
-          _position = Duration.zero;
-          notifyListeners();
+          return;
         }
+      }
+
+      if (targetIndex != null && targetIndex >= 0 && targetIndex < _queue.length) {
+        int attempts = 0;
+        bool skippedAny = false;
+        while (targetIndex != null &&
+            targetIndex >= 0 &&
+            targetIndex < _queue.length &&
+            attempts < _queue.length) {
+          final targetSong = _queue[targetIndex];
+          if (await _songExists(targetSong.path)) {
+            break;
+          }
+          setSongMissingStateByPath(targetSong.path, true);
+          skippedAny = true;
+          attempts++;
+          if (isRandomMode) {
+            targetIndex = _randomManager.resolveAdjacentIndex(
+              next: true,
+              queue: _queue,
+              currentTrack: targetSong,
+            );
+          } else if (_playbackMode == AppPlaybackMode.queueLoop) {
+            targetIndex = (targetIndex + 1) % _queue.length;
+          } else {
+            targetIndex =
+                targetIndex + 1 < _queue.length ? targetIndex + 1 : null;
+          }
+        }
+
+        if (skippedAny) {
+          _showMissingSongNotice(skipped: true);
+        }
+
+        if (targetIndex != null &&
+            targetIndex >= 0 &&
+            targetIndex < _queue.length) {
+          _currentIndex = targetIndex;
+          _position = Duration.zero;
+          final song = _queue[targetIndex];
+          _resetPlaybackTrackingForSong(song);
+          notifyListeners();
+
+          await _player.playTrackUri(
+            song.path,
+            autoPlay: true,
+            fadeSetting: _player.player.fadeSettings,
+          );
+
+          if (_player.player.currentState != PlayerState.error) {
+            await _syncCurrentPlaybackSong(song);
+            _startQueueBackgroundProcessing(priorityPath: song.path);
+          } else {
+            _isPlaying = false;
+            _duration = Duration.zero;
+            _position = Duration.zero;
+            notifyListeners();
+          }
+          return;
+        }
+      }
+
+      if (_playbackMode == AppPlaybackMode.autoQueueLoop) {
+        await _handleQueueFinished();
+      } else {
+        _isPlaying = false;
+        _duration = Duration.zero;
+        _position = Duration.zero;
+        notifyListeners();
       }
     } catch (e) {
       debugPrint('[AudioService] next() error: $e');
@@ -3499,23 +3569,24 @@ class AudioService extends Notifier<AudioSnapshot> {
     notifyListeners();
     try {
       final song = _queue[index];
-      _logPlaybackTrace(
-        'playAtIndex($index) target -> ${_debugSongLabel(song)}',
+      _currentIndex = index;
+      _position = Duration.zero;
+      final actualSong = _queue[_currentIndex];
+      _resetPlaybackTrackingForSong(actualSong);
+      _randomManager.reconcile(
+        queue: _queue,
+        currentTrack: actualSong,
+        currentIndex: index,
+      );
+      notifyListeners();
+
+      await _player.playTrackUri(
+        song.path,
+        autoPlay: true,
+        fadeSetting: _player.player.fadeSettings,
       );
 
-      await _player.playTrack(
-        _audioTrackForSong(song),
-        preferredPlaylistId:
-            _player.playlist.activePlaylistId ??
-            _player.playlist.queuePlaylistId,
-      );
-      final newIndex = _player.playlist.currentIndex ?? index;
-      if (newIndex >= 0 && newIndex < _queue.length && _player.player.currentState != PlayerState.error) {
-        _currentIndex = newIndex;
-        _position = Duration.zero;
-        final actualSong = _queue[_currentIndex];
-        _resetPlaybackTrackingForSong(actualSong);
-        notifyListeners();
+      if (_player.player.currentState != PlayerState.error) {
         await _syncCurrentPlaybackSong(actualSong);
         _startQueueBackgroundProcessing(priorityPath: actualSong.path);
       } else {
@@ -3657,6 +3728,13 @@ class AudioService extends Notifier<AudioSnapshot> {
 
   Future<void> previous() async {
     if (_isTransitioning) return;
+    if (_queue.isEmpty) return;
+
+    if (_position.inSeconds >= 3) {
+      await seek(Duration.zero);
+      return;
+    }
+
     _isTransitioning = true;
     _lastActionNext = false;
     _logPlaybackTrace(
@@ -3664,33 +3742,96 @@ class AudioService extends Notifier<AudioSnapshot> {
       'transitioning=$_isTransitioning',
     );
     notifyListeners();
+
     try {
-      final success = await _player.playlist.playPrevious();
-      _logPlaybackTrace(
-        'previous() playlist.playPrevious() -> success=$success '
-        'playlistIndex=${_player.playlist.currentIndex}',
-      );
-      if (success) {
-        final newIndex = _player.playlist.currentIndex ?? -1;
-        if (newIndex >= 0 && newIndex < _queue.length) {
-          _currentIndex = newIndex;
-          notifyListeners();
-          final song = _queue[_currentIndex];
-          _logPlaybackTrace(
-            'previous() sync target -> ${_debugSongLabel(song)}',
-          );
-          await _syncCurrentPlaybackSong(song);
-          _startQueueBackgroundProcessing(priorityPath: song.path);
-        }
-      } else {
-        if (_playbackMode == AppPlaybackMode.autoQueueLoop) {
+      int? targetIndex;
+      if (isRandomMode) {
+        targetIndex = _randomManager.resolveAdjacentIndex(
+          next: false,
+          queue: _queue,
+          currentTrack: currentMusic,
+        );
+      } else if (_playbackMode == AppPlaybackMode.queueLoop) {
+        targetIndex = (_currentIndex - 1 + _queue.length) % _queue.length;
+      } else if (_playbackMode == AppPlaybackMode.queue ||
+          _playbackMode == AppPlaybackMode.autoQueueLoop) {
+        if (_currentIndex > 0) {
+          targetIndex = _currentIndex - 1;
+        } else if (_playbackMode == AppPlaybackMode.autoQueueLoop) {
           await _handleQueuePrevious();
-        } else {
-          _isPlaying = false;
-          _duration = Duration.zero;
-          _position = Duration.zero;
-          notifyListeners();
+          return;
         }
+      }
+
+      if (targetIndex != null &&
+          targetIndex >= 0 &&
+          targetIndex < _queue.length) {
+        int attempts = 0;
+        bool skippedAny = false;
+        while (targetIndex != null &&
+            targetIndex >= 0 &&
+            targetIndex < _queue.length &&
+            attempts < _queue.length) {
+          final targetSong = _queue[targetIndex];
+          if (await _songExists(targetSong.path)) {
+            break;
+          }
+          setSongMissingStateByPath(targetSong.path, true);
+          skippedAny = true;
+          attempts++;
+          if (isRandomMode) {
+            targetIndex = _randomManager.resolveAdjacentIndex(
+              next: false,
+              queue: _queue,
+              currentTrack: targetSong,
+            );
+          } else if (_playbackMode == AppPlaybackMode.queueLoop) {
+            targetIndex = (targetIndex - 1 + _queue.length) % _queue.length;
+          } else {
+            targetIndex =
+                targetIndex - 1 >= 0 ? targetIndex - 1 : null;
+          }
+        }
+
+        if (skippedAny) {
+          _showMissingSongNotice(skipped: true);
+        }
+
+        if (targetIndex != null &&
+            targetIndex >= 0 &&
+            targetIndex < _queue.length) {
+          _currentIndex = targetIndex;
+          _position = Duration.zero;
+          final song = _queue[targetIndex];
+          _resetPlaybackTrackingForSong(song);
+          notifyListeners();
+
+          await _player.playTrackUri(
+            song.path,
+            autoPlay: true,
+            fadeSetting: _player.player.fadeSettings,
+          );
+
+          if (_player.player.currentState != PlayerState.error) {
+            await _syncCurrentPlaybackSong(song);
+            _startQueueBackgroundProcessing(priorityPath: song.path);
+          } else {
+            _isPlaying = false;
+            _duration = Duration.zero;
+            _position = Duration.zero;
+            notifyListeners();
+          }
+          return;
+        }
+      }
+
+      if (_playbackMode == AppPlaybackMode.autoQueueLoop) {
+        await _handleQueuePrevious();
+      } else {
+        _isPlaying = false;
+        _duration = Duration.zero;
+        _position = Duration.zero;
+        notifyListeners();
       }
     } catch (e) {
       debugPrint('[AudioService] previous() error: $e');
@@ -3785,7 +3926,7 @@ class AudioService extends Notifier<AudioSnapshot> {
 
   void toggleRandomMode({List<MusicFile>? globalSongs}) {
     if (isRandomMode) {
-      _player.playlist.setRandomPolicy(null);
+      _randomManager.setPolicy(null);
     } else {
       _applyRandomPolicy(globalSongs: globalSongs);
     }
@@ -3805,12 +3946,19 @@ class AudioService extends Notifier<AudioSnapshot> {
         ? RandomStrategy.random()
         : RandomStrategy.fisherYates();
 
-    _player.playlist.setRandomPolicy(
+    _randomManager.setPolicy(
       RandomPolicy(
         scope: RandomScope.all(),
         strategy: strategy,
         label: method == 0 ? 'completeRandom' : 'shuffleRandom',
       ),
+    );
+    _randomManager.reconcile(
+      queue: _queue,
+      currentTrack: currentMusic,
+      currentIndex: _currentIndex >= 0 && _currentIndex < _queue.length
+          ? _currentIndex
+          : null,
     );
   }
 
@@ -3824,26 +3972,14 @@ class AudioService extends Notifier<AudioSnapshot> {
     if (newSongs.isEmpty) return;
 
     _queue.addAll(newSongs);
-
-    final tracks = newSongs.map(_audioTrackForSong).toList(growable: false);
-
-    // We don't use await here to keep it synchronous for the toggle
-    unawaited(_player.playlist.addTracks(tracks));
-    _startQueueBackgroundProcessing();
-  }
-
-  AudioTrack _audioTrackForSong(MusicFile song) {
-    return AudioTrack(
-      id: song.path,
-      uri: song.path,
-      title: song.title ?? song.displayName,
-      artist: song.artist,
-      album: song.album,
-      metadata: <String, Object?>{
-        'filePath': song.path,
-        if (song.mediaUri != null) 'mediaUri': song.mediaUri,
-      },
+    _randomManager.reconcile(
+      queue: _queue,
+      currentTrack: currentMusic,
+      currentIndex: _currentIndex >= 0 && _currentIndex < _queue.length
+          ? _currentIndex
+          : null,
     );
+    _startQueueBackgroundProcessing();
   }
 
   void _startQueueBackgroundProcessing({String? priorityPath}) {
@@ -3929,6 +4065,7 @@ class AudioService extends Notifier<AudioSnapshot> {
     _disposed = true;
     _sessionManager.dispose();
     _currentWaveformSubscription?.cancel();
+    _trackEndedSubscription?.cancel();
     _sleepTimer?.cancel();
     _player.removeListener(_handlePlayerChanges);
     _player.equalizer.removeListener(notifyListeners);
