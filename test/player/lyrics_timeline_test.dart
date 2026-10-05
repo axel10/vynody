@@ -136,6 +136,62 @@ void main() {
       expect(history.last.description, 'Version 6');
     });
 
+    test('lazy trim: changing limit restricts query view without deleting older records until next write', () async {
+      int dynamicLimit = 50;
+      final dynamicRepo = LyricsTimelineRepository(
+        db: db,
+        maxCountProvider: () => dynamicLimit,
+      );
+      final dynamicService = LyricsTimelineService(repository: dynamicRepo);
+      const cacheKey = 'song-lazy-trim';
+
+      // 1. Record 20 versions while limit is 50
+      for (int i = 1; i <= 20; i++) {
+        await Future.delayed(const Duration(milliseconds: 2));
+        await dynamicService.recordSnapshot(
+          cacheKey: cacheKey,
+          actionType: LyricsTimelineActionType.manualEdit,
+          description: 'Version $i',
+          lyrics: '[00:0$i.00]Line $i',
+        );
+      }
+
+      var history = await dynamicService.getHistory(cacheKey);
+      expect(history.length, 20);
+
+      // 2. User reduces limit to 10 (without new writes)
+      dynamicLimit = 10;
+      history = await dynamicService.getHistory(cacheKey);
+      // View is restricted to latest 10
+      expect(history.length, 10);
+      expect(history.first.description, 'Version 20');
+      expect(history.last.description, 'Version 11');
+
+      // 3. User switches back to 50: older records were NOT lost
+      dynamicLimit = 50;
+      history = await dynamicService.getHistory(cacheKey);
+      expect(history.length, 20);
+      expect(history.first.description, 'Version 20');
+      expect(history.last.description, 'Version 1');
+
+      // 4. Now with limit set to 10, user writes a new version (Version 21)
+      dynamicLimit = 10;
+      await Future.delayed(const Duration(milliseconds: 2));
+      await dynamicService.recordSnapshot(
+        cacheKey: cacheKey,
+        actionType: LyricsTimelineActionType.manualEdit,
+        description: 'Version 21',
+        lyrics: '[00:21.00]Line 21',
+      );
+
+      // 5. Verification: write has trimmed the DB to 10 records
+      dynamicLimit = 50; // Even if limit is expanded back to 50
+      history = await dynamicService.getHistory(cacheKey);
+      expect(history.length, 10);
+      expect(history.first.description, 'Version 21');
+      expect(history.last.description, 'Version 12');
+    });
+
     test('clears history for given cacheKey', () async {
       const cacheKey = 'song-4';
 
