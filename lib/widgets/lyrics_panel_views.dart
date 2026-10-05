@@ -617,25 +617,33 @@ class _LyricsPanelTimedLyricsViewState
                                 targetBlur = 0.0;
                               }
 
-                              final Widget blurredChild =
-                                  TweenAnimationBuilder<double>(
-                                tween: Tween<double>(
-                                  begin: targetBlur,
-                                  end: targetBlur,
-                                ),
-                                duration: const Duration(milliseconds: 300),
-                                curve: Curves.easeOutCubic,
-                                builder: (context, blurSigma, child) {
-                                  return ImageFiltered(
-                                    imageFilter: ui.ImageFilter.blur(
-                                      sigmaX: blurSigma,
-                                      sigmaY: blurSigma,
-                                    ),
-                                    child: child,
-                                  );
-                                },
-                                child: animatedScaleChild,
-                              );
+                              final Widget blurredChild;
+                              if (widget.isFocusMode && widget.hasTimedLyrics) {
+                                blurredChild =
+                                    TweenAnimationBuilder<double>(
+                                  tween: Tween<double>(
+                                    begin: targetBlur,
+                                    end: targetBlur,
+                                  ),
+                                  duration: const Duration(milliseconds: 300),
+                                  curve: Curves.easeOutCubic,
+                                  builder: (context, blurSigma, child) {
+                                    if (blurSigma <= 0.0) {
+                                      return child!;
+                                    }
+                                    return ImageFiltered(
+                                      imageFilter: ui.ImageFilter.blur(
+                                        sigmaX: blurSigma,
+                                        sigmaY: blurSigma,
+                                      ),
+                                      child: child,
+                                    );
+                                  },
+                                  child: animatedScaleChild,
+                                );
+                              } else {
+                                blurredChild = animatedScaleChild;
+                              }
 
                               final lineContent = Padding(
                                 padding: EdgeInsets.only(
