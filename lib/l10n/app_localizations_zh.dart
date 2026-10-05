@@ -10328,4 +10328,70 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get eqAutoPreampTooltip => '自動調低前置增益以防止爆音';
+
+  @override
+  String get lyricsTimelineTitle => '歌詞時間線';
+
+  @override
+  String lyricsTimelineSubtitle(int count) {
+    return '最多保留最近 $count 次修改快照，可隨時對比與還原';
+  }
+
+  @override
+  String get lyricsTimelineMaxHistoryLabel => '歌詞時間線記錄上限';
+
+  @override
+  String get lyricsTimelineMaxHistoryDescription =>
+      '單首歌曲最多保留的歷史修改版本數量（最高 50 條）';
+
+  @override
+  String lyricsTimelineMaxHistoryCountOption(int count) {
+    return '$count 條';
+  }
+
+  @override
+  String lyricsTimelineMaxHistoryCountOptionDefault(int count) {
+    return '$count 條（預設）';
+  }
+
+  @override
+  String lyricsTimelineMaxHistoryCountOptionMax(int count) {
+    return '$count 條（最高）';
+  }
+
+  @override
+  String get restoreThisVersion => '還原此版本';
+
+  @override
+  String get noTimelineHistory => '暫無歷史修改記錄';
+
+  @override
+  String get noTimelineHistoryHint => '在編輯、平移時間軸或匯入歌詞後，修改快照將自動記錄在此';
+
+  @override
+  String get currentVersion => '目前版本';
+
+  @override
+  String get timelineActionManualEdit => '手動編輯';
+
+  @override
+  String get timelineActionTimelineAdjust => '時間軸調整';
+
+  @override
+  String get timelineActionOnlineMatch => '線上匹配';
+
+  @override
+  String get timelineActionImportFile => '檔案匯入';
+
+  @override
+  String get timelineActionAiGenerate => 'AI 生成';
+
+  @override
+  String get timelineActionInitial => '初始歌詞';
+
+  @override
+  String get timelineActionRestore => '版本回滾';
+
+  @override
+  String get lyricsRestoredSuccess => '已成功還原該版本歌詞';
 }

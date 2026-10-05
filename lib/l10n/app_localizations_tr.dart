@@ -5425,68 +5425,69 @@ class AppLocalizationsTr extends AppLocalizations {
       'Bozulmayı önlemek için ön kazancı otomatik olarak azaltın';
 
   @override
-  String get lyricsTimelineTitle => '歌词时间线';
+  String get lyricsTimelineTitle => 'Şarkı Sözü Zaman Tüneli';
 
   @override
   String lyricsTimelineSubtitle(int count) {
-    return '最多保留最近$count次修改快照，可随时对比与还原';
+    return 'İstediğiniz zaman karşılaştırmak ve geri yüklemek için en fazla son $count değişiklik anlık görüntüsünü tutar';
   }
 
   @override
-  String get lyricsTimelineMaxHistoryLabel => '歌词时间线记录上限';
+  String get lyricsTimelineMaxHistoryLabel => 'Şarkı Sözü Geçmiş Sınırı';
 
   @override
   String get lyricsTimelineMaxHistoryDescription =>
-      '单首歌曲最多保留的历史修改版本数量（最高 50 条）';
+      'Şarkı başına tutulan maksimum geçmiş sürüm sayısı (en fazla 50)';
 
   @override
   String lyricsTimelineMaxHistoryCountOption(int count) {
-    return '$count 条';
+    return '$count kayıt';
   }
 
   @override
   String lyricsTimelineMaxHistoryCountOptionDefault(int count) {
-    return '$count 条（默认）';
+    return '$count kayıt (Varsayılan)';
   }
 
   @override
   String lyricsTimelineMaxHistoryCountOptionMax(int count) {
-    return '$count 条（最高）';
+    return '$count kayıt (Maksimum)';
   }
 
   @override
-  String get restoreThisVersion => '恢复此版本';
+  String get restoreThisVersion => 'Bu sürümü geri yükle';
 
   @override
-  String get noTimelineHistory => '暂无历史修改记录';
+  String get noTimelineHistory => 'Değişiklik geçmişi yok';
 
   @override
-  String get noTimelineHistoryHint => '在编辑、平移时间轴或导入歌词后，修改快照将自动记录在此';
+  String get noTimelineHistoryHint =>
+      'Şarkı sözlerini düzenlediğinizde, zamanlamayı ayarladığınızda veya içe aktardığınızda anlık görüntüler buraya otomatik olarak kaydedilir';
 
   @override
-  String get currentVersion => '当前版本';
+  String get currentVersion => 'Geçerli sürüm';
 
   @override
-  String get timelineActionManualEdit => '手动编辑';
+  String get timelineActionManualEdit => 'Manuel Düzenleme';
 
   @override
-  String get timelineActionTimelineAdjust => '时间轴调整';
+  String get timelineActionTimelineAdjust => 'Zamanlama Ayarlandı';
 
   @override
-  String get timelineActionOnlineMatch => '在线匹配';
+  String get timelineActionOnlineMatch => 'Çevrimiçi Eşleşme';
 
   @override
-  String get timelineActionImportFile => '文件导入';
+  String get timelineActionImportFile => 'Dosyadan İçe Aktarma';
 
   @override
-  String get timelineActionAiGenerate => 'AI 生成';
+  String get timelineActionAiGenerate => 'Yapay Zekâ Üretimi';
 
   @override
-  String get timelineActionInitial => '初始歌词';
+  String get timelineActionInitial => 'İlk Sürüm';
 
   @override
-  String get timelineActionRestore => '版本回滚';
+  String get timelineActionRestore => 'Geri Alma';
 
   @override
-  String get lyricsRestoredSuccess => '已成功恢复该版本歌词';
+  String get lyricsRestoredSuccess => 'Şarkı sözleri başarıyla geri yüklendi';
 }

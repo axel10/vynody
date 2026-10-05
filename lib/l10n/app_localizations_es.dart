@@ -5479,68 +5479,69 @@ class AppLocalizationsEs extends AppLocalizations {
       'Reduce automáticamente la ganancia de previo para evitar distorsión';
 
   @override
-  String get lyricsTimelineTitle => '歌词时间线';
+  String get lyricsTimelineTitle => 'Línea de tiempo de letras';
 
   @override
   String lyricsTimelineSubtitle(int count) {
-    return '最多保留最近$count次修改快照，可随时对比与还原';
+    return 'Conserva hasta $count instantáneas de modificaciones recientes para comparar y restaurar en cualquier momento';
   }
 
   @override
-  String get lyricsTimelineMaxHistoryLabel => '歌词时间线记录上限';
+  String get lyricsTimelineMaxHistoryLabel => 'Límite del historial de letras';
 
   @override
   String get lyricsTimelineMaxHistoryDescription =>
-      '单首歌曲最多保留的历史修改版本数量（最高 50 条）';
+      'Número máximo de versiones del historial guardadas por canción (hasta 50)';
 
   @override
   String lyricsTimelineMaxHistoryCountOption(int count) {
-    return '$count 条';
+    return '$count registros';
   }
 
   @override
   String lyricsTimelineMaxHistoryCountOptionDefault(int count) {
-    return '$count 条（默认）';
+    return '$count registros (predeterminado)';
   }
 
   @override
   String lyricsTimelineMaxHistoryCountOptionMax(int count) {
-    return '$count 条（最高）';
+    return '$count registros (máximo)';
   }
 
   @override
-  String get restoreThisVersion => '恢复此版本';
+  String get restoreThisVersion => 'Restaurar esta versión';
 
   @override
-  String get noTimelineHistory => '暂无历史修改记录';
+  String get noTimelineHistory => 'Sin historial de modificaciones';
 
   @override
-  String get noTimelineHistoryHint => '在编辑、平移时间轴或导入歌词后，修改快照将自动记录在此';
+  String get noTimelineHistoryHint =>
+      'Las instantáneas se guardarán automáticamente aquí cuando edites, ajustes la línea de tiempo o importes letras';
 
   @override
-  String get currentVersion => '当前版本';
+  String get currentVersion => 'Versión actual';
 
   @override
-  String get timelineActionManualEdit => '手动编辑';
+  String get timelineActionManualEdit => 'Edición manual';
 
   @override
-  String get timelineActionTimelineAdjust => '时间轴调整';
+  String get timelineActionTimelineAdjust => 'Ajuste de tiempo';
 
   @override
-  String get timelineActionOnlineMatch => '在线匹配';
+  String get timelineActionOnlineMatch => 'Coincidencia en línea';
 
   @override
-  String get timelineActionImportFile => '文件导入';
+  String get timelineActionImportFile => 'Archivo importado';
 
   @override
-  String get timelineActionAiGenerate => 'AI 生成';
+  String get timelineActionAiGenerate => 'Generado por IA';
 
   @override
-  String get timelineActionInitial => '初始歌词';
+  String get timelineActionInitial => 'Letra inicial';
 
   @override
-  String get timelineActionRestore => '版本回滚';
+  String get timelineActionRestore => 'Reversión';
 
   @override
-  String get lyricsRestoredSuccess => '已成功恢复该版本歌词';
+  String get lyricsRestoredSuccess => 'Letra restaurada con éxito';
 }

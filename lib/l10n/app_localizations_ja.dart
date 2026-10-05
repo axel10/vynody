@@ -5220,68 +5220,69 @@ class AppLocalizationsJa extends AppLocalizations {
   String get eqAutoPreampTooltip => '音割れを防ぐためにプリアンプゲインを自動で下げます';
 
   @override
-  String get lyricsTimelineTitle => '歌词时间线';
+  String get lyricsTimelineTitle => '歌詞タイムライン';
 
   @override
   String lyricsTimelineSubtitle(int count) {
-    return '最多保留最近$count次修改快照，可随时对比与还原';
+    return '最新 $count 件の変更スナップショットを保持し、いつでも比較・復元できます';
   }
 
   @override
-  String get lyricsTimelineMaxHistoryLabel => '歌词时间线记录上限';
+  String get lyricsTimelineMaxHistoryLabel => '歌詞タイムライン履歴の上限';
 
   @override
   String get lyricsTimelineMaxHistoryDescription =>
-      '单首歌曲最多保留的历史修改版本数量（最高 50 条）';
+      '1曲あたりに保持する変更履歴の最大件数（最大 50 件）';
 
   @override
   String lyricsTimelineMaxHistoryCountOption(int count) {
-    return '$count 条';
+    return '$count 件';
   }
 
   @override
   String lyricsTimelineMaxHistoryCountOptionDefault(int count) {
-    return '$count 条（默认）';
+    return '$count 件（デフォルト）';
   }
 
   @override
   String lyricsTimelineMaxHistoryCountOptionMax(int count) {
-    return '$count 条（最高）';
+    return '$count 件（最大）';
   }
 
   @override
-  String get restoreThisVersion => '恢复此版本';
+  String get restoreThisVersion => 'このバージョンを復元';
 
   @override
-  String get noTimelineHistory => '暂无历史修改记录';
+  String get noTimelineHistory => '変更履歴はありません';
 
   @override
-  String get noTimelineHistoryHint => '在编辑、平移时间轴或导入歌词后，修改快照将自动记录在此';
+  String get noTimelineHistoryHint =>
+      '編集、タイムライン調整、歌詞インポートを行うと、ここにスナップショットが自動記録されます';
 
   @override
-  String get currentVersion => '当前版本';
+  String get currentVersion => '現在のバージョン';
 
   @override
-  String get timelineActionManualEdit => '手动编辑';
+  String get timelineActionManualEdit => '手動編集';
 
   @override
-  String get timelineActionTimelineAdjust => '时间轴调整';
+  String get timelineActionTimelineAdjust => 'タイムライン調整';
 
   @override
-  String get timelineActionOnlineMatch => '在线匹配';
+  String get timelineActionOnlineMatch => 'オンラインマッチ';
 
   @override
-  String get timelineActionImportFile => '文件导入';
+  String get timelineActionImportFile => 'ファイル読み込み';
 
   @override
   String get timelineActionAiGenerate => 'AI 生成';
 
   @override
-  String get timelineActionInitial => '初始歌词';
+  String get timelineActionInitial => '初期歌詞';
 
   @override
-  String get timelineActionRestore => '版本回滚';
+  String get timelineActionRestore => 'ロールバック';
 
   @override
-  String get lyricsRestoredSuccess => '已成功恢复该版本歌词';
+  String get lyricsRestoredSuccess => '歌詞をこのバージョンに復元しました';
 }
