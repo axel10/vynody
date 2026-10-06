@@ -1445,7 +1445,7 @@ class AudioService extends Notifier<AudioSnapshot> {
       return;
     }
 
-    await next();
+    await next(reason: PlaybackReason.autoNext);
   }
 
   void _handlePlayerChanges() {
@@ -3442,7 +3442,7 @@ class AudioService extends Notifier<AudioSnapshot> {
     }
   }
 
-  Future<void> next() async {
+  Future<void> next({PlaybackReason reason = PlaybackReason.user}) async {
     if (_isTransitioning) return;
     if (_queue.isEmpty) return;
 
@@ -3520,6 +3520,7 @@ class AudioService extends Notifier<AudioSnapshot> {
           await _player.playTrackUri(
             song.path,
             autoPlay: true,
+            reason: reason,
             fadeSetting: _player.player.fadeSettings,
           );
 
@@ -3738,7 +3739,7 @@ class AudioService extends Notifier<AudioSnapshot> {
     }
   }
 
-  Future<void> previous() async {
+  Future<void> previous({PlaybackReason reason = PlaybackReason.user}) async {
     if (_isTransitioning) return;
     if (_queue.isEmpty) return;
 
@@ -3823,6 +3824,7 @@ class AudioService extends Notifier<AudioSnapshot> {
           await _player.playTrackUri(
             song.path,
             autoPlay: true,
+            reason: reason,
             fadeSetting: _player.player.fadeSettings,
           );
 

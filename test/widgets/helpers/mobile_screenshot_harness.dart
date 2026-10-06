@@ -288,10 +288,10 @@ class MockAudioService extends AudioService {
   Future<void> pause() async {}
 
   @override
-  Future<void> next() async {}
+  Future<void> next({PlaybackReason reason = PlaybackReason.user}) async {}
 
   @override
-  Future<void> previous() async {}
+  Future<void> previous({PlaybackReason reason = PlaybackReason.user}) async {}
 
   @override
   Future<void> seek(Duration position) async {}
