@@ -2104,6 +2104,17 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
     return rows.map(_lyricsCacheFromRow).toList(growable: false);
   }
 
+  Future<List<LyricsCacheRecord>> getLyricsCachesByPrefix(String prefix) async {
+    final normalized = prefix.trim();
+    if (normalized.isEmpty) return const [];
+
+    final rows = await (select(lyricsCaches)
+          ..where((t) => t.cacheKey.like('$normalized%'))
+          ..orderBy([(t) => OrderingTerm.desc(t.updatedAtMillis)]))
+        .get();
+    return rows.map(_lyricsCacheFromRow).toList(growable: false);
+  }
+
   Stream<List<LyricsCacheRecord>> watchLyricsCaches(String cacheKey) {
     final normalizedCacheKey = cacheKey.trim();
     if (normalizedCacheKey.isEmpty) {

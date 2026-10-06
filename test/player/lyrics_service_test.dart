@@ -358,6 +358,9 @@ class _NoopLyricsCacheRepository implements LyricsCacheRepository {
   Future<List<LyricsCacheRecord>> getLyricsCaches(String cacheKey) async => const [];
 
   @override
+  Future<List<LyricsCacheRecord>> getLyricsCachesByPrefix(String prefix) async => const [];
+
+  @override
   Future<List<LyricsCacheRecord>> getLyricsCachesTolerant(
     LyricsQuery query, {
     bool ignoreNone = true,

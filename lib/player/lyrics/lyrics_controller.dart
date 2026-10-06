@@ -267,6 +267,48 @@ class LyricsController extends Notifier<LyricsControllerState> {
     _bumpRevision();
   }
 
+  /// 切歌时尝试快速直接从 SQLite 本地缓存秒开恢复（微秒级响应，无需转圈与网络）
+  Future<bool> tryFastRestoreFromCache(MusicFile song) async {
+    final query = await _support.buildLyricsQueryForSong(song);
+    if (query == null) return false;
+
+    final cached =
+        await _context.lyricsCacheRepository.getLyricsCacheTolerant(query);
+    if (cached != null &&
+        cached.source != LyricsCacheSource.none &&
+        (cached.syncedLyrics?.trim().isNotEmpty == true ||
+            cached.syncedLines.isNotEmpty)) {
+      final translationRecords = await _context.lyricsCacheRepository
+          .getLyricsTranslationCaches(cached.cacheKey);
+      final translations = _support.translationsFromCacheRecords(
+        translationRecords,
+      );
+      final nextLyrics = _support.lyricsFromCacheRecord(
+        cached,
+        translations: translations,
+      );
+
+      _hasLyrics = true;
+      _isLyricsLoading = false;
+      _currentLyricsLines = nextLyrics.syncedLines;
+      _currentLyricsText = nextLyrics.plainText;
+      _lyricsSearchAttempted = true;
+      _support.replaceSongIfPath(
+        song.path,
+        (queueSong) => queueSong.copyWith(lyrics: nextLyrics),
+      );
+      unawaited(watchLyricsCacheForSong(song));
+      unawaited(_support.restoreCachedTranslations(song));
+      _bumpRevision();
+      _logDebug(
+        'fast restore from SQLite cache hit -> title="${song.displayName}" '
+        'source=${cached.source.dbValue} lines=${nextLyrics.syncedLines.length}',
+      );
+      return true;
+    }
+    return false;
+  }
+
   void scheduleFetch(MusicFile song) {
     _fetchCoordinator.scheduleFetch(song);
   }
@@ -277,10 +319,18 @@ class LyricsController extends Notifier<LyricsControllerState> {
 
   Future<void> watchLyricsCacheForSong(MusicFile song) async {
     final query = await _support.buildLyricsQueryForSong(song);
-    final cacheKey = query?.cacheKey.trim() ?? '';
+    var cacheKey = query?.cacheKey.trim() ?? '';
     if (cacheKey.isEmpty) {
       clearLyricsCacheWatch();
       return;
+    }
+
+    if (query != null) {
+      final cached =
+          await _context.lyricsCacheRepository.getLyricsCacheTolerant(query);
+      if (cached != null && cached.cacheKey.isNotEmpty) {
+        cacheKey = cached.cacheKey;
+      }
     }
 
     final currentPath = _context.currentMusic()?.path;

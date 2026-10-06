@@ -518,6 +518,9 @@ class MetadataDatabase {
   Future<List<LyricsCacheRecord>> getLyricsCaches(String cacheKey) =>
       _db.getLyricsCaches(cacheKey);
 
+  Future<List<LyricsCacheRecord>> getLyricsCachesByPrefix(String prefix) =>
+      _db.getLyricsCachesByPrefix(prefix);
+
   Stream<List<LyricsCacheRecord>> watchLyricsCaches(String cacheKey) =>
       _db.watchLyricsCaches(cacheKey);
 

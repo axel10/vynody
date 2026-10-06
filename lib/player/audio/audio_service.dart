@@ -1664,10 +1664,16 @@ class AudioService extends Notifier<AudioSnapshot> {
       _lyricsController.restoreFromSongLyrics(song);
     } else if (!hasLyrics && !isLyricsLoading) {
       if (!_lyricsController.isLyricsGenerationForSong(song.path)) {
-        _logLyricsDebug(
-          'ensureLyricsLoaded fetch -> title="${song.displayName}"',
-        );
-        _lyricsController.scheduleFetch(song);
+        unawaited(() async {
+          final fastRestored =
+              await _lyricsController.tryFastRestoreFromCache(song);
+          if (!fastRestored && !hasLyrics && !isLyricsLoading) {
+            _logLyricsDebug(
+              'ensureLyricsLoaded fetch -> title="${song.displayName}"',
+            );
+            _lyricsController.scheduleFetch(song);
+          }
+        }());
       }
     }
   }
@@ -2470,11 +2476,17 @@ class AudioService extends Notifier<AudioSnapshot> {
     final songLyrics = latestCurrentSong.lyrics;
     if (isLyricsNeeded && songLyrics != null) {
       _lyricsController.restoreFromSongLyrics(latestCurrentSong);
+    } else if (isLyricsNeeded) {
+      final fastRestored =
+          await _lyricsController.tryFastRestoreFromCache(latestCurrentSong);
+      if (!fastRestored) {
+        _logLyricsDebug(
+          'lyrics state cleared -> title="${song.displayName}" '
+          'needed=$isLyricsNeeded hasCache=false',
+        );
+        _lyricsController.clearState(preserveTaskState: true);
+      }
     } else {
-      _logLyricsDebug(
-        'lyrics state cleared -> title="${song.displayName}" '
-        'needed=$isLyricsNeeded hasCache=${songLyrics != null}',
-      );
       _lyricsController.clearState(preserveTaskState: true);
     }
 

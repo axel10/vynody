@@ -61,6 +61,14 @@ abstract class LyricsQuery with _$LyricsQuery {
     }
     return keys;
   }
+
+  /// 获取基于物理文件路径的前缀（不依赖时长与变动元数据）。
+  /// 若 filePath 为空，则返回空字符串。
+  String get fileBasedCacheKeyPrefix {
+    final normPath = _normalizeForKey(filePath);
+    if (normPath.isEmpty) return '';
+    return '$normPath|';
+  }
 }
 
 @freezed
