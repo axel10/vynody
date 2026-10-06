@@ -574,6 +574,19 @@ class _CoverItemState extends ConsumerState<_CoverItem> {
       return;
     }
 
+    // 0. If direct artworkPath already exists and is valid on disk,
+    // _buildCoverImage is already displaying it directly via Image.file.
+    // Avoid loading thumbnails or running subsequent search fallbacks.
+    final rawDirectArtwork = widget.musicFile.artworkPath;
+    final directArtwork = rawDirectArtwork != null
+        ? ScannerPathUtils.resolveIosSandboxPath(rawDirectArtwork)
+        : null;
+    if (directArtwork != null && File(directArtwork).existsSync()) {
+      _hasLoadedHighRes = true;
+      widget.onArtworkLoaded?.call(null, directArtwork);
+      return;
+    }
+
     final bool isLowMidEnd = ref.read(isLowMidEndDeviceProvider);
 
     // 3. Try thumbnailPath next ONLY on Android low/mid-end devices to smooth Hero transitions
@@ -624,17 +637,8 @@ class _CoverItemState extends ConsumerState<_CoverItem> {
         ? ScannerPathUtils.resolveIosSandboxPath(rawHighResPath)
         : null;
     if (highResPath != null && File(highResPath).existsSync()) {
-      try {
-        final bytes = await File(highResPath).readAsBytes();
-        if (!mounted) return;
-        setState(() {
-          _artworkBytes = bytes;
-        });
-        widget.onArtworkLoaded?.call(bytes, highResPath);
-        return;
-      } catch (e) {
-        debugPrint('Error loading high res artwork from $highResPath: $e');
-      }
+      widget.onArtworkLoaded?.call(null, highResPath);
+      return;
     }
 
     // 2. Check directory cover (e.g. cover.jpg, folder.jpg)
@@ -715,13 +719,10 @@ class _CoverItemState extends ConsumerState<_CoverItem> {
     }
 
     // 5. Try system query (on_audio_query on Android)
-    if (Platform.isAndroid || Platform.isIOS) {
+    if (Platform.isAndroid) {
       if (widget.musicFile.id != null) {
-        var hasPermission = true;
-        if (Platform.isAndroid) {
-          hasPermission = await MetadataHelper.hasAndroidAudioPermission();
-        }
-
+        final hasPermission =
+            await MetadataHelper.hasAndroidAudioPermission();
         final isSystemMedia = widget.musicFile.mediaUri != null ||
             widget.musicFile.path.startsWith('content://');
 
