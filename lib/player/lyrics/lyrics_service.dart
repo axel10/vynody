@@ -283,7 +283,10 @@ class LyricsService {
 
     // 不再使用内存层缓存，而是依赖 MusicFile 自身的持有和数据库持久化。
     // 这里只保留数据库层的查找逻辑。
-    final normalizedCachedFromDb = await _loadFromDatabase(normalizedQuery);
+    final normalizedCachedFromDb = await _loadFromDatabase(
+      normalizedQuery,
+      ignoreEmptyCache: true,
+    );
     if (normalizedCachedFromDb != null && normalizedCachedFromDb.track.hasLyrics) {
       _logDebug('fetch cache hit -> key="$cacheKey" source=normalized-db');
       if (debugLog) {
@@ -389,16 +392,17 @@ class LyricsService {
     }
 
     // 如果数据库缓存存在空缓存（none），此时才作为兜底返回，避免在此之前拦截了元数据或本地歌词
-    if (normalizedCachedFromDb != null && normalizedCachedFromDb.source == 'none') {
+    final emptyCache = await _loadFromDatabase(normalizedQuery);
+    if (emptyCache != null && emptyCache.source == 'none') {
       _logDebug('fetch cache hit (none) -> key="$cacheKey"');
       if (debugLog) {
         debugPrintSelection(
           normalizedQuery,
-          normalizedCachedFromDb,
+          emptyCache,
           source: 'sqlite',
         );
       }
-      return normalizedCachedFromDb;
+      return emptyCache;
     }
 
     // 3. 合并正在进行的相同请求：防止同一首歌短时间内多次发起网络搜索请求
@@ -598,11 +602,17 @@ class LyricsService {
       try {
         final lyricsList = tagFile.properties[taglib.TagProperties.lyrics];
         if (lyricsList == null || lyricsList.isEmpty) {
+          debugPrint(
+            '[Lyrics] TagLib metadata check: TagProperties.lyrics is null/empty for "${query.filePath}"',
+          );
           return null;
         }
 
         final rawLyrics = lyricsList.first.trim();
         if (rawLyrics.isEmpty) {
+          debugPrint(
+            '[Lyrics] TagLib metadata check: TagProperties.lyrics content is empty string for "${query.filePath}"',
+          );
           return null;
         }
 
@@ -654,6 +664,10 @@ class LyricsService {
           timelineOffset: Duration.zero,
         );
 
+        debugPrint(
+          '[Lyrics] Embedded lyrics hit! file="${query.filePath}" length=${rawLyrics.length} lines=${result.syncedLines.length} isSynced=$isSynced key="${query.cacheKey}"',
+        );
+
         // 缓存到数据库
         try {
           final record = LyricsCacheRecord(
@@ -666,6 +680,9 @@ class LyricsService {
             updatedAtMillis: DateTime.now().millisecondsSinceEpoch,
           );
           await _cacheRepository.saveLyricsCache(record);
+          debugPrint(
+            '[Lyrics] Saved embedded lyrics cache to DB -> key="${query.cacheKey}"',
+          );
           if (query.filePath.isNotEmpty) {
             unawaited(
               LyricsTimelineService.instance.ensureInitialSnapshot(
@@ -684,8 +701,8 @@ class LyricsService {
       } finally {
         tagFile.close();
       }
-    } catch (e) {
-      debugPrint('[Lyrics] Error reading embedded lyrics: $e');
+    } catch (e, st) {
+      debugPrint('[Lyrics] Error reading embedded lyrics from "${query.filePath}": $e\n$st');
       return null;
     }
   }
@@ -930,11 +947,34 @@ class LyricsService {
     bool ignoreEmptyCache = false,
   }) async {
     try {
-      final record = await _cacheRepository.getLyricsCache(query.cacheKey);
-      if (record == null) return null;
-      if (ignoreEmptyCache && record.source == LyricsCacheSource.none) {
+      var record = await _cacheRepository.getLyricsCache(query.cacheKey);
+      if (record == null && query.duration != null) {
+        final sec = query.duration!.inSeconds;
+        for (final offset in [-1, 1, -2, 2]) {
+          final altSec = sec + offset;
+          if (altSec <= 0) continue;
+          final altQuery = query.copyWith(duration: Duration(seconds: altSec));
+          final altRecord = await _cacheRepository.getLyricsCache(altQuery.cacheKey);
+          if (altRecord != null && altRecord.source != LyricsCacheSource.none) {
+            record = altRecord;
+            debugPrint(
+              '[Lyrics] Tolerant cache hit (delta=${offset}s) -> key="${query.cacheKey}" matchedKey="${altQuery.cacheKey}" source=${altRecord.source.dbValue}',
+            );
+            break;
+          }
+        }
+      }
+      if (record == null) {
+        debugPrint('[Lyrics] Cache miss -> key="${query.cacheKey}"');
         return null;
       }
+      if (ignoreEmptyCache && record.source == LyricsCacheSource.none) {
+        debugPrint('[Lyrics] Cache ignored none -> key="${query.cacheKey}"');
+        return null;
+      }
+      debugPrint(
+        '[Lyrics] Cache loaded from DB -> key="${query.cacheKey}" source=${record.source.dbValue} isSynced=${record.isSynced}',
+      );
       return _selectionFromRecord(query, record);
     } catch (e) {
       debugPrint('[Lyrics] Failed to load cache for "${query.cacheKey}": $e');

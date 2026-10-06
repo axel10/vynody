@@ -187,8 +187,16 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       return baseLyrics;
     }
 
-    return baseLyrics?.copyWith(
-      syncedLines: _displayLinesForLyrics(lyricsState, baseLyrics),
+    final effectiveLines = _displayLinesForLyrics(lyricsState, baseLyrics);
+    if (baseLyrics == null) {
+      return MusicLyric(
+        syncedLines: effectiveLines,
+        plainText: normalizedLiveText,
+      );
+    }
+
+    return baseLyrics.copyWith(
+      syncedLines: effectiveLines,
       plainText: normalizedLiveText,
     );
   }

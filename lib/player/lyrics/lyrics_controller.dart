@@ -352,9 +352,11 @@ class LyricsController extends Notifier<LyricsControllerState> {
       final currentSong = _context.currentMusic();
       if (currentSong != null) {
         final currentQuery = await _support.buildLyricsQueryForSong(currentSong);
-        if (currentQuery?.cacheKey == cacheKey) {
-          unawaited(_syncLyricsCacheWatch(currentSong.path, cacheKey));
+        final currentKey = currentQuery?.cacheKey ?? cacheKey;
+        if (currentKey != cacheKey) {
+          await prefs.setString('$_activeLyricSourcePrefix$currentKey', '${source.dbValue}|$languageCode');
         }
+        await _syncLyricsCacheWatch(currentSong.path, currentKey);
       }
     } catch (e) {
       debugPrint('[LyricsController] Error setting selected lyric source: $e');
@@ -406,30 +408,42 @@ class LyricsController extends Notifier<LyricsControllerState> {
     }
     try {
       if (!taglib.TagLibFile.isSupported) {
+        debugPrint('[LyricsController] TagLibFile is not supported on this platform');
         return null;
       }
       final file = File(songPath);
       if (!await file.exists()) {
+        debugPrint('[LyricsController] Embedded check: file does not exist -> "$songPath"');
         return null;
       }
 
       final tagFile = await taglib.TagLibFile.openAsync(songPath);
       if (tagFile == null) {
+        debugPrint('[LyricsController] Embedded check: TagLib openAsync returned null -> "$songPath"');
         return null;
       }
 
       try {
         final lyricsList = tagFile.properties[taglib.TagProperties.lyrics];
         if (lyricsList == null || lyricsList.isEmpty) {
+          debugPrint(
+            '[LyricsController] Embedded check: no TagProperties.lyrics in "$songPath"',
+          );
           return null;
         }
 
         final rawLyrics = lyricsList.first.trim();
         if (rawLyrics.isEmpty) {
+          debugPrint(
+            '[LyricsController] Embedded check: TagProperties.lyrics is empty string in "$songPath"',
+          );
           return null;
         }
 
         final parsed = LrcUtils.parseTimedLyrics(rawLyrics);
+        debugPrint(
+          '[LyricsController] Embedded record loaded successfully for "$songPath": length=${rawLyrics.length}, lines=${parsed.length}, cacheKey="$cacheKey"',
+        );
         return LyricsCacheRecord(
           cacheKey: cacheKey,
           source: LyricsCacheSource.embedded,
@@ -444,8 +458,8 @@ class LyricsController extends Notifier<LyricsControllerState> {
       } finally {
         tagFile.close();
       }
-    } catch (e) {
-      debugPrint('[LyricsController] Failed to read embedded record: $e');
+    } catch (e, st) {
+      debugPrint('[LyricsController] Failed to read embedded record from "$songPath": $e\n$st');
     }
     return null;
   }
@@ -471,7 +485,22 @@ class LyricsController extends Notifier<LyricsControllerState> {
       records.add(embeddedRecord);
     }
 
-    final dbCaches = await _context.lyricsCacheRepository.getLyricsCaches(cacheKey);
+    final dbCaches = <LyricsCacheRecord>[];
+    dbCaches.addAll(await _context.lyricsCacheRepository.getLyricsCaches(cacheKey));
+    if (query?.duration != null) {
+      final sec = query!.duration!.inSeconds;
+      for (final offset in [-1, 1, -2, 2]) {
+        final altSec = sec + offset;
+        if (altSec <= 0) continue;
+        final altQuery = query.copyWith(duration: Duration(seconds: altSec));
+        final altCaches = await _context.lyricsCacheRepository.getLyricsCaches(altQuery.cacheKey);
+        for (final c in altCaches) {
+          if (!dbCaches.any((existing) => existing.source == c.source && existing.languageCode == c.languageCode)) {
+            dbCaches.add(c);
+          }
+        }
+      }
+    }
 
     for (final cache in dbCaches) {
       if (cache.source == LyricsCacheSource.external && externalRecord != null) {
@@ -485,6 +514,10 @@ class LyricsController extends Notifier<LyricsControllerState> {
       }
       records.add(cache);
     }
+
+    debugPrint(
+      '[LyricsController] getAvailableLyricRecords for "${song.displayName}": cacheKey="$cacheKey", count=${records.length}, sources=${records.map((r) => r.source.dbValue).toList()}',
+    );
 
     return records;
   }
@@ -687,6 +720,10 @@ class LyricsController extends Notifier<LyricsControllerState> {
       translations: translations,
     );
 
+    debugPrint(
+      '[LyricsController] _syncLyricsCacheWatch: chosen source=${selectedRecord.source.dbValue}, isSynced=${selectedRecord.isSynced}, lines=${nextLyrics.syncedLines.length}, textLen=${nextLyrics.plainText.length}',
+    );
+
     if (selectedRecord.source == LyricsCacheSource.embedded ||
         selectedRecord.source == LyricsCacheSource.external) {
       final raw = selectedRecord.syncedLyrics ?? '';
@@ -704,10 +741,6 @@ class LyricsController extends Notifier<LyricsControllerState> {
       }
     }
 
-    if (currentSong.lyrics == nextLyrics) {
-      return;
-    }
-
     final updatedSong = _support.replaceSongIfPath(
       songPath,
       (queueSong) => queueSong.copyWith(lyrics: nextLyrics),
@@ -717,11 +750,11 @@ class LyricsController extends Notifier<LyricsControllerState> {
     }
 
     if (_context.currentMusic()?.path == songPath) {
-      _context.setHasLyrics(
-        nextLyrics.plainText.trim().isNotEmpty ||
-            nextLyrics.syncedLines.isNotEmpty ||
-            nextLyrics.translations.isNotEmpty,
-      );
+      final hasAnyLyrics = nextLyrics.plainText.trim().isNotEmpty ||
+          nextLyrics.syncedLines.isNotEmpty ||
+          nextLyrics.translations.isNotEmpty;
+      _context.setHasLyrics(hasAnyLyrics);
+      debugPrint('[LyricsController] UI state updated: hasLyrics=$hasAnyLyrics for "$songPath"');
       _context.setIsLyricsLoading(false);
       _context.setLyricsSearchAttempted(true);
       _context.setCurrentLyricsLines(nextLyrics.syncedLines);

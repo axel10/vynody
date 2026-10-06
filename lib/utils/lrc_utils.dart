@@ -99,8 +99,11 @@ class LrcUtils {
       }
     }
 
-    final isFormat1 = inlineDelimiterCount >= 2 ||
-        (inlineDelimiterCount == 1 && allParsedLines.length <= 2);
+    final isFormat1 = allParsedLines.length <= 2
+        ? inlineDelimiterCount == allParsedLines.length
+        : (inlineDelimiterCount >= 2 &&
+            (inlineDelimiterCount / allParsedLines.length >= 0.25 ||
+                inlineDelimiterCount >= 6));
 
     if (isFormat1) {
       final syncedLines = <LyricLine>[];

@@ -315,6 +315,15 @@ class LyricsControllerSupport {
 
     if (cacheKey.isNotEmpty) {
       await _context.lyricsCacheRepository.clearLyricsCacheByKey(cacheKey);
+      if (query.duration != null) {
+        final sec = query.duration!.inSeconds;
+        for (final offset in [-1, 1, -2, 2]) {
+          final altSec = sec + offset;
+          if (altSec <= 0) continue;
+          final altKey = query.copyWith(duration: Duration(seconds: altSec)).cacheKey;
+          await _context.lyricsCacheRepository.clearLyricsCacheByKey(altKey);
+        }
+      }
     }
 
     _context.setHasLyrics(normalizedText.isNotEmpty);
@@ -345,6 +354,9 @@ class LyricsControllerSupport {
           timelineOffsetMillis: filledLyrics.timelineOffset.inMilliseconds,
           updatedAtMillis: DateTime.now().millisecondsSinceEpoch,
         ),
+      );
+      debugPrint(
+        '[LyricsController] fillLyricsForCurrentSong: successfully saved lyricsCache for "$cacheKey", source=${source.dbValue}, length=${filledLyrics.plainText.length}',
       );
       if (parsedResult.hasTranslation && cacheKey.isNotEmpty) {
         final preferredLang = LanguageCodeUtils.currentAppLanguageCode();
