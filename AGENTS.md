@@ -18,8 +18,7 @@ flutter run -d <device-id>               # dev run on a device
 
 1. `dart run build_runner build --delete-conflicting-outputs` — if you touch model/DAO files that use `@freezed`, `@JsonSerializable`, or Drift tables.
 2. `flutter analyze` — must pass (generated `*.g.dart` / `*.freezed.dart` are excluded from analysis).
-3. **During development:** Run only tests relevant to the modified code (e.g. `flutter test test/path/to/specific_test.dart` or `./scripts/run_tests.sh test/player/`).
-4. **Before `git push`:** Run full test suite via `./scripts/run_tests.sh` (or `./scripts/run_tests.sh --batch`), which automatically executes both main project tests and `audio_core` tests.
+
 
 ## Development principles & Agent guidelines
 
