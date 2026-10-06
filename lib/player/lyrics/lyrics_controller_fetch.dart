@@ -167,16 +167,21 @@ class LyricsFetchCoordinator {
       }
 
       if (result != null &&
-          (result.source == 'embedded' || result.source == 'local_lrc') &&
           song.path.isNotEmpty &&
           rawLyricsText.trim().isNotEmpty) {
+        final description = switch (result.source) {
+          'embedded' => 'Embedded',
+          'local_lrc' => 'Local LRC',
+          'remote_server' => 'Remote Media Server',
+          _ => 'Online',
+        };
         unawaited(
           LyricsTimelineService.instance.ensureInitialSnapshot(
             cacheKey: song.path,
             lyrics: rawLyricsText,
             translation: parsedResult.translatedLines?.join('\n'),
             timelineOffsetMillis: 0,
-            description: result.source == 'embedded' ? 'Embedded' : 'Local LRC',
+            description: description,
           ),
         );
       }

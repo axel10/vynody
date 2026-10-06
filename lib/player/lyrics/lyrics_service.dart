@@ -259,9 +259,50 @@ class LyricsService {
     return results.map((r) => ScoredLyricTrack(r.track, r.score)).toList();
   }
 
+  /// 获取当前曲目的所有可用歌词版本记录（去重）。
+  /// 优先从数据库缓存读取；若尚无本地外挂或内嵌歌词记录，
+  /// 则探测本地 .lrc 文件和音频 TagLib 内嵌歌词并持久化入库，确保数据库为单一真理源。
+  Future<List<LyricsCacheRecord>> getOrPopulateAvailableLyricRecords(
+    LyricsQuery query,
+  ) async {
+    final records = await _cacheRepository.getLyricsCachesTolerant(
+      query,
+      ignoreNone: true,
+    );
+
+    // 如果是远程流媒体协议（如 subsonic / webdav / jellyfin），直接返回已有缓存
+    if (RemoteMediaResolver.isRemoteUri(query.filePath)) {
+      return records;
+    }
+
+    final hasExternal = records.any(
+      (r) => r.source == LyricsCacheSource.external,
+    );
+    final hasEmbedded = records.any(
+      (r) => r.source == LyricsCacheSource.embedded,
+    );
+
+    var needsReload = false;
+    if (!hasExternal) {
+      final local = await _tryLoadFromLocalLrcFile(query);
+      if (local != null) needsReload = true;
+    }
+    if (!hasEmbedded) {
+      final embedded = await _tryLoadFromMetadata(query);
+      if (embedded != null) needsReload = true;
+    }
+
+    if (needsReload) {
+      return _cacheRepository.getLyricsCachesTolerant(
+        query,
+        ignoreNone: true,
+      );
+    }
+    return records;
+  }
 
   /// 核心歌词获取入口。
-  /// 实现了一个分层的查找策略：内存 -> SQLite 数据库 -> 在线 API。
+  /// 实现了一个分层的查找策略：SQLite 数据库缓存 -> 本地/内嵌/媒体库 -> 在线 API。
   Future<LyricSelectionResult?> fetchBestLyrics({
     required LyricsQuery query,
     bool debugLog = false,
@@ -539,7 +580,7 @@ class LyricsService {
       final result = LyricSelectionResult(
         track: track,
         fromGetApi: false,
-        source: 'embedded',
+        source: 'local_lrc',
         score: 100.0,
         breakdown: LyricScoreBreakdown(
           title: 0,

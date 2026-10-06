@@ -1,17 +1,13 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_taglib/flutter_taglib.dart' as taglib;
-import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:vynody/models/lyric_line.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/models/music_lyric.dart';
 import 'package:vynody/utils/language_code_utils.dart';
-import 'package:vynody/utils/lrc_utils.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/lyrics/lyrics_ai_service.dart';
 import 'package:vynody/player/lyrics/lyrics_cache_repository.dart';
@@ -24,7 +20,6 @@ import 'package:vynody/player/lyrics/lyrics_controller_translation.dart';
 import 'package:vynody/player/lyrics/lyrics_controller_utils.dart';
 import 'package:vynody/player/lyrics/lyrics_riverpod.dart';
 import 'package:vynody/player/lyrics/timeline/lyrics_timeline_service.dart';
-import 'package:vynody/player/remote/proxy/remote_media_resolver.dart';
 import 'package:vynody/player/lyrics/lyrics_service.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/player/lyrics/lyrics_generation_phase.dart';
@@ -363,107 +358,6 @@ class LyricsController extends Notifier<LyricsControllerState> {
     }
   }
 
-  Future<LyricsCacheRecord?> _tryLoadExternalLrcRecord(String songPath, String cacheKey) async {
-    if (RemoteMediaResolver.isRemoteUri(songPath)) {
-      return null;
-    }
-    try {
-      final directory = p.dirname(songPath);
-      final baseName = p.basenameWithoutExtension(songPath);
-      final lrcPath = p.join(directory, '$baseName.lrc');
-      var lrcFile = File(lrcPath);
-      if (!await lrcFile.exists()) {
-        final lrcPathUpper = p.join(directory, '$baseName.LRC');
-        final lrcFileUpper = File(lrcPathUpper);
-        if (!await lrcFileUpper.exists()) {
-          return null;
-        }
-        lrcFile = lrcFileUpper;
-      }
-
-      final rawLyrics = await lrcFile.readAsString();
-      if (rawLyrics.trim().isNotEmpty) {
-        final parsed = LrcUtils.parseTimedLyrics(rawLyrics);
-        return LyricsCacheRecord(
-          cacheKey: cacheKey,
-          source: LyricsCacheSource.external,
-          isSynced: parsed.isNotEmpty,
-          syncedLyrics: rawLyrics,
-          syncedLines: parsed.isNotEmpty
-              ? parsed
-              : rawLyrics.split('\n').map((l) => LyricLine(timestamp: Duration.zero, text: l, isTimed: false)).toList(),
-          timelineOffsetMillis: 0,
-          updatedAtMillis: lrcFile.lastModifiedSync().millisecondsSinceEpoch,
-        );
-      }
-    } catch (e) {
-      debugPrint('[LyricsController] Failed to check external LRC: $e');
-    }
-    return null;
-  }
-
-  Future<LyricsCacheRecord?> _tryLoadEmbeddedRecord(String songPath, String cacheKey) async {
-    if (RemoteMediaResolver.isRemoteUri(songPath)) {
-      return null;
-    }
-    try {
-      if (!taglib.TagLibFile.isSupported) {
-        debugPrint('[LyricsController] TagLibFile is not supported on this platform');
-        return null;
-      }
-      final file = File(songPath);
-      if (!await file.exists()) {
-        debugPrint('[LyricsController] Embedded check: file does not exist -> "$songPath"');
-        return null;
-      }
-
-      final tagFile = await taglib.TagLibFile.openAsync(songPath);
-      if (tagFile == null) {
-        debugPrint('[LyricsController] Embedded check: TagLib openAsync returned null -> "$songPath"');
-        return null;
-      }
-
-      try {
-        final lyricsList = tagFile.properties[taglib.TagProperties.lyrics];
-        if (lyricsList == null || lyricsList.isEmpty) {
-          debugPrint(
-            '[LyricsController] Embedded check: no TagProperties.lyrics in "$songPath"',
-          );
-          return null;
-        }
-
-        final rawLyrics = lyricsList.first.trim();
-        if (rawLyrics.isEmpty) {
-          debugPrint(
-            '[LyricsController] Embedded check: TagProperties.lyrics is empty string in "$songPath"',
-          );
-          return null;
-        }
-
-        final parsed = LrcUtils.parseTimedLyrics(rawLyrics);
-        debugPrint(
-          '[LyricsController] Embedded record loaded successfully for "$songPath": length=${rawLyrics.length}, lines=${parsed.length}, cacheKey="$cacheKey"',
-        );
-        return LyricsCacheRecord(
-          cacheKey: cacheKey,
-          source: LyricsCacheSource.embedded,
-          isSynced: parsed.isNotEmpty,
-          syncedLyrics: rawLyrics,
-          syncedLines: parsed.isNotEmpty
-              ? parsed
-              : rawLyrics.split('\n').map((l) => LyricLine(timestamp: Duration.zero, text: l, isTimed: false)).toList(),
-          timelineOffsetMillis: 0,
-          updatedAtMillis: file.lastModifiedSync().millisecondsSinceEpoch,
-        );
-      } finally {
-        tagFile.close();
-      }
-    } catch (e, st) {
-      debugPrint('[LyricsController] Failed to read embedded record from "$songPath": $e\n$st');
-    }
-    return null;
-  }
-
   Future<LyricsQuery?> buildLyricsQueryForSong(MusicFile song) {
     return _support.buildLyricsQueryForSong(song);
   }
@@ -473,32 +367,7 @@ class LyricsController extends Notifier<LyricsControllerState> {
     final cacheKey = query?.cacheKey.trim() ?? '';
     if (query == null || cacheKey.isEmpty) return const [];
 
-    final records = <LyricsCacheRecord>[];
-
-    final externalRecord = await _tryLoadExternalLrcRecord(song.path, cacheKey);
-    if (externalRecord != null) {
-      records.add(externalRecord);
-    }
-
-    final embeddedRecord = await _tryLoadEmbeddedRecord(song.path, cacheKey);
-    if (embeddedRecord != null) {
-      records.add(embeddedRecord);
-    }
-
-    final dbCaches = await _context.lyricsCacheRepository.getLyricsCachesTolerant(
-      query,
-      ignoreNone: true,
-    );
-
-    for (final cache in dbCaches) {
-      if (cache.source == LyricsCacheSource.external && externalRecord != null) {
-        continue;
-      }
-      if (cache.source == LyricsCacheSource.embedded && embeddedRecord != null) {
-        continue;
-      }
-      records.add(cache);
-    }
+    final records = await _context.lyricsService.getOrPopulateAvailableLyricRecords(query);
 
     debugPrint(
       '[LyricsController] getAvailableLyricRecords for "${song.displayName}": cacheKey="$cacheKey", count=${records.length}, sources=${records.map((r) => r.source.dbValue).toList()}',
@@ -703,9 +572,9 @@ class LyricsController extends Notifier<LyricsControllerState> {
 
     if (selectedRecord == null) {
       final fallbackOrder = [
+        LyricsCacheSource.manualAdjust,
         LyricsCacheSource.external,
         LyricsCacheSource.embedded,
-        LyricsCacheSource.manualAdjust,
         LyricsCacheSource.aiTimeline,
         LyricsCacheSource.aiGenerate,
         LyricsCacheSource.ai,
