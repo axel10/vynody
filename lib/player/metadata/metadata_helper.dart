@@ -145,13 +145,16 @@ class MetadataHelper {
     bool? hasPermission,
   }) async {
     if (!Platform.isAndroid) return true;
-    final trimmed = filePath.trim();
+    final resolved = ScannerPathUtils.resolveIosSandboxPath(filePath);
+    final trimmed = resolved.trim();
     if (trimmed.isEmpty) return false;
     if (trimmed.startsWith('subsonic://') ||
         trimmed.startsWith('webdav://') ||
         trimmed.startsWith('jellyfin://') ||
-        trimmed.startsWith('smb://') ||
-        trimmed.startsWith('http://') ||
+        trimmed.startsWith('smb://')) {
+      return true;
+    }
+    if (trimmed.startsWith('http://') ||
         trimmed.startsWith('https://') ||
         trimmed.startsWith('content://')) {
       return true;
@@ -179,31 +182,32 @@ class MetadataHelper {
   /// 若处于 Android 平台且无媒体库权限，自动通过已持久化的 SAF 映射转换为 content:// URI，
   /// 避免底层 C++ 盲目使用 fopen 尝试打开物理路径而触发 fileRef is null 报错及回退。
   static Future<String> resolveReadTargetPath(String filePath) async {
+    final resolvedPath = ScannerPathUtils.resolveIosSandboxPath(filePath);
     if (!Platform.isAndroid ||
-        filePath.startsWith('content://') ||
-        filePath.startsWith('http://') ||
-        filePath.startsWith('https://') ||
-        filePath.startsWith('subsonic://') ||
-        filePath.startsWith('webdav://') ||
-        filePath.startsWith('jellyfin://') ||
-        filePath.startsWith('smb://')) {
-      return filePath;
+        resolvedPath.startsWith('content://') ||
+        resolvedPath.startsWith('http://') ||
+        resolvedPath.startsWith('https://') ||
+        resolvedPath.startsWith('subsonic://') ||
+        resolvedPath.startsWith('webdav://') ||
+        resolvedPath.startsWith('jellyfin://') ||
+        resolvedPath.startsWith('smb://')) {
+      return resolvedPath;
     }
     final isExternal =
-        filePath.startsWith('/storage/') || filePath.startsWith('/sdcard/');
+        resolvedPath.startsWith('/storage/') || resolvedPath.startsWith('/sdcard/');
     if (!isExternal) {
-      return filePath;
+      return resolvedPath;
     }
     try {
       final permitted = await hasAndroidAudioPermission();
-      if (permitted) return filePath;
+      if (permitted) return resolvedPath;
 
       final mappings = await AndroidSafStorageHelper.getMappings();
       final safUri =
-          AndroidSafStorageHelper.resolvePhysicalPathToSafUri(filePath, mappings);
-      return safUri ?? filePath;
+          AndroidSafStorageHelper.resolvePhysicalPathToSafUri(resolvedPath, mappings);
+      return safUri ?? resolvedPath;
     } catch (_) {
-      return filePath;
+      return resolvedPath;
     }
   }
 
@@ -576,7 +580,8 @@ class MetadataHelper {
     String songPath, {
     Map<String, String?>? dirCache,
   }) {
-    final dirPath = p.dirname(songPath);
+    final resolvedSongPath = ScannerPathUtils.resolveIosSandboxPath(songPath);
+    final dirPath = p.dirname(resolvedSongPath);
     if (dirCache != null && dirCache.containsKey(dirPath)) {
       return dirCache[dirPath];
     }

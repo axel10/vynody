@@ -13,6 +13,7 @@ import 'package:vynody/player/audio/audio_service.dart';
 import 'package:vynody/player/metadata/metadata_helper.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/remote/proxy/remote_media_resolver.dart';
+import 'package:vynody/player/scanner/scanner_path_utils.dart';
 import 'package:vynody/player/settings/track_artwork_theme_service.dart';
 import 'package:vynody/utils/memory_trace.dart';
 import 'package:vynody/widgets/playback_ui_tuning.dart';
@@ -540,9 +541,11 @@ class _CoverItemState extends ConsumerState<_CoverItem> {
     );
 
     // 1. If we have original HD bytes in cache, use them.
-    final cachedBytes = widget.audioService.getCachedArtwork(
-      widget.musicFile.path,
-    );
+    final resolvedSongPath =
+        ScannerPathUtils.resolveIosSandboxPath(widget.musicFile.path);
+    final cachedBytes =
+        widget.audioService.getCachedArtwork(widget.musicFile.path) ??
+        widget.audioService.getCachedArtwork(resolvedSongPath);
     if (cachedBytes != null) {
       if (!mounted) return;
       setState(() {
@@ -554,7 +557,12 @@ class _CoverItemState extends ConsumerState<_CoverItem> {
     }
 
     // 2. If currentMusic has artworkBytes, use them.
-    if (widget.audioService.currentMusic?.path == widget.musicFile.path &&
+    final currentMusicPath = widget.audioService.currentMusic?.path;
+    final isCurrentPlaying = currentMusicPath == widget.musicFile.path ||
+        (currentMusicPath != null &&
+            ScannerPathUtils.resolveIosSandboxPath(currentMusicPath) ==
+                resolvedSongPath);
+    if (isCurrentPlaying &&
         widget.audioService.currentMusic?.artworkBytes != null) {
       if (!mounted) return;
       final bytes = widget.audioService.currentMusic!.artworkBytes!;
@@ -571,8 +579,11 @@ class _CoverItemState extends ConsumerState<_CoverItem> {
     // 3. Try thumbnailPath next ONLY on Android low/mid-end devices to smooth Hero transitions
     if (isLowMidEnd) {
       final scanner = ref.read(scannerServiceProvider);
-      final thumbPath = widget.musicFile.thumbnailPath ??
+      final rawThumbPath = widget.musicFile.thumbnailPath ??
           scanner.metadataMap[widget.musicFile.path]?.thumbnailPath;
+      final thumbPath = rawThumbPath != null
+          ? ScannerPathUtils.resolveIosSandboxPath(rawThumbPath)
+          : null;
       if (thumbPath != null && File(thumbPath).existsSync()) {
         try {
           final bytes = await File(thumbPath).readAsBytes();
@@ -604,7 +615,14 @@ class _CoverItemState extends ConsumerState<_CoverItem> {
     if (_hasLoadedHighRes && _artworkBytes != null) return;
     _hasLoadedHighRes = true;
 
-    final highResPath = widget.musicFile.artworkPath;
+    final resolvedSongPath =
+        ScannerPathUtils.resolveIosSandboxPath(widget.musicFile.path);
+
+    // 1. Check direct artworkPath if present
+    final rawHighResPath = widget.musicFile.artworkPath;
+    final highResPath = rawHighResPath != null
+        ? ScannerPathUtils.resolveIosSandboxPath(rawHighResPath)
+        : null;
     if (highResPath != null && File(highResPath).existsSync()) {
       try {
         final bytes = await File(highResPath).readAsBytes();
@@ -612,66 +630,54 @@ class _CoverItemState extends ConsumerState<_CoverItem> {
         setState(() {
           _artworkBytes = bytes;
         });
-        widget.onArtworkLoaded?.call(bytes, null);
+        widget.onArtworkLoaded?.call(bytes, highResPath);
         return;
       } catch (e) {
         debugPrint('Error loading high res artwork from $highResPath: $e');
       }
     }
 
-    // Try system query (on_audio_query)
-    if (Platform.isAndroid || Platform.isIOS) {
-      if (widget.musicFile.id != null) {
-        var hasPermission = true;
-        if (Platform.isAndroid) {
-          hasPermission = await MetadataHelper.hasAndroidAudioPermission();
-        }
-
-        final isSystemMedia = widget.musicFile.mediaUri != null || widget.musicFile.path.startsWith('content://');
-
-        if (hasPermission && isSystemMedia) {
-          try {
-            final bytes = await MetadataHelper.safeQueryArtwork(
-              widget.musicFile.id!,
-              size: 800,
-              hasPermission: hasPermission,
-            );
-            if (bytes != null && bytes.isNotEmpty) {
-              if (!mounted) return;
-              setState(() {
-                _artworkBytes = bytes;
-              });
-              widget.onArtworkLoaded?.call(bytes, null);
-
-              final scanner = ref.read(scannerServiceProvider);
-              final existingMeta = scanner.metadataMap[widget.musicFile.path];
-              if (existingMeta?.thumbnailPath == null ||
-                  existingMeta!.thumbnailPath!.isEmpty ||
-                  !File(existingMeta.thumbnailPath!).existsSync()) {
-                final md5Hex = await calculateMd5(bytes: bytes);
-                final supportDir = await getApplicationSupportDirectory();
-                final thumbnailsDir = Directory('${supportDir.path}/thumbnails');
-                if (!thumbnailsDir.existsSync()) {
-                  await thumbnailsDir.create(recursive: true);
-                }
-                final file = File('${thumbnailsDir.path}/${md5Hex}_thumb.jpg');
-                if (!file.existsSync()) {
-                  await file.writeAsBytes(bytes);
-                }
-                unawaited(scanner.updateSongThumbnailPath(widget.musicFile.path, file.path));
-              }
-              return;
-            }
-          } catch (e) {
-            debugPrint('[CoverCarousel] Error querying system artwork: $e');
-          }
+    // 2. Check directory cover (e.g. cover.jpg, folder.jpg)
+    if (!RemoteMediaResolver.isRemoteUri(widget.musicFile.path)) {
+      final dirCoverPath = MetadataHelper.findDirectoryCover(resolvedSongPath);
+      if (dirCoverPath != null && File(dirCoverPath).existsSync()) {
+        try {
+          final bytes = await File(dirCoverPath).readAsBytes();
+          if (!mounted) return;
+          setState(() {
+            _artworkBytes = bytes;
+          });
+          widget.onArtworkLoaded?.call(bytes, dirCoverPath);
+          return;
+        } catch (e) {
+          debugPrint('Error loading directory cover from $dirCoverPath: $e');
         }
       }
     }
 
-    // Try remote track cover loading
+    // 3. Try extracting embedded artwork
+    final canAccessFile =
+        await MetadataHelper.canAccessAudioFile(resolvedSongPath);
+    if (canAccessFile) {
+      final embeddedBytes = await MetadataHelper.decodeEmbeddedArtwork(
+        resolvedSongPath,
+      );
+      if (embeddedBytes != null && embeddedBytes.isNotEmpty) {
+        if (!mounted) return;
+        setState(() {
+          _artworkBytes = embeddedBytes;
+        });
+        widget.onArtworkLoaded?.call(embeddedBytes, null);
+        return;
+      }
+    }
+
+    // 4. Try remote track cover loading
     if (RemoteMediaResolver.isRemoteUri(widget.musicFile.path)) {
-      final thumbPath = widget.musicFile.thumbnailPath;
+      final rawThumb = widget.musicFile.thumbnailPath;
+      final thumbPath = rawThumb != null
+          ? ScannerPathUtils.resolveIosSandboxPath(rawThumb)
+          : null;
       if (thumbPath != null && File(thumbPath).existsSync()) {
         try {
           final bytes = await File(thumbPath).readAsBytes();
@@ -690,13 +696,17 @@ class _CoverItemState extends ConsumerState<_CoverItem> {
           widget.musicFile.path,
           controller: widget.audioService.player,
         );
-        if (res?.thumbnailPath != null && File(res!.thumbnailPath!).existsSync()) {
-          final bytes = await File(res.thumbnailPath!).readAsBytes();
+        final rawResThumb = res?.thumbnailPath;
+        final resThumb = rawResThumb != null
+            ? ScannerPathUtils.resolveIosSandboxPath(rawResThumb)
+            : null;
+        if (resThumb != null && File(resThumb).existsSync()) {
+          final bytes = await File(resThumb).readAsBytes();
           if (!mounted) return;
           setState(() {
             _artworkBytes = bytes;
           });
-          widget.onArtworkLoaded?.call(bytes, res.thumbnailPath);
+          widget.onArtworkLoaded?.call(bytes, resThumb);
           return;
         }
       } catch (e) {
@@ -704,28 +714,71 @@ class _CoverItemState extends ConsumerState<_CoverItem> {
       }
     }
 
-    // Try extracting embedded artwork as last resort (if file can be accessed)
-    final canAccessFile =
-        await MetadataHelper.canAccessAudioFile(widget.musicFile.path);
-    if (canAccessFile) {
-      final embeddedBytes = await MetadataHelper.decodeEmbeddedArtwork(
-        widget.musicFile.path,
-      );
-      if (embeddedBytes != null) {
-        if (!mounted) return;
-        setState(() {
-          _artworkBytes = embeddedBytes;
-        });
-        widget.onArtworkLoaded?.call(embeddedBytes, null);
-        return;
+    // 5. Try system query (on_audio_query on Android)
+    if (Platform.isAndroid || Platform.isIOS) {
+      if (widget.musicFile.id != null) {
+        var hasPermission = true;
+        if (Platform.isAndroid) {
+          hasPermission = await MetadataHelper.hasAndroidAudioPermission();
+        }
+
+        final isSystemMedia = widget.musicFile.mediaUri != null ||
+            widget.musicFile.path.startsWith('content://');
+
+        if (hasPermission && isSystemMedia) {
+          try {
+            final bytes = await MetadataHelper.safeQueryArtwork(
+              widget.musicFile.id!,
+              size: 800,
+              hasPermission: hasPermission,
+            );
+            if (bytes != null && bytes.isNotEmpty) {
+              if (!mounted) return;
+              setState(() {
+                _artworkBytes = bytes;
+              });
+              widget.onArtworkLoaded?.call(bytes, null);
+
+              final scanner = ref.read(scannerServiceProvider);
+              final existingMeta = scanner.metadataMap[widget.musicFile.path];
+              final rawExistingThumb = existingMeta?.thumbnailPath;
+              final existingThumb = rawExistingThumb != null
+                  ? ScannerPathUtils.resolveIosSandboxPath(rawExistingThumb)
+                  : null;
+              if (existingThumb == null ||
+                  existingThumb.isEmpty ||
+                  !File(existingThumb).existsSync()) {
+                final md5Hex = await calculateMd5(bytes: bytes);
+                final supportDir = await getApplicationSupportDirectory();
+                final thumbnailsDir =
+                    Directory('${supportDir.path}/thumbnails');
+                if (!thumbnailsDir.existsSync()) {
+                  await thumbnailsDir.create(recursive: true);
+                }
+                final file = File('${thumbnailsDir.path}/${md5Hex}_thumb.jpg');
+                if (!file.existsSync()) {
+                  await file.writeAsBytes(bytes);
+                }
+                unawaited(scanner.updateSongThumbnailPath(
+                    widget.musicFile.path, file.path));
+              }
+              return;
+            }
+          } catch (e) {
+            debugPrint('[CoverCarousel] Error querying system artwork: $e');
+          }
+        }
       }
     }
 
-    // Fallback: If high-res artwork failed or is missing, try thumbnailPath if present
+    // 6. Fallback: If high-res artwork failed or is missing, try thumbnailPath if present
     if (_artworkBytes == null) {
       final scanner = ref.read(scannerServiceProvider);
-      final thumbPath = widget.musicFile.thumbnailPath ??
+      final rawThumbPath = widget.musicFile.thumbnailPath ??
           scanner.metadataMap[widget.musicFile.path]?.thumbnailPath;
+      final thumbPath = rawThumbPath != null
+          ? ScannerPathUtils.resolveIosSandboxPath(rawThumbPath)
+          : null;
       if (thumbPath != null && File(thumbPath).existsSync()) {
         try {
           final bytes = await File(thumbPath).readAsBytes();
@@ -848,9 +901,12 @@ class _CoverItemState extends ConsumerState<_CoverItem> {
       isLowMidEnd: isLowMidEnd,
     );
 
-    final cachedBytes = widget.audioService.getCachedArtwork(
-      widget.musicFile.path,
-    );
+    final resolvedSongPath =
+        ScannerPathUtils.resolveIosSandboxPath(widget.musicFile.path);
+
+    final cachedBytes =
+        widget.audioService.getCachedArtwork(widget.musicFile.path) ??
+        widget.audioService.getCachedArtwork(resolvedSongPath);
     if (cachedBytes != null) {
       return Image.memory(
         cachedBytes,
@@ -863,7 +919,12 @@ class _CoverItemState extends ConsumerState<_CoverItem> {
       );
     }
 
-    if (widget.audioService.currentMusic?.path == widget.musicFile.path &&
+    final currentMusicPath = widget.audioService.currentMusic?.path;
+    final isCurrentPlaying = currentMusicPath == widget.musicFile.path ||
+        (currentMusicPath != null &&
+            ScannerPathUtils.resolveIosSandboxPath(currentMusicPath) ==
+                resolvedSongPath);
+    if (isCurrentPlaying &&
         widget.audioService.currentMusic?.artworkBytes != null) {
       return Image.memory(
         widget.audioService.currentMusic!.artworkBytes!,
@@ -887,9 +948,12 @@ class _CoverItemState extends ConsumerState<_CoverItem> {
         filterQuality: FilterQuality.low,
       );
     } else {
-      final thumbPath = widget.musicFile.thumbnailPath;
-      if (thumbPath != null) {
-        final file = File(thumbPath);
+      final rawImagePath = widget.musicFile.artworkPath;
+      final imagePath = rawImagePath != null
+          ? ScannerPathUtils.resolveIosSandboxPath(rawImagePath)
+          : null;
+      if (imagePath != null) {
+        final file = File(imagePath);
         if (file.existsSync()) {
           return Image.file(
             file,
@@ -903,9 +967,12 @@ class _CoverItemState extends ConsumerState<_CoverItem> {
         }
       }
 
-      final imagePath = widget.musicFile.artworkPath;
-      if (imagePath != null) {
-        final file = File(imagePath);
+      final rawThumbPath = widget.musicFile.thumbnailPath;
+      final thumbPath = rawThumbPath != null
+          ? ScannerPathUtils.resolveIosSandboxPath(rawThumbPath)
+          : null;
+      if (thumbPath != null) {
+        final file = File(thumbPath);
         if (file.existsSync()) {
           return Image.file(
             file,

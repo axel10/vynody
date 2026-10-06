@@ -20,6 +20,7 @@ import '../widgets/playback_hero_card.dart';
 import '../widgets/playback/playback_visualizer_layer.dart';
 import '../widgets/volume_controls.dart';
 import '../widgets/dynamic_mesh_background.dart';
+import 'package:vynody/player/scanner/scanner_path_utils.dart';
 import 'package:vynody/utils/playback_utils.dart';
 import 'package:vynody/models/music_file.dart';
 import '../dialogs/visualizer_options_dialog.dart';
@@ -1553,18 +1554,25 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
               final isPendingSong = songPath == _pendingArtworkPath ||
                   (_pendingArtworkPath != null && decodedSongPath != null && safeDecode(_pendingArtworkPath) == decodedSongPath);
 
-              final String? artworkPath =
+              final rawArtworkPath =
                   metadata?.artworkPath ??
                   (isCurrentSong ? currentMusic?.artworkPath : null);
-              final String? thumbnailPath =
+              final artworkPath = rawArtworkPath != null
+                  ? ScannerPathUtils.resolveIosSandboxPath(rawArtworkPath)
+                  : null;
+              final rawThumbnailPath =
                   metadata?.thumbnailPath ??
                   (isCurrentSong ? currentMusic?.thumbnailPath : null);
+              final thumbnailPath = rawThumbnailPath != null
+                  ? ScannerPathUtils.resolveIosSandboxPath(rawThumbnailPath)
+                  : null;
               final Uint8List? cachedBytes = songPath != null
                   ? (((isCurrentSong ? currentMusic?.artworkBytes : null) ??
                       (isPendingSong ? _pendingArtworkBytes : null) ??
                       _fileArtworkBytesCache[songPath] ??
                       (decodedSongPath != null ? _fileArtworkBytesCache[decodedSongPath] : null)) ??
-                      ref.read(audioServiceProvider).getCachedArtwork(songPath))
+                      ref.read(audioServiceProvider).getCachedArtwork(songPath) ??
+                      ref.read(audioServiceProvider).getCachedArtwork(ScannerPathUtils.resolveIosSandboxPath(songPath)))
                   : null;
 
               // 与 CoverCarousel 保持完全一致的缓存尺寸与 ImageProvider 优先级，
@@ -1588,11 +1596,11 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                   gaplessPlayback: true,
                   excludeFromSemantics: true,
                 );
-              } else if (thumbnailPath != null &&
-                  thumbnailPath.isNotEmpty &&
-                  File(thumbnailPath).existsSync()) {
+              } else if (artworkPath != null &&
+                  artworkPath.isNotEmpty &&
+                  File(artworkPath).existsSync()) {
                 imageWidget = Image.file(
-                  File(thumbnailPath),
+                  File(artworkPath),
                   width: double.infinity,
                   height: double.infinity,
                   cacheWidth: bgCacheWidth,
@@ -1601,11 +1609,11 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                   gaplessPlayback: true,
                   excludeFromSemantics: true,
                 );
-              } else if (artworkPath != null &&
-                  artworkPath.isNotEmpty &&
-                  File(artworkPath).existsSync()) {
+              } else if (thumbnailPath != null &&
+                  thumbnailPath.isNotEmpty &&
+                  File(thumbnailPath).existsSync()) {
                 imageWidget = Image.file(
-                  File(artworkPath),
+                  File(thumbnailPath),
                   width: double.infinity,
                   height: double.infinity,
                   cacheWidth: bgCacheWidth,
