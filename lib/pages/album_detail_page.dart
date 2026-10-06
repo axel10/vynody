@@ -326,7 +326,18 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage>
       ),
     );
 
-    return MiniPlayerWrapper(child: content);
+    final wrapped = MiniPlayerWrapper(child: content);
+    if (isSelectionMode) {
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, result) {
+          if (didPop) return;
+          cancelSongSelection();
+        },
+        child: wrapped,
+      );
+    }
+    return wrapped;
   }
 }
 

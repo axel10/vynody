@@ -154,7 +154,7 @@ class _ArtistDetailContentState extends ConsumerState<ArtistDetailContent>
         ? getSelectedSongs(displaySongs)
         : const <MusicFile>[];
 
-    return Stack(
+    final content = Stack(
       children: [
         CustomScrollView(
           controller: widget.scrollController,
@@ -328,6 +328,18 @@ class _ArtistDetailContentState extends ConsumerState<ArtistDetailContent>
         ),
       ],
     );
+
+    if (isSelectionMode) {
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, result) {
+          if (didPop) return;
+          cancelSongSelection();
+        },
+        child: content,
+      );
+    }
+    return content;
   }
 }
 

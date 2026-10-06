@@ -18,6 +18,7 @@ import 'artists_tab.dart';
 import 'most_played_tab.dart';
 import 'recently_played_tab.dart';
 import '../widgets/library_selection_scope.dart';
+import '../widgets/mini_player_wrapper.dart';
 import 'playlist_tab.dart';
 import 'recently_added_tab.dart';
 import 'main_layout_riverpod.dart';
@@ -46,22 +47,11 @@ class LibraryPageState extends ConsumerState<LibraryPage>
     with SingleTickerProviderStateMixin {
   late final TabController _tabController;
   int _tabIndex = 0;
-  int? _portraitSubIndex;
-  bool? _wasLandscape;
-  final GlobalKey<NavigatorState> _portraitNavigatorKey =
-      GlobalKey<NavigatorState>();
-  late final HeroController _heroController;
 
   @override
   void initState() {
     super.initState();
-    _heroController = HeroController();
     _tabIndex = widget.initialTabIndex;
-    if (widget.initialAlbums3DView) {
-      _portraitSubIndex = 4;
-    } else if (widget.initialTabIndex != 0) {
-      _portraitSubIndex = widget.initialTabIndex;
-    }
 
     _tabController = TabController(
       length: 6,
@@ -78,60 +68,67 @@ class LibraryPageState extends ConsumerState<LibraryPage>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       ref.read(libraryActiveTabIndexProvider.notifier).set(_tabIndex);
+
+      final isLandscape =
+          MediaQuery.of(context).orientation == Orientation.landscape;
+      final shouldUseLandscapeLayout = !Platform.isAndroid && isLandscape;
+      if (!shouldUseLandscapeLayout &&
+          (widget.initialAlbums3DView || widget.initialTabIndex != 0)) {
+        final targetIndex =
+            widget.initialAlbums3DView ? 4 : widget.initialTabIndex;
+        _openSubPage(
+          context,
+          targetIndex,
+          initialAlbums3DView: widget.initialAlbums3DView,
+          initialAlbums3DIndex: widget.initialAlbums3DIndex,
+        );
+      }
     });
   }
 
   @override
   void dispose() {
-    _heroController.dispose();
     _tabController.dispose();
     super.dispose();
   }
 
-  Page<dynamic> _buildPage({
-    required LocalKey key,
-    required Widget child,
+  void _openSubPage(
+    BuildContext context,
+    int index, {
+    bool initialAlbums3DView = false,
+    int initialAlbums3DIndex = 0,
   }) {
-    if (Platform.isIOS || Platform.isMacOS) {
-      return CupertinoPage<dynamic>(
-        key: key,
-        child: child,
-      );
-    }
-    return MaterialPage<dynamic>(
-      key: key,
-      child: child,
-    );
-  }
-
-  void _openSubPage(int index) {
     ref.read(librarySelectionScopeProvider.notifier).clear();
-    setState(() {
-      _portraitSubIndex = index;
-      _tabIndex = index;
-      if (_tabController.index != index) {
-        _tabController.index = index;
+    ref.read(libraryActiveTabIndexProvider.notifier).set(index);
+
+    final route = (Platform.isIOS || Platform.isMacOS)
+        ? CupertinoPageRoute<void>(
+            builder: (_) => LibrarySubPage(
+              subIndex: index,
+              initialAlbums3DView: initialAlbums3DView,
+              initialAlbums3DIndex: initialAlbums3DIndex,
+            ),
+          )
+        : MaterialPageRoute<void>(
+            builder: (_) => LibrarySubPage(
+              subIndex: index,
+              initialAlbums3DView: initialAlbums3DView,
+              initialAlbums3DIndex: initialAlbums3DIndex,
+            ),
+          );
+
+    Navigator.of(context).push(route).then((_) {
+      if (mounted) {
+        ref.read(libraryActiveTabIndexProvider.notifier).set(_tabIndex);
       }
     });
-    ref.read(libraryActiveTabIndexProvider.notifier).set(index);
-  }
-
-  void _closeSubPage() {
-    ref.read(librarySelectionScopeProvider.notifier).clear();
-    if (_portraitSubIndex != null) {
-      setState(() {
-        _portraitSubIndex = null;
-      });
-    }
   }
 
   bool handleBackPressed() {
-    if (_portraitNavigatorKey.currentState?.canPop() ?? false) {
-      _portraitNavigatorKey.currentState?.maybePop();
-      return true;
-    }
-    if (_portraitSubIndex != null) {
-      _closeSubPage();
+    final selectionState = ref.read(librarySelectionStateProvider);
+    if (selectionState.isActive &&
+        selectionState.scope != LibrarySelectionScope.none) {
+      ref.read(librarySelectionStateProvider.notifier).clear();
       return true;
     }
     return false;
@@ -142,28 +139,11 @@ class LibraryPageState extends ConsumerState<LibraryPage>
     final bool isLandscape =
         MediaQuery.of(context).orientation == Orientation.landscape;
 
-    // 跨横竖屏切换时无缝保持当前分类上下文
-    if (_wasLandscape != null && _wasLandscape != isLandscape) {
-      if (isLandscape) {
-        // 竖屏 -> 横屏：如果当前处于二级页，同步 TabController 为该分类
-        if (_portraitSubIndex != null) {
-          _tabIndex = _portraitSubIndex!;
-          if (_tabController.index != _tabIndex) {
-            _tabController.index = _tabIndex;
-          }
-          ref.read(libraryActiveTabIndexProvider.notifier).set(_tabIndex);
-        }
-      } else {
-        // 横屏 -> 竖屏：保持横屏当前所在的 Tab 分类，作为竖屏二级页展示
-        _portraitSubIndex = _tabIndex;
-      }
-    }
-    _wasLandscape = isLandscape;
-
-    if (isLandscape) {
+    // 在非 Android 平台且处于横屏/宽屏模式时展示桌面/宽屏 TabBar 视图
+    if (!Platform.isAndroid && isLandscape) {
       return _buildLandscapeLayout(context);
     } else {
-      return _buildPortraitLayout(context);
+      return _buildPortraitIndexView(context);
     }
   }
 
@@ -287,38 +267,7 @@ class LibraryPageState extends ConsumerState<LibraryPage>
     );
   }
 
-  /// 竖屏模式：一级目录入口 / 二级页面切换
-  Widget _buildPortraitLayout(BuildContext context) {
-    final pages = <Page<dynamic>>[
-      _buildPage(
-        key: const ValueKey('library-portrait-index'),
-        child: _buildPortraitIndexView(context),
-      ),
-    ];
-
-    if (_portraitSubIndex != null) {
-      pages.add(
-        _buildPage(
-          key: ValueKey('library-portrait-sub-$_portraitSubIndex'),
-          child: _buildPortraitSubPageView(context, _portraitSubIndex!),
-        ),
-      );
-    }
-
-    return Navigator(
-      key: _portraitNavigatorKey,
-      pages: pages,
-      observers: [_heroController],
-      onDidRemovePage: (page) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted) return;
-          _closeSubPage();
-        });
-      },
-    );
-  }
-
-  /// 竖屏一级主页面
+  /// 竖屏/移动端一级主页面
   Widget _buildPortraitIndexView(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
@@ -366,7 +315,7 @@ class LibraryPageState extends ConsumerState<LibraryPage>
                     iconGradient: const [Color(0xFF6366F1), Color(0xFF8B5CF6)],
                     title: l10n.playlist,
                     badgeText: playlistsCount > 0 ? '$playlistsCount' : null,
-                    onTap: () => _openSubPage(0),
+                    onTap: () => _openSubPage(context, 0),
                   ),
                   _LibraryMenuItem(
                     icon: Icons.mic_external_on_rounded,
@@ -376,7 +325,7 @@ class LibraryPageState extends ConsumerState<LibraryPage>
                         artistsCount != null && artistsCount > 0
                             ? '$artistsCount'
                             : null,
-                    onTap: () => _openSubPage(5),
+                    onTap: () => _openSubPage(context, 5),
                   ),
                   _LibraryMenuItem(
                     icon: Icons.album_rounded,
@@ -386,25 +335,25 @@ class LibraryPageState extends ConsumerState<LibraryPage>
                         albumsCount != null && albumsCount > 0
                             ? '$albumsCount'
                             : null,
-                    onTap: () => _openSubPage(4),
+                    onTap: () => _openSubPage(context, 4),
                   ),
                   _LibraryMenuItem(
                     icon: Icons.history_rounded,
                     iconGradient: const [Color(0xFF10B981), Color(0xFF14B8A6)],
                     title: l10n.recentlyPlayed,
-                    onTap: () => _openSubPage(1),
+                    onTap: () => _openSubPage(context, 1),
                   ),
                   _LibraryMenuItem(
                     icon: Icons.local_fire_department_rounded,
                     iconGradient: const [Color(0xFFEF4444), Color(0xFFF43F5E)],
                     title: l10n.mostPlayed,
-                    onTap: () => _openSubPage(2),
+                    onTap: () => _openSubPage(context, 2),
                   ),
                   _LibraryMenuItem(
                     icon: Icons.auto_awesome_rounded,
                     iconGradient: const [Color(0xFFF59E0B), Color(0xFFEAB308)],
                     title: l10n.recentlyAdded,
-                    onTap: () => _openSubPage(3),
+                    onTap: () => _openSubPage(context, 3),
                   ),
                 ],
               ),
@@ -438,7 +387,7 @@ class LibraryPageState extends ConsumerState<LibraryPage>
                               ),
                             ),
                             InkWell(
-                              onTap: () => _openSubPage(3),
+                              onTap: () => _openSubPage(context, 3),
                               borderRadius: BorderRadius.circular(12),
                               child: Padding(
                                 padding: const EdgeInsets.symmetric(
@@ -481,7 +430,7 @@ class LibraryPageState extends ConsumerState<LibraryPage>
                               physics: const BouncingScrollPhysics(),
                               itemCount: previewAlbums.length,
                               separatorBuilder: (context, index) =>
-                                  const SizedBox(width: 14),
+                                   const SizedBox(width: 14),
                               itemBuilder: (context, index) {
                                 final album = previewAlbums[index];
                                 return _PortraitAlbumPreviewCard(album: album);
@@ -508,9 +457,37 @@ class LibraryPageState extends ConsumerState<LibraryPage>
       ),
     );
   }
+}
 
-  /// 竖屏二级页面
-  Widget _buildPortraitSubPageView(BuildContext context, int subIndex) {
+/// 媒体库二级独立页面（标准 PageRoute 结构，完整支持 Android 物理返回、iOS 边缘手势以及浮层弹窗/抽屉优先级）
+class LibrarySubPage extends ConsumerStatefulWidget {
+  final int subIndex;
+  final bool initialAlbums3DView;
+  final int initialAlbums3DIndex;
+
+  const LibrarySubPage({
+    super.key,
+    required this.subIndex,
+    this.initialAlbums3DView = false,
+    this.initialAlbums3DIndex = 0,
+  });
+
+  @override
+  ConsumerState<LibrarySubPage> createState() => _LibrarySubPageState();
+}
+
+class _LibrarySubPageState extends ConsumerState<LibrarySubPage> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.read(libraryActiveTabIndexProvider.notifier).set(widget.subIndex);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
@@ -520,7 +497,7 @@ class LibraryPageState extends ConsumerState<LibraryPage>
         isDesktop ? 32.0 : MediaQuery.of(context).padding.top;
     final double topPadding = safeTopPadding + kToolbarHeight;
 
-    final String title = switch (subIndex) {
+    final String title = switch (widget.subIndex) {
       0 => l10n.playlist,
       1 => l10n.recentlyPlayed,
       2 => l10n.mostPlayed,
@@ -530,7 +507,7 @@ class LibraryPageState extends ConsumerState<LibraryPage>
       _ => l10n.list,
     };
 
-    final Widget child = switch (subIndex) {
+    final Widget child = switch (widget.subIndex) {
       0 => PlaylistTab(contentTopPadding: topPadding),
       1 => RecentlyPlayedTab(contentTopPadding: topPadding),
       2 => MostPlayedTab(contentTopPadding: topPadding),
@@ -544,59 +521,80 @@ class LibraryPageState extends ConsumerState<LibraryPage>
       _ => const SizedBox.shrink(),
     };
 
-    return Scaffold(
-      key: ValueKey('portrait_subpage_$subIndex'),
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          child,
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: topPadding,
-            child: ClipRect(
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                child: Container(
-                  padding: EdgeInsets.only(top: safeTopPadding),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surface.withValues(
-                      alpha: isDark ? 0.70 : 0.82,
-                    ),
-                    border: Border(
-                      bottom: BorderSide(
-                        color: theme.dividerColor.withValues(alpha: 0.12),
-                        width: 0.8,
+    final isSelectionActive = ref.watch(isLibrarySelectionActiveProvider);
+    final is3DViewActive =
+        (widget.subIndex == 4) && ref.watch(isAlbum3DViewActiveProvider);
+    final canPop = !isSelectionActive && !is3DViewActive;
+
+    return PopScope(
+      canPop: canPop,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (isSelectionActive) {
+          ref.read(librarySelectionStateProvider.notifier).clear();
+          return;
+        }
+        if (is3DViewActive) {
+          ref.read(isAlbum3DViewActiveProvider.notifier).set(false);
+          return;
+        }
+      },
+      child: MiniPlayerWrapper(
+        child: Scaffold(
+          key: ValueKey('library_subpage_${widget.subIndex}'),
+          body: Stack(
+            fit: StackFit.expand,
+            children: [
+              child,
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                height: topPadding,
+                child: ClipRect(
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                    child: Container(
+                      padding: EdgeInsets.only(top: safeTopPadding),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surface.withValues(
+                          alpha: isDark ? 0.70 : 0.82,
+                        ),
+                        border: Border(
+                          bottom: BorderSide(
+                            color: theme.dividerColor.withValues(alpha: 0.12),
+                            width: 0.8,
+                          ),
+                        ),
+                      ),
+                      child: AppBar(
+                        primary: false,
+                        forceMaterialTransparency: true,
+                        scrolledUnderElevation: 0,
+                        surfaceTintColor: Colors.transparent,
+                        leading: IconButton(
+                          icon: const Icon(
+                            Icons.arrow_back_ios_new_rounded,
+                            size: 20,
+                          ),
+                          tooltip: l10n.goBack,
+                          onPressed: () => Navigator.of(context).maybePop(),
+                        ),
+                        title: Text(
+                          title,
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        centerTitle: true,
+                        elevation: 0,
+                        backgroundColor: Colors.transparent,
                       ),
                     ),
-                  ),
-                  child: AppBar(
-                    primary: false,
-                    forceMaterialTransparency: true,
-                    scrolledUnderElevation: 0,
-                    surfaceTintColor: Colors.transparent,
-                    leading: IconButton(
-                      icon: const Icon(
-                        Icons.arrow_back_ios_new_rounded,
-                        size: 20,
-                      ),
-                      tooltip: l10n.goBack,
-                      onPressed: _closeSubPage,
-                    ),
-                    title: Text(
-                      title,
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    centerTitle: true,
-                    elevation: 0,
-                    backgroundColor: Colors.transparent,
                   ),
                 ),
               ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

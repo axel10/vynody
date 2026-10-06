@@ -52,6 +52,13 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
       });
       return true;
     }
+    if (_isSelectionMode ||
+        _selectedSongPaths.isNotEmpty ||
+        _selectedFolderPaths.isNotEmpty ||
+        _selectedRootPaths.isNotEmpty) {
+      _clearAllSelection();
+      return true;
+    }
     if (_navigatorKey.currentState?.canPop() ?? false) {
       _navigatorKey.currentState?.maybePop();
       return true;

@@ -255,6 +255,14 @@ class _MainLayoutState extends ConsumerState<MainLayout>
   Future<void> _handleBackPressed() async {
     if (!Platform.isAndroid) return;
 
+    // 如果当前页面之上还有 Modal/浮层路由（例如弹窗、抽屉、底部面板、上下文菜单等），优先关闭最顶层 Modal
+    final mainModalRoute = ModalRoute.of(context);
+    final rootNav = Navigator.of(context, rootNavigator: true);
+    if (mainModalRoute != null && !mainModalRoute.isCurrent) {
+      final didPop = await rootNav.maybePop();
+      if (didPop) return;
+    }
+
     // 如果在播放页，返回上一 Tab
     if (_currentIndex == 1) {
       final previousTab = ref.read(previousMainTabIndexProvider);
