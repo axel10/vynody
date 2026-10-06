@@ -2702,7 +2702,11 @@ class AudioService extends Notifier<AudioSnapshot> {
     final safeIndex = startIndex.clamp(0, songs.length - 1);
     final tracks = songs.map(_audioTrackForSong).toList(growable: false);
     final activeId = _player.playlist.activePlaylistId ?? _player.playlist.queuePlaylistId;
-    await _player.playlist.updatePlaylistTracks(activeId, tracks);
+    await _player.playlist.updatePlaylistTracks(
+      activeId,
+      tracks,
+      reconcile: false,
+    );
     await _player.playlist.playByIndex(safeIndex);
 
     final current = currentMusic;
