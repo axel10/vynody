@@ -471,7 +471,7 @@ class LyricsController extends Notifier<LyricsControllerState> {
   Future<List<LyricsCacheRecord>> getAvailableLyricRecords(MusicFile song) async {
     final query = await _support.buildLyricsQueryForSong(song);
     final cacheKey = query?.cacheKey.trim() ?? '';
-    if (cacheKey.isEmpty) return const [];
+    if (query == null || cacheKey.isEmpty) return const [];
 
     final records = <LyricsCacheRecord>[];
 
@@ -485,31 +485,16 @@ class LyricsController extends Notifier<LyricsControllerState> {
       records.add(embeddedRecord);
     }
 
-    final dbCaches = <LyricsCacheRecord>[];
-    dbCaches.addAll(await _context.lyricsCacheRepository.getLyricsCaches(cacheKey));
-    if (query?.duration != null) {
-      final sec = query!.duration!.inSeconds;
-      for (final offset in [-1, 1, -2, 2]) {
-        final altSec = sec + offset;
-        if (altSec <= 0) continue;
-        final altQuery = query.copyWith(duration: Duration(seconds: altSec));
-        final altCaches = await _context.lyricsCacheRepository.getLyricsCaches(altQuery.cacheKey);
-        for (final c in altCaches) {
-          if (!dbCaches.any((existing) => existing.source == c.source && existing.languageCode == c.languageCode)) {
-            dbCaches.add(c);
-          }
-        }
-      }
-    }
+    final dbCaches = await _context.lyricsCacheRepository.getLyricsCachesTolerant(
+      query,
+      ignoreNone: true,
+    );
 
     for (final cache in dbCaches) {
       if (cache.source == LyricsCacheSource.external && externalRecord != null) {
         continue;
       }
       if (cache.source == LyricsCacheSource.embedded && embeddedRecord != null) {
-        continue;
-      }
-      if (cache.source == LyricsCacheSource.none) {
         continue;
       }
       records.add(cache);
@@ -565,6 +550,34 @@ class LyricsController extends Notifier<LyricsControllerState> {
     if (currentSong == null) return null;
 
     return _support.songForPath(currentSong.path)?.lyrics;
+  }
+
+  /// 统一合成当前应展示的 [MusicLyric] 对象，封装暂态 liveText 与持久化 lyrics 的合并逻辑
+  MusicLyric? displayLyricsForCurrentSong() {
+    final currentSong = _currentMusic();
+    if (currentSong == null) return null;
+
+    final baseLyrics = _support.songForPath(currentSong.path)?.lyrics;
+    final liveText = state.currentLyricsText.trim();
+    if (liveText.isEmpty) {
+      return baseLyrics;
+    }
+
+    final effectiveLines = state.currentLyricsLines.isNotEmpty
+        ? state.currentLyricsLines
+        : (baseLyrics?.syncedLines ?? const []);
+
+    if (baseLyrics == null) {
+      return MusicLyric(
+        syncedLines: effectiveLines,
+        plainText: liveText,
+      );
+    }
+
+    return baseLyrics.copyWith(
+      syncedLines: effectiveLines,
+      plainText: liveText,
+    );
   }
 
   Future<String?> generateLyricsForCurrentSong() {

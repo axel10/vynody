@@ -42,6 +42,25 @@ abstract class LyricsQuery with _$LyricsQuery {
     ];
     return parts.join('|');
   }
+
+  /// 获取候选缓存键集合（包含精准 cacheKey，以及存在 duration 时 ±1s、±2s 的容差键）
+  List<String> get candidateCacheKeys {
+    final primary = cacheKey;
+    if (duration == null) {
+      return [primary];
+    }
+    final keys = <String>[primary];
+    final sec = duration!.inSeconds;
+    for (final offset in [-1, 1, -2, 2]) {
+      final altSec = sec + offset;
+      if (altSec <= 0) continue;
+      final altKey = copyWith(duration: Duration(seconds: altSec)).cacheKey;
+      if (!keys.contains(altKey)) {
+        keys.add(altKey);
+      }
+    }
+    return keys;
+  }
 }
 
 @freezed
@@ -947,33 +966,16 @@ class LyricsService {
     bool ignoreEmptyCache = false,
   }) async {
     try {
-      var record = await _cacheRepository.getLyricsCache(query.cacheKey);
-      if (record == null && query.duration != null) {
-        final sec = query.duration!.inSeconds;
-        for (final offset in [-1, 1, -2, 2]) {
-          final altSec = sec + offset;
-          if (altSec <= 0) continue;
-          final altQuery = query.copyWith(duration: Duration(seconds: altSec));
-          final altRecord = await _cacheRepository.getLyricsCache(altQuery.cacheKey);
-          if (altRecord != null && altRecord.source != LyricsCacheSource.none) {
-            record = altRecord;
-            debugPrint(
-              '[Lyrics] Tolerant cache hit (delta=${offset}s) -> key="${query.cacheKey}" matchedKey="${altQuery.cacheKey}" source=${altRecord.source.dbValue}',
-            );
-            break;
-          }
-        }
-      }
+      final record = await _cacheRepository.getLyricsCacheTolerant(
+        query,
+        ignoreNone: ignoreEmptyCache,
+      );
       if (record == null) {
         debugPrint('[Lyrics] Cache miss -> key="${query.cacheKey}"');
         return null;
       }
-      if (ignoreEmptyCache && record.source == LyricsCacheSource.none) {
-        debugPrint('[Lyrics] Cache ignored none -> key="${query.cacheKey}"');
-        return null;
-      }
       debugPrint(
-        '[Lyrics] Cache loaded from DB -> key="${query.cacheKey}" source=${record.source.dbValue} isSynced=${record.isSynced}',
+        '[Lyrics] Cache loaded from DB -> matchedKey="${record.cacheKey}" source=${record.source.dbValue} isSynced=${record.isSynced}',
       );
       return _selectionFromRecord(query, record);
     } catch (e) {

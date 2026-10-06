@@ -314,16 +314,7 @@ class LyricsControllerSupport {
     if (updatedSong == null) return;
 
     if (cacheKey.isNotEmpty) {
-      await _context.lyricsCacheRepository.clearLyricsCacheByKey(cacheKey);
-      if (query.duration != null) {
-        final sec = query.duration!.inSeconds;
-        for (final offset in [-1, 1, -2, 2]) {
-          final altSec = sec + offset;
-          if (altSec <= 0) continue;
-          final altKey = query.copyWith(duration: Duration(seconds: altSec)).cacheKey;
-          await _context.lyricsCacheRepository.clearLyricsCacheByKey(altKey);
-        }
-      }
+      await _context.lyricsCacheRepository.clearLyricsCacheTolerant(query);
     }
 
     _context.setHasLyrics(normalizedText.isNotEmpty);

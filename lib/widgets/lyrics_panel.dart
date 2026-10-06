@@ -164,41 +164,8 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
       ref.read(lyricsControllerProvider.notifier);
 
   MusicLyric? _lyricsForDisplay() {
-    return _lyricsControllerActions.currentLyricsForCurrentSong() ??
+    return _lyricsControllerActions.displayLyricsForCurrentSong() ??
         widget.lyrics;
-  }
-
-  List<LyricLine> _displayLinesForLyrics(
-    LyricsControllerState lyricsState,
-    MusicLyric? baseLyrics,
-  ) {
-    if (lyricsState.currentLyricsLines.isNotEmpty) {
-      return lyricsState.currentLyricsLines;
-    }
-    return baseLyrics?.syncedLines ?? const [];
-  }
-
-  MusicLyric? _displayLyrics(
-    LyricsControllerState lyricsState,
-    MusicLyric? baseLyrics,
-  ) {
-    final normalizedLiveText = lyricsState.currentLyricsText.trim();
-    if (normalizedLiveText.isEmpty) {
-      return baseLyrics;
-    }
-
-    final effectiveLines = _displayLinesForLyrics(lyricsState, baseLyrics);
-    if (baseLyrics == null) {
-      return MusicLyric(
-        syncedLines: effectiveLines,
-        plainText: normalizedLiveText,
-      );
-    }
-
-    return baseLyrics.copyWith(
-      syncedLines: effectiveLines,
-      plainText: normalizedLiveText,
-    );
   }
 
   LyricsSongTaskState _taskStateForSongPath(String? songPath) {
@@ -1256,12 +1223,12 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     List<LyricLine>? displayLines,
     required List<double> itemCenters,
   }) {
-    final lyricsState = ref.read(lyricsControllerProvider);
     final currentSong = ref.read(audioCurrentMusicProvider);
     final isGenerating = _taskStateForSongPath(currentSong?.path).isGenerationBusy;
     final lines =
         displayLines ??
-        _displayLinesForLyrics(lyricsState, _lyricsForDisplay());
+        _lyricsForDisplay()?.syncedLines ??
+        const [];
     if (lines.isEmpty ||
         !_hasTimedLyrics(lines) ||
         (widget.isTransitioning && !force)) {
@@ -1766,8 +1733,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     final isSmallWin = ref.watch(
       settingsServiceProvider.select((settings) => settings.isSmallWindowMode),
     );
-    final lyricsForDisplay = _lyricsForDisplay();
-    final displayLyrics = _displayLyrics(lyricsState, lyricsForDisplay);
+    final displayLyrics = _lyricsForDisplay();
     final displayLines = displayLyrics?.syncedLines ?? const [];
     final displayPlainLyrics = displayLyrics?.plainText ?? '';
     final layoutRevision = ref.watch(lyricsLayoutRevisionProvider);
