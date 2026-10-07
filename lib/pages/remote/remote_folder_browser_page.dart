@@ -449,42 +449,6 @@ class _RemoteFolderBrowserPageState
     showToast('Playing ${playlist.length} songs');
   }
 
-  Future<void> _downloadAllAudio() async {
-    final l10n = AppLocalizations.of(context)!;
-    final audioItems =
-        _items.where((i) => !i.isDirectory && i.isAudio).toList();
-    if (audioItems.isEmpty) {
-      showToast(l10n.noActiveDownloads);
-      return;
-    }
-
-    final notifier = ref.read(remoteDownloadTasksProvider.notifier);
-    await notifier.enqueueWebDavFiles(
-      server: widget.server,
-      password: widget.password,
-      files: audioItems,
-    );
-
-    if (mounted) {
-      AppSnackBar.show(
-        context,
-        ref,
-        SnackBar(
-          content: Text(l10n.batchAddedToDownloadQueue(audioItems.length)),
-          action: SnackBarAction(
-            label: l10n.viewDownloadProgress,
-            onPressed: () {
-              Navigator.of(context, rootNavigator: true).push(
-                MaterialPageRoute(
-                  builder: (_) => const RemoteDownloadManagerPage(),
-                ),
-              );
-            },
-          ),
-        ),
-      );
-    }
-  }
 
   Future<void> _downloadSingleAudio(WebDavFile item) async {
     final l10n = AppLocalizations.of(context)!;
@@ -1923,18 +1887,6 @@ class _RemoteFolderBrowserPageState
           onShufflePlay:
               audioCount > 0 ? () => _playFolder(shuffle: true) : () {},
         ),
-        if (audioCount > 0) ...[
-          const SizedBox(width: 8),
-          IconButton.outlined(
-            icon: const Icon(Icons.download_for_offline_outlined, size: 18),
-            tooltip: 'Download All Audio',
-            onPressed: _downloadAllAudio,
-            style: IconButton.styleFrom(
-              visualDensity: VisualDensity.compact,
-              padding: const EdgeInsets.all(8),
-            ),
-          ),
-        ],
       ],
       actionButtonsScrollable: false,
       isSearching: _isSearching,
