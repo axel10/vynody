@@ -17,9 +17,14 @@ import 'package:vynody/widgets/playback_ui_tuning.dart';
 export 'playback_ui_tuning.dart';
 
 class MiniPlayerWrapper extends ConsumerStatefulWidget {
-  const MiniPlayerWrapper({super.key, required this.child});
+  const MiniPlayerWrapper({
+    super.key,
+    required this.child,
+    this.tabIndex,
+  });
 
   final Widget child;
+  final int? tabIndex;
 
   @override
   ConsumerState<MiniPlayerWrapper> createState() => _MiniPlayerWrapperState();
@@ -32,6 +37,9 @@ class _MiniPlayerWrapperState extends ConsumerState<MiniPlayerWrapper> {
   Widget build(BuildContext context) {
     final currentMusic = ref.watch(audioCurrentMusicProvider);
     final settings = ref.watch(settingsServiceProvider);
+    final currentTabIndex = ref.watch(mainTabIndexProvider);
+    final activeTabIndex = widget.tabIndex ?? currentTabIndex;
+
     final bool isDesktop =
         Platform.isWindows || Platform.isLinux || Platform.isMacOS;
     final Size size = MediaQuery.of(context).size;
@@ -144,10 +152,10 @@ class _MiniPlayerWrapperState extends ConsumerState<MiniPlayerWrapper> {
           )
         else
           FloatingDockBottomBar(
-            currentIndex: 0,
+            currentIndex: activeTabIndex,
             onDestinationSelected: (index) async {
-              if (index == 0) {
-                Navigator.of(context).popUntil((route) => route.isFirst);
+              // 在二级页面内点击当前所在的主 tab 保持当前页面，不做任何操作
+              if (index == activeTabIndex) {
                 return;
               }
               if (index == 5) {
