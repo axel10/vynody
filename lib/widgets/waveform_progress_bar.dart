@@ -56,6 +56,7 @@ class _WaveformProgressBarState extends ConsumerState<WaveformProgressBar>
   double? _hoverProgress;
   double _dragStartX = 0;
   double _dragStartProgress = 0;
+  double _lastDragDistance = 0;
 
   late AnimationController _animationController;
   late AnimationController _inertiaController;
@@ -193,7 +194,11 @@ class _WaveformProgressBarState extends ConsumerState<WaveformProgressBar>
     });
   }
 
-  void _startInertia(double velocityX, double totalWaveformWidth) {
+  void _startInertia(
+    double velocityX,
+    double totalWaveformWidth, {
+    double dragDistance = 0.0,
+  }) {
     _cancelEndOfSongSeekTimer();
     _inertiaController.stop();
     _isInertia = true;
@@ -202,17 +207,44 @@ class _WaveformProgressBarState extends ConsumerState<WaveformProgressBar>
     _inertiaTotalWaveformWidth = math.max(1.0, totalWaveformWidth);
     _inertiaController.value = 0.0;
 
-    // Apply gentle velocity scaling and clamping so the waveform slides only a short distance
-    // without accidental large skips across songs.
-    final double dampedVelocity = (velocityX * 0.35).clamp(-800.0, 800.0);
+    // Distinguish between short/medium-distance swipes and full long fast flings:
+    // - Short to medium swipes (< 180px drag displacement or moderate velocity):
+    //   strictly finishes in ~0.2s - 0.45s (never exceeding 0.5s).
+    // - Long fast fling (>= 180px drag displacement + >= 1200 px/s velocity):
+    //   smooth, continuous glide with ample momentum to traverse across the whole song.
+    final double distFactor = ((dragDistance - 180.0) / 140.0).clamp(0.0, 1.0);
+    final double speedFactor =
+        ((velocityX.abs() - 1200.0) / 1600.0).clamp(0.0, 1.0);
+    final double longSwipeIntensity = distFactor * speedFactor;
 
-    // Damping factor (0.035) with practical velocity tolerance so it slides smoothly
-    // for a short distance and finishes as soon as velocity drops below 15 px/s.
+    final double drag;
+    final double dampedVelocity;
+    final Tolerance tolerance;
+
+    if (longSwipeIntensity > 0.0) {
+      // Long fast swipe: continuous glide capable of traversing the entire song
+      final double intensity = math.pow(longSwipeIntensity, 1.2).toDouble();
+      drag = lerpDouble(0.005, 0.065, intensity)!;
+      final double dragLog = -math.log(drag);
+      final double allowedTravel = _inertiaTotalWaveformWidth * 1.25;
+      final double maxVelocity = allowedTravel * dragLog;
+      final double rawVelocity = velocityX.abs() * (0.6 + 1.4 * intensity);
+      final double clampedVel = rawVelocity.clamp(0.0, maxVelocity);
+      dampedVelocity = velocityX < 0 ? -clampedVel : clampedVel;
+      tolerance = const Tolerance(velocity: 18.0, distance: 0.5);
+    } else {
+      // Short and medium swipes: high deceleration strictly stopping in <= 0.45s (< 0.5s)
+      drag = 0.0003;
+      final double clampedVel = (velocityX.abs() * 0.35).clamp(0.0, 900.0);
+      dampedVelocity = velocityX < 0 ? -clampedVel : clampedVel;
+      tolerance = const Tolerance(velocity: 24.0, distance: 0.5);
+    }
+
     final simulation = FrictionSimulation(
-      0.035,
+      drag,
       0.0,
       dampedVelocity,
-      tolerance: const Tolerance(velocity: 15.0, distance: 0.5),
+      tolerance: tolerance,
     );
 
     _inertiaController.animateWith(simulation);
@@ -436,6 +468,7 @@ class _WaveformProgressBarState extends ConsumerState<WaveformProgressBar>
               _stopInertia();
               _isDragging = true;
               _dragStartX = details.localPosition.dx;
+              _lastDragDistance = 0.0;
               _dragStartProgress = _smoothProgressNotifier.value;
               if (!widget.isScrolling) {
                 final double newProgress = (details.localPosition.dx / width)
@@ -453,6 +486,7 @@ class _WaveformProgressBarState extends ConsumerState<WaveformProgressBar>
             },
             onHorizontalDragUpdate: (details) {
               final double deltaX = details.localPosition.dx - _dragStartX;
+              _lastDragDistance = deltaX.abs();
               double newProgress;
 
               if (widget.isScrolling) {
@@ -486,7 +520,11 @@ class _WaveformProgressBarState extends ConsumerState<WaveformProgressBar>
               if (widget.isScrolling &&
                   velocityX.abs() >= minInertiaVelocity &&
                   totalWaveformWidth > 0) {
-                _startInertia(velocityX, totalWaveformWidth);
+                _startInertia(
+                  velocityX,
+                  totalWaveformWidth,
+                  dragDistance: _lastDragDistance,
+                );
               } else {
                 _isDragging = false;
                 widget.onSeek(_smoothProgressNotifier.value);
