@@ -1248,7 +1248,17 @@ class _RemoteFolderBrowserPageState
     // Current folder display name & subtitle
     final folderDisplayName =
         _isAtRoot ? widget.server.name : p.basename(_currentPath);
-    final folderDisplaySubtitle = _currentPath;
+    final String folderDisplaySubtitle;
+    if (_isAtRoot) {
+      folderDisplaySubtitle = '';
+    } else {
+      final segments = _pathSegments;
+      if (segments.length > 1) {
+        folderDisplaySubtitle = segments[segments.length - 2];
+      } else {
+        folderDisplaySubtitle = widget.server.name;
+      }
+    }
 
     // Search filtering within current directory
     final lowercaseQuery = _searchQuery.toLowerCase();

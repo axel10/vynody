@@ -417,7 +417,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
             builder: (context, isCoverVisible, _) {
               return FolderHeaderBanner(
             title: folder.name,
-            subtitle: ScannerPathUtils.cleanDisplayPath(folder.path),
+            subtitle: _getParentFolderName(folder, scanner),
             songsCount: folder.allSongs.length,
             totalDuration: Duration(milliseconds: totalDurationMs),
             coverImagePath: representativeSong?.thumbnailPath ?? (representativeSong != null ? scanner.metadataMap[representativeSong.path]?.thumbnailPath : null),
@@ -821,6 +821,33 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
     }
 
     return scaffold;
+  }
+
+  String _getParentFolderName(MusicFolder current, ScannerService scanner) {
+    final history = widget.navigationHistory ?? scanner.navigationHistory;
+    for (int i = history.length - 1; i >= 0; i--) {
+      if (!ScannerPathUtils.pathsEqual(history[i].path, current.path)) {
+        return history[i].name;
+      }
+    }
+    final chain = scanner.findFolderChain(current.path);
+    if (chain != null && chain.length > 1) {
+      return chain[chain.length - 2].name;
+    }
+    if (current.path == 'system') return '';
+    for (final root in scanner.rootFolders) {
+      if (ScannerPathUtils.pathsEqual(root.path, current.path)) {
+        return '';
+      }
+    }
+    final parentDir = p.dirname(current.path);
+    if (parentDir.isNotEmpty &&
+        parentDir != current.path &&
+        parentDir != '.' &&
+        parentDir != '/') {
+      return p.basename(parentDir);
+    }
+    return '';
   }
 
   Widget _buildBreadcrumbs(MusicFolder current, ScannerService scanner, {bool isOverlay = false}) {

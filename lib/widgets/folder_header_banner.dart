@@ -980,8 +980,6 @@ class _BannerInfoColumn extends StatelessWidget {
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            textDirection: TextDirection.rtl,
-            textAlign: TextAlign.left,
           ),
         ],
         const SizedBox(height: 6),
