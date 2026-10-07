@@ -575,19 +575,36 @@ void main() {
       expect(settings.lyricsFontFamily, 'LXGW WenKai');
     });
 
-    test('isVisualizerEnabled defaults to true and persists changes', () async {
-      SharedPreferences.setMockInitialValues({});
-      final prefs = await SharedPreferences.getInstance();
-      final settings = SettingsService(prefs);
+    test('isVisualizerEnabled defaults to false on mobile and true on desktop, and persists changes', () async {
+      final initialPlatform = debugDefaultTargetPlatformOverride;
+      try {
+        debugDefaultTargetPlatformOverride = TargetPlatform.android;
+        SharedPreferences.setMockInitialValues({});
+        var prefs = await SharedPreferences.getInstance();
+        var settings = SettingsService(prefs);
+        expect(settings.isVisualizerEnabled, isFalse);
 
-      expect(settings.isVisualizerEnabled, isTrue);
+        debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+        SharedPreferences.setMockInitialValues({});
+        prefs = await SharedPreferences.getInstance();
+        settings = SettingsService(prefs);
+        expect(settings.isVisualizerEnabled, isFalse);
 
-      settings.isVisualizerEnabled = false;
-      expect(settings.isVisualizerEnabled, isFalse);
-      expect(prefs.getBool('visualizer_enabled'), isFalse);
+        debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
+        SharedPreferences.setMockInitialValues({});
+        prefs = await SharedPreferences.getInstance();
+        settings = SettingsService(prefs);
+        expect(settings.isVisualizerEnabled, isTrue);
 
-      final reloadedSettings = SettingsService(prefs);
-      expect(reloadedSettings.isVisualizerEnabled, isFalse);
+        settings.isVisualizerEnabled = false;
+        expect(settings.isVisualizerEnabled, isFalse);
+        expect(prefs.getBool('visualizer_enabled'), isFalse);
+
+        final reloadedSettings = SettingsService(prefs);
+        expect(reloadedSettings.isVisualizerEnabled, isFalse);
+      } finally {
+        debugDefaultTargetPlatformOverride = initialPlatform;
+      }
     });
   });
 }

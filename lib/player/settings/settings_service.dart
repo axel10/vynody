@@ -1507,7 +1507,9 @@ class SettingsService extends ChangeNotifier {
 
   late final _visualizerEnabledProperty = SettingProperty<bool>(
     key: _keyVisualizerEnabled,
-    defaultValue: true,
+    defaultValue:
+        !(defaultTargetPlatform == TargetPlatform.android ||
+            defaultTargetPlatform == TargetPlatform.iOS),
     prefs: _prefs,
     onChanged: notifyListeners,
   );
