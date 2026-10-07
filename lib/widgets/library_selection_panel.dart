@@ -313,6 +313,7 @@ class _LibrarySelectionPanelState extends ConsumerState<LibrarySelectionPanel> {
               icon: Icons.delete_outline_rounded,
               label: widget.deleteLabel ?? l10n.delete,
               onPressed: isEmpty ? null : widget.onDelete,
+              isDestructive: true,
             ),
           );
         }
@@ -476,6 +477,7 @@ class _LibrarySelectionPanelState extends ConsumerState<LibrarySelectionPanel> {
               icon: Icons.delete_outline_rounded,
               label: widget.deleteLabel ?? l10n.delete,
               onPressed: isEmpty ? null : widget.onDelete,
+              isDestructive: true,
             ),
           );
         }
@@ -624,9 +626,15 @@ class _LibrarySelectionPanelState extends ConsumerState<LibrarySelectionPanel> {
     required IconData icon,
     required String label,
     required VoidCallback? onPressed,
+    Color? iconColor,
+    bool isDestructive = false,
   }) {
     final theme = Theme.of(context);
     final isEnabled = onPressed != null;
+    final effectiveIconColor = iconColor ??
+        (isDestructive
+            ? theme.colorScheme.error
+            : theme.colorScheme.onSurface);
     return SizedBox(
       height: _singleRowHeight,
       child: Opacity(
@@ -634,7 +642,9 @@ class _LibrarySelectionPanelState extends ConsumerState<LibrarySelectionPanel> {
         child: TextButton(
           onPressed: onPressed,
           style: TextButton.styleFrom(
-            foregroundColor: theme.colorScheme.onSurface,
+            foregroundColor: isDestructive
+                ? theme.colorScheme.error
+                : theme.colorScheme.onSurface,
             padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
@@ -644,7 +654,7 @@ class _LibrarySelectionPanelState extends ConsumerState<LibrarySelectionPanel> {
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 22, color: theme.colorScheme.primary),
+              Icon(icon, size: 22, color: effectiveIconColor),
               const SizedBox(height: 3),
               Text(
                 label,

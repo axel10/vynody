@@ -563,7 +563,7 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
                     ),
                     onPressed: () => _toggleSelectAll(queueLength),
                     visualDensity: VisualDensity.compact,
-                    color: theme.colorScheme.primary,
+                    color: theme.colorScheme.onSurface,
                   ),
                 ),
                 if (_selectedIndices.isNotEmpty) ...[
@@ -573,7 +573,7 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
                       icon: const Icon(Icons.playlist_add_rounded, size: 20),
                       onPressed: () => _addSelectedToPlaylist(context, queue),
                       visualDensity: VisualDensity.compact,
-                      color: theme.colorScheme.primary,
+                      color: theme.colorScheme.onSurface,
                     ),
                   ),
                   AppTooltip(

@@ -13,7 +13,6 @@ import 'package:vynody/utils/playback_utils.dart';
 import 'package:vynody/utils/song_context_menu_utils.dart';
 
 import '../../l10n/app_localizations.dart';
-import '../../widgets/song_thumbnail.dart';
 import '../../widgets/album_cover.dart';
 import '../../widgets/remote_media_badge.dart';
 import '../../widgets/volume_controls.dart';
@@ -159,7 +158,7 @@ class _AlbumCoverFlowQuickDetailDialogState
                         icon,
                         size: 20,
                         color: isEnabled
-                            ? theme.colorScheme.primary
+                            ? theme.colorScheme.onSurface
                             : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.35),
                       ),
                       const SizedBox(height: 3),
