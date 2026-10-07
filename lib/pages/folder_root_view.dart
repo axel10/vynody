@@ -13,6 +13,7 @@ import '../widgets/library_selection_panel.dart';
 import '../widgets/library_selection_scope.dart';
 import '../widgets/folder_header_banner.dart';
 import '../widgets/song_thumbnail.dart';
+import '../widgets/default_cover_art.dart';
 import 'package:vynody/player/remote/remote_server_models.dart';
 import 'package:vynody/player/remote/remote_server_riverpod.dart';
 import 'package:vynody/utils/song_context_menu_utils.dart';
@@ -353,21 +354,11 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
                     height: 100,
                     borderRadius: BorderRadius.zero,
                   )
-                : Container(
+                : const SizedBox(
                     width: 100,
                     height: 100,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          HSLColor.fromAHSL(1.0, ('root'.hashCode.abs() % 360).toDouble(), 0.65, 0.45).toColor(),
-                          HSLColor.fromAHSL(1.0, (('root'.hashCode.abs() % 360 + 40) % 360).toDouble(), 0.75, 0.35).toColor(),
-                        ],
-                      ),
-                    ),
-                    child: const Center(
-                      child: Icon(Icons.library_music_rounded, size: 40, color: Colors.white70),
+                    child: DefaultCoverArt.systemFolder(
+                      iconSize: 40,
                     ),
                   ),
             actionButtons: [

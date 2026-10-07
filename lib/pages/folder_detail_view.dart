@@ -16,6 +16,7 @@ import 'package:vynody/utils/song_context_menu_utils.dart';
 import '../widgets/library_selection_panel.dart';
 import '../widgets/folder_header_banner.dart';
 import '../widgets/song_thumbnail.dart';
+import '../widgets/default_cover_art.dart';
 import 'package:vynody/player/settings/settings_service.dart';
 import 'package:vynody/utils/folder_helpers.dart';
 import 'package:vynody/utils/selection_utils.dart';
@@ -423,21 +424,12 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
             coverImagePath: representativeSong?.thumbnailPath ?? (representativeSong != null ? scanner.metadataMap[representativeSong.path]?.thumbnailPath : null),
             topHeader: isPortrait ? SizedBox(height: headerHeight) : null,
             coverWidget: () {
-              final defaultCover = Container(
+              final defaultCover = SizedBox(
                 width: 100,
                 height: 100,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      HSLColor.fromAHSL(1.0, (folder.path.hashCode.abs() % 360).toDouble(), 0.65, 0.45).toColor(),
-                      HSLColor.fromAHSL(1.0, ((folder.path.hashCode.abs() % 360 + 40) % 360).toDouble(), 0.75, 0.35).toColor(),
-                    ],
-                  ),
-                ),
-                child: const Center(
-                  child: Icon(Icons.folder_rounded, size: 40, color: Colors.white70),
+                child: DefaultCoverArt.folder(
+                  isSystem: folder.path == 'system',
+                  iconSize: 42,
                 ),
               );
               if (representativeSong != null) {

@@ -14,6 +14,7 @@ import 'package:vynody/player/metadata/metadata_helper.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/models/album_summary.dart';
 import 'package:vynody/player/scanner/scanner_path_utils.dart';
+import 'default_cover_art.dart';
 
 class SongThumbnail extends ConsumerStatefulWidget {
   final String path;
@@ -524,25 +525,11 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
         ),
       );
     }
-    return Container(
+    return SizedBox(
       width: width,
       height: height,
-      decoration: BoxDecoration(
-        color: Colors.blue.withValues(alpha: 0.1),
+      child: DefaultCoverArt.song(
         borderRadius: radius,
-      ),
-      child: Center(
-        child: FittedBox(
-          fit: BoxFit.contain,
-          child: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Icon(
-              Icons.music_note,
-              color: Colors.blue,
-              size: 48,
-            ),
-          ),
-        ),
       ),
     );
   }

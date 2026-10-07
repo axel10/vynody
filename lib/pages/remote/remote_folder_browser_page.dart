@@ -34,6 +34,7 @@ import '../../widgets/folder_layout_utils.dart';
 import '../../widgets/folder_content_slivers.dart';
 import '../../widgets/mini_player_wrapper.dart';
 import '../../widgets/song_thumbnail.dart';
+import '../../widgets/default_cover_art.dart';
 import 'remote_download_manager_page.dart';
 import 'widgets/webdav_content_slivers.dart';
 import '../../utils/selection_utils.dart';
@@ -1250,13 +1251,6 @@ class _RemoteFolderBrowserPageState
     final noSearchResults =
         _searchQuery.isNotEmpty && displayedItems.isEmpty && !_isLoading;
 
-    // Build Banner cover widget
-    final int hash = _currentPath.hashCode;
-    final double hue = (hash.abs() % 360).toDouble();
-    final Color startColor = HSLColor.fromAHSL(1.0, hue, 0.65, 0.45).toColor();
-    final Color endColor =
-        HSLColor.fromAHSL(1.0, (hue + 40) % 360, 0.75, 0.35).toColor();
-
     final Widget bannerCoverWidget = bannerCoverThumbnailPath != null
         ? SongThumbnail(
             path: bannerCoverVirtualUri!,
@@ -1266,19 +1260,11 @@ class _RemoteFolderBrowserPageState
             height: 100,
             borderRadius: BorderRadius.zero,
           )
-        : Container(
+        : const SizedBox(
             width: 100,
             height: 100,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [startColor, endColor],
-              ),
-            ),
-            child: const Center(
-              child: Icon(Icons.cloud_queue_rounded,
-                  size: 42, color: Colors.white70),
+            child: DefaultCoverArt.cloudFolder(
+              iconSize: 42,
             ),
           );
 

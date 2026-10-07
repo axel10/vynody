@@ -4,6 +4,7 @@ import '../models/music_file.dart';
 import '../models/music_folder.dart';
 import '../l10n/app_localizations.dart';
 import '../widgets/song_thumbnail.dart';
+import 'default_cover_art.dart';
 import 'draggable_folder_item.dart';
 
 class FolderGridCard extends StatelessWidget {
@@ -44,32 +45,10 @@ class FolderGridCard extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
 
-    final int hash = folder.path.hashCode;
-    final double hue = (hash.abs() % 360).toDouble();
-    final Color startColor = HSLColor.fromAHSL(1.0, hue, 0.65, 0.45).toColor();
-    final Color endColor = HSLColor.fromAHSL(1.0, (hue + 40) % 360, 0.75, 0.35).toColor();
-
     final isSystem = folder.path == 'system';
-    final defaultCoverWidget = Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: isSystem
-              ? [
-                  Colors.purple.shade700,
-                  Colors.deepPurple.shade900,
-                ]
-              : [startColor, endColor],
-        ),
-      ),
-      child: Center(
-        child: Icon(
-          isSystem ? Icons.library_music_rounded : Icons.folder_rounded,
-          size: 48,
-          color: Colors.white.withValues(alpha: 0.85),
-        ),
-      ),
+    final defaultCoverWidget = DefaultCoverArt.folder(
+      isSystem: isSystem,
+      iconSize: 48,
     );
 
     Widget coverWidget;
