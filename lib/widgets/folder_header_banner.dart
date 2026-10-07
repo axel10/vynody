@@ -331,64 +331,67 @@ class _FolderLandscapeHeaderBanner extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 16),
-                  AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 200),
-                    child: isSearching
-                        ? Row(
-                            key: const ValueKey('wide-search-active'),
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              SizedBox(
-                                width: 260,
-                                child: _BannerSearchTextField(
-                                  controller: searchController,
-                                  hintText: searchHintText,
-                                  query: searchQuery,
-                                  onChanged: onSearchQueryChanged,
-                                  compact: true,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              IconButton(
-                                icon: const Icon(Icons.close_rounded, size: 20),
-                                onPressed: () {
-                                  searchController.clear();
-                                  onSearchQueryChanged('');
-                                  onToggleSearch(false);
-                                },
-                                style: IconButton.styleFrom(
-                                  minimumSize: const Size(32, 32),
-                                  padding: EdgeInsets.zero,
-                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                  visualDensity: VisualDensity.compact,
-                                ),
-                              ),
-                            ],
-                          )
-                        : Row(
-                            key: const ValueKey('wide-actions-normal'),
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              if (actionButtonsScrollable)
-                                Flexible(
-                                  child: SingleChildScrollView(
-                                    scrollDirection: Axis.horizontal,
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: actionButtons,
-                                    ),
+                  _FolderBannerActionScope(
+                    isLandscape: true,
+                    hasImage: false,
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 200),
+                      child: isSearching
+                          ? Row(
+                              key: const ValueKey('wide-search-active'),
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                SizedBox(
+                                  width: 260,
+                                  child: _BannerSearchTextField(
+                                    controller: searchController,
+                                    hintText: searchHintText,
+                                    query: searchQuery,
+                                    onChanged: onSearchQueryChanged,
+                                    compact: true,
                                   ),
-                                )
-                              else
-                                ...actionButtons,
-                              const SizedBox(width: 8),
-                              _BannerSearchIconButton(
-                                onPressed: () => onToggleSearch(true),
-                                tooltip: l10n.search,
-                                isWhite: false,
-                              ),
-                            ],
-                          ),
+                                ),
+                                const SizedBox(width: 8),
+                                IconButton(
+                                  icon: const Icon(Icons.close_rounded, size: 20),
+                                  onPressed: () {
+                                    searchController.clear();
+                                    onSearchQueryChanged('');
+                                    onToggleSearch(false);
+                                  },
+                                  style: IconButton.styleFrom(
+                                    minimumSize: const Size(32, 32),
+                                    padding: EdgeInsets.zero,
+                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                    visualDensity: VisualDensity.compact,
+                                  ),
+                                ),
+                              ],
+                            )
+                          : Row(
+                              key: const ValueKey('wide-actions-normal'),
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (actionButtonsScrollable)
+                                  Flexible(
+                                    child: SingleChildScrollView(
+                                      scrollDirection: Axis.horizontal,
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: actionButtons,
+                                      ),
+                                    ),
+                                  )
+                                else
+                                  ...actionButtons,
+                                const SizedBox(width: 8),
+                                _BannerSearchIconButton(
+                                  onPressed: () => onToggleSearch(true),
+                                  tooltip: l10n.search,
+                                ),
+                              ],
+                            ),
+                    ),
                   ),
                 ],
               )
@@ -413,55 +416,58 @@ class _FolderLandscapeHeaderBanner extends StatelessWidget {
                   const SizedBox(height: 12),
                   const Divider(height: 1),
                   const SizedBox(height: 12),
-                  AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 200),
-                    child: isSearching
-                        ? Row(
-                            key: const ValueKey('search-active-row'),
-                            children: [
-                              Expanded(
-                                child: _BannerSearchTextField(
-                                  controller: searchController,
-                                  hintText: searchHintText,
-                                  query: searchQuery,
-                                  onChanged: onSearchQueryChanged,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              IconButton(
-                                icon: const Icon(Icons.close_rounded),
-                                onPressed: () {
-                                  searchController.clear();
-                                  onSearchQueryChanged('');
-                                  onToggleSearch(false);
-                                },
-                              ),
-                            ],
-                          )
-                        : Row(
-                            key: const ValueKey('actions-normal-row'),
-                            children: [
-                              if (actionButtonsScrollable)
+                  _FolderBannerActionScope(
+                    isLandscape: true,
+                    hasImage: false,
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 200),
+                      child: isSearching
+                          ? Row(
+                              key: const ValueKey('search-active-row'),
+                              children: [
                                 Expanded(
-                                  child: SingleChildScrollView(
-                                    scrollDirection: Axis.horizontal,
-                                    child: Row(
-                                      children: actionButtons,
-                                    ),
+                                  child: _BannerSearchTextField(
+                                    controller: searchController,
+                                    hintText: searchHintText,
+                                    query: searchQuery,
+                                    onChanged: onSearchQueryChanged,
                                   ),
-                                )
-                              else ...[
-                                ...actionButtons,
-                                const Spacer(),
+                                ),
+                                const SizedBox(width: 8),
+                                IconButton(
+                                  icon: const Icon(Icons.close_rounded),
+                                  onPressed: () {
+                                    searchController.clear();
+                                    onSearchQueryChanged('');
+                                    onToggleSearch(false);
+                                  },
+                                ),
                               ],
-                              const SizedBox(width: 8),
-                              _BannerSearchIconButton(
-                                onPressed: () => onToggleSearch(true),
-                                tooltip: l10n.search,
-                                isWhite: false,
-                              ),
-                            ],
-                          ),
+                            )
+                          : Row(
+                              key: const ValueKey('actions-normal-row'),
+                              children: [
+                                if (actionButtonsScrollable)
+                                  Expanded(
+                                    child: SingleChildScrollView(
+                                      scrollDirection: Axis.horizontal,
+                                      child: Row(
+                                        children: actionButtons,
+                                      ),
+                                    ),
+                                  )
+                                else ...[
+                                  ...actionButtons,
+                                  const Spacer(),
+                                ],
+                                const SizedBox(width: 8),
+                                _BannerSearchIconButton(
+                                  onPressed: () => onToggleSearch(true),
+                                  tooltip: l10n.search,
+                                ),
+                              ],
+                            ),
+                    ),
                   ),
                 ],
               );
@@ -733,62 +739,65 @@ class _FolderPortraitHeaderBanner extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(width: 16),
-                          AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 200),
-                            child: isSearching
-                                ? Row(
-                                    key: const ValueKey('wide-search-active'),
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      SizedBox(
-                                        width: 260,
-                                        child: _BannerSearchTextField(
-                                          controller: searchController,
-                                          hintText: searchHintText,
-                                          query: searchQuery,
-                                          onChanged: onSearchQueryChanged,
-                                          compact: true,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      IconButton(
-                                        icon: Icon(
-                                          Icons.close_rounded,
-                                          size: 20,
-                                          color: (hasImage && isDark) ? Colors.white : theme.colorScheme.onSurface,
-                                        ),
-                                        onPressed: () {
-                                          searchController.clear();
-                                          onSearchQueryChanged('');
-                                          onToggleSearch(false);
-                                        },
-                                      ),
-                                    ],
-                                  )
-                                : Row(
-                                    key: const ValueKey('wide-actions-normal'),
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      if (actionButtonsScrollable)
-                                        Flexible(
-                                          child: SingleChildScrollView(
-                                            scrollDirection: Axis.horizontal,
-                                            child: Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: actionButtons,
-                                            ),
+                          _FolderBannerActionScope(
+                            isLandscape: false,
+                            hasImage: hasImage,
+                            child: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 200),
+                              child: isSearching
+                                  ? Row(
+                                      key: const ValueKey('wide-search-active'),
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        SizedBox(
+                                          width: 260,
+                                          child: _BannerSearchTextField(
+                                            controller: searchController,
+                                            hintText: searchHintText,
+                                            query: searchQuery,
+                                            onChanged: onSearchQueryChanged,
+                                            compact: true,
                                           ),
-                                        )
-                                      else
-                                        ...actionButtons,
-                                      const SizedBox(width: 8),
-                                      _BannerSearchIconButton(
-                                        onPressed: () => onToggleSearch(true),
-                                        tooltip: l10n.search,
-                                        isWhite: hasImage && isDark,
-                                      ),
-                                    ],
-                                  ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        IconButton(
+                                          icon: Icon(
+                                            Icons.close_rounded,
+                                            size: 20,
+                                            color: (hasImage && isDark) ? Colors.white : theme.colorScheme.onSurface,
+                                          ),
+                                          onPressed: () {
+                                            searchController.clear();
+                                            onSearchQueryChanged('');
+                                            onToggleSearch(false);
+                                          },
+                                        ),
+                                      ],
+                                    )
+                                  : Row(
+                                      key: const ValueKey('wide-actions-normal'),
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        if (actionButtonsScrollable)
+                                          Flexible(
+                                            child: SingleChildScrollView(
+                                              scrollDirection: Axis.horizontal,
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: actionButtons,
+                                              ),
+                                            ),
+                                          )
+                                        else
+                                          ...actionButtons,
+                                        const SizedBox(width: 8),
+                                        _BannerSearchIconButton(
+                                          onPressed: () => onToggleSearch(true),
+                                          tooltip: l10n.search,
+                                        ),
+                                      ],
+                                    ),
+                            ),
                           ),
                         ],
                       ),
@@ -834,63 +843,66 @@ class _FolderPortraitHeaderBanner extends StatelessWidget {
                       const SizedBox(height: 14),
 
                       // Actions / Search Row
-                      AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 200),
-                        child: isSearching
-                            ? Row(
-                                key: const ValueKey('search-active-row'),
-                                children: [
-                                  Expanded(
-                                    child: _BannerSearchTextField(
-                                      controller: searchController,
-                                      hintText: searchHintText,
-                                      query: searchQuery,
-                                      onChanged: onSearchQueryChanged,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  IconButton(
-                                    icon: Icon(
-                                      Icons.close_rounded,
-                                      color: (hasImage && isDark) ? Colors.white : theme.colorScheme.onSurface,
-                                      shadows: (hasImage && isDark)
-                                          ? const [
-                                              Shadow(offset: Offset(0, 1), blurRadius: 4, color: Colors.black87),
-                                            ]
-                                          : null,
-                                    ),
-                                    onPressed: () {
-                                      searchController.clear();
-                                      onSearchQueryChanged('');
-                                      onToggleSearch(false);
-                                    },
-                                  ),
-                                ],
-                              )
-                            : Row(
-                                key: const ValueKey('actions-normal-row'),
-                                children: [
-                                  if (actionButtonsScrollable)
+                      _FolderBannerActionScope(
+                        isLandscape: false,
+                        hasImage: hasImage,
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 200),
+                          child: isSearching
+                              ? Row(
+                                  key: const ValueKey('search-active-row'),
+                                  children: [
                                     Expanded(
-                                      child: SingleChildScrollView(
-                                        scrollDirection: Axis.horizontal,
-                                        child: Row(
-                                          children: actionButtons,
-                                        ),
+                                      child: _BannerSearchTextField(
+                                        controller: searchController,
+                                        hintText: searchHintText,
+                                        query: searchQuery,
+                                        onChanged: onSearchQueryChanged,
                                       ),
-                                    )
-                                  else ...[
-                                    ...actionButtons,
-                                    const Spacer(),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    IconButton(
+                                      icon: Icon(
+                                        Icons.close_rounded,
+                                        color: (hasImage && isDark) ? Colors.white : theme.colorScheme.onSurface,
+                                        shadows: (hasImage && isDark)
+                                            ? const [
+                                                Shadow(offset: Offset(0, 1), blurRadius: 4, color: Colors.black87),
+                                              ]
+                                            : null,
+                                      ),
+                                      onPressed: () {
+                                        searchController.clear();
+                                        onSearchQueryChanged('');
+                                        onToggleSearch(false);
+                                      },
+                                    ),
                                   ],
-                                  const SizedBox(width: 8),
-                                  _BannerSearchIconButton(
-                                    onPressed: () => onToggleSearch(true),
-                                    tooltip: l10n.search,
-                                    isWhite: hasImage && isDark,
-                                  ),
-                                ],
-                              ),
+                                )
+                              : Row(
+                                  key: const ValueKey('actions-normal-row'),
+                                  children: [
+                                    if (actionButtonsScrollable)
+                                      Expanded(
+                                        child: SingleChildScrollView(
+                                          scrollDirection: Axis.horizontal,
+                                          child: Row(
+                                            children: actionButtons,
+                                          ),
+                                        ),
+                                      )
+                                    else ...[
+                                      ...actionButtons,
+                                      const Spacer(),
+                                    ],
+                                    const SizedBox(width: 8),
+                                    _BannerSearchIconButton(
+                                      onPressed: () => onToggleSearch(true),
+                                      tooltip: l10n.search,
+                                    ),
+                                  ],
+                                ),
+                        ),
                       ),
                     ],
                   ],
@@ -1049,36 +1061,88 @@ class _BannerSearchTextField extends StatelessWidget {
   }
 }
 
+/// Context scope for banner actions to coordinate landscape/portrait styling
+class _FolderBannerActionScope extends InheritedWidget {
+  const _FolderBannerActionScope({
+    required this.isLandscape,
+    required this.hasImage,
+    required super.child,
+  });
+
+  final bool isLandscape;
+  final bool hasImage;
+
+  static _FolderBannerActionScope? of(BuildContext context) {
+    return context.dependOnInheritedWidgetOfExactType<_FolderBannerActionScope>();
+  }
+
+  @override
+  bool updateShouldNotify(_FolderBannerActionScope oldWidget) {
+    return isLandscape != oldWidget.isLandscape || hasImage != oldWidget.hasImage;
+  }
+}
+
 /// Search Icon Button Sub-widget
 class _BannerSearchIconButton extends StatelessWidget {
   const _BannerSearchIconButton({
     required this.onPressed,
     required this.tooltip,
-    this.isWhite = false,
   });
 
   final VoidCallback onPressed;
   final String tooltip;
-  final bool isWhite;
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final scope = _FolderBannerActionScope.of(context);
+    final isLandscape = scope?.isLandscape ?? (MediaQuery.of(context).orientation == Orientation.landscape);
+    final hasImage = scope?.hasImage ?? false;
     final isLargeScreen = MediaQuery.of(context).size.width >= 1000;
+    final buttonHeight = isLargeScreen ? 38.0 : 32.0;
+    final iconSize = isLargeScreen ? 18.0 : 16.0;
+
+    final Color bgColor;
+    final Color fgColor;
+    final BorderSide? borderSide;
+
+    if (isLandscape) {
+      // Landscape: secondaryContainer matching shuffle button
+      bgColor = theme.colorScheme.secondaryContainer;
+      fgColor = theme.colorScheme.onSecondaryContainer;
+      borderSide = null;
+    } else {
+      if (hasImage && isDark) {
+        bgColor = Colors.white.withValues(alpha: 0.14);
+        fgColor = Colors.white.withValues(alpha: 0.9);
+        borderSide = BorderSide(color: Colors.white.withValues(alpha: 0.15), width: 0.8);
+      } else if (hasImage && !isDark) {
+        bgColor = theme.colorScheme.onSurface.withValues(alpha: 0.07);
+        fgColor = theme.colorScheme.onSurfaceVariant;
+        borderSide = BorderSide(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2), width: 0.8);
+      } else {
+        bgColor = theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.6);
+        fgColor = theme.colorScheme.onSurfaceVariant;
+        borderSide = BorderSide(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2), width: 0.8);
+      }
+    }
+
     return IconButton(
       onPressed: onPressed,
       icon: Icon(
         Icons.search_rounded,
-        size: isLargeScreen ? 18 : 16,
-        color: isWhite ? Colors.white : null,
-        shadows: isWhite
-            ? const [
-                Shadow(offset: Offset(0, 1), blurRadius: 4, color: Colors.black87),
-              ]
-            : null,
+        size: iconSize,
+        color: fgColor,
       ),
       tooltip: tooltip,
       style: IconButton.styleFrom(
-        minimumSize: Size(isLargeScreen ? 38 : 32, isLargeScreen ? 38 : 32),
+        backgroundColor: bgColor,
+        foregroundColor: fgColor,
+        side: borderSide,
+        shape: const StadiumBorder(),
+        minimumSize: Size(buttonHeight, buttonHeight),
+        maximumSize: Size(buttonHeight, buttonHeight),
         padding: EdgeInsets.zero,
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         visualDensity: VisualDensity.compact,
@@ -1093,77 +1157,167 @@ class FolderPlayActionButtons extends StatelessWidget {
     required this.onPlayAll,
     required this.onShufflePlay,
     required this.totalSongsCount,
+    this.primaryPlayInLandscape = true,
+    this.showLabels,
   });
 
   final FutureOr<void> Function()? onPlayAll;
   final FutureOr<void> Function()? onShufflePlay;
   final int totalSongsCount;
+  final bool primaryPlayInLandscape;
+  final bool? showLabels;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final screenWidth = MediaQuery.of(context).size.width;
-    final isWiderScreen = screenWidth > 480;
+    // Show full capsule buttons (icon + label) when space is sufficient (>= 340px covers standard phones).
+    // Gracefully collapse to icon-only circles on extremely narrow screens (< 340px).
+    final isWiderScreen = showLabels ?? (screenWidth >= 340);
     final isLargeScreen = screenWidth >= 1000;
     final isDisabled = totalSongsCount == 0 || (onPlayAll == null && onShufflePlay == null);
 
+    final scope = _FolderBannerActionScope.of(context);
+    final isLandscape = scope?.isLandscape ?? (MediaQuery.of(context).orientation == Orientation.landscape);
+    final hasImage = scope?.hasImage ?? false;
+
+    final buttonHeight = isLargeScreen ? 38.0 : 32.0;
+    final iconSize = isLargeScreen ? 18.0 : 16.0;
+    final fontSize = isLargeScreen ? 13.0 : 11.5;
+    final textStyle = TextStyle(
+      fontSize: fontSize,
+      fontWeight: FontWeight.w600,
+    );
+
+    final Color playBg;
+    final Color playFg;
+    final BorderSide? playBorder;
+    final Color shuffleBg;
+    final Color shuffleFg;
+    final BorderSide? shuffleBorder;
+
+    if (isLandscape) {
+      if (primaryPlayInLandscape) {
+        playBg = theme.colorScheme.primary;
+        playFg = theme.colorScheme.onPrimary;
+        playBorder = null;
+      } else {
+        playBg = theme.colorScheme.secondaryContainer;
+        playFg = theme.colorScheme.onSecondaryContainer;
+        playBorder = null;
+      }
+      shuffleBg = theme.colorScheme.secondaryContainer;
+      shuffleFg = theme.colorScheme.onSecondaryContainer;
+      shuffleBorder = null;
+    } else {
+      if (hasImage && isDark) {
+        playBg = Colors.white.withValues(alpha: 0.22);
+        playFg = Colors.white;
+        playBorder = BorderSide(color: Colors.white.withValues(alpha: 0.25), width: 0.8);
+        shuffleBg = Colors.white.withValues(alpha: 0.14);
+        shuffleFg = Colors.white.withValues(alpha: 0.9);
+        shuffleBorder = BorderSide(color: Colors.white.withValues(alpha: 0.15), width: 0.8);
+      } else if (hasImage && !isDark) {
+        playBg = theme.colorScheme.onSurface.withValues(alpha: 0.12);
+        playFg = theme.colorScheme.onSurface;
+        playBorder = BorderSide(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3), width: 0.8);
+        shuffleBg = theme.colorScheme.onSurface.withValues(alpha: 0.07);
+        shuffleFg = theme.colorScheme.onSurfaceVariant;
+        shuffleBorder = BorderSide(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2), width: 0.8);
+      } else {
+        playBg = theme.colorScheme.surfaceContainerHighest;
+        playFg = theme.colorScheme.onSurface;
+        playBorder = BorderSide(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3), width: 0.8);
+        shuffleBg = theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.6);
+        shuffleFg = theme.colorScheme.onSurfaceVariant;
+        shuffleBorder = BorderSide(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2), width: 0.8);
+      }
+    }
+
+    final disabledBg = (!isLandscape && hasImage && isDark)
+        ? Colors.white.withValues(alpha: 0.08)
+        : null;
+    final disabledFg = (!isLandscape && hasImage && isDark)
+        ? Colors.white.withValues(alpha: 0.3)
+        : null;
+
     final playAllButton = isWiderScreen
-        ? FilledButton.tonalIcon(
+        ? FilledButton.icon(
             onPressed: isDisabled ? null : () => onPlayAll?.call(),
-            icon: Icon(Icons.play_arrow_rounded, size: isLargeScreen ? 18 : 16),
+            icon: Icon(Icons.play_arrow_rounded, size: iconSize),
             label: Text(l10n.playAll),
             style: FilledButton.styleFrom(
-              minimumSize: Size(0, isLargeScreen ? 38 : 32),
+              backgroundColor: playBg,
+              foregroundColor: playFg,
+              disabledBackgroundColor: disabledBg,
+              disabledForegroundColor: disabledFg,
+              side: playBorder,
+              minimumSize: Size(0, buttonHeight),
               padding: EdgeInsets.symmetric(horizontal: isLargeScreen ? 16 : 12),
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               visualDensity: VisualDensity.compact,
-              textStyle: TextStyle(
-                fontSize: isLargeScreen ? 13.0 : 11.5,
-                fontWeight: FontWeight.w600,
-              ),
+              shape: const StadiumBorder(),
+              textStyle: textStyle,
             ),
           )
         : Tooltip(
             message: l10n.playAll,
-            child: FilledButton.tonal(
+            child: FilledButton(
               onPressed: isDisabled ? null : () => onPlayAll?.call(),
               style: FilledButton.styleFrom(
-                minimumSize: const Size(32, 32),
-                padding: const EdgeInsets.symmetric(horizontal: 8),
+                backgroundColor: playBg,
+                foregroundColor: playFg,
+                disabledBackgroundColor: disabledBg,
+                disabledForegroundColor: disabledFg,
+                side: playBorder,
+                minimumSize: Size(buttonHeight, buttonHeight),
+                padding: EdgeInsets.zero,
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 visualDensity: VisualDensity.compact,
+                shape: const StadiumBorder(),
               ),
-              child: const Icon(Icons.play_arrow_rounded, size: 16),
+              child: Icon(Icons.play_arrow_rounded, size: iconSize),
             ),
           );
 
     final shuffleButton = isWiderScreen
-        ? FilledButton.tonalIcon(
+        ? FilledButton.icon(
             onPressed: isDisabled ? null : () => onShufflePlay?.call(),
-            icon: Icon(Icons.shuffle_rounded, size: isLargeScreen ? 18 : 16),
+            icon: Icon(Icons.shuffle_rounded, size: iconSize),
             label: Text(l10n.shuffle),
             style: FilledButton.styleFrom(
-              minimumSize: Size(0, isLargeScreen ? 38 : 32),
+              backgroundColor: shuffleBg,
+              foregroundColor: shuffleFg,
+              disabledBackgroundColor: disabledBg,
+              disabledForegroundColor: disabledFg,
+              side: shuffleBorder,
+              minimumSize: Size(0, buttonHeight),
               padding: EdgeInsets.symmetric(horizontal: isLargeScreen ? 16 : 12),
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               visualDensity: VisualDensity.compact,
-              textStyle: TextStyle(
-                fontSize: isLargeScreen ? 13.0 : 11.5,
-                fontWeight: FontWeight.w600,
-              ),
+              shape: const StadiumBorder(),
+              textStyle: textStyle,
             ),
           )
         : Tooltip(
             message: l10n.shuffle,
-            child: FilledButton.tonal(
+            child: FilledButton(
               onPressed: isDisabled ? null : () => onShufflePlay?.call(),
               style: FilledButton.styleFrom(
-                minimumSize: const Size(32, 32),
-                padding: const EdgeInsets.symmetric(horizontal: 8),
+                backgroundColor: shuffleBg,
+                foregroundColor: shuffleFg,
+                disabledBackgroundColor: disabledBg,
+                disabledForegroundColor: disabledFg,
+                side: shuffleBorder,
+                minimumSize: Size(buttonHeight, buttonHeight),
+                padding: EdgeInsets.zero,
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 visualDensity: VisualDensity.compact,
+                shape: const StadiumBorder(),
               ),
-              child: const Icon(Icons.shuffle_rounded, size: 16),
+              child: Icon(Icons.shuffle_rounded, size: iconSize),
             ),
           );
 
