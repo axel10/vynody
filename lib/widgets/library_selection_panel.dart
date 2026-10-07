@@ -10,6 +10,7 @@ import 'package:vynody/dialogs/song_details_dialog.dart';
 import 'package:vynody/player/remote/proxy/remote_media_resolver.dart';
 import 'package:vynody/utils/song_context_menu_utils.dart';
 import 'package:vynody/utils/app_snack_bar.dart';
+import 'package:vynody/utils/app_orientation_manager.dart';
 import 'package:vynody/l10n/app_localizations.dart';
 
 class LibrarySelectionPanel extends ConsumerStatefulWidget {
@@ -535,12 +536,19 @@ class _LibrarySelectionPanelState extends ConsumerState<LibrarySelectionPanel> {
 
     final bottomPadding = MediaQuery.of(context).padding.bottom;
     final isIOS = Theme.of(context).platform == TargetPlatform.iOS;
-    // iPhone 上 34 - 14 = 20pt；Android 上有小白条就取小白条高度(16~20)，无小白条保底 12dp
-    final safeBottom = isIOS
-        ? (bottomPadding > 0
-            ? (bottomPadding - 14.0).clamp(12.0, double.infinity)
-            : 12.0)
-        : (bottomPadding > 0 ? bottomPadding : 12.0);
+    final isTablet = MediaQuery.sizeOf(context).shortestSide >=
+        AppOrientationManager.tabletShortestSideBreakpoint;
+
+    final double safeBottom;
+    if (isTablet) {
+      safeBottom = bottomPadding > 0 ? (bottomPadding + 8.0) : 28.0;
+    } else if (isIOS) {
+      safeBottom = bottomPadding > 0
+          ? (bottomPadding - 14.0).clamp(12.0, double.infinity)
+          : 12.0;
+    } else {
+      safeBottom = bottomPadding > 0 ? bottomPadding : 12.0;
+    }
 
     return Padding(
       padding: EdgeInsets.fromLTRB(16, 0, 16, safeBottom),

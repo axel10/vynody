@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vynody/l10n/app_localizations.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/audio/audio_service.dart';
+import 'package:vynody/utils/app_orientation_manager.dart';
 import 'package:vynody/utils/playback_utils.dart';
 import 'package:vynody/widgets/animated_play_pause_button.dart';
 import 'package:vynody/widgets/app_tooltip.dart';
@@ -64,10 +65,22 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
 
     final bottomPadding = MediaQuery.of(context).padding.bottom;
     final isIOS = Theme.of(context).platform == TargetPlatform.iOS;
-// iPhone 上 34 - 14 = 20pt；Android 上有小白条就取小白条高度(16~20)，无小白条保底 12dp
-final safeBottom = isIOS
-    ? (bottomPadding - 14.0)
-    : (bottomPadding > 0 ? bottomPadding : 12.0);
+    final isTablet = MediaQuery.sizeOf(context).shortestSide >=
+        AppOrientationManager.tabletShortestSideBreakpoint;
+
+    // iPad / 平板端：在底部安全区（Home 条）之上预留 8pt 呼吸感，无安全区时保底 28pt；
+    // iPhone 端：34 - 14 = 20pt（与 Apple Music 底部高度一致）；无安全区保底 12pt；
+    // Android / 其它手机端：取小白条高度(16~20)，无小白条保底 12dp。
+    final double safeBottom;
+    if (isTablet) {
+      safeBottom = bottomPadding > 0 ? (bottomPadding + 8.0) : 28.0;
+    } else if (isIOS) {
+      safeBottom = bottomPadding > 0
+          ? (bottomPadding - 14.0).clamp(12.0, double.infinity)
+          : 12.0;
+    } else {
+      safeBottom = bottomPadding > 0 ? bottomPadding : 12.0;
+    }
     final totalBottomOffset = safeBottom + widget.additionalBottomOffset;
     final totalRightOffset = 16.0 + widget.rightDrawerWidth;
 

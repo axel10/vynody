@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -1274,7 +1275,6 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                                     ),
                                     builder: (context, animatedOpacity, child) {
                                       return _SlidingNavigationRail(
-                                        isDesktop: isDesktop,
                                         backgroundColor: Color.lerp(
                                               navBgBaseColor.withValues(alpha: 0.0),
                                               navBgBaseColor,
@@ -1494,7 +1494,6 @@ class _SlidingNavigationRail extends StatelessWidget {
   final Color backgroundColor;
   final Color indicatorColor;
   final bool isPlayback;
-  final bool isDesktop;
 
   const _SlidingNavigationRail({
     required this.selectedIndex,
@@ -1502,7 +1501,6 @@ class _SlidingNavigationRail extends StatelessWidget {
     required this.backgroundColor,
     required this.indicatorColor,
     required this.isPlayback,
-    required this.isDesktop,
   });
 
   @override
@@ -1549,10 +1547,13 @@ class _SlidingNavigationRail extends StatelessWidget {
       ),
     ];
 
-    const double leadingHeight = 32.0;
+    final double leadingHeight = Platform.isIOS ? 56.0 : 32.0;
     const double itemHeight = 52.0;
     const double pillWidth = 56.0;
     const double pillHeight = 32.0;
+
+    final topInset =
+        math.max(leadingHeight, MediaQuery.paddingOf(context).top);
 
     final activeIndex = selectedIndex.clamp(0, destinations.length - 1);
     final pillLeft = (80.0 - pillWidth) / 2;
@@ -1569,7 +1570,7 @@ class _SlidingNavigationRail extends StatelessWidget {
       color: backgroundColor,
       child: Column(
         children: [
-          if (isDesktop) const SizedBox(height: leadingHeight),
+          SizedBox(height: topInset),
           SizedBox(
             height: destinations.length * itemHeight,
             child: Stack(
