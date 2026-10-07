@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
+import 'package:vynody/player/scanner/scanner_path_utils.dart';
 import 'lyrics_timeline_entry.dart';
 
 class LyricsTimelineRepository {
@@ -26,7 +27,7 @@ class LyricsTimelineRepository {
     String cacheKey, {
     int? limit,
   }) async {
-    final normalized = cacheKey.trim();
+    final normalized = ScannerPathUtils.normalizeLyricCacheKey(cacheKey);
     if (normalized.isEmpty) return const [];
 
     final effectiveLimit = limit ?? maxHistoryCount;
@@ -44,7 +45,7 @@ class LyricsTimelineRepository {
   }
 
   Future<void> saveEntry(LyricsTimelineEntry entry) async {
-    final normalized = entry.cacheKey.trim();
+    final normalized = ScannerPathUtils.normalizeLyricCacheKey(entry.cacheKey);
     if (normalized.isEmpty) return;
 
     final companion = LyricsHistoriesCompanion(
@@ -62,7 +63,7 @@ class LyricsTimelineRepository {
   }
 
   Future<void> clearHistory(String cacheKey) async {
-    final normalized = cacheKey.trim();
+    final normalized = ScannerPathUtils.normalizeLyricCacheKey(cacheKey);
     if (normalized.isEmpty) return;
     await _db.clearLyricsHistoriesByKey(normalized);
   }

@@ -143,6 +143,31 @@ class LyricsCacheRecord {
     required this.updatedAtMillis,
   });
 
+  LyricsCacheRecord copyWith({
+    int? id,
+    String? cacheKey,
+    LyricsCacheSource? source,
+    String? languageCode,
+    bool? isSynced,
+    String? syncedLyrics,
+    List<LyricLine>? syncedLines,
+    int? timelineOffsetMillis,
+    int? updatedAtMillis,
+  }) {
+    return LyricsCacheRecord(
+      id: id ?? this.id,
+      cacheKey: cacheKey ?? this.cacheKey,
+      source: source ?? this.source,
+      languageCode: languageCode ?? this.languageCode,
+      isSynced: isSynced ?? this.isSynced,
+      syncedLyrics: syncedLyrics ?? this.syncedLyrics,
+      syncedLines: syncedLines ?? this.syncedLines,
+      timelineOffsetMillis:
+          timelineOffsetMillis ?? this.timelineOffsetMillis,
+      updatedAtMillis: updatedAtMillis ?? this.updatedAtMillis,
+    );
+  }
+
   Map<String, dynamic> toMap() {
     return {
       'cacheKey': cacheKey,

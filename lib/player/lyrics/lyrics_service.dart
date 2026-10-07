@@ -16,6 +16,7 @@ import 'package:vynody/player/lyrics/lyrics_cache_repository.dart';
 import 'package:vynody/player/lyrics/timeline/lyrics_timeline_service.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/player/remote/proxy/remote_media_resolver.dart';
+import 'package:vynody/player/scanner/scanner_path_utils.dart';
 
 part 'lyrics_service.freezed.dart';
 
@@ -33,42 +34,14 @@ abstract class LyricsQuery with _$LyricsQuery {
   }) = _LyricsQuery;
 
   String get cacheKey {
-    final parts = <String>[
-      _normalizeForKey(filePath),
-      _normalizeForKey(title),
-      _normalizeForKey(artist),
-      _normalizeForKey(album),
-      duration?.inSeconds.toString() ?? '',
-    ];
-    return parts.join('|');
+    return ScannerPathUtils.normalizeLyricCacheKey(filePath);
   }
 
-  /// 获取候选缓存键集合（包含精准 cacheKey，以及存在 duration 时 ±1s、±2s 的容差键）
-  List<String> get candidateCacheKeys {
-    final primary = cacheKey;
-    if (duration == null) {
-      return [primary];
-    }
-    final keys = <String>[primary];
-    final sec = duration!.inSeconds;
-    for (final offset in [-1, 1, -2, 2]) {
-      final altSec = sec + offset;
-      if (altSec <= 0) continue;
-      final altKey = copyWith(duration: Duration(seconds: altSec)).cacheKey;
-      if (!keys.contains(altKey)) {
-        keys.add(altKey);
-      }
-    }
-    return keys;
-  }
+  /// 获取候选缓存键集合（直接返回精准 cacheKey）
+  List<String> get candidateCacheKeys => [cacheKey];
 
-  /// 获取基于物理文件路径的前缀（不依赖时长与变动元数据）。
-  /// 若 filePath 为空，则返回空字符串。
-  String get fileBasedCacheKeyPrefix {
-    final normPath = _normalizeForKey(filePath);
-    if (normPath.isEmpty) return '';
-    return '$normPath|';
-  }
+  /// 获取基于物理文件路径的前缀
+  String get fileBasedCacheKeyPrefix => cacheKey;
 }
 
 @freezed
@@ -269,7 +242,8 @@ class LyricsService {
 
   /// 获取当前曲目的所有可用歌词版本记录（去重）。
   /// 优先从数据库缓存读取；若尚无本地外挂或内嵌歌词记录，
-  /// 则探测本地 .lrc 文件和音频 TagLib 内嵌歌词并持久化入库，确保数据库为单一真理源。
+  /// 则探测本地 .lrc 文件和音频 TagLib 内嵌歌词，仅在内存中组装候选源供用户选择，
+  /// 避免仅打开换源菜单就冲掉当前激活的歌词缓存。
   Future<List<LyricsCacheRecord>> getOrPopulateAvailableLyricRecords(
     LyricsQuery query,
   ) async {
@@ -290,23 +264,37 @@ class LyricsService {
       (r) => r.source == LyricsCacheSource.embedded,
     );
 
-    var needsReload = false;
+    final resultRecords = List<LyricsCacheRecord>.from(records);
     if (!hasExternal) {
-      final local = await _tryLoadFromLocalLrcFile(query);
-      if (local != null) needsReload = true;
+      final local = await _tryLoadFromLocalLrcFile(query, saveToDb: false);
+      if (local != null) {
+        resultRecords.add(LyricsCacheRecord(
+          cacheKey: query.cacheKey,
+          source: LyricsCacheSource.external,
+          isSynced: local.track.hasSyncedLyrics,
+          syncedLyrics: local.lyricsText,
+          syncedLines: local.syncedLines,
+          timelineOffsetMillis: 0,
+          updatedAtMillis: DateTime.now().millisecondsSinceEpoch,
+        ));
+      }
     }
     if (!hasEmbedded) {
-      final embedded = await _tryLoadFromMetadata(query);
-      if (embedded != null) needsReload = true;
+      final embedded = await _tryLoadFromMetadata(query, saveToDb: false);
+      if (embedded != null) {
+        resultRecords.add(LyricsCacheRecord(
+          cacheKey: query.cacheKey,
+          source: LyricsCacheSource.embedded,
+          isSynced: embedded.track.hasSyncedLyrics,
+          syncedLyrics: embedded.lyricsText,
+          syncedLines: embedded.syncedLines,
+          timelineOffsetMillis: 0,
+          updatedAtMillis: DateTime.now().millisecondsSinceEpoch,
+        ));
+      }
     }
 
-    if (needsReload) {
-      return _cacheRepository.getLyricsCachesTolerant(
-        query,
-        ignoreNone: true,
-      );
-    }
-    return records;
+    return resultRecords;
   }
 
   /// 核心歌词获取入口。
@@ -543,7 +531,10 @@ class LyricsService {
   }
 
   /// 尝试从同目录下和歌曲同名的lrc歌词文件解析
-  Future<LyricSelectionResult?> _tryLoadFromLocalLrcFile(LyricsQuery query) async {
+  Future<LyricSelectionResult?> _tryLoadFromLocalLrcFile(
+    LyricsQuery query, {
+    bool saveToDb = true,
+  }) async {
     try {
       final songPath = query.filePath;
       if (songPath.isEmpty) return null;
@@ -616,29 +607,31 @@ class LyricsService {
       );
 
       // 缓存到数据库
-      try {
-        final record = LyricsCacheRecord(
-          cacheKey: query.cacheKey,
-          source: LyricsCacheSource.external,
-          isSynced: isSynced,
-          syncedLyrics: rawLyrics,
-          syncedLines: result.syncedLines,
-          timelineOffsetMillis: 0,
-          updatedAtMillis: DateTime.now().millisecondsSinceEpoch,
-        );
-        await _cacheRepository.saveLyricsCache(record);
-        if (query.filePath.isNotEmpty) {
-          unawaited(
-            LyricsTimelineService.instance.ensureInitialSnapshot(
-              cacheKey: query.filePath,
-              lyrics: rawLyrics,
-              timelineOffsetMillis: 0,
-              description: 'Local LRC',
-            ),
+      if (saveToDb) {
+        try {
+          final record = LyricsCacheRecord(
+            cacheKey: query.cacheKey,
+            source: LyricsCacheSource.external,
+            isSynced: isSynced,
+            syncedLyrics: rawLyrics,
+            syncedLines: result.syncedLines,
+            timelineOffsetMillis: 0,
+            updatedAtMillis: DateTime.now().millisecondsSinceEpoch,
           );
+          await _cacheRepository.saveLyricsCache(record);
+          if (query.filePath.isNotEmpty) {
+            unawaited(
+              LyricsTimelineService.instance.ensureInitialSnapshot(
+                cacheKey: query.cacheKey,
+                lyrics: rawLyrics,
+                timelineOffsetMillis: 0,
+                description: 'Local LRC',
+              ),
+            );
+          }
+        } catch (e) {
+          debugPrint('[Lyrics] Failed to cache local LRC lyrics: $e');
         }
-      } catch (e) {
-        debugPrint('[Lyrics] Failed to cache local LRC lyrics: $e');
       }
 
       return result;
@@ -649,7 +642,10 @@ class LyricsService {
   }
 
   /// 尝试从音频文件物理元数据读取歌词
-  Future<LyricSelectionResult?> _tryLoadFromMetadata(LyricsQuery query) async {
+  Future<LyricSelectionResult?> _tryLoadFromMetadata(
+    LyricsQuery query, {
+    bool saveToDb = true,
+  }) async {
     if (RemoteMediaResolver.isRemoteUri(query.filePath)) {
       return null;
     }
@@ -737,32 +733,34 @@ class LyricsService {
         );
 
         // 缓存到数据库
-        try {
-          final record = LyricsCacheRecord(
-            cacheKey: query.cacheKey,
-            source: LyricsCacheSource.embedded,
-            isSynced: isSynced,
-            syncedLyrics: rawLyrics,
-            syncedLines: result.syncedLines,
-            timelineOffsetMillis: 0,
-            updatedAtMillis: DateTime.now().millisecondsSinceEpoch,
-          );
-          await _cacheRepository.saveLyricsCache(record);
-          debugPrint(
-            '[Lyrics] Saved embedded lyrics cache to DB -> key="${query.cacheKey}"',
-          );
-          if (query.filePath.isNotEmpty) {
-            unawaited(
-              LyricsTimelineService.instance.ensureInitialSnapshot(
-                cacheKey: query.filePath,
-                lyrics: rawLyrics,
-                timelineOffsetMillis: 0,
-                description: 'Embedded',
-              ),
+        if (saveToDb) {
+          try {
+            final record = LyricsCacheRecord(
+              cacheKey: query.cacheKey,
+              source: LyricsCacheSource.embedded,
+              isSynced: isSynced,
+              syncedLyrics: rawLyrics,
+              syncedLines: result.syncedLines,
+              timelineOffsetMillis: 0,
+              updatedAtMillis: DateTime.now().millisecondsSinceEpoch,
             );
+            await _cacheRepository.saveLyricsCache(record);
+            debugPrint(
+              '[Lyrics] Saved embedded lyrics cache to DB -> key="${query.cacheKey}"',
+            );
+            if (query.filePath.isNotEmpty) {
+              unawaited(
+                LyricsTimelineService.instance.ensureInitialSnapshot(
+                  cacheKey: query.cacheKey,
+                  lyrics: rawLyrics,
+                  timelineOffsetMillis: 0,
+                  description: 'Embedded',
+                ),
+              );
+            }
+          } catch (e) {
+            debugPrint('[Lyrics] Failed to cache embedded lyrics: $e');
           }
-        } catch (e) {
-          debugPrint('[Lyrics] Failed to cache embedded lyrics: $e');
         }
 
         return result;
@@ -1462,10 +1460,6 @@ String? _cleanField(String? value) {
     return null;
   }
   return text;
-}
-
-String _normalizeForKey(String? value) {
-  return _normalizeText(value).replaceAll(' ', '_');
 }
 
 String _normalizeText(String? value) {

@@ -60,6 +60,24 @@ class ScannerPathUtils {
     }
   }
 
+  static String normalizeLyricCacheKey(String? rawKey) {
+    if (rawKey == null) return '';
+    var key = rawKey.trim();
+    if (key.isEmpty) return '';
+    if (key.contains('|')) {
+      key = key.split('|').first.trim();
+    }
+    if (key.startsWith('subsonic://') ||
+        key.startsWith('webdav://') ||
+        key.startsWith('smb://') ||
+        key.startsWith('jellyfin://') ||
+        key.startsWith('http://') ||
+        key.startsWith('https://')) {
+      return key;
+    }
+    return normalizePath(key);
+  }
+
   static String pathLookupKey(String path) {
     final normalized = normalizePath(path);
     return Platform.isWindows ? normalized.toLowerCase() : normalized;

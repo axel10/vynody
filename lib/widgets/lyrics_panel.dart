@@ -159,6 +159,36 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
   double? _lastBuiltBottomTabBarHeight;
   bool? _lastBuiltShowTranslation;
   bool? _lastBuiltShowWordByWord;
+  String? _lastLoggedContentDigest;
+
+  void _logLyricsContentChangeIfNeeded({
+    required MusicFile? currentSong,
+    required MusicLyric? displayLyrics,
+    required List<LyricLine> displayLines,
+    required String displayPlainLyrics,
+    required bool hasRenderableLyrics,
+  }) {
+    final firstLine = displayLines.isNotEmpty
+        ? displayLines.first.text.trim()
+        : (displayPlainLyrics.trim().split(RegExp(r'\r?\n')).firstOrNull ?? '');
+    final digest =
+        '${currentSong?.path}|hasLyrics=$hasRenderableLyrics|lines=${displayLines.length}|plainLen=${displayPlainLyrics.trim().length}|$firstLine';
+    if (digest == _lastLoggedContentDigest) {
+      return;
+    }
+    _lastLoggedContentDigest = digest;
+    final snippet = firstLine.length > 60
+        ? '${firstLine.substring(0, 60)}...'
+        : firstLine;
+    debugPrint(
+      '[LyricsPanel][ContentChange] song="${currentSong?.displayName}" '
+      'path="${currentSong?.path}" '
+      'hasRenderableLyrics=$hasRenderableLyrics '
+      'lines=${displayLines.length} '
+      'plainLen=${displayPlainLyrics.length} '
+      'snippet="$snippet"',
+    );
+  }
 
   LyricsController get _lyricsControllerActions =>
       ref.read(lyricsControllerProvider.notifier);
@@ -1744,6 +1774,13 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
         (displayLyrics.syncedLines.isNotEmpty ||
             displayLyrics.plainText.trim().isNotEmpty);
     final hasCurrentSong = currentSong != null;
+    _logLyricsContentChangeIfNeeded(
+      currentSong: currentSong,
+      displayLyrics: displayLyrics,
+      displayLines: displayLines,
+      displayPlainLyrics: displayPlainLyrics,
+      hasRenderableLyrics: hasRenderableLyrics,
+    );
     final accent = widget.accentColor ?? Theme.of(context).colorScheme.primary;
     final lyrics = displayLyrics;
     final hasTimedLyrics = _hasTimedLyrics(displayLines);

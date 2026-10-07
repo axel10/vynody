@@ -401,6 +401,27 @@ class LyricsController extends Notifier<LyricsControllerState> {
         if (currentKey != cacheKey) {
           await prefs.setString('$_activeLyricSourcePrefix$currentKey', '${source.dbValue}|$languageCode');
         }
+
+        // 切换来源即覆盖旧缓存：将新选中的来源持久化覆盖到数据库中
+        final available = await getAvailableLyricRecords(currentSong);
+        LyricsCacheRecord? targetRecord;
+        for (final r in available) {
+          if (r.source == source && r.languageCode == languageCode) {
+            targetRecord = r;
+            break;
+          }
+        }
+        targetRecord ??= available.where((r) => r.source == source).firstOrNull;
+
+        if (targetRecord != null) {
+          await _context.lyricsCacheRepository.saveLyricsCache(
+            targetRecord.copyWith(
+              cacheKey: currentKey,
+              updatedAtMillis: DateTime.now().millisecondsSinceEpoch,
+            ),
+          );
+        }
+
         await _syncLyricsCacheWatch(currentSong.path, currentKey);
       }
     } catch (e) {

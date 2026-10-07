@@ -1138,6 +1138,7 @@ class AudioService extends Notifier<AudioSnapshot> {
     if (_trackedPlaybackSongPath != song.path) {
       _resetPlaybackTrackingForSong(song);
       _position = Duration.zero;
+      _lyricsController.clearState(preserveTaskState: true);
     }
     await _updateCurrentMetadata(song);
     await _refreshCurrentWaveform(notify: false);

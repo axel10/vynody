@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:vynody/player/scanner/scanner_path_utils.dart';
 import 'lyrics_timeline_entry.dart';
 import 'lyrics_timeline_repository.dart';
 
@@ -19,7 +20,8 @@ class LyricsTimelineService {
 
   /// Retrieves the history of modifications for a given song cacheKey (up to [maxHistoryCount] entries, newest first).
   Future<List<LyricsTimelineEntry>> getHistory(String cacheKey) {
-    return _repository.getHistory(cacheKey);
+    final normalized = ScannerPathUtils.normalizeLyricCacheKey(cacheKey);
+    return _repository.getHistory(normalized);
   }
 
   /// Ensures an 'initial' baseline snapshot exists in the timeline for [cacheKey].
@@ -34,7 +36,7 @@ class LyricsTimelineService {
     int timelineOffsetMillis = 0,
     String? description,
   }) async {
-    final normalizedKey = cacheKey.trim();
+    final normalizedKey = ScannerPathUtils.normalizeLyricCacheKey(cacheKey);
     if (normalizedKey.isEmpty) return;
 
     final trimmedLyrics = lyrics.trim();
@@ -73,7 +75,7 @@ class LyricsTimelineService {
     int previousOffsetMillis = 0,
     String? previousDescription,
   }) async {
-    final normalizedKey = cacheKey.trim();
+    final normalizedKey = ScannerPathUtils.normalizeLyricCacheKey(cacheKey);
     if (normalizedKey.isEmpty) return;
 
     final trimmedLyrics = lyrics.trim();
@@ -125,6 +127,7 @@ class LyricsTimelineService {
 
   /// Clears timeline history for a specific song.
   Future<void> clearHistory(String cacheKey) {
-    return _repository.clearHistory(cacheKey);
+    final normalized = ScannerPathUtils.normalizeLyricCacheKey(cacheKey);
+    return _repository.clearHistory(normalized);
   }
 }

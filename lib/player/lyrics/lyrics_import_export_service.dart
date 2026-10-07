@@ -31,21 +31,34 @@ class LyricsImportExportService {
 
   /// Parse cache key into human readable metadata
   static Map<String, String> parseCacheKey(String cacheKey) {
-    final parts = cacheKey.split('|');
-    if (parts.length >= 5) {
-      final durationSec = parts[parts.length - 1];
-      final album = parts[parts.length - 2];
-      final artist = parts[parts.length - 3];
-      final title = parts[parts.length - 4];
-      return {
-        'title': title.replaceAll('_', ' ').trim(),
-        'artist': artist.replaceAll('_', ' ').trim(),
-        'album': album.replaceAll('_', ' ').trim(),
-        'duration': durationSec,
-      };
+    if (cacheKey.contains('|')) {
+      final parts = cacheKey.split('|');
+      if (parts.length >= 5) {
+        final durationSec = parts[parts.length - 1];
+        final album = parts[parts.length - 2];
+        final artist = parts[parts.length - 3];
+        final title = parts[parts.length - 4];
+        return {
+          'title': title.replaceAll('_', ' ').trim(),
+          'artist': artist.replaceAll('_', ' ').trim(),
+          'album': album.replaceAll('_', ' ').trim(),
+          'duration': durationSec,
+        };
+      } else if (parts.length == 4) {
+        final album = parts[3];
+        final artist = parts[2];
+        final title = parts[1];
+        return {
+          'title': title.replaceAll('_', ' ').trim(),
+          'artist': artist.replaceAll('_', ' ').trim(),
+          'album': album.replaceAll('_', ' ').trim(),
+          'duration': '',
+        };
+      }
     }
+    final rawTitle = cacheKey.split(RegExp(r'[\\/]')).last;
     return {
-      'title': cacheKey,
+      'title': rawTitle.isEmpty ? cacheKey : rawTitle,
       'artist': '',
       'album': '',
       'duration': '',

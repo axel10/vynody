@@ -480,9 +480,12 @@ class LyricsControllerSupport {
       return Duration(milliseconds: fileDuration);
     }
 
-    final playerDuration = _context.playerDuration();
-    if (playerDuration > Duration.zero) {
-      return playerDuration;
+    final currentMusic = _context.currentMusic();
+    if (currentMusic != null && currentMusic.path == song.path) {
+      final playerDuration = _context.playerDuration();
+      if (playerDuration > Duration.zero) {
+        return playerDuration;
+      }
     }
 
     return direct;

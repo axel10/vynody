@@ -24,7 +24,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   static final MetadataDriftDatabase instance = MetadataDriftDatabase._();
 
   @override
-  int get schemaVersion => 38;
+  int get schemaVersion => 40;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -54,13 +54,15 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       await _repairLegacyArtistCacheRows();
 
       // Clean up sourceFlags (remove external flag 4 if combined with rootScan or systemMedia)
-      await customStatement('''
-        UPDATE songs
-        SET sourceFlags = sourceFlags - 4
-        WHERE sourceFlags IS NOT NULL
-          AND (sourceFlags & 3) != 0
-          AND (sourceFlags & 4) != 0
-      ''');
+      if (await _columnExists('songs', 'sourceFlags')) {
+        await customStatement('''
+          UPDATE songs
+          SET sourceFlags = sourceFlags - 4
+          WHERE sourceFlags IS NOT NULL
+            AND (sourceFlags & 3) != 0
+            AND (sourceFlags & 4) != 0
+        ''');
+      }
     },
     onCreate: (m) async {
       await m.createAll();
@@ -417,8 +419,272 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
           await m.createTable(lyricsHistories);
         }
       }
+      if (from < 40) {
+        await _migrateLyricsCacheToPathKey(m);
+      }
     },
   );
+
+  static String _legacyNormalizeText(String? value) {
+    if (value == null) return '';
+    var text = value.toLowerCase().trim();
+    if (text.isEmpty) return '';
+
+    text = text.replaceAll(RegExp(r'[\u2013\u2014]'), '-');
+    text = text.replaceAll(RegExp(r'[\(\[\{（【][^\)\]\}）】]*[\)\]\}）】]'), ' ');
+    text = text.replaceAll(RegExp(r'\b(feat|ft|featuring)\b.*$'), ' ');
+    text = text.replaceAll(
+      RegExp(
+        r'\b(live|remaster(?:ed)?|radio edit|album version|instrumental|karaoke|mono|stereo|official audio|edit)\b',
+      ),
+      ' ',
+    );
+    text = text.replaceAll(RegExp(r'[\p{P}\p{S}]+', unicode: true), ' ');
+    text = text.replaceAll(RegExp(r'\s+'), ' ').trim();
+    return text;
+  }
+
+  static String _legacyNormalizeForKey(String? value) {
+    return _legacyNormalizeText(value).replaceAll(' ', '_');
+  }
+
+  Future<void> _migrateLyricsCacheToPathKey(Migrator m) async {
+    final exists = await _tableExists('lyrics_cache');
+    if (!exists) return;
+
+    // 0. 从 songs 表中构建旧缓存键前缀到真实规范化路径的映射表
+    final legacyKeyToRealPath = <String, String>{};
+    if (await _tableExists('songs')) {
+      final songRows = await customSelect('SELECT path FROM songs WHERE path IS NOT NULL').get();
+      for (final row in songRows) {
+        final path = row.data['path'] as String?;
+        if (path == null || path.trim().isEmpty) continue;
+        final normPath = ScannerPathUtils.normalizePath(path);
+        if (normPath.isEmpty) continue;
+
+        final legacyKey = _legacyNormalizeForKey(path);
+        if (legacyKey.isNotEmpty) {
+          legacyKeyToRealPath[legacyKey] = normPath;
+        }
+      }
+    }
+
+    String resolveNormalizedKey(String rawKey) {
+      if (rawKey.isEmpty) return '';
+      final parts = rawKey.split('|');
+      final firstPart = parts.first.trim();
+      if (firstPart.isEmpty) return '';
+
+      // 1) 优先检查是否命中 songs 表还原出的真实物理路径
+      final mappedPath = legacyKeyToRealPath[firstPart];
+      if (mappedPath != null && mappedPath.isNotEmpty) {
+        return mappedPath;
+      }
+
+      // 2) 如果本身就是 URI 或物理路径格式，直接规范化
+      return ScannerPathUtils.normalizeLyricCacheKey(firstPart);
+    }
+
+    // 1. 读取旧表所有数据并在内存中按规范化路径规整去重
+    final rows = await customSelect('SELECT * FROM lyrics_cache').get();
+
+    int getSourcePriority(String? s) {
+      switch (s) {
+        case 'manual_adjust':
+          return 7;
+        case 'external':
+          return 6;
+        case 'embedded':
+          return 5;
+        case 'ai_timeline':
+          return 4;
+        case 'ai_karaoke':
+          return 3;
+        case 'ai_generate':
+          return 2;
+        case 'ai':
+          return 1;
+        case 'lrclib':
+          return 0;
+        default:
+          return -1;
+      }
+    }
+
+    final bestByPath = <String, Map<String, dynamic>>{};
+    for (final row in rows) {
+      final data = Map<String, dynamic>.from(row.data);
+      final rawKey = (data['cacheKey'] as String?) ?? '';
+      final normKey = resolveNormalizedKey(rawKey);
+      if (normKey.isEmpty) continue;
+
+      data['cacheKey'] = normKey;
+      final existing = bestByPath[normKey];
+      if (existing == null) {
+        bestByPath[normKey] = data;
+      } else {
+        final curPrio = getSourcePriority(data['source'] as String?);
+        final existPrio = getSourcePriority(existing['source'] as String?);
+        if (curPrio > existPrio) {
+          bestByPath[normKey] = data;
+        } else if (curPrio == existPrio) {
+          final curTime = (data['updatedAtMillis'] as int?) ?? 0;
+          final existTime = (existing['updatedAtMillis'] as int?) ?? 0;
+          if (curTime > existTime) {
+            bestByPath[normKey] = data;
+          }
+        }
+      }
+    }
+
+    // 2. 创建新表并批量插入最佳记录
+    await customStatement('DROP TABLE IF EXISTS lyrics_cache_new');
+    await customStatement('''
+      CREATE TABLE lyrics_cache_new (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        cacheKey TEXT NOT NULL,
+        source TEXT NOT NULL,
+        languageCode TEXT NOT NULL DEFAULT '',
+        isSynced INTEGER NOT NULL,
+        syncedLyrics TEXT,
+        syncedLinesJson TEXT NOT NULL,
+        timelineOffsetMillis INTEGER NOT NULL,
+        updatedAtMillis INTEGER NOT NULL,
+        UNIQUE(cacheKey)
+      )
+    ''');
+
+    for (final entry in bestByPath.values) {
+      await customStatement(
+        '''
+        INSERT INTO lyrics_cache_new (
+          cacheKey, source, languageCode, isSynced, syncedLyrics,
+          syncedLinesJson, timelineOffsetMillis, updatedAtMillis
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ''',
+        [
+          entry['cacheKey'],
+          entry['source'] ?? 'lrclib',
+          entry['languageCode'] ?? '',
+          entry['isSynced'] ?? 0,
+          entry['syncedLyrics'],
+          entry['syncedLinesJson'] ?? '[]',
+          entry['timelineOffsetMillis'] ?? 0,
+          entry['updatedAtMillis'] ?? DateTime.now().millisecondsSinceEpoch,
+        ],
+      );
+    }
+
+    await customStatement('DROP TABLE lyrics_cache');
+    await customStatement('ALTER TABLE lyrics_cache_new RENAME TO lyrics_cache');
+    await customStatement('CREATE INDEX IF NOT EXISTS idx_lyrics_cache_key ON lyrics_cache(cacheKey)');
+
+    // 3. 规整 lyrics_history 表
+    if (await _tableExists('lyrics_history')) {
+      final historyRows = await customSelect('SELECT * FROM lyrics_history').get();
+      await customStatement('DROP TABLE IF EXISTS lyrics_history_new');
+      await customStatement('''
+        CREATE TABLE lyrics_history_new (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          cacheKey TEXT NOT NULL,
+          actionType TEXT NOT NULL,
+          description TEXT NOT NULL,
+          lyrics TEXT NOT NULL,
+          translation TEXT,
+          timelineOffsetMillis INTEGER NOT NULL DEFAULT 0,
+          createdAtMillis INTEGER NOT NULL
+        )
+      ''');
+      for (final row in historyRows) {
+        final data = row.data;
+        final rawKey = (data['cacheKey'] as String?) ?? '';
+        final normKey = resolveNormalizedKey(rawKey);
+        if (normKey.isEmpty) continue;
+        await customStatement(
+          '''
+          INSERT INTO lyrics_history_new (
+            id, cacheKey, actionType, description, lyrics, translation, timelineOffsetMillis, createdAtMillis
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+          ''',
+          [
+            data['id'],
+            normKey,
+            data['actionType'] ?? 'manual_edit',
+            data['description'] ?? '',
+            data['lyrics'] ?? '',
+            data['translation'],
+            data['timelineOffsetMillis'] ?? 0,
+            data['createdAtMillis'] ?? DateTime.now().millisecondsSinceEpoch,
+          ],
+        );
+      }
+      await customStatement('DROP TABLE lyrics_history');
+      await customStatement('ALTER TABLE lyrics_history_new RENAME TO lyrics_history');
+      await customStatement('CREATE INDEX IF NOT EXISTS idx_lyrics_history_key ON lyrics_history(cacheKey)');
+    }
+
+    // 4. 规整 lyrics_translation_cache 表
+    if (await _tableExists('lyrics_translation_cache')) {
+      final transRows = await customSelect('SELECT * FROM lyrics_translation_cache').get();
+      await customStatement('DROP TABLE IF EXISTS lyrics_translation_cache_new');
+      await customStatement('''
+        CREATE TABLE lyrics_translation_cache_new (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          cacheKey TEXT NOT NULL,
+          languageCode TEXT NOT NULL DEFAULT 'zh',
+          translatedText TEXT NOT NULL,
+          translatedLinesJson TEXT NOT NULL,
+          provider TEXT,
+          updatedAtMillis INTEGER NOT NULL,
+          UNIQUE(cacheKey, languageCode)
+        )
+      ''');
+
+      final bestTrans = <String, Map<String, dynamic>>{};
+      for (final row in transRows) {
+        final data = Map<String, dynamic>.from(row.data);
+        final rawKey = (data['cacheKey'] as String?) ?? '';
+        final normKey = resolveNormalizedKey(rawKey);
+        if (normKey.isEmpty) continue;
+
+        data['cacheKey'] = normKey;
+        final lang = (data['languageCode'] as String?) ?? 'zh';
+        final compoundKey = '$normKey\$$lang';
+        final existing = bestTrans[compoundKey];
+        if (existing == null) {
+          bestTrans[compoundKey] = data;
+        } else {
+          final curTime = (data['updatedAtMillis'] as int?) ?? 0;
+          final existTime = (existing['updatedAtMillis'] as int?) ?? 0;
+          if (curTime >= existTime) {
+            bestTrans[compoundKey] = data;
+          }
+        }
+      }
+
+      for (final data in bestTrans.values) {
+        await customStatement(
+          '''
+          INSERT INTO lyrics_translation_cache_new (
+            id, cacheKey, languageCode, translatedText, translatedLinesJson, provider, updatedAtMillis
+          ) VALUES (?, ?, ?, ?, ?, ?, ?)
+          ''',
+          [
+            data['id'],
+            data['cacheKey'],
+            data['languageCode'] ?? 'zh',
+            data['translatedText'] ?? '',
+            data['translatedLinesJson'] ?? '[]',
+            data['provider'],
+            data['updatedAtMillis'] ?? DateTime.now().millisecondsSinceEpoch,
+          ],
+        );
+      }
+      await customStatement('DROP TABLE lyrics_translation_cache');
+      await customStatement('ALTER TABLE lyrics_translation_cache_new RENAME TO lyrics_translation_cache');
+      await customStatement('CREATE INDEX IF NOT EXISTS idx_lyrics_trans_key ON lyrics_translation_cache(cacheKey)');
+    }
+  }
 
   Future<void> _addColumnIfMissing(
     Migrator m,
@@ -2037,15 +2303,12 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   }
 
   Future<void> insertOrUpdateLyricsCache(LyricsCacheRecord record) async {
-    final normalizedCacheKey = record.cacheKey.trim();
+    final normalizedCacheKey = ScannerPathUtils.normalizeLyricCacheKey(record.cacheKey);
     if (normalizedCacheKey.isEmpty) return;
 
     await transaction(() async {
       await (delete(lyricsCaches)
-            ..where((t) =>
-                t.cacheKey.equals(normalizedCacheKey) &
-                t.source.equals(record.source.dbValue) &
-                t.languageCode.equals(record.languageCode)))
+            ..where((t) => t.cacheKey.equals(normalizedCacheKey)))
           .go();
 
       await into(lyricsCaches).insert(
@@ -2070,7 +2333,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   }
 
   Future<LyricsCacheRecord?> getLyricsCache(String cacheKey) async {
-    final normalizedCacheKey = cacheKey.trim();
+    final normalizedCacheKey = ScannerPathUtils.normalizeLyricCacheKey(cacheKey);
     if (normalizedCacheKey.isEmpty) return null;
 
     final row =
@@ -2082,7 +2345,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   }
 
   Stream<LyricsCacheRecord?> watchLyricsCache(String cacheKey) {
-    final normalizedCacheKey = cacheKey.trim();
+    final normalizedCacheKey = ScannerPathUtils.normalizeLyricCacheKey(cacheKey);
     if (normalizedCacheKey.isEmpty) {
       return Stream.value(null);
     }
@@ -2095,7 +2358,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   }
 
   Future<List<LyricsCacheRecord>> getLyricsCaches(String cacheKey) async {
-    final normalizedCacheKey = cacheKey.trim();
+    final normalizedCacheKey = ScannerPathUtils.normalizeLyricCacheKey(cacheKey);
     if (normalizedCacheKey.isEmpty) return const [];
 
     final rows = await (select(lyricsCaches)
@@ -2105,7 +2368,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   }
 
   Future<List<LyricsCacheRecord>> getLyricsCachesByPrefix(String prefix) async {
-    final normalized = prefix.trim();
+    final normalized = ScannerPathUtils.normalizeLyricCacheKey(prefix);
     if (normalized.isEmpty) return const [];
 
     final rows = await (select(lyricsCaches)
@@ -2116,7 +2379,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   }
 
   Stream<List<LyricsCacheRecord>> watchLyricsCaches(String cacheKey) {
-    final normalizedCacheKey = cacheKey.trim();
+    final normalizedCacheKey = ScannerPathUtils.normalizeLyricCacheKey(cacheKey);
     if (normalizedCacheKey.isEmpty) {
       return Stream.value(const []);
     }
@@ -2132,7 +2395,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   }
 
   Future<void> clearLyricsCacheByKey(String cacheKey) async {
-    final normalizedCacheKey = cacheKey.trim();
+    final normalizedCacheKey = ScannerPathUtils.normalizeLyricCacheKey(cacheKey);
     if (normalizedCacheKey.isEmpty) return;
 
     await (delete(
@@ -2141,14 +2404,17 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   }
 
   Future<int> insertLyricsHistory(LyricsHistoriesCompanion companion) async {
-    return into(lyricsHistories).insert(companion);
+    final key = companion.cacheKey.value;
+    final normalizedKey = ScannerPathUtils.normalizeLyricCacheKey(key);
+    final finalCompanion = companion.copyWith(cacheKey: Value(normalizedKey));
+    return into(lyricsHistories).insert(finalCompanion);
   }
 
   Future<List<LyricsHistory>> getLyricsHistories(
     String cacheKey, {
     int limit = 30,
   }) async {
-    final normalized = cacheKey.trim();
+    final normalized = ScannerPathUtils.normalizeLyricCacheKey(cacheKey);
     if (normalized.isEmpty) return const [];
     return (select(lyricsHistories)
           ..where((t) => t.cacheKey.equals(normalized))
@@ -2162,7 +2428,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   }
 
   Future<void> trimLyricsHistories(String cacheKey, {int maxCount = 30}) async {
-    final normalized = cacheKey.trim();
+    final normalized = ScannerPathUtils.normalizeLyricCacheKey(cacheKey);
     if (normalized.isEmpty) return;
 
     final all = await (select(lyricsHistories)
@@ -2177,7 +2443,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   }
 
   Future<int> clearLyricsHistoriesByKey(String cacheKey) async {
-    final normalized = cacheKey.trim();
+    final normalized = ScannerPathUtils.normalizeLyricCacheKey(cacheKey);
     if (normalized.isEmpty) return 0;
     return (delete(lyricsHistories)..where((t) => t.cacheKey.equals(normalized))).go();
   }
@@ -3248,7 +3514,7 @@ class LyricsCaches extends Table {
   IntColumn get updatedAtMillis => integer().named('updatedAtMillis')();
 
   @override
-  List<String> get customConstraints => const ['UNIQUE(cacheKey, source, languageCode)'];
+  List<String> get customConstraints => const ['UNIQUE(cacheKey)'];
 }
 
 class LyricsHistories extends Table {
