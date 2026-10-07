@@ -52,11 +52,15 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
+    final viewInsetsBottom = MediaQuery.of(context).viewInsets.bottom;
+    final isKeyboardVisible = viewInsetsBottom > 0;
+    final isEffectivelyHidden = widget.isHidden || isKeyboardVisible;
+
     // 当有正在播放的歌曲且不在全屏播放页且未被多选屏蔽且未隐藏时，展开 Mini 播放器
     final showMini = currentMusic != null &&
         !widget.isPlayback &&
         !widget.hideMiniPlayer &&
-        !widget.isHidden;
+        !isEffectivelyHidden;
 
     final bottomPadding = MediaQuery.of(context).padding.bottom;
     final isIOS = Theme.of(context).platform == TargetPlatform.iOS;
@@ -72,14 +76,16 @@ final safeBottom = isIOS
       curve: Curves.easeOutCubic,
       left: 16.0,
       right: totalRightOffset,
-      bottom: widget.isHidden ? -(200.0 + bottomPadding) : totalBottomOffset,
+      bottom: isEffectivelyHidden
+          ? -(200.0 + bottomPadding + viewInsetsBottom)
+          : totalBottomOffset,
       child: Center(
         child: AnimatedOpacity(
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeInOut,
-          opacity: widget.isHidden ? 0.0 : 1.0,
+          opacity: isEffectivelyHidden ? 0.0 : 1.0,
           child: IgnorePointer(
-            ignoring: widget.isHidden,
+            ignoring: isEffectivelyHidden,
             child: Container(
               constraints: const BoxConstraints(maxWidth: 580),
               decoration: BoxDecoration(

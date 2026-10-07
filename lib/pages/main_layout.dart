@@ -1192,8 +1192,12 @@ class _MainLayoutState extends ConsumerState<MainLayout>
             !uiState.showImmersiveTabBar) ||
         isCoverFlowImmersive;
     final bool hideImmersiveTabBar = isSidebarHidden;
+    final bool isKeyboardVisible =
+        MediaQuery.of(context).viewInsets.bottom > 0;
     final bool hideBottomBar =
-        (isPlayback && isSmallWin) || isCoverFlowImmersive;
+        (isPlayback && isSmallWin) ||
+        isCoverFlowImmersive ||
+        isKeyboardVisible;
 
     final double railWidth = (useSidebar && !isSidebarHidden) ? 80.0 : 0.0;
 
@@ -1212,6 +1216,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                 onPointerMove: _handleDesktopPointerActivity,
                 onPointerHover: _handleDesktopPointerActivity,
                 child: Scaffold(
+                  resizeToAvoidBottomInset: false,
                   extendBody: true,
                   body: Stack(
                     children: [
@@ -1324,8 +1329,9 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                               (!isPlayback &&
                                   currentMusic != null &&
                                   !hideMiniPlayerForSelection &&
-                                  !isCoverFlowImmersive)
-                              ? (20.0 +
+                                  !isCoverFlowImmersive &&
+                                  !isKeyboardVisible)
+                                  ? (20.0 +
                                     MediaQuery.of(context).padding.bottom +
                                     (((isRootSelectionMode &&
                                                 _currentIndex == 0) ||

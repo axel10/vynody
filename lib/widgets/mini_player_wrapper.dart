@@ -57,7 +57,10 @@ class _MiniPlayerWrapperState extends ConsumerState<MiniPlayerWrapper> {
 
     final selectionScope = ref.watch(librarySelectionScopeProvider);
     final librarySelectionActive = selectionScope != LibrarySelectionScope.none;
-    final showPlayer = currentMusic != null && !librarySelectionActive;
+    final bool isKeyboardVisible =
+        MediaQuery.of(context).viewInsets.bottom > 0;
+    final showPlayer =
+        currentMusic != null && !librarySelectionActive && !isKeyboardVisible;
 
     return Stack(
       children: [
@@ -182,8 +185,8 @@ class _MiniPlayerWrapperState extends ConsumerState<MiniPlayerWrapper> {
               await navigateToMainTab(context, index: index);
             },
             isPlayback: false,
-            isHidden: librarySelectionActive,
-            hideMiniPlayer: librarySelectionActive,
+            isHidden: librarySelectionActive || isKeyboardVisible,
+            hideMiniPlayer: librarySelectionActive || isKeyboardVisible,
           ),
       ],
     );
