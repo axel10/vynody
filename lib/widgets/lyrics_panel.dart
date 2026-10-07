@@ -159,6 +159,8 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
   double? _lastBuiltBottomTabBarHeight;
   bool? _lastBuiltShowTranslation;
   bool? _lastBuiltShowWordByWord;
+  int? _lastBuiltLayoutRevision;
+  MusicLyric? _lastBuiltLyrics;
   String? _lastLoggedContentDigest;
 
   void _logLyricsContentChangeIfNeeded({
@@ -2115,7 +2117,9 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
             widget.bottomSpacerHeight != _lastBuiltBottomSpacerHeight ||
             widget.bottomTabBarHeight != _lastBuiltBottomTabBarHeight ||
             showLyricsTranslation != _lastBuiltShowTranslation ||
-            showLyricsWordByWord != _lastBuiltShowWordByWord;
+            showLyricsWordByWord != _lastBuiltShowWordByWord ||
+            layoutRevision != _lastBuiltLayoutRevision ||
+            lyrics != _lastBuiltLyrics;
 
         if (needsRebuild) {
           _lastBuiltActiveIndex = activeIndex;
@@ -2143,6 +2147,8 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
           _lastBuiltBottomTabBarHeight = widget.bottomTabBarHeight;
           _lastBuiltShowTranslation = showLyricsTranslation;
           _lastBuiltShowWordByWord = showLyricsWordByWord;
+          _lastBuiltLayoutRevision = layoutRevision;
+          _lastBuiltLyrics = lyrics;
 
           _cachedLyricsView = LyricsPanelTimedLyricsView(
             lyrics: lyrics,

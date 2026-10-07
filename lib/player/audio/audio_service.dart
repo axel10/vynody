@@ -859,7 +859,16 @@ class AudioService extends Notifier<AudioSnapshot> {
       playerDuration: () => _duration,
       isLyricsActive: () => isLyricsNeeded,
       cacheSongDuration: _cacheSongDuration,
+      updateSongInPlaylist: _updateSongInPlaylist,
     );
+  }
+
+  void _updateSongInPlaylist(MusicFile song) {
+    for (final track in _player.playlist.items) {
+      if (track.id == song.path || track.uri == song.path) {
+        _player.playlist.replaceTrack(_audioTrackForSong(song));
+      }
+    }
   }
 
   LyricsController get _lyricsController {
@@ -3202,6 +3211,11 @@ class AudioService extends Notifier<AudioSnapshot> {
   }
 
   Future<void> next({PlaybackReason reason = PlaybackReason.user}) async {
+    debugPrint(
+      '[AudioService] next() called | position=${_position.inSeconds}s '
+      '(${_position.inMilliseconds}ms), transitioning=$_isTransitioning, '
+      'queueLength=${_queue.length}, currentMusic=${_debugSongLabel(currentMusic)}, reason=$reason',
+    );
     if (_isTransitioning) return;
     if (_queue.isEmpty) return;
 
@@ -3418,10 +3432,19 @@ class AudioService extends Notifier<AudioSnapshot> {
   }
 
   Future<void> previous({PlaybackReason reason = PlaybackReason.user}) async {
+    debugPrint(
+      '[AudioService] previous() called | position=${_position.inSeconds}s '
+      '(${_position.inMilliseconds}ms), transitioning=$_isTransitioning, '
+      'queueLength=${_queue.length}, currentMusic=${_debugSongLabel(currentMusic)}, reason=$reason',
+    );
     if (_isTransitioning) return;
     if (_queue.isEmpty) return;
 
     if (_position.inSeconds >= 3) {
+      debugPrint(
+        '[AudioService] previous(): position is >= 3s (${_position.inSeconds}s), '
+        'rewinding current song to beginning instead of skipping to previous track',
+      );
       await seek(Duration.zero);
       return;
     }
@@ -3483,6 +3506,11 @@ class AudioService extends Notifier<AudioSnapshot> {
   }
 
   Future<void> seek(Duration position) async {
+    debugPrint(
+      '[AudioService] seek() called | target=${position.inSeconds}s '
+      '(${position.inMilliseconds}ms), currentPosition=${_position.inSeconds}s, '
+      'currentMusic=${_debugSongLabel(currentMusic)}',
+    );
     _seekTargetPosition = position;
     _isSeeking = true;
     _lastSeekTime = DateTime.now();

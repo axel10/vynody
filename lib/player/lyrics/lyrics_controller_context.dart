@@ -75,6 +75,7 @@ class LyricsControllerContext {
     required this.bumpLyricsLayoutRevision,
     required this.isLyricsPanelScrolling,
     required this.isProUnlocked,
+    required this.updateSongInPlaylist,
     required this.logDebug,
   });
 
@@ -86,6 +87,7 @@ class LyricsControllerContext {
   final bool Function() isLyricsActive;
   final bool Function() isProUnlocked;
   final void Function(String path, int durationMillis) cacheSongDuration;
+  final void Function(MusicFile song) updateSongInPlaylist;
   final LyricsCacheRepository lyricsCacheRepository;
   final LyricsService lyricsService;
   final SettingsService settingsService;

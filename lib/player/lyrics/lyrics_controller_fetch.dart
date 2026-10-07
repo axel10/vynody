@@ -311,7 +311,8 @@ class LyricsFetchCoordinator {
     for (var i = 0; i < queue.length; i++) {
       final song = queue[i];
       if (song.lyrics == null) continue;
-      queue[i] = _support.copySongWithLyrics(song, null);
+      final updated = _support.copySongWithLyrics(song, null);
+      _context.updateSongInPlaylist(updated);
     }
 
     _context.translatedLyricsKeys.clear();
@@ -415,11 +416,12 @@ class LyricsFetchCoordinator {
       final lyrics = song.lyrics;
       if (lyrics == null || lyrics.translations.isEmpty) continue;
 
-      queue[i] = song.copyWith(
+      final updated = song.copyWith(
         lyrics: lyrics.copyWith(
           translations: const <String, MusicLyricTranslation>{},
         ),
       );
+      _context.updateSongInPlaylist(updated);
     }
 
     _context.bumpRevision();

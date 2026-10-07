@@ -62,6 +62,7 @@ class LyricsController extends Notifier<LyricsControllerState> {
     _playerDuration = dependencies.playerDuration;
     _isLyricsActive = dependencies.isLyricsActive;
     _cacheSongDuration = dependencies.cacheSongDuration;
+    final updateSongInPlaylist = dependencies.updateSongInPlaylist;
     _lyricsCacheRepository = LyricsCacheRepository(db: _db);
     // 复用 provider 里的实例，它注入了远程服务器歌词 fetcher；
     // 自己 new 一个会让 Subsonic / WebDAV 服务端歌词分支永远不生效。
@@ -95,6 +96,7 @@ class LyricsController extends Notifier<LyricsControllerState> {
       playerDuration: _playerDuration,
       isLyricsActive: _isLyricsActive,
       cacheSongDuration: _cacheSongDuration,
+      updateSongInPlaylist: updateSongInPlaylist,
       lyricsCacheRepository: _lyricsCacheRepository,
       lyricsService: _lyricsService,
       settingsService: _settingsService,
@@ -598,27 +600,28 @@ class LyricsController extends Notifier<LyricsControllerState> {
 
   void _logDebug(String message) {
     if (!kDebugMode) return;
-    // debugPrint('[AudioService][Lyrics] $message');
+    debugPrint('[LyricsController] $message');
   }
 
   Future<void> _syncLyricsCacheWatch(String songPath, String cacheKey) async {
     final currentSong = _support.songForPath(songPath);
     if (currentSong == null) {
+      debugPrint('[LyricsController] _syncLyricsCacheWatch aborted: song not found in queue for path="$songPath"');
       return;
     }
 
     final availableCaches = await getAvailableLyricRecords(currentSong);
     if (availableCaches.isEmpty) {
       if (!_lyricsCacheWatchPrimed) {
-        _logDebug(
-          'lyrics cache watch initial null ignored -> path="$songPath" '
+        debugPrint(
+          '[LyricsController] lyrics cache watch initial null ignored -> path="$songPath" '
           'cacheKey="$cacheKey"',
         );
         return;
       }
       if (currentSong.lyrics != null) {
-        _logDebug(
-          'lyrics cache watch cleared -> path="$songPath" cacheKey="$cacheKey"',
+        debugPrint(
+          '[LyricsController] lyrics cache watch cleared -> path="$songPath" cacheKey="$cacheKey"',
         );
         _support.clearLyricsStateForPath(songPath);
         _context.setLyricsTranslationStatus('');
@@ -674,7 +677,9 @@ class LyricsController extends Notifier<LyricsControllerState> {
     );
 
     debugPrint(
-      '[LyricsController] _syncLyricsCacheWatch: chosen source=${selectedRecord.source.dbValue}, isSynced=${selectedRecord.isSynced}, lines=${nextLyrics.syncedLines.length}, textLen=${nextLyrics.plainText.length}',
+      '[LyricsController] _syncLyricsCacheWatch: path="$songPath", chosen source=${selectedRecord.source.dbValue}, '
+      'isSynced=${selectedRecord.isSynced}, lines=${nextLyrics.syncedLines.length}, '
+      'translationsFromDB=${translations.keys.toList()} (recordsCount=${translationRecords.length})',
     );
 
     if (selectedRecord.source == LyricsCacheSource.embedded ||

@@ -180,7 +180,8 @@ class LyricsControllerSupport {
     for (var i = 0; i < queue.length; i++) {
       if (queue[i].path != path) continue;
       if (queue[i].lyrics == null) continue;
-      queue[i] = copySongWithLyrics(queue[i], null);
+      final updated = copySongWithLyrics(queue[i], null);
+      _context.updateSongInPlaylist(updated);
     }
 
     _context.clearPendingLyricsTranslationUpdatesForSong(path);
@@ -194,11 +195,12 @@ class LyricsControllerSupport {
       if (queuedSong.path != path) continue;
       final lyrics = queuedSong.lyrics;
       if (lyrics == null || lyrics.translations.isEmpty) continue;
-      queue[i] = queuedSong.copyWith(
+      final updated = queuedSong.copyWith(
         lyrics: lyrics.copyWith(
           translations: const <String, MusicLyricTranslation>{},
         ),
       );
+      _context.updateSongInPlaylist(updated);
     }
 
     _context.clearPendingLyricsTranslationUpdatesForSong(path);
@@ -528,7 +530,7 @@ class LyricsControllerSupport {
 
     final updatedSong = update(currentSong);
     if (updatedSong == currentSong) return updatedSong;
-    queue[index] = updatedSong;
+    _context.updateSongInPlaylist(updatedSong);
     return updatedSong;
   }
 
@@ -545,7 +547,7 @@ class LyricsControllerSupport {
       if (updatedSong == queuedSong) {
         return updatedSong;
       }
-      queue[i] = updatedSong;
+      _context.updateSongInPlaylist(updatedSong);
       return updatedSong;
     }
     return null;
@@ -628,6 +630,10 @@ class LyricsControllerSupport {
     try {
       final cachedTranslations = await _context.lyricsCacheRepository
           .getLyricsTranslationCaches(query.cacheKey);
+      debugPrint(
+        '[LyricsController] restoreCachedTranslations: path="${song.path}", cacheKey="${query.cacheKey}", '
+        'cachedRecordsCount=${cachedTranslations.length}',
+      );
       if (cachedTranslations.isEmpty) return;
 
       final preferredLanguageCode =
@@ -663,7 +669,10 @@ class LyricsControllerSupport {
         changed = true;
       }
 
-      if (!changed) return;
+      if (!changed) {
+        debugPrint('[LyricsController] restoreCachedTranslations: no new translations to merge');
+        return;
+      }
 
       final queue = _context.queue();
       for (var i = 0; i < queue.length; i++) {
@@ -671,11 +680,15 @@ class LyricsControllerSupport {
         if (queuedSong.path != song.path) continue;
         final queuedLyrics = queuedSong.lyrics;
         if (queuedLyrics == null) continue;
-        queue[i] = queuedSong.copyWith(
+        final updated = queuedSong.copyWith(
           lyrics: queuedLyrics.copyWith(translations: updatedTranslations),
         );
+        _context.updateSongInPlaylist(updated);
       }
 
+      debugPrint(
+        '[LyricsController] restoreCachedTranslations: successfully restored translations: ${updatedTranslations.keys.toList()}',
+      );
       _context.bumpRevision();
       _context.bumpLyricsLayoutRevision();
     } catch (e) {

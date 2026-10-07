@@ -43,11 +43,18 @@ class LyricsTranslationCoordinator {
   Future<String?> translateLyricsForCurrentSong({
     String? targetLanguageCode,
   }) async {
+    final song = _context.currentMusic();
+    debugPrint(
+      '[LyricsTranslation] translateLyricsForCurrentSong invoked -> '
+      'song="${song?.displayName}" path="${song?.path}" targetLang="$targetLanguageCode" '
+      'stateLang="${_context.state.lyricsTranslationLanguageCode}"',
+    );
     if (!_context.isProUnlocked()) {
+      debugPrint('[LyricsTranslation] Blocked: pro trial expired or not unlocked');
       return _l10n().proTrialExpired;
     }
-    final song = _context.currentMusic();
     if (song == null) {
+      debugPrint('[LyricsTranslation] Blocked: no current song available');
       return _l10n().noCurrentSongAvailable;
     }
 
@@ -55,10 +62,14 @@ class LyricsTranslationCoordinator {
       targetLanguageCode ?? _context.state.lyricsTranslationLanguageCode,
     );
     if (normalizedLanguageCode.isEmpty) {
+      debugPrint('[LyricsTranslation] Blocked: invalid target language code');
       return _l10n().invalidTargetLanguage;
     }
     if (_context.state.lyricsTranslationLanguageCode !=
         normalizedLanguageCode) {
+      debugPrint(
+        '[LyricsTranslation] Language changed: ${_context.state.lyricsTranslationLanguageCode} -> $normalizedLanguageCode',
+      );
       _context.setLyricsTranslationStatus('');
       _context.setState(
         _context.state.copyWith(
@@ -68,9 +79,11 @@ class LyricsTranslationCoordinator {
     }
 
     if (_context.isLyricsTranslationBusyForSong(song.path)) {
+      debugPrint('[LyricsTranslation] Blocked: song already busy for translation');
       return _l10n().songAlreadyQueuedForTranslation;
     }
 
+    debugPrint('[LyricsTranslation] Enqueueing translation task for "${song.displayName}"');
     _context.updateSongTaskState(
       song.path,
       (current) => current.copyWith(
@@ -91,11 +104,17 @@ class LyricsTranslationCoordinator {
     MusicFile song, {
     required String normalizedLanguageCode,
   }) async {
+    debugPrint(
+      '[LyricsTranslation] _translateLyricsForSong start -> song="${song.displayName}" '
+      'path="${song.path}" targetLang="$normalizedLanguageCode"',
+    );
     if (!_context.isProUnlocked()) {
+      debugPrint('[LyricsTranslation] _translateLyricsForSong aborted: pro not unlocked');
       return _l10n().proTrialExpired;
     }
     final currentSong = _support.songForPath(song.path);
     if (currentSong == null) {
+      debugPrint('[LyricsTranslation] _translateLyricsForSong aborted: song no longer exists in queue');
       return _l10n().songNoLongerExistsForTranslation;
     }
 
@@ -105,6 +124,7 @@ class LyricsTranslationCoordinator {
     try {
       final sourceLyrics = _lyricsSourceForTranslation(currentSong);
       if (sourceLyrics.isEmpty) {
+        debugPrint('[LyricsTranslation] _translateLyricsForSong aborted: no lyrics available for translation');
         return _l10n().noLyricsAvailableForTranslation;
       }
 
@@ -114,15 +134,17 @@ class LyricsTranslationCoordinator {
         sourceLyrics: sourceLyrics,
       );
       if (request == null) {
+        debugPrint('[LyricsTranslation] _translateLyricsForSong aborted: _buildLyricsTranslationRequest returned null');
         return null;
       }
 
       return await _runLyricsTranslationRequest(request, cancelToken);
     } catch (e) {
       if (cancelToken.isCancelled || (e is DioException && CancelToken.isCancel(e))) {
-        debugPrint('[LyricsController] lyrics translation cancelled by user.');
+        debugPrint('[LyricsTranslation] lyrics translation cancelled by user.');
         return null;
       }
+      debugPrint('[LyricsTranslation] Exception during translation: $e');
       rethrow;
     } finally {
       if (_context.lyricsAiCancelToken == cancelToken) {
@@ -141,6 +163,7 @@ class LyricsTranslationCoordinator {
           translationStatus: '',
         ),
       );
+      debugPrint('[LyricsTranslation] _translateLyricsForSong finally: cleanup completed for "${song.displayName}"');
     }
   }
 
@@ -150,10 +173,16 @@ class LyricsTranslationCoordinator {
     required String sourceLyrics,
   }) async {
     final query = await _support.buildLyricsQueryForSong(song);
-    if (query == null) return null;
+    if (query == null) {
+      debugPrint('[LyricsTranslation] Request build failed: query is null (duration not ready)');
+      return null;
+    }
 
     final lyricsId = _support.lyricsIdForSong(song, sourceLyrics: sourceLyrics);
-    if (lyricsId.isEmpty) return null;
+    if (lyricsId.isEmpty) {
+      debugPrint('[LyricsTranslation] Request build failed: lyricsId is empty');
+      return null;
+    }
 
     final translationKey = _lyricsTranslationCacheKey(
       query.cacheKey,
@@ -169,12 +198,28 @@ class LyricsTranslationCoordinator {
       );
     }
 
-    if (_context.translationInFlightKeys.contains(translationKey)) return null;
-    if (currentLyrics?.translationFor(normalizedLanguageCode)?.hasContent ==
-        true) {
+    if (_context.translationInFlightKeys.contains(translationKey)) {
+      debugPrint('[LyricsTranslation] Request skipped: translation already in-flight for key "$translationKey"');
       return null;
     }
-    if (_context.translatedLyricsKeys.contains(translationKey)) return null;
+    if (currentLyrics?.translationFor(normalizedLanguageCode)?.hasContent ==
+        true) {
+      debugPrint(
+        '[LyricsTranslation] Request skipped: memory lyrics already has translation for "$normalizedLanguageCode"',
+      );
+      return null;
+    }
+    if (_context.translatedLyricsKeys.contains(translationKey)) {
+      debugPrint(
+        '[LyricsTranslation] Request skipped: key "$translationKey" already in translatedLyricsKeys cache set',
+      );
+      return null;
+    }
+
+    debugPrint(
+      '[LyricsTranslation] Request built successfully: key="$translationKey", lyricsId="$lyricsId", '
+      'sourceLength=${sourceLyrics.length}',
+    );
 
     return _LyricsTranslationRequest(
       songPath: song.path,
@@ -191,6 +236,7 @@ class LyricsTranslationCoordinator {
     CancelToken cancelToken,
   ) async {
     if (_context.translationInFlightKeys.contains(request.translationKey)) {
+      debugPrint('[LyricsTranslation] Request already in flight: ${request.translationKey}');
       return null;
     }
 
@@ -206,6 +252,10 @@ class LyricsTranslationCoordinator {
 
     final initialModelLabel =
         _context.lyricsAiService.currentTranslationModelLabel;
+    debugPrint(
+      '[LyricsTranslation] Starting translation stream -> key="${request.translationKey}" '
+      'model="$initialModelLabel" targetLang="${request.languageCode}"',
+    );
     _context.updateLyricsGenerationDisplayState(
       LyricsGenerationDisplayState(
         songPath: request.songPath,
@@ -223,8 +273,12 @@ class LyricsTranslationCoordinator {
       final errorMessage = await _context.lyricsAiService.translateLyricsStream(
         lyrics: request.sourceLyrics,
         targetLanguageCode: request.languageCode,
-        onModelLabelChanged: _updateTranslationModelLabel,
+        onModelLabelChanged: (modelLabel) {
+          debugPrint('[LyricsTranslation] Model label changed: $modelLabel');
+          _updateTranslationModelLabel(modelLabel);
+        },
         onStageChanged: (stage) {
+          debugPrint('[LyricsTranslation] Stage changed: $stage');
           final current = _context.lyricsGenerationDisplayState;
           final phase = switch (stage) {
             'requesting' => LyricsGenerationPhase.requesting,
@@ -251,6 +305,11 @@ class LyricsTranslationCoordinator {
           }
           latestTranslatedLines = translatedLines;
           latestTranslatedText = translatedText;
+          debugPrint(
+            '[LyricsTranslation] Stream progress chunk received -> lines=${translatedLines.length}, '
+            'nonEmptyLines=${translatedLines.where((l) => l.trim().isNotEmpty).length}, '
+            'textLen=${translatedText.length}',
+          );
           _syncTranslatedLyricsToSong(
             request.songPath,
             request.lyricsId,
@@ -262,11 +321,20 @@ class LyricsTranslationCoordinator {
           );
         },
       );
+      debugPrint(
+        '[LyricsTranslation] Stream translate finished -> errorMessage="$errorMessage", '
+        'latestLinesCount=${latestTranslatedLines.length}, latestTextLen=${latestTranslatedText.length}',
+      );
       if (errorMessage == null) {
         final hasContent = latestTranslatedLines.any((line) => line.trim().isNotEmpty) ||
             latestTranslatedText.trim().isNotEmpty;
+        debugPrint(
+          '[LyricsTranslation] Translation finished with success. hasContent=$hasContent, '
+          'isScrolling=${_context.isLyricsPanelScrolling()}',
+        );
         if (hasContent) {
           if (_context.isLyricsPanelScrolling()) {
+            debugPrint('[LyricsTranslation] Panel is scrolling, stashing pending translation update');
             _context.stashPendingLyricsTranslationUpdate(
               songPath: request.songPath,
               cacheKey: request.cacheKey,
@@ -286,15 +354,18 @@ class LyricsTranslationCoordinator {
             latestTranslatedLines,
             latestTranslatedText,
             cacheKey: request.cacheKey,
-            bumpLayoutRevision: false,
+            bumpLayoutRevision: true,
           );
 
           _context.translatedLyricsKeys.add(request.translationKey);
+          debugPrint('[LyricsTranslation] Added key to translatedLyricsKeys: ${request.translationKey}');
           await _saveTranslatedLyricsToDatabase(
             songPath: request.songPath,
             cacheKey: request.cacheKey,
             languageCode: request.languageCode,
           );
+        } else {
+          debugPrint('[LyricsTranslation] Warning: Translation completed but hasContent is false!');
         }
         return null;
       }
@@ -302,21 +373,25 @@ class LyricsTranslationCoordinator {
       if (latestTranslatedLines.any((line) => line.trim().isNotEmpty) ||
           latestTranslatedText.trim().isNotEmpty) {
         try {
+          debugPrint('[LyricsTranslation] Saving partial translation on error...');
           await _saveTranslatedLyricsToDatabase(
             songPath: request.songPath,
             cacheKey: request.cacheKey,
             languageCode: request.languageCode,
           );
         } catch (dbError) {
-          debugPrint('[LyricsController] Failed to save partial translation on error: $dbError');
+          debugPrint('[LyricsTranslation] Failed to save partial translation on error: $dbError');
         }
       }
 
       if (cancelToken.isCancelled || errorMessage == 'cancelled') {
+        debugPrint('[LyricsTranslation] Translation request cancelled');
         return null;
       }
+      debugPrint('[LyricsTranslation] Translation failed with error: $errorMessage');
       return errorMessage;
     } catch (e) {
+      debugPrint('[LyricsTranslation] Translation request threw exception: $e');
       if (latestTranslatedLines.any((line) => line.trim().isNotEmpty) ||
           latestTranslatedText.trim().isNotEmpty) {
         try {
@@ -326,11 +401,11 @@ class LyricsTranslationCoordinator {
             languageCode: request.languageCode,
           );
         } catch (dbError) {
-          debugPrint('[LyricsController] Failed to save partial translation on error: $dbError');
+          debugPrint('[LyricsTranslation] Failed to save partial translation on error: $dbError');
         }
       }
       if (cancelToken.isCancelled || (e is DioException && CancelToken.isCancel(e))) {
-        debugPrint('[LyricsController] lyrics translation cancelled by user.');
+        debugPrint('[LyricsTranslation] lyrics translation cancelled by user.');
         return null;
       }
       rethrow;
@@ -349,6 +424,7 @@ class LyricsTranslationCoordinator {
           const LyricsGenerationDisplayState(),
         );
       }
+      debugPrint('[LyricsTranslation] _runLyricsTranslationRequest finally finished for key ${request.translationKey}');
     }
   }
 
@@ -419,8 +495,8 @@ class LyricsTranslationCoordinator {
     bool bumpLayoutRevision = true,
   }) {
     if (_context.isLyricsPanelScrolling()) {
-      _context.logDebug(
-        'translation sync deferred while panel scrolling -> '
+      debugPrint(
+        '[LyricsTranslation] Translation sync deferred while panel scrolling -> '
         'path="$songPath" lang="$languageCode" '
         'lines=${translatedLines.length} textLen=${translatedText.trim().length}',
       );
@@ -462,11 +538,16 @@ class LyricsTranslationCoordinator {
       return updatedSong!;
     });
 
-    if (updatedSong == null) return;
-    _context.logDebug(
-      'translation sync applied -> path="$songPath" lang="$languageCode" '
+    if (updatedSong == null) {
+      debugPrint(
+        '[LyricsTranslation] Warning: replaceSongIfPath returned null for path="$songPath", cannot apply translation sync!',
+      );
+      return;
+    }
+    debugPrint(
+      '[LyricsTranslation] Translation sync applied -> path="$songPath" lang="$languageCode" '
       'lines=${translatedLines.length} textLen=${translatedText.trim().length} '
-      'bumpLayout=$bumpLayoutRevision',
+      'bumpLayout=$bumpLayoutRevision hasLyrics=${updatedSong?.lyrics?.hasTranslatedLyrics}',
     );
     _context.bumpRevision();
     if (bumpLayoutRevision) {
@@ -488,13 +569,24 @@ class LyricsTranslationCoordinator {
   }) async {
     try {
       final current = _support.songForPath(songPath);
-      if (current == null) return;
+      if (current == null) {
+        debugPrint('[LyricsTranslation] Save to DB failed: song not found for path "$songPath"');
+        return;
+      }
 
       final lyrics = current.lyrics;
-      if (lyrics == null) return;
+      if (lyrics == null) {
+        debugPrint('[LyricsTranslation] Save to DB failed: lyrics is null for song "${current.displayName}"');
+        return;
+      }
 
       final translation = lyrics.translationFor(languageCode);
-      if (translation == null || !translation.hasContent) return;
+      if (translation == null || !translation.hasContent) {
+        debugPrint(
+          '[LyricsTranslation] Save to DB failed: translation for "$languageCode" is null or empty in song "${current.displayName}"',
+        );
+        return;
+      }
 
       final record = LyricsTranslationCacheRecord(
         cacheKey: cacheKey,
@@ -507,8 +599,12 @@ class LyricsTranslationCoordinator {
             DateTime.now().millisecondsSinceEpoch,
       );
       await _context.lyricsCacheRepository.saveLyricsTranslationCache(record);
+      debugPrint(
+        '[LyricsTranslation] Successfully cached translation to DB: cacheKey="$cacheKey", '
+        'lang="$languageCode", linesCount=${record.translatedLines.length}, provider=${record.provider}',
+      );
     } catch (e) {
-      debugPrint('[LyricsController] Failed to cache translated lyrics: $e');
+      debugPrint('[LyricsTranslation] Failed to cache translated lyrics: $e');
     }
   }
 

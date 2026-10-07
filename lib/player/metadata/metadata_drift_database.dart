@@ -2456,7 +2456,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   Future<void> insertOrUpdateLyricsTranslationCache(
     LyricsTranslationCacheRecord record,
   ) async {
-    final normalizedCacheKey = record.cacheKey.trim();
+    final normalizedCacheKey = ScannerPathUtils.normalizeLyricCacheKey(record.cacheKey);
     if (normalizedCacheKey.isNotEmpty) {
       await (delete(lyricsTranslationCaches)..where(
             (t) =>
@@ -2481,7 +2481,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   Future<List<LyricsTranslationCacheRecord>> getLyricsTranslationCaches(
     String cacheKey,
   ) async {
-    final normalizedCacheKey = cacheKey.trim();
+    final normalizedCacheKey = ScannerPathUtils.normalizeLyricCacheKey(cacheKey);
     if (normalizedCacheKey.isEmpty) {
       return const <LyricsTranslationCacheRecord>[];
     }
@@ -2502,7 +2502,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   Stream<List<LyricsTranslationCacheRecord>> watchLyricsTranslationCaches(
     String cacheKey,
   ) {
-    final normalizedCacheKey = cacheKey.trim();
+    final normalizedCacheKey = ScannerPathUtils.normalizeLyricCacheKey(cacheKey);
     if (normalizedCacheKey.isEmpty) {
       return Stream.value(const <LyricsTranslationCacheRecord>[]);
     }
@@ -2527,7 +2527,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   }
 
   Future<void> clearLyricsTranslationCacheByKey(String cacheKey) async {
-    final normalizedCacheKey = cacheKey.trim();
+    final normalizedCacheKey = ScannerPathUtils.normalizeLyricCacheKey(cacheKey);
     if (normalizedCacheKey.isEmpty) return;
 
     await (delete(

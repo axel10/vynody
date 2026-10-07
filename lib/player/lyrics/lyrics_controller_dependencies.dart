@@ -10,6 +10,7 @@ class LyricsControllerDependencies {
     required this.playerDuration,
     required this.isLyricsActive,
     required this.cacheSongDuration,
+    required this.updateSongInPlaylist,
   });
 
   final MetadataDatabase db;
@@ -19,4 +20,5 @@ class LyricsControllerDependencies {
   final Duration Function() playerDuration;
   final bool Function() isLyricsActive;
   final void Function(String path, int durationMillis) cacheSongDuration;
+  final void Function(MusicFile song) updateSongInPlaylist;
 }
