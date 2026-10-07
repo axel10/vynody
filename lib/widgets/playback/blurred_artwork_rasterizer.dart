@@ -55,7 +55,7 @@ class BlurredArtworkRasterizer {
     required String key,
     Uint8List? artworkBytes,
     String? artworkPath,
-    double blurSigma = 24.0,
+    double blurSigma = 30.0,
   }) async {
     final cached = getCached(key);
     if (cached != null) {
@@ -229,7 +229,7 @@ class StaticBlurredArtwork extends StatefulWidget {
     required this.songKey,
     this.cachedBytes,
     this.artworkPath,
-    this.blurSigma = 24.0,
+    this.blurSigma = 30.0,
     required this.fallback,
   });
 
@@ -261,7 +261,15 @@ class _StaticBlurredArtworkState extends State<StaticBlurredArtwork> {
     final key = '${widget.songKey}_sigma_${widget.blurSigma.toInt()}';
     final cached = BlurredArtworkRasterizer.instance.getCached(key);
     if (cached != null) {
-      _blurredImage = cached;
+      if (_blurredImage != cached) {
+        if (mounted) {
+          setState(() {
+            _blurredImage = cached;
+          });
+        } else {
+          _blurredImage = cached;
+        }
+      }
       return;
     }
 

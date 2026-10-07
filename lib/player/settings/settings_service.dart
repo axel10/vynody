@@ -2775,12 +2775,12 @@ class SettingsService extends ChangeNotifier {
       _playbackBackgroundLyricsOpacityProperty.value = value;
 
   double get playbackBlurredArtworkBlurSigma =>
-      defaultPlaybackBlurredArtworkBlurSigma;
+      _playbackBlurredArtworkBlurSigmaProperty.value;
   set playbackBlurredArtworkBlurSigma(double value) =>
       _playbackBlurredArtworkBlurSigmaProperty.value = value;
 
   double get playbackCustomImageBlurSigma =>
-      defaultPlaybackCustomImageBlurSigma;
+      _playbackCustomImageBlurSigmaProperty.value;
   set playbackCustomImageBlurSigma(double value) =>
       _playbackCustomImageBlurSigmaProperty.value = value;
 

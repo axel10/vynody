@@ -1829,6 +1829,14 @@ class _SafeBackgroundSwitcherState extends State<_SafeBackgroundSwitcher>
               );
             });
           }
+        } else if (last.child != widget.child) {
+          setState(() {
+            _items[_items.length - 1] = _SwitcherItem(
+              child: widget.child,
+              controller: last.controller,
+              animation: last.animation,
+            );
+          });
         }
       }
     }

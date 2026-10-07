@@ -1029,6 +1029,14 @@ class VisualizerOptionsDialog extends ConsumerWidget {
           },
         ),
         const SizedBox(height: 12),
+        _BlurredArtworkSigmaSlider(
+          value: settings.playbackBlurredArtworkBlurSigma,
+          onChangeEnd: (val) {
+            settings.playbackBlurredArtworkBlurSigma = val;
+            setDialogState(() {});
+          },
+        ),
+        const SizedBox(height: 12),
         Padding(
           padding: EdgeInsets.symmetric(horizontal: isPortrait ? 0 : 12),
           child: TextButton.icon(
@@ -1729,4 +1737,93 @@ Future<void> showVisualizerOptionsDialog(
     builder: (context) =>
         VisualizerOptionsDialog(audio: audio, settings: settings),
   );
+}
+
+class _BlurredArtworkSigmaSlider extends StatefulWidget {
+  final double value;
+  final ValueChanged<double> onChangeEnd;
+
+  const _BlurredArtworkSigmaSlider({
+    required this.value,
+    required this.onChangeEnd,
+  });
+
+  @override
+  State<_BlurredArtworkSigmaSlider> createState() =>
+      _BlurredArtworkSigmaSliderState();
+}
+
+class _BlurredArtworkSigmaSliderState
+    extends State<_BlurredArtworkSigmaSlider> {
+  late double _currentValue;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentValue = widget.value;
+  }
+
+  @override
+  void didUpdateWidget(covariant _BlurredArtworkSigmaSlider oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.value != oldWidget.value) {
+      _currentValue = widget.value;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final isPortrait =
+        MediaQuery.of(context).orientation == Orientation.portrait;
+
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: isPortrait ? 0 : 12),
+      child: SizedBox(
+        width: 270,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(top: 16, bottom: 8),
+              child: Text(
+                '${l10n.blurIntensity}: ${_currentValue.toStringAsFixed(0)}',
+                style: TextStyle(
+                  color: isDark
+                      ? Colors.white70
+                      : theme.colorScheme.onSurfaceVariant,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+            SliderTheme(
+              data: SliderThemeData(
+                activeTrackColor: theme.colorScheme.primary,
+                inactiveTrackColor: isDark
+                    ? Colors.white12
+                    : theme.colorScheme.primary.withValues(alpha: 0.12),
+                thumbColor: theme.colorScheme.primary,
+              ),
+              child: Slider(
+                value: _currentValue.clamp(5.0, 50.0),
+                min: 5.0,
+                max: 50.0,
+                divisions: 45,
+                onChanged: (val) {
+                  setState(() {
+                    _currentValue = val;
+                  });
+                },
+                onChangeEnd: (val) {
+                  widget.onChangeEnd(val);
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
