@@ -49,6 +49,10 @@
   "@directoryAddedNoMusic": {
     "description": "Directory added but no audio files found"
   },
+  "selectDirectoryHint": "所选项目为单曲文件，请选择文件夹或点击右上角「打开」",
+  "@selectDirectoryHint": {
+    "description": "Hint shown when a user selects a file instead of a folder in directory picker"
+  },
   "scanDirectory": "扫描目录",
   "@scanDirectory": {
     "description": "Scan directory button"

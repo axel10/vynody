@@ -28,6 +28,7 @@
   },
   "directoryAddedSuccess": "Dizin başarıyla eklendi",
   "directoryAddedNoMusic": "Dizin eklendi, ancak çalınabilir ses dosyası bulunamadı",
+  "selectDirectoryHint": "Seçilen öğe bir dosyadır. Lütfen bir klasör seçin veya sağ üstteki 'Aç' düğmesine dokunun",
   "scanDirectory": "Dizini Tara",
   "sort": "Sırala",
   "addRootDirectory": "Kök Dizin Ekle",

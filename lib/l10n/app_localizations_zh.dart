@@ -45,6 +45,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get directoryAddedNoMusic => '目录已添加，但未发现可播放音频文件';
 
   @override
+  String get selectDirectoryHint => '所选项目为单曲文件，请选择文件夹或点击右上角「打开」';
+
+  @override
   String get scanDirectory => '扫描目录';
 
   @override
@@ -5239,6 +5242,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get directoryAddedNoMusic => '目錄已新增，但未發現可播放的音訊檔案';
+
+  @override
+  String get selectDirectoryHint => '所選項目為單曲檔案，請選擇資料夾或點擊右上角「開啟」';
 
   @override
   String get scanDirectory => '掃描目錄';

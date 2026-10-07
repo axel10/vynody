@@ -46,6 +46,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Directory added, but no playable audio files found';
 
   @override
+  String get selectDirectoryHint =>
+      'Selected item is a file. Please select a folder or tap \'Open\' in the top right to select the directory';
+
+  @override
   String get scanDirectory => 'Scan Directory';
 
   @override

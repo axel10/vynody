@@ -46,6 +46,10 @@ class AppLocalizationsEs extends AppLocalizations {
       'Directorio agregado, pero no se encontraron archivos de audio reproducibles';
 
   @override
+  String get selectDirectoryHint =>
+      'El elemento seleccionado es un archivo. Seleccione una carpeta o toque «Abrir» en la esquina superior derecha';
+
+  @override
   String get scanDirectory => 'Escanear directorio';
 
   @override

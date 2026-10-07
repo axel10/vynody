@@ -317,6 +317,11 @@ class _SharingPageState extends ConsumerState<SharingPage>
         return;
       }
 
+      if (FileSystemEntity.isFileSync(dirPath)) {
+        showToast(l10n.selectDirectoryHint);
+        return;
+      }
+
       showToast(l10n.scanningFolderMusic);
 
       final dir = Directory(dirPath);

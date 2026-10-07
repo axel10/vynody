@@ -95,6 +95,20 @@ class _MusicFoldersDialogState extends ConsumerState<MusicFoldersDialog> {
       if (selectedDirectory != null) {
         if (!mounted) return;
 
+        if (FileSystemEntity.isFileSync(selectedDirectory)) {
+          final l10n = AppLocalizations.of(context);
+          AppSnackBar.show(
+            context,
+            ref,
+            SnackBar(
+              content: Text(
+                l10n?.selectDirectoryHint ?? '所选项目为单曲文件，请选择文件夹或点击右上角「打开」',
+              ),
+            ),
+          );
+          return;
+        }
+
         if (Platform.isWindows) {
           await Future.delayed(const Duration(milliseconds: 300));
         }

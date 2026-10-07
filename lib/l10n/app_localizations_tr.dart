@@ -46,6 +46,10 @@ class AppLocalizationsTr extends AppLocalizations {
       'Dizin eklendi, ancak çalınabilir ses dosyası bulunamadı';
 
   @override
+  String get selectDirectoryHint =>
+      'Seçilen öğe bir dosyadır. Lütfen bir klasör seçin veya sağ üstteki \'Aç\' düğmesine dokunun';
+
+  @override
   String get scanDirectory => 'Dizini Tara';
 
   @override

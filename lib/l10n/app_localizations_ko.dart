@@ -45,6 +45,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get directoryAddedNoMusic => '디렉토리가 추가되었지만 재생 가능한 오디오 파일이 없습니다';
 
   @override
+  String get selectDirectoryHint =>
+      '선택한 항목은 파일입니다. 폴더를 선택하거나 오른쪽 상단의 \'열기\'를 탭하세요';
+
+  @override
   String get scanDirectory => '디렉토리 검색';
 
   @override

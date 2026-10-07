@@ -46,6 +46,10 @@ class AppLocalizationsJa extends AppLocalizations {
       'ディレクトリを追加しましたが、再生可能なオーディオファイルが見つかりませんでした';
 
   @override
+  String get selectDirectoryHint =>
+      '選択された項目はファイルです。フォルダを選択するか、右上の「開く」をタップしてください';
+
+  @override
   String get scanDirectory => 'ディレクトリをスキャン';
 
   @override

@@ -31,6 +31,7 @@
   },
   "directoryAddedSuccess": "Directorio agregado exitosamente",
   "directoryAddedNoMusic": "Directorio agregado, pero no se encontraron archivos de audio reproducibles",
+  "selectDirectoryHint": "El elemento seleccionado es un archivo. Seleccione una carpeta o toque «Abrir» en la esquina superior derecha",
   "scanDirectory": "Escanear directorio",
   "sort": "Ordenar",
   "addRootDirectory": "Agregar directorio raíz",

@@ -171,6 +171,12 @@ abstract class AppLocalizations {
   /// **'目录已添加，但未发现可播放音频文件'**
   String get directoryAddedNoMusic;
 
+  /// Hint shown when a user selects a file instead of a folder in directory picker
+  ///
+  /// In zh, this message translates to:
+  /// **'所选项目为单曲文件，请选择文件夹或点击右上角「打开」'**
+  String get selectDirectoryHint;
+
   /// Scan directory button
   ///
   /// In zh, this message translates to:

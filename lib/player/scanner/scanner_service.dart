@@ -1267,6 +1267,15 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     debugPrint(
       '[ScannerService] addRootPath: path=$path, normalizedPath=$normalizedPath, persistentDocumentId=$persistentDocumentId, _linuxFlatpak=$_linuxFlatpak',
     );
+    if (FileSystemEntity.isFileSync(normalizedPath)) {
+      debugPrint(
+        '[ScannerService] addRootPath rejected: $normalizedPath is a file, not a directory',
+      );
+      return RootPathAddResult(
+        RootPathAddStatus.failed,
+        path: normalizedPath,
+      );
+    }
     if (Platform.isLinux && _linuxFlatpak && persistentDocumentId != null) {
       _linuxDocumentIds[normalizedPath] = persistentDocumentId;
       await _saveLinuxDocumentIds();

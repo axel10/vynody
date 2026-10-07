@@ -46,6 +46,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Répertoire ajouté, mais aucun fichier audio trouvé';
 
   @override
+  String get selectDirectoryHint =>
+      'L\'élément sélectionné est un fichier. Veuillez sélectionner un dossier ou appuyer sur « Ouvrir » en haut à droite';
+
+  @override
   String get scanDirectory => 'Analyser le répertoire';
 
   @override

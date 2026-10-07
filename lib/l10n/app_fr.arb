@@ -31,6 +31,7 @@
   },
   "directoryAddedSuccess": "Répertoire ajouté avec succès",
   "directoryAddedNoMusic": "Répertoire ajouté, mais aucun fichier audio trouvé",
+  "selectDirectoryHint": "L'élément sélectionné est un fichier. Veuillez sélectionner un dossier ou appuyer sur « Ouvrir » en haut à droite",
   "scanDirectory": "Analyser le répertoire",
   "sort": "Trier",
   "addRootDirectory": "Ajouter un répertoire racine",

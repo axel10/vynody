@@ -31,6 +31,7 @@
   },
   "directoryAddedSuccess": "ディレクトリを追加しました",
   "directoryAddedNoMusic": "ディレクトリを追加しましたが、再生可能なオーディオファイルが見つかりませんでした",
+  "selectDirectoryHint": "選択された項目はファイルです。フォルダを選択するか、右上の「開く」をタップしてください",
   "scanDirectory": "ディレクトリをスキャン",
   "sort": "並び替え",
   "addRootDirectory": "ルートディレクトリを追加",
