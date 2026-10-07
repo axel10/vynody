@@ -677,17 +677,16 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
             icon: Icons.source_rounded,
             context: context,
           ),
-        if (requeryOnly)
-          buildContextMenuItem<String>(
-            value: 'requery',
-            enabled:
-                hasCurrentSong &&
-                !lyricsState.isLyricsLoading &&
-                !taskState.isGenerationBusy,
-            label: l10n.requery,
-            icon: Icons.refresh_rounded,
-            context: context,
-          ),
+        buildContextMenuItem<String>(
+          value: 'requery',
+          enabled:
+              hasCurrentSong &&
+              !lyricsState.isLyricsLoading &&
+              !taskState.isGenerationBusy,
+          label: l10n.requery,
+          icon: Icons.refresh_rounded,
+          context: context,
+        ),
         const PopupMenuDivider(),
         buildContextMenuItem<String>(
           value: 'adjust_lyrics_font',
@@ -748,16 +747,15 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
               label: l10n.selectOnlineLyrics,
               icon: Icons.cloud_download_rounded,
             ),
-            if (requeryOnly)
-              LyricsOptionItem(
-                value: 'requery',
-                enabled:
-                    hasCurrentSong &&
-                    !lyricsState.isLyricsLoading &&
-                    !taskState.isGenerationBusy,
-                label: l10n.requery,
-                icon: Icons.refresh_rounded,
-              ),
+            LyricsOptionItem(
+              value: 'requery',
+              enabled:
+                  hasCurrentSong &&
+                  !lyricsState.isLyricsLoading &&
+                  !taskState.isGenerationBusy,
+              label: l10n.requery,
+              icon: Icons.refresh_rounded,
+            ),
             if (!requeryOnly && availableSources.length > 1)
               LyricsOptionItem(
                 value: 'select_lyrics_source',
