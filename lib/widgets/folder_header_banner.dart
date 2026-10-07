@@ -1199,41 +1199,29 @@ class FolderPlayActionButtons extends StatelessWidget {
     final BorderSide? shuffleBorder;
 
     if (isLandscape) {
-      if (primaryPlayInLandscape) {
-        playBg = theme.colorScheme.primary;
-        playFg = theme.colorScheme.onPrimary;
-        playBorder = null;
-      } else {
-        playBg = theme.colorScheme.secondaryContainer;
-        playFg = theme.colorScheme.onSecondaryContainer;
-        playBorder = null;
-      }
       shuffleBg = theme.colorScheme.secondaryContainer;
       shuffleFg = theme.colorScheme.onSecondaryContainer;
       shuffleBorder = null;
+      playBg = shuffleBg;
+      playFg = shuffleFg;
+      playBorder = shuffleBorder;
     } else {
       if (hasImage && isDark) {
-        playBg = Colors.white.withValues(alpha: 0.22);
-        playFg = Colors.white;
-        playBorder = BorderSide(color: Colors.white.withValues(alpha: 0.25), width: 0.8);
         shuffleBg = Colors.white.withValues(alpha: 0.14);
         shuffleFg = Colors.white.withValues(alpha: 0.9);
         shuffleBorder = BorderSide(color: Colors.white.withValues(alpha: 0.15), width: 0.8);
       } else if (hasImage && !isDark) {
-        playBg = theme.colorScheme.onSurface.withValues(alpha: 0.12);
-        playFg = theme.colorScheme.onSurface;
-        playBorder = BorderSide(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3), width: 0.8);
         shuffleBg = theme.colorScheme.onSurface.withValues(alpha: 0.07);
         shuffleFg = theme.colorScheme.onSurfaceVariant;
         shuffleBorder = BorderSide(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2), width: 0.8);
       } else {
-        playBg = theme.colorScheme.surfaceContainerHighest;
-        playFg = theme.colorScheme.onSurface;
-        playBorder = BorderSide(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3), width: 0.8);
         shuffleBg = theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.6);
         shuffleFg = theme.colorScheme.onSurfaceVariant;
         shuffleBorder = BorderSide(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2), width: 0.8);
       }
+      playBg = shuffleBg;
+      playFg = shuffleFg;
+      playBorder = shuffleBorder;
     }
 
     final disabledBg = (!isLandscape && hasImage && isDark)
