@@ -471,69 +471,23 @@ final safeBottom = isIOS
       ),
     ];
 
-    final activeIndex = widget.currentIndex.clamp(0, tabs.length - 1);
-    final indicatorColor = isPlayback
-        ? Colors.white.withValues(alpha: 0.20)
-        : theme.colorScheme.primaryContainer.withValues(
-            alpha: isDark ? 0.45 : 0.7,
-          );
-
     return Container(
       height: 52,
       padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 4.0),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final tabCount = tabs.length;
-          final tabWidth = constraints.maxWidth / tabCount;
-          const pillWidth = 52.0;
-          const pillHeight = 34.0;
-          final pillLeft =
-              (activeIndex * tabWidth) + ((tabWidth - pillWidth) / 2);
-          final pillTop =
-              ((constraints.maxHeight - pillHeight) / 2).clamp(0.0, double.infinity);
-
-          return Stack(
-            children: [
-              // 1. 底层平移滑动的胶囊高亮背景
-              AnimatedPositioned(
-                duration: const Duration(milliseconds: 280),
-                curve: Curves.easeOutCubic,
-                left: pillLeft,
-                top: pillTop,
-                width: pillWidth,
-                height: pillHeight,
-                child: IgnorePointer(
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    curve: Curves.easeOutCubic,
-                    decoration: BoxDecoration(
-                      color: indicatorColor,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                ),
-              ),
-
-              // 2. 上层各 Tab 按钮交互区域与图标
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: tabs.map((tab) {
-                  final isSelected = widget.currentIndex == tab.index;
-                  return Expanded(
-                    child: _TabButton(
-                      item: tab,
-                      isSelected: isSelected,
-                      isPlayback: isPlayback,
-                      theme: theme,
-                      isDark: isDark,
-                      onTap: () => widget.onDestinationSelected(tab.index),
-                    ),
-                  );
-                }).toList(),
-              ),
-            ],
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: tabs.map((tab) {
+          final isSelected = widget.currentIndex == tab.index;
+          return Expanded(
+            child: _TabButton(
+              item: tab,
+              isSelected: isSelected,
+              isPlayback: isPlayback,
+              isDark: isDark,
+              onTap: () => widget.onDestinationSelected(tab.index),
+            ),
           );
-        },
+        }).toList(),
       ),
     );
   }
@@ -558,7 +512,6 @@ class _TabButton extends StatelessWidget {
     required this.item,
     required this.isSelected,
     required this.isPlayback,
-    required this.theme,
     required this.isDark,
     required this.onTap,
   });
@@ -566,16 +519,15 @@ class _TabButton extends StatelessWidget {
   final _TabItem item;
   final bool isSelected;
   final bool isPlayback;
-  final ThemeData theme;
   final bool isDark;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final activeColor = isPlayback ? Colors.white : theme.colorScheme.primary;
-    final inactiveColor = isPlayback
-        ? Colors.white.withValues(alpha: 0.80)
-        : theme.colorScheme.onSurfaceVariant;
+    final activeColor = (isPlayback || isDark) ? Colors.white : Colors.black87;
+    final inactiveColor = (isPlayback || isDark)
+        ? Colors.white.withValues(alpha: 0.45)
+        : Colors.black.withValues(alpha: 0.38);
 
     return AppTooltip(
       message: item.label,
@@ -711,16 +663,13 @@ class _FloatingDockProgressBar extends StatelessWidget {
                     ),
                   ),
 
-                  // 2. 已播放高亮轨道
+                  // 2. 已播放高亮轨道（中性色风格，不与底部 Tab 栏主题色争抢视觉重心）
                   Container(
                     height: barHeight,
                     width: progressWidth,
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          theme.colorScheme.primary.withValues(alpha: 0.85),
-                          theme.colorScheme.primary,
-                        ],
+                      color: (isDark ? Colors.white : Colors.black87).withValues(
+                        alpha: isDark ? 0.80 : 0.68,
                       ),
                       borderRadius: BorderRadius.circular(barHeight / 2),
                     ),
@@ -734,11 +683,7 @@ class _FloatingDockProgressBar extends StatelessWidget {
                       width: thumbWidth,
                       height: barHeight,
                       decoration: BoxDecoration(
-                        color: isDark
-                            ? Colors.white
-                            : (theme.brightness == Brightness.dark
-                                ? Colors.white
-                                : Colors.white),
+                        color: Colors.white,
                         borderRadius: BorderRadius.circular(barHeight / 2),
                         boxShadow: [
                           BoxShadow(
