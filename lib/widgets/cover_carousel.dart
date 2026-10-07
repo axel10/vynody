@@ -271,6 +271,8 @@ class _CoverCarouselState extends State<CoverCarousel>
       builder: (context, constraints) {
         final width = constraints.maxWidth;
 
+        final bool isMiniCover = !widget.isLandscape && width <= 140.0;
+
         return GestureDetector(
           onHorizontalDragStart: (details) {
             _isDragging = true;
@@ -286,14 +288,32 @@ class _CoverCarouselState extends State<CoverCarousel>
             final delta = details.primaryDelta ?? 0;
             double adjustedDelta = delta;
 
-            if (delta > 0 && _animationController.value <= 0) {
-              adjustedDelta *= _resistanceFactor;
-            } else if (delta < 0 &&
-                _animationController.value >= widget.playlist.length - 1) {
-              adjustedDelta *= _resistanceFactor;
-            }
+            if (isMiniCover) {
+              final minVal = math.max(0, _currentPage - 1).toDouble();
+              final maxVal = math.min(
+                widget.playlist.length - 1,
+                _currentPage + 1,
+              ).toDouble();
 
-            _animationController.value -= adjustedDelta / width;
+              if (delta > 0 && _animationController.value <= minVal) {
+                adjustedDelta *= _resistanceFactor;
+              } else if (delta < 0 && _animationController.value >= maxVal) {
+                adjustedDelta *= _resistanceFactor;
+              }
+
+              final nextVal = (_animationController.value - adjustedDelta / width)
+                  .clamp(minVal - 0.3, maxVal + 0.3);
+              _animationController.value = nextVal;
+            } else {
+              if (delta > 0 && _animationController.value <= 0) {
+                adjustedDelta *= _resistanceFactor;
+              } else if (delta < 0 &&
+                  _animationController.value >= widget.playlist.length - 1) {
+                adjustedDelta *= _resistanceFactor;
+              }
+
+              _animationController.value -= adjustedDelta / width;
+            }
           },
           onHorizontalDragEnd: (details) {
             if (!_isDragging) return;
@@ -302,20 +322,35 @@ class _CoverCarouselState extends State<CoverCarousel>
             final currentVal = _animationController.value;
             int targetPage;
 
-            if (velocity.abs() > 400) {
-              if (velocity < 0) {
-                targetPage = math.max(_currentPage, currentVal.floor()) + 1;
+            if (isMiniCover) {
+              if (velocity.abs() > 400) {
+                targetPage = velocity < 0 ? _currentPage + 1 : _currentPage - 1;
               } else {
-                targetPage = math.min(_currentPage, currentVal.ceil()) - 1;
+                final diff = currentVal - _currentPage;
+                if (diff > _swipeThreshold) {
+                  targetPage = _currentPage + 1;
+                } else if (diff < -_swipeThreshold) {
+                  targetPage = _currentPage - 1;
+                } else {
+                  targetPage = currentVal.round();
+                }
               }
             } else {
-              final diff = currentVal - _currentPage;
-              if (diff > _swipeThreshold) {
-                targetPage = math.max(_currentPage, currentVal.floor()) + 1;
-              } else if (diff < -_swipeThreshold) {
-                targetPage = math.min(_currentPage, currentVal.ceil()) - 1;
+              if (velocity.abs() > 400) {
+                if (velocity < 0) {
+                  targetPage = math.max(_currentPage, currentVal.floor()) + 1;
+                } else {
+                  targetPage = math.min(_currentPage, currentVal.ceil()) - 1;
+                }
               } else {
-                targetPage = currentVal.round();
+                final diff = currentVal - _currentPage;
+                if (diff > _swipeThreshold) {
+                  targetPage = math.max(_currentPage, currentVal.floor()) + 1;
+                } else if (diff < -_swipeThreshold) {
+                  targetPage = math.min(_currentPage, currentVal.ceil()) - 1;
+                } else {
+                  targetPage = currentVal.round();
+                }
               }
             }
 

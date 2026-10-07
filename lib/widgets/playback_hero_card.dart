@@ -713,6 +713,7 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard> {
                                           currentSize: currentSize,
                                           cacheWidthSize:
                                               coverNormalLayout.cover.width,
+                                          isLandscape: effectiveIsLandscape,
                                           isNext: widget.isNext,
                                           onCoverTap: widget.onCoverTap,
                                           onCarouselAnimationComplete:
