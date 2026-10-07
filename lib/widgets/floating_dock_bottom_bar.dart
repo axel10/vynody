@@ -663,97 +663,101 @@ class _FloatingDockProgressBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final effectiveProgress =
         (isDragging ? dragProgress : progress).clamp(0.0, 1.0);
-    const trackHeight = 3.5;
-    final thumbWidth = isDragging ? 18.0 : 14.0;
-    final thumbHeight = isDragging ? 8.0 : 7.0;
+    const barHeight = 8.0;
+    final thumbWidth = isDragging ? 20.0 : 16.0;
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final totalWidth = constraints.maxWidth;
-        final progressWidth = totalWidth * effectiveProgress;
-        final thumbLeft =
-            (progressWidth - thumbWidth / 2).clamp(0.0, totalWidth - thumbWidth);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14.0),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final totalWidth = constraints.maxWidth;
+          final progressWidth = totalWidth * effectiveProgress;
+          final thumbLeft =
+              (progressWidth - thumbWidth / 2).clamp(0.0, totalWidth - thumbWidth);
 
-        return GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onHorizontalDragStart: (details) =>
-              _handleUpdate(details.localPosition.dx, totalWidth, true),
-          onHorizontalDragUpdate: (details) =>
-              _handleUpdate(details.localPosition.dx, totalWidth, false),
-          onHorizontalDragEnd: (details) => onDragEnd(dragProgress),
-          onHorizontalDragCancel: onDragCancel,
-          onTapDown: (details) =>
-              _handleUpdate(details.localPosition.dx, totalWidth, true),
-          onTapUp: (details) {
-            if (totalWidth <= 0) return;
-            final newProgress =
-                (details.localPosition.dx / totalWidth).clamp(0.0, 1.0);
-            onDragEnd(newProgress);
-          },
-          onTapCancel: onDragCancel,
-          child: Container(
-            height: 14.0, // 充足的手势触控热区
-            alignment: Alignment.center,
-            child: Stack(
-              clipBehavior: Clip.none,
-              alignment: Alignment.centerLeft,
-              children: [
-                // 1. 底层轨道 (加粗至 3.5px)
-                Container(
-                  height: trackHeight,
-                  width: totalWidth,
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.onSurface.withValues(
-                      alpha: isDark ? 0.12 : 0.08,
-                    ),
-                    borderRadius: BorderRadius.circular(trackHeight / 2),
-                  ),
-                ),
-
-                // 2. 已播放高亮轨道
-                Container(
-                  height: trackHeight,
-                  width: progressWidth,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        theme.colorScheme.primary.withValues(alpha: 0.85),
-                        theme.colorScheme.primary,
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(trackHeight / 2),
-                  ),
-                ),
-
-                // 3. 可拖拽胶囊形状滑块 (Capsule Thumb)
-                Positioned(
-                  left: thumbLeft,
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 100),
-                    width: thumbWidth,
-                    height: thumbHeight,
+          return GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onHorizontalDragStart: (details) =>
+                _handleUpdate(details.localPosition.dx, totalWidth, true),
+            onHorizontalDragUpdate: (details) =>
+                _handleUpdate(details.localPosition.dx, totalWidth, false),
+            onHorizontalDragEnd: (details) => onDragEnd(dragProgress),
+            onHorizontalDragCancel: onDragCancel,
+            onTapDown: (details) =>
+                _handleUpdate(details.localPosition.dx, totalWidth, true),
+            onTapUp: (details) {
+              if (totalWidth <= 0) return;
+              final newProgress =
+                  (details.localPosition.dx / totalWidth).clamp(0.0, 1.0);
+              onDragEnd(newProgress);
+            },
+            onTapCancel: onDragCancel,
+            child: Container(
+              height: 28.0, // 扩张手势触控热区（上下各延伸），大幅提升手机端命中率
+              alignment: Alignment.center,
+              child: Stack(
+                clipBehavior: Clip.none,
+                alignment: Alignment.centerLeft,
+                children: [
+                  // 1. 底层轨道 (与滑块同高，背景色与 dock 背景有轻微对比区分)
+                  Container(
+                    height: barHeight,
+                    width: totalWidth,
                     decoration: BoxDecoration(
-                      color: isDark
-                          ? Colors.white
-                          : theme.colorScheme.primary,
-                      borderRadius: BorderRadius.circular(thumbHeight / 2),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(
-                            alpha: isDark ? 0.45 : 0.25,
-                          ),
-                          blurRadius: 4,
-                          offset: const Offset(0, 1),
-                        ),
-                      ],
+                      color: (isDark ? Colors.white : Colors.black).withValues(
+                        alpha: isDark ? 0.16 : 0.08,
+                      ),
+                      borderRadius: BorderRadius.circular(barHeight / 2),
                     ),
                   ),
-                ),
-              ],
+
+                  // 2. 已播放高亮轨道
+                  Container(
+                    height: barHeight,
+                    width: progressWidth,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          theme.colorScheme.primary.withValues(alpha: 0.85),
+                          theme.colorScheme.primary,
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(barHeight / 2),
+                    ),
+                  ),
+
+                  // 3. 可拖拽胶囊形状滑块 (Capsule Thumb，高度与进度条轨道一致)
+                  Positioned(
+                    left: thumbLeft,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 100),
+                      width: thumbWidth,
+                      height: barHeight,
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? Colors.white
+                            : (theme.brightness == Brightness.dark
+                                ? Colors.white
+                                : Colors.white),
+                        borderRadius: BorderRadius.circular(barHeight / 2),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(
+                              alpha: isDark ? 0.45 : 0.25,
+                            ),
+                            blurRadius: 4,
+                            offset: const Offset(0, 1),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }
