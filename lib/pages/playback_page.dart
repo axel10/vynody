@@ -18,6 +18,7 @@ import 'package:vynody/player/metadata/metadata_helper.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
 import '../widgets/playback_hero_card.dart';
 import '../widgets/playback/playback_visualizer_layer.dart';
+import '../widgets/playback/blurred_artwork_rasterizer.dart';
 import '../widgets/volume_controls.dart';
 import '../widgets/dynamic_mesh_background.dart';
 import 'package:vynody/player/scanner/scanner_path_utils.dart';
@@ -1625,25 +1626,51 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
               }
 
               final Widget content;
-              if (imageWidget != null) {
-                content = ImageFiltered(
-                  // 使用稳定的 Key（依赖 songKey 而非动变图片 Key），
-                  // 当同一首歌曲的图片源（缩略图 -> 内存字节）更新时，不会触发 ImageFiltered 的销毁重构，
-                  // 从而消除了 Impeller (Vulkan) 下滤镜重建导致的单帧黑屏闪烁。
-                  key: ValueKey('${songKey}_bg_cover_$finalSuffix'),
-                  imageFilter: ui.ImageFilter.blur(
-                    sigmaX: isSmallWinValue ? 0.0 : settings.playbackBlurredArtworkBlurSigma,
-                    sigmaY: isSmallWinValue ? 0.0 : settings.playbackBlurredArtworkBlurSigma,
-                  ),
-                  child: Transform.scale(scale: 1.2, child: imageWidget),
-                );
+              if (isSmallWinValue) {
+                if (imageWidget != null) {
+                  content = Transform.scale(scale: 1.2, child: imageWidget);
+                } else {
+                  content = Container(
+                    key: ValueKey('bg_empty_${songKey}_$finalSuffix'),
+                    color: Colors.black,
+                    width: double.infinity,
+                    height: double.infinity,
+                  );
+                }
               } else {
-                content = Container(
-                  key: ValueKey('bg_empty_${songKey}_$finalSuffix'),
-                  color: Colors.black,
-                  width: double.infinity,
-                  height: double.infinity,
-                );
+                final effectiveArtworkPath = (artworkPath != null &&
+                        artworkPath.isNotEmpty &&
+                        File(artworkPath).existsSync())
+                    ? artworkPath
+                    : ((thumbnailPath != null &&
+                            thumbnailPath.isNotEmpty &&
+                            File(thumbnailPath).existsSync())
+                        ? thumbnailPath
+                        : null);
+
+                if ((cachedBytes != null && cachedBytes.isNotEmpty) ||
+                    effectiveArtworkPath != null) {
+                  content = StaticBlurredArtwork(
+                    key: ValueKey('${songKey}_bg_cover_$finalSuffix'),
+                    songKey: songKey,
+                    cachedBytes: cachedBytes,
+                    artworkPath: effectiveArtworkPath,
+                    blurSigma: settings.playbackBlurredArtworkBlurSigma,
+                    fallback: Container(
+                      key: ValueKey('bg_empty_${songKey}_$finalSuffix'),
+                      color: Colors.black,
+                      width: double.infinity,
+                      height: double.infinity,
+                    ),
+                  );
+                } else {
+                  content = Container(
+                    key: ValueKey('bg_empty_${songKey}_$finalSuffix'),
+                    color: Colors.black,
+                    width: double.infinity,
+                    height: double.infinity,
+                  );
+                }
               }
 
               // 过渡动画逻辑：新封面直接淡入盖在旧封面之上。
