@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
@@ -7,11 +8,15 @@ class ScrollToTopWrapper extends StatefulWidget {
     required this.scrollController,
     required this.child,
     this.bottomOffset = 0.0,
+    this.backgroundColor,
+    this.foregroundColor,
   });
 
   final ScrollController scrollController;
   final Widget child;
   final double bottomOffset;
+  final Color? backgroundColor;
+  final Color? foregroundColor;
 
   @override
   State<ScrollToTopWrapper> createState() => _ScrollToTopWrapperState();
@@ -22,6 +27,14 @@ class _ScrollToTopWrapperState extends State<ScrollToTopWrapper> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isMobile = defaultTargetPlatform == TargetPlatform.android ||
+        defaultTargetPlatform == TargetPlatform.iOS;
+    final effectiveBgColor = widget.backgroundColor ??
+        (isMobile ? theme.colorScheme.surfaceContainerHighest : null);
+    final effectiveFgColor = widget.foregroundColor ??
+        (isMobile ? theme.colorScheme.onSurface : null);
+
     return Stack(
       children: [
         NotificationListener<UserScrollNotification>(
@@ -55,6 +68,8 @@ class _ScrollToTopWrapperState extends State<ScrollToTopWrapper> {
               duration: const Duration(milliseconds: 200),
               child: FloatingActionButton.small(
                 heroTag: null,
+                backgroundColor: effectiveBgColor,
+                foregroundColor: effectiveFgColor,
                 onPressed: () {
                   widget.scrollController.animateTo(
                     0,
@@ -71,3 +86,4 @@ class _ScrollToTopWrapperState extends State<ScrollToTopWrapper> {
     );
   }
 }
+

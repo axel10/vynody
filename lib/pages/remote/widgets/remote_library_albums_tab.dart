@@ -5,6 +5,7 @@ import '../../../player/remote/remote_library_navigation.dart';
 import '../../../player/remote/remote_server_models.dart';
 import '../../../utils/remote_context_menu_utils.dart';
 import '../../../utils/selection_utils.dart';
+import '../../../widgets/default_cover_art.dart';
 import '../../../widgets/draggable_remote_album_item.dart';
 import '../../../widgets/remote_artwork_widget.dart';
 import 'remote_library_toolbar_widgets.dart';
@@ -482,12 +483,18 @@ class RemoteLibraryAlbumCard extends ConsumerWidget {
                                 visualDensity: VisualDensity.compact,
                                 padding: EdgeInsets.zero,
                                 constraints: const BoxConstraints(),
+                                style: const ButtonStyle(
+                                  tapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                ),
                                 tooltip: l10n.playAlbum,
                                 onPressed: onPlayAlbumDirectly,
                                 icon: Icon(
                                   Icons.play_circle_filled_rounded,
                                   size: isPortrait ? 22 : 26,
-                                  color: theme.colorScheme.primary,
+                                  color: isDesktopPlatform
+                                      ? theme.colorScheme.primary
+                                      : theme.colorScheme.onSurfaceVariant,
                                 ),
                               ),
                           ],

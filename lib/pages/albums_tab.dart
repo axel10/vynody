@@ -647,7 +647,7 @@ double calculateAlbumCardTextHeight(
       textScaler.scale(isPortrait ? 10.0 : 11.0) * (subStyle?.height ?? 1.25);
   final bottomRowHeight = math.max(subTextHeight, iconSize);
 
-  final verticalPadding = isPortrait ? (8.0 + 6.0) : (10.0 + 8.0);
+  final verticalPadding = isPortrait ? (8.0 + 10.0) : (10.0 + 12.0);
   const titleArtistGap = 2.0;
   const minBetweenGap = 4.0;
   const safetyBuffer = 6.0;
@@ -818,7 +818,7 @@ class _AlbumCard extends ConsumerWidget {
                       isPortrait ? 10 : 12,
                       isPortrait ? 8 : 10,
                       isPortrait ? 10 : 12,
-                      isPortrait ? 6 : 8,
+                      isPortrait ? 10 : 12,
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -853,6 +853,7 @@ class _AlbumCard extends ConsumerWidget {
                           ],
                         ),
                         Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
                             Expanded(
                               child: Text(
@@ -868,6 +869,10 @@ class _AlbumCard extends ConsumerWidget {
                                 visualDensity: VisualDensity.compact,
                                 padding: EdgeInsets.zero,
                                 constraints: const BoxConstraints(),
+                                style: const ButtonStyle(
+                                  tapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                ),
                                 tooltip: l10n.playAll,
                                 onPressed: () => audio.playPlaylist(
                                   album.songs,
@@ -878,9 +883,11 @@ class _AlbumCard extends ConsumerWidget {
                                   ),
                                 ),
                                 icon: Icon(
-                                  Icons.play_circle_filled,
+                                  Icons.play_circle_filled_rounded,
                                   size: isPortrait ? 22 : 26,
-                                  color: theme.colorScheme.primary,
+                                  color: isDesktopPlatform
+                                      ? theme.colorScheme.primary
+                                      : theme.colorScheme.onSurfaceVariant,
                                 ),
                               ),
                           ],
