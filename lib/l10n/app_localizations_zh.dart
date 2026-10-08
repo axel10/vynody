@@ -24,11 +24,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get scanningDirectory => '正在扫描目录...';
 
   @override
-  String filesPreprocessed(Object count) {
-    return '预处理 $count ';
-  }
-
-  @override
   String filesDiscovered(Object count) {
     return '已发现 $count ';
   }
@@ -3412,13 +3407,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get exitApp => '退出';
 
   @override
-  String get showScanProgressToastSetting => '显示扫描状态提示';
-
-  @override
-  String get showScanProgressToastSettingDescription =>
-      '在添加文件夹并进行文件扫描时，在顶部显示实时的扫描进度提示';
-
-  @override
   String get openPlaybackOnDirectorySongTap => '点击歌曲后跳转到播放页';
 
   @override
@@ -3440,9 +3428,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get gotIt => '我知道了';
-
-  @override
-  String get scanToastHiddenHint => '扫描状态提示已隐藏，可在“设置 - 界面”中重新打开';
 
   @override
   String get doubleSpeedPlayingSwipeUpToLock => '快进播放中... 往上滑动锁定';
@@ -5228,11 +5213,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get scanningDirectory => '正在掃描目錄...';
-
-  @override
-  String filesPreprocessed(Object count) {
-    return '已預處理 $count';
-  }
 
   @override
   String filesDiscovered(Object count) {
@@ -8618,13 +8598,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get exitApp => '離開';
 
   @override
-  String get showScanProgressToastSetting => '顯示掃描狀態提示';
-
-  @override
-  String get showScanProgressToastSettingDescription =>
-      '在新增資料夾並進行檔案掃描時，在頂部顯示即時的掃描進度提示';
-
-  @override
   String get openPlaybackOnDirectorySongTap => '點擊歌曲後跳轉到播放頁';
 
   @override
@@ -8646,9 +8619,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get gotIt => '我知道了';
-
-  @override
-  String get scanToastHiddenHint => '掃描狀態提示已隱藏，可在「設定 - 介面」中重新開啟';
 
   @override
   String get doubleSpeedPlayingSwipeUpToLock => '快進播放中... 往上滑動鎖定';

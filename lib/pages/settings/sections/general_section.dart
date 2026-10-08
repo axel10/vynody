@@ -760,14 +760,6 @@ class GeneralSection extends ConsumerWidget {
           title: l10n.systemWindowBehaviorGroup,
           icon: Icons.desktop_windows_outlined,
           children: [
-            SwitchListTile(
-              title: Text(l10n.showScanProgressToastSetting),
-              subtitle: Text(l10n.showScanProgressToastSettingDescription),
-              value: settings.showScanProgressToast,
-              onChanged: (value) {
-                settings.showScanProgressToast = value;
-              },
-            ),
             if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) ...[
               SwitchListTile(
                 title: Text(l10n.enableSystemTray),

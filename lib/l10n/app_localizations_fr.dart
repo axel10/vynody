@@ -24,11 +24,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get scanningDirectory => 'Analyse du répertoire...';
 
   @override
-  String filesPreprocessed(Object count) {
-    return '$count prétraités';
-  }
-
-  @override
   String filesDiscovered(Object count) {
     return '$count découverts';
   }
@@ -3638,14 +3633,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get exitApp => 'Quitter';
 
   @override
-  String get showScanProgressToastSetting =>
-      'Afficher le toast d\'état du scan';
-
-  @override
-  String get showScanProgressToastSettingDescription =>
-      'Affiche la progression du scan en temps réel en haut de l\'écran lors du scan des dossiers.';
-
-  @override
   String get openPlaybackOnDirectorySongTap =>
       'Ouvrir la page de lecture lors d\'un appui sur un morceau';
 
@@ -3671,10 +3658,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get gotIt => 'J\'ai compris';
-
-  @override
-  String get scanToastHiddenHint =>
-      'Le toast d\'état du scan a été masqué. Vous pouvez le réactiver dans Paramètres - Interface.';
 
   @override
   String get doubleSpeedPlayingSwipeUpToLock =>

@@ -141,12 +141,6 @@ abstract class AppLocalizations {
   /// **'正在扫描目录...'**
   String get scanningDirectory;
 
-  /// Scanning progress toast message showing how many files have had text metadata preprocessed
-  ///
-  /// In zh, this message translates to:
-  /// **'预处理 {count} '**
-  String filesPreprocessed(Object count);
-
   /// Scanning progress toast message showing how many files have been discovered
   ///
   /// In zh, this message translates to:
@@ -6471,18 +6465,6 @@ abstract class AppLocalizations {
   /// **'退出'**
   String get exitApp;
 
-  /// No description provided for @showScanProgressToastSetting.
-  ///
-  /// In zh, this message translates to:
-  /// **'显示扫描状态提示'**
-  String get showScanProgressToastSetting;
-
-  /// No description provided for @showScanProgressToastSettingDescription.
-  ///
-  /// In zh, this message translates to:
-  /// **'在添加文件夹并进行文件扫描时，在顶部显示实时的扫描进度提示'**
-  String get showScanProgressToastSettingDescription;
-
   /// No description provided for @openPlaybackOnDirectorySongTap.
   ///
   /// In zh, this message translates to:
@@ -6524,12 +6506,6 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'我知道了'**
   String get gotIt;
-
-  /// No description provided for @scanToastHiddenHint.
-  ///
-  /// In zh, this message translates to:
-  /// **'扫描状态提示已隐藏，可在“设置 - 界面”中重新打开'**
-  String get scanToastHiddenHint;
 
   /// No description provided for @doubleSpeedPlayingSwipeUpToLock.
   ///

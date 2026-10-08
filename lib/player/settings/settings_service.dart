@@ -445,7 +445,6 @@ class SettingsService extends ChangeNotifier {
       'collapse_buttons_in_landscape_lyrics';
   static const String _keyExpandPortraitLyricsControlsOnScroll =
       'expand_portrait_lyrics_controls_on_scroll';
-  static const String _keyShowScanProgressToast = 'show_scan_progress_toast';
   static const String _keyOpenPlaybackOnDirectorySongTap =
       'open_playback_on_directory_song_tap';
   static const String _keyDefaultToLyricsModeOnPlaybackOpen =
@@ -1027,13 +1026,6 @@ class SettingsService extends ChangeNotifier {
   late final _lyricsHeaderRightButtonProperty = SettingProperty<String>(
     key: _keyLyricsHeaderRightButton,
     defaultValue: defaultLyricsHeaderRightButton,
-    prefs: _prefs,
-    onChanged: notifyListeners,
-  );
-
-  late final _showScanProgressToastProperty = SettingProperty<bool>(
-    key: _keyShowScanProgressToast,
-    defaultValue: false,
     prefs: _prefs,
     onChanged: notifyListeners,
   );
@@ -2213,10 +2205,6 @@ class SettingsService extends ChangeNotifier {
     mainControlsRightButton = defaultMainControlsRightButton;
     lyricsHeaderRightButton = defaultLyricsHeaderRightButton;
   }
-
-  bool get showScanProgressToast => _showScanProgressToastProperty.value;
-  set showScanProgressToast(bool value) =>
-      _showScanProgressToastProperty.value = value;
 
   bool get openPlaybackOnDirectorySongTap =>
       _openPlaybackOnDirectorySongTapProperty.value;

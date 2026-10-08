@@ -8,13 +8,6 @@
   "backToRootDirectory": "Zurück zum Stammverzeichnis",
   "systemMediaLibrary": "System-Mediathek",
   "scanningDirectory": "Scanne Verzeichnis...",
-  "filesPreprocessed": "{count} vorverarbeitet",
-  "@filesPreprocessed": {
-    "description": "Scanning progress toast message showing how many files have had text metadata preprocessed",
-    "placeholders": {
-      "count": {}
-    }
-  },
   "filesDiscovered": "{count} entdeckt",
   "@filesDiscovered": {
     "description": "Scanning progress toast message showing how many files have been discovered",
@@ -1365,13 +1358,10 @@
   "onboardingAndroidBatteryStatusOptimized": "Status: Eingeschränkt (Wiedergabe stoppt eventuell im Hintergrund)",
   "onboardingAndroidBatteryStatusUnrestricted": "Status: Nicht eingeschränkt (empfohlen, Wiedergabe geschützt)",
   "exitApp": "Beenden",
-  "showScanProgressToastSetting": "Scan-Status-Toast anzeigen",
-  "showScanProgressToastSettingDescription": "Zeigt den Echtzeit-Scan-Fortschritt am oberen Bildschirmrand an, wenn Ordner gescannt werden.",
   "openPlaybackOnDirectorySongTap": "Beim Tippen auf einen Titel zur Wiedergabeseite wechseln",
   "openPlaybackOnDirectorySongTapDescription": "Wechselt automatisch zur Wiedergabeseite, wenn im Ordneransicht ein Titel angetippt wird.",
   "defaultToLyricsModeOnPlaybackOpen": "Standardmäßig Songtext-Modus auf der Wiedergabeseite",
   "defaultToLyricsModeOnPlaybackOpenDescription": "Wechselt beim Öffnen der Wiedergabeseite automatisch in den Songtext-Modus.",
-  "scanToastHiddenHint": "Scan-Status-Toast ausgeblendet. Sie können ihn in Einstellungen - Oberfläche wieder aktivieren.",
   "tapCoverToEnterLyricsMode": "Cover antippen, um den Textmodus zu öffnen",
   "longPressLyricsPanelToOpenMenu": "Lange auf das Songtext-Panel drücken, um das Menü zu öffnen",
   "gotIt": "Verstanden",

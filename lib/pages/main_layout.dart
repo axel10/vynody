@@ -41,7 +41,7 @@ import '../widgets/playback_hero_card.dart';
 import '../widgets/playback_ui_tuning.dart';
 import '../widgets/global_drop_target.dart';
 import '../widgets/library_selection_scope.dart';
-import '../widgets/global_scan_progress_watcher.dart';
+import '../widgets/folder_scan_widgets.dart';
 import 'package:vynody/player/platform/right_queue_drawer_controller.dart';
 import '../widgets/right_queue_panel.dart';
 import 'package:vynody/utils/deleted_song_snack.dart';
@@ -1202,17 +1202,16 @@ class _MainLayoutState extends ConsumerState<MainLayout>
 
     final double railWidth = (useSidebar && !isSidebarHidden) ? 80.0 : 0.0;
 
-    final mainAppWidget = GlobalScanProgressWatcher(
-      child: Focus(
-        autofocus: true,
-        child: PopScope(
-              canPop: false,
-              onPopInvokedWithResult: (didPop, result) {
-                if (didPop) return;
-                _handleBackPressed();
-              },
-              child: Listener(
-                behavior: HitTestBehavior.translucent,
+    final mainAppWidget = Focus(
+      autofocus: true,
+      child: PopScope(
+            canPop: false,
+            onPopInvokedWithResult: (didPop, result) {
+              if (didPop) return;
+              _handleBackPressed();
+            },
+            child: Listener(
+              behavior: HitTestBehavior.translucent,
                 onPointerDown: _handleDesktopPointerActivity,
                 onPointerMove: _handleDesktopPointerActivity,
                 onPointerHover: _handleDesktopPointerActivity,
@@ -1481,7 +1480,6 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                 ),
               ),
             ),
-          ),
         );
 
     return mainAppWidget;

@@ -126,13 +126,6 @@ final List<SettingSearchItem> settingsSearchRegistry = [
     title: (l10n) => l10n.enableWaveformLongPressSeek,
     description: (l10n) => l10n.enableWaveformLongPressSeekDescription,
   ),
-  SettingSearchItem(
-    id: 'general.scan_progress_toast',
-    section: SettingsSection.general,
-    icon: Icons.notifications_none_rounded,
-    title: (l10n) => l10n.showScanProgressToastSetting,
-    description: (l10n) => l10n.showScanProgressToastSettingDescription,
-  ),
   if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) ...[
     SettingSearchItem(
       id: 'general.system_tray',

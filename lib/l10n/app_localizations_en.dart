@@ -24,11 +24,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get scanningDirectory => 'Scanning directory...';
 
   @override
-  String filesPreprocessed(Object count) {
-    return 'Preprocessed $count';
-  }
-
-  @override
   String filesDiscovered(Object count) {
     return 'Discovered $count';
   }
@@ -3588,13 +3583,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exitApp => 'Exit';
 
   @override
-  String get showScanProgressToastSetting => 'Show Scanning Status Toast';
-
-  @override
-  String get showScanProgressToastSettingDescription =>
-      'Display real-time scanning progress at the top of the screen when scanning folders.';
-
-  @override
   String get openPlaybackOnDirectorySongTap =>
       'Open playback page when tapping a song';
 
@@ -3619,10 +3607,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get gotIt => 'Got it';
-
-  @override
-  String get scanToastHiddenHint =>
-      'Scanning status toast hidden. You can re-enable it in Settings - Interface.';
 
   @override
   String get doubleSpeedPlayingSwipeUpToLock =>

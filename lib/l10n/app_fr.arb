@@ -8,13 +8,6 @@
   "backToRootDirectory": "Retour au répertoire racine",
   "systemMediaLibrary": "Bibliothèque multimédia système",
   "scanningDirectory": "Analyse du répertoire...",
-  "filesPreprocessed": "{count} prétraités",
-  "@filesPreprocessed": {
-    "description": "Scanning progress toast message showing how many files have had text metadata preprocessed",
-    "placeholders": {
-      "count": {}
-    }
-  },
   "filesDiscovered": "{count} découverts",
   "@filesDiscovered": {
     "description": "Scanning progress toast message showing how many files have been discovered",
@@ -1365,13 +1358,10 @@
   "onboardingAndroidBatteryStatusOptimized": "Statut : Restreint (la lecture peut s'arrêter en arrière-plan)",
   "onboardingAndroidBatteryStatusUnrestricted": "Statut : Non restreinte (recommandé, lecture protégée)",
   "exitApp": "Quitter",
-  "showScanProgressToastSetting": "Afficher le toast d'état du scan",
-  "showScanProgressToastSettingDescription": "Affiche la progression du scan en temps réel en haut de l'écran lors du scan des dossiers.",
   "openPlaybackOnDirectorySongTap": "Ouvrir la page de lecture lors d'un appui sur un morceau",
   "openPlaybackOnDirectorySongTapDescription": "Ouvre automatiquement la page de lecture lors d'un appui sur un morceau dans la vue des dossiers.",
   "defaultToLyricsModeOnPlaybackOpen": "Mode paroles par défaut sur la page de lecture",
   "defaultToLyricsModeOnPlaybackOpenDescription": "Passe automatiquement en mode paroles lors de l'ouverture de la page de lecture.",
-  "scanToastHiddenHint": "Le toast d'état du scan a été masqué. Vous pouvez le réactiver dans Paramètres - Interface.",
   "tapCoverToEnterLyricsMode": "Appuyez sur la pochette pour passer en mode paroles",
   "longPressLyricsPanelToOpenMenu": "Appuie longuement sur le panneau de paroles pour ouvrir le menu",
   "gotIt": "J'ai compris",

@@ -24,11 +24,6 @@ class AppLocalizationsTr extends AppLocalizations {
   String get scanningDirectory => 'Dizin taranıyor...';
 
   @override
-  String filesPreprocessed(Object count) {
-    return '$count ön işlendi';
-  }
-
-  @override
   String filesDiscovered(Object count) {
     return '$count bulundu';
   }
@@ -3599,13 +3594,6 @@ class AppLocalizationsTr extends AppLocalizations {
   String get exitApp => 'Çıkış';
 
   @override
-  String get showScanProgressToastSetting => 'Tarama Durumu Bildirimini Göster';
-
-  @override
-  String get showScanProgressToastSettingDescription =>
-      'Klasörler taranırken ekranın üst kısmında gerçek zamanlı tarama ilerlemesini gösterir.';
-
-  @override
   String get openPlaybackOnDirectorySongTap =>
       'Şarkıya dokunulduğunda oynatma sayfasını aç';
 
@@ -3631,10 +3619,6 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get gotIt => 'Anladım';
-
-  @override
-  String get scanToastHiddenHint =>
-      'Tarama durumu bildirimi gizlendi. Ayarlar - Arayüz bölümünden yeniden etkinleştirebilirsiniz.';
 
   @override
   String get doubleSpeedPlayingSwipeUpToLock =>

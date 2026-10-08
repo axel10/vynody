@@ -5,13 +5,6 @@
   "backToRootDirectory": "Kök dizine dön",
   "systemMediaLibrary": "Sistem Medya Kitaplığı",
   "scanningDirectory": "Dizin taranıyor...",
-  "filesPreprocessed": "{count} ön işlendi",
-  "@filesPreprocessed": {
-    "description": "Scanning progress toast message showing how many files have had text metadata preprocessed",
-    "placeholders": {
-      "count": {}
-    }
-  },
   "filesDiscovered": "{count} bulundu",
   "@filesDiscovered": {
     "description": "Scanning progress toast message showing how many files have been discovered",
@@ -1457,8 +1450,6 @@
   "onboardingAndroidMediaStatusGranted": "Durum: İzin Verildi (Önerilen)",
   "onboardingAndroidMediaStatusNotGranted": "Durum: İzin Verilmedi (daha sonra klasörleri manuel ekleyebilirsiniz)",
   "exitApp": "Çıkış",
-  "showScanProgressToastSetting": "Tarama Durumu Bildirimini Göster",
-  "showScanProgressToastSettingDescription": "Klasörler taranırken ekranın üst kısmında gerçek zamanlı tarama ilerlemesini gösterir.",
   "openPlaybackOnDirectorySongTap": "Şarkıya dokunulduğunda oynatma sayfasını aç",
   "openPlaybackOnDirectorySongTapDescription": "Dizin görünümünde bir şarkıya dokunulduğunda otomatik olarak oynatma sayfasını açar.",
   "defaultToLyricsModeOnPlaybackOpen": "Oynatma sayfasında varsayılan olarak sözler modunu aç",
@@ -1466,7 +1457,6 @@
   "tapCoverToEnterLyricsMode": "Söz moduna geçmek için kapağa dokunun",
   "longPressLyricsPanelToOpenMenu": "Menüyü açmak için sözler paneline uzun basın",
   "gotIt": "Anladım",
-  "scanToastHiddenHint": "Tarama durumu bildirimi gizlendi. Ayarlar - Arayüz bölümünden yeniden etkinleştirebilirsiniz.",
   "doubleSpeedPlayingSwipeUpToLock": "Hızlı sarılıyor... Kilitlemek için yukarı kaydırın",
   "doubleSpeedLockedSwipeDownToUnlock": "Hızlı sarma kilitlendi. Kilidi açmak için basılı tutup aşağı kaydırın",
   "doubleSpeedUnlocked": "Hızlı sarma kilidi açıldı",

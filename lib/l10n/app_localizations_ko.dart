@@ -24,11 +24,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get scanningDirectory => '디렉토리 검색 중...';
 
   @override
-  String filesPreprocessed(Object count) {
-    return '전처리됨 $count';
-  }
-
-  @override
   String filesDiscovered(Object count) {
     return '발견됨 $count';
   }
@@ -3472,13 +3467,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exitApp => '종료';
 
   @override
-  String get showScanProgressToastSetting => '스캔 상태 토스트 표시';
-
-  @override
-  String get showScanProgressToastSettingDescription =>
-      '폴더 스캔 시 화면 상단에 실시간 스캔 진행 상황을 표시합니다.';
-
-  @override
   String get openPlaybackOnDirectorySongTap => '곡을 탭할 때 재생 페이지로 이동';
 
   @override
@@ -3500,10 +3488,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get gotIt => '확인';
-
-  @override
-  String get scanToastHiddenHint =>
-      '스캔 상태 토스트가 숨겨졌습니다. \'설정 - 인터페이스\'에서 다시 활성화할 수 있습니다.';
 
   @override
   String get doubleSpeedPlayingSwipeUpToLock => '빨리 감기 중... 위로 스와이프하여 잠금';

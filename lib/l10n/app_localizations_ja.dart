@@ -24,11 +24,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get scanningDirectory => 'ディレクトリをスキャン中...';
 
   @override
-  String filesPreprocessed(Object count) {
-    return '前処理済み $count';
-  }
-
-  @override
   String filesDiscovered(Object count) {
     return '発見 $count';
   }
@@ -3469,13 +3464,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get exitApp => '終了';
 
   @override
-  String get showScanProgressToastSetting => 'スキャン状態トーストを表示';
-
-  @override
-  String get showScanProgressToastSettingDescription =>
-      'フォルダのスキャン時に画面上部にリアルタイムのスキャン進行状況を表示します。';
-
-  @override
   String get openPlaybackOnDirectorySongTap => '曲をタップした時に再生ページに移動';
 
   @override
@@ -3497,10 +3485,6 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get gotIt => '了解';
-
-  @override
-  String get scanToastHiddenHint =>
-      'スキャン状態トーストが非表示になりました。「設定 - インターフェース」で再有効化できます。';
 
   @override
   String get doubleSpeedPlayingSwipeUpToLock => '早送り中... 上にスワイプしてロック';

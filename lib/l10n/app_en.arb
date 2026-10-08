@@ -11,13 +11,6 @@
   },
   "systemMediaLibrary": "System Media Library",
   "scanningDirectory": "Scanning directory...",
-  "filesPreprocessed": "Preprocessed {count}",
-  "@filesPreprocessed": {
-    "description": "Scanning progress toast message showing how many files have had text metadata preprocessed",
-    "placeholders": {
-      "count": {}
-    }
-  },
   "filesDiscovered": "Discovered {count}",
   "@filesDiscovered": {
     "description": "Scanning progress toast message showing how many files have been discovered",
@@ -1407,13 +1400,10 @@
   "onboardingAndroidMediaStatusGranted": "Status: Granted (Recommended)",
   "onboardingAndroidMediaStatusNotGranted": "Status: Not granted (you can import folders manually later)",
   "exitApp": "Exit",
-  "showScanProgressToastSetting": "Show Scanning Status Toast",
-  "showScanProgressToastSettingDescription": "Display real-time scanning progress at the top of the screen when scanning folders.",
   "openPlaybackOnDirectorySongTap": "Open playback page when tapping a song",
   "openPlaybackOnDirectorySongTapDescription": "Automatically open the playback page when tapping a song in directory view.",
   "defaultToLyricsModeOnPlaybackOpen": "Default to lyrics mode on playback page",
   "defaultToLyricsModeOnPlaybackOpenDescription": "Automatically show lyrics mode when opening the playback page.",
-  "scanToastHiddenHint": "Scanning status toast hidden. You can re-enable it in Settings - Interface.",
   "tapCoverToEnterLyricsMode": "Tap cover to enter lyrics mode",
   "@tapCoverToEnterLyricsMode": {
     "description": "Tip shown on the playback page to inform users they can tap the album cover to enter lyrics mode"

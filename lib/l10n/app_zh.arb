@@ -20,13 +20,6 @@
   "@scanningDirectory": {
     "description": "Scanning directory message"
   },
-  "filesPreprocessed": "预处理 {count} ",
-  "@filesPreprocessed": {
-    "description": "Scanning progress toast message showing how many files have had text metadata preprocessed",
-    "placeholders": {
-      "count": {}
-    }
-  },
   "filesDiscovered": "已发现 {count} ",
   "@filesDiscovered": {
     "description": "Scanning progress toast message showing how many files have been discovered",
@@ -1971,8 +1964,6 @@
   "onboardingAndroidMediaStatusGranted": "当前状态：已授权（推荐）",
   "onboardingAndroidMediaStatusNotGranted": "当前状态：未授权（可稍后手动导入文件夹）",
   "exitApp": "退出",
-  "showScanProgressToastSetting": "显示扫描状态提示",
-  "showScanProgressToastSettingDescription": "在添加文件夹并进行文件扫描时，在顶部显示实时的扫描进度提示",
   "openPlaybackOnDirectorySongTap": "点击歌曲后跳转到播放页",
   "openPlaybackOnDirectorySongTapDescription": "在目录页点击歌曲播放时，自动跳转至全屏播放界面",
   "defaultToLyricsModeOnPlaybackOpen": "进入播放页默认显示歌词",
@@ -1980,7 +1971,6 @@
   "tapCoverToEnterLyricsMode": "点击封面可以进入歌词模式",
   "longPressLyricsPanelToOpenMenu": "长按歌词面板可以调出菜单",
   "gotIt": "我知道了",
-  "scanToastHiddenHint": "扫描状态提示已隐藏，可在“设置 - 界面”中重新打开",
   "doubleSpeedPlayingSwipeUpToLock": "快进播放中... 往上滑动锁定",
   "doubleSpeedLockedSwipeDownToUnlock": "已锁定快进播放。长按并向下滑动解锁",
   "doubleSpeedUnlocked": "已解除快进锁定",

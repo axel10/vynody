@@ -8,13 +8,6 @@
   "backToRootDirectory": "Volver al directorio raíz",
   "systemMediaLibrary": "Biblioteca multimedia del sistema",
   "scanningDirectory": "Escaneando directorio...",
-  "filesPreprocessed": "Preprocesados {count}",
-  "@filesPreprocessed": {
-    "description": "Scanning progress toast message showing how many files have had text metadata preprocessed",
-    "placeholders": {
-      "count": {}
-    }
-  },
   "filesDiscovered": "Descubiertos {count}",
   "@filesDiscovered": {
     "description": "Scanning progress toast message showing how many files have been discovered",
@@ -1365,13 +1358,10 @@
   "onboardingAndroidBatteryStatusOptimized": "Estado: Restringido (la reproducción puede detenerse en segundo plano)",
   "onboardingAndroidBatteryStatusUnrestricted": "Estado: Sin restricciones (recomendado, reproducción protegida)",
   "exitApp": "Salir",
-  "showScanProgressToastSetting": "Mostrar toast de estado de escaneo",
-  "showScanProgressToastSettingDescription": "Muestra el progreso de escaneo en tiempo real en la parte superior de la pantalla al escanear carpetas.",
   "openPlaybackOnDirectorySongTap": "Ir a la página de reproducción al tocar una canción",
   "openPlaybackOnDirectorySongTapDescription": "Abre automáticamente la página de reproducción al tocar una canción en la vista de carpetas.",
   "defaultToLyricsModeOnPlaybackOpen": "Modo de letras por defecto en la página de reproducción",
   "defaultToLyricsModeOnPlaybackOpenDescription": "Muestra automáticamente el modo de letras al abrir la página de reproducción.",
-  "scanToastHiddenHint": "Toast de estado de escaneo oculto. Puede volver a habilitarlo en Ajustes - Interfaz.",
   "tapCoverToEnterLyricsMode": "Toca la portada para entrar en modo letras",
   "longPressLyricsPanelToOpenMenu": "Mantén presionado el panel de letras para abrir el menú",
   "gotIt": "Entendido",

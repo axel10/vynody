@@ -24,11 +24,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String get scanningDirectory => 'Scanne Verzeichnis...';
 
   @override
-  String filesPreprocessed(Object count) {
-    return '$count vorverarbeitet';
-  }
-
-  @override
   String filesDiscovered(Object count) {
     return '$count entdeckt';
   }
@@ -3630,13 +3625,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String get exitApp => 'Beenden';
 
   @override
-  String get showScanProgressToastSetting => 'Scan-Status-Toast anzeigen';
-
-  @override
-  String get showScanProgressToastSettingDescription =>
-      'Zeigt den Echtzeit-Scan-Fortschritt am oberen Bildschirmrand an, wenn Ordner gescannt werden.';
-
-  @override
   String get openPlaybackOnDirectorySongTap =>
       'Beim Tippen auf einen Titel zur Wiedergabeseite wechseln';
 
@@ -3662,10 +3650,6 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get gotIt => 'Verstanden';
-
-  @override
-  String get scanToastHiddenHint =>
-      'Scan-Status-Toast ausgeblendet. Sie können ihn in Einstellungen - Oberfläche wieder aktivieren.';
 
   @override
   String get doubleSpeedPlayingSwipeUpToLock =>
