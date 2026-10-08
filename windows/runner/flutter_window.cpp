@@ -1,6 +1,8 @@
 #include "flutter_window.h"
 
 #include <optional>
+#include <windowsx.h>
+#include <commctrl.h>
 
 #include "flutter/generated_plugin_registrant.h"
 #include <desktop_multi_window/desktop_multi_window_plugin.h>
@@ -14,6 +16,61 @@
 #include <winrt/Windows.Foundation.Collections.h>
 #include <winrt/Windows.Services.Store.h>
 #include <winrt/Windows.Security.Credentials.h>
+
+#include "utils.h"
+
+#pragma comment(lib, "comctl32.lib")
+
+namespace {
+
+int GetResizeBorderThickness(HWND hwnd) {
+  int border_thickness = ::GetSystemMetrics(SM_CYFRAME) + ::GetSystemMetrics(SM_CXPADDEDBORDER);
+  if (border_thickness <= 0) {
+    border_thickness = 8;
+  }
+  HMODULE user32 = ::GetModuleHandleW(L"user32.dll");
+  if (user32) {
+    using GetDpiForWindowFunc = UINT(WINAPI*)(HWND);
+    using GetSystemMetricsForDpiFunc = int(WINAPI*)(int, UINT);
+    auto get_dpi_for_window = reinterpret_cast<GetDpiForWindowFunc>(
+        ::GetProcAddress(user32, "GetDpiForWindow"));
+    auto get_system_metrics_for_dpi = reinterpret_cast<GetSystemMetricsForDpiFunc>(
+        ::GetProcAddress(user32, "GetSystemMetricsForDpi"));
+    if (get_dpi_for_window && get_system_metrics_for_dpi) {
+      UINT dpi = get_dpi_for_window(hwnd);
+      int frame = get_system_metrics_for_dpi(SM_CYFRAME, dpi);
+      int padding = get_system_metrics_for_dpi(SM_CXPADDEDBORDER, dpi);
+      if (frame + padding > 0) {
+        border_thickness = frame + padding;
+      }
+    }
+  }
+  return border_thickness;
+}
+
+LRESULT CALLBACK ChildWindowSubclassProc(
+    HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam,
+    UINT_PTR uIdSubclass, DWORD_PTR dwRefData) {
+  if (uMsg == WM_NCHITTEST) {
+    HWND parent = ::GetAncestor(hWnd, GA_PARENT);
+    if (parent && !::IsZoomed(parent)) {
+      LONG_PTR const style = ::GetWindowLongPtr(parent, GWL_STYLE);
+      if (style & WS_THICKFRAME) {
+        POINT pt = {GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
+        POINT pt_client = pt;
+        if (::ScreenToClient(hWnd, &pt_client)) {
+          int const border_thickness = GetResizeBorderThickness(parent);
+          if (pt_client.y >= -border_thickness && pt_client.y < border_thickness) {
+            return HTTRANSPARENT;
+          }
+        }
+      }
+    }
+  }
+  return DefSubclassProc(hWnd, uMsg, wParam, lParam);
+}
+
+}  // namespace
 
 FlutterWindow::FlutterWindow(const flutter::DartProject& project)
     : project_(project) {}
@@ -42,7 +99,11 @@ bool FlutterWindow::OnCreate() {
     auto *registry = flutter_view_controller->engine();
     RegisterPlugins(registry);
   });
-  SetChildContent(flutter_controller_->view()->GetNativeWindow());
+  HWND child_hwnd = flutter_controller_->view()->GetNativeWindow();
+  SetChildContent(child_hwnd);
+  if (child_hwnd) {
+    ::SetWindowSubclass(child_hwnd, ChildWindowSubclassProc, 1, 0);
+  }
 
   // Set unique window property to identify this Vynody instance
   ::SetPropW(GetHandle(), L"VynodyInstanceProp", (HANDLE)1);
@@ -380,6 +441,13 @@ bool FlutterWindow::OnCreate() {
 }
 
 void FlutterWindow::OnDestroy() {
+  if (flutter_controller_ && flutter_controller_->view()) {
+    HWND child_hwnd = flutter_controller_->view()->GetNativeWindow();
+    if (child_hwnd) {
+      ::RemoveWindowSubclass(child_hwnd, ChildWindowSubclassProc, 1);
+    }
+  }
+
   // Clean up the window property
   ::RemovePropW(GetHandle(), L"VynodyInstanceProp");
 
@@ -405,6 +473,32 @@ FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
   }
 
   switch (message) {
+    case WM_NCHITTEST: {
+      // Allow window resizing from the top edge when using custom title bar (TitleBarStyle.hidden).
+      // In TitleBarStyle.hidden, WM_NCCALCSIZE sets top margin to 0 to prevent DWM from rendering
+      // a native title bar. We hit-test the top edge here so Windows can show the resize cursor and resize.
+      LONG_PTR const style = ::GetWindowLongPtr(hwnd, GWL_STYLE);
+      if (!::IsZoomed(hwnd) && (style & WS_THICKFRAME)) {
+        POINT pt = {GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
+        POINT pt_client = pt;
+        if (::ScreenToClient(hwnd, &pt_client)) {
+          int const border_thickness = GetResizeBorderThickness(hwnd);
+          if (pt_client.y >= -border_thickness && pt_client.y < border_thickness) {
+            RECT client_rect;
+            ::GetClientRect(hwnd, &client_rect);
+            int const corner_width = border_thickness * 2;
+            if (pt_client.x < corner_width) {
+              return HTTOPLEFT;
+            } else if (pt_client.x >= client_rect.right - corner_width) {
+              return HTTOPRIGHT;
+            } else {
+              return HTTOP;
+            }
+          }
+        }
+      }
+      break;
+    }
     case WM_COPYDATA: {
       COPYDATASTRUCT* cds = reinterpret_cast<COPYDATASTRUCT*>(lparam);
       if (cds && cds->dwData == 1) {
