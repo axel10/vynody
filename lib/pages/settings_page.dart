@@ -549,12 +549,13 @@ class SettingsPageState extends ConsumerState<SettingsPage> {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final sidebarSections = SettingsSection.sidebarSections;
+    final statusBarTop = MediaQuery.paddingOf(context).top;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 20, 24, 12),
+          padding: EdgeInsets.fromLTRB(16, statusBarTop > 0 ? statusBarTop + 8 : 12, 24, 12),
           child: Row(
             children: [
               IconButton(
@@ -796,7 +797,25 @@ class SettingsPageState extends ConsumerState<SettingsPage> {
           ],
         ),
       );
+    } else if (isWindowedEnvironment(context)) {
+      final topPadding = getTitleBarTopPadding(context);
+      content = Material(
+        color: theme.colorScheme.surface,
+        child: Column(
+          children: [
+            SizedBox(height: topPadding),
+            Expanded(
+              child: MediaQuery.removePadding(
+                context: context,
+                removeTop: true,
+                child: content,
+              ),
+            ),
+          ],
+        ),
+      );
     }
+
 
     final isLandscape =
         MediaQuery.of(context).orientation == Orientation.landscape;

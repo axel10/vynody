@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -55,12 +54,11 @@ class FolderNavBarScaffold extends StatefulWidget {
   /// Returns the exact total height occupied by the navigation bar in the current orientation & platform,
   /// including the status bar / desktop top padding and internal paddings.
   static double getBarHeight(BuildContext context) {
-    final statusBarHeight = MediaQuery.of(context).padding.top;
-    final isDesktop =
-        Platform.isMacOS || Platform.isWindows || Platform.isLinux;
-    final topPadding = statusBarHeight > 0
-        ? statusBarHeight + 2.0
-        : (isDesktop ? 38.0 : 4.0);
+    final topPadding = getTitleBarTopPadding(
+      context,
+      defaultWindowPadding: kDefaultWindowCaptionHeight,
+      statusBarOffset: 2.0,
+    );
     const bottomPadding = 4.0;
     const contentHeight = 32.0;
     return topPadding + contentHeight + bottomPadding;
@@ -229,12 +227,11 @@ class _FolderNavBarScaffoldState extends State<FolderNavBarScaffold>
         final breadcrumbItems = widget.breadcrumbItemsBuilder(context, style);
         final actions = widget.actionsBuilder(context, style);
 
-        final statusBarHeight = MediaQuery.of(context).padding.top;
-        final isDesktop =
-            Platform.isMacOS || Platform.isWindows || Platform.isLinux;
-        final topPadding = statusBarHeight > 0
-            ? statusBarHeight + 2.0
-            : (isDesktop ? 38.0 : 4.0);
+        final topPadding = getTitleBarTopPadding(
+          context,
+          defaultWindowPadding: kDefaultWindowCaptionHeight,
+          statusBarOffset: 2.0,
+        );
         const bottomPadding = 4.0;
 
         final Widget barContent = Container(

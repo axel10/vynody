@@ -115,8 +115,7 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
 
   void _onScroll() {
     final offset = _localScrollController.offset;
-    final statusBarHeight = MediaQuery.of(context).padding.top;
-    final headerHeight = 64.0 + statusBarHeight;
+    final headerHeight = FolderNavBarScaffold.getBarHeight(context);
 
     ref.read(scannerServiceProvider).setFolderScrollOffset(
       'root',

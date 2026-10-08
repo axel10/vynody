@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../player/metadata/metadata_database.dart';
@@ -24,6 +23,7 @@ import 'widgets/remote_library_songs_tab.dart';
 import 'widgets/remote_library_playlists_tab.dart';
 import 'widgets/remote_library_search_tab.dart';
 import '../../utils/song_locator_helper.dart';
+import '../../utils/layout_constants.dart';
 
 class RemoteLibraryPage extends ConsumerStatefulWidget {
   final RemoteServer server;
@@ -1974,10 +1974,9 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
     );
     }
 
-    final bool isDesktop =
-        Platform.isWindows || Platform.isLinux || Platform.isMacOS;
+    final bool isWindowMode = isWindowedEnvironment(context);
 
-    if (isDesktop) {
+    if (isWindowMode) {
       content = Material(
         color: theme.colorScheme.surface,
         child: Column(

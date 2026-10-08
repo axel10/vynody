@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vynody/l10n/app_localizations.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
+import 'package:vynody/utils/layout_constants.dart';
 import 'folder_scan_widgets.dart';
 
 class FolderHeaderBanner extends ConsumerStatefulWidget {
@@ -565,7 +566,6 @@ class _FolderPortraitHeaderBanner extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final l10n = AppLocalizations.of(context)!;
-    final statusBarTop = MediaQuery.of(context).padding.top;
     final isDesktop = Platform.isMacOS || Platform.isWindows || Platform.isLinux;
     final desktopTitleBarHeight = isDesktop ? 28.0 : 0.0;
     final hasTopHeader = topHeader != null;
@@ -676,9 +676,13 @@ class _FolderPortraitHeaderBanner extends StatelessWidget {
             padding: EdgeInsets.only(
               top: hasTopHeader
                   ? 0
-                  : (statusBarTop > 0
-                      ? statusBarTop + desktopTitleBarHeight + 8
-                      : desktopTitleBarHeight + 16),
+                  : getTitleBarTopPadding(
+                      context,
+                      defaultWindowPadding: isDesktop
+                          ? desktopTitleBarHeight + 16
+                          : kDefaultWindowCaptionHeight + 8,
+                      statusBarOffset: desktopTitleBarHeight + 8,
+                    ),
               left: 16,
               right: 16,
                   bottom: 16,

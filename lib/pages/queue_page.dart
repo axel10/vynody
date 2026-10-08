@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -365,10 +364,8 @@ class _QueuePageState extends ConsumerState<QueuePage>
       ],
     );
 
-    final bool isDesktop =
-        Platform.isWindows || Platform.isLinux || Platform.isMacOS;
     final double safeTopPadding =
-        isDesktop ? 32.0 : MediaQuery.of(context).padding.top;
+        getTitleBarTopPadding(context, defaultWindowPadding: 32.0);
     final double topBarHeight = safeTopPadding + 70.0;
 
     final Widget listOrEmpty;

@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oktoast/oktoast.dart';
@@ -99,10 +98,9 @@ class RemotePlaylistDetailPage extends ConsumerWidget {
       ),
     );
 
-    final bool isDesktop =
-        Platform.isWindows || Platform.isLinux || Platform.isMacOS;
+    final bool isWindowMode = isWindowedEnvironment(context);
 
-    if (isDesktop) {
+    if (isWindowMode) {
       content = Material(
         color: Theme.of(context).colorScheme.surface,
         child: Column(

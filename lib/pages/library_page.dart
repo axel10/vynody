@@ -23,6 +23,7 @@ import '../widgets/auto_hide_header.dart';
 import 'playlist_tab.dart';
 import 'recently_added_tab.dart';
 import 'main_layout_riverpod.dart';
+import '../utils/layout_constants.dart';
 
 // 媒体库页面
 
@@ -151,8 +152,6 @@ class LibraryPageState extends ConsumerState<LibraryPage>
   /// 横屏 / 宽屏模式：保持原有顶部可滑动 TabBar + TabBarView 结构
   Widget _buildLandscapeLayout(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final bool isDesktop =
-        Platform.isWindows || Platform.isLinux || Platform.isMacOS;
     final bool isLandscape =
         MediaQuery.of(context).orientation == Orientation.landscape;
     final bool isCoverFlowImmersive =
@@ -160,7 +159,7 @@ class LibraryPageState extends ConsumerState<LibraryPage>
     final bool effectiveUseSidebar = widget.useSidebar ?? isLandscape;
     final double leftPadding = effectiveUseSidebar ? 80.0 : 0.0;
     final double safeTopPadding =
-        isDesktop ? 32.0 : MediaQuery.of(context).padding.top;
+        getTitleBarTopPadding(context, defaultWindowPadding: 32.0);
     final double topPadding = safeTopPadding + kToolbarHeight;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
@@ -272,9 +271,7 @@ class LibraryPageState extends ConsumerState<LibraryPage>
   Widget _buildPortraitIndexView(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
-    final bool isDesktop =
-        Platform.isWindows || Platform.isLinux || Platform.isMacOS;
-    final safeTop = isDesktop ? 36.0 : MediaQuery.of(context).padding.top;
+    final safeTop = getTitleBarTopPadding(context, defaultWindowPadding: 36.0);
     final currentMusic = ref.watch(audioCurrentMusicProvider);
 
     final playlistsCount =
@@ -492,10 +489,8 @@ class _LibrarySubPageState extends ConsumerState<LibrarySubPage> {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final bool isDesktop =
-        Platform.isWindows || Platform.isLinux || Platform.isMacOS;
     final double safeTopPadding =
-        isDesktop ? 32.0 : MediaQuery.of(context).padding.top;
+        getTitleBarTopPadding(context, defaultWindowPadding: 32.0);
     final double topPadding = safeTopPadding + kToolbarHeight;
 
     final String title = switch (widget.subIndex) {

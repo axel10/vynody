@@ -320,7 +320,11 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab>
                                             ),
                                     ),
                                     Positioned(
-                                      top: MediaQuery.of(context).padding.top + (isDesktop ? 36 : 8),
+                                      top: getTitleBarTopPadding(
+                                        context,
+                                        defaultWindowPadding: 36.0,
+                                        statusBarOffset: 8.0,
+                                      ),
                                       left: isDesktop ? 80 : 16,
                                       right: isDesktop ? 80 : 16,
                                       child: FloatingCoverFlowToolbar(

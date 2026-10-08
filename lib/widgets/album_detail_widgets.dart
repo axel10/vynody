@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
@@ -42,12 +41,11 @@ class AlbumDetailNavBar extends StatelessWidget {
 
   /// Computes the exact bar height including status bar / desktop top padding.
   static double getBarHeight(BuildContext context) {
-    final statusBarHeight = MediaQuery.of(context).padding.top;
-    final isDesktop =
-        Platform.isMacOS || Platform.isWindows || Platform.isLinux;
-    final topPadding = statusBarHeight > 0
-        ? statusBarHeight + 2.0
-        : (isDesktop ? 38.0 : 4.0);
+    final topPadding = getTitleBarTopPadding(
+      context,
+      defaultWindowPadding: kDefaultWindowCaptionHeight,
+      statusBarOffset: 2.0,
+    );
     const bottomPadding = 4.0;
     const contentHeight = 40.0;
     return topPadding + contentHeight + bottomPadding;
@@ -57,12 +55,11 @@ class AlbumDetailNavBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final statusBarHeight = MediaQuery.of(context).padding.top;
-    final isDesktop =
-        Platform.isMacOS || Platform.isWindows || Platform.isLinux;
-    final topPadding = statusBarHeight > 0
-        ? statusBarHeight + 2.0
-        : (isDesktop ? 38.0 : 4.0);
+    final topPadding = getTitleBarTopPadding(
+      context,
+      defaultWindowPadding: kDefaultWindowCaptionHeight,
+      statusBarOffset: 2.0,
+    );
     const bottomPadding = 4.0;
     final targetSurface = theme.colorScheme.surface;
     final maxAlpha = isDark ? 0.70 : 0.82;

@@ -723,7 +723,11 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
                     Container(
                       color: Theme.of(context).colorScheme.primaryContainer,
                       padding: EdgeInsets.only(
-                        top: 8 + MediaQuery.of(context).padding.top,
+                        top: getTitleBarTopPadding(
+                          context,
+                          defaultWindowPadding: 38.0,
+                          statusBarOffset: 8.0,
+                        ),
                         bottom: 8,
                         left: 16,
                         right: 16,

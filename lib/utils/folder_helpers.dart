@@ -2,6 +2,7 @@ import 'package:vynody/models/music_file.dart';
 import 'package:vynody/models/music_folder.dart';
 import 'package:vynody/player/scanner/scanner_service.dart';
 import 'layout_constants.dart';
+export 'layout_constants.dart';
 
 const double folderPageMaxWidth = kFolderPageMaxWidth;
 
