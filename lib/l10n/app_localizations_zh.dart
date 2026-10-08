@@ -9070,6 +9070,13 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get proFeatureTranscoderDesc => '無損格式快速壓縮轉換與隨身裝置批次匯出';
 
   @override
+  String get proFeatureCloudLibraryTitle => '雲端媒體庫';
+
+  @override
+  String get proFeatureCloudLibraryDesc =>
+      '支援掛載與串流 WebDAV、Navidrome、Jellyfin 及 SMB 媒體伺服器';
+
+  @override
   String get proFeatureDynamicMeshBackgroundTitle => '流體 Mesh 動態背景';
 
   @override

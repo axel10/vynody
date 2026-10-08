@@ -4126,11 +4126,11 @@ class AppLocalizationsDe extends AppLocalizations {
       'Schnelle verlustfreie Formatkonvertierung und Export für tragbare Geräte';
 
   @override
-  String get proFeatureCloudLibraryTitle => '云端媒体库';
+  String get proFeatureCloudLibraryTitle => 'Cloud-Mediathek';
 
   @override
   String get proFeatureCloudLibraryDesc =>
-      '支持挂载与串流 WebDAV、Navidrome、Jellyfin 及 SMB 媒体服务器';
+      'Remote-Medienserver über WebDAV, Navidrome, Jellyfin und SMB streamen und durchsuchen';
 
   @override
   String get proFeatureDynamicMeshBackgroundTitle =>

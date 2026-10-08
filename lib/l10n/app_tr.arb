@@ -1709,6 +1709,8 @@
   "proFeatureRemoteControlDesc": "Cihazlar arasında kesintisiz bağlantı ve kablosuz oynatma kontrolü",
   "proFeatureTranscoderTitle": "Toplu Ses Dönüştürücü",
   "proFeatureTranscoderDesc": "Kayıpsız formatları hızlı dönüştürme ve taşınabilir cihazlar için toplu dışa aktarma",
+  "proFeatureCloudLibraryTitle": "Bulut Medya Kitaplığı",
+  "proFeatureCloudLibraryDesc": "WebDAV, Navidrome, Jellyfin ve SMB üzerinden uzak medya sunucularını yayınlayın ve göz atın",
   "proFeatureDynamicMeshBackgroundTitle": "Dinamik Mesh Arka Planı",
   "proFeatureDynamicMeshBackgroundDesc": "Albüm kapağı renklerinden üretilen akıcı gradyan animasyonu ve ayarlanabilir hız",
   "proFeatureCustomImageBackgroundTitle": "Özel Çalma Arka Plan Duvar Kağıdı",

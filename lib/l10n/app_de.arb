@@ -1585,6 +1585,8 @@
   "proFeatureRemoteControlDesc": "Nahtlose Verbindung und kabellose Wiedergabesteuerung zwischen Geräten",
   "proFeatureTranscoderTitle": "Stapel-Audiokonverter",
   "proFeatureTranscoderDesc": "Schnelle verlustfreie Formatkonvertierung und Export für tragbare Geräte",
+  "proFeatureCloudLibraryTitle": "Cloud-Mediathek",
+  "proFeatureCloudLibraryDesc": "Remote-Medienserver über WebDAV, Navidrome, Jellyfin und SMB streamen und durchsuchen",
   "proFeatureDynamicMeshBackgroundTitle": "Dynamischer Mesh-Hintergrund",
   "proFeatureDynamicMeshBackgroundDesc": "Fließende Farbverlaufsanimationen basierend auf Album-Cover mit anpassbarer Geschwindigkeit",
   "proFeatureCustomImageBackgroundTitle": "Benutzerdefiniertes Hintergrundbild",

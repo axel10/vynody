@@ -1585,6 +1585,8 @@
   "proFeatureRemoteControlDesc": "스마트폰, 태블릿, PC 간 매끄러운 무선 원격 제어",
   "proFeatureTranscoderTitle": "오디오 일괄 변환 도구",
   "proFeatureTranscoderDesc": "무손실 형식 빠른 변환 및 휴대용 기기를 위한 일괄 내보내기",
+  "proFeatureCloudLibraryTitle": "클라우드 미디어 라이브러리",
+  "proFeatureCloudLibraryDesc": "WebDAV, Navidrome, Jellyfin 및 SMB를 통해 원격 미디어 서버 스트리밍 및 탐색",
   "proFeatureDynamicMeshBackgroundTitle": "동적 메시 배경",
   "proFeatureDynamicMeshBackgroundDesc": "앨범 아트 색상 기반의 유체 그라데이션 애니메이션 및 속도 조절",
   "proFeatureCustomImageBackgroundTitle": "사용자 지정 재생 배경",

@@ -1684,6 +1684,8 @@
   "proFeatureRemoteControlDesc": "スマホ、タブレット、PC間でシームレスに連携するワイヤレスリモート操作",
   "proFeatureTranscoderTitle": "音声一括変換ツール",
   "proFeatureTranscoderDesc": "ロスレス形式の高速変換・圧縮とポータブルデバイス向け一括エクスポート",
+  "proFeatureCloudLibraryTitle": "クラウドメディアライブラリ",
+  "proFeatureCloudLibraryDesc": "WebDAV、Navidrome、Jellyfin、SMB経由でリモートメディアサーバーをストリーミングおよび閲覧",
   "proFeatureDynamicMeshBackgroundTitle": "流体メッシュ動的背景",
   "proFeatureDynamicMeshBackgroundDesc": "アートワークの色から生成される流体グラデーションアニメーションと速度調整",
   "proFeatureCustomImageBackgroundTitle": "カスタム再生背景壁紙",

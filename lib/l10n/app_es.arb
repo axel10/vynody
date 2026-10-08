@@ -1585,6 +1585,8 @@
   "proFeatureRemoteControlDesc": "Conexión fluida y control de reproducción inalámbrico entre dispositivos",
   "proFeatureTranscoderTitle": "Conversor de audio por lotes",
   "proFeatureTranscoderDesc": "Conversión rápida de formatos sin pérdida y exportación por lotes para portátiles",
+  "proFeatureCloudLibraryTitle": "Biblioteca multimedia en la nube",
+  "proFeatureCloudLibraryDesc": "Transmita y explore servidores multimedia remotos a través de WebDAV, Navidrome, Jellyfin y SMB",
   "proFeatureDynamicMeshBackgroundTitle": "Fondo de malla dinámico",
   "proFeatureDynamicMeshBackgroundDesc": "Animación de degradado fluido generado a partir de la carátula con velocidad personalizable",
   "proFeatureCustomImageBackgroundTitle": "Fondo de reproducción personalizado",
