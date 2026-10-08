@@ -19,12 +19,16 @@ class AutoHideHeaderScope extends StatefulWidget {
   final Widget Function(BuildContext context, bool isVisible) builder;
   final bool forceVisible;
   final bool enabled;
+  final double hideThreshold;
+  final double showThreshold;
 
   const AutoHideHeaderScope({
     super.key,
     required this.builder,
     this.forceVisible = false,
     this.enabled = true,
+    this.hideThreshold = 24.0,
+    this.showThreshold = 36.0,
   });
 
   @override
@@ -33,12 +37,14 @@ class AutoHideHeaderScope extends StatefulWidget {
 
 class _AutoHideHeaderScopeState extends State<AutoHideHeaderScope> {
   bool _isVisible = true;
+  double _accumulatedScroll = 0.0;
 
   bool get _effectiveEnabled => widget.enabled && isMobileAutoHidePlatform;
 
   bool _onNotification(ScrollNotification notification) {
     if (!_effectiveEnabled) return false;
     if (widget.forceVisible) {
+      _accumulatedScroll = 0.0;
       if (!_isVisible) {
         setState(() => _isVisible = true);
       }
@@ -50,6 +56,7 @@ class _AutoHideHeaderScopeState extends State<AutoHideHeaderScope> {
     final pixels = notification.metrics.pixels;
 
     if (pixels <= 20) {
+      _accumulatedScroll = 0.0;
       if (!_isVisible) {
         setState(() => _isVisible = true);
       }
@@ -57,26 +64,36 @@ class _AutoHideHeaderScopeState extends State<AutoHideHeaderScope> {
     }
 
     if (notification is UserScrollNotification) {
-      if (notification.direction == ScrollDirection.forward) {
-        if (!_isVisible) {
-          setState(() => _isVisible = true);
-        }
-      } else if (notification.direction == ScrollDirection.reverse &&
-          pixels > 40) {
-        if (_isVisible) {
-          setState(() => _isVisible = false);
-        }
-      }
+      // Clear accumulated distance on user gesture direction changes or idle.
+      _accumulatedScroll = 0.0;
+    } else if (notification is ScrollEndNotification) {
+      _accumulatedScroll = 0.0;
     } else if (notification is ScrollUpdateNotification) {
       final delta = notification.scrollDelta;
-      if (delta != null) {
-        if (delta > 2.0 && pixels > 40) {
-          if (_isVisible) {
-            setState(() => _isVisible = false);
+      if (delta != null && delta != 0.0) {
+        if (delta > 0) {
+          // Scrolling down (content moves up, viewing lower content)
+          if (_accumulatedScroll < 0) {
+            _accumulatedScroll = 0.0;
           }
-        } else if (delta < -2.0) {
+          if (_isVisible && pixels > 40) {
+            _accumulatedScroll += delta;
+            if (_accumulatedScroll >= widget.hideThreshold) {
+              setState(() => _isVisible = false);
+              _accumulatedScroll = 0.0;
+            }
+          }
+        } else if (delta < 0) {
+          // Scrolling up (content moves down, viewing previous content)
+          if (_accumulatedScroll > 0) {
+            _accumulatedScroll = 0.0;
+          }
           if (!_isVisible) {
-            setState(() => _isVisible = true);
+            _accumulatedScroll += -delta;
+            if (_accumulatedScroll >= widget.showThreshold) {
+              setState(() => _isVisible = true);
+              _accumulatedScroll = 0.0;
+            }
           }
         }
       }
