@@ -24,6 +24,7 @@ import '../widgets/remote_server_slivers.dart';
 import '../dialogs/add_edit_remote_server_dialog.dart';
 import '../utils/selection_utils.dart';
 import '../widgets/playback_ui_tuning.dart';
+import '../widgets/auto_hide_header.dart';
 
 class FolderRootView extends ConsumerStatefulWidget {
   const FolderRootView({
@@ -562,20 +563,26 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
       },
     );
 
-    return Scaffold(
-      body: Stack(
-        children: [
-          Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: folderPageMaxWidth),
-              child: rootList,
+    return AutoHideHeaderScope(
+      forceVisible:
+          isRootSelectionMode || widget.isSortMode || _searchQuery.isNotEmpty,
+      builder: (context, isHeaderVisible) => Scaffold(
+        body: Stack(
+          children: [
+            Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: folderPageMaxWidth),
+                child: rootList,
+              ),
             ),
-          ),
             Positioned(
               top: 0,
               left: 0,
               right: 0,
-              child: _buildRootTopHeader(context, isOverlay: true),
+              child: AutoHideHeader(
+                isVisible: isHeaderVisible,
+                child: _buildRootTopHeader(context, isOverlay: true),
+              ),
             ),
             Positioned(
               left: 0,
@@ -673,8 +680,9 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
               ),
           ],
         ),
-      );
-    }
+      ),
+    );
+  }
 
   Widget _buildRootTopHeader(BuildContext context, {bool isOverlay = true}) {
     return Hero(

@@ -23,6 +23,7 @@ import '../../widgets/library_selection_panel.dart';
 import '../../widgets/library_selection_scope.dart';
 import 'remote_download_manager_page.dart';
 import 'widgets/remote_library_selection_actions.dart';
+import '../../widgets/auto_hide_header.dart';
 
 class RemoteArtistDetailPage extends ConsumerStatefulWidget {
   final RemoteServer server;
@@ -90,64 +91,71 @@ class _RemoteArtistDetailPageState
     final l10n = AppLocalizations.of(context)!;
     final double barHeight = getBarHeight(context);
 
-    final Widget content = Scaffold(
-      body: Stack(
-        children: [
-          RemoteArtistDetailContent(
-            server: widget.server,
-            password: widget.password,
-            artistId: widget.artistId,
-            artistName: widget.artistName,
-            coverArtId: widget.coverArtId,
-            albumCount: widget.albumCount,
-            scrollController: _scrollController,
-            topPadding: barHeight + 8,
-            onLoadingStateChanged: (isLoading, hasError) {
-              if (_isLoading != isLoading || _hasError != hasError) {
-                setState(() {
-                  _isLoading = isLoading;
-                  _hasError = hasError;
-                });
-              }
-            },
-          ),
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: AlbumDetailNavBar(
-              title: widget.artistName,
-              scrollProgress: (_isLoading || _hasError)
-                  ? const AlwaysStoppedAnimation(1.0)
-                  : _scrollProgress,
-              isCoverVisible: (_isLoading || _hasError)
-                  ? const AlwaysStoppedAnimation(false)
-                  : _isHeaderVisible,
-              onGoBack: widget.onGoBack ?? () => Navigator.of(context).maybePop(),
-              actions: [
-                IconButton(
-                  icon: Badge(
-                    isLabelVisible: ref.watch(activeDownloadsCountProvider) > 0,
-                    label: Text('${ref.watch(activeDownloadsCountProvider)}'),
-                    child: const Icon(Icons.download_rounded, size: 20),
-                  ),
-                  tooltip: l10n.downloadManager,
-                  onPressed: () {
-                    Navigator.of(context, rootNavigator: true).push(
-                      MaterialPageRoute(
-                        builder: (_) => const RemoteDownloadManagerPage(),
+    return AutoHideHeaderScope(
+      builder: (context, isHeaderVisible) {
+        final Widget content = Scaffold(
+          body: Stack(
+            children: [
+              RemoteArtistDetailContent(
+                server: widget.server,
+                password: widget.password,
+                artistId: widget.artistId,
+                artistName: widget.artistName,
+                coverArtId: widget.coverArtId,
+                albumCount: widget.albumCount,
+                scrollController: _scrollController,
+                topPadding: barHeight + 8,
+                onLoadingStateChanged: (isLoading, hasError) {
+                  if (_isLoading != isLoading || _hasError != hasError) {
+                    setState(() {
+                      _isLoading = isLoading;
+                      _hasError = hasError;
+                    });
+                  }
+                },
+              ),
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: AutoHideHeader(
+                  isVisible: isHeaderVisible,
+                  child: AlbumDetailNavBar(
+                    title: widget.artistName,
+                    scrollProgress: (_isLoading || _hasError)
+                        ? const AlwaysStoppedAnimation(1.0)
+                        : _scrollProgress,
+                    isCoverVisible: (_isLoading || _hasError)
+                        ? const AlwaysStoppedAnimation(false)
+                        : _isHeaderVisible,
+                    onGoBack: widget.onGoBack ?? () => Navigator.of(context).maybePop(),
+                    actions: [
+                      IconButton(
+                        icon: Badge(
+                          isLabelVisible: ref.watch(activeDownloadsCountProvider) > 0,
+                          label: Text('${ref.watch(activeDownloadsCountProvider)}'),
+                          child: const Icon(Icons.download_rounded, size: 20),
+                        ),
+                        tooltip: l10n.downloadManager,
+                        onPressed: () {
+                          Navigator.of(context, rootNavigator: true).push(
+                            MaterialPageRoute(
+                              builder: (_) => const RemoteDownloadManagerPage(),
+                            ),
+                          );
+                        },
                       ),
-                    );
-                  },
+                    ],
+                  ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
-      ),
-    );
+        );
 
-    return MiniPlayerWrapper(child: content);
+        return MiniPlayerWrapper(child: content);
+      },
+    );
   }
 }
 

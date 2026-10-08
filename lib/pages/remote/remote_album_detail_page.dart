@@ -27,6 +27,7 @@ import '../../widgets/library_selection_scope.dart';
 import 'remote_download_manager_page.dart';
 import 'widgets/remote_library_selection_actions.dart';
 import '../../utils/song_locator_helper.dart';
+import '../../widgets/auto_hide_header.dart';
 
 class RemoteAlbumDetailPage extends ConsumerStatefulWidget {
   final RemoteServer server;
@@ -843,59 +844,64 @@ class _RemoteAlbumDetailPageState
                       ),
                     );
 
-    final Widget content = Scaffold(
-      body: Stack(
-        children: [
-          if (_isLoading)
-            const Center(
-              child: SizedBox(
-                width: 32,
-                height: 32,
-                child: CircularProgressIndicator(strokeWidth: 3),
-              ),
-            )
-          else if (_error != null)
-            Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.error_outline_rounded,
-                      size: 48,
-                      color: theme.colorScheme.error,
-                    ),
-                    const SizedBox(height: 12),
-                    Text(l10n.errorWithMessage(_error!), textAlign: TextAlign.center),
-                    const SizedBox(height: 16),
-                    FilledButton.icon(
-                      onPressed: _loadAlbumDetails,
-                      icon: const Icon(Icons.refresh_rounded),
-                      label: Text(l10n.retry),
-                    ),
-                  ],
+    final Widget content = AutoHideHeaderScope(
+      forceVisible: isSelectionMode,
+      builder: (context, isHeaderVisible) => Scaffold(
+        body: Stack(
+          children: [
+            if (_isLoading)
+              const Center(
+                child: SizedBox(
+                  width: 32,
+                  height: 32,
+                  child: CircularProgressIndicator(strokeWidth: 3),
+                ),
+              )
+            else if (_error != null)
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.error_outline_rounded,
+                        size: 48,
+                        color: theme.colorScheme.error,
+                      ),
+                      const SizedBox(height: 12),
+                      Text(l10n.errorWithMessage(_error!), textAlign: TextAlign.center),
+                      const SizedBox(height: 16),
+                      FilledButton.icon(
+                        onPressed: _loadAlbumDetails,
+                        icon: const Icon(Icons.refresh_rounded),
+                        label: Text(l10n.retry),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else
+              scrollBody,
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: AutoHideHeader(
+                isVisible: isHeaderVisible,
+                child: AlbumDetailNavBar(
+                  title: albumTitle,
+                  scrollProgress: (_isLoading || _error != null)
+                      ? const AlwaysStoppedAnimation(1.0)
+                      : _scrollProgress,
+                  isCoverVisible: (_isLoading || _error != null)
+                      ? const AlwaysStoppedAnimation(false)
+                      : _isCoverVisible,
+                  onGoBack: () => Navigator.of(context).maybePop(),
+                  actions: navActions,
                 ),
               ),
-            )
-          else
-            scrollBody,
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: AlbumDetailNavBar(
-              title: albumTitle,
-              scrollProgress: (_isLoading || _error != null)
-                  ? const AlwaysStoppedAnimation(1.0)
-                  : _scrollProgress,
-              isCoverVisible: (_isLoading || _error != null)
-                  ? const AlwaysStoppedAnimation(false)
-                  : _isCoverVisible,
-              onGoBack: () => Navigator.of(context).maybePop(),
-              actions: navActions,
             ),
-          ),
           if (!_isLoading && _error == null)
             AnimatedSelectionPanel(
               isVisible: isSelectionMode,
@@ -973,7 +979,8 @@ class _RemoteAlbumDetailPageState
             ),
         ],
       ),
-    );
+    ),
+  );
 
     return MiniPlayerWrapper(child: content);
   }

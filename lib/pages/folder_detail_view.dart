@@ -25,6 +25,7 @@ import '../widgets/folder_header_nav_bar.dart';
 import '../widgets/folder_layout_utils.dart';
 import '../widgets/folder_content_slivers.dart';
 import '../widgets/playback_ui_tuning.dart';
+import '../widgets/auto_hide_header.dart';
 
 class FolderDetailView extends ConsumerStatefulWidget {
   const FolderDetailView({
@@ -710,9 +711,12 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
 
     final selectedSongs = showSelectionPanel ? _getSelectedSongs() : <MusicFile>[];
 
-    final scaffold = Scaffold(
-      body: Stack(
-        children: [
+    final page = AutoHideHeaderScope(
+      forceVisible: widget.isSelectionMode || _searchQuery.isNotEmpty,
+      builder: (context, isHeaderVisible) {
+        final scaffold = Scaffold(
+          body: Stack(
+            children: [
               Column(
                 children: [
                   if (widget.isSelectionMode && !showSelectionPanel)
@@ -749,7 +753,10 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
                 top: 0,
                 left: 0,
                 right: 0,
-                child: _buildBreadcrumbs(folder, scanner, isOverlay: true),
+                child: AutoHideHeader(
+                  isVisible: isHeaderVisible,
+                  child: _buildBreadcrumbs(folder, scanner, isOverlay: true),
+                ),
               ),
               Positioned(
                 left: 0,
@@ -799,20 +806,24 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
               ),
             ],
           ),
-      );
+        );
 
-    if (widget.isSelectionMode) {
-      return PopScope(
-        canPop: false,
-        onPopInvokedWithResult: (didPop, result) {
-          if (didPop) return;
-          widget.onClearAllSelection();
-        },
-        child: scaffold,
-      );
-    }
+        if (widget.isSelectionMode) {
+          return PopScope(
+            canPop: false,
+            onPopInvokedWithResult: (didPop, result) {
+              if (didPop) return;
+              widget.onClearAllSelection();
+            },
+            child: scaffold,
+          );
+        }
 
-    return scaffold;
+        return scaffold;
+      },
+    );
+
+    return page;
   }
 
   String _getParentFolderName(MusicFolder current, ScannerService scanner) {

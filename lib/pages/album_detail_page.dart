@@ -19,6 +19,7 @@ import '../widgets/library_selection_scope.dart';
 import '../widgets/draggable_song_item.dart';
 import '../widgets/song_thumbnail.dart';
 import 'package:vynody/utils/layout_constants.dart';
+import '../widgets/auto_hide_header.dart';
 
 class AlbumDetailPage extends ConsumerStatefulWidget {
   const AlbumDetailPage({super.key, required this.album});
@@ -296,48 +297,56 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage>
       ],
     );
 
-    final Widget content = Scaffold(
-      body: Stack(
-        children: [
-          scrollBody,
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: AlbumDetailNavBar(
-              title: widget.album.title,
-              scrollProgress: _scrollProgress,
-              isCoverVisible: _isCoverVisible,
-              onGoBack: () => Navigator.of(context).maybePop(),
-            ),
+    return AutoHideHeaderScope(
+      forceVisible: isSelectionMode,
+      builder: (context, isHeaderVisible) {
+        final Widget content = Scaffold(
+          body: Stack(
+            children: [
+              scrollBody,
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: AutoHideHeader(
+                  isVisible: isHeaderVisible,
+                  child: AlbumDetailNavBar(
+                    title: widget.album.title,
+                    scrollProgress: _scrollProgress,
+                    isCoverVisible: _isCoverVisible,
+                    onGoBack: () => Navigator.of(context).maybePop(),
+                  ),
+                ),
+              ),
+              AnimatedSelectionPanel(
+                isVisible: isSelectionMode,
+                child: LibrarySelectionPanel(
+                  key: const ValueKey('library-selection-panel'),
+                  selectedSongs: selectedSongs,
+                  allSongs: widget.album.songs,
+                  onToggleSelectAll: () =>
+                      toggleSelectAllSongs(widget.album.songs),
+                  onCancel: cancelSongSelection,
+                ),
+              ),
+            ],
           ),
-          AnimatedSelectionPanel(
-            isVisible: isSelectionMode,
-            child: LibrarySelectionPanel(
-              key: const ValueKey('library-selection-panel'),
-              selectedSongs: selectedSongs,
-              allSongs: widget.album.songs,
-              onToggleSelectAll: () =>
-                  toggleSelectAllSongs(widget.album.songs),
-              onCancel: cancelSongSelection,
-            ),
-          ),
-        ],
-      ),
-    );
+        );
 
-    final wrapped = MiniPlayerWrapper(child: content);
-    if (isSelectionMode) {
-      return PopScope(
-        canPop: false,
-        onPopInvokedWithResult: (didPop, result) {
-          if (didPop) return;
-          cancelSongSelection();
-        },
-        child: wrapped,
-      );
-    }
-    return wrapped;
+        final wrapped = MiniPlayerWrapper(child: content);
+        if (isSelectionMode) {
+          return PopScope(
+            canPop: false,
+            onPopInvokedWithResult: (didPop, result) {
+              if (didPop) return;
+              cancelSongSelection();
+            },
+            child: wrapped,
+          );
+        }
+        return wrapped;
+      },
+    );
   }
 }
 

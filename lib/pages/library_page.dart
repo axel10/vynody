@@ -19,6 +19,7 @@ import 'most_played_tab.dart';
 import 'recently_played_tab.dart';
 import '../widgets/library_selection_scope.dart';
 import '../widgets/mini_player_wrapper.dart';
+import '../widgets/auto_hide_header.dart';
 import 'playlist_tab.dart';
 import 'recently_added_tab.dart';
 import 'main_layout_riverpod.dart';
@@ -540,59 +541,65 @@ class _LibrarySubPageState extends ConsumerState<LibrarySubPage> {
         }
       },
       child: MiniPlayerWrapper(
-        child: Scaffold(
-          key: ValueKey('library_subpage_${widget.subIndex}'),
-          body: Stack(
-            fit: StackFit.expand,
-            children: [
-              child,
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                height: topPadding,
-                child: ClipRect(
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                    child: Container(
-                      padding: EdgeInsets.only(top: safeTopPadding),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.surface.withValues(
-                          alpha: isDark ? 0.70 : 0.82,
-                        ),
-                        border: Border(
-                          bottom: BorderSide(
-                            color: theme.dividerColor.withValues(alpha: 0.12),
-                            width: 0.8,
+        child: AutoHideHeaderScope(
+          forceVisible: isSelectionActive || is3DViewActive,
+          builder: (context, isHeaderVisible) => Scaffold(
+            key: ValueKey('library_subpage_${widget.subIndex}'),
+            body: Stack(
+              fit: StackFit.expand,
+              children: [
+                child,
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: topPadding,
+                  child: AutoHideHeader(
+                    isVisible: isHeaderVisible,
+                    child: ClipRect(
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                        child: Container(
+                          padding: EdgeInsets.only(top: safeTopPadding),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.surface.withValues(
+                              alpha: isDark ? 0.70 : 0.82,
+                            ),
+                            border: Border(
+                              bottom: BorderSide(
+                                color: theme.dividerColor.withValues(alpha: 0.12),
+                                width: 0.8,
+                              ),
+                            ),
+                          ),
+                          child: AppBar(
+                            primary: false,
+                            forceMaterialTransparency: true,
+                            scrolledUnderElevation: 0,
+                            surfaceTintColor: Colors.transparent,
+                            leading: IconButton(
+                              icon: const Icon(
+                                Icons.arrow_back_ios_new_rounded,
+                                size: 20,
+                              ),
+                              tooltip: l10n.goBack,
+                              onPressed: () => Navigator.of(context).maybePop(),
+                            ),
+                            title: Text(
+                              title,
+                              style: const TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                            centerTitle: true,
+                            elevation: 0,
+                            backgroundColor: Colors.transparent,
                           ),
                         ),
-                      ),
-                      child: AppBar(
-                        primary: false,
-                        forceMaterialTransparency: true,
-                        scrolledUnderElevation: 0,
-                        surfaceTintColor: Colors.transparent,
-                        leading: IconButton(
-                          icon: const Icon(
-                            Icons.arrow_back_ios_new_rounded,
-                            size: 20,
-                          ),
-                          tooltip: l10n.goBack,
-                          onPressed: () => Navigator.of(context).maybePop(),
-                        ),
-                        title: Text(
-                          title,
-                          style: const TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                        centerTitle: true,
-                        elevation: 0,
-                        backgroundColor: Colors.transparent,
                       ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

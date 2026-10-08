@@ -41,6 +41,7 @@ import '../../utils/selection_utils.dart';
 import '../../utils/song_locator_helper.dart';
 import '../../widgets/folder_nav_bar_scaffold.dart';
 import '../../widgets/folder_scan_widgets.dart';
+import '../../widgets/auto_hide_header.dart';
 
 class RemoteFolderBrowserPage extends ConsumerStatefulWidget {
   final RemoteServer server;
@@ -1565,7 +1566,10 @@ class _RemoteFolderBrowserPageState
       selectionTitle = l10n.selectedSongs(selectedSongsCount);
     }
 
-    final scaffold = Scaffold(
+    final page = AutoHideHeaderScope(
+      forceVisible: _isSelectionMode || _searchQuery.isNotEmpty,
+      builder: (context, isHeaderVisible) {
+        final scaffold = Scaffold(
       body: Stack(
         children: [
             Center(
@@ -1582,7 +1586,10 @@ class _RemoteFolderBrowserPageState
               top: 0,
               left: 0,
               right: 0,
-              child: _buildHeaderNavBar(context, isOverlay: true),
+              child: AutoHideHeader(
+                isVisible: isHeaderVisible,
+                child: _buildHeaderNavBar(context, isOverlay: true),
+              ),
             ),
             Positioned(
               left: 0,
@@ -1830,19 +1837,23 @@ class _RemoteFolderBrowserPageState
         ),
       );
 
-    final content = PopScope(
-      canPop: !_isSelectionMode,
-      onPopInvokedWithResult: (didPop, result) {
-        if (didPop) return;
-        _clearAllSelection();
+        final content = PopScope(
+          canPop: !_isSelectionMode,
+          onPopInvokedWithResult: (didPop, result) {
+            if (didPop) return;
+            _clearAllSelection();
+          },
+          child: scaffold,
+        );
+
+        if (widget.wrapWithMiniPlayer) {
+          return MiniPlayerWrapper(child: content);
+        }
+        return content;
       },
-      child: scaffold,
     );
 
-    if (widget.wrapWithMiniPlayer) {
-      return MiniPlayerWrapper(child: content);
-    }
-    return content;
+    return page;
   }
 
   Widget _buildBanner({

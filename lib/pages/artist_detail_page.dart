@@ -14,6 +14,7 @@ import '../widgets/mini_player_wrapper.dart';
 import '../widgets/library_selection_panel.dart';
 import '../widgets/library_selection_scope.dart';
 import '../widgets/draggable_song_item.dart';
+import '../widgets/auto_hide_header.dart';
 
 class ArtistDetailPage extends ConsumerStatefulWidget {
   const ArtistDetailPage({
@@ -66,30 +67,37 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
   Widget build(BuildContext context) {
     final double barHeight = getBarHeight(context);
 
-    final Widget content = Scaffold(
-      body: Stack(
-        children: [
-          ArtistDetailContent(
-            artist: widget.artist,
-            scrollController: _scrollController,
-            topPadding: barHeight + 8,
+    return AutoHideHeaderScope(
+      builder: (context, isHeaderVisible) {
+        final Widget content = Scaffold(
+          body: Stack(
+            children: [
+              ArtistDetailContent(
+                artist: widget.artist,
+                scrollController: _scrollController,
+                topPadding: barHeight + 8,
+              ),
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: AutoHideHeader(
+                  isVisible: isHeaderVisible,
+                  child: AlbumDetailNavBar(
+                    title: widget.artist.name,
+                    scrollProgress: _scrollProgress,
+                    isCoverVisible: _isHeaderVisible,
+                    onGoBack: widget.onGoBack ?? () => Navigator.of(context).maybePop(),
+                  ),
+                ),
+              ),
+            ],
           ),
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: AlbumDetailNavBar(
-              title: widget.artist.name,
-              scrollProgress: _scrollProgress,
-              isCoverVisible: _isHeaderVisible,
-              onGoBack: widget.onGoBack ?? () => Navigator.of(context).maybePop(),
-            ),
-          ),
-        ],
-      ),
-    );
+        );
 
-    return MiniPlayerWrapper(child: content);
+        return MiniPlayerWrapper(child: content);
+      },
+    );
   }
 }
 
