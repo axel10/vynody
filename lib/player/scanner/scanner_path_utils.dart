@@ -244,37 +244,49 @@ class ScannerPathUtils {
       // Ignored if file system permission or check fails
     }
 
-    // 1. Documents container matching (supports /var/mobile, /private/var/mobile, FileProvider, and Simulator)
-    if (docDir != null && docDir.isNotEmpty) {
-      final docMatch = RegExp(
-        r'(?:^|/)(?:(?:private/)?var/mobile/Containers/(?:Data/Application|Shared/AppGroup)/[^/]+(?:/[^/]+)*/)?Documents(?:/(.*))?$',
-      ).firstMatch(trimmed) ?? RegExp(
-        r'/(?:[^/]+/)*Documents(?:/(.*))?$',
-      ).firstMatch(trimmed);
-
-      if (docMatch != null) {
-        final subPath = docMatch.group(1);
-        final resolved = (subPath == null || subPath.isEmpty)
-            ? docDir
-            : p.join(docDir, subPath);
-        return resolved;
+    // 1. Special handling for thumbnails: thumbnails are always located inside libDir/thumbnails
+    if (libDir != null && libDir.isNotEmpty) {
+      final thumbMatch = RegExp(r'(?:^|/)thumbnails/(.+)$').firstMatch(trimmed);
+      if (thumbMatch != null) {
+        return p.join(libDir, 'thumbnails', thumbMatch.group(1)!);
       }
     }
 
-    // 2. Library / Application Support container matching
-    if (libDir != null && libDir.isNotEmpty) {
-      final libMatch = RegExp(
-        r'(?:^|/)(?:(?:private/)?var/mobile/Containers/(?:Data/Application|Shared/AppGroup)/[^/]+(?:/[^/]+)*/)?Library(?:/Application Support)?(?:/(.*))?$',
-      ).firstMatch(trimmed) ?? RegExp(
-        r'/(?:[^/]+/)*Library(?:/Application Support)?(?:/(.*))?$',
-      ).firstMatch(trimmed);
+    // 2. Container matching: supports iOS device (/var/mobile/Containers/...),
+    //    iOS Simulator (.../data/Containers/Data/Application/<UUID>/...),
+    //    macOS sandbox (.../Containers/<BundleId>/Data/...),
+    //    and File Provider Storage (.../Containers/Shared/AppGroup/<UUID>/File Provider Storage/...).
+    //    Greedy .*/ ensures we pick the innermost/last container in case of historical nesting.
+    final containerMatch = RegExp(
+      r'.*/Containers/(?:Data/Application|Shared/AppGroup|[^/]+)/[^/]+(?:/[^/]+)*(?:/Data)?/(Documents|Library(?:/Application Support)?)(?:/(.*))?$',
+    ).firstMatch(trimmed);
 
-      if (libMatch != null) {
-        final subPath = libMatch.group(1);
-        final resolved = (subPath == null || subPath.isEmpty)
-            ? libDir
-            : p.join(libDir, subPath);
-        return resolved;
+    if (containerMatch != null) {
+      final type = containerMatch.group(1);
+      final subPath = containerMatch.group(2);
+      if (type == 'Documents') {
+        if (docDir != null && docDir.isNotEmpty) {
+          return (subPath == null || subPath.isEmpty)
+              ? docDir
+              : p.join(docDir, subPath);
+        }
+      } else {
+        if (libDir != null && libDir.isNotEmpty) {
+          return (subPath == null || subPath.isEmpty)
+              ? libDir
+              : p.join(libDir, subPath);
+        }
+      }
+    }
+
+    // 3. Fallback for standalone relative or unscoped Documents paths
+    if (docDir != null && docDir.isNotEmpty) {
+      final docMatch = RegExp(r'(?:^|/)Documents(?:/(.*))?$').firstMatch(trimmed);
+      if (docMatch != null && !trimmed.contains('/Developer/CoreSimulator/')) {
+        final subPath = docMatch.group(1);
+        return (subPath == null || subPath.isEmpty)
+            ? docDir
+            : p.join(docDir, subPath);
       }
     }
 

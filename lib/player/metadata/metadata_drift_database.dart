@@ -878,9 +878,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
     if (!Platform.isIOS && !Platform.isMacOS) return null;
     if (!ScannerPathUtils.isSandboxInternalPath(path)) return null;
     final match = RegExp(
-      r'(?:^|/)(?:private/)?var/mobile/Containers/Data/Application/[^/]+(/(?:Documents|Library)(?:/.*)?)$',
-    ).firstMatch(path) ?? RegExp(
-      r'/Containers/Data/Application/[^/]+(/(?:Documents|Library)(?:/.*)?)$',
+      r'.*/Containers/(?:Data/Application|Shared/AppGroup|[^/]+)/[^/]+(?:/[^/]+)*(?:/Data)?(/(?:Documents|Library)(?:/.*)?)$',
     ).firstMatch(path);
     return match?.group(1);
   }

@@ -30,6 +30,14 @@ void main() {
       const oldThumbPath = '/private/var/mobile/Containers/Data/Application/OLD-UUID-9999/Library/Application Support/thumbnails/abc12345.jpg';
       final resolvedThumb = ScannerPathUtils.resolveIosSandboxPath(oldThumbPath);
       expect(resolvedThumb, '/var/mobile/Containers/Data/Application/NEW-UUID-1234/Library/Application Support/thumbnails/abc12345.jpg');
+
+      const simOldDoc = '/Users/john/Library/Developer/CoreSimulator/Devices/DEV-1/data/Containers/Data/Application/OLD-SIM-1/Documents/album/track.m4a';
+      final resolvedSimDoc = ScannerPathUtils.resolveIosSandboxPath(simOldDoc);
+      expect(resolvedSimDoc, '/var/mobile/Containers/Data/Application/NEW-UUID-1234/Documents/album/track.m4a');
+
+      const nestedCorruptedThumb = '/Users/john/Library/Developer/CoreSimulator/Devices/DEV-1/data/Containers/Data/Application/NEW-1/Library/Application Support/Developer/CoreSimulator/Devices/DEV-1/data/Containers/Data/Application/OLD-1/Library/Application Support/thumbnails/nested_thumb.jpg';
+      final resolvedNestedThumb = ScannerPathUtils.resolveIosSandboxPath(nestedCorruptedThumb);
+      expect(resolvedNestedThumb, '/var/mobile/Containers/Data/Application/NEW-UUID-1234/Library/Application Support/thumbnails/nested_thumb.jpg');
     });
 
     test('isSandboxInternalPath correctly detects sandbox paths', () {
