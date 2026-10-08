@@ -7,9 +7,19 @@ import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/audio/audio_service.dart';
 import 'package:vynody/player/settings/settings_service.dart';
+import 'dart:typed_data';
+import 'package:audio_core/audio_core.dart';
+import 'package:vynody/widgets/animated_play_pause_button.dart';
 import 'package:vynody/widgets/floating_dock_bottom_bar.dart';
+import 'package:vynody/widgets/mini_player_widgets.dart';
 
-class _MockAudioService extends Fake implements AudioService {}
+class _MockAudioService extends Fake implements AudioService {
+  @override
+  Stream<FftFrame>? get miniPlayerFftStream => null;
+
+  @override
+  Uint8List? getCachedArtwork(String? path) => null;
+}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -26,12 +36,13 @@ void main() {
     required Size screenSize,
     required EdgeInsets padding,
     TargetPlatform platform = TargetPlatform.iOS,
+    MusicFile? currentMusic,
   }) {
     return ProviderScope(
       overrides: [
         settingsServiceProvider.overrideWith((ref) => settings),
         audioServiceProvider.overrideWith((ref) => _MockAudioService()),
-        audioCurrentMusicProvider.overrideWith((ref) => null as MusicFile?),
+        audioCurrentMusicProvider.overrideWith((ref) => currentMusic),
         audioIsPlayingProvider.overrideWith((ref) => false),
         audioIsBufferingProvider.overrideWith((ref) => false),
         audioProgressProvider.overrideWith((ref) => 0.0),
@@ -134,4 +145,92 @@ void main() {
         tester.widget<AnimatedPositioned>(animatedPositionedFinder);
     expect(animatedPositioned.bottom, 28.0);
   });
+
+  testWidgets(
+      'FloatingDockBottomBar mini player buttons on iPad use size 26/32 with 8pt padding',
+      (tester) async {
+    tester.view.physicalSize = const Size(810, 1080);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    const testSong = MusicFile(
+      path: '/test.mp3',
+      name: 'Test Song',
+      title: 'Test Song',
+      artist: 'Test Artist',
+    );
+
+    await tester.pumpWidget(
+      buildTestWidget(
+        screenSize: const Size(810, 1080),
+        padding: const EdgeInsets.only(bottom: 20.0),
+        platform: TargetPlatform.iOS,
+        currentMusic: testSong,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final prevNextButtons = tester.widgetList<MiniControlButton>(
+      find.byType(MiniControlButton),
+    ).toList();
+    expect(prevNextButtons.length, 2);
+    for (final btn in prevNextButtons) {
+      expect(btn.iconSize, 26.0);
+      expect(btn.padding, const EdgeInsets.all(8.0));
+    }
+
+    final playPauseButton = tester.widget<AnimatedPlayPauseButton>(
+      find.byType(AnimatedPlayPauseButton),
+    );
+    expect(playPauseButton.size, 32.0);
+    expect(playPauseButton.padding, const EdgeInsets.all(8.0));
+
+    final miniArtwork = tester.widget<MiniArtwork>(
+      find.byType(MiniArtwork),
+    );
+    expect(miniArtwork.size, 42.0);
+  });
+
+  testWidgets(
+      'FloatingDockBottomBar mini player buttons on iPhone use size 20/26 with 4pt padding',
+      (tester) async {
+    tester.view.physicalSize = const Size(393, 852);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    const testSong = MusicFile(
+      path: '/test.mp3',
+      name: 'Test Song',
+      title: 'Test Song',
+      artist: 'Test Artist',
+    );
+
+    await tester.pumpWidget(
+      buildTestWidget(
+        screenSize: const Size(393, 852),
+        padding: const EdgeInsets.only(bottom: 34.0),
+        platform: TargetPlatform.iOS,
+        currentMusic: testSong,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final prevNextButtons = tester.widgetList<MiniControlButton>(
+      find.byType(MiniControlButton),
+    ).toList();
+    expect(prevNextButtons.length, 2);
+    for (final btn in prevNextButtons) {
+      expect(btn.iconSize, 20.0);
+      expect(btn.padding, const EdgeInsets.all(4.0));
+    }
+
+    final playPauseButton = tester.widget<AnimatedPlayPauseButton>(
+      find.byType(AnimatedPlayPauseButton),
+    );
+    expect(playPauseButton.size, 26.0);
+    expect(playPauseButton.padding, const EdgeInsets.all(4.0));
+  });
 }
+

@@ -14,7 +14,14 @@ import '../l10n/app_localizations.dart';
 import 'song_thumbnail.dart';
 
 class MiniArtwork extends ConsumerWidget {
-  const MiniArtwork({super.key});
+  final double size;
+  final double borderRadius;
+
+  const MiniArtwork({
+    super.key,
+    this.size = 36.0,
+    this.borderRadius = 6.0,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -22,16 +29,16 @@ class MiniArtwork extends ConsumerWidget {
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final fallbackWidget = Container(
-      width: 36,
-      height: 36,
+      width: size,
+      height: size,
       decoration: BoxDecoration(
         color: isDark ? Colors.grey[900] : Colors.grey[200],
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(borderRadius),
       ),
       child: Icon(
         Icons.music_note,
         color: isDark ? Colors.white : Colors.black54,
-        size: 20,
+        size: (size * 0.55).clamp(16.0, 32.0),
       ),
     );
 
@@ -50,10 +57,10 @@ class MiniArtwork extends ConsumerWidget {
     return SongThumbnail.fromSong(
       songForThumbnail,
       key: ValueKey('${currentMusic.path}_${memoryBytes?.hashCode ?? 0}'),
-      size: 36,
-      width: 36,
-      height: 36,
-      borderRadius: BorderRadius.circular(6),
+      size: size,
+      width: size,
+      height: size,
+      borderRadius: BorderRadius.circular(borderRadius),
       fallbackWidget: fallbackWidget,
     );
   }

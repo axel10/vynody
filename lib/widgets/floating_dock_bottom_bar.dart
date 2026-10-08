@@ -100,9 +100,9 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
           child: IgnorePointer(
             ignoring: isEffectivelyHidden,
             child: Container(
-              constraints: const BoxConstraints(maxWidth: 580),
+              constraints: BoxConstraints(maxWidth: isTablet ? 620 : 580),
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(28),
+                borderRadius: BorderRadius.circular(isTablet ? 32 : 28),
                 boxShadow: widget.isPlayback
                     ? const []
                     : [
@@ -125,7 +125,7 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
                       ],
               ),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(28),
+                borderRadius: BorderRadius.circular(isTablet ? 32 : 28),
                 child: BackdropFilter(
                   filter: ImageFilter.blur(
                     sigmaX: widget.isPlayback ? 0 : 24,
@@ -140,7 +140,7 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
                           : theme.colorScheme.surface.withValues(
                               alpha: isDark ? 0.66 : 0.80,
                             ),
-                      borderRadius: BorderRadius.circular(28),
+                      borderRadius: BorderRadius.circular(isTablet ? 32 : 28),
                       border: widget.isPlayback
                           ? null
                           : Border.all(
@@ -171,6 +171,7 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
                                   audio: audio,
                                   position: position,
                                   duration: duration,
+                                  isTablet: isTablet,
                                 )
                               : const SizedBox.shrink(),
                         ),
@@ -230,6 +231,7 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
                           isDark,
                           l10n,
                           isPlayback: widget.isPlayback,
+                          isTablet: isTablet,
                         ),
                       ],
                     ),
@@ -256,6 +258,7 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
     required AudioService audio,
     required Duration position,
     required Duration duration,
+    bool isTablet = false,
   }) {
     final displayPosition = _isDragging
         ? Duration(
@@ -265,8 +268,15 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
           )
         : position;
 
+    final double prevNextIconSize = isTablet ? 26.0 : 20.0;
+    final double playPauseIconSize = isTablet ? 32.0 : 26.0;
+    final EdgeInsets buttonPadding = isTablet
+        ? const EdgeInsets.all(8.0)
+        : const EdgeInsets.all(4.0);
+    final double buttonSpacing = isTablet ? 8.0 : 2.0;
+
     return SizedBox(
-      height: 54,
+      height: isTablet ? 64.0 : 54.0,
       child: Stack(
         alignment: Alignment.center,
         children: [
@@ -279,7 +289,10 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
 
           // 1. 歌曲信息与按钮区域（拖动进度条时高斯模糊并淡出）
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 6.0),
+            padding: EdgeInsets.symmetric(
+              horizontal: isTablet ? 12.0 : 10.0,
+              vertical: isTablet ? 8.0 : 6.0,
+            ),
             child: Stack(
               alignment: Alignment.center,
               children: [
@@ -316,8 +329,11 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
                                 ),
                                 child: Row(
                                   children: [
-                                    const MiniArtwork(),
-                                    const SizedBox(width: 10),
+                                    MiniArtwork(
+                                      size: isTablet ? 42.0 : 36.0,
+                                      borderRadius: isTablet ? 8.0 : 6.0,
+                                    ),
+                                    SizedBox(width: isTablet ? 12.0 : 10.0),
                                     Expanded(
                                       child: Column(
                                         mainAxisAlignment: MainAxisAlignment.center,
@@ -328,7 +344,7 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
                                             style: TextStyle(
-                                              fontSize: 13,
+                                              fontSize: isTablet ? 15.0 : 13.0,
                                               fontWeight: FontWeight.w600,
                                               color: isDark
                                                   ? Colors.white
@@ -342,7 +358,7 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
                                             style: TextStyle(
-                                              fontSize: 11,
+                                              fontSize: isTablet ? 13.0 : 11.0,
                                               color: isDark
                                                   ? Colors.white60
                                                   : Colors.black54,
@@ -365,31 +381,31 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
                           children: [
                             MiniControlButton(
                               icon: Icons.skip_previous_rounded,
-                              iconSize: 18,
-                              padding: const EdgeInsets.all(4.0),
+                              iconSize: prevNextIconSize,
+                              padding: buttonPadding,
                               onPressed: audio.previous,
                               tooltip: l10n.previous,
                             ),
-                            const SizedBox(width: 1),
+                            SizedBox(width: buttonSpacing),
                             AnimatedPlayPauseButton(
                               isPlaying: isPlaying,
                               isLoading: isBuffering,
                               onPressed: audio.togglePlay,
                               color: isDark ? Colors.white : Colors.black87,
-                              size: 28,
-                              padding: const EdgeInsets.all(4.0),
+                              size: playPauseIconSize,
+                              padding: buttonPadding,
                               materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                               tooltip: isPlaying ? l10n.pause : l10n.play,
                             ),
-                            const SizedBox(width: 1),
+                            SizedBox(width: buttonSpacing),
                             MiniControlButton(
                               icon: Icons.skip_next_rounded,
-                              iconSize: 18,
-                              padding: const EdgeInsets.all(4.0),
+                              iconSize: prevNextIconSize,
+                              padding: buttonPadding,
                               onPressed: audio.next,
                               tooltip: l10n.next,
                             ),
-                            const SizedBox(width: 4),
+                            SizedBox(width: isTablet ? 8.0 : 4.0),
                           ],
                         ),
                       ],
@@ -404,7 +420,9 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
                       duration: const Duration(milliseconds: 200),
                       opacity: _isDragging ? 1.0 : 0.0,
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 14.0),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isTablet ? 18.0 : 14.0,
+                        ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           crossAxisAlignment: CrossAxisAlignment.center,
@@ -412,7 +430,7 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
                             Text(
                               formatDuration(displayPosition),
                               style: TextStyle(
-                                fontSize: 13.0,
+                                fontSize: isTablet ? 14.0 : 13.0,
                                 fontWeight: FontWeight.bold,
                                 letterSpacing: 0.5,
                                 color: isDark ? Colors.white : Colors.black87,
@@ -421,7 +439,7 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
                             Text(
                               formatDuration(duration),
                               style: TextStyle(
-                                fontSize: 13.0,
+                                fontSize: isTablet ? 14.0 : 13.0,
                                 fontWeight: FontWeight.bold,
                                 letterSpacing: 0.5,
                                 color: isDark ? Colors.white : Colors.black87,
@@ -450,6 +468,7 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
     bool isDark,
     AppLocalizations l10n, {
     required bool isPlayback,
+    bool isTablet = false,
   }) {
     final tabs = [
       _TabItem(
@@ -491,8 +510,11 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
     ];
 
     return Container(
-      height: 52,
-      padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 4.0),
+      height: isTablet ? 56.0 : 52.0,
+      padding: EdgeInsets.symmetric(
+        horizontal: isTablet ? 10.0 : 6.0,
+        vertical: 4.0,
+      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: tabs.map((tab) {
@@ -503,6 +525,7 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
               isSelected: isSelected,
               isPlayback: isPlayback,
               isDark: isDark,
+              isTablet: isTablet,
               onTap: () => widget.onDestinationSelected(tab.index),
             ),
           );
@@ -533,6 +556,7 @@ class _TabButton extends StatelessWidget {
     required this.isPlayback,
     required this.isDark,
     required this.onTap,
+    this.isTablet = false,
   });
 
   final _TabItem item;
@@ -540,6 +564,7 @@ class _TabButton extends StatelessWidget {
   final bool isPlayback;
   final bool isDark;
   final VoidCallback onTap;
+  final bool isTablet;
 
   @override
   Widget build(BuildContext context) {
@@ -564,8 +589,8 @@ class _TabButton extends StatelessWidget {
                 borderRadius: BorderRadius.circular(16),
                 onTap: onTap,
                 child: SizedBox(
-                  width: 52,
-                  height: 34,
+                  width: isTablet ? 58.0 : 52.0,
+                  height: isTablet ? 38.0 : 34.0,
                   child: Center(
                     child: AnimatedCrossFade(
                       duration: const Duration(milliseconds: 200),
@@ -576,12 +601,12 @@ class _TabButton extends StatelessWidget {
                           : CrossFadeState.showFirst,
                       firstChild: Icon(
                         item.icon,
-                        size: 22,
+                        size: isTablet ? 24.0 : 22.0,
                         color: inactiveColor,
                       ),
                       secondChild: Icon(
                         item.selectedIcon,
-                        size: 22,
+                        size: isTablet ? 24.0 : 22.0,
                         color: activeColor,
                       ),
                     ),
