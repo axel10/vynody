@@ -3,6 +3,22 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:vynody/widgets/default_cover_art.dart';
 
 void main() {
+  testWidgets('DefaultCoverArt renders album icon correctly', (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 100,
+            height: 100,
+            child: DefaultCoverArt.album(),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byIcon(Icons.album_rounded), findsOneWidget);
+  });
+
   testWidgets('DefaultCoverArt renders folder icon correctly', (tester) async {
     await tester.pumpWidget(
       const MaterialApp(

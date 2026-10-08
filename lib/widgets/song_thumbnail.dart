@@ -28,6 +28,7 @@ class SongThumbnail extends ConsumerStatefulWidget {
 
   final BorderRadius? borderRadius;
   final Widget? fallbackWidget;
+  final bool isAlbum;
 
   const SongThumbnail({
     super.key,
@@ -41,6 +42,7 @@ class SongThumbnail extends ConsumerStatefulWidget {
     this.height,
     this.borderRadius,
     this.fallbackWidget,
+    this.isAlbum = false,
   });
 
   /// Factory constructor for a [MusicFile].
@@ -52,6 +54,7 @@ class SongThumbnail extends ConsumerStatefulWidget {
     this.height,
     this.borderRadius,
     this.fallbackWidget,
+    this.isAlbum = false,
   })  : path = ScannerPathUtils.resolveIosSandboxPath(song.path),
         id = song.id,
         thumbnailPath = song.thumbnailPath != null
@@ -71,6 +74,7 @@ class SongThumbnail extends ConsumerStatefulWidget {
     this.height,
     this.borderRadius,
     this.fallbackWidget,
+    this.isAlbum = true,
   })  : path = ScannerPathUtils.resolveIosSandboxPath(album.representativeSong.path),
         id = album.representativeSong.id,
         thumbnailPath = album.representativeSong.thumbnailPath != null
@@ -90,6 +94,7 @@ class SongThumbnail extends ConsumerStatefulWidget {
     this.height,
     this.borderRadius,
     this.fallbackWidget,
+    this.isAlbum = false,
   })  : path = ScannerPathUtils.resolveIosSandboxPath(metadata.path),
         id = metadata.id,
         thumbnailPath = metadata.thumbnailPath != null
@@ -528,9 +533,9 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
     return SizedBox(
       width: width,
       height: height,
-      child: DefaultCoverArt.song(
-        borderRadius: radius,
-      ),
+      child: widget.isAlbum
+          ? DefaultCoverArt.album(borderRadius: radius)
+          : DefaultCoverArt.song(borderRadius: radius),
     );
   }
 }

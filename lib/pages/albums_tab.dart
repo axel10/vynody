@@ -1,8 +1,6 @@
-import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/app_localizations.dart';
@@ -12,9 +10,8 @@ import 'package:vynody/models/album_summary.dart';
 import 'package:vynody/player/library/album_library.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/audio/playback_source.dart';
-import 'package:vynody/utils/song_context_menu_utils.dart';
 import '../widgets/song_thumbnail.dart';
-import '../widgets/album_cover.dart';
+import '../widgets/default_cover_art.dart';
 import '../widgets/remote_media_badge.dart';
 import 'album_detail_page.dart';
 import '../widgets/scroll_to_top_wrapper.dart';
@@ -29,7 +26,6 @@ import 'main_layout_riverpod.dart';
 import 'package:vynody/utils/layout_constants.dart';
 import '../widgets/draggable_album_item.dart';
 import '../widgets/album_context_menu.dart';
-import '../utils/app_snack_bar.dart';
 
 class AlbumsTab extends ConsumerStatefulWidget {
   const AlbumsTab({
@@ -779,22 +775,34 @@ class _AlbumCard extends ConsumerWidget {
           enableFeedback: false,
           onTap: onTap ?? () => _openAlbumDetail(context),
           child: Ink(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  theme.colorScheme.primaryContainer.withValues(alpha: 0.65),
-                  theme.colorScheme.surfaceContainerHighest.withValues(
-                    alpha: 0.55,
+            decoration: isDesktopPlatform
+                ? BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        theme.colorScheme.primaryContainer.withValues(alpha: 0.65),
+                        theme.colorScheme.surfaceContainerHighest.withValues(
+                          alpha: 0.55,
+                        ),
+                      ],
+                    ),
+                    border: Border.all(
+                      color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
+                    ),
+                  )
+                : BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    color: (theme.brightness == Brightness.dark)
+                        ? Colors.white.withValues(alpha: 0.06)
+                        : Colors.black.withValues(alpha: 0.04),
+                    border: Border.all(
+                      color: (theme.brightness == Brightness.dark)
+                          ? Colors.white.withValues(alpha: 0.08)
+                          : Colors.black.withValues(alpha: 0.06),
+                    ),
                   ),
-                ],
-              ),
-              border: Border.all(
-                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
-              ),
-            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [

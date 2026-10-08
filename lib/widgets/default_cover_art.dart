@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 /// Distinguishes default cover art categories.
 enum CoverArtType {
+  album,
   folder,
   song,
   systemFolder,
@@ -16,13 +17,13 @@ enum CoverArtType {
 bool get isDesktopPlatform =>
     !kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux);
 
-/// A unified, platform-aware fallback cover widget for folders, songs, and system items.
+/// A unified, platform-aware fallback cover widget for folders, albums, songs, and system items.
 ///
-/// - On Mobile (Android / iOS): Uses a restrained, Poweramp-style neutral aesthetic
-///   (theme-adaptive monochrome icon with a subtle neutral surface container) to keep
-///   visual noise minimal in front of heavy blurred backdrops and banners.
+/// - On Mobile (Android / iOS): Uses a restrained neutral aesthetic (pure grayscale
+///   monochrome icon with a subtle neutral surface container free of theme tint) to keep
+///   visual noise minimal and ensure OLED true-black backgrounds never look tinted.
 /// - On Desktop (Windows / macOS / Linux): Uses a theme-aware harmonious palette/gradient
-///   derived from the app's [ColorScheme], keeping folders and songs visually cohesive
+///   derived from the app's [ColorScheme], keeping items visually cohesive
 ///   while offering comfortable visual vitality across large displays.
 class DefaultCoverArt extends StatelessWidget {
   const DefaultCoverArt({
@@ -32,6 +33,13 @@ class DefaultCoverArt extends StatelessWidget {
     this.borderRadius,
     this.customIcon,
   });
+
+  const DefaultCoverArt.album({
+    super.key,
+    this.iconSize,
+    this.borderRadius,
+    this.customIcon,
+  }) : type = CoverArtType.album;
 
   const DefaultCoverArt.folder({
     super.key,
@@ -70,6 +78,8 @@ class DefaultCoverArt extends StatelessWidget {
   IconData _resolveIcon() {
     if (customIcon != null) return customIcon!;
     switch (type) {
+      case CoverArtType.album:
+        return Icons.album_rounded;
       case CoverArtType.folder:
         return Icons.folder_rounded;
       case CoverArtType.song:
@@ -93,6 +103,20 @@ class DefaultCoverArt extends StatelessWidget {
     if (isDesktopPlatform) {
       // Desktop: Theme-aware, cohesive vitality
       switch (type) {
+        case CoverArtType.album:
+          decoration = BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                colorScheme.tertiaryContainer,
+                colorScheme.secondaryContainer.withValues(alpha: 0.85),
+              ],
+            ),
+            borderRadius: borderRadius,
+          );
+          iconColor = colorScheme.onTertiaryContainer;
+          break;
         case CoverArtType.folder:
           decoration = BoxDecoration(
             gradient: LinearGradient(
@@ -151,12 +175,18 @@ class DefaultCoverArt extends StatelessWidget {
           break;
       }
     } else {
-      // Mobile: Poweramp-style restrained neutral aesthetic
+      // Mobile: Pure neutral aesthetic (completely free of seed color chroma/tint),
+      // ensuring OLED true-black backgrounds never exhibit murky colored casts.
+      final isDark = theme.brightness == Brightness.dark;
       decoration = BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.08)
+            : Colors.black.withValues(alpha: 0.05),
         borderRadius: borderRadius,
       );
-      iconColor = colorScheme.onSurfaceVariant.withValues(alpha: 0.75);
+      iconColor = isDark
+          ? Colors.white.withValues(alpha: 0.45)
+          : Colors.black.withValues(alpha: 0.45);
     }
 
     Widget content = Center(
