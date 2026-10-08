@@ -288,7 +288,7 @@ class _RemoteArtworkWidgetState extends State<RemoteArtworkWidget> {
   ) {
     final theme = Theme.of(context);
     final icon = widget.fallbackIcon ??
-        (widget.isArtist ? Icons.person_rounded : Icons.music_note_rounded);
+        (widget.isArtist ? Icons.mic_rounded : Icons.music_note_rounded);
     final bgColor = widget.isArtist
         ? theme.colorScheme.tertiaryContainer.withValues(alpha: 0.7)
         : theme.colorScheme.primary.withValues(alpha: 0.1);

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/app_localizations.dart';
@@ -651,14 +650,7 @@ class _ArtistListItem extends ConsumerWidget {
                       onChanged: (_) => onSelectionToggled?.call(),
                     ),
                   ),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(14),
-                  child: const SizedBox(
-                    width: 48,
-                    height: 48,
-                    child: Center(child: ArtistAvatar(diameter: 48)),
-                  ),
-                ),
+                const ArtistAvatar(diameter: 48),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -748,8 +740,7 @@ class _ArtistDetailPane extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                Icons.person_outline_rounded,
+              ArtistMicIcon(
                 size: 56,
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -849,7 +840,7 @@ class _ArtistsToolbar extends ConsumerWidget {
                   SortOptionItem(
                     value: ArtistSortField.artist,
                     label: l10n.sortArtistAsc,
-                    icon: Icons.person_rounded,
+                    icon: Icons.mic_rounded,
                   ),
                   SortOptionItem(
                     value: ArtistSortField.songCount,

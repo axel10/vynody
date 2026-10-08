@@ -101,7 +101,7 @@ class DraggableArtistItem extends StatelessWidget {
             title: artist.name,
             subtitle: l10n.selectedArtistsWithTotalSongs(selectedArtists!.length, totalSongs),
             imagePath: coverPath,
-            defaultIcon: Icons.person_rounded,
+            defaultIcon: Icons.mic_rounded,
             badgeText: '${selectedArtists!.length}',
             count: selectedArtists!.length,
             isBatch: true,
@@ -111,7 +111,7 @@ class DraggableArtistItem extends StatelessWidget {
           title: artist.name,
           subtitle: l10n.songsCountFormat(artist.songCount),
           imagePath: coverPath,
-          defaultIcon: Icons.person_rounded,
+          defaultIcon: Icons.mic_rounded,
           badgeText: l10n.songsCountFormat(artist.songCount),
           count: artist.songCount,
         );

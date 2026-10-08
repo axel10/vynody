@@ -93,7 +93,7 @@ class DraggableRemoteArtistItem extends StatelessWidget {
           return AppDraggablePreviewCard(
             title: artistName,
             subtitle: l10n.selectedArtistsCount(selectedArtistIds!.length),
-            defaultIcon: Icons.person_rounded,
+            defaultIcon: Icons.mic_rounded,
             badgeText: '${selectedArtistIds!.length}',
             count: selectedArtistIds!.length,
             isBatch: true,
@@ -104,7 +104,7 @@ class DraggableRemoteArtistItem extends StatelessWidget {
         return AppDraggablePreviewCard(
           title: artistName,
           subtitle: subtitle,
-          defaultIcon: Icons.person_rounded,
+          defaultIcon: Icons.mic_rounded,
           badgeText: albumCount > 0 ? l10n.albumCount(albumCount) : null,
           count: 1,
         );

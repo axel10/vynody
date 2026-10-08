@@ -322,7 +322,7 @@ Future<void> showRemoteAlbumContextMenu({
       buildContextMenuItem<String>(
         value: 'view_artist',
         label: l10n.viewArtistDetails,
-        icon: Icons.person_rounded,
+        icon: Icons.mic_rounded,
         context: context,
       ),
     buildContextMenuItem<String>(
@@ -569,7 +569,7 @@ Future<void> showRemoteSongContextMenu({
                     ),
                   if (onViewArtist != null)
                     ListTile(
-                      leading: const Icon(Icons.person_rounded),
+                      leading: const Icon(Icons.mic_rounded),
                       title: Text(l10n.viewArtist),
                       onTap: () => Navigator.pop(ctx, 'view_artist'),
                     ),
@@ -658,7 +658,7 @@ Future<void> showRemoteSongContextMenu({
       buildContextMenuItem<String>(
         value: 'view_artist',
         label: l10n.viewArtist,
-        icon: Icons.person_rounded,
+        icon: Icons.mic_rounded,
         context: context,
       ),
     buildContextMenuItem<String>(
@@ -678,7 +678,7 @@ Future<void> showRemoteSongContextMenu({
       buildContextMenuItem<String>(
         value: 'copy_artist',
         label: l10n.copyArtistName,
-        icon: Icons.person_rounded,
+        icon: Icons.mic_rounded,
         context: context,
       ),
   ];
@@ -883,7 +883,7 @@ Future<void> showRemoteArtistContextMenu({
                   ),
                   if (onViewDetails != null)
                     ListTile(
-                      leading: const Icon(Icons.person_rounded),
+                      leading: const Icon(Icons.mic_rounded),
                       title: Text(l10n.viewArtistDetails),
                       onTap: () => Navigator.pop(ctx, 'view_details'),
                     ),
@@ -957,7 +957,7 @@ Future<void> showRemoteArtistContextMenu({
       buildContextMenuItem<String>(
         value: 'view_details',
         label: l10n.viewArtistDetails,
-        icon: Icons.person_rounded,
+        icon: Icons.mic_rounded,
         context: context,
       ),
     buildContextMenuItem<String>(

@@ -302,7 +302,7 @@ class _FloatingCoverFlowToolbarState extends State<FloatingCoverFlowToolbar> {
                           SortOptionItem(
                             value: AlbumSortField.artist,
                             label: l10n.sortArtistAsc,
-                            icon: Icons.person_rounded,
+                            icon: Icons.mic_rounded,
                           ),
                           SortOptionItem(
                             value: AlbumSortField.title,

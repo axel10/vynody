@@ -851,7 +851,7 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
                           context: context,
                           controller: _artistController,
                           label: l10n.artistLabel,
-                          icon: Icons.person_rounded,
+                          icon: Icons.mic_rounded,
                         ),
                         const SizedBox(height: 12),
                         _buildField(

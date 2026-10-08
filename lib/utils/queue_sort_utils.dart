@@ -116,7 +116,7 @@ class QueueSortUtils {
           SortOptionItem(
             value: QueueSortField.artist,
             label: l10n.artists,
-            icon: Icons.person_rounded,
+            icon: Icons.mic_rounded,
           ),
           SortOptionItem(
             value: QueueSortField.album,

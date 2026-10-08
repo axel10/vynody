@@ -436,7 +436,7 @@ Future<void> showSongContextMenu(
           value: 'copy_artist',
           enabled: hasArtist,
           label: l10n.copyArtistName,
-          icon: Icons.person_rounded,
+          icon: Icons.mic_rounded,
           context: context,
         ),
         const PopupMenuDivider(),
@@ -476,7 +476,7 @@ Future<void> showSongContextMenu(
           value: 'copy_artist',
           enabled: hasArtist,
           label: l10n.copyArtistName,
-          icon: Icons.person_rounded,
+          icon: Icons.mic_rounded,
           context: context,
         ),
         buildContextMenuItem<String>(
@@ -824,7 +824,7 @@ Future<void> showSongBottomSheet(
                           context: context,
                           value: 'copy_artist',
                           label: l10n.copyArtistName,
-                          icon: Icons.person_rounded,
+                          icon: Icons.mic_rounded,
                         ),
                         if (canOpenLocation)
                           _buildBottomSheetItem(

@@ -1719,7 +1719,7 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
                           tabAlignment: TabAlignment.center,
                           tabs: [
                             Tab(icon: const Icon(Icons.album_rounded), text: l10n.albums),
-                            Tab(icon: const Icon(Icons.person_rounded), text: l10n.artists),
+                            Tab(icon: const Icon(Icons.mic_rounded), text: l10n.artists),
                             Tab(icon: const Icon(Icons.music_note_rounded), text: l10n.songs),
                             Tab(
                               icon: const Icon(Icons.playlist_play_rounded),

@@ -4,10 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/app_localizations.dart';
 import 'package:vynody/models/album_summary.dart';
-import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/audio/playback_source.dart';
-import 'package:vynody/player/library/playlist_service.dart';
 import 'package:vynody/player/remote/proxy/remote_media_resolver.dart';
 import 'package:vynody/utils/app_snack_bar.dart';
 import 'package:vynody/utils/song_context_menu_utils.dart';
@@ -108,7 +106,7 @@ Future<String?> showAlbumContextMenu({
     buildContextMenuItem<String>(
       value: 'copy_artist',
       label: l10n.copyArtistName,
-      icon: Icons.person_rounded,
+      icon: Icons.mic_rounded,
       context: context,
     ),
     if (onMultiSelect != null)
@@ -298,7 +296,7 @@ Future<String?> showAlbumBottomSheet({
                             context: context,
                             value: 'copy_artist',
                             label: l10n.copyArtistName,
-                            icon: Icons.person_rounded,
+                            icon: Icons.mic_rounded,
                           ),
                           if (onMultiSelect != null)
                             _buildAlbumBottomSheetItem(

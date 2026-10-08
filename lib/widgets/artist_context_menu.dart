@@ -4,10 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/app_localizations.dart';
 import 'package:vynody/models/artist_summary.dart';
-import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/audio/playback_source.dart';
-import 'package:vynody/player/library/playlist_service.dart';
 import 'package:vynody/player/remote/proxy/remote_media_resolver.dart';
 import 'package:vynody/utils/song_context_menu_utils.dart';
 import 'package:vynody/dialogs/song_tag_edit_dialog.dart';
@@ -88,7 +86,7 @@ Future<String?> showArtistContextMenu({
     buildContextMenuItem<String>(
       value: 'view_details',
       label: l10n.viewArtistDetails,
-      icon: Icons.person_rounded,
+      icon: Icons.mic_rounded,
       context: context,
     ),
     buildContextMenuItem<String>(
@@ -183,14 +181,7 @@ Future<String?> showArtistBottomSheet({
                         children: [
                           Row(
                             children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(14),
-                                child: const SizedBox(
-                                  width: 52,
-                                  height: 52,
-                                  child: Center(child: ArtistAvatar(diameter: 52)),
-                                ),
-                              ),
+                              const ArtistAvatar(diameter: 52),
                               const SizedBox(width: 16),
                               Expanded(
                                 child: Column(
@@ -277,7 +268,7 @@ Future<String?> showArtistBottomSheet({
                             context: context,
                             value: 'view_details',
                             label: l10n.viewArtistDetails,
-                            icon: Icons.person_rounded,
+                            icon: Icons.mic_rounded,
                           ),
                           _buildArtistBottomSheetItem(
                             context: context,
