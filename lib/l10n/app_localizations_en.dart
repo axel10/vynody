@@ -4080,6 +4080,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Fast lossless format conversion and batch export for portable devices';
 
   @override
+  String get proFeatureCloudLibraryTitle => 'Cloud Media Library';
+
+  @override
+  String get proFeatureCloudLibraryDesc =>
+      'Stream and browse remote media servers via WebDAV, Navidrome, Jellyfin, and SMB';
+
+  @override
   String get proFeatureDynamicMeshBackgroundTitle => 'Dynamic Mesh Background';
 
   @override

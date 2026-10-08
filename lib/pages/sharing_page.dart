@@ -764,7 +764,9 @@ class _SharingPageState extends ConsumerState<SharingPage>
             !isProUnlocked
                 ? _buildProLockedView(context, theme, l10n, bottomOffset)
                 : _buildLanSharingContent(context, theme, l10n, bottomOffset),
-            _buildCloudServersView(context, theme, l10n, bottomOffset),
+            !isProUnlocked
+                ? _buildProLockedView(context, theme, l10n, bottomOffset, isCloud: true)
+                : _buildCloudServersView(context, theme, l10n, bottomOffset),
           ],
         ),
       ),
@@ -1779,7 +1781,7 @@ class _SharingPageState extends ConsumerState<SharingPage>
                     alignment: WrapAlignment.center,
                     children: [
                       FilledButton.icon(
-                        onPressed: () => AddEditRemoteServerDialog.show(context),
+                        onPressed: () => AddEditRemoteServerDialog.show(context, ref: ref),
                         icon: const Icon(Icons.add_rounded),
                         label: Text(l10n.addRemoteServer),
                       ),
@@ -1859,14 +1861,14 @@ class _SharingPageState extends ConsumerState<SharingPage>
                             if (isNarrow)
                               IconButton.filledTonal(
                                 onPressed: () =>
-                                    AddEditRemoteServerDialog.show(context),
+                                    AddEditRemoteServerDialog.show(context, ref: ref),
                                 icon: const Icon(Icons.add_rounded, size: 20),
                                 tooltip: l10n.addRemoteServer,
                               )
                             else
                               FilledButton.tonalIcon(
                                 onPressed: () =>
-                                    AddEditRemoteServerDialog.show(context),
+                                    AddEditRemoteServerDialog.show(context, ref: ref),
                                 icon: const Icon(Icons.add_rounded, size: 18),
                                 label: Text(l10n.addRemoteServer),
                               ),
@@ -1986,7 +1988,7 @@ class _SharingPageState extends ConsumerState<SharingPage>
                   icon: const Icon(Icons.more_vert),
                   onSelected: (val) async {
                     if (val == 'edit') {
-                      AddEditRemoteServerDialog.show(context, server: server);
+                      AddEditRemoteServerDialog.show(context, server: server, ref: ref);
                     } else if (val == 'delete') {
                       final confirm = await showDialog<bool>(
                         context: context,
@@ -2076,6 +2078,14 @@ class _SharingPageState extends ConsumerState<SharingPage>
 
                 final browseBtn = FilledButton.icon(
                   onPressed: () async {
+                    final allowed = await checkProGate(
+                      context,
+                      ref,
+                      feature: ProFeature.cloudLibrary,
+                    );
+                    if (!allowed) return;
+                    if (!context.mounted) return;
+
                     final pwd = await ref
                         .read(remoteServersProvider.notifier)
                         .getPassword(server.id);
@@ -2142,32 +2152,56 @@ class _SharingPageState extends ConsumerState<SharingPage>
     BuildContext context,
     ThemeData theme,
     AppLocalizations l10n,
-    double bottomOffset,
-  ) {
+    double bottomOffset, {
+    bool isCloud = false,
+  }) {
     final isDark = theme.brightness == Brightness.dark;
 
-    final featureHighlights = [
-      (
-        icon: Icons.speed_rounded,
-        title: l10n.sharingHighlightSpeedTitle,
-        desc: l10n.sharingHighlightSpeedDesc,
-      ),
-      (
-        icon: Icons.sync_rounded,
-        title: l10n.sharingHighlightSyncTitle,
-        desc: l10n.sharingHighlightSyncDesc,
-      ),
-      (
-        icon: Icons.phonelink_rounded,
-        title: l10n.sharingHighlightRemoteTitle,
-        desc: l10n.sharingHighlightRemoteDesc,
-      ),
-      (
-        icon: Icons.security_rounded,
-        title: l10n.sharingHighlightSecurityTitle,
-        desc: l10n.sharingHighlightSecurityDesc,
-      ),
-    ];
+    final featureHighlights = isCloud
+        ? [
+            (
+              icon: Icons.library_music_rounded,
+              title: 'Navidrome / Subsonic',
+              desc: l10n.proFeatureCloudLibraryDesc,
+            ),
+            (
+              icon: Icons.movie_filter_outlined,
+              title: 'Jellyfin',
+              desc: l10n.proFeatureCloudLibraryDesc,
+            ),
+            (
+              icon: Icons.cloud_queue_rounded,
+              title: 'WebDAV',
+              desc: l10n.proFeatureCloudLibraryDesc,
+            ),
+            (
+              icon: Icons.dns_outlined,
+              title: 'SMB (Samba)',
+              desc: l10n.proFeatureCloudLibraryDesc,
+            ),
+          ]
+        : [
+            (
+              icon: Icons.speed_rounded,
+              title: l10n.sharingHighlightSpeedTitle,
+              desc: l10n.sharingHighlightSpeedDesc,
+            ),
+            (
+              icon: Icons.sync_rounded,
+              title: l10n.sharingHighlightSyncTitle,
+              desc: l10n.sharingHighlightSyncDesc,
+            ),
+            (
+              icon: Icons.phonelink_rounded,
+              title: l10n.sharingHighlightRemoteTitle,
+              desc: l10n.sharingHighlightRemoteDesc,
+            ),
+            (
+              icon: Icons.security_rounded,
+              title: l10n.sharingHighlightSecurityTitle,
+              desc: l10n.sharingHighlightSecurityDesc,
+            ),
+          ];
 
     return Center(
       child: ConstrainedBox(
@@ -2202,7 +2236,7 @@ class _SharingPageState extends ConsumerState<SharingPage>
                 ),
                 child: Center(
                   child: Icon(
-                    Icons.hub_rounded,
+                    isCloud ? Icons.cloud_outlined : Icons.hub_rounded,
                     size: 38,
                     color: theme.colorScheme.primary,
                   ),
@@ -2215,7 +2249,7 @@ class _SharingPageState extends ConsumerState<SharingPage>
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    l10n.lanSharingTitle,
+                    isCloud ? l10n.tabCloudServers : l10n.lanSharingTitle,
                     style: const TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
@@ -2232,7 +2266,9 @@ class _SharingPageState extends ConsumerState<SharingPage>
               ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 540),
                 child: Text(
-                  l10n.sharingProDescription,
+                  isCloud
+                      ? l10n.proFeatureCloudLibraryDesc
+                      : l10n.sharingProDescription,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 14,
@@ -2275,7 +2311,12 @@ class _SharingPageState extends ConsumerState<SharingPage>
               // CTA Button
               FilledButton.icon(
                 onPressed: () {
-                  showUpgradeToProDialog(context, initialFeature: ProFeature.lanSharing);
+                  showUpgradeToProDialog(
+                    context,
+                    initialFeature: isCloud
+                        ? ProFeature.cloudLibrary
+                        : ProFeature.lanSharing,
+                  );
                 },
                 style: FilledButton.styleFrom(
                   padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 16),

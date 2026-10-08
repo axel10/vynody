@@ -3937,6 +3937,13 @@ class AppLocalizationsKo extends AppLocalizations {
   String get proFeatureTranscoderDesc => '무손실 형식 빠른 변환 및 휴대용 기기를 위한 일괄 내보내기';
 
   @override
+  String get proFeatureCloudLibraryTitle => '云端媒体库';
+
+  @override
+  String get proFeatureCloudLibraryDesc =>
+      '支持挂载与串流 WebDAV、Navidrome、Jellyfin 及 SMB 媒体服务器';
+
+  @override
   String get proFeatureDynamicMeshBackgroundTitle => '동적 메시 배경';
 
   @override

@@ -10,20 +10,33 @@ class ProBadge extends ConsumerWidget {
     this.size = 11.0,
     this.padding = const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
     this.showInGitHubBuild = false,
+    this.alwaysShow = false,
   });
 
   final double size;
   final EdgeInsetsGeometry padding;
   final bool showInGitHubBuild;
 
+  /// Whether to always display the badge even when Pro is purchased (e.g. in Settings / About sections).
+  final bool alwaysShow;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // If running on GitHub release and showInGitHubBuild is false, hide badge
-    if (AppChannel.isGitHubRelease && !showInGitHubBuild) {
+    final allowDisplay = alwaysShow || showInGitHubBuild;
+
+    // If running on GitHub release, hide badge unless whitelisted
+    if (AppChannel.isGitHubRelease && !allowDisplay) {
       return const SizedBox.shrink();
     }
 
-    final isUnlocked = ref.watch(isProUnlockedProvider);
+    final license = ref.watch(licenseStateProvider);
+
+    // If purchased Pro, hide badge outside of Settings/whitelisted views
+    if (license.isPurchased && !allowDisplay) {
+      return const SizedBox.shrink();
+    }
+
+    final isUnlocked = license.isProUnlocked;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 

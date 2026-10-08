@@ -49,6 +49,7 @@ class UpgradeToProDialog extends ConsumerWidget {
       ProFeatureInfo.fromFeature(ProFeature.fftVisualizer, l10n),
       ProFeatureInfo.fromFeature(ProFeature.waveformBar, l10n),
       ProFeatureInfo.fromFeature(ProFeature.lanSharing, l10n),
+      ProFeatureInfo.fromFeature(ProFeature.cloudLibrary, l10n),
       ProFeatureInfo.fromFeature(ProFeature.remoteControl, l10n),
       ProFeatureInfo.fromFeature(ProFeature.transcoder, l10n),
     ];

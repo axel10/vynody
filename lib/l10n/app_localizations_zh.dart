@@ -3864,6 +3864,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get proFeatureTranscoderDesc => '无损格式快速压缩转换与随身设备批量导出';
 
   @override
+  String get proFeatureCloudLibraryTitle => '云端媒体库';
+
+  @override
+  String get proFeatureCloudLibraryDesc =>
+      '支持挂载与串流 WebDAV、Navidrome、Jellyfin 及 SMB 媒体服务器';
+
+  @override
   String get proFeatureDynamicMeshBackgroundTitle => '流体 Mesh 动态背景';
 
   @override

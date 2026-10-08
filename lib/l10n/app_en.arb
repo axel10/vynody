@@ -1691,6 +1691,8 @@
   "proFeatureRemoteControlDesc": "Seamless multi-device connection and wireless playback control",
   "proFeatureTranscoderTitle": "Batch Audio Transcoder",
   "proFeatureTranscoderDesc": "Fast lossless format conversion and batch export for portable devices",
+  "proFeatureCloudLibraryTitle": "Cloud Media Library",
+  "proFeatureCloudLibraryDesc": "Stream and browse remote media servers via WebDAV, Navidrome, Jellyfin, and SMB",
   "proFeatureDynamicMeshBackgroundTitle": "Dynamic Mesh Background",
   "proFeatureDynamicMeshBackgroundDesc": "Fluid animated gradient mesh generated from artwork colors with customizable speed",
   "proFeatureCustomImageBackgroundTitle": "Custom Playback Wallpaper",

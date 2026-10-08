@@ -24,6 +24,7 @@ import 'remote/remote_artist_detail_page.dart';
 import 'remote/remote_playlist_detail_page.dart';
 import 'remote/remote_folder_browser_page.dart';
 import '../dialogs/music_folders_dialog.dart';
+import 'package:vynody/player/pro/pro_license_service.dart';
 
 class FoldersPage extends ConsumerStatefulWidget {
   final Future<void> Function()? onOpenPlayback;
@@ -556,7 +557,11 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
       ),
     );
 
-    if (activeRemoteSessionId != null && activeRemoteSession != null) {
+    final isProUnlocked = ref.watch(isProUnlockedProvider);
+
+    if (activeRemoteSessionId != null &&
+        activeRemoteSession != null &&
+        isProUnlocked) {
       if (activeRemoteSession.server.type == RemoteServerType.subsonic ||
           activeRemoteSession.server.type == RemoteServerType.jellyfin) {
         pages.add(

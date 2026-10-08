@@ -25,6 +25,8 @@ import '../dialogs/add_edit_remote_server_dialog.dart';
 import '../utils/selection_utils.dart';
 import '../widgets/playback_ui_tuning.dart';
 import '../widgets/auto_hide_header.dart';
+import 'package:vynody/player/pro/pro_license_service.dart';
+import 'package:vynody/player/pro/pro_models.dart';
 
 class FolderRootView extends ConsumerStatefulWidget {
   const FolderRootView({
@@ -186,6 +188,14 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
     BuildContext context,
     RemoteServer server,
   ) async {
+    final allowed = await checkProGate(
+      context,
+      ref,
+      feature: ProFeature.cloudLibrary,
+    );
+    if (!allowed) return;
+    if (!context.mounted) return;
+
     final pwd = await ref
         .read(remoteServersProvider.notifier)
         .getPassword(server.id);
@@ -497,7 +507,7 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
             RemoteServersSectionHeaderSliver(
               title: l10n.tabCloudServers,
               count: matchedRemoteServers.length,
-              onAddServer: () => AddEditRemoteServerDialog.show(context),
+              onAddServer: () => AddEditRemoteServerDialog.show(context, ref: ref),
             ),
             RemoteServersSliver(
               servers: matchedRemoteServers,

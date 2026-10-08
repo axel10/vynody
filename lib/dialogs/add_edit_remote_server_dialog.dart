@@ -5,6 +5,9 @@ import 'package:oktoast/oktoast.dart';
 import 'package:vynody/l10n/app_localizations.dart';
 import 'package:vynody/player/remote/remote_server_models.dart';
 import 'package:vynody/player/remote/remote_server_riverpod.dart';
+import 'package:vynody/dialogs/upgrade_to_pro_dialog.dart';
+import 'package:vynody/player/pro/pro_license_service.dart';
+import 'package:vynody/player/pro/pro_models.dart';
 import '../widgets/app_bottom_sheet.dart';
 
 class AddEditRemoteServerDialog extends ConsumerStatefulWidget {
@@ -12,7 +15,26 @@ class AddEditRemoteServerDialog extends ConsumerStatefulWidget {
 
   const AddEditRemoteServerDialog({super.key, this.server});
 
-  static Future<bool?> show(BuildContext context, {RemoteServer? server}) {
+  static Future<bool?> show(
+    BuildContext context, {
+    RemoteServer? server,
+    WidgetRef? ref,
+  }) async {
+    final container =
+        ref != null ? null : ProviderScope.containerOf(context, listen: false);
+    final isUnlocked = ref != null
+        ? ref.read(isProUnlockedProvider)
+        : (container?.read(isProUnlockedProvider) ?? false);
+    if (!isUnlocked) {
+      if (context.mounted) {
+        await showUpgradeToProDialog(
+          context,
+          initialFeature: ProFeature.cloudLibrary,
+        );
+      }
+      return false;
+    }
+
     return showAppAdaptiveModal<bool>(
       context: context,
       useRootNavigator: true,

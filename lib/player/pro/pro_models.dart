@@ -41,7 +41,10 @@ enum ProFeature {
   customImageBackground,
 
   /// Windows WASAPI Exclusive Mode & Bit-Perfect audio output
-  wasapiExclusive;
+  wasapiExclusive,
+
+  /// Cloud & remote media server streaming & mounting (WebDAV, Navidrome, Jellyfin, SMB)
+  cloudLibrary;
 
   String getTitle(AppLocalizations l10n) {
     switch (this) {
@@ -62,6 +65,8 @@ enum ProFeature {
         return l10n.proFeatureRemoteControlTitle;
       case ProFeature.transcoder:
         return l10n.proFeatureTranscoderTitle;
+      case ProFeature.cloudLibrary:
+        return l10n.proFeatureCloudLibraryTitle;
       case ProFeature.tagCompletion:
         return l10n.proFeatureTagCompletionTitle;
       case ProFeature.dynamicMeshBackground:
@@ -92,6 +97,8 @@ enum ProFeature {
         return l10n.proFeatureRemoteControlDesc;
       case ProFeature.transcoder:
         return l10n.proFeatureTranscoderDesc;
+      case ProFeature.cloudLibrary:
+        return l10n.proFeatureCloudLibraryDesc;
       case ProFeature.tagCompletion:
         return l10n.proFeatureTagCompletionDesc;
       case ProFeature.dynamicMeshBackground:
@@ -122,6 +129,8 @@ enum ProFeature {
         return Icons.phonelink;
       case ProFeature.transcoder:
         return Icons.transform;
+      case ProFeature.cloudLibrary:
+        return Icons.cloud_outlined;
       case ProFeature.tagCompletion:
         return Icons.auto_fix_high_rounded;
       case ProFeature.dynamicMeshBackground:

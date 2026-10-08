@@ -54,9 +54,11 @@ void main() {
       expect(expiredState.isProUnlocked, isFalse);
     });
 
-    test('ProFeature enum contains dynamicMeshBackground and customImageBackground', () {
+    test('ProFeature enum contains dynamicMeshBackground, customImageBackground, and cloudLibrary', () {
       expect(ProFeature.values, contains(ProFeature.dynamicMeshBackground));
       expect(ProFeature.values, contains(ProFeature.customImageBackground));
+      expect(ProFeature.values, contains(ProFeature.cloudLibrary));
+      expect(ProFeature.cloudLibrary.icon, isNotNull);
       expect(ProFeature.dynamicMeshBackground.icon, isNotNull);
       expect(ProFeature.customImageBackground.icon, isNotNull);
     });

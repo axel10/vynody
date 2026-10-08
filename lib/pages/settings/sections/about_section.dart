@@ -305,7 +305,7 @@ class _AboutSectionState extends State<AboutSection> {
                       ),
                       if (!AppChannel.isGitHubRelease) ...[
                         const SizedBox(width: 8),
-                        const ProBadge(),
+                        const ProBadge(alwaysShow: true),
                       ],
                     ],
                   ),

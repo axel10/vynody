@@ -2303,6 +2303,14 @@
     "description": "Pro feature description for audio batch transcoder"
   },
   "proFeatureTranscoderDesc": "无损格式快速压缩转换与随身设备批量导出",
+  "@proFeatureCloudLibraryTitle": {
+    "description": "Pro feature title for cloud media library"
+  },
+  "proFeatureCloudLibraryTitle": "云端媒体库",
+  "@proFeatureCloudLibraryDesc": {
+    "description": "Pro feature description for cloud media library"
+  },
+  "proFeatureCloudLibraryDesc": "支持挂载与串流 WebDAV、Navidrome、Jellyfin 及 SMB 媒体服务器",
   "@proFeatureDynamicMeshBackgroundTitle": {
     "description": "Pro feature title for dynamic mesh background"
   },

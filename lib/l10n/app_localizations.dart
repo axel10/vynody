@@ -7293,6 +7293,18 @@ abstract class AppLocalizations {
   /// **'无损格式快速压缩转换与随身设备批量导出'**
   String get proFeatureTranscoderDesc;
 
+  /// Pro feature title for cloud media library
+  ///
+  /// In zh, this message translates to:
+  /// **'云端媒体库'**
+  String get proFeatureCloudLibraryTitle;
+
+  /// Pro feature description for cloud media library
+  ///
+  /// In zh, this message translates to:
+  /// **'支持挂载与串流 WebDAV、Navidrome、Jellyfin 及 SMB 媒体服务器'**
+  String get proFeatureCloudLibraryDesc;
+
   /// Pro feature title for dynamic mesh background
   ///
   /// In zh, this message translates to:

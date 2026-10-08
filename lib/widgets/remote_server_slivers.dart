@@ -10,6 +10,9 @@ import '../player/settings/settings_service.dart';
 import 'folder_grid_card.dart';
 import 'folder_layout_utils.dart';
 import 'app_context_menu.dart';
+import 'pro/pro_badge.dart';
+import '../player/pro/pro_license_service.dart';
+import '../player/pro/pro_models.dart';
 
 /// Shows a context menu or bottom sheet for a remote media server (Browse, Edit, Delete).
 Future<void> showRemoteServerContextMenu({
@@ -222,6 +225,14 @@ Future<void> showRemoteServerContextMenu({
   if (!context.mounted || selected == null) return;
 
   if (selected == 'browse') {
+    final allowed = await checkProGate(
+      context,
+      ref,
+      feature: ProFeature.cloudLibrary,
+    );
+    if (!allowed) return;
+    if (!context.mounted) return;
+
     final pwd = await ref
         .read(remoteServersProvider.notifier)
         .getPassword(server.id);
@@ -234,7 +245,7 @@ Future<void> showRemoteServerContextMenu({
       ),
     );
   } else if (selected == 'edit') {
-    AddEditRemoteServerDialog.show(context, server: server);
+    AddEditRemoteServerDialog.show(context, server: server, ref: ref);
   } else if (selected == 'delete') {
     final confirm = await showDialog<bool>(
       context: context,
@@ -328,6 +339,8 @@ class RemoteServersSectionHeaderSliver extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
+                      const SizedBox(width: 6),
+                      const ProBadge(),
                       if (count > 0) ...[
                         const SizedBox(width: 8),
                         Container(
@@ -399,6 +412,7 @@ class RemoteServersSliver extends ConsumerWidget {
       return const SliverToBoxAdapter(child: SizedBox.shrink());
     }
 
+    final isProUnlocked = ref.watch(isProUnlockedProvider);
     final isGrid =
         viewMode == FolderViewMode.hybrid || viewMode == FolderViewMode.grid;
 
@@ -447,6 +461,7 @@ class RemoteServersSliver extends ConsumerWidget {
                       key: ValueKey('server_${server.id}'),
                       child: RemoteServerGridCard(
                         server: server,
+                        isProUnlocked: isProUnlocked,
                         onTap: null,
                         onSecondaryTapDown: (details) {
                           showRemoteServerContextMenu(
@@ -492,6 +507,7 @@ class RemoteServersSliver extends ConsumerWidget {
                   return HoverableCard(
                     child: RemoteServerGridCard(
                       server: server,
+                      isProUnlocked: isProUnlocked,
                       onTap: () => onOpenServer(server),
                       onSecondaryTapDown: (details) {
                         showRemoteServerContextMenu(
@@ -550,6 +566,7 @@ class RemoteServersSliver extends ConsumerWidget {
                   ),
                   child: RemoteServerListTile(
                     server: server,
+                    isProUnlocked: isProUnlocked,
                     onTap: null,
                     trailing: ReorderableDragStartListener(
                       index: index,
@@ -602,6 +619,7 @@ class RemoteServersSliver extends ConsumerWidget {
                 ),
                 child: RemoteServerListTile(
                   server: server,
+                  isProUnlocked: isProUnlocked,
                   onTap: () => onOpenServer(server),
                   onSecondaryTapDown: (details) {
                     showRemoteServerContextMenu(
@@ -633,6 +651,7 @@ class RemoteServersSliver extends ConsumerWidget {
 /// Rich Grid Card widget for a remote server.
 class RemoteServerGridCard extends StatelessWidget {
   final RemoteServer server;
+  final bool isProUnlocked;
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
   final void Function(LongPressStartDetails)? onLongPressStart;
@@ -641,6 +660,7 @@ class RemoteServerGridCard extends StatelessWidget {
   const RemoteServerGridCard({
     super.key,
     required this.server,
+    this.isProUnlocked = true,
     this.onTap,
     this.onLongPress,
     this.onLongPressStart,
@@ -722,6 +742,12 @@ class RemoteServerGridCard extends StatelessWidget {
                             ),
                           ),
                         ),
+                        if (!isProUnlocked)
+                          const Positioned(
+                            top: 8,
+                            left: 8,
+                            child: ProBadge(),
+                          ),
                         Positioned(
                           top: 8,
                           right: 8,
@@ -812,6 +838,7 @@ class RemoteServerGridCard extends StatelessWidget {
 /// Rich List Tile widget for a remote server.
 class RemoteServerListTile extends StatelessWidget {
   final RemoteServer server;
+  final bool isProUnlocked;
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
   final void Function(LongPressStartDetails)? onLongPressStart;
@@ -821,6 +848,7 @@ class RemoteServerListTile extends StatelessWidget {
   const RemoteServerListTile({
     super.key,
     required this.server,
+    this.isProUnlocked = true,
     this.onTap,
     this.onLongPress,
     this.onLongPressStart,
@@ -952,6 +980,10 @@ class RemoteServerListTile extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
+                if (!isProUnlocked) ...[
+                  const ProBadge(),
+                  const SizedBox(width: 8),
+                ],
                 trailing ??
                     Icon(
                       Icons.arrow_forward_ios_rounded,
