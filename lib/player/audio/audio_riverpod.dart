@@ -19,6 +19,7 @@ import 'package:vynody/player/scanner/scanner_service.dart';
 import 'package:vynody/player/settings/settings_service.dart';
 import 'package:vynody/player/platform/standalone_queue_window_manager.dart';
 import 'package:vynody/utils/device_info_utils.dart';
+export 'package:vynody/player/rating/song_rating_service.dart';
 
 final settingsServiceProvider = ChangeNotifierProvider<SettingsService>((ref) {
   throw UnimplementedError(

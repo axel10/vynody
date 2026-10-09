@@ -38,6 +38,7 @@ abstract class MusicFile with _$MusicFile {
     int? bitDepth,
     String? format,
     String? codec,
+    @Default(0) int rating,
   }) = _MusicFile;
 
   AudioDetails? toAudioDetails() {
@@ -132,7 +133,8 @@ abstract class MusicFile with _$MusicFile {
         identical(other.artworkBytes, artworkBytes) &&
         other.lastModifiedTime == lastModifiedTime &&
         other.lyrics == lyrics &&
-        other.isMissing == isMissing;
+        other.isMissing == isMissing &&
+        other.rating == rating;
   }
 
   @override
@@ -158,6 +160,7 @@ abstract class MusicFile with _$MusicFile {
         lastModifiedTime,
         lyrics,
         isMissing,
+        rating,
       ]);
 }
 
