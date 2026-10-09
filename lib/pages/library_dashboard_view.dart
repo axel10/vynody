@@ -70,34 +70,39 @@ class LibraryDashboardView extends ConsumerWidget {
 
               // 2. 快速入口：横屏使用大号卡片流，竖屏保持经典大菜单卡片
               SliverToBoxAdapter(
-                child: Padding(
-                  padding: EdgeInsets.only(
-                    left: contentLeftPadding + horizontalPadding,
-                    right: horizontalPadding,
-                    top: isWide ? 14 : 8,
-                    bottom: isWide ? 28 : 22,
-                  ),
-                  child: isWide
-                      ? _WideQuickAccessBar(
+                child: isWide
+                    ? Padding(
+                        padding: const EdgeInsets.only(top: 14, bottom: 28),
+                        child: _WideQuickAccessBar(
                           onTapSubIndex: onNavigateToSubIndex,
                           l10n: l10n,
-                        )
-                      : _PortraitLibraryMenuCard(
+                          contentLeftPadding: contentLeftPadding,
+                          horizontalPadding: horizontalPadding,
+                        ),
+                      )
+                    : Padding(
+                        padding: EdgeInsets.only(
+                          left: horizontalPadding,
+                          right: horizontalPadding,
+                          top: 8,
+                          bottom: 22,
+                        ),
+                        child: _PortraitLibraryMenuCard(
                           onTapSubIndex: onNavigateToSubIndex,
                           l10n: l10n,
                         ),
-                ),
+                      ),
               ),
 
               // 3. 最近播放（横向单曲卡片流）
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: EdgeInsets.only(
-                    left: contentLeftPadding,
+                  padding: const EdgeInsets.only(
                     bottom: 28,
                   ),
                   child: _RecentlyPlayedSection(
                     horizontalPadding: horizontalPadding,
+                    contentLeftPadding: contentLeftPadding,
                     onViewAll: () => onNavigateToSubIndex(1),
                     l10n: l10n,
                     isWide: isWide,
@@ -200,12 +205,12 @@ class LibraryDashboardView extends ConsumerWidget {
               // 6. 独立通栏：专辑
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: EdgeInsets.only(
-                    left: contentLeftPadding,
+                  padding: const EdgeInsets.only(
                     bottom: 32,
                   ),
                   child: _AlbumsRowSection(
                     horizontalPadding: horizontalPadding,
+                    contentLeftPadding: contentLeftPadding,
                     onViewAll: () => onNavigateToSubIndex(4),
                     l10n: l10n,
                     isWide: isWide,
@@ -216,12 +221,12 @@ class LibraryDashboardView extends ConsumerWidget {
               // 7. 独立通栏：艺术家
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: EdgeInsets.only(
-                    left: contentLeftPadding,
+                  padding: const EdgeInsets.only(
                     bottom: 32,
                   ),
                   child: _ArtistsRowSection(
                     horizontalPadding: horizontalPadding,
+                    contentLeftPadding: contentLeftPadding,
                     onViewAll: () => onNavigateToSubIndex(5),
                     l10n: l10n,
                     isWide: isWide,
@@ -233,11 +238,11 @@ class LibraryDashboardView extends ConsumerWidget {
               SliverToBoxAdapter(
                 child: Padding(
                   padding: EdgeInsets.only(
-                    left: contentLeftPadding,
                     bottom: bottomInset,
                   ),
                   child: _GenresRowSection(
                     horizontalPadding: horizontalPadding,
+                    contentLeftPadding: contentLeftPadding,
                     l10n: l10n,
                   ),
                 ),
@@ -300,10 +305,14 @@ class _WideQuickAccessBar extends ConsumerWidget {
   const _WideQuickAccessBar({
     required this.onTapSubIndex,
     required this.l10n,
+    this.contentLeftPadding = 0.0,
+    this.horizontalPadding = 32.0,
   });
 
   final ValueChanged<int> onTapSubIndex;
   final AppLocalizations l10n;
+  final double contentLeftPadding;
+  final double horizontalPadding;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -369,6 +378,10 @@ class _WideQuickAccessBar extends ConsumerWidget {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       physics: const BouncingScrollPhysics(),
+      padding: EdgeInsets.only(
+        left: contentLeftPadding + horizontalPadding,
+        right: horizontalPadding,
+      ),
       child: Row(
         children: items.map((item) {
           return Padding(
@@ -833,12 +846,14 @@ class _CarouselScrollWrapper extends StatefulWidget {
     required this.builder,
     this.centerHeight,
     this.buttonPadding = 12.0,
+    this.leftButtonOffset = 0.0,
   });
 
   final double height;
   final Widget Function(BuildContext context, ScrollController controller) builder;
   final double? centerHeight;
   final double buttonPadding;
+  final double leftButtonOffset;
 
   @override
   State<_CarouselScrollWrapper> createState() => _CarouselScrollWrapperState();
@@ -943,7 +958,7 @@ class _CarouselScrollWrapperState extends State<_CarouselScrollWrapper> {
 
               // 左侧往前翻一页按钮
               Positioned(
-                left: widget.buttonPadding,
+                left: widget.leftButtonOffset + widget.buttonPadding,
                 top: btnTop,
                 child: _PillNavButton(
                   direction: _PillNavDirection.left,
@@ -979,12 +994,14 @@ class _RecentlyPlayedSection extends ConsumerWidget {
     required this.onViewAll,
     required this.l10n,
     this.isWide = false,
+    this.contentLeftPadding = 0.0,
   });
 
   final double horizontalPadding;
   final VoidCallback onViewAll;
   final AppLocalizations l10n;
   final bool isWide;
+  final double contentLeftPadding;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1005,7 +1022,10 @@ class _RecentlyPlayedSection extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+              padding: EdgeInsets.only(
+                left: contentLeftPadding + horizontalPadding,
+                right: horizontalPadding,
+              ),
               child: _SectionHeader(
                 title: l10n.recentlyPlayed,
                 onViewAll: onViewAll,
@@ -1017,12 +1037,16 @@ class _RecentlyPlayedSection extends ConsumerWidget {
               height: listHeight,
               centerHeight: cardWidth,
               buttonPadding: horizontalPadding > 20 ? 14.0 : 8.0,
+              leftButtonOffset: contentLeftPadding,
               builder: (context, controller) {
                 return ListView.separated(
                   controller: controller,
                   scrollDirection: Axis.horizontal,
                   physics: const BouncingScrollPhysics(),
-                  padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                  padding: EdgeInsets.only(
+                    left: contentLeftPadding + horizontalPadding,
+                    right: horizontalPadding,
+                  ),
                   itemCount: previewItems.length,
                   separatorBuilder: (_, _) => SizedBox(width: isWide ? 16 : 14),
                   itemBuilder: (context, index) {
@@ -1575,12 +1599,14 @@ class _AlbumsRowSection extends ConsumerWidget {
     required this.onViewAll,
     required this.l10n,
     this.isWide = false,
+    this.contentLeftPadding = 0.0,
   });
 
   final double horizontalPadding;
   final VoidCallback onViewAll;
   final AppLocalizations l10n;
   final bool isWide;
+  final double contentLeftPadding;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1602,7 +1628,10 @@ class _AlbumsRowSection extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+              padding: EdgeInsets.only(
+                left: contentLeftPadding + horizontalPadding,
+                right: horizontalPadding,
+              ),
               child: _SectionHeader(
                 title: l10n.albums,
                 onViewAll: onViewAll,
@@ -1614,12 +1643,16 @@ class _AlbumsRowSection extends ConsumerWidget {
               height: listHeight,
               centerHeight: coverSize,
               buttonPadding: horizontalPadding > 20 ? 14.0 : 8.0,
+              leftButtonOffset: contentLeftPadding,
               builder: (context, controller) {
                 return ListView.separated(
                   controller: controller,
                   scrollDirection: Axis.horizontal,
                   physics: const BouncingScrollPhysics(),
-                  padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                  padding: EdgeInsets.only(
+                    left: contentLeftPadding + horizontalPadding,
+                    right: horizontalPadding,
+                  ),
                   itemCount: preview.length,
                   separatorBuilder: (_, _) => SizedBox(width: separatorWidth),
                   itemBuilder: (context, index) {
@@ -1684,12 +1717,14 @@ class _ArtistsRowSection extends ConsumerWidget {
     required this.onViewAll,
     required this.l10n,
     this.isWide = false,
+    this.contentLeftPadding = 0.0,
   });
 
   final double horizontalPadding;
   final VoidCallback onViewAll;
   final AppLocalizations l10n;
   final bool isWide;
+  final double contentLeftPadding;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1711,7 +1746,10 @@ class _ArtistsRowSection extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+              padding: EdgeInsets.only(
+                left: contentLeftPadding + horizontalPadding,
+                right: horizontalPadding,
+              ),
               child: _SectionHeader(
                 title: l10n.artists,
                 onViewAll: onViewAll,
@@ -1723,12 +1761,16 @@ class _ArtistsRowSection extends ConsumerWidget {
               height: listHeight,
               centerHeight: avatarDiameter,
               buttonPadding: horizontalPadding > 20 ? 14.0 : 8.0,
+              leftButtonOffset: contentLeftPadding,
               builder: (context, controller) {
                 return ListView.separated(
                   controller: controller,
                   scrollDirection: Axis.horizontal,
                   physics: const BouncingScrollPhysics(),
-                  padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                  padding: EdgeInsets.only(
+                    left: contentLeftPadding + horizontalPadding,
+                    right: horizontalPadding,
+                  ),
                   itemCount: preview.length,
                   separatorBuilder: (_, _) => SizedBox(width: separatorWidth),
                   itemBuilder: (context, index) {
@@ -1787,10 +1829,12 @@ class _GenresRowSection extends ConsumerWidget {
   const _GenresRowSection({
     required this.horizontalPadding,
     required this.l10n,
+    this.contentLeftPadding = 0.0,
   });
 
   final double horizontalPadding;
   final AppLocalizations l10n;
+  final double contentLeftPadding;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1805,7 +1849,10 @@ class _GenresRowSection extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+              padding: EdgeInsets.only(
+                left: contentLeftPadding + horizontalPadding,
+                right: horizontalPadding,
+              ),
               child: Text(
                 l10n.genres,
                 style: theme.textTheme.titleMedium?.copyWith(
@@ -1820,7 +1867,10 @@ class _GenresRowSection extends ConsumerWidget {
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 physics: const BouncingScrollPhysics(),
-                padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                padding: EdgeInsets.only(
+                  left: contentLeftPadding + horizontalPadding,
+                  right: horizontalPadding,
+                ),
                 itemCount: genres.length,
                 separatorBuilder: (_, _) => const SizedBox(width: 12),
                 itemBuilder: (context, index) {

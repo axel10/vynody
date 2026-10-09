@@ -1280,13 +1280,21 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                                       end: navBgOpacityTarget,
                                     ),
                                     builder: (context, animatedOpacity, child) {
+                                      final double targetRailAlpha =
+                                          theme.brightness == Brightness.dark
+                                              ? 0.65
+                                              : 0.75;
                                       return _SlidingNavigationRail(
                                         backgroundColor: Color.lerp(
                                               navBgBaseColor.withValues(alpha: 0.0),
-                                              navBgBaseColor,
+                                              navBgBaseColor.withValues(
+                                                alpha: targetRailAlpha,
+                                              ),
                                               animatedOpacity,
                                             ) ??
-                                            navBgBaseColor,
+                                            navBgBaseColor.withValues(
+                                              alpha: targetRailAlpha,
+                                            ),
                                         width: railWidth,
                                         extended:
                                             railWidth >= kSidebarRailWidthExtended,
@@ -1830,90 +1838,108 @@ class _SlidingNavigationRailState extends State<_SlidingNavigationRail> {
         ? offsetOf(pillRow) + (rows[pillRow].height - pillHeight) / 2.0
         : 0.0;
 
-    return Container(
-      width: widget.width,
-      color: widget.backgroundColor,
-      child: Column(
-        children: [
-          SizedBox(height: topInset),
+    final bool isDark = theme.brightness == Brightness.dark;
+    final borderColor = isDark
+        ? Colors.white.withValues(alpha: 0.08)
+        : Colors.black.withValues(alpha: 0.08);
 
-          // 可滚动区：窗口高度不足时（媒体库展开后条目变多）可上下滚动
-          Expanded(
-            child: Scrollbar(
-              controller: _scrollController,
-              thumbVisibility: false,
-              child: SingleChildScrollView(
-                controller: _scrollController,
-                child: SizedBox(
-                  width: widget.width,
-                  height: contentHeight,
-                  child: Stack(
-                    children: [
-                      // 1. 纵向平移滑动的胶囊指示器
-                      AnimatedPositioned(
-                        duration: const Duration(milliseconds: 280),
-                        curve: Curves.easeOutCubic,
-                        left: pillLeft,
-                        top: pillTop,
-                        width: pillWidth,
-                        height: pillHeight,
-                        child: IgnorePointer(
-                          child: AnimatedOpacity(
-                            duration: const Duration(milliseconds: 180),
-                            opacity: showPill ? 1.0 : 0.0,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: widget.indicatorColor,
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-
-                      // 2. 各条目按累加偏移定位，胶囊可精确对齐任意分组中的条目
-                      for (int i = 0; i < rows.length; i++)
-                        Positioned(
-                          top: offsetOf(i),
-                          left: 0,
-                          right: 0,
-                          height: rows[i].height,
-                          child: rows[i].child,
-                        ),
-                    ],
-                  ),
-                ),
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 25.0, sigmaY: 25.0),
+        child: Container(
+          width: widget.width,
+          decoration: BoxDecoration(
+            color: widget.backgroundColor,
+            border: Border(
+              right: BorderSide(
+                color: borderColor,
+                width: 0.5,
               ),
             ),
           ),
+          child: Column(
+            children: [
+              SizedBox(height: topInset),
 
-          // 分割线：把常驻的设置入口与上方的页面导航区分开
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-            child: Container(
-              height: 0.5,
-              color: theme.dividerColor.withValues(alpha: 0.35),
-            ),
-          ),
+              // 可滚动区：窗口高度不足时（媒体库展开后条目变多）可上下滚动
+              Expanded(
+                child: Scrollbar(
+                  controller: _scrollController,
+                  thumbVisibility: false,
+                  child: SingleChildScrollView(
+                    controller: _scrollController,
+                    child: SizedBox(
+                      width: widget.width,
+                      height: contentHeight,
+                      child: Stack(
+                        children: [
+                          // 1. 纵向平移滑动的胶囊指示器
+                          AnimatedPositioned(
+                            duration: const Duration(milliseconds: 280),
+                            curve: Curves.easeOutCubic,
+                            left: pillLeft,
+                            top: pillTop,
+                            width: pillWidth,
+                            height: pillHeight,
+                            child: IgnorePointer(
+                              child: AnimatedOpacity(
+                                duration: const Duration(milliseconds: 180),
+                                opacity: showPill ? 1.0 : 0.0,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: widget.indicatorColor,
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
 
-          // 设置页常驻左下角，不随上方条目滚动
-          SizedBox(
-            height: itemHeight,
-            child: _buildTile(
-              icon: destinations.last.icon,
-              selectedIcon: destinations.last.selectedIcon,
-              label: destinations.last.label,
-              isSelected: widget.isSettingsActive,
-              isSubItem: false,
-              activeColor: activeColor,
-              inactiveColor: inactiveColor,
-              onTap: () => widget.onDestinationSelected(destinations.last.index),
-            ),
+                          // 2. 各条目按累加偏移定位，胶囊可精确对齐任意分组中的条目
+                          for (int i = 0; i < rows.length; i++)
+                            Positioned(
+                              top: offsetOf(i),
+                              left: 0,
+                              right: 0,
+                              height: rows[i].height,
+                              child: rows[i].child,
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+              // 分割线：把常驻的设置入口与上方的页面导航区分开
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                child: Container(
+                  height: 0.5,
+                  color: theme.dividerColor.withValues(alpha: 0.35),
+                ),
+              ),
+
+              // 设置页常驻左下角，不随上方条目滚动
+              SizedBox(
+                height: itemHeight,
+                child: _buildTile(
+                  icon: destinations.last.icon,
+                  selectedIcon: destinations.last.selectedIcon,
+                  label: destinations.last.label,
+                  isSelected: widget.isSettingsActive,
+                  isSubItem: false,
+                  activeColor: activeColor,
+                  inactiveColor: inactiveColor,
+                  onTap: () => widget.onDestinationSelected(destinations.last.index),
+                ),
+              ),
+              SizedBox(
+                height: math.max(10.0, MediaQuery.paddingOf(context).bottom),
+              ),
+            ],
           ),
-          SizedBox(
-            height: math.max(10.0, MediaQuery.paddingOf(context).bottom),
-          ),
-        ],
+        ),
       ),
     );
   }
