@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
+import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -254,6 +255,12 @@ class _MainLayoutState extends ConsumerState<MainLayout>
     }
   }
 
+  Future<void> _collapsePlayback() async {
+    final previousTab = ref.read(previousMainTabIndexProvider);
+    final targetIndex = (previousTab == 1 || previousTab < 0) ? 0 : previousTab;
+    await _onDestinationSelected(targetIndex);
+  }
+
   Future<void> _handleBackPressed() async {
     if (!Platform.isAndroid) return;
 
@@ -267,8 +274,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
 
     // 如果在播放页，返回上一 Tab
     if (_currentIndex == 1) {
-      final previousTab = ref.read(previousMainTabIndexProvider);
-      await _onDestinationSelected(previousTab == 1 ? 0 : previousTab);
+      await _collapsePlayback();
       return;
     }
 
@@ -1125,7 +1131,6 @@ class _MainLayoutState extends ConsumerState<MainLayout>
       }
     });
 
-    final uiState = ref.watch(mainLayoutUiControllerProvider);
     final currentMusic = ref.watch(audioCurrentMusicProvider);
     final selectionScope = ref.watch(librarySelectionScopeProvider);
     final hideMiniPlayerForSelection =
@@ -1192,10 +1197,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
         ref.watch(isCoverFlowImmersiveActiveProvider);
     final bool useSidebar = isLandscape;
     final bool isSidebarHidden =
-        (isDesktop &&
-            isPlayback &&
-            settings.isImmersiveTabBarEnabled &&
-            !uiState.showImmersiveTabBar) ||
+        (isLandscape && isPlayback) ||
         isCoverFlowImmersive;
     final bool hideImmersiveTabBar = isSidebarHidden;
     final bool isKeyboardVisible =
@@ -1355,6 +1357,22 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                                   !ref.watch(rightQueueDrawerProvider),
                               hideButtonsWhenInactive: isPlayback &&
                                   !ref.watch(rightQueueDrawerProvider),
+                              isPlayback: isPlayback,
+                              onCollapsePlayback: _collapsePlayback,
+                            ),
+                          ),
+                        if (!showCustomTitleBar && isPlayback)
+                          Positioned(
+                            top: MediaQuery.paddingOf(context).top + 8,
+                            left: math.max(16.0, MediaQuery.paddingOf(context).left + 8),
+                            child: AnimatedOpacity(
+                              duration: const Duration(milliseconds: 200),
+                              opacity: settings.isUserInactive ? 0.0 : 1.0,
+                              curve: Curves.easeInOut,
+                              child: IgnorePointer(
+                                ignoring: settings.isUserInactive,
+                                child: _buildMobilePlaybackCollapseButton(context),
+                              ),
                             ),
                           ),
                       if (useSidebar)
@@ -1520,6 +1538,60 @@ class _MainLayoutState extends ConsumerState<MainLayout>
         );
 
     return mainAppWidget;
+  }
+
+  Widget _buildMobilePlaybackCollapseButton(BuildContext context) {
+    if (Platform.isIOS) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          child: Container(
+            width: 36,
+            height: 32,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.18),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.25),
+                width: 0.5,
+              ),
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(16),
+                onTap: _collapsePlayback,
+                child: const Center(
+                  child: Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    color: Colors.white,
+                    size: 22,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Material(
+      color: Colors.transparent,
+      shape: const CircleBorder(),
+      clipBehavior: Clip.antiAlias,
+      child: IconButton(
+        icon: const Icon(
+          Icons.keyboard_arrow_down_rounded,
+          color: Colors.white,
+          size: 26,
+        ),
+        tooltip: Localizations.maybeLocaleOf(context)?.languageCode == 'zh'
+            ? '收起播放页'
+            : 'Collapse Playback',
+        onPressed: _collapsePlayback,
+      ),
+    );
   }
 }
 

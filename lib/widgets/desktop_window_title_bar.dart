@@ -21,6 +21,8 @@ class DesktopWindowTitleBar extends ConsumerStatefulWidget {
     this.showSmallWindowButton = false,
     this.showButtonGroupBackground = false,
     this.hideButtonsWhenInactive = false,
+    this.isPlayback = false,
+    this.onCollapsePlayback,
   });
 
   final Brightness brightness;
@@ -28,6 +30,8 @@ class DesktopWindowTitleBar extends ConsumerStatefulWidget {
   final bool showSmallWindowButton;
   final bool showButtonGroupBackground;
   final bool hideButtonsWhenInactive;
+  final bool isPlayback;
+  final VoidCallback? onCollapsePlayback;
 
   @override
   ConsumerState<DesktopWindowTitleBar> createState() =>
@@ -154,126 +158,214 @@ class _DesktopWindowTitleBarState extends ConsumerState<DesktopWindowTitleBar>
               curve: Curves.easeInOut,
               child: IgnorePointer(
                 ignoring: hideButtons,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (showMiniButton)
-                      _MacosSmallWindowButton(
-                        icon: isSmallWindowMode
-                            ? Icons.open_in_full
-                            : Icons.picture_in_picture_alt,
-                        iconSize: isSmallWindowMode ? 16 : 18,
+                child: (widget.isPlayback && !isSmallWindowMode)
+                    ? _MacosPlaybackCapsuleBar(
                         brightness: widget.brightness,
-                        onPressed: () {
-                          settings.isSmallWindowMode = !settings.isSmallWindowMode;
-                        },
-                      ),
-                    AppTooltip(
-                      message: settings.enableDesktopLyrics
-                          ? (l10n?.closeDesktopLyrics ?? 'Close Desktop Lyrics')
-                          : (l10n?.desktopLyrics ?? 'Desktop Lyrics'),
-                      child: _MacosSmallWindowButton(
-                        icon: settings.enableDesktopLyrics
-                            ? Icons.subtitles
-                            : Icons.subtitles_outlined,
-                        iconSize: isSmallWindowMode ? 16 : 18,
-                        brightness: widget.brightness,
-                        color: settings.enableDesktopLyrics
-                            ? Theme.of(context).colorScheme.primary
-                            : null,
-                        onPressed: () {
-                          settings.enableDesktopLyrics =
-                              !settings.enableDesktopLyrics;
-                        },
-                      ),
-                    ),
-                    if (!isSmallWindowMode)
-                      AppTooltip(
-                        message: ref.watch(isStandaloneQueueWindowOpenProvider)
-                            ? (l10n?.closeStandaloneQueue ?? 'Close Standalone Queue')
-                            : (ref.watch(rightQueueDrawerProvider)
-                                ? (l10n?.collapsePlayQueue ?? 'Collapse Play Queue')
-                                : (l10n?.expandPlayQueue ?? 'Expand Play Queue')),
-                        child: _MacosSmallWindowButton(
-                          icon: ref.watch(isStandaloneQueueWindowOpenProvider) ||
-                                  ref.watch(rightQueueDrawerProvider)
-                              ? Icons.queue_music
-                              : Icons.queue_music_outlined,
-                          iconSize: isSmallWindowMode ? 16 : 18,
-                          brightness: widget.brightness,
-                          color: (ref.watch(isStandaloneQueueWindowOpenProvider) ||
-                                  ref.watch(rightQueueDrawerProvider))
-                              ? Theme.of(context).colorScheme.primary
-                              : null,
-                          onPressed: () {
-                            if (ref.read(isStandaloneQueueWindowOpenProvider)) {
-                              ref
-                                  .read(standaloneQueueWindowManagerProvider)
-                                  .closeQueueWindow();
-                            } else {
-                              ref.read(rightQueueDrawerProvider.notifier).toggle();
-                            }
-                          },
-                        ),
-                      ),
-                    if (isSmallWindowMode)
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          AppTooltip(
-                            message: AppLocalizations.of(context)?.alwaysOnTop ??
-                                'Always on Top',
-                            child: _MacosSmallWindowButton(
-                              icon: settings.isSmallWindowAlwaysOnTop
-                                  ? Icons.push_pin
-                                  : Icons.push_pin_outlined,
-                              iconSize: 16,
-                              brightness: widget.brightness,
-                              color: settings.isSmallWindowAlwaysOnTop
-                                  ? Theme.of(context).colorScheme.primary
-                                  : null,
-                              onPressed: () async {
-                                final nextVal = !settings.isSmallWindowAlwaysOnTop;
-                                settings.isSmallWindowAlwaysOnTop = nextVal;
-                                await windowManager.setAlwaysOnTop(nextVal);
-                              },
+                        items: [
+                          if (widget.onCollapsePlayback != null)
+                            _MacosCapsuleItemData(
+                              icon: Icons.keyboard_arrow_down_rounded,
+                              iconSize: 18,
+                              tooltip: Localizations.maybeLocaleOf(context)?.languageCode == 'zh'
+                                  ? '收起播放页'
+                                  : 'Collapse Playback',
+                              onPressed: widget.onCollapsePlayback!,
                             ),
-                          ),
-                          AppTooltip(
-                            message: l10n?.playQueue ?? 'Play Queue',
-                            child: _MacosSmallWindowButton(
-                              icon: Icons.queue_music,
+                          if (showMiniButton)
+                            _MacosCapsuleItemData(
+                              icon: isSmallWindowMode
+                                  ? Icons.open_in_full
+                                  : Icons.picture_in_picture_alt,
                               iconSize: 16,
-                              brightness: widget.brightness,
-                              color: settings.isSmallWindowQueueExpanded
-                                  ? Theme.of(context).colorScheme.primary
-                                  : null,
                               onPressed: () {
-                                settings.toggleSmallWindowBottomPanelMode(
-                                  SmallWindowBottomPanelMode.queue,
-                                );
+                                settings.isSmallWindowMode =
+                                    !settings.isSmallWindowMode;
                               },
                             ),
+                          _MacosCapsuleItemData(
+                            icon: settings.enableDesktopLyrics
+                                ? Icons.subtitles
+                                : Icons.subtitles_outlined,
+                            iconSize: 16,
+                            tooltip: settings.enableDesktopLyrics
+                                ? (l10n?.closeDesktopLyrics ?? 'Close Desktop Lyrics')
+                                : (l10n?.desktopLyrics ?? 'Desktop Lyrics'),
+                            color: settings.enableDesktopLyrics
+                                ? Theme.of(context).colorScheme.primary
+                                : null,
+                            onPressed: () {
+                              settings.enableDesktopLyrics =
+                                  !settings.enableDesktopLyrics;
+                            },
                           ),
-                          AppTooltip(
-                            message: l10n?.lyrics ?? 'Lyrics',
-                            child: _MacosSmallWindowButton(
-                              icon: Icons.text_snippet_outlined,
-                              iconSize: 16,
-                              brightness: widget.brightness,
-                              color: settings.isSmallWindowLyricsExpanded
-                                  ? Theme.of(context).colorScheme.primary
-                                  : null,
-                              onPressed: () {
-                                settings.toggleSmallWindowBottomPanelMode(
-                                  SmallWindowBottomPanelMode.lyrics,
-                                );
-                              },
-                            ),
+                          _MacosCapsuleItemData(
+                            icon: (ref.watch(isStandaloneQueueWindowOpenProvider) ||
+                                    ref.watch(rightQueueDrawerProvider))
+                                ? Icons.queue_music
+                                : Icons.queue_music_outlined,
+                            iconSize: 16,
+                            tooltip: ref.watch(isStandaloneQueueWindowOpenProvider)
+                                ? (l10n?.closeStandaloneQueue ?? 'Close Standalone Queue')
+                                : (ref.watch(rightQueueDrawerProvider)
+                                    ? (l10n?.collapsePlayQueue ?? 'Collapse Play Queue')
+                                    : (l10n?.expandPlayQueue ?? 'Expand Play Queue')),
+                            color: (ref.watch(isStandaloneQueueWindowOpenProvider) ||
+                                    ref.watch(rightQueueDrawerProvider))
+                                ? Theme.of(context).colorScheme.primary
+                                : null,
+                            onPressed: () {
+                              if (ref.read(isStandaloneQueueWindowOpenProvider)) {
+                                ref
+                                    .read(standaloneQueueWindowManagerProvider)
+                                    .closeQueueWindow();
+                              } else {
+                                ref.read(rightQueueDrawerProvider.notifier).toggle();
+                              }
+                            },
                           ),
                         ],
+                      )
+                    : Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (showMiniButton)
+                            _MacosSmallWindowButton(
+                              icon: isSmallWindowMode
+                                  ? Icons.open_in_full
+                                  : Icons.picture_in_picture_alt,
+                              iconSize: isSmallWindowMode ? 16 : 18,
+                              brightness: widget.brightness,
+                              onPressed: () {
+                                settings.isSmallWindowMode = !settings.isSmallWindowMode;
+                              },
+                            ),
+                          AppTooltip(
+                            message: settings.enableDesktopLyrics
+                                ? (l10n?.closeDesktopLyrics ?? 'Close Desktop Lyrics')
+                                : (l10n?.desktopLyrics ?? 'Desktop Lyrics'),
+                            child: _MacosSmallWindowButton(
+                              icon: settings.enableDesktopLyrics
+                                  ? Icons.subtitles
+                                  : Icons.subtitles_outlined,
+                              iconSize: isSmallWindowMode ? 16 : 18,
+                              brightness: widget.brightness,
+                              color: settings.enableDesktopLyrics
+                                  ? Theme.of(context).colorScheme.primary
+                                  : null,
+                              onPressed: () {
+                                settings.enableDesktopLyrics =
+                                    !settings.enableDesktopLyrics;
+                              },
+                            ),
+                          ),
+                          if (!isSmallWindowMode)
+                            AppTooltip(
+                              message: ref.watch(isStandaloneQueueWindowOpenProvider)
+                                  ? (l10n?.closeStandaloneQueue ?? 'Close Standalone Queue')
+                                  : (ref.watch(rightQueueDrawerProvider)
+                                      ? (l10n?.collapsePlayQueue ?? 'Collapse Play Queue')
+                                      : (l10n?.expandPlayQueue ?? 'Expand Play Queue')),
+                              child: _MacosSmallWindowButton(
+                                icon: ref.watch(isStandaloneQueueWindowOpenProvider) ||
+                                        ref.watch(rightQueueDrawerProvider)
+                                    ? Icons.queue_music
+                                    : Icons.queue_music_outlined,
+                                iconSize: isSmallWindowMode ? 16 : 18,
+                                brightness: widget.brightness,
+                                color: (ref.watch(isStandaloneQueueWindowOpenProvider) ||
+                                        ref.watch(rightQueueDrawerProvider))
+                                    ? Theme.of(context).colorScheme.primary
+                                    : null,
+                                onPressed: () {
+                                  if (ref.read(isStandaloneQueueWindowOpenProvider)) {
+                                    ref
+                                        .read(standaloneQueueWindowManagerProvider)
+                                        .closeQueueWindow();
+                                  } else {
+                                    ref.read(rightQueueDrawerProvider.notifier).toggle();
+                                  }
+                                },
+                              ),
+                            ),
+                          if (isSmallWindowMode)
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                AppTooltip(
+                                  message: AppLocalizations.of(context)?.alwaysOnTop ??
+                                      'Always on Top',
+                                  child: _MacosSmallWindowButton(
+                                    icon: settings.isSmallWindowAlwaysOnTop
+                                        ? Icons.push_pin
+                                        : Icons.push_pin_outlined,
+                                    iconSize: 16,
+                                    brightness: widget.brightness,
+                                    color: settings.isSmallWindowAlwaysOnTop
+                                        ? Theme.of(context).colorScheme.primary
+                                        : null,
+                                    onPressed: () async {
+                                      final nextVal = !settings.isSmallWindowAlwaysOnTop;
+                                      settings.isSmallWindowAlwaysOnTop = nextVal;
+                                      await windowManager.setAlwaysOnTop(nextVal);
+                                    },
+                                  ),
+                                ),
+                                AppTooltip(
+                                  message: l10n?.playQueue ?? 'Play Queue',
+                                  child: _MacosSmallWindowButton(
+                                    icon: Icons.queue_music,
+                                    iconSize: 16,
+                                    brightness: widget.brightness,
+                                    color: settings.isSmallWindowQueueExpanded
+                                        ? Theme.of(context).colorScheme.primary
+                                        : null,
+                                    onPressed: () {
+                                      settings.toggleSmallWindowBottomPanelMode(
+                                        SmallWindowBottomPanelMode.queue,
+                                      );
+                                    },
+                                  ),
+                                ),
+                                AppTooltip(
+                                  message: l10n?.lyrics ?? 'Lyrics',
+                                  child: _MacosSmallWindowButton(
+                                    icon: Icons.text_snippet_outlined,
+                                    iconSize: 16,
+                                    brightness: widget.brightness,
+                                    color: settings.isSmallWindowLyricsExpanded
+                                        ? Theme.of(context).colorScheme.primary
+                                        : null,
+                                    onPressed: () {
+                                      settings.toggleSmallWindowBottomPanelMode(
+                                        SmallWindowBottomPanelMode.lyrics,
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                        ],
                       ),
-                  ],
+              ),
+            ),
+          if (isWindowsOrLinux && widget.isPlayback && !isSmallWindowMode && widget.onCollapsePlayback != null)
+            AnimatedOpacity(
+              duration: const Duration(milliseconds: 200),
+              opacity: hideButtons ? 0.0 : 1.0,
+              curve: Curves.easeInOut,
+              child: IgnorePointer(
+                ignoring: hideButtons,
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 10.0),
+                  child: AppTooltip(
+                    message: Localizations.maybeLocaleOf(context)?.languageCode == 'zh'
+                        ? '收起播放页'
+                        : 'Collapse Playback',
+                    child: _WindowsTransparentCollapseButton(
+                      brightness: widget.brightness,
+                      onPressed: widget.onCollapsePlayback,
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -461,7 +553,7 @@ class _DesktopWindowTitleBarState extends ConsumerState<DesktopWindowTitleBar>
 
     if (isMacOS) {
       return Padding(
-        padding: const EdgeInsets.only(left: 80.0),
+        padding: EdgeInsets.only(left: isFullScreen ? 16.0 : 80.0),
         child: titleBarContent,
       );
     }
@@ -887,6 +979,229 @@ class _WasapiExclusiveBadgeState extends State<_WasapiExclusiveBadge> {
                     ),
                   ),
                 ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MacosCapsuleItemData {
+  final IconData icon;
+  final double iconSize;
+  final VoidCallback onPressed;
+  final Color? color;
+  final String? tooltip;
+
+  const _MacosCapsuleItemData({
+    required this.icon,
+    required this.iconSize,
+    required this.onPressed,
+    this.color,
+    this.tooltip,
+  });
+}
+
+class _MacosPlaybackCapsuleBar extends StatelessWidget {
+  final List<_MacosCapsuleItemData> items;
+  final Brightness brightness;
+
+  const _MacosPlaybackCapsuleBar({
+    required this.items,
+    required this.brightness,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (items.isEmpty) return const SizedBox.shrink();
+
+    final isDark = brightness == Brightness.dark;
+
+    final Color capsuleBg = isDark
+        ? Colors.white.withValues(alpha: 0.14)
+        : Colors.white.withValues(alpha: 0.28);
+
+    final Color capsuleBorderColor = isDark
+        ? Colors.white.withValues(alpha: 0.18)
+        : Colors.white.withValues(alpha: 0.35);
+
+    final Color dividerColor = isDark
+        ? Colors.white.withValues(alpha: 0.15)
+        : Colors.black.withValues(alpha: 0.12);
+
+    return Container(
+      height: 26,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(13),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 1.5),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(13),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          child: Container(
+            decoration: BoxDecoration(
+              color: capsuleBg,
+              borderRadius: BorderRadius.circular(13),
+              border: Border.all(
+                color: capsuleBorderColor,
+                width: 0.5,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (int i = 0; i < items.length; i++) ...[
+                  if (i > 0)
+                    Container(
+                      width: 0.5,
+                      height: 12,
+                      color: dividerColor,
+                    ),
+                  _MacosCapsuleSegmentButton(
+                    data: items[i],
+                    brightness: brightness,
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MacosCapsuleSegmentButton extends StatefulWidget {
+  final _MacosCapsuleItemData data;
+  final Brightness brightness;
+
+  const _MacosCapsuleSegmentButton({
+    required this.data,
+    required this.brightness,
+  });
+
+  @override
+  State<_MacosCapsuleSegmentButton> createState() =>
+      _MacosCapsuleSegmentButtonState();
+}
+
+class _MacosCapsuleSegmentButtonState
+    extends State<_MacosCapsuleSegmentButton> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = widget.brightness == Brightness.dark;
+
+    final Color defaultIconColor = isDark
+        ? Colors.white.withValues(alpha: 0.85)
+        : Colors.black.withValues(alpha: 0.80);
+    final Color hoveredIconColor = isDark ? Colors.white : Colors.black;
+
+    final Color iconColor =
+        widget.data.color ?? (_isHovered ? hoveredIconColor : defaultIconColor);
+
+    final Color hoverBg = isDark
+        ? Colors.white.withValues(alpha: 0.12)
+        : Colors.black.withValues(alpha: 0.06);
+
+    Widget btn = MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: Container(
+        width: 32,
+        height: 26,
+        color: _isHovered ? hoverBg : Colors.transparent,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: widget.data.onPressed,
+            splashColor: (isDark ? Colors.white : Colors.black)
+                .withValues(alpha: 0.05),
+            highlightColor: (isDark ? Colors.white : Colors.black)
+                .withValues(alpha: 0.05),
+            child: Center(
+              child: Icon(
+                widget.data.icon,
+                color: iconColor,
+                size: widget.data.iconSize,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    if (widget.data.tooltip != null) {
+      btn = AppTooltip(
+        message: widget.data.tooltip!,
+        child: btn,
+      );
+    }
+
+    return btn;
+  }
+}
+
+class _WindowsTransparentCollapseButton extends StatefulWidget {
+  final Brightness brightness;
+  final VoidCallback? onPressed;
+
+  const _WindowsTransparentCollapseButton({
+    required this.brightness,
+    required this.onPressed,
+  });
+
+  @override
+  State<_WindowsTransparentCollapseButton> createState() =>
+      _WindowsTransparentCollapseButtonState();
+}
+
+class _WindowsTransparentCollapseButtonState
+    extends State<_WindowsTransparentCollapseButton> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = widget.brightness == Brightness.dark;
+
+    final Color defaultColor = isDark
+        ? Colors.white.withValues(alpha: 0.85)
+        : Colors.black.withValues(alpha: 0.80);
+    final Color hoveredColor = isDark ? Colors.white : Colors.black;
+    final Color hoverBg = isDark
+        ? Colors.white.withValues(alpha: 0.12)
+        : Colors.black.withValues(alpha: 0.08);
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: Container(
+        width: 32,
+        height: 24,
+        decoration: BoxDecoration(
+          color: _isHovered ? hoverBg : Colors.transparent,
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(6),
+            onTap: widget.onPressed,
+            child: Center(
+              child: Icon(
+                Icons.keyboard_arrow_down_rounded,
+                color: _isHovered ? hoveredColor : defaultColor,
+                size: 20,
               ),
             ),
           ),
