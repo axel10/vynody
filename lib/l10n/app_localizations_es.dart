@@ -5538,4 +5538,43 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get lyricsRestoredSuccess => 'Letra restaurada con éxito';
+
+  @override
+  String get genres => '流派';
+
+  @override
+  String get ratedSongs => '已评分';
+
+  @override
+  String get thisWeekTop => '本周常听';
+
+  @override
+  String get thisWeekTopSubtitle => '近 7 天循环最多的单曲';
+
+  @override
+  String get timeMachine => '拾光机 / 重温旧爱';
+
+  @override
+  String get timeMachineSubtitle => '重温好久没听的常听或高分专辑';
+
+  @override
+  String get topRated => '高评分';
+
+  @override
+  String get topRatedSubtitle => '你的 4~5 星典藏歌曲';
+
+  @override
+  String get emptyTimeMachine => '暂无需要重温的专辑';
+
+  @override
+  String get emptyTopRated => '暂无 4~5 星评分歌曲';
+
+  @override
+  String get emptyThisWeekTop => '本周暂无播放记录';
+
+  @override
+  String get quickEntries => '快速入口';
+
+  @override
+  String get viewAll => '查看全部';
 }

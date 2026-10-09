@@ -42,7 +42,6 @@ import '../widgets/playback_hero_card.dart';
 import '../widgets/playback_ui_tuning.dart';
 import '../widgets/global_drop_target.dart';
 import '../widgets/library_selection_scope.dart';
-import '../widgets/folder_scan_widgets.dart';
 import '../utils/layout_constants.dart';
 import 'package:vynody/player/platform/right_queue_drawer_controller.dart';
 import '../widgets/right_queue_panel.dart';
@@ -1296,6 +1295,14 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                                           if (index == 1) {
                                             ref.read(settingsServiceProvider).resetInactivity();
                                           }
+                                          if (index == 2) {
+                                            ref
+                                                .read(
+                                                  libraryActiveTabIndexProvider
+                                                      .notifier,
+                                                )
+                                                .set(-1);
+                                          }
                                           _onDestinationSelected(index);
                                         },
                                         // 媒体库（index 2）激活时，在 Rail 内展开其六个子页面入口
@@ -1718,6 +1725,11 @@ class _SlidingNavigationRailState extends State<_SlidingNavigationRail> {
         label: l10n.artists,
         icon: Icons.mic_external_on_rounded,
         selectedIcon: Icons.mic_external_on_rounded,
+      ),
+      (
+        label: l10n.ratedSongs,
+        icon: Icons.star_outline_rounded,
+        selectedIcon: Icons.star_rounded,
       ),
     ];
 

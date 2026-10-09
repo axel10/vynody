@@ -2393,5 +2393,19 @@
   "timelineActionAiGenerate": "AI Generated",
   "timelineActionInitial": "Initial",
   "timelineActionRestore": "Rollback",
-  "lyricsRestoredSuccess": "Lyrics restored successfully"
+  "lyricsRestoredSuccess": "Lyrics restored successfully",
+  "genres": "Genres",
+  "ratedSongs": "Rated",
+  "thisWeekTop": "Top This Week",
+  "thisWeekTopSubtitle": "Most played tracks in past 7 days",
+  "timeMachine": "Time Machine",
+  "timeMachineSubtitle": "Rediscover your past favorites",
+  "topRated": "Top Rated",
+  "topRatedSubtitle": "Your 4-5 star collection",
+  "emptyTimeMachine": "No past favorites to rediscover yet",
+  "emptyTopRated": "No rated songs yet",
+  "emptyThisWeekTop": "No play history this week",
+  "quickEntries": "Quick Access",
+  "viewAll": "View All"
 }
+

@@ -5460,4 +5460,43 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get lyricsRestoredSuccess => 'Lyrics restored successfully';
+
+  @override
+  String get genres => 'Genres';
+
+  @override
+  String get ratedSongs => 'Rated';
+
+  @override
+  String get thisWeekTop => 'Top This Week';
+
+  @override
+  String get thisWeekTopSubtitle => 'Most played tracks in past 7 days';
+
+  @override
+  String get timeMachine => 'Time Machine';
+
+  @override
+  String get timeMachineSubtitle => 'Rediscover your past favorites';
+
+  @override
+  String get topRated => 'Top Rated';
+
+  @override
+  String get topRatedSubtitle => 'Your 4-5 star collection';
+
+  @override
+  String get emptyTimeMachine => 'No past favorites to rediscover yet';
+
+  @override
+  String get emptyTopRated => 'No rated songs yet';
+
+  @override
+  String get emptyThisWeekTop => 'No play history this week';
+
+  @override
+  String get quickEntries => 'Quick Access';
+
+  @override
+  String get viewAll => 'View All';
 }

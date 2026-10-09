@@ -126,7 +126,7 @@ final isAlbum3DViewActiveProvider =
 
 class LibraryActiveTabIndexNotifier extends Notifier<int> {
   @override
-  int build() => 0;
+  int build() => -1;
 
   void set(int value) {
     if (state != value) {

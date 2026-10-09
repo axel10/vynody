@@ -9687,6 +9687,84 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'已成功恢复该版本歌词'**
   String get lyricsRestoredSuccess;
+
+  /// Music genres
+  ///
+  /// In zh, this message translates to:
+  /// **'流派'**
+  String get genres;
+
+  /// Rated songs
+  ///
+  /// In zh, this message translates to:
+  /// **'已评分'**
+  String get ratedSongs;
+
+  /// Top tracks this week
+  ///
+  /// In zh, this message translates to:
+  /// **'本周常听'**
+  String get thisWeekTop;
+
+  /// Subtitle for top tracks this week
+  ///
+  /// In zh, this message translates to:
+  /// **'近 7 天循环最多的单曲'**
+  String get thisWeekTopSubtitle;
+
+  /// Rediscover past favorite albums
+  ///
+  /// In zh, this message translates to:
+  /// **'拾光机 / 重温旧爱'**
+  String get timeMachine;
+
+  /// Subtitle for rediscover past favorites
+  ///
+  /// In zh, this message translates to:
+  /// **'重温好久没听的常听或高分专辑'**
+  String get timeMachineSubtitle;
+
+  /// Top rated songs
+  ///
+  /// In zh, this message translates to:
+  /// **'高评分'**
+  String get topRated;
+
+  /// Subtitle for top rated songs
+  ///
+  /// In zh, this message translates to:
+  /// **'你的 4~5 星典藏歌曲'**
+  String get topRatedSubtitle;
+
+  /// Empty state text for time machine
+  ///
+  /// In zh, this message translates to:
+  /// **'暂无需要重温的专辑'**
+  String get emptyTimeMachine;
+
+  /// Empty state text for top rated
+  ///
+  /// In zh, this message translates to:
+  /// **'暂无 4~5 星评分歌曲'**
+  String get emptyTopRated;
+
+  /// Empty state for this week top
+  ///
+  /// In zh, this message translates to:
+  /// **'本周暂无播放记录'**
+  String get emptyThisWeekTop;
+
+  /// Quick access entries
+  ///
+  /// In zh, this message translates to:
+  /// **'快速入口'**
+  String get quickEntries;
+
+  /// View all link
+  ///
+  /// In zh, this message translates to:
+  /// **'查看全部'**
+  String get viewAll;
 }
 
 class _AppLocalizationsDelegate

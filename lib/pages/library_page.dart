@@ -7,12 +7,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/app_localizations.dart';
-import 'package:vynody/models/album_summary.dart';
-import 'package:vynody/player/audio/audio_riverpod.dart';
-import 'package:vynody/player/library/album_library.dart';
-import 'package:vynody/player/library/artist_library.dart';
-import 'package:vynody/widgets/album_cover.dart';
-import 'album_detail_page.dart';
 import 'albums_tab.dart';
 import 'artists_tab.dart';
 import 'most_played_tab.dart';
@@ -22,6 +16,8 @@ import '../widgets/mini_player_wrapper.dart';
 import '../widgets/auto_hide_header.dart';
 import 'playlist_tab.dart';
 import 'recently_added_tab.dart';
+import 'rated_songs_tab.dart';
+import 'library_dashboard_view.dart';
 import 'main_layout_riverpod.dart';
 import '../utils/layout_constants.dart';
 
@@ -132,6 +128,11 @@ class LibraryPageState extends ConsumerState<LibraryPage> {
       ref.read(librarySelectionStateProvider.notifier).clear();
       return true;
     }
+    final activeIndex = ref.read(libraryActiveTabIndexProvider);
+    if (_useSidebarLayout && activeIndex >= 0) {
+      ref.read(libraryActiveTabIndexProvider.notifier).set(-1);
+      return true;
+    }
     return false;
   }
 
@@ -144,20 +145,29 @@ class LibraryPageState extends ConsumerState<LibraryPage> {
     return _buildPortraitIndexView(context);
   }
 
-  /// 宽屏 / 桌面模式：六个二级页面由左侧 Rail 入口切换，顶部不再占用一行 TabBar，
-  /// 各子页自带工具栏，纵向空间全部留给内容（相比旧结构多出约 48px）
+  /// 宽屏 / 桌面模式：
+  /// activeIndex == -1 时展示媒体库仪表盘首页；>= 0 时由左侧 Rail 切换对应二级页面
   Widget _buildSidebarLayout(BuildContext context) {
     final double safeTopPadding =
         getTitleBarTopPadding(context, defaultWindowPadding: 32.0);
     final double topPadding = safeTopPadding + 8.0;
     final double leftPadding = widget.railWidth;
 
-    final int activeIndex = ref
-        .watch(libraryActiveTabIndexProvider)
-        .clamp(0, 5);
+    final int activeIndex = ref.watch(libraryActiveTabIndexProvider);
 
-    // 按需构建：Rail 切到哪个子页才实例化哪个，避免一次打开媒体库就构建全部六页
-    _builtSubTabs.add(activeIndex);
+    if (activeIndex == -1) {
+      return LibraryDashboardView(
+        contentTopPadding: topPadding,
+        contentLeftPadding: leftPadding,
+        onNavigateToSubIndex: (sub) {
+          ref.read(libraryActiveTabIndexProvider.notifier).set(sub);
+        },
+      );
+    }
+
+    final int clampedIndex = activeIndex.clamp(0, 6);
+    // 按需构建：Rail 切到哪个子页才实例化哪个，避免一次打开媒体库就构建全部子页
+    _builtSubTabs.add(clampedIndex);
 
     Widget buildSubTab(int index) {
       switch (index) {
@@ -193,211 +203,55 @@ class LibraryPageState extends ConsumerState<LibraryPage> {
             contentTopPadding: topPadding,
             contentLeftPadding: leftPadding,
           );
+        case 6:
+          return RatedSongsTab(
+            contentTopPadding: topPadding,
+            contentLeftPadding: leftPadding,
+          );
         default:
           return const SizedBox.shrink();
       }
     }
 
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      body: IndexedStack(
-        sizing: StackFit.expand,
-        index: activeIndex,
+      body: Stack(
         children: [
-          for (int i = 0; i < 6; i++)
-            _builtSubTabs.contains(i)
-                ? buildSubTab(i)
-                : const SizedBox.shrink(),
+          IndexedStack(
+            sizing: StackFit.expand,
+            index: clampedIndex,
+            children: [
+              for (int i = 0; i < 7; i++)
+                _builtSubTabs.contains(i)
+                    ? buildSubTab(i)
+                    : const SizedBox.shrink(),
+            ],
+          ),
+          Positioned(
+            top: safeTopPadding + 4,
+            left: leftPadding + 14,
+            child: Material(
+              color: Colors.transparent,
+              child: IconButton.filledTonal(
+                icon: const Icon(Icons.arrow_back_rounded, size: 20),
+                tooltip: l10n.goBack,
+                onPressed: () {
+                  ref.read(libraryActiveTabIndexProvider.notifier).set(-1);
+                },
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  /// 竖屏/移动端一级主页面
+  /// 竖屏/移动端主页面：统一使用响应式媒体库仪表盘首页
   Widget _buildPortraitIndexView(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
     final safeTop = getTitleBarTopPadding(context, defaultWindowPadding: 36.0);
-    final currentMusic = ref.watch(audioCurrentMusicProvider);
-
-    final playlistsCount =
-        ref.watch(playlistServiceProvider).playlists.length;
-    final albumsCount = ref.watch(albumLibraryProvider).value?.length;
-    final artistsCount = ref.watch(artistLibraryProvider).value?.length;
-    final albumsAsync = ref.watch(albumLibraryProvider);
-
-    final bottomPadding = (currentMusic != null ? 140.0 : 90.0) +
-        MediaQuery.of(context).padding.bottom;
-
-    return Scaffold(
-      key: const ValueKey('portrait_index_view'),
-      backgroundColor: theme.scaffoldBackgroundColor,
-      body: CustomScrollView(
-        slivers: [
-          // 顶部标题栏（预留桌面端窗口标题栏安全间距）
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(20, safeTop + 16, 20, 12),
-              child: Text(
-                l10n.list,
-                style: theme.textTheme.headlineLarge?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.5,
-                ),
-              ),
-            ),
-          ),
-
-          // 一级分组菜单入口卡片
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            sliver: SliverToBoxAdapter(
-              child: _PortraitLibraryMenuCard(
-                items: [
-                  _LibraryMenuItem(
-                    icon: Icons.queue_music_rounded,
-                    iconGradient: const [Color(0xFF6366F1), Color(0xFF8B5CF6)],
-                    title: l10n.playlist,
-                    badgeText: playlistsCount > 0 ? '$playlistsCount' : null,
-                    onTap: () => _openSubPage(context, 0),
-                  ),
-                  _LibraryMenuItem(
-                    icon: Icons.mic_external_on_rounded,
-                    iconGradient: const [Color(0xFFF97316), Color(0xFFFB923C)],
-                    title: l10n.artists,
-                    badgeText:
-                        artistsCount != null && artistsCount > 0
-                            ? '$artistsCount'
-                            : null,
-                    onTap: () => _openSubPage(context, 5),
-                  ),
-                  _LibraryMenuItem(
-                    icon: Icons.album_rounded,
-                    iconGradient: const [Color(0xFF06B6D4), Color(0xFF3B82F6)],
-                    title: l10n.albums,
-                    badgeText:
-                        albumsCount != null && albumsCount > 0
-                            ? '$albumsCount'
-                            : null,
-                    onTap: () => _openSubPage(context, 4),
-                  ),
-                  _LibraryMenuItem(
-                    icon: Icons.history_rounded,
-                    iconGradient: const [Color(0xFF10B981), Color(0xFF14B8A6)],
-                    title: l10n.recentlyPlayed,
-                    onTap: () => _openSubPage(context, 1),
-                  ),
-                  _LibraryMenuItem(
-                    icon: Icons.local_fire_department_rounded,
-                    iconGradient: const [Color(0xFFEF4444), Color(0xFFF43F5E)],
-                    title: l10n.mostPlayed,
-                    onTap: () => _openSubPage(context, 2),
-                  ),
-                  _LibraryMenuItem(
-                    icon: Icons.auto_awesome_rounded,
-                    iconGradient: const [Color(0xFFF59E0B), Color(0xFFEAB308)],
-                    title: l10n.recentlyAdded,
-                    onTap: () => _openSubPage(context, 3),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // 下半部分：快捷探索 / 最近添加专辑预览
-          albumsAsync.when(
-            data: (albums) {
-              if (albums.isEmpty) {
-                return const SliverToBoxAdapter(child: SizedBox.shrink());
-              }
-              final previewAlbums = albums.take(10).toList();
-
-              return SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              l10n.recentlyAdded,
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: -0.3,
-                              ),
-                            ),
-                            InkWell(
-                              onTap: () => _openSubPage(context, 3),
-                              borderRadius: BorderRadius.circular(12),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      l10n.recentlyAdded,
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w600,
-                                        color: theme.colorScheme.primary,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 2),
-                                    Icon(
-                                      Icons.chevron_right_rounded,
-                                      size: 16,
-                                      color: theme.colorScheme.primary,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      SizedBox(
-                        height: 190,
-                        child: _HorizontalMouseScrollable(
-                          builder: (context, scrollController) {
-                            return ListView.separated(
-                              controller: scrollController,
-                              padding: const EdgeInsets.symmetric(horizontal: 20),
-                              scrollDirection: Axis.horizontal,
-                              physics: const BouncingScrollPhysics(),
-                              itemCount: previewAlbums.length,
-                              separatorBuilder: (context, index) =>
-                                   const SizedBox(width: 14),
-                              itemBuilder: (context, index) {
-                                final album = previewAlbums[index];
-                                return _PortraitAlbumPreviewCard(album: album);
-                              },
-                            );
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-            loading: () => const SliverToBoxAdapter(child: SizedBox.shrink()),
-            error: (err, stack) =>
-                const SliverToBoxAdapter(child: SizedBox.shrink()),
-          ),
-
-          // 底部留白，避开 MiniPlayer / Floating Dock
-          SliverToBoxAdapter(
-            child: SizedBox(height: bottomPadding),
-          ),
-        ],
-      ),
+    return LibraryDashboardView(
+      contentTopPadding: safeTop,
+      onNavigateToSubIndex: (sub) => _openSubPage(context, sub),
     );
   }
 }
@@ -445,6 +299,7 @@ class _LibrarySubPageState extends ConsumerState<LibrarySubPage> {
       3 => l10n.recentlyAdded,
       4 => l10n.albums,
       5 => l10n.artists,
+      6 => l10n.ratedSongs,
       _ => l10n.list,
     };
 
@@ -459,6 +314,7 @@ class _LibrarySubPageState extends ConsumerState<LibrarySubPage> {
           contentTopPadding: topPadding,
         ),
       5 => ArtistsTab(contentTopPadding: topPadding),
+      6 => RatedSongsTab(contentTopPadding: topPadding),
       _ => const SizedBox.shrink(),
     };
 
@@ -608,218 +464,6 @@ class _HorizontalMouseScrollableState
   }
 }
 
-class _LibraryMenuItem {
-  final IconData icon;
-  final List<Color> iconGradient;
-  final String title;
-  final String? badgeText;
-  final VoidCallback onTap;
-
-  const _LibraryMenuItem({
-    required this.icon,
-    required this.iconGradient,
-    required this.title,
-    this.badgeText,
-    required this.onTap,
-  });
-}
-
-class _PortraitLibraryMenuCard extends StatelessWidget {
-  final List<_LibraryMenuItem> items;
-
-  const _PortraitLibraryMenuCard({required this.items});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark
-            ? theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.45)
-            : theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.15 : 0.04),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
-        ],
-        border: Border.all(
-          color: theme.dividerColor.withValues(alpha: isDark ? 0.12 : 0.06),
-          width: 0.8,
-        ),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(18),
-        child: Column(
-          children: [
-            for (int i = 0; i < items.length; i++) ...[
-              _buildTile(context, items[i]),
-              if (i < items.length - 1)
-                Padding(
-                  padding: const EdgeInsets.only(left: 64, right: 16),
-                  child: Divider(
-                    height: 1,
-                    thickness: 0.6,
-                    color: theme.dividerColor.withValues(alpha: 0.1),
-                  ),
-                ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTile(BuildContext context, _LibraryMenuItem item) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: item.onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
-          child: Row(
-            children: [
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: item.iconGradient,
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(10),
-                  boxShadow: [
-                    BoxShadow(
-                      color: item.iconGradient.first.withValues(alpha: 0.35),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Center(
-                  child: Icon(
-                    item.icon,
-                    size: 20,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Text(
-                  item.title,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 16,
-                  ),
-                ),
-              ),
-              if (item.badgeText != null) ...[
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 3,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? Colors.white.withValues(alpha: 0.1)
-                        : Colors.black.withValues(alpha: 0.05),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(
-                    item.badgeText!,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 6),
-              ],
-              Icon(
-                Icons.chevron_right_rounded,
-                size: 20,
-                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _PortraitAlbumPreviewCard extends StatelessWidget {
-  final AlbumSummary album;
-
-  const _PortraitAlbumPreviewCard({required this.album});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final l10n = AppLocalizations.of(context)!;
-    final artistName =
-        album.artist.isNotEmpty ? album.artist : l10n.unknownArtist;
-
-    return SizedBox(
-      width: 124,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => AlbumDetailPage(album: album),
-              ),
-            );
-          },
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: AlbumCover(
-                  album: album,
-                  size: 124,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                album.title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                artistName,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 11,
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 class KeepAliveWrapper extends StatefulWidget {
   final Widget child;

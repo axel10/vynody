@@ -3565,5 +3565,58 @@
   "lyricsRestoredSuccess": "已成功恢复该版本歌词",
   "@lyricsRestoredSuccess": {
     "description": "Toast message after restoring lyrics version"
+  },
+  "genres": "流派",
+  "@genres": {
+    "description": "Music genres"
+  },
+  "ratedSongs": "已评分",
+  "@ratedSongs": {
+    "description": "Rated songs"
+  },
+  "thisWeekTop": "本周常听",
+  "@thisWeekTop": {
+    "description": "Top tracks this week"
+  },
+  "thisWeekTopSubtitle": "近 7 天循环最多的单曲",
+  "@thisWeekTopSubtitle": {
+    "description": "Subtitle for top tracks this week"
+  },
+  "timeMachine": "拾光机 / 重温旧爱",
+  "@timeMachine": {
+    "description": "Rediscover past favorite albums"
+  },
+  "timeMachineSubtitle": "重温好久没听的常听或高分专辑",
+  "@timeMachineSubtitle": {
+    "description": "Subtitle for rediscover past favorites"
+  },
+  "topRated": "高评分",
+  "@topRated": {
+    "description": "Top rated songs"
+  },
+  "topRatedSubtitle": "你的 4~5 星典藏歌曲",
+  "@topRatedSubtitle": {
+    "description": "Subtitle for top rated songs"
+  },
+  "emptyTimeMachine": "暂无需要重温的专辑",
+  "@emptyTimeMachine": {
+    "description": "Empty state text for time machine"
+  },
+  "emptyTopRated": "暂无 4~5 星评分歌曲",
+  "@emptyTopRated": {
+    "description": "Empty state text for top rated"
+  },
+  "emptyThisWeekTop": "本周暂无播放记录",
+  "@emptyThisWeekTop": {
+    "description": "Empty state for this week top"
+  },
+  "quickEntries": "快速入口",
+  "@quickEntries": {
+    "description": "Quick access entries"
+  },
+  "viewAll": "查看全部",
+  "@viewAll": {
+    "description": "View all link"
   }
 }
+
