@@ -148,10 +148,7 @@ class AppBottomSheet extends StatelessWidget {
     final effectiveMaxWidth = math.min(targetMaxWidth, media.size.width);
     final effectiveMaxHeight = media.size.height * maxHeightFactor;
 
-    final defaultBgColor = isDark
-        ? Colors.black.withValues(alpha: 0.78)
-        : theme.colorScheme.surface.withValues(alpha: 0.95);
-
+    final defaultBgColor = AppBlur.dialogSurface(context);
     final defaultBorderColor = isDark
         ? Colors.white.withValues(alpha: 0.1)
         : theme.colorScheme.outlineVariant.withValues(alpha: 0.3);
@@ -698,9 +695,10 @@ class _AppAdaptiveSheetState extends State<AppAdaptiveSheet>
           0.0,
         );
 
-    final defaultBgColor = isDark
-        ? Colors.black.withValues(alpha: isDialog ? 0.82 : 0.78)
-        : theme.colorScheme.surface.withValues(alpha: isDialog ? 0.98 : 0.95);
+    final defaultBgColor = AppBlur.dialogSurface(
+      context,
+      overrideAlpha: isDialog ? (isDark ? 0.88 : 0.98) : AppBlur.dialogAlpha(isDark),
+    );
 
     final defaultBorderColor = isDark
         ? Colors.white.withValues(alpha: isDialog ? 0.12 : 0.1)

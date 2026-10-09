@@ -136,7 +136,7 @@ class _RemoteControlSheetContentState
         ),
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
         decoration: BoxDecoration(
-          color: theme.colorScheme.surface.withValues(alpha: 0.92),
+          color: AppBlur.dialogSurface(context),
           borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
           border: Border(
             top: BorderSide(

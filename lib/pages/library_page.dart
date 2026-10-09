@@ -288,7 +288,6 @@ class _LibrarySubPageState extends ConsumerState<LibrarySubPage> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final double safeTopPadding =
         getTitleBarTopPadding(context, defaultWindowPadding: 32.0);
     final double topPadding = safeTopPadding + kToolbarHeight;
@@ -359,9 +358,7 @@ class _LibrarySubPageState extends ConsumerState<LibrarySubPage> {
                         child: Container(
                           padding: EdgeInsets.only(top: safeTopPadding),
                           decoration: BoxDecoration(
-                            color: theme.colorScheme.surface.withValues(
-                              alpha: isDark ? 0.70 : 0.82,
-                            ),
+                            color: AppBlur.heavySurface(context),
                             border: Border(
                               bottom: BorderSide(
                                 color: theme.dividerColor.withValues(alpha: 0.12),

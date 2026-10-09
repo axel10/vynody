@@ -629,9 +629,7 @@ class _QueuePageState extends ConsumerState<QueuePage>
                   child: Container(
                     padding: EdgeInsets.only(top: safeTopPadding),
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.surface.withValues(
-                        alpha: isDark ? 0.66 : 0.80,
-                      ),
+                      color: AppBlur.heavySurface(context),
                       border: Border(
                         bottom: BorderSide(
                           color: theme.dividerColor.withValues(alpha: 0.12),

@@ -390,18 +390,11 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
         return BackdropFilter(
           filter: AppBlur.mediumFilter,
           child: Container(
-            decoration: BoxDecoration(
-              color: isDark
-                  ? Colors.black.withValues(alpha: 0.88)
-                  : theme.colorScheme.surface.withValues(alpha: 0.95),
+            decoration: AppBlur.dialogDecoration(
+              context,
               borderRadius:
                   const BorderRadius.vertical(top: Radius.circular(24)),
-              border: Border.all(
-                color: isDark
-                    ? Colors.white.withValues(alpha: 0.08)
-                    : theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
-                width: 1,
-              ),
+              showShadow: false,
             ),
             child: SafeArea(
               child: Column(

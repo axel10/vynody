@@ -106,24 +106,7 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
                 borderRadius: BorderRadius.circular(isTablet ? 32 : 28),
                 boxShadow: widget.isPlayback
                     ? const []
-                    : [
-                        BoxShadow(
-                          color: Colors.black.withValues(
-                            alpha: isDark ? 0.22 : 0.10,
-                          ),
-                          blurRadius: 28,
-                          offset: const Offset(0, 8),
-                          spreadRadius: 0,
-                        ),
-                        BoxShadow(
-                          color: Colors.black.withValues(
-                            alpha: isDark ? 0.12 : 0.05,
-                          ),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                          spreadRadius: 0,
-                        ),
-                      ],
+                    : AppBlur.glassShadow(context),
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(isTablet ? 32 : 28),
@@ -138,19 +121,11 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
                     decoration: BoxDecoration(
                       color: widget.isPlayback
                           ? Colors.transparent
-                          : theme.colorScheme.surface.withValues(
-                              alpha: isDark ? 0.66 : 0.80,
-                            ),
+                          : AppBlur.heavySurface(context),
                       borderRadius: BorderRadius.circular(isTablet ? 32 : 28),
                       border: widget.isPlayback
                           ? null
-                          : Border.all(
-                              color: (isDark ? Colors.white : Colors.black)
-                                  .withValues(
-                                    alpha: isDark ? 0.15 : 0.08,
-                                  ),
-                              width: 0.8,
-                            ),
+                          : AppBlur.glassBorder(context),
                     ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,

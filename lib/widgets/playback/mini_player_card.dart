@@ -150,41 +150,17 @@ class MiniPlayerCard extends ConsumerWidget {
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(100),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(
-                alpha: isDark ? 0.22 : 0.10,
-              ),
-              blurRadius: 28,
-              offset: const Offset(0, 8),
-              spreadRadius: 0,
-            ),
-            BoxShadow(
-              color: Colors.black.withValues(
-                alpha: isDark ? 0.12 : 0.05,
-              ),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-              spreadRadius: 0,
-            ),
-          ],
+          boxShadow: AppBlur.glassShadow(context),
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(100),
           child: BackdropFilter(
             filter: AppBlur.heavyFilter,
             child: Container(
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surface.withValues(
-                  alpha: isDark ? 0.66 : 0.80,
-                ),
+              decoration: AppBlur.heavyDecoration(
+                context,
                 borderRadius: BorderRadius.circular(100),
-                border: Border.all(
-                  color: (isDark ? Colors.white : Colors.black).withValues(
-                    alpha: isDark ? 0.15 : 0.08,
-                  ),
-                  width: 0.8,
-                ),
+                showShadow: false,
               ),
               child: Stack(
                 children: [

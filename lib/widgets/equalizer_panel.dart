@@ -1519,24 +1519,10 @@ class _PresetPickerDialog extends ConsumerWidget {
         filter: AppBlur.mediumFilter,
         child: Container(
           constraints: const BoxConstraints(maxWidth: 680, maxHeight: 560),
-          decoration: BoxDecoration(
-            color: isDark
-                ? const Color(0xFF18181B).withValues(alpha: 0.95)
-                : theme.colorScheme.surface.withValues(alpha: 0.98),
+          decoration: AppBlur.dialogDecoration(
+            context,
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.12)
-                  : theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
-              width: 1,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.35),
-                blurRadius: 32,
-                offset: const Offset(0, 12),
-              ),
-            ],
+            borderWidth: 1.0,
           ),
           padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
           child: Column(

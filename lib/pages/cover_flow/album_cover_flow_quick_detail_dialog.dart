@@ -123,9 +123,7 @@ class _AlbumCoverFlowQuickDetailDialogState
         ? math.min(520.0, usableHeight - 24.0)
         : math.min(580.0, usableHeight - (isNarrow ? 24.0 : 48.0));
 
-    final dialogBg = isDark
-        ? const Color(0xFF1E1E24).withValues(alpha: 0.88)
-        : Colors.white.withValues(alpha: 0.92);
+    final dialogBg = AppBlur.dialogSurface(context);
     final borderColor = theme.colorScheme.outlineVariant.withValues(alpha: 0.35);
 
     Widget buildSelectionPanel() {
