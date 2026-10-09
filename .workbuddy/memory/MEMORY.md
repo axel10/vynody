@@ -27,6 +27,21 @@ FFMPEG_BASE_URL=https://github.com/axel10/audio_core/releases/download
 - Linux: `cargokit/cmake/cargokit.cmake` → `download-ffmpeg-linux.sh`
 - Windows: `windows/CMakeLists.txt` / `download_sources.sh` → `download-ffmpeg-windows.ps1`
 
+## 左侧导航栏（Rail）宽度常量集中管理
+
+约定：`lib/utils/layout_constants.dart` 是 rail 宽度的**唯一**来源，禁止在页面里硬编码 `80.0`：
+- `kSidebarRailWidthCollapsed = 80.0`（纯图标）
+- `kSidebarRailWidthExtended = 216.0`（图标 + 文字）
+- `kSidebarRailExtendedMinWindowWidth = 900.0`
+- `sidebarRailWidthFor(windowWidth)` 按窗口宽度返回实际宽度
+
+涉及位置（改宽度时必须一起检查）：`main_layout.dart` 的 `railWidth` / `SizedBox(width:)` /
+`_buildCurrentPage` 的 `leftPadding`，以及 `library_page.dart` 的 `railWidth` 入参。
+
+桌面端媒体库已取消顶部 TabBar，六个二级入口改由 Rail 承载（折叠式，仅媒体库页激活时展开），
+设置页钉在 Rail 左下角；窗口高度不足时 Rail 中间区可滚动。竖屏/移动端仍走
+卡片索引页 + `LibrarySubPage`。
+
 ## 环境注意事项
 
 - Bash 工具的 `grep` 在本机结果不可靠（会漏匹配），排查代码一律优先用 Grep 工具。
@@ -34,6 +49,9 @@ FFMPEG_BASE_URL=https://github.com/axel10/audio_core/releases/download
   `java -cp "$HOME/.gradle/wrapper/dists/gradle-8.14-all/*/gradle-8.14/lib/*" groovy.ui.GroovyMain xxx.groovy`
   改完 `*.gradle` 跑一遍能提前发现语法/解析错误，比等 Android 构建报错快得多。
 - 本机没有 `pwsh`，PowerShell 脚本改完无法本地验证。
+- `flutter` 不在 PATH，用前先 `export PATH="$HOME/flutter/bin:$PATH"`。
+- 沙箱会拦截 `~/.pub-cache` 写入，直接 `flutter analyze` 会因 pub get 失败而中断，
+  必须带上 `--no-pub`（项目已有 `.dart_tool/package_config.json`，够用）。
 
 ## 协作偏好
 

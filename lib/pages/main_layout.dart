@@ -42,6 +42,7 @@ import '../widgets/playback_ui_tuning.dart';
 import '../widgets/global_drop_target.dart';
 import '../widgets/library_selection_scope.dart';
 import '../widgets/folder_scan_widgets.dart';
+import '../utils/layout_constants.dart';
 import 'package:vynody/player/platform/right_queue_drawer_controller.dart';
 import '../widgets/right_queue_panel.dart';
 import 'package:vynody/utils/deleted_song_snack.dart';
@@ -722,7 +723,10 @@ class _MainLayoutState extends ConsumerState<MainLayout>
     }
 
     _visitedTabs.add(_currentIndex);
-    final double leftPadding = useSidebar ? 80.0 : 0.0;
+    // 窗口足够宽时左侧导航栏展开为图标 + 文字，否则收回为纯图标
+    final double railWidth =
+        useSidebar ? sidebarRailWidthFor(MediaQuery.of(context).size.width) : 0.0;
+    final double leftPadding = railWidth;
 
     return IndexedStack(
       index: _currentIndex.clamp(0, 4),
@@ -746,6 +750,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                   initialAlbums3DView: widget.initialAlbums3DView,
                   initialAlbums3DIndex: widget.initialAlbums3DIndex,
                   useSidebar: useSidebar,
+                  railWidth: railWidth,
                 ),
               )
             : const SizedBox.shrink(),
@@ -1200,7 +1205,8 @@ class _MainLayoutState extends ConsumerState<MainLayout>
         isCoverFlowImmersive ||
         isKeyboardVisible;
 
-    final double railWidth = (useSidebar && !isSidebarHidden) ? 80.0 : 0.0;
+    final double railWidth =
+        (useSidebar && !isSidebarHidden) ? sidebarRailWidthFor(size.width) : 0.0;
 
     final mainAppWidget = Focus(
       autofocus: true,
@@ -1258,7 +1264,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                             top: 0,
                             bottom: 0,
                             child: SizedBox(
-                              width: 80,
+                              width: railWidth,
                               child: AnimatedOpacity(
                                 duration: const Duration(milliseconds: 300),
                                 curve: Curves.easeInOut,
@@ -1280,12 +1286,40 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                                               animatedOpacity,
                                             ) ??
                                             navBgBaseColor,
+                                        width: railWidth,
+                                        extended:
+                                            railWidth >= kSidebarRailWidthExtended,
                                         selectedIndex: _currentIndex,
                                         onDestinationSelected: (index) {
                                           if (index == 1) {
                                             ref.read(settingsServiceProvider).resetInactivity();
                                           }
                                           _onDestinationSelected(index);
+                                        },
+                                        // 媒体库（index 2）激活时，在 Rail 内展开其六个子页面入口
+                                        isLibraryExpanded: _currentIndex == 2,
+                                        librarySubIndex: ref.watch(
+                                          libraryActiveTabIndexProvider,
+                                        ),
+                                        onLibrarySubDestinationSelected: (
+                                          subIndex,
+                                        ) {
+                                          Tooltip.dismissAllToolTips();
+                                          ref
+                                              .read(
+                                                librarySelectionScopeProvider
+                                                    .notifier,
+                                              )
+                                              .clear();
+                                          ref
+                                              .read(
+                                                libraryActiveTabIndexProvider
+                                                    .notifier,
+                                              )
+                                              .set(subIndex);
+                                          if (_currentIndex != 2) {
+                                            _onDestinationSelected(2);
+                                          }
                                         },
                                         indicatorColor: Color.lerp(
                                               navIndicatorBaseColor.withValues(
@@ -1296,6 +1330,9 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                                             ) ??
                                             navIndicatorBaseColor,
                                         isPlayback: isPlayback,
+                                        isSettingsActive: ref.watch(
+                                          isSettingsPageActiveProvider,
+                                        ),
                                       );
                                     },
                                   ),
@@ -1486,20 +1523,53 @@ class _MainLayoutState extends ConsumerState<MainLayout>
   }
 }
 
-class _SlidingNavigationRail extends StatelessWidget {
+/// 左侧导航栏单行条目的布局描述（高度 + 内容），用于逐行累加计算胶囊指示器的 Y 偏移
+class _RailRow {
+  const _RailRow({required this.height, required this.child});
+
+  final double height;
+  final Widget child;
+}
+
+class _SlidingNavigationRail extends StatefulWidget {
+  final double width;
+  final bool extended;
   final int selectedIndex;
   final ValueChanged<int> onDestinationSelected;
   final Color backgroundColor;
   final Color indicatorColor;
   final bool isPlayback;
+  final bool isSettingsActive;
+  final bool isLibraryExpanded;
+  final int librarySubIndex;
+  final ValueChanged<int> onLibrarySubDestinationSelected;
 
   const _SlidingNavigationRail({
+    required this.width,
+    required this.extended,
     required this.selectedIndex,
     required this.onDestinationSelected,
     required this.backgroundColor,
     required this.indicatorColor,
     required this.isPlayback,
+    required this.isSettingsActive,
+    required this.isLibraryExpanded,
+    required this.librarySubIndex,
+    required this.onLibrarySubDestinationSelected,
   });
+
+  @override
+  State<_SlidingNavigationRail> createState() => _SlidingNavigationRailState();
+}
+
+class _SlidingNavigationRailState extends State<_SlidingNavigationRail> {
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1545,109 +1615,284 @@ class _SlidingNavigationRail extends StatelessWidget {
       ),
     ];
 
-    final double leadingHeight = Platform.isIOS ? 56.0 : 32.0;
-    const double itemHeight = 52.0;
-    const double pillWidth = 56.0;
-    const double pillHeight = 32.0;
+    // 媒体库（index 2）的二级入口，顺序与 libraryActiveTabIndexProvider 一致
+    final librarySubDestinations = [
+      (
+        label: l10n.playlist,
+        icon: Icons.queue_music_rounded,
+        selectedIcon: Icons.queue_music_rounded,
+      ),
+      (
+        label: l10n.recentlyPlayed,
+        icon: Icons.history_rounded,
+        selectedIcon: Icons.history_rounded,
+      ),
+      (
+        label: l10n.mostPlayed,
+        icon: Icons.local_fire_department_rounded,
+        selectedIcon: Icons.local_fire_department_rounded,
+      ),
+      (
+        label: l10n.recentlyAdded,
+        icon: Icons.auto_awesome_rounded,
+        selectedIcon: Icons.auto_awesome_rounded,
+      ),
+      (
+        label: l10n.albums,
+        icon: Icons.album_rounded,
+        selectedIcon: Icons.album_rounded,
+      ),
+      (
+        label: l10n.artists,
+        icon: Icons.mic_external_on_rounded,
+        selectedIcon: Icons.mic_external_on_rounded,
+      ),
+    ];
 
-    final topInset =
+    const double itemHeight = 48.0;
+    const double subItemHeight = 44.0;
+
+    final double leadingHeight = Platform.isIOS ? 56.0 : 32.0;
+    final double topInset =
         math.max(leadingHeight, MediaQuery.paddingOf(context).top);
 
-    final activeIndex = selectedIndex.clamp(0, destinations.length - 1);
-    final pillLeft = (80.0 - pillWidth) / 2;
-    final pillTop =
-        (activeIndex * itemHeight) + ((itemHeight - pillHeight) / 2);
-
-    final activeColor = isPlayback ? Colors.white : theme.colorScheme.primary;
-    final inactiveColor = isPlayback
+    final activeColor = widget.isPlayback
+        ? Colors.white
+        : theme.colorScheme.primary;
+    final inactiveColor = widget.isPlayback
         ? Colors.white.withValues(alpha: 0.80)
         : theme.colorScheme.onSurfaceVariant;
 
+    final int activeMainIndex = widget.selectedIndex.clamp(
+      0,
+      destinations.length - 1,
+    );
+    final int activeSubIndex = widget.librarySubIndex.clamp(
+      0,
+      librarySubDestinations.length - 1,
+    );
+
+    // 设置页固定钉在左下角，其余条目（含媒体库展开的二级入口）放进可滚动区
+    final rows = <_RailRow>[];
+    int pillRow = -1;
+
+    for (int i = 0; i < destinations.length - 1; i++) {
+      final d = destinations[i];
+      if (d.index == activeMainIndex && !widget.isSettingsActive) {
+        pillRow = rows.length;
+      }
+      rows.add(
+        _RailRow(
+          height: itemHeight,
+          child: _buildTile(
+            icon: d.icon,
+            selectedIcon: d.selectedIcon,
+            label: d.label,
+            isSelected: d.index == activeMainIndex && !widget.isSettingsActive,
+            isSubItem: false,
+            activeColor: activeColor,
+            inactiveColor: inactiveColor,
+            onTap: () => widget.onDestinationSelected(d.index),
+          ),
+        ),
+      );
+
+      if (d.index == 2 && widget.isLibraryExpanded) {
+        for (int s = 0; s < librarySubDestinations.length; s++) {
+          final sub = librarySubDestinations[s];
+          if (d.index == activeMainIndex &&
+              !widget.isSettingsActive &&
+              s == activeSubIndex) {
+            pillRow = rows.length;
+          }
+          rows.add(
+            _RailRow(
+              height: subItemHeight,
+              child: _buildTile(
+                icon: sub.icon,
+                selectedIcon: sub.selectedIcon,
+                label: sub.label,
+                isSelected:
+                    d.index == activeMainIndex &&
+                    !widget.isSettingsActive &&
+                    s == activeSubIndex,
+                isSubItem: true,
+                activeColor: activeColor,
+                inactiveColor: inactiveColor,
+                onTap: () => widget.onLibrarySubDestinationSelected(s),
+              ),
+            ),
+          );
+        }
+      }
+    }
+
+    double offsetOf(int rowIndex) {
+      double offset = 0.0;
+      for (int i = 0; i < rowIndex && i < rows.length; i++) {
+        offset += rows[i].height;
+      }
+      return offset;
+    }
+
+    final double contentHeight = offsetOf(rows.length);
+    final bool showPill = pillRow >= 0;
+    final double pillWidth = widget.extended ? widget.width - 16.0 : 56.0;
+    final double pillLeft = widget.extended ? 8.0 : (widget.width - pillWidth) / 2.0;
+    final double pillHeight = showPill
+        ? math.max(32.0, rows[pillRow].height - 8.0)
+        : 32.0;
+    final double pillTop = showPill
+        ? offsetOf(pillRow) + (rows[pillRow].height - pillHeight) / 2.0
+        : 0.0;
+
     return Container(
-      width: 80,
-      color: backgroundColor,
+      width: widget.width,
+      color: widget.backgroundColor,
       child: Column(
         children: [
           SizedBox(height: topInset),
-          SizedBox(
-            height: destinations.length * itemHeight,
-            child: Stack(
-              children: [
-                // 1. 纵向平移滑动的胶囊指示器
-                AnimatedPositioned(
-                  duration: const Duration(milliseconds: 280),
-                  curve: Curves.easeOutCubic,
-                  left: pillLeft,
-                  top: pillTop,
-                  width: pillWidth,
-                  height: pillHeight,
-                  child: IgnorePointer(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: indicatorColor,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                  ),
-                ),
 
-                // 2. 目标 Tab 按钮列表
-                Column(
-                  children: destinations.map((d) {
-                    final isSelected = selectedIndex == d.index;
-                    return SizedBox(
-                      width: 80,
-                      height: itemHeight,
-                      child: Center(
-                        child: AppTooltip(
-                          message: d.label,
-                          child: MouseRegion(
-                            cursor: SystemMouseCursors.click,
-                            child: Material(
-                              color: Colors.transparent,
-                              borderRadius: BorderRadius.circular(16),
-                              clipBehavior: Clip.antiAlias,
-                              child: InkWell(
+          // 可滚动区：窗口高度不足时（媒体库展开后条目变多）可上下滚动
+          Expanded(
+            child: Scrollbar(
+              controller: _scrollController,
+              thumbVisibility: false,
+              child: SingleChildScrollView(
+                controller: _scrollController,
+                child: SizedBox(
+                  width: widget.width,
+                  height: contentHeight,
+                  child: Stack(
+                    children: [
+                      // 1. 纵向平移滑动的胶囊指示器
+                      AnimatedPositioned(
+                        duration: const Duration(milliseconds: 280),
+                        curve: Curves.easeOutCubic,
+                        left: pillLeft,
+                        top: pillTop,
+                        width: pillWidth,
+                        height: pillHeight,
+                        child: IgnorePointer(
+                          child: AnimatedOpacity(
+                            duration: const Duration(milliseconds: 180),
+                            opacity: showPill ? 1.0 : 0.0,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: widget.indicatorColor,
                                 borderRadius: BorderRadius.circular(16),
-                                onTap: () => onDestinationSelected(d.index),
-                                child: SizedBox(
-                                  width: pillWidth,
-                                  height: pillHeight,
-                                  child: Center(
-                                    child: AnimatedCrossFade(
-                                      duration:
-                                          const Duration(milliseconds: 200),
-                                      firstCurve: Curves.easeOutCubic,
-                                      secondCurve: Curves.easeOutCubic,
-                                      crossFadeState: isSelected
-                                          ? CrossFadeState.showSecond
-                                          : CrossFadeState.showFirst,
-                                      firstChild: Icon(
-                                        d.icon,
-                                        size: 22,
-                                        color: inactiveColor,
-                                      ),
-                                      secondChild: Icon(
-                                        d.selectedIcon,
-                                        size: 22,
-                                        color: activeColor,
-                                      ),
-                                    ),
-                                  ),
-                                ),
                               ),
                             ),
                           ),
                         ),
                       ),
-                    );
-                  }).toList(),
+
+                      // 2. 各条目按累加偏移定位，胶囊可精确对齐任意分组中的条目
+                      for (int i = 0; i < rows.length; i++)
+                        Positioned(
+                          top: offsetOf(i),
+                          left: 0,
+                          right: 0,
+                          height: rows[i].height,
+                          child: rows[i].child,
+                        ),
+                    ],
+                  ),
                 ),
-              ],
+              ),
             ),
+          ),
+
+          // 分割线：把常驻的设置入口与上方的页面导航区分开
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            child: Container(
+              height: 0.5,
+              color: theme.dividerColor.withValues(alpha: 0.35),
+            ),
+          ),
+
+          // 设置页常驻左下角，不随上方条目滚动
+          SizedBox(
+            height: itemHeight,
+            child: _buildTile(
+              icon: destinations.last.icon,
+              selectedIcon: destinations.last.selectedIcon,
+              label: destinations.last.label,
+              isSelected: widget.isSettingsActive,
+              isSubItem: false,
+              activeColor: activeColor,
+              inactiveColor: inactiveColor,
+              onTap: () => widget.onDestinationSelected(destinations.last.index),
+            ),
+          ),
+          SizedBox(
+            height: math.max(10.0, MediaQuery.paddingOf(context).bottom),
           ),
         ],
       ),
     );
+  }
+
+  Widget _buildTile({
+    required IconData icon,
+    required IconData selectedIcon,
+    required String label,
+    required bool isSelected,
+    required bool isSubItem,
+    required Color activeColor,
+    required Color inactiveColor,
+    required VoidCallback onTap,
+  }) {
+    final Color color = isSelected ? activeColor : inactiveColor;
+    final double iconSize = isSubItem ? 19.0 : 22.0;
+
+    final Widget content;
+    if (widget.extended) {
+      content = Padding(
+        padding: EdgeInsets.only(left: isSubItem ? 30.0 : 16.0, right: 12.0),
+        child: Row(
+          children: [
+            Icon(isSelected ? selectedIcon : icon, size: iconSize, color: color),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: isSubItem ? 13.0 : 14.0,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                  color: color,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    } else {
+      content = Center(
+        child: Icon(isSelected ? selectedIcon : icon, size: iconSize, color: color),
+      );
+    }
+
+    Widget tile = Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(16),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        child: SizedBox.expand(child: content),
+      ),
+    );
+
+    tile = MouseRegion(cursor: SystemMouseCursors.click, child: tile);
+
+    // 展开态已有文字标签，无需再依赖悬浮提示
+    if (!widget.extended) {
+      tile = AppTooltip(message: label, child: tile);
+    }
+    return tile;
   }
 }

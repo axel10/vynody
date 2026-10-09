@@ -33,48 +33,46 @@ class LibraryPage extends ConsumerStatefulWidget {
   final int initialAlbums3DIndex;
   final bool? useSidebar;
 
+  /// 左侧导航栏（Rail）当前实际宽度，宽屏布局下用它作为内容区左侧避让间距
+  final double railWidth;
+
   const LibraryPage({
     super.key,
     this.initialTabIndex = 0,
     this.initialAlbums3DView = false,
     this.initialAlbums3DIndex = 0,
     this.useSidebar,
+    this.railWidth = kSidebarRailWidthCollapsed,
   });
 
   @override
   ConsumerState<LibraryPage> createState() => LibraryPageState();
 }
 
-class LibraryPageState extends ConsumerState<LibraryPage>
-    with SingleTickerProviderStateMixin {
-  late final TabController _tabController;
+class LibraryPageState extends ConsumerState<LibraryPage> {
   int _tabIndex = 0;
+
+  /// 已构建过的二级页面索引，避免宽屏布局一次性实例化全部六个子页
+  final Set<int> _builtSubTabs = {};
 
   @override
   void initState() {
     super.initState();
-    _tabIndex = widget.initialTabIndex;
-
-    _tabController = TabController(
-      length: 6,
-      vsync: this,
-      initialIndex: widget.initialTabIndex,
-    )..addListener(() {
-      if (_tabController.indexIsChanging) return;
-      if (_tabIndex == _tabController.index) return;
-      _tabIndex = _tabController.index;
-      ref.read(libraryActiveTabIndexProvider.notifier).set(_tabIndex);
-      ref.read(librarySelectionScopeProvider.notifier).clear();
-    });
+    // 若用户在别的页面先通过 Rail 选中了某个媒体库子页，provider 里已有值，
+    // 此时不能再用 initialTabIndex 覆盖掉（否则会跳回第一个子页）
+    final int persistedIndex = ref.read(libraryActiveTabIndexProvider);
+    _tabIndex =
+        widget.initialAlbums3DView
+            ? 4
+            : (widget.initialTabIndex != 0
+                ? widget.initialTabIndex
+                : persistedIndex);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       ref.read(libraryActiveTabIndexProvider.notifier).set(_tabIndex);
 
-      final isLandscape =
-          MediaQuery.of(context).orientation == Orientation.landscape;
-      final shouldUseLandscapeLayout = !Platform.isAndroid && isLandscape;
-      if (!shouldUseLandscapeLayout &&
+      if (!_useSidebarLayout &&
           (widget.initialAlbums3DView || widget.initialTabIndex != 0)) {
         final targetIndex =
             widget.initialAlbums3DView ? 4 : widget.initialTabIndex;
@@ -88,10 +86,11 @@ class LibraryPageState extends ConsumerState<LibraryPage>
     });
   }
 
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
+  /// 与 MainLayout 的 Rail 开关保持完全一致：宽屏布局下入口由左侧 Rail 承载，
+  /// 不再显示顶部 TabBar
+  bool get _useSidebarLayout {
+    if (widget.useSidebar != null) return widget.useSidebar!;
+    return MediaQuery.of(context).orientation == Orientation.landscape;
   }
 
   void _openSubPage(
@@ -138,130 +137,76 @@ class LibraryPageState extends ConsumerState<LibraryPage>
 
   @override
   Widget build(BuildContext context) {
-    final bool isLandscape =
-        MediaQuery.of(context).orientation == Orientation.landscape;
-
-    // 在非 Android 平台且处于横屏/宽屏模式时展示桌面/宽屏 TabBar 视图
-    if (!Platform.isAndroid && isLandscape) {
-      return _buildLandscapeLayout(context);
-    } else {
-      return _buildPortraitIndexView(context);
+    // 宽屏布局：入口由左侧 Rail 承载，不再渲染顶部 TabBar
+    if (_useSidebarLayout) {
+      return _buildSidebarLayout(context);
     }
+    return _buildPortraitIndexView(context);
   }
 
-  /// 横屏 / 宽屏模式：保持原有顶部可滑动 TabBar + TabBarView 结构
-  Widget _buildLandscapeLayout(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final bool isLandscape =
-        MediaQuery.of(context).orientation == Orientation.landscape;
-    final bool isCoverFlowImmersive =
-        isLandscape && ref.watch(isCoverFlowImmersiveActiveProvider);
-    final bool effectiveUseSidebar = widget.useSidebar ?? isLandscape;
-    final double leftPadding = effectiveUseSidebar ? 80.0 : 0.0;
+  /// 宽屏 / 桌面模式：六个二级页面由左侧 Rail 入口切换，顶部不再占用一行 TabBar，
+  /// 各子页自带工具栏，纵向空间全部留给内容（相比旧结构多出约 48px）
+  Widget _buildSidebarLayout(BuildContext context) {
     final double safeTopPadding =
         getTitleBarTopPadding(context, defaultWindowPadding: 32.0);
-    final double topPadding = safeTopPadding + kToolbarHeight;
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final double topPadding = safeTopPadding + 8.0;
+    final double leftPadding = widget.railWidth;
+
+    final int activeIndex = ref
+        .watch(libraryActiveTabIndexProvider)
+        .clamp(0, 5);
+
+    // 按需构建：Rail 切到哪个子页才实例化哪个，避免一次打开媒体库就构建全部六页
+    _builtSubTabs.add(activeIndex);
+
+    Widget buildSubTab(int index) {
+      switch (index) {
+        case 0:
+          return PlaylistTab(
+            contentTopPadding: topPadding,
+            contentLeftPadding: leftPadding,
+          );
+        case 1:
+          return RecentlyPlayedTab(
+            contentTopPadding: topPadding,
+            contentLeftPadding: leftPadding,
+          );
+        case 2:
+          return MostPlayedTab(
+            contentTopPadding: topPadding,
+            contentLeftPadding: leftPadding,
+          );
+        case 3:
+          return RecentlyAddedTab(
+            contentTopPadding: topPadding,
+            contentLeftPadding: leftPadding,
+          );
+        case 4:
+          return AlbumsTab(
+            initial3DView: widget.initialAlbums3DView,
+            initial3DIndex: widget.initialAlbums3DIndex,
+            contentTopPadding: topPadding,
+            contentLeftPadding: leftPadding,
+          );
+        case 5:
+          return ArtistsTab(
+            contentTopPadding: topPadding,
+            contentLeftPadding: leftPadding,
+          );
+        default:
+          return const SizedBox.shrink();
+      }
+    }
 
     return Scaffold(
-      body: Stack(
-        fit: StackFit.expand,
+      body: IndexedStack(
+        sizing: StackFit.expand,
+        index: activeIndex,
         children: [
-          TabBarView(
-            controller: _tabController,
-            physics:
-                isCoverFlowImmersive
-                    ? const NeverScrollableScrollPhysics()
-                    : null,
-            children: [
-              KeepAliveWrapper(
-                child: PlaylistTab(
-                  contentTopPadding: topPadding,
-                  contentLeftPadding: leftPadding,
-                ),
-              ),
-              KeepAliveWrapper(
-                child: RecentlyPlayedTab(
-                  contentTopPadding: topPadding,
-                  contentLeftPadding: leftPadding,
-                ),
-              ),
-              KeepAliveWrapper(
-                child: MostPlayedTab(
-                  contentTopPadding: topPadding,
-                  contentLeftPadding: leftPadding,
-                ),
-              ),
-              KeepAliveWrapper(
-                child: RecentlyAddedTab(
-                  contentTopPadding: topPadding,
-                  contentLeftPadding: leftPadding,
-                ),
-              ),
-              KeepAliveWrapper(
-                child: AlbumsTab(
-                  initial3DView: widget.initialAlbums3DView,
-                  initial3DIndex: widget.initialAlbums3DIndex,
-                  contentTopPadding: topPadding,
-                  contentLeftPadding: leftPadding,
-                ),
-              ),
-              KeepAliveWrapper(
-                child: ArtistsTab(
-                  contentTopPadding: topPadding,
-                  contentLeftPadding: leftPadding,
-                ),
-              ),
-            ],
-          ),
-          Positioned(
-            top: 0,
-            left: leftPadding,
-            right: 0,
-            height: topPadding,
-            child: AnimatedOpacity(
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeInOut,
-              opacity: isCoverFlowImmersive ? 0.0 : 1.0,
-              child: IgnorePointer(
-                ignoring: isCoverFlowImmersive,
-                child: ClipRect(
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-                    child: Container(
-                      padding: EdgeInsets.only(top: safeTopPadding),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.surface.withValues(
-                          alpha: isDark ? 0.66 : 0.80,
-                        ),
-                        border: Border(
-                          bottom: BorderSide(
-                            color: theme.dividerColor.withValues(alpha: 0.12),
-                            width: 0.8,
-                          ),
-                        ),
-                      ),
-                      child: TabBar(
-                        controller: _tabController,
-                        isScrollable: true,
-                        tabAlignment: TabAlignment.center,
-                        dividerColor: Colors.transparent,
-                        tabs: [
-                          Tab(text: l10n.playlist),
-                          Tab(text: l10n.recentlyPlayed),
-                          Tab(text: l10n.mostPlayed),
-                          Tab(text: l10n.recentlyAdded),
-                          Tab(text: l10n.albums),
-                          Tab(text: l10n.artists),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
+          for (int i = 0; i < 6; i++)
+            _builtSubTabs.contains(i)
+                ? buildSubTab(i)
+                : const SizedBox.shrink(),
         ],
       ),
     );
