@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 /// Apple Music 风格的艺术家麦克风矢量图标
@@ -108,21 +110,59 @@ class _ArtistMicPainter extends CustomPainter {
       oldDelegate.color != color;
 }
 
-/// Apple Music 风格的艺术家圆形头像占位图
+/// Apple Music 风格的艺术家圆形头像，支持本地文件/网络图片并自动降级为矢量麦克风
 class ArtistAvatar extends StatelessWidget {
   const ArtistAvatar({
     super.key,
     required this.diameter,
+    this.imagePath,
+    this.imageUrl,
     this.backgroundColor,
     this.iconColor,
   });
 
   final double diameter;
+  final String? imagePath;
+  final String? imageUrl;
   final Color? backgroundColor;
   final Color? iconColor;
 
   @override
   Widget build(BuildContext context) {
+    final validPath = imagePath != null &&
+        imagePath!.trim().isNotEmpty &&
+        File(imagePath!).existsSync();
+
+    if (validPath) {
+      return ClipOval(
+        child: Image.file(
+          File(imagePath!),
+          width: diameter,
+          height: diameter,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) =>
+              _buildPlaceholder(context),
+        ),
+      );
+    }
+
+    if (imageUrl != null && imageUrl!.trim().isNotEmpty) {
+      return ClipOval(
+        child: Image.network(
+          imageUrl!,
+          width: diameter,
+          height: diameter,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) =>
+              _buildPlaceholder(context),
+        ),
+      );
+    }
+
+    return _buildPlaceholder(context);
+  }
+
+  Widget _buildPlaceholder(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 

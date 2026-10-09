@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -72,12 +73,13 @@ class ArtistLibraryRepository {
           .map((group) => group.queryKey)
           .toList(growable: false);
       final caches = await _database.getArtistCachesByKeys(cacheKeys);
+      final imageCaches = await _database.getArtistImageCachesByIds(cacheKeys);
       final orderedGroups = _sortGroupsForDisplay(groups, caches);
       _artistLibraryLog(
         'session#$sessionId loaded songs=${songs.length} groups=${groups.length} '
-        'caches=${caches.length}',
+        'caches=${caches.length} imageCaches=${imageCaches.length}',
       );
-      yield _buildSummaries(orderedGroups, caches);
+      yield _buildSummaries(orderedGroups, caches, imageCaches);
     }
     _artistLibraryLog('session#$sessionId complete');
   }
@@ -122,7 +124,8 @@ class ArtistLibraryRepository {
 
   ArtistSummary _buildSummary(
     _ArtistGroup group,
-    ArtistCacheRecord? cache, {
+    ArtistCacheRecord? cache,
+    ArtistImageCacheRecord? imageCache, {
     bool isImageLoading = false,
   }) {
     final representativeSong = group.songs.firstWhere(
@@ -130,6 +133,12 @@ class ArtistLibraryRepository {
       orElse: () => group.songs.first,
     );
     final tags = _decodeStringList(cache?.tagsJson);
+    final cachedPath = (imageCache?.imagePath != null &&
+            imageCache!.imagePath.isNotEmpty &&
+            File(imageCache.imagePath).existsSync())
+        ? imageCache.imagePath
+        : null;
+
     return ArtistSummary(
       queryKey: group.queryKey,
       name: cache?.artistName?.trim().isNotEmpty == true
@@ -145,10 +154,10 @@ class ArtistLibraryRepository {
       areaName: cache?.areaName,
       beginDate: cache?.beginDate,
       endDate: cache?.endDate,
-      imageFileTitle: null,
-      imageUrl: null,
-      thumbnailUrl: null,
-      cachedImagePath: null,
+      imageFileTitle: cache?.imageFileTitle,
+      imageUrl: cache?.imageUrl,
+      thumbnailUrl: cache?.thumbnailUrl,
+      cachedImagePath: cachedPath,
       isImageLoading: isImageLoading,
       tags: tags,
       noData: cache?.noData ?? false,
@@ -157,7 +166,8 @@ class ArtistLibraryRepository {
 
   List<ArtistSummary> _buildSummaries(
     List<_ArtistGroup> groups,
-    Map<String, ArtistCacheRecord> caches, {
+    Map<String, ArtistCacheRecord> caches,
+    Map<String, ArtistImageCacheRecord> imageCaches, {
     String? loadingKey,
   }) {
     // Keep the list order stable while artist metadata refreshes in the
@@ -168,6 +178,7 @@ class ArtistLibraryRepository {
           (group) => _buildSummary(
             group,
             caches[group.queryKey],
+            imageCaches[group.queryKey],
             isImageLoading: loadingKey == group.queryKey,
           ),
         )

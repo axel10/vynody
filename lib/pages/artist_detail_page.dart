@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -6,7 +8,10 @@ import 'package:vynody/models/artist_summary.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/audio/playback_source.dart';
+import 'package:vynody/player/library/artist_library.dart';
+import 'package:vynody/player/metadata/theaudiodb_artist_service.dart';
 import 'package:vynody/utils/song_context_menu_utils.dart';
+import '../widgets/artist_avatar.dart';
 import '../widgets/album_detail_widgets.dart';
 import '../widgets/song_thumbnail.dart';
 import '../widgets/remote_media_badge.dart';
@@ -126,6 +131,44 @@ class _ArtistDetailContentState extends ConsumerState<ArtistDetailContent>
   @override
   LibrarySelectionScope get selectionScope => LibrarySelectionScope.library;
 
+  String? _cachedImagePath;
+
+  @override
+  void initState() {
+    super.initState();
+    _cachedImagePath = widget.artist.cachedImagePath;
+    _fetchArtistImageIfNeeded();
+  }
+
+  @override
+  void didUpdateWidget(covariant ArtistDetailContent oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.artist.queryKey != widget.artist.queryKey) {
+      _cachedImagePath = widget.artist.cachedImagePath;
+      _fetchArtistImageIfNeeded();
+    } else if (widget.artist.cachedImagePath != null &&
+        widget.artist.cachedImagePath != _cachedImagePath) {
+      _cachedImagePath = widget.artist.cachedImagePath;
+    }
+  }
+
+  Future<void> _fetchArtistImageIfNeeded() async {
+    if (_cachedImagePath != null &&
+        _cachedImagePath!.isNotEmpty &&
+        File(_cachedImagePath!).existsSync()) {
+      return;
+    }
+    final imagePath = await TheAudioDbArtistService.instance
+        .fetchAndCacheArtistImage(widget.artist);
+    if (!mounted) return;
+    if (imagePath != null) {
+      setState(() {
+        _cachedImagePath = imagePath;
+      });
+      ref.invalidate(artistLibraryProvider);
+    }
+  }
+
   List<MusicFile>? _lastArtistSongs;
   String? _lastUnknownAlbumLabel;
   List<_AlbumSection>? _cachedAlbumSections;
@@ -177,6 +220,7 @@ class _ArtistDetailContentState extends ConsumerState<ArtistDetailContent>
                 ),
                 child: _ArtistInfo(
                   artist: widget.artist,
+                  cachedImagePath: _cachedImagePath,
                   onPlayAll: () => audio.playPlaylist(
                     displaySongs,
                     source: PlaybackSource(
@@ -326,11 +370,13 @@ class _ArtistDetailContentState extends ConsumerState<ArtistDetailContent>
 class _ArtistInfo extends StatelessWidget {
   const _ArtistInfo({
     required this.artist,
+    this.cachedImagePath,
     required this.onPlayAll,
     required this.onShufflePlay,
   });
 
   final ArtistSummary artist;
+  final String? cachedImagePath;
   final VoidCallback onPlayAll;
   final VoidCallback onShufflePlay;
 
@@ -349,9 +395,18 @@ class _ArtistInfo extends StatelessWidget {
       if (artist.tags.isNotEmpty) artist.tags.take(3).join(', '),
     ];
 
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final avatarSize = screenWidth < 420 ? 56.0 : 72.0;
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
+        ArtistAvatar(
+          diameter: avatarSize,
+          imagePath: cachedImagePath ?? artist.cachedImagePath,
+          imageUrl: artist.imageUrl,
+        ),
+        const SizedBox(width: 16),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

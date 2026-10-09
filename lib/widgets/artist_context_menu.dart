@@ -181,7 +181,11 @@ Future<String?> showArtistBottomSheet({
                         children: [
                           Row(
                             children: [
-                              const ArtistAvatar(diameter: 52),
+                              ArtistAvatar(
+                                diameter: 52,
+                                imagePath: artist.cachedImagePath,
+                                imageUrl: artist.imageUrl,
+                              ),
                               const SizedBox(width: 16),
                               Expanded(
                                 child: Column(

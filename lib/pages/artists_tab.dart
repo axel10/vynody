@@ -645,7 +645,11 @@ class _ArtistListItem extends ConsumerWidget {
                           ),
                         ),
                       ),
-                    const ArtistAvatar(diameter: 38),
+                    ArtistAvatar(
+                      diameter: 38,
+                      imagePath: artist.cachedImagePath,
+                      imageUrl: artist.imageUrl,
+                    ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Column(
