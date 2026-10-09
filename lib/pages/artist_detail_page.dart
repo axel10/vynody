@@ -151,9 +151,6 @@ class _ArtistDetailContentState extends ConsumerState<ArtistDetailContent>
     final theme = Theme.of(context);
     final audio = ref.read(audioServiceProvider);
     final currentMusic = ref.watch(audioCurrentMusicProvider);
-    final headerColor = theme.colorScheme.tertiaryContainer.withValues(
-      alpha: 0.65,
-    );
     _ensureAlbumSectionsCached(unknownAlbumLabel);
     final albumSections = _cachedAlbumSections!;
     final displaySongs = _cachedDisplaySongs!;
@@ -171,56 +168,32 @@ class _ArtistDetailContentState extends ConsumerState<ArtistDetailContent>
           ),
           slivers: [
             SliverToBoxAdapter(
-              child: OverscrollStretchBuilder(
-                builder: (context, overscroll) {
-                  return Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      Positioned(
-                        top: -overscroll,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [headerColor, theme.colorScheme.surface],
-                            ),
-                          ),
-                        ),
-                      ),
-                      Container(
-                        padding: EdgeInsets.fromLTRB(
-                          20,
-                          widget.topPadding > 0 ? widget.topPadding : 20,
-                          20,
-                          16,
-                        ),
-                        child: _ArtistInfo(
-                          artist: widget.artist,
-                          onPlayAll: () => audio.playPlaylist(
-                            displaySongs,
-                            source: PlaybackSource(
-                              type: PlaybackSourceType.artist,
-                              id: widget.artist.queryKey,
-                              name: widget.artist.name,
-                            ),
-                          ),
-                          onShufflePlay: () => audio.playPlaylist(
-                            List.of(displaySongs)..shuffle(),
-                            source: PlaybackSource(
-                              type: PlaybackSourceType.artist,
-                              id: widget.artist.queryKey,
-                              name: widget.artist.name,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  );
-                },
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(
+                  28,
+                  widget.topPadding > 0 ? widget.topPadding + 12 : 24,
+                  28,
+                  20,
+                ),
+                child: _ArtistInfo(
+                  artist: widget.artist,
+                  onPlayAll: () => audio.playPlaylist(
+                    displaySongs,
+                    source: PlaybackSource(
+                      type: PlaybackSourceType.artist,
+                      id: widget.artist.queryKey,
+                      name: widget.artist.name,
+                    ),
+                  ),
+                  onShufflePlay: () => audio.playPlaylist(
+                    List.of(displaySongs)..shuffle(),
+                    source: PlaybackSource(
+                      type: PlaybackSourceType.artist,
+                      id: widget.artist.queryKey,
+                      name: widget.artist.name,
+                    ),
+                  ),
+                ),
               ),
             ),
             if (albumSections.isEmpty)
@@ -231,9 +204,8 @@ class _ArtistDetailContentState extends ConsumerState<ArtistDetailContent>
                 ),
               )
             else ...[
-              const SliverToBoxAdapter(child: SizedBox(height: 12)),
               for (int i = 0; i < albumSections.length; i++) ...[
-                if (i > 0) const SliverToBoxAdapter(child: SizedBox(height: 12)),
+                if (i > 0) const SliverToBoxAdapter(child: SizedBox(height: 36)),
                 _AlbumSectionSliver(
                     section: albumSections[i],
                     currentMusic: currentMusic,
@@ -366,112 +338,89 @@ class _ArtistInfo extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
-    final artistCountLabel = l10n.songCount(artist.songCount);
-    final artistsLabel = l10n.artists;
+    final songCountLabel = l10n.songCount(artist.songCount);
     final playAllLabel = l10n.playAll;
     final shufflePlayLabel = l10n.shufflePlay;
-    final chips = <Widget>[
-      _InfoChip(label: artistCountLabel),
-      if (RemoteMediaHelper.isAllRemote(artist.songs))
-        RemoteMediaBadge.chip(
-          songs: artist.songs,
-          title: artist.name,
-        ),
-      if (artist.country?.trim().isNotEmpty ?? false)
-        _InfoChip(label: artist.country!.trim()),
-      if (artist.beginDate?.trim().isNotEmpty ?? false)
-        _InfoChip(label: artist.beginDate!.trim()),
+
+    final metaParts = <String>[
+      songCountLabel,
+      if ((artist.country?.trim().isNotEmpty ?? false)) artist.country!.trim(),
+      if ((artist.areaName?.trim().isNotEmpty ?? false)) artist.areaName!.trim(),
+      if (artist.tags.isNotEmpty) artist.tags.take(3).join(', '),
     ];
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Text(
-          artistsLabel,
-          style: theme.textTheme.labelLarge?.copyWith(
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Flexible(
+                    child: Text(
+                      artist.name,
+                      style: theme.textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                  ),
+                  RemoteMediaBadge.pillTrailing(
+                    songs: artist.songs,
+                    title: artist.name,
+                  ),
+                ],
+              ),
+              if (artist.disambiguation?.trim().isNotEmpty ?? false) ...[
+                const SizedBox(height: 2),
+                Text(
+                  artist.disambiguation!.trim(),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 4),
+              Text(
+                metaParts.join(' · '),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 16),
+        IconButton(
+          tooltip: playAllLabel,
+          onPressed: onPlayAll,
+          icon: Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: theme.colorScheme.primary,
+            ),
+            child: Icon(
+              Icons.play_arrow,
+              size: 22,
+              color: theme.colorScheme.onPrimary,
+            ),
+          ),
+        ),
+        const SizedBox(width: 4),
+        IconButton(
+          tooltip: shufflePlayLabel,
+          onPressed: onShufflePlay,
+          icon: Icon(
+            Icons.shuffle,
+            size: 22,
             color: theme.colorScheme.primary,
-            fontWeight: FontWeight.w700,
           ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          artist.name,
-          style: theme.textTheme.headlineMedium?.copyWith(
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        if (artist.disambiguation?.trim().isNotEmpty ?? false) ...[
-          const SizedBox(height: 8),
-          Text(
-            artist.disambiguation!.trim(),
-            style: theme.textTheme.titleMedium?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ],
-        if (artist.areaName?.trim().isNotEmpty ?? false) ...[
-          const SizedBox(height: 8),
-          Text(
-            artist.areaName!.trim(),
-            style: theme.textTheme.titleSmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ],
-        const SizedBox(height: 12),
-        Wrap(spacing: 8, runSpacing: 8, children: chips),
-        if (artist.tags.isNotEmpty) ...[
-          const SizedBox(height: 16),
-          Text(
-            artist.tags.take(6).join(' · '),
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ],
-        const SizedBox(height: 20),
-        Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          children: [
-            FilledButton.icon(
-              onPressed: onPlayAll,
-              icon: const Icon(Icons.play_arrow),
-              label: Text(playAllLabel),
-            ),
-            OutlinedButton.icon(
-              onPressed: onShufflePlay,
-              icon: const Icon(Icons.shuffle),
-              label: Text(shufflePlayLabel),
-            ),
-          ],
         ),
       ],
-    );
-  }
-}
-
-class _InfoChip extends StatelessWidget {
-  const _InfoChip({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        label,
-        style: theme.textTheme.bodySmall?.copyWith(
-          color: theme.colorScheme.onSurfaceVariant,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
     );
   }
 }
@@ -507,182 +456,201 @@ class _AlbumSectionSliver extends StatelessWidget {
     final isMixedSection = RemoteMediaHelper.isMixed(section.songs);
 
     return SliverPadding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      sliver: DecoratedSliver(
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.45),
-          ),
-        ),
-        sliver: SliverPadding(
-          padding: const EdgeInsets.all(16),
-          sliver: SliverMainAxisGroup(
-            slivers: [
-              SliverToBoxAdapter(
-                child: _AlbumSectionHeader(
-                  section: section,
-                  theme: theme,
-                  onPlayAlbum: onPlayAlbum,
-                  onShufflePlayAlbum: onShufflePlayAlbum,
-                ),
-              ),
-              if (section.songs.isNotEmpty) ...[
-                const SliverToBoxAdapter(
-                  child: SizedBox(height: 16),
-                ),
-                DecoratedSliver(
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surface,
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(
-                      color: theme.colorScheme.outlineVariant.withValues(
-                        alpha: 0.35,
-                      ),
-                    ),
-                  ),
-                  sliver: SliverFixedExtentList.builder(
-                    itemExtent: 45.0,
-                    itemCount: section.songs.length,
-                    itemBuilder: (context, i) {
-                      final song = section.songs[i];
-                      final isCurrent = currentMusic?.path == song.path;
-                      final isSelected = selectedSongPaths.contains(song.path);
-                      final showRemote = isMixedSection && RemoteMediaHelper.isRemote(song);
-
-                      return _AlbumSongTile(
-                        song: song,
-                        isCurrent: isCurrent,
-                        theme: theme,
-                        showRemoteIndicator: showRemote,
-                        onTap: () => onSongTap(i),
-                        onSecondaryTapDown: (details) =>
-                            onSongSecondaryTapDown(details, song),
-                        onLongPress: () => onSongLongPress(song),
-                        isSelectionMode: isSelectionMode,
-                        isSelected: isSelected,
-                        selectedPaths: selectedSongPaths,
-                        showTopDivider: i > 0,
-                        borderRadius: BorderRadius.only(
-                          topLeft: i == 0 ? const Radius.circular(18) : Radius.zero,
-                          topRight: i == 0 ? const Radius.circular(18) : Radius.zero,
-                          bottomLeft: i == section.songs.length - 1
-                              ? const Radius.circular(18)
-                              : Radius.zero,
-                          bottomRight: i == section.songs.length - 1
-                              ? const Radius.circular(18)
-                              : Radius.zero,
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ],
-          ),
+      padding: const EdgeInsets.symmetric(horizontal: 28),
+      sliver: SliverToBoxAdapter(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isWide = constraints.maxWidth >= 600;
+            return isWide
+                ? _buildWideLayout(context, isMixedSection, constraints.maxWidth)
+                : _buildNarrowLayout(context, isMixedSection);
+          },
         ),
       ),
     );
   }
-}
 
-class _AlbumSectionHeader extends StatelessWidget {
-  const _AlbumSectionHeader({
-    required this.section,
-    required this.theme,
-    required this.onPlayAlbum,
-    required this.onShufflePlayAlbum,
-  });
+  Widget _buildAlbumCover({required double size, double borderRadius = 10}) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(borderRadius),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(borderRadius),
+        child: RemoteMediaBadge.wrapCover(
+          child: SongThumbnail.fromSong(
+            section.representativeSong,
+            size: size,
+            borderRadius: BorderRadius.circular(borderRadius),
+          ),
+          songs: section.songs,
+          title: section.title,
+        ),
+      ),
+    );
+  }
 
-  final _AlbumSection section;
-  final ThemeData theme;
-  final VoidCallback onPlayAlbum;
-  final VoidCallback onShufflePlayAlbum;
+  Widget _buildHeaderRow(BuildContext context, String subtitle) {
+    final l10n = AppLocalizations.of(context)!;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                section.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 17,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        ),
+        IconButton(
+          tooltip: l10n.playAll,
+          visualDensity: VisualDensity.compact,
+          icon: const Icon(Icons.play_arrow_rounded, size: 20),
+          onPressed: onPlayAlbum,
+        ),
+        IconButton(
+          tooltip: l10n.shufflePlay,
+          visualDensity: VisualDensity.compact,
+          icon: const Icon(Icons.shuffle_rounded, size: 18),
+          onPressed: onShufflePlayAlbum,
+        ),
+      ],
+    );
+  }
 
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildSongList(bool isMixedSection) {
+    return Column(
+      children: [
+        for (int i = 0; i < section.songs.length; i++)
+          _AlbumSongTile(
+            key: ValueKey(section.songs[i].path),
+            song: section.songs[i],
+            trackIndex: i + 1,
+            isCurrent: currentMusic?.path == section.songs[i].path,
+            theme: theme,
+            showRemoteIndicator:
+                isMixedSection && RemoteMediaHelper.isRemote(section.songs[i]),
+            onTap: () => onSongTap(i),
+            onSecondaryTapDown: (details) =>
+                onSongSecondaryTapDown(details, section.songs[i]),
+            onLongPress: () => onSongLongPress(section.songs[i]),
+            isSelectionMode: isSelectionMode,
+            isSelected: selectedSongPaths.contains(section.songs[i].path),
+            selectedPaths: selectedSongPaths,
+            showTopDivider: i > 0,
+          ),
+      ],
+    );
+  }
+
+  Widget _buildWideLayout(
+    BuildContext context,
+    bool isMixedSection,
+    double availableWidth,
+  ) {
     final l10n = AppLocalizations.of(context)!;
     final durationLabel =
         _formatDuration(section.totalDurationMillis) ?? l10n.durationZero;
     final countLabel = l10n.songCount(section.songs.length);
     final subtitle = '$countLabel · $durationLabel';
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isWide = constraints.maxWidth >= 500;
-        final cover = RemoteMediaBadge.wrapCover(
-          child: SongThumbnail.fromSong(
-            section.representativeSong,
-            size: 104,
-            borderRadius: BorderRadius.circular(18),
-          ),
-          songs: section.songs,
-          title: section.title,
-        );
-        final info = Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              section.title,
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              subtitle,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                FilledButton.icon(
-                  onPressed: onPlayAlbum,
-                  icon: const Icon(Icons.play_arrow),
-                  label: Text(l10n.playAll),
-                ),
-                OutlinedButton.icon(
-                  onPressed: onShufflePlayAlbum,
-                  icon: const Icon(Icons.shuffle),
-                  label: Text(l10n.shufflePlay),
-                ),
-              ],
-            ),
-          ],
-        );
+    final double coverSize;
+    final double gap;
+    final double coverRadius;
 
-        if (isWide) {
-          return Row(
+    if (availableWidth >= 1000) {
+      coverSize = 220.0;
+      gap = 28.0;
+      coverRadius = 12.0;
+    } else if (availableWidth >= 800) {
+      coverSize = 190.0;
+      gap = 24.0;
+      coverRadius = 10.0;
+    } else {
+      coverSize = 160.0;
+      gap = 20.0;
+      coverRadius = 8.0;
+    }
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildAlbumCover(size: coverSize, borderRadius: coverRadius),
+        SizedBox(width: gap),
+        Expanded(
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              cover,
-              const SizedBox(width: 16),
-              Expanded(child: info),
+              _buildHeaderRow(context, subtitle),
+              const SizedBox(height: 8),
+              _buildSongList(isMixedSection),
             ],
-          );
-        }
+          ),
+        ),
+      ],
+    );
+  }
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildNarrowLayout(BuildContext context, bool isMixedSection) {
+    final l10n = AppLocalizations.of(context)!;
+    final durationLabel =
+        _formatDuration(section.totalDurationMillis) ?? l10n.durationZero;
+    final countLabel = l10n.songCount(section.songs.length);
+    final subtitle = '$countLabel · $durationLabel';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Align(alignment: Alignment.centerLeft, child: cover),
-            const SizedBox(height: 16),
-            info,
+            _buildAlbumCover(size: 84, borderRadius: 8),
+            const SizedBox(width: 14),
+            Expanded(
+              child: _buildHeaderRow(context, subtitle),
+            ),
           ],
-        );
-      },
+        ),
+        const SizedBox(height: 10),
+        _buildSongList(isMixedSection),
+      ],
     );
   }
 }
 
 class _AlbumSongTile extends StatelessWidget {
   const _AlbumSongTile({
+    super.key,
     required this.song,
+    required this.trackIndex,
     required this.isCurrent,
     required this.theme,
     this.showRemoteIndicator = false,
@@ -693,10 +661,10 @@ class _AlbumSongTile extends StatelessWidget {
     this.isSelected = false,
     this.selectedPaths,
     this.showTopDivider = false,
-    this.borderRadius,
   });
 
   final MusicFile song;
+  final int trackIndex;
   final bool isCurrent;
   final ThemeData theme;
   final bool showRemoteIndicator;
@@ -707,7 +675,6 @@ class _AlbumSongTile extends StatelessWidget {
   final bool isSelected;
   final Iterable<String>? selectedPaths;
   final bool showTopDivider;
-  final BorderRadius? borderRadius;
 
   @override
   Widget build(BuildContext context) {
@@ -718,82 +685,115 @@ class _AlbumSongTile extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (showTopDivider)
+          if (showTopDivider && !isTileSelected)
             Divider(
               height: 1,
-              thickness: 1,
-              indent: 16,
-              endIndent: 16,
-              color: theme.colorScheme.outlineVariant.withValues(
-                alpha: 0.35,
-              ),
+              thickness: 0.5,
+              indent: 32,
+              endIndent: 8,
+              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2),
             ),
           SizedBox(
-            height: showTopDivider ? 44.0 : 45.0,
+            height: 38.0,
             child: Material(
               color: isTileSelected
-                  ? theme.colorScheme.primaryContainer.withValues(alpha: 0.35)
+                  ? theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.55)
                   : Colors.transparent,
-              borderRadius: borderRadius,
-              clipBehavior: borderRadius != null ? Clip.antiAlias : Clip.none,
+              borderRadius: BorderRadius.circular(6),
               child: InkWell(
                 enableFeedback: false,
                 canRequestFocus: false,
-                borderRadius: borderRadius,
+                borderRadius: BorderRadius.circular(6),
                 onTap: onTap,
                 onLongPress: onLongPress,
                 onSecondaryTapDown: onSecondaryTapDown,
                 child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    child: Row(
-                      children: [
-                        if (isSelectionMode) ...[
-                          SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: Checkbox(
-                              value: isSelected,
-                              onChanged: (_) => onTap(),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                        ],
-                        Expanded(
-                          child: Row(
-                            children: [
-                              Flexible(
-                                child: Text(
-                                  song.displayName,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: theme.textTheme.bodyLarge?.copyWith(
-                                    color: isCurrent ? theme.colorScheme.primary : null,
-                                    fontWeight: isCurrent ? FontWeight.w700 : null,
-                                  ),
-                                ),
-                              ),
-                              RemoteMediaBadge.songTrailing(
-                                song: song,
-                                isMixed: showRemoteIndicator,
-                              ),
-                            ],
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                  child: Row(
+                    children: [
+                      if (isSelectionMode) ...[
+                        SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: Checkbox(
+                            value: isSelected,
+                            onChanged: (_) => onTap(),
                           ),
                         ),
-                        if (durationLabel != null) ...[
-                          const SizedBox(width: 12),
-                          Text(
-                            durationLabel,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ],
+                        const SizedBox(width: 8),
+                      ] else ...[
+                        SizedBox(
+                          width: 24,
+                          child: isCurrent
+                              ? Icon(
+                                  Icons.volume_up_rounded,
+                                  size: 16,
+                                  color: theme.colorScheme.primary,
+                                )
+                              : Text(
+                                  '${song.trackNumber ?? trackIndex}',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                    fontSize: 12,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                        ),
+                        const SizedBox(width: 8),
                       ],
-                    ),
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                song.displayName,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: isCurrent
+                                      ? theme.colorScheme.primary
+                                      : theme.colorScheme.onSurface,
+                                  fontWeight: isCurrent ? FontWeight.w600 : FontWeight.w400,
+                                  fontSize: 13.5,
+                                ),
+                              ),
+                            ),
+                            RemoteMediaBadge.songTrailing(
+                              song: song,
+                              isMixed: showRemoteIndicator,
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (durationLabel != null) ...[
+                        const SizedBox(width: 12),
+                        Text(
+                          durationLabel,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                      const SizedBox(width: 4),
+                      GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTapDown: onSecondaryTapDown,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: Icon(
+                            Icons.more_horiz_rounded,
+                            size: 16,
+                            color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
             ),
+          ),
         ],
       ),
     );

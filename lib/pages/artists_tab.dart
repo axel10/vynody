@@ -5,7 +5,6 @@ import '../l10n/app_localizations.dart';
 import 'package:vynody/models/artist_summary.dart';
 import 'package:vynody/player/library/artist_library.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
-import 'package:vynody/player/audio/playback_source.dart';
 import 'artist_detail_page.dart';
 import '../widgets/artist_avatar.dart';
 import '../widgets/draggable_artist_item.dart';
@@ -193,58 +192,55 @@ class _ArtistsTabState extends ConsumerState<ArtistsTab>
                     },
                   ),
                   Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-                      child: Row(
-                        children: [
-                          SizedBox(
-                            width: constraints.maxWidth >= 1100 ? 380 : 320,
-                            child: _ArtistListPane(
-                              artists: visibleArtists,
-                              selectedArtistKey: selectedArtist?.queryKey,
-                              noArtistsLabel: noArtistsLabel,
-                              scrollController: _scrollController,
-                              isSelectionMode: isSelectionMode,
-                              selectedArtistKeysInSelectionMode: selectedKeys,
-                              hasBottomPanel: showBottomPanel,
-                              onArtistSelected: (artist) {
-                                final artistIndex = visibleArtists.indexOf(artist);
-                                handleItemTap(
-                                  index: artistIndex >= 0 ? artistIndex : 0,
-                                  itemKey: artist.queryKey,
-                                  allKeys: visibleArtists.map((a) => a.queryKey).toList(),
-                                  onNormalTap: () {
-                                    if (!isSongSelectionMode) {
-                                      setState(() {
-                                        _selectedArtistKey = artist.queryKey;
-                                      });
-                                    }
-                                  },
-                                );
-                              },
-                              onArtistLongPressed: (artist) {
-                                final artistIndex = visibleArtists.indexOf(artist);
-                                if (artistIndex >= 0) {
-                                  lastAnchorIndex = artistIndex;
-                                }
-                                if (isSelectionMode) {
-                                  toggleSelection(artist.queryKey);
-                                } else if (!isSongSelectionMode) {
-                                  enterSelectionMode(artist.queryKey);
-                                }
-                              },
-                            ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        SizedBox(
+                          width: constraints.maxWidth >= 1100 ? 300 : 260,
+                          child: _ArtistListPane(
+                            artists: visibleArtists,
+                            selectedArtistKey: selectedArtist?.queryKey,
+                            noArtistsLabel: noArtistsLabel,
+                            scrollController: _scrollController,
+                            isSelectionMode: isSelectionMode,
+                            selectedArtistKeysInSelectionMode: selectedKeys,
+                            hasBottomPanel: showBottomPanel,
+                            onArtistSelected: (artist) {
+                              final artistIndex = visibleArtists.indexOf(artist);
+                              handleItemTap(
+                                index: artistIndex >= 0 ? artistIndex : 0,
+                                itemKey: artist.queryKey,
+                                allKeys: visibleArtists.map((a) => a.queryKey).toList(),
+                                onNormalTap: () {
+                                  if (!isSongSelectionMode) {
+                                    setState(() {
+                                      _selectedArtistKey = artist.queryKey;
+                                    });
+                                  }
+                                },
+                              );
+                            },
+                            onArtistLongPressed: (artist) {
+                              final artistIndex = visibleArtists.indexOf(artist);
+                              if (artistIndex >= 0) {
+                                lastAnchorIndex = artistIndex;
+                              }
+                              if (isSelectionMode) {
+                                toggleSelection(artist.queryKey);
+                              } else if (!isSongSelectionMode) {
+                                enterSelectionMode(artist.queryKey);
+                              }
+                            },
                           ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: _ArtistDetailPane(
-                              artist: selectedArtist,
-                              emptyLabel: noArtistsLabel,
-                              hasBottomPanel: showBottomPanel,
-                            ),
+                        ),
+                        Expanded(
+                          child: _ArtistDetailPane(
+                            artist: selectedArtist,
+                            emptyLabel: noArtistsLabel,
+                            hasBottomPanel: showBottomPanel,
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -505,10 +501,11 @@ class _ArtistListPane extends StatelessWidget {
     final bottomPadding = hasBottomPanel ? 180.0 : 12.0;
     return Container(
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.45),
+        border: Border(
+          right: BorderSide(
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2),
+            width: 1,
+          ),
         ),
       ),
       child: artists.isEmpty
@@ -520,8 +517,7 @@ class _ArtistListPane extends StatelessWidget {
               thumbVisibility: true,
               child: ListView.builder(
                 controller: scrollController,
-                padding: EdgeInsets.fromLTRB(12, 12, 12, bottomPadding),
-                itemExtent: 80.0,
+                padding: EdgeInsets.fromLTRB(8, 8, 8, bottomPadding),
                 itemCount: artists.length,
                 itemBuilder: (context, index) {
                   final artist = artists[index];
@@ -529,7 +525,7 @@ class _ArtistListPane extends StatelessWidget {
                   final isSelected = selectedArtistKeysInSelectionMode.contains(artist.queryKey);
                   return Padding(
                     key: ValueKey(artist.queryKey),
-                    padding: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.only(bottom: 2),
                     child: _ArtistListItem(
                       artist: artist,
                       selected: selected,
@@ -581,8 +577,6 @@ class _ArtistListItem extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
-    final audio = ref.read(audioServiceProvider);
-    final playAllLabel = l10n.playAll;
     final songCountLabel = l10n.songCount(artist.songCount);
     final subtitleParts = <String>[
       songCountLabel,
@@ -592,23 +586,20 @@ class _ArtistListItem extends ConsumerWidget {
       subtitleParts.add(artist.disambiguation!.trim());
     }
 
-    final backgroundColor = isSelectionMode
-        ? (isSelectedInSelectionMode
-            ? theme.colorScheme.primaryContainer.withValues(alpha: 0.45)
-            : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35))
-        : (selected
-            ? theme.colorScheme.primaryContainer.withValues(alpha: 0.5)
-            : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35));
+    final isItemHighlighted = isSelectionMode ? isSelectedInSelectionMode : selected;
+    final backgroundColor = isItemHighlighted
+        ? theme.colorScheme.secondaryContainer.withValues(alpha: 0.7)
+        : Colors.transparent;
 
     return DraggableArtistItem(
       artist: artist,
       isSelectionMode: isSelectionMode,
-      isSelected: isSelectionMode ? isSelectedInSelectionMode : selected,
+      isSelected: isItemHighlighted,
       selectedArtists: selectedArtists,
       child: RepaintBoundary(
         child: Material(
           color: backgroundColor,
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(8),
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onSecondaryTapDown: (details) {
@@ -634,81 +625,75 @@ class _ArtistListItem extends ConsumerWidget {
                 );
               }
             },
-        child: InkWell(
-          borderRadius: BorderRadius.circular(18),
-          enableFeedback: false,
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              children: [
-                if (isSelectionMode)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: Checkbox(
-                      value: isSelectedInSelectionMode,
-                      onChanged: (_) => onSelectionToggled?.call(),
-                    ),
-                  ),
-                const ArtistAvatar(diameter: 48),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Row(
-                        children: [
-                          Flexible(
-                            child: Text(
-                              artist.name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(8),
+              enableFeedback: false,
+              onTap: onTap,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                child: Row(
+                  children: [
+                    if (isSelectionMode)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: Checkbox(
+                            value: isSelectedInSelectionMode,
+                            onChanged: (_) => onSelectionToggled?.call(),
                           ),
-                          RemoteMediaBadge.pillTrailing(
-                            songs: artist.songs,
-                            title: artist.name,
+                        ),
+                      ),
+                    const ArtistAvatar(diameter: 38),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  artist.name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    fontWeight: isItemHighlighted
+                                        ? FontWeight.w700
+                                        : FontWeight.w500,
+                                    fontSize: 13.5,
+                                  ),
+                                ),
+                              ),
+                              RemoteMediaBadge.pillTrailing(
+                                songs: artist.songs,
+                                title: artist.name,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            subtitleParts.join(' · '),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                              fontSize: 11.5,
+                            ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        subtitleParts.join(' · '),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                if (!isSelectionMode)
-                  IconButton(
-                    tooltip: playAllLabel,
-                    onPressed: () => audio.playPlaylist(
-                      artist.songs,
-                      source: PlaybackSource(
-                        type: PlaybackSourceType.artist,
-                        id: artist.queryKey,
-                        name: artist.name,
-                      ),
                     ),
-                    icon: const Icon(Icons.play_arrow_rounded),
-                  ),
-              ],
+                  ],
+                ),
+              ),
             ),
           ),
         ),
       ),
-    ),
-  ),
-);
+    );
   }
 }
 
@@ -728,51 +713,30 @@ class _ArtistDetailPane extends StatelessWidget {
     final theme = Theme.of(context);
     final currentArtist = artist;
     if (currentArtist == null) {
-      return Container(
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainerLowest,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.45),
-          ),
-        ),
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ArtistMicIcon(
-                size: 56,
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ArtistMicIcon(
+              size: 56,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              emptyLabel,
+              style: theme.textTheme.titleMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
-              const SizedBox(height: 12),
-              Text(
-                emptyLabel,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       );
     }
 
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.45),
-        ),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: ArtistDetailContent(
-          artist: currentArtist,
-          showSelectionPanel: false,
-          hasBottomPanel: hasBottomPanel,
-        ),
-      ),
+    return ArtistDetailContent(
+      artist: currentArtist,
+      showSelectionPanel: false,
+      hasBottomPanel: hasBottomPanel,
     );
   }
 }
@@ -860,83 +824,88 @@ class _ArtistsToolbar extends ConsumerWidget {
     );
 
     Widget buildTextField() {
-      return TextField(
-        controller: searchController,
-        onChanged: onSearchChanged,
-        decoration: InputDecoration(
-          hintText: searchArtistsLabel,
-          hintStyle: TextStyle(
-            color: theme.colorScheme.onSecondaryContainer.withValues(alpha: 0.6),
-          ),
-          prefixIcon: Icon(
-            Icons.search,
-            color: theme.colorScheme.onSecondaryContainer.withValues(alpha: 0.8),
-          ),
-          suffixIcon: searchQuery.isEmpty
-              ? null
-              : IconButton(
-                  onPressed: onSearchCleared,
-                  icon: Icon(
-                    Icons.close,
-                    color: theme.colorScheme.onSecondaryContainer.withValues(alpha: 0.8),
-                    size: 18,
+      return SizedBox(
+        height: 36,
+        child: TextField(
+          controller: searchController,
+          onChanged: onSearchChanged,
+          decoration: InputDecoration(
+            hintText: searchArtistsLabel,
+            hintStyle: TextStyle(
+              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.65),
+              fontSize: 13,
+            ),
+            prefixIcon: Icon(
+              Icons.search,
+              size: 18,
+              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+            ),
+            suffixIcon: searchQuery.isEmpty
+                ? null
+                : IconButton(
+                    onPressed: onSearchCleared,
+                    icon: Icon(
+                      Icons.close,
+                      color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                      size: 16,
+                    ),
                   ),
-                ),
-          filled: true,
-          fillColor: theme.colorScheme.secondaryContainer.withValues(alpha: 0.45),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide.none,
+            filled: true,
+            fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide.none,
+            ),
+            isDense: true,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           ),
-          isDense: true,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        ),
-        style: TextStyle(
-          color: theme.colorScheme.onSecondaryContainer,
-          fontSize: 14,
+          style: TextStyle(
+            color: theme.colorScheme.onSurface,
+            fontSize: 13,
+          ),
         ),
       );
     }
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         border: Border(
           bottom: BorderSide(
-            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2),
           ),
         ),
       ),
       child: isWide
           ? Row(
               children: [
-                Expanded(
-                  flex: 3,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        artistsLabel,
-                        style: theme.textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Text(
+                      artistsLabel,
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        artistCountLabel,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      artistCountLabel,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-                Expanded(
-                  flex: 5,
+                const Spacer(),
+                SizedBox(
+                  width: 240,
                   child: buildTextField(),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 8),
                 sortControls,
               ],
             )
