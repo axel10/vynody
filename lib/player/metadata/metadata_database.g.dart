@@ -8739,6 +8739,275 @@ class LyricsHistoriesCompanion extends UpdateCompanion<LyricsHistory> {
   }
 }
 
+class $SongRatingsTable extends SongRatings
+    with TableInfo<$SongRatingsTable, SongRating> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SongRatingsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _songPathMeta = const VerificationMeta(
+    'songPath',
+  );
+  @override
+  late final GeneratedColumn<String> songPath = GeneratedColumn<String>(
+    'songPath',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _ratingMeta = const VerificationMeta('rating');
+  @override
+  late final GeneratedColumn<int> rating = GeneratedColumn<int>(
+    'rating',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMillisMeta = const VerificationMeta(
+    'updatedAtMillis',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAtMillis = GeneratedColumn<int>(
+    'updatedAtMillis',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [songPath, rating, updatedAtMillis];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'song_ratings';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SongRating> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('songPath')) {
+      context.handle(
+        _songPathMeta,
+        songPath.isAcceptableOrUnknown(data['songPath']!, _songPathMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_songPathMeta);
+    }
+    if (data.containsKey('rating')) {
+      context.handle(
+        _ratingMeta,
+        rating.isAcceptableOrUnknown(data['rating']!, _ratingMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_ratingMeta);
+    }
+    if (data.containsKey('updatedAtMillis')) {
+      context.handle(
+        _updatedAtMillisMeta,
+        updatedAtMillis.isAcceptableOrUnknown(
+          data['updatedAtMillis']!,
+          _updatedAtMillisMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMillisMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {songPath};
+  @override
+  SongRating map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SongRating(
+      songPath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}songPath'],
+      )!,
+      rating: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}rating'],
+      )!,
+      updatedAtMillis: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updatedAtMillis'],
+      )!,
+    );
+  }
+
+  @override
+  $SongRatingsTable createAlias(String alias) {
+    return $SongRatingsTable(attachedDatabase, alias);
+  }
+}
+
+class SongRating extends DataClass implements Insertable<SongRating> {
+  final String songPath;
+  final int rating;
+  final int updatedAtMillis;
+  const SongRating({
+    required this.songPath,
+    required this.rating,
+    required this.updatedAtMillis,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['songPath'] = Variable<String>(songPath);
+    map['rating'] = Variable<int>(rating);
+    map['updatedAtMillis'] = Variable<int>(updatedAtMillis);
+    return map;
+  }
+
+  SongRatingsCompanion toCompanion(bool nullToAbsent) {
+    return SongRatingsCompanion(
+      songPath: Value(songPath),
+      rating: Value(rating),
+      updatedAtMillis: Value(updatedAtMillis),
+    );
+  }
+
+  factory SongRating.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SongRating(
+      songPath: serializer.fromJson<String>(json['songPath']),
+      rating: serializer.fromJson<int>(json['rating']),
+      updatedAtMillis: serializer.fromJson<int>(json['updatedAtMillis']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'songPath': serializer.toJson<String>(songPath),
+      'rating': serializer.toJson<int>(rating),
+      'updatedAtMillis': serializer.toJson<int>(updatedAtMillis),
+    };
+  }
+
+  SongRating copyWith({String? songPath, int? rating, int? updatedAtMillis}) =>
+      SongRating(
+        songPath: songPath ?? this.songPath,
+        rating: rating ?? this.rating,
+        updatedAtMillis: updatedAtMillis ?? this.updatedAtMillis,
+      );
+  SongRating copyWithCompanion(SongRatingsCompanion data) {
+    return SongRating(
+      songPath: data.songPath.present ? data.songPath.value : this.songPath,
+      rating: data.rating.present ? data.rating.value : this.rating,
+      updatedAtMillis: data.updatedAtMillis.present
+          ? data.updatedAtMillis.value
+          : this.updatedAtMillis,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SongRating(')
+          ..write('songPath: $songPath, ')
+          ..write('rating: $rating, ')
+          ..write('updatedAtMillis: $updatedAtMillis')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(songPath, rating, updatedAtMillis);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SongRating &&
+          other.songPath == this.songPath &&
+          other.rating == this.rating &&
+          other.updatedAtMillis == this.updatedAtMillis);
+}
+
+class SongRatingsCompanion extends UpdateCompanion<SongRating> {
+  final Value<String> songPath;
+  final Value<int> rating;
+  final Value<int> updatedAtMillis;
+  final Value<int> rowid;
+  const SongRatingsCompanion({
+    this.songPath = const Value.absent(),
+    this.rating = const Value.absent(),
+    this.updatedAtMillis = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  SongRatingsCompanion.insert({
+    required String songPath,
+    required int rating,
+    required int updatedAtMillis,
+    this.rowid = const Value.absent(),
+  }) : songPath = Value(songPath),
+       rating = Value(rating),
+       updatedAtMillis = Value(updatedAtMillis);
+  static Insertable<SongRating> custom({
+    Expression<String>? songPath,
+    Expression<int>? rating,
+    Expression<int>? updatedAtMillis,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (songPath != null) 'songPath': songPath,
+      if (rating != null) 'rating': rating,
+      if (updatedAtMillis != null) 'updatedAtMillis': updatedAtMillis,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  SongRatingsCompanion copyWith({
+    Value<String>? songPath,
+    Value<int>? rating,
+    Value<int>? updatedAtMillis,
+    Value<int>? rowid,
+  }) {
+    return SongRatingsCompanion(
+      songPath: songPath ?? this.songPath,
+      rating: rating ?? this.rating,
+      updatedAtMillis: updatedAtMillis ?? this.updatedAtMillis,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (songPath.present) {
+      map['songPath'] = Variable<String>(songPath.value);
+    }
+    if (rating.present) {
+      map['rating'] = Variable<int>(rating.value);
+    }
+    if (updatedAtMillis.present) {
+      map['updatedAtMillis'] = Variable<int>(updatedAtMillis.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SongRatingsCompanion(')
+          ..write('songPath: $songPath, ')
+          ..write('rating: $rating, ')
+          ..write('updatedAtMillis: $updatedAtMillis, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$MetadataDriftDatabase extends GeneratedDatabase {
   _$MetadataDriftDatabase(QueryExecutor e) : super(e);
   $MetadataDriftDatabaseManager get managers =>
@@ -8764,6 +9033,7 @@ abstract class _$MetadataDriftDatabase extends GeneratedDatabase {
   late final $LyricsHistoriesTable lyricsHistories = $LyricsHistoriesTable(
     this,
   );
+  late final $SongRatingsTable songRatings = $SongRatingsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -8783,6 +9053,7 @@ abstract class _$MetadataDriftDatabase extends GeneratedDatabase {
     folderCovers,
     remoteLibraryCaches,
     lyricsHistories,
+    songRatings,
   ];
 }
 
@@ -13082,6 +13353,176 @@ typedef $$LyricsHistoriesTableProcessedTableManager =
       LyricsHistory,
       PrefetchHooks Function()
     >;
+typedef $$SongRatingsTableCreateCompanionBuilder =
+    SongRatingsCompanion Function({
+      required String songPath,
+      required int rating,
+      required int updatedAtMillis,
+      Value<int> rowid,
+    });
+typedef $$SongRatingsTableUpdateCompanionBuilder =
+    SongRatingsCompanion Function({
+      Value<String> songPath,
+      Value<int> rating,
+      Value<int> updatedAtMillis,
+      Value<int> rowid,
+    });
+
+class $$SongRatingsTableFilterComposer
+    extends Composer<_$MetadataDriftDatabase, $SongRatingsTable> {
+  $$SongRatingsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get songPath => $composableBuilder(
+    column: $table.songPath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get rating => $composableBuilder(
+    column: $table.rating,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAtMillis => $composableBuilder(
+    column: $table.updatedAtMillis,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$SongRatingsTableOrderingComposer
+    extends Composer<_$MetadataDriftDatabase, $SongRatingsTable> {
+  $$SongRatingsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get songPath => $composableBuilder(
+    column: $table.songPath,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get rating => $composableBuilder(
+    column: $table.rating,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get updatedAtMillis => $composableBuilder(
+    column: $table.updatedAtMillis,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$SongRatingsTableAnnotationComposer
+    extends Composer<_$MetadataDriftDatabase, $SongRatingsTable> {
+  $$SongRatingsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get songPath =>
+      $composableBuilder(column: $table.songPath, builder: (column) => column);
+
+  GeneratedColumn<int> get rating =>
+      $composableBuilder(column: $table.rating, builder: (column) => column);
+
+  GeneratedColumn<int> get updatedAtMillis => $composableBuilder(
+    column: $table.updatedAtMillis,
+    builder: (column) => column,
+  );
+}
+
+class $$SongRatingsTableTableManager
+    extends
+        RootTableManager<
+          _$MetadataDriftDatabase,
+          $SongRatingsTable,
+          SongRating,
+          $$SongRatingsTableFilterComposer,
+          $$SongRatingsTableOrderingComposer,
+          $$SongRatingsTableAnnotationComposer,
+          $$SongRatingsTableCreateCompanionBuilder,
+          $$SongRatingsTableUpdateCompanionBuilder,
+          (
+            SongRating,
+            BaseReferences<
+              _$MetadataDriftDatabase,
+              $SongRatingsTable,
+              SongRating
+            >,
+          ),
+          SongRating,
+          PrefetchHooks Function()
+        > {
+  $$SongRatingsTableTableManager(
+    _$MetadataDriftDatabase db,
+    $SongRatingsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SongRatingsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SongRatingsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SongRatingsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> songPath = const Value.absent(),
+                Value<int> rating = const Value.absent(),
+                Value<int> updatedAtMillis = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => SongRatingsCompanion(
+                songPath: songPath,
+                rating: rating,
+                updatedAtMillis: updatedAtMillis,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String songPath,
+                required int rating,
+                required int updatedAtMillis,
+                Value<int> rowid = const Value.absent(),
+              }) => SongRatingsCompanion.insert(
+                songPath: songPath,
+                rating: rating,
+                updatedAtMillis: updatedAtMillis,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$SongRatingsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$MetadataDriftDatabase,
+      $SongRatingsTable,
+      SongRating,
+      $$SongRatingsTableFilterComposer,
+      $$SongRatingsTableOrderingComposer,
+      $$SongRatingsTableAnnotationComposer,
+      $$SongRatingsTableCreateCompanionBuilder,
+      $$SongRatingsTableUpdateCompanionBuilder,
+      (
+        SongRating,
+        BaseReferences<_$MetadataDriftDatabase, $SongRatingsTable, SongRating>,
+      ),
+      SongRating,
+      PrefetchHooks Function()
+    >;
 
 class $MetadataDriftDatabaseManager {
   final _$MetadataDriftDatabase _db;
@@ -13117,4 +13558,6 @@ class $MetadataDriftDatabaseManager {
       $$RemoteLibraryCachesTableTableManager(_db, _db.remoteLibraryCaches);
   $$LyricsHistoriesTableTableManager get lyricsHistories =>
       $$LyricsHistoriesTableTableManager(_db, _db.lyricsHistories);
+  $$SongRatingsTableTableManager get songRatings =>
+      $$SongRatingsTableTableManager(_db, _db.songRatings);
 }

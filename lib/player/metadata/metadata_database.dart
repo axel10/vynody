@@ -830,6 +830,16 @@ class MetadataDatabase {
   Future<List<LyricsTranslationCacheRecord>> getAllLyricsTranslationCaches() =>
       _db.getAllLyricsTranslationCaches();
 
+  Future<Map<String, int>> getAllSongRatings() => _db.getAllSongRatings();
+
+  Future<void> setSongRating(String songPath, int rating) =>
+      _db.setSongRating(songPath, rating);
+
+  Future<void> deleteSongRating(String songPath) =>
+      _db.deleteSongRating(songPath);
+
+  Future<void> clearAllSongRatings() => _db.clearAllSongRatings();
+
   Future<void> migrateLinuxRootPath(String oldRoot, String newRoot) async {
     if (oldRoot == newRoot) return;
     debugPrint('[PathMigration] Linux root path change detected.');
@@ -858,6 +868,13 @@ class MetadataDatabase {
     // 2. Update song_play_history table
     await _db.customStatement(
       'UPDATE song_play_history SET songPath = REPLACE(songPath, ?, ?) '
+      'WHERE songPath LIKE ?',
+      <Object>[oldRoot, newRoot, '$oldRoot%'],
+    );
+
+    // 2.1 Update song_ratings table
+    await _db.customStatement(
+      'UPDATE song_ratings SET songPath = REPLACE(songPath, ?, ?) '
       'WHERE songPath LIKE ?',
       <Object>[oldRoot, newRoot, '$oldRoot%'],
     );

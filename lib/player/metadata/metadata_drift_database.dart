@@ -16,6 +16,7 @@ part of 'metadata_database.dart';
     FolderCovers,
     RemoteLibraryCaches,
     LyricsHistories,
+    SongRatings,
   ],
 )
 class MetadataDriftDatabase extends _$MetadataDriftDatabase {
@@ -24,7 +25,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   static final MetadataDriftDatabase instance = MetadataDriftDatabase._();
 
   @override
-  int get schemaVersion => 40;
+  int get schemaVersion => 41;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -421,6 +422,12 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       }
       if (from < 40) {
         await _migrateLyricsCacheToPathKey(m);
+      }
+      if (from < 41) {
+        final exists = await _tableExists(songRatings.actualTableName);
+        if (!exists) {
+          await m.createTable(songRatings);
+        }
       }
     },
   );
@@ -3256,6 +3263,12 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
         );
 
         await customStatement(
+          'UPDATE song_ratings SET songPath = REPLACE(songPath, ?, ?) '
+          'WHERE songPath LIKE ?',
+          <Object>[pair.$1, pair.$2, '%${pair.$1}%'],
+        );
+
+        await customStatement(
           'UPDATE lyrics_cache SET cacheKey = REPLACE(cacheKey, ?, ?) '
           'WHERE cacheKey LIKE ?',
           <Object>[pair.$1, pair.$2, '%${pair.$1}%'],
@@ -3695,6 +3708,50 @@ class RemoteLibraryCaches extends Table {
 
   @override
   Set<Column> get primaryKey => {serverId, category};
+}
+
+class SongRatings extends Table {
+  @override
+  String get tableName => 'song_ratings';
+
+  TextColumn get songPath => text().named('songPath')();
+  IntColumn get rating => integer().named('rating')();
+  IntColumn get updatedAtMillis => integer().named('updatedAtMillis')();
+
+  @override
+  Set<Column> get primaryKey => {songPath};
+}
+
+extension MetadataSongRatingsOps on MetadataDriftDatabase {
+  Future<Map<String, int>> getAllSongRatings() async {
+    final rows = await select(songRatings).get();
+    final result = <String, int>{};
+    for (final row in rows) {
+      if (row.rating > 0 && row.rating <= 5) {
+        result[row.songPath] = row.rating;
+      }
+    }
+    return result;
+  }
+
+  Future<void> setSongRating(String songPath, int rating) async {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    await into(songRatings).insertOnConflictUpdate(
+      SongRatingsCompanion(
+        songPath: Value(songPath),
+        rating: Value(rating),
+        updatedAtMillis: Value(now),
+      ),
+    );
+  }
+
+  Future<void> deleteSongRating(String songPath) async {
+    await (delete(songRatings)..where((t) => t.songPath.equals(songPath))).go();
+  }
+
+  Future<void> clearAllSongRatings() async {
+    await delete(songRatings).go();
+  }
 }
 
 extension MetadataRemoteLibraryCachesOps on MetadataDriftDatabase {

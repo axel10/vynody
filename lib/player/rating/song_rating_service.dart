@@ -1,23 +1,20 @@
-import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
+import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/player/scanner/scanner_path_utils.dart';
 
-/// Service responsible for managing song ratings (0-5 stars) independently
-/// from the scan cache database to ensure ratings persist across library rescans and index rebuilds.
+/// Service responsible for managing song ratings (0-5 stars) stored in SQLite (song_ratings table)
+/// independently from scanned media to ensure ratings persist across library rescans and index rebuilds.
 class SongRatingService extends ChangeNotifier {
-  static const String _ratingsFileName = 'ratings.json';
+  final MetadataDatabase _database;
   final Map<String, int> _ratings = {};
   bool _isInitialized = false;
-  bool _isSaving = false;
-  bool _needsSaveAgain = false;
   bool _disposed = false;
 
-  SongRatingService() {
+  SongRatingService({MetadataDatabase? database})
+      : _database = database ?? MetadataDatabase() {
     _init();
   }
 
@@ -34,11 +31,6 @@ class SongRatingService extends ChangeNotifier {
     }
   }
 
-  static Future<File> get _ratingsFile async {
-    final dir = await getApplicationSupportDirectory();
-    return File(p.join(dir.path, _ratingsFileName));
-  }
-
   String _normalizeKey(String path) {
     if (path.isEmpty) return '';
     final resolved = ScannerPathUtils.resolveIosSandboxPath(path);
@@ -48,28 +40,15 @@ class SongRatingService extends ChangeNotifier {
   Future<void> _init() async {
     if (_isInitialized) return;
     try {
-      final file = await _ratingsFile;
-      if (await file.exists()) {
-        final content = await file.readAsString();
-        if (content.trim().isNotEmpty) {
-          final decoded = jsonDecode(content);
-          if (decoded is Map<String, dynamic>) {
-            final rawMap = decoded['ratings'] is Map<String, dynamic>
-                ? decoded['ratings'] as Map<String, dynamic>
-                : decoded;
-            for (final entry in rawMap.entries) {
-              final val = entry.value;
-              if (val is int && val > 0 && val <= 5) {
-                _ratings[_normalizeKey(entry.key)] = val;
-              } else if (val is num && val > 0 && val <= 5) {
-                _ratings[_normalizeKey(entry.key)] = val.toInt();
-              }
-            }
-          }
+      final dbRatings = await _database.getAllSongRatings();
+      for (final entry in dbRatings.entries) {
+        final key = _normalizeKey(entry.key);
+        if (key.isNotEmpty && entry.value > 0 && entry.value <= 5) {
+          _ratings[key] = entry.value;
         }
       }
     } catch (e) {
-      debugPrint('[SongRatingService] Error loading ratings: $e');
+      debugPrint('[SongRatingService] Error loading ratings from SQLite: $e');
     } finally {
       _isInitialized = true;
       notifyListeners();
@@ -100,47 +79,15 @@ class SongRatingService extends ChangeNotifier {
     }
 
     notifyListeners();
-    await _scheduleSave();
-  }
 
-  Future<void> _scheduleSave() async {
-    if (_disposed) return;
-    if (_isSaving) {
-      _needsSaveAgain = true;
-      return;
-    }
-    _isSaving = true;
     try {
-      final file = await _ratingsFile;
-      final parent = file.parent;
-      if (!parent.existsSync()) {
-        await parent.create(recursive: true);
-      }
-
-      final payload = {
-        'version': 1,
-        'ratings': _ratings,
-      };
-      final jsonStr = jsonEncode(payload);
-
-      final tmpFile = File('${file.path}.${DateTime.now().microsecondsSinceEpoch}.tmp');
-      await tmpFile.writeAsString(jsonStr, flush: true);
-      if (await file.exists()) {
-        try {
-          await file.delete();
-        } catch (_) {}
-      }
-      if (await tmpFile.exists()) {
-        await tmpFile.rename(file.path);
+      if (clampedRating == 0) {
+        await _database.deleteSongRating(key);
+      } else {
+        await _database.setSongRating(key, clampedRating);
       }
     } catch (e) {
-      debugPrint('[SongRatingService] Error saving ratings: $e');
-    } finally {
-      _isSaving = false;
-      if (_needsSaveAgain) {
-        _needsSaveAgain = false;
-        await _scheduleSave();
-      }
+      debugPrint('[SongRatingService] Error saving rating to SQLite: $e');
     }
   }
 

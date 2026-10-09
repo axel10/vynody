@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
+import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/player/rating/song_rating_service.dart';
 
 class _FakePathProviderPlatform extends Fake
@@ -19,15 +20,21 @@ void main() {
 
   late Directory tempDir;
 
-  setUp(() async {
+  setUpAll(() async {
     tempDir = await Directory.systemTemp.createTemp('rating_test_');
     PathProviderPlatform.instance = _FakePathProviderPlatform(tempDir);
   });
 
-  tearDown(() async {
-    if (tempDir.existsSync()) {
-      await tempDir.delete(recursive: true);
-    }
+  tearDownAll(() async {
+    try {
+      if (tempDir.existsSync()) {
+        await tempDir.delete(recursive: true);
+      }
+    } catch (_) {}
+  });
+
+  setUp(() async {
+    await MetadataDatabase().clearAllSongRatings();
   });
 
   group('SongRatingService Tests', () {
@@ -43,8 +50,8 @@ void main() {
 
       // Create a second service instance to verify persistence
       final service2 = SongRatingService();
-      // Allow async file loading
-      await Future.delayed(const Duration(milliseconds: 50));
+      // Allow async db loading
+      await Future.delayed(const Duration(milliseconds: 100));
       expect(service2.getRating('/music/song1.mp3'), equals(4));
     });
 
@@ -57,7 +64,7 @@ void main() {
       expect(service.getRating('/music/song1.mp3'), equals(0));
 
       final service2 = SongRatingService();
-      await Future.delayed(const Duration(milliseconds: 50));
+      await Future.delayed(const Duration(milliseconds: 100));
       expect(service2.getRating('/music/song1.mp3'), equals(0));
     });
 

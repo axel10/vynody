@@ -23,16 +23,21 @@ void main() {
   late Directory tempDir;
   late SongRatingService ratingService;
 
-  setUp(() async {
+  setUpAll(() async {
     tempDir = await Directory.systemTemp.createTemp('rating_widget_test_');
     PathProviderPlatform.instance = _FakePathProviderPlatform(tempDir);
-    ratingService = SongRatingService();
   });
 
-  tearDown(() async {
-    if (tempDir.existsSync()) {
-      await tempDir.delete(recursive: true);
-    }
+  tearDownAll(() async {
+    try {
+      if (tempDir.existsSync()) {
+        await tempDir.delete(recursive: true);
+      }
+    } catch (_) {}
+  });
+
+  setUp(() async {
+    ratingService = SongRatingService();
   });
 
   Widget buildTestWidget(String songPath) {
@@ -52,17 +57,21 @@ void main() {
 
   testWidgets('SongRatingOverlay displays outline star when unrated', (tester) async {
     await tester.pumpWidget(buildTestWidget('/music/test_song.mp3'));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
 
     expect(find.byIcon(Icons.star_outline_rounded), findsOneWidget);
     expect(find.text('0'), findsNothing);
   });
 
   testWidgets('SongRatingOverlay displays filled star and rating number when rated', (tester) async {
-    await ratingService.setRating('/music/test_song.mp3', 4);
+    await tester.runAsync(() async {
+      await ratingService.setRating('/music/test_song.mp3', 4);
+    });
 
     await tester.pumpWidget(buildTestWidget('/music/test_song.mp3'));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
 
     expect(find.byIcon(Icons.star_rounded), findsOneWidget);
     expect(find.text('4'), findsOneWidget);
