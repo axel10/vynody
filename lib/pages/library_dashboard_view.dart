@@ -15,6 +15,15 @@ import 'package:vynody/widgets/song_thumbnail.dart';
 import 'album_detail_page.dart';
 import 'artist_detail_page.dart';
 
+// ===========================================================================
+// 媒体库首页封面缩放系数配置（可在此自由修改数值调节大小）
+// ===========================================================================
+/// 桌面横屏下专辑/歌曲封面缩放系数（修改此数值即可全局等比放大/缩小，例如 1.3, 1.45, 1.6, 1.8 等）
+const double kDashboardDesktopCoverScale = 1.9;
+
+/// 竖屏移动端下封面缩放系数
+const double kDashboardMobileCoverScale = 1.0;
+
 /// 桌面端与移动端统一的响应式媒体库首页（Dashboard 仪表盘）
 class LibraryDashboardView extends ConsumerWidget {
   const LibraryDashboardView({
@@ -59,19 +68,24 @@ class LibraryDashboardView extends ConsumerWidget {
                 ),
               ),
 
-              // 2. 快速入口胶囊行
+              // 2. 快速入口：横屏使用大号卡片流，竖屏保持经典大菜单卡片
               SliverToBoxAdapter(
                 child: Padding(
                   padding: EdgeInsets.only(
                     left: contentLeftPadding + horizontalPadding,
                     right: horizontalPadding,
-                    top: 12,
-                    bottom: 24,
+                    top: isWide ? 14 : 8,
+                    bottom: isWide ? 28 : 22,
                   ),
-                  child: _QuickAccessChips(
-                    onTapSubIndex: onNavigateToSubIndex,
-                    l10n: l10n,
-                  ),
+                  child: isWide
+                      ? _WideQuickAccessBar(
+                          onTapSubIndex: onNavigateToSubIndex,
+                          l10n: l10n,
+                        )
+                      : _PortraitLibraryMenuCard(
+                          onTapSubIndex: onNavigateToSubIndex,
+                          l10n: l10n,
+                        ),
                 ),
               ),
 
@@ -86,6 +100,7 @@ class LibraryDashboardView extends ConsumerWidget {
                     horizontalPadding: horizontalPadding,
                     onViewAll: () => onNavigateToSubIndex(1),
                     l10n: l10n,
+                    isWide: isWide,
                   ),
                 ),
               ),
@@ -106,11 +121,15 @@ class LibraryDashboardView extends ConsumerWidget {
                               child: _ThisWeekTopCard(
                                 onViewAll: () => onNavigateToSubIndex(2),
                                 l10n: l10n,
+                                isWide: isWide,
                               ),
                             ),
-                            const SizedBox(width: 20),
+                            const SizedBox(width: 32),
                             Expanded(
-                              child: _TimeMachineCard(l10n: l10n),
+                              child: _TimeMachineCard(
+                                l10n: l10n,
+                                isWide: isWide,
+                              ),
                             ),
                           ],
                         )
@@ -119,9 +138,13 @@ class LibraryDashboardView extends ConsumerWidget {
                             _ThisWeekTopCard(
                               onViewAll: () => onNavigateToSubIndex(2),
                               l10n: l10n,
+                              isWide: isWide,
                             ),
-                            const SizedBox(height: 20),
-                            _TimeMachineCard(l10n: l10n),
+                            const SizedBox(height: 28),
+                            _TimeMachineCard(
+                              l10n: l10n,
+                              isWide: isWide,
+                            ),
                           ],
                         ),
                 ),
@@ -143,13 +166,15 @@ class LibraryDashboardView extends ConsumerWidget {
                               child: _RecentlyAddedCard(
                                 onViewAll: () => onNavigateToSubIndex(3),
                                 l10n: l10n,
+                                isWide: isWide,
                               ),
                             ),
-                            const SizedBox(width: 20),
+                            const SizedBox(width: 32),
                             Expanded(
                               child: _TopRatedCard(
                                 onViewAll: () => onNavigateToSubIndex(6),
                                 l10n: l10n,
+                                isWide: isWide,
                               ),
                             ),
                           ],
@@ -159,11 +184,13 @@ class LibraryDashboardView extends ConsumerWidget {
                             _RecentlyAddedCard(
                               onViewAll: () => onNavigateToSubIndex(3),
                               l10n: l10n,
+                              isWide: isWide,
                             ),
-                            const SizedBox(height: 20),
+                            const SizedBox(height: 28),
                             _TopRatedCard(
                               onViewAll: () => onNavigateToSubIndex(6),
                               l10n: l10n,
+                              isWide: isWide,
                             ),
                           ],
                         ),
@@ -181,6 +208,7 @@ class LibraryDashboardView extends ConsumerWidget {
                     horizontalPadding: horizontalPadding,
                     onViewAll: () => onNavigateToSubIndex(4),
                     l10n: l10n,
+                    isWide: isWide,
                   ),
                 ),
               ),
@@ -196,6 +224,7 @@ class LibraryDashboardView extends ConsumerWidget {
                     horizontalPadding: horizontalPadding,
                     onViewAll: () => onNavigateToSubIndex(5),
                     l10n: l10n,
+                    isWide: isWide,
                   ),
                 ),
               ),
@@ -248,11 +277,15 @@ class _DashboardHeader extends ConsumerWidget {
         ),
         const SizedBox(width: 14),
         if (albumsCount > 0 || artistsCount > 0)
-          Text(
-            '$albumsCount ${l10n.albums} · $artistsCount ${l10n.artists}${playlistsCount > 0 ? " · $playlistsCount ${l10n.playlist}" : ""}',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.75),
-              fontWeight: FontWeight.w500,
+          Expanded(
+            child: Text(
+              '$albumsCount ${l10n.albums} · $artistsCount ${l10n.artists}${playlistsCount > 0 ? " · $playlistsCount ${l10n.playlist}" : ""}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.75),
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
       ],
@@ -261,10 +294,10 @@ class _DashboardHeader extends ConsumerWidget {
 }
 
 // ---------------------------------------------------------------------------
-// 快速入口胶囊行
+// 横屏大号快捷入口流
 // ---------------------------------------------------------------------------
-class _QuickAccessChips extends StatelessWidget {
-  const _QuickAccessChips({
+class _WideQuickAccessBar extends ConsumerWidget {
+  const _WideQuickAccessBar({
     required this.onTapSubIndex,
     required this.l10n,
   });
@@ -273,49 +306,63 @@ class _QuickAccessChips extends StatelessWidget {
   final AppLocalizations l10n;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final playlistsCount =
+        ref.watch(playlistServiceProvider).playlists.length;
+    final albumsCount = ref.watch(albumLibraryProvider).value?.length;
+    final artistsCount = ref.watch(artistLibraryProvider).value?.length;
+
     final items = [
       (
         index: 1,
         title: l10n.recentlyPlayed,
         icon: Icons.history_rounded,
-        color: const Color(0xFF10B981),
+        gradient: const [Color(0xFF10B981), Color(0xFF14B8A6)],
+        badgeText: null,
       ),
       (
         index: 2,
         title: l10n.mostPlayed,
         icon: Icons.local_fire_department_rounded,
-        color: const Color(0xFFEF4444),
+        gradient: const [Color(0xFFEF4444), Color(0xFFF43F5E)],
+        badgeText: null,
       ),
       (
         index: 3,
         title: l10n.recentlyAdded,
         icon: Icons.auto_awesome_rounded,
-        color: const Color(0xFFF59E0B),
+        gradient: const [Color(0xFFF59E0B), Color(0xFFEAB308)],
+        badgeText: null,
       ),
       (
         index: 6,
         title: l10n.ratedSongs,
         icon: Icons.star_rounded,
-        color: const Color(0xFFEAB308),
+        gradient: const [Color(0xFFEAB308), Color(0xFFF59E0B)],
+        badgeText: null,
       ),
       (
         index: 0,
         title: l10n.playlist,
         icon: Icons.queue_music_rounded,
-        color: const Color(0xFF8B5CF6),
+        gradient: const [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+        badgeText: playlistsCount > 0 ? '$playlistsCount' : null,
       ),
       (
         index: 5,
         title: l10n.artists,
         icon: Icons.mic_external_on_rounded,
-        color: const Color(0xFFF97316),
+        gradient: const [Color(0xFFF97316), Color(0xFFFB923C)],
+        badgeText:
+            artistsCount != null && artistsCount > 0 ? '$artistsCount' : null,
       ),
       (
         index: 4,
         title: l10n.albums,
         icon: Icons.album_rounded,
-        color: const Color(0xFF06B6D4),
+        gradient: const [Color(0xFF06B6D4), Color(0xFF3B82F6)],
+        badgeText:
+            albumsCount != null && albumsCount > 0 ? '$albumsCount' : null,
       ),
     ];
 
@@ -325,11 +372,12 @@ class _QuickAccessChips extends StatelessWidget {
       child: Row(
         children: items.map((item) {
           return Padding(
-            padding: const EdgeInsets.only(right: 10),
-            child: _QuickChip(
+            padding: const EdgeInsets.only(right: 14),
+            child: _WideQuickCard(
               title: item.title,
               icon: item.icon,
-              color: item.color,
+              gradient: item.gradient,
+              badgeText: item.badgeText,
               onTap: () => onTapSubIndex(item.index),
             ),
           );
@@ -339,30 +387,33 @@ class _QuickAccessChips extends StatelessWidget {
   }
 }
 
-class _QuickChip extends StatefulWidget {
-  const _QuickChip({
+class _WideQuickCard extends StatefulWidget {
+  const _WideQuickCard({
     required this.title,
     required this.icon,
-    required this.color,
+    required this.gradient,
+    this.badgeText,
     required this.onTap,
   });
 
   final String title;
   final IconData icon;
-  final Color color;
+  final List<Color> gradient;
+  final String? badgeText;
   final VoidCallback onTap;
 
   @override
-  State<_QuickChip> createState() => _QuickChipState();
+  State<_WideQuickCard> createState() => _WideQuickCardState();
 }
 
-class _QuickChipState extends State<_QuickChip> {
+class _WideQuickCardState extends State<_WideQuickCard> {
   bool _isHovered = false;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final primaryColor = widget.gradient.first;
 
     return MouseRegion(
       cursor: SystemMouseCursors.click,
@@ -372,37 +423,543 @@ class _QuickChipState extends State<_QuickChip> {
         onTap: widget.onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
           decoration: BoxDecoration(
             color: _isHovered
-                ? widget.color.withValues(alpha: isDark ? 0.22 : 0.16)
+                ? primaryColor.withValues(alpha: isDark ? 0.20 : 0.12)
                 : theme.colorScheme.surfaceContainerHighest.withValues(
-                    alpha: isDark ? 0.45 : 0.70,
+                    alpha: isDark ? 0.45 : 0.65,
                   ),
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: _isHovered
-                  ? widget.color.withValues(alpha: 0.5)
-                  : theme.colorScheme.outlineVariant.withValues(alpha: 0.2),
+                  ? primaryColor.withValues(alpha: 0.55)
+                  : theme.colorScheme.outlineVariant.withValues(alpha: 0.22),
               width: 1,
             ),
+            boxShadow: _isHovered
+                ? [
+                    BoxShadow(
+                      color: primaryColor.withValues(alpha: 0.16),
+                      blurRadius: 12,
+                      offset: const Offset(0, 3),
+                    ),
+                  ]
+                : null,
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                widget.icon,
-                size: 16,
-                color: widget.color,
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: widget.gradient,
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: [
+                    BoxShadow(
+                      color: widget.gradient.first.withValues(alpha: 0.35),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: Icon(
+                    widget.icon,
+                    size: 20,
+                    color: Colors.white,
+                  ),
+                ),
               ),
-              const SizedBox(width: 7),
+              const SizedBox(width: 12),
               Text(
                 widget.title,
-                style: theme.textTheme.labelMedium?.copyWith(
+                style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w600,
+                  fontSize: 15,
                   color: _isHovered
                       ? theme.colorScheme.onSurface
-                      : theme.colorScheme.onSurfaceVariant,
+                      : theme.colorScheme.onSurface.withValues(alpha: 0.9),
+                ),
+              ),
+              if (widget.badgeText != null) ...[
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 7,
+                    vertical: 2.5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.12)
+                        : Colors.black.withValues(alpha: 0.06),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    widget.badgeText!,
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w600,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 竖屏大菜单卡片（保持 a3ec2752 之前的经典卡片样式）
+// ---------------------------------------------------------------------------
+class _LibraryMenuItem {
+  final IconData icon;
+  final List<Color> iconGradient;
+  final String title;
+  final String? badgeText;
+  final VoidCallback onTap;
+
+  const _LibraryMenuItem({
+    required this.icon,
+    required this.iconGradient,
+    required this.title,
+    this.badgeText,
+    required this.onTap,
+  });
+}
+
+class _PortraitLibraryMenuCard extends ConsumerWidget {
+  const _PortraitLibraryMenuCard({
+    required this.onTapSubIndex,
+    required this.l10n,
+  });
+
+  final ValueChanged<int> onTapSubIndex;
+  final AppLocalizations l10n;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    final playlistsCount =
+        ref.watch(playlistServiceProvider).playlists.length;
+    final albumsCount = ref.watch(albumLibraryProvider).value?.length;
+    final artistsCount = ref.watch(artistLibraryProvider).value?.length;
+
+    final items = [
+      _LibraryMenuItem(
+        icon: Icons.queue_music_rounded,
+        iconGradient: const [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+        title: l10n.playlist,
+        badgeText: playlistsCount > 0 ? '$playlistsCount' : null,
+        onTap: () => onTapSubIndex(0),
+      ),
+      _LibraryMenuItem(
+        icon: Icons.mic_external_on_rounded,
+        iconGradient: const [Color(0xFFF97316), Color(0xFFFB923C)],
+        title: l10n.artists,
+        badgeText:
+            artistsCount != null && artistsCount > 0 ? '$artistsCount' : null,
+        onTap: () => onTapSubIndex(5),
+      ),
+      _LibraryMenuItem(
+        icon: Icons.album_rounded,
+        iconGradient: const [Color(0xFF06B6D4), Color(0xFF3B82F6)],
+        title: l10n.albums,
+        badgeText:
+            albumsCount != null && albumsCount > 0 ? '$albumsCount' : null,
+        onTap: () => onTapSubIndex(4),
+      ),
+      _LibraryMenuItem(
+        icon: Icons.history_rounded,
+        iconGradient: const [Color(0xFF10B981), Color(0xFF14B8A6)],
+        title: l10n.recentlyPlayed,
+        onTap: () => onTapSubIndex(1),
+      ),
+      _LibraryMenuItem(
+        icon: Icons.local_fire_department_rounded,
+        iconGradient: const [Color(0xFFEF4444), Color(0xFFF43F5E)],
+        title: l10n.mostPlayed,
+        onTap: () => onTapSubIndex(2),
+      ),
+      _LibraryMenuItem(
+        icon: Icons.auto_awesome_rounded,
+        iconGradient: const [Color(0xFFF59E0B), Color(0xFFEAB308)],
+        title: l10n.recentlyAdded,
+        onTap: () => onTapSubIndex(3),
+      ),
+      _LibraryMenuItem(
+        icon: Icons.star_rounded,
+        iconGradient: const [Color(0xFFEAB308), Color(0xFFF59E0B)],
+        title: l10n.ratedSongs,
+        onTap: () => onTapSubIndex(6),
+      ),
+    ];
+
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark
+            ? theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.45)
+            : theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.15 : 0.04),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(
+          color: theme.dividerColor.withValues(alpha: isDark ? 0.12 : 0.06),
+          width: 0.8,
+        ),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: Column(
+          children: [
+            for (int i = 0; i < items.length; i++) ...[
+              _buildTile(context, items[i]),
+              if (i < items.length - 1)
+                Padding(
+                  padding: const EdgeInsets.only(left: 68, right: 16),
+                  child: Divider(
+                    height: 1,
+                    thickness: 0.6,
+                    color: theme.dividerColor.withValues(alpha: 0.1),
+                  ),
+                ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTile(BuildContext context, _LibraryMenuItem item) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: item.onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+          child: Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: item.iconGradient,
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: [
+                    BoxShadow(
+                      color: item.iconGradient.first.withValues(alpha: 0.35),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: Icon(
+                    item.icon,
+                    size: 20,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Text(
+                  item.title,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+              if (item.badgeText != null) ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.1)
+                        : Colors.black.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    item.badgeText!,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+              ],
+              Icon(
+                Icons.chevron_right_rounded,
+                size: 20,
+                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 横向走马灯滚动容器（支持悬浮竖胶囊翻页按钮）
+// ---------------------------------------------------------------------------
+enum _PillNavDirection { left, right }
+
+class _PillNavButton extends StatefulWidget {
+  const _PillNavButton({
+    required this.direction,
+    required this.visible,
+    required this.onTap,
+  });
+
+  final _PillNavDirection direction;
+  final bool visible;
+  final VoidCallback onTap;
+
+  @override
+  State<_PillNavButton> createState() => _PillNavButtonState();
+}
+
+class _PillNavButtonState extends State<_PillNavButton> {
+  bool _isButtonHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    // 暗色模式：基础半透明深灰，悬停时加深至纯黑；亮色模式：基础半透明白，悬停时加深为沉着深灰
+    final baseColor = isDark
+        ? const Color(0xFF28282A).withValues(alpha: 0.85)
+        : Colors.white.withValues(alpha: 0.90);
+    final hoverColor = isDark
+        ? const Color(0xFF101012).withValues(alpha: 0.98)
+        : const Color(0xFFD1D5DB).withValues(alpha: 0.98);
+
+    final borderColor = isDark
+        ? Colors.white.withValues(alpha: _isButtonHovered ? 0.25 : 0.12)
+        : Colors.black.withValues(alpha: _isButtonHovered ? 0.16 : 0.08);
+
+    final iconColor = isDark
+        ? Colors.white.withValues(alpha: _isButtonHovered ? 1.0 : 0.85)
+        : (_isButtonHovered ? Colors.black : Colors.black87);
+
+    return IgnorePointer(
+      ignoring: !widget.visible,
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeInOut,
+        opacity: widget.visible ? 1.0 : 0.0,
+        child: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          onEnter: (_) => setState(() => _isButtonHovered = true),
+          onExit: (_) => setState(() => _isButtonHovered = false),
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: widget.onTap,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              width: 28,
+              height: 56,
+              decoration: BoxDecoration(
+                color: _isButtonHovered ? hoverColor : baseColor,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: borderColor,
+                  width: 0.8,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(
+                      alpha: isDark
+                          ? (_isButtonHovered ? 0.45 : 0.28)
+                          : (_isButtonHovered ? 0.20 : 0.10),
+                    ),
+                    blurRadius: _isButtonHovered ? 12 : 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Center(
+                child: Icon(
+                  widget.direction == _PillNavDirection.left
+                      ? Icons.chevron_left_rounded
+                      : Icons.chevron_right_rounded,
+                  size: 22,
+                  color: iconColor,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CarouselScrollWrapper extends StatefulWidget {
+  const _CarouselScrollWrapper({
+    required this.height,
+    required this.builder,
+    this.centerHeight,
+    this.buttonPadding = 12.0,
+  });
+
+  final double height;
+  final Widget Function(BuildContext context, ScrollController controller) builder;
+  final double? centerHeight;
+  final double buttonPadding;
+
+  @override
+  State<_CarouselScrollWrapper> createState() => _CarouselScrollWrapperState();
+}
+
+class _CarouselScrollWrapperState extends State<_CarouselScrollWrapper> {
+  final ScrollController _scrollController = ScrollController();
+  bool _canScrollLeft = false;
+  bool _canScrollRight = false;
+  bool _isHovered = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_updateScrollState);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _updateScrollState());
+  }
+
+  @override
+  void didUpdateWidget(covariant _CarouselScrollWrapper oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _updateScrollState());
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_updateScrollState);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _updateScrollState() {
+    if (!mounted || !_scrollController.hasClients) return;
+    final position = _scrollController.position;
+    final canLeft = position.pixels > 6.0;
+    final canRight = position.pixels < (position.maxScrollExtent - 6.0);
+    if (canLeft != _canScrollLeft || canRight != _canScrollRight) {
+      setState(() {
+        _canScrollLeft = canLeft;
+        _canScrollRight = canRight;
+      });
+    }
+  }
+
+  void _scrollNext() {
+    if (!_scrollController.hasClients) return;
+    final viewport = _scrollController.position.viewportDimension;
+    // 翻一页：滑动约 82% 视口宽度，保留上下文锚点
+    final delta = (viewport * 0.82).clamp(120.0, double.infinity);
+    final target = (_scrollController.offset + delta).clamp(
+      0.0,
+      _scrollController.position.maxScrollExtent,
+    );
+    _scrollController.animateTo(
+      target,
+      duration: const Duration(milliseconds: 380),
+      curve: Curves.easeInOutCubic,
+    );
+  }
+
+  void _scrollPrevious() {
+    if (!_scrollController.hasClients) return;
+    final viewport = _scrollController.position.viewportDimension;
+    final delta = (viewport * 0.82).clamp(120.0, double.infinity);
+    final target = (_scrollController.offset - delta).clamp(
+      0.0,
+      _scrollController.position.maxScrollExtent,
+    );
+    _scrollController.animateTo(
+      target,
+      duration: const Duration(milliseconds: 380),
+      curve: Curves.easeInOutCubic,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final targetCenter = widget.centerHeight ?? widget.height;
+    const btnHeight = 56.0;
+    final btnTop = ((targetCenter - btnHeight) / 2.0).clamp(0.0, double.infinity);
+
+    return MouseRegion(
+      onEnter: (_) {
+        _updateScrollState();
+        setState(() => _isHovered = true);
+      },
+      onExit: (_) => setState(() => _isHovered = false),
+      child: NotificationListener<ScrollNotification>(
+        onNotification: (notification) {
+          if (notification is ScrollUpdateNotification ||
+              notification is OverscrollNotification ||
+              notification is UserScrollNotification) {
+            _updateScrollState();
+          }
+          return false;
+        },
+        child: SizedBox(
+          height: widget.height,
+          child: Stack(
+            children: [
+              widget.builder(context, _scrollController),
+
+              // 左侧往前翻一页按钮
+              Positioned(
+                left: widget.buttonPadding,
+                top: btnTop,
+                child: _PillNavButton(
+                  direction: _PillNavDirection.left,
+                  visible: _isHovered && _canScrollLeft,
+                  onTap: _scrollPrevious,
+                ),
+              ),
+
+              // 右侧往后翻一页按钮
+              Positioned(
+                right: widget.buttonPadding,
+                top: btnTop,
+                child: _PillNavButton(
+                  direction: _PillNavDirection.right,
+                  visible: _isHovered && _canScrollRight,
+                  onTap: _scrollNext,
                 ),
               ),
             ],
@@ -421,11 +978,13 @@ class _RecentlyPlayedSection extends ConsumerWidget {
     required this.horizontalPadding,
     required this.onViewAll,
     required this.l10n,
+    this.isWide = false,
   });
 
   final double horizontalPadding;
   final VoidCallback onViewAll;
   final AppLocalizations l10n;
+  final bool isWide;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -433,10 +992,14 @@ class _RecentlyPlayedSection extends ConsumerWidget {
       recentlyPlayedSongsProvider(LibraryTimeRange.allTime),
     );
 
+    final scale = isWide ? kDashboardDesktopCoverScale : kDashboardMobileCoverScale;
+    final cardWidth = (130.0 * scale).roundToDouble();
+    final listHeight = cardWidth + 70.0;
+
     return asyncSongs.when(
       data: (items) {
         if (items.isEmpty) return const SizedBox.shrink();
-        final previewItems = items.take(8).toList();
+        final previewItems = items.take(20).toList();
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -450,28 +1013,35 @@ class _RecentlyPlayedSection extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 12),
-            SizedBox(
-              height: 195,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                physics: const BouncingScrollPhysics(),
-                padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-                itemCount: previewItems.length,
-                separatorBuilder: (_, _) => const SizedBox(width: 14),
-                itemBuilder: (context, index) {
-                  final entry = previewItems[index];
-                  final allSongs = previewItems.map((e) => e.song).toList();
-                  return _SongCard(
-                    song: entry.song,
-                    onPlay: () {
-                      ref.read(audioServiceProvider).playPlaylist(
-                            allSongs,
-                            initialIndex: index,
-                          );
-                    },
-                  );
-                },
-              ),
+            _CarouselScrollWrapper(
+              height: listHeight,
+              centerHeight: cardWidth,
+              buttonPadding: horizontalPadding > 20 ? 14.0 : 8.0,
+              builder: (context, controller) {
+                return ListView.separated(
+                  controller: controller,
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                  itemCount: previewItems.length,
+                  separatorBuilder: (_, _) => SizedBox(width: isWide ? 16 : 14),
+                  itemBuilder: (context, index) {
+                    final entry = previewItems[index];
+                    final allSongs = previewItems.map((e) => e.song).toList();
+                    return _SongCard(
+                      song: entry.song,
+                      width: cardWidth,
+                      isWide: isWide,
+                      onPlay: () {
+                        ref.read(audioServiceProvider).playPlaylist(
+                              allSongs,
+                              initialIndex: index,
+                            );
+                      },
+                    );
+                  },
+                );
+              },
             ),
           ],
         );
@@ -486,10 +1056,14 @@ class _SongCard extends StatefulWidget {
   const _SongCard({
     required this.song,
     required this.onPlay,
+    this.width = 130.0,
+    this.isWide = false,
   });
 
   final MusicFile song;
   final VoidCallback onPlay;
+  final double width;
+  final bool isWide;
 
   @override
   State<_SongCard> createState() => _SongCardState();
@@ -501,6 +1075,9 @@ class _SongCardState extends State<_SongCard> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final size = widget.width;
+    final btnSize = widget.isWide ? 46.0 : 40.0;
+    final iconSize = widget.isWide ? 26.0 : 24.0;
 
     return MouseRegion(
       cursor: SystemMouseCursors.click,
@@ -509,7 +1086,7 @@ class _SongCardState extends State<_SongCard> {
       child: GestureDetector(
         onTap: widget.onPlay,
         child: SizedBox(
-          width: 130,
+          width: size,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -517,7 +1094,7 @@ class _SongCardState extends State<_SongCard> {
                 children: [
                   SongThumbnail.fromSong(
                     widget.song,
-                    size: 130,
+                    size: size,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   Positioned.fill(
@@ -531,8 +1108,8 @@ class _SongCardState extends State<_SongCard> {
                         ),
                         child: Center(
                           child: Container(
-                            width: 40,
-                            height: 40,
+                            width: btnSize,
+                            height: btnSize,
                             decoration: BoxDecoration(
                               color: theme.colorScheme.primary,
                               shape: BoxShape.circle,
@@ -544,10 +1121,10 @@ class _SongCardState extends State<_SongCard> {
                                 ),
                               ],
                             ),
-                            child: const Icon(
+                            child: Icon(
                               Icons.play_arrow_rounded,
                               color: Colors.white,
-                              size: 24,
+                              size: iconSize,
                             ),
                           ),
                         ),
@@ -563,6 +1140,7 @@ class _SongCardState extends State<_SongCard> {
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.bodyMedium?.copyWith(
                   fontWeight: FontWeight.w600,
+                  fontSize: widget.isWide ? 14.5 : 14.0,
                   letterSpacing: -0.2,
                 ),
               ),
@@ -590,10 +1168,12 @@ class _ThisWeekTopCard extends ConsumerWidget {
   const _ThisWeekTopCard({
     required this.onViewAll,
     required this.l10n,
+    this.isWide = false,
   });
 
   final VoidCallback onViewAll;
   final AppLocalizations l10n;
+  final bool isWide;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -602,164 +1182,138 @@ class _ThisWeekTopCard extends ConsumerWidget {
       mostPlayedSongsProvider(LibraryTimeRange.last7Days),
     );
 
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(
-          alpha: theme.brightness == Brightness.dark ? 0.35 : 0.55,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionHeader(
+          title: l10n.thisWeekTop,
+          subtitle: l10n.thisWeekTopSubtitle,
+          onViewAll: onViewAll,
+          l10n: l10n,
         ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _SectionHeader(
-            title: l10n.thisWeekTop,
-            subtitle: l10n.thisWeekTopSubtitle,
-            onViewAll: onViewAll,
-            l10n: l10n,
-          ),
-          const SizedBox(height: 12),
-          asyncSongs.when(
-            data: (items) {
-              if (items.isEmpty) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 24),
-                  child: Center(
-                    child: Text(
-                      l10n.emptyThisWeekTop,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
+        const SizedBox(height: 12),
+        asyncSongs.when(
+          data: (items) {
+            if (items.isEmpty) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: Center(
+                  child: Text(
+                    l10n.emptyThisWeekTop,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
-                );
-              }
-              final topItems = items.take(5).toList();
-              final allSongs = topItems.map((e) => e.song).toList();
-
-              return Column(
-                children: List.generate(topItems.length, (idx) {
-                  final entry = topItems[idx];
-                  return _RankedSongRow(
-                    index: idx + 1,
-                    song: entry.song,
-                    metric: '${entry.playCount} 次',
-                    onTap: () {
-                      ref.read(audioServiceProvider).playPlaylist(
-                            allSongs,
-                            initialIndex: idx,
-                          );
-                    },
-                  );
-                }),
+                ),
               );
-            },
-            loading: () => const Padding(
-              padding: EdgeInsets.symmetric(vertical: 24),
-              child: Center(child: CircularProgressIndicator.adaptive()),
-            ),
-            error: (_, _) => const SizedBox.shrink(),
+            }
+            final topItems = items.take(5).toList();
+            final allSongs = topItems.map((e) => e.song).toList();
+
+            return Column(
+              children: List.generate(topItems.length, (idx) {
+                final entry = topItems[idx];
+                return _RankedSongRow(
+                  index: idx + 1,
+                  song: entry.song,
+                  metric: '${entry.playCount} 次',
+                  isWide: isWide,
+                  showIndex: !isWide,
+                  onTap: () {
+                    ref.read(audioServiceProvider).playPlaylist(
+                          allSongs,
+                          initialIndex: idx,
+                        );
+                  },
+                );
+              }),
+            );
+          },
+          loading: () => const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Center(child: CircularProgressIndicator.adaptive()),
           ),
-        ],
-      ),
+          error: (_, _) => const SizedBox.shrink(),
+        ),
+      ],
     );
   }
 }
 
 class _TimeMachineCard extends ConsumerWidget {
-  const _TimeMachineCard({required this.l10n});
+  const _TimeMachineCard({
+    required this.l10n,
+    this.isWide = false,
+  });
+
   final AppLocalizations l10n;
+  final bool isWide;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final asyncAlbums = ref.watch(timeMachineAlbumsProvider);
 
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(
-          alpha: theme.brightness == Brightness.dark ? 0.35 : 0.55,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionHeader(
+          title: l10n.timeMachine,
+          subtitle: l10n.timeMachineSubtitle,
+          l10n: l10n,
         ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      l10n.timeMachine,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      l10n.timeMachineSubtitle,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          asyncAlbums.when(
-            data: (albums) {
-              if (albums.isEmpty) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 24),
-                  child: Center(
-                    child: Text(
-                      l10n.emptyTimeMachine,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
+        const SizedBox(height: 12),
+        asyncAlbums.when(
+          data: (albums) {
+            if (albums.isEmpty) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: Center(
+                  child: Text(
+                    l10n.emptyTimeMachine,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
-                );
-              }
-
-              final preview = albums.take(4).toList();
-              return Column(
-                children: preview.map((entry) {
-                  return _TimeMachineAlbumRow(entry: entry);
-                }).toList(),
+                ),
               );
-            },
-            loading: () => const Padding(
-              padding: EdgeInsets.symmetric(vertical: 24),
-              child: Center(child: CircularProgressIndicator.adaptive()),
-            ),
-            error: (_, _) => const SizedBox.shrink(),
+            }
+
+            final preview = albums.take(5).toList();
+            return Column(
+              children: preview.map((entry) {
+                return _TimeMachineAlbumRow(
+                  entry: entry,
+                  isWide: isWide,
+                );
+              }).toList(),
+            );
+          },
+          loading: () => const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Center(child: CircularProgressIndicator.adaptive()),
           ),
-        ],
-      ),
+          error: (_, _) => const SizedBox.shrink(),
+        ),
+      ],
     );
   }
 }
 
 class _TimeMachineAlbumRow extends ConsumerWidget {
-  const _TimeMachineAlbumRow({required this.entry});
+  const _TimeMachineAlbumRow({
+    required this.entry,
+    this.isWide = false,
+  });
+
   final TimeMachineAlbumEntry entry;
+  final bool isWide;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final scale = isWide ? kDashboardDesktopCoverScale : kDashboardMobileCoverScale;
+    final coverSize = (46.0 * scale).roundToDouble();
 
     return InkWell(
       borderRadius: BorderRadius.circular(10),
@@ -783,15 +1337,15 @@ class _TimeMachineAlbumRow extends ConsumerWidget {
         );
       },
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 6),
+        padding: EdgeInsets.symmetric(vertical: isWide ? 7 : 6),
         child: Row(
           children: [
             SongThumbnail(
               path: entry.songs.isNotEmpty ? entry.songs.first.path : entry.album,
               artworkPath: entry.artworkPath,
               thumbnailPath: entry.thumbnailPath,
-              size: 46,
-              borderRadius: BorderRadius.circular(8),
+              size: coverSize,
+              borderRadius: BorderRadius.circular(9),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -847,10 +1401,12 @@ class _RecentlyAddedCard extends ConsumerWidget {
   const _RecentlyAddedCard({
     required this.onViewAll,
     required this.l10n,
+    this.isWide = false,
   });
 
   final VoidCallback onViewAll;
   final AppLocalizations l10n;
+  final bool isWide;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -859,70 +1415,59 @@ class _RecentlyAddedCard extends ConsumerWidget {
       recentlyAddedSongsProvider(LibraryTimeRange.allTime),
     );
 
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(
-          alpha: theme.brightness == Brightness.dark ? 0.35 : 0.55,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionHeader(
+          title: l10n.recentlyAdded,
+          onViewAll: onViewAll,
+          l10n: l10n,
         ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _SectionHeader(
-            title: l10n.recentlyAdded,
-            onViewAll: onViewAll,
-            l10n: l10n,
-          ),
-          const SizedBox(height: 12),
-          asyncSongs.when(
-            data: (items) {
-              if (items.isEmpty) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 24),
-                  child: Center(
-                    child: Text(
-                      l10n.noRecentlyAddedSongs,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
+        const SizedBox(height: 12),
+        asyncSongs.when(
+          data: (items) {
+            if (items.isEmpty) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: Center(
+                  child: Text(
+                    l10n.noRecentlyAddedSongs,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
-                );
-              }
-              final preview = items.take(5).toList();
-              final allSongs = preview.map((e) => e.song).toList();
-
-              return Column(
-                children: List.generate(preview.length, (idx) {
-                  final entry = preview[idx];
-                  return _SimpleSongRow(
-                    song: entry.song,
-                    trailingText: entry.createdAt != null
-                        ? _formatDate(entry.createdAt!)
-                        : null,
-                    onTap: () {
-                      ref.read(audioServiceProvider).playPlaylist(
-                            allSongs,
-                            initialIndex: idx,
-                          );
-                    },
-                  );
-                }),
+                ),
               );
-            },
-            loading: () => const Padding(
-              padding: EdgeInsets.symmetric(vertical: 24),
-              child: Center(child: CircularProgressIndicator.adaptive()),
-            ),
-            error: (_, _) => const SizedBox.shrink(),
+            }
+            final preview = items.take(5).toList();
+            final allSongs = preview.map((e) => e.song).toList();
+
+            return Column(
+              children: List.generate(preview.length, (idx) {
+                final entry = preview[idx];
+                return _SimpleSongRow(
+                  song: entry.song,
+                  isWide: isWide,
+                  trailingText: entry.createdAt != null
+                      ? _formatDate(entry.createdAt!)
+                      : null,
+                  onTap: () {
+                    ref.read(audioServiceProvider).playPlaylist(
+                          allSongs,
+                          initialIndex: idx,
+                        );
+                  },
+                );
+              }),
+            );
+          },
+          loading: () => const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Center(child: CircularProgressIndicator.adaptive()),
           ),
-        ],
-      ),
+          error: (_, _) => const SizedBox.shrink(),
+        ),
+      ],
     );
   }
 
@@ -936,96 +1481,87 @@ class _TopRatedCard extends ConsumerWidget {
   const _TopRatedCard({
     required this.onViewAll,
     required this.l10n,
+    this.isWide = false,
   });
 
   final VoidCallback onViewAll;
   final AppLocalizations l10n;
+  final bool isWide;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final asyncSongs = ref.watch(topRatedSongsProvider);
 
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(
-          alpha: theme.brightness == Brightness.dark ? 0.35 : 0.55,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionHeader(
+          title: l10n.topRated,
+          subtitle: l10n.topRatedSubtitle,
+          onViewAll: onViewAll,
+          l10n: l10n,
         ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _SectionHeader(
-            title: l10n.topRated,
-            subtitle: l10n.topRatedSubtitle,
-            onViewAll: onViewAll,
-            l10n: l10n,
-          ),
-          const SizedBox(height: 12),
-          asyncSongs.when(
-            data: (items) {
-              if (items.isEmpty) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 24),
-                  child: Center(
-                    child: Text(
-                      l10n.emptyTopRated,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
+        const SizedBox(height: 12),
+        asyncSongs.when(
+          data: (items) {
+            if (items.isEmpty) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: Center(
+                  child: Text(
+                    l10n.emptyTopRated,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
-                );
-              }
-              final preview = items.take(5).toList();
-              final allSongs = preview.map((e) => e.song).toList();
-
-              return Column(
-                children: List.generate(preview.length, (idx) {
-                  final entry = preview[idx];
-                  return _SimpleSongRow(
-                    song: entry.song,
-                    trailingWidget: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.star_rounded,
-                          size: 16,
-                          color: Color(0xFFF59E0B),
-                        ),
-                        const SizedBox(width: 2),
-                        Text(
-                          '${entry.playCount}',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFFF59E0B),
-                          ),
-                        ),
-                      ],
-                    ),
-                    onTap: () {
-                      ref.read(audioServiceProvider).playPlaylist(
-                            allSongs,
-                            initialIndex: idx,
-                          );
-                    },
-                  );
-                }),
+                ),
               );
-            },
-            loading: () => const Padding(
-              padding: EdgeInsets.symmetric(vertical: 24),
-              child: Center(child: CircularProgressIndicator.adaptive()),
-            ),
-            error: (_, _) => const SizedBox.shrink(),
+            }
+            final preview = items.take(5).toList();
+            final allSongs = preview.map((e) => e.song).toList();
+
+            return Column(
+              children: List.generate(preview.length, (idx) {
+                final entry = preview[idx];
+                return _SimpleSongRow(
+                  song: entry.song,
+                  isWide: isWide,
+                  trailingWidget: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.star_rounded,
+                        size: 16,
+                        color: Color(0xFFF59E0B),
+                      ),
+                      const SizedBox(width: 2),
+                      Text(
+                        '${entry.playCount}',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFFF59E0B),
+                        ),
+                      ),
+                    ],
+                  ),
+                  onTap: () {
+                    ref.read(audioServiceProvider).playPlaylist(
+                          allSongs,
+                          initialIndex: idx,
+                        );
+                  },
+                );
+              }),
+            );
+          },
+          loading: () => const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Center(child: CircularProgressIndicator.adaptive()),
           ),
-        ],
-      ),
+          error: (_, _) => const SizedBox.shrink(),
+        ),
+      ],
     );
   }
 }
@@ -1038,21 +1574,29 @@ class _AlbumsRowSection extends ConsumerWidget {
     required this.horizontalPadding,
     required this.onViewAll,
     required this.l10n,
+    this.isWide = false,
   });
 
   final double horizontalPadding;
   final VoidCallback onViewAll;
   final AppLocalizations l10n;
+  final bool isWide;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final asyncAlbums = ref.watch(albumLibraryProvider);
 
+    final scale = isWide ? kDashboardDesktopCoverScale : kDashboardMobileCoverScale;
+    final cardWidth = (126.0 * scale).roundToDouble();
+    final coverSize = cardWidth;
+    final listHeight = coverSize + 70.0;
+    final separatorWidth = isWide ? 16.0 : 14.0;
+
     return asyncAlbums.when(
       data: (albums) {
         if (albums.isEmpty) return const SizedBox.shrink();
-        final preview = albums.take(10).toList();
+        final preview = albums.take(12).toList();
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1066,55 +1610,61 @@ class _AlbumsRowSection extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 12),
-            SizedBox(
-              height: 185,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                physics: const BouncingScrollPhysics(),
-                padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-                itemCount: preview.length,
-                separatorBuilder: (_, _) => const SizedBox(width: 14),
-                itemBuilder: (context, index) {
-                  final album = preview[index];
-                  return InkWell(
-                    borderRadius: BorderRadius.circular(12),
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => AlbumDetailPage(album: album),
+            _CarouselScrollWrapper(
+              height: listHeight,
+              centerHeight: coverSize,
+              buttonPadding: horizontalPadding > 20 ? 14.0 : 8.0,
+              builder: (context, controller) {
+                return ListView.separated(
+                  controller: controller,
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                  itemCount: preview.length,
+                  separatorBuilder: (_, _) => SizedBox(width: separatorWidth),
+                  itemBuilder: (context, index) {
+                    final album = preview[index];
+                    return InkWell(
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => AlbumDetailPage(album: album),
+                          ),
+                        );
+                      },
+                      child: SizedBox(
+                        width: cardWidth,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            AlbumCover(album: album, size: coverSize),
+                            const SizedBox(height: 8),
+                            Text(
+                              album.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                fontSize: isWide ? 14.5 : 14.0,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              album.artist,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
                         ),
-                      );
-                    },
-                    child: SizedBox(
-                      width: 125,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          AlbumCover(album: album, size: 125),
-                          const SizedBox(height: 8),
-                          Text(
-                            album.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            album.artist,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ],
                       ),
-                    ),
-                  );
-                },
-              ),
+                    );
+                  },
+                );
+              },
             ),
           ],
         );
@@ -1133,21 +1683,29 @@ class _ArtistsRowSection extends ConsumerWidget {
     required this.horizontalPadding,
     required this.onViewAll,
     required this.l10n,
+    this.isWide = false,
   });
 
   final double horizontalPadding;
   final VoidCallback onViewAll;
   final AppLocalizations l10n;
+  final bool isWide;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final asyncArtists = ref.watch(artistLibraryProvider);
 
+    final scale = isWide ? kDashboardDesktopCoverScale : kDashboardMobileCoverScale;
+    final avatarDiameter = (96.0 * scale).roundToDouble();
+    final cardWidth = avatarDiameter;
+    final listHeight = avatarDiameter + 52.0;
+    final separatorWidth = isWide ? 18.0 : 16.0;
+
     return asyncArtists.when(
       data: (artists) {
         if (artists.isEmpty) return const SizedBox.shrink();
-        final preview = artists.take(10).toList();
+        final preview = artists.take(12).toList();
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1161,51 +1719,57 @@ class _ArtistsRowSection extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 12),
-            SizedBox(
-              height: 145,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                physics: const BouncingScrollPhysics(),
-                padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-                itemCount: preview.length,
-                separatorBuilder: (_, _) => const SizedBox(width: 16),
-                itemBuilder: (context, index) {
-                  final artist = preview[index];
-                  return InkWell(
-                    borderRadius: BorderRadius.circular(50),
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => ArtistDetailPage(artist: artist),
-                        ),
-                      );
-                    },
-                    child: SizedBox(
-                      width: 96,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          ArtistAvatar(
-                            diameter: 96,
-                            imagePath: artist.cachedImagePath,
-                            imageUrl: artist.imageUrl,
+            _CarouselScrollWrapper(
+              height: listHeight,
+              centerHeight: avatarDiameter,
+              buttonPadding: horizontalPadding > 20 ? 14.0 : 8.0,
+              builder: (context, controller) {
+                return ListView.separated(
+                  controller: controller,
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                  itemCount: preview.length,
+                  separatorBuilder: (_, _) => SizedBox(width: separatorWidth),
+                  itemBuilder: (context, index) {
+                    final artist = preview[index];
+                    return InkWell(
+                      borderRadius: BorderRadius.circular(50),
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => ArtistDetailPage(artist: artist),
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            artist.name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            textAlign: TextAlign.center,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              fontWeight: FontWeight.w600,
+                        );
+                      },
+                      child: SizedBox(
+                        width: cardWidth,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            ArtistAvatar(
+                              diameter: avatarDiameter,
+                              imagePath: artist.cachedImagePath,
+                              imageUrl: artist.imageUrl,
                             ),
-                          ),
-                        ],
+                            const SizedBox(height: 8),
+                            Text(
+                              artist.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.center,
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                fontSize: isWide ? 14.5 : 14.0,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  );
-                },
-              ),
+                    );
+                  },
+                );
+              },
             ),
           ],
         );
@@ -1479,43 +2043,51 @@ class _RankedSongRow extends StatelessWidget {
     required this.song,
     required this.metric,
     required this.onTap,
+    this.isWide = false,
+    this.showIndex = true,
   });
 
   final int index;
   final MusicFile song;
   final String metric;
   final VoidCallback onTap;
+  final bool isWide;
+  final bool showIndex;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final scale = isWide ? kDashboardDesktopCoverScale : kDashboardMobileCoverScale;
+    final thumbSize = (46.0 * scale).roundToDouble();
 
     return InkWell(
       borderRadius: BorderRadius.circular(10),
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+        padding: EdgeInsets.symmetric(vertical: isWide ? 7 : 6),
         child: Row(
           children: [
-            SizedBox(
-              width: 24,
-              child: Text(
-                index.toString().padLeft(2, '0'),
-                style: theme.textTheme.labelLarge?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  color: index <= 3
-                      ? theme.colorScheme.primary
-                      : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+            if (showIndex) ...[
+              SizedBox(
+                width: 24,
+                child: Text(
+                  index.toString().padLeft(2, '0'),
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: index <= 3
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(width: 8),
+              const SizedBox(width: 8),
+            ],
             SongThumbnail.fromSong(
               song,
-              size: 38,
-              borderRadius: BorderRadius.circular(8),
+              size: thumbSize,
+              borderRadius: BorderRadius.circular(9),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1526,6 +2098,7 @@ class _RankedSongRow extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       fontWeight: FontWeight.w600,
+                      fontSize: isWide ? 14.5 : 14.0,
                     ),
                   ),
                   Text(
@@ -1559,30 +2132,34 @@ class _SimpleSongRow extends StatelessWidget {
     this.trailingText,
     this.trailingWidget,
     required this.onTap,
+    this.isWide = false,
   });
 
   final MusicFile song;
   final String? trailingText;
   final Widget? trailingWidget;
   final VoidCallback onTap;
+  final bool isWide;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final scale = isWide ? kDashboardDesktopCoverScale : kDashboardMobileCoverScale;
+    final thumbSize = (46.0 * scale).roundToDouble();
 
     return InkWell(
       borderRadius: BorderRadius.circular(10),
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+        padding: EdgeInsets.symmetric(vertical: isWide ? 7 : 6),
         child: Row(
           children: [
             SongThumbnail.fromSong(
               song,
-              size: 38,
-              borderRadius: BorderRadius.circular(8),
+              size: thumbSize,
+              borderRadius: BorderRadius.circular(9),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1593,6 +2170,7 @@ class _SimpleSongRow extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       fontWeight: FontWeight.w600,
+                      fontSize: isWide ? 14.5 : 14.0,
                     ),
                   ),
                   Text(
