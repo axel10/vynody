@@ -1,5 +1,5 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:vynody/utils/blur_constants.dart';
 import '../models/music_file.dart';
 import '../models/music_folder.dart';
 import '../l10n/app_localizations.dart';
@@ -97,7 +97,7 @@ class FolderGridCard extends StatelessWidget {
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(6.0),
                   child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+                    filter: AppBlur.lightFilter,
                     child: Container(
                       padding: const EdgeInsets.all(4.5),
                       decoration: BoxDecoration(

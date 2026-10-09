@@ -22,6 +22,7 @@ import '../widgets/playback/blurred_artwork_rasterizer.dart';
 import '../widgets/volume_controls.dart';
 import '../widgets/dynamic_mesh_background.dart';
 import 'package:vynody/player/scanner/scanner_path_utils.dart';
+import 'package:vynody/utils/blur_constants.dart';
 import 'package:vynody/utils/playback_utils.dart';
 import 'package:vynody/models/music_file.dart';
 import '../dialogs/visualizer_options_dialog.dart';
@@ -1188,20 +1189,14 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                                   // 上下两个面板共享同一层背景，不再做分区处理。
                                   return ClipRect(
                                     child: BackdropFilter(
-                                      filter: ui.ImageFilter.blur(
-                                        sigmaX: 20.0,
-                                        sigmaY: 20.0,
-                                      ),
+                                      filter: AppBlur.heavyFilter,
                                       child: const SizedBox.expand(),
                                     ),
                                   );
                                 }
 
                                 final Widget blurredBackground = ImageFiltered(
-                                  imageFilter: ui.ImageFilter.blur(
-                                    sigmaX: 20.0,
-                                    sigmaY: 20.0,
-                                  ),
+                                  imageFilter: AppBlur.heavyFilter,
                                   child: AnimatedSwitcher(
                                     duration: const Duration(milliseconds: 800),
                                     child: _buildBackgroundWidget(

@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vynody/l10n/app_localizations.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
+import 'package:vynody/utils/blur_constants.dart';
 import 'package:vynody/utils/layout_constants.dart';
 import 'folder_scan_widgets.dart';
 
@@ -615,7 +615,7 @@ class _FolderPortraitHeaderBanner extends StatelessWidget {
                       Opacity(
                         opacity: isDark ? 1.0 : _kLightModeBlurredCoverOpacity,
                         child: ImageFiltered(
-                          imageFilter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
+                          imageFilter: AppBlur.heavyFilter,
                           child: Image.file(
                             coverFile!,
                             fit: BoxFit.cover,

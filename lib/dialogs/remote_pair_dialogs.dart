@@ -1,11 +1,11 @@
 import 'dart:async';
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vynody/player/sharing/remote_control/remote_control_service.dart';
 import 'package:vynody/player/sharing/sharing_riverpod.dart';
 import 'package:vynody/l10n/app_localizations.dart';
+import 'package:vynody/utils/blur_constants.dart';
 
 void showIncomingRemotePairDialog(
   BuildContext context,
@@ -88,7 +88,7 @@ class _IncomingRemotePairDialogContentState
     final request = widget.request;
 
     return BackdropFilter(
-      filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+      filter: AppBlur.mediumFilter,
       child: AlertDialog(
         insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
         shape: RoundedRectangleBorder(
@@ -423,7 +423,7 @@ class _RemotePinInputDialogContentState
     final isDisabled = _cooldownSeconds > 0 || _isInvalidated;
 
     return BackdropFilter(
-      filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+      filter: AppBlur.mediumFilter,
       child: AlertDialog(
         insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
         contentPadding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
@@ -620,7 +620,7 @@ class _TrustedDevicesDialogContent extends ConsumerWidget {
     final remoteService = ref.read(remoteControlServiceProvider);
 
     return BackdropFilter(
-      filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+      filter: AppBlur.mediumFilter,
       child: AlertDialog(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(24),

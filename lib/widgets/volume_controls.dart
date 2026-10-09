@@ -1,6 +1,6 @@
-import 'dart:ui' show ImageFilter;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:vynody/utils/blur_constants.dart';
 import '../l10n/app_localizations.dart';
 
 class VolumeSliderOverlay extends StatelessWidget {
@@ -68,7 +68,7 @@ class VolumeSliderOverlay extends StatelessWidget {
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(24),
                                 child: BackdropFilter(
-                                  filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                                  filter: AppBlur.mediumFilter,
                                   child: Container(
                                     color: Colors.white.withValues(alpha: 0.15),
                                     child: LayoutBuilder(

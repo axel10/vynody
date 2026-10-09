@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vynody/player/audio/app_playback_mode.dart';
@@ -10,6 +9,7 @@ import 'package:vynody/player/sharing/sharing_riverpod.dart';
 import 'package:vynody/player/sharing/sharing_service.dart';
 import 'package:vynody/pages/remote_control_page.dart';
 import 'package:vynody/l10n/app_localizations.dart';
+import 'package:vynody/utils/blur_constants.dart';
 
 void showRemoteControlSheet(BuildContext context, LanDevice device) {
   Navigator.of(context).push(
@@ -129,7 +129,7 @@ class _RemoteControlSheetContentState
         : '';
 
     return BackdropFilter(
-      filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+      filter: AppBlur.heavyFilter,
       child: Container(
         constraints: BoxConstraints(
           maxHeight: MediaQuery.of(context).size.height * 0.85,

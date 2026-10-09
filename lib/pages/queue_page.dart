@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/app_localizations.dart';
@@ -13,6 +12,7 @@ import 'package:vynody/widgets/queue_file_drop_target.dart';
 import '../widgets/library_selection_scope.dart';
 import '../widgets/library_selection_panel.dart';
 import 'package:vynody/utils/layout_constants.dart';
+import 'package:vynody/utils/blur_constants.dart';
 import 'package:vynody/utils/queue_sort_utils.dart';
 import 'package:vynody/utils/list_reorder_utils.dart';
 import 'package:vynody/player/platform/standalone_queue_window_manager.dart';
@@ -625,7 +625,7 @@ class _QueuePageState extends ConsumerState<QueuePage>
               height: topBarHeight,
               child: ClipRect(
                 child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+                  filter: AppBlur.heavyFilter,
                   child: Container(
                     padding: EdgeInsets.only(top: safeTopPadding),
                     decoration: BoxDecoration(

@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
-import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -13,6 +12,7 @@ import 'package:window_manager/window_manager.dart';
 
 import '../l10n/app_localizations.dart';
 import '../main.dart' show navigatorKey;
+import 'package:vynody/utils/blur_constants.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/audio/audio_service.dart';
 import 'package:vynody/player/lyrics/lyrics_riverpod.dart';
@@ -1560,7 +1560,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
       return ClipRRect(
         borderRadius: BorderRadius.circular(16),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          filter: AppBlur.mediumFilter,
           child: Container(
             width: 36,
             height: 32,
@@ -1845,7 +1845,7 @@ class _SlidingNavigationRailState extends State<_SlidingNavigationRail> {
 
     return ClipRect(
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 25.0, sigmaY: 25.0),
+        filter: AppBlur.heavyFilter,
         child: Container(
           width: widget.width,
           decoration: BoxDecoration(

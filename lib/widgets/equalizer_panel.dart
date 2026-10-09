@@ -9,6 +9,7 @@ import 'package:vynody/player/audio/equalizer_presets.dart';
 import 'package:vynody/player/settings/settings_service.dart';
 import '../l10n/app_localizations.dart';
 import '../utils/app_snack_bar.dart';
+import '../utils/blur_constants.dart';
 import 'app_bottom_sheet.dart';
 
 class EqualizerPanel extends ConsumerStatefulWidget {
@@ -1515,7 +1516,7 @@ class _PresetPickerDialog extends ConsumerWidget {
       backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+        filter: AppBlur.mediumFilter,
         child: Container(
           constraints: const BoxConstraints(maxWidth: 680, maxHeight: 560),
           decoration: BoxDecoration(

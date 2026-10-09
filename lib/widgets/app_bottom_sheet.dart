@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:vynody/utils/blur_constants.dart';
 
 /// 统一的抽屉顶部药丸状横条（Drag Handle / Grabber）
 class AppDragHandle extends StatelessWidget {
@@ -107,7 +108,7 @@ class AppBottomSheet extends StatelessWidget {
   /// 边框颜色，默认自适应半透明描边
   final Color? borderColor;
 
-  /// 毛玻璃模糊度，默认 20
+  /// 毛玻璃模糊度，默认 [AppBlur.heavy] (24.0)
   final double blurSigma;
 
   /// 顶部圆角半径，默认 32
@@ -129,7 +130,7 @@ class AppBottomSheet extends StatelessWidget {
     this.padding = const EdgeInsets.fromLTRB(24, 0, 24, 32),
     this.backgroundColor,
     this.borderColor,
-    this.blurSigma = 20,
+    this.blurSigma = AppBlur.heavy,
     this.topRadius = 32,
     this.maxHeightFactor = 0.9,
     this.barrierDismissible = true,
@@ -367,7 +368,7 @@ class AppAdaptiveSheet extends StatefulWidget {
   /// 边框颜色，默认自适应半透明描边
   final Color? borderColor;
 
-  /// 毛玻璃模糊度，默认 20
+  /// 毛玻璃模糊度，默认 [AppBlur.heavy] (24.0)
   final double blurSigma;
 
   /// Bottom Sheet 顶部圆角半径，默认 32
@@ -412,7 +413,7 @@ class AppAdaptiveSheet extends StatefulWidget {
     this.padding,
     this.backgroundColor,
     this.borderColor,
-    this.blurSigma = 20,
+    this.blurSigma = AppBlur.heavy,
     this.sheetTopRadius = 32,
     this.dialogRadius = 24,
     this.maxHeightFactor = 0.92,

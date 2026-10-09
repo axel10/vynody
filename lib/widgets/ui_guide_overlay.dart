@@ -1,5 +1,5 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:vynody/utils/blur_constants.dart';
 
 /// Interactive UI walkthrough guide overlay that introduces the main interface
 /// after a new user finishes or skips the root folder selection.
@@ -116,7 +116,7 @@ class _UiGuideOverlayState extends State<UiGuideOverlay>
             behavior: HitTestBehavior.opaque,
             onTap: _nextStep,
             child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
+              filter: AppBlur.subtleFilter,
               child: Container(
                 color: Colors.black.withValues(alpha: 0.65),
               ),

@@ -20,6 +20,7 @@ import 'rated_songs_tab.dart';
 import 'library_dashboard_view.dart';
 import 'main_layout_riverpod.dart';
 import '../utils/layout_constants.dart';
+import '../utils/blur_constants.dart';
 
 // 媒体库页面
 
@@ -354,7 +355,7 @@ class _LibrarySubPageState extends ConsumerState<LibrarySubPage> {
                     isVisible: isHeaderVisible,
                     child: ClipRect(
                       child: BackdropFilter(
-                        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                        filter: AppBlur.heavyFilter,
                         child: Container(
                           padding: EdgeInsets.only(top: safeTopPadding),
                           decoration: BoxDecoration(

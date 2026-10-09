@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:math' as math;
-import 'dart:ui';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -16,6 +15,7 @@ import '../../l10n/app_localizations.dart';
 import '../../widgets/album_cover.dart';
 import '../../widgets/remote_media_badge.dart';
 import '../../widgets/volume_controls.dart';
+import '../../utils/blur_constants.dart';
 
 Future<void> showAlbumQuickDetailModal(
   BuildContext context,
@@ -187,7 +187,7 @@ class _AlbumCoverFlowQuickDetailDialogState
       return ClipRRect(
         borderRadius: BorderRadius.circular(16),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          filter: AppBlur.heavyFilter,
           child: Container(
             decoration: BoxDecoration(
               color: isDark
@@ -1411,7 +1411,7 @@ class _AlbumCoverFlowQuickDetailDialogState
             child: ClipRRect(
               borderRadius: BorderRadius.circular(24),
               child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
+                filter: AppBlur.heavyFilter,
                 child: Container(
                   width: dialogWidth,
                   height: dialogHeight,

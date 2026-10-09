@@ -1,7 +1,7 @@
 import 'dart:io';
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:vynody/utils/blur_constants.dart';
 import 'app_tooltip.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
@@ -630,7 +630,7 @@ class _MacosSmallWindowButtonState extends State<_MacosSmallWindowButton> {
           child: ClipRRect(
             borderRadius: BorderRadius.circular(12),
             child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+              filter: AppBlur.mediumFilter,
               child: Container(
                 decoration: BoxDecoration(
                   color: capsuleBg,
@@ -752,7 +752,7 @@ class _WindowsCapsuleButtons extends StatelessWidget {
             bottomLeft: Radius.circular(6),
           ),
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+            filter: AppBlur.mediumFilter,
             child: Container(
               height: height,
               padding: const EdgeInsets.only(left: 2),
@@ -1046,7 +1046,7 @@ class _MacosPlaybackCapsuleBar extends StatelessWidget {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(13),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          filter: AppBlur.mediumFilter,
           child: Container(
             decoration: BoxDecoration(
               color: capsuleBg,

@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vynody/l10n/app_localizations.dart';
+import 'package:vynody/utils/blur_constants.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/audio/audio_service.dart';
 import 'package:vynody/utils/app_orientation_manager.dart';
@@ -128,8 +129,8 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
                 borderRadius: BorderRadius.circular(isTablet ? 32 : 28),
                 child: BackdropFilter(
                   filter: ImageFilter.blur(
-                    sigmaX: widget.isPlayback ? 0 : 24,
-                    sigmaY: widget.isPlayback ? 0 : 24,
+                    sigmaX: widget.isPlayback ? 0 : AppBlur.heavy,
+                    sigmaY: widget.isPlayback ? 0 : AppBlur.heavy,
                   ),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 300),

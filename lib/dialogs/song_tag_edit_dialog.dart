@@ -1,12 +1,12 @@
 import 'dart:io';
 import 'dart:typed_data';
-import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../utils/file_selector_helper.dart';
 
 import '../l10n/app_localizations.dart';
+import '../utils/blur_constants.dart';
 import '../widgets/app_bottom_sheet.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:vynody/models/music_file.dart';
@@ -388,7 +388,7 @@ class _SongTagEditSheetState extends State<SongTagEditSheet> {
       builder: (context) {
         final hasArtwork = _hasArtwork;
         return BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          filter: AppBlur.mediumFilter,
           child: Container(
             decoration: BoxDecoration(
               color: isDark

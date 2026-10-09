@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'package:vynody/utils/layout_constants.dart';
+import 'package:vynody/utils/blur_constants.dart';
 
 /// Contextual style properties computed by [AlbumDetailNavBar].
 class AlbumDetailNavBarStyle {
@@ -163,7 +164,7 @@ class AlbumDetailNavBar extends StatelessWidget {
           ),
         );
 
-        final blurSigma = 24.0 * progress;
+        final blurSigma = AppBlur.heavy * progress;
         if (progress > 0.01) {
           return ClipRect(
             child: BackdropFilter(

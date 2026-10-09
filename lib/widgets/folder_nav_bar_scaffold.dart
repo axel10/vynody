@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:vynody/utils/blur_constants.dart';
 import 'package:vynody/utils/folder_helpers.dart';
 
 /// Contextual style properties computed by [FolderNavBarScaffold] during scroll animation.
@@ -292,7 +293,7 @@ class _FolderNavBarScaffoldState extends State<FolderNavBarScaffold>
           ),
         );
 
-        final blurSigma = 24.0 * progress;
+        final blurSigma = AppBlur.heavy * progress;
         final Widget filteredBar = (widget.isOverlay && progress > 0.01)
             ? ClipRect(
                 child: BackdropFilter(

@@ -1,5 +1,5 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:vynody/utils/blur_constants.dart';
 import '../dialogs/remote_source_info_dialog.dart';
 import '../l10n/app_localizations.dart';
 import '../models/music_file.dart';
@@ -236,7 +236,7 @@ class RemoteMediaBadge extends StatelessWidget {
           child: ClipRRect(
             borderRadius: BorderRadius.circular(borderRadius),
             child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+              filter: AppBlur.lightFilter,
               child: Container(
                 padding: padding,
                 decoration: BoxDecoration(

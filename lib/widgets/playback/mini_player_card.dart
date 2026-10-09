@@ -1,6 +1,6 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:vynody/utils/blur_constants.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/widgets/animated_play_pause_button.dart';
 import 'package:vynody/widgets/mini_player_widgets.dart';
@@ -172,10 +172,7 @@ class MiniPlayerCard extends ConsumerWidget {
         child: ClipRRect(
           borderRadius: BorderRadius.circular(100),
           child: BackdropFilter(
-            filter: ImageFilter.blur(
-              sigmaX: 24,
-              sigmaY: 24,
-            ),
+            filter: AppBlur.heavyFilter,
             child: Container(
               decoration: BoxDecoration(
                 color: theme.colorScheme.surface.withValues(

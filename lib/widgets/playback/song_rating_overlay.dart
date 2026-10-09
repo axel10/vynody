@@ -1,10 +1,10 @@
 import 'dart:io';
-import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vynody/player/rating/song_rating_service.dart';
+import 'package:vynody/utils/blur_constants.dart';
 
 /// Overlay widget placed at the bottom-left of the album cover carousel
 /// for song rating (0-5 stars).
@@ -96,7 +96,7 @@ class _SongRatingOverlayState extends ConsumerState<SongRatingOverlay>
         child: ClipRRect(
           borderRadius: BorderRadius.circular(16),
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+            filter: AppBlur.mediumFilter,
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 220),
               curve: Curves.easeOutCubic,

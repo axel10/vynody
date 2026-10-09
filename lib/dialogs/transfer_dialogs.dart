@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oktoast/oktoast.dart';
@@ -10,6 +9,7 @@ import 'package:vynody/player/sharing/sharing_service.dart';
 import 'package:vynody/player/sharing/sharing_riverpod.dart';
 import 'package:vynody/player/library/playlist_service.dart';
 import 'package:vynody/utils/app_snack_bar.dart';
+import 'package:vynody/utils/blur_constants.dart';
 import 'package:vynody/utils/playlist_name.dart';
 import 'package:vynody/l10n/app_localizations.dart';
 
@@ -31,7 +31,7 @@ void showIncomingTransferDialog(BuildContext context, IncomingTransferRequest re
       }
 
       return BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        filter: AppBlur.mediumFilter,
         child: Consumer(
           builder: (context, ref, _) {
             return AlertDialog(
@@ -177,7 +177,7 @@ void showIncomingLyricsDialog(BuildContext context, IncomingLyricsRequest reques
             );
 
       return BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        filter: AppBlur.mediumFilter,
         child: AlertDialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(24),
@@ -261,7 +261,7 @@ void showIncomingPlaylistDialog(
             );
 
       return BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        filter: AppBlur.mediumFilter,
         child: AlertDialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(24),
@@ -517,7 +517,7 @@ void showTransferProgressDialog(BuildContext context, String sessionId) {
     builder: (context) {
       final l10n = AppLocalizations.of(context)!;
       return BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        filter: AppBlur.mediumFilter,
         child: Consumer(
           builder: (context, ref, child) {
             final sessions = ref.watch(activeTransfersProvider);
@@ -748,7 +748,7 @@ Future<String?> showConflictDialog(BuildContext context, String fileName) {
     builder: (context) {
       final l10n = AppLocalizations.of(context)!;
       return BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        filter: AppBlur.mediumFilter,
         child: AlertDialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(24),
