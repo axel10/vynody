@@ -101,17 +101,25 @@ class _SongRatingOverlayState extends ConsumerState<SongRatingOverlay>
               duration: const Duration(milliseconds: 220),
               curve: Curves.easeOutCubic,
               height: 32,
-              padding: const EdgeInsets.symmetric(horizontal: 8),
+              padding: EdgeInsets.symmetric(
+                horizontal: (!_isExpanded && !hasRating) ? 13 : 8,
+              ),
               decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.38),
+                color: Colors.black.withValues(
+                  alpha: _isExpanded ? 0.38 : 0.18,
+                ),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.16),
+                  color: Colors.white.withValues(
+                    alpha: _isExpanded ? 0.16 : 0.08,
+                  ),
                   width: 0.8,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.20),
+                    color: Colors.black.withValues(
+                      alpha: _isExpanded ? 0.20 : 0.10,
+                    ),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),

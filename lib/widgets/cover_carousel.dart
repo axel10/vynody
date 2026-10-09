@@ -16,6 +16,7 @@ import 'package:vynody/player/remote/proxy/remote_media_resolver.dart';
 import 'package:vynody/player/scanner/scanner_path_utils.dart';
 import 'package:vynody/player/settings/track_artwork_theme_service.dart';
 import 'package:vynody/utils/memory_trace.dart';
+import 'package:vynody/widgets/playback/song_rating_overlay.dart';
 import 'package:vynody/widgets/playback_ui_tuning.dart';
 
 class CoverCarousel extends StatefulWidget {
@@ -838,10 +839,29 @@ class _CoverItemState extends ConsumerState<_CoverItem> {
   Widget build(BuildContext context) {
     final double devicePixelRatio = MediaQuery.of(context).devicePixelRatio;
     final coverImage = _buildCoverImage();
+    final bool showRating =
+        (widget.displaySize == null || widget.displaySize! >= 180);
+
+    final cardContent = Stack(
+      fit: StackFit.expand,
+      children: [
+        coverImage,
+        if (showRating)
+          Align(
+            alignment: Alignment.bottomLeft,
+            child: Padding(
+              padding: const EdgeInsets.all(14.0),
+              child: SongRatingOverlay(
+                songPath: widget.musicFile.path,
+              ),
+            ),
+          ),
+      ],
+    );
 
     return AnimatedBuilder(
       animation: widget.animation,
-      child: coverImage,
+      child: cardContent,
       builder: (context, child) {
         final double pageOffset = widget.animation.value - widget.itemIndex;
         final double opacity = (1 - pageOffset.abs() * 1.2).clamp(0.0, 1.0);

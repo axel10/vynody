@@ -10,7 +10,6 @@ import 'package:vynody/utils/app_snack_bar.dart';
 import 'package:vynody/utils/song_context_menu_utils.dart';
 import 'package:vynody/widgets/cover_carousel.dart';
 import 'package:vynody/widgets/app_context_menu.dart';
-import 'package:vynody/widgets/playback/song_rating_overlay.dart';
 import '../../l10n/app_localizations.dart';
 
 class PlaybackAlbumArt extends ConsumerWidget {
@@ -181,27 +180,7 @@ class PlaybackAlbumArt extends ConsumerWidget {
           currentMusic,
         );
       },
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          cover,
-          if (currentMusic != null && currentSize >= 180)
-            Center(
-              child: AspectRatio(
-                aspectRatio: 1,
-                child: Align(
-                  alignment: Alignment.bottomLeft,
-                  child: Padding(
-                    padding: const EdgeInsets.all(14.0),
-                    child: SongRatingOverlay(
-                      songPath: currentMusic.path,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
+      child: cover,
     );
   }
 }
