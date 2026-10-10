@@ -5,6 +5,7 @@ import '../l10n/app_localizations.dart';
 import 'package:vynody/models/album_summary.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
+import 'package:vynody/player/audio/playback_source.dart';
 import 'package:vynody/player/library/album_library.dart';
 import 'package:vynody/player/library/artist_library.dart';
 import 'package:vynody/player/library/library_insights_service.dart';
@@ -1100,14 +1101,16 @@ class _SongCardState extends State<_SongCard> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final size = widget.width;
-    final btnSize = widget.isWide ? 46.0 : 40.0;
-    final iconSize = widget.isWide ? 26.0 : 24.0;
+    final btnSize = widget.isWide ? 40.0 : 36.0;
+    final iconSize = widget.isWide ? 24.0 : 22.0;
+    final btnOffset = widget.isWide ? 10.0 : 8.0;
 
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
       child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onTap: widget.onPlay,
         child: SizedBox(
           width: size,
@@ -1121,36 +1124,18 @@ class _SongCardState extends State<_SongCard> {
                     size: size,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  Positioned.fill(
+                  Positioned(
+                    right: btnOffset,
+                    bottom: btnOffset,
                     child: AnimatedOpacity(
                       duration: const Duration(milliseconds: 150),
                       opacity: _isHovered ? 1.0 : 0.0,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.35),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Center(
-                          child: Container(
-                            width: btnSize,
-                            height: btnSize,
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.primary,
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.25),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 3),
-                                ),
-                              ],
-                            ),
-                            child: Icon(
-                              Icons.play_arrow_rounded,
-                              color: Colors.white,
-                              size: iconSize,
-                            ),
-                          ),
+                      child: IgnorePointer(
+                        ignoring: !_isHovered,
+                        child: _CoverPlayButton(
+                          size: btnSize,
+                          iconSize: iconSize,
+                          onTap: widget.onPlay,
                         ),
                       ),
                     ),
@@ -1178,6 +1163,67 @@ class _SongCardState extends State<_SongCard> {
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CoverPlayButton extends StatefulWidget {
+  const _CoverPlayButton({
+    required this.size,
+    required this.iconSize,
+    required this.onTap,
+  });
+
+  final double size;
+  final double iconSize;
+  final VoidCallback onTap;
+
+  @override
+  State<_CoverPlayButton> createState() => _CoverPlayButtonState();
+}
+
+class _CoverPlayButtonState extends State<_CoverPlayButton> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: widget.onTap,
+        child: AnimatedScale(
+          scale: _isHovered ? 1.08 : 1.0,
+          duration: const Duration(milliseconds: 120),
+          child: Container(
+            width: widget.size,
+            height: widget.size,
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: _isHovered ? 0.50 : 0.36),
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.20),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.only(left: 1.5),
+                child: Icon(
+                  Icons.play_arrow_rounded,
+                  color: Colors.white,
+                  size: widget.iconSize,
+                ),
+              ),
+            ),
           ),
         ),
       ),
@@ -1610,7 +1656,6 @@ class _AlbumsRowSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
     final asyncAlbums = ref.watch(albumLibraryProvider);
 
     final scale = isWide ? kDashboardDesktopCoverScale : kDashboardMobileCoverScale;
@@ -1657,8 +1702,10 @@ class _AlbumsRowSection extends ConsumerWidget {
                   separatorBuilder: (_, _) => SizedBox(width: separatorWidth),
                   itemBuilder: (context, index) {
                     final album = preview[index];
-                    return InkWell(
-                      borderRadius: BorderRadius.circular(12),
+                    return _AlbumCard(
+                      album: album,
+                      width: cardWidth,
+                      isWide: isWide,
                       onTap: () {
                         Navigator.of(context).push(
                           MaterialPageRoute(
@@ -1666,34 +1713,18 @@ class _AlbumsRowSection extends ConsumerWidget {
                           ),
                         );
                       },
-                      child: SizedBox(
-                        width: cardWidth,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            AlbumCover(album: album, size: coverSize),
-                            const SizedBox(height: 8),
-                            Text(
-                              album.title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                fontWeight: FontWeight.w600,
-                                fontSize: isWide ? 14.5 : 14.0,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              album.artist,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                      onPlay: () {
+                        if (album.songs.isNotEmpty) {
+                          ref.read(audioServiceProvider).playPlaylist(
+                                album.songs,
+                                source: PlaybackSource(
+                                  type: PlaybackSourceType.album,
+                                  id: album.id,
+                                  name: album.title,
+                                ),
+                              );
+                        }
+                      },
                     );
                   },
                 );
@@ -1704,6 +1735,96 @@ class _AlbumsRowSection extends ConsumerWidget {
       },
       loading: () => const SizedBox.shrink(),
       error: (_, _) => const SizedBox.shrink(),
+    );
+  }
+}
+
+class _AlbumCard extends StatefulWidget {
+  const _AlbumCard({
+    required this.album,
+    required this.width,
+    required this.isWide,
+    required this.onTap,
+    required this.onPlay,
+  });
+
+  final AlbumSummary album;
+  final double width;
+  final bool isWide;
+  final VoidCallback onTap;
+  final VoidCallback onPlay;
+
+  @override
+  State<_AlbumCard> createState() => _AlbumCardState();
+}
+
+class _AlbumCardState extends State<_AlbumCard> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final size = widget.width;
+    final btnSize = widget.isWide ? 40.0 : 36.0;
+    final iconSize = widget.isWide ? 24.0 : 22.0;
+    final btnOffset = widget.isWide ? 10.0 : 8.0;
+
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: widget.onTap,
+        child: SizedBox(
+          width: size,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Stack(
+                children: [
+                  AlbumCover(album: widget.album, size: size),
+                  Positioned(
+                    right: btnOffset,
+                    bottom: btnOffset,
+                    child: AnimatedOpacity(
+                      duration: const Duration(milliseconds: 150),
+                      opacity: _isHovered ? 1.0 : 0.0,
+                      child: IgnorePointer(
+                        ignoring: !_isHovered,
+                        child: _CoverPlayButton(
+                          size: btnSize,
+                          iconSize: iconSize,
+                          onTap: widget.onPlay,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                widget.album.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  fontSize: widget.isWide ? 14.5 : 14.0,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                widget.album.artist,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
