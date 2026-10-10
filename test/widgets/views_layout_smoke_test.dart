@@ -16,6 +16,7 @@ import 'package:vynody/pages/artists_tab.dart';
 import 'package:vynody/pages/folder_detail_view.dart';
 import 'package:vynody/pages/folder_page.dart';
 import 'package:vynody/pages/library_page.dart';
+import 'package:vynody/pages/main_layout_riverpod.dart';
 import 'package:vynody/pages/most_played_tab.dart';
 import 'package:vynody/pages/playlist_tab.dart';
 import 'package:vynody/pages/queue_page.dart';
@@ -326,29 +327,60 @@ void main() {
   });
 
   group('Layout Smoke Tests - Media Library All Tabs & Switching', () {
-    testWidgets('LibraryPage - switches through all 6 tabs in landscape without errors', (tester) async {
-      tester.view.physicalSize = const Size(2796, 1290);
-      tester.view.devicePixelRatio = 3.0;
+    testWidgets('LibraryPage - switches through all tabs in landscape without errors', (tester) async {
+      tester.view.physicalSize = const Size(1280, 800);
+      tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
 
+      late ProviderContainer container;
       await tester.pumpWidget(
-        createTestWidget(
-          child: const LibraryPage(),
-          logicalSize: const Size(932, 430),
+        UncontrolledProviderScope(
+          container: container = ProviderContainer(
+            overrides: [
+              settingsServiceProvider.overrideWith((ref) => settingsService),
+              audioServiceProvider.overrideWith((ref) => audioService),
+              audioSnapshotProvider.overrideWith((ref) => audioSnapshot),
+              audioCurrentMusicProvider.overrideWith((ref) => audioSnapshot.currentMusic),
+              scannerServiceProvider.overrideWith((ref) => scannerService),
+              albumLibraryProvider.overrideWith((ref) => Stream.value(demoData.albums)),
+              artistLibraryProvider.overrideWith((ref) => Stream.value(demoArtists)),
+              playlistServiceProvider.overrideWith((ref) => playlistService),
+              recentlyPlayedSongsProvider.overrideWith((ref, range) => Stream.value(demoInsightEntries)),
+              mostPlayedSongsProvider.overrideWith((ref, range) => Stream.value(demoInsightEntries)),
+              recentlyAddedSongsProvider.overrideWith((ref, range) => Stream.value(demoInsightEntries)),
+              isProUnlockedProvider.overrideWith((ref) => true),
+              isEffectiveWaveformEnabledProvider.overrideWith((ref) => true),
+            ],
+          ),
+          child: OKToast(
+            child: MaterialApp(
+              debugShowCheckedModeBanner: false,
+              locale: const Locale('zh'),
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: const MediaQuery(
+                data: MediaQueryData(
+                  size: Size(1280, 800),
+                  padding: EdgeInsets.only(top: 32, bottom: 0),
+                ),
+                child: SizedBox(
+                  width: 1280,
+                  height: 800,
+                  child: Material(child: LibraryPage(useSidebar: true)),
+                ),
+              ),
+            ),
+          ),
         ),
       );
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
       expect(tester.takeException(), isNull);
 
-      final tabFinder = find.byType(Tab);
-      final tabCount = tabFinder.evaluate().length;
-      expect(tabCount, 6);
-
-      // Tap through each tab in sequence
-      for (int i = 0; i < tabCount; i++) {
-        await tester.tap(tabFinder.at(i));
+      // Verify switching through all 7 library sub tabs in landscape
+      for (int i = 0; i < 7; i++) {
+        container.read(libraryActiveTabIndexProvider.notifier).set(i);
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 350));
         expect(tester.takeException(), isNull);
