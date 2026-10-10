@@ -1523,6 +1523,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get edit => 'Modifier';
 
   @override
+  String get done => '完成';
+
+  @override
   String get lyricsSectionTitle => 'Paroles';
 
   @override

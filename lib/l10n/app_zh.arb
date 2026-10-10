@@ -1102,6 +1102,7 @@
   "shortcutSettingsDescription": "点击后可以为播放器操作重新录制快捷键并保存。",
   "shortcutPhysicalKeyboardHint": "快捷键适用于外接物理键盘（如蓝牙键盘、妙控键盘）。",
   "edit": "编辑",
+  "done": "完成",
   "lyricsSectionTitle": "歌词",
   "lyricsSectionDescription": "这里的配置只影响歌词生成和时间轴生成。",
   "lyricsTranslationTargetLanguageLabel": "翻译目标语言",

@@ -1505,6 +1505,9 @@ class AppLocalizationsTr extends AppLocalizations {
   String get edit => 'Düzenle';
 
   @override
+  String get done => '完成';
+
+  @override
   String get lyricsSectionTitle => 'Şarkı Sözleri';
 
   @override

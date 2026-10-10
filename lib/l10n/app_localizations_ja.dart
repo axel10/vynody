@@ -1467,6 +1467,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get edit => '編集';
 
   @override
+  String get done => '完成';
+
+  @override
   String get lyricsSectionTitle => '歌詞';
 
   @override

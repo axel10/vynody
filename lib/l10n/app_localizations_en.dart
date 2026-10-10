@@ -1499,6 +1499,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get edit => 'Edit';
 
   @override
+  String get done => 'Done';
+
+  @override
   String get lyricsSectionTitle => 'Lyrics';
 
   @override

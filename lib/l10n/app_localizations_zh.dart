@@ -1450,6 +1450,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get edit => '编辑';
 
   @override
+  String get done => '完成';
+
+  @override
   String get lyricsSectionTitle => '歌词';
 
   @override

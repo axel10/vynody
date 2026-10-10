@@ -1469,6 +1469,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get edit => '편집';
 
   @override
+  String get done => '完成';
+
+  @override
   String get lyricsSectionTitle => '가사';
 
   @override

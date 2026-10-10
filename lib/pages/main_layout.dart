@@ -1284,7 +1284,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                                           theme.brightness == Brightness.dark
                                               ? 0.65
                                               : 0.75;
-                                      return _SlidingNavigationRail(
+                                      return SlidingNavigationRail(
                                         backgroundColor: Color.lerp(
                                               navBgBaseColor.withValues(alpha: 0.0),
                                               navBgBaseColor.withValues(
@@ -1618,7 +1618,7 @@ class _RailRow {
   final Widget child;
 }
 
-class _SlidingNavigationRail extends StatefulWidget {
+class SlidingNavigationRail extends ConsumerStatefulWidget {
   final double width;
   final bool extended;
   final int selectedIndex;
@@ -1631,7 +1631,8 @@ class _SlidingNavigationRail extends StatefulWidget {
   final int librarySubIndex;
   final ValueChanged<int> onLibrarySubDestinationSelected;
 
-  const _SlidingNavigationRail({
+  const SlidingNavigationRail({
+    super.key,
     required this.width,
     required this.extended,
     required this.selectedIndex,
@@ -1646,11 +1647,23 @@ class _SlidingNavigationRail extends StatefulWidget {
   });
 
   @override
-  State<_SlidingNavigationRail> createState() => _SlidingNavigationRailState();
+  ConsumerState<SlidingNavigationRail> createState() =>
+      _SlidingNavigationRailState();
 }
 
-class _SlidingNavigationRailState extends State<_SlidingNavigationRail> {
+class _SlidingNavigationRailState
+    extends ConsumerState<SlidingNavigationRail> {
   final ScrollController _scrollController = ScrollController();
+  bool _isHoveringLibrary = false;
+  bool _isEditingLibrary = false;
+
+  @override
+  void didUpdateWidget(covariant SlidingNavigationRail oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!widget.extended && _isEditingLibrary) {
+      _isEditingLibrary = false;
+    }
+  }
 
   @override
   void dispose() {
@@ -1662,6 +1675,8 @@ class _SlidingNavigationRailState extends State<_SlidingNavigationRail> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
+    final settings = ref.watch(settingsServiceProvider);
+    final isDark = theme.brightness == Brightness.dark;
 
     final destinations = [
       (
@@ -1705,36 +1720,50 @@ class _SlidingNavigationRailState extends State<_SlidingNavigationRail> {
     // 媒体库（index 2）的二级入口，顺序与 libraryActiveTabIndexProvider 一致
     final librarySubDestinations = [
       (
+        id: 'playlist',
+        index: 0,
         label: l10n.playlist,
         icon: Icons.queue_music_rounded,
         selectedIcon: Icons.queue_music_rounded,
       ),
       (
+        id: 'recentlyPlayed',
+        index: 1,
         label: l10n.recentlyPlayed,
         icon: Icons.history_rounded,
         selectedIcon: Icons.history_rounded,
       ),
       (
+        id: 'mostPlayed',
+        index: 2,
         label: l10n.mostPlayed,
         icon: Icons.local_fire_department_rounded,
         selectedIcon: Icons.local_fire_department_rounded,
       ),
       (
+        id: 'recentlyAdded',
+        index: 3,
         label: l10n.recentlyAdded,
         icon: Icons.auto_awesome_rounded,
         selectedIcon: Icons.auto_awesome_rounded,
       ),
       (
+        id: 'albums',
+        index: 4,
         label: l10n.albums,
         icon: Icons.album_rounded,
         selectedIcon: Icons.album_rounded,
       ),
       (
+        id: 'artists',
+        index: 5,
         label: l10n.artists,
         icon: Icons.mic_external_on_rounded,
         selectedIcon: Icons.mic_external_on_rounded,
       ),
       (
+        id: 'ratedSongs',
+        index: 6,
         label: l10n.ratedSongs,
         icon: Icons.star_outline_rounded,
         selectedIcon: Icons.star_rounded,
@@ -1759,10 +1788,7 @@ class _SlidingNavigationRailState extends State<_SlidingNavigationRail> {
       0,
       destinations.length - 1,
     );
-    final int activeSubIndex = widget.librarySubIndex.clamp(
-      0,
-      librarySubDestinations.length - 1,
-    );
+    final bool isLibrarySubActive = widget.librarySubIndex >= 0;
 
     // 设置页固定钉在左下角，其余条目（含媒体库展开的二级入口）放进可滚动区
     final rows = <_RailRow>[];
@@ -1770,52 +1796,172 @@ class _SlidingNavigationRailState extends State<_SlidingNavigationRail> {
 
     for (int i = 0; i < destinations.length - 1; i++) {
       final d = destinations[i];
-      if (d.index == activeMainIndex && !widget.isSettingsActive) {
-        pillRow = rows.length;
-      }
-      rows.add(
-        _RailRow(
-          height: itemHeight,
-          child: _buildTile(
-            icon: d.icon,
-            selectedIcon: d.selectedIcon,
-            label: d.label,
-            isSelected: d.index == activeMainIndex && !widget.isSettingsActive,
-            isSubItem: false,
-            activeColor: activeColor,
-            inactiveColor: inactiveColor,
-            onTap: () => widget.onDestinationSelected(d.index),
-          ),
-        ),
-      );
 
-      if (d.index == 2 && widget.isLibraryExpanded) {
-        for (int s = 0; s < librarySubDestinations.length; s++) {
-          final sub = librarySubDestinations[s];
-          if (d.index == activeMainIndex &&
-              !widget.isSettingsActive &&
-              s == activeSubIndex) {
-            pillRow = rows.length;
-          }
-          rows.add(
-            _RailRow(
-              height: subItemHeight,
-              child: _buildTile(
-                icon: sub.icon,
-                selectedIcon: sub.selectedIcon,
-                label: sub.label,
-                isSelected:
-                    d.index == activeMainIndex &&
-                    !widget.isSettingsActive &&
-                    s == activeSubIndex,
-                isSubItem: true,
-                activeColor: activeColor,
-                inactiveColor: inactiveColor,
-                onTap: () => widget.onLibrarySubDestinationSelected(s),
-              ),
-            ),
-          );
+      if (d.index == 2) {
+        // 媒体库入口
+        final bool isLibraryExpanded =
+            widget.isLibraryExpanded || _isEditingLibrary;
+        final bool hasVisibleActiveSub = isLibrarySubActive &&
+            widget.librarySubIndex < librarySubDestinations.length &&
+            settings.isLibraryTabVisible(
+              librarySubDestinations[widget.librarySubIndex].id,
+            );
+
+        final bool isLibraryMainSelected = d.index == activeMainIndex &&
+            !widget.isSettingsActive &&
+            (!isLibrarySubActive || (!_isEditingLibrary && !hasVisibleActiveSub));
+
+        if (isLibraryMainSelected && !_isEditingLibrary) {
+          pillRow = rows.length;
         }
+
+        Widget? trailing;
+        if (widget.extended) {
+          if (_isEditingLibrary) {
+            trailing = _buildEditActionText(
+              label: l10n.done,
+              color: activeColor,
+              onTap: () {
+                setState(() {
+                  _isEditingLibrary = false;
+                });
+                final currentSub = ref.read(libraryActiveTabIndexProvider);
+                if (currentSub >= 0 &&
+                    currentSub < librarySubDestinations.length) {
+                  final id = librarySubDestinations[currentSub].id;
+                  if (!ref
+                      .read(settingsServiceProvider)
+                      .isLibraryTabVisible(id)) {
+                    ref.read(libraryActiveTabIndexProvider.notifier).set(-1);
+                  }
+                }
+              },
+            );
+          } else if (_isHoveringLibrary) {
+            trailing = _buildEditActionText(
+              label: l10n.edit,
+              color: inactiveColor,
+              onTap: () {
+                setState(() {
+                  _isEditingLibrary = true;
+                });
+              },
+            );
+          }
+        }
+
+        rows.add(
+          _RailRow(
+            height: itemHeight,
+            child: _buildTile(
+              icon: d.icon,
+              selectedIcon: d.selectedIcon,
+              label: d.label,
+              isSelected: isLibraryMainSelected,
+              isSubItem: false,
+              activeColor: activeColor,
+              inactiveColor: inactiveColor,
+              trailing: trailing,
+              onHover: (hovering) {
+                if (_isHoveringLibrary != hovering) {
+                  setState(() {
+                    _isHoveringLibrary = hovering;
+                  });
+                }
+              },
+              onTap: () {
+                if (_isEditingLibrary) {
+                  setState(() {
+                    _isEditingLibrary = false;
+                  });
+                }
+                widget.onDestinationSelected(d.index);
+              },
+            ),
+          ),
+        );
+
+        if (isLibraryExpanded) {
+          for (int s = 0; s < librarySubDestinations.length; s++) {
+            final sub = librarySubDestinations[s];
+            final bool isVisible = settings.isLibraryTabVisible(sub.id);
+            if (!_isEditingLibrary && !isVisible) {
+              continue;
+            }
+
+            final bool isSubSelected = !_isEditingLibrary &&
+                d.index == activeMainIndex &&
+                !widget.isSettingsActive &&
+                isLibrarySubActive &&
+                s == widget.librarySubIndex;
+
+            if (isSubSelected) {
+              pillRow = rows.length;
+            }
+
+            Widget? leading;
+            if (_isEditingLibrary && widget.extended) {
+              leading = _buildCheckbox(
+                isChecked: isVisible,
+                activeColor: activeColor,
+                borderColor: isDark ? Colors.white38 : Colors.black38,
+              );
+            }
+
+            rows.add(
+              _RailRow(
+                height: subItemHeight,
+                child: _buildTile(
+                  icon: sub.icon,
+                  selectedIcon: sub.selectedIcon,
+                  label: sub.label,
+                  isSelected: isSubSelected,
+                  isSubItem: true,
+                  activeColor: activeColor,
+                  inactiveColor: inactiveColor,
+                  leading: leading,
+                  onTap: () {
+                    if (_isEditingLibrary) {
+                      ref
+                          .read(settingsServiceProvider)
+                          .toggleLibraryTabVisibility(sub.id);
+                    } else {
+                      widget.onLibrarySubDestinationSelected(s);
+                    }
+                  },
+                ),
+              ),
+            );
+          }
+        }
+      } else {
+        final bool isSelected =
+            d.index == activeMainIndex && !widget.isSettingsActive;
+        if (isSelected && !_isEditingLibrary) {
+          pillRow = rows.length;
+        }
+        rows.add(
+          _RailRow(
+            height: itemHeight,
+            child: _buildTile(
+              icon: d.icon,
+              selectedIcon: d.selectedIcon,
+              label: d.label,
+              isSelected: isSelected,
+              isSubItem: false,
+              activeColor: activeColor,
+              inactiveColor: inactiveColor,
+              onTap: () {
+                if (_isEditingLibrary) {
+                  setState(() {
+                    _isEditingLibrary = false;
+                  });
+                }
+                widget.onDestinationSelected(d.index);
+              },
+            ),
+          ),
+        );
       }
     }
 
@@ -1828,9 +1974,10 @@ class _SlidingNavigationRailState extends State<_SlidingNavigationRail> {
     }
 
     final double contentHeight = offsetOf(rows.length);
-    final bool showPill = pillRow >= 0;
+    final bool showPill = !_isEditingLibrary && pillRow >= 0;
     final double pillWidth = widget.extended ? widget.width - 16.0 : 56.0;
-    final double pillLeft = widget.extended ? 8.0 : (widget.width - pillWidth) / 2.0;
+    final double pillLeft =
+        widget.extended ? 8.0 : (widget.width - pillWidth) / 2.0;
     final double pillHeight = showPill
         ? math.max(32.0, rows[pillRow].height - 8.0)
         : 32.0;
@@ -1838,7 +1985,6 @@ class _SlidingNavigationRailState extends State<_SlidingNavigationRail> {
         ? offsetOf(pillRow) + (rows[pillRow].height - pillHeight) / 2.0
         : 0.0;
 
-    final bool isDark = theme.brightness == Brightness.dark;
     final borderColor = isDark
         ? Colors.white.withValues(alpha: 0.08)
         : Colors.black.withValues(alpha: 0.08);
@@ -1931,13 +2077,72 @@ class _SlidingNavigationRailState extends State<_SlidingNavigationRail> {
                   isSubItem: false,
                   activeColor: activeColor,
                   inactiveColor: inactiveColor,
-                  onTap: () => widget.onDestinationSelected(destinations.last.index),
+                  onTap: () {
+                    if (_isEditingLibrary) {
+                      setState(() {
+                        _isEditingLibrary = false;
+                      });
+                    }
+                    widget.onDestinationSelected(destinations.last.index);
+                  },
                 ),
               ),
               SizedBox(
                 height: math.max(10.0, MediaQuery.paddingOf(context).bottom),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCheckbox({
+    required bool isChecked,
+    required Color activeColor,
+    required Color borderColor,
+  }) {
+    return Container(
+      width: 16,
+      height: 16,
+      decoration: BoxDecoration(
+        color: isChecked ? activeColor : Colors.transparent,
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(
+          color: isChecked ? activeColor : borderColor,
+          width: 1.5,
+        ),
+      ),
+      alignment: Alignment.center,
+      child: isChecked
+          ? const Icon(
+              Icons.check_rounded,
+              size: 12,
+              color: Colors.white,
+            )
+          : null,
+    );
+  }
+
+  Widget _buildEditActionText({
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(6),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
           ),
         ),
       ),
@@ -1953,6 +2158,9 @@ class _SlidingNavigationRailState extends State<_SlidingNavigationRail> {
     required Color activeColor,
     required Color inactiveColor,
     required VoidCallback onTap,
+    Widget? leading,
+    Widget? trailing,
+    ValueChanged<bool>? onHover,
   }) {
     final Color color = isSelected ? activeColor : inactiveColor;
     final double iconSize = isSubItem ? 19.0 : 22.0;
@@ -1960,9 +2168,16 @@ class _SlidingNavigationRailState extends State<_SlidingNavigationRail> {
     final Widget content;
     if (widget.extended) {
       content = Padding(
-        padding: EdgeInsets.only(left: isSubItem ? 30.0 : 16.0, right: 12.0),
+        padding: EdgeInsets.only(
+          left: leading != null ? 14.0 : (isSubItem ? 30.0 : 16.0),
+          right: 12.0,
+        ),
         child: Row(
           children: [
+            if (leading != null) ...[
+              leading,
+              const SizedBox(width: 8),
+            ],
             Icon(isSelected ? selectedIcon : icon, size: iconSize, color: color),
             const SizedBox(width: 14),
             Expanded(
@@ -1977,6 +2192,7 @@ class _SlidingNavigationRailState extends State<_SlidingNavigationRail> {
                 ),
               ),
             ),
+            ?trailing,
           ],
         ),
       );
@@ -1997,7 +2213,12 @@ class _SlidingNavigationRailState extends State<_SlidingNavigationRail> {
       ),
     );
 
-    tile = MouseRegion(cursor: SystemMouseCursors.click, child: tile);
+    tile = MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: onHover != null ? (_) => onHover(true) : null,
+      onExit: onHover != null ? (_) => onHover(false) : null,
+      child: tile,
+    );
 
     // 展开态已有文字标签，无需再依赖悬浮提示
     if (!widget.extended) {

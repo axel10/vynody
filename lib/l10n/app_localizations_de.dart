@@ -1521,6 +1521,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get edit => 'Bearbeiten';
 
   @override
+  String get done => '完成';
+
+  @override
   String get lyricsSectionTitle => 'Songtexte';
 
   @override

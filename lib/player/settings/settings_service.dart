@@ -434,6 +434,16 @@ class SettingsService extends ChangeNotifier {
     'sleep_timer',
     'equalizer',
   ];
+  static const List<String> defaultVisibleLibraryTabs = [
+    'playlist',
+    'recentlyPlayed',
+    'mostPlayed',
+    'recentlyAdded',
+    'albums',
+    'artists',
+    'ratedSongs',
+  ];
+  static const String _keyVisibleLibraryTabs = 'visible_library_sub_tabs';
   static const String defaultMainControlsLeftButton = 'visualizer';
   static const String defaultMainControlsRightButton = 'volume';
   static const String defaultLyricsHeaderRightButton = 'favorite';
@@ -1042,6 +1052,19 @@ class SettingsService extends ChangeNotifier {
     customWrite: (prefs, key, value) {
       prefs.setString(key, jsonEncode(value));
     },
+  );
+
+  late final _visibleLibraryTabsProperty = SettingProperty<List<String>>(
+    key: _keyVisibleLibraryTabs,
+    defaultValue: defaultVisibleLibraryTabs,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+    customRead: (prefs, key, def) {
+      final list = prefs.getStringList(key);
+      if (list != null) return list;
+      return def;
+    },
+    customWrite: (prefs, key, val) => prefs.setStringList(key, val),
   );
 
   late final _mainControlsLeftButtonProperty = SettingProperty<String>(
@@ -2217,6 +2240,23 @@ class SettingsService extends ChangeNotifier {
   List<String> get topButtonsOrder => _topButtonsOrderProperty.value;
   set topButtonsOrder(List<String> value) {
     _topButtonsOrderProperty.value = value;
+  }
+
+  List<String> get visibleLibraryTabs => _visibleLibraryTabsProperty.value;
+  set visibleLibraryTabs(List<String> value) {
+    _visibleLibraryTabsProperty.value = value;
+  }
+
+  bool isLibraryTabVisible(String id) => visibleLibraryTabs.contains(id);
+
+  void toggleLibraryTabVisibility(String id) {
+    final current = List<String>.from(visibleLibraryTabs);
+    if (current.contains(id)) {
+      current.remove(id);
+    } else {
+      current.add(id);
+    }
+    visibleLibraryTabs = current;
   }
 
   String get mainControlsLeftButton => _mainControlsLeftButtonProperty.value;

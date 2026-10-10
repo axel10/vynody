@@ -2871,6 +2871,12 @@ abstract class AppLocalizations {
   /// **'编辑'**
   String get edit;
 
+  /// No description provided for @done.
+  ///
+  /// In zh, this message translates to:
+  /// **'完成'**
+  String get done;
+
   /// No description provided for @lyricsSectionTitle.
   ///
   /// In zh, this message translates to:

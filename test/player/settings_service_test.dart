@@ -606,6 +606,25 @@ void main() {
         debugDefaultTargetPlatformOverride = initialPlatform;
       }
     });
+
+    test('visibleLibraryTabs defaults to all 7 tabs and can be toggled', () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final settings = SettingsService(prefs);
+
+      expect(settings.visibleLibraryTabs.length, 7);
+      expect(settings.isLibraryTabVisible('playlist'), isTrue);
+
+      settings.toggleLibraryTabVisibility('playlist');
+      expect(settings.isLibraryTabVisible('playlist'), isFalse);
+      expect(settings.visibleLibraryTabs.contains('playlist'), isFalse);
+
+      final reloaded = SettingsService(prefs);
+      expect(reloaded.isLibraryTabVisible('playlist'), isFalse);
+
+      reloaded.toggleLibraryTabVisibility('playlist');
+      expect(reloaded.isLibraryTabVisible('playlist'), isTrue);
+    });
   });
 }
 
