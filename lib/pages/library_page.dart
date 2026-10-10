@@ -244,8 +244,9 @@ class _LibrarySubHostPageState extends ConsumerState<LibrarySubHostPage> {
         isLandscape ? sidebarRailWidthFor(MediaQuery.of(context).size.width) : 0.0;
     final double safeTopPadding =
         getTitleBarTopPadding(context, defaultWindowPadding: 32.0);
-    final double topPadding =
-        isLandscape ? (safeTopPadding + 8.0) : (safeTopPadding + kToolbarHeight);
+    const double subHostHeaderContentHeight = 44.0;
+    final double headerHeight = safeTopPadding + subHostHeaderContentHeight;
+    final double topPadding = headerHeight;
     final double leftPadding = railWidth;
 
     final int activeIndex = ref.watch(libraryActiveTabIndexProvider);
@@ -342,54 +343,57 @@ class _LibrarySubHostPageState extends ConsumerState<LibrarySubHostPage> {
                         : const SizedBox.shrink(),
                 ],
               ),
-              if (!isLandscape)
-                Positioned(
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  height: topPadding,
-                  child: AutoHideHeader(
-                    isVisible: isHeaderVisible,
-                    child: ClipRect(
-                      child: BackdropFilter(
-                        filter: AppBlur.heavyFilter,
-                        child: Container(
-                          padding: EdgeInsets.only(top: safeTopPadding),
-                          decoration: BoxDecoration(
-                            color: AppBlur.heavySurface(context),
-                            border: Border(
-                              bottom: BorderSide(
-                                color: theme.dividerColor.withValues(alpha: 0.12),
-                                width: 0.8,
-                              ),
+              Positioned(
+                top: 0,
+                left: leftPadding,
+                right: 0,
+                height: headerHeight,
+                child: AutoHideHeader(
+                  isVisible: isHeaderVisible,
+                  child: ClipRect(
+                    child: BackdropFilter(
+                      filter: AppBlur.heavyFilter,
+                      child: Container(
+                        padding: EdgeInsets.only(top: safeTopPadding),
+                        decoration: BoxDecoration(
+                          color: AppBlur.heavySurface(context),
+                          border: Border(
+                            bottom: BorderSide(
+                              color: theme.dividerColor.withValues(alpha: 0.12),
+                              width: 0.8,
                             ),
                           ),
-                          child: AppBar(
-                            primary: false,
-                            forceMaterialTransparency: true,
-                            scrolledUnderElevation: 0,
-                            surfaceTintColor: Colors.transparent,
-                            leading: IconButton(
-                              icon: const Icon(
-                                Icons.arrow_back_ios_new_rounded,
-                                size: 20,
+                        ),
+                        child: SizedBox(
+                          height: subHostHeaderContentHeight,
+                          child: Row(
+                            children: [
+                              const SizedBox(width: 4),
+                              IconButton(
+                                icon: const Icon(Icons.arrow_back_rounded),
+                                tooltip: l10n.goBack,
+                                onPressed: () => Navigator.of(context).maybePop(),
                               ),
-                              tooltip: l10n.goBack,
-                              onPressed: () => Navigator.of(context).maybePop(),
-                            ),
-                            title: Text(
-                              title,
-                              style: const TextStyle(fontWeight: FontWeight.w600),
-                            ),
-                            centerTitle: true,
-                            elevation: 0,
-                            backgroundColor: Colors.transparent,
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  title,
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                            ],
                           ),
                         ),
                       ),
                     ),
                   ),
                 ),
+              ),
             ],
           ),
         ),

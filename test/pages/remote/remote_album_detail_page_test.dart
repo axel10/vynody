@@ -14,6 +14,7 @@ import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/remote/remote_server_models.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/widgets/album_detail_widgets.dart';
+import 'package:vynody/widgets/app_circular_back_button.dart';
 
 import '../../widgets/helpers/mobile_screenshot_harness.dart';
 
@@ -109,6 +110,7 @@ void main() {
     return ProviderScope(
       overrides: [
         settingsServiceProvider.overrideWith((ref) => settingsService),
+        audioServiceStateProvider.overrideWith(() => audioService),
         audioServiceProvider.overrideWith((ref) => audioService),
         audioCurrentMusicProvider.overrideWith((ref) => null),
       ],
@@ -144,7 +146,7 @@ void main() {
     await tester.pump();
 
     expect(find.byType(AlbumDetailNavBar), findsOneWidget);
-    expect(find.byIcon(Icons.arrow_back_rounded), findsOneWidget);
+    expect(find.byType(AppCircularBackButton), findsOneWidget);
     expect(find.byIcon(Icons.my_location_rounded), findsOneWidget);
     expect(find.byIcon(Icons.download_rounded), findsOneWidget);
   });

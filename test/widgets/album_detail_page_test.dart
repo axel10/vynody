@@ -15,6 +15,7 @@ import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/scanner/scanner_service.dart';
 import 'package:vynody/player/settings/settings_service.dart';
 import 'package:vynody/widgets/album_detail_widgets.dart';
+import 'package:vynody/widgets/app_circular_back_button.dart';
 
 import 'helpers/mobile_screenshot_harness.dart';
 
@@ -118,6 +119,7 @@ void main() {
     return ProviderScope(
       overrides: [
         settingsServiceProvider.overrideWith((ref) => settingsService),
+        audioServiceStateProvider.overrideWith(() => audioService),
         audioServiceProvider.overrideWith((ref) => audioService),
         audioCurrentMusicProvider.overrideWith((ref) => null),
         scannerServiceProvider.overrideWith((ref) => scannerService),
@@ -156,7 +158,7 @@ void main() {
     expect(find.byIcon(Icons.shuffle), findsOneWidget);
 
     // Verify back button in top navigation bar
-    expect(find.byIcon(Icons.arrow_back_rounded), findsOneWidget);
+    expect(find.byType(AppCircularBackButton), findsOneWidget);
 
     // Scroll down past the cover banner
     await tester.drag(find.byType(CustomScrollView), const Offset(0, -350));

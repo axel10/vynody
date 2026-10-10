@@ -9,6 +9,7 @@ import 'package:vynody/pages/remote/remote_artist_detail_page.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/remote/remote_server_models.dart';
 import 'package:vynody/widgets/album_detail_widgets.dart';
+import 'package:vynody/widgets/app_circular_back_button.dart';
 
 import '../../widgets/helpers/mobile_screenshot_harness.dart';
 
@@ -142,7 +143,7 @@ void main() {
 
     // Verify AlbumDetailNavBar is rendered
     expect(find.byType(AlbumDetailNavBar), findsOneWidget);
-    expect(find.byIcon(Icons.arrow_back_rounded), findsOneWidget);
+    expect(find.byType(AppCircularBackButton), findsOneWidget);
     expect(find.byIcon(Icons.download_rounded), findsOneWidget);
   });
 
@@ -172,7 +173,7 @@ void main() {
     );
     await tester.pump();
 
-    await tester.tap(find.byIcon(Icons.arrow_back_rounded));
+    await tester.tap(find.byType(AppCircularBackButton));
     await tester.pump();
 
     expect(goBackCalled, isTrue);

@@ -9,6 +9,7 @@ import 'package:vynody/models/artist_summary.dart';
 import 'package:vynody/pages/artist_detail_page.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/widgets/album_detail_widgets.dart';
+import 'package:vynody/widgets/app_circular_back_button.dart';
 
 import 'helpers/mobile_screenshot_harness.dart';
 
@@ -118,6 +119,7 @@ void main() {
     return ProviderScope(
       overrides: [
         settingsServiceProvider.overrideWith((ref) => settingsService),
+        audioServiceStateProvider.overrideWith(() => audioService),
         audioServiceProvider.overrideWith((ref) => audioService),
         audioCurrentMusicProvider.overrideWith((ref) => null),
         scannerServiceProvider.overrideWith((ref) => scannerService),
@@ -156,7 +158,7 @@ void main() {
 
     // Verify immersive top nav bar is present
     expect(find.byType(AlbumDetailNavBar), findsOneWidget);
-    expect(find.byIcon(Icons.arrow_back_rounded), findsOneWidget);
+    expect(find.byType(AppCircularBackButton), findsOneWidget);
 
     // Scroll down past the artist header
     await tester.drag(find.byType(CustomScrollView), const Offset(0, -300));
@@ -181,7 +183,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.arrow_back_rounded));
+    await tester.tap(find.byType(AppCircularBackButton));
     await tester.pumpAndSettle();
 
     expect(didGoBack, isTrue);

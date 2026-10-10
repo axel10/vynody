@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import 'package:vynody/utils/layout_constants.dart';
 import 'package:vynody/utils/blur_constants.dart';
+import 'app_circular_back_button.dart';
 
 /// Contextual style properties computed by [AlbumDetailNavBar].
 class AlbumDetailNavBarStyle {
@@ -65,6 +66,13 @@ class AlbumDetailNavBar extends StatelessWidget {
     final targetSurface = theme.colorScheme.surface;
     final maxAlpha = isDark ? 0.70 : 0.82;
 
+    final orientation = MediaQuery.of(context).orientation;
+    final isLandscape = orientation == Orientation.landscape;
+    final railWidth = isLandscape
+        ? sidebarRailWidthFor(MediaQuery.of(context).size.width)
+        : 0.0;
+    final double effectiveLeft = railWidth > 0 ? (railWidth + 14.0) : 14.0;
+
     return ValueListenableBuilder<double>(
       valueListenable: scrollProgress,
       builder: (context, progress, _) {
@@ -113,20 +121,15 @@ class AlbumDetailNavBar extends StatelessWidget {
           padding: EdgeInsets.only(
             top: topPadding,
             bottom: bottomPadding,
-            left: 4,
+            left: effectiveLeft,
             right: hasActions ? 4 : 16,
           ),
           child: Row(
             children: [
-              IconButton(
-                icon: Icon(
-                  Icons.arrow_back_rounded,
-                  color: iconColor,
-                  shadows: shadows,
-                ),
+              AppCircularBackButton(
                 onPressed: onGoBack ?? () => Navigator.of(context).maybePop(),
               ),
-              const SizedBox(width: 4),
+              const SizedBox(width: 12),
               Expanded(
                 child: ValueListenableBuilder<bool>(
                   valueListenable: isCoverVisible,
