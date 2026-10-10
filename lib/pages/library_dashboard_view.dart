@@ -1,8 +1,12 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/app_localizations.dart';
 import 'package:vynody/models/album_summary.dart';
+import 'package:vynody/models/artist_summary.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/audio/playback_source.dart';
@@ -10,6 +14,7 @@ import 'package:vynody/player/library/album_library.dart';
 import 'package:vynody/player/library/artist_library.dart';
 import 'package:vynody/player/library/library_insights_service.dart';
 import 'package:vynody/player/library/library_overview_providers.dart';
+import 'package:vynody/player/metadata/theaudiodb_artist_service.dart';
 import 'package:vynody/widgets/album_cover.dart';
 import 'package:vynody/widgets/artist_avatar.dart';
 import 'package:vynody/widgets/song_thumbnail.dart';
@@ -1832,7 +1837,7 @@ class _AlbumCardState extends State<_AlbumCard> {
 // ---------------------------------------------------------------------------
 // 独立通栏：艺术家
 // ---------------------------------------------------------------------------
-class _ArtistsRowSection extends ConsumerWidget {
+class _ArtistsRowSection extends ConsumerStatefulWidget {
   const _ArtistsRowSection({
     required this.horizontalPadding,
     required this.onViewAll,
@@ -1848,87 +1853,104 @@ class _ArtistsRowSection extends ConsumerWidget {
   final double contentLeftPadding;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
+  ConsumerState<_ArtistsRowSection> createState() => _ArtistsRowSectionState();
+}
+
+class _ArtistsRowSectionState extends ConsumerState<_ArtistsRowSection> {
+  final Set<String> _prefetchedKeys = <String>{};
+  StreamSubscription<String>? _imageUpdateSub;
+  Timer? _debounceInvalidateTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _imageUpdateSub =
+        TheAudioDbArtistService.instance.onArtistImageUpdated.listen((_) {
+      _debounceInvalidateTimer?.cancel();
+      _debounceInvalidateTimer =
+          Timer(const Duration(milliseconds: 1500), () {
+        if (mounted) {
+          ref.invalidate(artistLibraryProvider);
+        }
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _debounceInvalidateTimer?.cancel();
+    _imageUpdateSub?.cancel();
+    super.dispose();
+  }
+
+  void _prefetchDisplayedArtists(List<ArtistSummary> preview) {
+    for (final artist in preview) {
+      if (_prefetchedKeys.add(artist.queryKey)) {
+        if (artist.cachedImagePath == null ||
+            artist.cachedImagePath!.isEmpty ||
+            !File(artist.cachedImagePath!).existsSync()) {
+          TheAudioDbArtistService.instance.fetchAndCacheArtistImage(artist);
+        }
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final asyncArtists = ref.watch(artistLibraryProvider);
 
-    final scale = isWide ? kDashboardDesktopCoverScale : kDashboardMobileCoverScale;
+    final scale = widget.isWide
+        ? kDashboardDesktopCoverScale
+        : kDashboardMobileCoverScale;
     final avatarDiameter = (96.0 * scale).roundToDouble();
     final cardWidth = avatarDiameter;
     final listHeight = avatarDiameter + 52.0;
-    final separatorWidth = isWide ? 18.0 : 16.0;
+    final separatorWidth = widget.isWide ? 18.0 : 16.0;
 
     return asyncArtists.when(
       data: (artists) {
         if (artists.isEmpty) return const SizedBox.shrink();
         final preview = artists.take(12).toList();
+        _prefetchDisplayedArtists(preview);
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
               padding: EdgeInsets.only(
-                left: contentLeftPadding + horizontalPadding,
-                right: horizontalPadding,
+                left: widget.contentLeftPadding + widget.horizontalPadding,
+                right: widget.horizontalPadding,
               ),
               child: _SectionHeader(
-                title: l10n.artists,
-                onViewAll: onViewAll,
-                l10n: l10n,
+                title: widget.l10n.artists,
+                onViewAll: widget.onViewAll,
+                l10n: widget.l10n,
               ),
             ),
             const SizedBox(height: 12),
             _CarouselScrollWrapper(
               height: listHeight,
               centerHeight: avatarDiameter,
-              buttonPadding: horizontalPadding > 20 ? 14.0 : 8.0,
-              leftButtonOffset: contentLeftPadding,
+              buttonPadding: widget.horizontalPadding > 20 ? 14.0 : 8.0,
+              leftButtonOffset: widget.contentLeftPadding,
               builder: (context, controller) {
                 return ListView.separated(
                   controller: controller,
                   scrollDirection: Axis.horizontal,
                   physics: const BouncingScrollPhysics(),
                   padding: EdgeInsets.only(
-                    left: contentLeftPadding + horizontalPadding,
-                    right: horizontalPadding,
+                    left: widget.contentLeftPadding + widget.horizontalPadding,
+                    right: widget.horizontalPadding,
                   ),
                   itemCount: preview.length,
                   separatorBuilder: (_, _) => SizedBox(width: separatorWidth),
                   itemBuilder: (context, index) {
                     final artist = preview[index];
-                    return InkWell(
-                      borderRadius: BorderRadius.circular(50),
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => ArtistDetailPage(artist: artist),
-                          ),
-                        );
-                      },
-                      child: SizedBox(
-                        width: cardWidth,
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            ArtistAvatar(
-                              diameter: avatarDiameter,
-                              imagePath: artist.cachedImagePath,
-                              imageUrl: artist.imageUrl,
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              artist.name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              textAlign: TextAlign.center,
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                fontWeight: FontWeight.w600,
-                                fontSize: isWide ? 14.5 : 14.0,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                    return _DashboardArtistItem(
+                      artist: artist,
+                      avatarDiameter: avatarDiameter,
+                      cardWidth: cardWidth,
+                      isWide: widget.isWide,
                     );
                   },
                 );
@@ -1939,6 +1961,131 @@ class _ArtistsRowSection extends ConsumerWidget {
       },
       loading: () => const SizedBox.shrink(),
       error: (_, _) => const SizedBox.shrink(),
+    );
+  }
+}
+
+class _DashboardArtistItem extends ConsumerStatefulWidget {
+  const _DashboardArtistItem({
+    required this.artist,
+    required this.avatarDiameter,
+    required this.cardWidth,
+    required this.isWide,
+  });
+
+  final ArtistSummary artist;
+  final double avatarDiameter;
+  final double cardWidth;
+  final bool isWide;
+
+  @override
+  ConsumerState<_DashboardArtistItem> createState() =>
+      _DashboardArtistItemState();
+}
+
+class _DashboardArtistItemState extends ConsumerState<_DashboardArtistItem> {
+  String? _cachedImagePath;
+  StreamSubscription<String>? _sub;
+
+  @override
+  void initState() {
+    super.initState();
+    _cachedImagePath = widget.artist.cachedImagePath;
+    _sub = TheAudioDbArtistService.instance.onArtistImageUpdated
+        .listen((queryKey) {
+      if (queryKey == widget.artist.queryKey && mounted) {
+        _refreshImage();
+      }
+    });
+    _checkAndFetch();
+  }
+
+  void _checkAndFetch() {
+    if (_cachedImagePath != null &&
+        _cachedImagePath!.isNotEmpty &&
+        File(_cachedImagePath!).existsSync()) {
+      return;
+    }
+    TheAudioDbArtistService.instance
+        .fetchAndCacheArtistImage(widget.artist)
+        .then((path) {
+      if (!mounted) return;
+      if (path != null && path.isNotEmpty && path != _cachedImagePath) {
+        setState(() {
+          _cachedImagePath = path;
+        });
+      }
+    });
+  }
+
+  Future<void> _refreshImage() async {
+    final path = await TheAudioDbArtistService.instance
+        .fetchAndCacheArtistImage(widget.artist);
+    if (!mounted) return;
+    if (path != null && path.isNotEmpty && path != _cachedImagePath) {
+      setState(() {
+        _cachedImagePath = path;
+      });
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _DashboardArtistItem oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.artist.queryKey != oldWidget.artist.queryKey) {
+      _cachedImagePath = widget.artist.cachedImagePath;
+      _checkAndFetch();
+    } else if (widget.artist.cachedImagePath != null &&
+        widget.artist.cachedImagePath != _cachedImagePath) {
+      _cachedImagePath = widget.artist.cachedImagePath;
+    }
+  }
+
+  @override
+  void dispose() {
+    _sub?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final artist = widget.artist;
+    final displayPath = _cachedImagePath ?? artist.cachedImagePath;
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(50),
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => ArtistDetailPage(artist: artist),
+          ),
+        );
+      },
+      child: SizedBox(
+        width: widget.cardWidth,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ArtistAvatar(
+              diameter: widget.avatarDiameter,
+              imagePath: displayPath,
+              imageUrl: artist.imageUrl,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              artist.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+                fontSize: widget.isWide ? 14.5 : 14.0,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

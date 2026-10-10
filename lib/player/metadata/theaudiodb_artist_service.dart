@@ -32,6 +32,45 @@ class TheAudioDbArtistService {
   /// 正在进行的请求去重映射
   final Map<String, Future<String?>> _inFlightFetches = <String, Future<String?>>{};
 
+  /// 艺术家头像获取并持久化成功时的通知事件流（携带 queryKey）
+  final StreamController<String> _imageUpdatedController =
+      StreamController<String>.broadcast();
+  Stream<String> get onArtistImageUpdated => _imageUpdatedController.stream;
+
+  /// 网络并发限制（最多允许 2 个并发网络请求，避免被 TheAudioDB 免费接口限流）
+  int _activeNetworkRequests = 0;
+  static const int _maxConcurrentNetworkRequests = 2;
+  static const int _maxNetworkQueueLength = 40;
+  final List<Completer<void>> _networkWaitQueue = <Completer<void>>[];
+
+  /// 记录最近网络请求失败的艺术家时间戳，避免断网或异常时高频重复重试
+  final Map<String, int> _recentFailureTimestamps = <String, int>{};
+
+  Future<bool> _acquireNetworkSlot() async {
+    if (_activeNetworkRequests < _maxConcurrentNetworkRequests) {
+      _activeNetworkRequests++;
+      return true;
+    }
+    if (_networkWaitQueue.length >= _maxNetworkQueueLength) {
+      return false;
+    }
+    final completer = Completer<void>();
+    _networkWaitQueue.add(completer);
+    await completer.future;
+    return true;
+  }
+
+  void _releaseNetworkSlot() {
+    if (_networkWaitQueue.isNotEmpty) {
+      final next = _networkWaitQueue.removeAt(0);
+      next.complete();
+    } else {
+      if (_activeNetworkRequests > 0) {
+        _activeNetworkRequests--;
+      }
+    }
+  }
+
   /// 清洗艺术家名称中的 feat. 等附加信息，提高 TheAudioDB 搜索命中率
   String _sanitizeArtistName(String name) {
     var sanitized = name
@@ -99,8 +138,34 @@ class TheAudioDbArtistService {
           return null;
         }
       }
+
+      // 检查短期失败冷却（2 分钟内网络失败不反复重试）
+      final failedAt = _recentFailureTimestamps[queryKey];
+      if (failedAt != null) {
+        final elapsedSec =
+            (DateTime.now().millisecondsSinceEpoch - failedAt) ~/ 1000;
+        if (elapsedSec < 120) {
+          return null;
+        }
+      }
     }
 
+    final hasSlot = await _acquireNetworkSlot();
+    if (!hasSlot) {
+      return null;
+    }
+
+    try {
+      return await _fetchFromNetworkAndSave(artist, queryKey);
+    } finally {
+      _releaseNetworkSlot();
+    }
+  }
+
+  Future<String?> _fetchFromNetworkAndSave(
+    ArtistSummary artist,
+    String queryKey,
+  ) async {
     // 2. 构造查询请求
     final searchName = _sanitizeArtistName(artist.name);
     if (searchName.isEmpty) return null;
@@ -121,6 +186,7 @@ class TheAudioDbArtistService {
 
       if (response.statusCode != 200 || response.data is! Map<String, dynamic>) {
         debugPrint('[TheAudioDB] Unexpected response status: ${response.statusCode}');
+        _recentFailureTimestamps[queryKey] = DateTime.now().millisecondsSinceEpoch;
         return null;
       }
 
@@ -148,6 +214,7 @@ class TheAudioDbArtistService {
       // 3. 下载图片保存到本地
       final downloadedPath = await _downloadAndSaveImage(queryKey, thumbUrl.trim());
       if (downloadedPath == null) {
+        _recentFailureTimestamps[queryKey] = DateTime.now().millisecondsSinceEpoch;
         return null;
       }
 
@@ -177,9 +244,12 @@ class TheAudioDbArtistService {
         ),
       );
 
+      _recentFailureTimestamps.remove(queryKey);
+      _imageUpdatedController.add(queryKey);
       debugPrint('[TheAudioDB] Successfully cached artist image for "${artist.name}": $downloadedPath');
       return downloadedPath;
     } catch (e, stack) {
+      _recentFailureTimestamps[queryKey] = DateTime.now().millisecondsSinceEpoch;
       debugPrint('[TheAudioDB] Failed to fetch artist image for "${artist.name}": $e');
       if (kDebugMode) {
         debugPrint(stack.toString());

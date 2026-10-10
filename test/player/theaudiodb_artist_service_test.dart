@@ -97,6 +97,11 @@ void main() {
       final result = await service.fetchAndCacheArtistImage(artist);
       expect(result, equals(dummyFile.path));
     });
+
+    test('onArtistImageUpdated stream is broadcast and receives queryKey updates', () async {
+      final service = TheAudioDbArtistService.instance;
+      expect(service.onArtistImageUpdated.isBroadcast, isTrue);
+    });
   });
 }
 

@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -5,6 +8,7 @@ import '../l10n/app_localizations.dart';
 import 'package:vynody/models/artist_summary.dart';
 import 'package:vynody/player/library/artist_library.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
+import 'package:vynody/player/metadata/theaudiodb_artist_service.dart';
 import 'artist_detail_page.dart';
 import '../widgets/artist_avatar.dart';
 import '../widgets/draggable_artist_item.dart';
@@ -51,16 +55,31 @@ class _ArtistsTabState extends ConsumerState<ArtistsTab>
   bool? _lastSortAscending;
   List<ArtistSummary>? _cachedFilteredArtists;
 
+  StreamSubscription<String>? _imageUpdateSub;
+  Timer? _debounceInvalidateTimer;
+
   @override
   void initState() {
     super.initState();
     final settings = ref.read(settingsServiceProvider);
     _sortField = settings.artistSortField;
     _sortAscending = settings.artistSortAscending;
+    _imageUpdateSub =
+        TheAudioDbArtistService.instance.onArtistImageUpdated.listen((_) {
+      _debounceInvalidateTimer?.cancel();
+      _debounceInvalidateTimer =
+          Timer(const Duration(milliseconds: 2000), () {
+        if (mounted) {
+          ref.invalidate(artistLibraryProvider);
+        }
+      });
+    });
   }
 
   @override
   void dispose() {
+    _debounceInvalidateTimer?.cancel();
+    _imageUpdateSub?.cancel();
     _scrollController.dispose();
     _searchController.dispose();
     super.dispose();
@@ -550,7 +569,7 @@ class _ArtistListPane extends StatelessWidget {
   }
 }
 
-class _ArtistListItem extends ConsumerWidget {
+class _ArtistListItem extends ConsumerStatefulWidget {
   const _ArtistListItem({
     required this.artist,
     required this.selected,
@@ -574,9 +593,84 @@ class _ArtistListItem extends ConsumerWidget {
   final void Function(String artistKey)? onMultiSelect;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_ArtistListItem> createState() => _ArtistListItemState();
+}
+
+class _ArtistListItemState extends ConsumerState<_ArtistListItem> {
+  String? _cachedImagePath;
+  StreamSubscription<String>? _sub;
+  Timer? _debounceTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _cachedImagePath = widget.artist.cachedImagePath;
+    _sub = TheAudioDbArtistService.instance.onArtistImageUpdated
+        .listen((queryKey) {
+      if (queryKey == widget.artist.queryKey && mounted) {
+        _refreshImage();
+      }
+    });
+    _scheduleFetchIfNeeded();
+  }
+
+  void _scheduleFetchIfNeeded() {
+    if (_cachedImagePath != null &&
+        _cachedImagePath!.isNotEmpty &&
+        File(_cachedImagePath!).existsSync()) {
+      return;
+    }
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 250), () {
+      if (!mounted) return;
+      TheAudioDbArtistService.instance
+          .fetchAndCacheArtistImage(widget.artist)
+          .then((path) {
+        if (!mounted) return;
+        if (path != null && path.isNotEmpty && path != _cachedImagePath) {
+          setState(() {
+            _cachedImagePath = path;
+          });
+        }
+      });
+    });
+  }
+
+  Future<void> _refreshImage() async {
+    final path = await TheAudioDbArtistService.instance
+        .fetchAndCacheArtistImage(widget.artist);
+    if (!mounted) return;
+    if (path != null && path.isNotEmpty && path != _cachedImagePath) {
+      setState(() {
+        _cachedImagePath = path;
+      });
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _ArtistListItem oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.artist.queryKey != oldWidget.artist.queryKey) {
+      _cachedImagePath = widget.artist.cachedImagePath;
+      _scheduleFetchIfNeeded();
+    } else if (widget.artist.cachedImagePath != null &&
+        widget.artist.cachedImagePath != _cachedImagePath) {
+      _cachedImagePath = widget.artist.cachedImagePath;
+    }
+  }
+
+  @override
+  void dispose() {
+    _debounceTimer?.cancel();
+    _sub?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
+    final artist = widget.artist;
     final songCountLabel = l10n.songCount(artist.songCount);
     final subtitleParts = <String>[
       songCountLabel,
@@ -586,16 +680,20 @@ class _ArtistListItem extends ConsumerWidget {
       subtitleParts.add(artist.disambiguation!.trim());
     }
 
-    final isItemHighlighted = isSelectionMode ? isSelectedInSelectionMode : selected;
+    final isItemHighlighted = widget.isSelectionMode
+        ? widget.isSelectedInSelectionMode
+        : widget.selected;
     final backgroundColor = isItemHighlighted
         ? theme.colorScheme.secondaryContainer.withValues(alpha: 0.7)
         : Colors.transparent;
 
+    final displayImagePath = _cachedImagePath ?? artist.cachedImagePath;
+
     return DraggableArtistItem(
       artist: artist,
-      isSelectionMode: isSelectionMode,
+      isSelectionMode: widget.isSelectionMode,
       isSelected: isItemHighlighted,
-      selectedArtists: selectedArtists,
+      selectedArtists: widget.selectedArtists,
       child: RepaintBoundary(
         child: Material(
           color: backgroundColor,
@@ -603,51 +701,52 @@ class _ArtistListItem extends ConsumerWidget {
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onSecondaryTapDown: (details) {
-              if (!isSelectionMode) {
+              if (!widget.isSelectionMode) {
                 showArtistContextMenu(
                   context: context,
                   globalPosition: details.globalPosition,
                   ref: ref,
                   artist: artist,
-                  onMultiSelect: onMultiSelect,
+                  onMultiSelect: widget.onMultiSelect,
                 );
               }
             },
             onLongPress: () {
-              if (onLongPress != null) {
-                onLongPress!();
-              } else if (!isSelectionMode) {
+              if (widget.onLongPress != null) {
+                widget.onLongPress!();
+              } else if (!widget.isSelectionMode) {
                 showArtistBottomSheet(
                   context: context,
                   ref: ref,
                   artist: artist,
-                  onMultiSelect: onMultiSelect,
+                  onMultiSelect: widget.onMultiSelect,
                 );
               }
             },
             child: InkWell(
               borderRadius: BorderRadius.circular(8),
               enableFeedback: false,
-              onTap: onTap,
+              onTap: widget.onTap,
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
                 child: Row(
                   children: [
-                    if (isSelectionMode)
+                    if (widget.isSelectionMode)
                       Padding(
                         padding: const EdgeInsets.only(right: 8),
                         child: SizedBox(
                           width: 20,
                           height: 20,
                           child: Checkbox(
-                            value: isSelectedInSelectionMode,
-                            onChanged: (_) => onSelectionToggled?.call(),
+                            value: widget.isSelectedInSelectionMode,
+                            onChanged: (_) =>
+                                widget.onSelectionToggled?.call(),
                           ),
                         ),
                       ),
                     ArtistAvatar(
                       diameter: 38,
-                      imagePath: artist.cachedImagePath,
+                      imagePath: displayImagePath,
                       imageUrl: artist.imageUrl,
                     ),
                     const SizedBox(width: 10),
