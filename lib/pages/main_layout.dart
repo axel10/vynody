@@ -1376,7 +1376,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                               onCollapsePlayback: _collapsePlayback,
                             ),
                           ),
-                        if (!showCustomTitleBar && isPlayback)
+                        if (!showCustomTitleBar && isPlayback && isLandscape)
                           Positioned(
                             top: MediaQuery.paddingOf(context).top + 8,
                             left: math.max(16.0, MediaQuery.paddingOf(context).left + 8),
