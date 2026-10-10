@@ -2406,6 +2406,12 @@
   "emptyTopRated": "No rated songs yet",
   "emptyThisWeekTop": "No play history this week",
   "quickEntries": "Quick Access",
-  "viewAll": "View All"
+  "viewAll": "View All",
+  "ratedSongsSubtitle": "All rated songs in your library",
+  "emptyRatedSongs": "No rated songs yet",
+  "sortRating": "Rating",
+  "sortSongTitle": "Song Title",
+  "sortArtist": "Artist",
+  "allStars": "All Stars"
 }
 

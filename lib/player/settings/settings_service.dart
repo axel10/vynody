@@ -171,6 +171,22 @@ extension ArtistSortFieldX on ArtistSortField {
   }
 }
 
+enum RatedSongSortField { rating, recentAdded, title, artist }
+
+extension RatedSongSortFieldX on RatedSongSortField {
+  String get storageValue => name;
+  static RatedSongSortField fromStorageValue(
+    String? value,
+    RatedSongSortField defaultValue,
+  ) {
+    if (value == null) return defaultValue;
+    return RatedSongSortField.values.firstWhere(
+      (e) => e.name == value,
+      orElse: () => defaultValue,
+    );
+  }
+}
+
 enum ProgressBarStyle { standard, fullWaveform, scrollingWaveform }
 
 extension ProgressBarStyleX on ProgressBarStyle {
@@ -660,6 +676,8 @@ class SettingsService extends ChangeNotifier {
       'navidrome_song_sort_ascending';
   static const String _keyWebDavSortCriteria = 'webdav_sort_criteria';
   static const String _keyWebDavSortOrder = 'webdav_sort_order';
+  static const String _keyRatedSongSortField = 'rated_song_sort_field';
+  static const String _keyRatedSongSortAscending = 'rated_song_sort_ascending';
 
   final SharedPreferences _prefs;
   bool _isUserInactive = false;
@@ -920,6 +938,23 @@ class SettingsService extends ChangeNotifier {
     customRead: (prefs, key, def) =>
         SortOrderX.fromStorageValue(prefs.getString(key)),
     customWrite: (prefs, key, val) => prefs.setString(key, val.storageValue),
+  );
+
+  late final _ratedSongSortFieldProperty = SettingProperty<RatedSongSortField>(
+    key: _keyRatedSongSortField,
+    defaultValue: RatedSongSortField.rating,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+    customRead: (prefs, key, def) =>
+        RatedSongSortFieldX.fromStorageValue(prefs.getString(key), def),
+    customWrite: (prefs, key, val) => prefs.setString(key, val.storageValue),
+  );
+
+  late final _ratedSongSortAscendingProperty = SettingProperty<bool>(
+    key: _keyRatedSongSortAscending,
+    defaultValue: false,
+    prefs: _prefs,
+    onChanged: notifyListeners,
   );
 
   late final _uiScaleProperty = SettingProperty<double>(
@@ -3075,6 +3110,16 @@ class SettingsService extends ChangeNotifier {
   SortOrder get webDavSortOrder => _webDavSortOrderProperty.value;
   set webDavSortOrder(SortOrder value) =>
       _webDavSortOrderProperty.value = value;
+
+  RatedSongSortField get ratedSongSortField =>
+      _ratedSongSortFieldProperty.value;
+  set ratedSongSortField(RatedSongSortField value) =>
+      _ratedSongSortFieldProperty.value = value;
+
+  bool get ratedSongSortAscending =>
+      _ratedSongSortAscendingProperty.value;
+  set ratedSongSortAscending(bool value) =>
+      _ratedSongSortAscendingProperty.value = value;
 
   SharedPreferences get prefs => _prefs;
 

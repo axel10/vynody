@@ -3617,6 +3617,30 @@
   "viewAll": "查看全部",
   "@viewAll": {
     "description": "View all link"
+  },
+  "ratedSongsSubtitle": "全部已打分的本地歌曲",
+  "@ratedSongsSubtitle": {
+    "description": "Subtitle for all rated songs"
+  },
+  "emptyRatedSongs": "暂无评分歌曲",
+  "@emptyRatedSongs": {
+    "description": "Empty state text for rated songs"
+  },
+  "sortRating": "评分星级",
+  "@sortRating": {
+    "description": "Sort songs by rating"
+  },
+  "sortSongTitle": "歌曲标题",
+  "@sortSongTitle": {
+    "description": "Sort songs by title"
+  },
+  "sortArtist": "艺术家",
+  "@sortArtist": {
+    "description": "Sort songs by artist"
+  },
+  "allStars": "全部星级",
+  "@allStars": {
+    "description": "Filter option for all star ratings"
   }
 }
 

@@ -9765,6 +9765,42 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'查看全部'**
   String get viewAll;
+
+  /// Subtitle for all rated songs
+  ///
+  /// In zh, this message translates to:
+  /// **'全部已打分的本地歌曲'**
+  String get ratedSongsSubtitle;
+
+  /// Empty state text for rated songs
+  ///
+  /// In zh, this message translates to:
+  /// **'暂无评分歌曲'**
+  String get emptyRatedSongs;
+
+  /// Sort songs by rating
+  ///
+  /// In zh, this message translates to:
+  /// **'评分星级'**
+  String get sortRating;
+
+  /// Sort songs by title
+  ///
+  /// In zh, this message translates to:
+  /// **'歌曲标题'**
+  String get sortSongTitle;
+
+  /// Sort songs by artist
+  ///
+  /// In zh, this message translates to:
+  /// **'艺术家'**
+  String get sortArtist;
+
+  /// Filter option for all star ratings
+  ///
+  /// In zh, this message translates to:
+  /// **'全部星级'**
+  String get allStars;
 }
 
 class _AppLocalizationsDelegate

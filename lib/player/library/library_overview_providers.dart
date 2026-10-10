@@ -188,7 +188,9 @@ final allRatedSongsProvider = StreamProvider<List<LibraryInsightSongEntry>>((ref
       if ((flags & SongSourceFlags.external) != 0) continue;
 
       final normalizedPath = s.path.replaceAll('\\', '/');
-      final rating = allRatings[normalizedPath] ?? allRatings[s.path] ?? 0;
+      final rating = allRatings[normalizedPath] ??
+          allRatings[s.path] ??
+          ratingService.getRating(s.path);
       if (rating <= 0) continue;
 
       list.add(

@@ -1515,14 +1515,14 @@ class _TopRatedCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final asyncSongs = ref.watch(topRatedSongsProvider);
+    final asyncSongs = ref.watch(allRatedSongsProvider);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _SectionHeader(
-          title: l10n.topRated,
-          subtitle: l10n.topRatedSubtitle,
+          title: l10n.ratedSongs,
+          subtitle: l10n.ratedSongsSubtitle,
           onViewAll: onViewAll,
           l10n: l10n,
         ),
@@ -1534,7 +1534,7 @@ class _TopRatedCard extends ConsumerWidget {
                 padding: const EdgeInsets.symmetric(vertical: 24),
                 child: Center(
                   child: Text(
-                    l10n.emptyTopRated,
+                    l10n.emptyRatedSongs,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),

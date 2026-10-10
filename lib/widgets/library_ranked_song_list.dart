@@ -7,7 +7,6 @@ import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/audio/audio_service.dart';
 import 'package:vynody/player/library/library_insights_service.dart';
-import 'package:vynody/player/library/playlist_service.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/utils/song_context_menu_utils.dart';
 import 'song_thumbnail.dart';
@@ -23,8 +22,11 @@ class LibraryRankedSongList extends ConsumerStatefulWidget {
     required this.title,
     required this.subtitle,
     required this.items,
-    required this.selectedRange,
-    required this.onRangeChanged,
+    this.selectedRange = LibraryTimeRange.allTime,
+    this.onRangeChanged,
+    this.showTimeRange = true,
+    this.customFilterBar,
+    this.headerAction,
     required this.emptyText,
     required this.trailingBuilder,
     this.contentTopPadding = 0.0,
@@ -35,7 +37,10 @@ class LibraryRankedSongList extends ConsumerStatefulWidget {
   final String subtitle;
   final List<LibraryInsightSongEntry> items;
   final LibraryTimeRange selectedRange;
-  final ValueChanged<LibraryTimeRange> onRangeChanged;
+  final ValueChanged<LibraryTimeRange>? onRangeChanged;
+  final bool showTimeRange;
+  final Widget? customFilterBar;
+  final Widget? headerAction;
   final String emptyText;
   final Widget Function(BuildContext, LibraryInsightSongEntry) trailingBuilder;
   final double contentTopPadding;
@@ -229,6 +234,10 @@ class _LibraryRankedSongListState extends ConsumerState<LibraryRankedSongList>
                                       label: Text(l10n.shufflePlay),
                                     ),
                                   ],
+                                  if (widget.headerAction != null) ...[
+                                    const SizedBox(width: 8),
+                                    widget.headerAction!,
+                                  ],
                                 ],
                               )
                             else
@@ -259,6 +268,10 @@ class _LibraryRankedSongListState extends ConsumerState<LibraryRankedSongList>
                                         ],
                                       ),
                                     ),
+                                    if (widget.headerAction != null) ...[
+                                      widget.headerAction!,
+                                      const SizedBox(width: 4),
+                                    ],
                                     IconButton(
                                       icon: Icon(
                                         _isSearchExpanded || _searchQuery.isNotEmpty
@@ -321,23 +334,28 @@ class _LibraryRankedSongListState extends ConsumerState<LibraryRankedSongList>
                                 ],
                               ],
                             ),
-                          const SizedBox(height: 16),
-                          SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            physics: const BouncingScrollPhysics(),
-                            child: Row(
-                              children: [
-                                for (int i = 0; i < LibraryTimeRange.values.length; i++) ...[
-                                  if (i > 0) const SizedBox(width: 8),
-                                  ChoiceChip(
-                                    label: Text(_timeRangeLabel(l10n, LibraryTimeRange.values[i])),
-                                    selected: widget.selectedRange == LibraryTimeRange.values[i],
-                                    onSelected: (_) => widget.onRangeChanged(LibraryTimeRange.values[i]),
-                                  ),
+                          if (widget.showTimeRange) ...[
+                            const SizedBox(height: 16),
+                            SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              physics: const BouncingScrollPhysics(),
+                              child: Row(
+                                children: [
+                                  for (int i = 0; i < LibraryTimeRange.values.length; i++) ...[
+                                    if (i > 0) const SizedBox(width: 8),
+                                    ChoiceChip(
+                                      label: Text(_timeRangeLabel(l10n, LibraryTimeRange.values[i])),
+                                      selected: widget.selectedRange == LibraryTimeRange.values[i],
+                                      onSelected: (_) => widget.onRangeChanged?.call(LibraryTimeRange.values[i]),
+                                    ),
+                                  ],
                                 ],
-                              ],
+                              ),
                             ),
-                          ),
+                          ] else if (widget.customFilterBar != null) ...[
+                            const SizedBox(height: 16),
+                            widget.customFilterBar!,
+                          ],
                         ],
                       ),
                     );

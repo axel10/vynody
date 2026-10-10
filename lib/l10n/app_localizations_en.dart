@@ -5499,4 +5499,22 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get viewAll => 'View All';
+
+  @override
+  String get ratedSongsSubtitle => 'All rated songs in your library';
+
+  @override
+  String get emptyRatedSongs => 'No rated songs yet';
+
+  @override
+  String get sortRating => 'Rating';
+
+  @override
+  String get sortSongTitle => 'Song Title';
+
+  @override
+  String get sortArtist => 'Artist';
+
+  @override
+  String get allStars => 'All Stars';
 }

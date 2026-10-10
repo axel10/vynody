@@ -5319,4 +5319,22 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get viewAll => '查看全部';
+
+  @override
+  String get ratedSongsSubtitle => '全部已打分的本地歌曲';
+
+  @override
+  String get emptyRatedSongs => '暂无评分歌曲';
+
+  @override
+  String get sortRating => '评分星级';
+
+  @override
+  String get sortSongTitle => '歌曲标题';
+
+  @override
+  String get sortArtist => '艺术家';
+
+  @override
+  String get allStars => '全部星级';
 }
