@@ -242,8 +242,9 @@ class _LibrarySubHostPageState extends ConsumerState<LibrarySubHostPage> {
 
     final double railWidth =
         isLandscape ? sidebarRailWidthFor(MediaQuery.of(context).size.width) : 0.0;
-    final double safeTopPadding =
-        getTitleBarTopPadding(context, defaultWindowPadding: 32.0);
+    final double safeTopPadding = isLandscape
+        ? 0.0
+        : getTitleBarTopPadding(context, defaultWindowPadding: 32.0);
     const double subHostHeaderContentHeight = 44.0;
     final double headerHeight = safeTopPadding + subHostHeaderContentHeight;
     final double topPadding = headerHeight;
