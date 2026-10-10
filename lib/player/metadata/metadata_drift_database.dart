@@ -34,10 +34,11 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
 
       if (Platform.isIOS) {
         await _ensureIosDirectories();
-        // Schedule non-blocking background sandbox path healing after database is opened
-        Future.delayed(const Duration(seconds: 1), () {
-          unawaited(_healIosSandboxPathsInBackground());
-        });
+        unawaited(
+          healIosSandboxPaths().catchError((Object e, StackTrace st) {
+            debugPrint('[PathMigration] Failed to heal iOS sandbox paths: $e\n$st');
+          }),
+        );
       }
 
       final migrator = createMigrator();
@@ -1268,6 +1269,44 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
     ).getSingleOrNull();
     if (row != null) {
       return _songFromQueryRow(row);
+    }
+    if (Platform.isIOS || Platform.isMacOS) {
+      final sandboxSuffix = _extractIosSandboxSuffix(normalizedPath);
+      if (sandboxSuffix != null) {
+        final legacyPattern = '%/Containers/Data/Application/%$sandboxSuffix';
+        final legacyRow = await customSelect(
+          '''
+          SELECT *
+          FROM songs
+          WHERE path LIKE ?
+            AND deletedAt IS NULL
+          ORDER BY id DESC
+          LIMIT 1
+          ''',
+          variables: [Variable(legacyPattern)],
+          readsFrom: {songs},
+        ).getSingleOrNull();
+        if (legacyRow != null) {
+          final id = legacyRow.read<int>('id');
+          final resolvedPath =
+              ScannerPathUtils.resolveIosSandboxPath(legacyRow.read<String>('path'));
+          final rawArt = legacyRow.read<String?>('artworkPath');
+          final rawThumb = legacyRow.read<String?>('thumbnailPath');
+          final resolvedArt = rawArt != null
+              ? ScannerPathUtils.resolveIosSandboxPath(rawArt)
+              : null;
+          final resolvedThumb = rawThumb != null
+              ? ScannerPathUtils.resolveIosSandboxPath(rawThumb)
+              : null;
+          try {
+            await customStatement(
+              'UPDATE OR IGNORE songs SET path = ?, artworkPath = ?, thumbnailPath = ? WHERE id = ?',
+              <Object?>[resolvedPath, resolvedArt, resolvedThumb, id],
+            );
+          } catch (_) {}
+          return _songFromQueryRow(legacyRow);
+        }
+      }
     }
     if (RemoteMediaResolver.isRemoteUri(normalizedPath)) {
       return getRemoteSongMetadata(normalizedPath);
@@ -2782,16 +2821,6 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
         ? ScannerPathUtils.resolveIosSandboxPath(row.thumbnailPath!)
         : null;
 
-    if (Platform.isIOS &&
-        (resolvedPath != row.path ||
-            resolvedArtwork != row.artworkPath ||
-            resolvedThumbnail != row.thumbnailPath)) {
-      unawaited(customStatement(
-        'UPDATE songs SET path = ?, artworkPath = ?, thumbnailPath = ? WHERE id = ?',
-        <Object?>[resolvedPath, resolvedArtwork, resolvedThumbnail, row.id],
-      ));
-    }
-
     return SongMetadata(
       id: row.id,
       mediaId: row.mediaId,
@@ -3103,19 +3132,6 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
         ? ScannerPathUtils.resolveIosSandboxPath(rawThumbnail)
         : null;
 
-    if (Platform.isIOS &&
-        (resolvedPath != rawPath ||
-            resolvedArtwork != rawArtwork ||
-            resolvedThumbnail != rawThumbnail)) {
-      final id = row.read<int?>('id');
-      if (id != null) {
-        unawaited(customStatement(
-          'UPDATE songs SET path = ?, artworkPath = ?, thumbnailPath = ? WHERE id = ?',
-          <Object?>[resolvedPath, resolvedArtwork, resolvedThumbnail, id],
-        ));
-      }
-    }
-
     return LibraryInsightSongRecord(
       song: SongMetadata(
         id: row.read<int?>('id'),
@@ -3175,7 +3191,17 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
     }
   }
 
-  Future<void> _healIosSandboxPathsInBackground() async {
+  Future<void>? _healingSandboxPathsFuture;
+
+  Future<void> healIosSandboxPaths() {
+    if (!Platform.isIOS && !Platform.isMacOS) return Future.value();
+    return _healingSandboxPathsFuture ??=
+        _performHealIosSandboxPaths().whenComplete(() {
+      _healingSandboxPathsFuture = null;
+    });
+  }
+
+  Future<void> _performHealIosSandboxPaths() async {
     try {
       final docDir = await getApplicationDocumentsDirectory();
       final currentSandbox = p.dirname(docDir.path);
@@ -3183,150 +3209,275 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       final prefs = await SharedPreferences.getInstance();
       final lastKnownSandbox = prefs.getString('last_known_sandbox_path');
 
-      String? oldSandboxPrefix;
-      if (lastKnownSandbox != null) {
-        if (lastKnownSandbox != currentSandbox) {
-          oldSandboxPrefix = lastKnownSandbox;
-        }
-      } else {
-        // If not found in SharedPreferences, check if there's any song with an old sandbox prefix
-        try {
-          final regExp = RegExp(r'^(.*)/Containers/Data/Application/([^/]+)');
-          final row = await customSelect(
-            "SELECT path FROM songs WHERE path LIKE '%/Containers/Data/Application/%' LIMIT 1",
-          ).getSingleOrNull();
-          if (row != null) {
-            final path = row.read<String>('path');
-            final match = regExp.firstMatch(path);
-            if (match != null) {
-              final oldPrefix = match.group(0);
-              if (oldPrefix != null && oldPrefix != currentSandbox) {
-                oldSandboxPrefix = oldPrefix;
-              }
-            }
-          }
-        } catch (e) {
-          debugPrint(
-            '[PathMigration] Failed to check database for old sandbox prefix: $e',
-          );
-        }
+      final oldPrefixes = <String>{};
+      if (lastKnownSandbox != null && lastKnownSandbox != currentSandbox) {
+        oldPrefixes.add(lastKnownSandbox);
       }
 
-      // If no old sandbox prefix detected, we're up to date
-      if (oldSandboxPrefix == null || oldSandboxPrefix == currentSandbox) {
+      // Query database for any songs containing old sandbox prefixes
+      try {
+        final regExp = RegExp(r'^(.*)/Containers/Data/Application/([^/]+)');
+        final rows = await customSelect(
+          "SELECT DISTINCT path FROM songs WHERE path LIKE '%/Containers/Data/Application/%' AND path NOT LIKE ?",
+          variables: [Variable('%$currentSandbox%')],
+        ).get();
+        for (final row in rows) {
+          final path = row.read<String>('path');
+          final match = regExp.firstMatch(path);
+          if (match != null) {
+            final oldPrefix = match.group(0);
+            if (oldPrefix != null && oldPrefix != currentSandbox) {
+              oldPrefixes.add(oldPrefix);
+            }
+          }
+        }
+      } catch (e) {
+        debugPrint(
+          '[PathMigration] Failed to check database for old sandbox prefixes: $e',
+        );
+      }
+
+      if (oldPrefixes.isEmpty) {
         await prefs.setString('last_known_sandbox_path', currentSandbox);
         return;
       }
 
-      final oldPrefix = oldSandboxPrefix;
-      final oldPrefixNoPrivate = oldPrefix.replaceFirst(RegExp(r'^/private'), '');
-      final oldPrefixWithPrivate = oldPrefixNoPrivate.startsWith('/')
-          ? '/private$oldPrefixNoPrivate'
-          : '/private/$oldPrefixNoPrivate';
+      debugPrint(
+        '[PathMigration] Healing sandbox UUID paths on iOS/macOS. Old: $oldPrefixes -> Current: $currentSandbox',
+      );
 
-      final currentSandboxNoPrivate = currentSandbox.replaceFirst(RegExp(r'^/private'), '');
-      final currentSandboxWithPrivate = currentSandboxNoPrivate.startsWith('/')
-          ? '/private$currentSandboxNoPrivate'
-          : '/private/$currentSandboxNoPrivate';
+      for (final oldPrefix in oldPrefixes) {
+        final oldPrefixNoPrivate =
+            oldPrefix.replaceFirst(RegExp(r'^/private'), '');
+        final oldPrefixWithPrivate = oldPrefixNoPrivate.startsWith('/')
+            ? '/private$oldPrefixNoPrivate'
+            : '/private/$oldPrefixNoPrivate';
 
-      debugPrint('[PathMigration] (Background) Healing sandbox UUID paths on iOS.');
-      debugPrint('[PathMigration] (Background) Old sandbox: $oldPrefix');
-      debugPrint('[PathMigration] (Background) Current sandbox: $currentSandbox');
+        final currentSandboxNoPrivate =
+            currentSandbox.replaceFirst(RegExp(r'^/private'), '');
+        final currentSandboxWithPrivate = currentSandboxNoPrivate.startsWith('/')
+            ? '/private$currentSandboxNoPrivate'
+            : '/private/$currentSandboxNoPrivate';
 
-      // 1. Update SQLite tables in background
-      for (final pair in [
-        (oldPrefixWithPrivate, currentSandboxWithPrivate),
-        (oldPrefixNoPrivate, currentSandboxNoPrivate),
-      ]) {
-        await customStatement(
-          'UPDATE songs SET path = REPLACE(path, ?, ?), '
-          'artworkPath = REPLACE(artworkPath, ?, ?), '
-          'thumbnailPath = REPLACE(thumbnailPath, ?, ?) '
-          'WHERE path LIKE ? OR artworkPath LIKE ? OR thumbnailPath LIKE ?',
-          <Object>[
-            pair.$1,
-            pair.$2,
-            pair.$1,
-            pair.$2,
-            pair.$1,
-            pair.$2,
-            '%${pair.$1}%',
-            '%${pair.$1}%',
-            '%${pair.$1}%',
-          ],
-        );
+        // 1. Update SQLite tables
+        for (final pair in [
+          (oldPrefixWithPrivate, currentSandboxWithPrivate),
+          (oldPrefixNoPrivate, currentSandboxNoPrivate),
+        ]) {
+          // A. Clean up duplicate songs before updating:
+          // If a row with pair.$2 (current sandbox) already exists for this song,
+          // delete the old row (with pair.$1) so UPDATE doesn't violate UNIQUE(path).
+          try {
+            await customStatement(
+              '''
+              DELETE FROM songs
+              WHERE path LIKE ?
+                AND REPLACE(path, ?, ?) IN (SELECT path FROM songs WHERE path LIKE ?)
+              ''',
+              <Object>[
+                '%${pair.$1}%',
+                pair.$1,
+                pair.$2,
+                '%${pair.$2}%',
+              ],
+            );
+          } catch (e) {
+            debugPrint('[PathMigration] De-duplicating old songs failed: $e');
+          }
 
-        await customStatement(
-          'UPDATE song_play_history SET songPath = REPLACE(songPath, ?, ?) '
-          'WHERE songPath LIKE ?',
-          <Object>[pair.$1, pair.$2, '%${pair.$1}%'],
-        );
+          // B. Update songs table
+          try {
+            await customStatement(
+              'UPDATE songs SET path = REPLACE(path, ?, ?), '
+              'artworkPath = REPLACE(artworkPath, ?, ?), '
+              'thumbnailPath = REPLACE(thumbnailPath, ?, ?) '
+              'WHERE path LIKE ? OR artworkPath LIKE ? OR thumbnailPath LIKE ?',
+              <Object>[
+                pair.$1,
+                pair.$2,
+                pair.$1,
+                pair.$2,
+                pair.$1,
+                pair.$2,
+                '%${pair.$1}%',
+                '%${pair.$1}%',
+                '%${pair.$1}%',
+              ],
+            );
+          } catch (e) {
+            debugPrint('[PathMigration] Updating songs table failed: $e');
+          }
 
-        await customStatement(
-          'UPDATE song_ratings SET songPath = REPLACE(songPath, ?, ?) '
-          'WHERE songPath LIKE ?',
-          <Object>[pair.$1, pair.$2, '%${pair.$1}%'],
-        );
+          // C. Update related tables
+          try {
+            await customStatement(
+              'UPDATE song_play_history SET songPath = REPLACE(songPath, ?, ?) '
+              'WHERE songPath LIKE ?',
+              <Object>[pair.$1, pair.$2, '%${pair.$1}%'],
+            );
+          } catch (e) {
+            debugPrint('[PathMigration] Updating song_play_history failed: $e');
+          }
 
-        await customStatement(
-          'UPDATE lyrics_cache SET cacheKey = REPLACE(cacheKey, ?, ?) '
-          'WHERE cacheKey LIKE ?',
-          <Object>[pair.$1, pair.$2, '%${pair.$1}%'],
-        );
+          try {
+            await customStatement(
+              'UPDATE song_ratings SET songPath = REPLACE(songPath, ?, ?) '
+              'WHERE songPath LIKE ?',
+              <Object>[pair.$1, pair.$2, '%${pair.$1}%'],
+            );
+          } catch (e) {
+            debugPrint('[PathMigration] Updating song_ratings failed: $e');
+          }
 
-        await customStatement(
-          'UPDATE lyrics_translation_cache SET cacheKey = REPLACE(cacheKey, ?, ?) '
-          'WHERE cacheKey LIKE ?',
-          <Object>[pair.$1, pair.$2, '%${pair.$1}%'],
-        );
+          try {
+            await customStatement(
+              'UPDATE lyrics_cache SET cacheKey = REPLACE(cacheKey, ?, ?) '
+              'WHERE cacheKey LIKE ?',
+              <Object>[pair.$1, pair.$2, '%${pair.$1}%'],
+            );
+          } catch (e) {
+            debugPrint('[PathMigration] Updating lyrics_cache failed: $e');
+          }
 
-        await customStatement(
-          'UPDATE artist_image_cache SET imagePath = REPLACE(imagePath, ?, ?) '
-          'WHERE imagePath LIKE ?',
-          <Object>[pair.$1, pair.$2, '%${pair.$1}%'],
-        );
+          try {
+            await customStatement(
+              'UPDATE lyrics_translation_cache SET cacheKey = REPLACE(cacheKey, ?, ?) '
+              'WHERE cacheKey LIKE ?',
+              <Object>[pair.$1, pair.$2, '%${pair.$1}%'],
+            );
+          } catch (e) {
+            debugPrint(
+              '[PathMigration] Updating lyrics_translation_cache failed: $e',
+            );
+          }
 
-        await customStatement(
-          'UPDATE folder_covers SET folderPath = REPLACE(folderPath, ?, ?), '
-          'songPath = REPLACE(songPath, ?, ?) '
-          'WHERE folderPath LIKE ? OR songPath LIKE ?',
-          <Object>[
-            pair.$1,
-            pair.$2,
-            pair.$1,
-            pair.$2,
-            '%${pair.$1}%',
-            '%${pair.$1}%',
-          ],
-        );
-      }
+          try {
+            await customStatement(
+              'UPDATE artist_image_cache SET imagePath = REPLACE(imagePath, ?, ?) '
+              'WHERE imagePath LIKE ?',
+              <Object>[pair.$1, pair.$2, '%${pair.$1}%'],
+            );
+          } catch (e) {
+            debugPrint('[PathMigration] Updating artist_image_cache failed: $e');
+          }
 
-      // 2. Migrate playlists.json in background
-      try {
-        final playlistsFile = File(
-          p.join(currentSandbox, 'Library', 'Application Support', 'playlists.json'),
-        );
-        String? playlistsJson;
-        if (await playlistsFile.exists()) {
-          playlistsJson = await playlistsFile.readAsString();
-        } else {
-          playlistsJson = prefs.getString('playlists');
+          try {
+            await customStatement(
+              'UPDATE folder_covers SET folderPath = REPLACE(folderPath, ?, ?), '
+              'songPath = REPLACE(songPath, ?, ?) '
+              'WHERE folderPath LIKE ? OR songPath LIKE ?',
+              <Object>[
+                pair.$1,
+                pair.$2,
+                pair.$1,
+                pair.$2,
+                '%${pair.$1}%',
+                '%${pair.$1}%',
+              ],
+            );
+          } catch (e) {
+            debugPrint('[PathMigration] Updating folder_covers failed: $e');
+          }
         }
-        if (playlistsJson != null && playlistsJson.trim().isNotEmpty) {
-          final List<dynamic> jsonList = jsonDecode(playlistsJson);
-          bool changed = false;
-          for (final playlist in jsonList) {
-            if (playlist is Map<String, dynamic>) {
-              final songs = playlist['songs'];
-              if (songs is List) {
-                for (final song in songs) {
+
+        // 2. Migrate playlists.json
+        try {
+          final playlistsFile = File(
+            p.join(
+              currentSandbox,
+              'Library',
+              'Application Support',
+              'playlists.json',
+            ),
+          );
+          String? playlistsJson;
+          if (await playlistsFile.exists()) {
+            playlistsJson = await playlistsFile.readAsString();
+          } else {
+            playlistsJson = prefs.getString('playlists');
+          }
+          if (playlistsJson != null && playlistsJson.trim().isNotEmpty) {
+            final List<dynamic> jsonList = jsonDecode(playlistsJson);
+            bool changed = false;
+            for (final playlist in jsonList) {
+              if (playlist is Map<String, dynamic>) {
+                final songs = playlist['songs'];
+                if (songs is List) {
+                  for (final song in songs) {
+                    if (song is Map<String, dynamic>) {
+                      final path = song['path'];
+                      if (path is String && path.contains(oldPrefix)) {
+                        song['path'] = path.replaceAll(
+                          oldPrefix,
+                          currentSandbox,
+                        );
+                        changed = true;
+                      }
+                      final thumbnailPath = song['thumbnailPath'];
+                      if (thumbnailPath is String &&
+                          thumbnailPath.contains(oldPrefix)) {
+                        song['thumbnailPath'] = thumbnailPath.replaceAll(
+                          oldPrefix,
+                          currentSandbox,
+                        );
+                        changed = true;
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            if (changed || !await playlistsFile.exists()) {
+              final parent = playlistsFile.parent;
+              if (!parent.existsSync()) {
+                await parent.create(recursive: true);
+              }
+              final tmpFile = File('${playlistsFile.path}.tmp');
+              await tmpFile.writeAsString(jsonEncode(jsonList), flush: true);
+              if (await playlistsFile.exists()) {
+                await playlistsFile.delete();
+              }
+              await tmpFile.rename(playlistsFile.path);
+              debugPrint('[PathMigration] Migrated playlists file.');
+            }
+            if (prefs.containsKey('playlists')) {
+              await prefs.remove('playlists');
+            }
+          }
+        } catch (e) {
+          debugPrint(
+            '[PathMigration] Failed to migrate playlists: $e',
+          );
+        }
+
+        // 3. Migrate playback_session.json
+        try {
+          final sessionFile = File(
+            p.join(
+              currentSandbox,
+              'Library',
+              'Application Support',
+              'playback_session.json',
+            ),
+          );
+          String? rawSession;
+          if (await sessionFile.exists()) {
+            rawSession = await sessionFile.readAsString();
+          } else {
+            rawSession = prefs.getString('playback_session_v1');
+          }
+          if (rawSession != null && rawSession.trim().isNotEmpty) {
+            final decoded = jsonDecode(rawSession);
+            if (decoded is Map<String, dynamic>) {
+              bool changed = false;
+              final queue = decoded['queue'];
+              if (queue is List) {
+                for (final song in queue) {
                   if (song is Map<String, dynamic>) {
                     final path = song['path'];
                     if (path is String && path.contains(oldPrefix)) {
-                      song['path'] = path.replaceAll(
-                        oldPrefix,
-                        currentSandbox,
-                      );
+                      song['path'] =
+                          path.replaceAll(oldPrefix, currentSandbox);
                       changed = true;
                     }
                     final thumbnailPath = song['thumbnailPath'];
@@ -3341,97 +3492,51 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
                   }
                 }
               }
+              if (changed || !await sessionFile.exists()) {
+                final parent = sessionFile.parent;
+                if (!parent.existsSync()) {
+                  await parent.create(recursive: true);
+                }
+                final tmpFile = File('${sessionFile.path}.tmp');
+                await tmpFile.writeAsString(jsonEncode(decoded), flush: true);
+                if (await sessionFile.exists()) {
+                  await sessionFile.delete();
+                }
+                await tmpFile.rename(sessionFile.path);
+                debugPrint('[PathMigration] Migrated playback_session file.');
+              }
+              if (prefs.containsKey('playback_session_v1')) {
+                await prefs.remove('playback_session_v1');
+              }
             }
           }
-          if (changed || !await playlistsFile.exists()) {
-            final parent = playlistsFile.parent;
-            if (!parent.existsSync()) {
-              await parent.create(recursive: true);
-            }
-            final tmpFile = File('${playlistsFile.path}.tmp');
-            await tmpFile.writeAsString(jsonEncode(jsonList), flush: true);
-            if (await playlistsFile.exists()) {
-              await playlistsFile.delete();
-            }
-            await tmpFile.rename(playlistsFile.path);
-            debugPrint('[PathMigration] (Background) Migrated playlists file.');
-          }
-          if (prefs.containsKey('playlists')) {
-            await prefs.remove('playlists');
-          }
+        } catch (e) {
+          debugPrint(
+            '[PathMigration] Failed to migrate playback_session: $e',
+          );
         }
-      } catch (e) {
-        debugPrint(
-          '[PathMigration] Failed to migrate playlists: $e',
-        );
       }
 
-      // 3. Migrate playback_session.json in background
+      // 4. Update root_paths in SharedPreferences
       try {
-        final sessionFile = File(
-          p.join(currentSandbox, 'Library', 'Application Support', 'playback_session.json'),
-        );
-        String? rawSession;
-        if (await sessionFile.exists()) {
-          rawSession = await sessionFile.readAsString();
-        } else {
-          rawSession = prefs.getString('playback_session_v1');
-        }
-        if (rawSession != null && rawSession.trim().isNotEmpty) {
-          final decoded = jsonDecode(rawSession);
-          if (decoded is Map<String, dynamic>) {
-            bool changed = false;
-            final queue = decoded['queue'];
-            if (queue is List) {
-              for (final song in queue) {
-                if (song is Map<String, dynamic>) {
-                  final path = song['path'];
-                  if (path is String && path.contains(oldPrefix)) {
-                    song['path'] = path.replaceAll(oldPrefix, currentSandbox);
-                    changed = true;
-                  }
-                  final thumbnailPath = song['thumbnailPath'];
-                  if (thumbnailPath is String &&
-                      thumbnailPath.contains(oldPrefix)) {
-                    song['thumbnailPath'] = thumbnailPath.replaceAll(
-                      oldPrefix,
-                      currentSandbox,
-                    );
-                    changed = true;
-                  }
-                }
-              }
-            }
-            if (changed || !await sessionFile.exists()) {
-              final parent = sessionFile.parent;
-              if (!parent.existsSync()) {
-                await parent.create(recursive: true);
-              }
-              final tmpFile = File('${sessionFile.path}.tmp');
-              await tmpFile.writeAsString(jsonEncode(decoded), flush: true);
-              if (await sessionFile.exists()) {
-                await sessionFile.delete();
-              }
-              await tmpFile.rename(sessionFile.path);
-              debugPrint('[PathMigration] (Background) Migrated playback_session file.');
-            }
-            if (prefs.containsKey('playback_session_v1')) {
-              await prefs.remove('playback_session_v1');
-            }
-          }
+        final rootPaths = prefs.getStringList('root_paths');
+        if (rootPaths != null) {
+          final updatedRootPaths = rootPaths.map((p) {
+            final resolved = ScannerPathUtils.resolveIosSandboxPath(p);
+            return resolved;
+          }).toList();
+          await prefs.setStringList('root_paths', updatedRootPaths);
         }
       } catch (e) {
-        debugPrint(
-          '[PathMigration] Failed to migrate playback_session: $e',
-        );
+        debugPrint('[PathMigration] Failed to migrate root_paths: $e');
       }
 
       // Always save the current sandbox path
       await prefs.setString('last_known_sandbox_path', currentSandbox);
-      debugPrint('[PathMigration] (Background) Path healing completed.');
+      debugPrint('[PathMigration] Path healing completed.');
     } catch (e, st) {
       debugPrint(
-        '[PathMigration] Error running background iOS sandbox path healing: $e\n$st',
+        '[PathMigration] Error running iOS sandbox path healing: $e\n$st',
       );
     }
   }

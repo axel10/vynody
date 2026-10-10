@@ -3386,6 +3386,10 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
         }
       }
 
+      if (Platform.isIOS || Platform.isMacOS) {
+        await MetadataDatabase().healIosSandboxPaths();
+      }
+
       final scanState = ScanProgressState(
         metadataConcurrency: 4,
         comparePaths: _compareNaturally,

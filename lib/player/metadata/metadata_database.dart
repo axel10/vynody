@@ -840,6 +840,8 @@ class MetadataDatabase {
 
   Future<void> clearAllSongRatings() => _db.clearAllSongRatings();
 
+  Future<void> healIosSandboxPaths() => _db.healIosSandboxPaths();
+
   Future<void> migrateLinuxRootPath(String oldRoot, String newRoot) async {
     if (oldRoot == newRoot) return;
     debugPrint('[PathMigration] Linux root path change detected.');
