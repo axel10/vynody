@@ -1412,7 +1412,10 @@ class _TimeMachineAlbumRow extends ConsumerWidget {
         );
       },
       child: Padding(
-        padding: EdgeInsets.symmetric(vertical: isWide ? 7 : 6),
+        padding: EdgeInsets.symmetric(
+          horizontal: 8,
+          vertical: isWide ? 7 : 6,
+        ),
         child: Row(
           children: [
             SongThumbnail(
@@ -2382,7 +2385,10 @@ class _RankedSongRow extends StatelessWidget {
       borderRadius: BorderRadius.circular(10),
       onTap: onTap,
       child: Padding(
-        padding: EdgeInsets.symmetric(vertical: isWide ? 7 : 6),
+        padding: EdgeInsets.symmetric(
+          horizontal: 8,
+          vertical: isWide ? 7 : 6,
+        ),
         child: Row(
           children: [
             if (showIndex) ...[
@@ -2469,7 +2475,10 @@ class _SimpleSongRow extends StatelessWidget {
       borderRadius: BorderRadius.circular(10),
       onTap: onTap,
       child: Padding(
-        padding: EdgeInsets.symmetric(vertical: isWide ? 7 : 6),
+        padding: EdgeInsets.symmetric(
+          horizontal: 8,
+          vertical: isWide ? 7 : 6,
+        ),
         child: Row(
           children: [
             SongThumbnail.fromSong(
