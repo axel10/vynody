@@ -133,17 +133,21 @@ class ArtistLibraryRepository {
       orElse: () => group.songs.first,
     );
     final tags = _decodeStringList(cache?.tagsJson);
+    final alternateNames = _extractAlternateNames(cache);
     final cachedPath = (imageCache?.imagePath != null &&
             imageCache!.imagePath.isNotEmpty &&
             File(imageCache.imagePath).existsSync())
         ? imageCache.imagePath
         : null;
+    final rawCanonical = cache?.artistName?.trim();
+    final canonicalName =
+        (rawCanonical != null && rawCanonical.isNotEmpty) ? rawCanonical : null;
 
     return ArtistSummary(
       queryKey: group.queryKey,
-      name: cache?.artistName?.trim().isNotEmpty == true
-          ? cache!.artistName!.trim()
-          : group.displayName,
+      name: group.displayName,
+      canonicalName: canonicalName,
+      alternateNames: alternateNames,
       songs: List<MusicFile>.unmodifiable(group.songs),
       representativeSong: representativeSong,
       songCount: group.songs.length,
@@ -244,23 +248,42 @@ String _groupSortLabel(_ArtistGroup group, ArtistCacheRecord? cache) {
   if (cachedSortName != null && cachedSortName.isNotEmpty) {
     return cachedSortName.toLowerCase();
   }
-  final cachedName = cache?.artistName?.trim();
-  if (cachedName != null && cachedName.isNotEmpty) {
-    return cachedName.toLowerCase();
-  }
   return group.displayName.toLowerCase();
 }
 
 String _groupDisplayName(_ArtistGroup group, ArtistCacheRecord? cache) {
-  final cachedName = cache?.artistName?.trim();
-  if (cachedName != null && cachedName.isNotEmpty) {
-    return cachedName;
-  }
   return group.displayName;
 }
 
 String _artistDisplayName(_ArtistGroup group, ArtistCacheRecord? cache) {
   return _groupDisplayName(group, cache);
+}
+
+List<String> _extractAlternateNames(ArtistCacheRecord? cache) {
+  if (cache == null) return const <String>[];
+  final alternates = <String>{};
+
+  void parseJson(String? raw) {
+    if (raw == null || raw.trim().isEmpty) return;
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is Map) {
+        final alt = decoded['strArtistAlternate']?.toString();
+        if (alt != null && alt.trim().isNotEmpty) {
+          for (final part in alt.split(RegExp(r'\s*[,;，/]\s*'))) {
+            final trimmed = part.trim();
+            if (trimmed.isNotEmpty) {
+              alternates.add(trimmed);
+            }
+          }
+        }
+      }
+    } catch (_) {}
+  }
+
+  parseJson(cache.rawSearchJson);
+  parseJson(cache.rawDetailJson);
+  return alternates.toList(growable: false);
 }
 
 bool _hasArtwork(MusicFile song) {

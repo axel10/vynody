@@ -432,6 +432,12 @@ class _ArtistsTabState extends ConsumerState<ArtistsTab>
           (artist) =>
               query.isEmpty ||
               artist.name.toLowerCase().contains(query) ||
+              artist.queryKey.toLowerCase().contains(query) ||
+              (artist.canonicalName != null &&
+                  artist.canonicalName!.toLowerCase().contains(query)) ||
+              artist.alternateNames.any(
+                (alt) => alt.toLowerCase().contains(query),
+              ) ||
               artist.disambiguation?.toLowerCase().contains(query) == true ||
               artist.country?.toLowerCase().contains(query) == true ||
               artist.tags.any((tag) => tag.toLowerCase().contains(query)),
@@ -674,6 +680,7 @@ class _ArtistListItemState extends ConsumerState<_ArtistListItem> {
     final songCountLabel = l10n.songCount(artist.songCount);
     final subtitleParts = <String>[
       songCountLabel,
+      if (artist.hasDistinctCanonicalName) artist.canonicalName!.trim(),
       if ((artist.country?.trim().isNotEmpty ?? false)) artist.country!.trim(),
     ];
     if (artist.disambiguation?.trim().isNotEmpty ?? false) {

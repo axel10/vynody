@@ -4,6 +4,8 @@ class ArtistSummary {
   const ArtistSummary({
     required this.queryKey,
     required this.name,
+    this.canonicalName,
+    this.alternateNames = const <String>[],
     required this.songs,
     required this.representativeSong,
     required this.songCount,
@@ -25,6 +27,8 @@ class ArtistSummary {
 
   final String queryKey;
   final String name;
+  final String? canonicalName;
+  final List<String> alternateNames;
   final List<MusicFile> songs;
   final MusicFile representativeSong;
   final int songCount;
@@ -48,9 +52,17 @@ class ArtistSummary {
       (cachedImagePath?.trim().isNotEmpty ?? false) ||
       (imageUrl?.trim().isNotEmpty ?? false);
 
+  /// Returns true if a canonical name exists and differs from the local primary display name.
+  bool get hasDistinctCanonicalName =>
+      canonicalName != null &&
+      canonicalName!.trim().isNotEmpty &&
+      canonicalName!.trim().toLowerCase() != name.trim().toLowerCase();
+
   ArtistSummary copyWith({
     String? queryKey,
     String? name,
+    String? canonicalName,
+    List<String>? alternateNames,
     List<MusicFile>? songs,
     MusicFile? representativeSong,
     int? songCount,
@@ -72,6 +84,8 @@ class ArtistSummary {
     return ArtistSummary(
       queryKey: queryKey ?? this.queryKey,
       name: name ?? this.name,
+      canonicalName: canonicalName ?? this.canonicalName,
+      alternateNames: alternateNames ?? this.alternateNames,
       songs: songs ?? this.songs,
       representativeSong: representativeSong ?? this.representativeSong,
       songCount: songCount ?? this.songCount,

@@ -47,6 +47,7 @@ void main() {
         }
       } catch (e) {
         // Catch and ignore file lock issues on Windows
+        // ignore: avoid_print
         print('Failed to delete support directory: $e');
       }
     });
@@ -104,6 +105,42 @@ void main() {
       final eee = summaries.singleWhere((artist) => artist.queryKey == 'eee');
       expect(eee.songCount, 1);
       expect(eee.songs.single.path, p.normalize('/music/song3.mp3'));
+    });
+
+    test('preserves local artist name as primary display name and populates canonical and alternate names from cache', () async {
+      final database = MetadataDatabase();
+      await database.insertOrUpdateSong(
+        const SongMetadata(
+          path: '/music/we_are_not_lost.wav',
+          title: 'We Are Not Lost',
+          album: 'Single',
+          artist: '周杰伦',
+        ),
+      );
+
+      await database.insertOrUpdateArtistCache(
+        ArtistCacheRecord(
+          queryKey: '周杰伦',
+          artistId: '116278',
+          artistName: 'Jay Chou',
+          rawSearchJson: '{"idArtist":"116278","strArtist":"Jay Chou","strArtistAlternate":"周杰倫, 周杰伦"}',
+          noData: false,
+          imageFetchCompleted: true,
+          updatedAtMillis: DateTime.now().millisecondsSinceEpoch,
+        ),
+      );
+
+      final summaries = await ArtistLibraryRepository()
+          .watchArtistSummaries()
+          .first;
+
+      expect(summaries.length, 1);
+      final jay = summaries.first;
+      expect(jay.name, '周杰伦');
+      expect(jay.queryKey, '周杰伦');
+      expect(jay.canonicalName, 'Jay Chou');
+      expect(jay.hasDistinctCanonicalName, isTrue);
+      expect(jay.alternateNames, containsAll(['周杰倫', '周杰伦']));
     });
   });
 }

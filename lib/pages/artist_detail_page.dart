@@ -428,6 +428,16 @@ class _ArtistInfo extends StatelessWidget {
                   ),
                 ],
               ),
+              if (artist.hasDistinctCanonicalName) ...[
+                const SizedBox(height: 2),
+                Text(
+                  artist.canonicalName!.trim(),
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
               if (artist.disambiguation?.trim().isNotEmpty ?? false) ...[
                 const SizedBox(height: 2),
                 Text(
