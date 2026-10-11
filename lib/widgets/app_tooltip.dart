@@ -20,6 +20,7 @@ class AppTooltip extends StatefulWidget {
     this.decoration,
     this.textStyle,
     this.verticalOffset,
+    this.useRootOverlay = false,
   });
 
   final Widget child;
@@ -33,6 +34,7 @@ class AppTooltip extends StatefulWidget {
   final Decoration? decoration;
   final TextStyle? textStyle;
   final double? verticalOffset;
+  final bool useRootOverlay;
 
   @override
   State<AppTooltip> createState() => _AppTooltipState();
@@ -144,7 +146,7 @@ class _AppTooltipState extends State<AppTooltip> with SingleTickerProviderStateM
       },
     );
 
-    Overlay.of(context).insert(_entry!);
+    Overlay.of(context, rootOverlay: widget.useRootOverlay).insert(_entry!);
     _animationController.forward();
 
     if (widget.showDuration != null) {
