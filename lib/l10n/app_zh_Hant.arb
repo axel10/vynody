@@ -1725,5 +1725,6 @@
   "timelineActionAiGenerate": "AI 生成",
   "timelineActionInitial": "初始歌詞",
   "timelineActionRestore": "版本回滾",
-  "lyricsRestoredSuccess": "已成功還原該版本歌詞"
+  "lyricsRestoredSuccess": "已成功還原該版本歌詞",
+  "homeTab": "媒體庫"
 }

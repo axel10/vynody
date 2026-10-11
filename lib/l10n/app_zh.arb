@@ -3643,9 +3643,9 @@
   "@allStars": {
     "description": "Filter option for all star ratings"
   },
-  "homeTab": "主页",
+  "homeTab": "媒体库",
   "@homeTab": {
-    "description": "Navigation rail home tab"
+    "description": "Navigation rail media library tab"
   }
 }
 

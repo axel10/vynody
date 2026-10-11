@@ -5347,5 +5347,5 @@ class AppLocalizationsKo extends AppLocalizations {
   String get allStars => '全部星级';
 
   @override
-  String get homeTab => '主页';
+  String get homeTab => '媒体库';
 }

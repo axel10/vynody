@@ -5255,7 +5255,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get allStars => '全部星级';
 
   @override
-  String get homeTab => '主页';
+  String get homeTab => '媒体库';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -10447,4 +10447,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get lyricsRestoredSuccess => '已成功還原該版本歌詞';
+
+  @override
+  String get homeTab => '媒體庫';
 }

@@ -1694,8 +1694,8 @@ class _SlidingNavigationRailState
       (
         index: 2,
         label: l10n.homeTab,
-        icon: Icons.home_outlined,
-        selectedIcon: Icons.home_rounded,
+        icon: Icons.playlist_play_outlined,
+        selectedIcon: Icons.playlist_play,
       ),
       (
         index: 3,
@@ -1801,12 +1801,12 @@ class _SlidingNavigationRailState
           librarySubDestinations[widget.librarySubIndex].id,
         );
 
-    // 1. 上方主要导航区：文件(0)、播放(1)、主页(2)、队列(3)、分享(4)
+    // 1. 上方主要导航区：文件(0)、播放(1)、媒体库(2)、队列(3)、分享(4)
     for (int i = 0; i < destinations.length - 1; i++) {
       final d = destinations[i];
 
       if (d.index == 2) {
-        // 主页（媒体库首页独立项）
+        // 媒体库（媒体库首页独立项）
         final bool isHomeSelected = d.index == activeMainIndex &&
             !widget.isSettingsActive &&
             (!isLibrarySubActive || (!_isEditingLibrary && !hasVisibleActiveSub));

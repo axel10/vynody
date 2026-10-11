@@ -9808,10 +9808,10 @@ abstract class AppLocalizations {
   /// **'全部星级'**
   String get allStars;
 
-  /// Navigation rail home tab
+  /// Navigation rail media library tab
   ///
   /// In zh, this message translates to:
-  /// **'主页'**
+  /// **'媒体库'**
   String get homeTab;
 }
 

@@ -55,7 +55,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Verify 媒体库 and sub-items are rendered
-    expect(find.text('媒体库'), findsOneWidget);
+    expect(find.text('媒体库'), findsNWidgets(2));
     expect(find.text('播放列表'), findsOneWidget);
 
     // Edit button should not be visible when not hovered
@@ -68,8 +68,8 @@ void main() {
     await tester.pumpWidget(buildRail(librarySubIndex: -1));
     await tester.pumpAndSettle();
 
-    // Simulate mouse hover over 媒体库 row
-    final libraryTileFinder = find.text('媒体库');
+    // Simulate mouse hover over 媒体库 section header row
+    final libraryTileFinder = find.text('媒体库').last;
     final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
     await gesture.addPointer(location: Offset.zero);
     await gesture.moveTo(tester.getCenter(libraryTileFinder));
@@ -116,9 +116,8 @@ void main() {
     await tester.pumpWidget(buildRail(selectedIndex: 0));
     await tester.pumpAndSettle();
 
-    // Verify 主页 standalone entry, 媒体库 section header, and sub-items are still displayed
-    expect(find.text('主页'), findsOneWidget);
-    expect(find.text('媒体库'), findsOneWidget);
+    // Verify 媒体库 standalone entry, 媒体库 section header, and sub-items are still displayed
+    expect(find.text('媒体库'), findsNWidgets(2));
     expect(find.text('播放列表'), findsOneWidget);
     expect(find.text('专辑'), findsOneWidget);
     expect(find.text('艺术家'), findsOneWidget);
