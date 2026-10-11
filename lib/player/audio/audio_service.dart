@@ -71,9 +71,20 @@ class AudioService extends Notifier<AudioSnapshot> {
       _audioDetailsCache = {};
 
   AudioTrack _audioTrackForSong(MusicFile song) {
+    var effectivePath = song.path;
+    if (Platform.isIOS || Platform.isMacOS) {
+      if (!RemoteMediaResolver.isRemoteUri(effectivePath) &&
+          !File(effectivePath).existsSync()) {
+        final resolved = ScannerPathUtils.resolveIosSandboxPath(effectivePath);
+        if (File(resolved).existsSync()) {
+          effectivePath = resolved;
+        }
+      }
+    }
+
     return AudioTrack(
-      id: song.path,
-      uri: song.path,
+      id: effectivePath,
+      uri: effectivePath,
       title: song.title ?? song.displayName,
       artist: song.artist,
       album: song.album,
@@ -81,7 +92,7 @@ class AudioService extends Notifier<AudioSnapshot> {
           ? Duration(milliseconds: song.durationMillis!)
           : null,
       metadata: <String, Object?>{
-        'filePath': song.path,
+        'filePath': effectivePath,
         if (song.mediaUri != null) 'mediaUri': song.mediaUri,
         'musicFile': song,
       },

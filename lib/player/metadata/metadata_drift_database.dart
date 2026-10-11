@@ -2777,18 +2777,14 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
     return SongMetadata(
       id: row.read<int?>('id'),
       mediaId: row.read<int?>('mediaId'),
-      path: ScannerPathUtils.resolveIosSandboxPath(rawPath),
+      path: rawPath,
       title: row.read<String?>('title') ?? 'Unknown',
       album: row.read<String?>('album') ?? 'Unknown',
       artist: row.read<String?>('artist') ?? 'Unknown',
       albumArtist: row.read<String?>('albumArtist'),
       duration: row.read<int?>('duration'),
-      artworkPath: rawArtwork != null
-          ? ScannerPathUtils.resolveIosSandboxPath(rawArtwork)
-          : null,
-      thumbnailPath: rawThumbnail != null
-          ? ScannerPathUtils.resolveIosSandboxPath(rawThumbnail)
-          : null,
+      artworkPath: rawArtwork,
+      thumbnailPath: rawThumbnail,
       artworkWidth: row.read<int?>('artworkWidth'),
       artworkHeight: row.read<int?>('artworkHeight'),
       trackNumber: row.read<int?>('trackNumber'),
@@ -2813,25 +2809,17 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   }
 
   SongMetadata _songFromTableRow(Song row) {
-    final resolvedPath = ScannerPathUtils.resolveIosSandboxPath(row.path);
-    final resolvedArtwork = row.artworkPath != null
-        ? ScannerPathUtils.resolveIosSandboxPath(row.artworkPath!)
-        : null;
-    final resolvedThumbnail = row.thumbnailPath != null
-        ? ScannerPathUtils.resolveIosSandboxPath(row.thumbnailPath!)
-        : null;
-
     return SongMetadata(
       id: row.id,
       mediaId: row.mediaId,
-      path: resolvedPath,
+      path: row.path,
       title: row.title ?? 'Unknown',
       album: row.album ?? 'Unknown',
       artist: row.artist ?? 'Unknown',
       albumArtist: row.albumArtist,
       duration: row.duration,
-      artworkPath: resolvedArtwork,
-      thumbnailPath: resolvedThumbnail,
+      artworkPath: row.artworkPath,
+      thumbnailPath: row.thumbnailPath,
       artworkWidth: row.artworkWidth,
       artworkHeight: row.artworkHeight,
       trackNumber: row.trackNumber,
@@ -3124,24 +3112,16 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
     final rawArtwork = row.read<String?>('artworkPath');
     final rawThumbnail = row.read<String?>('thumbnailPath');
 
-    final resolvedPath = ScannerPathUtils.resolveIosSandboxPath(rawPath);
-    final resolvedArtwork = rawArtwork != null
-        ? ScannerPathUtils.resolveIosSandboxPath(rawArtwork)
-        : null;
-    final resolvedThumbnail = rawThumbnail != null
-        ? ScannerPathUtils.resolveIosSandboxPath(rawThumbnail)
-        : null;
-
     return LibraryInsightSongRecord(
       song: SongMetadata(
         id: row.read<int?>('id'),
-        path: resolvedPath,
+        path: rawPath,
         title: row.read<String?>('title') ?? 'Unknown',
         album: row.read<String?>('album') ?? 'Unknown',
         artist: row.read<String?>('artist') ?? 'Unknown',
         duration: row.read<int?>('duration'),
-        artworkPath: resolvedArtwork,
-        thumbnailPath: resolvedThumbnail,
+        artworkPath: rawArtwork,
+        thumbnailPath: rawThumbnail,
         artworkWidth: row.read<int?>('artworkWidth'),
         artworkHeight: row.read<int?>('artworkHeight'),
         trackNumber: row.read<int?>('trackNumber'),

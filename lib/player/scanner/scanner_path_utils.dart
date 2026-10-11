@@ -197,7 +197,10 @@ class ScannerPathUtils {
   static String? get docDir => _currentIosDocDir;
   static String? get libDir => _currentIosLibDir;
 
+  static final Map<String, String> _sandboxPathCache = {};
+
   static void setIosSandboxDirs({String? docDir, String? libDir}) {
+    _sandboxPathCache.clear();
     if (docDir != null && docDir.isNotEmpty) {
       _currentIosDocDir = normalizePath(docDir);
     }
@@ -212,6 +215,9 @@ class ScannerPathUtils {
     if (path.isEmpty || (!Platform.isIOS && !Platform.isMacOS)) {
       return path;
     }
+    final cached = _sandboxPathCache[path];
+    if (cached != null) return cached;
+
     final rawTrimmed = path.trim();
     if (rawTrimmed.startsWith('content://') ||
         rawTrimmed.startsWith('http://') ||
@@ -219,6 +225,8 @@ class ScannerPathUtils {
         rawTrimmed.startsWith('asset://') ||
         rawTrimmed.startsWith('fd://') ||
         rawTrimmed.contains('://')) {
+      if (_sandboxPathCache.length > 3000) _sandboxPathCache.clear();
+      _sandboxPathCache[path] = rawTrimmed;
       return rawTrimmed;
     }
     final trimmed = normalizePath(rawTrimmed);
@@ -228,27 +236,37 @@ class ScannerPathUtils {
 
     // If already pointing to current app's sandbox, return normalized path
     if (docDir != null && (pathsEqual(docDir, trimmed) || pathContains(docDir, trimmed))) {
+      if (_sandboxPathCache.length > 3000) _sandboxPathCache.clear();
+      _sandboxPathCache[path] = trimmed;
       return trimmed;
     }
     if (libDir != null && (pathsEqual(libDir, trimmed) || pathContains(libDir, trimmed))) {
+      if (_sandboxPathCache.length > 3000) _sandboxPathCache.clear();
+      _sandboxPathCache[path] = trimmed;
       return trimmed;
     }
 
-    // If the path exists as-is on the filesystem (e.g. valid external folder/file from another app container or iCloud),
-    // do not rewrite it to our own sandbox!
-    try {
-      if (FileSystemEntity.typeSync(trimmed) != FileSystemEntityType.notFound) {
-        return trimmed;
-      }
-    } catch (_) {
-      // Ignored if file system permission or check fails
+    // Fast rejection: if path has no container, thumbnail, or relative Documents markers,
+    // it's an external path (e.g. /Volumes/... or /Users/... on macOS).
+    final hasContainers = trimmed.contains('/Containers/');
+    final hasThumbnails = trimmed.contains('thumbnails/');
+    final hasStandaloneDoc = trimmed == 'Documents' || trimmed.startsWith('Documents/');
+    if (!hasContainers && !hasThumbnails && !hasStandaloneDoc) {
+      if (_sandboxPathCache.length > 3000) _sandboxPathCache.clear();
+      _sandboxPathCache[path] = trimmed;
+      return trimmed;
     }
+
+    String result = trimmed;
 
     // 1. Special handling for thumbnails: thumbnails are always located inside libDir/thumbnails
     if (libDir != null && libDir.isNotEmpty) {
       final thumbMatch = RegExp(r'(?:^|/)thumbnails/(.+)$').firstMatch(trimmed);
       if (thumbMatch != null) {
-        return p.join(libDir, 'thumbnails', thumbMatch.group(1)!);
+        result = p.join(libDir, 'thumbnails', thumbMatch.group(1)!);
+        if (_sandboxPathCache.length > 3000) _sandboxPathCache.clear();
+        _sandboxPathCache[path] = result;
+        return result;
       }
     }
 
@@ -266,31 +284,36 @@ class ScannerPathUtils {
       final subPath = containerMatch.group(2);
       if (type == 'Documents') {
         if (docDir != null && docDir.isNotEmpty) {
-          return (subPath == null || subPath.isEmpty)
+          result = (subPath == null || subPath.isEmpty)
               ? docDir
               : p.join(docDir, subPath);
+          if (_sandboxPathCache.length > 3000) _sandboxPathCache.clear();
+          _sandboxPathCache[path] = result;
+          return result;
         }
       } else {
         if (libDir != null && libDir.isNotEmpty) {
-          return (subPath == null || subPath.isEmpty)
+          result = (subPath == null || subPath.isEmpty)
               ? libDir
               : p.join(libDir, subPath);
+          if (_sandboxPathCache.length > 3000) _sandboxPathCache.clear();
+          _sandboxPathCache[path] = result;
+          return result;
         }
       }
     }
 
-    // 3. Fallback for standalone relative or unscoped Documents paths
-    if (docDir != null && docDir.isNotEmpty) {
-      final docMatch = RegExp(r'(?:^|/)Documents(?:/(.*))?$').firstMatch(trimmed);
-      if (docMatch != null && !trimmed.contains('/Developer/CoreSimulator/')) {
-        final subPath = docMatch.group(1);
-        return (subPath == null || subPath.isEmpty)
-            ? docDir
-            : p.join(docDir, subPath);
-      }
+    // 3. Fallback for standalone relative Documents paths
+    if (docDir != null && docDir.isNotEmpty && hasStandaloneDoc) {
+      final subPath = trimmed == 'Documents'
+          ? ''
+          : trimmed.substring('Documents/'.length);
+      result = subPath.isEmpty ? docDir : p.join(docDir, subPath);
     }
 
-    return trimmed;
+    if (_sandboxPathCache.length > 3000) _sandboxPathCache.clear();
+    _sandboxPathCache[path] = result;
+    return result;
   }
 
   /// Checks if a path belongs to the current iOS/macOS application sandbox.
