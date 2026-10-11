@@ -26,6 +26,8 @@ flutter run -d <device-id>               # dev run on a device
 
 - 当你觉得一个问题很简单的时候请直接告诉用户你的想法，不要把简单问题复杂化。有的时候问题可能只是一个不合理的业务逻辑导致的。
 
+- 如果我用命令的口吻说话，你觉得语意不清，无法理解或者做不到，应该立刻停下向我报告情况，不要强行继续。
+
 ## Architecture notes
 
 - **State management:** Riverpod (`flutter_riverpod` v3). Providers live co-located with their domain code (e.g., `lib/player/audio/` has audio providers).

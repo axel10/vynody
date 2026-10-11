@@ -13,7 +13,6 @@ import 'package:vynody/player/library/artist_library.dart';
 import 'package:vynody/player/metadata/theaudiodb_artist_service.dart';
 import 'package:vynody/utils/song_context_menu_utils.dart';
 import '../widgets/artist_avatar.dart';
-import '../widgets/album_detail_widgets.dart';
 import '../widgets/song_thumbnail.dart';
 import '../widgets/remote_media_badge.dart';
 import '../widgets/mini_player_wrapper.dart';
@@ -21,6 +20,7 @@ import '../widgets/library_selection_panel.dart';
 import '../widgets/library_selection_scope.dart';
 import '../widgets/draggable_song_item.dart';
 import '../widgets/auto_hide_header.dart';
+import '../widgets/app_top_nav_bar.dart';
 import '../utils/layout_constants.dart';
 
 class ArtistDetailPage extends ConsumerStatefulWidget {
@@ -39,36 +39,21 @@ class ArtistDetailPage extends ConsumerStatefulWidget {
 
 class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
   late final ScrollController _scrollController;
-  final ValueNotifier<bool> _isHeaderVisible = ValueNotifier<bool>(true);
-  final ValueNotifier<double> _scrollProgress = ValueNotifier<double>(0.0);
 
   @override
   void initState() {
     super.initState();
-    _scrollController = ScrollController()..addListener(_onScroll);
-  }
-
-  void _onScroll() {
-    final offset = _scrollController.offset;
-    final isVisible = offset < 140.0;
-    final progress = (offset / 100.0).clamp(0.0, 1.0);
-    _scrollProgress.value = progress;
-    if (isVisible != _isHeaderVisible.value) {
-      _isHeaderVisible.value = isVisible;
-    }
+    _scrollController = ScrollController();
   }
 
   @override
   void dispose() {
-    _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
-    _isHeaderVisible.dispose();
-    _scrollProgress.dispose();
     super.dispose();
   }
 
   static double getBarHeight(BuildContext context) =>
-      AlbumDetailNavBar.getBarHeight(context);
+      AppTopNavBar.getBarHeight(context);
 
   @override
   Widget build(BuildContext context) {
@@ -96,11 +81,10 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
                   right: 0,
                   child: AutoHideHeader(
                     isVisible: isHeaderVisible,
-                    child: AlbumDetailNavBar(
+                    child: AppTopNavBar(
                       title: widget.artist.name,
-                      scrollProgress: _scrollProgress,
-                      isCoverVisible: _isHeaderVisible,
-                      onGoBack: widget.onGoBack ?? () => Navigator.of(context).maybePop(),
+                      titleKey: const ValueKey('album_title'),
+                      onBack: widget.onGoBack ?? () => Navigator.of(context).maybePop(),
                     ),
                   ),
                 ),

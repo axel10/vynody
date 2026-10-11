@@ -17,9 +17,8 @@ import 'library_dashboard_view.dart';
 import 'main_layout_riverpod.dart';
 import '../widgets/library_selection_scope.dart';
 import '../widgets/auto_hide_header.dart';
-import '../widgets/app_tooltip.dart';
+import '../widgets/app_top_nav_bar.dart';
 import '../utils/layout_constants.dart';
-import '../utils/blur_constants.dart';
 
 // 媒体库页面：统一采用局部嵌套 Navigator 架构。
 // 横屏下外层 Rail 栏始终常驻显示，右侧二级页面平级流畅切换并避让 Rail；
@@ -237,17 +236,12 @@ class _LibrarySubHostPageState extends ConsumerState<LibrarySubHostPage> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
     final orientation = MediaQuery.of(context).orientation;
     final bool isLandscape = orientation == Orientation.landscape;
 
     final double railWidth =
         isLandscape ? sidebarRailWidthFor(MediaQuery.of(context).size.width) : 0.0;
-    final double safeTopPadding = isLandscape
-        ? 0.0
-        : getTitleBarTopPadding(context, defaultWindowPadding: 32.0);
-    const double subHostHeaderContentHeight = 44.0;
-    final double headerHeight = safeTopPadding + subHostHeaderContentHeight;
+    final double headerHeight = AppTopNavBar.getBarHeight(context);
     final double topPadding = headerHeight;
     final double leftPadding = railWidth;
 
@@ -352,50 +346,8 @@ class _LibrarySubHostPageState extends ConsumerState<LibrarySubHostPage> {
                 height: headerHeight,
                 child: AutoHideHeader(
                   isVisible: isHeaderVisible,
-                  child: ClipRect(
-                    child: BackdropFilter(
-                      filter: AppBlur.heavyFilter,
-                      child: Container(
-                        padding: EdgeInsets.only(top: safeTopPadding),
-                        decoration: BoxDecoration(
-                          color: AppBlur.heavySurface(context),
-                          border: Border(
-                            bottom: BorderSide(
-                              color: theme.dividerColor.withValues(alpha: 0.12),
-                              width: 0.8,
-                            ),
-                          ),
-                        ),
-                        child: SizedBox(
-                          height: subHostHeaderContentHeight,
-                          child: Row(
-                            children: [
-                              const SizedBox(width: 4),
-                              AppTooltip(
-                                message: l10n.goBack,
-                                useRootOverlay: true,
-                                child: IconButton(
-                                  icon: const Icon(Icons.arrow_back_rounded),
-                                  onPressed: () => Navigator.of(context).maybePop(),
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              Expanded(
-                                child: Text(
-                                  title,
-                                  style: theme.textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
+                  child: AppTopNavBar(
+                    title: title,
                   ),
                 ),
               ),

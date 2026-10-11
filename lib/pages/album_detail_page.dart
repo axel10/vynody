@@ -20,6 +20,7 @@ import '../widgets/draggable_song_item.dart';
 import '../widgets/song_thumbnail.dart';
 import 'package:vynody/utils/layout_constants.dart';
 import '../widgets/auto_hide_header.dart';
+import '../widgets/app_top_nav_bar.dart';
 
 class AlbumDetailPage extends ConsumerStatefulWidget {
   const AlbumDetailPage({super.key, required this.album});
@@ -36,36 +37,21 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage>
   LibrarySelectionScope get selectionScope => LibrarySelectionScope.library;
 
   late final ScrollController _scrollController;
-  final ValueNotifier<bool> _isCoverVisible = ValueNotifier<bool>(true);
-  final ValueNotifier<double> _scrollProgress = ValueNotifier<double>(0.0);
 
   @override
   void initState() {
     super.initState();
-    _scrollController = ScrollController()..addListener(_onScroll);
-  }
-
-  void _onScroll() {
-    final offset = _scrollController.offset;
-    final isVisible = offset < 220.0;
-    final progress = (offset / 140.0).clamp(0.0, 1.0);
-    _scrollProgress.value = progress;
-    if (isVisible != _isCoverVisible.value) {
-      _isCoverVisible.value = isVisible;
-    }
+    _scrollController = ScrollController();
   }
 
   @override
   void dispose() {
-    _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
-    _isCoverVisible.dispose();
-    _scrollProgress.dispose();
     super.dispose();
   }
 
   static double getBarHeight(BuildContext context) =>
-      AlbumDetailNavBar.getBarHeight(context);
+      AppTopNavBar.getBarHeight(context);
 
   @override
   Widget build(BuildContext context) {
@@ -299,11 +285,10 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage>
                   right: 0,
                   child: AutoHideHeader(
                     isVisible: isHeaderVisible,
-                    child: AlbumDetailNavBar(
+                    child: AppTopNavBar(
                       title: widget.album.title,
-                      scrollProgress: _scrollProgress,
-                      isCoverVisible: _isCoverVisible,
-                      onGoBack: () => Navigator.of(context).maybePop(),
+                      titleKey: const ValueKey('album_title'),
+                      onBack: () => Navigator.of(context).maybePop(),
                     ),
                   ),
                 ),

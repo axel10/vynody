@@ -15,7 +15,7 @@ import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/scanner/scanner_service.dart';
 import 'package:vynody/player/settings/settings_service.dart';
 import 'package:vynody/widgets/album_detail_widgets.dart';
-import 'package:vynody/widgets/app_circular_back_button.dart';
+import 'package:vynody/widgets/app_top_nav_bar.dart';
 
 import 'helpers/mobile_screenshot_harness.dart';
 
@@ -158,13 +158,10 @@ void main() {
     expect(find.byIcon(Icons.shuffle), findsOneWidget);
 
     // Verify back button in top navigation bar
-    expect(find.byType(AppCircularBackButton), findsOneWidget);
+    expect(find.byType(AppTopNavBar), findsOneWidget);
+    expect(find.byIcon(Icons.arrow_back_rounded), findsOneWidget);
 
-    // Scroll down past the cover banner
-    await tester.drag(find.byType(CustomScrollView), const Offset(0, -350));
-    await tester.pumpAndSettle();
-
-    // Verify that the title in the frosted glass top bar becomes visible after scrolling
+    // Verify that the title in the top bar is rendered
     expect(find.byKey(const ValueKey('album_title')), findsOneWidget);
   });
 
@@ -195,10 +192,10 @@ void main() {
     expect(find.byIcon(Icons.play_arrow), findsOneWidget);
     expect(find.byIcon(Icons.shuffle), findsOneWidget);
 
-    // Verify back button is rendered at railWidth + 14.0 (216 + 14 = 230)
-    expect(find.byType(AppCircularBackButton), findsOneWidget);
-    final backButtonPos = tester.getTopLeft(find.byType(AppCircularBackButton));
-    expect(backButtonPos.dx, 230.0);
+    // Verify AppTopNavBar is rendered at leftPadding (216.0)
+    expect(find.byType(AppTopNavBar), findsOneWidget);
+    final navBarPos = tester.getTopLeft(find.byType(AppTopNavBar));
+    expect(navBarPos.dx, 216.0);
 
     // Verify Divider in landscape banner
     expect(find.byType(Divider), findsWidgets);
