@@ -5520,4 +5520,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get allStars => 'All Stars';
+
+  @override
+  String get homeTab => 'Home';
 }

@@ -2413,6 +2413,7 @@
   "sortRating": "Rating",
   "sortSongTitle": "Song Title",
   "sortArtist": "Artist",
-  "allStars": "All Stars"
+  "allStars": "All Stars",
+  "homeTab": "Home"
 }
 

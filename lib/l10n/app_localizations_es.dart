@@ -5598,4 +5598,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get allStars => '全部星级';
+
+  @override
+  String get homeTab => '主页';
 }

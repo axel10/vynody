@@ -36,7 +36,7 @@ abstract final class AppBlur {
   // ── 2. 背景不透明度规范 (Alpha) ──
 
   /// 深度磨砂常驻浮层（Dock、MiniPlayer、列表顶栏）：暗色 66%，亮色 80%
-  static double heavyAlpha(bool isDark) => isDark ? 0.50 : 0.60;
+  static double heavyAlpha(bool isDark) => isDark ? 0.66 : 0.75;
 
   /// 对话框与表单抽屉（Sheet、Dialog）：暗色 88%，亮色 95%
   static double dialogAlpha(bool isDark) => isDark ? 0.88 : 0.95;

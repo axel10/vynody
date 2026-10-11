@@ -3642,6 +3642,10 @@
   "allStars": "全部星级",
   "@allStars": {
     "description": "Filter option for all star ratings"
+  },
+  "homeTab": "主页",
+  "@homeTab": {
+    "description": "Navigation rail home tab"
   }
 }
 

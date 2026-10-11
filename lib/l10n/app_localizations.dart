@@ -9807,6 +9807,12 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'全部星级'**
   String get allStars;
+
+  /// Navigation rail home tab
+  ///
+  /// In zh, this message translates to:
+  /// **'主页'**
+  String get homeTab;
 }
 
 class _AppLocalizationsDelegate

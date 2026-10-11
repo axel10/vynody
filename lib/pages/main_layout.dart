@@ -1313,8 +1313,8 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                                           }
                                           _onDestinationSelected(index);
                                         },
-                                        // 媒体库（index 2）激活时，在 Rail 内展开其六个子页面入口
-                                        isLibraryExpanded: _currentIndex == 2,
+                                        // 媒体库子项始终保持展开
+                                        isLibraryExpanded: true,
                                         librarySubIndex: ref.watch(
                                           libraryActiveTabIndexProvider,
                                         ),
@@ -1641,7 +1641,7 @@ class SlidingNavigationRail extends ConsumerStatefulWidget {
     required this.indicatorColor,
     required this.isPlayback,
     required this.isSettingsActive,
-    required this.isLibraryExpanded,
+    this.isLibraryExpanded = true,
     required this.librarySubIndex,
     required this.onLibrarySubDestinationSelected,
   });
@@ -1693,9 +1693,9 @@ class _SlidingNavigationRailState
       ),
       (
         index: 2,
-        label: l10n.list,
-        icon: Icons.playlist_play_outlined,
-        selectedIcon: Icons.playlist_play,
+        label: l10n.homeTab,
+        icon: Icons.home_outlined,
+        selectedIcon: Icons.home_rounded,
       ),
       (
         index: 3,
@@ -1717,7 +1717,7 @@ class _SlidingNavigationRailState
       ),
     ];
 
-    // 媒体库（index 2）的二级入口，顺序与 libraryActiveTabIndexProvider 一致
+    // 媒体库的二级分类入口，顺序与 libraryActiveTabIndexProvider 一致
     final librarySubDestinations = [
       (
         id: 'playlist',
@@ -1770,8 +1770,9 @@ class _SlidingNavigationRailState
       ),
     ];
 
-    const double itemHeight = 48.0;
+    const double itemHeight = 44.0;
     const double subItemHeight = 44.0;
+    final double sectionHeaderHeight = widget.extended ? 36.0 : 12.0;
 
     final double leadingHeight = Platform.isIOS ? 56.0 : 32.0;
     final double topInset =
@@ -1790,64 +1791,28 @@ class _SlidingNavigationRailState
     );
     final bool isLibrarySubActive = widget.librarySubIndex >= 0;
 
-    // 设置页固定钉在左下角，其余条目（含媒体库展开的二级入口）放进可滚动区
+    // 设置页固定钉在左下角，其余条目放进可滚动区
     final rows = <_RailRow>[];
     int pillRow = -1;
 
+    final bool hasVisibleActiveSub = isLibrarySubActive &&
+        widget.librarySubIndex < librarySubDestinations.length &&
+        settings.isLibraryTabVisible(
+          librarySubDestinations[widget.librarySubIndex].id,
+        );
+
+    // 1. 上方主要导航区：文件(0)、播放(1)、主页(2)、队列(3)、分享(4)
     for (int i = 0; i < destinations.length - 1; i++) {
       final d = destinations[i];
 
       if (d.index == 2) {
-        // 媒体库入口
-        final bool isLibraryExpanded =
-            widget.isLibraryExpanded || _isEditingLibrary;
-        final bool hasVisibleActiveSub = isLibrarySubActive &&
-            widget.librarySubIndex < librarySubDestinations.length &&
-            settings.isLibraryTabVisible(
-              librarySubDestinations[widget.librarySubIndex].id,
-            );
-
-        final bool isLibraryMainSelected = d.index == activeMainIndex &&
+        // 主页（媒体库首页独立项）
+        final bool isHomeSelected = d.index == activeMainIndex &&
             !widget.isSettingsActive &&
             (!isLibrarySubActive || (!_isEditingLibrary && !hasVisibleActiveSub));
 
-        if (isLibraryMainSelected && !_isEditingLibrary) {
+        if (isHomeSelected && !_isEditingLibrary) {
           pillRow = rows.length;
-        }
-
-        Widget? trailing;
-        if (widget.extended) {
-          if (_isEditingLibrary) {
-            trailing = _buildEditActionText(
-              label: l10n.done,
-              color: activeColor,
-              onTap: () {
-                setState(() {
-                  _isEditingLibrary = false;
-                });
-                final currentSub = ref.read(libraryActiveTabIndexProvider);
-                if (currentSub >= 0 &&
-                    currentSub < librarySubDestinations.length) {
-                  final id = librarySubDestinations[currentSub].id;
-                  if (!ref
-                      .read(settingsServiceProvider)
-                      .isLibraryTabVisible(id)) {
-                    ref.read(libraryActiveTabIndexProvider.notifier).set(-1);
-                  }
-                }
-              },
-            );
-          } else if (_isHoveringLibrary) {
-            trailing = _buildEditActionText(
-              label: l10n.edit,
-              color: inactiveColor,
-              onTap: () {
-                setState(() {
-                  _isEditingLibrary = true;
-                });
-              },
-            );
-          }
         }
 
         rows.add(
@@ -1857,18 +1822,9 @@ class _SlidingNavigationRailState
               icon: d.icon,
               selectedIcon: d.selectedIcon,
               label: d.label,
-              isSelected: isLibraryMainSelected,
-              isSubItem: false,
+              isSelected: isHomeSelected,
               activeColor: activeColor,
               inactiveColor: inactiveColor,
-              trailing: trailing,
-              onHover: (hovering) {
-                if (_isHoveringLibrary != hovering) {
-                  setState(() {
-                    _isHoveringLibrary = hovering;
-                  });
-                }
-              },
               onTap: () {
                 if (_isEditingLibrary) {
                   setState(() {
@@ -1880,60 +1836,6 @@ class _SlidingNavigationRailState
             ),
           ),
         );
-
-        if (isLibraryExpanded) {
-          for (int s = 0; s < librarySubDestinations.length; s++) {
-            final sub = librarySubDestinations[s];
-            final bool isVisible = settings.isLibraryTabVisible(sub.id);
-            if (!_isEditingLibrary && !isVisible) {
-              continue;
-            }
-
-            final bool isSubSelected = !_isEditingLibrary &&
-                d.index == activeMainIndex &&
-                !widget.isSettingsActive &&
-                isLibrarySubActive &&
-                s == widget.librarySubIndex;
-
-            if (isSubSelected) {
-              pillRow = rows.length;
-            }
-
-            Widget? leading;
-            if (_isEditingLibrary && widget.extended) {
-              leading = _buildCheckbox(
-                isChecked: isVisible,
-                activeColor: activeColor,
-                borderColor: isDark ? Colors.white38 : Colors.black38,
-              );
-            }
-
-            rows.add(
-              _RailRow(
-                height: subItemHeight,
-                child: _buildTile(
-                  icon: sub.icon,
-                  selectedIcon: sub.selectedIcon,
-                  label: sub.label,
-                  isSelected: isSubSelected,
-                  isSubItem: true,
-                  activeColor: activeColor,
-                  inactiveColor: inactiveColor,
-                  leading: leading,
-                  onTap: () {
-                    if (_isEditingLibrary) {
-                      ref
-                          .read(settingsServiceProvider)
-                          .toggleLibraryTabVisibility(sub.id);
-                    } else {
-                      widget.onLibrarySubDestinationSelected(s);
-                    }
-                  },
-                ),
-              ),
-            );
-          }
-        }
       } else {
         final bool isSelected =
             d.index == activeMainIndex && !widget.isSettingsActive;
@@ -1948,7 +1850,6 @@ class _SlidingNavigationRailState
               selectedIcon: d.selectedIcon,
               label: d.label,
               isSelected: isSelected,
-              isSubItem: false,
               activeColor: activeColor,
               inactiveColor: inactiveColor,
               onTap: () {
@@ -1965,6 +1866,71 @@ class _SlidingNavigationRailState
       }
     }
 
+    // 2. 媒体库小标题行（右侧带「编辑」/「完成」按钮）
+    rows.add(
+      _RailRow(
+        height: sectionHeaderHeight,
+        child: _buildSectionHeader(
+          title: l10n.list,
+          activeColor: activeColor,
+          inactiveColor: inactiveColor,
+          subDestinations: librarySubDestinations,
+        ),
+      ),
+    );
+
+    // 3. 媒体库分类子 Tab
+    for (int s = 0; s < librarySubDestinations.length; s++) {
+      final sub = librarySubDestinations[s];
+      final bool isVisible = settings.isLibraryTabVisible(sub.id);
+      if (!_isEditingLibrary && !isVisible) {
+        continue;
+      }
+
+      final bool isSubSelected = !_isEditingLibrary &&
+          2 == activeMainIndex &&
+          !widget.isSettingsActive &&
+          isLibrarySubActive &&
+          s == widget.librarySubIndex;
+
+      if (isSubSelected) {
+        pillRow = rows.length;
+      }
+
+      Widget? leading;
+      if (_isEditingLibrary && widget.extended) {
+        leading = _buildCheckbox(
+          isChecked: isVisible,
+          activeColor: activeColor,
+          borderColor: isDark ? Colors.white38 : Colors.black38,
+        );
+      }
+
+      rows.add(
+        _RailRow(
+          height: subItemHeight,
+          child: _buildTile(
+            icon: sub.icon,
+            selectedIcon: sub.selectedIcon,
+            label: sub.label,
+            isSelected: isSubSelected,
+            activeColor: activeColor,
+            inactiveColor: inactiveColor,
+            leading: leading,
+            onTap: () {
+              if (_isEditingLibrary) {
+                ref
+                    .read(settingsServiceProvider)
+                    .toggleLibraryTabVisibility(sub.id);
+              } else {
+                widget.onLibrarySubDestinationSelected(s);
+              }
+            },
+          ),
+        ),
+      );
+    }
+
     double offsetOf(int rowIndex) {
       double offset = 0.0;
       for (int i = 0; i < rowIndex && i < rows.length; i++) {
@@ -1975,15 +1941,20 @@ class _SlidingNavigationRailState
 
     final double contentHeight = offsetOf(rows.length);
     final bool showPill = !_isEditingLibrary && pillRow >= 0;
-    final double pillWidth = widget.extended ? widget.width - 16.0 : 56.0;
+    final double pillWidth = widget.extended ? widget.width - 16.0 : 44.0;
     final double pillLeft =
         widget.extended ? 8.0 : (widget.width - pillWidth) / 2.0;
     final double pillHeight = showPill
-        ? math.max(32.0, rows[pillRow].height - 8.0)
-        : 32.0;
+        ? math.max(30.0, rows[pillRow].height - 6.0)
+        : 30.0;
     final double pillTop = showPill
         ? offsetOf(pillRow) + (rows[pillRow].height - pillHeight) / 2.0
         : 0.0;
+    final Color pillColor = widget.isPlayback
+        ? Colors.white.withValues(alpha: 0.18)
+        : (isDark
+            ? theme.colorScheme.primary.withValues(alpha: 0.18)
+            : theme.colorScheme.primary.withValues(alpha: 0.10));
 
     final borderColor = isDark
         ? Colors.white.withValues(alpha: 0.08)
@@ -2007,7 +1978,7 @@ class _SlidingNavigationRailState
             children: [
               SizedBox(height: topInset),
 
-              // 可滚动区：窗口高度不足时（媒体库展开后条目变多）可上下滚动
+              // 可滚动区：窗口高度不足时可上下滚动
               Expanded(
                 child: Scrollbar(
                   controller: _scrollController,
@@ -2033,8 +2004,8 @@ class _SlidingNavigationRailState
                                 opacity: showPill ? 1.0 : 0.0,
                                 child: Container(
                                   decoration: BoxDecoration(
-                                    color: widget.indicatorColor,
-                                    borderRadius: BorderRadius.circular(16),
+                                    color: pillColor,
+                                    borderRadius: BorderRadius.circular(10),
                                   ),
                                 ),
                               ),
@@ -2074,7 +2045,6 @@ class _SlidingNavigationRailState
                   selectedIcon: destinations.last.selectedIcon,
                   label: destinations.last.label,
                   isSelected: widget.isSettingsActive,
-                  isSubItem: false,
                   activeColor: activeColor,
                   inactiveColor: inactiveColor,
                   onTap: () {
@@ -2092,6 +2062,97 @@ class _SlidingNavigationRailState
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader({
+    required String title,
+    required Color activeColor,
+    required Color inactiveColor,
+    required List<({String id, int index, IconData icon, IconData selectedIcon, String label})>
+        subDestinations,
+  }) {
+    if (!widget.extended) {
+      return Center(
+        child: Container(
+          width: 24.0,
+          height: 1.0,
+          color: inactiveColor.withValues(alpha: 0.20),
+        ),
+      );
+    }
+
+    Widget? action;
+    if (_isEditingLibrary) {
+      action = _buildEditActionText(
+        label: AppLocalizations.of(context)!.done,
+        color: activeColor,
+        onTap: () {
+          setState(() {
+            _isEditingLibrary = false;
+          });
+          final currentSub = ref.read(libraryActiveTabIndexProvider);
+          if (currentSub >= 0 && currentSub < subDestinations.length) {
+            final id = subDestinations[currentSub].id;
+            if (!ref.read(settingsServiceProvider).isLibraryTabVisible(id)) {
+              ref.read(libraryActiveTabIndexProvider.notifier).set(-1);
+            }
+          }
+        },
+      );
+    } else if (_isHoveringLibrary) {
+      action = _buildEditActionText(
+        label: AppLocalizations.of(context)!.edit,
+        color: inactiveColor,
+        onTap: () {
+          setState(() {
+            _isEditingLibrary = true;
+          });
+        },
+      );
+    }
+
+    return MouseRegion(
+      onEnter: (_) {
+        if (!_isHoveringLibrary) {
+          setState(() {
+            _isHoveringLibrary = true;
+          });
+        }
+      },
+      onExit: (_) {
+        if (_isHoveringLibrary) {
+          setState(() {
+            _isHoveringLibrary = false;
+          });
+        }
+      },
+      child: Container(
+        height: 36.0,
+        alignment: Alignment.centerLeft,
+        padding: const EdgeInsets.only(
+          left: 20.0,
+          right: 14.0,
+          top: 10.0,
+          bottom: 2.0,
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(
+                  fontSize: 12.0,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.2,
+                  color: inactiveColor.withValues(alpha: 0.70),
+                ),
+              ),
+            ),
+            ?action,
+          ],
         ),
       ),
     );
@@ -2154,7 +2215,6 @@ class _SlidingNavigationRailState
     required IconData selectedIcon,
     required String label,
     required bool isSelected,
-    required bool isSubItem,
     required Color activeColor,
     required Color inactiveColor,
     required VoidCallback onTap,
@@ -2163,14 +2223,14 @@ class _SlidingNavigationRailState
     ValueChanged<bool>? onHover,
   }) {
     final Color color = isSelected ? activeColor : inactiveColor;
-    final double iconSize = isSubItem ? 19.0 : 22.0;
+    const double iconSize = 20.0;
 
     final Widget content;
     if (widget.extended) {
       content = Padding(
         padding: EdgeInsets.only(
-          left: leading != null ? 14.0 : (isSubItem ? 30.0 : 16.0),
-          right: 12.0,
+          left: leading != null ? 14.0 : 20.0,
+          right: 14.0,
         ),
         child: Row(
           children: [
@@ -2186,7 +2246,7 @@ class _SlidingNavigationRailState
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: isSubItem ? 13.0 : 14.0,
+                  fontSize: 13.5,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                   color: color,
                 ),
@@ -2204,10 +2264,10 @@ class _SlidingNavigationRailState
 
     Widget tile = Material(
       color: Colors.transparent,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(10),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(10),
         onTap: onTap,
         child: SizedBox.expand(child: content),
       ),

@@ -110,4 +110,18 @@ void main() {
     expect(find.text('专辑'), findsOneWidget);
     expect(find.text('艺术家'), findsOneWidget);
   });
+
+  testWidgets('Library sub-items remain expanded when non-library tab is selected', (tester) async {
+    // When selectedIndex is 0 (文件) or 1 (播放)
+    await tester.pumpWidget(buildRail(selectedIndex: 0));
+    await tester.pumpAndSettle();
+
+    // Verify 主页 standalone entry, 媒体库 section header, and sub-items are still displayed
+    expect(find.text('主页'), findsOneWidget);
+    expect(find.text('媒体库'), findsOneWidget);
+    expect(find.text('播放列表'), findsOneWidget);
+    expect(find.text('专辑'), findsOneWidget);
+    expect(find.text('艺术家'), findsOneWidget);
+  });
 }
+
