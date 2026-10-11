@@ -124,28 +124,66 @@ class ScannerPathUtils {
     }
     final normalizedLeft = normalizePath(left);
     final normalizedRight = normalizePath(right);
-    if (Platform.isWindows) {
-      return normalizedLeft.toLowerCase() == normalizedRight.toLowerCase();
+    if (identical(normalizedLeft, normalizedRight) ||
+        normalizedLeft == normalizedRight) {
+      return true;
     }
-    return normalizedLeft == normalizedRight;
+    if (Platform.isWindows) {
+      return normalizedLeft.length == normalizedRight.length &&
+          normalizedLeft.toLowerCase() == normalizedRight.toLowerCase();
+    }
+    return false;
+  }
+
+  static bool isNormalizedPathWithinOrEqual(
+    String normalizedParent,
+    String normalizedChild,
+  ) {
+    if (identical(normalizedParent, normalizedChild) ||
+        normalizedParent == normalizedChild) {
+      return true;
+    }
+    if (normalizedParent.isEmpty || normalizedChild.isEmpty) {
+      return false;
+    }
+
+    if (Platform.isWindows) {
+      final pLower = normalizedParent.toLowerCase();
+      final cLower = normalizedChild.toLowerCase();
+      if (pLower == cLower) return true;
+      if (cLower.length <= pLower.length) return false;
+
+      if (pLower.endsWith(r'\') || pLower.endsWith('/')) {
+        if (cLower.startsWith(pLower)) return true;
+      } else {
+        if (cLower.startsWith(pLower)) {
+          final nextChar = cLower[pLower.length];
+          if (nextChar == r'\' || nextChar == '/') return true;
+        }
+      }
+      return p.isWithin(pLower, cLower);
+    } else {
+      if (normalizedChild.length <= normalizedParent.length) return false;
+      if (normalizedParent == '/') {
+        return normalizedChild.startsWith('/');
+      }
+      if (normalizedParent.endsWith('/')) {
+        if (normalizedChild.startsWith(normalizedParent)) return true;
+      } else {
+        if (normalizedChild.startsWith(normalizedParent)) {
+          final nextChar = normalizedChild[normalizedParent.length];
+          if (nextChar == '/') return true;
+        }
+      }
+      return p.isWithin(normalizedParent, normalizedChild);
+    }
   }
 
   static bool pathContains(String parent, String child) {
+    if (identical(parent, child) || parent == child) return true;
     final normalizedParent = normalizePath(parent);
     final normalizedChild = normalizePath(child);
-
-    if (pathsEqual(normalizedParent, normalizedChild)) {
-      return true;
-    }
-
-    if (Platform.isWindows) {
-      return p.isWithin(
-        normalizedParent.toLowerCase(),
-        normalizedChild.toLowerCase(),
-      );
-    }
-
-    return p.isWithin(normalizedParent, normalizedChild);
+    return isNormalizedPathWithinOrEqual(normalizedParent, normalizedChild);
   }
 
   static String displayNameForPath(String path) {

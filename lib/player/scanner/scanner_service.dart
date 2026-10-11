@@ -543,6 +543,21 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     notifyListeners();
   }
 
+  List<String>? _cachedNormalizedActiveRoots;
+  String? _cachedNormalizedSystemFolderPath;
+
+  List<String> _getNormalizedActiveRoots() {
+    final cached = _cachedNormalizedActiveRoots;
+    if (cached != null) return cached;
+    final roots = _roots.internalRootPaths;
+    final list = roots
+        .map(_normalizePath)
+        .where((p) => p.isNotEmpty)
+        .toList(growable: false);
+    _cachedNormalizedActiveRoots = list;
+    return list;
+  }
+
   bool isPathInActiveRoots(String path) {
     if (path.isEmpty) return false;
 
@@ -558,8 +573,9 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     final normalized = _normalizePath(path);
     if (normalized.isEmpty) return false;
 
-    for (final rootPath in _roots.rootPaths) {
-      if (_pathContains(rootPath, normalized)) {
+    final activeRoots = _getNormalizedActiveRoots();
+    for (final rootPath in activeRoots) {
+      if (ScannerPathUtils.isNormalizedPathWithinOrEqual(rootPath, normalized)) {
         return true;
       }
     }
@@ -568,8 +584,12 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     if (systemFolder != null) {
       if (normalized == 'system' ||
           normalized.startsWith('system/') ||
-          normalized.startsWith('system\\') ||
-          _pathContains(systemFolder.path, normalized)) {
+          normalized.startsWith('system\\')) {
+        return true;
+      }
+      final systemPath = _cachedNormalizedSystemFolderPath ??=
+          _normalizePath(systemFolder.path);
+      if (ScannerPathUtils.isNormalizedPathWithinOrEqual(systemPath, normalized)) {
         return true;
       }
       final lookupKey = _pathLookupKey(normalized);
@@ -660,6 +680,11 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   MusicFolder? get systemMediaFolder => _systemMediaFolder;
+
+  void _setSystemMediaFolder(MusicFolder? folder) {
+    _systemMediaFolder = folder;
+    _cachedNormalizedSystemFolderPath = null;
+  }
   bool get hasPermission => _hasPermission;
   Map<String, SongMetadata> get metadataMap => _metadataStore.metadataMap;
   int get metadataRevision => _metadataRevision;
@@ -1926,7 +1951,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
             '[ScannerService] Android media scan stopped because '
             'permissionGranted=false',
           );
-          _systemMediaFolder = null;
+          _setSystemMediaFolder(null);
           notifyListeners();
           return;
         }
@@ -1949,7 +1974,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
           _metadataStore.deleteMissingFromCache(skippedEntryPaths);
         }
         if (keptEntries.isEmpty) {
-          _systemMediaFolder = null;
+          _setSystemMediaFolder(null);
           await MetadataDatabase().syncSongSourcePresence(
             sourceMask: SongSourceFlags.systemMedia,
             presentPaths: const [],
@@ -1965,10 +1990,12 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
             ? <String, SongMetadata>{}
             : await MetadataDatabase().getSongMetadataByPaths(filePaths);
 
-        _systemMediaFolder = _treeBuilder.buildAndroidMediaLibrary(
-          keptEntries,
-          metadataByPath,
-          _compareNaturally,
+        _setSystemMediaFolder(
+          _treeBuilder.buildAndroidMediaLibrary(
+            keptEntries,
+            metadataByPath,
+            _compareNaturally,
+          ),
         );
         debugPrint(
           '[ScannerService] Android system media tree built '
@@ -2020,7 +2047,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
           _metadataStore.deleteMissingFromCache(skippedSongPaths);
         }
         if (keptSongs.isEmpty) {
-          _systemMediaFolder = null;
+          _setSystemMediaFolder(null);
           await MetadataDatabase().syncSongSourcePresence(
             sourceMask: SongSourceFlags.systemMedia,
             presentPaths: const [],
@@ -2045,11 +2072,13 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
           sourceFlags: SongSourceFlags.systemMedia,
         );
 
-        _systemMediaFolder = _treeBuilder.buildFolderTreeFromMetadata(
-          metadataByPath.values,
-          _compareNaturally,
-          rootPath: 'system',
-          rootName: _l10n().systemMediaLibrary,
+        _setSystemMediaFolder(
+          _treeBuilder.buildFolderTreeFromMetadata(
+            metadataByPath.values,
+            _compareNaturally,
+            rootPath: 'system',
+            rootName: _l10n().systemMediaLibrary,
+          ),
         );
         debugPrint(
           '[ScannerService] iOS system media tree built '
@@ -2129,11 +2158,13 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       final systemSongs =
           cachedSongs ?? await _repository.getSystemMediaSongs();
       if (systemSongs.isNotEmpty) {
-        _systemMediaFolder = _treeBuilder.buildFolderTreeFromMetadata(
-          systemSongs,
-          _compareNaturally,
-          rootPath: 'system',
-          rootName: _l10n().systemMediaLibrary,
+        _setSystemMediaFolder(
+          _treeBuilder.buildFolderTreeFromMetadata(
+            systemSongs,
+            _compareNaturally,
+            rootPath: 'system',
+            rootName: _l10n().systemMediaLibrary,
+          ),
         );
         if (_systemMediaFolder != null) {
           _folderSorter.sortFolderRecursiveForTree(
@@ -2957,6 +2988,8 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
 
   void _invalidateScanRootsCache() {
     _cachedActiveScanRootLookupKeys = null;
+    _cachedNormalizedActiveRoots = null;
+    _cachedNormalizedSystemFolderPath = null;
   }
 
   Set<String> _getActiveScanRootLookupKeys() {

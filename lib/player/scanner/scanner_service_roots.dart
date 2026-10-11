@@ -25,6 +25,7 @@ class ScannerServiceRoots {
       {};
 
   List<String> get rootPaths => List.unmodifiable(_rootPaths);
+  List<String> get internalRootPaths => _rootPaths;
 
   Future<List<String>> loadRootPaths({
     Future<bool> Function(String path)? hasPersistentAccess,
