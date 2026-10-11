@@ -26,6 +26,7 @@ import 'main_layout_riverpod.dart';
 import 'package:vynody/utils/layout_constants.dart';
 import '../widgets/draggable_album_item.dart';
 import '../widgets/album_context_menu.dart';
+import '../widgets/playback_ui_tuning.dart';
 
 class AlbumsTab extends ConsumerStatefulWidget {
   const AlbumsTab({
@@ -222,7 +223,12 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab>
                 final bottomPadding = 120.0 + (isSelectionMode ? 120.0 : 0.0);
                 final bottomOffset = isCoverFlowImmersive
                     ? (isSelectionMode ? 100.0 : 0.0)
-                    : ((currentMusic != null ? (isLandscape ? 96.0 : 140.0) : 40.0) + (isSelectionMode ? 120.0 : 0.0));
+                    : MiniPlayerUiTuning.getListBottomPadding(
+                        context,
+                        hasPlayingMusic: currentMusic != null,
+                        isSelectionMode: isSelectionMode,
+                        selectionPanelHeight: 120.0,
+                      );
 
                 final toolbar = _AlbumsToolbar(
                   searchController: _searchController,

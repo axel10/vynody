@@ -16,6 +16,7 @@ import 'package:vynody/utils/blur_constants.dart';
 import 'package:vynody/utils/queue_sort_utils.dart';
 import 'package:vynody/utils/list_reorder_utils.dart';
 import 'package:vynody/player/platform/standalone_queue_window_manager.dart';
+import '../widgets/playback_ui_tuning.dart';
 
 
 // 队列页面
@@ -245,8 +246,11 @@ class _QueuePageState extends ConsumerState<QueuePage>
         ref.watch(librarySelectionScopeProvider) ==
         LibrarySelectionScope.queue;
     final currentMusic = ref.watch(audioCurrentMusicProvider);
-    final bottomOffset = (currentMusic != null ? 140.0 : 40.0) +
-        (isSelectionMode ? 220.0 : 0.0);
+    final bottomOffset = MiniPlayerUiTuning.getListBottomPadding(
+      context,
+      hasPlayingMusic: currentMusic != null,
+      isSelectionMode: isSelectionMode,
+    );
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final isRandomMode = ref.watch(audioIsRandomModeProvider);

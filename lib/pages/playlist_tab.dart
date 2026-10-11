@@ -20,6 +20,7 @@ import '../widgets/library_selection_panel.dart';
 import '../widgets/library_selection_scope.dart';
 import 'package:vynody/utils/layout_constants.dart';
 import '../utils/app_snack_bar.dart';
+import '../widgets/playback_ui_tuning.dart';
 
 class PlaylistTab extends ConsumerStatefulWidget {
   final double contentTopPadding;
@@ -438,9 +439,11 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab>
                 SliverToBoxAdapter(child: _buildHeader(context, activePlaylist)),
               SliverPadding(
                 padding: EdgeInsets.only(
-                  bottom:
-                      (currentMusic != null ? 140.0 : 40.0) +
-                      (isSelectionMode ? 220.0 : 0.0),
+                  bottom: MiniPlayerUiTuning.getListBottomPadding(
+                    context,
+                    hasPlayingMusic: currentMusic != null,
+                    isSelectionMode: isSelectionMode,
+                  ),
                 ),
                 sliver: SliverReorderableList(
                   itemCount: activePlaylist.songs.length,

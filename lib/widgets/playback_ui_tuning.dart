@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import '../utils/app_orientation_manager.dart';
 
 class PlaybackPageUiTuning {
   PlaybackPageUiTuning._();
@@ -320,41 +321,80 @@ class MiniPlayerUiTuning {
   /// 迷你播放器底部基础外边距
   static const double miniPlayerBottomMargin = 20.0;
 
-  /// 列表滚动到底部时预留给卡片上方的呼吸安全间距 (确保完全露出不被卡片顶部与投影遮挡)
-  static const double contentBreathingGap = 32.0;
+  /// 列表滚动到底部时预留给卡片/Dock上方的呼吸安全间距 (确保完全露出不被遮挡)
+  static const double contentBreathingGap = 16.0;
 
-  /// 无播放状态下的默认底部内边距
+  /// 无播放状态下的默认底部内边距 (无常驻 Dock 栏时保底)
   static const double defaultInactiveBottomPadding = 24.0;
+
+  /// 获取悬浮 Dock 栏自身相对于屏幕底部的定位间距 (与 FloatingDockBottomBar 保持严格一致)
+  static double getDockSafeBottom(BuildContext context) {
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
+    final isIOS = Theme.of(context).platform == TargetPlatform.iOS;
+    final isTablet = MediaQuery.sizeOf(context).shortestSide >=
+        AppOrientationManager.tabletShortestSideBreakpoint;
+
+    if (isTablet) {
+      return bottomPadding > 0 ? (bottomPadding + 8.0) : 28.0;
+    } else if (isIOS) {
+      return bottomPadding > 0
+          ? (bottomPadding - 14.0).clamp(12.0, double.infinity)
+          : 12.0;
+    } else {
+      return bottomPadding > 0 ? bottomPadding : 12.0;
+    }
+  }
+
+  /// 获取悬浮 Dock 栏自身的高度 (展开 Mini 播放器 vs 仅 Tab 导航栏)
+  static double getDockHeight(BuildContext context, {required bool hasPlayingMusic}) {
+    final isTablet = MediaQuery.sizeOf(context).shortestSide >=
+        AppOrientationManager.tabletShortestSideBreakpoint;
+    if (hasPlayingMusic) {
+      // Mini 播放器 Header (54/64) + 实时进度条 (28) + Tab 导航栏 (52/56)
+      return isTablet ? 148.0 : 134.0;
+    } else {
+      // 仅 Tab 导航栏 (52/56)
+      return isTablet ? 56.0 : 52.0;
+    }
+  }
 
   /// 统一计算列表/网格的底部内边距 (Bottom Inset)
   /// [hasPlayingMusic]: 是否有正在播放或加载的音乐
   /// [isSelectionMode]: 是否处于多选模式 (如果有多选工具栏)
   /// [selectionPanelHeight]: 多选工具栏高度 (默认 0.0)
+  /// [hasDockBottomBar]: 当前页面是否存在常驻底部 Dock 栏（默认 true，竖屏模式下主 Tab 及被 MiniPlayerWrapper 包裹的二级页面均有）
   static double getListBottomPadding(
     BuildContext context, {
     required bool hasPlayingMusic,
     bool isSelectionMode = false,
     double selectionPanelHeight = 0.0,
+    bool hasDockBottomBar = true,
   }) {
     final safeAreaBottom = MediaQuery.of(context).padding.bottom;
     final isLandscape =
         MediaQuery.of(context).orientation == Orientation.landscape;
 
-    double offset = 0.0;
     if (isSelectionMode) {
       // 多选模式下 Mini 播放器会被隐藏，底部预留多选工具栏高度与安全间距
       final panelHeight =
-          selectionPanelHeight > 0 ? selectionPanelHeight : 100.0;
-      offset = defaultInactiveBottomPadding + safeAreaBottom + panelHeight;
-    } else if (hasPlayingMusic) {
-      // 竖屏与横屏基准高度 + 呼吸间距 + 底部安全区
-      final baseHeight = isLandscape ? 110.0 : 130.0;
-      offset = baseHeight + contentBreathingGap + safeAreaBottom;
-    } else {
-      offset = defaultInactiveBottomPadding + safeAreaBottom;
+          selectionPanelHeight > 0 ? selectionPanelHeight : 220.0;
+      return panelHeight;
     }
 
-    return offset;
+    if (!isLandscape && hasDockBottomBar) {
+      // 竖屏常驻 Dock 栏模式：Dock 顶部占用高度 = safeBottom + dockHeight
+      final dockHeight = getDockHeight(context, hasPlayingMusic: hasPlayingMusic);
+      final safeBottom = getDockSafeBottom(context);
+      return dockHeight + safeBottom + contentBreathingGap;
+    }
+
+    if (hasPlayingMusic) {
+      // 横屏模式（侧边栏 + 居中浮动灵动岛 MiniCard）或未带 Dock 的特殊页面
+      final baseHeight = isLandscape ? 110.0 : 130.0;
+      return baseHeight + contentBreathingGap + safeAreaBottom;
+    } else {
+      return defaultInactiveBottomPadding + safeAreaBottom;
+    }
   }
 }
 

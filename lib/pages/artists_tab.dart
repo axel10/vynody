@@ -22,6 +22,7 @@ import '../dialogs/library_source_filter_dialog.dart';
 import 'package:vynody/player/library/library_source_filter.dart';
 import 'package:vynody/player/settings/settings_service.dart';
 import '../widgets/artist_context_menu.dart';
+import '../widgets/playback_ui_tuning.dart';
 
 class ArtistsTab extends ConsumerStatefulWidget {
   final double contentTopPadding;
@@ -266,7 +267,11 @@ class _ArtistsTabState extends ConsumerState<ArtistsTab>
               ),
             );
           } else {
-              final bottomOffset = (currentMusic != null ? 140.0 : 40.0) + (isSelectionMode ? 220.0 : 0.0);
+              final bottomOffset = MiniPlayerUiTuning.getListBottomPadding(
+                context,
+                hasPlayingMusic: currentMusic != null,
+                isSelectionMode: isSelectionMode,
+              );
               mainContent = Padding(
                 padding: EdgeInsets.only(
                   left: widget.contentLeftPadding,

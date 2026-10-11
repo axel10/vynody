@@ -20,6 +20,7 @@ import 'package:vynody/widgets/artist_avatar.dart';
 import 'package:vynody/widgets/song_thumbnail.dart';
 import 'album_detail_page.dart';
 import 'artist_detail_page.dart';
+import '../widgets/playback_ui_tuning.dart';
 
 // ===========================================================================
 // 媒体库首页封面缩放系数配置（可在此自由修改数值调节大小）
@@ -48,8 +49,10 @@ class LibraryDashboardView extends ConsumerWidget {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
     final currentMusic = ref.watch(audioCurrentMusicProvider);
-    final bottomInset = (currentMusic != null ? 140.0 : 90.0) +
-        MediaQuery.paddingOf(context).bottom;
+    final bottomInset = MiniPlayerUiTuning.getListBottomPadding(
+      context,
+      hasPlayingMusic: currentMusic != null,
+    );
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,

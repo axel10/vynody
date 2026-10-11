@@ -15,6 +15,7 @@ import 'library_selection_panel.dart';
 import 'library_selection_scope.dart';
 import 'draggable_song_item.dart';
 import 'package:vynody/utils/layout_constants.dart';
+import 'playback_ui_tuning.dart';
 
 class LibraryRankedSongList extends ConsumerStatefulWidget {
   const LibraryRankedSongList({
@@ -137,6 +138,7 @@ class _LibraryRankedSongListState extends ConsumerState<LibraryRankedSongList>
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
     final audio = ref.read(audioServiceProvider);
+    final currentMusic = ref.watch(audioCurrentMusicProvider);
 
     final filteredItems = _filterItems(widget.items);
     final filteredSongs = filteredItems.map((e) => e.song).toList();
@@ -427,7 +429,16 @@ class _LibraryRankedSongListState extends ConsumerState<LibraryRankedSongList>
             )
           else
             SliverPadding(
-              padding: EdgeInsets.fromLTRB(12, 4, 12, 140 + (isSelectionMode ? 220.0 : 0.0)),
+              padding: EdgeInsets.fromLTRB(
+                12,
+                4,
+                12,
+                MiniPlayerUiTuning.getListBottomPadding(
+                  context,
+                  hasPlayingMusic: currentMusic != null,
+                  isSelectionMode: isSelectionMode,
+                ),
+              ),
               sliver: SliverFixedExtentList.builder(
                 itemExtent: 64.0,
                 itemCount: filteredItems.length,
