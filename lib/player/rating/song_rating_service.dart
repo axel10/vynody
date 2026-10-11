@@ -42,9 +42,13 @@ class SongRatingService extends ChangeNotifier {
     try {
       final dbRatings = await _database.getAllSongRatings();
       for (final entry in dbRatings.entries) {
-        final key = _normalizeKey(entry.key);
-        if (key.isNotEmpty && entry.value > 0 && entry.value <= 5) {
-          _ratings[key] = entry.value;
+        if (entry.value > 0 && entry.value <= 5) {
+          final key = _normalizeKey(entry.key);
+          if (key.isNotEmpty) {
+            _ratings[key] = entry.value;
+          }
+          _ratings[entry.key] = entry.value;
+          _ratings[entry.key.replaceAll('\\', '/')] = entry.value;
         }
       }
     } catch (e) {
@@ -57,7 +61,11 @@ class SongRatingService extends ChangeNotifier {
 
   /// Get the rating for a given song path (0 = unrated, 1-5 = stars).
   int getRating(String path) {
-    if (path.isEmpty) return 0;
+    if (path.isEmpty || _ratings.isEmpty) return 0;
+    final direct = _ratings[path];
+    if (direct != null) return direct;
+    final normalizedSlash = _ratings[path.replaceAll('\\', '/')];
+    if (normalizedSlash != null) return normalizedSlash;
     final key = _normalizeKey(path);
     return _ratings[key] ?? 0;
   }
@@ -69,22 +77,27 @@ class SongRatingService extends ChangeNotifier {
     final key = _normalizeKey(path);
     final clampedRating = rating.clamp(0, 5);
 
-    final current = _ratings[key] ?? 0;
+    final current = getRating(path);
     if (current == clampedRating) return;
 
     if (clampedRating == 0) {
       _ratings.remove(key);
+      _ratings.remove(path);
+      _ratings.remove(path.replaceAll('\\', '/'));
     } else {
-      _ratings[key] = clampedRating;
+      if (key.isNotEmpty) _ratings[key] = clampedRating;
+      _ratings[path] = clampedRating;
+      _ratings[path.replaceAll('\\', '/')] = clampedRating;
     }
 
     notifyListeners();
 
     try {
+      final dbKey = key.isNotEmpty ? key : path;
       if (clampedRating == 0) {
-        await _database.deleteSongRating(key);
+        await _database.deleteSongRating(dbKey);
       } else {
-        await _database.setSongRating(key, clampedRating);
+        await _database.setSongRating(dbKey, clampedRating);
       }
     } catch (e) {
       debugPrint('[SongRatingService] Error saving rating to SQLite: $e');

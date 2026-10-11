@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path/path.dart' as p;
 
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
@@ -132,7 +133,17 @@ final topRatedSongsProvider = StreamProvider<List<LibraryInsightSongEntry>>((ref
   final ratingService = ref.watch(songRatingServiceProvider);
   final allRatings = ratingService.allRatings;
 
+  if (allRatings.isEmpty) {
+    yield const <LibraryInsightSongEntry>[];
+    return;
+  }
+
   await for (final songs in db.watchAllSongMetadata()) {
+    if (allRatings.isEmpty) {
+      yield const <LibraryInsightSongEntry>[];
+      continue;
+    }
+
     final list = <LibraryInsightSongEntry>[];
 
     for (final s in songs) {
@@ -141,14 +152,16 @@ final topRatedSongsProvider = StreamProvider<List<LibraryInsightSongEntry>>((ref
       if ((flags & SongSourceFlags.external) != 0) continue;
 
       final normalizedPath = s.path.replaceAll('\\', '/');
-      final rating = allRatings[normalizedPath] ?? allRatings[s.path] ?? 0;
+      final rating = allRatings[normalizedPath] ??
+          allRatings[s.path] ??
+          ratingService.getRating(s.path);
       if (rating < 4) continue;
 
       list.add(
         LibraryInsightSongEntry(
           song: MusicFile(
             path: s.path,
-            name: s.path.split(RegExp(r'[/\\]')).last,
+            name: p.basename(s.path),
             title: s.title,
             artist: s.artist,
             album: s.album,
@@ -179,7 +192,17 @@ final allRatedSongsProvider = StreamProvider<List<LibraryInsightSongEntry>>((ref
   final ratingService = ref.watch(songRatingServiceProvider);
   final allRatings = ratingService.allRatings;
 
+  if (allRatings.isEmpty) {
+    yield const <LibraryInsightSongEntry>[];
+    return;
+  }
+
   await for (final songs in db.watchAllSongMetadata()) {
+    if (allRatings.isEmpty) {
+      yield const <LibraryInsightSongEntry>[];
+      continue;
+    }
+
     final list = <LibraryInsightSongEntry>[];
 
     for (final s in songs) {
@@ -197,7 +220,7 @@ final allRatedSongsProvider = StreamProvider<List<LibraryInsightSongEntry>>((ref
         LibraryInsightSongEntry(
           song: MusicFile(
             path: s.path,
-            name: s.path.split(RegExp(r'[/\\]')).last,
+            name: p.basename(s.path),
             title: s.title,
             artist: s.artist,
             album: s.album,
@@ -304,7 +327,7 @@ final timeMachineAlbumsProvider = StreamProvider<List<TimeMachineAlbumEntry>>((r
         musicFiles.add(
           MusicFile(
             path: s.path,
-            name: s.path.split(RegExp(r'[/\\]')).last,
+            name: p.basename(s.path),
             title: s.title,
             artist: s.artist,
             album: s.album,

@@ -197,7 +197,20 @@ class ScannerPathUtils {
   static String? get docDir => _currentIosDocDir;
   static String? get libDir => _currentIosLibDir;
 
+  static const int _maxSandboxCacheSize = 10000;
   static final Map<String, String> _sandboxPathCache = {};
+
+  static final RegExp _iosThumbRegex = RegExp(r'(?:^|/)thumbnails/(.+)$');
+  static final RegExp _iosContainerRegex = RegExp(
+    r'^/Containers/(?:Data/Application|Shared/AppGroup|[^/]+)/[^/]+(?:/[^/]+)*(?:/Data)?/(Documents|Library(?:/Application Support)?)(?:/(.*))?$',
+  );
+
+  static void _putSandboxCache(String path, String result) {
+    if (_sandboxPathCache.length > _maxSandboxCacheSize) {
+      _sandboxPathCache.clear();
+    }
+    _sandboxPathCache[path] = result;
+  }
 
   static void setIosSandboxDirs({String? docDir, String? libDir}) {
     _sandboxPathCache.clear();
@@ -225,8 +238,7 @@ class ScannerPathUtils {
         rawTrimmed.startsWith('asset://') ||
         rawTrimmed.startsWith('fd://') ||
         rawTrimmed.contains('://')) {
-      if (_sandboxPathCache.length > 3000) _sandboxPathCache.clear();
-      _sandboxPathCache[path] = rawTrimmed;
+      _putSandboxCache(path, rawTrimmed);
       return rawTrimmed;
     }
     final trimmed = normalizePath(rawTrimmed);
@@ -236,13 +248,11 @@ class ScannerPathUtils {
 
     // If already pointing to current app's sandbox, return normalized path
     if (docDir != null && (pathsEqual(docDir, trimmed) || pathContains(docDir, trimmed))) {
-      if (_sandboxPathCache.length > 3000) _sandboxPathCache.clear();
-      _sandboxPathCache[path] = trimmed;
+      _putSandboxCache(path, trimmed);
       return trimmed;
     }
     if (libDir != null && (pathsEqual(libDir, trimmed) || pathContains(libDir, trimmed))) {
-      if (_sandboxPathCache.length > 3000) _sandboxPathCache.clear();
-      _sandboxPathCache[path] = trimmed;
+      _putSandboxCache(path, trimmed);
       return trimmed;
     }
 
@@ -252,8 +262,7 @@ class ScannerPathUtils {
     final hasThumbnails = trimmed.contains('thumbnails/');
     final hasStandaloneDoc = trimmed == 'Documents' || trimmed.startsWith('Documents/');
     if (!hasContainers && !hasThumbnails && !hasStandaloneDoc) {
-      if (_sandboxPathCache.length > 3000) _sandboxPathCache.clear();
-      _sandboxPathCache[path] = trimmed;
+      _putSandboxCache(path, trimmed);
       return trimmed;
     }
 
@@ -261,11 +270,10 @@ class ScannerPathUtils {
 
     // 1. Special handling for thumbnails: thumbnails are always located inside libDir/thumbnails
     if (libDir != null && libDir.isNotEmpty) {
-      final thumbMatch = RegExp(r'(?:^|/)thumbnails/(.+)$').firstMatch(trimmed);
+      final thumbMatch = _iosThumbRegex.firstMatch(trimmed);
       if (thumbMatch != null) {
         result = p.join(libDir, 'thumbnails', thumbMatch.group(1)!);
-        if (_sandboxPathCache.length > 3000) _sandboxPathCache.clear();
-        _sandboxPathCache[path] = result;
+        _putSandboxCache(path, result);
         return result;
       }
     }
@@ -274,31 +282,29 @@ class ScannerPathUtils {
     //    iOS Simulator (.../data/Containers/Data/Application/<UUID>/...),
     //    macOS sandbox (.../Containers/<BundleId>/Data/...),
     //    and File Provider Storage (.../Containers/Shared/AppGroup/<UUID>/File Provider Storage/...).
-    //    Greedy .*/ ensures we pick the innermost/last container in case of historical nesting.
-    final containerMatch = RegExp(
-      r'.*/Containers/(?:Data/Application|Shared/AppGroup|[^/]+)/[^/]+(?:/[^/]+)*(?:/Data)?/(Documents|Library(?:/Application Support)?)(?:/(.*))?$',
-    ).firstMatch(trimmed);
-
-    if (containerMatch != null) {
-      final type = containerMatch.group(1);
-      final subPath = containerMatch.group(2);
-      if (type == 'Documents') {
-        if (docDir != null && docDir.isNotEmpty) {
-          result = (subPath == null || subPath.isEmpty)
-              ? docDir
-              : p.join(docDir, subPath);
-          if (_sandboxPathCache.length > 3000) _sandboxPathCache.clear();
-          _sandboxPathCache[path] = result;
-          return result;
-        }
-      } else {
-        if (libDir != null && libDir.isNotEmpty) {
-          result = (subPath == null || subPath.isEmpty)
-              ? libDir
-              : p.join(libDir, subPath);
-          if (_sandboxPathCache.length > 3000) _sandboxPathCache.clear();
-          _sandboxPathCache[path] = result;
-          return result;
+    //    lastIndexOf ensures we pick the innermost/last container without greedy regex backtracking.
+    final lastContainersIdx = trimmed.lastIndexOf('/Containers/');
+    if (lastContainersIdx != -1) {
+      final containerMatch = _iosContainerRegex.firstMatch(trimmed.substring(lastContainersIdx));
+      if (containerMatch != null) {
+        final type = containerMatch.group(1);
+        final subPath = containerMatch.group(2);
+        if (type == 'Documents') {
+          if (docDir != null && docDir.isNotEmpty) {
+            result = (subPath == null || subPath.isEmpty)
+                ? docDir
+                : p.join(docDir, subPath);
+            _putSandboxCache(path, result);
+            return result;
+          }
+        } else {
+          if (libDir != null && libDir.isNotEmpty) {
+            result = (subPath == null || subPath.isEmpty)
+                ? libDir
+                : p.join(libDir, subPath);
+            _putSandboxCache(path, result);
+            return result;
+          }
         }
       }
     }
@@ -311,8 +317,7 @@ class ScannerPathUtils {
       result = subPath.isEmpty ? docDir : p.join(docDir, subPath);
     }
 
-    if (_sandboxPathCache.length > 3000) _sandboxPathCache.clear();
-    _sandboxPathCache[path] = result;
+    _putSandboxCache(path, result);
     return result;
   }
 
