@@ -202,6 +202,9 @@ class _ArtistDetailContentState extends ConsumerState<ArtistDetailContent>
         ? getSelectedSongs(displaySongs)
         : const <MusicFile>[];
 
+    final isPortrait =
+        MediaQuery.orientationOf(context) == Orientation.portrait;
+
     final content = Stack(
       children: [
         CustomScrollView(
@@ -213,9 +216,9 @@ class _ArtistDetailContentState extends ConsumerState<ArtistDetailContent>
             SliverToBoxAdapter(
               child: Padding(
                 padding: EdgeInsets.fromLTRB(
-                  28,
+                  isPortrait ? 20 : 28,
                   widget.topPadding > 0 ? widget.topPadding + 12 : 24,
-                  28,
+                  isPortrait ? 20 : 28,
                   20,
                 ),
                 child: _ArtistInfo(
@@ -396,6 +399,158 @@ class _ArtistInfo extends StatelessWidget {
     ];
 
     final screenWidth = MediaQuery.sizeOf(context).width;
+    final isPortrait =
+        MediaQuery.orientationOf(context) == Orientation.portrait;
+
+    if (isPortrait) {
+      final avatarSize = screenWidth < 360 ? 92.0 : 104.0;
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // Row 1: 艺术家头像居中占一行
+          Center(
+            child: Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.12),
+                    blurRadius: 16,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: ArtistAvatar(
+                diameter: avatarSize,
+                imagePath: cachedImagePath ?? artist.cachedImagePath,
+                imageUrl: artist.imageUrl,
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          // Row 2: 名字占一行
+          Center(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Flexible(
+                  child: Text(
+                    artist.name,
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.5,
+                      fontSize: 24,
+                    ),
+                  ),
+                ),
+                RemoteMediaBadge.pillTrailing(
+                  songs: artist.songs,
+                  title: artist.name,
+                ),
+                const SizedBox(width: 4),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  size: 22,
+                  color:
+                      theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                ),
+              ],
+            ),
+          ),
+
+          // 轻量副标题展示
+          if (artist.hasDistinctCanonicalName) ...[
+            const SizedBox(height: 2),
+            Text(
+              artist.canonicalName!.trim(),
+              textAlign: TextAlign.center,
+              style: theme.textTheme.titleSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+          if (artist.disambiguation?.trim().isNotEmpty ?? false) ...[
+            const SizedBox(height: 2),
+            Text(
+              artist.disambiguation!.trim(),
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+          if (metaParts.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              metaParts.join(' · '),
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+          const SizedBox(height: 18),
+
+          // Row 3: 按钮占一行（通栏并排两个胶囊按钮）
+          Row(
+            children: [
+              Expanded(
+                child: FilledButton.tonalIcon(
+                  onPressed: onPlayAll,
+                  icon: const Icon(Icons.play_arrow, size: 20),
+                  label: Text(
+                    playAllLabel,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15,
+                    ),
+                  ),
+                  style: FilledButton.styleFrom(
+                    foregroundColor: theme.colorScheme.primary,
+                    backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    minimumSize: const Size.fromHeight(44),
+                    elevation: 0,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: FilledButton.tonalIcon(
+                  onPressed: onShufflePlay,
+                  icon: const Icon(Icons.shuffle, size: 18),
+                  label: Text(
+                    shufflePlayLabel,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15,
+                    ),
+                  ),
+                  style: FilledButton.styleFrom(
+                    foregroundColor: theme.colorScheme.primary,
+                    backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    minimumSize: const Size.fromHeight(44),
+                    elevation: 0,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      );
+    }
+
     final avatarSize = screenWidth < 420 ? 56.0 : 72.0;
 
     return Row(

@@ -35,6 +35,7 @@ void main() {
   late MockAudioService audioService;
   late MockScannerService scannerService;
   late dynamic demoData;
+  late AudioSnapshot testSnapshot;
 
   setUpAll(() async {
     testTempDir = await Directory.systemTemp.createTemp('artist_detail_test_');
@@ -93,14 +94,14 @@ void main() {
       sleepTimerRemaining: null,
       sleepTimerDuration: null,
     );
-
-    audioService = MockAudioService(
-      snapshot: snapshot,
-      visualizerStream: const Stream.empty(),
-    );
+    testSnapshot = snapshot;
   });
 
   setUp(() {
+    audioService = MockAudioService(
+      snapshot: testSnapshot,
+      visualizerStream: const Stream.empty(),
+    );
     scannerService = MockScannerService(
       rootFolders: [],
       metadataMap: demoData.metadataMap,
@@ -187,5 +188,35 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(didGoBack, isTrue);
+  });
+
+  testWidgets('ArtistDetailPage - renders 3-row layout in portrait and compact layout in landscape', (tester) async {
+    // 1. Portrait mode
+    tester.view.physicalSize = const Size(390 * 3, 844 * 3);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    await tester.pumpWidget(
+      buildTestApp(
+        child: ArtistDetailPage(artist: sampleArtist),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Verify avatar, name with chevron, and filled tonal buttons in portrait
+    expect(find.text(sampleArtist.name), findsWidgets);
+    expect(find.byIcon(Icons.chevron_right_rounded), findsOneWidget);
+    expect(find.byType(FilledButton), findsNWidgets(2));
+
+    // 2. Switch to Landscape mode
+    tester.view.physicalSize = const Size(1200 * 3, 600 * 3);
+    await tester.pumpAndSettle();
+
+    // In landscape mode, buttons are IconButtons and chevron is not present
+    expect(find.byIcon(Icons.chevron_right_rounded), findsNothing);
+    expect(find.byType(IconButton), findsWidgets);
   });
 }

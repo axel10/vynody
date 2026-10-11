@@ -633,6 +633,15 @@ class _RemoteArtistDetailContentState
         : _albumSections.fold<int>(0, (sum, sec) => sum + (sec.songCount ?? 0));
     final totalAlbumCount = widget.albumCount ?? _albumSections.length;
     final biography = _artistInfo?['biography'] as String?;
+    final effectiveCoverArtId = widget.coverArtId ??
+        _artistInfo?['coverArt'] ??
+        _artistInfo?['imageUrl'] ??
+        _artistInfo?['largeImageUrl'] ??
+        _artistInfo?['mediumImageUrl'] ??
+        _albumSections.firstOrNull?.coverArt;
+    final isPortrait =
+        MediaQuery.orientationOf(context) == Orientation.portrait;
+    final screenWidth = MediaQuery.sizeOf(context).width;
 
     return Stack(
       children: [
@@ -675,162 +684,525 @@ class _RemoteArtistDetailContentState
                             20,
                             18,
                           ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                        Text(
-                          l10n.artistLabel.toUpperCase(),
-                          style: theme.textTheme.labelLarge?.copyWith(
-                            color: theme.colorScheme.primary,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 1.2,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          widget.artistName,
-                          style: theme.textTheme.headlineMedium?.copyWith(
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            _InfoChip(label: l10n.albumCount(totalAlbumCount)),
-                            if (totalSongCount > 0)
-                              _InfoChip(label: l10n.songCount(totalSongCount)),
-                          ],
-                        ),
-                        if (biography != null && biography.trim().isNotEmpty) ...[
-                          const SizedBox(height: 12),
-                          Text(
-                            biography.trim(),
-                            maxLines: 3,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ],
-                        const SizedBox(height: 18),
-                        Wrap(
-                          spacing: 12,
-                          runSpacing: 12,
-                          children: [
-                            FilledButton.icon(
-                              onPressed: _allSongs.isNotEmpty ? () => _playAll(shuffle: false) : null,
-                              icon: const Icon(Icons.play_arrow_rounded, size: 20),
-                              label: Text(l10n.playAll),
-                            ),
-                            OutlinedButton.icon(
-                              onPressed: _allSongs.isNotEmpty ? () => _playAll(shuffle: true) : null,
-                              icon: const Icon(Icons.shuffle_rounded, size: 18),
-                              label: Text(l10n.shufflePlay),
-                            ),
-                            OutlinedButton.icon(
-                              onPressed: _allSongs.isNotEmpty
-                                  ? () async {
-                                      final notifier = ref.read(
-                                          remoteDownloadTasksProvider.notifier);
-                                      await notifier.enqueueRemoteTracks(
-                                        server: widget.server,
-                                        password: widget.password,
-                                        songs: _allSongs,
-                                        collectionName: widget.artistName,
-                                      );
-                                      if (context.mounted) {
-                                        AppSnackBar.show(
-                                          context,
-                                          ref,
-                                          SnackBar(
-                                            content: Text(
-                                              l10n.batchAddedToDownloadQueue(
-                                                  _allSongs.length),
+                          child: isPortrait
+                              ? Column(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    // Row 1: 艺术家头像居中占一行
+                                    Center(
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black
+                                                  .withValues(alpha: 0.12),
+                                              blurRadius: 16,
+                                              offset: const Offset(0, 6),
                                             ),
-                                            action: SnackBarAction(
-                                              label: l10n.viewDownloadProgress,
-                                              onPressed: () {
-                                                Navigator.of(context, rootNavigator: true).push(
-                                                  MaterialPageRoute(
-                                                    builder: (_) =>
-                                                        const RemoteDownloadManagerPage(),
-                                                  ),
-                                                );
-                                              },
+                                          ],
+                                        ),
+                                        child: ClipOval(
+                                          child: RemoteArtworkWidget(
+                                            server: widget.server,
+                                            password: widget.password,
+                                            coverArtId: effectiveCoverArtId,
+                                            size: screenWidth < 360
+                                                ? 92.0
+                                                : 104.0,
+                                            width: screenWidth < 360
+                                                ? 92.0
+                                                : 104.0,
+                                            height: screenWidth < 360
+                                                ? 92.0
+                                                : 104.0,
+                                            isArtist: true,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 14),
+
+                                    // Row 2: 名字占一行
+                                    Center(
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Flexible(
+                                            child: Text(
+                                              widget.artistName,
+                                              textAlign: TextAlign.center,
+                                              style: theme.textTheme
+                                                  .headlineMedium
+                                                  ?.copyWith(
+                                                fontWeight: FontWeight.w800,
+                                                letterSpacing: -0.5,
+                                                fontSize: 24,
+                                              ),
                                             ),
                                           ),
-                                        );
-                                      }
-                                    }
-                                  : null,
-                              icon: const Icon(Icons.download_rounded, size: 18),
-                              label: Text(l10n.download),
-                            ),
-                            OutlinedButton.icon(
-                              onPressed: () async {
-                                final effectiveId = _resolvedArtistId.isNotEmpty
-                                    ? _resolvedArtistId
-                                    : widget.artistId;
-                                if (effectiveId.isEmpty) return;
-                                final client = RemoteMediaLibraryClient.create(
-                                  server: widget.server,
-                                  password: widget.password,
-                                );
-                                if (_isStarred) {
-                                  final ok =
-                                      await client.unstar(artistId: effectiveId);
-                                  if (ok && mounted) {
-                                    setState(() => _isStarred = false);
-                                    final currentStarred = Set<String>.from(ref
-                                            .read(activeRemoteSessionProvider)
-                                            ?.navidromeStarredArtistIds ??
-                                        {});
-                                    currentStarred.remove(effectiveId);
-                                    ref
-                                        .read(activeRemoteSessionProvider.notifier)
-                                        .updateNavidromeArtists(
-                                          starredArtistIds: currentStarred,
-                                        );
-                                    showToast(l10n.unstarredSuccess);
-                                  }
-                                } else {
-                                  final ok =
-                                      await client.star(artistId: effectiveId);
-                                  if (ok && mounted) {
-                                    setState(() => _isStarred = true);
-                                    final currentStarred = Set<String>.from(ref
-                                            .read(activeRemoteSessionProvider)
-                                            ?.navidromeStarredArtistIds ??
-                                        {});
-                                    currentStarred.add(effectiveId);
-                                    ref
-                                        .read(activeRemoteSessionProvider.notifier)
-                                        .updateNavidromeArtists(
-                                          starredArtistIds: currentStarred,
-                                        );
-                                    showToast(l10n.starredSuccess);
-                                  }
-                                }
-                              },
-                              icon: Icon(
-                                _isStarred ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                                size: 18,
-                                color: _isStarred ? theme.colorScheme.primary : null,
-                              ),
-                              label: Text(
-                                l10n.btnFavorite,
-                                style: TextStyle(
-                                  color: _isStarred ? theme.colorScheme.primary : null,
+                                          const SizedBox(width: 4),
+                                          Icon(
+                                            Icons.chevron_right_rounded,
+                                            size: 22,
+                                            color: theme
+                                                .colorScheme.onSurfaceVariant
+                                                .withValues(alpha: 0.7),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+
+                                    // 轻量副标题展示
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      [
+                                        l10n.albumCount(totalAlbumCount),
+                                        if (totalSongCount > 0)
+                                          l10n.songCount(totalSongCount),
+                                      ].join(' · '),
+                                      textAlign: TextAlign.center,
+                                      style:
+                                          theme.textTheme.bodySmall?.copyWith(
+                                        color:
+                                            theme.colorScheme.onSurfaceVariant,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    if (biography != null &&
+                                        biography.trim().isNotEmpty) ...[
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        biography.trim(),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        textAlign: TextAlign.center,
+                                        style:
+                                            theme.textTheme.bodySmall?.copyWith(
+                                          color: theme
+                                              .colorScheme.onSurfaceVariant,
+                                        ),
+                                      ),
+                                    ],
+                                    const SizedBox(height: 18),
+
+                                    // Row 3: 按钮占一行（通栏并排两个胶囊按钮 + 下载/收藏快捷按钮）
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: FilledButton.tonalIcon(
+                                            onPressed: _allSongs.isNotEmpty
+                                                ? () => _playAll(shuffle: false)
+                                                : null,
+                                            icon: const Icon(Icons.play_arrow,
+                                                size: 20),
+                                            label: Text(
+                                              l10n.playAll,
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.w700,
+                                                fontSize: 15,
+                                              ),
+                                            ),
+                                            style: FilledButton.styleFrom(
+                                              foregroundColor:
+                                                  theme.colorScheme.primary,
+                                              backgroundColor: theme.colorScheme
+                                                  .surfaceContainerHighest,
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                              ),
+                                              minimumSize:
+                                                  const Size.fromHeight(44),
+                                              elevation: 0,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: FilledButton.tonalIcon(
+                                            onPressed: _allSongs.isNotEmpty
+                                                ? () => _playAll(shuffle: true)
+                                                : null,
+                                            icon: const Icon(Icons.shuffle,
+                                                size: 18),
+                                            label: Text(
+                                              l10n.shufflePlay,
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.w700,
+                                                fontSize: 15,
+                                              ),
+                                            ),
+                                            style: FilledButton.styleFrom(
+                                              foregroundColor:
+                                                  theme.colorScheme.primary,
+                                              backgroundColor: theme.colorScheme
+                                                  .surfaceContainerHighest,
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                              ),
+                                              minimumSize:
+                                                  const Size.fromHeight(44),
+                                              elevation: 0,
+                                            ),
+                                          ),
+                                        ),
+                                        if (_allSongs.isNotEmpty) ...[
+                                          const SizedBox(width: 8),
+                                          IconButton.filledTonal(
+                                            onPressed: () async {
+                                              final notifier = ref.read(
+                                                  remoteDownloadTasksProvider
+                                                      .notifier);
+                                              await notifier
+                                                  .enqueueRemoteTracks(
+                                                server: widget.server,
+                                                password: widget.password,
+                                                songs: _allSongs,
+                                                collectionName:
+                                                    widget.artistName,
+                                              );
+                                              if (context.mounted) {
+                                                AppSnackBar.show(
+                                                  context,
+                                                  ref,
+                                                  SnackBar(
+                                                    content: Text(
+                                                      l10n.batchAddedToDownloadQueue(
+                                                          _allSongs.length),
+                                                    ),
+                                                    action: SnackBarAction(
+                                                      label: l10n
+                                                          .viewDownloadProgress,
+                                                      onPressed: () {
+                                                        Navigator.of(context,
+                                                                rootNavigator:
+                                                                    true)
+                                                            .push(
+                                                          MaterialPageRoute(
+                                                            builder: (_) =>
+                                                                const RemoteDownloadManagerPage(),
+                                                          ),
+                                                        );
+                                                      },
+                                                    ),
+                                                  ),
+                                                );
+                                              }
+                                            },
+                                            tooltip: l10n.download,
+                                            style: IconButton.styleFrom(
+                                              foregroundColor:
+                                                  theme.colorScheme.primary,
+                                              backgroundColor: theme.colorScheme
+                                                  .surfaceContainerHighest,
+                                              minimumSize: const Size(44, 44),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                              ),
+                                            ),
+                                            icon: const Icon(
+                                                Icons.download_rounded,
+                                                size: 20),
+                                          ),
+                                        ],
+                                        const SizedBox(width: 8),
+                                        IconButton.filledTonal(
+                                          onPressed: () async {
+                                            final effectiveId =
+                                                _resolvedArtistId.isNotEmpty
+                                                    ? _resolvedArtistId
+                                                    : widget.artistId;
+                                            if (effectiveId.isEmpty) return;
+                                            final client =
+                                                RemoteMediaLibraryClient.create(
+                                              server: widget.server,
+                                              password: widget.password,
+                                            );
+                                            if (_isStarred) {
+                                              final ok = await client.unstar(
+                                                  artistId: effectiveId);
+                                              if (ok && mounted) {
+                                                setState(
+                                                    () => _isStarred = false);
+                                                final currentStarred =
+                                                    Set<String>.from(ref
+                                                            .read(
+                                                                activeRemoteSessionProvider)
+                                                            ?.navidromeStarredArtistIds ??
+                                                        {});
+                                                currentStarred
+                                                    .remove(effectiveId);
+                                                ref
+                                                    .read(
+                                                        activeRemoteSessionProvider
+                                                            .notifier)
+                                                    .updateNavidromeArtists(
+                                                      starredArtistIds:
+                                                          currentStarred,
+                                                    );
+                                                showToast(
+                                                    l10n.unstarredSuccess);
+                                              }
+                                            } else {
+                                              final ok = await client.star(
+                                                  artistId: effectiveId);
+                                              if (ok && mounted) {
+                                                setState(
+                                                    () => _isStarred = true);
+                                                final currentStarred =
+                                                    Set<String>.from(ref
+                                                            .read(
+                                                                activeRemoteSessionProvider)
+                                                            ?.navidromeStarredArtistIds ??
+                                                        {});
+                                                currentStarred.add(effectiveId);
+                                                ref
+                                                    .read(
+                                                        activeRemoteSessionProvider
+                                                            .notifier)
+                                                    .updateNavidromeArtists(
+                                                      starredArtistIds:
+                                                          currentStarred,
+                                                    );
+                                                showToast(l10n.starredSuccess);
+                                              }
+                                            }
+                                          },
+                                          tooltip: l10n.btnFavorite,
+                                          style: IconButton.styleFrom(
+                                            foregroundColor: _isStarred
+                                                ? theme.colorScheme.primary
+                                                : theme.colorScheme
+                                                    .onSurfaceVariant,
+                                            backgroundColor: theme.colorScheme
+                                                .surfaceContainerHighest,
+                                            minimumSize: const Size(44, 44),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                            ),
+                                          ),
+                                          icon: Icon(
+                                            _isStarred
+                                                ? Icons.favorite_rounded
+                                                : Icons.favorite_border_rounded,
+                                            size: 20,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                )
+                              : Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      l10n.artistLabel.toUpperCase(),
+                                      style:
+                                          theme.textTheme.labelLarge?.copyWith(
+                                        color: theme.colorScheme.primary,
+                                        fontWeight: FontWeight.w700,
+                                        letterSpacing: 1.2,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      widget.artistName,
+                                      style: theme.textTheme.headlineMedium
+                                          ?.copyWith(
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Wrap(
+                                      spacing: 8,
+                                      runSpacing: 8,
+                                      children: [
+                                        _InfoChip(
+                                            label: l10n.albumCount(
+                                                totalAlbumCount)),
+                                        if (totalSongCount > 0)
+                                          _InfoChip(
+                                              label: l10n.songCount(
+                                                  totalSongCount)),
+                                      ],
+                                    ),
+                                    if (biography != null &&
+                                        biography.trim().isNotEmpty) ...[
+                                      const SizedBox(height: 12),
+                                      Text(
+                                        biography.trim(),
+                                        maxLines: 3,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: theme.textTheme.bodySmall
+                                            ?.copyWith(
+                                          color: theme
+                                              .colorScheme.onSurfaceVariant,
+                                        ),
+                                      ),
+                                    ],
+                                    const SizedBox(height: 18),
+                                    Wrap(
+                                      spacing: 12,
+                                      runSpacing: 12,
+                                      children: [
+                                        FilledButton.icon(
+                                          onPressed: _allSongs.isNotEmpty
+                                              ? () => _playAll(shuffle: false)
+                                              : null,
+                                          icon: const Icon(
+                                              Icons.play_arrow_rounded,
+                                              size: 20),
+                                          label: Text(l10n.playAll),
+                                        ),
+                                        OutlinedButton.icon(
+                                          onPressed: _allSongs.isNotEmpty
+                                              ? () => _playAll(shuffle: true)
+                                              : null,
+                                          icon: const Icon(Icons.shuffle_rounded,
+                                              size: 18),
+                                          label: Text(l10n.shufflePlay),
+                                        ),
+                                        OutlinedButton.icon(
+                                          onPressed: _allSongs.isNotEmpty
+                                              ? () async {
+                                                  final notifier = ref.read(
+                                                      remoteDownloadTasksProvider
+                                                          .notifier);
+                                                  await notifier
+                                                      .enqueueRemoteTracks(
+                                                    server: widget.server,
+                                                    password: widget.password,
+                                                    songs: _allSongs,
+                                                    collectionName:
+                                                        widget.artistName,
+                                                  );
+                                                  if (context.mounted) {
+                                                    AppSnackBar.show(
+                                                      context,
+                                                      ref,
+                                                      SnackBar(
+                                                        content: Text(
+                                                          l10n.batchAddedToDownloadQueue(
+                                                              _allSongs
+                                                                  .length),
+                                                        ),
+                                                        action: SnackBarAction(
+                                                          label: l10n
+                                                              .viewDownloadProgress,
+                                                          onPressed: () {
+                                                            Navigator.of(context,
+                                                                    rootNavigator:
+                                                                        true)
+                                                                .push(
+                                                              MaterialPageRoute(
+                                                                builder: (_) =>
+                                                                    const RemoteDownloadManagerPage(),
+                                                              ),
+                                                            );
+                                                          },
+                                                        ),
+                                                      ),
+                                                    );
+                                                  }
+                                                }
+                                              : null,
+                                          icon: const Icon(
+                                              Icons.download_rounded,
+                                              size: 18),
+                                          label: Text(l10n.download),
+                                        ),
+                                        OutlinedButton.icon(
+                                          onPressed: () async {
+                                            final effectiveId =
+                                                _resolvedArtistId.isNotEmpty
+                                                    ? _resolvedArtistId
+                                                    : widget.artistId;
+                                            if (effectiveId.isEmpty) return;
+                                            final client =
+                                                RemoteMediaLibraryClient.create(
+                                              server: widget.server,
+                                              password: widget.password,
+                                            );
+                                            if (_isStarred) {
+                                              final ok = await client.unstar(
+                                                  artistId: effectiveId);
+                                              if (ok && mounted) {
+                                                setState(
+                                                    () => _isStarred = false);
+                                                final currentStarred =
+                                                    Set<String>.from(ref
+                                                            .read(
+                                                                activeRemoteSessionProvider)
+                                                            ?.navidromeStarredArtistIds ??
+                                                        {});
+                                                currentStarred
+                                                    .remove(effectiveId);
+                                                ref
+                                                    .read(
+                                                        activeRemoteSessionProvider
+                                                            .notifier)
+                                                    .updateNavidromeArtists(
+                                                      starredArtistIds:
+                                                          currentStarred,
+                                                    );
+                                                showToast(
+                                                    l10n.unstarredSuccess);
+                                              }
+                                            } else {
+                                              final ok = await client.star(
+                                                  artistId: effectiveId);
+                                              if (ok && mounted) {
+                                                setState(
+                                                    () => _isStarred = true);
+                                                final currentStarred =
+                                                    Set<String>.from(ref
+                                                            .read(
+                                                                activeRemoteSessionProvider)
+                                                            ?.navidromeStarredArtistIds ??
+                                                        {});
+                                                currentStarred.add(effectiveId);
+                                                ref
+                                                    .read(
+                                                        activeRemoteSessionProvider
+                                                            .notifier)
+                                                    .updateNavidromeArtists(
+                                                      starredArtistIds:
+                                                          currentStarred,
+                                                    );
+                                                showToast(l10n.starredSuccess);
+                                              }
+                                            }
+                                          },
+                                          icon: Icon(
+                                            _isStarred
+                                                ? Icons.favorite_rounded
+                                                : Icons
+                                                    .favorite_border_rounded,
+                                            size: 18,
+                                            color: _isStarred
+                                                ? theme.colorScheme.primary
+                                                : null,
+                                          ),
+                                          label: Text(
+                                            l10n.btnFavorite,
+                                            style: TextStyle(
+                                              color: _isStarred
+                                                  ? theme.colorScheme.primary
+                                                  : null,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
                                 ),
-                              ),
-                            ),
-                          ],
                         ),
-                      ],
-                    ),
-                  ),
                 ],
               ),
             ),
