@@ -625,6 +625,25 @@ void main() {
       reloaded.toggleLibraryTabVisibility('playlist');
       expect(reloaded.isLibraryTabVisible('playlist'), isTrue);
     });
+
+    test('rewindToStartOnPrevious defaults to true and can be toggled', () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final settings = SettingsService(prefs);
+
+      expect(settings.rewindToStartOnPrevious, isTrue);
+
+      settings.rewindToStartOnPrevious = false;
+      expect(settings.rewindToStartOnPrevious, isFalse);
+      expect(prefs.getBool('rewind_to_start_on_previous'), isFalse);
+
+      final reloaded = SettingsService(prefs);
+      expect(reloaded.rewindToStartOnPrevious, isFalse);
+
+      reloaded.rewindToStartOnPrevious = true;
+      expect(reloaded.rewindToStartOnPrevious, isTrue);
+      expect(prefs.getBool('rewind_to_start_on_previous'), isTrue);
+    });
   });
 }
 

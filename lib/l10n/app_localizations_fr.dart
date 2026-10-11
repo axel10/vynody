@@ -3652,6 +3652,13 @@ class AppLocalizationsFr extends AppLocalizations {
       'Passe automatiquement en mode paroles lors de l\'ouverture de la page de lecture.';
 
   @override
+  String get rewindToStartOnPrevious => 'Revenir au début avec précédent';
+
+  @override
+  String get rewindToStartOnPreviousDescription =>
+      'Si la lecture dépasse 3 secondes, cliquer sur précédent revient au début au lieu de changer de piste';
+
+  @override
   String get tapCoverToEnterLyricsMode =>
       'Appuyez sur la pochette pour passer en mode paroles';
 

@@ -3648,6 +3648,13 @@ class AppLocalizationsEs extends AppLocalizations {
       'Muestra automáticamente el modo de letras al abrir la página de reproducción.';
 
   @override
+  String get rewindToStartOnPrevious => 'Volver al inicio con anterior';
+
+  @override
+  String get rewindToStartOnPreviousDescription =>
+      'Si la reproducción supera los 3 segundos, hacer clic en anterior vuelve al inicio en lugar de cambiar de pista';
+
+  @override
   String get tapCoverToEnterLyricsMode =>
       'Toca la portada para entrar en modo letras';
 

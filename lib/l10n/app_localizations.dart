@@ -6495,6 +6495,18 @@ abstract class AppLocalizations {
   /// **'打开全屏播放界面时，默认自动切至歌词显示模式'**
   String get defaultToLyricsModeOnPlaybackOpenDescription;
 
+  /// No description provided for @rewindToStartOnPrevious.
+  ///
+  /// In zh, this message translates to:
+  /// **'点击上一首回到歌曲开头'**
+  String get rewindToStartOnPrevious;
+
+  /// No description provided for @rewindToStartOnPreviousDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前播放时长超过 3 秒时，点击上一首将回到歌曲开头，而不是直接跳转上一首'**
+  String get rewindToStartOnPreviousDescription;
+
   /// No description provided for @tapCoverToEnterLyricsMode.
   ///
   /// In zh, this message translates to:

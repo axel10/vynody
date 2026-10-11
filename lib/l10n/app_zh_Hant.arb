@@ -1089,6 +1089,8 @@
   "openPlaybackOnDirectorySongTapDescription": "在目錄頁點擊歌曲播放時，自動跳轉至全螢幕播放介面",
   "defaultToLyricsModeOnPlaybackOpen": "進入播放頁預設顯示歌詞",
   "defaultToLyricsModeOnPlaybackOpenDescription": "打開全螢幕播放介面時，預設自動切至歌詞顯示模式",
+  "rewindToStartOnPrevious": "點擊上一首回到歌曲開頭",
+  "rewindToStartOnPreviousDescription": "當前播放時長超過 3 秒時，點擊上一首將回到歌曲開頭，而不是直接跳轉上一首",
   "tapCoverToEnterLyricsMode": "點選封面可以進入歌詞模式",
   "longPressLyricsPanelToOpenMenu": "長按歌詞面板可以調出選單",
   "gotIt": "我知道了",

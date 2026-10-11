@@ -3424,6 +3424,13 @@ class AppLocalizationsZh extends AppLocalizations {
       '打开全屏播放界面时，默认自动切至歌词显示模式';
 
   @override
+  String get rewindToStartOnPrevious => '点击上一首回到歌曲开头';
+
+  @override
+  String get rewindToStartOnPreviousDescription =>
+      '当前播放时长超过 3 秒时，点击上一首将回到歌曲开头，而不是直接跳转上一首';
+
+  @override
   String get tapCoverToEnterLyricsMode => '点击封面可以进入歌词模式';
 
   @override
@@ -8676,6 +8683,13 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   @override
   String get defaultToLyricsModeOnPlaybackOpenDescription =>
       '打開全螢幕播放介面時，預設自動切至歌詞顯示模式';
+
+  @override
+  String get rewindToStartOnPrevious => '點擊上一首回到歌曲開頭';
+
+  @override
+  String get rewindToStartOnPreviousDescription =>
+      '當前播放時長超過 3 秒時，點擊上一首將回到歌曲開頭，而不是直接跳轉上一首';
 
   @override
   String get tapCoverToEnterLyricsMode => '點選封面可以進入歌詞模式';

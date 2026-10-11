@@ -1417,7 +1417,9 @@ class AudioService extends Notifier<AudioSnapshot> {
 
   bool get hasPreviousSong {
     if (_player.playlist.items.isEmpty) return false;
-    if (_position.inSeconds >= 3) return true;
+    if (settingsService.rewindToStartOnPrevious && _position.inSeconds >= 3) {
+      return true;
+    }
     return _player.playlist.hasPrev;
   }
 
@@ -3440,7 +3442,7 @@ class AudioService extends Notifier<AudioSnapshot> {
     if (_isTransitioning) return;
     if (_queue.isEmpty) return;
 
-    if (_position.inSeconds >= 3) {
+    if (settingsService.rewindToStartOnPrevious && _position.inSeconds >= 3) {
       debugPrint(
         '[AudioService] previous(): position is >= 3s (${_position.inSeconds}s), '
         'rewinding current song to beginning instead of skipping to previous track',

@@ -1455,6 +1455,8 @@
   "openPlaybackOnDirectorySongTapDescription": "Dizin görünümünde bir şarkıya dokunulduğunda otomatik olarak oynatma sayfasını açar.",
   "defaultToLyricsModeOnPlaybackOpen": "Oynatma sayfasında varsayılan olarak sözler modunu aç",
   "defaultToLyricsModeOnPlaybackOpenDescription": "Oynatma sayfası açıldığında otomatik olarak şarkı sözü görünümünü gösterir.",
+  "rewindToStartOnPrevious": "Öncekine basıldığında başa sar",
+  "rewindToStartOnPreviousDescription": "Çalma süresi 3 saniyeyi aştığında, öncekine basıldığında parça değiştirmek yerine parçanın başına sarılır",
   "tapCoverToEnterLyricsMode": "Söz moduna geçmek için kapağa dokunun",
   "longPressLyricsPanelToOpenMenu": "Menüyü açmak için sözler paneline uzun basın",
   "gotIt": "Anladım",

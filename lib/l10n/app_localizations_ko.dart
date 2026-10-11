@@ -3484,6 +3484,13 @@ class AppLocalizationsKo extends AppLocalizations {
       '재생 페이지를 열 때 자동으로 가사 모드로 전환합니다.';
 
   @override
+  String get rewindToStartOnPrevious => '이전 곡 클릭 시 처음으로 돌아가기';
+
+  @override
+  String get rewindToStartOnPreviousDescription =>
+      '재생 시간이 3초를 초과한 경우 이전 곡을 누르면 이전 트랙으로 건너뛰지 않고 현재 곡의 처음으로 돌아갑니다';
+
+  @override
   String get tapCoverToEnterLyricsMode => '커버를 탭하여 가사 모드로 전환';
 
   @override

@@ -1405,6 +1405,8 @@
   "openPlaybackOnDirectorySongTapDescription": "Automatically open the playback page when tapping a song in directory view.",
   "defaultToLyricsModeOnPlaybackOpen": "Default to lyrics mode on playback page",
   "defaultToLyricsModeOnPlaybackOpenDescription": "Automatically show lyrics mode when opening the playback page.",
+  "rewindToStartOnPrevious": "Rewind to start on previous",
+  "rewindToStartOnPreviousDescription": "If playback duration exceeds 3 seconds, clicking previous rewinds to the beginning instead of skipping to the previous track",
   "tapCoverToEnterLyricsMode": "Tap cover to enter lyrics mode",
   "@tapCoverToEnterLyricsMode": {
     "description": "Tip shown on the playback page to inform users they can tap the album cover to enter lyrics mode"

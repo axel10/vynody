@@ -113,6 +113,13 @@ final List<SettingSearchItem> settingsSearchRegistry = [
     description: (l10n) => l10n.defaultToLyricsModeOnPlaybackOpenDescription,
   ),
   SettingSearchItem(
+    id: 'general.rewind_to_start_on_previous',
+    section: SettingsSection.general,
+    icon: Icons.skip_previous_rounded,
+    title: (l10n) => l10n.rewindToStartOnPrevious,
+    description: (l10n) => l10n.rewindToStartOnPreviousDescription,
+  ),
+  SettingSearchItem(
     id: 'general.waveform_progress_bar',
     section: SettingsSection.general,
     icon: Icons.graphic_eq_rounded,

@@ -3602,6 +3602,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Automatically show lyrics mode when opening the playback page.';
 
   @override
+  String get rewindToStartOnPrevious => 'Rewind to start on previous';
+
+  @override
+  String get rewindToStartOnPreviousDescription =>
+      'If playback duration exceeds 3 seconds, clicking previous rewinds to the beginning instead of skipping to the previous track';
+
+  @override
   String get tapCoverToEnterLyricsMode => 'Tap cover to enter lyrics mode';
 
   @override

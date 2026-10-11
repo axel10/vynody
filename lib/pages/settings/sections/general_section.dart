@@ -698,6 +698,14 @@ class GeneralSection extends ConsumerWidget {
                 settings.defaultToLyricsModeOnPlaybackOpen = value;
               },
             ),
+            SwitchListTile(
+              title: Text(l10n.rewindToStartOnPrevious),
+              subtitle: Text(l10n.rewindToStartOnPreviousDescription),
+              value: settings.rewindToStartOnPrevious,
+              onChanged: (value) {
+                settings.rewindToStartOnPrevious = value;
+              },
+            ),
             ListTile(
               title: Text(l10n.progressBarStyle),
               subtitle: Text(

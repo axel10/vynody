@@ -8,6 +8,7 @@ import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/pages/settings/sections/about_section.dart';
 import 'package:vynody/pages/settings/sections/acoustid_section.dart';
 import 'package:vynody/pages/settings/sections/audio_section.dart';
+import 'package:vynody/pages/settings/sections/general_section.dart';
 import 'package:vynody/pages/settings/sections/shortcuts_section.dart';
 import 'package:vynody/pages/settings/sections/tags_section.dart';
 import 'package:vynody/pages/settings/sections/transcode_section.dart';
@@ -255,5 +256,45 @@ void main() {
 
     expect(find.byType(SingleShortcutEditDialog), findsOneWidget);
     expect(find.byType(ShortcutRecorderField), findsOneWidget);
+  });
+
+  testWidgets('GeneralSection renders rewindToStartOnPrevious switch and toggles it', (tester) async {
+    tester.view.physicalSize = const Size(1200, 1600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
+
+    final prefs = await SharedPreferences.getInstance();
+    final settings = SettingsService(prefs);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          settingsServiceProvider.overrideWith((ref) => settings),
+        ],
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('zh'),
+          home: Scaffold(
+            body: GeneralSection(settings: settings),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(settings.rewindToStartOnPrevious, isTrue);
+
+    final l10n = await AppLocalizations.delegate.load(const Locale('zh'));
+    final tileFinder = find.widgetWithText(SwitchListTile, l10n.rewindToStartOnPrevious);
+    expect(tileFinder, findsOneWidget);
+
+    final switchTile = tester.widget<SwitchListTile>(tileFinder);
+    expect(switchTile.value, isTrue);
+
+    await tester.tap(tileFinder);
+    await tester.pumpAndSettle();
+
+    expect(settings.rewindToStartOnPrevious, isFalse);
   });
 }

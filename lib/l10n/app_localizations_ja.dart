@@ -3481,6 +3481,13 @@ class AppLocalizationsJa extends AppLocalizations {
       '再生ページを開いた時、自動的に歌詞表示モードにします。';
 
   @override
+  String get rewindToStartOnPrevious => '「前の曲」で曲の先頭に戻る';
+
+  @override
+  String get rewindToStartOnPreviousDescription =>
+      '再生時間が3秒を超えている場合、「前の曲」を押すと前の曲に移動せず曲の先頭に戻ります';
+
+  @override
   String get tapCoverToEnterLyricsMode => 'カバーをタップして歌詞モードに入る';
 
   @override

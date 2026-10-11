@@ -1363,6 +1363,8 @@
   "openPlaybackOnDirectorySongTapDescription": "폴더 뷰에서 곡을 탭하여 재생할 때 자동으로 재생 페이지로 이동합니다.",
   "defaultToLyricsModeOnPlaybackOpen": "재생 페이지 진입 시 가사 모드 기본 사용",
   "defaultToLyricsModeOnPlaybackOpenDescription": "재생 페이지를 열 때 자동으로 가사 모드로 전환합니다.",
+  "rewindToStartOnPrevious": "이전 곡 클릭 시 처음으로 돌아가기",
+  "rewindToStartOnPreviousDescription": "재생 시간이 3초를 초과한 경우 이전 곡을 누르면 이전 트랙으로 건너뛰지 않고 현재 곡의 처음으로 돌아갑니다",
   "tapCoverToEnterLyricsMode": "커버를 탭하여 가사 모드로 전환",
   "longPressLyricsPanelToOpenMenu": "가사 패널을 길게 누르면 메뉴가 나타납니다",
   "gotIt": "확인",

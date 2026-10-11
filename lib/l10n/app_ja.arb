@@ -1462,6 +1462,8 @@
   "openPlaybackOnDirectorySongTapDescription": "フォルダビューで曲をタップして再生した時、自動的に再生ページに移動します。",
   "defaultToLyricsModeOnPlaybackOpen": "再生ページで歌詞モードをデフォルトにする",
   "defaultToLyricsModeOnPlaybackOpenDescription": "再生ページを開いた時、自動的に歌詞表示モードにします。",
+  "rewindToStartOnPrevious": "「前の曲」で曲の先頭に戻る",
+  "rewindToStartOnPreviousDescription": "再生時間が3秒を超えている場合、「前の曲」を押すと前の曲に移動せず曲の先頭に戻ります",
   "tapCoverToEnterLyricsMode": "カバーをタップして歌詞モードに入る",
   "longPressLyricsPanelToOpenMenu": "歌詞パネルを長押ししてメニューを表示",
   "gotIt": "了解",

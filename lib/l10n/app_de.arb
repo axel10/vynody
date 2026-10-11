@@ -1363,6 +1363,8 @@
   "openPlaybackOnDirectorySongTapDescription": "Wechselt automatisch zur Wiedergabeseite, wenn im Ordneransicht ein Titel angetippt wird.",
   "defaultToLyricsModeOnPlaybackOpen": "Standardmäßig Songtext-Modus auf der Wiedergabeseite",
   "defaultToLyricsModeOnPlaybackOpenDescription": "Wechselt beim Öffnen der Wiedergabeseite automatisch in den Songtext-Modus.",
+  "rewindToStartOnPrevious": "Bei Vorheriger an den Anfang zurückkehren",
+  "rewindToStartOnPreviousDescription": "Wenn die Wiedergabe länger als 3 Sekunden läuft, springt Vorheriger zum Anfang statt zum vorherigen Titel",
   "tapCoverToEnterLyricsMode": "Cover antippen, um den Textmodus zu öffnen",
   "longPressLyricsPanelToOpenMenu": "Lange auf das Songtext-Panel drücken, um das Menü zu öffnen",
   "gotIt": "Verstanden",

@@ -475,6 +475,8 @@ class SettingsService extends ChangeNotifier {
       'open_playback_on_directory_song_tap';
   static const String _keyDefaultToLyricsModeOnPlaybackOpen =
       'default_to_lyrics_mode_on_playback_open';
+  static const String _keyRewindToStartOnPrevious =
+      'rewind_to_start_on_previous';
   static const String _keySampleStride = 'sample_stride';
   static const String _keyWaveformChunks = 'waveform_chunks';
   static const String geminiApiKeyStorageKey = 'gemini_api_key';
@@ -1098,6 +1100,13 @@ class SettingsService extends ChangeNotifier {
   late final _defaultToLyricsModeOnPlaybackOpenProperty = SettingProperty<bool>(
     key: _keyDefaultToLyricsModeOnPlaybackOpen,
     defaultValue: false,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
+  late final _rewindToStartOnPreviousProperty = SettingProperty<bool>(
+    key: _keyRewindToStartOnPrevious,
+    defaultValue: true,
     prefs: _prefs,
     onChanged: notifyListeners,
   );
@@ -2290,6 +2299,11 @@ class SettingsService extends ChangeNotifier {
       _defaultToLyricsModeOnPlaybackOpenProperty.value;
   set defaultToLyricsModeOnPlaybackOpen(bool value) =>
       _defaultToLyricsModeOnPlaybackOpenProperty.value = value;
+
+  bool get rewindToStartOnPrevious =>
+      _rewindToStartOnPreviousProperty.value;
+  set rewindToStartOnPrevious(bool value) =>
+      _rewindToStartOnPreviousProperty.value = value;
 
   bool get windowsAutoRepairShortcut =>
       _windowsAutoRepairShortcutProperty.value;

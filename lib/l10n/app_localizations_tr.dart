@@ -3613,6 +3613,13 @@ class AppLocalizationsTr extends AppLocalizations {
       'Oynatma sayfası açıldığında otomatik olarak şarkı sözü görünümünü gösterir.';
 
   @override
+  String get rewindToStartOnPrevious => 'Öncekine basıldığında başa sar';
+
+  @override
+  String get rewindToStartOnPreviousDescription =>
+      'Çalma süresi 3 saniyeyi aştığında, öncekine basıldığında parça değiştirmek yerine parçanın başına sarılır';
+
+  @override
   String get tapCoverToEnterLyricsMode =>
       'Söz moduna geçmek için kapağa dokunun';
 
