@@ -43,6 +43,7 @@ import '../widgets/playback_ui_tuning.dart';
 import '../widgets/global_drop_target.dart';
 import '../widgets/library_selection_scope.dart';
 import '../utils/layout_constants.dart';
+import '../utils/app_orientation_manager.dart';
 import 'package:vynody/player/platform/right_queue_drawer_controller.dart';
 import '../widgets/right_queue_panel.dart';
 import 'package:vynody/utils/deleted_song_snack.dart';
@@ -1212,6 +1213,22 @@ class _MainLayoutState extends ConsumerState<MainLayout>
     final double railWidth =
         (useSidebar && !isSidebarHidden) ? sidebarRailWidthFor(size.width) : 0.0;
 
+    final double collapseButtonTop;
+    if (Platform.isWindows || Platform.isLinux) {
+      collapseButtonTop = 44.0;
+    } else if (Platform.isIOS) {
+      final isTablet = MediaQuery.sizeOf(context).shortestSide >=
+          AppOrientationManager.tabletShortestSideBreakpoint;
+      collapseButtonTop = isTablet
+          ? math.max(56.0, MediaQuery.paddingOf(context).top + 8.0)
+          : math.max(12.0, MediaQuery.paddingOf(context).top + 8.0);
+    } else {
+      collapseButtonTop =
+          math.max(12.0, MediaQuery.paddingOf(context).top + 8.0);
+    }
+    final double collapseButtonLeft =
+        math.max(16.0, MediaQuery.paddingOf(context).left + 8.0);
+
     final mainAppWidget = Focus(
       autofocus: true,
       child: PopScope(
@@ -1379,17 +1396,20 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                               onCollapsePlayback: _collapsePlayback,
                             ),
                           ),
-                        if (!showCustomTitleBar && isPlayback && isLandscape)
+                        if (!Platform.isMacOS &&
+                            isPlayback &&
+                            !isSmallWin &&
+                            (isLandscape || isDesktop))
                           Positioned(
-                            top: MediaQuery.paddingOf(context).top + 8,
-                            left: math.max(16.0, MediaQuery.paddingOf(context).left + 8),
+                            top: collapseButtonTop,
+                            left: collapseButtonLeft,
                             child: AnimatedOpacity(
                               duration: const Duration(milliseconds: 200),
                               opacity: settings.isUserInactive ? 0.0 : 1.0,
                               curve: Curves.easeInOut,
                               child: IgnorePointer(
                                 ignoring: settings.isUserInactive,
-                                child: _buildMobilePlaybackCollapseButton(context),
+                                child: _buildPlaybackCollapseButton(context),
                               ),
                             ),
                           ),
@@ -1558,56 +1578,49 @@ class _MainLayoutState extends ConsumerState<MainLayout>
     return mainAppWidget;
   }
 
-  Widget _buildMobilePlaybackCollapseButton(BuildContext context) {
-    if (Platform.isIOS) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(16),
+  Widget _buildPlaybackCollapseButton(BuildContext context) {
+    return AppTooltip(
+      message: Localizations.maybeLocaleOf(context)?.languageCode == 'zh'
+          ? '收起播放页'
+          : 'Collapse Playback',
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(22),
         child: BackdropFilter(
           filter: AppBlur.mediumFilter,
           child: Container(
-            width: 36,
-            height: 32,
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.18),
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(22),
               border: Border.all(
                 color: Colors.white.withValues(alpha: 0.25),
                 width: 0.5,
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.10),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
             child: Material(
               color: Colors.transparent,
               child: InkWell(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(22),
                 onTap: _collapsePlayback,
                 child: const Center(
                   child: Icon(
                     Icons.keyboard_arrow_down_rounded,
                     color: Colors.white,
-                    size: 22,
+                    size: 26,
                   ),
                 ),
               ),
             ),
           ),
         ),
-      );
-    }
-
-    return Material(
-      color: Colors.transparent,
-      shape: const CircleBorder(),
-      clipBehavior: Clip.antiAlias,
-      child: IconButton(
-        icon: const Icon(
-          Icons.keyboard_arrow_down_rounded,
-          color: Colors.white,
-          size: 26,
-        ),
-        tooltip: Localizations.maybeLocaleOf(context)?.languageCode == 'zh'
-            ? '收起播放页'
-            : 'Collapse Playback',
-        onPressed: _collapsePlayback,
       ),
     );
   }

@@ -348,27 +348,6 @@ class _DesktopWindowTitleBarState extends ConsumerState<DesktopWindowTitleBar>
                       ),
               ),
             ),
-          if (isWindowsOrLinux && widget.isPlayback && !isSmallWindowMode && widget.onCollapsePlayback != null)
-            AnimatedOpacity(
-              duration: const Duration(milliseconds: 200),
-              opacity: hideButtons ? 0.0 : 1.0,
-              curve: Curves.easeInOut,
-              child: IgnorePointer(
-                ignoring: hideButtons,
-                child: Padding(
-                  padding: const EdgeInsets.only(left: 10.0),
-                  child: AppTooltip(
-                    message: Localizations.maybeLocaleOf(context)?.languageCode == 'zh'
-                        ? '收起播放页'
-                        : 'Collapse Playback',
-                    child: _WindowsTransparentCollapseButton(
-                      brightness: widget.brightness,
-                      onPressed: widget.onCollapsePlayback,
-                    ),
-                  ),
-                ),
-              ),
-            ),
           Expanded(
             child: dragGestureArea,
           ),
@@ -1149,64 +1128,5 @@ class _MacosCapsuleSegmentButtonState
     }
 
     return btn;
-  }
-}
-
-class _WindowsTransparentCollapseButton extends StatefulWidget {
-  final Brightness brightness;
-  final VoidCallback? onPressed;
-
-  const _WindowsTransparentCollapseButton({
-    required this.brightness,
-    required this.onPressed,
-  });
-
-  @override
-  State<_WindowsTransparentCollapseButton> createState() =>
-      _WindowsTransparentCollapseButtonState();
-}
-
-class _WindowsTransparentCollapseButtonState
-    extends State<_WindowsTransparentCollapseButton> {
-  bool _isHovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = widget.brightness == Brightness.dark;
-
-    final Color defaultColor = isDark
-        ? Colors.white.withValues(alpha: 0.85)
-        : Colors.black.withValues(alpha: 0.80);
-    final Color hoveredColor = isDark ? Colors.white : Colors.black;
-    final Color hoverBg = isDark
-        ? Colors.white.withValues(alpha: 0.12)
-        : Colors.black.withValues(alpha: 0.08);
-
-    return MouseRegion(
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      child: Container(
-        width: 32,
-        height: 24,
-        decoration: BoxDecoration(
-          color: _isHovered ? hoverBg : Colors.transparent,
-          borderRadius: BorderRadius.circular(6),
-        ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(6),
-            onTap: widget.onPressed,
-            child: Center(
-              child: Icon(
-                Icons.keyboard_arrow_down_rounded,
-                color: _isHovered ? hoveredColor : defaultColor,
-                size: 20,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
   }
 }
