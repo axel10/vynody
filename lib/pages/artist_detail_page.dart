@@ -20,6 +20,7 @@ import '../widgets/library_selection_panel.dart';
 import '../widgets/library_selection_scope.dart';
 import '../widgets/draggable_song_item.dart';
 import '../widgets/auto_hide_header.dart';
+import '../utils/layout_constants.dart';
 
 class ArtistDetailPage extends ConsumerStatefulWidget {
   const ArtistDetailPage({
@@ -71,32 +72,39 @@ class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
   @override
   Widget build(BuildContext context) {
     final double barHeight = getBarHeight(context);
+    final isLandscape =
+        MediaQuery.orientationOf(context) == Orientation.landscape;
+    final double leftPadding =
+        isLandscape ? sidebarRailWidthFor(MediaQuery.of(context).size.width) : 0.0;
 
     return AutoHideHeaderScope(
       builder: (context, isHeaderVisible) {
         final Widget content = Scaffold(
-          body: Stack(
-            children: [
-              ArtistDetailContent(
-                artist: widget.artist,
-                scrollController: _scrollController,
-                topPadding: barHeight + 8,
-              ),
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: AutoHideHeader(
-                  isVisible: isHeaderVisible,
-                  child: AlbumDetailNavBar(
-                    title: widget.artist.name,
-                    scrollProgress: _scrollProgress,
-                    isCoverVisible: _isHeaderVisible,
-                    onGoBack: widget.onGoBack ?? () => Navigator.of(context).maybePop(),
+          body: Padding(
+            padding: EdgeInsets.only(left: leftPadding),
+            child: Stack(
+              children: [
+                ArtistDetailContent(
+                  artist: widget.artist,
+                  scrollController: _scrollController,
+                  topPadding: barHeight + 8,
+                ),
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: AutoHideHeader(
+                    isVisible: isHeaderVisible,
+                    child: AlbumDetailNavBar(
+                      title: widget.artist.name,
+                      scrollProgress: _scrollProgress,
+                      isCoverVisible: _isHeaderVisible,
+                      onGoBack: widget.onGoBack ?? () => Navigator.of(context).maybePop(),
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
 

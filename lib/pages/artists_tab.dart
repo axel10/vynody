@@ -49,6 +49,7 @@ class _ArtistsTabState extends ConsumerState<ArtistsTab>
   ArtistSortField _sortField = ArtistSortField.artist;
   bool _sortAscending = true;
   String? _selectedArtistKey;
+  bool _isDetailPushed = false;
 
   List<ArtistSummary>? _lastRawArtists;
   String? _lastSearchQuery;
@@ -168,6 +169,18 @@ class _ArtistsTabState extends ConsumerState<ArtistsTab>
           builder: (context, constraints) {
             final isLandscape =
                 MediaQuery.orientationOf(context) == Orientation.landscape;
+
+            if (isLandscape && _isDetailPushed) {
+              _isDetailPushed = false;
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  Navigator.of(context).popUntil(
+                    (route) => route.settings.name != 'artist_detail',
+                  );
+                }
+              });
+            }
+
             final selectedArtist = _resolveSelectedArtist(visibleArtists);
 
             Widget mainContent;
@@ -355,12 +368,23 @@ class _ArtistsTabState extends ConsumerState<ArtistsTab>
                                     itemKey: artist.queryKey,
                                     allKeys: visibleArtists.map((a) => a.queryKey).toList(),
                                     onNormalTap: () {
+                                      setState(() {
+                                        _selectedArtistKey = artist.queryKey;
+                                      });
+                                      _isDetailPushed = true;
                                       Navigator.of(context).push(
                                         MaterialPageRoute<void>(
+                                          settings: const RouteSettings(
+                                            name: 'artist_detail',
+                                          ),
                                           builder: (_) =>
                                               ArtistDetailPage(artist: artist),
                                         ),
-                                      );
+                                      ).then((_) {
+                                        if (mounted) {
+                                          _isDetailPushed = false;
+                                        }
+                                      });
                                     },
                                   );
                                 },

@@ -297,39 +297,47 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage>
       ],
     );
 
+    final isLandscape =
+        MediaQuery.orientationOf(context) == Orientation.landscape;
+    final double leftPadding =
+        isLandscape ? sidebarRailWidthFor(MediaQuery.of(context).size.width) : 0.0;
+
     return AutoHideHeaderScope(
       forceVisible: isSelectionMode,
       builder: (context, isHeaderVisible) {
         final Widget content = Scaffold(
-          body: Stack(
-            children: [
-              scrollBody,
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: AutoHideHeader(
-                  isVisible: isHeaderVisible,
-                  child: AlbumDetailNavBar(
-                    title: widget.album.title,
-                    scrollProgress: _scrollProgress,
-                    isCoverVisible: _isCoverVisible,
-                    onGoBack: () => Navigator.of(context).maybePop(),
+          body: Padding(
+            padding: EdgeInsets.only(left: leftPadding),
+            child: Stack(
+              children: [
+                scrollBody,
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: AutoHideHeader(
+                    isVisible: isHeaderVisible,
+                    child: AlbumDetailNavBar(
+                      title: widget.album.title,
+                      scrollProgress: _scrollProgress,
+                      isCoverVisible: _isCoverVisible,
+                      onGoBack: () => Navigator.of(context).maybePop(),
+                    ),
                   ),
                 ),
-              ),
-              AnimatedSelectionPanel(
-                isVisible: isSelectionMode,
-                child: LibrarySelectionPanel(
-                  key: const ValueKey('library-selection-panel'),
-                  selectedSongs: selectedSongs,
-                  allSongs: widget.album.songs,
-                  onToggleSelectAll: () =>
-                      toggleSelectAllSongs(widget.album.songs),
-                  onCancel: cancelSongSelection,
+                AnimatedSelectionPanel(
+                  isVisible: isSelectionMode,
+                  child: LibrarySelectionPanel(
+                    key: const ValueKey('library-selection-panel'),
+                    selectedSongs: selectedSongs,
+                    allSongs: widget.album.songs,
+                    onToggleSelectAll: () =>
+                        toggleSelectAllSongs(widget.album.songs),
+                    onCancel: cancelSongSelection,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
 
