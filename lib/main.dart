@@ -810,7 +810,30 @@ class _MyAppState extends ConsumerState<MyApp>
           GlobalCupertinoLocalizations.delegate,
         ],
         supportedLocales: AppLocalizations.supportedLocales,
-        home: MainLayout(args: widget.args),
+        onGenerateInitialRoutes: (initialRoute) {
+          final settings = ref.read(settingsServiceProvider);
+          final needOnboarding = !settings.hasShownOnboarding;
+          final isStressTest = widget.args.any(
+            (arg) => arg == '--stress-test' || arg == '--audio-stress-test',
+          );
+          if (needOnboarding || isStressTest) {
+            return [
+              buildMainLayoutRoute(args: widget.args, initialIndex: 0),
+            ];
+          }
+          return [
+            buildMainLayoutRoute(args: widget.args, initialIndex: 0),
+            buildMainLayoutRoute(args: widget.args, initialIndex: 1),
+          ];
+        },
+        onGenerateRoute: (settings) {
+          final name = settings.name;
+          if (name != null && name.startsWith('main-tab-')) {
+            final index = int.tryParse(name.replaceFirst('main-tab-', '')) ?? 0;
+            return buildMainLayoutRoute(args: widget.args, initialIndex: index);
+          }
+          return buildMainLayoutRoute(args: widget.args, initialIndex: 0);
+        },
         navigatorKey: navigatorKey,
       );
 

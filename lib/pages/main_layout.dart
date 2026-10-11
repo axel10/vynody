@@ -346,7 +346,10 @@ class _MainLayoutState extends ConsumerState<MainLayout>
       if (needOnboarding) {
         _triggerOnboardingFlow();
       } else {
-        _checkAndShowTrialResetNotice();
+        final modalRoute = ModalRoute.of(context);
+        if (modalRoute == null || modalRoute.isCurrent) {
+          _checkAndShowTrialResetNotice();
+        }
       }
     });
 

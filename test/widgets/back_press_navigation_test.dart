@@ -192,5 +192,41 @@ void main() {
       await tester.pumpAndSettle();
       expect(pageClosed, isTrue);
     });
+
+    testWidgets('Cold start initial routes have base page underneath playback page and allow pop', (tester) async {
+      final rootNavKey = GlobalKey<NavigatorState>();
+
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            navigatorKey: rootNavKey,
+            onGenerateInitialRoutes: (initialRoute) {
+              return [
+                PageRouteBuilder<void>(
+                  settings: const RouteSettings(name: 'main-tab-0'),
+                  pageBuilder: (_, _, _) => const Scaffold(body: Text('BasePage')),
+                ),
+                PageRouteBuilder<void>(
+                  settings: const RouteSettings(name: 'main-tab-1'),
+                  pageBuilder: (_, _, _) => const Scaffold(body: Text('PlaybackPage')),
+                ),
+              ];
+            },
+            onGenerateRoute: (settings) => null,
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      expect(find.text('PlaybackPage'), findsOneWidget);
+      expect(rootNavKey.currentState?.canPop(), isTrue);
+
+      rootNavKey.currentState?.pop();
+      await tester.pumpAndSettle();
+
+      expect(find.text('BasePage'), findsOneWidget);
+      expect(find.text('PlaybackPage'), findsNothing);
+      expect(rootNavKey.currentState?.canPop(), isFalse);
+    });
   });
 }
