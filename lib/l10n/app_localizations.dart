@@ -9733,7 +9733,7 @@ abstract class AppLocalizations {
   /// Rediscover past favorite albums
   ///
   /// In zh, this message translates to:
-  /// **'拾光机 / 重温旧爱'**
+  /// **'重温旧爱'**
   String get timeMachine;
 
   /// Subtitle for rediscover past favorites

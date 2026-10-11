@@ -5217,7 +5217,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get thisWeekTopSubtitle => '近 7 天循环最多的单曲';
 
   @override
-  String get timeMachine => '拾光机 / 重温旧爱';
+  String get timeMachine => '重温旧爱';
 
   @override
   String get timeMachineSubtitle => '重温好久没听的常听或高分专辑';
@@ -10478,7 +10478,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get thisWeekTopSubtitle => '近 7 天循環最多的單曲';
 
   @override
-  String get timeMachine => '拾光機 / 重溫舊愛';
+  String get timeMachine => '重溫舊愛';
 
   @override
   String get timeMachineSubtitle => '重溫好久沒聽的常聽或高分專輯';

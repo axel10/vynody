@@ -3585,7 +3585,7 @@
   "@thisWeekTopSubtitle": {
     "description": "Subtitle for top tracks this week"
   },
-  "timeMachine": "拾光机 / 重温旧爱",
+  "timeMachine": "重温旧爱",
   "@timeMachine": {
     "description": "Rediscover past favorite albums"
   },
