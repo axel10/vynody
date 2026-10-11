@@ -673,6 +673,9 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> get ready => _readyCompleter.future;
   bool get isReady => _readyCompleter.isCompleted;
 
+  String _currentScanStage = 'idle';
+  String get currentScanStage => _currentScanStage;
+
   ScannerService({
     bool autoInitialize = true,
     Duration directoryRescanBatchWindow = _defaultDirectoryRescanBatchWindow,
@@ -3159,6 +3162,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       return;
     }
 
+    _currentScanStage = 'stage 2: classify discovered files ($rootPath)';
     final classification = await _timeScanStep(
       'stage 2 classify discovered files batch',
       () => _classifyDiscoveredFiles(
@@ -3177,6 +3181,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     existingMetadataByPath.removeWhere(
       (path, metadata) => _shouldSkipShortAudioDuration(metadata.duration),
     );
+    _currentScanStage = 'stage 2.1: seed metadata from db ($rootPath)';
     _timeScanStepSync('stage 2.1 seed metadata from db batch', () {
       _seedMetadataFromDatabase(existingMetadataByPath);
     });
@@ -3223,6 +3228,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
         _syncScannedRootUiIncrementally(rootPath);
       });
 
+      _currentScanStage = 'stage 3: preprocess text tags (${fullPaths.length} files, $rootPath)';
       final preprocessResult = await _timeScanStep(
         'stage 3 preprocess text tags batch',
         () => _preprocessChangedFiles(
@@ -3246,6 +3252,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
         ...imageOnlyPaths,
       ];
 
+      _currentScanStage = 'stage 3.1: mark root scan token ($rootPath)';
       await _timeScanStep('stage 3.1 mark root scan token batch', () async {
         await MetadataDatabase().markRootScanSeenWithToken(
           visiblePaths,
@@ -3260,6 +3267,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       }
 
       await Future<void>.delayed(Duration.zero);
+      _currentScanStage = 'stage 3.2: rebuild visible root tree ($rootPath)';
       await _timeScanStep('stage 3.2 rebuild visible root tree', () async {
         await _rebuildScannedRootFolderFromMetadata(rootPath, visiblePaths);
         _rebuildDisplayedRootFolders();
@@ -3373,6 +3381,19 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     notifyListeners();
 
     final totalStopwatch = Stopwatch()..start();
+    ScanProgressState? currentScanState;
+    _currentScanStage = 'stage 0: permissions';
+    final heartbeatTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      debugPrint(
+        '[ScannerHeartbeat] ${totalStopwatch.elapsed.inSeconds}s | '
+        'stage: $_currentScanStage | '
+        'activeRoot: ${_scanCoordinator.state.activeRootPath ?? "none"} | '
+        'discovered: ${currentScanState?.discoveredCount ?? 0} | '
+        'completed: ${currentScanState?.completedCount ?? 0} | '
+        'isScanning: $isScanning',
+      );
+    });
+
     try {
       final permissionsStopwatch = Stopwatch()..start();
       final hasPermission = await _checkPermissions(request: false);
@@ -3387,13 +3408,18 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       }
 
       if (Platform.isIOS || Platform.isMacOS) {
+        _currentScanStage = 'stage 0.5: healIosSandboxPaths';
+        debugPrint('[ScannerService] Starting healIosSandboxPaths...');
         await MetadataDatabase().healIosSandboxPaths();
+        debugPrint('[ScannerService] Finished healIosSandboxPaths.');
       }
 
+      _currentScanStage = 'stage 1: root discovery';
       final scanState = ScanProgressState(
         metadataConcurrency: 4,
         comparePaths: _compareNaturally,
       );
+      currentScanState = scanState;
       final scanRoots = _timeScanStepSync('stage 1 root discovery', () {
         _invalidateScanRootsCache();
         final requestedRoots = _computeScanRoots(rootsProvider());
@@ -3434,6 +3460,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
         _scanCoordinator.setActiveRootPath(path);
         debugPrint('Starting scan at: $path');
 
+        _currentScanStage = 'stage 1.1: directory traversal ($path)';
         final discoveredPaths = await _timeScanStep(
           'stage 1.1 directory traversal for $path',
           () => _discoverRootFilePaths(path, scanState, scanToken),
@@ -3453,6 +3480,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
           continue;
         }
 
+        _currentScanStage = 'stage 2: process discovered paths ($path, ${discoveredPaths.length} files)';
         await _processDiscoveredPaths(
           discoveredPaths,
           scanState,
@@ -3472,6 +3500,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       }
 
       if (_isScanTokenCurrent(scanToken)) {
+        _currentScanStage = 'stage 5: collect present paths';
         final presentPaths = _timeScanStepSync(
           'stage 5 collect present paths',
           () {
@@ -3481,6 +3510,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
                 .toSet();
           },
         );
+        _currentScanStage = 'stage 5.1: sweep root scan state';
         final sweepResult = await _timeScanStep(
           'stage 5.1 sweep root scan state',
           () => _repository.sweepRootScanState(
@@ -3489,6 +3519,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
             activeRoots: scanRoots,
           ),
         );
+        _currentScanStage = 'stage 5.4: notify missing states';
         _timeScanStepSync('stage 5.4 notify missing states', () {
           for (final path in presentPaths) {
             _notifySongMissingState(path, false);
@@ -3510,6 +3541,8 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     } catch (e) {
       debugPrint('Scan error: $e');
     } finally {
+      heartbeatTimer.cancel();
+      _currentScanStage = 'idle';
       _pendingDirectoryRescanPaths.clear();
       _directoryRescanTimer?.cancel();
       _directoryRescanTimer = null;
