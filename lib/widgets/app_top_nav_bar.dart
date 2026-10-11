@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 import 'package:vynody/l10n/app_localizations.dart';
@@ -33,9 +35,18 @@ class AppTopNavBar extends StatelessWidget {
   static double getSafeTopPadding(BuildContext context) {
     final orientation = MediaQuery.of(context).orientation;
     final bool isLandscape = orientation == Orientation.landscape;
-    return isLandscape
-        ? 0.0
-        : getTitleBarTopPadding(context, defaultWindowPadding: 32.0);
+    if (isLandscape) {
+      if (Platform.isMacOS) {
+        final windowWidth = MediaQuery.sizeOf(context).width;
+        final isRailCollapsed =
+            sidebarRailWidthFor(windowWidth) < kSidebarRailWidthExtended;
+        if (isRailCollapsed) {
+          return getTitleBarTopPadding(context, defaultWindowPadding: 32.0);
+        }
+      }
+      return 0.0;
+    }
+    return getTitleBarTopPadding(context, defaultWindowPadding: 32.0);
   }
 
   /// 计算整个顶部栏的总高度（safeTopPadding + contentHeight）
