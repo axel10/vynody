@@ -599,7 +599,7 @@ class LyricsController extends Notifier<LyricsControllerState> {
   }
 
   void _logDebug(String message) {
-    if (!kDebugMode) return;
+    if (kReleaseMode) return;
     debugPrint('[LyricsController] $message');
   }
 

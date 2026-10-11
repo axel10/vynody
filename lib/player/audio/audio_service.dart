@@ -1487,6 +1487,17 @@ class AudioService extends Notifier<AudioSnapshot> {
     _duration = _player.player.duration;
 
     final currentSong = currentMusic;
+    if (_isTransitioning) {
+      return;
+    }
+    final activeTrack = _player.playlist.currentTrack;
+    if (activeTrack != null &&
+        currentSong != null &&
+        activeTrack.id != currentSong.path &&
+        activeTrack.uri != currentSong.path) {
+      return;
+    }
+
     if (_duration > Duration.zero && currentSong != null) {
       final durMs = _duration.inMilliseconds;
       if (currentSong.durationMillis != durMs) {

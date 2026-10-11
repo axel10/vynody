@@ -398,9 +398,61 @@ class LyricsControllerSupport {
     }
   }
 
+  Future<({String title, String? artist, String? album, Duration? duration})>
+      resolveLyricsQueryMetadata(MusicFile song) async {
+    // 优先直接从物理音频文件标签解析，避免切歌时序和数据库延迟导致的元数据/时长脏数据
+    final fileMetadata = await MetadataHelper.readMetadataFromFile(song.path);
+
+    var title = normalizedLyricsField(fileMetadata?.title);
+    var artist = normalizedLyricsField(fileMetadata?.artist);
+    var album = normalizedLyricsField(fileMetadata?.album);
+    Duration? duration = (fileMetadata?.duration != null && fileMetadata!.duration! > 0)
+        ? Duration(milliseconds: fileMetadata.duration!)
+        : null;
+
+    if (duration != null) {
+      _context.cacheSongDuration(song.path, duration.inMilliseconds);
+    }
+
+    // 若直接读文件未获取完整（如网络流媒体或不支持标签），从数据库补齐
+    if (title == null || artist == null || album == null || duration == null) {
+      final dbMetadata = await _context.db.getSongMetadata(song.path);
+      if (dbMetadata != null) {
+        title ??= normalizedLyricsField(dbMetadata.title);
+        artist ??= normalizedLyricsField(dbMetadata.artist);
+        album ??= normalizedLyricsField(dbMetadata.album);
+        if (duration == null && dbMetadata.duration != null && dbMetadata.duration! > 0) {
+          duration = Duration(milliseconds: dbMetadata.duration!);
+        }
+      }
+    }
+
+    // 兜底回退：当前歌曲对象或播放器
+    var currentSong = _context.currentMusic();
+    if (currentSong != null && currentSong.path != song.path) {
+      currentSong = null;
+    }
+
+    title ??= normalizedLyricsField(currentSong?.title) ??
+        normalizedLyricsField(song.title) ??
+        lyricsTitleForQuery(song);
+    artist ??= normalizedLyricsField(currentSong?.artist) ??
+        normalizedLyricsField(song.artist);
+    album ??= normalizedLyricsField(currentSong?.album) ??
+        normalizedLyricsField(song.album);
+    duration ??= await resolveLyricsDuration(song);
+
+    return (
+      title: title,
+      artist: artist,
+      album: album,
+      duration: duration,
+    );
+  }
+
   Future<LyricsQuery?> buildLyricsQueryForSong(MusicFile song) async {
-    final duration = await resolveLyricsDuration(song);
-    if (duration == null) {
+    final meta = await resolveLyricsQueryMetadata(song);
+    if (meta.duration == null) {
       logDebug(
         'lyrics query build failed -> title="${song.displayName}" '
         'path="${song.path}" reason=no_duration '
@@ -412,10 +464,10 @@ class LyricsControllerSupport {
     return LyricsQuery(
       filePath: song.path,
       fileName: song.name,
-      title: lyricsTitleForQuery(song),
-      artist: lyricsArtistForQuery(song),
-      album: lyricsAlbumForQuery(song),
-      duration: duration,
+      title: meta.title,
+      artist: meta.artist,
+      album: meta.album,
+      duration: meta.duration,
     );
   }
 
@@ -461,11 +513,12 @@ class LyricsControllerSupport {
   }
 
   Future<Duration?> resolveLyricsDuration(MusicFile song) async {
-    final direct = lyricsDurationForQuery(song);
-    if (direct != null &&
-        song.durationMillis != null &&
-        song.durationMillis! > 0) {
-      return direct;
+    // 优先物理文件标签时长
+    final fileMetadata = await MetadataHelper.readMetadataFromFile(song.path);
+    final fileDuration = fileMetadata?.duration;
+    if (fileDuration != null && fileDuration > 0) {
+      _context.cacheSongDuration(song.path, fileDuration);
+      return Duration(milliseconds: fileDuration);
     }
 
     final dbMetadata = await _context.db.getSongMetadata(song.path);
@@ -475,11 +528,11 @@ class LyricsControllerSupport {
       return Duration(milliseconds: dbDuration);
     }
 
-    final fileMetadata = await MetadataHelper.readMetadataFromFile(song.path);
-    final fileDuration = fileMetadata?.duration;
-    if (fileDuration != null && fileDuration > 0) {
-      _context.cacheSongDuration(song.path, fileDuration);
-      return Duration(milliseconds: fileDuration);
+    final direct = lyricsDurationForQuery(song);
+    if (direct != null &&
+        song.durationMillis != null &&
+        song.durationMillis! > 0) {
+      return direct;
     }
 
     final currentMusic = _context.currentMusic();
@@ -490,7 +543,7 @@ class LyricsControllerSupport {
       }
     }
 
-    return direct;
+    return null;
   }
 
   String? lyricsArtistForQuery(MusicFile song) {

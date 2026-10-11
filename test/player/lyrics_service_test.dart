@@ -227,6 +227,45 @@ void main() {
         );
       },
     );
+
+    test(
+      'rejects candidates with conflicting artist even if title matches and duration is close',
+      () async {
+        final searchResponse = Response<dynamic>(
+          requestOptions: RequestOptions(path: 'https://lrclib.net/api/search'),
+          data: [
+            {
+              'id': 1,
+              'trackName': 'Savior',
+              'artistName': 'Rol3ert',
+              'albumName': 'Other Album',
+              'duration': 180,
+              'plainLyrics': 'Unrelated lyrics',
+              'syncedLyrics': '[00:10.00] Unrelated lyrics',
+            },
+          ],
+        );
+        final client = _RoutingNetworkClient(
+          searchResponse: searchResponse,
+        );
+        final service = LyricsService(
+          client: client,
+          cacheRepository: _NoopLyricsCacheRepository(),
+        );
+
+        final result = await service.fetchBestLyrics(
+          query: const LyricsQuery(
+            filePath: '/music/OneRepublic - Savior.flac',
+            fileName: 'OneRepublic - Savior.flac',
+            title: 'Savior',
+            artist: 'OneRepublic',
+            duration: Duration(seconds: 181),
+          ),
+        );
+
+        expect(result, isNull);
+      },
+    );
   });
 }
 

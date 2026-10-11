@@ -447,20 +447,7 @@ class LyricsService {
       return metadataLyrics;
     }
 
-    // 如果数据库缓存存在空缓存（none），此时才作为兜底返回，避免在此之前拦截了元数据或本地歌词
-    final emptyCache = await _loadFromDatabase(normalizedQuery);
-    if (emptyCache != null && emptyCache.source == 'none') {
-      _logDebug('fetch cache hit (none) -> key="$cacheKey"');
-      if (debugLog) {
-        debugPrintSelection(
-          normalizedQuery,
-          emptyCache,
-          source: 'sqlite',
-        );
-      }
-      return emptyCache;
-    }
-
+    // 忽略数据库中的空缓存（none），直接向下走网络流程，避免偶发网络失败导致永久判定为暂无歌词
     // 3. 合并正在进行的相同请求：防止同一首歌短时间内多次发起网络搜索请求
     final existing = _inFlight[cacheKey];
     if (existing != null) {
@@ -840,9 +827,7 @@ class LyricsService {
       return fallbackResult;
     }
 
-    if (cancelToken?.isCancelled != true) {
-      await _saveEmptyToDatabase(query);
-    }
+    _logDebug('pipeline finished without lyrics -> title="${query.title}"');
     return null;
   }
 
@@ -860,9 +845,6 @@ class LyricsService {
     }
     final trimmedTitle = searchTitle.trim();
     if (trimmedTitle.isEmpty) {
-      if (cacheEmptyResult && cancelToken?.isCancelled != true) {
-        await _saveEmptyToDatabase(cacheQuery);
-      }
       return null;
     }
 
@@ -928,9 +910,6 @@ class LyricsService {
 
     if (candidateTracks.isEmpty) {
       _logDebug('phase search empty -> title="$trimmedTitle"');
-      if (cacheEmptyResult && cancelToken?.isCancelled != true) {
-        await _saveEmptyToDatabase(cacheQuery);
-      }
       return null;
     }
 
@@ -952,14 +931,11 @@ class LyricsService {
 
     if (scoredResults.isEmpty) {
       _logDebug('phase scoring empty -> title="$trimmedTitle"');
-      if (cacheEmptyResult && cancelToken?.isCancelled != true) {
-        await _saveEmptyToDatabase(cacheQuery);
-      }
       return null;
     }
 
     scoredResults.sort(_compareSelectionResults);
-    var bestCandidate = scoredResults.first;
+    final bestCandidate = scoredResults.first;
     _logDebug(
       'phase scored -> title="$trimmedTitle" '
       'bestScore=${bestCandidate.score.toStringAsFixed(1)} '
@@ -969,30 +945,11 @@ class LyricsService {
     );
 
     if (bestCandidate.score < _acceptThreshold) {
-      // 检查是否有时间极其接近的（3秒内）作为兜底
-      final fallbackCandidates = scoredResults
-          .where((r) => r.durationDiffSeconds <= 3)
-          .toList();
-
-      if (fallbackCandidates.isNotEmpty) {
-        fallbackCandidates.sort((a, b) {
-          final diffCompare = a.durationDiffSeconds.compareTo(
-            b.durationDiffSeconds,
-          );
-          if (diffCompare != 0) return diffCompare;
-          return b.score.compareTo(a.score);
-        });
-        bestCandidate = fallbackCandidates.first;
-      } else {
-        _logDebug(
-          'phase rejected all -> title="$trimmedTitle" '
-          'bestScore=${bestCandidate.score.toStringAsFixed(1)}',
-        );
-        if (cacheEmptyResult && cancelToken?.isCancelled != true) {
-          await _saveEmptyToDatabase(cacheQuery);
-        }
-        return null;
-      }
+      _logDebug(
+        'phase rejected all -> title="$trimmedTitle" '
+        'bestScore=${bestCandidate.score.toStringAsFixed(1)} threshold=$_acceptThreshold',
+      );
+      return null;
     }
 
     if (cancelToken?.isCancelled == true) {
@@ -1010,12 +967,12 @@ class LyricsService {
 
   Future<LyricSelectionResult?> _loadFromDatabase(
     LyricsQuery query, {
-    bool ignoreEmptyCache = false,
+    bool ignoreEmptyCache = true,
   }) async {
     try {
       final record = await _cacheRepository.getLyricsCacheTolerant(
         query,
-        ignoreNone: ignoreEmptyCache,
+        ignoreNone: true,
       );
       if (record == null) {
         debugPrint('[Lyrics] Cache miss -> key="${query.cacheKey}"');
@@ -1028,25 +985,6 @@ class LyricsService {
     } catch (e) {
       debugPrint('[Lyrics] Failed to load cache for "${query.cacheKey}": $e');
       return null;
-    }
-  }
-
-  Future<void> _saveEmptyToDatabase(LyricsQuery query) async {
-    try {
-      final record = LyricsCacheRecord(
-        cacheKey: query.cacheKey,
-        source: LyricsCacheSource.none,
-        isSynced: false,
-        syncedLyrics: null,
-        syncedLines: const [],
-        timelineOffsetMillis: 0,
-        updatedAtMillis: DateTime.now().millisecondsSinceEpoch,
-      );
-      await _cacheRepository.saveLyricsCache(record);
-    } catch (e) {
-      debugPrint(
-        '[Lyrics] Failed to cache empty result for "${query.title}": $e',
-      );
     }
   }
 
@@ -1238,8 +1176,12 @@ class LyricsService {
         : 0.0;
 
     if (!fromGetApi) {
+      final hasBothArtists =
+          queryArtist.isNotEmpty && candidateArtist.isNotEmpty;
+      final artistConflict = hasBothArtists && artistScore < 0.2;
       final obviousMismatch =
           (titleScore < 0.18 && artistScore < 0.18) ||
+          artistConflict ||
           (durationSeconds != null &&
               candidateDuration != null &&
               (durationSeconds - candidateDuration).abs() > 8);
@@ -1440,7 +1382,7 @@ class LyricsService {
   }
 
   void _logDebug(String message) {
-    if (!kDebugMode) return;
+    if (kReleaseMode) return;
     debugPrint('[Lyrics] $message');
   }
 }

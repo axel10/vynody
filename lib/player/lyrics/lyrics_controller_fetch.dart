@@ -25,7 +25,6 @@ class LyricsFetchCoordinator {
 
   void scheduleFetch(MusicFile song) {
     unawaited(fetchAndLog(song));
-    unawaited(retryFetchUntilReady(song));
   }
 
   Future<void> fetchAndLog(MusicFile song) async {
@@ -50,7 +49,8 @@ class LyricsFetchCoordinator {
       'path="${song.path}" cancelToken=${identityHashCode(cancelToken)}',
     );
 
-    final queryDuration = await _support.resolveLyricsDuration(song);
+    final meta = await _support.resolveLyricsQueryMetadata(song);
+    final queryDuration = meta.duration;
     if (queryDuration == null) {
       _support.logDebug(
         'fetch skipped, duration not ready -> title="${song.displayName}" '
@@ -61,6 +61,7 @@ class LyricsFetchCoordinator {
         _context.lyricsFetchCancelToken = null;
       }
       _context.setIsLyricsLoading(false);
+      unawaited(retryFetchUntilReady(song));
       return;
     }
 
@@ -68,17 +69,18 @@ class LyricsFetchCoordinator {
     final query = LyricsQuery(
       filePath: song.path,
       fileName: song.name,
-      title: _support.lyricsTitleForQuery(song),
-      artist: _support.lyricsArtistForQuery(song),
-      album: _support.lyricsAlbumForQuery(song),
+      title: meta.title,
+      artist: meta.artist,
+      album: meta.album,
       duration: queryDuration,
     );
 
     _context.setIsLyricsLoading(true);
     _support.logDebug(
-      'fetch start -> title="${song.displayName}" path="${song.path}" '
-      'queryDuration=$queryDuration playerDuration=${_context.playerDuration()} '
-      'requestId=$requestId cancelToken=${identityHashCode(cancelToken)}',
+      '[LyricsQuery:Fetch] title="${query.title}" artist="${query.artist ?? ''}" '
+      'album="${query.album ?? ''}" queryDuration=$queryDuration '
+      'playerDuration=${_context.playerDuration()} requestId=$requestId '
+      'cancelToken=${identityHashCode(cancelToken)}',
     );
 
     try {
@@ -267,29 +269,21 @@ class LyricsFetchCoordinator {
         _context.lyricsGeneration.songPath == song.path) {
       return;
     }
-    if (_context.state.isLyricsLoading ||
-        _context.lyricsFetchCancelToken != null) {
-      return;
-    }
 
     final retryId = ++_context.lyricsRetrySerial;
     for (var attempt = 0; attempt < 12; attempt++) {
-      await Future<void>.delayed(const Duration(milliseconds: 150));
+      await Future<void>.delayed(const Duration(milliseconds: 200));
 
       if (retryId != _context.lyricsRetrySerial) return;
       if (!_context.isLyricsActive() ||
           _context.currentMusic()?.path != song.path) {
         return;
       }
-      if (_context.state.hasLyrics ||
-          _context.state.isLyricsLoading ||
-          _context.state.lyricsSearchAttempted) {
-        _support.logDebug(
-          'retry aborted because state changed -> title="${song.displayName}" '
-          'attempt=${attempt + 1} retryId=$retryId loading=${_context.state.isLyricsLoading} '
-          'searched=${_context.state.lyricsSearchAttempted} hasLyrics=${_context.state.hasLyrics}',
-        );
+      if (_context.state.hasLyrics) {
         return;
+      }
+      if (_context.state.isLyricsLoading) {
+        continue;
       }
 
       if (await _support.resolveLyricsDuration(song) != null) {
@@ -398,6 +392,10 @@ class LyricsFetchCoordinator {
     final song = _context.currentMusic();
     if (song == null) return;
 
+    _support.logDebug(
+      '[LyricsQuery:Requery] Manual requery triggered -> title="${song.displayName}" '
+      'artist="${song.artist ?? ''}" album="${song.album ?? ''}"',
+    );
     await clearLyricsCacheForCurrentSong();
     if (_context.currentMusic()?.path != song.path) return;
     scheduleFetch(song);
