@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
+import 'app_root_tooltip.dart';
 
 /// 全局统一的纯色/微半透圆底返回按钮（类似 Apple Music / macOS 经典悬浮返回钮）
 /// 适用于媒体库二级分类宿主页及三级详情页（专辑、艺人等），固定在顶部左侧。
@@ -38,7 +39,7 @@ class AppCircularBackButton extends StatelessWidget {
 
     final effectiveFg = foregroundColor ?? theme.colorScheme.onSurface;
 
-    return Tooltip(
+    return AppRootTooltip(
       message: tooltip ?? l10n?.goBack ?? '返回',
       child: Material(
         color: Colors.transparent,

@@ -17,6 +17,7 @@ import 'library_dashboard_view.dart';
 import 'main_layout_riverpod.dart';
 import '../widgets/library_selection_scope.dart';
 import '../widgets/auto_hide_header.dart';
+import '../widgets/app_root_tooltip.dart';
 import '../utils/layout_constants.dart';
 import '../utils/blur_constants.dart';
 
@@ -370,10 +371,12 @@ class _LibrarySubHostPageState extends ConsumerState<LibrarySubHostPage> {
                           child: Row(
                             children: [
                               const SizedBox(width: 4),
-                              IconButton(
-                                icon: const Icon(Icons.arrow_back_rounded),
-                                tooltip: l10n.goBack,
-                                onPressed: () => Navigator.of(context).maybePop(),
+                              AppRootTooltip(
+                                message: l10n.goBack,
+                                child: IconButton(
+                                  icon: const Icon(Icons.arrow_back_rounded),
+                                  onPressed: () => Navigator.of(context).maybePop(),
+                                ),
                               ),
                               const SizedBox(width: 4),
                               Expanded(
