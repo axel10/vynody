@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -140,12 +141,25 @@ class _ArtistDetailContentState extends ConsumerState<ArtistDetailContent>
   LibrarySelectionScope get selectionScope => LibrarySelectionScope.library;
 
   String? _cachedImagePath;
+  StreamSubscription<String>? _imageUpdateSub;
 
   @override
   void initState() {
     super.initState();
     _cachedImagePath = widget.artist.cachedImagePath;
+    _imageUpdateSub = TheAudioDbArtistService.instance.onArtistImageUpdated
+        .listen((queryKey) {
+      if (queryKey == widget.artist.queryKey && mounted) {
+        _refreshImage();
+      }
+    });
     _fetchArtistImageIfNeeded();
+  }
+
+  @override
+  void dispose() {
+    _imageUpdateSub?.cancel();
+    super.dispose();
   }
 
   @override
@@ -160,6 +174,20 @@ class _ArtistDetailContentState extends ConsumerState<ArtistDetailContent>
     }
   }
 
+  Future<void> _refreshImage() async {
+    final imagePath = await TheAudioDbArtistService.instance
+        .fetchAndCacheArtistImage(widget.artist, priority: true);
+    if (!mounted) return;
+    if (imagePath != null &&
+        imagePath.isNotEmpty &&
+        imagePath != _cachedImagePath) {
+      setState(() {
+        _cachedImagePath = imagePath;
+      });
+      ref.invalidate(artistLibraryProvider);
+    }
+  }
+
   Future<void> _fetchArtistImageIfNeeded() async {
     if (_cachedImagePath != null &&
         _cachedImagePath!.isNotEmpty &&
@@ -167,9 +195,11 @@ class _ArtistDetailContentState extends ConsumerState<ArtistDetailContent>
       return;
     }
     final imagePath = await TheAudioDbArtistService.instance
-        .fetchAndCacheArtistImage(widget.artist);
+        .fetchAndCacheArtistImage(widget.artist, priority: true);
     if (!mounted) return;
-    if (imagePath != null) {
+    if (imagePath != null &&
+        imagePath.isNotEmpty &&
+        imagePath != _cachedImagePath) {
       setState(() {
         _cachedImagePath = imagePath;
       });

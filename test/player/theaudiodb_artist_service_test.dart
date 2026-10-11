@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
@@ -326,6 +327,302 @@ void main() {
         expect(cachedRecord!.noData, isTrue);
       },
     );
+
+    test('priority request jumps ahead of normal queued requests', () async {
+      final db = MetadataDatabase();
+      final executedOrder = <String>[];
+      final completer1 = Completer<void>();
+      final completer2 = Completer<void>();
+
+      final client = _MockNetworkClient((url) {
+        if (url.contains('11111111-1111-1111-1111-111111111111')) {
+          // Slot 1
+          return completer1.future.then((_) => {
+            'artists': [
+              {
+                'idArtist': '1001',
+                'strArtist': 'Slot 1 Artist',
+                'strArtistThumb': 'https://example.com/slot1.jpg',
+              }
+            ]
+          });
+        }
+        if (url.contains('22222222-2222-2222-2222-222222222222')) {
+          // Slot 2
+          return completer2.future.then((_) => {
+            'artists': [
+              {
+                'idArtist': '1002',
+                'strArtist': 'Slot 2 Artist',
+                'strArtistThumb': 'https://example.com/slot2.jpg',
+              }
+            ]
+          });
+        }
+        if (url.contains('33333333-3333-3333-3333-333333333333')) {
+          executedOrder.add('normal_1');
+          return {
+            'artists': [
+              {
+                'idArtist': '1003',
+                'strArtist': 'Normal Artist 1',
+                'strArtistThumb': 'https://example.com/normal1.jpg',
+              }
+            ]
+          };
+        }
+        if (url.contains('44444444-4444-4444-4444-444444444444')) {
+          executedOrder.add('normal_2');
+          return {
+            'artists': [
+              {
+                'idArtist': '1004',
+                'strArtist': 'Normal Artist 2',
+                'strArtistThumb': 'https://example.com/normal2.jpg',
+              }
+            ]
+          };
+        }
+        if (url.contains('55555555-5555-5555-5555-555555555555')) {
+          executedOrder.add('priority');
+          return {
+            'artists': [
+              {
+                'idArtist': '1005',
+                'strArtist': 'Priority Artist',
+                'strArtistThumb': 'https://example.com/priority.jpg',
+              }
+            ]
+          };
+        }
+        if (url.endsWith('.jpg')) {
+          return <int>[1, 2, 3, 4];
+        }
+        return null;
+      });
+
+      final service = TheAudioDbArtistService(
+        networkClient: client,
+        database: db,
+        musicBrainzRateLimitDelay: Duration.zero,
+      );
+
+      // 1. Occupy the 2 concurrent slots
+      final future1 = service.fetchAndCacheArtistImage(
+        const ArtistSummary(
+          queryKey: 'slot_1',
+          name: 'Slot 1 Artist',
+          artistId: '11111111-1111-1111-1111-111111111111',
+          songs: <MusicFile>[],
+          representativeSong: MusicFile(path: '/dummy.mp3', name: 'dummy'),
+          songCount: 1,
+        ),
+      );
+      final future2 = service.fetchAndCacheArtistImage(
+        const ArtistSummary(
+          queryKey: 'slot_2',
+          name: 'Slot 2 Artist',
+          artistId: '22222222-2222-2222-2222-222222222222',
+          songs: <MusicFile>[],
+          representativeSong: MusicFile(path: '/dummy.mp3', name: 'dummy'),
+          songCount: 1,
+        ),
+      );
+
+      // Allow event loop to let future1 and future2 acquire network slots
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+
+      // 2. Queue normal artists
+      final normalFuture1 = service.fetchAndCacheArtistImage(
+        const ArtistSummary(
+          queryKey: 'normal_1',
+          name: 'Normal Artist 1',
+          artistId: '33333333-3333-3333-3333-333333333333',
+          songs: <MusicFile>[],
+          representativeSong: MusicFile(path: '/dummy.mp3', name: 'dummy'),
+          songCount: 1,
+        ),
+      );
+      final normalFuture2 = service.fetchAndCacheArtistImage(
+        const ArtistSummary(
+          queryKey: 'normal_2',
+          name: 'Normal Artist 2',
+          artistId: '44444444-4444-4444-4444-444444444444',
+          songs: <MusicFile>[],
+          representativeSong: MusicFile(path: '/dummy.mp3', name: 'dummy'),
+          songCount: 1,
+        ),
+      );
+
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+
+      // 3. Queue priority artist (enters front of queue)
+      final priorityFuture = service.fetchAndCacheArtistImage(
+        const ArtistSummary(
+          queryKey: 'priority',
+          name: 'Priority Artist',
+          artistId: '55555555-5555-5555-5555-555555555555',
+          songs: <MusicFile>[],
+          representativeSong: MusicFile(path: '/dummy.mp3', name: 'dummy'),
+          songCount: 1,
+        ),
+        priority: true,
+      );
+
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+
+      // 4. Release slot 1
+      completer1.complete();
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+
+      // 5. Release slot 2
+      completer2.complete();
+
+      await Future.wait([future1, future2, normalFuture1, normalFuture2, priorityFuture]);
+
+      // Priority artist should have executed before normal_1 and normal_2
+      expect(executedOrder.first, equals('priority'));
+    });
+
+    test('in-flight queued normal request is promoted to priority when requested with priority: true', () async {
+      final db = MetadataDatabase();
+      final executedOrder = <String>[];
+      final completer1 = Completer<void>();
+      final completer2 = Completer<void>();
+
+      final client = _MockNetworkClient((url) {
+        if (url.contains('11111111-1111-1111-1111-111111111111')) {
+          return completer1.future.then((_) => {
+            'artists': [
+              {
+                'idArtist': '1001',
+                'strArtist': 'Slot 1 Artist',
+                'strArtistThumb': 'https://example.com/slot1.jpg',
+              }
+            ]
+          });
+        }
+        if (url.contains('22222222-2222-2222-2222-222222222222')) {
+          return completer2.future.then((_) => {
+            'artists': [
+              {
+                'idArtist': '1002',
+                'strArtist': 'Slot 2 Artist',
+                'strArtistThumb': 'https://example.com/slot2.jpg',
+              }
+            ]
+          });
+        }
+        if (url.contains('33333333-3333-3333-3333-333333333333')) {
+          executedOrder.add('normal_1');
+          return {
+            'artists': [
+              {
+                'idArtist': '1003',
+                'strArtist': 'Normal Artist 1',
+                'strArtistThumb': 'https://example.com/normal1.jpg',
+              }
+            ]
+          };
+        }
+        if (url.contains('44444444-4444-4444-4444-444444444444')) {
+          executedOrder.add('promoted_artist');
+          return {
+            'artists': [
+              {
+                'idArtist': '1004',
+                'strArtist': 'Promoted Artist',
+                'strArtistThumb': 'https://example.com/promoted.jpg',
+              }
+            ]
+          };
+        }
+        if (url.endsWith('.jpg')) {
+          return <int>[1, 2, 3, 4];
+        }
+        return null;
+      });
+
+      final service = TheAudioDbArtistService(
+        networkClient: client,
+        database: db,
+        musicBrainzRateLimitDelay: Duration.zero,
+      );
+
+      final future1 = service.fetchAndCacheArtistImage(
+        const ArtistSummary(
+          queryKey: 'slot_1',
+          name: 'Slot 1 Artist',
+          artistId: '11111111-1111-1111-1111-111111111111',
+          songs: <MusicFile>[],
+          representativeSong: MusicFile(path: '/dummy.mp3', name: 'dummy'),
+          songCount: 1,
+        ),
+      );
+      final future2 = service.fetchAndCacheArtistImage(
+        const ArtistSummary(
+          queryKey: 'slot_2',
+          name: 'Slot 2 Artist',
+          artistId: '22222222-2222-2222-2222-222222222222',
+          songs: <MusicFile>[],
+          representativeSong: MusicFile(path: '/dummy.mp3', name: 'dummy'),
+          songCount: 1,
+        ),
+      );
+
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+
+      // Normal 1 enters queue first
+      final normalFuture1 = service.fetchAndCacheArtistImage(
+        const ArtistSummary(
+          queryKey: 'normal_1',
+          name: 'Normal Artist 1',
+          artistId: '33333333-3333-3333-3333-333333333333',
+          songs: <MusicFile>[],
+          representativeSong: MusicFile(path: '/dummy.mp3', name: 'dummy'),
+          songCount: 1,
+        ),
+      );
+
+      // Promoted artist initially enters queue as normal (behind normal_1)
+      const promotedArtist = ArtistSummary(
+        queryKey: 'promoted_artist',
+        name: 'Promoted Artist',
+        artistId: '44444444-4444-4444-4444-444444444444',
+        songs: <MusicFile>[],
+        representativeSong: MusicFile(path: '/dummy.mp3', name: 'dummy'),
+        songCount: 1,
+      );
+      final promotedFuture = service.fetchAndCacheArtistImage(promotedArtist);
+
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+
+      // Now promotedArtist is requested again with priority: true (e.g. user opens detail page)
+      final promotedPriorityFuture = service.fetchAndCacheArtistImage(
+        promotedArtist,
+        priority: true,
+      );
+
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+
+      // Release slot 1
+      completer1.complete();
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+
+      // Release slot 2
+      completer2.complete();
+
+      await Future.wait([
+        future1,
+        future2,
+        normalFuture1,
+        promotedFuture,
+        promotedPriorityFuture,
+      ]);
+
+      // Promoted artist should have been pulled to the front ahead of normal_1
+      expect(executedOrder.first, equals('promoted_artist'));
+    });
   });
 }
 
@@ -342,7 +639,7 @@ class _TestPathProviderPlatform extends PathProviderPlatform
 class _MockNetworkClient implements NetworkClient {
   _MockNetworkClient(this.handler);
 
-  final dynamic Function(String url) handler;
+  final FutureOr<dynamic> Function(String url) handler;
 
   @override
   Future<Response<T>> get<T>(
@@ -353,7 +650,7 @@ class _MockNetworkClient implements NetworkClient {
     CancelToken? cancelToken,
     void Function(int, int)? onReceiveProgress,
   }) async {
-    final result = handler(path);
+    final result = await handler(path);
     return Response<T>(
       requestOptions: RequestOptions(path: path),
       data: result as T?,

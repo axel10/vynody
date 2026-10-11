@@ -68,21 +68,33 @@ class TheAudioDbArtistService {
   int _activeNetworkRequests = 0;
   static const int _maxConcurrentNetworkRequests = 2;
   static const int _maxNetworkQueueLength = 40;
-  final List<Completer<void>> _networkWaitQueue = <Completer<void>>[];
+  final List<_PendingNetworkSlot> _networkWaitQueue = <_PendingNetworkSlot>[];
 
   /// 记录最近网络请求失败的艺术家时间戳，避免断网或异常时高频重复重试
   final Map<String, int> _recentFailureTimestamps = <String, int>{};
 
-  Future<bool> _acquireNetworkSlot() async {
+  Future<bool> _acquireNetworkSlot(String queryKey, {bool priority = false}) async {
     if (_activeNetworkRequests < _maxConcurrentNetworkRequests) {
       _activeNetworkRequests++;
       return true;
     }
-    if (_networkWaitQueue.length >= _maxNetworkQueueLength) {
+    if (!priority && _networkWaitQueue.length >= _maxNetworkQueueLength) {
       return false;
     }
     final completer = Completer<void>();
-    _networkWaitQueue.add(completer);
+    final slot = _PendingNetworkSlot(
+      completer: completer,
+      queryKey: queryKey,
+      isPriority: priority,
+    );
+    if (priority) {
+      // 插队：优先分配下一个可用槽位（若前面已有其他 priority 请求，则追加在所有 priority 之后、普通请求之前）
+      final insertIndex =
+          _networkWaitQueue.lastIndexWhere((item) => item.isPriority) + 1;
+      _networkWaitQueue.insert(insertIndex, slot);
+    } else {
+      _networkWaitQueue.add(slot);
+    }
     await completer.future;
     return true;
   }
@@ -90,7 +102,7 @@ class TheAudioDbArtistService {
   void _releaseNetworkSlot() {
     if (_networkWaitQueue.isNotEmpty) {
       final next = _networkWaitQueue.removeAt(0);
-      next.complete();
+      next.completer.complete();
     } else {
       if (_activeNetworkRequests > 0) {
         _activeNetworkRequests--;
@@ -137,10 +149,12 @@ class TheAudioDbArtistService {
     _lastMusicBrainzRequestAt = DateTime.now();
   }
 
-  /// 异步查询并缓存艺术家代表图片，返回本地磁盘路径或 null
+  /// 异步查询并缓存艺术家代表图片，返回本地磁盘路径或 null。
+  /// [priority] 为 true 时表示高优先级请求（例如进入详情页），可插队至等待队列前列，并跳过短期失败冷却。
   Future<String?> fetchAndCacheArtistImage(
     ArtistSummary artist, {
     bool forceRefresh = false,
+    bool priority = false,
   }) async {
     final queryKey = artist.queryKey.trim();
     if (queryKey.isEmpty || artist.isUnknownArtist) {
@@ -149,12 +163,26 @@ class TheAudioDbArtistService {
 
     final inFlight = _inFlightFetches[queryKey];
     if (inFlight != null) {
+      if (priority) {
+        // 如果该任务已经在等待队列中排队，立即将其提至队列最前列插队
+        final queueIndex = _networkWaitQueue.indexWhere(
+          (item) => item.queryKey == queryKey,
+        );
+        if (queueIndex > 0) {
+          final slot = _networkWaitQueue.removeAt(queueIndex);
+          slot.isPriority = true;
+          final insertIndex =
+              _networkWaitQueue.lastIndexWhere((item) => item.isPriority) + 1;
+          _networkWaitQueue.insert(insertIndex, slot);
+        }
+      }
       return inFlight;
     }
 
     final future = _doFetchAndCacheArtistImage(
       artist,
       forceRefresh: forceRefresh,
+      priority: priority,
     );
     _inFlightFetches[queryKey] = future;
 
@@ -168,6 +196,7 @@ class TheAudioDbArtistService {
   Future<String?> _doFetchAndCacheArtistImage(
     ArtistSummary artist, {
     bool forceRefresh = false,
+    bool priority = false,
   }) async {
     final queryKey = artist.queryKey.trim();
 
@@ -202,18 +231,20 @@ class TheAudioDbArtistService {
         }
       }
 
-      // 检查短期失败冷却（2 分钟内网络失败不反复重试）
-      final failedAt = _recentFailureTimestamps[queryKey];
-      if (failedAt != null) {
-        final elapsedSec =
-            (DateTime.now().millisecondsSinceEpoch - failedAt) ~/ 1000;
-        if (elapsedSec < 120) {
-          return null;
+      // 检查短期失败冷却（2 分钟内网络失败不反复重试；但若是 priority 插队请求，允许跳过冷却重试）
+      if (!priority) {
+        final failedAt = _recentFailureTimestamps[queryKey];
+        if (failedAt != null) {
+          final elapsedSec =
+              (DateTime.now().millisecondsSinceEpoch - failedAt) ~/ 1000;
+          if (elapsedSec < 120) {
+            return null;
+          }
         }
       }
     }
 
-    final hasSlot = await _acquireNetworkSlot();
+    final hasSlot = await _acquireNetworkSlot(queryKey, priority: priority);
     if (!hasSlot) {
       return null;
     }
@@ -567,4 +598,16 @@ class TheAudioDbArtistService {
       return null;
     }
   }
+}
+
+class _PendingNetworkSlot {
+  final Completer<void> completer;
+  final String queryKey;
+  bool isPriority;
+
+  _PendingNetworkSlot({
+    required this.completer,
+    required this.queryKey,
+    this.isPriority = false,
+  });
 }
