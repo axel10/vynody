@@ -5492,7 +5492,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get emptyTimeMachine => 'No past favorites to rediscover yet';
 
   @override
-  String get emptyTopRated => 'No rated songs yet';
+  String get emptyTopRated => 'No 4-5 star songs yet';
 
   @override
   String get emptyThisWeekTop => 'No play history this week';

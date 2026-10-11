@@ -1505,7 +1505,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get edit => 'Düzenle';
 
   @override
-  String get done => '完成';
+  String get done => 'Bitti';
 
   @override
   String get lyricsSectionTitle => 'Şarkı Sözleri';
@@ -5490,62 +5490,62 @@ class AppLocalizationsTr extends AppLocalizations {
   String get lyricsRestoredSuccess => 'Şarkı sözleri başarıyla geri yüklendi';
 
   @override
-  String get genres => '流派';
+  String get genres => 'Türler';
 
   @override
-  String get ratedSongs => '已评分';
+  String get ratedSongs => 'Puanlananlar';
 
   @override
-  String get thisWeekTop => '本周常听';
+  String get thisWeekTop => 'Bu Hafta En Çok Dinlenenler';
 
   @override
-  String get thisWeekTopSubtitle => '近 7 天循环最多的单曲';
+  String get thisWeekTopSubtitle => 'Son 7 günde en çok çalınan şarkılar';
 
   @override
-  String get timeMachine => '拾光机 / 重温旧爱';
+  String get timeMachine => 'Zaman Tüneli';
 
   @override
-  String get timeMachineSubtitle => '重温好久没听的常听或高分专辑';
+  String get timeMachineSubtitle => 'Geçmiş favorilerinizi yeniden keşfedin';
 
   @override
-  String get topRated => '高评分';
+  String get topRated => 'En Yüksek Puanlılar';
 
   @override
-  String get topRatedSubtitle => '你的 4~5 星典藏歌曲';
+  String get topRatedSubtitle => '4-5 yıldızlı koleksiyonunuz';
 
   @override
-  String get emptyTimeMachine => '暂无需要重温的专辑';
+  String get emptyTimeMachine => 'Henüz yeniden keşfedilecek eski favori yok';
 
   @override
-  String get emptyTopRated => '暂无 4~5 星评分歌曲';
+  String get emptyTopRated => 'Henüz 4-5 yıldızlı şarkı yok';
 
   @override
-  String get emptyThisWeekTop => '本周暂无播放记录';
+  String get emptyThisWeekTop => 'Bu hafta çalma geçmişi yok';
 
   @override
-  String get quickEntries => '快速入口';
+  String get quickEntries => 'Hızlı Erişim';
 
   @override
-  String get viewAll => '查看全部';
+  String get viewAll => 'Tümünü Gör';
 
   @override
-  String get ratedSongsSubtitle => '全部已打分的本地歌曲';
+  String get ratedSongsSubtitle => 'Kitaplığınızdaki tüm puanlanmış şarkılar';
 
   @override
-  String get emptyRatedSongs => '暂无评分歌曲';
+  String get emptyRatedSongs => 'Henüz puanlanmış şarkı yok';
 
   @override
-  String get sortRating => '评分星级';
+  String get sortRating => 'Değerlendirme';
 
   @override
-  String get sortSongTitle => '歌曲标题';
+  String get sortSongTitle => 'Şarkı Başlığı';
 
   @override
-  String get sortArtist => '艺术家';
+  String get sortArtist => 'Sanatçı';
 
   @override
-  String get allStars => '全部星级';
+  String get allStars => 'Tüm Yıldızlar';
 
   @override
-  String get homeTab => '媒体库';
+  String get homeTab => 'Kitaplık';
 }

@@ -6704,6 +6704,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get edit => '編輯';
 
   @override
+  String get done => '完成';
+
+  @override
   String get lyricsSectionTitle => '歌詞';
 
   @override
@@ -10447,6 +10450,63 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get lyricsRestoredSuccess => '已成功還原該版本歌詞';
+
+  @override
+  String get genres => '流派';
+
+  @override
+  String get ratedSongs => '已評分';
+
+  @override
+  String get thisWeekTop => '本週常聽';
+
+  @override
+  String get thisWeekTopSubtitle => '近 7 天循環最多的單曲';
+
+  @override
+  String get timeMachine => '拾光機 / 重溫舊愛';
+
+  @override
+  String get timeMachineSubtitle => '重溫好久沒聽的常聽或高分專輯';
+
+  @override
+  String get topRated => '高評分';
+
+  @override
+  String get topRatedSubtitle => '你的 4~5 星典藏歌曲';
+
+  @override
+  String get emptyTimeMachine => '暫無需要重溫的專輯';
+
+  @override
+  String get emptyTopRated => '暫無 4~5 星評分歌曲';
+
+  @override
+  String get emptyThisWeekTop => '本週暫無播放記錄';
+
+  @override
+  String get quickEntries => '快速入口';
+
+  @override
+  String get viewAll => '查看全部';
+
+  @override
+  String get ratedSongsSubtitle => '全部已打分的本機歌曲';
+
+  @override
+  String get emptyRatedSongs => '暫無評分歌曲';
+
+  @override
+  String get sortRating => '評分星級';
+
+  @override
+  String get sortSongTitle => '歌曲標題';
+
+  @override
+  String get sortArtist => '藝術家';
+
+  @override
+  String get allStars => '全部星級';
 
   @override
   String get homeTab => '媒體庫';

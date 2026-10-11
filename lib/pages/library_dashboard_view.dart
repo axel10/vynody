@@ -1291,7 +1291,7 @@ class _ThisWeekTopCard extends ConsumerWidget {
                 return _RankedSongRow(
                   index: idx + 1,
                   song: entry.song,
-                  metric: '${entry.playCount} 次',
+                  metric: l10n.playCountLabel(entry.playCount),
                   isWide: isWide,
                   showIndex: !isWide,
                   onTap: () {
@@ -1387,6 +1387,7 @@ class _TimeMachineAlbumRow extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final scale = isWide ? kDashboardDesktopCoverScale : kDashboardMobileCoverScale;
     final coverSize = (46.0 * scale).roundToDouble();
 
@@ -1455,7 +1456,7 @@ class _TimeMachineAlbumRow extends ConsumerWidget {
               icon: const Icon(Icons.play_circle_fill_rounded),
               iconSize: 30,
               color: theme.colorScheme.primary,
-              tooltip: '播放整张专辑',
+              tooltip: l10n.playAlbum,
               onPressed: () {
                 if (entry.songs.isNotEmpty) {
                   ref.read(audioServiceProvider).playPlaylist(
@@ -2188,6 +2189,7 @@ class _GenreCardState extends State<_GenreCard> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final isDark = theme.brightness == Brightness.dark;
 
     return MouseRegion(
@@ -2266,7 +2268,7 @@ class _GenreCardState extends State<_GenreCard> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '${widget.genre.songCount} 首',
+                      l10n.trackCountShort(widget.genre.songCount),
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),

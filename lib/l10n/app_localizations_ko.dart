@@ -1469,7 +1469,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get edit => '편집';
 
   @override
-  String get done => '完成';
+  String get done => '완료';
 
   @override
   String get lyricsSectionTitle => '가사';
@@ -5290,62 +5290,62 @@ class AppLocalizationsKo extends AppLocalizations {
   String get lyricsRestoredSuccess => '가사를 성공적으로 복원했습니다';
 
   @override
-  String get genres => '流派';
+  String get genres => '장르';
 
   @override
-  String get ratedSongs => '已评分';
+  String get ratedSongs => '평가됨';
 
   @override
-  String get thisWeekTop => '本周常听';
+  String get thisWeekTop => '이번 주 인기곡';
 
   @override
-  String get thisWeekTopSubtitle => '近 7 天循环最多的单曲';
+  String get thisWeekTopSubtitle => '지난 7일 동안 가장 많이 재생된 곡';
 
   @override
-  String get timeMachine => '拾光机 / 重温旧爱';
+  String get timeMachine => '타임머신';
 
   @override
-  String get timeMachineSubtitle => '重温好久没听的常听或高分专辑';
+  String get timeMachineSubtitle => '한동안 듣지 않은 이전 즐겨찾기를 다시 만나보세요';
 
   @override
-  String get topRated => '高评分';
+  String get topRated => '최고 평점';
 
   @override
-  String get topRatedSubtitle => '你的 4~5 星典藏歌曲';
+  String get topRatedSubtitle => '4~5성 컬렉션';
 
   @override
-  String get emptyTimeMachine => '暂无需要重温的专辑';
+  String get emptyTimeMachine => '다시 돌아볼 이전 즐겨찾기가 아직 없습니다';
 
   @override
-  String get emptyTopRated => '暂无 4~5 星评分歌曲';
+  String get emptyTopRated => '아직 4~5성 평가를 받은 곡이 없습니다';
 
   @override
-  String get emptyThisWeekTop => '本周暂无播放记录';
+  String get emptyThisWeekTop => '이번 주 재생 기록이 없습니다';
 
   @override
-  String get quickEntries => '快速入口';
+  String get quickEntries => '빠른 실행';
 
   @override
-  String get viewAll => '查看全部';
+  String get viewAll => '모두 보기';
 
   @override
-  String get ratedSongsSubtitle => '全部已打分的本地歌曲';
+  String get ratedSongsSubtitle => '라이브러리의 모든 평가된 곡';
 
   @override
-  String get emptyRatedSongs => '暂无评分歌曲';
+  String get emptyRatedSongs => '아직 평가된 곡이 없습니다';
 
   @override
-  String get sortRating => '评分星级';
+  String get sortRating => '평점';
 
   @override
-  String get sortSongTitle => '歌曲标题';
+  String get sortSongTitle => '곡 제목';
 
   @override
-  String get sortArtist => '艺术家';
+  String get sortArtist => '아티스트';
 
   @override
-  String get allStars => '全部星级';
+  String get allStars => '모든 별점';
 
   @override
-  String get homeTab => '媒体库';
+  String get homeTab => '라이브러리';
 }

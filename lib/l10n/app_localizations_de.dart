@@ -1521,7 +1521,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get edit => 'Bearbeiten';
 
   @override
-  String get done => '完成';
+  String get done => 'Fertig';
 
   @override
   String get lyricsSectionTitle => 'Songtexte';
@@ -5530,62 +5530,64 @@ class AppLocalizationsDe extends AppLocalizations {
       'Songtext-Version erfolgreich wiederhergestellt';
 
   @override
-  String get genres => '流派';
+  String get genres => 'Genres';
 
   @override
-  String get ratedSongs => '已评分';
+  String get ratedSongs => 'Bewertet';
 
   @override
-  String get thisWeekTop => '本周常听';
+  String get thisWeekTop => 'Diese Woche am meisten gehört';
 
   @override
-  String get thisWeekTopSubtitle => '近 7 天循环最多的单曲';
+  String get thisWeekTopSubtitle =>
+      'Die am häufigsten gespielten Titel der letzten 7 Tage';
 
   @override
-  String get timeMachine => '拾光机 / 重温旧爱';
+  String get timeMachine => 'Zeitmaschine';
 
   @override
-  String get timeMachineSubtitle => '重温好久没听的常听或高分专辑';
+  String get timeMachineSubtitle => 'Entdecken Sie Ihre früheren Favoriten neu';
 
   @override
-  String get topRated => '高评分';
+  String get topRated => 'Höchstbewertet';
 
   @override
-  String get topRatedSubtitle => '你的 4~5 星典藏歌曲';
+  String get topRatedSubtitle => 'Ihre Sammlung mit 4–5 Sternen';
 
   @override
-  String get emptyTimeMachine => '暂无需要重温的专辑';
+  String get emptyTimeMachine =>
+      'Noch keine früheren Favoriten zum Wiederentdecken';
 
   @override
-  String get emptyTopRated => '暂无 4~5 星评分歌曲';
+  String get emptyTopRated => 'Noch keine Songs mit 4–5 Sternen';
 
   @override
-  String get emptyThisWeekTop => '本周暂无播放记录';
+  String get emptyThisWeekTop => 'Diese Woche noch kein Wiedergabeverlauf';
 
   @override
-  String get quickEntries => '快速入口';
+  String get quickEntries => 'Schnellzugriff';
 
   @override
-  String get viewAll => '查看全部';
+  String get viewAll => 'Alle anzeigen';
 
   @override
-  String get ratedSongsSubtitle => '全部已打分的本地歌曲';
+  String get ratedSongsSubtitle => 'Alle bewerteten Songs in Ihrer Bibliothek';
 
   @override
-  String get emptyRatedSongs => '暂无评分歌曲';
+  String get emptyRatedSongs => 'Noch keine bewerteten Songs';
 
   @override
-  String get sortRating => '评分星级';
+  String get sortRating => 'Bewertung';
 
   @override
-  String get sortSongTitle => '歌曲标题';
+  String get sortSongTitle => 'Songtitel';
 
   @override
-  String get sortArtist => '艺术家';
+  String get sortArtist => 'Künstler';
 
   @override
-  String get allStars => '全部星级';
+  String get allStars => 'Alle Sterne';
 
   @override
-  String get homeTab => '媒体库';
+  String get homeTab => 'Mediathek';
 }

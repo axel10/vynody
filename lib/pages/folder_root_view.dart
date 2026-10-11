@@ -673,7 +673,7 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              l10n.localeName == 'zh' ? '完成排序' : 'Done',
+                              l10n.done,
                               style: TextStyle(
                                 color: Theme.of(context).colorScheme.onPrimary,
                                 fontWeight: FontWeight.bold,
