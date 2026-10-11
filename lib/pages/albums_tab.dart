@@ -217,7 +217,8 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab>
                   context,
                   isPortrait: isPortrait,
                 );
-                final itemWidth = (constraints.maxWidth - 32 - (crossAxisCount - 1) * 16) / crossAxisCount;
+                final availableWidth = math.max(0.0, constraints.maxWidth - widget.contentLeftPadding);
+                final itemWidth = (availableWidth - 32 - (crossAxisCount - 1) * 16) / crossAxisCount;
                 final childAspectRatio = itemWidth / (itemWidth + textHeight);
 
                 final bottomPadding = 120.0 + (isSelectionMode ? 120.0 : 0.0);
@@ -830,33 +831,36 @@ class _AlbumCard extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              album.title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: (isPortrait
-                                      ? theme.textTheme.titleSmall
-                                      : theme.textTheme.titleMedium)
-                                  ?.copyWith(
-                                fontWeight: FontWeight.w700,
+                        Flexible(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                album.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: (isPortrait
+                                        ? theme.textTheme.titleSmall
+                                        : theme.textTheme.titleMedium)
+                                    ?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              album.artist,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: (isPortrait
-                                      ? theme.textTheme.bodySmall
-                                      : theme.textTheme.bodyMedium)
-                                  ?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
+                              const SizedBox(height: 2),
+                              Text(
+                                album.artist,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: (isPortrait
+                                        ? theme.textTheme.bodySmall
+                                        : theme.textTheme.bodyMedium)
+                                    ?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.center,
