@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vynody/player/scanner/scanner_path_utils.dart';
@@ -38,6 +40,16 @@ void main() {
       const nestedCorruptedThumb = '/Users/john/Library/Developer/CoreSimulator/Devices/DEV-1/data/Containers/Data/Application/NEW-1/Library/Application Support/Developer/CoreSimulator/Devices/DEV-1/data/Containers/Data/Application/OLD-1/Library/Application Support/thumbnails/nested_thumb.jpg';
       final resolvedNestedThumb = ScannerPathUtils.resolveIosSandboxPath(nestedCorruptedThumb);
       expect(resolvedNestedThumb, '/var/mobile/Containers/Data/Application/NEW-UUID-1234/Library/Application Support/thumbnails/nested_thumb.jpg');
+    });
+
+    test('preserves existing directory and does not rewrite it to sandbox', () {
+      final tempDir = Directory.systemTemp.createTempSync('vynody_test_external');
+      try {
+        final resolved = ScannerPathUtils.resolveIosSandboxPath(tempDir.path);
+        expect(resolved, ScannerPathUtils.normalizePath(tempDir.path));
+      } finally {
+        tempDir.deleteSync(recursive: true);
+      }
     });
 
     test('isSandboxInternalPath correctly detects sandbox paths', () {

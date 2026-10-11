@@ -1668,6 +1668,11 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     }
 
     if (Platform.isIOS || Platform.isMacOS) {
+      try {
+        if (Directory(normalizedPath).existsSync()) {
+          return true;
+        }
+      } catch (_) {}
       final resolved = ScannerPathUtils.resolveIosSandboxPath(normalizedPath);
       try {
         return Directory(resolved).existsSync();

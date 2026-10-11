@@ -3230,6 +3230,15 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
             if (oldPrefix != null) {
               final norm = oldPrefix.replaceFirst(RegExp(r'^/private'), '');
               if (norm != currentSandboxNoPrivate) {
+                // If the oldPrefix or the file itself still exists on the filesystem,
+                // it belongs to an external active app container, not a migrated Vynody sandbox!
+                try {
+                  if (FileSystemEntity.typeSync(oldPrefix) != FileSystemEntityType.notFound ||
+                      FileSystemEntity.typeSync(norm) != FileSystemEntityType.notFound ||
+                      FileSystemEntity.typeSync(path) != FileSystemEntityType.notFound) {
+                    continue;
+                  }
+                } catch (_) {}
                 normalizedOldPrefixes.add(norm);
               }
             }
@@ -3450,6 +3459,11 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
         final rootPaths = prefs.getStringList('root_paths');
         if (rootPaths != null) {
           final updatedRootPaths = rootPaths.map((p) {
+            try {
+              if (Directory(p).existsSync()) {
+                return p;
+              }
+            } catch (_) {}
             final resolved = ScannerPathUtils.resolveIosSandboxPath(p);
             return resolved;
           }).toList();

@@ -304,6 +304,17 @@ class ScannerPathUtils {
       return trimmed;
     }
 
+    // If the path exists as-is on the filesystem (e.g. valid external folder/file from another app container or iCloud),
+    // do not rewrite it to our own sandbox!
+    try {
+      if (FileSystemEntity.typeSync(trimmed) != FileSystemEntityType.notFound) {
+        _putSandboxCache(path, trimmed);
+        return trimmed;
+      }
+    } catch (_) {
+      // Ignored if file system permission or check fails
+    }
+
     String result = trimmed;
 
     // 1. Special handling for thumbnails: thumbnails are always located inside libDir/thumbnails
