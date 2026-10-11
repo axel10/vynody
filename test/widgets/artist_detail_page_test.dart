@@ -201,10 +201,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // Verify avatar, name with chevron, and filled tonal buttons in portrait
+    // Verify avatar, name with chevron, and action buttons in portrait (FilledButton + OutlinedButton aligned with album detail)
     expect(find.text(sampleArtist.name), findsWidgets);
     expect(find.byIcon(Icons.chevron_right_rounded), findsOneWidget);
-    expect(find.byType(FilledButton), findsNWidgets(2));
+    expect(find.byType(FilledButton), findsOneWidget);
+    expect(find.byType(OutlinedButton), findsOneWidget);
 
     // 2. Switch to Landscape mode
     tester.view.physicalSize = const Size(1200 * 3, 600 * 3);

@@ -517,55 +517,24 @@ class _ArtistInfo extends StatelessWidget {
               ),
             ),
           ],
-          const SizedBox(height: 18),
+          const SizedBox(height: 16),
 
-          // Row 3: 按钮占一行（通栏并排两个胶囊按钮）
-          Row(
+          // Row 3: 播放与随机播放操作按钮（与专辑详情页对齐：FilledButton + OutlinedButton 居中 Wrap 排列）
+          Wrap(
+            alignment: WrapAlignment.center,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 12,
+            runSpacing: 12,
             children: [
-              Expanded(
-                child: FilledButton.tonalIcon(
-                  onPressed: onPlayAll,
-                  icon: const Icon(Icons.play_arrow, size: 20),
-                  label: Text(
-                    playAllLabel,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 15,
-                    ),
-                  ),
-                  style: FilledButton.styleFrom(
-                    foregroundColor: theme.colorScheme.primary,
-                    backgroundColor: theme.colorScheme.surfaceContainerHighest,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    minimumSize: const Size.fromHeight(44),
-                    elevation: 0,
-                  ),
-                ),
+              FilledButton.icon(
+                onPressed: onPlayAll,
+                icon: const Icon(Icons.play_arrow),
+                label: Text(playAllLabel),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: FilledButton.tonalIcon(
-                  onPressed: onShufflePlay,
-                  icon: const Icon(Icons.shuffle, size: 18),
-                  label: Text(
-                    shufflePlayLabel,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 15,
-                    ),
-                  ),
-                  style: FilledButton.styleFrom(
-                    foregroundColor: theme.colorScheme.primary,
-                    backgroundColor: theme.colorScheme.surfaceContainerHighest,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    minimumSize: const Size.fromHeight(44),
-                    elevation: 0,
-                  ),
-                ),
+              OutlinedButton.icon(
+                onPressed: onShufflePlay,
+                icon: const Icon(Icons.shuffle),
+                label: Text(shufflePlayLabel),
               ),
             ],
           ),
