@@ -8,7 +8,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:audio_core/audio_core.dart';
+import 'package:audio_core/audio_core.dart' hide AppLog;
 import 'package:path_provider/path_provider.dart';
 
 import 'package:vynody/models/music_file.dart';
@@ -43,6 +43,7 @@ import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/audio/playback_session_manager.dart';
 import 'package:vynody/player/audio/queue_background_processor.dart';
 import 'package:vynody/player/library/library_insights_service.dart';
+import 'package:vynody/utils/app_log.dart';
 import 'package:vynody/player/lyrics/lyrics_riverpod.dart';
 import 'package:vynody/player/remote/remote_server_riverpod.dart';
 import 'package:vynody/utils/localized_text.dart';
@@ -222,6 +223,8 @@ class AudioService extends Notifier<AudioSnapshot> {
   String? _sleepTimerWaitingTrackPath;
   int _lastWaveformChunks = -1;
   StreamSubscription<List<double>>? _currentWaveformSubscription;
+  Timer? _waveformReadingLogTimer;
+  int _waveformReadingSessionId = 0;
   StreamSubscription<String?>? _trackEndedSubscription;
   bool _disposed = false;
   bool _restoringPlaybackSession = false;
@@ -628,22 +631,37 @@ class AudioService extends Notifier<AudioSnapshot> {
   Future<void> _restorePlaybackSession() async {
     if (_restoringPlaybackSession) return;
     _restoringPlaybackSession = true;
+    final restoreSw = Stopwatch()..start();
+    AppLog.log('[RestorePlaybackSession] START restorePlaybackSession', mirrorToConsole: true);
     try {
       if (Platform.isIOS || Platform.isMacOS) {
+        final scannerSw = Stopwatch()..start();
+        AppLog.log('[RestorePlaybackSession] waiting for scannerService.ready...', mirrorToConsole: true);
         try {
           await ref.read(scannerServiceProvider).ready.timeout(
             const Duration(seconds: 5),
             onTimeout: () {
-              debugPrint('AudioService: scanner ready timed out during restore');
+              AppLog.log(
+                '[RestorePlaybackSession] scanner ready TIMED OUT after ${scannerSw.elapsedMilliseconds}ms',
+                mirrorToConsole: true,
+              );
             },
           );
+          AppLog.log(
+            '[RestorePlaybackSession] scanner ready finished in ${scannerSw.elapsedMilliseconds}ms',
+            mirrorToConsole: true,
+          );
         } catch (e) {
-          debugPrint('AudioService: scanner ready error during restore: $e');
+          AppLog.log(
+            '[RestorePlaybackSession] scanner ready error after ${scannerSw.elapsedMilliseconds}ms: $e',
+            mirrorToConsole: true,
+          );
         }
       }
       if (_queue.isNotEmpty || _currentSource != null) {
-        debugPrint(
-          'AudioService: queue is already occupied, skipping restorePlaybackSession',
+        AppLog.log(
+          '[RestorePlaybackSession] queue is already occupied, skipping restorePlaybackSession',
+          mirrorToConsole: true,
         );
         _playbackSessionReady = true;
         return;
@@ -652,9 +670,23 @@ class AudioService extends Notifier<AudioSnapshot> {
         settingsService.prefs,
       );
       if (session == null) {
+        AppLog.log('[RestorePlaybackSession] no saved session found', mirrorToConsole: true);
         _playbackSessionReady = true;
         return;
       }
+
+      final restoredIndex =
+          await PlaybackSessionManager.resolveRestoredQueueIndex(session);
+      final currentSongInSession = (restoredIndex >= 0 && restoredIndex < session.queue.length)
+          ? session.queue[restoredIndex]
+          : null;
+      AppLog.log(
+        '[RestorePlaybackSession] session loaded at ${restoreSw.elapsedMilliseconds}ms: '
+        'queueLen=${session.queue.length}, currentIndex=${session.currentIndex}, '
+        'restoredIndex=$restoredIndex, targetSong="${currentSongInSession?.title}", '
+        'hasWaveformBlobInSession=${currentSongInSession?.waveformBlob != null}',
+        mirrorToConsole: true,
+      );
 
       _stopPlaybackSessionAutoSaveTimer();
       await _player.playlist.resetPlaybackState();
@@ -679,8 +711,6 @@ class AudioService extends Notifier<AudioSnapshot> {
       _currentSource = session.source;
       _player.playlist.setMode(_playbackMode.toCoreMode());
 
-      final restoredIndex =
-          await PlaybackSessionManager.resolveRestoredQueueIndex(session);
       if (restoredIndex >= 0 && restoredIndex < session.queue.length) {
         final currentSong = session.queue[restoredIndex];
         if ((Platform.isIOS || Platform.isMacOS) &&
@@ -695,13 +725,18 @@ class AudioService extends Notifier<AudioSnapshot> {
             autoPlay: false,
           );
         } catch (e) {
-          debugPrint(
-            'AudioService: setActivePlaylist during restore failed (offline/unreachable): $e',
+          AppLog.log(
+            '[RestorePlaybackSession] setActivePlaylist failed: $e',
+            mirrorToConsole: true,
           );
         }
 
         await _restoreCurrentThemeColors();
-        unawaited(_refreshCurrentWaveform());
+        AppLog.log(
+          '[RestorePlaybackSession] triggering _refreshCurrentWaveform at ${restoreSw.elapsedMilliseconds}ms...',
+          mirrorToConsole: true,
+        );
+        await _refreshCurrentWaveform();
 
         final maxPositionMs = _duration.inMilliseconds > 0
             ? _duration.inMilliseconds
@@ -1049,12 +1084,25 @@ class AudioService extends Notifier<AudioSnapshot> {
     );
   }
 
-  void _replaceQueueSongsByPath(String path, MusicFile updatedSong) {
+  void _replaceQueueSongsByPath(
+    String path,
+    MusicFile updatedSong, {
+    bool preserveExistingBlobs = true,
+  }) {
     for (final track in _player.playlist.items) {
       if (track.id == path) {
         final existingSong = _musicFileForTrack(track);
         final mergedSong = updatedSong.copyWith(
           lyrics: updatedSong.lyrics ?? existingSong?.lyrics,
+          waveformBlob: preserveExistingBlobs
+              ? (updatedSong.waveformBlob ?? existingSong?.waveformBlob)
+              : updatedSong.waveformBlob,
+          themeColorsBlob: preserveExistingBlobs
+              ? (updatedSong.themeColorsBlob ?? existingSong?.themeColorsBlob)
+              : updatedSong.themeColorsBlob,
+          artworkBytes: preserveExistingBlobs
+              ? (updatedSong.artworkBytes ?? existingSong?.artworkBytes)
+              : updatedSong.artworkBytes,
         );
         _player.playlist.replaceTrack(_audioTrackForSong(mergedSong));
       }
@@ -1161,7 +1209,7 @@ class AudioService extends Notifier<AudioSnapshot> {
       _lyricsController.clearState(preserveTaskState: true);
     }
     await _updateCurrentMetadata(song);
-    await _refreshCurrentWaveform(notify: false);
+    await _refreshCurrentWaveform();
     _logPlaybackTrace(
       '_syncCurrentPlaybackSong end -> current=${_debugSongLabel(currentMusic)} '
       'queueIndex=$_currentIndex',
@@ -2093,26 +2141,95 @@ class AudioService extends Notifier<AudioSnapshot> {
       return;
     }
 
+    final sessionId = ++_waveformReadingSessionId;
+    _waveformReadingLogTimer?.cancel();
     _currentWaveformSubscription?.cancel();
+
+    final sw = Stopwatch()..start();
+    String currentPhase = 'initiating';
+    AppLog.log(
+      '[WaveformRead #$sessionId] START reading waveform for "$path", notify=$notify',
+      mirrorToConsole: true,
+    );
+
+    _waveformReadingLogTimer = Timer.periodic(
+      const Duration(milliseconds: 500),
+      (timer) {
+        if (_waveformReadingSessionId != sessionId) {
+          timer.cancel();
+          return;
+        }
+        AppLog.log(
+          '[WaveformRead #$sessionId] in-progress: elapsed=${sw.elapsedMilliseconds}ms, phase=$currentPhase, notify=$notify, currentMusicPath=${currentMusic?.path}',
+          mirrorToConsole: true,
+        );
+      },
+    );
+
     _currentWaveformSubscription = _waveformService
         .streamWaveform(
           path: path,
           expectedChunks: settingsService.waveformChunks,
           sampleStride: settingsService.sampleStride,
+          onPhaseChanged: (phase) {
+            currentPhase = phase;
+            AppLog.log(
+              '[WaveformRead #$sessionId] phase changed -> $phase (at ${sw.elapsedMilliseconds}ms)',
+              mirrorToConsole: true,
+            );
+          },
         )
-        .listen((waveformChunk) {
-          if (path == currentMusic?.path && waveformChunk.isNotEmpty) {
-            final song = currentMusic;
-            if (song != null && song.path == path) {
-              final blob = _waveformService.waveformToBlob(waveformChunk);
-              MusicFile.invalidateWaveformCache(path);
-              _replaceQueueSongsByPath(path, song.copyWith(waveformBlob: blob));
-              if (notify) {
-                notifyListeners();
+        .listen(
+          (waveformChunk) {
+            if (_waveformReadingSessionId != sessionId) {
+              AppLog.log(
+                '[WaveformRead #$sessionId] IGNORED: session superseded (current is $_waveformReadingSessionId)',
+                mirrorToConsole: true,
+              );
+              return;
+            }
+            if (path == currentMusic?.path && waveformChunk.isNotEmpty) {
+              final song = currentMusic;
+              if (song != null && song.path == path) {
+                final blob = _waveformService.waveformToBlob(waveformChunk);
+                MusicFile.invalidateWaveformCache(path);
+                _replaceQueueSongsByPath(path, song.copyWith(waveformBlob: blob));
+                _waveformReadingLogTimer?.cancel();
+                _waveformReadingLogTimer = null;
+                sw.stop();
+                AppLog.log(
+                  '[WaveformRead #$sessionId] SUCCESS: read waveform in ${sw.elapsedMilliseconds}ms (${waveformChunk.length} chunks, blobLen=${blob.length}), notify=$notify',
+                  mirrorToConsole: true,
+                );
+                if (notify) {
+                  notifyListeners();
+                } else {
+                  AppLog.log(
+                    '[WaveformRead #$sessionId] WARNING: notify=false was passed, notifyListeners() was SKIPPED! UI will NOT update until another trigger!',
+                    mirrorToConsole: true,
+                  );
+                }
               }
             }
-          }
-        });
+          },
+          onError: (e, stack) {
+            if (_waveformReadingSessionId != sessionId) return;
+            _waveformReadingLogTimer?.cancel();
+            _waveformReadingLogTimer = null;
+            sw.stop();
+            AppLog.log(
+              '[WaveformRead #$sessionId] ERROR: failed after ${sw.elapsedMilliseconds}ms: $e',
+              mirrorToConsole: true,
+              stackTrace: stack,
+            );
+          },
+          onDone: () {
+            if (_waveformReadingSessionId == sessionId) {
+              _waveformReadingLogTimer?.cancel();
+              _waveformReadingLogTimer = null;
+            }
+          },
+        );
   }
 
   Future<void> clearWaveformCache() async {
@@ -2136,7 +2253,11 @@ class AudioService extends Notifier<AudioSnapshot> {
     for (final track in _player.playlist.items) {
       final song = _musicFileForTrack(track);
       if (song != null && song.waveformBlob != null) {
-        _replaceQueueSongsByPath(song.path, song.copyWith(waveformBlob: null));
+        _replaceQueueSongsByPath(
+          song.path,
+          song.copyWith(waveformBlob: null),
+          preserveExistingBlobs: false,
+        );
         changed = true;
       }
     }
@@ -2315,8 +2436,14 @@ class AudioService extends Notifier<AudioSnapshot> {
       // Keep any existing lyrics that are already attached to the current item.
       // A normal metadata refresh should not wipe lyrics that were loaded or cached.
       final existingLyrics = currentMusic?.lyrics;
+      final existingWaveform = currentMusic?.waveformBlob;
+      final existingTheme = currentMusic?.themeColorsBlob;
+      final existingArtwork = currentMusic?.artworkBytes;
       final mergedSong = song.copyWith(
         lyrics: song.lyrics ?? existingLyrics,
+        waveformBlob: song.waveformBlob ?? existingWaveform,
+        themeColorsBlob: song.themeColorsBlob ?? existingTheme,
+        artworkBytes: song.artworkBytes ?? existingArtwork,
       );
       _replaceQueueSongsByPath(path, mergedSong);
       _logPlaybackTrace(
@@ -3721,6 +3848,7 @@ class AudioService extends Notifier<AudioSnapshot> {
     unawaited(_persistPlaybackSession(allowWhenDisposed: true));
     _disposed = true;
     _sessionManager.dispose();
+    _waveformReadingLogTimer?.cancel();
     _currentWaveformSubscription?.cancel();
     _trackEndedSubscription?.cancel();
     _sleepTimer?.cancel();

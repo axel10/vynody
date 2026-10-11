@@ -4,11 +4,12 @@
 library;
 
 import 'dart:typed_data';
-import 'package:audio_core/audio_core.dart';
+import 'package:audio_core/audio_core.dart' hide AppLog;
 import 'package:path/path.dart' as p;
 import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/player/metadata/metadata_helper.dart';
 import 'package:vynody/player/remote/proxy/remote_media_resolver.dart';
+import 'package:vynody/utils/app_log.dart';
 
 typedef WaveformCacheResult = ({
   List<double> waveform,
@@ -131,11 +132,26 @@ class WaveformService {
     int sampleStride = 4,
     SongMetadata? baseMetadata,
     String? localFilePath,
+    void Function(String phase)? onPhaseChanged,
   }) async* {
+    onPhaseChanged?.call('querying_sqlite_database');
+    final dbSw = Stopwatch()..start();
     var songMetadata = await db.getSongMetadata(path);
+    dbSw.stop();
+    AppLog.log(
+      '[WaveformService] db.getSongMetadata took ${dbSw.elapsedMilliseconds}ms, hasBlob=${songMetadata?.waveformBlob != null}',
+      mirrorToConsole: true,
+    );
+
     if (songMetadata != null && songMetadata.waveformBlob != null) {
+      onPhaseChanged?.call('decoding_cached_blob');
       final cached = waveformFromBlob(songMetadata.waveformBlob);
       if (isWaveformValid(cached)) {
+        onPhaseChanged?.call('cached_blob_valid');
+        AppLog.log(
+          '[WaveformService] streamWaveform: yielding cached waveform (${cached.length} chunks) for $path',
+          mirrorToConsole: true,
+        );
         yield cached;
         return;
       }
@@ -145,6 +161,7 @@ class WaveformService {
     String? effectivePath = localFilePath;
 
     if (isRemote && effectivePath == null) {
+      onPhaseChanged?.call('resolving_remote_media_cache');
       final info = RemoteMediaResolver.parseUri(path);
       if (info != null) {
         final cacheKey = '${info.serverId}:${info.trackIdOrPath}';
@@ -156,25 +173,34 @@ class WaveformService {
         }
       }
       if (effectivePath == null) {
+        onPhaseChanged?.call('remote_not_cached_aborted');
         return;
       }
     }
 
     if (songMetadata == null && !isRemote) {
+      onPhaseChanged?.call('loading_metadata_for_playback');
       final playbackMetadata = await MetadataHelper.loadMetadataForPlayback(
         path,
         generateThumbnail: false,
       );
       songMetadata = playbackMetadata?.$1;
       if (songMetadata?.waveformBlob != null) {
+        onPhaseChanged?.call('decoding_playback_cached_blob');
         final cached = waveformFromBlob(songMetadata!.waveformBlob);
         if (isWaveformValid(cached)) {
+          onPhaseChanged?.call('playback_cached_blob_valid');
           yield cached;
           return;
         }
       }
     }
 
+    onPhaseChanged?.call('decoding_audio_via_core_engine');
+    AppLog.log(
+      '[WaveformService] No cached waveform found for $path, falling back to core engine streamWaveform...',
+      mirrorToConsole: true,
+    );
     List<double> lastWaveform = const [];
     await for (final waveformChunk in player.streamWaveform(
       expectedChunks: expectedChunks,
@@ -182,6 +208,7 @@ class WaveformService {
       filePath: effectivePath ?? path,
     )) {
       if (waveformChunk.isNotEmpty) {
+        onPhaseChanged?.call('streaming_chunk_${waveformChunk.length}');
         lastWaveform = waveformChunk;
         yield waveformChunk;
       }
