@@ -71,7 +71,6 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage>
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final audio = ref.read(audioServiceProvider);
     final currentMusic = ref.watch(audioCurrentMusicProvider);
     final isPortrait =
@@ -94,20 +93,9 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage>
         Text(
           '${l10n.songCount(widget.album.trackCount)} · $durationText',
           style: theme.textTheme.bodyMedium?.copyWith(
-            color: (isPortrait && isDark)
-                ? Colors.white.withValues(alpha: 0.85)
-                : theme.colorScheme.onSurfaceVariant,
+            color: theme.colorScheme.onSurfaceVariant,
             fontWeight: FontWeight.w600,
-            fontSize: (isPortrait && isDark) ? 13 : 14,
-            shadows: (isPortrait && isDark)
-                ? const [
-                    Shadow(
-                      offset: Offset(0, 1),
-                      blurRadius: 4,
-                      color: Colors.black87,
-                    ),
-                  ]
-                : null,
+            fontSize: 14,
           ),
         ),
         if (RemoteMediaHelper.isAllRemote(widget.album.songs))
@@ -149,12 +137,6 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage>
               ),
               icon: const Icon(Icons.shuffle),
               label: Text(l10n.shufflePlay),
-              style: isDark
-                  ? OutlinedButton.styleFrom(
-                      foregroundColor: Colors.white,
-                      side: BorderSide(color: Colors.white.withValues(alpha: 0.4)),
-                    )
-                  : null,
             )
           : FilledButton.tonalIcon(
               onPressed: () => audio.playPlaylist(
@@ -194,7 +176,7 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage>
                   coverBackground: _AlbumCoverBackground(album: widget.album),
                   coverWidget: AlbumCover(
                     album: widget.album,
-                    size: 160,
+                    size: 260,
                     enableHero: true,
                   ),
                   barHeight: barHeight,

@@ -218,5 +218,9 @@ void main() {
     // In landscape mode, buttons are IconButtons and chevron is not present
     expect(find.byIcon(Icons.chevron_right_rounded), findsNothing);
     expect(find.byType(IconButton), findsWidgets);
+
+    // Verify back button is at railWidth + 14.0 (216 + 14 = 230)
+    final backButtonPos = tester.getTopLeft(find.byType(AppCircularBackButton));
+    expect(backButtonPos.dx, 230.0);
   });
 }

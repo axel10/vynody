@@ -66,12 +66,7 @@ class AlbumDetailNavBar extends StatelessWidget {
     final targetSurface = theme.colorScheme.surface;
     final maxAlpha = isDark ? 0.70 : 0.82;
 
-    final orientation = MediaQuery.of(context).orientation;
-    final isLandscape = orientation == Orientation.landscape;
-    final railWidth = isLandscape
-        ? sidebarRailWidthFor(MediaQuery.of(context).size.width)
-        : 0.0;
-    final double effectiveLeft = railWidth > 0 ? (railWidth + 14.0) : 14.0;
+    const double effectiveLeft = 14.0;
 
     return ValueListenableBuilder<double>(
       valueListenable: scrollProgress,
@@ -218,186 +213,91 @@ class AlbumPortraitHeaderBanner extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    final textShadows = isDark
-        ? const [
-            Shadow(
-              offset: Offset(0, 1),
-              blurRadius: 4,
-              color: Colors.black87,
-            ),
-          ]
-        : null;
-
     return OverscrollStretchBuilder(
       builder: (context, overscroll) {
         return Container(
           margin: const EdgeInsets.only(bottom: 12),
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              // 1. Background cover layer extending all the way to top with elastic overscroll stretch
-              Positioned(
-                top: -overscroll,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                child: Container(
-                  decoration: BoxDecoration(
-                    borderRadius: const BorderRadius.vertical(
-                      bottom: Radius.circular(20),
-                    ),
-                    border: Border(
-                      bottom: BorderSide(
-                        color: theme.colorScheme.outlineVariant
-                            .withValues(alpha: 0.25),
-                      ),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: isDark
-                            ? Colors.black.withValues(alpha: 0.12)
-                            : theme.colorScheme.shadow.withValues(alpha: 0.06),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: const BorderRadius.vertical(
-                      bottom: Radius.circular(20),
-                    ),
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        Container(
-                          color: isDark
-                              ? Colors.black
-                              : theme.colorScheme.surface,
-                        ),
-                        // Album cover with opacity as background
-                        Positioned.fill(
-                          child: Opacity(
-                            opacity: isDark
-                                ? backgroundOpacityDark
-                                : backgroundOpacityLight,
-                            child: coverBackground,
-                          ),
-                        ),
-                        // Gradient overlay for text readability
-                        Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: isDark
-                                  ? [
-                                      Colors.black.withValues(alpha: 0.35),
-                                      Colors.black.withValues(alpha: 0.55),
-                                      Colors.black.withValues(alpha: 0.85),
-                                    ]
-                                  : [
-                                      theme.colorScheme.surface
-                                          .withValues(alpha: 0.25),
-                                      theme.colorScheme.surface
-                                          .withValues(alpha: 0.60),
-                                      theme.colorScheme.surface
-                                          .withValues(alpha: 0.92),
-                                    ],
-                              stops: const [0.0, 0.45, 1.0],
+          child: Padding(
+            padding: EdgeInsets.only(
+              top: barHeight,
+              left: 16,
+              right: 16,
+              bottom: 16,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (coverWidget != null)
+                  Center(
+                    child: Container(
+                      margin: const EdgeInsets.only(top: 4, bottom: 16),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(
+                              alpha: isDark ? 0.35 : 0.12,
                             ),
+                            blurRadius: 14,
+                            offset: const Offset(0, 6),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
+                      child: coverWidget!,
                     ),
                   ),
-                ),
-              ),
-
-              // 2. Foreground content layer
-              Padding(
-                padding: EdgeInsets.only(
-                  top: barHeight,
-                  left: 16,
-                  right: 16,
-                  bottom: 16,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (coverWidget != null)
-                      Center(
-                        child: Container(
-                          margin: const EdgeInsets.only(top: 4, bottom: 16),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.35),
-                                blurRadius: 14,
-                                offset: const Offset(0, 6),
-                              ),
-                            ],
-                          ),
-                          child: coverWidget!,
-                        ),
-                      ),
-                    if (tagLabel != null && tagLabel!.isNotEmpty) ...[
-                      Text(
-                        tagLabel!,
-                        style: theme.textTheme.labelMedium?.copyWith(
-                          color: isDark
-                              ? Colors.white.withValues(alpha: 0.8)
-                              : theme.colorScheme.secondary,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 1.1,
-                          shadows: textShadows,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                    ],
-                    Text(
-                      title,
-                      style: theme.textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        color:
-                            isDark ? Colors.white : theme.colorScheme.onSurface,
-                        shadows: textShadows,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+                if (tagLabel != null && tagLabel!.isNotEmpty) ...[
+                  Text(
+                    tagLabel!,
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: theme.colorScheme.secondary,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.1,
                     ),
-                    if (subtitle != null && subtitle!.isNotEmpty) ...[
-                      const SizedBox(height: 6),
-                      Text(
-                        subtitle!,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: isDark
-                              ? Colors.white.withValues(alpha: 0.85)
-                              : theme.colorScheme.onSurfaceVariant
-                                  .withValues(alpha: 0.85),
-                          shadows: textShadows,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                    if (metadata != null) ...[
-                      const SizedBox(height: 8),
-                      metadata!,
-                    ],
-                    if (actionButtons.isNotEmpty) ...[
-                      const SizedBox(height: 16),
-                      Wrap(
-                        spacing: 12,
-                        runSpacing: 12,
-                        children: actionButtons,
-                      ),
-                    ],
-                  ],
+                  ),
+                  const SizedBox(height: 6),
+                ],
+                Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: theme.colorScheme.onSurface,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
-            ],
+                if (subtitle != null && subtitle!.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    subtitle!,
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant
+                          .withValues(alpha: 0.85),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+                if (metadata != null) ...[
+                  const SizedBox(height: 8),
+                  metadata!,
+                ],
+                if (actionButtons.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: actionButtons,
+                  ),
+                ],
+              ],
+            ),
           ),
         );
       },

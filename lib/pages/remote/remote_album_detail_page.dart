@@ -369,32 +369,24 @@ class _RemoteAlbumDetailPageState
       children: [
         _InfoChip(
           label: l10n.songCount(_tracks.length),
-          isOverlay: isPortrait && isDark,
         ),
         if (year != null && year > 0)
           _InfoChip(
             label: '$year',
-            isOverlay: isPortrait && isDark,
           ),
         if (genre != null && genre.isNotEmpty)
           _InfoChip(
             label: genre,
-            isOverlay: isPortrait && isDark,
           ),
       ],
     );
 
-    final outlinedStyle = (isPortrait && isDark)
+    final outlinedStyle = !isPortrait
         ? OutlinedButton.styleFrom(
-            foregroundColor: Colors.white,
-            side: BorderSide(color: Colors.white.withValues(alpha: 0.4)),
+            shape: const StadiumBorder(),
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 11),
           )
-        : (!isPortrait
-            ? OutlinedButton.styleFrom(
-                shape: const StadiumBorder(),
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 11),
-              )
-            : null);
+        : null;
 
     final actionButtons = [
       FilledButton.icon(
@@ -491,16 +483,12 @@ class _RemoteAlbumDetailPageState
         icon: Icon(
           _isStarred ? Icons.favorite_rounded : Icons.favorite_border_rounded,
           size: 18,
-          color: _isStarred
-              ? theme.colorScheme.primary
-              : ((isPortrait && isDark) ? Colors.white : null),
+          color: _isStarred ? theme.colorScheme.primary : null,
         ),
         label: Text(
           l10n.btnFavorite,
           style: TextStyle(
-            color: _isStarred
-                ? theme.colorScheme.primary
-                : ((isPortrait && isDark) ? Colors.white : null),
+            color: _isStarred ? theme.colorScheme.primary : null,
           ),
         ),
         style: outlinedStyle,
@@ -567,7 +555,7 @@ class _RemoteAlbumDetailPageState
                       server: widget.server,
                       password: widget.password,
                       coverArtId: coverId,
-                      size: 160,
+                      size: 220,
                       borderRadius: BorderRadius.circular(16),
                     ),
                     barHeight: barHeight,
@@ -996,30 +984,23 @@ class _RemoteAlbumDetailPageState
 class _InfoChip extends StatelessWidget {
   const _InfoChip({
     required this.label,
-    this.isOverlay = false,
   });
 
   final String label;
-  final bool isOverlay;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: isOverlay && isDark
-            ? Colors.white.withValues(alpha: 0.15)
-            : theme.colorScheme.surfaceContainerHighest,
+        color: theme.colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
         label,
         style: theme.textTheme.bodySmall?.copyWith(
-          color: isOverlay && isDark
-              ? Colors.white.withValues(alpha: 0.95)
-              : theme.colorScheme.onSurfaceVariant,
+          color: theme.colorScheme.onSurfaceVariant,
           fontWeight: FontWeight.w600,
         ),
       ),

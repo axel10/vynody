@@ -195,6 +195,11 @@ void main() {
     expect(find.byIcon(Icons.play_arrow), findsOneWidget);
     expect(find.byIcon(Icons.shuffle), findsOneWidget);
 
+    // Verify back button is rendered at railWidth + 14.0 (216 + 14 = 230)
+    expect(find.byType(AppCircularBackButton), findsOneWidget);
+    final backButtonPos = tester.getTopLeft(find.byType(AppCircularBackButton));
+    expect(backButtonPos.dx, 230.0);
+
     // Verify Divider in landscape banner
     expect(find.byType(Divider), findsWidgets);
   });
