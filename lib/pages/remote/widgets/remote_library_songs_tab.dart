@@ -49,159 +49,111 @@ class RemoteLibrarySongsToolbar extends StatelessWidget {
     required this.onSortChanged,
   });
 
-  String _getSortLabel(AppLocalizations l10n) {
-    switch (sortField) {
-      case 'artist':
-        return l10n.artists;
-      case 'album':
-        return l10n.albums;
-      case 'duration':
-        return l10n.durationLabel;
-      case 'title':
-      default:
-        return l10n.songs;
-    }
+  String _getSortDisplayLabel(AppLocalizations l10n) {
+    final name = switch (sortField) {
+      'artist' => l10n.artists,
+      'album' => l10n.albums,
+      'duration' => l10n.durationLabel,
+      _ => l10n.songs,
+    };
+    return '$name ${sortAsc ? '↑' : '↓'}';
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
+    final currentKey = '${sortField}_${sortAsc ? 'asc' : 'desc'}';
 
-    final chips = SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      clipBehavior: Clip.none,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          FilterChip(
-            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            visualDensity: VisualDensity.compact,
-            avatar: Icon(
-              starredOnly
-                  ? Icons.favorite_rounded
-                  : Icons.favorite_border_rounded,
-              size: 14,
-              color: starredOnly ? Colors.redAccent : null,
-            ),
-            label: Text(
-              l10n.starredSongsOnly,
-              style: TextStyle(
-                fontSize: 12,
-                color: starredOnly ? Colors.redAccent : null,
-              ),
-            ),
-            selected: starredOnly,
-            onSelected: onToggleStarredOnly,
+    final trailing = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          style: kCompactIconButtonStyle,
+          tooltip: l10n.starredSongsOnly,
+          icon: Icon(
+            starredOnly
+                ? Icons.favorite_rounded
+                : Icons.favorite_border_rounded,
+            size: 18,
+            color: starredOnly
+                ? Colors.redAccent
+                : theme.colorScheme.onSurfaceVariant,
           ),
-          const SizedBox(width: 8),
-          PopupMenuButton<String>(
-            tooltip: l10n.sort,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+          onPressed: () => onToggleStarredOnly(!starredOnly),
+        ),
+        const SizedBox(width: 4),
+        RemoteDropdownButton<String>(
+          value: currentKey,
+          label: _getSortDisplayLabel(l10n),
+          tooltip: l10n.sort,
+          icon: Icons.sort_rounded,
+          onSelected: (key) {
+            final parts = key.split('_');
+            final field = parts[0];
+            final asc = parts[1] == 'asc';
+            onSortChanged(field, asc);
+          },
+          items: [
+            buildRemoteMenuItem(
+              value: 'title_asc',
+              icon: Icons.arrow_upward_rounded,
+              label: '${l10n.songs} (A-Z)',
+              isSelected: currentKey == 'title_asc',
+              theme: theme,
             ),
-            itemBuilder: (ctx) => [
-              PopupMenuItem(
-                value: 'toggle_direction',
-                child: Row(
-                  children: [
-                    Icon(
-                      sortAsc
-                          ? Icons.arrow_upward_rounded
-                          : Icons.arrow_downward_rounded,
-                      size: 18,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      sortAsc ? 'A-Z (Asc)' : 'Z-A (Desc)',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ],
-                ),
-              ),
-              const PopupMenuDivider(),
-              PopupMenuItem(
-                value: 'title',
-                child: Row(
-                  children: [
-                    if (sortField == 'title')
-                      Icon(Icons.check_rounded,
-                          size: 18, color: theme.colorScheme.primary)
-                    else
-                      const SizedBox(width: 18),
-                    const SizedBox(width: 8),
-                    Text(l10n.songs),
-                  ],
-                ),
-              ),
-              PopupMenuItem(
-                value: 'artist',
-                child: Row(
-                  children: [
-                    if (sortField == 'artist')
-                      Icon(Icons.check_rounded,
-                          size: 18, color: theme.colorScheme.primary)
-                    else
-                      const SizedBox(width: 18),
-                    const SizedBox(width: 8),
-                    Text(l10n.artists),
-                  ],
-                ),
-              ),
-              PopupMenuItem(
-                value: 'album',
-                child: Row(
-                  children: [
-                    if (sortField == 'album')
-                      Icon(Icons.check_rounded,
-                          size: 18, color: theme.colorScheme.primary)
-                    else
-                      const SizedBox(width: 18),
-                    const SizedBox(width: 8),
-                    Text(l10n.albums),
-                  ],
-                ),
-              ),
-              PopupMenuItem(
-                value: 'duration',
-                child: Row(
-                  children: [
-                    if (sortField == 'duration')
-                      Icon(Icons.check_rounded,
-                          size: 18, color: theme.colorScheme.primary)
-                    else
-                      const SizedBox(width: 18),
-                    const SizedBox(width: 8),
-                    Text(l10n.durationLabel),
-                  ],
-                ),
-              ),
-            ],
-            onSelected: (val) {
-              if (val == 'toggle_direction') {
-                onSortChanged(sortField, !sortAsc);
-              } else {
-                onSortChanged(val, sortAsc);
-              }
-            },
-            child: ActionChip(
-              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              visualDensity: VisualDensity.compact,
-              avatar: Icon(
-                sortAsc
-                    ? Icons.arrow_upward_rounded
-                    : Icons.arrow_downward_rounded,
-                size: 16,
-              ),
-              label: Text(
-                _getSortLabel(l10n),
-                style: const TextStyle(fontSize: 12),
-              ),
-              onPressed: null,
+            buildRemoteMenuItem(
+              value: 'title_desc',
+              icon: Icons.arrow_downward_rounded,
+              label: '${l10n.songs} (Z-A)',
+              isSelected: currentKey == 'title_desc',
+              theme: theme,
             ),
-          ),
-        ],
-      ),
+            buildRemoteMenuItem(
+              value: 'artist_asc',
+              icon: Icons.arrow_upward_rounded,
+              label: '${l10n.artists} (A-Z)',
+              isSelected: currentKey == 'artist_asc',
+              theme: theme,
+            ),
+            buildRemoteMenuItem(
+              value: 'artist_desc',
+              icon: Icons.arrow_downward_rounded,
+              label: '${l10n.artists} (Z-A)',
+              isSelected: currentKey == 'artist_desc',
+              theme: theme,
+            ),
+            buildRemoteMenuItem(
+              value: 'album_asc',
+              icon: Icons.arrow_upward_rounded,
+              label: '${l10n.albums} (A-Z)',
+              isSelected: currentKey == 'album_asc',
+              theme: theme,
+            ),
+            buildRemoteMenuItem(
+              value: 'album_desc',
+              icon: Icons.arrow_downward_rounded,
+              label: '${l10n.albums} (Z-A)',
+              isSelected: currentKey == 'album_desc',
+              theme: theme,
+            ),
+            buildRemoteMenuItem(
+              value: 'duration_asc',
+              icon: Icons.arrow_upward_rounded,
+              label: '${l10n.durationLabel} (↑)',
+              isSelected: currentKey == 'duration_asc',
+              theme: theme,
+            ),
+            buildRemoteMenuItem(
+              value: 'duration_desc',
+              icon: Icons.arrow_downward_rounded,
+              label: '${l10n.durationLabel} (↓)',
+              isSelected: currentKey == 'duration_desc',
+              theme: theme,
+            ),
+          ],
+        ),
+      ],
     );
 
     return RemoteResponsiveToolbar(
@@ -213,7 +165,7 @@ class RemoteLibrarySongsToolbar extends StatelessWidget {
         onChanged: onSearchChanged,
         onClear: onClearSearch,
       ),
-      trailing: chips,
+      trailing: trailing,
       searchFocusNode: searchFocusNode,
       isSearchExpanded: isSearchExpanded || searchQuery.isNotEmpty,
       onToggleSearchExpanded: onToggleSearchExpanded,
@@ -245,6 +197,7 @@ class RemoteLibrarySongsView extends ConsumerStatefulWidget {
   final void Function(String songPath) onToggleSelection;
   final void Function(int? index) onUpdateAnchor;
   final void Function(MusicFile song) onToggleStar;
+  final Widget? toolbar;
 
   const RemoteLibrarySongsView({
     super.key,
@@ -268,6 +221,7 @@ class RemoteLibrarySongsView extends ConsumerStatefulWidget {
     required this.onToggleSelection,
     required this.onUpdateAnchor,
     required this.onToggleStar,
+    this.toolbar,
   });
 
   @override
@@ -473,14 +427,40 @@ class _RemoteLibrarySongsViewState
       );
     }
 
+    final toolbarSliver = widget.toolbar != null
+        ? SliverToBoxAdapter(
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(
+                  maxWidth: kSingleColumnContentMaxWidth,
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                  child: widget.toolbar!,
+                ),
+              ),
+            ),
+          )
+        : null;
+
     if (widget.songs.isEmpty) {
-      return Center(
-        child: Text(
-          widget.searchQuery.isEmpty
-              ? l10n.noSongsOnServer
-              : l10n.noMatchingSongs,
-          style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
-        ),
+      return CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          ?toolbarSliver,
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: Center(
+              child: Text(
+                widget.searchQuery.isEmpty
+                    ? l10n.noSongsOnServer
+                    : l10n.noMatchingSongs,
+                style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+              ),
+            ),
+          ),
+        ],
       );
     }
 
@@ -502,6 +482,7 @@ class _RemoteLibrarySongsViewState
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
+              ?toolbarSliver,
               // Header action bar
               SliverToBoxAdapter(
                 child: Align(
@@ -511,7 +492,7 @@ class _RemoteLibrarySongsViewState
                       maxWidth: kSingleColumnContentMaxWidth,
                     ),
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
+                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
                       child: Row(
                         children: [
                           FilledButton.icon(

@@ -7,6 +7,7 @@ import '../../../player/remote/remote_library_navigation.dart';
 import '../../../player/remote/remote_server_models.dart';
 import '../../../player/remote/remote_server_riverpod.dart';
 import '../../../utils/app_snack_bar.dart';
+import '../../../utils/layout_constants.dart';
 import '../../../utils/remote_context_menu_utils.dart';
 import '../../../utils/selection_utils.dart';
 import '../../../widgets/draggable_remote_playlist_item.dart';
@@ -34,8 +35,8 @@ class RemoteLibraryPlaylistsToolbar extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
           Expanded(
@@ -88,6 +89,7 @@ class RemoteLibraryPlaylistsView extends ConsumerWidget {
   final void Function(Set<String> keys) onSetSelection;
   final void Function(String playlistId) onToggleSelection;
   final void Function(int? index) onUpdateAnchor;
+  final Widget? toolbar;
 
   const RemoteLibraryPlaylistsView({
     super.key,
@@ -107,6 +109,7 @@ class RemoteLibraryPlaylistsView extends ConsumerWidget {
     required this.onSetSelection,
     required this.onToggleSelection,
     required this.onUpdateAnchor,
+    this.toolbar,
   });
 
   @override
@@ -235,45 +238,56 @@ class RemoteLibraryPlaylistsView extends ConsumerWidget {
                           .withValues(alpha: 0.45),
                     ),
                   ),
-                  child: RefreshIndicator(
-                    onRefresh: onRefresh,
-                    child: Scrollbar(
-                      child: ListView.builder(
-                        padding:
-                            EdgeInsets.fromLTRB(12, 12, 12, bottomOffset),
-                        itemCount: playlists.length,
-                        itemBuilder: (context, index) {
-                          final pl = playlists[index];
-                          final isSelected =
-                              pl['id'] == selectedPlaylist['id'];
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 8.0),
-                            child: RemoteLibraryPlaylistItem(
-                              server: server,
-                              password: password,
-                              playlist: pl,
-                              index: index,
-                              allPlaylists: playlists,
-                              isSelected: isSelected,
-                              isMultiSelected: selectedPlaylistIds
-                                  .contains(pl['id'] as String? ?? ''),
-                              isSelectionMode: isSelectionMode,
-                              selectedPlaylistIds: selectedPlaylistIds,
-                              lastPlaylistAnchorIndex:
-                                  lastPlaylistAnchorIndex,
-                              onSetSelection: onSetSelection,
-                              onToggleSelection: onToggleSelection,
-                              onUpdateAnchor: onUpdateAnchor,
-                              onRefreshPlaylists: onRefresh,
-                              onTap: () {
-                                final id = pl['id'] as String?;
-                                onSelectPlaylistId(id);
+                  child: Column(
+                    children: [
+                      if (toolbar != null)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+                          child: toolbar!,
+                        ),
+                      Expanded(
+                        child: RefreshIndicator(
+                          onRefresh: onRefresh,
+                          child: Scrollbar(
+                            child: ListView.builder(
+                              padding:
+                                  EdgeInsets.fromLTRB(12, 4, 12, bottomOffset),
+                              itemCount: playlists.length,
+                              itemBuilder: (context, index) {
+                                final pl = playlists[index];
+                                final isSelected =
+                                    pl['id'] == selectedPlaylist['id'];
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 8.0),
+                                  child: RemoteLibraryPlaylistItem(
+                                    server: server,
+                                    password: password,
+                                    playlist: pl,
+                                    index: index,
+                                    allPlaylists: playlists,
+                                    isSelected: isSelected,
+                                    isMultiSelected: selectedPlaylistIds
+                                        .contains(pl['id'] as String? ?? ''),
+                                    isSelectionMode: isSelectionMode,
+                                    selectedPlaylistIds: selectedPlaylistIds,
+                                    lastPlaylistAnchorIndex:
+                                        lastPlaylistAnchorIndex,
+                                    onSetSelection: onSetSelection,
+                                    onToggleSelection: onToggleSelection,
+                                    onUpdateAnchor: onUpdateAnchor,
+                                    onRefreshPlaylists: onRefresh,
+                                    onTap: () {
+                                      final id = pl['id'] as String?;
+                                      onSelectPlaylistId(id);
+                                    },
+                                  ),
+                                );
                               },
                             ),
-                          );
-                        },
+                          ),
+                        ),
                       ),
-                    ),
+                    ],
                   ),
                 ),
               ),
@@ -325,67 +339,98 @@ class RemoteLibraryPlaylistsView extends ConsumerWidget {
           );
         }
 
-        // Portrait: Vertical List of Playlist Cards
-        return playlists.isEmpty
-            ? Center(
-                child: Text(
-                  searchQuery.isEmpty
-                      ? l10n.noPlaylistsFound
-                      : l10n.noMatchingPlaylists,
-                  style: TextStyle(
-                    color: theme.colorScheme.onSurfaceVariant,
+        final toolbarSliver = toolbar != null
+            ? SliverToBoxAdapter(
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      maxWidth: kSingleColumnContentMaxWidth,
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                      child: toolbar!,
+                    ),
                   ),
                 ),
               )
-            : RefreshIndicator(
-                onRefresh: onRefresh,
-                child: Scrollbar(
-                  child: ListView.builder(
-                    padding: EdgeInsets.fromLTRB(16, 8, 16, bottomOffset),
-                    itemCount: playlists.length,
-                    itemBuilder: (context, index) {
-                      final pl = playlists[index];
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 8.0),
-                        child: RemoteLibraryPlaylistItem(
-                          server: server,
-                          password: password,
-                          playlist: pl,
-                          index: index,
-                          allPlaylists: playlists,
-                          isSelected: false,
-                          isMultiSelected: selectedPlaylistIds
-                              .contains(pl['id'] as String? ?? ''),
-                          isSelectionMode: isSelectionMode,
-                          selectedPlaylistIds: selectedPlaylistIds,
-                          lastPlaylistAnchorIndex: lastPlaylistAnchorIndex,
-                          onSetSelection: onSetSelection,
-                          onToggleSelection: onToggleSelection,
-                          onUpdateAnchor: onUpdateAnchor,
-                          onRefreshPlaylists: onRefresh,
-                          onTap: () {
-                            RemoteLibraryNavUtils.openPlaylist(
-                              context,
-                              ref,
+            : null;
+
+        // Portrait: Vertical List of Playlist Cards
+        return RefreshIndicator(
+          onRefresh: onRefresh,
+          child: Scrollbar(
+            child: CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: [
+                ?toolbarSliver,
+                if (playlists.isEmpty)
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: Center(
+                      child: Text(
+                        searchQuery.isEmpty
+                            ? l10n.noPlaylistsFound
+                            : l10n.noMatchingPlaylists,
+                        style: TextStyle(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  SliverPadding(
+                    padding: EdgeInsets.fromLTRB(16, 4, 16, bottomOffset),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) {
+                          final pl = playlists[index];
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 8.0),
+                            child: RemoteLibraryPlaylistItem(
                               server: server,
                               password: password,
-                              playlistId: pl['id'] as String? ?? '',
-                              playlistName:
-                                  pl['name'] as String? ?? l10n.playlist,
-                              coverArtId: pl['coverArt'] as String?,
-                              songCount: pl['songCount'] as int?,
-                              duration: pl['duration'] as int?,
-                              isStarred: pl['isStarred'] == true ||
-                                  pl['id'] == starredPlaylistId,
-                              onPlaylistModified: onRefresh,
-                            );
-                          },
-                        ),
-                      );
-                    },
+                              playlist: pl,
+                              index: index,
+                              allPlaylists: playlists,
+                              isSelected: false,
+                              isMultiSelected: selectedPlaylistIds
+                                  .contains(pl['id'] as String? ?? ''),
+                              isSelectionMode: isSelectionMode,
+                              selectedPlaylistIds: selectedPlaylistIds,
+                              lastPlaylistAnchorIndex: lastPlaylistAnchorIndex,
+                              onSetSelection: onSetSelection,
+                              onToggleSelection: onToggleSelection,
+                              onUpdateAnchor: onUpdateAnchor,
+                              onRefreshPlaylists: onRefresh,
+                              onTap: () {
+                                RemoteLibraryNavUtils.openPlaylist(
+                                  context,
+                                  ref,
+                                  server: server,
+                                  password: password,
+                                  playlistId: pl['id'] as String? ?? '',
+                                  playlistName:
+                                      pl['name'] as String? ?? l10n.playlist,
+                                  coverArtId: pl['coverArt'] as String?,
+                                  songCount: pl['songCount'] as int?,
+                                  duration: pl['duration'] as int?,
+                                  isStarred: pl['isStarred'] == true ||
+                                      pl['id'] == starredPlaylistId,
+                                  onPlaylistModified: onRefresh,
+                                );
+                              },
+                            ),
+                          );
+                        },
+                        childCount: playlists.length,
+                      ),
+                    ),
                   ),
-                ),
-              );
+              ],
+            ),
+          ),
+        );
       },
     );
   }

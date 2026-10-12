@@ -57,7 +57,6 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
   final TextEditingController _albumSearchController = TextEditingController();
   final FocusNode _albumSearchFocusNode = FocusNode();
   String _albumSearchQuery = '';
-  bool _isAlbumSearchExpanded = false;
 
   // Artists state
   bool _isLoadingArtists = false;
@@ -67,7 +66,6 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
   final TextEditingController _artistSearchController = TextEditingController();
   final FocusNode _artistSearchFocusNode = FocusNode();
   String _artistSearchQuery = '';
-  bool _isArtistSearchExpanded = false;
   bool _artistSortAsc = true;
   String _artistSortField = 'name'; // 'name' or 'albumCount'
   bool _artistStarredOnly = false;
@@ -1717,18 +1715,36 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
                           controller: _tabController,
                           isScrollable: true,
                           tabAlignment: TabAlignment.center,
+                          splashBorderRadius: BorderRadius.circular(20),
+                          dividerColor: Colors.transparent,
+                          indicatorSize: TabBarIndicatorSize.tab,
+                          indicator: BoxDecoration(
+                            borderRadius: BorderRadius.circular(20),
+                            color: theme.colorScheme.primaryContainer,
+                          ),
+                          labelColor: theme.colorScheme.onPrimaryContainer,
+                          unselectedLabelColor:
+                              theme.colorScheme.onSurfaceVariant,
+                          labelStyle: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          unselectedLabelStyle: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.normal,
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 4,
+                          ),
                           tabs: [
-                            Tab(icon: const Icon(Icons.album_rounded), text: l10n.albums),
-                            Tab(icon: const Icon(Icons.mic_rounded), text: l10n.artists),
-                            Tab(icon: const Icon(Icons.music_note_rounded), text: l10n.songs),
-                            Tab(
-                              icon: const Icon(Icons.playlist_play_rounded),
-                              text: l10n.playlists,
-                            ),
-                            Tab(icon: const Icon(Icons.search_rounded), text: l10n.search),
+                            Tab(text: l10n.albums, height: 32),
+                            Tab(text: l10n.artists, height: 32),
+                            Tab(text: l10n.songs, height: 32),
+                            Tab(text: l10n.playlists, height: 32),
+                            Tab(text: l10n.search, height: 32),
                           ],
                         ),
-                        toolbar: _buildCurrentTabToolbar(theme),
                       ),
                     ),
                   ];
@@ -1737,6 +1753,7 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
                   controller: _tabController,
                   children: [
                     RemoteLibraryAlbumsView(
+                      toolbar: _buildAlbumsToolbar(),
                       server: widget.server,
                       password: widget.password,
                       albums: _getFilteredAlbums(),
@@ -1762,6 +1779,7 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
                       ),
                     ),
                     RemoteLibraryArtistsView(
+                      toolbar: _buildArtistsToolbar(),
                       server: widget.server,
                       password: widget.password,
                       artists: _getFilteredArtists(),
@@ -1791,6 +1809,7 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
                           setState(() => _lastArtistAnchorIndex = a),
                     ),
                     RemoteLibrarySongsView(
+                      toolbar: _buildSongsToolbar(),
                       server: widget.server,
                       password: widget.password,
                       songs: _getFilteredSongs(),
@@ -1814,6 +1833,7 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
                       onToggleStar: _toggleSongStar,
                     ),
                     RemoteLibraryPlaylistsView(
+                      toolbar: _buildPlaylistsToolbar(),
                       server: widget.server,
                       password: widget.password,
                       playlists: _getFilteredPlaylists(),
@@ -1842,6 +1862,7 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
                           setState(() => _lastPlaylistAnchorIndex = a),
                     ),
                     RemoteLibrarySearchView(
+                      toolbar: _buildSearchToolbar(),
                       server: widget.server,
                       password: widget.password,
                       searchController: _searchController,
@@ -1994,196 +2015,178 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
     return content;
   }
 
-  Widget? _buildCurrentTabToolbar(ThemeData theme) {
-    switch (_tabController.index) {
-      case 0:
-        return RemoteLibraryAlbumsToolbar(
-          isJellyfin: widget.server.type == RemoteServerType.jellyfin,
-          searchController: _albumSearchController,
-          searchFocusNode: _albumSearchFocusNode,
-          searchQuery: _albumSearchQuery,
-          isSearchExpanded: _isAlbumSearchExpanded,
-          sortType: _albumSortType,
-          onSearchChanged: (val) {
+  Widget _buildAlbumsToolbar() {
+    return RemoteLibraryAlbumsToolbar(
+      isJellyfin: widget.server.type == RemoteServerType.jellyfin,
+      searchController: _albumSearchController,
+      searchFocusNode: _albumSearchFocusNode,
+      searchQuery: _albumSearchQuery,
+      sortType: _albumSortType,
+      onSearchChanged: (val) {
+        setState(() {
+          _albumSearchQuery = val.trim();
+        });
+      },
+      onClearSearch: () {
+        _albumSearchController.clear();
+        setState(() {
+          _albumSearchQuery = '';
+        });
+      },
+      onSortTypeChanged: (newSort) {
+        setState(() {
+          _albumSortType = newSort;
+        });
+        ref.read(settingsServiceProvider).navidromeAlbumSortType = newSort;
+        _loadAlbums(forceRefresh: true);
+      },
+    );
+  }
+
+  Widget _buildArtistsToolbar() {
+    return RemoteLibraryArtistsToolbar(
+      searchController: _artistSearchController,
+      searchFocusNode: _artistSearchFocusNode,
+      searchQuery: _artistSearchQuery,
+      starredOnly: _artistStarredOnly,
+      sortAsc: _artistSortAsc,
+      sortField: _artistSortField,
+      onSearchChanged: (val) {
+        setState(() {
+          _artistSearchQuery = val.trim();
+        });
+      },
+      onClearSearch: () {
+        _artistSearchController.clear();
+        setState(() {
+          _artistSearchQuery = '';
+        });
+      },
+      onToggleStarredOnly: (selected) {
+        setState(() {
+          _artistStarredOnly = selected;
+        });
+        if (selected && _starredArtistIds.isEmpty) {
+          _fetchStarredArtists();
+        }
+      },
+      onSortChanged: (field, asc) {
+        setState(() {
+          _artistSortField = field;
+          _artistSortAsc = asc;
+        });
+        final settings = ref.read(settingsServiceProvider);
+        settings.navidromeArtistSortField = field;
+        settings.navidromeArtistSortAscending = asc;
+      },
+    );
+  }
+
+  Widget _buildSongsToolbar() {
+    return RemoteLibrarySongsToolbar(
+      searchController: _songSearchController,
+      searchFocusNode: _songSearchFocusNode,
+      searchQuery: _songSearchQuery,
+      isSearchExpanded: _isSongSearchExpanded,
+      starredOnly: _songStarredOnly,
+      sortAsc: _songSortAsc,
+      sortField: _songSortField,
+      onSearchChanged: (val) {
+        setState(() {
+          _songSearchQuery = val.trim();
+        });
+      },
+      onClearSearch: () {
+        _songSearchController.clear();
+        setState(() {
+          _songSearchQuery = '';
+        });
+      },
+      onToggleSearchExpanded: (expanded) {
+        setState(() {
+          _isSongSearchExpanded = expanded;
+        });
+      },
+      onToggleStarredOnly: (selected) {
+        setState(() {
+          _songStarredOnly = selected;
+        });
+        if (selected && _starredSongIds.isEmpty) {
+          _fetchStarredSongs();
+        }
+      },
+      onSortChanged: (field, asc) {
+        setState(() {
+          _songSortField = field;
+          _songSortAsc = asc;
+        });
+        final settings = ref.read(settingsServiceProvider);
+        settings.navidromeSongSortField = field;
+        settings.navidromeSongSortAscending = asc;
+      },
+    );
+  }
+
+  Widget _buildPlaylistsToolbar() {
+    return RemoteLibraryPlaylistsToolbar(
+      searchController: _playlistSearchController,
+      onSearchChanged: (val) {
+        setState(() {
+          _playlistSearchQuery = val;
+        });
+        final activeSession = ref.read(activeRemoteSessionProvider);
+        if (activeSession != null &&
+            activeSession.server.id == widget.server.id) {
+          ref
+              .read(activeRemoteSessionProvider.notifier)
+              .updateNavidromePlaylistSearchQuery(val);
+        }
+      },
+      onClearSearch: () {
+        _playlistSearchController.clear();
+        setState(() {
+          _playlistSearchQuery = '';
+        });
+        final activeSession = ref.read(activeRemoteSessionProvider);
+        if (activeSession != null &&
+            activeSession.server.id == widget.server.id) {
+          ref
+              .read(activeRemoteSessionProvider.notifier)
+              .updateNavidromePlaylistSearchQuery('');
+        }
+      },
+      onCreatePlaylist: () => showCreateNavidromePlaylistDialog(
+        context: context,
+        client: _client,
+        onCreated: (created) async {
+          await _loadPlaylists(forceRefresh: true);
+          final createdId = created['id'] as String?;
+          if (createdId != null && mounted) {
             setState(() {
-              _albumSearchQuery = val.trim();
+              _selectedPlaylistId = createdId;
             });
-          },
-          onClearSearch: () {
-            _albumSearchController.clear();
-            setState(() {
-              _albumSearchQuery = '';
-            });
-          },
-          onToggleSearchExpanded: (expanded) {
-            setState(() {
-              _isAlbumSearchExpanded = expanded;
-            });
-          },
-          onSortTypeChanged: (newSort) {
-            setState(() {
-              _albumSortType = newSort;
-            });
-            ref.read(settingsServiceProvider).navidromeAlbumSortType = newSort;
-            _loadAlbums(forceRefresh: true);
-          },
-        );
-      case 1:
-        return RemoteLibraryArtistsToolbar(
-          searchController: _artistSearchController,
-          searchFocusNode: _artistSearchFocusNode,
-          searchQuery: _artistSearchQuery,
-          isSearchExpanded: _isArtistSearchExpanded,
-          starredOnly: _artistStarredOnly,
-          sortAsc: _artistSortAsc,
-          sortField: _artistSortField,
-          onSearchChanged: (val) {
-            setState(() {
-              _artistSearchQuery = val.trim();
-            });
-          },
-          onClearSearch: () {
-            _artistSearchController.clear();
-            setState(() {
-              _artistSearchQuery = '';
-            });
-          },
-          onToggleSearchExpanded: (expanded) {
-            setState(() {
-              _isArtistSearchExpanded = expanded;
-            });
-          },
-          onToggleStarredOnly: (selected) {
-            setState(() {
-              _artistStarredOnly = selected;
-            });
-            if (selected && _starredArtistIds.isEmpty) {
-              _fetchStarredArtists();
-            }
-          },
-          onToggleSort: () {
-            setState(() {
-              if (_artistSortField == 'name') {
-                if (_artistSortAsc) {
-                  _artistSortAsc = false;
-                } else {
-                  _artistSortField = 'albumCount';
-                  _artistSortAsc = false;
-                }
-              } else {
-                _artistSortField = 'name';
-                _artistSortAsc = true;
-              }
-            });
-            final settings = ref.read(settingsServiceProvider);
-            settings.navidromeArtistSortField = _artistSortField;
-            settings.navidromeArtistSortAscending = _artistSortAsc;
-          },
-        );
-      case 2:
-        return RemoteLibrarySongsToolbar(
-          searchController: _songSearchController,
-          searchFocusNode: _songSearchFocusNode,
-          searchQuery: _songSearchQuery,
-          isSearchExpanded: _isSongSearchExpanded,
-          starredOnly: _songStarredOnly,
-          sortAsc: _songSortAsc,
-          sortField: _songSortField,
-          onSearchChanged: (val) {
-            setState(() {
-              _songSearchQuery = val.trim();
-            });
-          },
-          onClearSearch: () {
-            _songSearchController.clear();
-            setState(() {
-              _songSearchQuery = '';
-            });
-          },
-          onToggleSearchExpanded: (expanded) {
-            setState(() {
-              _isSongSearchExpanded = expanded;
-            });
-          },
-          onToggleStarredOnly: (selected) {
-            setState(() {
-              _songStarredOnly = selected;
-            });
-            if (selected && _starredSongIds.isEmpty) {
-              _fetchStarredSongs();
-            }
-          },
-          onSortChanged: (field, asc) {
-            setState(() {
-              _songSortField = field;
-              _songSortAsc = asc;
-            });
-            final settings = ref.read(settingsServiceProvider);
-            settings.navidromeSongSortField = field;
-            settings.navidromeSongSortAscending = asc;
-          },
-        );
-      case 3:
-        return RemoteLibraryPlaylistsToolbar(
-          searchController: _playlistSearchController,
-          onSearchChanged: (val) {
-            setState(() {
-              _playlistSearchQuery = val;
-            });
-            final activeSession = ref.read(activeRemoteSessionProvider);
-            if (activeSession != null &&
-                activeSession.server.id == widget.server.id) {
-              ref
-                  .read(activeRemoteSessionProvider.notifier)
-                  .updateNavidromePlaylistSearchQuery(val);
-            }
-          },
-          onClearSearch: () {
-            _playlistSearchController.clear();
-            setState(() {
-              _playlistSearchQuery = '';
-            });
-            final activeSession = ref.read(activeRemoteSessionProvider);
-            if (activeSession != null &&
-                activeSession.server.id == widget.server.id) {
-              ref
-                  .read(activeRemoteSessionProvider.notifier)
-                  .updateNavidromePlaylistSearchQuery('');
-            }
-          },
-          onCreatePlaylist: () => showCreateNavidromePlaylistDialog(
-            context: context,
-            client: _client,
-            onCreated: (created) async {
-              await _loadPlaylists(forceRefresh: true);
-              final createdId = created['id'] as String?;
-              if (createdId != null && mounted) {
-                setState(() {
-                  _selectedPlaylistId = createdId;
-                });
-                ref
-                    .read(activeRemoteSessionProvider.notifier)
-                    .updateNavidromePlaylists(
-                      selectedPlaylistId: createdId,
-                    );
-              }
-            },
-          ),
-          onRefresh: () => _loadPlaylists(forceRefresh: true),
-        );
-      case 4:
-        return RemoteLibrarySearchToolbar(
-          searchController: _searchController,
-          isSearching: _isSearching,
-          onSearchChanged: _onSearchChanged,
-          onClearSearch: () {
-            _searchController.clear();
-            _onSearchChanged('');
-          },
-        );
-      default:
-        return null;
-    }
+            ref
+                .read(activeRemoteSessionProvider.notifier)
+                .updateNavidromePlaylists(
+                  selectedPlaylistId: createdId,
+                );
+          }
+        },
+      ),
+      onRefresh: () => _loadPlaylists(forceRefresh: true),
+    );
+  }
+
+  Widget _buildSearchToolbar() {
+    return RemoteLibrarySearchToolbar(
+      searchController: _searchController,
+      isSearching: _isSearching,
+      onSearchChanged: _onSearchChanged,
+      onClearSearch: () {
+        _searchController.clear();
+        _onSearchChanged('');
+      },
+    );
   }
 }
 

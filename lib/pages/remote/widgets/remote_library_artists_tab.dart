@@ -12,100 +12,119 @@ import 'remote_library_toolbar_widgets.dart';
 
 class RemoteLibraryArtistsToolbar extends StatelessWidget {
   final TextEditingController searchController;
-  final FocusNode searchFocusNode;
+  final FocusNode? searchFocusNode;
   final String searchQuery;
   final ValueChanged<String> onSearchChanged;
   final VoidCallback onClearSearch;
-  final bool isSearchExpanded;
-  final ValueChanged<bool> onToggleSearchExpanded;
   final bool starredOnly;
   final ValueChanged<bool> onToggleStarredOnly;
   final bool sortAsc;
   final String sortField; // 'name' or 'albumCount'
-  final VoidCallback onToggleSort;
+  final void Function(String field, bool asc) onSortChanged;
 
   const RemoteLibraryArtistsToolbar({
     super.key,
     required this.searchController,
-    required this.searchFocusNode,
+    this.searchFocusNode,
     required this.searchQuery,
     required this.onSearchChanged,
     required this.onClearSearch,
-    required this.isSearchExpanded,
-    required this.onToggleSearchExpanded,
     required this.starredOnly,
     required this.onToggleStarredOnly,
     required this.sortAsc,
     required this.sortField,
-    required this.onToggleSort,
+    required this.onSortChanged,
   });
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final String currentSortKey = '${sortField}_$sortAsc';
+    final String currentLabel = switch (sortField) {
+      'albumCount' => l10n.albums,
+      _ => 'A-Z',
+    };
 
-    final chips = SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      clipBehavior: Clip.none,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          FilterChip(
-            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            visualDensity: VisualDensity.compact,
-            avatar: Icon(
-              starredOnly
-                  ? Icons.favorite_rounded
-                  : Icons.favorite_border_rounded,
-              size: 14,
-              color: starredOnly ? Colors.redAccent : null,
-            ),
-            label: Text(
-              l10n.starredArtists,
-              style: TextStyle(
-                fontSize: 12,
-                color: starredOnly ? Colors.redAccent : null,
-              ),
-            ),
-            selected: starredOnly,
-            onSelected: onToggleStarredOnly,
+    return Row(
+      children: [
+        Expanded(
+          child: RemoteSearchBar(
+            controller: searchController,
+            focusNode: searchFocusNode,
+            hintText: l10n.filterArtists,
+            searchQuery: searchQuery,
+            onChanged: onSearchChanged,
+            onClear: onClearSearch,
           ),
-          const SizedBox(width: 8),
-          ActionChip(
-            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            visualDensity: VisualDensity.compact,
-            avatar: Icon(
-              sortAsc
-                  ? Icons.arrow_upward_rounded
-                  : Icons.arrow_downward_rounded,
-              size: 16,
-            ),
-            label: Text(
-              sortField == 'albumCount' ? l10n.albums : 'A-Z',
-              style: const TextStyle(fontSize: 12),
-            ),
-            onPressed: onToggleSort,
+        ),
+        const SizedBox(width: 8),
+        IconButton(
+          style: IconButton.styleFrom(
+            backgroundColor: starredOnly
+                ? Colors.redAccent.withValues(alpha: 0.15)
+                : theme.colorScheme.surfaceContainerHighest
+                    .withValues(alpha: 0.5),
+            minimumSize: const Size(32, 32),
+            fixedSize: const Size(32, 32),
+            padding: EdgeInsets.zero,
           ),
-        ],
-      ),
-    );
-
-    return RemoteResponsiveToolbar(
-      searchField: RemoteSearchBar(
-        controller: searchController,
-        focusNode: searchFocusNode,
-        hintText: l10n.filterArtists,
-        searchQuery: searchQuery,
-        onChanged: onSearchChanged,
-        onClear: onClearSearch,
-      ),
-      trailing: chips,
-      searchFocusNode: searchFocusNode,
-      isSearchExpanded: isSearchExpanded || searchQuery.isNotEmpty,
-      onToggleSearchExpanded: onToggleSearchExpanded,
-      onClearSearch: onClearSearch,
-      searchTooltip: l10n.filterArtists,
-      collapseBreakpoint: 480.0,
+          icon: Icon(
+            starredOnly
+                ? Icons.favorite_rounded
+                : Icons.favorite_border_rounded,
+            size: 16,
+            color: starredOnly
+                ? Colors.redAccent
+                : theme.colorScheme.onSurfaceVariant,
+          ),
+          tooltip: l10n.starredArtists,
+          onPressed: () => onToggleStarredOnly(!starredOnly),
+        ),
+        const SizedBox(width: 8),
+        RemoteDropdownButton<String>(
+          value: currentSortKey,
+          label: currentLabel,
+          icon: sortAsc
+              ? Icons.arrow_upward_rounded
+              : Icons.arrow_downward_rounded,
+          tooltip: l10n.sort,
+          onSelected: (key) {
+            final parts = key.split('_');
+            onSortChanged(parts[0], parts[1] == 'true');
+          },
+          items: [
+            buildRemoteMenuItem(
+              value: 'name_true',
+              label: 'A-Z (${l10n.sortAscending})',
+              icon: Icons.sort_by_alpha_rounded,
+              isSelected: sortField == 'name' && sortAsc,
+              theme: theme,
+            ),
+            buildRemoteMenuItem(
+              value: 'name_false',
+              label: 'Z-A (${l10n.sortDescending})',
+              icon: Icons.sort_by_alpha_rounded,
+              isSelected: sortField == 'name' && !sortAsc,
+              theme: theme,
+            ),
+            buildRemoteMenuItem(
+              value: 'albumCount_false',
+              label: '${l10n.albums} (${l10n.sortDescending})',
+              icon: Icons.album_rounded,
+              isSelected: sortField == 'albumCount' && !sortAsc,
+              theme: theme,
+            ),
+            buildRemoteMenuItem(
+              value: 'albumCount_true',
+              label: '${l10n.albums} (${l10n.sortAscending})',
+              icon: Icons.album_rounded,
+              isSelected: sortField == 'albumCount' && sortAsc,
+              theme: theme,
+            ),
+          ],
+        ),
+      ],
     );
   }
 }
@@ -128,6 +147,7 @@ class RemoteLibraryArtistsView extends ConsumerWidget {
   final void Function(Set<String> keys) onSetSelection;
   final void Function(String artistId) onToggleSelection;
   final void Function(int? index) onUpdateAnchor;
+  final Widget? toolbar;
 
   const RemoteLibraryArtistsView({
     super.key,
@@ -148,6 +168,7 @@ class RemoteLibraryArtistsView extends ConsumerWidget {
     required this.onSetSelection,
     required this.onToggleSelection,
     required this.onUpdateAnchor,
+    this.toolbar,
   });
 
   @override
@@ -213,50 +234,60 @@ class RemoteLibraryArtistsView extends ConsumerWidget {
                           .withValues(alpha: 0.45),
                     ),
                   ),
-                  child: RefreshIndicator(
-                    onRefresh: onRefresh,
-                    child: Scrollbar(
-                      child: ListView.builder(
-                        padding:
-                            EdgeInsets.fromLTRB(12, 12, 12, bottomOffset),
-                        itemCount: artists.length,
-                        itemBuilder: (context, index) {
-                          final artist = artists[index];
-                          final isSelected =
-                              artist['id'] == selectedArtist['id'];
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 8.0),
-                            child: RemoteLibraryArtistItem(
-                              server: server,
-                              password: password,
-                              artist: artist,
-                              index: index,
-                              allArtists: artists,
-                              isSelected: isSelected,
-                              isMultiSelected: selectedArtistIds
-                                  .contains(artist['id'] as String? ?? ''),
-                              isStarred: starredArtistIds
-                                  .contains(artist['id'] as String? ?? ''),
-                              isSelectionMode: isSelectionMode,
-                              selectedArtistIds: selectedArtistIds,
-                              lastArtistAnchorIndex: lastArtistAnchorIndex,
-                              onSetSelection: onSetSelection,
-                              onToggleSelection: onToggleSelection,
-                              onUpdateAnchor: onUpdateAnchor,
-                              onTap: () {
-                                final id = artist['id'] as String?;
-                                onSelectArtistId(id);
+                  child: Column(
+                    children: [
+                      if (toolbar != null)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
+                          child: toolbar!,
+                        ),
+                      Expanded(
+                        child: RefreshIndicator(
+                          onRefresh: onRefresh,
+                          child: Scrollbar(
+                            child: ListView.builder(
+                              padding:
+                                  EdgeInsets.fromLTRB(12, 6, 12, bottomOffset),
+                              itemCount: artists.length,
+                              itemBuilder: (context, index) {
+                                final artist = artists[index];
+                                final isSelected =
+                                    artist['id'] == selectedArtist['id'];
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 8.0),
+                                  child: RemoteLibraryArtistItem(
+                                    server: server,
+                                    password: password,
+                                    artist: artist,
+                                    index: index,
+                                    allArtists: artists,
+                                    isSelected: isSelected,
+                                    isMultiSelected: selectedArtistIds
+                                        .contains(artist['id'] as String? ?? ''),
+                                    isStarred: starredArtistIds
+                                        .contains(artist['id'] as String? ?? ''),
+                                    isSelectionMode: isSelectionMode,
+                                    selectedArtistIds: selectedArtistIds,
+                                    lastArtistAnchorIndex: lastArtistAnchorIndex,
+                                    onSetSelection: onSetSelection,
+                                    onToggleSelection: onToggleSelection,
+                                    onUpdateAnchor: onUpdateAnchor,
+                                    onTap: () {
+                                      final id = artist['id'] as String?;
+                                      onSelectArtistId(id);
+                                    },
+                                  ),
+                                );
                               },
                             ),
-                          );
-                        },
+                          ),
+                        ),
                       ),
-                    ),
+                    ],
                   ),
                 ),
               ),
-
-              // Right: Artist Detail Pane
+              // Right: Artist Detail View
               Expanded(
                 child: Container(
                   margin: const EdgeInsets.fromLTRB(8, 12, 16, 16),
@@ -291,59 +322,86 @@ class RemoteLibraryArtistsView extends ConsumerWidget {
 
         // Portrait: Vertical List of Artist Cards
         return artists.isEmpty
-            ? Center(
-                child: Text(
-                  searchQuery.isEmpty
-                      ? l10n.noArtistsFound
-                      : l10n.noMatchingArtists,
-                  style: TextStyle(
-                    color: theme.colorScheme.onSurfaceVariant,
+            ? Column(
+                children: [
+                  if (toolbar != null)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                      child: toolbar!,
+                    ),
+                  Expanded(
+                    child: Center(
+                      child: Text(
+                        searchQuery.isEmpty
+                            ? l10n.noArtistsFound
+                            : l10n.noMatchingArtists,
+                        style: TextStyle(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
+                ],
               )
             : RefreshIndicator(
                 onRefresh: onRefresh,
                 child: Scrollbar(
-                  child: ListView.builder(
-                    padding: EdgeInsets.fromLTRB(16, 8, 16, bottomOffset),
-                    itemCount: artists.length,
-                    itemBuilder: (context, index) {
-                      final artist = artists[index];
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 8.0),
-                        child: RemoteLibraryArtistItem(
-                          server: server,
-                          password: password,
-                          artist: artist,
-                          index: index,
-                          allArtists: artists,
-                          isSelected: false,
-                          isMultiSelected: selectedArtistIds
-                              .contains(artist['id'] as String? ?? ''),
-                          isStarred: starredArtistIds
-                              .contains(artist['id'] as String? ?? ''),
-                          isSelectionMode: isSelectionMode,
-                          selectedArtistIds: selectedArtistIds,
-                          lastArtistAnchorIndex: lastArtistAnchorIndex,
-                          onSetSelection: onSetSelection,
-                          onToggleSelection: onToggleSelection,
-                          onUpdateAnchor: onUpdateAnchor,
-                          onTap: () {
-                            RemoteLibraryNavUtils.openArtist(
-                              context,
-                              ref,
-                              server: server,
-                              password: password,
-                              artistId: artist['id'] as String? ?? '',
-                              artistName: artist['name'] as String? ??
-                                  l10n.unknownArtist,
-                              coverArtId: artist['coverArt'] as String?,
-                              albumCount: artist['albumCount'] as int?,
-                            );
-                          },
+                  child: CustomScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    slivers: [
+                      if (toolbar != null)
+                        SliverToBoxAdapter(
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                            child: toolbar!,
+                          ),
                         ),
-                      );
-                    },
+                      SliverPadding(
+                        padding: EdgeInsets.fromLTRB(16, 0, 16, bottomOffset),
+                        sliver: SliverList(
+                          delegate: SliverChildBuilderDelegate(
+                            (context, index) {
+                              final artist = artists[index];
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 8.0),
+                                child: RemoteLibraryArtistItem(
+                                  server: server,
+                                  password: password,
+                                  artist: artist,
+                                  index: index,
+                                  allArtists: artists,
+                                  isSelected: false,
+                                  isMultiSelected: selectedArtistIds
+                                      .contains(artist['id'] as String? ?? ''),
+                                  isStarred: starredArtistIds
+                                      .contains(artist['id'] as String? ?? ''),
+                                  isSelectionMode: isSelectionMode,
+                                  selectedArtistIds: selectedArtistIds,
+                                  lastArtistAnchorIndex: lastArtistAnchorIndex,
+                                  onSetSelection: onSetSelection,
+                                  onToggleSelection: onToggleSelection,
+                                  onUpdateAnchor: onUpdateAnchor,
+                                  onTap: () {
+                                    RemoteLibraryNavUtils.openArtist(
+                                      context,
+                                      ref,
+                                      server: server,
+                                      password: password,
+                                      artistId: artist['id'] as String? ?? '',
+                                      artistName: artist['name'] as String? ??
+                                          l10n.unknownArtist,
+                                      coverArtId: artist['coverArt'] as String?,
+                                      albumCount: artist['albumCount'] as int?,
+                                    );
+                                  },
+                                ),
+                              );
+                            },
+                            childCount: artists.length,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               );

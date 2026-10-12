@@ -12,12 +12,10 @@ import 'remote_library_toolbar_widgets.dart';
 
 class RemoteLibraryAlbumsToolbar extends StatelessWidget {
   final TextEditingController searchController;
-  final FocusNode searchFocusNode;
+  final FocusNode? searchFocusNode;
   final String searchQuery;
   final ValueChanged<String> onSearchChanged;
   final VoidCallback onClearSearch;
-  final bool isSearchExpanded;
-  final ValueChanged<bool> onToggleSearchExpanded;
   final String sortType;
   final ValueChanged<String> onSortTypeChanged;
   final bool isJellyfin;
@@ -25,75 +23,106 @@ class RemoteLibraryAlbumsToolbar extends StatelessWidget {
   const RemoteLibraryAlbumsToolbar({
     super.key,
     required this.searchController,
-    required this.searchFocusNode,
+    this.searchFocusNode,
     required this.searchQuery,
     required this.onSearchChanged,
     required this.onClearSearch,
-    required this.isSearchExpanded,
-    required this.onToggleSearchExpanded,
     required this.sortType,
     required this.onSortTypeChanged,
     this.isJellyfin = false,
   });
 
+  String _getSortLabel(AppLocalizations l10n) {
+    switch (sortType) {
+      case 'newest':
+        return l10n.sortRecentAdded;
+      case 'recent':
+        return l10n.sortRecentlyPlayed;
+      case 'frequent':
+        return l10n.sortMostPlayed;
+      case 'starred':
+        return l10n.sortStarred;
+      case 'random':
+        return l10n.sortRandom;
+      case 'alphabeticalByName':
+      default:
+        return l10n.sortAllAZ;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final sortOptions = [
-      {'key': 'alphabeticalByName', 'label': l10n.sortAllAZ},
-      {'key': 'newest', 'label': l10n.sortRecentAdded},
-      if (!isJellyfin) ...[
-        {'key': 'recent', 'label': l10n.sortRecentlyPlayed},
-        {'key': 'frequent', 'label': l10n.sortMostPlayed},
-      ],
-      {'key': 'starred', 'label': l10n.sortStarred},
-      {'key': 'random', 'label': l10n.sortRandom},
-    ];
+    final theme = Theme.of(context);
+    final currentLabel = _getSortLabel(l10n);
 
-    final sortChips = SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      clipBehavior: Clip.none,
-      child: Row(
-        children: sortOptions.map((opt) {
-          final key = opt['key']!;
-          final label = opt['label']!;
-          final isSelected = sortType == key;
-          return Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: FilterChip(
-              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              visualDensity: VisualDensity.compact,
-              label: Text(label, style: const TextStyle(fontSize: 12)),
-              selected: isSelected,
-              onSelected: (selected) {
-                if (selected && sortType != key) {
-                  onSortTypeChanged(key);
-                }
-              },
+    return Row(
+      children: [
+        Expanded(
+          child: RemoteSearchBar(
+            controller: searchController,
+            focusNode: searchFocusNode,
+            hintText: l10n.filterAlbums,
+            searchQuery: searchQuery,
+            onChanged: onSearchChanged,
+            onClear: onClearSearch,
+          ),
+        ),
+        const SizedBox(width: 8),
+        RemoteDropdownButton<String>(
+          value: sortType,
+          label: currentLabel,
+          icon: Icons.sort_rounded,
+          tooltip: l10n.sort,
+          onSelected: onSortTypeChanged,
+          items: [
+            buildRemoteMenuItem(
+              value: 'alphabeticalByName',
+              label: l10n.sortAllAZ,
+              icon: Icons.sort_by_alpha_rounded,
+              isSelected: sortType == 'alphabeticalByName',
+              theme: theme,
             ),
-          );
-        }).toList(),
-      ),
-    );
-
-    return RemoteResponsiveToolbar(
-      searchField: RemoteSearchBar(
-        controller: searchController,
-        focusNode: searchFocusNode,
-        hintText: l10n.filterAlbums,
-        searchQuery: searchQuery,
-        onChanged: onSearchChanged,
-        onClear: onClearSearch,
-      ),
-      trailing: sortChips,
-      searchFocusNode: searchFocusNode,
-      isSearchExpanded: isSearchExpanded || searchQuery.isNotEmpty,
-      onToggleSearchExpanded: onToggleSearchExpanded,
-      onClearSearch: onClearSearch,
-      searchTooltip: l10n.filterAlbums,
-      collapseBreakpoint: 650.0,
-      searchFlex: 4,
-      trailingFlex: 6,
+            buildRemoteMenuItem(
+              value: 'newest',
+              label: l10n.sortRecentAdded,
+              icon: Icons.access_time_rounded,
+              isSelected: sortType == 'newest',
+              theme: theme,
+            ),
+            if (!isJellyfin) ...[
+              buildRemoteMenuItem(
+                value: 'recent',
+                label: l10n.sortRecentlyPlayed,
+                icon: Icons.history_rounded,
+                isSelected: sortType == 'recent',
+                theme: theme,
+              ),
+              buildRemoteMenuItem(
+                value: 'frequent',
+                label: l10n.sortMostPlayed,
+                icon: Icons.local_fire_department_rounded,
+                isSelected: sortType == 'frequent',
+                theme: theme,
+              ),
+            ],
+            buildRemoteMenuItem(
+              value: 'starred',
+              label: l10n.sortStarred,
+              icon: Icons.favorite_rounded,
+              isSelected: sortType == 'starred',
+              theme: theme,
+            ),
+            buildRemoteMenuItem(
+              value: 'random',
+              label: l10n.sortRandom,
+              icon: Icons.shuffle_rounded,
+              isSelected: sortType == 'random',
+              theme: theme,
+            ),
+          ],
+        ),
+      ],
     );
   }
 }
@@ -113,7 +142,8 @@ class RemoteLibraryAlbumsView extends ConsumerWidget {
   final void Function(Set<String> keys) onSetSelection;
   final void Function(String albumId) onToggleSelection;
   final void Function(int? index) onUpdateAnchor;
-  final void Function(String albumId, String albumTitle) onPlayAlbumDirectly;
+  final void Function(String albumId, String title) onPlayAlbumDirectly;
+  final Widget? toolbar;
 
   const RemoteLibraryAlbumsView({
     super.key,
@@ -132,6 +162,7 @@ class RemoteLibraryAlbumsView extends ConsumerWidget {
     required this.onToggleSelection,
     required this.onUpdateAnchor,
     required this.onPlayAlbumDirectly,
+    this.toolbar,
   });
 
   @override
@@ -194,31 +225,54 @@ class RemoteLibraryAlbumsView extends ConsumerWidget {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 1600),
             child: albums.isEmpty
-                ? Center(
-                    child: Text(
-                      searchQuery.isEmpty
-                          ? l10n.noAlbumsOnServer
-                          : l10n.noMatchingAlbums,
-                      style: TextStyle(
-                        color: theme.colorScheme.onSurfaceVariant,
+                ? Column(
+                    children: [
+                      if (toolbar != null)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                          child: toolbar!,
+                        ),
+                      Expanded(
+                        child: Center(
+                          child: Text(
+                            searchQuery.isEmpty
+                                ? l10n.noAlbumsOnServer
+                                : l10n.noMatchingAlbums,
+                            style: TextStyle(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
+                    ],
                   )
                 : RefreshIndicator(
                     onRefresh: onRefresh,
                     child: Scrollbar(
-                      child: GridView.builder(
-                        padding:
-                            EdgeInsets.fromLTRB(16, 8, 16, bottomOffset),
-                        gridDelegate:
-                            SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: crossAxisCount,
-                          childAspectRatio: childAspectRatio,
-                          crossAxisSpacing: 16,
-                          mainAxisSpacing: 16,
-                        ),
-                        itemCount: albums.length,
-                        itemBuilder: (context, index) {
+                      child: CustomScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        slivers: [
+                          if (toolbar != null)
+                            SliverToBoxAdapter(
+                              child: Padding(
+                                padding:
+                                    const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                                child: toolbar!,
+                              ),
+                            ),
+                          SliverPadding(
+                            padding:
+                                EdgeInsets.fromLTRB(16, 0, 16, bottomOffset),
+                            sliver: SliverGrid(
+                              gridDelegate:
+                                  SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: crossAxisCount,
+                                childAspectRatio: childAspectRatio,
+                                crossAxisSpacing: 16,
+                                mainAxisSpacing: 16,
+                              ),
+                              delegate: SliverChildBuilderDelegate(
+                                (context, index) {
                           final album = albums[index];
                           final albumId = album['id'] as String? ?? '';
                           final isSelected = selectedAlbumIds.contains(albumId);
@@ -255,11 +309,16 @@ class RemoteLibraryAlbumsView extends ConsumerWidget {
                                 onPlayAlbumDirectly(albumId, title),
                           );
                         },
+                        childCount: albums.length,
                       ),
                     ),
                   ),
+                ],
+              ),
+            ),
           ),
-        );
+        ),
+      );
       },
     );
   }

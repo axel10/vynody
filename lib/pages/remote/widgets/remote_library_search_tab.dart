@@ -29,8 +29,8 @@ class RemoteLibrarySearchToolbar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: RemoteSearchBar(
         controller: searchController,
         hintText: l10n.searchRemoteHint,
@@ -72,6 +72,7 @@ class RemoteLibrarySearchView extends ConsumerWidget {
   final void Function(int? index) onUpdateSongAnchor;
   final void Function(String artistId) onToggleArtistSelection;
   final void Function(String albumId) onToggleAlbumSelection;
+  final Widget? toolbar;
 
   const RemoteLibrarySearchView({
     super.key,
@@ -95,6 +96,7 @@ class RemoteLibrarySearchView extends ConsumerWidget {
     required this.onUpdateSongAnchor,
     required this.onToggleArtistSelection,
     required this.onToggleAlbumSelection,
+    this.toolbar,
   });
 
   String _buildSongSubtitle(MusicFile song, AppLocalizations l10n) {
@@ -115,33 +117,39 @@ class RemoteLibrarySearchView extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
 
-    if (searchedSongs.isEmpty &&
+    final isEmpty = searchedSongs.isEmpty &&
         searchedAlbums.isEmpty &&
-        searchedArtists.isEmpty) {
-      if (isSearching) {
-        return const Center(
-          child: CircularProgressIndicator(),
-        );
-      }
-      return Center(
-        child: Text(
-          searchController.text.trim().isEmpty
-              ? l10n.typeToSearch
-              : l10n.noMatchingResults,
-          style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
-        ),
-      );
-    }
+        searchedArtists.isEmpty;
 
     return Align(
       alignment: Alignment.topCenter,
       child: ConstrainedBox(
         constraints:
             const BoxConstraints(maxWidth: kSingleColumnContentMaxWidth),
-        child: Scrollbar(
-          child: ListView(
-            padding: EdgeInsets.fromLTRB(16, 8, 16, bottomOffset),
+        child: Column(
           children: [
+            if (toolbar != null)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                child: toolbar!,
+              ),
+            Expanded(
+              child: isEmpty
+                  ? Center(
+                      child: isSearching
+                          ? const CircularProgressIndicator()
+                          : Text(
+                              searchController.text.trim().isEmpty
+                                  ? l10n.typeToSearch
+                                  : l10n.noMatchingResults,
+                              style: TextStyle(
+                                  color: theme.colorScheme.onSurfaceVariant),
+                            ),
+                    )
+                  : Scrollbar(
+                      child: ListView(
+                        padding: EdgeInsets.fromLTRB(16, 4, 16, bottomOffset),
+                        children: [
         if (searchedArtists.isNotEmpty) ...[
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -526,7 +534,10 @@ class RemoteLibrarySearchView extends ConsumerWidget {
           }(),
         ],
       ],
-          ),
+    ),
+  ),
+),
+          ],
         ),
       ),
     );

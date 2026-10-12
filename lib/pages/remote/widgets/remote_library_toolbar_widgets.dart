@@ -194,3 +194,107 @@ class RemoteResponsiveToolbar extends StatelessWidget {
     );
   }
 }
+
+/// 统一风格的紧凑下拉菜单按钮
+class RemoteDropdownButton<T> extends StatelessWidget {
+  final T value;
+  final String label;
+  final IconData icon;
+  final List<PopupMenuEntry<T>> items;
+  final ValueChanged<T> onSelected;
+  final String? tooltip;
+
+  const RemoteDropdownButton({
+    super.key,
+    required this.value,
+    required this.label,
+    required this.icon,
+    required this.items,
+    required this.onSelected,
+    this.tooltip,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return PopupMenuButton<T>(
+      tooltip: tooltip,
+      initialValue: value,
+      onSelected: onSelected,
+      elevation: 6,
+      shadowColor: Colors.black26,
+      color: theme.colorScheme.surfaceContainerHigh,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      itemBuilder: (context) => items,
+      child: Container(
+        height: 32,
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 15, color: theme.colorScheme.primary),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: theme.colorScheme.onSurface,
+              ),
+            ),
+            const SizedBox(width: 2),
+            Icon(
+              Icons.arrow_drop_down_rounded,
+              size: 18,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 统一风格的下拉菜单项构造辅助方法
+PopupMenuItem<T> buildRemoteMenuItem<T>({
+  required T value,
+  required String label,
+  required IconData icon,
+  required bool isSelected,
+  required ThemeData theme,
+}) {
+  return PopupMenuItem<T>(
+    value: value,
+    child: Row(
+      children: [
+        Icon(
+          icon,
+          size: 16,
+          color: isSelected
+              ? theme.colorScheme.primary
+              : theme.colorScheme.onSurfaceVariant,
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              color: isSelected ? theme.colorScheme.primary : null,
+            ),
+          ),
+        ),
+        if (isSelected)
+          Icon(Icons.check_rounded, size: 16, color: theme.colorScheme.primary),
+      ],
+    ),
+  );
+}
