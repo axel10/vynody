@@ -21,6 +21,7 @@ class RemoteLibraryPlaylistsToolbar extends StatelessWidget {
   final VoidCallback onClearSearch;
   final VoidCallback onCreatePlaylist;
   final VoidCallback onRefresh;
+  final int? totalCount;
 
   const RemoteLibraryPlaylistsToolbar({
     super.key,
@@ -29,43 +30,86 @@ class RemoteLibraryPlaylistsToolbar extends StatelessWidget {
     required this.onClearSearch,
     required this.onCreatePlaylist,
     required this.onRefresh,
+    this.totalCount,
   });
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          Expanded(
-            child: RemoteSearchBar(
-              controller: searchController,
-              hintText: l10n.searchPlaylists,
-              searchQuery: searchController.text,
-              onChanged: onSearchChanged,
-              onClear: onClearSearch,
-              fillColor: theme.colorScheme.surfaceContainerHighest
-                  .withValues(alpha: 0.5),
+
+    final searchBar = RemoteSearchBar(
+      controller: searchController,
+      hintText: l10n.searchPlaylists,
+      searchQuery: searchController.text,
+      onChanged: onSearchChanged,
+      onClear: onClearSearch,
+      fillColor:
+          theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+    );
+
+    final createButton = IconButton.filledTonal(
+      style: kCompactIconButtonStyle,
+      tooltip: l10n.createNewServerPlaylist,
+      icon: const Icon(Icons.add_rounded, size: 18),
+      onPressed: onCreatePlaylist,
+    );
+
+    final refreshButton = IconButton(
+      style: kCompactIconButtonStyle,
+      tooltip: l10n.refresh,
+      icon: const Icon(Icons.refresh_rounded, size: 18),
+      onPressed: onRefresh,
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWide = constraints.maxWidth >= 600;
+
+        if (isWide) {
+          final isZh = Localizations.localeOf(context).languageCode == 'zh';
+          final countText = totalCount != null
+              ? Text(
+                  isZh ? '共 $totalCount 个歌单' : '$totalCount ${l10n.playlists}',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w500,
+                  ),
+                )
+              : null;
+
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(
+              children: [
+                ?countText,
+                const Spacer(),
+                SizedBox(
+                  width: 200,
+                  child: searchBar,
+                ),
+                const SizedBox(width: 8),
+                createButton,
+                const SizedBox(width: 6),
+                refreshButton,
+              ],
             ),
+          );
+        }
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Row(
+            children: [
+              Expanded(child: searchBar),
+              const SizedBox(width: 8),
+              createButton,
+              const SizedBox(width: 6),
+              refreshButton,
+            ],
           ),
-          const SizedBox(width: 8),
-          IconButton.filledTonal(
-            style: kCompactIconButtonStyle,
-            tooltip: l10n.createNewServerPlaylist,
-            icon: const Icon(Icons.add_rounded, size: 18),
-            onPressed: onCreatePlaylist,
-          ),
-          const SizedBox(width: 6),
-          IconButton(
-            style: kCompactIconButtonStyle,
-            tooltip: l10n.refresh,
-            icon: const Icon(Icons.refresh_rounded, size: 18),
-            onPressed: onRefresh,
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

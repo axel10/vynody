@@ -22,6 +22,7 @@ class RemoteLibraryArtistsToolbar extends StatelessWidget {
   final bool sortAsc;
   final String sortField; // 'name' or 'albumCount'
   final void Function(String field, bool asc) onSortChanged;
+  final int? totalCount;
 
   const RemoteLibraryArtistsToolbar({
     super.key,
@@ -35,6 +36,7 @@ class RemoteLibraryArtistsToolbar extends StatelessWidget {
     required this.sortAsc,
     required this.sortField,
     required this.onSortChanged,
+    this.totalCount,
   });
 
   @override
@@ -47,85 +49,122 @@ class RemoteLibraryArtistsToolbar extends StatelessWidget {
       _ => 'A-Z',
     };
 
-    return Row(
-      children: [
-        Expanded(
-          child: RemoteSearchBar(
-            controller: searchController,
-            focusNode: searchFocusNode,
-            hintText: l10n.filterArtists,
-            searchQuery: searchQuery,
-            onChanged: onSearchChanged,
-            onClear: onClearSearch,
-          ),
+    final searchBar = RemoteSearchBar(
+      controller: searchController,
+      focusNode: searchFocusNode,
+      hintText: l10n.filterArtists,
+      searchQuery: searchQuery,
+      onChanged: onSearchChanged,
+      onClear: onClearSearch,
+    );
+
+    final starButton = IconButton(
+      style: IconButton.styleFrom(
+        backgroundColor: starredOnly
+            ? Colors.redAccent.withValues(alpha: 0.15)
+            : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        minimumSize: const Size(32, 32),
+        fixedSize: const Size(32, 32),
+        padding: EdgeInsets.zero,
+      ),
+      icon: Icon(
+        starredOnly
+            ? Icons.favorite_rounded
+            : Icons.favorite_border_rounded,
+        size: 16,
+        color: starredOnly
+            ? Colors.redAccent
+            : theme.colorScheme.onSurfaceVariant,
+      ),
+      tooltip: l10n.starredArtists,
+      onPressed: () => onToggleStarredOnly(!starredOnly),
+    );
+
+    final sortDropdown = RemoteDropdownButton<String>(
+      value: currentSortKey,
+      label: currentLabel,
+      icon: sortAsc
+          ? Icons.arrow_upward_rounded
+          : Icons.arrow_downward_rounded,
+      tooltip: l10n.sort,
+      onSelected: (key) {
+        final parts = key.split('_');
+        onSortChanged(parts[0], parts[1] == 'true');
+      },
+      items: [
+        buildRemoteMenuItem(
+          value: 'name_true',
+          label: 'A-Z (${l10n.sortAscending})',
+          icon: Icons.sort_by_alpha_rounded,
+          isSelected: sortField == 'name' && sortAsc,
+          theme: theme,
         ),
-        const SizedBox(width: 8),
-        IconButton(
-          style: IconButton.styleFrom(
-            backgroundColor: starredOnly
-                ? Colors.redAccent.withValues(alpha: 0.15)
-                : theme.colorScheme.surfaceContainerHighest
-                    .withValues(alpha: 0.5),
-            minimumSize: const Size(32, 32),
-            fixedSize: const Size(32, 32),
-            padding: EdgeInsets.zero,
-          ),
-          icon: Icon(
-            starredOnly
-                ? Icons.favorite_rounded
-                : Icons.favorite_border_rounded,
-            size: 16,
-            color: starredOnly
-                ? Colors.redAccent
-                : theme.colorScheme.onSurfaceVariant,
-          ),
-          tooltip: l10n.starredArtists,
-          onPressed: () => onToggleStarredOnly(!starredOnly),
+        buildRemoteMenuItem(
+          value: 'name_false',
+          label: 'Z-A (${l10n.sortDescending})',
+          icon: Icons.sort_by_alpha_rounded,
+          isSelected: sortField == 'name' && !sortAsc,
+          theme: theme,
         ),
-        const SizedBox(width: 8),
-        RemoteDropdownButton<String>(
-          value: currentSortKey,
-          label: currentLabel,
-          icon: sortAsc
-              ? Icons.arrow_upward_rounded
-              : Icons.arrow_downward_rounded,
-          tooltip: l10n.sort,
-          onSelected: (key) {
-            final parts = key.split('_');
-            onSortChanged(parts[0], parts[1] == 'true');
-          },
-          items: [
-            buildRemoteMenuItem(
-              value: 'name_true',
-              label: 'A-Z (${l10n.sortAscending})',
-              icon: Icons.sort_by_alpha_rounded,
-              isSelected: sortField == 'name' && sortAsc,
-              theme: theme,
-            ),
-            buildRemoteMenuItem(
-              value: 'name_false',
-              label: 'Z-A (${l10n.sortDescending})',
-              icon: Icons.sort_by_alpha_rounded,
-              isSelected: sortField == 'name' && !sortAsc,
-              theme: theme,
-            ),
-            buildRemoteMenuItem(
-              value: 'albumCount_false',
-              label: '${l10n.albums} (${l10n.sortDescending})',
-              icon: Icons.album_rounded,
-              isSelected: sortField == 'albumCount' && !sortAsc,
-              theme: theme,
-            ),
-            buildRemoteMenuItem(
-              value: 'albumCount_true',
-              label: '${l10n.albums} (${l10n.sortAscending})',
-              icon: Icons.album_rounded,
-              isSelected: sortField == 'albumCount' && sortAsc,
-              theme: theme,
-            ),
-          ],
+        buildRemoteMenuItem(
+          value: 'albumCount_false',
+          label: '${l10n.albums} (${l10n.sortDescending})',
+          icon: Icons.album_rounded,
+          isSelected: sortField == 'albumCount' && !sortAsc,
+          theme: theme,
+        ),
+        buildRemoteMenuItem(
+          value: 'albumCount_true',
+          label: '${l10n.albums} (${l10n.sortAscending})',
+          icon: Icons.album_rounded,
+          isSelected: sortField == 'albumCount' && sortAsc,
+          theme: theme,
         ),
       ],
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWide = constraints.maxWidth >= 600;
+
+        if (isWide) {
+          final isZh = Localizations.localeOf(context).languageCode == 'zh';
+          final countText = totalCount != null
+              ? Text(
+                  isZh ? '共 $totalCount 位艺术家' : '$totalCount ${l10n.artists}',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w500,
+                  ),
+                )
+              : null;
+
+          return Row(
+            children: [
+              ?countText,
+              const Spacer(),
+              SizedBox(
+                width: 200,
+                child: searchBar,
+              ),
+              const SizedBox(width: 8),
+              starButton,
+              const SizedBox(width: 8),
+              sortDropdown,
+            ],
+          );
+        }
+
+        return Row(
+          children: [
+            Expanded(child: searchBar),
+            const SizedBox(width: 8),
+            starButton,
+            const SizedBox(width: 8),
+            sortDropdown,
+          ],
+        );
+      },
     );
   }
 }

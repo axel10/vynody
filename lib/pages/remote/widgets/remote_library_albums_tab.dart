@@ -20,6 +20,7 @@ class RemoteLibraryAlbumsToolbar extends StatelessWidget {
   final String sortType;
   final ValueChanged<String> onSortTypeChanged;
   final bool isJellyfin;
+  final int? totalCount;
 
   const RemoteLibraryAlbumsToolbar({
     super.key,
@@ -31,6 +32,7 @@ class RemoteLibraryAlbumsToolbar extends StatelessWidget {
     required this.sortType,
     required this.onSortTypeChanged,
     this.isJellyfin = false,
+    this.totalCount,
   });
 
   String _getSortLabel(AppLocalizations l10n) {
@@ -57,73 +59,107 @@ class RemoteLibraryAlbumsToolbar extends StatelessWidget {
     final theme = Theme.of(context);
     final currentLabel = _getSortLabel(l10n);
 
-    return Row(
-      children: [
-        Expanded(
-          child: RemoteSearchBar(
-            controller: searchController,
-            focusNode: searchFocusNode,
-            hintText: l10n.filterAlbums,
-            searchQuery: searchQuery,
-            onChanged: onSearchChanged,
-            onClear: onClearSearch,
-          ),
+    final searchBar = RemoteSearchBar(
+      controller: searchController,
+      focusNode: searchFocusNode,
+      hintText: l10n.filterAlbums,
+      searchQuery: searchQuery,
+      onChanged: onSearchChanged,
+      onClear: onClearSearch,
+    );
+
+    final sortDropdown = RemoteDropdownButton<String>(
+      value: sortType,
+      label: currentLabel,
+      icon: Icons.sort_rounded,
+      tooltip: l10n.sort,
+      onSelected: onSortTypeChanged,
+      items: [
+        buildRemoteMenuItem(
+          value: 'alphabeticalByName',
+          label: l10n.sortAllAZ,
+          icon: Icons.sort_by_alpha_rounded,
+          isSelected: sortType == 'alphabeticalByName',
+          theme: theme,
         ),
-        const SizedBox(width: 8),
-        RemoteDropdownButton<String>(
-          value: sortType,
-          label: currentLabel,
-          icon: Icons.sort_rounded,
-          tooltip: l10n.sort,
-          onSelected: onSortTypeChanged,
-          items: [
-            buildRemoteMenuItem(
-              value: 'alphabeticalByName',
-              label: l10n.sortAllAZ,
-              icon: Icons.sort_by_alpha_rounded,
-              isSelected: sortType == 'alphabeticalByName',
-              theme: theme,
-            ),
-            buildRemoteMenuItem(
-              value: 'newest',
-              label: l10n.sortRecentAdded,
-              icon: Icons.access_time_rounded,
-              isSelected: sortType == 'newest',
-              theme: theme,
-            ),
-            if (!isJellyfin) ...[
-              buildRemoteMenuItem(
-                value: 'recent',
-                label: l10n.sortRecentlyPlayed,
-                icon: Icons.history_rounded,
-                isSelected: sortType == 'recent',
-                theme: theme,
-              ),
-              buildRemoteMenuItem(
-                value: 'frequent',
-                label: l10n.sortMostPlayed,
-                icon: Icons.local_fire_department_rounded,
-                isSelected: sortType == 'frequent',
-                theme: theme,
-              ),
-            ],
-            buildRemoteMenuItem(
-              value: 'starred',
-              label: l10n.sortStarred,
-              icon: Icons.favorite_rounded,
-              isSelected: sortType == 'starred',
-              theme: theme,
-            ),
-            buildRemoteMenuItem(
-              value: 'random',
-              label: l10n.sortRandom,
-              icon: Icons.shuffle_rounded,
-              isSelected: sortType == 'random',
-              theme: theme,
-            ),
-          ],
+        buildRemoteMenuItem(
+          value: 'newest',
+          label: l10n.sortRecentAdded,
+          icon: Icons.access_time_rounded,
+          isSelected: sortType == 'newest',
+          theme: theme,
+        ),
+        if (!isJellyfin) ...[
+          buildRemoteMenuItem(
+            value: 'recent',
+            label: l10n.sortRecentlyPlayed,
+            icon: Icons.history_rounded,
+            isSelected: sortType == 'recent',
+            theme: theme,
+          ),
+          buildRemoteMenuItem(
+            value: 'frequent',
+            label: l10n.sortMostPlayed,
+            icon: Icons.local_fire_department_rounded,
+            isSelected: sortType == 'frequent',
+            theme: theme,
+          ),
+        ],
+        buildRemoteMenuItem(
+          value: 'starred',
+          label: l10n.sortStarred,
+          icon: Icons.favorite_rounded,
+          isSelected: sortType == 'starred',
+          theme: theme,
+        ),
+        buildRemoteMenuItem(
+          value: 'random',
+          label: l10n.sortRandom,
+          icon: Icons.shuffle_rounded,
+          isSelected: sortType == 'random',
+          theme: theme,
         ),
       ],
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWide = constraints.maxWidth >= 600;
+
+        if (isWide) {
+          final isZh = Localizations.localeOf(context).languageCode == 'zh';
+          final countText = totalCount != null
+              ? Text(
+                  isZh ? '共 $totalCount 张专辑' : l10n.albumCount(totalCount!),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w500,
+                  ),
+                )
+              : null;
+
+          return Row(
+            children: [
+              ?countText,
+              const Spacer(),
+              SizedBox(
+                width: 200,
+                child: searchBar,
+              ),
+              const SizedBox(width: 8),
+              sortDropdown,
+            ],
+          );
+        }
+
+        return Row(
+          children: [
+            Expanded(child: searchBar),
+            const SizedBox(width: 8),
+            sortDropdown,
+          ],
+        );
+      },
     );
   }
 }

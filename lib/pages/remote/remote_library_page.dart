@@ -2050,6 +2050,7 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
       searchFocusNode: _albumSearchFocusNode,
       searchQuery: _albumSearchQuery,
       sortType: _albumSortType,
+      totalCount: _getFilteredAlbums().length,
       onSearchChanged: (val) {
         setState(() {
           _albumSearchQuery = val.trim();
@@ -2079,6 +2080,7 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
       starredOnly: _artistStarredOnly,
       sortAsc: _artistSortAsc,
       sortField: _artistSortField,
+      totalCount: _getFilteredArtists().length,
       onSearchChanged: (val) {
         setState(() {
           _artistSearchQuery = val.trim();
@@ -2158,6 +2160,7 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
   Widget _buildPlaylistsToolbar() {
     return RemoteLibraryPlaylistsToolbar(
       searchController: _playlistSearchController,
+      totalCount: _getFilteredPlaylists().length,
       onSearchChanged: (val) {
         setState(() {
           _playlistSearchQuery = val;
