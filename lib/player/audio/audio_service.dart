@@ -461,9 +461,10 @@ class AudioService extends Notifier<AudioSnapshot> {
           )
         : null;
     _player.addListener(_handlePlayerChanges);
-    _player.playlist.addListener(notifyListeners);
+    _player.playlist.addListener(_handlePlaylistChanges);
     _player.equalizer.addListener(notifyListeners);
     _trackEndedSubscription = _player.onTrackEnded.listen((endedPath) {
+      _lastActionNext = true;
       if (_sleepTimerWaitingForTrackEnd &&
           (endedPath == _sleepTimerWaitingTrackPath ||
               currentMusic?.path == _sleepTimerWaitingTrackPath)) {
@@ -1482,6 +1483,17 @@ class AudioService extends Notifier<AudioSnapshot> {
     return _player.playlist.hasPrev;
   }
 
+  void _handlePlaylistChanges() {
+    final currentTrack = _player.playlist.currentTrack;
+    final currentTrackPath = currentTrack?.id ?? currentTrack?.uri;
+    if (!_isTransitioning &&
+        currentTrackPath != null &&
+        currentTrackPath != _trackedPlaybackSongPath) {
+      _lastActionNext = true;
+    }
+    notifyListeners();
+  }
+
   void _handlePlayerChanges() {
     _isPlaying = _player.player.isPlaying;
     _duration = _player.player.duration;
@@ -1609,6 +1621,7 @@ class AudioService extends Notifier<AudioSnapshot> {
     if (currentSong != null &&
         !_isTransitioning &&
         currentSong.path != _trackedPlaybackSongPath) {
+      _lastActionNext = true;
       unawaited(_syncCurrentPlaybackSong(currentSong));
       _notifyIfNeeded(force: true);
     }
@@ -3254,6 +3267,7 @@ class AudioService extends Notifier<AudioSnapshot> {
   Future<void> _handleQueueFinished() async {
     if (_isHandlingQueueFinished) return;
     _isHandlingQueueFinished = true;
+    _lastActionNext = true;
 
     try {
       final source = _currentSource;
@@ -3864,6 +3878,7 @@ class AudioService extends Notifier<AudioSnapshot> {
     _trackEndedSubscription?.cancel();
     _sleepTimer?.cancel();
     _player.removeListener(_handlePlayerChanges);
+    _player.playlist.removeListener(_handlePlaylistChanges);
     _player.equalizer.removeListener(notifyListeners);
     settingsService.removeListener(_settingsListener);
     _queueProcessor.dispose();
