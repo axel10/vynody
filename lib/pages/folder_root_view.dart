@@ -363,6 +363,9 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
                     width: 100,
                     height: 100,
                     borderRadius: BorderRadius.zero,
+                    fallbackWidget: const DefaultCoverArt.systemFolder(
+                      iconSize: 40,
+                    ),
                   )
                 : const SizedBox(
                     width: 100,

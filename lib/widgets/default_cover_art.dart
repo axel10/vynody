@@ -101,79 +101,19 @@ class DefaultCoverArt extends StatelessWidget {
     final Color iconColor;
 
     if (isDesktopPlatform) {
-      // Desktop: Theme-aware, cohesive vitality
-      switch (type) {
-        case CoverArtType.album:
-          decoration = BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                colorScheme.tertiaryContainer,
-                colorScheme.secondaryContainer.withValues(alpha: 0.85),
-              ],
-            ),
-            borderRadius: borderRadius,
-          );
-          iconColor = colorScheme.onTertiaryContainer;
-          break;
-        case CoverArtType.folder:
-          decoration = BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                colorScheme.primaryContainer,
-                colorScheme.secondaryContainer.withValues(alpha: 0.85),
-              ],
-            ),
-            borderRadius: borderRadius,
-          );
-          iconColor = colorScheme.onPrimaryContainer;
-          break;
-        case CoverArtType.song:
-          decoration = BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                colorScheme.secondaryContainer,
-                colorScheme.primaryContainer.withValues(alpha: 0.85),
-              ],
-            ),
-            borderRadius: borderRadius,
-          );
-          iconColor = colorScheme.onSecondaryContainer;
-          break;
-        case CoverArtType.systemFolder:
-          decoration = BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                colorScheme.tertiaryContainer,
-                colorScheme.primaryContainer.withValues(alpha: 0.85),
-              ],
-            ),
-            borderRadius: borderRadius,
-          );
-          iconColor = colorScheme.onTertiaryContainer;
-          break;
-        case CoverArtType.cloudFolder:
-          decoration = BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                colorScheme.secondaryContainer,
-                colorScheme.tertiaryContainer.withValues(alpha: 0.85),
-              ],
-            ),
-            borderRadius: borderRadius,
-          );
-          iconColor = colorScheme.onSecondaryContainer;
-          break;
-      }
+      // Desktop: Unified theme-aware soft harmonious gradient matching the album style
+      decoration = BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            colorScheme.tertiaryContainer,
+            colorScheme.secondaryContainer.withValues(alpha: 0.85),
+          ],
+        ),
+        borderRadius: borderRadius,
+      );
+      iconColor = colorScheme.onTertiaryContainer;
     } else {
       // Mobile: Pure neutral aesthetic (completely free of seed color chroma/tint),
       // ensuring OLED true-black backgrounds never exhibit murky colored casts.
