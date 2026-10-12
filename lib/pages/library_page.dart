@@ -309,6 +309,8 @@ class _LibrarySubHostPageState extends ConsumerState<LibrarySubHostPage> {
         (clampedIndex == 4) && ref.watch(isAlbum3DViewActiveProvider);
     final canPop = !isSelectionActive && !is3DViewActive;
 
+    final bool hideTopNavBar = isLandscape && is3DViewActive;
+
     return PopScope(
       canPop: canPop,
       onPopInvokedWithResult: (didPop, result) {
@@ -323,7 +325,7 @@ class _LibrarySubHostPageState extends ConsumerState<LibrarySubHostPage> {
         }
       },
       child: AutoHideHeaderScope(
-        forceVisible: isSelectionActive || is3DViewActive,
+        forceVisible: isSelectionActive || (!isLandscape && is3DViewActive),
         builder: (context, isHeaderVisible) => Scaffold(
           key: const ValueKey('library_subhost_scaffold'),
           body: Stack(
@@ -344,10 +346,23 @@ class _LibrarySubHostPageState extends ConsumerState<LibrarySubHostPage> {
                 left: leftPadding,
                 right: 0,
                 height: headerHeight,
-                child: AutoHideHeader(
-                  isVisible: isHeaderVisible,
-                  child: AppTopNavBar(
-                    title: title,
+                child: AnimatedSlide(
+                  offset: hideTopNavBar ? const Offset(0, -1.0) : Offset.zero,
+                  duration: const Duration(milliseconds: 250),
+                  curve: Curves.easeInOutCubic,
+                  child: AnimatedOpacity(
+                    opacity: hideTopNavBar ? 0.0 : 1.0,
+                    duration: const Duration(milliseconds: 250),
+                    curve: Curves.easeInOutCubic,
+                    child: IgnorePointer(
+                      ignoring: hideTopNavBar,
+                      child: AutoHideHeader(
+                        isVisible: isHeaderVisible,
+                        child: AppTopNavBar(
+                          title: title,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
