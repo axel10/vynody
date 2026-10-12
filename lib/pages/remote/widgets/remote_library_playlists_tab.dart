@@ -141,121 +141,22 @@ class RemoteLibraryPlaylistsView extends ConsumerWidget {
             (playlists.isNotEmpty ? playlists.first : const <String, dynamic>{});
 
         if (isLandscape) {
-          // Master-Detail Split View for Playlists (Desktop/Landscape)
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Left: Playlist List Pane
-              SizedBox(
-                width: constraints.maxWidth >= 1100 ? 380 : 320,
-                child: Container(
-                  margin: const EdgeInsets.fromLTRB(16, 12, 8, 16),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surfaceContainerLowest,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: theme.colorScheme.outlineVariant
-                          .withValues(alpha: 0.45),
-                    ),
-                  ),
-                  child: Column(
-                    children: [
-                      if (toolbar != null)
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-                          child: toolbar!,
-                        ),
-                      Expanded(
-                        child: RefreshIndicator(
-                          onRefresh: onRefresh,
-                          child: Scrollbar(
-                            child: ListView.builder(
-                              padding:
-                                  EdgeInsets.fromLTRB(12, 4, 12, bottomOffset),
-                              itemCount: playlists.length,
-                              itemBuilder: (context, index) {
-                                final pl = playlists[index];
-                                final isSelected =
-                                    pl['id'] == selectedPlaylist['id'];
-                                return Padding(
-                                  padding: const EdgeInsets.only(bottom: 8.0),
-                                  child: RemoteLibraryPlaylistItem(
-                                    server: server,
-                                    password: password,
-                                    playlist: pl,
-                                    index: index,
-                                    allPlaylists: playlists,
-                                    isSelected: isSelected,
-                                    isMultiSelected: selectedPlaylistIds
-                                        .contains(pl['id'] as String? ?? ''),
-                                    isSelectionMode: isSelectionMode,
-                                    selectedPlaylistIds: selectedPlaylistIds,
-                                    lastPlaylistAnchorIndex:
-                                        lastPlaylistAnchorIndex,
-                                    onSetSelection: onSetSelection,
-                                    onToggleSelection: onToggleSelection,
-                                    onUpdateAnchor: onUpdateAnchor,
-                                    onRefreshPlaylists: onRefresh,
-                                    onTap: () {
-                                      final id = pl['id'] as String?;
-                                      onSelectPlaylistId(id);
-                                    },
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              // Right: Playlist Detail Pane
-              Expanded(
-                child: Container(
-                  margin: const EdgeInsets.fromLTRB(8, 12, 16, 16),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surfaceContainerLowest,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: theme.colorScheme.outlineVariant
-                          .withValues(alpha: 0.45),
-                    ),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: selectedPlaylist.isNotEmpty
-                        ? NavidromePlaylistDetailContent(
-                            key: ValueKey(selectedPlaylist['id']),
-                            server: server,
-                            password: password,
-                            playlistId:
-                                selectedPlaylist['id'] as String? ?? '',
-                            playlistName:
-                                selectedPlaylist['name'] as String? ??
-                                    l10n.playlist,
-                            coverArtId:
-                                selectedPlaylist['coverArt'] as String?,
-                            songCount:
-                                selectedPlaylist['songCount'] as int?,
-                            duration:
-                                selectedPlaylist['duration'] as int?,
-                            isStarred: selectedPlaylist['isStarred'] ==
-                                    true ||
-                                selectedPlaylist['id'] ==
-                                    starredPlaylistId,
-                            onPlaylistModified: onRefresh,
-                            onDeleted: () {
-                              onRefresh();
-                            },
-                          )
-                        : Center(child: Text(l10n.noPlaylistSelected)),
-                  ),
-                ),
-              ),
-            ],
+          return _LandscapePlaylistsSplitView(
+            server: server,
+            password: password,
+            playlists: playlists,
+            selectedPlaylist: selectedPlaylist,
+            onRefresh: onRefresh,
+            bottomOffset: bottomOffset,
+            isSelectionMode: isSelectionMode,
+            selectedPlaylistIds: selectedPlaylistIds,
+            lastPlaylistAnchorIndex: lastPlaylistAnchorIndex,
+            onSelectPlaylistId: onSelectPlaylistId,
+            onSetSelection: onSetSelection,
+            onToggleSelection: onToggleSelection,
+            onUpdateAnchor: onUpdateAnchor,
+            toolbar: toolbar,
+            maxWidth: constraints.maxWidth,
           );
         }
 
@@ -794,6 +695,190 @@ Future<void> showCreateNavidromePlaylistDialog({
   );
 }
 
+class _LandscapePlaylistsSplitView extends StatefulWidget {
+  final RemoteServer server;
+  final String password;
+  final List<Map<String, dynamic>> playlists;
+  final Map<String, dynamic> selectedPlaylist;
+  final Future<void> Function() onRefresh;
+  final double bottomOffset;
+  final bool isSelectionMode;
+  final Set<String> selectedPlaylistIds;
+  final int? lastPlaylistAnchorIndex;
+  final ValueChanged<String?> onSelectPlaylistId;
+  final void Function(Set<String> keys) onSetSelection;
+  final void Function(String playlistId) onToggleSelection;
+  final void Function(int? index) onUpdateAnchor;
+  final Widget? toolbar;
+  final double maxWidth;
+
+  const _LandscapePlaylistsSplitView({
+    required this.server,
+    required this.password,
+    required this.playlists,
+    required this.selectedPlaylist,
+    required this.onRefresh,
+    required this.bottomOffset,
+    required this.isSelectionMode,
+    required this.selectedPlaylistIds,
+    required this.lastPlaylistAnchorIndex,
+    required this.onSelectPlaylistId,
+    required this.onSetSelection,
+    required this.onToggleSelection,
+    required this.onUpdateAnchor,
+    this.toolbar,
+    required this.maxWidth,
+  });
+
+  @override
+  State<_LandscapePlaylistsSplitView> createState() =>
+      _LandscapePlaylistsSplitViewState();
+}
+
+class _LandscapePlaylistsSplitViewState
+    extends State<_LandscapePlaylistsSplitView> {
+  late final ScrollController _leftScrollController;
+
+  @override
+  void initState() {
+    super.initState();
+    _leftScrollController = ScrollController();
+  }
+
+  @override
+  void dispose() {
+    _leftScrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    final selectedPlaylist = widget.selectedPlaylist;
+
+    return NotificationListener<ScrollNotification>(
+      onNotification: (_) => true,
+      child: Column(
+        children: [
+          if (widget.toolbar != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+              child: widget.toolbar!,
+            ),
+          Expanded(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Left: Playlist List Pane
+                SizedBox(
+                  width: widget.maxWidth >= 1100 ? 360 : 300,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      border: Border(
+                        right: BorderSide(
+                          color: theme.colorScheme.outlineVariant
+                              .withValues(alpha: 0.2),
+                          width: 1,
+                        ),
+                      ),
+                    ),
+                    child: PrimaryScrollController.none(
+                      child: RefreshIndicator(
+                        onRefresh: widget.onRefresh,
+                        child: Scrollbar(
+                          controller: _leftScrollController,
+                          child: ListView.builder(
+                            controller: _leftScrollController,
+                            primary: false,
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            padding: EdgeInsets.fromLTRB(
+                              12,
+                              6,
+                              12,
+                              widget.bottomOffset,
+                            ),
+                            itemCount: widget.playlists.length,
+                            itemBuilder: (context, index) {
+                              final pl = widget.playlists[index];
+                              final isSelected =
+                                  pl['id'] == selectedPlaylist['id'];
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 6.0),
+                                child: RemoteLibraryPlaylistItem(
+                                  server: widget.server,
+                                  password: widget.password,
+                                  playlist: pl,
+                                  index: index,
+                                  allPlaylists: widget.playlists,
+                                  isSelected: isSelected,
+                                  isMultiSelected: widget.selectedPlaylistIds
+                                      .contains(pl['id'] as String? ?? ''),
+                                  isSelectionMode: widget.isSelectionMode,
+                                  selectedPlaylistIds:
+                                      widget.selectedPlaylistIds,
+                                  lastPlaylistAnchorIndex:
+                                      widget.lastPlaylistAnchorIndex,
+                                  onSetSelection: widget.onSetSelection,
+                                  onToggleSelection: widget.onToggleSelection,
+                                  onUpdateAnchor: widget.onUpdateAnchor,
+                                  onRefreshPlaylists: widget.onRefresh,
+                                  onTap: () {
+                                    final id = pl['id'] as String?;
+                                    widget.onSelectPlaylistId(id);
+                                  },
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
+                // Right: Playlist Detail Pane
+                Expanded(
+                  child: PrimaryScrollController.none(
+                    child: selectedPlaylist.isNotEmpty
+                        ? NavidromePlaylistDetailContent(
+                            key: ValueKey(selectedPlaylist['id']),
+                            server: widget.server,
+                            password: widget.password,
+                            playlistId:
+                                selectedPlaylist['id'] as String? ?? '',
+                            playlistName:
+                                selectedPlaylist['name'] as String? ??
+                                    l10n.playlist,
+                            coverArtId:
+                                selectedPlaylist['coverArt'] as String?,
+                            songCount:
+                                selectedPlaylist['songCount'] as int?,
+                            duration:
+                                selectedPlaylist['duration'] as int?,
+                            isStarred: selectedPlaylist['isStarred'] ==
+                                    true ||
+                                selectedPlaylist['id'] ==
+                                    RemoteLibraryPlaylistsView.starredPlaylistId,
+                            onPlaylistModified: widget.onRefresh,
+                            onDeleted: () {
+                              widget.onRefresh();
+                              widget.onSelectPlaylistId(null);
+                            },
+                          )
+                        : Center(child: Text(l10n.noPlaylistSelected)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 typedef NavidromePlaylistsToolbar = RemoteLibraryPlaylistsToolbar;
 typedef NavidromePlaylistsView = RemoteLibraryPlaylistsView;
 typedef NavidromePlaylistItem = RemoteLibraryPlaylistItem;
+

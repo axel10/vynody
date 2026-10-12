@@ -199,106 +199,23 @@ class RemoteLibraryArtistsView extends ConsumerWidget {
             (artists.isNotEmpty ? artists.first : const <String, dynamic>{});
 
         if (isLandscape && artists.isNotEmpty) {
-          // Master-Detail Split View for Desktop / Landscape
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Left: Artist Master List
-              SizedBox(
-                width: 320,
-                child: Container(
-                  margin: const EdgeInsets.fromLTRB(16, 12, 8, 16),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surfaceContainerLowest,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: theme.colorScheme.outlineVariant
-                          .withValues(alpha: 0.45),
-                    ),
-                  ),
-                  child: Column(
-                    children: [
-                      if (toolbar != null)
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
-                          child: toolbar!,
-                        ),
-                      Expanded(
-                        child: RefreshIndicator(
-                          onRefresh: onRefresh,
-                          child: Scrollbar(
-                            child: ListView.builder(
-                              padding:
-                                  EdgeInsets.fromLTRB(12, 6, 12, bottomOffset),
-                              itemCount: artists.length,
-                              itemBuilder: (context, index) {
-                                final artist = artists[index];
-                                final isSelected =
-                                    artist['id'] == selectedArtist['id'];
-                                return Padding(
-                                  padding: const EdgeInsets.only(bottom: 8.0),
-                                  child: RemoteLibraryArtistItem(
-                                    server: server,
-                                    password: password,
-                                    artist: artist,
-                                    index: index,
-                                    allArtists: artists,
-                                    isSelected: isSelected,
-                                    isMultiSelected: selectedArtistIds
-                                        .contains(artist['id'] as String? ?? ''),
-                                    isStarred: starredArtistIds
-                                        .contains(artist['id'] as String? ?? ''),
-                                    isSelectionMode: isSelectionMode,
-                                    selectedArtistIds: selectedArtistIds,
-                                    lastArtistAnchorIndex: lastArtistAnchorIndex,
-                                    onSetSelection: onSetSelection,
-                                    onToggleSelection: onToggleSelection,
-                                    onUpdateAnchor: onUpdateAnchor,
-                                    onTap: () {
-                                      final id = artist['id'] as String?;
-                                      onSelectArtistId(id);
-                                    },
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              // Right: Artist Detail View
-              Expanded(
-                child: Container(
-                  margin: const EdgeInsets.fromLTRB(8, 12, 16, 16),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surfaceContainerLowest,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: theme.colorScheme.outlineVariant
-                          .withValues(alpha: 0.45),
-                    ),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: selectedArtist.isNotEmpty
-                        ? RemoteArtistDetailContent(
-                            key: ValueKey(selectedArtist['id']),
-                            server: server,
-                            password: password,
-                            artistId: selectedArtist['id'] as String? ?? '',
-                            artistName: selectedArtist['name'] as String? ??
-                                l10n.unknownArtist,
-                            coverArtId: selectedArtist['coverArt'] as String?,
-                            albumCount: selectedArtist['albumCount'] as int?,
-                          )
-                        : Center(child: Text(l10n.noArtistSelected)),
-                  ),
-                ),
-              ),
-            ],
+          return _LandscapeArtistsSplitView(
+            server: server,
+            password: password,
+            artists: artists,
+            starredArtistIds: starredArtistIds,
+            selectedArtist: selectedArtist,
+            onRefresh: onRefresh,
+            bottomOffset: bottomOffset,
+            isSelectionMode: isSelectionMode,
+            selectedArtistIds: selectedArtistIds,
+            lastArtistAnchorIndex: lastArtistAnchorIndex,
+            onSelectArtistId: onSelectArtistId,
+            onSetSelection: onSetSelection,
+            onToggleSelection: onToggleSelection,
+            onUpdateAnchor: onUpdateAnchor,
+            toolbar: toolbar,
+            maxWidth: constraints.maxWidth,
           );
         }
 
@@ -617,6 +534,180 @@ class RemoteLibraryArtistItem extends ConsumerWidget {
   }
 }
 
+class _LandscapeArtistsSplitView extends StatefulWidget {
+  final RemoteServer server;
+  final String password;
+  final List<Map<String, dynamic>> artists;
+  final Set<String> starredArtistIds;
+  final Map<String, dynamic> selectedArtist;
+  final Future<void> Function() onRefresh;
+  final double bottomOffset;
+  final bool isSelectionMode;
+  final Set<String> selectedArtistIds;
+  final int? lastArtistAnchorIndex;
+  final ValueChanged<String?> onSelectArtistId;
+  final void Function(Set<String> keys) onSetSelection;
+  final void Function(String artistId) onToggleSelection;
+  final void Function(int? index) onUpdateAnchor;
+  final Widget? toolbar;
+  final double maxWidth;
+
+  const _LandscapeArtistsSplitView({
+    required this.server,
+    required this.password,
+    required this.artists,
+    required this.starredArtistIds,
+    required this.selectedArtist,
+    required this.onRefresh,
+    required this.bottomOffset,
+    required this.isSelectionMode,
+    required this.selectedArtistIds,
+    required this.lastArtistAnchorIndex,
+    required this.onSelectArtistId,
+    required this.onSetSelection,
+    required this.onToggleSelection,
+    required this.onUpdateAnchor,
+    this.toolbar,
+    required this.maxWidth,
+  });
+
+  @override
+  State<_LandscapeArtistsSplitView> createState() =>
+      _LandscapeArtistsSplitViewState();
+}
+
+class _LandscapeArtistsSplitViewState
+    extends State<_LandscapeArtistsSplitView> {
+  late final ScrollController _leftScrollController;
+  late final ScrollController _rightScrollController;
+
+  @override
+  void initState() {
+    super.initState();
+    _leftScrollController = ScrollController();
+    _rightScrollController = ScrollController();
+  }
+
+  @override
+  void dispose() {
+    _leftScrollController.dispose();
+    _rightScrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    final selectedArtist = widget.selectedArtist;
+
+    return NotificationListener<ScrollNotification>(
+      onNotification: (_) => true,
+      child: Column(
+        children: [
+          if (widget.toolbar != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+              child: widget.toolbar!,
+            ),
+          Expanded(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Left: Artist Master List
+                SizedBox(
+                  width: widget.maxWidth >= 1100 ? 300 : 260,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      border: Border(
+                        right: BorderSide(
+                          color: theme.colorScheme.outlineVariant
+                              .withValues(alpha: 0.2),
+                          width: 1,
+                        ),
+                      ),
+                    ),
+                    child: PrimaryScrollController.none(
+                      child: RefreshIndicator(
+                        onRefresh: widget.onRefresh,
+                        child: Scrollbar(
+                          controller: _leftScrollController,
+                          child: ListView.builder(
+                            controller: _leftScrollController,
+                            primary: false,
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            padding: EdgeInsets.fromLTRB(
+                              12,
+                              6,
+                              12,
+                              widget.bottomOffset,
+                            ),
+                            itemCount: widget.artists.length,
+                            itemBuilder: (context, index) {
+                              final artist = widget.artists[index];
+                              final isSelected =
+                                  artist['id'] == selectedArtist['id'];
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 6.0),
+                                child: RemoteLibraryArtistItem(
+                                  server: widget.server,
+                                  password: widget.password,
+                                  artist: artist,
+                                  index: index,
+                                  allArtists: widget.artists,
+                                  isSelected: isSelected,
+                                  isMultiSelected: widget.selectedArtistIds
+                                      .contains(artist['id'] as String? ?? ''),
+                                  isStarred: widget.starredArtistIds
+                                      .contains(artist['id'] as String? ?? ''),
+                                  isSelectionMode: widget.isSelectionMode,
+                                  selectedArtistIds: widget.selectedArtistIds,
+                                  lastArtistAnchorIndex:
+                                      widget.lastArtistAnchorIndex,
+                                  onSetSelection: widget.onSetSelection,
+                                  onToggleSelection: widget.onToggleSelection,
+                                  onUpdateAnchor: widget.onUpdateAnchor,
+                                  onTap: () {
+                                    final id = artist['id'] as String?;
+                                    widget.onSelectArtistId(id);
+                                  },
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                // Right: Artist Detail View
+                Expanded(
+                  child: PrimaryScrollController.none(
+                    child: selectedArtist.isNotEmpty
+                        ? RemoteArtistDetailContent(
+                            key: ValueKey(selectedArtist['id']),
+                            server: widget.server,
+                            password: widget.password,
+                            artistId: selectedArtist['id'] as String? ?? '',
+                            artistName: selectedArtist['name'] as String? ??
+                                l10n.unknownArtist,
+                            coverArtId: selectedArtist['coverArt'] as String?,
+                            albumCount: selectedArtist['albumCount'] as int?,
+                            scrollController: _rightScrollController,
+                          )
+                        : Center(child: Text(l10n.noArtistSelected)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 typedef NavidromeArtistsToolbar = RemoteLibraryArtistsToolbar;
 typedef NavidromeArtistsView = RemoteLibraryArtistsView;
 typedef NavidromeArtistItem = RemoteLibraryArtistItem;
+

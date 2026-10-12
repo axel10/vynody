@@ -1610,6 +1610,284 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
         ),
       );
     } else {
+      final isLandscape = MediaQuery.sizeOf(context).width >= 750;
+
+      final headerTitle = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(widget.server.name),
+          Text(
+            widget.server.type == RemoteServerType.jellyfin
+                ? 'Jellyfin'
+                : 'Navidrome / Subsonic',
+            style: TextStyle(
+              fontSize: 11,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      );
+
+      final headerActions = [
+        IconButton(
+          icon: const Icon(Icons.my_location_rounded, size: 20),
+          tooltip: l10n.locateCurrentSong,
+          onPressed: _locateCurrentSong,
+        ),
+        IconButton(
+          icon: const Icon(Icons.refresh_rounded, size: 20),
+          tooltip: l10n.refresh,
+          onPressed: () {
+            switch (_tabController.index) {
+              case 0:
+                _loadAlbums(forceRefresh: true);
+                break;
+              case 1:
+                _loadArtists(forceRefresh: true);
+                break;
+              case 2:
+                _loadSongs(forceRefresh: true);
+                break;
+              case 3:
+                _loadPlaylists(forceRefresh: true);
+                break;
+              case 4:
+                if (_searchController.text.isNotEmpty) {
+                  _onSearchChanged(_searchController.text);
+                }
+                break;
+            }
+          },
+        ),
+        Consumer(
+          builder: (context, ref, child) {
+            final activeCount = ref.watch(activeDownloadsCountProvider);
+            return IconButton(
+              icon: Badge(
+                isLabelVisible: activeCount > 0,
+                label: Text('$activeCount'),
+                child: const Icon(Icons.download_rounded, size: 20),
+              ),
+              tooltip: l10n.downloadManager,
+              onPressed: () {
+                Navigator.of(context, rootNavigator: true).push(
+                  MaterialPageRoute(
+                    builder: (_) => const RemoteDownloadManagerPage(),
+                  ),
+                );
+              },
+            );
+          },
+        ),
+      ];
+
+      final headerBottom = RemoteLibraryHeaderBottom(
+        tabBar: TabBar(
+          controller: _tabController,
+          isScrollable: true,
+          tabAlignment: TabAlignment.center,
+          splashBorderRadius: BorderRadius.circular(20),
+          dividerColor: Colors.transparent,
+          indicatorSize: TabBarIndicatorSize.tab,
+          indicator: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            color: theme.colorScheme.primaryContainer,
+          ),
+          labelColor: theme.colorScheme.onPrimaryContainer,
+          unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
+          labelStyle: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+          ),
+          unselectedLabelStyle: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.normal,
+          ),
+          padding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 4,
+          ),
+          tabs: [
+            Tab(text: l10n.albums, height: 32),
+            Tab(text: l10n.artists, height: 32),
+            Tab(text: l10n.songs, height: 32),
+            Tab(text: l10n.playlists, height: 32),
+            Tab(text: l10n.search, height: 32),
+          ],
+        ),
+      );
+
+      final tabBarView = TabBarView(
+        controller: _tabController,
+        children: [
+          RemoteLibraryAlbumsView(
+            toolbar: _buildAlbumsToolbar(),
+            server: widget.server,
+            password: widget.password,
+            albums: _getFilteredAlbums(),
+            isLoading: _isLoadingAlbums,
+            error: _albumsError,
+            onRefresh: () => _loadAlbums(forceRefresh: true),
+            searchQuery: _albumSearchQuery,
+            bottomOffset: bottomOffset,
+            isSelectionMode: _isAlbumSelectionMode,
+            selectedAlbumIds: _selectedAlbumIds,
+            lastAlbumAnchorIndex: _lastAlbumAnchorIndex,
+            onSetSelection: _setAlbumSelection,
+            onToggleSelection: _toggleAlbumSelection,
+            onUpdateAnchor: (a) => setState(() => _lastAlbumAnchorIndex = a),
+            onPlayAlbumDirectly: (id, title) =>
+                RemoteLibrarySelectionActions.playAlbumDirectly(
+              context: context,
+              ref: ref,
+              server: widget.server,
+              password: widget.password,
+              albumId: id,
+              albumTitle: title,
+            ),
+          ),
+          RemoteLibraryArtistsView(
+            toolbar: _buildArtistsToolbar(),
+            server: widget.server,
+            password: widget.password,
+            artists: _getFilteredArtists(),
+            starredArtistIds: _starredArtistIds,
+            selectedArtistId: _selectedArtistId,
+            isLoading: _isLoadingArtists,
+            error: _artistsError,
+            onRefresh: () => _loadArtists(forceRefresh: true),
+            searchQuery: _artistSearchQuery,
+            bottomOffset: bottomOffset,
+            isSelectionMode: _isArtistSelectionMode,
+            selectedArtistIds: _selectedArtistIds,
+            lastArtistAnchorIndex: _lastArtistAnchorIndex,
+            onSelectArtistId: (id) {
+              setState(() {
+                _selectedArtistId = id;
+              });
+              ref
+                  .read(activeRemoteSessionProvider.notifier)
+                  .updateNavidromeArtists(
+                    selectedArtistId: id,
+                  );
+            },
+            onSetSelection: _setArtistSelection,
+            onToggleSelection: _toggleArtistSelection,
+            onUpdateAnchor: (a) =>
+                setState(() => _lastArtistAnchorIndex = a),
+          ),
+          RemoteLibrarySongsView(
+            toolbar: _buildSongsToolbar(),
+            server: widget.server,
+            password: widget.password,
+            songs: _getFilteredSongs(),
+            totalServerSongsCount: _songs.length,
+            starredSongIds: _starredSongIds,
+            isLoading: _isLoadingSongs,
+            isLoadingMore: _isLoadingMoreSongs,
+            hasMore: _hasMoreSongs,
+            error: _songsError,
+            onRefresh: () => _loadSongs(forceRefresh: true),
+            onLoadMore: () => _loadSongs(loadMore: true),
+            searchQuery: _songSearchQuery,
+            bottomOffset: bottomOffset,
+            isSelectionMode: _isSongSelectionMode,
+            selectedSongPaths: _selectedSongPaths,
+            lastSongAnchorIndex: _lastSongAnchorIndex,
+            onSetSelection: _setSongSelection,
+            onToggleSelection: _toggleSongSelection,
+            onUpdateAnchor: (a) =>
+                setState(() => _lastSongAnchorIndex = a),
+            onToggleStar: _toggleSongStar,
+          ),
+          RemoteLibraryPlaylistsView(
+            toolbar: _buildPlaylistsToolbar(),
+            server: widget.server,
+            password: widget.password,
+            playlists: _getFilteredPlaylists(),
+            selectedPlaylistId: _selectedPlaylistId,
+            isLoading: _isLoadingPlaylists,
+            error: _playlistsError,
+            onRefresh: () => _loadPlaylists(forceRefresh: true),
+            searchQuery: _playlistSearchQuery,
+            bottomOffset: bottomOffset,
+            isSelectionMode: _isPlaylistSelectionMode,
+            selectedPlaylistIds: _selectedPlaylistIds,
+            lastPlaylistAnchorIndex: _lastPlaylistAnchorIndex,
+            onSelectPlaylistId: (id) {
+              setState(() {
+                _selectedPlaylistId = id;
+              });
+              ref
+                  .read(activeRemoteSessionProvider.notifier)
+                  .updateNavidromePlaylists(
+                    selectedPlaylistId: id,
+                  );
+            },
+            onSetSelection: _setPlaylistSelection,
+            onToggleSelection: _togglePlaylistSelection,
+            onUpdateAnchor: (a) =>
+                setState(() => _lastPlaylistAnchorIndex = a),
+          ),
+          RemoteLibrarySearchView(
+            toolbar: _buildSearchToolbar(),
+            server: widget.server,
+            password: widget.password,
+            searchController: _searchController,
+            searchedSongs: _searchedSongs,
+            searchedAlbums: _searchedAlbums,
+            searchedArtists: _searchedArtists,
+            isSearching: _isSearching,
+            bottomOffset: bottomOffset,
+            isArtistSelectionMode: _isArtistSelectionMode,
+            isAlbumSelectionMode: _isAlbumSelectionMode,
+            isSongSelectionMode: _isSongSelectionMode,
+            selectedArtistIds: _selectedArtistIds,
+            selectedAlbumIds: _selectedAlbumIds,
+            selectedSongPaths: _selectedSongPaths,
+            lastSongAnchorIndex: _lastSongAnchorIndex,
+            onSetSongSelection: _setSongSelection,
+            onToggleSongSelection: _toggleSongSelection,
+            onUpdateSongAnchor: (a) =>
+                setState(() => _lastSongAnchorIndex = a),
+            onToggleArtistSelection: _toggleArtistSelection,
+            onToggleAlbumSelection: _toggleAlbumSelection,
+          ),
+        ],
+      );
+
+      final mainBody = isLandscape
+          ? tabBarView
+          : ScrollConfiguration(
+              behavior:
+                  ScrollConfiguration.of(context).copyWith(scrollbars: false),
+              child: NestedScrollView(
+                floatHeaderSlivers: true,
+                headerSliverBuilder: (context, innerBoxIsScrolled) {
+                  return [
+                    SliverAppBar(
+                      floating: true,
+                      snap: false,
+                      pinned: false,
+                      elevation: 0,
+                      scrolledUnderElevation: 0,
+                      surfaceTintColor: Colors.transparent,
+                      backgroundColor: theme.colorScheme.surface,
+                      leading: IconButton(
+                        icon: const Icon(Icons.arrow_back_rounded),
+                        tooltip: l10n.close,
+                        onPressed: _handleBack,
+                      ),
+                      title: headerTitle,
+                      actions: headerActions,
+                      bottom: headerBottom,
+                    ),
+                  ];
+                },
+                body: tabBarView,
+              ),
+            );
+
       content = PopScope(
         canPop: true,
         onPopInvokedWithResult: (didPop, result) {
@@ -1620,276 +1898,26 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
           }
         },
         child: Scaffold(
+          appBar: isLandscape
+              ? AppBar(
+                  elevation: 0,
+                  scrolledUnderElevation: 0,
+                  backgroundColor: theme.colorScheme.surface,
+                  leading: IconButton(
+                    icon: const Icon(Icons.arrow_back_rounded),
+                    tooltip: l10n.close,
+                    onPressed: _handleBack,
+                  ),
+                  title: headerTitle,
+                  actions: headerActions,
+                  bottom: headerBottom,
+                )
+              : null,
           body: Stack(
             children: [
               Positioned.fill(
-                child: ScrollConfiguration(
-                  behavior:
-                      ScrollConfiguration.of(context).copyWith(scrollbars: false),
-                  child: NestedScrollView(
-                    floatHeaderSlivers: true,
-                    headerSliverBuilder: (context, innerBoxIsScrolled) {
-                    return [
-                      SliverAppBar(
-                        floating: true,
-                        snap: false,
-                        pinned: false,
-                        elevation: 0,
-                        scrolledUnderElevation: 0,
-                        surfaceTintColor: Colors.transparent,
-                        backgroundColor: theme.colorScheme.surface,
-                        leading: IconButton(
-                          icon: const Icon(Icons.arrow_back_rounded),
-                          tooltip: l10n.close,
-                          onPressed: _handleBack,
-                        ),
-                      title: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(widget.server.name),
-                          Text(
-                            widget.server.type == RemoteServerType.jellyfin ? 'Jellyfin' : 'Navidrome / Subsonic',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ],
-                      ),
-                      actions: [
-                        IconButton(
-                          icon: const Icon(Icons.my_location_rounded, size: 20),
-                          tooltip: l10n.locateCurrentSong,
-                          onPressed: _locateCurrentSong,
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.refresh_rounded, size: 20),
-                          tooltip: l10n.refresh,
-                          onPressed: () {
-                            switch (_tabController.index) {
-                              case 0:
-                                _loadAlbums(forceRefresh: true);
-                                break;
-                              case 1:
-                                _loadArtists(forceRefresh: true);
-                                break;
-                              case 2:
-                                _loadSongs(forceRefresh: true);
-                                break;
-                              case 3:
-                                _loadPlaylists(forceRefresh: true);
-                                break;
-                              case 4:
-                                if (_searchController.text.isNotEmpty) {
-                                  _onSearchChanged(_searchController.text);
-                                }
-                                break;
-                            }
-                          },
-                        ),
-                        Consumer(
-                          builder: (context, ref, child) {
-                            final activeCount =
-                                ref.watch(activeDownloadsCountProvider);
-                            return IconButton(
-                              icon: Badge(
-                                isLabelVisible: activeCount > 0,
-                                label: Text('$activeCount'),
-                                child: const Icon(Icons.download_rounded, size: 20),
-                              ),
-                              tooltip: l10n.downloadManager,
-                              onPressed: () {
-                                Navigator.of(context, rootNavigator: true).push(
-                                  MaterialPageRoute(
-                                    builder: (_) =>
-                                        const RemoteDownloadManagerPage(),
-                                  ),
-                                );
-                              },
-                            );
-                          },
-                        ),
-                      ],
-                      bottom: RemoteLibraryHeaderBottom(
-                        tabBar: TabBar(
-                          controller: _tabController,
-                          isScrollable: true,
-                          tabAlignment: TabAlignment.center,
-                          splashBorderRadius: BorderRadius.circular(20),
-                          dividerColor: Colors.transparent,
-                          indicatorSize: TabBarIndicatorSize.tab,
-                          indicator: BoxDecoration(
-                            borderRadius: BorderRadius.circular(20),
-                            color: theme.colorScheme.primaryContainer,
-                          ),
-                          labelColor: theme.colorScheme.onPrimaryContainer,
-                          unselectedLabelColor:
-                              theme.colorScheme.onSurfaceVariant,
-                          labelStyle: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          unselectedLabelStyle: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.normal,
-                          ),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 4,
-                          ),
-                          tabs: [
-                            Tab(text: l10n.albums, height: 32),
-                            Tab(text: l10n.artists, height: 32),
-                            Tab(text: l10n.songs, height: 32),
-                            Tab(text: l10n.playlists, height: 32),
-                            Tab(text: l10n.search, height: 32),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ];
-                },
-                body: TabBarView(
-                  controller: _tabController,
-                  children: [
-                    RemoteLibraryAlbumsView(
-                      toolbar: _buildAlbumsToolbar(),
-                      server: widget.server,
-                      password: widget.password,
-                      albums: _getFilteredAlbums(),
-                      isLoading: _isLoadingAlbums,
-                      error: _albumsError,
-                      onRefresh: () => _loadAlbums(forceRefresh: true),
-                      searchQuery: _albumSearchQuery,
-                      bottomOffset: bottomOffset,
-                      isSelectionMode: _isAlbumSelectionMode,
-                      selectedAlbumIds: _selectedAlbumIds,
-                      lastAlbumAnchorIndex: _lastAlbumAnchorIndex,
-                      onSetSelection: _setAlbumSelection,
-                      onToggleSelection: _toggleAlbumSelection,
-                      onUpdateAnchor: (a) => setState(() => _lastAlbumAnchorIndex = a),
-                      onPlayAlbumDirectly: (id, title) =>
-                          RemoteLibrarySelectionActions.playAlbumDirectly(
-                        context: context,
-                        ref: ref,
-                        server: widget.server,
-                        password: widget.password,
-                        albumId: id,
-                        albumTitle: title,
-                      ),
-                    ),
-                    RemoteLibraryArtistsView(
-                      toolbar: _buildArtistsToolbar(),
-                      server: widget.server,
-                      password: widget.password,
-                      artists: _getFilteredArtists(),
-                      starredArtistIds: _starredArtistIds,
-                      selectedArtistId: _selectedArtistId,
-                      isLoading: _isLoadingArtists,
-                      error: _artistsError,
-                      onRefresh: () => _loadArtists(forceRefresh: true),
-                      searchQuery: _artistSearchQuery,
-                      bottomOffset: bottomOffset,
-                      isSelectionMode: _isArtistSelectionMode,
-                      selectedArtistIds: _selectedArtistIds,
-                      lastArtistAnchorIndex: _lastArtistAnchorIndex,
-                      onSelectArtistId: (id) {
-                        setState(() {
-                          _selectedArtistId = id;
-                        });
-                        ref
-                            .read(activeRemoteSessionProvider.notifier)
-                            .updateNavidromeArtists(
-                              selectedArtistId: id,
-                            );
-                      },
-                      onSetSelection: _setArtistSelection,
-                      onToggleSelection: _toggleArtistSelection,
-                      onUpdateAnchor: (a) =>
-                          setState(() => _lastArtistAnchorIndex = a),
-                    ),
-                    RemoteLibrarySongsView(
-                      toolbar: _buildSongsToolbar(),
-                      server: widget.server,
-                      password: widget.password,
-                      songs: _getFilteredSongs(),
-                      totalServerSongsCount: _songs.length,
-                      starredSongIds: _starredSongIds,
-                      isLoading: _isLoadingSongs,
-                      isLoadingMore: _isLoadingMoreSongs,
-                      hasMore: _hasMoreSongs,
-                      error: _songsError,
-                      onRefresh: () => _loadSongs(forceRefresh: true),
-                      onLoadMore: () => _loadSongs(loadMore: true),
-                      searchQuery: _songSearchQuery,
-                      bottomOffset: bottomOffset,
-                      isSelectionMode: _isSongSelectionMode,
-                      selectedSongPaths: _selectedSongPaths,
-                      lastSongAnchorIndex: _lastSongAnchorIndex,
-                      onSetSelection: _setSongSelection,
-                      onToggleSelection: _toggleSongSelection,
-                      onUpdateAnchor: (a) =>
-                          setState(() => _lastSongAnchorIndex = a),
-                      onToggleStar: _toggleSongStar,
-                    ),
-                    RemoteLibraryPlaylistsView(
-                      toolbar: _buildPlaylistsToolbar(),
-                      server: widget.server,
-                      password: widget.password,
-                      playlists: _getFilteredPlaylists(),
-                      selectedPlaylistId: _selectedPlaylistId,
-                      isLoading: _isLoadingPlaylists,
-                      error: _playlistsError,
-                      onRefresh: () => _loadPlaylists(forceRefresh: true),
-                      searchQuery: _playlistSearchQuery,
-                      bottomOffset: bottomOffset,
-                      isSelectionMode: _isPlaylistSelectionMode,
-                      selectedPlaylistIds: _selectedPlaylistIds,
-                      lastPlaylistAnchorIndex: _lastPlaylistAnchorIndex,
-                      onSelectPlaylistId: (id) {
-                        setState(() {
-                          _selectedPlaylistId = id;
-                        });
-                        ref
-                            .read(activeRemoteSessionProvider.notifier)
-                            .updateNavidromePlaylists(
-                              selectedPlaylistId: id,
-                            );
-                      },
-                      onSetSelection: _setPlaylistSelection,
-                      onToggleSelection: _togglePlaylistSelection,
-                      onUpdateAnchor: (a) =>
-                          setState(() => _lastPlaylistAnchorIndex = a),
-                    ),
-                    RemoteLibrarySearchView(
-                      toolbar: _buildSearchToolbar(),
-                      server: widget.server,
-                      password: widget.password,
-                      searchController: _searchController,
-                      searchedSongs: _searchedSongs,
-                      searchedAlbums: _searchedAlbums,
-                      searchedArtists: _searchedArtists,
-                      isSearching: _isSearching,
-                      bottomOffset: bottomOffset,
-                      isArtistSelectionMode: _isArtistSelectionMode,
-                      isAlbumSelectionMode: _isAlbumSelectionMode,
-                      isSongSelectionMode: _isSongSelectionMode,
-                      selectedArtistIds: _selectedArtistIds,
-                      selectedAlbumIds: _selectedAlbumIds,
-                      selectedSongPaths: _selectedSongPaths,
-                      lastSongAnchorIndex: _lastSongAnchorIndex,
-                      onSetSongSelection: _setSongSelection,
-                      onToggleSongSelection: _toggleSongSelection,
-                      onUpdateSongAnchor: (a) =>
-                          setState(() => _lastSongAnchorIndex = a),
-                      onToggleArtistSelection: _toggleArtistSelection,
-                      onToggleAlbumSelection: _toggleAlbumSelection,
-                    ),
-                  ],
-                ),
+                child: mainBody,
               ),
-            ),
-          ),
             AnimatedSelectionPanel(
               isVisible: _isSelectionMode,
               child: LibrarySelectionPanel(
