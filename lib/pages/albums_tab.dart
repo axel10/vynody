@@ -194,32 +194,30 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab>
           allSongs = const [];
         }
 
-        return Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: kMultiColumnGridMaxWidth),
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final isWide = constraints.maxWidth >= 780;
-                final crossAxisCount = switch (constraints.maxWidth) {
-                  >= 1350 => 6,
-                  >= 1100 => 5,
-                  >= 850 => 4,
-                  >= 650 => 3,
-                  _ => 2,
-                };
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final isWide = constraints.maxWidth >= 780;
+            final availableWidth = math.max(0.0, constraints.maxWidth - widget.contentLeftPadding);
+            final contentWidth = math.min(availableWidth, kFolderPageMaxWidth);
+            final crossAxisCount = switch (contentWidth) {
+              >= 1350 => 6,
+              >= 1100 => 5,
+              >= 850 => 4,
+              >= 650 => 3,
+              _ => 2,
+            };
 
-                final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
-                final bool isDesktop = Platform.isWindows || Platform.isLinux || Platform.isMacOS;
-                final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
-                final bool isCoverFlowImmersive = isLandscape && _is3DView;
+            final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
+            final bool isDesktop = Platform.isWindows || Platform.isLinux || Platform.isMacOS;
+            final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+            final bool isCoverFlowImmersive = isLandscape && _is3DView;
 
-                final double textHeight = calculateAlbumCardTextHeight(
-                  context,
-                  isPortrait: isPortrait,
-                );
-                final availableWidth = math.max(0.0, constraints.maxWidth - widget.contentLeftPadding);
-                final itemWidth = (availableWidth - 32 - (crossAxisCount - 1) * 16) / crossAxisCount;
-                final childAspectRatio = itemWidth / (itemWidth + textHeight);
+            final double textHeight = calculateAlbumCardTextHeight(
+              context,
+              isPortrait: isPortrait,
+            );
+            final itemWidth = (contentWidth - 32 - (crossAxisCount - 1) * 16) / crossAxisCount;
+            final childAspectRatio = itemWidth / (itemWidth + textHeight);
 
                 final bottomPadding = 120.0 + (isSelectionMode ? 120.0 : 0.0);
                 final bottomOffset = isCoverFlowImmersive
@@ -375,7 +373,10 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab>
                                     top: widget.contentTopPadding,
                                     left: widget.contentLeftPadding,
                                   ),
-                                  child: Column(
+                                  child: Center(
+                                    child: ConstrainedBox(
+                                      constraints: const BoxConstraints(maxWidth: kFolderPageMaxWidth),
+                                      child: Column(
                                     children: [
                                       toolbar,
                                       Expanded(
@@ -415,62 +416,69 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab>
                                     ],
                                   ),
                                 ),
+                              ),
+                            ),
                         )
                       : Padding(
                           padding: EdgeInsets.only(
                             left: widget.contentLeftPadding,
                           ),
-                          child: ScrollToTopWrapper(
-                            key: const ValueKey('album_grid_view'),
-                            scrollController: _scrollController,
-                            bottomOffset: bottomOffset,
-                            child: CustomScrollView(
-                              controller: _scrollController,
-                              cacheExtent: 1000,
-                              slivers: [
-                                if (widget.contentTopPadding > 0)
-                                  SliverToBoxAdapter(
-                                    child: SizedBox(
-                                      height: widget.contentTopPadding,
-                                    ),
-                                  ),
-                                SliverToBoxAdapter(child: toolbar),
-                                if (visibleAlbums.isEmpty)
-                                  SliverFillRemaining(
-                                    hasScrollBody: false,
-                                    child: Center(
-                                      child: Text(
-                                        l10n.noAlbums,
-                                        style: Theme.of(context).textTheme.titleMedium,
+                          child: Center(
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: kFolderPageMaxWidth),
+                              child: ScrollToTopWrapper(
+                                key: const ValueKey('album_grid_view'),
+                                scrollController: _scrollController,
+                                bottomOffset: bottomOffset,
+                                child: CustomScrollView(
+                                  controller: _scrollController,
+                                  cacheExtent: 1000,
+                                  slivers: [
+                                    if (widget.contentTopPadding > 0)
+                                      SliverToBoxAdapter(
+                                        child: SizedBox(
+                                          height: widget.contentTopPadding,
+                                        ),
                                       ),
-                                    ),
-                                  )
-                                else ...[
-                                  if (knownAlbums.isNotEmpty) ...[
-                                    const SliverToBoxAdapter(child: SizedBox(height: 16)),
-                                    ..._albumSectionSlivers(
-                                      title: "",
-                                      albums: knownAlbums,
-                                      crossAxisCount: crossAxisCount,
-                                      childAspectRatio: childAspectRatio,
-                                      isSelectionMode: isSelectionMode,
-                                      isHeroEnabled: !_is3DView,
-                                    ),
+                                    SliverToBoxAdapter(child: toolbar),
+                                    if (visibleAlbums.isEmpty)
+                                      SliverFillRemaining(
+                                        hasScrollBody: false,
+                                        child: Center(
+                                          child: Text(
+                                            l10n.noAlbums,
+                                            style: Theme.of(context).textTheme.titleMedium,
+                                          ),
+                                        ),
+                                      )
+                                    else ...[
+                                      if (knownAlbums.isNotEmpty) ...[
+                                        const SliverToBoxAdapter(child: SizedBox(height: 16)),
+                                        ..._albumSectionSlivers(
+                                          title: "",
+                                          albums: knownAlbums,
+                                          crossAxisCount: crossAxisCount,
+                                          childAspectRatio: childAspectRatio,
+                                          isSelectionMode: isSelectionMode,
+                                          isHeroEnabled: !_is3DView,
+                                        ),
+                                      ],
+                                      if (knownAlbums.isNotEmpty && unknownAlbums.isNotEmpty)
+                                        const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                                      if (unknownAlbums.isNotEmpty)
+                                        ..._albumSectionSlivers(
+                                          title: l10n.unknownAlbum,
+                                          albums: unknownAlbums,
+                                          crossAxisCount: crossAxisCount,
+                                          childAspectRatio: childAspectRatio,
+                                          isSelectionMode: isSelectionMode,
+                                          isHeroEnabled: !_is3DView,
+                                        ),
+                                      SliverToBoxAdapter(child: SizedBox(height: bottomPadding)),
+                                    ],
                                   ],
-                                  if (knownAlbums.isNotEmpty && unknownAlbums.isNotEmpty)
-                                    const SliverToBoxAdapter(child: SizedBox(height: 24)),
-                                  if (unknownAlbums.isNotEmpty)
-                                    ..._albumSectionSlivers(
-                                      title: l10n.unknownAlbum,
-                                      albums: unknownAlbums,
-                                      crossAxisCount: crossAxisCount,
-                                      childAspectRatio: childAspectRatio,
-                                      isSelectionMode: isSelectionMode,
-                                      isHeroEnabled: !_is3DView,
-                                    ),
-                                  SliverToBoxAdapter(child: SizedBox(height: bottomPadding)),
-                                ],
-                              ],
+                                ),
+                              ),
                             ),
                           ),
                         ),
@@ -495,9 +503,7 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab>
                   ],
                 );
               },
-            ),
-          ),
-        );
+            );
   }
 
   void _onShufflePressed(List<AlbumSummary> albums) {

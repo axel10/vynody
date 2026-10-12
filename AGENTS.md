@@ -28,6 +28,8 @@ flutter run -d <device-id>               # dev run on a device
 
 - 如果我用命令的口吻说话，你觉得语意不清，无法理解或者做不到，应该立刻停下向我报告情况，不要强行继续。
 
+- 简单的UI调整应该尽量快的出结果，不要想太多，如果效果不好我会继续调整
+
 ## Architecture notes
 
 - **State management:** Riverpod (`flutter_riverpod` v3). Providers live co-located with their domain code (e.g., `lib/player/audio/` has audio providers).
