@@ -1499,7 +1499,7 @@ class AudioService extends Notifier<AudioSnapshot> {
     _duration = _player.player.duration;
 
     final currentSong = currentMusic;
-    if (_isTransitioning) {
+    if (_isTransitioning || _player.isTransitioning) {
       return;
     }
     final activeTrack = _player.playlist.currentTrack;
@@ -1710,7 +1710,7 @@ class AudioService extends Notifier<AudioSnapshot> {
   }
 
   bool? get isLastActionNext => _lastActionNext;
-  bool get isTransitioning => _isTransitioning;
+  bool get isTransitioning => _isTransitioning || _player.isTransitioning;
 
   @Deprecated('Use playbackController or dedicated AudioService wrappers.')
   AudioCoreController get player => _player;
@@ -1961,7 +1961,7 @@ class AudioService extends Notifier<AudioSnapshot> {
   AudioSnapshot get snapshot => AudioSnapshot(
     isPlaying: _isPlaying,
     isBuffering: isBuffering,
-    isTransitioning: _isTransitioning,
+    isTransitioning: isTransitioning,
     isLastActionNext: _lastActionNext,
     currentMusic: currentMusic,
     position: _position,
