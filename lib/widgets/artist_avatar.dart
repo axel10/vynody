@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
@@ -163,40 +164,79 @@ class ArtistAvatar extends StatelessWidget {
   }
 
   Widget _buildPlaceholder(BuildContext context) {
+    return ArtistPlaceholder(
+      size: diameter,
+      backgroundColor: backgroundColor,
+      iconColor: iconColor,
+    );
+  }
+}
+
+/// 艺术家默认占位图标组件，支持自定义尺寸、形状与圆角，带有 Apple Music 风格的线性渐变背景
+class ArtistPlaceholder extends StatelessWidget {
+  const ArtistPlaceholder({
+    super.key,
+    this.size,
+    this.width,
+    this.height,
+    this.iconSize,
+    this.borderRadius,
+    this.shape = BoxShape.circle,
+    this.backgroundColor,
+    this.iconColor,
+  });
+
+  final double? size;
+  final double? width;
+  final double? height;
+  final double? iconSize;
+  final BorderRadius? borderRadius;
+  final BoxShape shape;
+  final Color? backgroundColor;
+  final Color? iconColor;
+
+  static const Gradient lightGradient = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [Color(0xFFA5ACB7), Color(0xFF868B95)],
+  );
+
+  static const Gradient darkGradient = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [Color(0xFF484E57), Color(0xFF2C3038)],
+  );
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+
+    final effectiveWidth = width ?? size ?? 48.0;
+    final effectiveHeight = height ?? size ?? 48.0;
+    final minSide = math.min(effectiveWidth, effectiveHeight);
+    final effectiveIconSize = iconSize ?? (minSide * 0.54);
 
     final effectiveIconColor = iconColor ??
         (isDark ? theme.colorScheme.onSurfaceVariant : Colors.white);
 
     final Gradient? gradient = backgroundColor == null
-        ? (isDark
-            ? const LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Color(0xFF484E57), Color(0xFF2C3038)],
-              )
-            : const LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Color(0xFFA5ACB7), Color(0xFF868B95)],
-              ))
+        ? (isDark ? darkGradient : lightGradient)
         : null;
 
-    return SizedBox(
-      width: diameter,
-      height: diameter,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: backgroundColor,
-          gradient: gradient,
-        ),
-        child: Center(
-          child: ArtistMicIcon(
-            size: diameter * 0.54,
-            color: effectiveIconColor,
-          ),
+    return Container(
+      width: effectiveWidth,
+      height: effectiveHeight,
+      decoration: BoxDecoration(
+        shape: shape,
+        borderRadius: shape == BoxShape.circle ? null : borderRadius,
+        color: backgroundColor,
+        gradient: gradient,
+      ),
+      child: Center(
+        child: ArtistMicIcon(
+          size: effectiveIconSize,
+          color: effectiveIconColor,
         ),
       ),
     );
