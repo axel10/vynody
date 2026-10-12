@@ -59,15 +59,32 @@ class RemoteLibrarySongsToolbar extends StatelessWidget {
     return '$name ${sortAsc ? '↑' : '↓'}';
   }
 
-  @override
-  Widget build(BuildContext context) {
+  Widget buildConditions(
+    BuildContext context, {
+    bool expandSearch = false,
+    double searchWidth = 190.0,
+  }) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final currentKey = '${sortField}_${sortAsc ? 'asc' : 'desc'}';
 
-    final trailing = Row(
-      mainAxisSize: MainAxisSize.min,
+    final searchField = RemoteSearchBar(
+      controller: searchController,
+      focusNode: searchFocusNode,
+      hintText: l10n.filterSongs,
+      searchQuery: searchQuery,
+      onChanged: onSearchChanged,
+      onClear: onClearSearch,
+    );
+
+    return Row(
+      mainAxisSize: expandSearch ? MainAxisSize.max : MainAxisSize.min,
       children: [
+        if (expandSearch)
+          Expanded(child: searchField)
+        else
+          SizedBox(width: searchWidth, child: searchField),
+        const SizedBox(width: 4),
         IconButton(
           style: kCompactIconButtonStyle,
           tooltip: l10n.starredSongsOnly,
@@ -155,24 +172,11 @@ class RemoteLibrarySongsToolbar extends StatelessWidget {
         ),
       ],
     );
+  }
 
-    return RemoteResponsiveToolbar(
-      searchField: RemoteSearchBar(
-        controller: searchController,
-        focusNode: searchFocusNode,
-        hintText: l10n.filterSongs,
-        searchQuery: searchQuery,
-        onChanged: onSearchChanged,
-        onClear: onClearSearch,
-      ),
-      trailing: trailing,
-      searchFocusNode: searchFocusNode,
-      isSearchExpanded: isSearchExpanded || searchQuery.isNotEmpty,
-      onToggleSearchExpanded: onToggleSearchExpanded,
-      onClearSearch: onClearSearch,
-      searchTooltip: l10n.filterSongs,
-      collapseBreakpoint: 480.0,
-    );
+  @override
+  Widget build(BuildContext context) {
+    return buildConditions(context, expandSearch: true);
   }
 }
 
@@ -197,7 +201,7 @@ class RemoteLibrarySongsView extends ConsumerStatefulWidget {
   final void Function(String songPath) onToggleSelection;
   final void Function(int? index) onUpdateAnchor;
   final void Function(MusicFile song) onToggleStar;
-  final Widget? toolbar;
+  final RemoteLibrarySongsToolbar? toolbar;
 
   const RemoteLibrarySongsView({
     super.key,
@@ -310,6 +314,110 @@ class _RemoteLibrarySongsViewState
     }
   }
 
+  Widget _buildHeader(BuildContext context, BoxConstraints constraints) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final totalDurationStr = _formatTotalDuration(widget.songs);
+
+    final countAndDurationText = Text(
+      totalDurationStr.isNotEmpty
+          ? '${l10n.trackCountShort(widget.songs.length)} · $totalDurationStr'
+          : l10n.trackCountShort(widget.songs.length),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: theme.textTheme.bodySmall?.copyWith(
+        color: theme.colorScheme.onSurfaceVariant,
+        fontWeight: FontWeight.w500,
+      ),
+    );
+
+    final playButtons = [
+      SizedBox(
+        height: 32,
+        child: FilledButton.icon(
+          onPressed: widget.songs.isNotEmpty ? () => _playAll() : null,
+          icon: const Icon(Icons.play_arrow_rounded, size: 18),
+          label: Text(l10n.playAll),
+          style: FilledButton.styleFrom(
+            shape: const StadiumBorder(),
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            textStyle: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+      ),
+      const SizedBox(width: 8),
+      IconButton.filledTonal(
+        style: IconButton.styleFrom(
+          minimumSize: const Size(32, 32),
+          fixedSize: const Size(32, 32),
+          padding: EdgeInsets.zero,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
+        tooltip: l10n.shufflePlay,
+        onPressed: widget.songs.isNotEmpty ? () => _playAll(shuffle: true) : null,
+        icon: const Icon(Icons.shuffle_rounded, size: 18),
+      ),
+      const SizedBox(width: 8),
+      IconButton.filledTonal(
+        style: IconButton.styleFrom(
+          minimumSize: const Size(32, 32),
+          fixedSize: const Size(32, 32),
+          padding: EdgeInsets.zero,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
+        tooltip: l10n.downloadAllTracks,
+        onPressed: widget.songs.isNotEmpty ? _downloadAll : null,
+        icon: const Icon(Icons.download_rounded, size: 18),
+      ),
+    ];
+
+    final isWide = constraints.maxWidth >= 740;
+
+    if (isWide) {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          ...playButtons,
+          const Spacer(),
+          if (widget.toolbar != null) ...[
+            widget.toolbar!.buildConditions(
+              context,
+              expandSearch: false,
+              searchWidth: 190,
+            ),
+            const SizedBox(width: 12),
+          ],
+          countAndDurationText,
+        ],
+      );
+    }
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (widget.toolbar != null) ...[
+          widget.toolbar!.buildConditions(
+            context,
+            expandSearch: true,
+          ),
+          const SizedBox(height: 8),
+        ],
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            ...playButtons,
+            const Spacer(),
+            countAndDurationText,
+          ],
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     super.build(context);
@@ -336,18 +444,19 @@ class _RemoteLibrarySongsViewState
       );
     }
 
-    final toolbarSliver = widget.toolbar != null
-        ? SliverRemoteContentConstraint(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-            child: widget.toolbar!,
-          )
-        : null;
+    final headerSliver = SliverRemoteContentConstraint(
+      padding: const EdgeInsets.fromLTRB(28, 6, 36, 8),
+      child: LayoutBuilder(
+        builder: (context, constraints) =>
+            _buildHeader(context, constraints),
+      ),
+    );
 
     if (widget.songs.isEmpty) {
       return CustomScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
-          ?toolbarSliver,
+          headerSliver,
           SliverFillRemaining(
             hasScrollBody: false,
             child: Center(
@@ -362,8 +471,6 @@ class _RemoteLibrarySongsViewState
         ],
       );
     }
-
-    final totalDurationStr = _formatTotalDuration(widget.songs);
 
     return NotificationListener<ScrollNotification>(
       onNotification: (scrollInfo) {
@@ -381,98 +488,50 @@ class _RemoteLibrarySongsViewState
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
-              ?toolbarSliver,
-              // Header action bar
-              SliverRemoteContentConstraint(
-                padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
-                child: Row(
-                  children: [
-                    FilledButton.icon(
-                      onPressed: widget.songs.isNotEmpty
-                          ? () => _playAll()
-                          : null,
-                      icon: const Icon(Icons.play_arrow_rounded, size: 20),
-                      label: Text(l10n.playAll),
-                      style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 10,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    IconButton.filledTonal(
-                      tooltip: l10n.shufflePlay,
-                      onPressed: widget.songs.isNotEmpty
-                          ? () => _playAll(shuffle: true)
-                          : null,
-                      icon: const Icon(Icons.shuffle_rounded, size: 18),
-                    ),
-                    const SizedBox(width: 8),
-                    IconButton.filledTonal(
-                      tooltip: l10n.downloadAllTracks,
-                      onPressed:
-                          widget.songs.isNotEmpty ? _downloadAll : null,
-                      icon: const Icon(Icons.download_rounded, size: 18),
-                    ),
-                    const Spacer(),
-                    Text(
-                      totalDurationStr.isNotEmpty
-                          ? '${l10n.trackCountShort(widget.songs.length)} · $totalDurationStr'
-                          : l10n.trackCountShort(widget.songs.length),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              headerSliver,
 
               // Songs fixed-extent list for O(1) jump and smooth scrollbar dragging
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                sliver: SliverFixedExtentList.builder(
-                  itemExtent: 60.0,
-                  itemCount: widget.songs.length,
-                  itemBuilder: (context, songIndex) {
-                    final song = widget.songs[songIndex];
-                    final isCurrent = currentMusic?.path == song.path;
-                    final isHighlighted = highlightedPath == song.path;
-                    final isSelected =
-                        widget.selectedSongPaths.contains(song.path);
-                    final trackDuration = _formatTrackDuration(
-                        (song.durationMillis ?? 0) ~/ 1000);
+              SliverFixedExtentList.builder(
+                itemExtent: 60.0,
+                itemCount: widget.songs.length,
+                itemBuilder: (context, songIndex) {
+                  final song = widget.songs[songIndex];
+                  final isCurrent = currentMusic?.path == song.path;
+                  final isHighlighted = highlightedPath == song.path;
+                  final isSelected =
+                      widget.selectedSongPaths.contains(song.path);
+                  final trackDuration = _formatTrackDuration(
+                      (song.durationMillis ?? 0) ~/ 1000);
 
-                    final trackId = RemoteMediaResolver.extractTrackId(song) ??
-                        (song.id != null && song.id! > 0
-                            ? song.id.toString()
-                            : '');
-                    final isStarred = widget.starredSongIds.contains(trackId);
+                  final trackId = RemoteMediaResolver.extractTrackId(song) ??
+                      (song.id != null && song.id! > 0
+                          ? song.id.toString()
+                          : '');
+                  final isStarred = widget.starredSongIds.contains(trackId);
 
-                    String? coverId;
-                    if (song.artworkPath != null &&
-                        song.artworkPath!.isNotEmpty) {
-                      coverId = song.artworkPath!.replaceFirst(
-                          'subsonic-cover://${widget.server.id}/', '');
-                    }
-                    if (coverId == null || coverId.isEmpty) {
-                      coverId = trackId.isNotEmpty ? trackId : null;
-                    }
+                  String? coverId;
+                  if (song.artworkPath != null &&
+                      song.artworkPath!.isNotEmpty) {
+                    coverId = song.artworkPath!.replaceFirst(
+                        'subsonic-cover://${widget.server.id}/', '');
+                  }
+                  if (coverId == null || coverId.isEmpty) {
+                    coverId = trackId.isNotEmpty ? trackId : null;
+                  }
 
-                    return DraggableSongItem(
-                      song: song,
-                      enabled: true,
-                      isSelected: isSelected,
-                      isSelectionMode: widget.isSelectionMode,
-                      selectedPaths: widget.selectedSongPaths,
-                      child: RepaintBoundary(
-                        child: RemoteContentConstraint(
-                          padding: const EdgeInsets.symmetric(vertical: 2),
-                          child: GestureDetector(
+                  return DraggableSongItem(
+                    song: song,
+                    enabled: true,
+                    isSelected: isSelected,
+                    isSelectionMode: widget.isSelectionMode,
+                    selectedPaths: widget.selectedSongPaths,
+                    child: RepaintBoundary(
+                      child: RemoteContentConstraint(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 2,
+                        ),
+                        child: GestureDetector(
                               behavior: HitTestBehavior.opaque,
                               onSecondaryTapDown: (details) {
                                 if (!widget.isSelectionMode) {
@@ -777,7 +836,6 @@ class _RemoteLibrarySongsViewState
                     );
                   },
                 ),
-              ),
 
               // Loader item at bottom
               if (widget.hasMore || widget.isLoadingMore)

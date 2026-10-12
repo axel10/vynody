@@ -2110,7 +2110,7 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
     );
   }
 
-  Widget _buildSongsToolbar() {
+  RemoteLibrarySongsToolbar _buildSongsToolbar() {
     return RemoteLibrarySongsToolbar(
       searchController: _songSearchController,
       searchFocusNode: _songSearchFocusNode,
