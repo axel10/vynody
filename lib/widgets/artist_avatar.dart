@@ -166,12 +166,22 @@ class ArtistAvatar extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    final effectiveBgColor = backgroundColor ??
-        (isDark
-            ? theme.colorScheme.surfaceContainerHighest
-            : const Color(0xFF8E959E));
     final effectiveIconColor = iconColor ??
         (isDark ? theme.colorScheme.onSurfaceVariant : Colors.white);
+
+    final Gradient? gradient = backgroundColor == null
+        ? (isDark
+            ? const LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0xFF484E57), Color(0xFF2C3038)],
+              )
+            : const LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0xFFA5ACB7), Color(0xFF868B95)],
+              ))
+        : null;
 
     return SizedBox(
       width: diameter,
@@ -179,7 +189,8 @@ class ArtistAvatar extends StatelessWidget {
       child: DecoratedBox(
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: effectiveBgColor,
+          color: backgroundColor,
+          gradient: gradient,
         ),
         child: Center(
           child: ArtistMicIcon(

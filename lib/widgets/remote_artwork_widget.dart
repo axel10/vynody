@@ -290,9 +290,17 @@ class _RemoteArtworkWidgetState extends State<RemoteArtworkWidget> {
     final theme = Theme.of(context);
     if (widget.isArtist && widget.fallbackIcon == null) {
       final isDark = theme.brightness == Brightness.dark;
-      final effectiveBgColor = isDark
-          ? theme.colorScheme.surfaceContainerHighest
-          : const Color(0xFF8E959E);
+      final gradient = isDark
+          ? const LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0xFF484E57), Color(0xFF2C3038)],
+            )
+          : const LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0xFFA5ACB7), Color(0xFF868B95)],
+            );
       final effectiveIconColor =
           isDark ? theme.colorScheme.onSurfaceVariant : Colors.white;
 
@@ -300,7 +308,7 @@ class _RemoteArtworkWidgetState extends State<RemoteArtworkWidget> {
         width: w,
         height: h,
         decoration: BoxDecoration(
-          color: effectiveBgColor,
+          gradient: gradient,
           borderRadius: radius,
         ),
         child: Center(
