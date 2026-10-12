@@ -3,9 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/app_localizations.dart';
 import 'package:vynody/player/library/library_insights_service.dart';
+import 'package:vynody/player/library/library_overview_providers.dart';
+import '../widgets/library_ranked_album_list.dart';
 import '../widgets/library_ranked_song_list.dart';
+import '../widgets/section_type_toggle.dart';
+import '../widgets/time_range_dropdown.dart';
 
-class MostPlayedTab extends ConsumerStatefulWidget {
+class MostPlayedTab extends ConsumerWidget {
   final double contentTopPadding;
   final double contentLeftPadding;
 
@@ -16,42 +20,73 @@ class MostPlayedTab extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<MostPlayedTab> createState() => _MostPlayedTabState();
-}
-
-class _MostPlayedTabState extends ConsumerState<MostPlayedTab> {
-  LibraryTimeRange _selectedRange = LibraryTimeRange.allTime;
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final asyncItems = ref.watch(mostPlayedSongsProvider(_selectedRange));
+    final filterState = ref.watch(mostPlayedFilterProvider);
+    final filterNotifier = ref.read(mostPlayedFilterProvider.notifier);
 
-    return asyncItems.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, _) => Center(child: Text(error.toString())),
-      data: (items) => LibraryRankedSongList(
-        contentTopPadding: widget.contentTopPadding,
-        contentLeftPadding: widget.contentLeftPadding,
-        title: l10n.mostPlayed,
-        subtitle: l10n.mostPlayedDescription,
-        items: items,
-        selectedRange: _selectedRange,
-        onRangeChanged: (value) {
-          setState(() {
-            _selectedRange = value;
-          });
-        },
-        emptyText: _selectedRange == LibraryTimeRange.allTime
-            ? l10n.noPlayHistory
-            : l10n.noPlayHistoryInRange,
-        trailingBuilder: (context, entry) => InsightMetricText(
-          primary: l10n.playCountLabel(entry.playCount),
-          secondary: entry.lastPlayedAt == null
-              ? null
-              : formatInsightDate(context, entry.lastPlayedAt),
-        ),
-      ),
+    final centerAction = SectionTypeToggle(
+      selected: filterState.type,
+      onChanged: (val) => filterNotifier.setType(val),
+      songsLabel: l10n.songs,
+      albumsLabel: l10n.albums,
     );
+
+    final headerTrailing = TimeRangeDropdown(
+      selected: filterState.range,
+      onChanged: (val) => filterNotifier.setRange(val),
+    );
+
+    final isAlbums = filterState.type == SectionItemType.albums;
+
+    if (isAlbums) {
+      final asyncAlbums = ref.watch(mostPlayedAlbumsProvider(filterState.range));
+      return asyncAlbums.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, _) => Center(child: Text(error.toString())),
+        data: (albums) => LibraryRankedAlbumList(
+          contentTopPadding: contentTopPadding,
+          contentLeftPadding: contentLeftPadding,
+          title: l10n.mostPlayed,
+          subtitle: l10n.mostPlayedDescription,
+          items: albums,
+          selectedRange: filterState.range,
+          onRangeChanged: (val) => filterNotifier.setRange(val),
+          showTimeRange: false,
+          centerAction: centerAction,
+          headerTrailing: headerTrailing,
+          emptyText: filterState.range == LibraryTimeRange.allTime
+              ? l10n.noPlayHistory
+              : l10n.noPlayHistoryInRange,
+        ),
+      );
+    } else {
+      final asyncSongs = ref.watch(mostPlayedSongsProvider(filterState.range));
+      return asyncSongs.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, _) => Center(child: Text(error.toString())),
+        data: (songs) => LibraryRankedSongList(
+          contentTopPadding: contentTopPadding,
+          contentLeftPadding: contentLeftPadding,
+          title: l10n.mostPlayed,
+          subtitle: l10n.mostPlayedDescription,
+          items: songs,
+          selectedRange: filterState.range,
+          onRangeChanged: (val) => filterNotifier.setRange(val),
+          showTimeRange: false,
+          centerAction: centerAction,
+          headerTrailing: headerTrailing,
+          emptyText: filterState.range == LibraryTimeRange.allTime
+              ? l10n.noPlayHistory
+              : l10n.noPlayHistoryInRange,
+          trailingBuilder: (context, entry) => InsightMetricText(
+            primary: l10n.playCountLabel(entry.playCount),
+            secondary: entry.lastPlayedAt == null
+                ? null
+                : formatInsightDate(context, entry.lastPlayedAt),
+          ),
+        ),
+      );
+    }
   }
 }

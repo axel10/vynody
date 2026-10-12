@@ -27,6 +27,8 @@ class LibraryRankedSongList extends ConsumerStatefulWidget {
     this.onRangeChanged,
     this.showTimeRange = true,
     this.customFilterBar,
+    this.centerAction,
+    this.headerTrailing,
     this.headerAction,
     required this.emptyText,
     required this.trailingBuilder,
@@ -41,6 +43,8 @@ class LibraryRankedSongList extends ConsumerStatefulWidget {
   final ValueChanged<LibraryTimeRange>? onRangeChanged;
   final bool showTimeRange;
   final Widget? customFilterBar;
+  final Widget? centerAction;
+  final Widget? headerTrailing;
   final Widget? headerAction;
   final String emptyText;
   final Widget Function(BuildContext, LibraryInsightSongEntry) trailingBuilder;
@@ -187,61 +191,130 @@ class _LibraryRankedSongListState extends ConsumerState<LibraryRankedSongList>
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             if (isWide)
-                              Row(
-                                children: [
-                                  Expanded(
-                                    flex: 3,
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          widget.title,
-                                          style: theme.textTheme.headlineSmall?.copyWith(
-                                            fontWeight: FontWeight.w800,
+                              if (widget.centerAction != null || widget.headerTrailing != null) ...[
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            widget.title,
+                                            style: theme.textTheme.headlineSmall?.copyWith(
+                                              fontWeight: FontWeight.w800,
+                                            ),
                                           ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          _searchQuery.isNotEmpty
-                                              ? l10n.songCount(filteredItems.length)
-                                              : widget.subtitle,
-                                          style: theme.textTheme.bodyMedium?.copyWith(
-                                            color: theme.colorScheme.onSurfaceVariant,
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            _searchQuery.isNotEmpty
+                                                ? l10n.songCount(filteredItems.length)
+                                                : widget.subtitle,
+                                            style: theme.textTheme.bodyMedium?.copyWith(
+                                              color: theme.colorScheme.onSurfaceVariant,
+                                            ),
                                           ),
-                                        ),
-                                      ],
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    flex: 4,
-                                    child: _buildSearchField(theme, l10n),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  if (filteredItems.isNotEmpty) ...[
-                                    FilledButton.icon(
-                                      onPressed: () {
-                                        audio.playPlaylist(filteredItems.map((e) => e.song).toList());
-                                      },
-                                      icon: const Icon(Icons.play_arrow_rounded),
-                                      label: Text(l10n.playAll),
+                                    if (widget.centerAction != null)
+                                      widget.centerAction!,
+                                    Expanded(
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.end,
+                                        children: [
+                                          if (widget.headerTrailing != null) widget.headerTrailing!,
+                                          if (widget.headerAction != null) ...[
+                                            const SizedBox(width: 8),
+                                            widget.headerAction!,
+                                          ],
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: _buildSearchField(theme, l10n),
+                                    ),
+                                    if (filteredItems.isNotEmpty) ...[
+                                      const SizedBox(width: 16),
+                                      FilledButton.icon(
+                                        onPressed: () {
+                                          audio.playPlaylist(filteredItems.map((e) => e.song).toList());
+                                        },
+                                        icon: const Icon(Icons.play_arrow_rounded),
+                                        label: Text(l10n.playAll),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      OutlinedButton.icon(
+                                        onPressed: () {
+                                          final songs = filteredItems.map((e) => e.song).toList()..shuffle();
+                                          audio.playPlaylist(songs);
+                                        },
+                                        icon: const Icon(Icons.shuffle_rounded),
+                                        label: Text(l10n.shufflePlay),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ] else
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      flex: 3,
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            widget.title,
+                                            style: theme.textTheme.headlineSmall?.copyWith(
+                                              fontWeight: FontWeight.w800,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            _searchQuery.isNotEmpty
+                                                ? l10n.songCount(filteredItems.length)
+                                                : widget.subtitle,
+                                            style: theme.textTheme.bodyMedium?.copyWith(
+                                              color: theme.colorScheme.onSurfaceVariant,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                     const SizedBox(width: 12),
-                                    OutlinedButton.icon(
-                                      onPressed: () {
-                                        final songs = filteredItems.map((e) => e.song).toList()..shuffle();
-                                        audio.playPlaylist(songs);
-                                      },
-                                      icon: const Icon(Icons.shuffle_rounded),
-                                      label: Text(l10n.shufflePlay),
+                                    Expanded(
+                                      flex: 4,
+                                      child: _buildSearchField(theme, l10n),
                                     ),
+                                    const SizedBox(width: 16),
+                                    if (filteredItems.isNotEmpty) ...[
+                                      FilledButton.icon(
+                                        onPressed: () {
+                                          audio.playPlaylist(filteredItems.map((e) => e.song).toList());
+                                        },
+                                        icon: const Icon(Icons.play_arrow_rounded),
+                                        label: Text(l10n.playAll),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      OutlinedButton.icon(
+                                        onPressed: () {
+                                          final songs = filteredItems.map((e) => e.song).toList()..shuffle();
+                                          audio.playPlaylist(songs);
+                                        },
+                                        icon: const Icon(Icons.shuffle_rounded),
+                                        label: Text(l10n.shufflePlay),
+                                      ),
+                                    ],
+                                    if (widget.headerAction != null) ...[
+                                      const SizedBox(width: 8),
+                                      widget.headerAction!,
+                                    ],
                                   ],
-                                  if (widget.headerAction != null) ...[
-                                    const SizedBox(width: 8),
-                                    widget.headerAction!,
-                                  ],
-                                ],
-                              )
+                                )
                             else
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -270,6 +343,10 @@ class _LibraryRankedSongListState extends ConsumerState<LibraryRankedSongList>
                                         ],
                                       ),
                                     ),
+                                    if (widget.headerTrailing != null) ...[
+                                      widget.headerTrailing!,
+                                      const SizedBox(width: 6),
+                                    ],
                                     if (widget.headerAction != null) ...[
                                       widget.headerAction!,
                                       const SizedBox(width: 4),
@@ -296,6 +373,10 @@ class _LibraryRankedSongListState extends ConsumerState<LibraryRankedSongList>
                                     ),
                                   ],
                                 ),
+                                if (widget.centerAction != null) ...[
+                                  const SizedBox(height: 12),
+                                  Center(child: widget.centerAction!),
+                                ],
                                 AnimatedCrossFade(
                                   firstChild: const SizedBox.shrink(),
                                   secondChild: Padding(

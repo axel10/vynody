@@ -7,6 +7,7 @@ import 'package:vynody/player/library/album_library.dart';
 import 'package:vynody/player/library/library_insights_service.dart';
 import 'package:vynody/player/library/library_source_filter.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
+import 'package:vynody/widgets/section_type_toggle.dart';
 
 /// 拾光机 / 重温旧爱：推荐专辑条目
 class TimeMachineAlbumEntry {
@@ -364,10 +365,10 @@ final timeMachineAlbumsProvider = StreamProvider<List<TimeMachineAlbumEntry>>((r
   }
 });
 
-/// 本周常听专辑 Provider：
-/// 基于本周播放记录和专辑库统计近 7 天播放次数最多的专辑
-final thisWeekTopAlbumsProvider = Provider<AsyncValue<List<TimeMachineAlbumEntry>>>((ref) {
-  final mostPlayedAsync = ref.watch(mostPlayedSongsProvider(LibraryTimeRange.last7Days));
+/// 最多播放专辑 Provider（按时间跨度统计）：
+final mostPlayedAlbumsProvider =
+    Provider.family<AsyncValue<List<TimeMachineAlbumEntry>>, LibraryTimeRange>((ref, range) {
+  final mostPlayedAsync = ref.watch(mostPlayedSongsProvider(range));
   final albumsAsync = ref.watch(albumLibraryProvider);
 
   if (mostPlayedAsync.isLoading || albumsAsync.isLoading) {
@@ -386,10 +387,18 @@ final thisWeekTopAlbumsProvider = Provider<AsyncValue<List<TimeMachineAlbumEntry
   }
 
   final playCounts = <String, int>{};
+  final lastPlayedMap = <String, int>{};
   for (final s in songs) {
     final normalized = s.song.path.replaceAll('\\', '/');
     playCounts[normalized] = s.playCount;
     playCounts[s.song.path] = s.playCount;
+    if (s.lastPlayedAt != null) {
+      final existing = lastPlayedMap[normalized];
+      if (existing == null || s.lastPlayedAt! > existing) {
+        lastPlayedMap[normalized] = s.lastPlayedAt!;
+        lastPlayedMap[s.song.path] = s.lastPlayedAt!;
+      }
+    }
   }
 
   final allAlbums = albumsAsync.value ?? const [];
@@ -397,10 +406,15 @@ final thisWeekTopAlbumsProvider = Provider<AsyncValue<List<TimeMachineAlbumEntry
 
   for (final album in allAlbums) {
     int total = 0;
+    int? maxLastPlayed;
     for (final song in album.songs) {
       final normalized = song.path.replaceAll('\\', '/');
       final c = playCounts[normalized] ?? playCounts[song.path] ?? 0;
       total += c;
+      final lp = lastPlayedMap[normalized] ?? lastPlayedMap[song.path];
+      if (lp != null && (maxLastPlayed == null || lp > maxLastPlayed)) {
+        maxLastPlayed = lp;
+      }
     }
     if (total > 0) {
       albumList.add(
@@ -412,14 +426,78 @@ final thisWeekTopAlbumsProvider = Provider<AsyncValue<List<TimeMachineAlbumEntry
           songs: album.songs,
           totalPlayCount: total,
           maxRating: 0,
+          lastPlayedAt: maxLastPlayed,
         ),
       );
     }
   }
 
   albumList.sort((a, b) => b.totalPlayCount.compareTo(a.totalPlayCount));
-  return AsyncValue.data(albumList.take(12).toList());
+  return AsyncValue.data(albumList);
 });
+
+/// 本周常听专辑 Provider：
+/// 基于本周播放记录和专辑库统计近 7 天播放次数最多的专辑
+final thisWeekTopAlbumsProvider = Provider<AsyncValue<List<TimeMachineAlbumEntry>>>((ref) {
+  final fullListAsync = ref.watch(mostPlayedAlbumsProvider(LibraryTimeRange.last7Days));
+  return fullListAsync.whenData((list) => list.take(12).toList());
+});
+
+/// 最多播放页面筛选状态模型
+class MostPlayedFilterState {
+  const MostPlayedFilterState({
+    this.type = SectionItemType.songs,
+    this.range = LibraryTimeRange.allTime,
+  });
+
+  final SectionItemType type;
+  final LibraryTimeRange range;
+
+  MostPlayedFilterState copyWith({
+    SectionItemType? type,
+    LibraryTimeRange? range,
+  }) {
+    return MostPlayedFilterState(
+      type: type ?? this.type,
+      range: range ?? this.range,
+    );
+  }
+}
+
+class MostPlayedFilterNotifier extends Notifier<MostPlayedFilterState> {
+  @override
+  MostPlayedFilterState build() => const MostPlayedFilterState();
+
+  void setType(SectionItemType type) {
+    if (state.type != type) {
+      state = state.copyWith(type: type);
+    }
+  }
+
+  void setRange(LibraryTimeRange range) {
+    if (state.range != range) {
+      state = state.copyWith(range: range);
+    }
+  }
+
+  void setBoth({
+    required SectionItemType type,
+    required LibraryTimeRange range,
+  }) {
+    if (state.type != type || state.range != range) {
+      state = MostPlayedFilterState(type: type, range: range);
+    }
+  }
+
+  void reset() {
+    state = const MostPlayedFilterState();
+  }
+}
+
+final mostPlayedFilterProvider =
+    NotifierProvider<MostPlayedFilterNotifier, MostPlayedFilterState>(
+  MostPlayedFilterNotifier.new,
+);
 
 /// 拾光机 / 重温旧爱单曲 Provider：
 /// 满足历史高频播放（playCount >= 2）或主动打分（rating >= 4），且在近 30 天内未曾播放的单曲

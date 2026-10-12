@@ -21,6 +21,7 @@ import 'package:vynody/widgets/song_thumbnail.dart';
 import 'album_detail_page.dart';
 import 'artist_detail_page.dart';
 import '../widgets/playback_ui_tuning.dart';
+import '../widgets/section_type_toggle.dart';
 
 // ===========================================================================
 // 媒体库首页封面缩放系数配置（可在此自由修改数值调节大小）
@@ -83,7 +84,12 @@ class LibraryDashboardView extends ConsumerWidget {
                     ? Padding(
                         padding: const EdgeInsets.only(top: 14, bottom: 28),
                         child: _WideQuickAccessBar(
-                          onTapSubIndex: onNavigateToSubIndex,
+                          onTapSubIndex: (sub) {
+                            if (sub == 2) {
+                              ref.read(mostPlayedFilterProvider.notifier).reset();
+                            }
+                            onNavigateToSubIndex(sub);
+                          },
                           l10n: l10n,
                           contentLeftPadding: contentLeftPadding,
                           horizontalPadding: horizontalPadding,
@@ -97,7 +103,12 @@ class LibraryDashboardView extends ConsumerWidget {
                           bottom: 22,
                         ),
                         child: _PortraitLibraryMenuCard(
-                          onTapSubIndex: onNavigateToSubIndex,
+                          onTapSubIndex: (sub) {
+                            if (sub == 2) {
+                              ref.read(mostPlayedFilterProvider.notifier).reset();
+                            }
+                            onNavigateToSubIndex(sub);
+                          },
                           l10n: l10n,
                         ),
                       ),
@@ -134,7 +145,7 @@ class LibraryDashboardView extends ConsumerWidget {
                             Expanded(
                               child: _ThisWeekTopCard(
                                 onViewAll: () => onNavigateToSubIndex(2),
-                                onViewAllAlbums: () => onNavigateToSubIndex(4),
+                                onViewAllAlbums: () => onNavigateToSubIndex(2),
                                 l10n: l10n,
                                 isWide: isWide,
                               ),
@@ -152,7 +163,7 @@ class LibraryDashboardView extends ConsumerWidget {
                           children: [
                             _ThisWeekTopCard(
                               onViewAll: () => onNavigateToSubIndex(2),
-                              onViewAllAlbums: () => onNavigateToSubIndex(4),
+                              onViewAllAlbums: () => onNavigateToSubIndex(2),
                               l10n: l10n,
                               isWide: isWide,
                             ),
@@ -1262,13 +1273,13 @@ class _ThisWeekTopCard extends ConsumerStatefulWidget {
 }
 
 class _ThisWeekTopCardState extends ConsumerState<_ThisWeekTopCard> {
-  _SectionItemType _selectedType = _SectionItemType.songs;
+  SectionItemType _selectedType = SectionItemType.songs;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = widget.l10n;
-    final isAlbums = _selectedType == _SectionItemType.albums;
+    final isAlbums = _selectedType == SectionItemType.albums;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1276,7 +1287,7 @@ class _ThisWeekTopCardState extends ConsumerState<_ThisWeekTopCard> {
         _SectionHeader(
           title: l10n.thisWeekTop,
           subtitle: l10n.thisWeekTopSubtitle,
-          action: _SectionTypeToggle(
+          action: SectionTypeToggle(
             selected: _selectedType,
             onChanged: (val) {
               setState(() {
@@ -1286,9 +1297,17 @@ class _ThisWeekTopCardState extends ConsumerState<_ThisWeekTopCard> {
             songsLabel: l10n.songs,
             albumsLabel: l10n.albums,
           ),
-          onViewAll: isAlbums
-              ? (widget.onViewAllAlbums ?? widget.onViewAll)
-              : widget.onViewAll,
+          onViewAll: () {
+            ref.read(mostPlayedFilterProvider.notifier).setBoth(
+              type: _selectedType,
+              range: LibraryTimeRange.last7Days,
+            );
+            if (isAlbums && widget.onViewAllAlbums != null) {
+              widget.onViewAllAlbums!();
+            } else {
+              widget.onViewAll();
+            }
+          },
           l10n: l10n,
         ),
         const SizedBox(height: 12),
@@ -1425,13 +1444,13 @@ class _TimeMachineCard extends ConsumerStatefulWidget {
 }
 
 class _TimeMachineCardState extends ConsumerState<_TimeMachineCard> {
-  _SectionItemType _selectedType = _SectionItemType.albums;
+  SectionItemType _selectedType = SectionItemType.albums;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = widget.l10n;
-    final isSongs = _selectedType == _SectionItemType.songs;
+    final isSongs = _selectedType == SectionItemType.songs;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1439,7 +1458,7 @@ class _TimeMachineCardState extends ConsumerState<_TimeMachineCard> {
         _SectionHeader(
           title: l10n.timeMachine,
           subtitle: l10n.timeMachineSubtitle,
-          action: _SectionTypeToggle(
+          action: SectionTypeToggle(
             selected: _selectedType,
             onChanged: (val) {
               setState(() {
@@ -2456,95 +2475,7 @@ class _GenreCardState extends State<_GenreCard> {
 // ---------------------------------------------------------------------------
 // 基础微组件
 // ---------------------------------------------------------------------------
-enum _SectionItemType { songs, albums }
 
-class _SectionTypeToggle extends StatelessWidget {
-  const _SectionTypeToggle({
-    required this.selected,
-    required this.onChanged,
-    required this.songsLabel,
-    required this.albumsLabel,
-  });
-
-  final _SectionItemType selected;
-  final ValueChanged<_SectionItemType> onChanged;
-  final String songsLabel;
-  final String albumsLabel;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    return Container(
-      padding: const EdgeInsets.all(2.5),
-      decoration: BoxDecoration(
-        color: isDark
-            ? theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5)
-            : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.7),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _buildPill(
-            context,
-            type: _SectionItemType.songs,
-            label: songsLabel,
-            isSelected: selected == _SectionItemType.songs,
-          ),
-          _buildPill(
-            context,
-            type: _SectionItemType.albums,
-            label: albumsLabel,
-            isSelected: selected == _SectionItemType.albums,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPill(
-    BuildContext context, {
-    required _SectionItemType type,
-    required String label,
-    required bool isSelected,
-  }) {
-    final theme = Theme.of(context);
-
-    return InkWell(
-      onTap: () => onChanged(type),
-      borderRadius: BorderRadius.circular(13),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOutCubic,
-        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
-        decoration: BoxDecoration(
-          color: isSelected ? theme.colorScheme.primary : Colors.transparent,
-          borderRadius: BorderRadius.circular(13),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: theme.colorScheme.primary.withValues(alpha: 0.25),
-                    blurRadius: 4,
-                    offset: const Offset(0, 1),
-                  ),
-                ]
-              : null,
-        ),
-        child: Text(
-          label,
-          style: theme.textTheme.labelSmall?.copyWith(
-            color: isSelected
-                ? theme.colorScheme.onPrimary
-                : theme.colorScheme.onSurfaceVariant,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 class _SectionHeader extends StatelessWidget {
   const _SectionHeader({
