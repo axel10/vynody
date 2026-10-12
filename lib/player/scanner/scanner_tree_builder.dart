@@ -328,6 +328,7 @@ class ScannerTreeBuilder {
       bitDepth: song.bitDepth,
       format: song.format,
       codec: song.codec,
+      fileRating: song.fileRating,
     );
   }
 
@@ -354,6 +355,7 @@ class ScannerTreeBuilder {
       bitDepth: metadata?.bitDepth,
       format: metadata?.format,
       codec: metadata?.codec,
+      fileRating: metadata?.fileRating,
     );
   }
 

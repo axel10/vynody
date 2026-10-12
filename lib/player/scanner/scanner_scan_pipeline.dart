@@ -283,6 +283,7 @@ class ScannerScanPipeline {
       bitDepth: result['bitDepth'] as int? ?? (hasError ? existing?.bitDepth : null) ?? existing?.bitDepth,
       format: result['format'] as String? ?? (hasError ? existing?.format : null) ?? existing?.format,
       codec: result['codec'] as String? ?? (hasError ? existing?.codec : null) ?? existing?.codec,
+      fileRating: result['fileRating'] as int? ?? (hasError ? existing?.fileRating : null) ?? existing?.fileRating,
     );
   }
 

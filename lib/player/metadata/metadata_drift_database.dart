@@ -25,7 +25,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   static final MetadataDriftDatabase instance = MetadataDriftDatabase._();
 
   @override
-  int get schemaVersion => 41;
+  int get schemaVersion => 42;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -429,6 +429,9 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
         if (!exists) {
           await m.createTable(songRatings);
         }
+      }
+      if (from < 42) {
+        await _addColumnIfMissing(m, 'songs', 'fileRating', 'INTEGER');
       }
     },
   );
@@ -2840,6 +2843,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       bitDepth: row.bitDepth,
       format: row.format,
       codec: row.codec,
+      fileRating: row.fileRating,
     );
   }
 
@@ -2877,6 +2881,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       bitDepth: Value(song.bitDepth),
       format: Value(song.format),
       codec: Value(song.codec),
+      fileRating: Value(song.fileRating),
       lastSeenRootScanSessionId: lastSeenRootScanSessionId == null
           ? const Value.absent()
           : Value(lastSeenRootScanSessionId),
@@ -3528,6 +3533,7 @@ class Songs extends Table {
   IntColumn get bitDepth => integer().nullable().named('bitDepth')();
   TextColumn get format => text().nullable().named('format')();
   TextColumn get codec => text().nullable().named('codec')();
+  IntColumn get fileRating => integer().nullable().named('fileRating')();
   IntColumn get lastSeenRootScanSessionId =>
       integer().nullable().named('lastSeenRootScanSessionId')();
 
@@ -3778,11 +3784,44 @@ extension MetadataSongRatingsOps on MetadataDriftDatabase {
     final rows = await select(songRatings).get();
     final result = <String, int>{};
     for (final row in rows) {
-      if (row.rating > 0 && row.rating <= 5) {
+      if (row.rating >= 0 && row.rating <= 5) {
         result[row.songPath] = row.rating;
       }
     }
     return result;
+  }
+
+  Future<Map<String, int>> getAllFileRatings() async {
+    final query = selectOnly(songs)
+      ..addColumns([songs.path, songs.fileRating])
+      ..where(songs.fileRating.isNotNull() & songs.fileRating.isBiggerThanValue(0));
+    final rows = await query.get();
+    final result = <String, int>{};
+    for (final row in rows) {
+      final path = row.read(songs.path);
+      final fileRating = row.read(songs.fileRating);
+      if (path != null && fileRating != null && fileRating > 0 && fileRating <= 5) {
+        result[path] = fileRating;
+      }
+    }
+    return result;
+  }
+
+  Stream<Map<String, int>> watchAllFileRatings() {
+    final query = selectOnly(songs)
+      ..addColumns([songs.path, songs.fileRating])
+      ..where(songs.fileRating.isNotNull() & songs.fileRating.isBiggerThanValue(0));
+    return query.watch().map((rows) {
+      final result = <String, int>{};
+      for (final row in rows) {
+        final path = row.read(songs.path);
+        final fileRating = row.read(songs.fileRating);
+        if (path != null && fileRating != null && fileRating > 0 && fileRating <= 5) {
+          result[path] = fileRating;
+        }
+      }
+      return result;
+    });
   }
 
   Future<void> setSongRating(String songPath, int rating) async {

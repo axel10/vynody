@@ -76,5 +76,54 @@ void main() {
       await service.setRating('/music/song3.mp3', -2);
       expect(service.getRating('/music/song3.mp3'), equals(0));
     });
+
+    test('fileRating fallback and user override behavior', () async {
+      final db = MetadataDatabase();
+      const songPath = '/music/tagged_song.mp3';
+
+      // 1. Insert a song with fileRating = 4 into songs table
+      await db.insertOrUpdateSong(
+        const SongMetadata(
+          path: songPath,
+          title: 'Tagged Song',
+          album: 'Tagged Album',
+          artist: 'Tagged Artist',
+          fileRating: 4,
+        ),
+      );
+
+      final service = SongRatingService();
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      // Effective rating falls back to fileRating (4)
+      expect(service.getRating(songPath), equals(4));
+      expect(service.getFileRating(songPath), equals(4));
+      expect(service.getUserRating(songPath), isNull);
+      expect(service.isFileRated(songPath), isTrue);
+      expect(service.isUserRated(songPath), isFalse);
+
+      // 2. User overrides with 5 stars
+      await service.setRating(songPath, 5);
+      expect(service.getRating(songPath), equals(5));
+      expect(service.getUserRating(songPath), equals(5));
+      expect(service.getFileRating(songPath), equals(4));
+      expect(service.isFileRated(songPath), isFalse);
+      expect(service.isUserRated(songPath), isTrue);
+
+      // 3. User unrates (clears rating to 0) -> suppresses file rating (effective rating is 0)
+      await service.setRating(songPath, 0);
+      expect(service.getRating(songPath), equals(0));
+      expect(service.getUserRating(songPath), equals(0));
+      expect(service.getFileRating(songPath), equals(4));
+      expect(service.isFileRated(songPath), isFalse);
+      expect(service.isUserRated(songPath), isFalse);
+
+      // 4. User resets to tag rating -> reverts back to file rating 4
+      await service.resetToTagRating(songPath);
+      expect(service.getRating(songPath), equals(4));
+      expect(service.getUserRating(songPath), isNull);
+      expect(service.isFileRated(songPath), isTrue);
+      expect(service.isUserRated(songPath), isFalse);
+    });
   });
 }

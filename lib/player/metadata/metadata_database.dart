@@ -66,6 +66,7 @@ abstract class SongMetadata with _$SongMetadata {
     int? bitDepth,
     String? format,
     String? codec,
+    int? fileRating,
   }) = _SongMetadata;
 
   bool get isModified => isAppModified;
@@ -101,6 +102,7 @@ abstract class SongMetadata with _$SongMetadata {
       'bitDepth': bitDepth,
       'format': format,
       'codec': codec,
+      'fileRating': fileRating,
     };
   }
 
@@ -144,6 +146,7 @@ abstract class SongMetadata with _$SongMetadata {
       bitDepth: map['bitDepth'],
       format: map['format'],
       codec: map['codec'],
+      fileRating: map['fileRating'] as int?,
     );
   }
 }
@@ -831,6 +834,10 @@ class MetadataDatabase {
       _db.getAllLyricsTranslationCaches();
 
   Future<Map<String, int>> getAllSongRatings() => _db.getAllSongRatings();
+
+  Future<Map<String, int>> getAllFileRatings() => _db.getAllFileRatings();
+
+  Stream<Map<String, int>> watchAllFileRatings() => _db.watchAllFileRatings();
 
   Future<void> setSongRating(String songPath, int rating) =>
       _db.setSongRating(songPath, rating);

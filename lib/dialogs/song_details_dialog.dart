@@ -226,6 +226,23 @@ class _SongDetailsDialogState extends ConsumerState<_SongDetailsDialog> {
                 label: l10n.detailBitDepth,
                 value: '${details.bitDepth} bit',
               ),
+            if (() {
+              final ratingService = ref.watch(songRatingServiceProvider);
+              final fileRating = ratingService.getFileRating(widget.song.path) ?? widget.song.fileRating;
+              return fileRating != null && fileRating > 0;
+            }())
+              _DetailRow(
+                label: '${l10n.sortRating} (${l10n.tags})',
+                value: '${ref.watch(songRatingServiceProvider).getFileRating(widget.song.path) ?? widget.song.fileRating} ★',
+              ),
+            if (() {
+              final userRating = ref.watch(songRatingServiceProvider).getUserRating(widget.song.path);
+              return userRating != null && userRating > 0;
+            }())
+              _DetailRow(
+                label: '${l10n.sortRating} (App)',
+                value: '${ref.watch(songRatingServiceProvider).getUserRating(widget.song.path)} ★',
+              ),
           ];
 
           return SingleChildScrollView(

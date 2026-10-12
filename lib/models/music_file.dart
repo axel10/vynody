@@ -38,6 +38,7 @@ abstract class MusicFile with _$MusicFile {
     int? bitDepth,
     String? format,
     String? codec,
+    int? fileRating,
     @Default(0) int rating,
   }) = _MusicFile;
 

@@ -726,6 +726,7 @@ class MetadataHelper {
       int? bitDepth;
       String? format;
       String? codec;
+      int? fileRating;
 
       try {
         final targetPath = await resolveReadTargetPath(filePath);
@@ -751,6 +752,7 @@ class MetadataHelper {
         bitDepth = metadata.bitDepth;
         format = metadata.format;
         codec = metadata.codec;
+        fileRating = metadata.rating;
         artworkData = metadata.pictures.isNotEmpty
             ? metadata.pictures.first.bytes
             : null;
@@ -892,6 +894,7 @@ class MetadataHelper {
         bitDepth: bitDepth ?? existing?.bitDepth,
         format: format ?? existing?.format,
         codec: codec ?? existing?.codec,
+        fileRating: fileRating ?? existing?.fileRating,
       );
 
       // 5. 将解析结果存入数据库
@@ -1274,6 +1277,7 @@ class MetadataHelper {
       final channels = tagFile.channels > 0 ? tagFile.channels : null;
       final bitDepth = tagFile.bitDepth;
       final format = tagFile.format;
+      final rating = tagFile.rating > 0 ? tagFile.rating.clamp(1, 5) : null;
 
       return TagLibMetadata(
         title: title.isNotEmpty ? title : null,
@@ -1289,6 +1293,7 @@ class MetadataHelper {
         channels: channels,
         bitDepth: bitDepth,
         format: format,
+        rating: rating,
       );
     } finally {
       tagFile.close();
@@ -1317,6 +1322,7 @@ class MetadataHelper {
       final channels = tagFile.channels > 0 ? tagFile.channels : null;
       final bitDepth = tagFile.bitDepth;
       final format = tagFile.format;
+      final rating = tagFile.rating > 0 ? tagFile.rating.clamp(1, 5) : null;
 
       return TagLibMetadata(
         title: title.isNotEmpty ? title : null,
@@ -1332,6 +1338,7 @@ class MetadataHelper {
         channels: channels,
         bitDepth: bitDepth,
         format: format,
+        rating: rating,
       );
     } finally {
       tagFile.close();
@@ -1368,6 +1375,7 @@ class MetadataHelper {
       final channels = tagFile.channels > 0 ? tagFile.channels : null;
       final bitDepth = tagFile.bitDepth;
       final format = tagFile.format;
+      final rating = tagFile.rating > 0 ? tagFile.rating.clamp(1, 5) : null;
 
       return TagLibMetadata(
         title: title.isNotEmpty ? title : null,
@@ -1383,6 +1391,7 @@ class MetadataHelper {
         channels: channels,
         bitDepth: bitDepth,
         format: format,
+        rating: rating,
       );
     } finally {
       tagFile.close();
@@ -1420,6 +1429,7 @@ class MetadataHelper {
       final channels = tagFile.channels > 0 ? tagFile.channels : null;
       final bitDepth = tagFile.bitDepth;
       final format = tagFile.format;
+      final rating = tagFile.rating > 0 ? tagFile.rating.clamp(1, 5) : null;
 
       return TagLibMetadata(
         title: title.isNotEmpty ? title : null,
@@ -1435,6 +1445,7 @@ class MetadataHelper {
         channels: channels,
         bitDepth: bitDepth,
         format: format,
+        rating: rating,
       );
     } finally {
       tagFile.close();
@@ -1490,6 +1501,7 @@ class MetadataHelper {
           final sampleRate = item.sampleRate > 0 ? item.sampleRate : null;
           final channels = item.channels > 0 ? item.channels : null;
           final bitDepth = item.bitDepth;
+          final rating = item.rating > 0 ? item.rating.clamp(1, 5) : null;
           var ext = p.extension(originalPath).replaceAll('.', '').toLowerCase();
           if (ext.contains('?')) ext = ext.split('?').first;
           String? format;
@@ -1521,6 +1533,7 @@ class MetadataHelper {
             'bitDepth': bitDepth,
             'format': format,
             'codec': codec,
+            'fileRating': rating,
             'error': isSuccess ? null : (item.error ?? 'Failed to read metadata'),
           });
         }
@@ -1584,6 +1597,7 @@ class MetadataHelper {
           final sampleRate = tagFile.sampleRate > 0 ? tagFile.sampleRate : null;
           final channels = tagFile.channels > 0 ? tagFile.channels : null;
           final bitDepth = tagFile.bitDepth;
+          final rating = tagFile.rating > 0 ? tagFile.rating.clamp(1, 5) : null;
           var ext = p.extension(path).replaceAll('.', '').toLowerCase();
           if (ext.contains('?')) ext = ext.split('?').first;
           String? format = tagFile.format?.trim().isNotEmpty == true ? tagFile.format!.trim() : null;
@@ -1621,6 +1635,7 @@ class MetadataHelper {
             'bitDepth': bitDepth,
             'format': format,
             'codec': codec,
+            'fileRating': rating,
             'error': null,
           });
         } finally {
@@ -1940,6 +1955,7 @@ class TagLibMetadata {
   final int? bitDepth;
   final String? format;
   final String? codec;
+  final int? rating;
 
   TagLibMetadata({
     this.title,
@@ -1956,6 +1972,7 @@ class TagLibMetadata {
     this.bitDepth,
     this.format,
     this.codec,
+    this.rating,
   });
 }
 

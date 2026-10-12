@@ -665,8 +665,8 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: db00308409fdbd4a078e3db7aa5d67731c6e2284
-      resolved-ref: db00308409fdbd4a078e3db7aa5d67731c6e2284
+      ref: fffba6a36d9f9df0ef1efaef5d7b37a10bf874a5
+      resolved-ref: fffba6a36d9f9df0ef1efaef5d7b37a10bf874a5
       url: "https://github.com/axel10/flutter_taglib"
     source: git
     version: "1.6.0"

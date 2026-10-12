@@ -333,6 +333,17 @@ class $SongsTable extends Songs with TableInfo<$SongsTable, Song> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _fileRatingMeta = const VerificationMeta(
+    'fileRating',
+  );
+  @override
+  late final GeneratedColumn<int> fileRating = GeneratedColumn<int>(
+    'fileRating',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _lastSeenRootScanSessionIdMeta =
       const VerificationMeta('lastSeenRootScanSessionId');
   @override
@@ -376,6 +387,7 @@ class $SongsTable extends Songs with TableInfo<$SongsTable, Song> {
     bitDepth,
     format,
     codec,
+    fileRating,
     lastSeenRootScanSessionId,
   ];
   @override
@@ -608,6 +620,12 @@ class $SongsTable extends Songs with TableInfo<$SongsTable, Song> {
         codec.isAcceptableOrUnknown(data['codec']!, _codecMeta),
       );
     }
+    if (data.containsKey('fileRating')) {
+      context.handle(
+        _fileRatingMeta,
+        fileRating.isAcceptableOrUnknown(data['fileRating']!, _fileRatingMeta),
+      );
+    }
     if (data.containsKey('lastSeenRootScanSessionId')) {
       context.handle(
         _lastSeenRootScanSessionIdMeta,
@@ -746,6 +764,10 @@ class $SongsTable extends Songs with TableInfo<$SongsTable, Song> {
         DriftSqlType.string,
         data['${effectivePrefix}codec'],
       ),
+      fileRating: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}fileRating'],
+      ),
       lastSeenRootScanSessionId: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}lastSeenRootScanSessionId'],
@@ -790,6 +812,7 @@ class Song extends DataClass implements Insertable<Song> {
   final int? bitDepth;
   final String? format;
   final String? codec;
+  final int? fileRating;
   final int? lastSeenRootScanSessionId;
   const Song({
     required this.id,
@@ -822,6 +845,7 @@ class Song extends DataClass implements Insertable<Song> {
     this.bitDepth,
     this.format,
     this.codec,
+    this.fileRating,
     this.lastSeenRootScanSessionId,
   });
   @override
@@ -910,6 +934,9 @@ class Song extends DataClass implements Insertable<Song> {
     }
     if (!nullToAbsent || codec != null) {
       map['codec'] = Variable<String>(codec);
+    }
+    if (!nullToAbsent || fileRating != null) {
+      map['fileRating'] = Variable<int>(fileRating);
     }
     if (!nullToAbsent || lastSeenRootScanSessionId != null) {
       map['lastSeenRootScanSessionId'] = Variable<int>(
@@ -1005,6 +1032,9 @@ class Song extends DataClass implements Insertable<Song> {
       codec: codec == null && nullToAbsent
           ? const Value.absent()
           : Value(codec),
+      fileRating: fileRating == null && nullToAbsent
+          ? const Value.absent()
+          : Value(fileRating),
       lastSeenRootScanSessionId:
           lastSeenRootScanSessionId == null && nullToAbsent
           ? const Value.absent()
@@ -1050,6 +1080,7 @@ class Song extends DataClass implements Insertable<Song> {
       bitDepth: serializer.fromJson<int?>(json['bitDepth']),
       format: serializer.fromJson<String?>(json['format']),
       codec: serializer.fromJson<String?>(json['codec']),
+      fileRating: serializer.fromJson<int?>(json['fileRating']),
       lastSeenRootScanSessionId: serializer.fromJson<int?>(
         json['lastSeenRootScanSessionId'],
       ),
@@ -1089,6 +1120,7 @@ class Song extends DataClass implements Insertable<Song> {
       'bitDepth': serializer.toJson<int?>(bitDepth),
       'format': serializer.toJson<String?>(format),
       'codec': serializer.toJson<String?>(codec),
+      'fileRating': serializer.toJson<int?>(fileRating),
       'lastSeenRootScanSessionId': serializer.toJson<int?>(
         lastSeenRootScanSessionId,
       ),
@@ -1126,6 +1158,7 @@ class Song extends DataClass implements Insertable<Song> {
     Value<int?> bitDepth = const Value.absent(),
     Value<String?> format = const Value.absent(),
     Value<String?> codec = const Value.absent(),
+    Value<int?> fileRating = const Value.absent(),
     Value<int?> lastSeenRootScanSessionId = const Value.absent(),
   }) => Song(
     id: id ?? this.id,
@@ -1170,6 +1203,7 @@ class Song extends DataClass implements Insertable<Song> {
     bitDepth: bitDepth.present ? bitDepth.value : this.bitDepth,
     format: format.present ? format.value : this.format,
     codec: codec.present ? codec.value : this.codec,
+    fileRating: fileRating.present ? fileRating.value : this.fileRating,
     lastSeenRootScanSessionId: lastSeenRootScanSessionId.present
         ? lastSeenRootScanSessionId.value
         : this.lastSeenRootScanSessionId,
@@ -1236,6 +1270,9 @@ class Song extends DataClass implements Insertable<Song> {
       bitDepth: data.bitDepth.present ? data.bitDepth.value : this.bitDepth,
       format: data.format.present ? data.format.value : this.format,
       codec: data.codec.present ? data.codec.value : this.codec,
+      fileRating: data.fileRating.present
+          ? data.fileRating.value
+          : this.fileRating,
       lastSeenRootScanSessionId: data.lastSeenRootScanSessionId.present
           ? data.lastSeenRootScanSessionId.value
           : this.lastSeenRootScanSessionId,
@@ -1275,6 +1312,7 @@ class Song extends DataClass implements Insertable<Song> {
           ..write('bitDepth: $bitDepth, ')
           ..write('format: $format, ')
           ..write('codec: $codec, ')
+          ..write('fileRating: $fileRating, ')
           ..write('lastSeenRootScanSessionId: $lastSeenRootScanSessionId')
           ..write(')'))
         .toString();
@@ -1312,6 +1350,7 @@ class Song extends DataClass implements Insertable<Song> {
     bitDepth,
     format,
     codec,
+    fileRating,
     lastSeenRootScanSessionId,
   ]);
   @override
@@ -1351,6 +1390,7 @@ class Song extends DataClass implements Insertable<Song> {
           other.bitDepth == this.bitDepth &&
           other.format == this.format &&
           other.codec == this.codec &&
+          other.fileRating == this.fileRating &&
           other.lastSeenRootScanSessionId == this.lastSeenRootScanSessionId);
 }
 
@@ -1385,6 +1425,7 @@ class SongsCompanion extends UpdateCompanion<Song> {
   final Value<int?> bitDepth;
   final Value<String?> format;
   final Value<String?> codec;
+  final Value<int?> fileRating;
   final Value<int?> lastSeenRootScanSessionId;
   const SongsCompanion({
     this.id = const Value.absent(),
@@ -1417,6 +1458,7 @@ class SongsCompanion extends UpdateCompanion<Song> {
     this.bitDepth = const Value.absent(),
     this.format = const Value.absent(),
     this.codec = const Value.absent(),
+    this.fileRating = const Value.absent(),
     this.lastSeenRootScanSessionId = const Value.absent(),
   });
   SongsCompanion.insert({
@@ -1450,6 +1492,7 @@ class SongsCompanion extends UpdateCompanion<Song> {
     this.bitDepth = const Value.absent(),
     this.format = const Value.absent(),
     this.codec = const Value.absent(),
+    this.fileRating = const Value.absent(),
     this.lastSeenRootScanSessionId = const Value.absent(),
   }) : path = Value(path);
   static Insertable<Song> custom({
@@ -1483,6 +1526,7 @@ class SongsCompanion extends UpdateCompanion<Song> {
     Expression<int>? bitDepth,
     Expression<String>? format,
     Expression<String>? codec,
+    Expression<int>? fileRating,
     Expression<int>? lastSeenRootScanSessionId,
   }) {
     return RawValuesInsertable({
@@ -1517,6 +1561,7 @@ class SongsCompanion extends UpdateCompanion<Song> {
       if (bitDepth != null) 'bitDepth': bitDepth,
       if (format != null) 'format': format,
       if (codec != null) 'codec': codec,
+      if (fileRating != null) 'fileRating': fileRating,
       if (lastSeenRootScanSessionId != null)
         'lastSeenRootScanSessionId': lastSeenRootScanSessionId,
     });
@@ -1553,6 +1598,7 @@ class SongsCompanion extends UpdateCompanion<Song> {
     Value<int?>? bitDepth,
     Value<String?>? format,
     Value<String?>? codec,
+    Value<int?>? fileRating,
     Value<int?>? lastSeenRootScanSessionId,
   }) {
     return SongsCompanion(
@@ -1586,6 +1632,7 @@ class SongsCompanion extends UpdateCompanion<Song> {
       bitDepth: bitDepth ?? this.bitDepth,
       format: format ?? this.format,
       codec: codec ?? this.codec,
+      fileRating: fileRating ?? this.fileRating,
       lastSeenRootScanSessionId:
           lastSeenRootScanSessionId ?? this.lastSeenRootScanSessionId,
     );
@@ -1684,6 +1731,9 @@ class SongsCompanion extends UpdateCompanion<Song> {
     if (codec.present) {
       map['codec'] = Variable<String>(codec.value);
     }
+    if (fileRating.present) {
+      map['fileRating'] = Variable<int>(fileRating.value);
+    }
     if (lastSeenRootScanSessionId.present) {
       map['lastSeenRootScanSessionId'] = Variable<int>(
         lastSeenRootScanSessionId.value,
@@ -1725,6 +1775,7 @@ class SongsCompanion extends UpdateCompanion<Song> {
           ..write('bitDepth: $bitDepth, ')
           ..write('format: $format, ')
           ..write('codec: $codec, ')
+          ..write('fileRating: $fileRating, ')
           ..write('lastSeenRootScanSessionId: $lastSeenRootScanSessionId')
           ..write(')'))
         .toString();
@@ -9089,6 +9140,7 @@ typedef $$SongsTableCreateCompanionBuilder =
       Value<int?> bitDepth,
       Value<String?> format,
       Value<String?> codec,
+      Value<int?> fileRating,
       Value<int?> lastSeenRootScanSessionId,
     });
 typedef $$SongsTableUpdateCompanionBuilder =
@@ -9123,6 +9175,7 @@ typedef $$SongsTableUpdateCompanionBuilder =
       Value<int?> bitDepth,
       Value<String?> format,
       Value<String?> codec,
+      Value<int?> fileRating,
       Value<int?> lastSeenRootScanSessionId,
     });
 
@@ -9282,6 +9335,11 @@ class $$SongsTableFilterComposer
 
   ColumnFilters<String> get codec => $composableBuilder(
     column: $table.codec,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get fileRating => $composableBuilder(
+    column: $table.fileRating,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -9450,6 +9508,11 @@ class $$SongsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get fileRating => $composableBuilder(
+    column: $table.fileRating,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get lastSeenRootScanSessionId => $composableBuilder(
     column: $table.lastSeenRootScanSessionId,
     builder: (column) => ColumnOrderings(column),
@@ -9585,6 +9648,11 @@ class $$SongsTableAnnotationComposer
   GeneratedColumn<String> get codec =>
       $composableBuilder(column: $table.codec, builder: (column) => column);
 
+  GeneratedColumn<int> get fileRating => $composableBuilder(
+    column: $table.fileRating,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<int> get lastSeenRootScanSessionId => $composableBuilder(
     column: $table.lastSeenRootScanSessionId,
     builder: (column) => column,
@@ -9649,6 +9717,7 @@ class $$SongsTableTableManager
                 Value<int?> bitDepth = const Value.absent(),
                 Value<String?> format = const Value.absent(),
                 Value<String?> codec = const Value.absent(),
+                Value<int?> fileRating = const Value.absent(),
                 Value<int?> lastSeenRootScanSessionId = const Value.absent(),
               }) => SongsCompanion(
                 id: id,
@@ -9681,6 +9750,7 @@ class $$SongsTableTableManager
                 bitDepth: bitDepth,
                 format: format,
                 codec: codec,
+                fileRating: fileRating,
                 lastSeenRootScanSessionId: lastSeenRootScanSessionId,
               ),
           createCompanionCallback:
@@ -9715,6 +9785,7 @@ class $$SongsTableTableManager
                 Value<int?> bitDepth = const Value.absent(),
                 Value<String?> format = const Value.absent(),
                 Value<String?> codec = const Value.absent(),
+                Value<int?> fileRating = const Value.absent(),
                 Value<int?> lastSeenRootScanSessionId = const Value.absent(),
               }) => SongsCompanion.insert(
                 id: id,
@@ -9747,6 +9818,7 @@ class $$SongsTableTableManager
                 bitDepth: bitDepth,
                 format: format,
                 codec: codec,
+                fileRating: fileRating,
                 lastSeenRootScanSessionId: lastSeenRootScanSessionId,
               ),
           withReferenceMapper: (p0) => p0
