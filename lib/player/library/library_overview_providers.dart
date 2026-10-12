@@ -3,6 +3,7 @@ import 'package:path/path.dart' as p;
 
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
+import 'package:vynody/player/library/album_library.dart';
 import 'package:vynody/player/library/library_insights_service.dart';
 import 'package:vynody/player/library/library_source_filter.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
@@ -360,5 +361,136 @@ final timeMachineAlbumsProvider = StreamProvider<List<TimeMachineAlbumEntry>>((r
     });
 
     yield results.take(12).toList();
+  }
+});
+
+/// 本周常听专辑 Provider：
+/// 基于本周播放记录和专辑库统计近 7 天播放次数最多的专辑
+final thisWeekTopAlbumsProvider = Provider<AsyncValue<List<TimeMachineAlbumEntry>>>((ref) {
+  final mostPlayedAsync = ref.watch(mostPlayedSongsProvider(LibraryTimeRange.last7Days));
+  final albumsAsync = ref.watch(albumLibraryProvider);
+
+  if (mostPlayedAsync.isLoading || albumsAsync.isLoading) {
+    return const AsyncValue.loading();
+  }
+  if (mostPlayedAsync.hasError) {
+    return AsyncValue.error(mostPlayedAsync.error!, mostPlayedAsync.stackTrace!);
+  }
+  if (albumsAsync.hasError) {
+    return AsyncValue.error(albumsAsync.error!, albumsAsync.stackTrace!);
+  }
+
+  final songs = mostPlayedAsync.value ?? const [];
+  if (songs.isEmpty) {
+    return const AsyncValue.data([]);
+  }
+
+  final playCounts = <String, int>{};
+  for (final s in songs) {
+    final normalized = s.song.path.replaceAll('\\', '/');
+    playCounts[normalized] = s.playCount;
+    playCounts[s.song.path] = s.playCount;
+  }
+
+  final allAlbums = albumsAsync.value ?? const [];
+  final albumList = <TimeMachineAlbumEntry>[];
+
+  for (final album in allAlbums) {
+    int total = 0;
+    for (final song in album.songs) {
+      final normalized = song.path.replaceAll('\\', '/');
+      final c = playCounts[normalized] ?? playCounts[song.path] ?? 0;
+      total += c;
+    }
+    if (total > 0) {
+      albumList.add(
+        TimeMachineAlbumEntry(
+          album: album.title,
+          artist: album.artist,
+          artworkPath: album.representativeSong.artworkPath,
+          thumbnailPath: album.representativeSong.thumbnailPath,
+          songs: album.songs,
+          totalPlayCount: total,
+          maxRating: 0,
+        ),
+      );
+    }
+  }
+
+  albumList.sort((a, b) => b.totalPlayCount.compareTo(a.totalPlayCount));
+  return AsyncValue.data(albumList.take(12).toList());
+});
+
+/// 拾光机 / 重温旧爱单曲 Provider：
+/// 满足历史高频播放（playCount >= 2）或主动打分（rating >= 4），且在近 30 天内未曾播放的单曲
+final timeMachineSongsProvider = StreamProvider<List<LibraryInsightSongEntry>>((ref) async* {
+  final mostPlayedAsync = ref.watch(mostPlayedSongsProvider(LibraryTimeRange.allTime));
+  final ratingService = ref.watch(songRatingServiceProvider);
+  final allRatings = ratingService.allRatings;
+
+  final mostPlayedList = mostPlayedAsync.value ?? const [];
+  final nowMillis = DateTime.now().millisecondsSinceEpoch;
+  final thirtyDaysAgoMillis = nowMillis - const Duration(days: 30).inMilliseconds;
+
+  final insightMap = <String, LibraryInsightSongEntry>{};
+  for (final item in mostPlayedList) {
+    insightMap[item.song.path.replaceAll('\\', '/')] = item;
+  }
+
+  final db = MetadataDatabase();
+  await for (final songs in db.watchAllSongMetadata()) {
+    final list = <LibraryInsightSongEntry>[];
+
+    for (final s in songs) {
+      if (s.deletedAt != null) continue;
+      final flags = s.sourceFlags ?? 0;
+      if ((flags & SongSourceFlags.external) != 0) continue;
+
+      final normalizedPath = s.path.replaceAll('\\', '/');
+      final insight = insightMap[normalizedPath];
+      final playCount = insight?.playCount ?? 0;
+      final lastPlayedAt = insight?.lastPlayedAt;
+      final rating = allRatings[normalizedPath] ?? allRatings[s.path] ?? 0;
+
+      if (lastPlayedAt != null && lastPlayedAt > thirtyDaysAgoMillis) {
+        continue;
+      }
+
+      if (playCount < 2 && rating < 4) {
+        continue;
+      }
+
+      list.add(
+        LibraryInsightSongEntry(
+          song: MusicFile(
+            path: s.path,
+            name: p.basename(s.path),
+            title: s.title,
+            artist: s.artist,
+            album: s.album,
+            artworkPath: s.artworkPath,
+            thumbnailPath: s.thumbnailPath,
+            durationMillis: s.duration,
+            id: s.id,
+          ),
+          playCount: playCount,
+          lastPlayedAt: lastPlayedAt,
+          createdAt: s.createdAt,
+          sourceFlags: s.sourceFlags,
+        ),
+      );
+    }
+
+    list.sort((a, b) {
+      final ratingA = allRatings[a.song.path.replaceAll('\\', '/')] ?? allRatings[a.song.path] ?? 0;
+      final ratingB = allRatings[b.song.path.replaceAll('\\', '/')] ?? allRatings[b.song.path] ?? 0;
+      final scoreA = a.playCount + (ratingA * 3);
+      final scoreB = b.playCount + (ratingB * 3);
+      final scoreCmp = scoreB.compareTo(scoreA);
+      if (scoreCmp != 0) return scoreCmp;
+      return (b.lastPlayedAt ?? 0).compareTo(a.lastPlayedAt ?? 0);
+    });
+
+    yield list.take(12).toList();
   }
 });
