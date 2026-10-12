@@ -8,7 +8,6 @@ import '../../../player/remote/proxy/remote_media_resolver.dart';
 import '../../../player/remote/remote_server_models.dart';
 import '../../../player/remote/services/remote_download_service.dart';
 import '../../../utils/app_snack_bar.dart';
-import '../../../utils/layout_constants.dart';
 import '../../../utils/remote_context_menu_utils.dart';
 import '../../../utils/selection_utils.dart';
 import '../../../utils/song_locator_helper.dart';
@@ -17,6 +16,7 @@ import '../../../widgets/remote_artwork_widget.dart';
 import '../../../widgets/draggable_song_item.dart';
 import '../../../player/remote/remote_library_navigation.dart';
 import '../remote_download_manager_page.dart';
+import 'remote_library_common_widgets.dart';
 import 'remote_library_toolbar_widgets.dart';
 
 class RemoteLibrarySongsToolbar extends StatelessWidget {
@@ -321,126 +321,25 @@ class _RemoteLibrarySongsViewState
 
     final isJellyfin = widget.server.type == RemoteServerType.jellyfin;
     final brandColor = isJellyfin ? const Color(0xFF9D65C9) : Colors.orange;
-    final serverName = isJellyfin ? 'Jellyfin' : 'Navidrome';
 
     if (widget.isLoading && widget.songs.isEmpty) {
-      final isZh = l10n.localeName.startsWith('zh');
-
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 64,
-              height: 64,
-              decoration: BoxDecoration(
-                color: brandColor.withValues(alpha: 0.12),
-                shape: BoxShape.circle,
-              ),
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  SizedBox(
-                    width: 64,
-                    height: 64,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 3,
-                      valueColor: AlwaysStoppedAnimation<Color>(brandColor),
-                    ),
-                  ),
-                  Icon(
-                    Icons.music_note_rounded,
-                    size: 28,
-                    color: brandColor,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              isZh ? '正在加载歌曲列表...' : 'Loading songs...',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-                fontSize: 16,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainerHighest
-                    .withValues(alpha: 0.6),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    isJellyfin
-                        ? Icons.movie_filter_rounded
-                        : Icons.cloud_done_rounded,
-                    size: 13,
-                    color: brandColor,
-                  ),
-                  const SizedBox(width: 5),
-                  Text(
-                    widget.server.name.isNotEmpty
-                        ? '${widget.server.name} ($serverName)'
-                        : serverName,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+      return RemoteLibraryLoadingView(
+        server: widget.server,
+        icon: Icons.music_note_rounded,
       );
     }
 
     if (widget.error != null && widget.songs.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.error_outline_rounded,
-                  size: 48, color: theme.colorScheme.error),
-              const SizedBox(height: 12),
-              Text(
-                l10n.errorLoadingSongs(widget.error!),
-                style: TextStyle(color: theme.colorScheme.error),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 16),
-              FilledButton.icon(
-                onPressed: widget.onRefresh,
-                icon: const Icon(Icons.refresh_rounded),
-                label: Text(l10n.retry),
-              ),
-            ],
-          ),
-        ),
+      return RemoteLibraryErrorView(
+        error: l10n.errorLoadingSongs(widget.error!),
+        onRetry: widget.onRefresh,
       );
     }
 
     final toolbarSliver = widget.toolbar != null
-        ? SliverToBoxAdapter(
-            child: Align(
-              alignment: Alignment.topCenter,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(
-                  maxWidth: kSingleColumnContentMaxWidth,
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-                  child: widget.toolbar!,
-                ),
-              ),
-            ),
+        ? SliverRemoteContentConstraint(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+            child: widget.toolbar!,
           )
         : null;
 
@@ -484,62 +383,52 @@ class _RemoteLibrarySongsViewState
             slivers: [
               ?toolbarSliver,
               // Header action bar
-              SliverToBoxAdapter(
-                child: Align(
-                  alignment: Alignment.topCenter,
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(
-                      maxWidth: kSingleColumnContentMaxWidth,
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
-                      child: Row(
-                        children: [
-                          FilledButton.icon(
-                            onPressed: widget.songs.isNotEmpty
-                                ? () => _playAll()
-                                : null,
-                            icon: const Icon(Icons.play_arrow_rounded, size: 20),
-                            label: Text(l10n.playAll),
-                            style: FilledButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 10,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          IconButton.filledTonal(
-                            tooltip: l10n.shufflePlay,
-                            onPressed: widget.songs.isNotEmpty
-                                ? () => _playAll(shuffle: true)
-                                : null,
-                            icon: const Icon(Icons.shuffle_rounded, size: 18),
-                          ),
-                          const SizedBox(width: 8),
-                          IconButton.filledTonal(
-                            tooltip: l10n.downloadAllTracks,
-                            onPressed:
-                                widget.songs.isNotEmpty ? _downloadAll : null,
-                            icon: const Icon(Icons.download_rounded, size: 18),
-                          ),
-                          const Spacer(),
-                          Text(
-                            totalDurationStr.isNotEmpty
-                                ? '${l10n.trackCountShort(widget.songs.length)} · $totalDurationStr'
-                                : l10n.trackCountShort(widget.songs.length),
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
+              SliverRemoteContentConstraint(
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
+                child: Row(
+                  children: [
+                    FilledButton.icon(
+                      onPressed: widget.songs.isNotEmpty
+                          ? () => _playAll()
+                          : null,
+                      icon: const Icon(Icons.play_arrow_rounded, size: 20),
+                      label: Text(l10n.playAll),
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 10,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                     ),
-                  ),
+                    const SizedBox(width: 8),
+                    IconButton.filledTonal(
+                      tooltip: l10n.shufflePlay,
+                      onPressed: widget.songs.isNotEmpty
+                          ? () => _playAll(shuffle: true)
+                          : null,
+                      icon: const Icon(Icons.shuffle_rounded, size: 18),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton.filledTonal(
+                      tooltip: l10n.downloadAllTracks,
+                      onPressed:
+                          widget.songs.isNotEmpty ? _downloadAll : null,
+                      icon: const Icon(Icons.download_rounded, size: 18),
+                    ),
+                    const Spacer(),
+                    Text(
+                      totalDurationStr.isNotEmpty
+                          ? '${l10n.trackCountShort(widget.songs.length)} · $totalDurationStr'
+                          : l10n.trackCountShort(widget.songs.length),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
               ),
 
@@ -581,15 +470,9 @@ class _RemoteLibrarySongsViewState
                       isSelectionMode: widget.isSelectionMode,
                       selectedPaths: widget.selectedSongPaths,
                       child: RepaintBoundary(
-                        child: Align(
-                          alignment: Alignment.center,
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(
-                              maxWidth: kSingleColumnContentMaxWidth,
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 2),
-                            child: GestureDetector(
+                        child: RemoteContentConstraint(
+                          padding: const EdgeInsets.symmetric(vertical: 2),
+                          child: GestureDetector(
                               behavior: HitTestBehavior.opaque,
                               onSecondaryTapDown: (details) {
                                 if (!widget.isSelectionMode) {
@@ -886,12 +769,10 @@ class _RemoteLibrarySongsViewState
                                       ),
                                     ),
                                   ),
-                                ),
-                              ),
+                               ),
                             ),
                           ),
                         ),
-                      ),
                       ),
                     );
                   },

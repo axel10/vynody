@@ -7,7 +7,7 @@ import '../../../player/remote/remote_library_navigation.dart';
 import '../../../player/remote/remote_server_models.dart';
 import '../../../player/remote/remote_server_riverpod.dart';
 import '../../../utils/app_snack_bar.dart';
-import '../../../utils/layout_constants.dart';
+import 'remote_library_common_widgets.dart';
 import '../../../utils/remote_context_menu_utils.dart';
 import '../../../utils/selection_utils.dart';
 import '../../../widgets/draggable_remote_playlist_item.dart';
@@ -117,96 +117,16 @@ class RemoteLibraryPlaylistsView extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
 
-    final isJellyfin = server.type == RemoteServerType.jellyfin;
-    final brandColor = isJellyfin ? const Color(0xFF9D65C9) : Colors.orange;
-    final serverName = isJellyfin ? 'Jellyfin' : 'Navidrome';
-
     if (isLoading) {
-      final isZh = l10n.localeName.startsWith('zh');
-
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 64,
-              height: 64,
-              decoration: BoxDecoration(
-                color: brandColor.withValues(alpha: 0.12),
-                shape: BoxShape.circle,
-              ),
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  SizedBox(
-                    width: 64,
-                    height: 64,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 3,
-                      valueColor: AlwaysStoppedAnimation<Color>(brandColor),
-                    ),
-                  ),
-                  Icon(
-                    Icons.queue_music_rounded,
-                    size: 28,
-                    color: brandColor,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              isZh ? '正在加载歌单列表...' : 'Loading playlists...',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-                fontSize: 16,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    isJellyfin ? Icons.movie_filter_rounded : Icons.cloud_done_rounded,
-                    size: 13,
-                    color: brandColor,
-                  ),
-                  const SizedBox(width: 5),
-                  Text(
-                    server.name.isNotEmpty
-                        ? '${server.name} ($serverName)'
-                        : serverName,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+      return RemoteLibraryLoadingView(
+        server: server,
+        icon: Icons.queue_music_rounded,
       );
     }
     if (error != null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(l10n.errorLoadingPlaylists(error!)),
-            const SizedBox(height: 12),
-            FilledButton(
-              onPressed: onRefresh,
-              child: Text(l10n.retry),
-            ),
-          ],
-        ),
+      return RemoteLibraryErrorView(
+        error: l10n.errorLoadingPlaylists(error!),
+        onRetry: onRefresh,
       );
     }
 
@@ -340,19 +260,9 @@ class RemoteLibraryPlaylistsView extends ConsumerWidget {
         }
 
         final toolbarSliver = toolbar != null
-            ? SliverToBoxAdapter(
-                child: Align(
-                  alignment: Alignment.topCenter,
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(
-                      maxWidth: kSingleColumnContentMaxWidth,
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-                      child: toolbar!,
-                    ),
-                  ),
-                ),
+            ? SliverRemoteContentConstraint(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                child: toolbar!,
               )
             : null;
 

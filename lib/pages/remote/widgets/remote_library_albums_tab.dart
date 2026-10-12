@@ -8,6 +8,7 @@ import '../../../utils/selection_utils.dart';
 import '../../../widgets/default_cover_art.dart';
 import '../../../widgets/draggable_remote_album_item.dart';
 import '../../../widgets/remote_artwork_widget.dart';
+import 'remote_library_common_widgets.dart';
 import 'remote_library_toolbar_widgets.dart';
 
 class RemoteLibraryAlbumsToolbar extends StatelessWidget {
@@ -170,34 +171,16 @@ class RemoteLibraryAlbumsView extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
 
-    final isJellyfin = server.type == RemoteServerType.jellyfin;
-    final brandColor = isJellyfin ? const Color(0xFF9D65C9) : Colors.orange;
-
-    if (isLoading) {
-      return Center(
-        child: SizedBox(
-          width: 36,
-          height: 36,
-          child: CircularProgressIndicator(
-            strokeWidth: 3,
-            valueColor: AlwaysStoppedAnimation<Color>(brandColor),
-          ),
-        ),
+    if (isLoading && albums.isEmpty) {
+      return RemoteLibraryLoadingView(
+        server: server,
+        icon: Icons.album_rounded,
       );
     }
-    if (error != null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(l10n.errorLoadingAlbums(error!)),
-            const SizedBox(height: 12),
-            FilledButton(
-              onPressed: onRefresh,
-              child: Text(l10n.retry),
-            ),
-          ],
-        ),
+    if (error != null && albums.isEmpty) {
+      return RemoteLibraryErrorView(
+        error: l10n.errorLoadingAlbums(error!),
+        onRetry: onRefresh,
       );
     }
 
@@ -228,7 +211,7 @@ class RemoteLibraryAlbumsView extends ConsumerWidget {
                 ? Column(
                     children: [
                       if (toolbar != null)
-                        Padding(
+                        RemoteContentConstraint(
                           padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
                           child: toolbar!,
                         ),
@@ -253,12 +236,9 @@ class RemoteLibraryAlbumsView extends ConsumerWidget {
                         physics: const AlwaysScrollableScrollPhysics(),
                         slivers: [
                           if (toolbar != null)
-                            SliverToBoxAdapter(
-                              child: Padding(
-                                padding:
-                                    const EdgeInsets.fromLTRB(16, 8, 16, 12),
-                                child: toolbar!,
-                              ),
+                            SliverRemoteContentConstraint(
+                              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                              child: toolbar!,
                             ),
                           SliverPadding(
                             padding:

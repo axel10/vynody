@@ -6,10 +6,10 @@ import '../../../player/audio/audio_riverpod.dart';
 import '../../../player/remote/remote_library_navigation.dart';
 import '../../../player/remote/remote_server_models.dart';
 import '../../../player/remote/remote_server_riverpod.dart';
-import '../../../utils/layout_constants.dart';
 import '../../../utils/remote_context_menu_utils.dart';
 import '../../../utils/selection_utils.dart';
 import '../../../widgets/remote_artwork_widget.dart';
+import 'remote_library_common_widgets.dart';
 import 'remote_library_toolbar_widgets.dart';
 
 class RemoteLibrarySearchToolbar extends StatelessWidget {
@@ -121,13 +121,10 @@ class RemoteLibrarySearchView extends ConsumerWidget {
         searchedAlbums.isEmpty &&
         searchedArtists.isEmpty;
 
-    return Align(
-      alignment: Alignment.topCenter,
-      child: ConstrainedBox(
-        constraints:
-            const BoxConstraints(maxWidth: kSingleColumnContentMaxWidth),
-        child: Column(
-          children: [
+    return RemoteContentConstraint(
+      padding: EdgeInsets.zero,
+      child: Column(
+        children: [
             if (toolbar != null)
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
@@ -539,7 +536,6 @@ class RemoteLibrarySearchView extends ConsumerWidget {
 ),
           ],
         ),
-      ),
     );
   }
 }

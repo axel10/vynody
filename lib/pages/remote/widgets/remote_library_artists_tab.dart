@@ -8,6 +8,7 @@ import '../../../utils/selection_utils.dart';
 import '../../../widgets/draggable_remote_artist_item.dart';
 import '../../../widgets/remote_artwork_widget.dart';
 import '../remote_artist_detail_page.dart';
+import 'remote_library_common_widgets.dart';
 import 'remote_library_toolbar_widgets.dart';
 
 class RemoteLibraryArtistsToolbar extends StatelessWidget {
@@ -175,35 +176,16 @@ class RemoteLibraryArtistsView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
-
-    final isJellyfin = server.type == RemoteServerType.jellyfin;
-    final brandColor = isJellyfin ? const Color(0xFF9D65C9) : Colors.orange;
-
     if (isLoading) {
-      return Center(
-        child: SizedBox(
-          width: 36,
-          height: 36,
-          child: CircularProgressIndicator(
-            strokeWidth: 3,
-            valueColor: AlwaysStoppedAnimation<Color>(brandColor),
-          ),
-        ),
+      return RemoteLibraryLoadingView(
+        server: server,
+        icon: Icons.mic_rounded,
       );
     }
     if (error != null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(l10n.errorLoadingArtists(error!)),
-            const SizedBox(height: 12),
-            FilledButton(
-              onPressed: onRefresh,
-              child: Text(l10n.retry),
-            ),
-          ],
-        ),
+      return RemoteLibraryErrorView(
+        error: l10n.errorLoadingArtists(error!),
+        onRetry: onRefresh,
       );
     }
 
@@ -321,11 +303,18 @@ class RemoteLibraryArtistsView extends ConsumerWidget {
         }
 
         // Portrait: Vertical List of Artist Cards
+        final toolbarSliver = toolbar != null
+            ? SliverRemoteContentConstraint(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                child: toolbar!,
+              )
+            : null;
+
         return artists.isEmpty
             ? Column(
                 children: [
                   if (toolbar != null)
-                    Padding(
+                    RemoteContentConstraint(
                       padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
                       child: toolbar!,
                     ),
@@ -349,13 +338,7 @@ class RemoteLibraryArtistsView extends ConsumerWidget {
                   child: CustomScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
                     slivers: [
-                      if (toolbar != null)
-                        SliverToBoxAdapter(
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-                            child: toolbar!,
-                          ),
-                        ),
+                      ?toolbarSliver,
                       SliverPadding(
                         padding: EdgeInsets.fromLTRB(16, 0, 16, bottomOffset),
                         sliver: SliverList(
