@@ -584,9 +584,6 @@ class _RemoteArtistDetailContentState
       selectionPanelHeight: 220.0,
     );
     final selectedSongs = getSelectedSongs(_allSongs);
-    final headerColor = theme.colorScheme.tertiaryContainer.withValues(
-      alpha: 0.65,
-    );
 
     if (_isLoading) {
       return const Center(
@@ -656,35 +653,14 @@ class _RemoteArtistDetailContentState
               slivers: [
                 // Artist Header (Styled similarly to local ArtistDetailContent)
                 SliverToBoxAdapter(
-                  child: OverscrollStretchBuilder(
-                    builder: (context, overscroll) => Stack(
-                      children: [
-                        Positioned(
-                          top: -overscroll,
-                          left: 0,
-                          right: 0,
-                          bottom: 0,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [
-                                  headerColor,
-                                  theme.colorScheme.surface,
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                        Container(
-                          padding: EdgeInsets.fromLTRB(
-                            20,
-                            widget.topPadding > 0 ? widget.topPadding : 20,
-                            20,
-                            18,
-                          ),
-                          child: isPortrait
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      isPortrait ? 20 : 28,
+                      widget.topPadding > 0 ? widget.topPadding + 12 : 24,
+                      isPortrait ? 20 : 28,
+                      20,
+                    ),
+                    child: isPortrait
                               ? Column(
                                   crossAxisAlignment: CrossAxisAlignment.center,
                                   children: [
@@ -788,70 +764,64 @@ class _RemoteArtistDetailContentState
                                     ],
                                     const SizedBox(height: 18),
 
-                                    // Row 3: 按钮占一行（通栏并排两个胶囊按钮 + 下载/收藏快捷按钮）
+                                    // Row 3: 按钮占一行（通栏并排两个胶囊按钮 + 下载/收藏圆形快捷按钮）
                                     Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
                                       children: [
-                                        Expanded(
-                                          child: FilledButton.tonalIcon(
-                                            onPressed: _allSongs.isNotEmpty
-                                                ? () => _playAll(shuffle: false)
-                                                : null,
-                                            icon: const Icon(Icons.play_arrow,
-                                                size: 20),
-                                            label: Text(
-                                              l10n.playAll,
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.w700,
-                                                fontSize: 15,
+                                        ConstrainedBox(
+                                          constraints: const BoxConstraints(
+                                            minWidth: 124,
+                                            maxWidth: 160,
+                                          ),
+                                          child: SizedBox(
+                                            height: 44,
+                                            child: FilledButton.icon(
+                                              onPressed: _allSongs.isNotEmpty
+                                                  ? () => _playAll(shuffle: false)
+                                                  : null,
+                                              icon: const Icon(Icons.play_arrow_rounded,
+                                                  size: 20),
+                                              label: Text(
+                                                l10n.playAll,
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.w700,
+                                                  fontSize: 15,
+                                                ),
                                               ),
-                                            ),
-                                            style: FilledButton.styleFrom(
-                                              foregroundColor:
-                                                  theme.colorScheme.primary,
-                                              backgroundColor: theme.colorScheme
-                                                  .surfaceContainerHighest,
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(12),
+                                              style: FilledButton.styleFrom(
+                                                shape: const StadiumBorder(),
+                                                padding: const EdgeInsets.symmetric(
+                                                    horizontal: 18),
+                                                fixedSize:
+                                                    const Size.fromHeight(44),
+                                                minimumSize:
+                                                    const Size.fromHeight(44),
+                                                elevation: 0,
                                               ),
-                                              minimumSize:
-                                                  const Size.fromHeight(44),
-                                              elevation: 0,
                                             ),
                                           ),
                                         ),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: FilledButton.tonalIcon(
-                                            onPressed: _allSongs.isNotEmpty
-                                                ? () => _playAll(shuffle: true)
-                                                : null,
-                                            icon: const Icon(Icons.shuffle,
-                                                size: 18),
-                                            label: Text(
-                                              l10n.shufflePlay,
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.w700,
-                                                fontSize: 15,
-                                              ),
-                                            ),
-                                            style: FilledButton.styleFrom(
-                                              foregroundColor:
-                                                  theme.colorScheme.primary,
-                                              backgroundColor: theme.colorScheme
-                                                  .surfaceContainerHighest,
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(12),
-                                              ),
-                                              minimumSize:
-                                                  const Size.fromHeight(44),
-                                              elevation: 0,
-                                            ),
+                                        const SizedBox(width: 10),
+                                        IconButton.filledTonal(
+                                          onPressed: _allSongs.isNotEmpty
+                                              ? () => _playAll(shuffle: true)
+                                              : null,
+                                          tooltip: l10n.shufflePlay,
+                                          style: IconButton.styleFrom(
+                                            foregroundColor:
+                                                theme.colorScheme.onSecondaryContainer,
+                                            backgroundColor: theme.colorScheme
+                                                .surfaceContainerHighest,
+                                            fixedSize: const Size(44, 44),
+                                            padding: EdgeInsets.zero,
+                                            shape: const CircleBorder(),
                                           ),
+                                          icon: const Icon(Icons.shuffle_rounded,
+                                              size: 20),
                                         ),
                                         if (_allSongs.isNotEmpty) ...[
-                                          const SizedBox(width: 8),
+                                          const SizedBox(width: 10),
                                           IconButton.filledTonal(
                                             onPressed: () async {
                                               final notifier = ref.read(
@@ -899,18 +869,16 @@ class _RemoteArtistDetailContentState
                                                   theme.colorScheme.primary,
                                               backgroundColor: theme.colorScheme
                                                   .surfaceContainerHighest,
-                                              minimumSize: const Size(44, 44),
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(12),
-                                              ),
+                                              fixedSize: const Size(44, 44),
+                                              padding: EdgeInsets.zero,
+                                              shape: const CircleBorder(),
                                             ),
                                             icon: const Icon(
                                                 Icons.download_rounded,
                                                 size: 20),
                                           ),
                                         ],
-                                        const SizedBox(width: 8),
+                                        const SizedBox(width: 10),
                                         IconButton.filledTonal(
                                           onPressed: () async {
                                             final effectiveId =
@@ -981,11 +949,9 @@ class _RemoteArtistDetailContentState
                                                     .onSurfaceVariant,
                                             backgroundColor: theme.colorScheme
                                                 .surfaceContainerHighest,
-                                            minimumSize: const Size(44, 44),
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(12),
-                                            ),
+                                            fixedSize: const Size(44, 44),
+                                            padding: EdgeInsets.zero,
+                                            shape: const CircleBorder(),
                                           ),
                                           icon: Icon(
                                             _isStarred
@@ -1202,11 +1168,8 @@ class _RemoteArtistDetailContentState
                                     ),
                                   ],
                                 ),
-                        ),
-                ],
-              ),
-            ),
-          ),
+                  ),
+                ),
 
                 if (_albumSections.isEmpty)
                   SliverFillRemaining(
@@ -1223,7 +1186,7 @@ class _RemoteArtistDetailContentState
                 else ...[
                   const SliverToBoxAdapter(child: SizedBox(height: 12)),
                   for (int i = 0; i < _albumSections.length; i++) ...[
-                    if (i > 0) const SliverToBoxAdapter(child: SizedBox(height: 16)),
+                    if (i > 0) const SliverToBoxAdapter(child: SizedBox(height: 28)),
                     _buildAlbumSection(theme, _albumSections[i], currentMusic),
                   ],
                 ],
@@ -1312,20 +1275,16 @@ class _RemoteArtistDetailContentState
   ) {
     final l10n = AppLocalizations.of(context)!;
     final albumTitle = section.name.isNotEmpty ? section.name : l10n.unknownAlbum;
+    final isPortrait =
+        MediaQuery.orientationOf(context) == Orientation.portrait;
     return SliverToBoxAdapter(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-        child: Container(
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surfaceContainerLowest,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.45),
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
+        padding: EdgeInsets.symmetric(
+          horizontal: isPortrait ? 20.0 : 28.0,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
               // Section Header
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
@@ -1382,10 +1341,7 @@ class _RemoteArtistDetailContentState
                   );
                 },
                 child: InkWell(
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(16),
-                    topRight: Radius.circular(16),
-                  ),
+                  borderRadius: BorderRadius.circular(10),
                   onTap: () {
                     RemoteLibraryNavUtils.openAlbum(
                       context,
@@ -1399,7 +1355,10 @@ class _RemoteArtistDetailContentState
                     );
                   },
                   child: Padding(
-                    padding: const EdgeInsets.all(12.0),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 4.0,
+                      vertical: 6.0,
+                    ),
                     child: Row(
                       children: [
                         RemoteArtworkWidget(
@@ -1481,7 +1440,7 @@ class _RemoteArtistDetailContentState
                 ),
               ),
 
-              if (section.songs.isNotEmpty) const Divider(height: 1),
+              const SizedBox(height: 6),
 
               // Track items
               for (int j = 0; j < section.songs.length; j++) ...[
@@ -1493,15 +1452,14 @@ class _RemoteArtistDetailContentState
                   j,
                   currentMusic,
                   albumSection: section,
-                  isLast: j == section.songs.length - 1,
+                  showTopDivider: j > 0,
                 ),
               ],
             ],
           ),
         ),
-      ),
-    );
-  }
+      );
+    }
 
   Widget _buildSongItem(
     ThemeData theme,
@@ -1511,7 +1469,7 @@ class _RemoteArtistDetailContentState
     int initialIndex,
     MusicFile? currentMusic, {
     _RemoteAlbumSectionData? albumSection,
-    bool isLast = false,
+    bool showTopDivider = false,
   }) {
     final isPlaying = currentMusic?.path == song.path;
     final isAudioPlaying = ref.watch(audioIsPlayingProvider);
@@ -1520,12 +1478,7 @@ class _RemoteArtistDetailContentState
     final durationLabel = song.durationMillis != null && song.durationMillis! > 0
         ? _formatDuration(song.durationMillis!)
         : null;
-    final borderRadius = isLast
-        ? const BorderRadius.only(
-            bottomLeft: Radius.circular(16),
-            bottomRight: Radius.circular(16),
-          )
-        : null;
+    final isTileSelected = isSelectionMode ? isSelected : isPlaying;
 
     void openContextMenu(Offset position) {
       showRemoteSongContextMenu(
@@ -1553,120 +1506,133 @@ class _RemoteArtistDetailContentState
       );
     }
 
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onSecondaryTapDown: (details) {
-        if (!isSelectionMode) {
-          openContextMenu(details.globalPosition);
-        }
-      },
-      onLongPressStart: (details) {
-        lastAnchorIndex = initialIndex;
-        if (!isSelectionMode) {
-          enterSongSelectionMode(song.path);
-        } else {
-          toggleSongSelection(song.path);
-        }
-      },
-      child: Material(
-        color: isSelectionMode && isSelected
-            ? theme.colorScheme.primaryContainer.withValues(alpha: 0.35)
-            : (isPlaying
-                ? theme.colorScheme.primaryContainer.withValues(alpha: 0.35)
-                : Colors.transparent),
-        borderRadius: borderRadius,
-        child: InkWell(
-          borderRadius: borderRadius,
-          onTap: () {
-            handleSongTap(
-              index: initialIndex,
-              songPath: song.path,
-              allSongs: playlist,
-              onNormalTap: () async {
-                final audio = ref.read(audioServiceProvider);
-                await audio.playPlaylist(
-                  playlist,
-                  initialIndex: initialIndex,
-                  source: PlaybackSource(
-                    type: PlaybackSourceType.artist,
-                    id: 'remote-${widget.server.id}-${widget.artistId}',
-                    name: widget.artistName,
-                  ),
-                );
-              },
-            );
-          },
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 32,
-                  child: Center(
-                    child: isSelectionMode
-                        ? Checkbox(
-                            value: isSelected,
-                            onChanged: (_) =>
-                                toggleSongSelection(song.path),
-                          )
-                        : (isPlaying
-                            ? PlayingEqualizerIcon(
-                                color: theme.colorScheme.primary,
-                                size: 16,
-                                isPlaying: isAudioPlaying,
-                              )
-                            : Text(
-                                trackLabel,
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  color: theme.colorScheme.onSurfaceVariant,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              )),
+    return RepaintBoundary(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (showTopDivider && !isTileSelected)
+            Divider(
+              height: 1,
+              thickness: 0.5,
+              indent: 48,
+              endIndent: 8,
+              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2),
+            ),
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onSecondaryTapDown: (details) {
+              if (!isSelectionMode) {
+                openContextMenu(details.globalPosition);
+              }
+            },
+            onLongPressStart: (details) {
+              lastAnchorIndex = initialIndex;
+              if (!isSelectionMode) {
+                enterSongSelectionMode(song.path);
+              } else {
+                toggleSongSelection(song.path);
+              }
+            },
+            child: Material(
+              color: isTileSelected
+                  ? theme.colorScheme.primaryContainer.withValues(alpha: 0.35)
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(8),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(8),
+                onTap: () {
+                  handleSongTap(
+                    index: initialIndex,
+                    songPath: song.path,
+                    allSongs: playlist,
+                    onNormalTap: () async {
+                      final audio = ref.read(audioServiceProvider);
+                      await audio.playPlaylist(
+                        playlist,
+                        initialIndex: initialIndex,
+                        source: PlaybackSource(
+                          type: PlaybackSourceType.artist,
+                          id: 'remote-${widget.server.id}-${widget.artistId}',
+                          name: widget.artistName,
+                        ),
+                      );
+                    },
+                  );
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 32,
+                        child: Center(
+                          child: isSelectionMode
+                              ? Checkbox(
+                                  value: isSelected,
+                                  onChanged: (_) =>
+                                      toggleSongSelection(song.path),
+                                )
+                              : (isPlaying
+                                  ? PlayingEqualizerIcon(
+                                      color: theme.colorScheme.primary,
+                                      size: 16,
+                                      isPlaying: isAudioPlaying,
+                                    )
+                                  : Text(
+                                      trackLabel,
+                                      style: theme.textTheme.bodyMedium?.copyWith(
+                                        color: theme.colorScheme.onSurfaceVariant,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    )),
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Text(
+                          song.displayName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodyLarge?.copyWith(
+                            color: isPlaying ? theme.colorScheme.primary : null,
+                            fontWeight: isPlaying ? FontWeight.w700 : null,
+                          ),
+                        ),
+                      ),
+                      if (durationLabel != null) ...[
+                        const SizedBox(width: 12),
+                        Text(
+                          durationLabel,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                      if (!isSelectionMode) ...[
+                        const SizedBox(width: 4),
+                        Builder(
+                          builder: (btnContext) => IconButton(
+                            icon: const Icon(Icons.more_vert_rounded, size: 18),
+                            visualDensity: VisualDensity.compact,
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                            onPressed: () {
+                              final renderBox = btnContext.findRenderObject() as RenderBox?;
+                              final offset = renderBox != null
+                                  ? renderBox.localToGlobal(Offset.zero)
+                                  : Offset.zero;
+                              openContextMenu(offset);
+                            },
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Text(
-                    song.displayName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      color: isPlaying ? theme.colorScheme.primary : null,
-                      fontWeight: isPlaying ? FontWeight.w700 : null,
-                    ),
-                  ),
-                ),
-                if (durationLabel != null) ...[
-                  const SizedBox(width: 12),
-                  Text(
-                    durationLabel,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-                if (!isSelectionMode) ...[
-                  const SizedBox(width: 4),
-                  Builder(
-                    builder: (btnContext) => IconButton(
-                      icon: const Icon(Icons.more_vert_rounded, size: 18),
-                      visualDensity: VisualDensity.compact,
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-                      onPressed: () {
-                        final renderBox = btnContext.findRenderObject() as RenderBox?;
-                        final offset = renderBox != null
-                            ? renderBox.localToGlobal(Offset.zero)
-                            : Offset.zero;
-                        openContextMenu(offset);
-                      },
-                    ),
-                  ),
-                ],
-              ],
+              ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }

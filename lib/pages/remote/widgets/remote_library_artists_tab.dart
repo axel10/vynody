@@ -263,7 +263,7 @@ class RemoteLibraryArtistsView extends ConsumerWidget {
                             (context, index) {
                               final artist = artists[index];
                               return Padding(
-                                padding: const EdgeInsets.only(bottom: 8.0),
+                                padding: const EdgeInsets.only(bottom: 2.0),
                                 child: RemoteLibraryArtistItem(
                                   server: server,
                                   password: password,
@@ -355,11 +355,11 @@ class RemoteLibraryArtistItem extends ConsumerWidget {
     final coverArtId = artist['coverArt'] as String?;
     final artistId = artist['id'] as String? ?? '';
 
-    final backgroundColor = isSelectionMode && isMultiSelected
-        ? theme.colorScheme.primaryContainer.withValues(alpha: 0.5)
-        : (isSelected
-            ? theme.colorScheme.primaryContainer.withValues(alpha: 0.5)
-            : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35));
+    final isItemHighlighted =
+        (isSelectionMode && isMultiSelected) || isSelected;
+    final backgroundColor = isItemHighlighted
+        ? theme.colorScheme.secondaryContainer.withValues(alpha: 0.7)
+        : Colors.transparent;
 
     final itemWidget = GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -383,9 +383,11 @@ class RemoteLibraryArtistItem extends ConsumerWidget {
         onToggleSelection(artistId);
       },
       child: Material(
-        color: Colors.transparent,
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(8),
         child: InkWell(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(8),
+          enableFeedback: false,
           onTap: () {
             SelectionActionHelper.handleItemTap(
               index: index,
@@ -401,32 +403,22 @@ class RemoteLibraryArtistItem extends ConsumerWidget {
               onNormalTap: onTap,
             );
           },
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: backgroundColor,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: (isSelectionMode && isMultiSelected) || isSelected
-                    ? theme.colorScheme.primary.withValues(alpha: 0.5)
-                    : theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
-                width: (isSelectionMode && isMultiSelected) || isSelected
-                    ? 1.5
-                    : 0.8,
-              ),
-            ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
             child: Row(
               children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
+                ClipOval(
                   child: RemoteArtworkWidget(
                     server: server,
                     password: password,
                     coverArtId: coverArtId,
-                    size: 40,
+                    size: 38,
+                    width: 38,
+                    height: 38,
+                    isArtist: true,
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -648,7 +640,7 @@ class _LandscapeArtistsSplitViewState
                               final isSelected =
                                   artist['id'] == selectedArtist['id'];
                               return Padding(
-                                padding: const EdgeInsets.only(bottom: 6.0),
+                                padding: const EdgeInsets.only(bottom: 2.0),
                                 child: RemoteLibraryArtistItem(
                                   server: widget.server,
                                   password: widget.password,

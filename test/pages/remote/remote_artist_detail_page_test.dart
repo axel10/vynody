@@ -103,11 +103,12 @@ void main() {
 
   Widget createWidget({Size size = const Size(400, 800)}) {
     return ProviderScope(
-      overrides: [
-        settingsServiceProvider.overrideWith((ref) => settingsService),
-        audioServiceProvider.overrideWith((ref) => audioService),
-        audioCurrentMusicProvider.overrideWith((ref) => null),
-      ],
+        overrides: [
+          settingsServiceProvider.overrideWith((ref) => settingsService),
+          audioServiceStateProvider.overrideWith(() => audioService),
+          audioServiceProvider.overrideWith((ref) => audioService),
+          audioCurrentMusicProvider.overrideWith((ref) => null),
+        ],
       child: OKToast(
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -153,6 +154,7 @@ void main() {
       ProviderScope(
         overrides: [
           settingsServiceProvider.overrideWith((ref) => settingsService),
+          audioServiceStateProvider.overrideWith(() => audioService),
           audioServiceProvider.overrideWith((ref) => audioService),
           audioCurrentMusicProvider.overrideWith((ref) => null),
         ],

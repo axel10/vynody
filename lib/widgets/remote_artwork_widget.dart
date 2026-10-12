@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import '../player/remote/remote_server_models.dart';
 import '../player/remote/clients/subsonic_client.dart';
 import '../player/remote/clients/jellyfin_client.dart';
+import 'artist_avatar.dart';
 
 class RemoteArtworkWidget extends StatefulWidget {
   /// In-memory cache for resolved cover art URLs
@@ -287,6 +288,30 @@ class _RemoteArtworkWidgetState extends State<RemoteArtworkWidget> {
     BorderRadius radius,
   ) {
     final theme = Theme.of(context);
+    if (widget.isArtist && widget.fallbackIcon == null) {
+      final isDark = theme.brightness == Brightness.dark;
+      final effectiveBgColor = isDark
+          ? theme.colorScheme.surfaceContainerHighest
+          : const Color(0xFF8E959E);
+      final effectiveIconColor =
+          isDark ? theme.colorScheme.onSurfaceVariant : Colors.white;
+
+      return Container(
+        width: w,
+        height: h,
+        decoration: BoxDecoration(
+          color: effectiveBgColor,
+          borderRadius: radius,
+        ),
+        child: Center(
+          child: ArtistMicIcon(
+            size: (widget.size * 0.54).clamp(16.0, 48.0),
+            color: effectiveIconColor,
+          ),
+        ),
+      );
+    }
+
     final icon = widget.fallbackIcon ??
         (widget.isArtist ? Icons.mic_rounded : Icons.music_note_rounded);
     final bgColor = widget.isArtist
