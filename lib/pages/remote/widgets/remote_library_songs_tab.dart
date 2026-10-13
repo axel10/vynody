@@ -484,11 +484,10 @@ class _RemoteLibrarySongsViewState
       },
       child: RefreshIndicator(
         onRefresh: widget.onRefresh,
-        child: Scrollbar(
-          child: CustomScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            slivers: [
-              headerSliver,
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            headerSliver,
 
               // Songs fixed-extent list for O(1) jump and smooth scrollbar dragging
               SliverFixedExtentList.builder(
@@ -871,9 +870,8 @@ class _RemoteLibrarySongsViewState
             ],
           ),
         ),
-      ),
-    );
-  }
+      );
+    }
 }
 
 typedef NavidromeSongsToolbar = RemoteLibrarySongsToolbar;

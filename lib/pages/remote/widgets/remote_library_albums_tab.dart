@@ -267,9 +267,8 @@ class RemoteLibraryAlbumsView extends ConsumerWidget {
                   )
                 : RefreshIndicator(
                     onRefresh: onRefresh,
-                    child: Scrollbar(
-                      child: CustomScrollView(
-                        physics: const AlwaysScrollableScrollPhysics(),
+                    child: CustomScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
                         slivers: [
                           if (toolbar != null)
                             SliverRemoteContentConstraint(
@@ -333,14 +332,13 @@ class RemoteLibraryAlbumsView extends ConsumerWidget {
               ),
             ),
           ),
-        ),
-      );
+        );
       },
     );
   }
 }
 
-class RemoteLibraryAlbumCard extends ConsumerWidget {
+class RemoteLibraryAlbumCard extends ConsumerStatefulWidget {
   final RemoteServer server;
   final String password;
   final Map<String, dynamic> album;
@@ -387,7 +385,37 @@ class RemoteLibraryAlbumCard extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<RemoteLibraryAlbumCard> createState() =>
+      _RemoteLibraryAlbumCardState();
+}
+
+class _RemoteLibraryAlbumCardState
+    extends ConsumerState<RemoteLibraryAlbumCard> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final server = widget.server;
+    final password = widget.password;
+    final album = widget.album;
+    final albumId = widget.albumId;
+    final title = widget.title;
+    final artist = widget.artist;
+    final coverId = widget.coverId;
+    final songCount = widget.songCount;
+    final year = widget.year;
+    final index = widget.index;
+    final isSelected = widget.isSelected;
+    final isSelectionMode = widget.isSelectionMode;
+    final filteredAlbums = widget.filteredAlbums;
+    final selectedAlbumIds = widget.selectedAlbumIds;
+    final lastAlbumAnchorIndex = widget.lastAlbumAnchorIndex;
+    final isPortrait = widget.isPortrait;
+    final onSetSelection = widget.onSetSelection;
+    final onToggleSelection = widget.onToggleSelection;
+    final onUpdateAnchor = widget.onUpdateAnchor;
+    final onPlayAlbumDirectly = widget.onPlayAlbumDirectly;
+
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
 
@@ -541,8 +569,8 @@ class RemoteLibraryAlbumCard extends ConsumerWidget {
                             Expanded(
                               child: Text(
                                 songCount != null
-                                    ? l10n.trackCountShort(songCount!)
-                                    : (year != null && year! > 0
+                                    ? l10n.trackCountShort(songCount)
+                                    : (year != null && year > 0
                                         ? '$year'
                                         : ''),
                                 style: theme.textTheme.bodySmall?.copyWith(
@@ -554,22 +582,29 @@ class RemoteLibraryAlbumCard extends ConsumerWidget {
                               ),
                             ),
                             if (!isSelectionMode)
-                              IconButton(
-                                visualDensity: VisualDensity.compact,
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(),
-                                style: const ButtonStyle(
-                                  tapTargetSize:
-                                      MaterialTapTargetSize.shrinkWrap,
-                                ),
-                                tooltip: l10n.playAlbum,
-                                onPressed: onPlayAlbumDirectly,
-                                icon: Icon(
-                                  Icons.play_circle_filled_rounded,
-                                  size: isPortrait ? 22 : 26,
-                                  color: isDesktopPlatform
-                                      ? theme.colorScheme.primary
-                                      : theme.colorScheme.onSurfaceVariant,
+                              IgnorePointer(
+                                ignoring: !_isHovered,
+                                child: AnimatedOpacity(
+                                  opacity: _isHovered ? 1.0 : 0.0,
+                                  duration: const Duration(milliseconds: 150),
+                                  child: IconButton(
+                                    visualDensity: VisualDensity.compact,
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                    style: const ButtonStyle(
+                                      tapTargetSize:
+                                          MaterialTapTargetSize.shrinkWrap,
+                                    ),
+                                    tooltip: l10n.playAlbum,
+                                    onPressed: onPlayAlbumDirectly,
+                                    icon: Icon(
+                                      Icons.play_circle_filled_rounded,
+                                      size: isPortrait ? 22 : 26,
+                                      color: isDesktopPlatform
+                                          ? theme.colorScheme.primary
+                                          : theme.colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
                                 ),
                               ),
                           ],
@@ -585,6 +620,12 @@ class RemoteLibraryAlbumCard extends ConsumerWidget {
       ),
     );
 
+    final cardContent = MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: itemWidget,
+    );
+
     return DraggableRemoteAlbumItem(
       server: server,
       album: album,
@@ -597,7 +638,7 @@ class RemoteLibraryAlbumCard extends ConsumerWidget {
       isSelected: isSelected,
       selectedAlbumIds: selectedAlbumIds,
       allAlbums: filteredAlbums,
-      child: itemWidget,
+      child: cardContent,
     );
   }
 }

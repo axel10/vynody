@@ -214,9 +214,8 @@ class RemoteLibraryPlaylistsView extends ConsumerWidget {
         // Portrait: Vertical List of Playlist Cards
         return RefreshIndicator(
           onRefresh: onRefresh,
-          child: Scrollbar(
-            child: CustomScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
               slivers: [
                 ?toolbarSliver,
                 if (playlists.isEmpty)
@@ -284,8 +283,7 @@ class RemoteLibraryPlaylistsView extends ConsumerWidget {
                   ),
               ],
             ),
-          ),
-        );
+          );
       },
     );
   }

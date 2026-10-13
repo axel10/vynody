@@ -290,9 +290,8 @@ class RemoteLibraryArtistsView extends ConsumerWidget {
               )
             : RefreshIndicator(
                 onRefresh: onRefresh,
-                child: Scrollbar(
-                  child: CustomScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(),
+                child: CustomScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
                     slivers: [
                       ?toolbarSliver,
                       SliverPadding(
@@ -342,8 +341,7 @@ class RemoteLibraryArtistsView extends ConsumerWidget {
                       ),
                     ],
                   ),
-                ),
-              );
+                );
       },
     );
   }

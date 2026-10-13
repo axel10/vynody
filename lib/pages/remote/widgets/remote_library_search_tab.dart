@@ -143,10 +143,9 @@ class RemoteLibrarySearchView extends ConsumerWidget {
                                   color: theme.colorScheme.onSurfaceVariant),
                             ),
                     )
-                  : Scrollbar(
-                      child: ListView(
-                        padding: EdgeInsets.fromLTRB(16, 4, 16, bottomOffset),
-                        children: [
+                  : ListView(
+                      padding: EdgeInsets.fromLTRB(16, 4, 16, bottomOffset),
+                      children: [
         if (searchedArtists.isNotEmpty) ...[
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -533,7 +532,6 @@ class RemoteLibrarySearchView extends ConsumerWidget {
       ],
     ),
   ),
-),
           ],
         ),
     );

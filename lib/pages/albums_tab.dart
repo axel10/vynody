@@ -676,7 +676,7 @@ double calculateAlbumCardTextHeight(
   return math.max(calculated, minHeight);
 }
 
-class _AlbumCard extends ConsumerWidget {
+class _AlbumCard extends ConsumerStatefulWidget {
   const _AlbumCard({
     required this.album,
     this.isSelectionMode = false,
@@ -696,7 +696,22 @@ class _AlbumCard extends ConsumerWidget {
   final void Function(String albumId)? onMultiSelect;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_AlbumCard> createState() => _AlbumCardState();
+}
+
+class _AlbumCardState extends ConsumerState<_AlbumCard> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final album = widget.album;
+    final isSelectionMode = widget.isSelectionMode;
+    final isSelected = widget.isSelected;
+    final isHeroEnabled = widget.isHeroEnabled;
+    final onTap = widget.onTap;
+    final onLongPress = widget.onLongPress;
+    final onMultiSelect = widget.onMultiSelect;
+
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final audio = ref.read(audioServiceProvider);
@@ -756,163 +771,174 @@ class _AlbumCard extends ConsumerWidget {
       ),
     );
 
-    final content = Material(
-      color: Colors.transparent,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onSecondaryTapDown: (details) {
-          if (!isSelectionMode) {
-            showAlbumContextMenu(
-              context: context,
-              globalPosition: details.globalPosition,
-              ref: ref,
-              album: album,
-              onMultiSelect: onMultiSelect,
-            );
-          }
-        },
-        onLongPress: () {
-          if (onLongPress != null) {
-            onLongPress!();
-          } else if (!isSelectionMode) {
-            showAlbumBottomSheet(
-              context: context,
-              ref: ref,
-              album: album,
-              onMultiSelect: onMultiSelect,
-            );
-          }
-        },
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          enableFeedback: false,
-          onTap: onTap ?? () => _openAlbumDetail(context),
-          child: Ink(
-            decoration: isDesktopPlatform
-                ? BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        theme.colorScheme.primaryContainer.withValues(alpha: 0.65),
-                        theme.colorScheme.surfaceContainerHighest.withValues(
-                          alpha: 0.55,
-                        ),
-                      ],
-                    ),
-                    border: Border.all(
-                      color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
-                    ),
-                  )
-                : BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    color: (theme.brightness == Brightness.dark)
-                        ? Colors.white.withValues(alpha: 0.06)
-                        : Colors.black.withValues(alpha: 0.04),
-                    border: Border.all(
-                      color: (theme.brightness == Brightness.dark)
-                          ? Colors.white.withValues(alpha: 0.08)
-                          : Colors.black.withValues(alpha: 0.06),
-                    ),
-                  ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                isHeroEnabled
-                    ? Hero(
-                        tag: 'album-cover-${album.id}',
-                        child: coverContent,
-                      )
-                    : coverContent,
-                Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.fromLTRB(
-                      isPortrait ? 10 : 12,
-                      isPortrait ? 8 : 10,
-                      isPortrait ? 10 : 12,
-                      isPortrait ? 10 : 12,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Flexible(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                album.title,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: (isPortrait
-                                        ? theme.textTheme.titleSmall
-                                        : theme.textTheme.titleMedium)
-                                    ?.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                album.artist,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: (isPortrait
-                                        ? theme.textTheme.bodySmall
-                                        : theme.textTheme.bodyMedium)
-                                    ?.copyWith(
-                                  color: theme.colorScheme.onSurfaceVariant,
-                                ),
-                              ),
-                            ],
+    final content = MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: Material(
+        color: Colors.transparent,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onSecondaryTapDown: (details) {
+            if (!isSelectionMode) {
+              showAlbumContextMenu(
+                context: context,
+                globalPosition: details.globalPosition,
+                ref: ref,
+                album: album,
+                onMultiSelect: onMultiSelect,
+              );
+            }
+          },
+          onLongPress: () {
+            if (onLongPress != null) {
+              onLongPress();
+            } else if (!isSelectionMode) {
+              showAlbumBottomSheet(
+                context: context,
+                ref: ref,
+                album: album,
+                onMultiSelect: onMultiSelect,
+              );
+            }
+          },
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            enableFeedback: false,
+            onTap: onTap ?? () => _openAlbumDetail(context),
+            child: Ink(
+              decoration: isDesktopPlatform
+                  ? BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          theme.colorScheme.primaryContainer.withValues(alpha: 0.65),
+                          theme.colorScheme.surfaceContainerHighest.withValues(
+                            alpha: 0.55,
                           ),
-                        ),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Expanded(
-                              child: Text(
-                                l10n.songCount(album.trackCount),
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: theme.colorScheme.onSurfaceVariant,
-                                  fontSize: isPortrait ? 10 : 11,
-                                ),
-                              ),
-                            ),
-                            if (!isSelectionMode)
-                              IconButton(
-                                visualDensity: VisualDensity.compact,
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(),
-                                style: const ButtonStyle(
-                                  tapTargetSize:
-                                      MaterialTapTargetSize.shrinkWrap,
-                                ),
-                                tooltip: l10n.playAll,
-                                onPressed: () => audio.playPlaylist(
-                                  album.songs,
-                                  source: PlaybackSource(
-                                    type: PlaybackSourceType.album,
-                                    id: album.id,
-                                    name: album.title,
+                        ],
+                      ),
+                      border: Border.all(
+                        color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
+                      ),
+                    )
+                  : BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      color: (theme.brightness == Brightness.dark)
+                          ? Colors.white.withValues(alpha: 0.06)
+                          : Colors.black.withValues(alpha: 0.04),
+                      border: Border.all(
+                        color: (theme.brightness == Brightness.dark)
+                            ? Colors.white.withValues(alpha: 0.08)
+                            : Colors.black.withValues(alpha: 0.06),
+                      ),
+                    ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  isHeroEnabled
+                      ? Hero(
+                          tag: 'album-cover-${album.id}',
+                          child: coverContent,
+                        )
+                      : coverContent,
+                  Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.fromLTRB(
+                        isPortrait ? 10 : 12,
+                        isPortrait ? 8 : 10,
+                        isPortrait ? 10 : 12,
+                        isPortrait ? 10 : 12,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Flexible(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  album.title,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: (isPortrait
+                                          ? theme.textTheme.titleSmall
+                                          : theme.textTheme.titleMedium)
+                                      ?.copyWith(
+                                    fontWeight: FontWeight.w700,
                                   ),
                                 ),
-                                icon: Icon(
-                                  Icons.play_circle_filled_rounded,
-                                  size: isPortrait ? 22 : 26,
-                                  color: isDesktopPlatform
-                                      ? theme.colorScheme.primary
-                                      : theme.colorScheme.onSurfaceVariant,
+                                const SizedBox(height: 2),
+                                Text(
+                                  album.artist,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: (isPortrait
+                                          ? theme.textTheme.bodySmall
+                                          : theme.textTheme.bodyMedium)
+                                      ?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  l10n.songCount(album.trackCount),
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                    fontSize: isPortrait ? 10 : 11,
+                                  ),
                                 ),
                               ),
-                          ],
-                        ),
-                      ],
+                              if (!isSelectionMode)
+                                IgnorePointer(
+                                  ignoring: !_isHovered,
+                                  child: AnimatedOpacity(
+                                    opacity: _isHovered ? 1.0 : 0.0,
+                                    duration: const Duration(milliseconds: 150),
+                                    child: IconButton(
+                                      visualDensity: VisualDensity.compact,
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(),
+                                      style: const ButtonStyle(
+                                        tapTargetSize:
+                                            MaterialTapTargetSize.shrinkWrap,
+                                      ),
+                                      tooltip: l10n.playAll,
+                                      onPressed: () => audio.playPlaylist(
+                                        album.songs,
+                                        source: PlaybackSource(
+                                          type: PlaybackSourceType.album,
+                                          id: album.id,
+                                          name: album.title,
+                                        ),
+                                      ),
+                                      icon: Icon(
+                                        Icons.play_circle_filled_rounded,
+                                        size: isPortrait ? 22 : 26,
+                                        color: isDesktopPlatform
+                                            ? theme.colorScheme.primary
+                                            : theme.colorScheme.onSurfaceVariant,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -928,7 +954,7 @@ class _AlbumCard extends ConsumerWidget {
 
   void _openAlbumDetail(BuildContext context) {
     Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => AlbumDetailPage(album: album)),
+      MaterialPageRoute<void>(builder: (_) => AlbumDetailPage(album: widget.album)),
     );
   }
 }
