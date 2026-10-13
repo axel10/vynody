@@ -9730,6 +9730,12 @@ abstract class AppLocalizations {
   /// **'近 7 天循环最多的单曲'**
   String get thisWeekTopSubtitle;
 
+  /// Subtitle for top albums this week
+  ///
+  /// In zh, this message translates to:
+  /// **'近 7 天循环最多的专辑'**
+  String get thisWeekTopAlbumsSubtitle;
+
   /// Rediscover past favorite albums
   ///
   /// In zh, this message translates to:
@@ -9741,6 +9747,18 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'重温好久没听的常听或高分专辑'**
   String get timeMachineSubtitle;
+
+  /// Subtitle for rediscover past favorite songs
+  ///
+  /// In zh, this message translates to:
+  /// **'重温好久没听的常听或高分歌曲'**
+  String get timeMachineSongsSubtitle;
+
+  /// Empty state text for time machine songs
+  ///
+  /// In zh, this message translates to:
+  /// **'暂无需要重温的歌曲'**
+  String get emptyTimeMachineSongs;
 
   /// Top rated songs
   ///

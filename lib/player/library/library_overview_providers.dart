@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 
+import 'package:vynody/models/album_summary.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/library/album_library.dart';
@@ -571,4 +572,134 @@ final timeMachineSongsProvider = StreamProvider<List<LibraryInsightSongEntry>>((
 
     yield list.take(12).toList();
   }
+});
+
+/// TimeMachineAlbumEntry 转换为 AlbumSummary 便于使用专辑卡片渲染
+extension TimeMachineAlbumEntryX on TimeMachineAlbumEntry {
+  AlbumSummary toAlbumSummary() {
+    final rep = songs.firstWhere(
+      (s) =>
+          (s.artworkPath != null && s.artworkPath!.isNotEmpty) ||
+          (s.thumbnailPath != null && s.thumbnailPath!.isNotEmpty),
+      orElse: () => songs.isNotEmpty
+          ? songs.first
+          : MusicFile(
+              path: '',
+              name: album,
+              title: album,
+              artist: artist,
+              album: album,
+              artworkPath: artworkPath,
+              thumbnailPath: thumbnailPath,
+            ),
+    );
+    return AlbumSummary(
+      id: '${album.toLowerCase()}::${artist.toLowerCase()}',
+      title: album,
+      artist: artist,
+      songs: songs,
+      representativeSong: rep,
+      totalDurationMillis: songs.fold<int>(
+        0,
+        (sum, s) => sum + (s.durationMillis ?? 0),
+      ),
+    );
+  }
+}
+
+/// 最近添加专辑 Provider：
+/// 根据歌曲最近添加时间排序，提取出最近入库的专辑
+final recentlyAddedAlbumsProvider = Provider<AsyncValue<List<AlbumSummary>>>((ref) {
+  final recentSongsAsync = ref.watch(recentlyAddedSongsProvider(LibraryTimeRange.allTime));
+  final albumsAsync = ref.watch(albumLibraryProvider);
+
+  if (recentSongsAsync.isLoading || albumsAsync.isLoading) {
+    return const AsyncValue.loading();
+  }
+  if (recentSongsAsync.hasError) {
+    return AsyncValue.error(recentSongsAsync.error!, recentSongsAsync.stackTrace!);
+  }
+  if (albumsAsync.hasError) {
+    return AsyncValue.error(albumsAsync.error!, albumsAsync.stackTrace!);
+  }
+
+  final albums = albumsAsync.value ?? const <AlbumSummary>[];
+  if (albums.isEmpty) return const AsyncValue.data([]);
+
+  final albumMap = <String, AlbumSummary>{
+    for (final a in albums) a.id: a,
+    for (final a in albums) '${a.title.toLowerCase()}::${a.artist.toLowerCase()}': a,
+  };
+
+  final orderedList = <AlbumSummary>[];
+  final seenIds = <String>{};
+
+  final recentSongs = recentSongsAsync.value ?? const <LibraryInsightSongEntry>[];
+  for (final entry in recentSongs) {
+    final albumName = (entry.song.album ?? 'Unknown Album').trim().toLowerCase();
+    final artistName = (entry.song.artist ?? 'Unknown Artist').trim().toLowerCase();
+    final key = '$albumName::$artistName';
+    final album = albumMap[key];
+    if (album != null && seenIds.add(album.id)) {
+      orderedList.add(album);
+      if (orderedList.length >= 15) break;
+    }
+  }
+
+  if (orderedList.length < 15) {
+    final fallbackList = List<AlbumSummary>.from(albums)
+      ..sort((a, b) => b.latestTimestampMillis.compareTo(a.latestTimestampMillis));
+    for (final a in fallbackList) {
+      if (seenIds.add(a.id)) {
+        orderedList.add(a);
+        if (orderedList.length >= 15) break;
+      }
+    }
+  }
+
+  return AsyncValue.data(orderedList);
+});
+
+/// 已评分专辑 Provider：
+/// 提取包含已评分歌曲（rating >= 1）的专辑
+final topRatedAlbumsProvider = Provider<AsyncValue<List<AlbumSummary>>>((ref) {
+  final ratedSongsAsync = ref.watch(allRatedSongsProvider);
+  final albumsAsync = ref.watch(albumLibraryProvider);
+
+  if (ratedSongsAsync.isLoading || albumsAsync.isLoading) {
+    return const AsyncValue.loading();
+  }
+  if (ratedSongsAsync.hasError) {
+    return AsyncValue.error(ratedSongsAsync.error!, ratedSongsAsync.stackTrace!);
+  }
+  if (albumsAsync.hasError) {
+    return AsyncValue.error(albumsAsync.error!, albumsAsync.stackTrace!);
+  }
+
+  final albums = albumsAsync.value ?? const <AlbumSummary>[];
+  if (albums.isEmpty) return const AsyncValue.data([]);
+
+  final ratedSongs = ratedSongsAsync.value ?? const <LibraryInsightSongEntry>[];
+  if (ratedSongs.isEmpty) return const AsyncValue.data([]);
+
+  final albumMap = <String, AlbumSummary>{
+    for (final a in albums) a.id: a,
+    for (final a in albums) '${a.title.toLowerCase()}::${a.artist.toLowerCase()}': a,
+  };
+
+  final orderedList = <AlbumSummary>[];
+  final seenIds = <String>{};
+
+  for (final entry in ratedSongs) {
+    final albumName = (entry.song.album ?? 'Unknown Album').trim().toLowerCase();
+    final artistName = (entry.song.artist ?? 'Unknown Artist').trim().toLowerCase();
+    final key = '$albumName::$artistName';
+    final album = albumMap[key];
+    if (album != null && seenIds.add(album.id)) {
+      orderedList.add(album);
+      if (orderedList.length >= 15) break;
+    }
+  }
+
+  return AsyncValue.data(orderedList);
 });

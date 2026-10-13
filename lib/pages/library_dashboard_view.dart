@@ -130,97 +130,53 @@ class LibraryDashboardView extends ConsumerWidget {
                 ),
               ),
 
-              // 4. 双栏对比区 1：本周常听 TOP 5 vs 拾光机 / 重温旧爱
+              // 4. 本周常听（横向专辑流）
               SliverToBoxAdapter(
-                child: Padding(
-                  padding: EdgeInsets.only(
-                    left: contentLeftPadding + horizontalPadding,
-                    right: horizontalPadding,
-                    bottom: 28,
-                  ),
-                  child: isWide
-                      ? Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: _ThisWeekTopCard(
-                                onViewAll: () => onNavigateToSubIndex(2),
-                                onViewAllAlbums: () => onNavigateToSubIndex(2),
-                                l10n: l10n,
-                                isWide: isWide,
-                              ),
-                            ),
-                            const SizedBox(width: 32),
-                            Expanded(
-                              child: _TimeMachineCard(
-                                l10n: l10n,
-                                isWide: isWide,
-                              ),
-                            ),
-                          ],
-                        )
-                      : Column(
-                          children: [
-                            _ThisWeekTopCard(
-                              onViewAll: () => onNavigateToSubIndex(2),
-                              onViewAllAlbums: () => onNavigateToSubIndex(2),
-                              l10n: l10n,
-                              isWide: isWide,
-                            ),
-                            const SizedBox(height: 28),
-                            _TimeMachineCard(
-                              l10n: l10n,
-                              isWide: isWide,
-                            ),
-                          ],
-                        ),
+                child: _ThisWeekAlbumsSection(
+                  horizontalPadding: horizontalPadding,
+                  contentLeftPadding: contentLeftPadding,
+                  onViewAll: () {
+                    ref.read(mostPlayedFilterProvider.notifier).setBoth(
+                      type: SectionItemType.albums,
+                      range: LibraryTimeRange.last7Days,
+                    );
+                    onNavigateToSubIndex(2);
+                  },
+                  l10n: l10n,
+                  isWide: isWide,
                 ),
               ),
 
-              // 5. 双栏对比区 2：最近添加 vs 你的收藏 / 高评分
+              // 5. 重温旧爱（横向专辑流）
               SliverToBoxAdapter(
-                child: Padding(
-                  padding: EdgeInsets.only(
-                    left: contentLeftPadding + horizontalPadding,
-                    right: horizontalPadding,
-                    bottom: 32,
-                  ),
-                  child: isWide
-                      ? Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: _RecentlyAddedCard(
-                                onViewAll: () => onNavigateToSubIndex(3),
-                                l10n: l10n,
-                                isWide: isWide,
-                              ),
-                            ),
-                            const SizedBox(width: 32),
-                            Expanded(
-                              child: _TopRatedCard(
-                                onViewAll: () => onNavigateToSubIndex(6),
-                                l10n: l10n,
-                                isWide: isWide,
-                              ),
-                            ),
-                          ],
-                        )
-                      : Column(
-                          children: [
-                            _RecentlyAddedCard(
-                              onViewAll: () => onNavigateToSubIndex(3),
-                              l10n: l10n,
-                              isWide: isWide,
-                            ),
-                            const SizedBox(height: 28),
-                            _TopRatedCard(
-                              onViewAll: () => onNavigateToSubIndex(6),
-                              l10n: l10n,
-                              isWide: isWide,
-                            ),
-                          ],
-                        ),
+                child: _TimeMachineAlbumsSection(
+                  horizontalPadding: horizontalPadding,
+                  contentLeftPadding: contentLeftPadding,
+                  onViewAll: () => onNavigateToSubIndex(2),
+                  l10n: l10n,
+                  isWide: isWide,
+                ),
+              ),
+
+              // 6. 最近添加（横向专辑流）
+              SliverToBoxAdapter(
+                child: _RecentlyAddedAlbumsSection(
+                  horizontalPadding: horizontalPadding,
+                  contentLeftPadding: contentLeftPadding,
+                  onViewAll: () => onNavigateToSubIndex(3),
+                  l10n: l10n,
+                  isWide: isWide,
+                ),
+              ),
+
+              // 7. 已评分（横向专辑流）
+              SliverToBoxAdapter(
+                child: _TopRatedAlbumsSection(
+                  horizontalPadding: horizontalPadding,
+                  contentLeftPadding: contentLeftPadding,
+                  onViewAll: () => onNavigateToSubIndex(6),
+                  l10n: l10n,
+                  isWide: isWide,
                 ),
               ),
 
@@ -1032,7 +988,7 @@ class _RecentlyPlayedSection extends ConsumerWidget {
     );
 
     final scale = isWide ? kDashboardDesktopCoverScale : kDashboardMobileCoverScale;
-    final cardWidth = (130.0 * scale).roundToDouble();
+    final cardWidth = (126.0 * scale).roundToDouble();
     final listHeight = cardWidth + 70.0;
 
     return asyncSongs.when(
@@ -1102,7 +1058,7 @@ class _SongCard extends StatefulWidget {
   const _SongCard({
     required this.song,
     required this.onPlay,
-    this.width = 130.0,
+    this.width = 126.0,
     this.isWide = false,
   });
 
@@ -1253,588 +1209,284 @@ class _CoverPlayButtonState extends State<_CoverPlayButton> {
 }
 
 // ---------------------------------------------------------------------------
-// 双栏 1：本周常听 TOP 5 vs 拾光机 / 重温旧爱
+// 通用横向专辑流滚动区块（Apple Music 风格 Carousel）
 // ---------------------------------------------------------------------------
-class _ThisWeekTopCard extends ConsumerStatefulWidget {
-  const _ThisWeekTopCard({
+class _HorizontalAlbumSection extends StatelessWidget {
+  const _HorizontalAlbumSection({
+    required this.title,
+    this.subtitle,
+    required this.albums,
+    required this.horizontalPadding,
     required this.onViewAll,
-    this.onViewAllAlbums,
     required this.l10n,
     this.isWide = false,
+    this.contentLeftPadding = 0.0,
   });
 
+  final String title;
+  final String? subtitle;
+  final List<AlbumSummary> albums;
+  final double horizontalPadding;
   final VoidCallback onViewAll;
-  final VoidCallback? onViewAllAlbums;
   final AppLocalizations l10n;
   final bool isWide;
-
-  @override
-  ConsumerState<_ThisWeekTopCard> createState() => _ThisWeekTopCardState();
-}
-
-class _ThisWeekTopCardState extends ConsumerState<_ThisWeekTopCard> {
-  SectionItemType _selectedType = SectionItemType.songs;
+  final double contentLeftPadding;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final l10n = widget.l10n;
-    final isAlbums = _selectedType == SectionItemType.albums;
+    if (albums.isEmpty) return const SizedBox.shrink();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _SectionHeader(
-          title: l10n.thisWeekTop,
-          subtitle: l10n.thisWeekTopSubtitle,
-          action: SectionTypeToggle(
-            selected: _selectedType,
-            onChanged: (val) {
-              setState(() {
-                _selectedType = val;
-              });
-            },
-            songsLabel: l10n.songs,
-            albumsLabel: l10n.albums,
-          ),
-          onViewAll: () {
-            ref.read(mostPlayedFilterProvider.notifier).setBoth(
-              type: _selectedType,
-              range: LibraryTimeRange.last7Days,
-            );
-            if (isAlbums && widget.onViewAllAlbums != null) {
-              widget.onViewAllAlbums!();
-            } else {
-              widget.onViewAll();
-            }
-          },
-          l10n: l10n,
-        ),
-        const SizedBox(height: 12),
-        if (!isAlbums)
-          _buildSongs(theme, l10n)
-        else
-          _buildAlbums(theme, l10n),
-      ],
-    );
-  }
+    final scale = isWide ? kDashboardDesktopCoverScale : kDashboardMobileCoverScale;
+    final cardWidth = (126.0 * scale).roundToDouble();
+    final coverSize = cardWidth;
+    final listHeight = coverSize + 70.0;
+    final separatorWidth = isWide ? 16.0 : 14.0;
+    final preview = albums.take(15).toList();
 
-  Widget _buildSongs(ThemeData theme, AppLocalizations l10n) {
-    final asyncSongs = ref.watch(
-      mostPlayedSongsProvider(LibraryTimeRange.last7Days),
-    );
-
-    return asyncSongs.when(
-      data: (items) {
-        if (items.isEmpty) {
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 24),
-            child: Center(
-              child: Text(
-                l10n.emptyThisWeekTop,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 30),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: EdgeInsets.only(
+              left: contentLeftPadding + horizontalPadding,
+              right: horizontalPadding,
             ),
-          );
-        }
-        final topItems = items.take(5).toList();
-        final allSongs = topItems.map((e) => e.song).toList();
-
-        return Column(
-          children: List.generate(topItems.length, (idx) {
-            final entry = topItems[idx];
-            return _RankedSongRow(
-              index: idx + 1,
-              song: entry.song,
-              metric: l10n.playCountLabel(entry.playCount),
-              isWide: widget.isWide,
-              showIndex: !widget.isWide,
-              onTap: () {
-                ref.read(audioServiceProvider).playPlaylist(
-                      allSongs,
-                      initialIndex: idx,
-                    );
-              },
-            );
-          }),
-        );
-      },
-      loading: () => const Padding(
-        padding: EdgeInsets.symmetric(vertical: 24),
-        child: Center(child: CircularProgressIndicator.adaptive()),
+            child: _SectionHeader(
+              title: title,
+              subtitle: subtitle,
+              onViewAll: onViewAll,
+              l10n: l10n,
+            ),
+          ),
+          const SizedBox(height: 12),
+          _CarouselScrollWrapper(
+            height: listHeight,
+            centerHeight: coverSize,
+            buttonPadding: horizontalPadding > 20 ? 14.0 : 8.0,
+            leftButtonOffset: contentLeftPadding,
+            builder: (context, controller) {
+              return ListView.separated(
+                controller: controller,
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                padding: EdgeInsets.only(
+                  left: contentLeftPadding + horizontalPadding,
+                  right: horizontalPadding,
+                ),
+                itemCount: preview.length,
+                separatorBuilder: (_, _) => SizedBox(width: separatorWidth),
+                itemBuilder: (context, index) {
+                  final album = preview[index];
+                  return Consumer(
+                    builder: (context, ref, _) {
+                      return _AlbumCard(
+                        album: album,
+                        width: cardWidth,
+                        isWide: isWide,
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => AlbumDetailPage(album: album),
+                            ),
+                          );
+                        },
+                        onPlay: () {
+                          if (album.songs.isNotEmpty) {
+                            ref.read(audioServiceProvider).playPlaylist(
+                                  album.songs,
+                                  source: PlaybackSource(
+                                    type: PlaybackSourceType.album,
+                                    id: album.id,
+                                  ),
+                                );
+                          }
+                        },
+                      );
+                    },
+                  );
+                },
+              );
+            },
+          ),
+        ],
       ),
-      error: (_, _) => const SizedBox.shrink(),
     );
   }
+}
 
-  Widget _buildAlbums(ThemeData theme, AppLocalizations l10n) {
+// ---------------------------------------------------------------------------
+// 4. 本周常听（专辑横向流）
+// ---------------------------------------------------------------------------
+class _ThisWeekAlbumsSection extends ConsumerWidget {
+  const _ThisWeekAlbumsSection({
+    required this.horizontalPadding,
+    required this.onViewAll,
+    required this.l10n,
+    this.isWide = false,
+    this.contentLeftPadding = 0.0,
+  });
+
+  final double horizontalPadding;
+  final VoidCallback onViewAll;
+  final AppLocalizations l10n;
+  final bool isWide;
+  final double contentLeftPadding;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
     final asyncAlbums = ref.watch(thisWeekTopAlbumsProvider);
 
     return asyncAlbums.when(
       data: (items) {
-        if (items.isEmpty) {
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 24),
-            child: Center(
-              child: Text(
-                l10n.emptyThisWeekTop,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ),
-          );
-        }
-        final topItems = items.take(5).toList();
-
-        return Column(
-          children: List.generate(topItems.length, (idx) {
-            final entry = topItems[idx];
-            return _RankedAlbumRow(
-              index: idx + 1,
-              entry: entry,
-              metric: l10n.playCountLabel(entry.totalPlayCount),
-              isWide: widget.isWide,
-              showIndex: !widget.isWide,
-              onTap: () {
-                if (entry.songs.isEmpty) return;
-                final albumSummary = AlbumSummary(
-                  id: '${entry.album}|${entry.artist}',
-                  title: entry.album,
-                  artist: entry.artist,
-                  songs: entry.songs,
-                  representativeSong: entry.songs.first,
-                  totalDurationMillis: entry.songs.fold<int>(
-                    0,
-                    (sum, s) => sum + (s.durationMillis ?? 0),
-                  ),
-                );
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => AlbumDetailPage(album: albumSummary),
-                  ),
-                );
-              },
-            );
-          }),
+        if (items.isEmpty) return const SizedBox.shrink();
+        final albums = items.map((e) => e.toAlbumSummary()).toList();
+        return _HorizontalAlbumSection(
+          title: l10n.thisWeekTop,
+          subtitle: l10n.thisWeekTopAlbumsSubtitle,
+          albums: albums,
+          horizontalPadding: horizontalPadding,
+          contentLeftPadding: contentLeftPadding,
+          onViewAll: onViewAll,
+          l10n: l10n,
+          isWide: isWide,
         );
       },
-      loading: () => const Padding(
-        padding: EdgeInsets.symmetric(vertical: 24),
-        child: Center(child: CircularProgressIndicator.adaptive()),
-      ),
+      loading: () => const SizedBox.shrink(),
       error: (_, _) => const SizedBox.shrink(),
     );
   }
 }
 
-class _TimeMachineCard extends ConsumerStatefulWidget {
-  const _TimeMachineCard({
+// ---------------------------------------------------------------------------
+// 5. 重温旧爱（专辑横向流）
+// ---------------------------------------------------------------------------
+class _TimeMachineAlbumsSection extends ConsumerWidget {
+  const _TimeMachineAlbumsSection({
+    required this.horizontalPadding,
+    required this.onViewAll,
     required this.l10n,
     this.isWide = false,
+    this.contentLeftPadding = 0.0,
   });
 
+  final double horizontalPadding;
+  final VoidCallback onViewAll;
   final AppLocalizations l10n;
   final bool isWide;
+  final double contentLeftPadding;
 
   @override
-  ConsumerState<_TimeMachineCard> createState() => _TimeMachineCardState();
-}
-
-class _TimeMachineCardState extends ConsumerState<_TimeMachineCard> {
-  SectionItemType _selectedType = SectionItemType.albums;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final l10n = widget.l10n;
-    final isSongs = _selectedType == SectionItemType.songs;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _SectionHeader(
-          title: l10n.timeMachine,
-          subtitle: l10n.timeMachineSubtitle,
-          action: SectionTypeToggle(
-            selected: _selectedType,
-            onChanged: (val) {
-              setState(() {
-                _selectedType = val;
-              });
-            },
-            songsLabel: l10n.songs,
-            albumsLabel: l10n.albums,
-          ),
-          l10n: l10n,
-        ),
-        const SizedBox(height: 12),
-        if (isSongs)
-          _buildSongs(theme, l10n)
-        else
-          _buildAlbums(theme, l10n),
-      ],
-    );
-  }
-
-  Widget _buildAlbums(ThemeData theme, AppLocalizations l10n) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final asyncAlbums = ref.watch(timeMachineAlbumsProvider);
 
     return asyncAlbums.when(
-      data: (albums) {
-        if (albums.isEmpty) {
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 24),
-            child: Center(
-              child: Text(
-                l10n.emptyTimeMachine,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ),
-          );
-        }
-
-        final preview = albums.take(5).toList();
-        return Column(
-          children: preview.map((entry) {
-            return _TimeMachineAlbumRow(
-              entry: entry,
-              isWide: widget.isWide,
-            );
-          }).toList(),
-        );
-      },
-      loading: () => const Padding(
-        padding: EdgeInsets.symmetric(vertical: 24),
-        child: Center(child: CircularProgressIndicator.adaptive()),
-      ),
-      error: (_, _) => const SizedBox.shrink(),
-    );
-  }
-
-  Widget _buildSongs(ThemeData theme, AppLocalizations l10n) {
-    final asyncSongs = ref.watch(timeMachineSongsProvider);
-
-    return asyncSongs.when(
       data: (items) {
-        if (items.isEmpty) {
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 24),
-            child: Center(
-              child: Text(
-                l10n.emptyTimeMachine,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ),
-          );
-        }
-
-        final preview = items.take(5).toList();
-        final allSongs = preview.map((e) => e.song).toList();
-
-        return Column(
-          children: List.generate(preview.length, (idx) {
-            final entry = preview[idx];
-            return _TimeMachineSongRow(
-              song: entry.song,
-              isWide: widget.isWide,
-              onPlay: () {
-                ref.read(audioServiceProvider).playPlaylist(
-                      allSongs,
-                      initialIndex: idx,
-                    );
-              },
-            );
-          }),
-        );
-      },
-      loading: () => const Padding(
-        padding: EdgeInsets.symmetric(vertical: 24),
-        child: Center(child: CircularProgressIndicator.adaptive()),
-      ),
-      error: (_, _) => const SizedBox.shrink(),
-    );
-  }
-}
-
-class _TimeMachineAlbumRow extends ConsumerWidget {
-  const _TimeMachineAlbumRow({
-    required this.entry,
-    this.isWide = false,
-  });
-
-  final TimeMachineAlbumEntry entry;
-  final bool isWide;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final l10n = AppLocalizations.of(context)!;
-    final scale = isWide ? kDashboardDesktopCoverScale : kDashboardMobileCoverScale;
-    final coverSize = (46.0 * scale).roundToDouble();
-
-    return InkWell(
-      borderRadius: BorderRadius.circular(10),
-      onTap: () {
-        if (entry.songs.isEmpty) return;
-        final albumSummary = AlbumSummary(
-          id: '${entry.album}|${entry.artist}',
-          title: entry.album,
-          artist: entry.artist,
-          songs: entry.songs,
-          representativeSong: entry.songs.first,
-          totalDurationMillis: entry.songs.fold<int>(
-            0,
-            (sum, s) => sum + (s.durationMillis ?? 0),
-          ),
-        );
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => AlbumDetailPage(album: albumSummary),
-          ),
-        );
-      },
-      child: Padding(
-        padding: EdgeInsets.symmetric(
-          horizontal: 8,
-          vertical: isWide ? 7 : 6,
-        ),
-        child: Row(
-          children: [
-            SongThumbnail(
-              path: entry.songs.isNotEmpty ? entry.songs.first.path : entry.album,
-              artworkPath: entry.artworkPath,
-              thumbnailPath: entry.thumbnailPath,
-              size: coverSize,
-              borderRadius: BorderRadius.circular(9),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    entry.album,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    entry.artist,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            IconButton(
-              icon: const Icon(Icons.play_circle_fill_rounded),
-              iconSize: 30,
-              color: theme.colorScheme.primary,
-              tooltip: l10n.playAlbum,
-              onPressed: () {
-                if (entry.songs.isNotEmpty) {
-                  ref.read(audioServiceProvider).playPlaylist(
-                        entry.songs,
-                        initialIndex: 0,
-                      );
-                }
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// 双栏 2：最近添加 vs 你的收藏 / 高评分
-// ---------------------------------------------------------------------------
-class _RecentlyAddedCard extends ConsumerWidget {
-  const _RecentlyAddedCard({
-    required this.onViewAll,
-    required this.l10n,
-    this.isWide = false,
-  });
-
-  final VoidCallback onViewAll;
-  final AppLocalizations l10n;
-  final bool isWide;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final asyncSongs = ref.watch(
-      recentlyAddedSongsProvider(LibraryTimeRange.allTime),
-    );
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _SectionHeader(
-          title: l10n.recentlyAdded,
+        if (items.isEmpty) return const SizedBox.shrink();
+        final albums = items.map((e) => e.toAlbumSummary()).toList();
+        return _HorizontalAlbumSection(
+          title: l10n.timeMachine,
+          subtitle: l10n.timeMachineSubtitle,
+          albums: albums,
+          horizontalPadding: horizontalPadding,
+          contentLeftPadding: contentLeftPadding,
           onViewAll: onViewAll,
           l10n: l10n,
-        ),
-        const SizedBox(height: 12),
-        asyncSongs.when(
-          data: (items) {
-            if (items.isEmpty) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 24),
-                child: Center(
-                  child: Text(
-                    l10n.noRecentlyAddedSongs,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ),
-              );
-            }
-            final preview = items.take(5).toList();
-            final allSongs = preview.map((e) => e.song).toList();
-
-            return Column(
-              children: List.generate(preview.length, (idx) {
-                final entry = preview[idx];
-                return _SimpleSongRow(
-                  song: entry.song,
-                  isWide: isWide,
-                  trailingText: entry.createdAt != null
-                      ? _formatDate(entry.createdAt!)
-                      : null,
-                  onTap: () {
-                    ref.read(audioServiceProvider).playPlaylist(
-                          allSongs,
-                          initialIndex: idx,
-                        );
-                  },
-                );
-              }),
-            );
-          },
-          loading: () => const Padding(
-            padding: EdgeInsets.symmetric(vertical: 24),
-            child: Center(child: CircularProgressIndicator.adaptive()),
-          ),
-          error: (_, _) => const SizedBox.shrink(),
-        ),
-      ],
+          isWide: isWide,
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
     );
-  }
-
-  String _formatDate(int millis) {
-    final date = DateTime.fromMillisecondsSinceEpoch(millis);
-    return '${date.month}/${date.day}';
   }
 }
 
-class _TopRatedCard extends ConsumerWidget {
-  const _TopRatedCard({
+// ---------------------------------------------------------------------------
+// 6. 最近添加（专辑横向流）
+// ---------------------------------------------------------------------------
+class _RecentlyAddedAlbumsSection extends ConsumerWidget {
+  const _RecentlyAddedAlbumsSection({
+    required this.horizontalPadding,
     required this.onViewAll,
     required this.l10n,
     this.isWide = false,
+    this.contentLeftPadding = 0.0,
   });
 
+  final double horizontalPadding;
   final VoidCallback onViewAll;
   final AppLocalizations l10n;
   final bool isWide;
+  final double contentLeftPadding;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final asyncSongs = ref.watch(allRatedSongsProvider);
+    final asyncAlbums = ref.watch(recentlyAddedAlbumsProvider);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _SectionHeader(
+    return asyncAlbums.when(
+      data: (albums) {
+        if (albums.isEmpty) return const SizedBox.shrink();
+        return _HorizontalAlbumSection(
+          title: l10n.recentlyAdded,
+          albums: albums,
+          horizontalPadding: horizontalPadding,
+          contentLeftPadding: contentLeftPadding,
+          onViewAll: onViewAll,
+          l10n: l10n,
+          isWide: isWide,
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 7. 已评分（专辑横向流）
+// ---------------------------------------------------------------------------
+class _TopRatedAlbumsSection extends ConsumerWidget {
+  const _TopRatedAlbumsSection({
+    required this.horizontalPadding,
+    required this.onViewAll,
+    required this.l10n,
+    this.isWide = false,
+    this.contentLeftPadding = 0.0,
+  });
+
+  final double horizontalPadding;
+  final VoidCallback onViewAll;
+  final AppLocalizations l10n;
+  final bool isWide;
+  final double contentLeftPadding;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final asyncAlbums = ref.watch(topRatedAlbumsProvider);
+
+    return asyncAlbums.when(
+      data: (albums) {
+        if (albums.isEmpty) return const SizedBox.shrink();
+        return _HorizontalAlbumSection(
           title: l10n.ratedSongs,
           subtitle: l10n.ratedSongsSubtitle,
+          albums: albums,
+          horizontalPadding: horizontalPadding,
+          contentLeftPadding: contentLeftPadding,
           onViewAll: onViewAll,
           l10n: l10n,
-        ),
-        const SizedBox(height: 12),
-        asyncSongs.when(
-          data: (items) {
-            if (items.isEmpty) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 24),
-                child: Center(
-                  child: Text(
-                    l10n.emptyRatedSongs,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ),
-              );
-            }
-            final preview = items.take(5).toList();
-            final allSongs = preview.map((e) => e.song).toList();
-
-            return Column(
-              children: List.generate(preview.length, (idx) {
-                final entry = preview[idx];
-                return _SimpleSongRow(
-                  song: entry.song,
-                  isWide: isWide,
-                  trailingWidget: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        Icons.star_rounded,
-                        size: 16,
-                        color: Color(0xFFF59E0B),
-                      ),
-                      const SizedBox(width: 2),
-                      Text(
-                        '${entry.playCount}',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFFF59E0B),
-                        ),
-                      ),
-                    ],
-                  ),
-                  onTap: () {
-                    ref.read(audioServiceProvider).playPlaylist(
-                          allSongs,
-                          initialIndex: idx,
-                        );
-                  },
-                );
-              }),
-            );
-          },
-          loading: () => const Padding(
-            padding: EdgeInsets.symmetric(vertical: 24),
-            child: Center(child: CircularProgressIndicator.adaptive()),
-          ),
-          error: (_, _) => const SizedBox.shrink(),
-        ),
-      ],
+          isWide: isWide,
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
     );
   }
 }
 
 // ---------------------------------------------------------------------------
-// 独立通栏：专辑
+// 8. 独立通栏：专辑
 // ---------------------------------------------------------------------------
 class _AlbumsRowSection extends ConsumerWidget {
   const _AlbumsRowSection({
@@ -1855,79 +1507,17 @@ class _AlbumsRowSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final asyncAlbums = ref.watch(albumLibraryProvider);
 
-    final scale = isWide ? kDashboardDesktopCoverScale : kDashboardMobileCoverScale;
-    final cardWidth = (126.0 * scale).roundToDouble();
-    final coverSize = cardWidth;
-    final listHeight = coverSize + 70.0;
-    final separatorWidth = isWide ? 16.0 : 14.0;
-
     return asyncAlbums.when(
       data: (albums) {
         if (albums.isEmpty) return const SizedBox.shrink();
-        final preview = albums.take(12).toList();
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: EdgeInsets.only(
-                left: contentLeftPadding + horizontalPadding,
-                right: horizontalPadding,
-              ),
-              child: _SectionHeader(
-                title: l10n.albums,
-                onViewAll: onViewAll,
-                l10n: l10n,
-              ),
-            ),
-            const SizedBox(height: 12),
-            _CarouselScrollWrapper(
-              height: listHeight,
-              centerHeight: coverSize,
-              buttonPadding: horizontalPadding > 20 ? 14.0 : 8.0,
-              leftButtonOffset: contentLeftPadding,
-              builder: (context, controller) {
-                return ListView.separated(
-                  controller: controller,
-                  scrollDirection: Axis.horizontal,
-                  physics: const BouncingScrollPhysics(),
-                  padding: EdgeInsets.only(
-                    left: contentLeftPadding + horizontalPadding,
-                    right: horizontalPadding,
-                  ),
-                  itemCount: preview.length,
-                  separatorBuilder: (_, _) => SizedBox(width: separatorWidth),
-                  itemBuilder: (context, index) {
-                    final album = preview[index];
-                    return _AlbumCard(
-                      album: album,
-                      width: cardWidth,
-                      isWide: isWide,
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => AlbumDetailPage(album: album),
-                          ),
-                        );
-                      },
-                      onPlay: () {
-                        if (album.songs.isNotEmpty) {
-                          ref.read(audioServiceProvider).playPlaylist(
-                                album.songs,
-                                source: PlaybackSource(
-                                  type: PlaybackSourceType.album,
-                                  id: album.id,
-                                  name: album.title,
-                                ),
-                              );
-                        }
-                      },
-                    );
-                  },
-                );
-              },
-            ),
-          ],
+        return _HorizontalAlbumSection(
+          title: l10n.albums,
+          albums: albums,
+          horizontalPadding: horizontalPadding,
+          contentLeftPadding: contentLeftPadding,
+          onViewAll: onViewAll,
+          l10n: l10n,
+          isWide: isWide,
         );
       },
       loading: () => const SizedBox.shrink(),
@@ -2481,14 +2071,12 @@ class _SectionHeader extends StatelessWidget {
   const _SectionHeader({
     required this.title,
     this.subtitle,
-    this.action,
     this.onViewAll,
     required this.l10n,
   });
 
   final String title;
   final String? subtitle;
-  final Widget? action;
   final VoidCallback? onViewAll;
   final AppLocalizations l10n;
 
@@ -2526,10 +2114,6 @@ class _SectionHeader extends StatelessWidget {
             ],
           ),
         ),
-        if (action != null) ...[
-          const SizedBox(width: 8),
-          action!,
-        ],
         if (onViewAll != null) ...[
           const SizedBox(width: 4),
           InkWell(
@@ -2564,336 +2148,3 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-class _RankedSongRow extends StatelessWidget {
-  const _RankedSongRow({
-    required this.index,
-    required this.song,
-    required this.metric,
-    required this.onTap,
-    this.isWide = false,
-    this.showIndex = true,
-  });
-
-  final int index;
-  final MusicFile song;
-  final String metric;
-  final VoidCallback onTap;
-  final bool isWide;
-  final bool showIndex;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scale = isWide ? kDashboardDesktopCoverScale : kDashboardMobileCoverScale;
-    final thumbSize = (46.0 * scale).roundToDouble();
-
-    return InkWell(
-      borderRadius: BorderRadius.circular(10),
-      onTap: onTap,
-      child: Padding(
-        padding: EdgeInsets.symmetric(
-          horizontal: 8,
-          vertical: isWide ? 7 : 6,
-        ),
-        child: Row(
-          children: [
-            if (showIndex) ...[
-              SizedBox(
-                width: 24,
-                child: Text(
-                  index.toString().padLeft(2, '0'),
-                  style: theme.textTheme.labelLarge?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: index <= 3
-                        ? theme.colorScheme.primary
-                        : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-            ],
-            SongThumbnail.fromSong(
-              song,
-              size: thumbSize,
-              borderRadius: BorderRadius.circular(9),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    song.displayName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      fontSize: isWide ? 14.5 : 14.0,
-                    ),
-                  ),
-                  Text(
-                    song.artist ?? 'Unknown Artist',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Text(
-              metric,
-              style: theme.textTheme.bodySmall?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _RankedAlbumRow extends StatelessWidget {
-  const _RankedAlbumRow({
-    required this.index,
-    required this.entry,
-    required this.metric,
-    required this.onTap,
-    this.isWide = false,
-    this.showIndex = true,
-  });
-
-  final int index;
-  final TimeMachineAlbumEntry entry;
-  final String metric;
-  final VoidCallback onTap;
-  final bool isWide;
-  final bool showIndex;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scale = isWide ? kDashboardDesktopCoverScale : kDashboardMobileCoverScale;
-    final thumbSize = (46.0 * scale).roundToDouble();
-
-    return InkWell(
-      borderRadius: BorderRadius.circular(10),
-      onTap: onTap,
-      child: Padding(
-        padding: EdgeInsets.symmetric(
-          horizontal: 8,
-          vertical: isWide ? 7 : 6,
-        ),
-        child: Row(
-          children: [
-            if (showIndex) ...[
-              SizedBox(
-                width: 24,
-                child: Text(
-                  index.toString().padLeft(2, '0'),
-                  style: theme.textTheme.labelLarge?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: index <= 3
-                        ? theme.colorScheme.primary
-                        : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-            ],
-            SongThumbnail(
-              path: entry.songs.isNotEmpty ? entry.songs.first.path : entry.album,
-              artworkPath: entry.artworkPath,
-              thumbnailPath: entry.thumbnailPath,
-              size: thumbSize,
-              borderRadius: BorderRadius.circular(9),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    entry.album,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      fontSize: isWide ? 14.5 : 14.0,
-                    ),
-                  ),
-                  Text(
-                    entry.artist,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Text(
-              metric,
-              style: theme.textTheme.bodySmall?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _TimeMachineSongRow extends ConsumerWidget {
-  const _TimeMachineSongRow({
-    required this.song,
-    required this.onPlay,
-    this.isWide = false,
-  });
-
-  final MusicFile song;
-  final VoidCallback onPlay;
-  final bool isWide;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final scale = isWide ? kDashboardDesktopCoverScale : kDashboardMobileCoverScale;
-    final coverSize = (46.0 * scale).roundToDouble();
-
-    return InkWell(
-      borderRadius: BorderRadius.circular(10),
-      onTap: onPlay,
-      child: Padding(
-        padding: EdgeInsets.symmetric(
-          horizontal: 8,
-          vertical: isWide ? 7 : 6,
-        ),
-        child: Row(
-          children: [
-            SongThumbnail.fromSong(
-              song,
-              size: coverSize,
-              borderRadius: BorderRadius.circular(9),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    song.displayName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    song.artist ?? 'Unknown Artist',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            IconButton(
-              icon: const Icon(Icons.play_circle_fill_rounded),
-              iconSize: 30,
-              color: theme.colorScheme.primary,
-              onPressed: onPlay,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _SimpleSongRow extends StatelessWidget {
-  const _SimpleSongRow({
-    required this.song,
-    this.trailingText,
-    this.trailingWidget,
-    required this.onTap,
-    this.isWide = false,
-  });
-
-  final MusicFile song;
-  final String? trailingText;
-  final Widget? trailingWidget;
-  final VoidCallback onTap;
-  final bool isWide;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scale = isWide ? kDashboardDesktopCoverScale : kDashboardMobileCoverScale;
-    final thumbSize = (46.0 * scale).roundToDouble();
-
-    return InkWell(
-      borderRadius: BorderRadius.circular(10),
-      onTap: onTap,
-      child: Padding(
-        padding: EdgeInsets.symmetric(
-          horizontal: 8,
-          vertical: isWide ? 7 : 6,
-        ),
-        child: Row(
-          children: [
-            SongThumbnail.fromSong(
-              song,
-              size: thumbSize,
-              borderRadius: BorderRadius.circular(9),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    song.displayName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      fontSize: isWide ? 14.5 : 14.0,
-                    ),
-                  ),
-                  Text(
-                    song.artist ?? 'Unknown Artist',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (trailingWidget != null)
-              trailingWidget!
-            else if (trailingText != null)
-              Text(
-                trailingText!,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}

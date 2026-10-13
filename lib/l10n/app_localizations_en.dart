@@ -5484,10 +5484,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get thisWeekTopSubtitle => 'Most played tracks in past 7 days';
 
   @override
+  String get thisWeekTopAlbumsSubtitle => 'Most played albums in past 7 days';
+
+  @override
   String get timeMachine => 'Time Machine';
 
   @override
   String get timeMachineSubtitle => 'Rediscover your past favorites';
+
+  @override
+  String get timeMachineSongsSubtitle => 'Rediscover your past favorite songs';
+
+  @override
+  String get emptyTimeMachineSongs =>
+      'No past favorite songs to rediscover yet';
 
   @override
   String get topRated => 'Top Rated';

@@ -5304,10 +5304,19 @@ class AppLocalizationsJa extends AppLocalizations {
   String get thisWeekTopSubtitle => '過去7日間で最も再生された曲';
 
   @override
+  String get thisWeekTopAlbumsSubtitle => '近 7 天循环最多的专辑';
+
+  @override
   String get timeMachine => 'タイムマシン';
 
   @override
   String get timeMachineSubtitle => 'しばらく聴いていないお気に入りのアルバムを再発見';
+
+  @override
+  String get timeMachineSongsSubtitle => '重温好久没听的常听或高分歌曲';
+
+  @override
+  String get emptyTimeMachineSongs => '暂无需要重温的歌曲';
 
   @override
   String get topRated => '高評価';

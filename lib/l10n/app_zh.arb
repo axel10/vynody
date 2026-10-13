@@ -3585,6 +3585,10 @@
   "@thisWeekTopSubtitle": {
     "description": "Subtitle for top tracks this week"
   },
+  "thisWeekTopAlbumsSubtitle": "近 7 天循环最多的专辑",
+  "@thisWeekTopAlbumsSubtitle": {
+    "description": "Subtitle for top albums this week"
+  },
   "timeMachine": "重温旧爱",
   "@timeMachine": {
     "description": "Rediscover past favorite albums"
@@ -3592,6 +3596,14 @@
   "timeMachineSubtitle": "重温好久没听的常听或高分专辑",
   "@timeMachineSubtitle": {
     "description": "Subtitle for rediscover past favorites"
+  },
+  "timeMachineSongsSubtitle": "重温好久没听的常听或高分歌曲",
+  "@timeMachineSongsSubtitle": {
+    "description": "Subtitle for rediscover past favorite songs"
+  },
+  "emptyTimeMachineSongs": "暂无需要重温的歌曲",
+  "@emptyTimeMachineSongs": {
+    "description": "Empty state text for time machine songs"
   },
   "topRated": "高评分",
   "@topRated": {

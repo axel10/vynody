@@ -5309,10 +5309,19 @@ class AppLocalizationsKo extends AppLocalizations {
   String get thisWeekTopSubtitle => '지난 7일 동안 가장 많이 재생된 곡';
 
   @override
+  String get thisWeekTopAlbumsSubtitle => '近 7 天循环最多的专辑';
+
+  @override
   String get timeMachine => '타임머신';
 
   @override
   String get timeMachineSubtitle => '한동안 듣지 않은 이전 즐겨찾기를 다시 만나보세요';
+
+  @override
+  String get timeMachineSongsSubtitle => '重温好久没听的常听或高分歌曲';
+
+  @override
+  String get emptyTimeMachineSongs => '暂无需要重温的歌曲';
 
   @override
   String get topRated => '최고 평점';
