@@ -25,7 +25,6 @@ import 'remote_artist_detail_page.dart';
 import '../../utils/layout_constants.dart';
 import 'remote_download_manager_page.dart';
 import 'widgets/remote_library_selection_actions.dart';
-import '../../utils/song_locator_helper.dart';
 
 /// Standalone Full-Page for Navidrome Playlist Detail (used in portrait / mobile navigation)
 class RemotePlaylistDetailPage extends ConsumerWidget {
@@ -292,17 +291,6 @@ class _RemotePlaylistDetailContentState
         curve: Curves.easeInOut,
       );
     }
-  }
-
-  Future<void> _locateCurrentSong() async {
-    final currentMusic = ref.read(audioCurrentMusicProvider);
-    if (currentMusic == null) return;
-    final inCurrentPlaylist = _tracks.any((t) => t.path == currentMusic.path);
-    if (inCurrentPlaylist) {
-      _scrollToTrack(currentMusic.path);
-      return;
-    }
-    await SongLocatorHelper.locateCurrentPlayingSong(ref, context);
   }
 
   Future<void> _loadPlaylistDetails({bool forceRefresh = false}) async {
@@ -1047,6 +1035,11 @@ class _RemotePlaylistDetailContentState
     final owner = _playlistData?['owner'] as String?;
 
     final headerColor = theme.colorScheme.secondaryContainer.withValues(alpha: 0.65);
+    final isPortrait =
+        MediaQuery.orientationOf(context) == Orientation.portrait;
+    final double buttonHeight = isPortrait ? 44.0 : 32.0;
+    final double iconSize = isPortrait ? 20.0 : 18.0;
+    final double buttonSpacing = isPortrait ? 10.0 : 8.0;
 
     return Stack(
       children: [
@@ -1230,48 +1223,73 @@ class _RemotePlaylistDetailContentState
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       child: Row(
                         children: [
-                          FilledButton.icon(
-                            onPressed: _tracks.isNotEmpty ? () => _playAll() : null,
-                            icon: const Icon(Icons.play_arrow_rounded, size: 20),
-                            label: Text(l10n.playAll),
-                            style: FilledButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 18,
-                                vertical: 10,
+                          SizedBox(
+                            height: buttonHeight,
+                            child: FilledButton.icon(
+                              onPressed: _tracks.isNotEmpty ? () => _playAll() : null,
+                              icon: Icon(Icons.play_arrow_rounded, size: iconSize),
+                              label: Text(
+                                l10n.playAll,
+                                style: TextStyle(
+                                  fontWeight: isPortrait ? FontWeight.w700 : FontWeight.w500,
+                                  fontSize: isPortrait ? 15 : 13,
+                                ),
                               ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
+                              style: FilledButton.styleFrom(
+                                shape: const StadiumBorder(),
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: isPortrait ? 18 : 14,
+                                ),
+                                minimumSize: Size(0, buttonHeight),
+                                elevation: 0,
                               ),
                             ),
                           ),
-                          const SizedBox(width: 8),
+                          SizedBox(width: buttonSpacing),
                           IconButton.filledTonal(
                             tooltip: l10n.shufflePlay,
+                            style: IconButton.styleFrom(
+                              foregroundColor: theme.colorScheme.onSecondaryContainer,
+                              backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                              fixedSize: Size(buttonHeight, buttonHeight),
+                              minimumSize: Size(buttonHeight, buttonHeight),
+                              padding: EdgeInsets.zero,
+                              shape: const CircleBorder(),
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
                             onPressed: _tracks.isNotEmpty
                                 ? () => _playAll(shuffle: true)
                                 : null,
-                            icon: const Icon(Icons.shuffle_rounded, size: 18),
+                            icon: Icon(Icons.shuffle_rounded, size: iconSize),
                           ),
-                          const SizedBox(width: 8),
+                          SizedBox(width: buttonSpacing),
                           IconButton.filledTonal(
                             tooltip: l10n.downloadAllTracks,
+                            style: IconButton.styleFrom(
+                              foregroundColor: theme.colorScheme.onSecondaryContainer,
+                              backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                              fixedSize: Size(buttonHeight, buttonHeight),
+                              minimumSize: Size(buttonHeight, buttonHeight),
+                              padding: EdgeInsets.zero,
+                              shape: const CircleBorder(),
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
                             onPressed: _tracks.isNotEmpty ? _downloadAll : null,
-                            icon: const Icon(Icons.download_rounded, size: 18),
-                          ),
-                          const SizedBox(width: 8),
-                          IconButton.filledTonal(
-                            tooltip: l10n.locateCurrentSong,
-                            onPressed: _locateCurrentSong,
-                            icon: const Icon(Icons.my_location_rounded, size: 18),
+                            icon: Icon(Icons.download_rounded, size: iconSize),
                           ),
                           const Spacer(),
                           PopupMenuButton<String>(
                             tooltip: l10n.managePlaylists,
-                            iconSize: 20,
+                            iconSize: iconSize,
                             style: IconButton.styleFrom(
-                              visualDensity: VisualDensity.compact,
+                              foregroundColor: theme.colorScheme.onSurfaceVariant,
+                              fixedSize: Size(buttonHeight, buttonHeight),
+                              minimumSize: Size(buttonHeight, buttonHeight),
+                              padding: EdgeInsets.zero,
+                              shape: const CircleBorder(),
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             ),
-                            icon: const Icon(Icons.more_vert_rounded),
+                            icon: Icon(Icons.more_vert_rounded, size: iconSize),
                             onSelected: (value) {
                               if (value == 'rename') {
                                 _showRenameDialog();
