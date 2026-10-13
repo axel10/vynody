@@ -12,6 +12,7 @@ import 'package:audio_core/audio_core.dart';
 import 'package:vynody/widgets/animated_play_pause_button.dart';
 import 'package:vynody/widgets/floating_dock_bottom_bar.dart';
 import 'package:vynody/widgets/mini_player_widgets.dart';
+import 'package:vynody/pages/main_layout_riverpod.dart';
 
 class _MockAudioService extends Fake implements AudioService {
   @override
@@ -231,6 +232,82 @@ void main() {
     );
     expect(playPauseButton.size, 26.0);
     expect(playPauseButton.padding, const EdgeInsets.all(4.0));
+  });
+
+  testWidgets(
+      'FloatingDockBottomBar smoothly collapses and shows active tab icon to expand',
+      (tester) async {
+    tester.view.physicalSize = const Size(393, 852);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    const testSong = MusicFile(
+      path: '/test.mp3',
+      name: 'Test Song',
+      title: 'Test Song',
+      artist: 'Test Artist',
+    );
+
+    late WidgetRef capturedRef;
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          settingsServiceProvider.overrideWith((ref) => settings),
+          audioServiceProvider.overrideWith((ref) => _MockAudioService()),
+          audioCurrentMusicProvider.overrideWith((ref) => testSong),
+          audioIsPlayingProvider.overrideWith((ref) => false),
+          audioIsBufferingProvider.overrideWith((ref) => false),
+          audioProgressProvider.overrideWith((ref) => 0.0),
+          audioPositionProvider.overrideWith((ref) => Duration.zero),
+          audioDurationProvider.overrideWith((ref) => Duration.zero),
+        ],
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('zh'),
+          home: Scaffold(
+            body: Consumer(
+              builder: (context, ref, _) {
+                capturedRef = ref;
+                return Stack(
+                  children: [
+                    FloatingDockBottomBar(
+                      currentIndex: 0,
+                      onDestinationSelected: (_) {},
+                      isPlayback: false,
+                      isHidden: false,
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // 默认展开态：显示歌曲标题
+    expect(find.text('Test Song'), findsOneWidget);
+
+    // 触发收起
+    capturedRef.read(floatingDockCollapsedProvider.notifier).setCollapsed(true);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 160)); // 中间过渡态
+    await tester.pumpAndSettle(); // 完全收起
+
+    // 收起态：最左侧包含当前 Tab 图标按钮（点击可展开）
+    final expandIconFinder = find.byIcon(Icons.folder);
+    expect(expandIconFinder, findsWidgets);
+
+    // 点击最左侧 Tab 图标展开
+    await tester.tap(expandIconFinder.first);
+    await tester.pumpAndSettle();
+
+    // 展开后状态恢复
+    expect(capturedRef.read(floatingDockCollapsedProvider), false);
   });
 }
 

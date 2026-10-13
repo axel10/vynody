@@ -181,106 +181,128 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
                           ? null
                           : AppBlur.glassBorder(context),
                     ),
-                    child: isCollapsed
-                        ? _buildCollapsedDock(
-                            context,
-                            ref,
-                            l10n: l10n,
-                            theme: theme,
-                            isDark: isDark,
-                            currentMusic: currentMusic,
-                            isPlaying: isPlaying,
-                            isBuffering: isBuffering,
-                            audio: audio,
-                            isTablet: isTablet,
-                            currentTab: currentTab,
-                          )
-                        : Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              // 1. 上半部：Mini 播放器
-                              AnimatedSize(
-                                duration: const Duration(milliseconds: 300),
-                                curve: Curves.easeOutCubic,
-                                child: showMini
-                                    ? _buildMiniPlayerHeader(
-                                        context,
-                                        ref,
-                                        l10n: l10n,
-                                        theme: theme,
-                                        isDark: isDark,
-                                        currentMusic: currentMusic,
-                                        isPlaying: isPlaying,
-                                        isBuffering: isBuffering,
-                                        audio: audio,
-                                        position: position,
-                                        duration: duration,
-                                        isTablet: isTablet,
-                                      )
-                                    : const SizedBox.shrink(),
-                              ),
+                    child: TweenAnimationBuilder<double>(
+                      duration: const Duration(milliseconds: 320),
+                      curve: Curves.easeOutCubic,
+                      tween: Tween<double>(
+                        begin: 0.0,
+                        end: isCollapsed ? 1.0 : 0.0,
+                      ),
+                      builder: (context, t, child) {
+                        return Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // 1. 上半部：Mini 播放器 / 收起态胶囊顶栏（随折叠平滑形变）
+                            AnimatedSize(
+                              duration: const Duration(milliseconds: 300),
+                              curve: Curves.easeOutCubic,
+                              child: showMini
+                                  ? _buildMorphingHeader(
+                                      context,
+                                      ref,
+                                      l10n: l10n,
+                                      theme: theme,
+                                      isDark: isDark,
+                                      currentMusic: currentMusic,
+                                      isPlaying: isPlaying,
+                                      isBuffering: isBuffering,
+                                      audio: audio,
+                                      position: position,
+                                      duration: duration,
+                                      currentTab: currentTab,
+                                      collapseProgress: t,
+                                      isTablet: isTablet,
+                                    )
+                                  : const SizedBox.shrink(),
+                            ),
 
-                              // 2. 中间：可拖拽胶囊滑块的实时播放进度条
-                              AnimatedSize(
-                                duration: const Duration(milliseconds: 250),
-                                curve: Curves.easeOutCubic,
-                                child: showMini
-                                    ? _FloatingDockProgressBar(
-                                        theme: theme,
-                                        isDark: isDark,
-                                        progress: progress,
-                                        isDragging: _isDragging,
-                                        dragProgress: _dragProgress,
-                                        onDragStart: (val) {
-                                          setState(() {
-                                            _isDragging = true;
-                                            _dragProgress = val;
-                                          });
-                                        },
-                                        onDragUpdate: (val) {
-                                          setState(() {
-                                            _isDragging = true;
-                                            _dragProgress = val;
-                                          });
-                                        },
-                                        onDragEnd: (val) {
-                                          final seekProgress =
-                                              val.clamp(0.0, 1.0);
-                                          if (duration.inMilliseconds > 0) {
-                                            audio.seek(
-                                              Duration(
-                                                milliseconds:
-                                                    (duration.inMilliseconds *
-                                                            seekProgress)
-                                                        .toInt(),
-                                              ),
-                                            );
-                                          }
-                                          setState(() {
-                                            _isDragging = false;
-                                          });
-                                        },
-                                        onDragCancel: () {
-                                          setState(() {
-                                            _isDragging = false;
-                                          });
-                                        },
-                                      )
-                                    : const SizedBox.shrink(),
-                              ),
+                            // 2. 中间：实时播放进度条（折叠时平滑向上折叠收缩并淡出）
+                            AnimatedSize(
+                              duration: const Duration(milliseconds: 250),
+                              curve: Curves.easeOutCubic,
+                              child: showMini
+                                  ? ClipRect(
+                                      child: Align(
+                                        alignment: Alignment.topCenter,
+                                        heightFactor:
+                                            (1.0 - t).clamp(0.0, 1.0),
+                                        child: Opacity(
+                                          opacity:
+                                              (1.0 - t * 1.5).clamp(0.0, 1.0),
+                                          child: _FloatingDockProgressBar(
+                                            theme: theme,
+                                            isDark: isDark,
+                                            progress: progress,
+                                            isDragging: _isDragging,
+                                            dragProgress: _dragProgress,
+                                            onDragStart: (val) {
+                                              setState(() {
+                                                _isDragging = true;
+                                                _dragProgress = val;
+                                              });
+                                            },
+                                            onDragUpdate: (val) {
+                                              setState(() {
+                                                _isDragging = true;
+                                                _dragProgress = val;
+                                              });
+                                            },
+                                            onDragEnd: (val) {
+                                              final seekProgress =
+                                                  val.clamp(0.0, 1.0);
+                                              if (duration.inMilliseconds > 0) {
+                                                audio.seek(
+                                                  Duration(
+                                                    milliseconds:
+                                                        (duration.inMilliseconds *
+                                                                seekProgress)
+                                                            .toInt(),
+                                                  ),
+                                                );
+                                              }
+                                              setState(() {
+                                                _isDragging = false;
+                                              });
+                                            },
+                                            onDragCancel: () {
+                                              setState(() {
+                                                _isDragging = false;
+                                              });
+                                            },
+                                          ),
+                                        ),
+                                      ),
+                                    )
+                                  : const SizedBox.shrink(),
+                            ),
 
-                              // 3. 下半部：Tab 导航栏
-                              _buildBottomTabs(
-                                context,
-                                theme,
-                                isDark,
-                                l10n,
-                                tabs: tabs,
-                                isPlayback: widget.isPlayback,
-                                isTablet: isTablet,
+                            // 3. 下半部：Tab 导航栏（折叠时 Tab 图标向左手风琴收起，整体向上折叠）
+                            ClipRect(
+                              child: Align(
+                                alignment: Alignment.topCenter,
+                                heightFactor: (1.0 - t).clamp(0.0, 1.0),
+                                child: Opacity(
+                                  opacity: (1.0 - t * 1.5).clamp(0.0, 1.0),
+                                  child: IgnorePointer(
+                                    ignoring: t > 0.2,
+                                    child: _buildBottomTabs(
+                                      context,
+                                      theme,
+                                      isDark,
+                                      l10n,
+                                      tabs: tabs,
+                                      isPlayback: widget.isPlayback,
+                                      isTablet: isTablet,
+                                      collapseProgress: t,
+                                    ),
+                                  ),
+                                ),
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
                   ),
                 ),
               ),
@@ -291,171 +313,11 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
     );
   }
 
-  /// 收起形态下的 Dock 栏内容：
-  /// 单行胶囊，左侧当前 Tab 图标（点击展开），右侧封面 + 歌曲名/歌手 + 播放暂停 + 下一首
-  Widget _buildCollapsedDock(
-    BuildContext context,
-    WidgetRef ref, {
-    required AppLocalizations l10n,
-    required ThemeData theme,
-    required bool isDark,
-    required dynamic currentMusic,
-    required bool isPlaying,
-    required bool isBuffering,
-    required AudioService audio,
-    required bool isTablet,
-    required _TabItem currentTab,
-  }) {
-    final double prevNextIconSize = isTablet ? 24.0 : 20.0;
-    final double playPauseIconSize = isTablet ? 30.0 : 26.0;
-    final EdgeInsets buttonPadding = isTablet
-        ? const EdgeInsets.all(7.0)
-        : const EdgeInsets.all(4.0);
-    final double buttonSpacing = isTablet ? 6.0 : 2.0;
-
-    final activeColor = (widget.isPlayback || isDark) ? Colors.white : Colors.black87;
-
-    return SizedBox(
-      height: isTablet ? 58.0 : 52.0,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          // 背景频谱动画
-          Positioned.fill(
-            child: MiniSpectrumBackground(
-              audio: audio,
-            ),
-          ),
-          Padding(
-            padding: EdgeInsets.symmetric(
-              horizontal: isTablet ? 10.0 : 8.0,
-              vertical: 4.0,
-            ),
-            child: Row(
-              children: [
-                // 1. 最左侧：当前所在 Tab 的图标按钮，点击后恢复为展开形态
-                AppTooltip(
-                  message: currentTab.label,
-                  child: Material(
-                    color: Colors.transparent,
-                    borderRadius: BorderRadius.circular(16),
-                    clipBehavior: Clip.antiAlias,
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(16),
-                      onTap: () {
-                        ref
-                            .read(floatingDockCollapsedProvider.notifier)
-                            .setCollapsed(false);
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.all(6.0),
-                        child: Icon(
-                          currentTab.selectedIcon,
-                          size: isTablet ? 26.0 : 22.0,
-                          color: activeColor,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(width: 4.0),
-
-                // 2. 中间：封面 + 歌曲标题 + 艺术家（点击进入播放详情页）
-                Expanded(
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(16),
-                      onTap: () => widget.onDestinationSelected(1),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 4.0,
-                          vertical: 2.0,
-                        ),
-                        child: Row(
-                          children: [
-                            MiniArtwork(
-                              size: isTablet ? 40.0 : 36.0,
-                              borderRadius: isTablet ? 8.0 : 6.0,
-                            ),
-                            SizedBox(width: isTablet ? 10.0 : 8.0),
-                            Expanded(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    currentMusic.title,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontSize: isTablet ? 14.0 : 13.0,
-                                      fontWeight: FontWeight.w600,
-                                      color: isDark
-                                          ? Colors.white
-                                          : Colors.black87,
-                                      height: 1.2,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    currentMusic.artist ?? l10n.unknownArtist,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontSize: isTablet ? 12.0 : 11.0,
-                                      color: isDark
-                                          ? Colors.white60
-                                          : Colors.black54,
-                                      height: 1.1,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-
-                // 3. 右侧：播放控制按钮（收起形态下隐藏上一首，仅显示播放/暂停和下一首）
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    AnimatedPlayPauseButton(
-                      isPlaying: isPlaying,
-                      isLoading: isBuffering,
-                      onPressed: audio.togglePlay,
-                      color: isDark ? Colors.white : Colors.black87,
-                      size: playPauseIconSize,
-                      padding: buttonPadding,
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      tooltip: isPlaying ? l10n.pause : l10n.play,
-                    ),
-                    SizedBox(width: buttonSpacing),
-                    MiniControlButton(
-                      icon: Icons.skip_next_rounded,
-                      iconSize: prevNextIconSize,
-                      padding: buttonPadding,
-                      onPressed: audio.next,
-                      tooltip: l10n.next,
-                    ),
-                    SizedBox(width: isTablet ? 6.0 : 2.0),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// 上半部 Mini 播放器内容
-  Widget _buildMiniPlayerHeader(
+  /// 一体化平滑形变 Mini 播放器顶栏：
+  /// - 展开态 (collapseProgress = 0.0)：标准两行展开 Mini 播放器，最左侧无 Tab 图标，显示上一首按钮；
+  /// - 收起态 (collapseProgress = 1.0)：单行胶囊，最左侧展开 Tab 图标，封面和歌曲信息平滑右移至对应槽位，上一首按钮平滑收折；
+  /// - 过渡态：左侧 Tab 展开推移封面与文字，各元素尺寸与透明度连续插值。
+  Widget _buildMorphingHeader(
     BuildContext context,
     WidgetRef ref, {
     required AppLocalizations l10n,
@@ -467,6 +329,8 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
     required AudioService audio,
     required Duration position,
     required Duration duration,
+    required _TabItem currentTab,
+    required double collapseProgress,
     bool isTablet = false,
   }) {
     final displayPosition = _isDragging
@@ -478,18 +342,29 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
         : position;
 
     final double prevNextIconSize = isTablet ? 26.0 : 20.0;
-    final double playPauseIconSize = isTablet ? 32.0 : 26.0;
+    final double playPauseIconSize = isTablet
+        ? (32.0 - 2.0 * collapseProgress)
+        : 26.0;
     final EdgeInsets buttonPadding = isTablet
         ? const EdgeInsets.all(8.0)
         : const EdgeInsets.all(4.0);
-    final double buttonSpacing = isTablet ? 8.0 : 2.0;
+    final double buttonSpacing = isTablet
+        ? (8.0 - 2.0 * collapseProgress)
+        : 2.0;
+
+    final double headerHeight = isTablet
+        ? (64.0 - 6.0 * collapseProgress)
+        : (54.0 - 2.0 * collapseProgress);
+
+    final activeColor =
+        (widget.isPlayback || isDark) ? Colors.white : Colors.black87;
 
     return SizedBox(
-      height: isTablet ? 64.0 : 54.0,
+      height: headerHeight,
       child: Stack(
         alignment: Alignment.center,
         children: [
-          // 0. 背景频谱动画 (像 MiniPlayerCard 那样)
+          // 0. 背景频谱动画
           Positioned.fill(
             child: MiniSpectrumBackground(
               audio: audio,
@@ -499,8 +374,8 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
           // 1. 歌曲信息与按钮区域（拖动进度条时高斯模糊并淡出）
           Padding(
             padding: EdgeInsets.symmetric(
-              horizontal: isTablet ? 12.0 : 10.0,
-              vertical: isTablet ? 8.0 : 6.0,
+              horizontal: isTablet ? 10.0 : 8.0,
+              vertical: 4.0,
             ),
             child: Stack(
               alignment: Alignment.center,
@@ -524,7 +399,57 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
                     },
                     child: Row(
                       children: [
-                        // 左侧：封面 + 歌曲名/歌手（点击直达播放页）
+                        // ① 最左侧：收起态出现的当前 Tab 图标按钮（点击展开 Dock 栏）
+                        // 展开态宽度为 0，收起态平滑展开并向右推移封面和标题
+                        ClipRect(
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            widthFactor: collapseProgress.clamp(0.0, 1.0),
+                            child: Opacity(
+                              opacity: collapseProgress.clamp(0.0, 1.0),
+                              child: Transform.scale(
+                                scale: 0.7 + 0.3 * collapseProgress,
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    AppTooltip(
+                                      message: currentTab.label,
+                                      child: Material(
+                                        color: Colors.transparent,
+                                        borderRadius: BorderRadius.circular(16),
+                                        clipBehavior: Clip.antiAlias,
+                                        child: InkWell(
+                                          borderRadius: BorderRadius.circular(16),
+                                          onTap: collapseProgress > 0.5
+                                              ? () {
+                                                  ref
+                                                      .read(
+                                                        floatingDockCollapsedProvider
+                                                            .notifier,
+                                                      )
+                                                      .setCollapsed(false);
+                                                }
+                                              : null,
+                                          child: Container(
+                                            padding: const EdgeInsets.all(6.0),
+                                            child: Icon(
+                                              currentTab.selectedIcon,
+                                              size: isTablet ? 26.0 : 22.0,
+                                              color: activeColor,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4.0),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        // ② 中间：封面 + 歌曲名/歌手（随左侧 Tab 展开平滑移动到收起目标位置）
                         Expanded(
                           child: Material(
                             color: Colors.transparent,
@@ -539,21 +464,27 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
                                 child: Row(
                                   children: [
                                     MiniArtwork(
-                                      size: isTablet ? 42.0 : 36.0,
+                                      size: isTablet
+                                          ? (42.0 - 2.0 * collapseProgress)
+                                          : 36.0,
                                       borderRadius: isTablet ? 8.0 : 6.0,
                                     ),
-                                    SizedBox(width: isTablet ? 12.0 : 10.0),
+                                    SizedBox(width: isTablet ? 10.0 : 8.0),
                                     Expanded(
                                       child: Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           Text(
                                             currentMusic.title,
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
                                             style: TextStyle(
-                                              fontSize: isTablet ? 15.0 : 13.0,
+                                              fontSize: isTablet
+                                                  ? (15.0 - 1.0 * collapseProgress)
+                                                  : 13.0,
                                               fontWeight: FontWeight.w600,
                                               color: isDark
                                                   ? Colors.white
@@ -563,11 +494,13 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
                                           ),
                                           const SizedBox(height: 2),
                                           Text(
-                                            currentMusic.artist ?? l10n.unknownArtist,
+                                            currentMusic.artist ??
+                                                l10n.unknownArtist,
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
                                             style: TextStyle(
-                                              fontSize: isTablet ? 13.0 : 11.0,
+                                              fontSize:
+                                                  isTablet ? 12.0 : 11.0,
                                               color: isDark
                                                   ? Colors.white60
                                                   : Colors.black54,
@@ -584,18 +517,35 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
                           ),
                         ),
 
-                        // 右侧：播放控制按钮
+                        // ③ 右侧：播放控制按钮
                         Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            MiniControlButton(
-                              icon: Icons.skip_previous_rounded,
-                              iconSize: prevNextIconSize,
-                              padding: buttonPadding,
-                              onPressed: audio.previous,
-                              tooltip: l10n.previous,
+                            // 上一首：展开态可见，收起态平滑收折宽度并淡出
+                            ClipRect(
+                              child: Align(
+                                alignment: Alignment.centerRight,
+                                widthFactor:
+                                    (1.0 - collapseProgress).clamp(0.0, 1.0),
+                                child: Opacity(
+                                  opacity: (1.0 - collapseProgress)
+                                      .clamp(0.0, 1.0),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      MiniControlButton(
+                                        icon: Icons.skip_previous_rounded,
+                                        iconSize: prevNextIconSize,
+                                        padding: buttonPadding,
+                                        onPressed: audio.previous,
+                                        tooltip: l10n.previous,
+                                      ),
+                                      SizedBox(width: buttonSpacing),
+                                    ],
+                                  ),
+                                ),
+                              ),
                             ),
-                            SizedBox(width: buttonSpacing),
                             AnimatedPlayPauseButton(
                               isPlaying: isPlaying,
                               isLoading: isBuffering,
@@ -603,7 +553,8 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
                               color: isDark ? Colors.white : Colors.black87,
                               size: playPauseIconSize,
                               padding: buttonPadding,
-                              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              materialTapTargetSize:
+                                  MaterialTapTargetSize.shrinkWrap,
                               tooltip: isPlaying ? l10n.pause : l10n.play,
                             ),
                             SizedBox(width: buttonSpacing),
@@ -614,7 +565,11 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
                               onPressed: audio.next,
                               tooltip: l10n.next,
                             ),
-                            SizedBox(width: isTablet ? 8.0 : 4.0),
+                            SizedBox(
+                              width: isTablet
+                                  ? (8.0 - 2.0 * collapseProgress)
+                                  : 2.0,
+                            ),
                           ],
                         ),
                       ],
@@ -668,9 +623,7 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
     );
   }
 
-
-
-  /// 下半部 Tab 导航项
+  /// 下半部 Tab 导航项（支持收起过程中 Tab 图标向左手风琴收拢过渡）
   Widget _buildBottomTabs(
     BuildContext context,
     ThemeData theme,
@@ -679,8 +632,8 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
     required List<_TabItem> tabs,
     required bool isPlayback,
     bool isTablet = false,
+    double collapseProgress = 0.0,
   }) {
-
     return Container(
       height: isTablet ? 56.0 : 52.0,
       padding: EdgeInsets.symmetric(
@@ -692,13 +645,17 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
         children: tabs.map((tab) {
           final isSelected = widget.currentIndex == tab.index;
           return Expanded(
-            child: _TabButton(
-              item: tab,
-              isSelected: isSelected,
-              isPlayback: isPlayback,
-              isDark: isDark,
-              isTablet: isTablet,
-              onTap: () => widget.onDestinationSelected(tab.index),
+            child: Transform.translate(
+              // 手风琴向左收起：越靠右的 Tab 越快向左叠拢收折
+              offset: Offset(-24.0 * tab.index * collapseProgress, 0.0),
+              child: _TabButton(
+                item: tab,
+                isSelected: isSelected,
+                isPlayback: isPlayback,
+                isDark: isDark,
+                isTablet: isTablet,
+                onTap: () => widget.onDestinationSelected(tab.index),
+              ),
             ),
           );
         }).toList(),
