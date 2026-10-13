@@ -250,13 +250,40 @@ class ScannerPathUtils {
     _sandboxPathCache[path] = result;
   }
 
-  static void setIosSandboxDirs({String? docDir, String? libDir}) {
+  static final Set<String> _externalRoots = <String>{};
+
+  static void setExternalRoots(Iterable<String> roots) {
+    _externalRoots
+      ..clear()
+      ..addAll(roots.map(normalizePath).where((r) => r.isNotEmpty));
+    _sandboxPathCache.clear();
+  }
+
+  static bool isWithinExternalRoot(String path) {
+    if (path.isEmpty || _externalRoots.isEmpty) return false;
+    final normalized = normalizePath(path);
+    for (final root in _externalRoots) {
+      if (pathsEqual(root, normalized) || pathContains(root, normalized)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  static void setIosSandboxDirs({
+    String? docDir,
+    String? libDir,
+    Iterable<String>? externalRoots,
+  }) {
     _sandboxPathCache.clear();
     if (docDir != null && docDir.isNotEmpty) {
       _currentIosDocDir = normalizePath(docDir);
     }
     if (libDir != null && libDir.isNotEmpty) {
       _currentIosLibDir = normalizePath(libDir);
+    }
+    if (externalRoots != null) {
+      setExternalRoots(externalRoots);
     }
   }
 
@@ -304,10 +331,25 @@ class ScannerPathUtils {
       return trimmed;
     }
 
+    // If path is within an authorized external root, it belongs to an external directory!
+    // Never rewrite it to Vynody's sandbox.
+    if (isWithinExternalRoot(trimmed)) {
+      _putSandboxCache(path, trimmed);
+      return trimmed;
+    }
+
     // If the path exists as-is on the filesystem (e.g. valid external folder/file from another app container or iCloud),
     // do not rewrite it to our own sandbox!
     try {
       if (FileSystemEntity.typeSync(trimmed) != FileSystemEntityType.notFound) {
+        _putSandboxCache(path, trimmed);
+        return trimmed;
+      }
+    } on FileSystemException catch (e) {
+      // On iOS, accessing another app container without active security-scoped access
+      // throws OS Error: Operation not permitted (errno = 1).
+      // This indicates the entity exists in a restricted external container; do NOT rewrite it to our sandbox!
+      if (e.osError?.errorCode == 1) {
         _putSandboxCache(path, trimmed);
         return trimmed;
       }

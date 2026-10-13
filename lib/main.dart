@@ -9,6 +9,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:oktoast/oktoast.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:flutter/services.dart';
 import 'dialogs/close_window_action_dialog.dart';
@@ -205,9 +206,12 @@ void main(List<String> args) async {
     try {
       final docDir = await getApplicationDocumentsDirectory();
       final libDir = await getApplicationSupportDirectory();
+      final prefs = await SharedPreferences.getInstance();
+      final rootPaths = prefs.getStringList('root_paths');
       ScannerPathUtils.setIosSandboxDirs(
         docDir: docDir.path,
         libDir: libDir.path,
+        externalRoots: rootPaths,
       );
     } catch (e) {
       AppLog.log('Failed to initialize iOS sandbox directories: $e', mirrorToConsole: true);
@@ -363,19 +367,6 @@ void main(List<String> args) async {
   await cleanupLyricsAiTempArtifacts();
   // 优化内存占用：将默认 100MB / 1000 张的图片缓存限制调整为更合理的 40MB / 100 张
   PaintingBinding.instance.imageCache.maximumSizeBytes = 40 * 1024 * 1024;
-  if (Platform.isIOS || Platform.isMacOS) {
-    try {
-      final docDir = await getApplicationDocumentsDirectory();
-      final currentSandbox = p.dirname(docDir.path);
-      ScannerPathUtils.setIosSandboxDirs(
-        docDir: docDir.path,
-        libDir: p.join(currentSandbox, 'Library', 'Application Support'),
-      );
-    } catch (e) {
-      AppLog.log('failed to set iOS sandbox dirs: $e', mirrorToConsole: true);
-    }
-  }
-
   AppLog.log('calling runApp', mirrorToConsole: true);
   MemoryTrace.snapshot('main:runApp');
   runApp(

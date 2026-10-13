@@ -1027,6 +1027,12 @@ class AudioService extends Notifier<AudioSnapshot> {
   }
 
   Future<bool> _songExists(String path) async {
+    if ((Platform.isIOS || Platform.isMacOS) && !RemoteMediaResolver.isRemoteUri(path)) {
+      try {
+        await _player.registerPersistentAccess(path: path);
+        await _player.beginScopedAccess(path: path);
+      } catch (_) {}
+    }
     return PlaybackSessionManager.songExists(path);
   }
 

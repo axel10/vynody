@@ -52,6 +52,15 @@ void main() {
       }
     });
 
+    test('does not rewrite paths within authorized external roots', () {
+      const extRoot = '/var/mobile/Containers/Data/Application/EXTERNAL-APP-UUID/Documents';
+      ScannerPathUtils.setExternalRoots([extRoot]);
+
+      const extSong = '$extRoot/human/album/song.flac';
+      final resolved = ScannerPathUtils.resolveIosSandboxPath(extSong);
+      expect(resolved, extSong);
+    });
+
     test('isSandboxInternalPath correctly detects sandbox paths', () {
       expect(
         ScannerPathUtils.isSandboxInternalPath(

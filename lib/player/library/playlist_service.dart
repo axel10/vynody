@@ -172,6 +172,8 @@ class PlaylistService extends ChangeNotifier {
   Future<void> _init() async {
     await _loadPlaylists();
     if (_disposed) return;
+    await _healCorruptedIosPlaylistSongPaths();
+    if (_disposed) return;
     // 确保内置列表始终存在，并保持在普通列表之后。
     final hasDefault = _playlists.any((p) => p.id == 'default');
     final hasFavorites = _playlists.any((p) => p.id == favoritePlaylistId);
@@ -255,11 +257,67 @@ class PlaylistService extends ChangeNotifier {
     }
   }
 
+  /// 修复在 iOS/macOS 上由于之前 sandbox 路径误重写而被错误修改的播放列表歌曲路径
+  Future<void> _healCorruptedIosPlaylistSongPaths() async {
+    if (!Platform.isIOS && !Platform.isMacOS) return;
+    final docDir = ScannerPathUtils.docDir;
+    if (docDir == null || docDir.isEmpty) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    final roots = prefs.getStringList('root_paths') ?? _cachedRootPaths;
+    if (roots.isEmpty) return;
+
+    final externalRoots = roots
+        .map(ScannerPathUtils.normalizePath)
+        .where((r) =>
+            r.isNotEmpty &&
+            !ScannerPathUtils.pathsEqual(r, docDir) &&
+            !ScannerPathUtils.pathContains(docDir, r))
+        .toList();
+    if (externalRoots.isEmpty) return;
+
+    bool anyChanged = false;
+    for (final playlist in _playlists) {
+      for (var i = 0; i < playlist.songs.length; i++) {
+        final song = playlist.songs[i];
+        final normalizedSongPath = ScannerPathUtils.normalizePath(song.path);
+
+        // 如果歌曲路径指向 docDir 但在 docDir 中不存在，尝试在外部 roots 中寻回真实路径
+        if (ScannerPathUtils.pathsEqual(docDir, normalizedSongPath) ||
+            ScannerPathUtils.pathContains(docDir, normalizedSongPath)) {
+          final fileInDoc = File(normalizedSongPath);
+          if (!fileInDoc.existsSync()) {
+            final rel = p.relative(normalizedSongPath, from: docDir);
+            if (rel.isNotEmpty && !rel.startsWith('..')) {
+              for (final extRoot in externalRoots) {
+                final candidatePath =
+                    ScannerPathUtils.normalizePath(p.join(extRoot, rel));
+                // 匹配外部根目录下的真实路径，成功恢复
+                playlist.songs[i] = song.copyWith(
+                  path: candidatePath,
+                  isMissing: false,
+                );
+                anyChanged = true;
+                break;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    if (anyChanged) {
+      await _savePlaylists();
+      notifyListeners();
+    }
+  }
+
   /// 刷新缓存的扫描根路径
   Future<void> refreshRootPaths() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       _cachedRootPaths = prefs.getStringList('root_paths') ?? [];
+      await _healCorruptedIosPlaylistSongPaths();
     } catch (_) {}
   }
 

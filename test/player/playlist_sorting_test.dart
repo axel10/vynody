@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/library/playlist_service.dart';
+import 'package:vynody/player/scanner/scanner_path_utils.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -134,6 +135,32 @@ void main() {
           .map((p) => p.id)
           .toList();
       expect(sortedUpdated, equals(['pl-recent', 'pl-old']));
+    });
+
+    test('PlaylistService heals corrupted sandbox paths for songs in external roots', () async {
+      ScannerPathUtils.setIosSandboxDirs(
+        docDir: '/var/mobile/Containers/Data/Application/CURRENT-VYNODY-UUID/Documents',
+        libDir: '/var/mobile/Containers/Data/Application/CURRENT-VYNODY-UUID/Library/Application Support',
+      );
+      const extRoot = '/var/mobile/Containers/Data/Application/EXTERNAL-APP-UUID/Documents';
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList('root_paths', [extRoot]);
+
+      final service = PlaylistService();
+      // Add playlist with corrupted song path pointing to current sandbox docDir
+      const corruptedSong = MusicFile(
+        path: '/var/mobile/Containers/Data/Application/CURRENT-VYNODY-UUID/Documents/human/song.flac',
+        name: 'song.flac',
+        isMissing: true,
+      );
+      final pl = Playlist(id: 'pl-corrupted', name: 'Test', songs: [corruptedSong]);
+      await service.addPlaylist(pl);
+
+      await service.refreshRootPaths();
+
+      final healedPlaylist = service.playlists.firstWhere((p) => p.id == 'pl-corrupted');
+      expect(healedPlaylist.songs.first.path, '$extRoot/human/song.flac');
+      expect(healedPlaylist.songs.first.isMissing, isFalse);
     });
   });
 }

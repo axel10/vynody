@@ -89,6 +89,7 @@ class ScannerServiceRoots {
     _rootPaths
       ..clear()
       ..addAll(retainedPaths);
+    ScannerPathUtils.setExternalRoots(_rootPaths);
     _onRootsMutated?.call();
     if (removedPaths.isNotEmpty) {
       await saveRootPaths();
@@ -100,6 +101,7 @@ class ScannerServiceRoots {
   Future<void> saveRootPaths() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setStringList('root_paths', _rootPaths);
+    ScannerPathUtils.setExternalRoots(_rootPaths);
   }
 
   Future<void> setRootPaths(Iterable<String> paths) async {
@@ -107,6 +109,7 @@ class ScannerServiceRoots {
     _rootPaths
       ..clear()
       ..addAll(normalizedRoots);
+    ScannerPathUtils.setExternalRoots(_rootPaths);
     _onRootsMutated?.call();
     await saveRootPaths();
     await refreshRootWatchers();

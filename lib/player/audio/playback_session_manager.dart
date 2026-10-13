@@ -202,12 +202,18 @@ class PlaybackSessionManager {
 
     if (Platform.isIOS || Platform.isMacOS) {
       final resolved = ScannerPathUtils.resolveIosSandboxPath(path);
-      if (File(resolved).existsSync()) {
-        return true;
-      }
+      try {
+        if (File(resolved).existsSync()) {
+          return true;
+        }
+      } catch (_) {}
     }
 
-    return File(path).exists();
+    try {
+      return File(path).exists();
+    } catch (_) {
+      return false;
+    }
   }
 
   static Future<int> resolveRestoredQueueIndex(
