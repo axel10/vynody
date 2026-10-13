@@ -414,6 +414,140 @@ void main() {
   });
 
   testWidgets(
+      'FloatingDockScrollHelper expands when upward scroll reaches expandScrollThreshold',
+      (tester) async {
+    late WidgetRef capturedRef;
+    late BuildContext capturedContext;
+    final helper = FloatingDockScrollHelper(
+      collapseScrollThreshold: 72.0,
+      expandScrollThreshold: 72.0,
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          home: Scaffold(
+            body: Consumer(
+              builder: (context, ref, _) {
+                capturedRef = ref;
+                capturedContext = context;
+                return const SizedBox();
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final metrics = FixedScrollMetrics(
+      minScrollExtent: 0,
+      maxScrollExtent: 1000,
+      pixels: 200,
+      viewportDimension: 500,
+      axisDirection: AxisDirection.down,
+      devicePixelRatio: 1.0,
+    );
+
+    // 1. Manually set collapsed to true
+    capturedRef.read(floatingDockCollapsedProvider.notifier).setCollapsed(true);
+    expect(capturedRef.read(floatingDockCollapsedProvider), true);
+
+    // 2. Upward scroll exceeding 72px expands dock
+    helper.handleScrollNotification(
+      ScrollUpdateNotification(
+        metrics: metrics,
+        context: capturedContext,
+        scrollDelta: -75.0,
+      ),
+      capturedRef,
+    );
+    expect(capturedRef.read(floatingDockCollapsedProvider), false);
+  });
+
+  testWidgets(
+      'FloatingDockScrollHelper resets upward accumulated distance on gesture end so micro drags do not expand prematurely',
+      (tester) async {
+    late WidgetRef capturedRef;
+    late BuildContext capturedContext;
+    final helper = FloatingDockScrollHelper(
+      collapseScrollThreshold: 72.0,
+      expandScrollThreshold: 72.0,
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          home: Scaffold(
+            body: Consumer(
+              builder: (context, ref, _) {
+                capturedRef = ref;
+                capturedContext = context;
+                return const SizedBox();
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final metrics = FixedScrollMetrics(
+      minScrollExtent: 0,
+      maxScrollExtent: 1000,
+      pixels: 300,
+      viewportDimension: 500,
+      axisDirection: AxisDirection.down,
+      devicePixelRatio: 1.0,
+    );
+
+    capturedRef.read(floatingDockCollapsedProvider.notifier).setCollapsed(true);
+    expect(capturedRef.read(floatingDockCollapsedProvider), true);
+
+    // 1. Small drag of 30px (< 72px)
+    helper.handleScrollNotification(
+      ScrollUpdateNotification(
+        metrics: metrics,
+        context: capturedContext,
+        scrollDelta: -30.0,
+      ),
+      capturedRef,
+    );
+    expect(capturedRef.read(floatingDockCollapsedProvider), true);
+
+    // Gesture ends: resets accumulated distance
+    helper.handleScrollNotification(
+      ScrollEndNotification(
+        metrics: metrics,
+        context: capturedContext,
+      ),
+      capturedRef,
+    );
+    expect(capturedRef.read(floatingDockCollapsedProvider), true);
+
+    // 2. Another small drag of 30px: should NOT expand because previous 30px was cleared
+    helper.handleScrollNotification(
+      ScrollUpdateNotification(
+        metrics: metrics,
+        context: capturedContext,
+        scrollDelta: -30.0,
+      ),
+      capturedRef,
+    );
+    expect(capturedRef.read(floatingDockCollapsedProvider), true);
+
+    // 3. A drag of 80px (>= 72px) without interruption: expands dock
+    helper.handleScrollNotification(
+      ScrollUpdateNotification(
+        metrics: metrics,
+        context: capturedContext,
+        scrollDelta: -80.0,
+      ),
+      capturedRef,
+    );
+    expect(capturedRef.read(floatingDockCollapsedProvider), false);
+  });
+
+
+  testWidgets(
       'FloatingDockBottomBar scales down slightly when collapsePrepProgress increases',
       (tester) async {
     late WidgetRef capturedRef;

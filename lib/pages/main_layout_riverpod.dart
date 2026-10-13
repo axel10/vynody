@@ -208,19 +208,25 @@ final floatingDockCollapsedProvider =
       FloatingDockCollapsedNotifier.new,
     );
 
-/// 辅助管理浮动 Dock 随向下滚动收起与缩小指示的手势距离判定
+/// 辅助管理浮动 Dock 随向下滚动收起与缩小指示、以及向上滚动展开的手势判定
 class FloatingDockScrollHelper {
   FloatingDockScrollHelper({
     this.collapseScrollThreshold = 72.0,
+    this.expandScrollThreshold = 72.0,
   });
 
   /// 触发收起所需的向下累计滚动距离 (逻辑像素)
   final double collapseScrollThreshold;
 
+  /// 触发展开所需的向上累计滚动距离 (逻辑像素)
+  final double expandScrollThreshold;
+
   double _accumulatedDownScroll = 0.0;
+  double _accumulatedUpScroll = 0.0;
 
   void reset(WidgetRef ref) {
     _accumulatedDownScroll = 0.0;
+    _accumulatedUpScroll = 0.0;
     ref.read(floatingDockCollapseProgressProvider.notifier).reset();
   }
 
@@ -234,9 +240,10 @@ class FloatingDockScrollHelper {
 
     final isCollapsed = ref.read(floatingDockCollapsedProvider);
 
-    // 接近顶部缓冲区时，展开 Dock 并清空累计距离
+    // 接近顶部缓冲区时，展开 Dock 并清空所有累计距离
     if (notification.metrics.pixels <= 20.0) {
       _accumulatedDownScroll = 0.0;
+      _accumulatedUpScroll = 0.0;
       ref.read(floatingDockCollapseProgressProvider.notifier).reset();
       if (isCollapsed) {
         ref.read(floatingDockCollapsedProvider.notifier).setCollapsed(false);
@@ -244,14 +251,36 @@ class FloatingDockScrollHelper {
       return false;
     }
 
-    // 若已经收起，无需计算收起准备进度
+    // 若已经收起，判断向上滚动展开（单次手势达到阈值展开，换向或松手清零）
     if (isCollapsed) {
       if (_accumulatedDownScroll != 0.0) {
         _accumulatedDownScroll = 0.0;
         ref.read(floatingDockCollapseProgressProvider.notifier).reset();
       }
+
+      // 手势换向或手势结束（松手）：清空向上累计，保证慢速小幅微调不误触
+      if (notification is UserScrollNotification ||
+          notification is ScrollEndNotification) {
+        _accumulatedUpScroll = 0.0;
+      } else if (notification is ScrollUpdateNotification) {
+        final dy = notification.scrollDelta ?? 0.0;
+        if (dy > 0) {
+          // 向下滚动：重置向上累计
+          _accumulatedUpScroll = 0.0;
+        } else if (dy < 0) {
+          // 向上滚动（dy < 0，对应内容向下移动）
+          _accumulatedUpScroll += -dy;
+          if (_accumulatedUpScroll >= expandScrollThreshold) {
+            _accumulatedUpScroll = 0.0;
+            ref.read(floatingDockCollapsedProvider.notifier).setCollapsed(false);
+          }
+        }
+      }
       return false;
     }
+
+    // 若当前处于展开状态：重置向上累计，计算向下滚动收起与缩小指示
+    _accumulatedUpScroll = 0.0;
 
     if (notification is ScrollUpdateNotification) {
       final dy = notification.scrollDelta ?? 0.0;
