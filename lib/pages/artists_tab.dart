@@ -13,7 +13,6 @@ import 'artist_detail_page.dart';
 import '../widgets/artist_avatar.dart';
 import '../widgets/draggable_artist_item.dart';
 import '../widgets/remote_media_badge.dart';
-import '../widgets/scroll_to_top_wrapper.dart';
 import '../widgets/library_selection_scope.dart';
 import '../widgets/library_selection_panel.dart';
 import '../models/music_file.dart';
@@ -289,12 +288,9 @@ class _ArtistsTabState extends ConsumerState<ArtistsTab>
                 padding: EdgeInsets.only(
                   left: widget.contentLeftPadding,
                 ),
-                child: ScrollToTopWrapper(
-                  scrollController: _scrollController,
-                  bottomOffset: bottomOffset,
-                  child: CustomScrollView(
-                    controller: _scrollController,
-                    slivers: [
+                child: CustomScrollView(
+                  controller: _scrollController,
+                  slivers: [
                       if (widget.contentTopPadding > 0)
                         SliverToBoxAdapter(
                           child: SizedBox(height: widget.contentTopPadding),
@@ -406,8 +402,7 @@ class _ArtistsTabState extends ConsumerState<ArtistsTab>
                       ),
                   ],
                 ),
-              ),
-            );
+              );
           }
 
             return Stack(

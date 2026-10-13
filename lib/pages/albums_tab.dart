@@ -14,7 +14,6 @@ import '../widgets/song_thumbnail.dart';
 import '../widgets/default_cover_art.dart';
 import '../widgets/remote_media_badge.dart';
 import 'album_detail_page.dart';
-import '../widgets/scroll_to_top_wrapper.dart';
 import '../widgets/library_selection_scope.dart';
 import '../widgets/library_selection_panel.dart';
 import '../models/music_file.dart';
@@ -426,14 +425,11 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab>
                           child: Center(
                             child: ConstrainedBox(
                               constraints: const BoxConstraints(maxWidth: kFolderPageMaxWidth),
-                              child: ScrollToTopWrapper(
+                              child: CustomScrollView(
                                 key: const ValueKey('album_grid_view'),
-                                scrollController: _scrollController,
-                                bottomOffset: bottomOffset,
-                                child: CustomScrollView(
-                                  controller: _scrollController,
-                                  cacheExtent: 1000,
-                                  slivers: [
+                                controller: _scrollController,
+                                cacheExtent: 1000,
+                                slivers: [
                                     if (widget.contentTopPadding > 0)
                                       SliverToBoxAdapter(
                                         child: SizedBox(
@@ -481,8 +477,7 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab>
                               ),
                             ),
                           ),
-                        ),
-                );
+                  );
 
                 return Stack(
                   children: [

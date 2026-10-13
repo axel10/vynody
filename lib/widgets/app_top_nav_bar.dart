@@ -6,6 +6,7 @@ import 'package:vynody/l10n/app_localizations.dart';
 import 'package:vynody/utils/blur_constants.dart';
 import 'package:vynody/utils/layout_constants.dart';
 import 'app_tooltip.dart';
+import 'auto_hide_header.dart';
 
 /// 统一的顶部返回导航栏组件，供媒体库二级分类宿主页及实体详情页复用。
 class AppTopNavBar extends StatelessWidget {
@@ -18,6 +19,7 @@ class AppTopNavBar extends StatelessWidget {
     this.showBackButton = true,
     this.actions,
     this.titleSpacing = 4.0,
+    this.onTitleTap,
   });
 
   final String? title;
@@ -27,6 +29,7 @@ class AppTopNavBar extends StatelessWidget {
   final bool showBackButton;
   final List<Widget>? actions;
   final double titleSpacing;
+  final VoidCallback? onTitleTap;
 
   /// 标准内容高度（44px）
   static const double contentHeight = 44.0;
@@ -52,6 +55,24 @@ class AppTopNavBar extends StatelessWidget {
   /// 计算整个顶部栏的总高度（safeTopPadding + contentHeight）
   static double getBarHeight(BuildContext context) {
     return getSafeTopPadding(context) + contentHeight;
+  }
+
+  void _handleTitleTap(BuildContext context) {
+    if (onTitleTap != null) {
+      onTitleTap!();
+      return;
+    }
+    if (AutoHideHeaderScope.scrollToTop(context)) {
+      return;
+    }
+    final primary = PrimaryScrollController.maybeOf(context);
+    if (primary != null && primary.hasClients && primary.offset > 0) {
+      primary.animateTo(
+        0,
+        duration: const Duration(milliseconds: 350),
+        curve: Curves.easeOutCubic,
+      );
+    }
   }
 
   @override
@@ -104,7 +125,20 @@ class AppTopNavBar extends StatelessWidget {
                   SizedBox(width: titleSpacing),
                 ] else
                   const SizedBox(width: 16),
-                Expanded(child: effectiveTitle),
+                Expanded(
+                  child: MouseRegion(
+                    cursor: SystemMouseCursors.click,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => _handleTitleTap(context),
+                      child: Container(
+                        alignment: Alignment.centerLeft,
+                        height: double.infinity,
+                        child: effectiveTitle,
+                      ),
+                    ),
+                  ),
+                ),
                 if (actions != null && actions!.isNotEmpty) ...[
                   ...actions!,
                   const SizedBox(width: 4),

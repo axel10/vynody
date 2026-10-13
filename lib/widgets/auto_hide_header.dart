@@ -31,6 +31,12 @@ class AutoHideHeaderScope extends StatefulWidget {
     this.showThreshold = 72.0,
   });
 
+  /// 供顶部导航栏等组件统一调用，将最近活跃的垂直滚动视图平滑滚动回顶部
+  static bool scrollToTop(BuildContext context) {
+    final state = context.findAncestorStateOfType<_AutoHideHeaderScopeState>();
+    return state?.scrollToTop() ?? false;
+  }
+
   @override
   State<AutoHideHeaderScope> createState() => _AutoHideHeaderScopeState();
 }
@@ -39,6 +45,7 @@ class _AutoHideHeaderScopeState extends State<AutoHideHeaderScope> {
   bool _isVisible = true;
   double _accumulatedDownScroll = 0.0;
   double _accumulatedUpScroll = 0.0;
+  ScrollPosition? _lastActiveScrollPosition;
 
   bool get _effectiveEnabled => widget.enabled && isMobileAutoHidePlatform;
 
@@ -47,7 +54,29 @@ class _AutoHideHeaderScopeState extends State<AutoHideHeaderScope> {
     _accumulatedUpScroll = 0.0;
   }
 
+  bool scrollToTop() {
+    if (_lastActiveScrollPosition != null &&
+        _lastActiveScrollPosition!.hasPixels &&
+        _lastActiveScrollPosition!.pixels > 0) {
+      _lastActiveScrollPosition!.animateTo(
+        0,
+        duration: const Duration(milliseconds: 350),
+        curve: Curves.easeOutCubic,
+      );
+      return true;
+    }
+    return false;
+  }
+
   bool _onNotification(ScrollNotification notification) {
+    // 捕获最近活跃的垂直滚动位置，支持点击顶部栏标题统一回顶
+    if (notification.metrics.axis == Axis.vertical && notification.context != null) {
+      final scrollable = Scrollable.maybeOf(notification.context!);
+      if (scrollable != null) {
+        _lastActiveScrollPosition = scrollable.position;
+      }
+    }
+
     if (!_effectiveEnabled) return false;
     if (widget.forceVisible) {
       _resetAccumulated();
