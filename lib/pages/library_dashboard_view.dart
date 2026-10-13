@@ -60,7 +60,7 @@ class LibraryDashboardView extends ConsumerWidget {
       body: LayoutBuilder(
         builder: (context, constraints) {
           final isWide = constraints.maxWidth >= 780;
-          final horizontalPadding = isWide ? 32.0 : 20.0;
+          final horizontalPadding = isWide ? 32.0 : 16.0;
 
           return CustomScrollView(
             physics: const BouncingScrollPhysics(),
