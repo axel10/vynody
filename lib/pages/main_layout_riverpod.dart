@@ -163,6 +163,33 @@ final isSettingsPageActiveProvider =
     NotifierProvider<IsSettingsPageActiveNotifier, bool>(
       IsSettingsPageActiveNotifier.new,
     );
+import 'package:flutter/widgets.dart';
+
+class FloatingDockCollapseProgressNotifier extends Notifier<double> {
+  @override
+  double build() => 0.0;
+
+  void setProgress(double value) {
+    if (!ref.mounted) return;
+    final clamped = value.clamp(0.0, 1.0);
+    if ((state - clamped).abs() > 0.002) {
+      state = clamped;
+    }
+  }
+
+  void reset() {
+    if (!ref.mounted) return;
+    if (state != 0.0) {
+      state = 0.0;
+    }
+  }
+}
+
+final floatingDockCollapseProgressProvider =
+    NotifierProvider<FloatingDockCollapseProgressNotifier, double>(
+      FloatingDockCollapseProgressNotifier.new,
+    );
+
 class FloatingDockCollapsedNotifier extends Notifier<bool> {
   @override
   bool build() => false;
@@ -172,6 +199,7 @@ class FloatingDockCollapsedNotifier extends Notifier<bool> {
     if (state != value) {
       state = value;
     }
+    ref.read(floatingDockCollapseProgressProvider.notifier).reset();
   }
 }
 
@@ -179,4 +207,87 @@ final floatingDockCollapsedProvider =
     NotifierProvider<FloatingDockCollapsedNotifier, bool>(
       FloatingDockCollapsedNotifier.new,
     );
+
+/// 辅助管理浮动 Dock 随向下滚动收起与缩小指示的手势距离判定
+class FloatingDockScrollHelper {
+  FloatingDockScrollHelper({
+    this.collapseScrollThreshold = 72.0,
+  });
+
+  /// 触发收起所需的向下累计滚动距离 (逻辑像素)
+  final double collapseScrollThreshold;
+
+  double _accumulatedDownScroll = 0.0;
+
+  void reset(WidgetRef ref) {
+    _accumulatedDownScroll = 0.0;
+    ref.read(floatingDockCollapseProgressProvider.notifier).reset();
+  }
+
+  bool handleScrollNotification(
+    ScrollNotification notification,
+    WidgetRef ref,
+  ) {
+    if (notification.metrics.axis != Axis.vertical) {
+      return false;
+    }
+
+    final isCollapsed = ref.read(floatingDockCollapsedProvider);
+
+    // 接近顶部缓冲区时，展开 Dock 并清空累计距离
+    if (notification.metrics.pixels <= 20.0) {
+      _accumulatedDownScroll = 0.0;
+      ref.read(floatingDockCollapseProgressProvider.notifier).reset();
+      if (isCollapsed) {
+        ref.read(floatingDockCollapsedProvider.notifier).setCollapsed(false);
+      }
+      return false;
+    }
+
+    // 若已经收起，无需计算收起准备进度
+    if (isCollapsed) {
+      if (_accumulatedDownScroll != 0.0) {
+        _accumulatedDownScroll = 0.0;
+        ref.read(floatingDockCollapseProgressProvider.notifier).reset();
+      }
+      return false;
+    }
+
+    if (notification is ScrollUpdateNotification) {
+      final dy = notification.scrollDelta ?? 0.0;
+      if (notification.metrics.pixels > 30.0) {
+        if (dy > 0) {
+          _accumulatedDownScroll += dy;
+          if (_accumulatedDownScroll >= collapseScrollThreshold) {
+            _accumulatedDownScroll = 0.0;
+            ref.read(floatingDockCollapseProgressProvider.notifier).reset();
+            ref.read(floatingDockCollapsedProvider.notifier).setCollapsed(true);
+          } else {
+            final progress = (_accumulatedDownScroll / collapseScrollThreshold)
+                .clamp(0.0, 1.0);
+            ref
+                .read(floatingDockCollapseProgressProvider.notifier)
+                .setProgress(progress);
+          }
+        } else if (dy < 0) {
+          _accumulatedDownScroll = (_accumulatedDownScroll + dy * 1.5)
+              .clamp(0.0, collapseScrollThreshold);
+          final progress = (_accumulatedDownScroll / collapseScrollThreshold)
+              .clamp(0.0, 1.0);
+          ref
+              .read(floatingDockCollapseProgressProvider.notifier)
+              .setProgress(progress);
+        }
+      }
+    } else if (notification is ScrollEndNotification) {
+      if (_accumulatedDownScroll > 0.0) {
+        _accumulatedDownScroll = 0.0;
+        ref.read(floatingDockCollapseProgressProvider.notifier).reset();
+      }
+    }
+
+    return false;
+  }
+}
+
 

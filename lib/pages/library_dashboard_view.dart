@@ -30,7 +30,7 @@ import '../widgets/section_type_toggle.dart';
 const double kDashboardDesktopCoverScale = 1.9;
 
 /// 竖屏移动端下封面缩放系数
-const double kDashboardMobileCoverScale = 1.0;
+const double kDashboardMobileCoverScale = 1.2;
 
 /// 桌面端与移动端统一的响应式媒体库首页（Dashboard 仪表盘）
 class LibraryDashboardView extends ConsumerWidget {
