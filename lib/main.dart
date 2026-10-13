@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
 import 'package:path/path.dart' as p;
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -607,6 +608,15 @@ class _MyAppState extends ConsumerState<MyApp>
       colorScheme: colorScheme,
       scaffoldBackgroundColor: isDark ? Colors.black : null,
       useMaterial3: true,
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: {
+          TargetPlatform.android: ZoomPageTransitionsBuilder(),
+          TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.windows: ZoomPageTransitionsBuilder(),
+          TargetPlatform.linux: ZoomPageTransitionsBuilder(),
+        },
+      ),
       fontFamily: (!kIsWeb && Platform.isWindows) ? 'Segoe UI' : null,
       fontFamilyFallback: (!kIsWeb && (Platform.isMacOS || Platform.isIOS))
           ? const [
