@@ -689,6 +689,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
         ref.read(previousMainTabIndexProvider.notifier).setIndex(_currentIndex);
       }
       ref.read(mainTabIndexProvider.notifier).setIndex(index);
+      ref.read(floatingDockCollapsedProvider.notifier).setCollapsed(false);
       _currentBaseTabIndex = index;
       Tooltip.dismissAllToolTips();
       setState(() {
@@ -1251,17 +1252,46 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                         child: Row(
                           children: [
                             Expanded(
-                              child: GlobalDropTarget(
-                                enable:
-                                    _currentIndex != 3 &&
-                                    !(_currentIndex == 1 &&
-                                        isSmallWin &&
-                                        settings.smallWindowBottomPanelMode !=
-                                            SmallWindowBottomPanelMode.collapsed),
-                                child: _buildCurrentPage(
-                                  isDesktop,
-                                  useSidebar,
-                                  isCoverFlowImmersive,
+                              child: NotificationListener<ScrollNotification>(
+                                onNotification: (notification) {
+                                  if (notification.metrics.axis ==
+                                      Axis.vertical) {
+                                    if (notification.metrics.pixels <= 20.0) {
+                                      ref
+                                          .read(
+                                            floatingDockCollapsedProvider
+                                                .notifier,
+                                          )
+                                          .setCollapsed(false);
+                                    } else if (notification
+                                        is ScrollUpdateNotification) {
+                                      final dy =
+                                          notification.scrollDelta ?? 0.0;
+                                      if (dy > 3.0 &&
+                                          notification.metrics.pixels > 40.0) {
+                                        ref
+                                            .read(
+                                              floatingDockCollapsedProvider
+                                                  .notifier,
+                                            )
+                                            .setCollapsed(true);
+                                      }
+                                    }
+                                  }
+                                  return false;
+                                },
+                                child: GlobalDropTarget(
+                                  enable:
+                                      _currentIndex != 3 &&
+                                      !(_currentIndex == 1 &&
+                                          isSmallWin &&
+                                          settings.smallWindowBottomPanelMode !=
+                                              SmallWindowBottomPanelMode.collapsed),
+                                  child: _buildCurrentPage(
+                                    isDesktop,
+                                    useSidebar,
+                                    isCoverFlowImmersive,
+                                  ),
                                 ),
                               ),
                             ),

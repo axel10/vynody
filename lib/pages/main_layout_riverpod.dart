@@ -163,7 +163,20 @@ final isSettingsPageActiveProvider =
     NotifierProvider<IsSettingsPageActiveNotifier, bool>(
       IsSettingsPageActiveNotifier.new,
     );
+class FloatingDockCollapsedNotifier extends Notifier<bool> {
+  @override
+  bool build() => false;
 
+  void setCollapsed(bool value) {
+    if (!ref.mounted) return;
+    if (state != value) {
+      state = value;
+    }
+  }
+}
 
-
+final floatingDockCollapsedProvider =
+    NotifierProvider<FloatingDockCollapsedNotifier, bool>(
+      FloatingDockCollapsedNotifier.new,
+    );
 

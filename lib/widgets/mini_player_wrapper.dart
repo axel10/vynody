@@ -62,7 +62,28 @@ class _MiniPlayerWrapperState extends ConsumerState<MiniPlayerWrapper> {
 
     return Stack(
       children: [
-        Positioned.fill(child: widget.child),
+        Positioned.fill(
+          child: NotificationListener<ScrollNotification>(
+            onNotification: (notification) {
+              if (notification.metrics.axis == Axis.vertical) {
+                if (notification.metrics.pixels <= 20.0) {
+                  ref
+                      .read(floatingDockCollapsedProvider.notifier)
+                      .setCollapsed(false);
+                } else if (notification is ScrollUpdateNotification) {
+                  final dy = notification.scrollDelta ?? 0.0;
+                  if (dy > 3.0 && notification.metrics.pixels > 40.0) {
+                    ref
+                        .read(floatingDockCollapsedProvider.notifier)
+                        .setCollapsed(true);
+                  }
+                }
+              }
+              return false;
+            },
+            child: widget.child,
+          ),
+        ),
         FloatingDockBottomBar(
           currentIndex: activeTabIndex,
           onDestinationSelected: (index) async {
