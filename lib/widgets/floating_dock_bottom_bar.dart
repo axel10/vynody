@@ -423,34 +423,42 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
                                   children: [
                                     AppTooltip(
                                       message: currentTab.label,
-                                      child: Material(
-                                        color: Colors.transparent,
-                                        borderRadius: BorderRadius.circular(16),
-                                        clipBehavior: Clip.antiAlias,
-                                        child: InkWell(
-                                          borderRadius: BorderRadius.circular(16),
-                                          onTap: collapseProgress > 0.5
-                                              ? () {
-                                                  ref
-                                                      .read(
-                                                        floatingDockCollapsedProvider
-                                                            .notifier,
-                                                      )
-                                                      .setCollapsed(false);
-                                                }
-                                              : null,
-                                          child: Container(
-                                            padding: const EdgeInsets.all(6.0),
-                                            child: Icon(
-                                              currentTab.selectedIcon,
-                                              size: isTablet ? 26.0 : 22.0,
-                                              color: activeColor,
+                                      child: MouseRegion(
+                                        cursor: SystemMouseCursors.click,
+                                        child: Material(
+                                          color: Colors.transparent,
+                                          borderRadius:
+                                              BorderRadius.circular(16),
+                                          clipBehavior: Clip.antiAlias,
+                                          child: InkWell(
+                                            borderRadius:
+                                                BorderRadius.circular(16),
+                                            onTap: collapseProgress > 0.2
+                                                ? () {
+                                                    ref
+                                                        .read(
+                                                          floatingDockCollapsedProvider
+                                                              .notifier,
+                                                        )
+                                                        .setCollapsed(false);
+                                                  }
+                                                : null,
+                                            child: SizedBox(
+                                              width: isTablet ? 56.0 : 48.0,
+                                              height: isTablet ? 48.0 : 44.0,
+                                              child: Center(
+                                                child: Icon(
+                                                  currentTab.selectedIcon,
+                                                  size: isTablet ? 26.0 : 22.0,
+                                                  color: activeColor,
+                                                ),
+                                              ),
                                             ),
                                           ),
                                         ),
                                       ),
                                     ),
-                                    const SizedBox(width: 4.0),
+                                    SizedBox(width: isTablet ? 8.0 : 6.0),
                                   ],
                                 ),
                               ),

@@ -302,6 +302,16 @@ void main() {
     final expandIconFinder = find.byIcon(Icons.folder);
     expect(expandIconFinder, findsWidgets);
 
+    // 验证收起态 Tab 按钮的点击区域尺寸（手机端至少 48x44）
+    final inkWellFinder = find.ancestor(
+      of: expandIconFinder.first,
+      matching: find.byType(InkWell),
+    );
+    expect(inkWellFinder, findsOneWidget);
+    final inkWellSize = tester.getSize(inkWellFinder);
+    expect(inkWellSize.width, greaterThanOrEqualTo(48.0));
+    expect(inkWellSize.height, greaterThanOrEqualTo(44.0));
+
     // 点击最左侧 Tab 图标展开
     await tester.tap(expandIconFinder.first);
     await tester.pumpAndSettle();
