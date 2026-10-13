@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class MainLayoutUiState {
@@ -163,7 +164,6 @@ final isSettingsPageActiveProvider =
     NotifierProvider<IsSettingsPageActiveNotifier, bool>(
       IsSettingsPageActiveNotifier.new,
     );
-import 'package:flutter/widgets.dart';
 
 class FloatingDockCollapseProgressNotifier extends Notifier<double> {
   @override

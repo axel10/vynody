@@ -309,5 +309,162 @@ void main() {
     // 展开后状态恢复
     expect(capturedRef.read(floatingDockCollapsedProvider), false);
   });
+
+  testWidgets(
+      'FloatingDockScrollHelper accumulates scroll distance, updates progress, and collapses at threshold',
+      (tester) async {
+    late WidgetRef capturedRef;
+    late BuildContext capturedContext;
+    final helper = FloatingDockScrollHelper(collapseScrollThreshold: 72.0);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          home: Scaffold(
+            body: Consumer(
+              builder: (context, ref, _) {
+                capturedRef = ref;
+                capturedContext = context;
+                return const SizedBox();
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+
+    // Initial state
+    expect(capturedRef.read(floatingDockCollapsedProvider), false);
+    expect(capturedRef.read(floatingDockCollapseProgressProvider), 0.0);
+
+    final metricsMid = FixedScrollMetrics(
+      minScrollExtent: 0,
+      maxScrollExtent: 1000,
+      pixels: 50,
+      viewportDimension: 500,
+      axisDirection: AxisDirection.down,
+      devicePixelRatio: 1.0,
+    );
+
+    // Scroll down halfway (36px out of 72px)
+    helper.handleScrollNotification(
+      ScrollUpdateNotification(
+        metrics: metricsMid,
+        context: capturedContext,
+        scrollDelta: 36.0,
+      ),
+      capturedRef,
+    );
+    expect(
+      capturedRef.read(floatingDockCollapseProgressProvider),
+      closeTo(0.5, 0.01),
+    );
+    expect(capturedRef.read(floatingDockCollapsedProvider), false);
+
+    // Scroll end before reaching threshold resets progress
+    helper.handleScrollNotification(
+      ScrollEndNotification(
+        metrics: metricsMid,
+        context: capturedContext,
+      ),
+      capturedRef,
+    );
+    expect(capturedRef.read(floatingDockCollapseProgressProvider), 0.0);
+
+    // Scroll reaches threshold (72px) -> triggers collapse
+    helper.handleScrollNotification(
+      ScrollUpdateNotification(
+        metrics: metricsMid,
+        context: capturedContext,
+        scrollDelta: 72.0,
+      ),
+      capturedRef,
+    );
+    expect(capturedRef.read(floatingDockCollapsedProvider), true);
+    expect(capturedRef.read(floatingDockCollapseProgressProvider), 0.0);
+
+    // Return to top (< 20px) unfolds dock
+    final metricsTop = FixedScrollMetrics(
+      minScrollExtent: 0,
+      maxScrollExtent: 1000,
+      pixels: 10,
+      viewportDimension: 500,
+      axisDirection: AxisDirection.down,
+      devicePixelRatio: 1.0,
+    );
+    helper.handleScrollNotification(
+      ScrollUpdateNotification(
+        metrics: metricsTop,
+        context: capturedContext,
+        scrollDelta: -50.0,
+      ),
+      capturedRef,
+    );
+    expect(capturedRef.read(floatingDockCollapsedProvider), false);
+  });
+
+  testWidgets(
+      'FloatingDockBottomBar scales down slightly when collapsePrepProgress increases',
+      (tester) async {
+    late WidgetRef capturedRef;
+    const testSong = MusicFile(
+      path: '/test.mp3',
+      name: 'Test Song',
+      title: 'Test Song',
+      artist: 'Test Artist',
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          settingsServiceProvider.overrideWith((ref) => settings),
+          audioServiceProvider.overrideWith((ref) => _MockAudioService()),
+          audioCurrentMusicProvider.overrideWith((ref) => testSong),
+          audioIsPlayingProvider.overrideWith((ref) => false),
+          audioIsBufferingProvider.overrideWith((ref) => false),
+          audioProgressProvider.overrideWith((ref) => 0.0),
+          audioPositionProvider.overrideWith((ref) => Duration.zero),
+          audioDurationProvider.overrideWith((ref) => Duration.zero),
+        ],
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('zh'),
+          home: Scaffold(
+            body: Consumer(
+              builder: (context, ref, _) {
+                capturedRef = ref;
+                return Stack(
+                  children: [
+                    FloatingDockBottomBar(
+                      currentIndex: 0,
+                      onDestinationSelected: (_) {},
+                      isPlayback: false,
+                      isHidden: false,
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Find AnimatedScale widget
+    final animatedScaleFinder = find.byType(AnimatedScale);
+    expect(animatedScaleFinder, findsOneWidget);
+    AnimatedScale scaleWidget = tester.widget(animatedScaleFinder);
+    expect(scaleWidget.scale, 1.0);
+
+    // Simulate progress 1.0
+    capturedRef
+        .read(floatingDockCollapseProgressProvider.notifier)
+        .setProgress(1.0);
+    await tester.pump();
+    scaleWidget = tester.widget(animatedScaleFinder);
+    expect(scaleWidget.scale, closeTo(0.95, 0.001));
+  });
 }
 

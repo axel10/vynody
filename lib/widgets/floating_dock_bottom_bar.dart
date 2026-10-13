@@ -88,6 +88,10 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
 
     final isCollapsedState = ref.watch(floatingDockCollapsedProvider);
     final isCollapsed = showMini && isCollapsedState;
+    final collapsePrepProgress =
+        ref.watch(floatingDockCollapseProgressProvider);
+    final double prepScale =
+        isCollapsed ? 1.0 : (1.0 - (0.05 * collapsePrepProgress));
 
     final tabs = [
       _TabItem(
@@ -148,8 +152,12 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
           opacity: isEffectivelyHidden ? 0.0 : 1.0,
           child: IgnorePointer(
             ignoring: isEffectivelyHidden,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
+            child: AnimatedScale(
+              scale: prepScale,
+              duration: const Duration(milliseconds: 160),
+              curve: Curves.easeOutCubic,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
               curve: Curves.easeOutCubic,
               constraints: BoxConstraints(
                 maxWidth: isCollapsed
@@ -304,6 +312,7 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
                       },
                     ),
                   ),
+                ),
                 ),
               ),
             ),

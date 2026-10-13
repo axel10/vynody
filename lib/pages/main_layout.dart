@@ -197,6 +197,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
   final GlobalKey<LibraryPageState> _libraryPageKey =
       GlobalKey<LibraryPageState>();
   final Set<int> _visitedTabs = <int>{};
+  final FloatingDockScrollHelper _dockScrollHelper = FloatingDockScrollHelper();
 
   bool _isOnboardingDialogOpen = false;
   bool _isTrialResetNoticeDialogOpen = false;
@@ -1253,33 +1254,11 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                           children: [
                             Expanded(
                               child: NotificationListener<ScrollNotification>(
-                                onNotification: (notification) {
-                                  if (notification.metrics.axis ==
-                                      Axis.vertical) {
-                                    if (notification.metrics.pixels <= 20.0) {
-                                      ref
-                                          .read(
-                                            floatingDockCollapsedProvider
-                                                .notifier,
-                                          )
-                                          .setCollapsed(false);
-                                    } else if (notification
-                                        is ScrollUpdateNotification) {
-                                      final dy =
-                                          notification.scrollDelta ?? 0.0;
-                                      if (dy > 3.0 &&
-                                          notification.metrics.pixels > 40.0) {
-                                        ref
-                                            .read(
-                                              floatingDockCollapsedProvider
-                                                  .notifier,
-                                            )
-                                            .setCollapsed(true);
-                                      }
-                                    }
-                                  }
-                                  return false;
-                                },
+                                onNotification: (notification) =>
+                                    _dockScrollHelper.handleScrollNotification(
+                                  notification,
+                                  ref,
+                                ),
                                 child: GlobalDropTarget(
                                   enable:
                                       _currentIndex != 3 &&
