@@ -1034,7 +1034,6 @@ class _RemotePlaylistDetailContentState
     final comment = _playlistData?['comment'] as String?;
     final owner = _playlistData?['owner'] as String?;
 
-    final headerColor = theme.colorScheme.secondaryContainer.withValues(alpha: 0.65);
     final isPortrait =
         MediaQuery.orientationOf(context) == Orientation.portrait;
     final double buttonHeight = isPortrait ? 44.0 : 32.0;
@@ -1049,24 +1048,16 @@ class _RemotePlaylistDetailContentState
             slivers: [
               // Header Section
               SliverToBoxAdapter(
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [headerColor, theme.colorScheme.surface],
-                    ),
-                  ),
-                  child: Align(
-                    alignment: Alignment.topCenter,
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: kSingleColumnContentMaxWidth),
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-                        child: LayoutBuilder(
-                          builder: (context, constraints) {
-                            final isNarrow = constraints.maxWidth < 460;
-                            final double imageSize = isNarrow ? 120 : 160;
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: kSingleColumnContentMaxWidth),
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          final isNarrow = isPortrait || constraints.maxWidth < 460;
+                          final double imageSize = isPortrait ? 220 : (isNarrow ? 120 : 160);
 
                             final coverWidget = Hero(
                               tag: 'navidrome_playlist_${widget.playlistId}',
@@ -1210,7 +1201,6 @@ class _RemotePlaylistDetailContentState
                       ),
                     ),
                   ),
-                ),
               ),
 
               // Action Toolbar
