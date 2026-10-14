@@ -264,6 +264,8 @@ class ScannerPathUtils {
     Iterable<String>? externalRoots,
     Iterable<String>? historicalSandboxUuids,
   }) {
+    if (docDir != null) _currentIosDocDir = normalizePath(docDir);
+    if (libDir != null) _currentIosLibDir = normalizePath(libDir);
     IosPathManager.configure(
       docDir: docDir,
       libDir: libDir,

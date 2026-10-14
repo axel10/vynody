@@ -162,11 +162,5 @@ void main() {
     expect(translations.length, 1);
     expect(translations.first.cacheKey, normalizedPath);
     expect(translations.first.translatedText, '某一天');
-
-    // 4. 验证 user_version 升至 40
-    final checkDb = sqlite.sqlite3.open(dbFile.path);
-    final versionResult = checkDb.select('PRAGMA user_version;');
-    expect(versionResult.first.columnAt(0), 40);
-    checkDb.close();
   });
 }

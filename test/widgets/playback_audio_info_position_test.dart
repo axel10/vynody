@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vynody/l10n/app_localizations.dart';
+import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/audio/app_playback_mode.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/audio/audio_service.dart';
@@ -57,6 +58,42 @@ class _TestAudioService extends AudioService {
   AudioSnapshot build() {
     return _createTestSnapshot();
   }
+
+  @override
+  MusicFile? get currentMusic => null;
+
+  @override
+  List<MusicFile> get queue => const [];
+
+  @override
+  List<MusicFile> get playbackQueue => const [];
+
+  @override
+  int get currentIndex => 0;
+
+  @override
+  bool get isBuffering => false;
+
+  @override
+  Duration get duration => Duration.zero;
+
+  @override
+  Duration get position => Duration.zero;
+
+  @override
+  bool get isLyricsActive => false;
+
+  @override
+  double get volume => 1.0;
+
+  @override
+  bool get isMuted => false;
+
+  @override
+  AppPlaybackMode get playbackMode => AppPlaybackMode.queue;
+
+  @override
+  Uint8List? getCachedArtwork(String? path) => null;
 }
 
 void main() {

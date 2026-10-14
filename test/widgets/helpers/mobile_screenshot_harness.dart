@@ -217,6 +217,12 @@ class MockLyricsController extends LyricsController {
   MusicLyric? currentLyricsForCurrentSong() => lyrics;
 
   @override
+  MusicLyric? displayLyricsForCurrentSong({
+    bool applyTranslation = true,
+    bool returnPlainLyricsFallback = true,
+  }) => lyrics;
+
+  @override
   LyricsSongTaskState taskStateForSong(String? songPath) => const LyricsSongTaskState();
 
   @override
@@ -252,6 +258,20 @@ class MockAudioService extends AudioService {
   MusicFile? get currentMusic => snapshot.currentMusic;
 
   @override
+  List<MusicFile> get queue => snapshot.playbackQueue.isNotEmpty
+      ? snapshot.playbackQueue
+      : (snapshot.currentMusic != null ? [snapshot.currentMusic!] : const []);
+
+  @override
+  List<MusicFile> get playbackQueue => queue;
+
+  @override
+  int get currentIndex => snapshot.currentIndex;
+
+  @override
+  bool get isBuffering => snapshot.isBuffering;
+
+  @override
   bool get isPlaying => snapshot.isPlaying;
 
   @override
@@ -271,6 +291,9 @@ class MockAudioService extends AudioService {
 
   @override
   Uint8List? getCachedArtwork(String? path) => artworkBytes;
+
+  @override
+  void setCachedArtwork(String path, Uint8List artworkBytes, {String? thumbnailPath}) {}
 
   @override
   Future<void> completeHeroTransition({String? priorityPath}) async {}

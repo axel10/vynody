@@ -9,6 +9,7 @@ import 'package:vynody/dialogs/playlist_manager_dialog.dart';
 import 'package:vynody/l10n/app_localizations.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/library/playlist_service.dart';
+import 'package:vynody/player/pro/pro_license_service.dart';
 import 'package:vynody/widgets/app_bottom_sheet.dart';
 
 import 'helpers/mobile_screenshot_harness.dart';
@@ -159,6 +160,9 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
+          overrides: [
+            isProUnlockedProvider.overrideWithValue(true),
+          ],
           child: MaterialApp(
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
