@@ -671,18 +671,12 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
               );
             },
             onSongMorePressed: (file, buttonContext) {
-              final renderObject = buttonContext.findRenderObject();
-              final renderBox =
-                  renderObject is RenderBox ? renderObject : null;
-              if (renderBox == null) return;
-              final Offset offset = renderBox.localToGlobal(Offset.zero);
               final songsToAdd = (widget.selectedSongPaths.isNotEmpty ||
                       widget.selectedFolderPaths.isNotEmpty)
                   ? _getSelectedSongs()
                   : <MusicFile>[file];
-              showSongContextMenu(
+              showSongBottomSheet(
                 buttonContext,
-                offset,
                 song: file,
                 songs: songsToAdd,
                 mode: SongContextMenuMode.full,

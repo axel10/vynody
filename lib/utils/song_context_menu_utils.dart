@@ -1,9 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:vynody/utils/time_format_utils.dart';
 
 import '../dialogs/add_to_playlist_dialog.dart';
 import '../dialogs/song_tag_edit_dialog.dart';
@@ -285,6 +287,24 @@ Future<void> showSongContextMenu(
   VoidCallback? onImportLyrics,
   VoidCallback? onEditTags,
 }) async {
+  if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+    await showSongBottomSheet(
+      context,
+      song: song,
+      songs: songs,
+      mode: mode,
+      onAddToPlaylist: onAddToPlaylist,
+      onPlayNext: onPlayNext,
+      onAddToQueue: onAddToQueue,
+      onRemoveFromQueue: onRemoveFromQueue,
+      onRemoveFromPlaylist: onRemoveFromPlaylist,
+      onDownload: onDownload,
+      onImportLyrics: onImportLyrics,
+      onEditTags: onEditTags,
+    );
+    return;
+  }
+
   final l10n = AppLocalizations.of(context)!;
 
   final effectiveSongs = (songs != null && songs.isNotEmpty)
@@ -306,7 +326,6 @@ Future<void> showSongContextMenu(
       (Platform.isWindows || Platform.isMacOS || Platform.isLinux) &&
       hasFilePath &&
       !isRemoteSong;
-
 
   final items = <PopupMenuEntry<String>>[];
 
@@ -512,6 +531,530 @@ Future<void> showSongContextMenu(
 
   if (!context.mounted || selected == null) return;
 
+  await handleSongAction(
+    selected: selected,
+    context: context,
+    song: song,
+    effectiveSongs: effectiveSongs,
+    isBatch: isBatch,
+    canOpenLocation: canOpenLocation,
+    hasTitle: hasTitle,
+    hasArtist: hasArtist,
+    hasAlbum: hasAlbum,
+    titleText: titleText,
+    artistText: artistText,
+    albumText: albumText,
+    onAddToPlaylist: onAddToPlaylist,
+    onPlayNext: onPlayNext,
+    onAddToQueue: onAddToQueue,
+    onRemoveFromQueue: onRemoveFromQueue,
+    onRemoveFromPlaylist: onRemoveFromPlaylist,
+    onDownload: onDownload,
+    onImportLyrics: onImportLyrics,
+    onEditTags: onEditTags,
+  );
+}
+
+Widget _buildSongBottomSheetItem({
+  required BuildContext context,
+  required String value,
+  required String label,
+  required IconData icon,
+  bool enabled = true,
+  Color? iconColor,
+}) {
+  final theme = Theme.of(context);
+  return ListTile(
+    leading: Icon(
+      icon,
+      size: 22,
+      color: enabled
+          ? (iconColor ?? theme.colorScheme.onSurfaceVariant)
+          : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+    ),
+    title: Text(
+      label,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: theme.textTheme.bodyLarge?.copyWith(
+        color: enabled
+            ? (iconColor ?? theme.colorScheme.onSurface)
+            : theme.colorScheme.onSurface.withValues(alpha: 0.4),
+      ),
+    ),
+    enabled: enabled,
+    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+    visualDensity: const VisualDensity(horizontal: 0, vertical: -1),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    onTap: () => Navigator.pop(context, value),
+  );
+}
+
+Widget _buildSongBottomSheetHeader({
+  required BuildContext context,
+  required MusicFile? song,
+  required List<MusicFile> effectiveSongs,
+  required bool isBatch,
+}) {
+  final theme = Theme.of(context);
+  final l10n = AppLocalizations.of(context)!;
+
+  final Widget leadingWidget;
+  final String title;
+  final String subtitle;
+  String? metaInfo;
+
+  if (isBatch) {
+    leadingWidget = Container(
+      width: 52,
+      height: 52,
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primaryContainer.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Icon(
+        Icons.library_music_rounded,
+        size: 28,
+        color: theme.colorScheme.primary,
+      ),
+    );
+    title = l10n.songCount(effectiveSongs.length);
+    subtitle = l10n.multiSelect;
+  } else if (song != null) {
+    leadingWidget = ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: SizedBox(
+        width: 52,
+        height: 52,
+        child: SongThumbnail.fromSong(
+          song,
+          size: 52,
+        ),
+      ),
+    );
+    title = song.displayName.trim().isNotEmpty
+        ? song.displayName
+        : l10n.unknown;
+
+    final artist = isVisibleSongText(song.artist) ? song.artist!.trim() : null;
+    final album = isVisibleSongText(song.album) ? song.album!.trim() : null;
+    if (artist != null && album != null) {
+      subtitle = '$artist · $album';
+    } else if (artist != null) {
+      subtitle = artist;
+    } else if (album != null) {
+      subtitle = album;
+    } else {
+      subtitle = l10n.unknownArtist;
+    }
+
+    final durationMillis = song.durationMillis;
+    final durationStr = (durationMillis != null && durationMillis > 0)
+        ? durationMillis.toFormattedDuration()
+        : null;
+    final ext = song.path.contains('.')
+        ? song.path.split('.').last.toUpperCase()
+        : null;
+    final formatStr =
+        (ext != null && ext.isNotEmpty && ext.length <= 5) ? ext : null;
+    final metaParts = [durationStr, formatStr].whereType<String>().toList();
+    if (metaParts.isNotEmpty) {
+      metaInfo = metaParts.join(' | ');
+    }
+  } else {
+    return const SizedBox.shrink();
+  }
+
+  return Row(
+    children: [
+      leadingWidget,
+      const SizedBox(width: 14),
+      Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 3),
+            Text(
+              subtitle,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            if (metaInfo != null) ...[
+              const SizedBox(height: 2),
+              Text(
+                metaInfo,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color:
+                      theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                  fontSize: 11,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    ],
+  );
+}
+
+/// Shows a bottom sheet with action items for a music file.
+/// Standard presentation for mobile devices (Android / iOS).
+Future<void> showSongBottomSheet(
+  BuildContext context, {
+  required MusicFile? song,
+  List<MusicFile>? songs,
+  SongContextMenuMode mode = SongContextMenuMode.full,
+  Future<void> Function()? onAddToPlaylist,
+  VoidCallback? onPlayNext,
+  VoidCallback? onAddToQueue,
+  VoidCallback? onRemoveFromQueue,
+  VoidCallback? onRemoveFromPlaylist,
+  VoidCallback? onDownload,
+  VoidCallback? onImportLyrics,
+  VoidCallback? onEditTags,
+}) async {
+  final l10n = AppLocalizations.of(context)!;
+  final theme = Theme.of(context);
+
+  final effectiveSongs = (songs != null && songs.isNotEmpty)
+      ? songs
+      : (song != null ? [song] : <MusicFile>[]);
+  final isBatch = effectiveSongs.length > 1;
+  final canEditTags = effectiveSongs.isNotEmpty &&
+      effectiveSongs.any((s) => !RemoteMediaResolver.isRemoteUri(s.path));
+
+  final titleText = song?.displayName.trim() ?? '';
+  final artistText = song?.artist?.trim() ?? '';
+  final albumText = song?.album?.trim() ?? '';
+  final hasTitle = titleText.isNotEmpty;
+  final hasArtist = isVisibleSongText(artistText);
+  final hasAlbum = isVisibleSongText(albumText);
+  final isRemoteSong =
+      song != null && RemoteMediaResolver.isRemoteUri(song.path);
+  final hasFilePath = song != null && song.path.trim().isNotEmpty;
+  final canOpenLocation =
+      (Platform.isWindows || Platform.isMacOS || Platform.isLinux) &&
+          hasFilePath &&
+          !isRemoteSong;
+
+  final actions = <Widget>[];
+
+  // 1. Playback actions (Top)
+  if (onPlayNext != null) {
+    actions.add(
+      _buildSongBottomSheetItem(
+        context: context,
+        value: 'play_next',
+        label: l10n.playNext,
+        icon: Icons.queue_play_next_rounded,
+      ),
+    );
+  }
+  if (onAddToQueue != null) {
+    actions.add(
+      _buildSongBottomSheetItem(
+        context: context,
+        value: 'add_to_queue',
+        label: l10n.addToQueue,
+        icon: Icons.queue_music_rounded,
+      ),
+    );
+  }
+  if (onAddToPlaylist != null) {
+    actions.add(
+      _buildSongBottomSheetItem(
+        context: context,
+        value: 'add_to_playlist',
+        label: l10n.addToPlaylist,
+        icon: Icons.playlist_add_rounded,
+      ),
+    );
+  }
+  if (onDownload != null) {
+    actions.add(
+      _buildSongBottomSheetItem(
+        context: context,
+        value: 'download',
+        label: l10n.download,
+        icon: Icons.download_rounded,
+      ),
+    );
+  }
+  if (onRemoveFromQueue != null) {
+    actions.add(
+      _buildSongBottomSheetItem(
+        context: context,
+        value: 'remove_from_queue',
+        label: _getRemoveFromQueueLabel(context),
+        icon: Icons.playlist_remove_rounded,
+      ),
+    );
+  }
+  if (onRemoveFromPlaylist != null) {
+    actions.add(
+      _buildSongBottomSheetItem(
+        context: context,
+        value: 'remove_from_playlist',
+        label: _getRemoveFromPlaylistLabel(context),
+        icon: Icons.delete_outline_rounded,
+        iconColor: theme.colorScheme.error,
+      ),
+    );
+  }
+
+  // 2. Standard Metadata / File Actions
+  switch (mode) {
+    case SongContextMenuMode.full:
+      if (canEditTags) {
+        actions.add(
+          _buildSongBottomSheetItem(
+            context: context,
+            value: 'edit_tags',
+            label: isBatch
+                ? '${l10n.batchEditSongTagsTitle} (${effectiveSongs.length})'
+                : l10n.editSongTagsTitle,
+            icon: Icons.edit_note_rounded,
+          ),
+        );
+      }
+      if (song != null) {
+        actions.add(
+          _buildSongBottomSheetItem(
+            context: context,
+            value: 'song_details',
+            label: l10n.songProperties,
+            icon: Icons.info_outline_rounded,
+          ),
+        );
+        actions.add(
+          _buildSongBottomSheetItem(
+            context: context,
+            value: 'import_lyrics',
+            label: l10n.importLyrics,
+            icon: Icons.lyrics_outlined,
+          ),
+        );
+      }
+      if (song != null || effectiveSongs.isNotEmpty) {
+        actions.add(
+          _buildSongBottomSheetItem(
+            context: context,
+            value: 'transcode',
+            label: l10n.transcodeAction,
+            icon: Icons.sync_rounded,
+          ),
+        );
+      }
+      if (canOpenLocation) {
+        actions.add(
+          _buildSongBottomSheetItem(
+            context: context,
+            value: 'open_file_location',
+            label: l10n.openFileLocation,
+            icon: Icons.folder_open_rounded,
+          ),
+        );
+      }
+      if (hasTitle) {
+        actions.add(
+          _buildSongBottomSheetItem(
+            context: context,
+            value: 'copy_title',
+            label: l10n.copyTitle,
+            icon: Icons.title_rounded,
+          ),
+        );
+      }
+      if (hasAlbum) {
+        actions.add(
+          _buildSongBottomSheetItem(
+            context: context,
+            value: 'copy_album',
+            label: l10n.copyAlbumTitle,
+            icon: Icons.album_rounded,
+          ),
+        );
+      }
+      if (hasArtist) {
+        actions.add(
+          _buildSongBottomSheetItem(
+            context: context,
+            value: 'copy_artist',
+            label: l10n.copyArtistName,
+            icon: Icons.mic_rounded,
+          ),
+        );
+      }
+      break;
+
+    case SongContextMenuMode.title:
+      if (hasTitle) {
+        actions.add(
+          _buildSongBottomSheetItem(
+            context: context,
+            value: 'copy_title',
+            label: l10n.copyTitle,
+            icon: Icons.title_rounded,
+          ),
+        );
+      }
+      if (canOpenLocation) {
+        actions.add(
+          _buildSongBottomSheetItem(
+            context: context,
+            value: 'open_file_location',
+            label: l10n.openFileLocation,
+            icon: Icons.folder_open_rounded,
+          ),
+        );
+      }
+      break;
+
+    case SongContextMenuMode.artistAlbum:
+      if (hasArtist) {
+        actions.add(
+          _buildSongBottomSheetItem(
+            context: context,
+            value: 'copy_artist',
+            label: l10n.copyArtistName,
+            icon: Icons.mic_rounded,
+          ),
+        );
+      }
+      if (hasAlbum) {
+        actions.add(
+          _buildSongBottomSheetItem(
+            context: context,
+            value: 'copy_album',
+            label: l10n.copyAlbumTitle,
+            icon: Icons.album_rounded,
+          ),
+        );
+      }
+      break;
+  }
+
+  final selected = await AppContextMenu.showModalSheet<String>(
+    context: context,
+    builder: (context) => GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => Navigator.pop(context),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+          child: Align(
+            alignment: Alignment.bottomCenter,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 680),
+              child: GestureDetector(
+                onTap: () {},
+                child: Material(
+                  elevation: 16,
+                  color: theme.colorScheme.surface,
+                  shadowColor: Colors.black26,
+                  borderRadius: BorderRadius.circular(24),
+                  clipBehavior: Clip.antiAlias,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _buildSongBottomSheetHeader(
+                          context: context,
+                          song: song,
+                          effectiveSongs: effectiveSongs,
+                          isBatch: isBatch,
+                        ),
+                        const SizedBox(height: 12),
+                        const Divider(height: 1),
+                        const SizedBox(height: 8),
+                        ConstrainedBox(
+                          constraints: BoxConstraints(
+                            maxHeight: MediaQuery.sizeOf(context).height * 0.6,
+                          ),
+                          child: SingleChildScrollView(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: actions,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+
+  if (!context.mounted || selected == null) return;
+
+  await handleSongAction(
+    selected: selected,
+    context: context,
+    song: song,
+    effectiveSongs: effectiveSongs,
+    isBatch: isBatch,
+    canOpenLocation: canOpenLocation,
+    hasTitle: hasTitle,
+    hasArtist: hasArtist,
+    hasAlbum: hasAlbum,
+    titleText: titleText,
+    artistText: artistText,
+    albumText: albumText,
+    onAddToPlaylist: onAddToPlaylist,
+    onPlayNext: onPlayNext,
+    onAddToQueue: onAddToQueue,
+    onRemoveFromQueue: onRemoveFromQueue,
+    onRemoveFromPlaylist: onRemoveFromPlaylist,
+    onDownload: onDownload,
+    onImportLyrics: onImportLyrics,
+    onEditTags: onEditTags,
+  );
+}
+
+Future<void> handleSongAction({
+  required String selected,
+  required BuildContext context,
+  required MusicFile? song,
+  required List<MusicFile> effectiveSongs,
+  required bool isBatch,
+  required bool canOpenLocation,
+  required bool hasTitle,
+  required bool hasArtist,
+  required bool hasAlbum,
+  required String titleText,
+  required String artistText,
+  required String albumText,
+  Future<void> Function()? onAddToPlaylist,
+  VoidCallback? onPlayNext,
+  VoidCallback? onAddToQueue,
+  VoidCallback? onRemoveFromQueue,
+  VoidCallback? onRemoveFromPlaylist,
+  VoidCallback? onDownload,
+  VoidCallback? onImportLyrics,
+  VoidCallback? onEditTags,
+}) async {
+  final l10n = AppLocalizations.of(context)!;
+
   switch (selected) {
     case 'play_next':
       onPlayNext?.call();
@@ -544,7 +1087,7 @@ Future<void> showSongContextMenu(
       }
       break;
     case 'open_file_location':
-      if (canOpenLocation) {
+      if (canOpenLocation && song != null) {
         await openSongFileLocation(song.path);
       }
       break;
@@ -617,8 +1160,8 @@ Future<void> showSongContextMenu(
       }
       break;
     case 'transcode':
-      if (songs != null && songs.isNotEmpty) {
-        await showTranscodeDialog(context, songs: songs);
+      if (effectiveSongs.isNotEmpty) {
+        await showTranscodeDialog(context, songs: effectiveSongs);
       } else if (song != null) {
         await showTranscodeDialog(context, songs: [song]);
       }
@@ -690,240 +1233,3 @@ PopupMenuItem<T> buildContextMenuItem<T>({
   );
 }
 
-Future<void> showSongBottomSheet(
-  BuildContext context,
-  WidgetRef ref,
-  MusicFile song, {
-  VoidCallback? onDownload,
-}) async {
-  final l10n = AppLocalizations.of(context)!;
-  final theme = Theme.of(context);
-  final audio = ref.read(audioServiceProvider);
-  final playlistService = ref.read(playlistServiceProvider);
-
-  final isRemoteSong = RemoteMediaResolver.isRemoteUri(song.path);
-  final hasFilePath = song.path.trim().isNotEmpty;
-  final canOpenLocation =
-      (Platform.isWindows || Platform.isMacOS || Platform.isLinux) &&
-      hasFilePath &&
-      !isRemoteSong;
-
-  final selected = await showModalBottomSheet<String>(
-    context: context,
-    backgroundColor: Colors.transparent,
-    elevation: 0,
-    isScrollControlled: true,
-    useRootNavigator: true,
-    builder: (context) => GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: () => Navigator.pop(context),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-          child: Align(
-            alignment: Alignment.bottomCenter,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 680),
-              child: GestureDetector(
-                onTap:
-                    () {}, // Prevent taps on the card itself from closing the sheet
-                child: Material(
-                  elevation: 16,
-                  color: theme.colorScheme.surface,
-                  shadowColor: Colors.black26,
-                  borderRadius: BorderRadius.circular(24),
-                  clipBehavior: Clip.antiAlias,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Header showing Song title and artwork
-                        Row(
-                          children: [
-                            SongThumbnail.fromSong(
-                              song,
-                              size: 52,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    song.displayName,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: theme.textTheme.titleMedium
-                                        ?.copyWith(fontWeight: FontWeight.bold),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    '${song.artist ?? l10n.unknownArtist} · ${song.album ?? l10n.unknownAlbum}',
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: theme.textTheme.bodyMedium?.copyWith(
-                                      color: theme.colorScheme.onSurfaceVariant,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        const Divider(height: 1),
-                        const SizedBox(height: 8),
-                        // Actions list
-                        _buildBottomSheetItem(
-                          context: context,
-                          value: 'play_next',
-                          label: l10n.playNext,
-                          icon: Icons.queue_play_next_rounded,
-                        ),
-                        _buildBottomSheetItem(
-                          context: context,
-                          value: 'add_to_queue',
-                          label: l10n.addToQueue,
-                          icon: Icons.queue_music_rounded,
-                        ),
-                        if (onDownload != null)
-                          _buildBottomSheetItem(
-                            context: context,
-                            value: 'download',
-                            label: l10n.download,
-                            icon: Icons.download_rounded,
-                          ),
-                        _buildBottomSheetItem(
-                          context: context,
-                          value: 'add_to_playlist',
-                          label: l10n.addToPlaylist,
-                          icon: Icons.playlist_add_rounded,
-                        ),
-                        _buildBottomSheetItem(
-                          context: context,
-                          value: 'add_to_favorites',
-                          label: l10n.addToFavorites,
-                          icon: Icons.favorite_border_rounded,
-                        ),
-                        _buildBottomSheetItem(
-                          context: context,
-                          value: 'transcode',
-                          label: l10n.transcodeAction,
-                          icon: Icons.sync_rounded,
-                        ),
-                        _buildBottomSheetItem(
-                          context: context,
-                          value: 'copy_title',
-                          label: l10n.copyTitle,
-                          icon: Icons.title_rounded,
-                        ),
-                        _buildBottomSheetItem(
-                          context: context,
-                          value: 'copy_artist',
-                          label: l10n.copyArtistName,
-                          icon: Icons.mic_rounded,
-                        ),
-                        if (canOpenLocation)
-                          _buildBottomSheetItem(
-                            context: context,
-                            value: 'open_location',
-                            label: l10n.openFileLocation,
-                            icon: Icons.folder_open_rounded,
-                          ),
-                        _buildBottomSheetItem(
-                          context: context,
-                          value: 'import_lyrics',
-                          label: l10n.importLyrics,
-                          icon: Icons.lyrics_outlined,
-                        ),
-                        _buildBottomSheetItem(
-                          context: context,
-                          value: 'song_details',
-                          label: l10n.songProperties,
-                          icon: Icons.info_outline_rounded,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    ),
-  );
-
-  if (!context.mounted || selected == null) return;
-
-  switch (selected) {
-    case 'play_next':
-      await audio.enqueueNext([song]);
-      break;
-    case 'add_to_queue':
-      await audio.appendToQueue([song]);
-      break;
-    case 'download':
-      onDownload?.call();
-      break;
-    case 'add_to_playlist':
-      await showAddSongsToPlaylistDialog(context, playlistService, [song]);
-      break;
-    case 'add_to_favorites':
-      await playlistService.addSongToFavorite(song);
-      if (context.mounted) {
-        AppSnackBar.show(
-          context,
-          null,
-          SnackBar(
-            content: Text('${l10n.addToFavorites} · ${song.displayName}'),
-          ),
-        );
-      }
-      break;
-    case 'transcode':
-      await showTranscodeDialog(context, songs: [song]);
-      break;
-    case 'copy_title':
-      await Clipboard.setData(ClipboardData(text: song.displayName));
-      break;
-    case 'copy_artist':
-      if (song.artist != null) {
-        await Clipboard.setData(ClipboardData(text: song.artist!));
-      }
-      break;
-    case 'open_location':
-      await openSongFileLocation(song.path);
-      break;
-    case 'import_lyrics':
-      await importLyricsForSong(context, ref, song);
-      break;
-    case 'song_details':
-      await showSongDetailsDialog(context, song);
-      break;
-  }
-}
-
-Widget _buildBottomSheetItem({
-  required BuildContext context,
-  required String value,
-  required String label,
-  required IconData icon,
-  Color? iconColor,
-}) {
-  final theme = Theme.of(context);
-  return ListTile(
-    leading: Icon(icon, color: iconColor ?? theme.colorScheme.onSurfaceVariant),
-    title: Text(
-      label,
-      style: theme.textTheme.bodyLarge?.copyWith(
-        color: iconColor ?? theme.colorScheme.onSurface,
-      ),
-    ),
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    onTap: () => Navigator.pop(context, value),
-  );
-}

@@ -492,6 +492,53 @@ class _QueuePageState extends ConsumerState<QueuePage>
                               );
                             }
 
+                            void handleShowBottomSheet(
+                              BuildContext menuContext,
+                            ) {
+                              showSongBottomSheet(
+                                menuContext,
+                                song: song,
+                                songs: songsToAdd,
+                                mode: SongContextMenuMode.full,
+                                onAddToPlaylist: () =>
+                                    showAddSongsToPlaylistDialog(
+                                      menuContext,
+                                      ref.read(playlistServiceProvider),
+                                      songsToAdd,
+                                    ),
+                                onPlayNext:
+                                    (isCurrent ||
+                                        isSelectionMode ||
+                                        _viewIndex == 1 ||
+                                        _viewIndex == 2)
+                                    ? null
+                                    : () {
+                                        final curIdx = ref.read(
+                                          audioCurrentIndexProvider,
+                                        );
+                                        if (curIdx >= 0) {
+                                          final insertIndex = index < curIdx
+                                              ? curIdx
+                                              : curIdx + 1;
+                                          ref
+                                              .read(audioServiceProvider)
+                                              .moveQueueTrack(
+                                                index,
+                                                insertIndex,
+                                              );
+                                        }
+                                      },
+                                onRemoveFromQueue:
+                                    (isSelectionMode ||
+                                        _viewIndex == 1 ||
+                                        _viewIndex == 2)
+                                    ? null
+                                    : () => ref
+                                          .read(audioServiceProvider)
+                                          .removeFromPlaylist(index),
+                              );
+                            }
+
                             return Align(
                               key: _songTileKeyFor(index, song),
                               alignment: Alignment.center,
@@ -581,16 +628,7 @@ class _QueuePageState extends ConsumerState<QueuePage>
                                       );
                                     },
                                     onMorePressed: (buttonContext) {
-                                      final renderObject = buttonContext
-                                          .findRenderObject();
-                                      final renderBox =
-                                          renderObject is RenderBox
-                                              ? renderObject
-                                              : null;
-                                      if (renderBox == null) return;
-                                      final Offset offset = renderBox
-                                          .localToGlobal(Offset.zero);
-                                      handleShowMenu(buttonContext, offset);
+                                      handleShowBottomSheet(buttonContext);
                                     },
                                   ),
                                 ),

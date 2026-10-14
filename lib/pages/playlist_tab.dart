@@ -541,6 +541,38 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab>
                       );
                     }
 
+                    void handleShowBottomSheet(BuildContext menuContext) {
+                      final songsToAdd = selectedKeys.isNotEmpty
+                          ? selectedKeys
+                                .map((i) => activePlaylist.songs[i])
+                                .toList()
+                          : <MusicFile>[song];
+
+                      showSongBottomSheet(
+                        menuContext,
+                        song: song,
+                        songs: songsToAdd,
+                        mode: SongContextMenuMode.full,
+                        onAddToPlaylist: () async {
+                          _showAddToPlaylistDialog(menuContext, songsToAdd);
+                        },
+                        onPlayNext: () => ref
+                            .read(audioServiceProvider)
+                            .enqueueNext(songsToAdd),
+                        onAddToQueue: () => ref
+                            .read(audioServiceProvider)
+                            .appendToQueue(songsToAdd),
+                        onRemoveFromPlaylist: isSelectionMode
+                            ? null
+                            : () {
+                                playlistService.removeSongsFromPlaylist(
+                                  activePlaylist.id,
+                                  [index],
+                                );
+                              },
+                      );
+                    }
+
                     final selectedSongPaths = isSelectionMode
                         ? selectedKeys
                             .map((i) => (i >= 0 && i < activePlaylist.songs.length)
@@ -615,15 +647,7 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab>
                               handleShowMenu(context, details.globalPosition);
                             },
                             onMorePressed: (buttonContext) {
-                              final renderObject = buttonContext.findRenderObject();
-                              final renderBox = renderObject is RenderBox
-                                  ? renderObject
-                                  : null;
-                              if (renderBox == null) return;
-                              final Offset offset = renderBox.localToGlobal(
-                                Offset.zero,
-                              );
-                              handleShowMenu(buttonContext, offset);
+                              handleShowBottomSheet(buttonContext);
                             },
                           ),
                         ),
