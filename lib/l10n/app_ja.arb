@@ -285,6 +285,7 @@
   "savingTags": "タグを保存中...",
   "noModifiedTagsToSave": "保存する変更済みタグはありません",
   "clearPlaylist": "リストをクリア",
+  "confirmClearPlaylist": "プレイリスト「{name}」のすべての曲を消去してもよろしいですか？",
   "copyTitle": "タイトルをコピー",
   "transcodeAction": "トランスコード",
   "transcodeSectionTitle": "オーディオトランスコード",

@@ -860,6 +860,11 @@ class AppLocalizationsZh extends AppLocalizations {
   String get clearPlaylist => '清空列表';
 
   @override
+  String confirmClearPlaylist(String name) {
+    return '确定要清空播放列表\"$name\"中的所有歌曲吗？';
+  }
+
+  @override
   String get copyTitle => '复制标题';
 
   @override
@@ -6128,6 +6133,11 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get clearPlaylist => '清空清單';
+
+  @override
+  String confirmClearPlaylist(String name) {
+    return '確定要清空播放清單\"$name\"中的所有歌曲嗎？';
+  }
 
   @override
   String get copyTitle => '複製標題';

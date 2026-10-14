@@ -53,6 +53,51 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab>
     super.dispose();
   }
 
+  void _showClearPlaylistConfirmDialog(
+    BuildContext context,
+    Playlist playlist,
+  ) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final plName = localizedPlaylistName(context, playlist);
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.clearPlaylist),
+        content: Text(l10n.confirmClearPlaylist(plName)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: theme.colorScheme.error,
+              foregroundColor: theme.colorScheme.onError,
+            ),
+            onPressed: () async {
+              Navigator.pop(dialogContext);
+              await ref
+                  .read(playlistServiceProvider)
+                  .clearPlaylist(playlist.id);
+              if (context.mounted) {
+                AppSnackBar.show(
+                  context,
+                  ref,
+                  SnackBar(
+                    content: Text(l10n.playlistSongsCleared(plName)),
+                  ),
+                );
+              }
+            },
+            child: Text(l10n.clear),
+          ),
+        ],
+      ),
+    );
+  }
+
 
   void _showAddToPlaylistDialog(
     BuildContext context,
@@ -305,20 +350,6 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab>
                     ],
                   ),
                 ),
-                if (hasSongs) ...[
-                  IconButton(
-                    tooltip: l10n.clearPlaylist,
-                    onPressed: () {
-                      if (currentPlaylist != null) {
-                        ref
-                            .read(playlistServiceProvider)
-                            .clearPlaylist(currentPlaylist.id);
-                      }
-                    },
-                    icon: const Icon(Icons.clear_all),
-                  ),
-                  const SizedBox(width: 8),
-                ],
                 PopupMenuButton<String>(
                   tooltip: l10n.more,
                   onSelected: (value) {
@@ -328,6 +359,8 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab>
                       _importM3uPlaylist(context);
                     } else if (value == 'export' && currentPlaylist != null) {
                       _exportPlaylistAsM3u(context, currentPlaylist);
+                    } else if (value == 'clear' && currentPlaylist != null) {
+                      _showClearPlaylistConfirmDialog(context, currentPlaylist);
                     }
                   },
                   itemBuilder: (context) => [
@@ -343,13 +376,21 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab>
                       icon: Icons.file_download_outlined,
                       context: context,
                     ),
-                    if (currentPlaylist != null && currentPlaylist.songs.isNotEmpty)
+                    if (currentPlaylist != null && hasSongs) ...[
                       buildContextMenuItem<String>(
                         value: 'export',
                         label: l10n.exportPlaylist,
                         icon: Icons.file_upload_outlined,
                         context: context,
                       ),
+                      buildContextMenuItem<String>(
+                        value: 'clear',
+                        label: l10n.clearPlaylist,
+                        icon: Icons.clear_all_rounded,
+                        iconColor: theme.colorScheme.error,
+                        context: context,
+                      ),
+                    ],
                   ],
                 ),
               ],

@@ -894,6 +894,11 @@ class AppLocalizationsEs extends AppLocalizations {
   String get clearPlaylist => 'Vaciar lista';
 
   @override
+  String confirmClearPlaylist(String name) {
+    return '¿Seguro que quieres vaciar todas las canciones de la lista \"$name\"?';
+  }
+
+  @override
   String get copyTitle => 'Copiar título';
 
   @override

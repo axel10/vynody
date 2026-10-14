@@ -890,6 +890,11 @@ class AppLocalizationsDe extends AppLocalizations {
   String get clearPlaylist => 'Liste leeren';
 
   @override
+  String confirmClearPlaylist(String name) {
+    return 'Möchten Sie wirklich alle Titel aus der Wiedergabeliste \"$name\" entfernen?';
+  }
+
+  @override
   String get copyTitle => 'Titel kopieren';
 
   @override

@@ -867,6 +867,11 @@ class AppLocalizationsJa extends AppLocalizations {
   String get clearPlaylist => 'リストをクリア';
 
   @override
+  String confirmClearPlaylist(String name) {
+    return 'プレイリスト「$name」のすべての曲を消去してもよろしいですか？';
+  }
+
+  @override
   String get copyTitle => 'タイトルをコピー';
 
   @override

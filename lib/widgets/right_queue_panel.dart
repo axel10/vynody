@@ -312,6 +312,43 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
     );
   }
 
+  void _showClearPlaylistConfirmDialog(BuildContext context, Playlist playlist) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final plName = localizedPlaylistName(context, playlist);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.clearPlaylist),
+        content: Text(l10n.confirmClearPlaylist(plName)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: theme.colorScheme.error,
+              foregroundColor: theme.colorScheme.onError,
+            ),
+            onPressed: () async {
+              Navigator.of(ctx).pop();
+              await ref.read(playlistServiceProvider).clearPlaylist(playlist.id);
+              if (context.mounted) {
+                AppSnackBar.show(
+                  context,
+                  ref,
+                  SnackBar(content: Text(l10n.playlistSongsCleared(plName))),
+                );
+              }
+            },
+            child: Text(l10n.clear),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showCreatePlaylistDialog(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final controller = TextEditingController();
@@ -1276,14 +1313,7 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
             color: theme.colorScheme.surface,
             onSelected: (action) async {
               if (action == 'clear') {
-                await playlistService.clearPlaylist(activePlaylist.id);
-                if (context.mounted) {
-                  AppSnackBar.show(
-                    context,
-                    ref,
-                    SnackBar(content: Text(l10n.playlistSongsCleared(plName))),
-                  );
-                }
+                _showClearPlaylistConfirmDialog(context, activePlaylist);
               } else if (action == 'rename') {
                 _showRenameDialog(context, activePlaylist);
               } else if (action == 'delete') {

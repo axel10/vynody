@@ -880,6 +880,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clearPlaylist => 'Clear List';
 
   @override
+  String confirmClearPlaylist(String name) {
+    return 'Are you sure you want to clear all songs from playlist \"$name\"?';
+  }
+
+  @override
   String get copyTitle => 'Copy Title';
 
   @override

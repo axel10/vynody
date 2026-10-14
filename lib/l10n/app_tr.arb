@@ -349,6 +349,7 @@
   "savingTags": "Etiketler kaydediliyor...",
   "noModifiedTagsToSave": "Kaydedilecek değiştirilmiş etiket yok",
   "clearPlaylist": "Çalma Listesini Temizle",
+  "confirmClearPlaylist": "\"{name}\" çalma listesindeki tüm şarkıları temizlemek istediğinizden emin misiniz?",
   "copyTitle": "Başlığı Kopyala",
   "transcodeAction": "Dönüştür",
   "transcodeSectionTitle": "Ses Dönüştürme",

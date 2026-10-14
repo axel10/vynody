@@ -868,6 +868,11 @@ class AppLocalizationsKo extends AppLocalizations {
   String get clearPlaylist => '목록 비우기';
 
   @override
+  String confirmClearPlaylist(String name) {
+    return '재생목록 \"$name\"의 모든 곡을 비우시겠습니까?';
+  }
+
+  @override
   String get copyTitle => '제목 복사';
 
   @override

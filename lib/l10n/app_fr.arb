@@ -285,6 +285,7 @@
   "savingTags": "Sauvegarde des étiquettes...",
   "noModifiedTagsToSave": "Aucune étiquette modifiée à sauvegarder",
   "clearPlaylist": "Vider la liste",
+  "confirmClearPlaylist": "Voulez-vous vraiment effacer tous les morceaux de la playlist \"{name}\" ?",
   "copyTitle": "Copier le titre",
   "transcodeAction": "Transcoder",
   "transcodeSectionTitle": "Transcodage audio",

@@ -285,6 +285,7 @@
   "savingTags": "태그 저장 중...",
   "noModifiedTagsToSave": "저장할 수정된 태그가 없습니다",
   "clearPlaylist": "목록 비우기",
+  "confirmClearPlaylist": "재생목록 \"{name}\"의 모든 곡을 비우시겠습니까?",
   "copyTitle": "제목 복사",
   "transcodeAction": "트랜스코딩",
   "transcodeSectionTitle": "오디오 트랜스코딩",

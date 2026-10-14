@@ -268,6 +268,7 @@
   "savingTags": "正在儲存標籤...",
   "noModifiedTagsToSave": "沒有需要儲存的已修改標籤",
   "clearPlaylist": "清空清單",
+  "confirmClearPlaylist": "確定要清空播放清單\"{name}\"中的所有歌曲嗎？",
   "copyTitle": "複製標題",
   "transcodeAction": "轉碼",
   "transcodeSectionTitle": "音訊轉碼",

@@ -891,6 +891,11 @@ class AppLocalizationsFr extends AppLocalizations {
   String get clearPlaylist => 'Vider la liste';
 
   @override
+  String confirmClearPlaylist(String name) {
+    return 'Voulez-vous vraiment effacer tous les morceaux de la playlist \"$name\" ?';
+  }
+
+  @override
   String get copyTitle => 'Copier le titre';
 
   @override

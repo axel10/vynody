@@ -833,6 +833,15 @@
   "savingTags": "正在保存标签...",
   "noModifiedTagsToSave": "没有需要保存的已修改标签",
   "clearPlaylist": "清空列表",
+  "confirmClearPlaylist": "确定要清空播放列表\"{name}\"中的所有歌曲吗？",
+  "@confirmClearPlaylist": {
+    "description": "Confirm clear playlist message",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "copyTitle": "复制标题",
   "transcodeAction": "转码",
   "transcodeSectionTitle": "音频转码",

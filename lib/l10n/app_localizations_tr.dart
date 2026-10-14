@@ -885,6 +885,11 @@ class AppLocalizationsTr extends AppLocalizations {
   String get clearPlaylist => 'Çalma Listesini Temizle';
 
   @override
+  String confirmClearPlaylist(String name) {
+    return '\"$name\" çalma listesindeki tüm şarkıları temizlemek istediğinizden emin misiniz?';
+  }
+
+  @override
   String get copyTitle => 'Başlığı Kopyala';
 
   @override

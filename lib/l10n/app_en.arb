@@ -293,6 +293,15 @@
   "savingTags": "Saving tags...",
   "noModifiedTagsToSave": "No modified tags to save",
   "clearPlaylist": "Clear List",
+  "confirmClearPlaylist": "Are you sure you want to clear all songs from playlist \"{name}\"?",
+  "@confirmClearPlaylist": {
+    "description": "Confirm clear playlist message",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "copyTitle": "Copy Title",
   "transcodeAction": "Transcode",
   "transcodeSectionTitle": "Audio Transcoding",

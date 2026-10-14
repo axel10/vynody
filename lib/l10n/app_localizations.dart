@@ -1743,6 +1743,12 @@ abstract class AppLocalizations {
   /// **'清空列表'**
   String get clearPlaylist;
 
+  /// Confirm clear playlist message
+  ///
+  /// In zh, this message translates to:
+  /// **'确定要清空播放列表\"{name}\"中的所有歌曲吗？'**
+  String confirmClearPlaylist(String name);
+
   /// No description provided for @copyTitle.
   ///
   /// In zh, this message translates to:

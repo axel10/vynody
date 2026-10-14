@@ -285,6 +285,7 @@
   "savingTags": "Guardando etiquetas...",
   "noModifiedTagsToSave": "No hay etiquetas modificadas para guardar",
   "clearPlaylist": "Vaciar lista",
+  "confirmClearPlaylist": "¿Seguro que quieres vaciar todas las canciones de la lista \"{name}\"?",
   "copyTitle": "Copiar título",
   "transcodeAction": "Transcodificar",
   "transcodeSectionTitle": "Transcodificación de audio",
