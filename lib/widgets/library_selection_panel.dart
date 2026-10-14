@@ -142,7 +142,7 @@ class _LibrarySelectionPanelState extends ConsumerState<LibrarySelectionPanel> {
             context: context,
             icon: Icons.queue_play_next_rounded,
             label: l10n.playNext,
-            onPressed: (isEmpty || isSongSelectionEmpty)
+            onPressed: (isEmpty || (widget.onPlayNext == null && isSongSelectionEmpty))
                 ? null
                 : () async {
                     if (widget.onPlayNext != null) {
@@ -160,7 +160,7 @@ class _LibrarySelectionPanelState extends ConsumerState<LibrarySelectionPanel> {
             context: context,
             icon: Icons.queue_music_rounded,
             label: l10n.addToQueue,
-            onPressed: (isEmpty || isSongSelectionEmpty)
+            onPressed: (isEmpty || (widget.onAddToQueue == null && isSongSelectionEmpty))
                 ? null
                 : () async {
                     if (widget.onAddToQueue != null) {
@@ -178,7 +178,7 @@ class _LibrarySelectionPanelState extends ConsumerState<LibrarySelectionPanel> {
             context: context,
             icon: Icons.playlist_add_rounded,
             label: l10n.addToPlaylist,
-            onPressed: (isEmpty || isSongSelectionEmpty)
+            onPressed: (isEmpty || (widget.onAddToPlaylist == null && isSongSelectionEmpty))
                 ? null
                 : () async {
                     if (widget.onAddToPlaylist != null) {
@@ -293,7 +293,7 @@ class _LibrarySelectionPanelState extends ConsumerState<LibrarySelectionPanel> {
               context: context,
               icon: Icons.library_add_rounded,
               label: widget.addToMediaLibraryLabel ?? l10n.addToMediaLibrary,
-              onPressed: (isEmpty || isSongSelectionEmpty) ? null : widget.onAddToMediaLibrary,
+              onPressed: isEmpty ? null : widget.onAddToMediaLibrary,
             ),
           );
         }
@@ -303,7 +303,7 @@ class _LibrarySelectionPanelState extends ConsumerState<LibrarySelectionPanel> {
               context: context,
               icon: Icons.download_rounded,
               label: l10n.downloadSong.contains('下载') ? '下载' : 'Download',
-              onPressed: (isEmpty || isSongSelectionEmpty) ? null : widget.onDownload,
+              onPressed: isEmpty ? null : widget.onDownload,
             ),
           );
         }
@@ -327,7 +327,7 @@ class _LibrarySelectionPanelState extends ConsumerState<LibrarySelectionPanel> {
                 (widget.onAddToCloudFavorites != null
                     ? l10n.addToLocalFavorites
                     : l10n.addToFavorites),
-            onPressed: (isEmpty || isSongSelectionEmpty)
+            onPressed: (isEmpty || (widget.onAddToFavorites == null && isSongSelectionEmpty))
                 ? null
                 : () async {
                     if (widget.onAddToFavorites != null) {
@@ -362,7 +362,7 @@ class _LibrarySelectionPanelState extends ConsumerState<LibrarySelectionPanel> {
               context: context,
               icon: widget.cloudFavoritesIcon ?? Icons.cloud_done_rounded,
               label: widget.cloudFavoritesLabel ?? l10n.addToCloudFavorites,
-              onPressed: (isEmpty || isSongSelectionEmpty) ? null : widget.onAddToCloudFavorites,
+              onPressed: isEmpty ? null : widget.onAddToCloudFavorites,
             ),
           );
         }
@@ -457,7 +457,7 @@ class _LibrarySelectionPanelState extends ConsumerState<LibrarySelectionPanel> {
               context: context,
               icon: Icons.library_add_rounded,
               label: widget.addToMediaLibraryLabel ?? l10n.addToMediaLibrary,
-              onPressed: (isEmpty || isSongSelectionEmpty) ? null : widget.onAddToMediaLibrary,
+              onPressed: isEmpty ? null : widget.onAddToMediaLibrary,
             ),
           );
         }
@@ -467,7 +467,7 @@ class _LibrarySelectionPanelState extends ConsumerState<LibrarySelectionPanel> {
               context: context,
               icon: Icons.download_rounded,
               label: l10n.downloadSong.contains('下载') ? '下载' : 'Download',
-              onPressed: (isEmpty || isSongSelectionEmpty) ? null : widget.onDownload,
+              onPressed: isEmpty ? null : widget.onDownload,
             ),
           );
         }
@@ -489,7 +489,7 @@ class _LibrarySelectionPanelState extends ConsumerState<LibrarySelectionPanel> {
           context: context,
           icon: Icons.sync_rounded,
           label: l10n.transcodeAction,
-          onPressed: (isEmpty || isSongSelectionEmpty)
+          onPressed: (isEmpty || (widget.onTranscode == null && isSongSelectionEmpty))
               ? null
               : () async {
                   if (widget.onTranscode != null) {
