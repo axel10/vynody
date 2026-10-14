@@ -2067,7 +2067,7 @@ class _GenreCardState extends State<_GenreCard> {
 // ---------------------------------------------------------------------------
 
 
-class _SectionHeader extends StatelessWidget {
+class _SectionHeader extends StatefulWidget {
   const _SectionHeader({
     required this.title,
     this.subtitle,
@@ -2081,70 +2081,96 @@ class _SectionHeader extends StatelessWidget {
   final AppLocalizations l10n;
 
   @override
+  State<_SectionHeader> createState() => _SectionHeaderState();
+}
+
+class _SectionHeaderState extends State<_SectionHeader> {
+  bool _isHovered = false;
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final canNavigate = widget.onViewAll != null;
 
-    return Row(
+    final headerRow = Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: -0.3,
-                ),
-              ),
-              if (subtitle != null) ...[
-                const SizedBox(height: 2),
-                Text(
-                  subtitle!,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ],
+        Flexible(
+          child: Text(
+            widget.title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+              letterSpacing: -0.3,
+            ),
           ),
         ),
-        if (onViewAll != null) ...[
+        if (canNavigate) ...[
           const SizedBox(width: 4),
-          InkWell(
-            onTap: onViewAll,
-            borderRadius: BorderRadius.circular(10),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    l10n.viewAll,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: theme.colorScheme.primary,
-                    ),
-                  ),
-                  const SizedBox(width: 2),
-                  Icon(
-                    Icons.chevron_right_rounded,
-                    size: 16,
-                    color: theme.colorScheme.primary,
-                  ),
-                ],
-              ),
+          AnimatedSlide(
+            offset: _isHovered ? const Offset(0.12, 0) : Offset.zero,
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOutCubic,
+            child: Icon(
+              Icons.chevron_right_rounded,
+              size: 20,
+              color: _isHovered
+                  ? theme.colorScheme.onSurface
+                  : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
             ),
           ),
         ],
       ],
     );
+
+    Widget content = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        headerRow,
+        if (widget.subtitle != null) ...[
+          const SizedBox(height: 2),
+          Text(
+            widget.subtitle!,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ],
+    );
+
+    if (canNavigate) {
+      content = MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (_) => setState(() => _isHovered = true),
+        onExit: (_) => setState(() => _isHovered = false),
+        child: InkWell(
+          onTap: widget.onViewAll,
+          borderRadius: BorderRadius.circular(8),
+          hoverColor: Colors.transparent,
+          splashColor: theme.colorScheme.primary.withValues(alpha: 0.1),
+          highlightColor: Colors.transparent,
+          child: Padding(
+            padding: const EdgeInsets.only(top: 4, bottom: 4, right: 6),
+            child: content,
+          ),
+        ),
+      );
+    }
+
+    return Semantics(
+      button: canNavigate,
+      label: canNavigate
+          ? '${widget.title}, ${widget.l10n.viewAll}'
+          : widget.title,
+      child: content,
+    );
   }
 }
+
 
