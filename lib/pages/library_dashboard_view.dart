@@ -1282,6 +1282,7 @@ class _HorizontalAlbumSection extends StatelessWidget {
                   return Consumer(
                     builder: (context, ref, _) {
                       return _AlbumCard(
+                        key: ValueKey(album.id),
                         album: album,
                         width: cardWidth,
                         isWide: isWide,
@@ -1319,7 +1320,7 @@ class _HorizontalAlbumSection extends StatelessWidget {
 // ---------------------------------------------------------------------------
 // 4. 本周常听（专辑横向流）
 // ---------------------------------------------------------------------------
-class _ThisWeekAlbumsSection extends ConsumerWidget {
+class _ThisWeekAlbumsSection extends ConsumerStatefulWidget {
   const _ThisWeekAlbumsSection({
     required this.horizontalPadding,
     required this.onViewAll,
@@ -1335,34 +1336,55 @@ class _ThisWeekAlbumsSection extends ConsumerWidget {
   final double contentLeftPadding;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final asyncAlbums = ref.watch(thisWeekTopAlbumsProvider);
+  ConsumerState<_ThisWeekAlbumsSection> createState() =>
+      _ThisWeekAlbumsSectionState();
+}
 
-    return asyncAlbums.when(
-      data: (items) {
-        if (items.isEmpty) return const SizedBox.shrink();
-        final albums = items.map((e) => e.toAlbumSummary()).toList();
-        return _HorizontalAlbumSection(
-          title: l10n.thisWeekTop,
-          subtitle: l10n.thisWeekTopAlbumsSubtitle,
-          albums: albums,
-          horizontalPadding: horizontalPadding,
-          contentLeftPadding: contentLeftPadding,
-          onViewAll: onViewAll,
-          l10n: l10n,
-          isWide: isWide,
-        );
-      },
-      loading: () => const SizedBox.shrink(),
-      error: (_, _) => const SizedBox.shrink(),
-    );
+class _ThisWeekAlbumsSectionState extends ConsumerState<_ThisWeekAlbumsSection> {
+  List<AlbumSummary>? _cachedAlbums;
+
+  @override
+  Widget build(BuildContext context) {
+    // 监听本周常听，并在首次获得数据时拷贝一份展示，生命周期内保持稳定，防止播完切歌时列表闪烁
+    ref.listen(thisWeekTopAlbumsProvider, (_, next) {
+      if (_cachedAlbums == null && next.hasValue) {
+        setState(() {
+          _cachedAlbums =
+              next.value!.map((e) => e.toAlbumSummary()).toList(growable: false);
+        });
+      }
+    });
+
+    if (_cachedAlbums == null) {
+      final initial = ref.read(thisWeekTopAlbumsProvider);
+      if (initial.hasValue) {
+        _cachedAlbums =
+            initial.value!.map((e) => e.toAlbumSummary()).toList(growable: false);
+      }
+    }
+
+    if (_cachedAlbums != null) {
+      if (_cachedAlbums!.isEmpty) return const SizedBox.shrink();
+      return _HorizontalAlbumSection(
+        title: widget.l10n.thisWeekTop,
+        subtitle: widget.l10n.thisWeekTopAlbumsSubtitle,
+        albums: _cachedAlbums!,
+        horizontalPadding: widget.horizontalPadding,
+        contentLeftPadding: widget.contentLeftPadding,
+        onViewAll: widget.onViewAll,
+        l10n: widget.l10n,
+        isWide: widget.isWide,
+      );
+    }
+
+    return const SizedBox.shrink();
   }
 }
 
 // ---------------------------------------------------------------------------
 // 5. 重温旧爱（专辑横向流）
 // ---------------------------------------------------------------------------
-class _TimeMachineAlbumsSection extends ConsumerWidget {
+class _TimeMachineAlbumsSection extends ConsumerStatefulWidget {
   const _TimeMachineAlbumsSection({
     required this.horizontalPadding,
     required this.onViewAll,
@@ -1378,27 +1400,49 @@ class _TimeMachineAlbumsSection extends ConsumerWidget {
   final double contentLeftPadding;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final asyncAlbums = ref.watch(timeMachineAlbumsProvider);
+  ConsumerState<_TimeMachineAlbumsSection> createState() =>
+      _TimeMachineAlbumsSectionState();
+}
 
-    return asyncAlbums.when(
-      data: (items) {
-        if (items.isEmpty) return const SizedBox.shrink();
-        final albums = items.map((e) => e.toAlbumSummary()).toList();
-        return _HorizontalAlbumSection(
-          title: l10n.timeMachine,
-          subtitle: l10n.timeMachineSubtitle,
-          albums: albums,
-          horizontalPadding: horizontalPadding,
-          contentLeftPadding: contentLeftPadding,
-          onViewAll: onViewAll,
-          l10n: l10n,
-          isWide: isWide,
-        );
-      },
-      loading: () => const SizedBox.shrink(),
-      error: (_, _) => const SizedBox.shrink(),
-    );
+class _TimeMachineAlbumsSectionState
+    extends ConsumerState<_TimeMachineAlbumsSection> {
+  List<AlbumSummary>? _cachedAlbums;
+
+  @override
+  Widget build(BuildContext context) {
+    // 监听重温旧爱，在首次获得数据时拷贝一份快照展示，页面停留期间不重新触发，避免刚听完的歌曲立刻被踢出导致列表闪动
+    ref.listen(timeMachineAlbumsProvider, (_, next) {
+      if (_cachedAlbums == null && next.hasValue) {
+        setState(() {
+          _cachedAlbums =
+              next.value!.map((e) => e.toAlbumSummary()).toList(growable: false);
+        });
+      }
+    });
+
+    if (_cachedAlbums == null) {
+      final initial = ref.read(timeMachineAlbumsProvider);
+      if (initial.hasValue) {
+        _cachedAlbums =
+            initial.value!.map((e) => e.toAlbumSummary()).toList(growable: false);
+      }
+    }
+
+    if (_cachedAlbums != null) {
+      if (_cachedAlbums!.isEmpty) return const SizedBox.shrink();
+      return _HorizontalAlbumSection(
+        title: widget.l10n.timeMachine,
+        subtitle: widget.l10n.timeMachineSubtitle,
+        albums: _cachedAlbums!,
+        horizontalPadding: widget.horizontalPadding,
+        contentLeftPadding: widget.contentLeftPadding,
+        onViewAll: widget.onViewAll,
+        l10n: widget.l10n,
+        isWide: widget.isWide,
+      );
+    }
+
+    return const SizedBox.shrink();
   }
 }
 
@@ -1528,6 +1572,7 @@ class _AlbumsRowSection extends ConsumerWidget {
 
 class _AlbumCard extends StatefulWidget {
   const _AlbumCard({
+    super.key,
     required this.album,
     required this.width,
     required this.isWide,
