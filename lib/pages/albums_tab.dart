@@ -11,7 +11,7 @@ import 'package:vynody/player/library/album_library.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/audio/playback_source.dart';
 import '../widgets/song_thumbnail.dart';
-import '../widgets/default_cover_art.dart';
+import '../widgets/album_grid_card.dart';
 import '../widgets/remote_media_badge.dart';
 import 'album_detail_page.dart';
 import '../widgets/library_selection_scope.dart';
@@ -637,41 +637,10 @@ double calculateAlbumCardTextHeight(
   BuildContext context, {
   required bool isPortrait,
 }) {
-  final theme = Theme.of(context);
-  final textScaler = MediaQuery.textScalerOf(context);
-
-  final titleStyle =
-      isPortrait ? theme.textTheme.titleSmall : theme.textTheme.titleMedium;
-  final bodyStyle =
-      isPortrait ? theme.textTheme.bodySmall : theme.textTheme.bodyMedium;
-  final subStyle = theme.textTheme.bodySmall;
-
-  final titleHeight = textScaler.scale(titleStyle?.fontSize ?? (isPortrait ? 14.0 : 16.0)) *
-      (titleStyle?.height ?? 1.25);
-  final artistHeight = textScaler.scale(bodyStyle?.fontSize ?? (isPortrait ? 12.0 : 14.0)) *
-      (bodyStyle?.height ?? 1.25);
-  final iconSize = isPortrait ? 22.0 : 26.0;
-  final subTextHeight =
-      textScaler.scale(isPortrait ? 10.0 : 11.0) * (subStyle?.height ?? 1.25);
-  final bottomRowHeight = math.max(subTextHeight, iconSize);
-
-  final verticalPadding = isPortrait ? (8.0 + 10.0) : (10.0 + 12.0);
-  const titleArtistGap = 2.0;
-  const minBetweenGap = 4.0;
-  const safetyBuffer = 6.0;
-
-  final calculated = verticalPadding +
-      titleHeight +
-      titleArtistGap +
-      artistHeight +
-      minBetweenGap +
-      bottomRowHeight +
-      safetyBuffer;
-  final minHeight = isPortrait ? 96.0 : 118.0;
-  return math.max(calculated, minHeight);
+  return calculateAlbumGridTextHeight(context, isPortrait: isPortrait);
 }
 
-class _AlbumCard extends ConsumerStatefulWidget {
+class _AlbumCard extends ConsumerWidget {
   const _AlbumCard({
     required this.album,
     this.isSelectionMode = false,
@@ -691,251 +660,66 @@ class _AlbumCard extends ConsumerStatefulWidget {
   final void Function(String albumId)? onMultiSelect;
 
   @override
-  ConsumerState<_AlbumCard> createState() => _AlbumCardState();
-}
-
-class _AlbumCardState extends ConsumerState<_AlbumCard> {
-  bool _isHovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final album = widget.album;
-    final isSelectionMode = widget.isSelectionMode;
-    final isSelected = widget.isSelected;
-    final isHeroEnabled = widget.isHeroEnabled;
-    final onTap = widget.onTap;
-    final onLongPress = widget.onLongPress;
-    final onMultiSelect = widget.onMultiSelect;
-
-    final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
+  Widget build(BuildContext context, WidgetRef ref) {
     final audio = ref.read(audioServiceProvider);
-    final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
 
-    final coverContent = ClipRRect(
-      borderRadius: const BorderRadius.only(
-        topLeft: Radius.circular(11),
-        topRight: Radius.circular(11),
+    Widget coverImage = RemoteMediaBadge.wrapCover(
+      child: SongThumbnail.fromAlbum(
+        album,
+        size: 250,
+        width: double.infinity,
+        height: double.infinity,
+        borderRadius: BorderRadius.zero,
       ),
-      child: AspectRatio(
-        aspectRatio: 1,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            RemoteMediaBadge.wrapCover(
-              child: SongThumbnail.fromAlbum(
-                album,
-                size: 250,
-                width: double.infinity,
-                height: double.infinity,
-                borderRadius: BorderRadius.zero,
-              ),
-              songs: album.songs,
-              title: album.title,
-              top: 8,
-              right: 8,
-            ),
-            if (isSelectionMode)
-              Positioned.fill(
-                child: Container(
-                  color: isSelected
-                      ? theme.colorScheme.primaryContainer.withValues(alpha: 0.3)
-                      : Colors.black26,
-                ),
-              ),
-            if (isSelectionMode)
-              Positioned(
-                top: 8,
-                left: 8,
-                child: SizedBox(
-                  width: 28,
-                  height: 28,
-                  child: Checkbox(
-                    value: isSelected,
-                    onChanged: (_) => onTap?.call(),
-                    fillColor: WidgetStateProperty.all(Colors.white),
-                    checkColor: Colors.black,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
+      songs: album.songs,
+      title: album.title,
+      top: 8,
+      right: 8,
     );
 
-    final content = MouseRegion(
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      child: Material(
-        color: Colors.transparent,
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onSecondaryTapDown: (details) {
-            if (!isSelectionMode) {
-              showAlbumContextMenu(
-                context: context,
-                globalPosition: details.globalPosition,
-                ref: ref,
-                album: album,
-                onMultiSelect: onMultiSelect,
-              );
-            }
-          },
-          onLongPress: () {
-            if (onLongPress != null) {
-              onLongPress();
-            } else if (!isSelectionMode) {
-              showAlbumBottomSheet(
-                context: context,
-                ref: ref,
-                album: album,
-                onMultiSelect: onMultiSelect,
-              );
-            }
-          },
-          child: InkWell(
-            borderRadius: BorderRadius.circular(12),
-            enableFeedback: false,
-            onTap: onTap ?? () => _openAlbumDetail(context),
-            child: Ink(
-              decoration: isDesktopPlatform
-                  ? BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          theme.colorScheme.primaryContainer.withValues(alpha: 0.65),
-                          theme.colorScheme.surfaceContainerHighest.withValues(
-                            alpha: 0.55,
-                          ),
-                        ],
-                      ),
-                      border: Border.all(
-                        color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
-                      ),
-                    )
-                  : BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      color: (theme.brightness == Brightness.dark)
-                          ? Colors.white.withValues(alpha: 0.06)
-                          : Colors.black.withValues(alpha: 0.04),
-                      border: Border.all(
-                        color: (theme.brightness == Brightness.dark)
-                            ? Colors.white.withValues(alpha: 0.08)
-                            : Colors.black.withValues(alpha: 0.06),
-                      ),
-                    ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  isHeroEnabled
-                      ? Hero(
-                          tag: 'album-cover-${album.id}',
-                          child: coverContent,
-                        )
-                      : coverContent,
-                  Expanded(
-                    child: Padding(
-                      padding: EdgeInsets.fromLTRB(
-                        isPortrait ? 10 : 12,
-                        isPortrait ? 8 : 10,
-                        isPortrait ? 10 : 12,
-                        isPortrait ? 10 : 12,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Flexible(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  album.title,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: (isPortrait
-                                          ? theme.textTheme.titleSmall
-                                          : theme.textTheme.titleMedium)
-                                      ?.copyWith(
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  album.artist,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: (isPortrait
-                                          ? theme.textTheme.bodySmall
-                                          : theme.textTheme.bodyMedium)
-                                      ?.copyWith(
-                                    color: theme.colorScheme.onSurfaceVariant,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  l10n.songCount(album.trackCount),
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: theme.colorScheme.onSurfaceVariant,
-                                    fontSize: isPortrait ? 10 : 11,
-                                  ),
-                                ),
-                              ),
-                              if (!isSelectionMode)
-                                IgnorePointer(
-                                  ignoring: !_isHovered,
-                                  child: AnimatedOpacity(
-                                    opacity: _isHovered ? 1.0 : 0.0,
-                                    duration: const Duration(milliseconds: 150),
-                                    child: IconButton(
-                                      visualDensity: VisualDensity.compact,
-                                      padding: EdgeInsets.zero,
-                                      constraints: const BoxConstraints(),
-                                      style: const ButtonStyle(
-                                        tapTargetSize:
-                                            MaterialTapTargetSize.shrinkWrap,
-                                      ),
-                                      tooltip: l10n.playAll,
-                                      onPressed: () => audio.playPlaylist(
-                                        album.songs,
-                                        source: PlaybackSource(
-                                          type: PlaybackSourceType.album,
-                                          id: album.id,
-                                          name: album.title,
-                                        ),
-                                      ),
-                                      icon: Icon(
-                                        Icons.play_circle_filled_rounded,
-                                        size: isPortrait ? 22 : 26,
-                                        color: isDesktopPlatform
-                                            ? theme.colorScheme.primary
-                                            : theme.colorScheme.onSurfaceVariant,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+    if (isHeroEnabled) {
+      coverImage = Hero(
+        tag: 'album-cover-${album.id}',
+        child: coverImage,
+      );
+    }
+
+    final card = AlbumGridCard(
+      cover: coverImage,
+      title: album.title,
+      subtitle: album.artist,
+      isSelected: isSelected,
+      isSelectionMode: isSelectionMode,
+      onTap: onTap ?? () => _openAlbumDetail(context),
+      onLongPress: () {
+        if (onLongPress != null) {
+          onLongPress!();
+        } else if (!isSelectionMode) {
+          showAlbumBottomSheet(
+            context: context,
+            ref: ref,
+            album: album,
+            onMultiSelect: onMultiSelect,
+          );
+        }
+      },
+      onSecondaryTapDown: (details) {
+        if (!isSelectionMode) {
+          showAlbumContextMenu(
+            context: context,
+            globalPosition: details.globalPosition,
+            ref: ref,
+            album: album,
+            onMultiSelect: onMultiSelect,
+          );
+        }
+      },
+      onPlay: () => audio.playPlaylist(
+        album.songs,
+        source: PlaybackSource(
+          type: PlaybackSourceType.album,
+          id: album.id,
+          name: album.title,
         ),
       ),
     );
@@ -943,13 +727,13 @@ class _AlbumCardState extends ConsumerState<_AlbumCard> {
     return DraggableAlbumItem(
       album: album,
       enabled: !isSelectionMode,
-      child: content,
+      child: card,
     );
   }
 
   void _openAlbumDetail(BuildContext context) {
     Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => AlbumDetailPage(album: widget.album)),
+      MaterialPageRoute<void>(builder: (_) => AlbumDetailPage(album: album)),
     );
   }
 }
