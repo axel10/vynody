@@ -2777,17 +2777,25 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
     final rawArtwork = row.read<String?>('artworkPath');
     final rawThumbnail = row.read<String?>('thumbnailPath');
 
+    final effectivePath = IosPathManager.resolveSandboxPath(rawPath);
+    final effectiveArtwork = rawArtwork != null
+        ? IosPathManager.resolveSandboxPath(rawArtwork)
+        : null;
+    final effectiveThumbnail = rawThumbnail != null
+        ? IosPathManager.resolveSandboxPath(rawThumbnail)
+        : null;
+
     return SongMetadata(
       id: row.read<int?>('id'),
       mediaId: row.read<int?>('mediaId'),
-      path: rawPath,
+      path: effectivePath,
       title: row.read<String?>('title') ?? 'Unknown',
       album: row.read<String?>('album') ?? 'Unknown',
       artist: row.read<String?>('artist') ?? 'Unknown',
       albumArtist: row.read<String?>('albumArtist'),
       duration: row.read<int?>('duration'),
-      artworkPath: rawArtwork,
-      thumbnailPath: rawThumbnail,
+      artworkPath: effectiveArtwork,
+      thumbnailPath: effectiveThumbnail,
       artworkWidth: row.read<int?>('artworkWidth'),
       artworkHeight: row.read<int?>('artworkHeight'),
       trackNumber: row.read<int?>('trackNumber'),
@@ -2812,17 +2820,25 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   }
 
   SongMetadata _songFromTableRow(Song row) {
+    final effectivePath = IosPathManager.resolveSandboxPath(row.path);
+    final effectiveArtwork = row.artworkPath != null
+        ? IosPathManager.resolveSandboxPath(row.artworkPath!)
+        : null;
+    final effectiveThumbnail = row.thumbnailPath != null
+        ? IosPathManager.resolveSandboxPath(row.thumbnailPath!)
+        : null;
+
     return SongMetadata(
       id: row.id,
       mediaId: row.mediaId,
-      path: row.path,
+      path: effectivePath,
       title: row.title ?? 'Unknown',
       album: row.album ?? 'Unknown',
       artist: row.artist ?? 'Unknown',
       albumArtist: row.albumArtist,
       duration: row.duration,
-      artworkPath: row.artworkPath,
-      thumbnailPath: row.thumbnailPath,
+      artworkPath: effectiveArtwork,
+      thumbnailPath: effectiveThumbnail,
       artworkWidth: row.artworkWidth,
       artworkHeight: row.artworkHeight,
       trackNumber: row.trackNumber,
@@ -3229,6 +3245,12 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
         ).get();
         for (final row in rows) {
           final path = row.read<String>('path');
+          // Double check with IosPathManager: never treat external containers or File Provider as our own sandbox
+          final kind = IosPathManager.classify(path);
+          if (kind != IosPathKind.internalDocuments && kind != IosPathKind.internalLibrary) {
+            continue;
+          }
+
           final match = regExp.firstMatch(path);
           if (match != null) {
             final oldPrefix = match.group(0);

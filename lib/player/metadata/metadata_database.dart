@@ -14,6 +14,7 @@ import 'package:vynody/models/lyric_line.dart';
 import 'package:vynody/player/lyrics/lyrics_cache_models.dart';
 import 'package:vynody/player/scanner/scanner_sorting.dart';
 import 'package:vynody/player/scanner/scanner_path_utils.dart';
+import 'package:vynody/player/scanner/ios_path_manager.dart';
 import 'package:vynody/player/remote/proxy/remote_media_resolver.dart';
 import 'package:vynody/utils/lrc_utils.dart';
 export 'package:vynody/player/lyrics/lyrics_cache_models.dart';

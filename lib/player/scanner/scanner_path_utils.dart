@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:path/path.dart' as p;
+import 'package:vynody/player/scanner/ios_path_manager.dart';
 
 class ScannerPathUtils {
   static bool isLikelyPackagedWindowsApp() {
@@ -235,20 +236,7 @@ class ScannerPathUtils {
   static String? get docDir => _currentIosDocDir;
   static String? get libDir => _currentIosLibDir;
 
-  static const int _maxSandboxCacheSize = 10000;
-  static final Map<String, String> _sandboxPathCache = {};
 
-  static final RegExp _iosThumbRegex = RegExp(r'(?:^|/)thumbnails/(.+)$');
-  static final RegExp _iosContainerRegex = RegExp(
-    r'^/Containers/(?:Data/Application|Shared/AppGroup|[^/]+)/[^/]+(?:/[^/]+)*(?:/Data)?/(Documents|Library(?:/Application Support)?)(?:/(.*))?$',
-  );
-
-  static void _putSandboxCache(String path, String result) {
-    if (_sandboxPathCache.length > _maxSandboxCacheSize) {
-      _sandboxPathCache.clear();
-    }
-    _sandboxPathCache[path] = result;
-  }
 
   static final Set<String> _externalRoots = <String>{};
 
@@ -256,7 +244,7 @@ class ScannerPathUtils {
     _externalRoots
       ..clear()
       ..addAll(roots.map(normalizePath).where((r) => r.isNotEmpty));
-    _sandboxPathCache.clear();
+    IosPathManager.configure(externalRoots: roots);
   }
 
   static bool isWithinExternalRoot(String path) {
@@ -275,158 +263,24 @@ class ScannerPathUtils {
     String? libDir,
     Iterable<String>? externalRoots,
   }) {
-    _sandboxPathCache.clear();
-    if (docDir != null && docDir.isNotEmpty) {
-      _currentIosDocDir = normalizePath(docDir);
-    }
-    if (libDir != null && libDir.isNotEmpty) {
-      _currentIosLibDir = normalizePath(libDir);
-    }
-    if (externalRoots != null) {
-      setExternalRoots(externalRoots);
-    }
+    IosPathManager.configure(
+      docDir: docDir,
+      libDir: libDir,
+      externalRoots: externalRoots,
+    );
   }
 
   /// Resolves an iOS / macOS sandbox path that may contain a stale container UUID
   /// to the current application container directory.
   static String resolveIosSandboxPath(String path) {
-    if (path.isEmpty || (!Platform.isIOS && !Platform.isMacOS)) {
-      return path;
-    }
-    final cached = _sandboxPathCache[path];
-    if (cached != null) return cached;
-
-    final rawTrimmed = path.trim();
-    if (rawTrimmed.startsWith('content://') ||
-        rawTrimmed.startsWith('http://') ||
-        rawTrimmed.startsWith('https://') ||
-        rawTrimmed.startsWith('asset://') ||
-        rawTrimmed.startsWith('fd://') ||
-        rawTrimmed.contains('://')) {
-      _putSandboxCache(path, rawTrimmed);
-      return rawTrimmed;
-    }
-    final trimmed = normalizePath(rawTrimmed);
-
-    final docDir = _currentIosDocDir;
-    final libDir = _currentIosLibDir;
-
-    // If already pointing to current app's sandbox, return normalized path
-    if (docDir != null && (pathsEqual(docDir, trimmed) || pathContains(docDir, trimmed))) {
-      _putSandboxCache(path, trimmed);
-      return trimmed;
-    }
-    if (libDir != null && (pathsEqual(libDir, trimmed) || pathContains(libDir, trimmed))) {
-      _putSandboxCache(path, trimmed);
-      return trimmed;
-    }
-
-    // Fast rejection: if path has no container, thumbnail, or relative Documents markers,
-    // it's an external path (e.g. /Volumes/... or /Users/... on macOS).
-    final hasContainers = trimmed.contains('/Containers/');
-    final hasThumbnails = trimmed.contains('thumbnails/');
-    final hasStandaloneDoc = trimmed == 'Documents' || trimmed.startsWith('Documents/');
-    if (!hasContainers && !hasThumbnails && !hasStandaloneDoc) {
-      _putSandboxCache(path, trimmed);
-      return trimmed;
-    }
-
-    // If path is within an authorized external root, it belongs to an external directory!
-    // Never rewrite it to Vynody's sandbox.
-    if (isWithinExternalRoot(trimmed)) {
-      _putSandboxCache(path, trimmed);
-      return trimmed;
-    }
-
-    // If the path exists as-is on the filesystem (e.g. valid external folder/file from another app container or iCloud),
-    // do not rewrite it to our own sandbox!
-    try {
-      if (FileSystemEntity.typeSync(trimmed) != FileSystemEntityType.notFound) {
-        _putSandboxCache(path, trimmed);
-        return trimmed;
-      }
-    } on FileSystemException catch (e) {
-      // On iOS, accessing another app container without active security-scoped access
-      // throws OS Error: Operation not permitted (errno = 1).
-      // This indicates the entity exists in a restricted external container; do NOT rewrite it to our sandbox!
-      if (e.osError?.errorCode == 1) {
-        _putSandboxCache(path, trimmed);
-        return trimmed;
-      }
-    } catch (_) {
-      // Ignored if file system permission or check fails
-    }
-
-    String result = trimmed;
-
-    // 1. Special handling for thumbnails: thumbnails are always located inside libDir/thumbnails
-    if (libDir != null && libDir.isNotEmpty) {
-      final thumbMatch = _iosThumbRegex.firstMatch(trimmed);
-      if (thumbMatch != null) {
-        result = p.join(libDir, 'thumbnails', thumbMatch.group(1)!);
-        _putSandboxCache(path, result);
-        return result;
-      }
-    }
-
-    // 2. Container matching: supports iOS device (/var/mobile/Containers/...),
-    //    iOS Simulator (.../data/Containers/Data/Application/<UUID>/...),
-    //    macOS sandbox (.../Containers/<BundleId>/Data/...),
-    //    and File Provider Storage (.../Containers/Shared/AppGroup/<UUID>/File Provider Storage/...).
-    //    lastIndexOf ensures we pick the innermost/last container without greedy regex backtracking.
-    final lastContainersIdx = trimmed.lastIndexOf('/Containers/');
-    if (lastContainersIdx != -1) {
-      final containerMatch = _iosContainerRegex.firstMatch(trimmed.substring(lastContainersIdx));
-      if (containerMatch != null) {
-        final type = containerMatch.group(1);
-        final subPath = containerMatch.group(2);
-        if (type == 'Documents') {
-          if (docDir != null && docDir.isNotEmpty) {
-            result = (subPath == null || subPath.isEmpty)
-                ? docDir
-                : p.join(docDir, subPath);
-            _putSandboxCache(path, result);
-            return result;
-          }
-        } else {
-          if (libDir != null && libDir.isNotEmpty) {
-            result = (subPath == null || subPath.isEmpty)
-                ? libDir
-                : p.join(libDir, subPath);
-            _putSandboxCache(path, result);
-            return result;
-          }
-        }
-      }
-    }
-
-    // 3. Fallback for standalone relative Documents paths
-    if (docDir != null && docDir.isNotEmpty && hasStandaloneDoc) {
-      final subPath = trimmed == 'Documents'
-          ? ''
-          : trimmed.substring('Documents/'.length);
-      result = subPath.isEmpty ? docDir : p.join(docDir, subPath);
-    }
-
-    _putSandboxCache(path, result);
-    return result;
+    return IosPathManager.resolveSandboxPath(path);
   }
 
   /// Checks if a path belongs to the current iOS/macOS application sandbox.
   static bool isSandboxInternalPath(String path) {
     if (!Platform.isIOS && !Platform.isMacOS) return false;
-    final trimmed = normalizePath(path);
-    if (_currentIosDocDir != null &&
-        (pathsEqual(_currentIosDocDir!, trimmed) ||
-            pathContains(_currentIosDocDir!, trimmed))) {
-      return true;
-    }
-    if (_currentIosLibDir != null &&
-        (pathsEqual(_currentIosLibDir!, trimmed) ||
-            pathContains(_currentIosLibDir!, trimmed))) {
-      return true;
-    }
-    return false;
+    final kind = IosPathManager.classify(path);
+    return kind == IosPathKind.internalDocuments || kind == IosPathKind.internalLibrary;
   }
 
   static const Set<String> _windowsProtectedDirectoryNames = {

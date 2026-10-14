@@ -55,14 +55,10 @@ class SongThumbnail extends ConsumerStatefulWidget {
     this.borderRadius,
     this.fallbackWidget,
     this.isAlbum = false,
-  })  : path = ScannerPathUtils.resolveIosSandboxPath(song.path),
+  })  : path = song.path,
         id = song.id,
-        thumbnailPath = song.thumbnailPath != null
-            ? ScannerPathUtils.resolveIosSandboxPath(song.thumbnailPath!)
-            : null,
-        artworkPath = song.artworkPath != null
-            ? ScannerPathUtils.resolveIosSandboxPath(song.artworkPath!)
-            : null,
+        thumbnailPath = song.thumbnailPath,
+        artworkPath = song.artworkPath,
         bytes = song.artworkBytes;
 
   /// Factory constructor for an [AlbumSummary].
@@ -75,14 +71,10 @@ class SongThumbnail extends ConsumerStatefulWidget {
     this.borderRadius,
     this.fallbackWidget,
     this.isAlbum = true,
-  })  : path = ScannerPathUtils.resolveIosSandboxPath(album.representativeSong.path),
+  })  : path = album.representativeSong.path,
         id = album.representativeSong.id,
-        thumbnailPath = album.representativeSong.thumbnailPath != null
-            ? ScannerPathUtils.resolveIosSandboxPath(album.representativeSong.thumbnailPath!)
-            : null,
-        artworkPath = album.representativeSong.artworkPath != null
-            ? ScannerPathUtils.resolveIosSandboxPath(album.representativeSong.artworkPath!)
-            : null,
+        thumbnailPath = album.representativeSong.thumbnailPath,
+        artworkPath = album.representativeSong.artworkPath,
         bytes = album.representativeSong.artworkBytes;
 
   /// Factory constructor for a [SongMetadata] database record.
@@ -95,14 +87,10 @@ class SongThumbnail extends ConsumerStatefulWidget {
     this.borderRadius,
     this.fallbackWidget,
     this.isAlbum = false,
-  })  : path = ScannerPathUtils.resolveIosSandboxPath(metadata.path),
+  })  : path = metadata.path,
         id = metadata.id,
-        thumbnailPath = metadata.thumbnailPath != null
-            ? ScannerPathUtils.resolveIosSandboxPath(metadata.thumbnailPath!)
-            : null,
-        artworkPath = metadata.artworkPath != null
-            ? ScannerPathUtils.resolveIosSandboxPath(metadata.artworkPath!)
-            : null,
+        thumbnailPath = metadata.thumbnailPath,
+        artworkPath = metadata.artworkPath,
         bytes = null;
 
   @override
