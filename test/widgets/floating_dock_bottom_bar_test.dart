@@ -546,6 +546,54 @@ void main() {
     expect(capturedRef.read(floatingDockCollapsedProvider), false);
   });
 
+  testWidgets(
+      'FloatingDockScrollHelper automatically expands dock when scrolling near bottom',
+      (tester) async {
+    late WidgetRef capturedRef;
+    late BuildContext capturedContext;
+    final helper = FloatingDockScrollHelper();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          home: Scaffold(
+            body: Consumer(
+              builder: (context, ref, _) {
+                capturedRef = ref;
+                capturedContext = context;
+                return const SizedBox();
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+
+    // 1. Manually set collapsed to true
+    capturedRef.read(floatingDockCollapsedProvider.notifier).setCollapsed(true);
+    expect(capturedRef.read(floatingDockCollapsedProvider), true);
+
+    // 2. Scroll near bottom (pixels >= maxScrollExtent - 20)
+    final bottomMetrics = FixedScrollMetrics(
+      minScrollExtent: 0,
+      maxScrollExtent: 1000,
+      pixels: 985,
+      viewportDimension: 500,
+      axisDirection: AxisDirection.down,
+      devicePixelRatio: 1.0,
+    );
+
+    helper.handleScrollNotification(
+      ScrollUpdateNotification(
+        metrics: bottomMetrics,
+        context: capturedContext,
+        scrollDelta: 10.0,
+      ),
+      capturedRef,
+    );
+    expect(capturedRef.read(floatingDockCollapsedProvider), false);
+  });
+
 
   testWidgets(
       'FloatingDockBottomBar scales down slightly when collapsePrepProgress increases',

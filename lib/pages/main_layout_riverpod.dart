@@ -251,6 +251,19 @@ class FloatingDockScrollHelper {
       return false;
     }
 
+    // 接近底部缓冲区时（内容超出视口且到达/接近底部），展开 Dock 并清空所有累计距离
+    final isNearBottom = notification.metrics.maxScrollExtent > 0 &&
+        notification.metrics.pixels >= notification.metrics.maxScrollExtent - 20.0;
+    if (isNearBottom) {
+      _accumulatedDownScroll = 0.0;
+      _accumulatedUpScroll = 0.0;
+      ref.read(floatingDockCollapseProgressProvider.notifier).reset();
+      if (isCollapsed) {
+        ref.read(floatingDockCollapsedProvider.notifier).setCollapsed(false);
+      }
+      return false;
+    }
+
     // 若已经收起，判断向上滚动展开（单次手势达到阈值展开，换向或松手清零）
     if (isCollapsed) {
       if (_accumulatedDownScroll != 0.0) {
