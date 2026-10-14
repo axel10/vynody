@@ -209,6 +209,9 @@ void main(List<String> args) async {
       final prefs = await SharedPreferences.getInstance();
       final rootPaths = prefs.getStringList('root_paths');
       final currentUuid = p.basename(p.dirname(docDir.path));
+      if (Platform.isIOS) {
+        AppLog.log('[iOS] Current UUID: $currentUuid', mirrorToConsole: true);
+      }
       final lastUuid = prefs.getString('last_vynody_sandbox_uuid') ??
           (prefs.getString('last_known_sandbox_path') != null
               ? p.basename(prefs.getString('last_known_sandbox_path')!)

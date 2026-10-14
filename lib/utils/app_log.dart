@@ -80,7 +80,8 @@ class AppLog {
         deviceStr =
             'Device: ${iosInfo.name} (${iosInfo.model} / ${iosInfo.utsname.machine}), '
             'OS: ${iosInfo.systemName} ${iosInfo.systemVersion}, '
-            'Physical: ${iosInfo.isPhysicalDevice}';
+            'Physical: ${iosInfo.isPhysicalDevice}, '
+            'IDFV: ${iosInfo.identifierForVendor}';
       } else if (Platform.isWindows) {
         final winInfo = await deviceInfoPlugin.windowsInfo;
         deviceStr =
