@@ -42,6 +42,7 @@ class IosPathManager {
   static String? _currentSandboxRoot; // Parent of Documents (i.e. .../Data/Application/<UUID>)
 
   static final Set<String> _externalRoots = <String>{};
+  static final Set<String> _historicalSandboxUuids = <String>{};
   static final Map<String, String> _resolutionCache = {};
   static const int _maxCacheSize = 10000;
 
@@ -52,7 +53,7 @@ class IosPathManager {
   /// Group 2: Subfolder type ('Documents' or 'Library')
   /// Group 3: Subpath relative to Documents/Library
   static final RegExp _appContainerRegex = RegExp(
-    r'^((?:/private)?/var/mobile/Containers/Data/Application/[^/]+)/(Documents|Library(?:/Application Support)?)(?:/(.*))?$',
+    r'^((?:.*(?:/private)?/var/mobile|.*/CoreSimulator/Devices/[^/]+/data)?/Containers/Data/Application/[^/]+)/(Documents|Library(?:/Application Support)?)(?:/(.*))?$',
   );
 
   /// Configures the current app's sandbox directories.
@@ -61,6 +62,7 @@ class IosPathManager {
     String? docDir,
     String? libDir,
     Iterable<String>? externalRoots,
+    Iterable<String>? historicalSandboxUuids,
   }) {
     _resolutionCache.clear();
     if (docDir != null && docDir.isNotEmpty) {
@@ -75,7 +77,23 @@ class IosPathManager {
         ..clear()
         ..addAll(externalRoots.map(normalize).where((r) => r.isNotEmpty));
     }
+    if (historicalSandboxUuids != null) {
+      _historicalSandboxUuids
+        ..clear()
+        ..addAll(historicalSandboxUuids.map((u) => u.trim()).where((u) => u.isNotEmpty));
+    }
   }
+
+  /// Adds historical sandbox UUIDs to the known historical set.
+  static void addHistoricalSandboxUuids(Iterable<String> uuids) {
+    _resolutionCache.clear();
+    _historicalSandboxUuids.addAll(
+      uuids.map((u) => u.trim()).where((u) => u.isNotEmpty),
+    );
+  }
+
+  static Set<String> get historicalSandboxUuids =>
+      Set.unmodifiable(_historicalSandboxUuids);
 
   static String? get currentDocDir => _currentDocDir;
   static String? get currentLibDir => _currentLibDir;
@@ -134,34 +152,34 @@ class IosPathManager {
     if (match != null) {
       final containerRoot = normalize(match.group(1)!);
       final currentRoot = _currentSandboxRoot;
+      final containerUuid = p.basename(containerRoot);
 
-      // If matches current sandbox root, it's internal
-      if (currentRoot != null && containerRoot == currentRoot) {
+      // 4.1 If matches current sandbox root, it's internal
+      if (currentRoot != null &&
+          (containerRoot == currentRoot ||
+           containerUuid == p.basename(currentRoot))) {
         final type = match.group(2);
         return type == 'Documents'
             ? IosPathKind.internalDocuments
             : IosPathKind.internalLibrary;
       }
 
-      // Check if it's within an explicitly authorized external root
+      // 4.2 Check if the container UUID matches a known historical Vynody sandbox
+      if (_historicalSandboxUuids.contains(containerUuid)) {
+        final type = match.group(2);
+        return type == 'Documents'
+            ? IosPathKind.internalDocuments
+            : IosPathKind.internalLibrary;
+      }
+
+      // 4.3 Check if it's within an explicitly authorized external root
       if (isWithinExternalRoots(path)) {
         return IosPathKind.externalAppContainer;
       }
 
-      // If the path physically exists on disk and is NOT our own sandbox, it's an external app
-      try {
-        if (FileSystemEntity.typeSync(path) != FileSystemEntityType.notFound) {
-          return IosPathKind.externalAppContainer;
-        }
-      } on FileSystemException catch (e) {
-        // errno = 1 (Operation not permitted) indicates another app container restricted by sandbox
-        if (e.osError?.errorCode == 1) {
-          return IosPathKind.externalAppContainer;
-        }
-      } catch (_) {}
-
-      // If it doesn't exist and isn't external, it might be a stale Vynody sandbox from before reinstall
-      return IosPathKind.internalDocuments;
+      // 4.4 Default to externalAppContainer for any unknown application container.
+      // Never assume an unknown container is internal.
+      return IosPathKind.externalAppContainer;
     }
 
     return IosPathKind.externalFilesystem;

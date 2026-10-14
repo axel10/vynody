@@ -208,10 +208,25 @@ void main(List<String> args) async {
       final libDir = await getApplicationSupportDirectory();
       final prefs = await SharedPreferences.getInstance();
       final rootPaths = prefs.getStringList('root_paths');
+      final currentUuid = p.basename(p.dirname(docDir.path));
+      final lastUuid = prefs.getString('last_vynody_sandbox_uuid') ??
+          (prefs.getString('last_known_sandbox_path') != null
+              ? p.basename(prefs.getString('last_known_sandbox_path')!)
+              : null);
+      final historicalUuids = <String>{};
+      if (lastUuid != null && lastUuid != currentUuid) {
+        historicalUuids.add(lastUuid);
+      }
+      final knownUuidsList = prefs.getStringList('known_vynody_sandbox_uuids');
+      if (knownUuidsList != null) {
+        historicalUuids.addAll(knownUuidsList.where((u) => u.isNotEmpty && u != currentUuid));
+      }
+
       ScannerPathUtils.setIosSandboxDirs(
         docDir: docDir.path,
         libDir: libDir.path,
         externalRoots: rootPaths,
+        historicalSandboxUuids: historicalUuids.isNotEmpty ? historicalUuids : null,
       );
     } catch (e) {
       AppLog.log('Failed to initialize iOS sandbox directories: $e', mirrorToConsole: true);

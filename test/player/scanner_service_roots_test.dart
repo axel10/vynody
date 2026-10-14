@@ -13,6 +13,7 @@ void main() {
       ScannerPathUtils.setIosSandboxDirs(
         docDir: '/var/mobile/Containers/Data/Application/NEW-UUID-1234/Documents',
         libDir: '/var/mobile/Containers/Data/Application/NEW-UUID-1234/Library/Application Support',
+        historicalSandboxUuids: ['OLD-UUID-9999', 'OLD-SIM-1', 'OLD-1'],
       );
     });
 
@@ -27,7 +28,7 @@ void main() {
 
       const fileProviderPath = '/private/var/mobile/Containers/Shared/AppGroup/GROUP-UUID-5678/File Provider Storage/Documents/MyMusic';
       final resolvedProvider = ScannerPathUtils.resolveIosSandboxPath(fileProviderPath);
-      expect(resolvedProvider, '/var/mobile/Containers/Data/Application/NEW-UUID-1234/Documents/MyMusic');
+      expect(resolvedProvider, fileProviderPath);
 
       const oldThumbPath = '/private/var/mobile/Containers/Data/Application/OLD-UUID-9999/Library/Application Support/thumbnails/abc12345.jpg';
       final resolvedThumb = ScannerPathUtils.resolveIosSandboxPath(oldThumbPath);
@@ -135,6 +136,7 @@ void main() {
       ScannerPathUtils.setIosSandboxDirs(
         docDir: '/var/mobile/Containers/Data/Application/NEW-UUID-1234/Documents',
         libDir: '/var/mobile/Containers/Data/Application/NEW-UUID-1234/Library/Application Support',
+        historicalSandboxUuids: ['OLD-UUID-9999'],
       );
     });
 

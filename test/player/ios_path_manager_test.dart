@@ -12,6 +12,7 @@ void main() {
         docDir: currentDoc,
         libDir: currentLib,
         externalRoots: [externalRoot],
+        historicalSandboxUuids: ['OLD-UUID-9999'],
       );
     });
 
@@ -82,6 +83,61 @@ void main() {
       expect(
         IosPathManager.resolveSandboxPath(webdavUri),
         equals(webdavUri),
+      );
+    });
+
+    test('classifies unknown container UUID as externalAppContainer and never rewrites', () {
+      const unknownSong =
+          '/private/var/mobile/Containers/Data/Application/UNKNOWN-APP-UUID/Documents/track.mp3';
+
+      expect(
+        IosPathManager.classify(unknownSong),
+        equals(IosPathKind.externalAppContainer),
+      );
+
+      final resolved = IosPathManager.resolveSandboxPath(unknownSong);
+      expect(resolved, equals(unknownSong));
+    });
+
+    test('dynamically added historical UUIDs are recognized and resolved', () {
+      const newlyDiscoveredSong =
+          '/var/mobile/Containers/Data/Application/DISCOVERED-UUID-5555/Documents/song.m4a';
+
+      // Before registering: unknown container, treated as external
+      expect(
+        IosPathManager.classify(newlyDiscoveredSong),
+        equals(IosPathKind.externalAppContainer),
+      );
+      expect(
+        IosPathManager.resolveSandboxPath(newlyDiscoveredSong),
+        equals(newlyDiscoveredSong),
+      );
+
+      // Register historical UUID
+      IosPathManager.addHistoricalSandboxUuids(['DISCOVERED-UUID-5555']);
+
+      // After registering: internalDocuments, resolved to currentDoc
+      expect(
+        IosPathManager.classify(newlyDiscoveredSong),
+        equals(IosPathKind.internalDocuments),
+      );
+      expect(
+        IosPathManager.resolveSandboxPath(newlyDiscoveredSong),
+        equals('$currentDoc/song.m4a'),
+      );
+    });
+
+    test('supports Simulator container paths with historical UUIDs', () {
+      const simSong =
+          '/Users/test/Library/Developer/CoreSimulator/Devices/DEV-1/data/Containers/Data/Application/OLD-UUID-9999/Documents/album/track.mp3';
+
+      expect(
+        IosPathManager.classify(simSong),
+        equals(IosPathKind.internalDocuments),
+      );
+      expect(
+        IosPathManager.resolveSandboxPath(simSong),
+        equals('$currentDoc/album/track.mp3'),
       );
     });
   });

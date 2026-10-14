@@ -262,11 +262,13 @@ class ScannerPathUtils {
     String? docDir,
     String? libDir,
     Iterable<String>? externalRoots,
+    Iterable<String>? historicalSandboxUuids,
   }) {
     IosPathManager.configure(
       docDir: docDir,
       libDir: libDir,
       externalRoots: externalRoots,
+      historicalSandboxUuids: historicalSandboxUuids,
     );
   }
 

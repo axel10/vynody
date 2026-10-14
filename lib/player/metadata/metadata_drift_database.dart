@@ -3216,6 +3216,9 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       healStage = 'SharedPreferences.getInstance';
       final prefs = await SharedPreferences.getInstance();
       final lastKnownSandbox = prefs.getString('last_known_sandbox_path');
+      final lastKnownUuid = prefs.getString('last_vynody_sandbox_uuid') ??
+          (lastKnownSandbox != null ? p.basename(lastKnownSandbox) : null);
+      final currentUuid = p.basename(currentSandbox);
 
       final currentSandboxNoPrivate =
           currentSandbox.replaceFirst(RegExp(r'^/private'), '');
@@ -3224,60 +3227,62 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
           : '/private/$currentSandboxNoPrivate';
 
       final normalizedOldPrefixes = <String>{};
-      if (lastKnownSandbox != null) {
-        final norm = lastKnownSandbox.replaceFirst(RegExp(r'^/private'), '');
-        if (norm.isNotEmpty && norm != currentSandboxNoPrivate) {
-          normalizedOldPrefixes.add(norm);
-        }
-      }
 
-      // Query database for any songs containing old sandbox prefixes
-      try {
-        healStage = 'querying database for old sandbox prefixes';
-        debugPrint('[PathMigration] Checking database for songs with old sandbox prefixes...');
-        final regExp = RegExp(r'^(.*)/Containers/Data/Application/([^/]+)');
-        final rows = await customSelect(
-          "SELECT DISTINCT path FROM songs WHERE path LIKE '%/Containers/Data/Application/%' AND path NOT LIKE ? AND path NOT LIKE ?",
-          variables: [
-            Variable('%$currentSandboxNoPrivate%'),
-            Variable('%$currentSandboxWithPrivate%'),
-          ],
-        ).get();
-        for (final row in rows) {
-          final path = row.read<String>('path');
-          // Double check with IosPathManager: never treat external containers or File Provider as our own sandbox
-          final kind = IosPathManager.classify(path);
-          if (kind != IosPathKind.internalDocuments && kind != IosPathKind.internalLibrary) {
-            continue;
-          }
+      if (lastKnownUuid == null) {
+        // Initial install or legacy upgrade from a version without UUID tracking!
+        // Sample thumbnail paths from database to safely harvest legacy Vynody UUIDs.
+        healStage = 'sampling thumbnailPath for legacy UUIDs';
+        debugPrint('[PathMigration] First run or legacy upgrade. Probing thumbnail paths for old UUIDs...');
+        try {
+          final rows = await customSelect(
+            "SELECT DISTINCT thumbnailPath FROM songs "
+            "WHERE thumbnailPath LIKE '%/Containers/Data/Application/%/Library/%/thumbnails/%' "
+            "LIMIT 50",
+          ).get();
 
-          final match = regExp.firstMatch(path);
-          if (match != null) {
-            final oldPrefix = match.group(0);
-            if (oldPrefix != null) {
-              final norm = oldPrefix.replaceFirst(RegExp(r'^/private'), '');
-              if (norm != currentSandboxNoPrivate) {
-                // If the oldPrefix or the file itself still exists on the filesystem,
-                // it belongs to an external active app container, not a migrated Vynody sandbox!
-                try {
-                  if (FileSystemEntity.typeSync(oldPrefix) != FileSystemEntityType.notFound ||
-                      FileSystemEntity.typeSync(norm) != FileSystemEntityType.notFound ||
-                      FileSystemEntity.typeSync(path) != FileSystemEntityType.notFound) {
-                    continue;
-                  }
-                } catch (_) {}
-                normalizedOldPrefixes.add(norm);
+          final uuidRegex = RegExp(r'/Containers/Data/Application/([^/]+)');
+          final legacyUuids = <String>{};
+          for (final row in rows) {
+            final thumb = row.read<String?>('thumbnailPath');
+            if (thumb == null) continue;
+            final match = uuidRegex.firstMatch(thumb);
+            if (match != null) {
+              final oldUuid = match.group(1)!;
+              if (oldUuid != currentUuid) {
+                legacyUuids.add(oldUuid);
               }
             }
           }
+
+          if (legacyUuids.isEmpty) {
+            // Fresh install or no old Vynody data to heal
+            await prefs.setString('last_vynody_sandbox_uuid', currentUuid);
+            await prefs.setString('last_known_sandbox_path', currentSandbox);
+            debugPrint('[PathMigration] No legacy sandbox UUIDs found. Set last_vynody_sandbox_uuid=$currentUuid.');
+            return;
+          }
+
+          // Found verified historical Vynody UUIDs!
+          IosPathManager.addHistoricalSandboxUuids(legacyUuids);
+          for (final oldUuid in legacyUuids) {
+            normalizedOldPrefixes.add('/var/mobile/Containers/Data/Application/$oldUuid');
+          }
+        } catch (e) {
+          debugPrint('[PathMigration] Failed to probe thumbnail paths: $e');
         }
-      } catch (e) {
-        debugPrint(
-          '[PathMigration] Failed to check database for old sandbox prefixes: $e',
-        );
+      } else if (lastKnownUuid == currentUuid) {
+        // Steady-state: UUID unchanged. Fast pass!
+        debugPrint('[PathMigration] Sandbox UUID unchanged ($currentUuid). Nothing to heal.');
+        return;
+      } else {
+        // Sandbox UUID rotated! (e.g. reinstall or backup restore)
+        debugPrint('[PathMigration] Sandbox UUID rotated from $lastKnownUuid to $currentUuid.');
+        IosPathManager.addHistoricalSandboxUuids([lastKnownUuid]);
+        normalizedOldPrefixes.add('/var/mobile/Containers/Data/Application/$lastKnownUuid');
       }
 
       if (normalizedOldPrefixes.isEmpty) {
+        await prefs.setString('last_vynody_sandbox_uuid', currentUuid);
         await prefs.setString('last_known_sandbox_path', currentSandbox);
         debugPrint('[PathMigration] No old sandbox prefixes found. Finished.');
         return;
@@ -3486,23 +3491,21 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
         final rootPaths = prefs.getStringList('root_paths');
         if (rootPaths != null) {
           final updatedRootPaths = rootPaths.map((p) {
-            try {
-              if (Directory(p).existsSync()) {
-                return p;
-              }
-            } catch (_) {}
-            final resolved = ScannerPathUtils.resolveIosSandboxPath(p);
-            return resolved;
+            return ScannerPathUtils.resolveIosSandboxPath(p);
           }).toList();
-          await prefs.setStringList('root_paths', updatedRootPaths);
+          final normalized = ScannerPathUtils.normalizeDeclaredRootPaths(updatedRootPaths);
+          await prefs.setStringList('root_paths', normalized);
+          ScannerPathUtils.setExternalRoots(normalized);
         }
       } catch (e) {
         debugPrint('[PathMigration] Failed to migrate root_paths: $e');
       }
 
-      // Always save the current sandbox path
+      // Always save the current sandbox path and UUID on success
+      await prefs.setString('last_vynody_sandbox_uuid', currentUuid);
       await prefs.setString('last_known_sandbox_path', currentSandbox);
-      debugPrint('[PathMigration] Path healing completed.');
+      await prefs.remove('known_vynody_sandbox_uuids');
+      debugPrint('[PathMigration] Path healing completed successfully.');
     } catch (e, st) {
       debugPrint(
         '[PathMigration] Error running iOS sandbox path healing: $e\n$st',
