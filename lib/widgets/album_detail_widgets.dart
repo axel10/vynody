@@ -315,6 +315,7 @@ class AlbumLandscapeHeaderBanner extends StatelessWidget {
     this.metadata,
     required this.actionButtons,
     required this.coverWidget,
+    this.alignActionsToBottom = false,
   });
 
   final String title;
@@ -323,11 +324,103 @@ class AlbumLandscapeHeaderBanner extends StatelessWidget {
   final Widget? metadata;
   final List<Widget> actionButtons;
   final Widget coverWidget;
+  final bool alignActionsToBottom;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+
+    final coverCard = Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(
+              alpha: isDark ? 0.35 : 0.12,
+            ),
+            blurRadius: 18,
+            spreadRadius: 0,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: coverWidget,
+      ),
+    );
+
+    final bannerRow = Row(
+      crossAxisAlignment: alignActionsToBottom
+          ? CrossAxisAlignment.stretch
+          : CrossAxisAlignment.start,
+      children: [
+        if (alignActionsToBottom)
+          Align(
+            alignment: Alignment.topLeft,
+            child: coverCard,
+          )
+        else
+          coverCard,
+        const SizedBox(width: 28),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (tagLabel != null && tagLabel!.isNotEmpty) ...[
+                Text(
+                  tagLabel!,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: theme.colorScheme.secondary,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.1,
+                  ),
+                ),
+                const SizedBox(height: 6),
+              ],
+              Text(
+                title,
+                style: theme.textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.5,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              if (subtitle != null && subtitle!.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text(
+                  subtitle!,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: theme.colorScheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+              if (metadata != null) ...[
+                const SizedBox(height: 10),
+                metadata!,
+              ],
+              if (actionButtons.isNotEmpty) ...[
+                if (alignActionsToBottom) ...[
+                  const Spacer(),
+                  const SizedBox(height: 16),
+                ] else
+                  const SizedBox(height: 20),
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: actionButtons,
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
 
     return Align(
       alignment: Alignment.center,
@@ -340,82 +433,9 @@ class AlbumLandscapeHeaderBanner extends StatelessWidget {
             children: [
               Padding(
                 padding: const EdgeInsets.only(top: 16, bottom: 24),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(
-                              alpha: isDark ? 0.35 : 0.12,
-                            ),
-                            blurRadius: 18,
-                            spreadRadius: 0,
-                            offset: const Offset(0, 8),
-                          ),
-                        ],
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: coverWidget,
-                      ),
-                    ),
-                    const SizedBox(width: 28),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (tagLabel != null && tagLabel!.isNotEmpty) ...[
-                            Text(
-                              tagLabel!,
-                              style: theme.textTheme.labelMedium?.copyWith(
-                                color: theme.colorScheme.secondary,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 1.1,
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                          ],
-                          Text(
-                            title,
-                            style: theme.textTheme.headlineMedium?.copyWith(
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: -0.5,
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          if (subtitle != null && subtitle!.isNotEmpty) ...[
-                            const SizedBox(height: 8),
-                            Text(
-                              subtitle!,
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                color: theme.colorScheme.primary,
-                                fontWeight: FontWeight.w600,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                          if (metadata != null) ...[
-                            const SizedBox(height: 10),
-                            metadata!,
-                          ],
-                          if (actionButtons.isNotEmpty) ...[
-                            const SizedBox(height: 20),
-                            Wrap(
-                              spacing: 12,
-                              runSpacing: 12,
-                              children: actionButtons,
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+                child: alignActionsToBottom
+                    ? IntrinsicHeight(child: bannerRow)
+                    : bannerRow,
               ),
               Divider(
                 height: 1,

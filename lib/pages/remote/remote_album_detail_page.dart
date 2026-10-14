@@ -566,6 +566,7 @@ class _RemoteAlbumDetailPageState
                     tagLabel: l10n.albumLabel.toUpperCase(),
                     metadata: metadataWidget,
                     actionButtons: actionButtons,
+                    alignActionsToBottom: true,
                     coverWidget: RemoteArtworkWidget(
                       server: widget.server,
                       password: widget.password,

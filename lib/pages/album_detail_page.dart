@@ -172,6 +172,7 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage>
                   subtitle: widget.album.artist,
                   metadata: metadataWidget,
                   actionButtons: actionButtons,
+                  alignActionsToBottom: true,
                   coverWidget: AlbumCover(
                     album: widget.album,
                     size: 220,
