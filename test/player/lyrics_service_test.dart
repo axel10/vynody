@@ -251,6 +251,148 @@ void main() {
       },
     );
 
+    test('retries on HTTP 429 rate limit and succeeds on retry', () async {
+      var callCount = 0;
+      final mockClient = _MultiResponseNetworkClient((path, params) {
+        callCount++;
+        if (callCount == 1) {
+          throw DioException(
+            requestOptions: RequestOptions(path: path),
+            response: Response(
+              requestOptions: RequestOptions(path: path),
+              statusCode: 429,
+            ),
+          );
+        }
+        return [
+          {
+            'id': 101,
+            'trackName': 'Run',
+            'artistName': 'OneRepublic',
+            'albumName': 'Human',
+            'duration': 168,
+            'plainLyrics': 'Run lyrics',
+            'syncedLyrics': '[00:05.00] Run lyrics',
+          },
+        ];
+      });
+
+      final service = LyricsService(
+        client: mockClient,
+        cacheRepository: _NoopLyricsCacheRepository(),
+      );
+
+      final result = await service.fetchBestLyrics(
+        query: const LyricsQuery(
+          filePath: '/music/Run.mp3',
+          fileName: 'Run.mp3',
+          title: 'Run',
+          artist: 'OneRepublic',
+          album: 'Human',
+          duration: Duration(seconds: 168),
+        ),
+      );
+
+      expect(result, isNotNull);
+      expect(result!.track.id, 101);
+      expect(callCount, 2);
+    });
+
+    test('retries on HTTP 503 server error and succeeds on retry', () async {
+      var callCount = 0;
+      final mockClient = _MultiResponseNetworkClient((path, params) {
+        callCount++;
+        if (callCount == 1) {
+          throw DioException(
+            requestOptions: RequestOptions(path: path),
+            response: Response(
+              requestOptions: RequestOptions(path: path),
+              statusCode: 503,
+            ),
+          );
+        }
+        return [
+          {
+            'id': 102,
+            'trackName': 'Run',
+            'artistName': 'OneRepublic',
+            'albumName': 'Human',
+            'duration': 168,
+            'plainLyrics': 'Run lyrics',
+            'syncedLyrics': '[00:05.00] Run lyrics',
+          },
+        ];
+      });
+
+      final service = LyricsService(
+        client: mockClient,
+        cacheRepository: _NoopLyricsCacheRepository(),
+      );
+
+      final result = await service.fetchBestLyrics(
+        query: const LyricsQuery(
+          filePath: '/music/Run.mp3',
+          fileName: 'Run.mp3',
+          title: 'Run',
+          artist: 'OneRepublic',
+          album: 'Human',
+          duration: Duration(seconds: 168),
+        ),
+      );
+
+      expect(result, isNotNull);
+      expect(result!.track.id, 102);
+      expect(callCount, 2);
+    });
+
+    test('uses filename only when metadata title is missing or blank', () async {
+      final queryHistory = <Map<String, dynamic>>[];
+      final mockClient = _MultiResponseNetworkClient((path, params) {
+        queryHistory.add(params ?? {});
+        return [
+          {
+            'id': 103,
+            'trackName': 'DerivedSong',
+            'artistName': 'DerivedArtist',
+            'duration': 180,
+            'plainLyrics': 'lyrics',
+            'syncedLyrics': null,
+          },
+        ];
+      });
+
+      final service = LyricsService(
+        client: mockClient,
+        cacheRepository: _NoopLyricsCacheRepository(),
+      );
+
+      // 1. 当 title 存在时，无论如何不会用文件名
+      await service.fetchBestLyrics(
+        query: const LyricsQuery(
+          filePath: '/music/01 - Singer - WrongFileName.mp3',
+          fileName: '01 - Singer - WrongFileName.mp3',
+          title: 'CorrectTitle',
+          artist: 'CorrectArtist',
+          duration: Duration(seconds: 180),
+        ),
+      );
+      expect(queryHistory.first['q'], 'CorrectTitle CorrectArtist');
+
+      queryHistory.clear();
+
+      // 2. 只有当 title 为空字符串时，才采用文件名推断出的标题
+      await service.fetchBestLyrics(
+        query: const LyricsQuery(
+          filePath: '/music/CleanSongTitle.mp3',
+          fileName: 'CleanSongTitle.mp3',
+          title: '', // 缺失标题
+          artist: 'MyArtist',
+          duration: Duration(seconds: 180),
+        ),
+      );
+      expect(queryHistory.first['q'], 'CleanSongTitle MyArtist');
+    });
+
     test(
       'rejects candidates with conflicting artist even if title matches and duration is close',
       () async {

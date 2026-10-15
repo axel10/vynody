@@ -7,6 +7,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:flutter_taglib/flutter_taglib.dart' as taglib;
 import 'package:path/path.dart' as p;
 
+import 'package:dio/dio.dart';
 import 'package:vynody/utils/network_client.dart';
 import 'package:vynody/utils/clean_helper.dart';
 import 'package:vynody/utils/lyrics_id_utils.dart';
@@ -779,8 +780,7 @@ class LyricsService {
       'album="${query.album ?? ''}" duration=${query.duration?.inSeconds ?? 'n/a'}s',
     );
 
-    // 1. 优先尝试主流程（基于 标题+艺术家/专辑 单次全文搜索）
-    final primaryResult = await _fetchBestLyricsWithSearch(
+    final result = await _fetchBestLyricsWithSearch(
       query,
       cacheQuery: query,
       searchTitle: query.title,
@@ -789,40 +789,14 @@ class LyricsService {
       cacheEmptyResult: false,
       cancelToken: cancelToken,
     );
-    if (primaryResult != null) {
+    if (result != null) {
       _logDebug('pipeline success on primary query -> title="${query.title}"');
-      return primaryResult;
+      return result;
     }
 
     if (cancelToken?.isCancelled == true) {
-      _logDebug('pipeline cancelled after primary query -> title="${query.title}"');
+      _logDebug('pipeline cancelled -> title="${query.title}"');
       return null;
-    }
-
-    // 2. 如果使用清洗后的标题未找到，且从文件名派生的干净标题不同，则使用文件名干净标题进行兜底查询
-    final cleanFallbackTitle = CleanHelper.deriveCleanTitleFromFileName(
-      query.fileName,
-    );
-    if (cleanFallbackTitle.isNotEmpty && cleanFallbackTitle != query.title) {
-      _logDebug(
-        'lyrics retry with filename clean title -> "$cleanFallbackTitle" '
-        '(original: "${query.title}")',
-      );
-
-      final fallbackResult = await _fetchBestLyricsWithSearch(
-        query,
-        cacheQuery: query,
-        searchTitle: cleanFallbackTitle,
-        searchArtist: query.artist,
-        searchAlbum: query.album,
-        cacheEmptyResult: true,
-        cancelToken: cancelToken,
-      );
-      _logDebug(
-        'pipeline fallback result -> cleanTitle="$cleanFallbackTitle" '
-        'found=${fallbackResult != null}',
-      );
-      return fallbackResult;
     }
 
     _logDebug('pipeline finished without lyrics -> title="${query.title}"');
@@ -976,54 +950,91 @@ class LyricsService {
     String? q,
     CancelToken? cancelToken,
   }) async {
-    try {
-      final Map<String, dynamic> params;
-      if (q != null && q.trim().isNotEmpty) {
-        params = <String, dynamic>{
-          'q': q,
-        };
-      } else {
-        params = <String, dynamic>{
-          'track_name': title,
-          if (artist != null && artist.trim().isNotEmpty) 'artist_name': artist,
-          if (album != null && album.trim().isNotEmpty) 'album_name': album,
-          'q': _buildSearchText(
-            title: title,
-            artist: artist,
-            album: album,
-          ),
-        };
-      }
+    final Map<String, dynamic> params;
+    if (q != null && q.trim().isNotEmpty) {
+      params = <String, dynamic>{
+        'q': q,
+      };
+    } else {
+      params = <String, dynamic>{
+        'track_name': title,
+        if (artist != null && artist.trim().isNotEmpty) 'artist_name': artist,
+        if (album != null && album.trim().isNotEmpty) 'album_name': album,
+        'q': _buildSearchText(
+          title: title,
+          artist: artist,
+          album: album,
+        ),
+      };
+    }
 
-      final response = await _client.get(
-        'https://lrclib.net/api/search',
-        queryParameters: params,
-        cancelToken: cancelToken,
-      );
-      _logDebug(
-        'http search done -> q="${q ?? title}" '
-        'resultType=${response.data.runtimeType}',
-      );
+    const maxRetries = 2;
+    const retryDelays = [
+      Duration(milliseconds: 1000),
+      Duration(milliseconds: 1500),
+    ];
 
-      final data = response.data;
-      if (data is List) {
-        return data
-            .whereType<Map>()
-            .map((item) => LyricTrack.fromJson(Map<String, dynamic>.from(item)))
-            .where((track) => track.hasLyrics)
-            .toList(growable: false);
-      }
-    } on DioException catch (e) {
-      if (CancelToken.isCancel(e)) {
-        _logDebug('http search canceled -> track="$title"');
+    for (var attempt = 0; attempt <= maxRetries; attempt++) {
+      if (cancelToken?.isCancelled == true) {
         return const [];
       }
-      debugPrint('[Lyrics] SEARCH failed for "$title": ${e.message}');
-      rethrow;
-    } catch (e) {
-      debugPrint('[Lyrics] SEARCH error for "$title": $e');
-      rethrow;
+
+      try {
+        final response = await _client.get(
+          'https://lrclib.net/api/search',
+          queryParameters: params,
+          cancelToken: cancelToken,
+        );
+        _logDebug(
+          'http search done -> q="${q ?? title}" attempt=$attempt '
+          'resultType=${response.data.runtimeType}',
+        );
+
+        final data = response.data;
+        if (data is List) {
+          return data
+              .whereType<Map>()
+              .map((item) => LyricTrack.fromJson(Map<String, dynamic>.from(item)))
+              .where((track) => track.hasLyrics)
+              .toList(growable: false);
+        }
+        return const [];
+      } on DioException catch (e) {
+        if (CancelToken.isCancel(e) || cancelToken?.isCancelled == true) {
+          _logDebug('http search canceled -> track="$title"');
+          return const [];
+        }
+
+        final statusCode = e.response?.statusCode;
+        final isTransientError = statusCode == 429 ||
+            (statusCode != null && statusCode >= 500 && statusCode < 600) ||
+            e.type == DioExceptionType.connectionTimeout ||
+            e.type == DioExceptionType.sendTimeout ||
+            e.type == DioExceptionType.receiveTimeout ||
+            e.type == DioExceptionType.connectionError;
+
+        if (isTransientError && attempt < maxRetries) {
+          final delay = retryDelays[attempt];
+          _logDebug(
+            'http search transient error (${statusCode ?? e.type.name}) -> track="$title", '
+            'retry attempt ${attempt + 1}/$maxRetries after ${delay.inMilliseconds}ms',
+          );
+          await Future.delayed(delay);
+          if (cancelToken?.isCancelled == true) {
+            _logDebug('http search canceled during transient backoff -> track="$title"');
+            return const [];
+          }
+          continue;
+        }
+
+        debugPrint('[Lyrics] SEARCH failed for "$title": ${e.message}');
+        rethrow;
+      } catch (e) {
+        debugPrint('[Lyrics] SEARCH error for "$title": $e');
+        rethrow;
+      }
     }
+
     return const [];
   }
 
