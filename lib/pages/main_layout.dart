@@ -376,9 +376,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
       vsync: this,
       duration: const Duration(milliseconds: 320),
       value: shouldOpenPlaybackInitially ? 1.0 : 0.0,
-    )..addListener(() {
-        if (mounted) setState(() {});
-      });
+    );
 
     _isPlaybackDrawerOpen = shouldOpenPlaybackInitially;
 

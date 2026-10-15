@@ -66,6 +66,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
   Uint8List? _pendingArtworkBytes;
   String? _pendingArtworkPath;
   Timer? _heroWarmupTimer;
+  bool _isPageEnterTransitionCompleted = false;
   Timer? _volumeSliderTimer;
   final Map<String, Uint8List> _fileArtworkBytesCache = {};
   final Set<String> _loadingPaths = {};
@@ -257,6 +258,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
     // route transition finishes. The current main layout transition is 320ms.
     _heroWarmupTimer = Timer(const Duration(milliseconds: 320), () {
       if (!mounted) return;
+      _isPageEnterTransitionCompleted = true;
       _audioService?.completeHeroTransition();
     });
   }
@@ -310,7 +312,9 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
     String? sourcePath,
   ) {
     if (!mounted) return;
-    ref.read(currentAudioDetailsProvider.notifier).loadRefinedImmediately();
+    if (_isPageEnterTransitionCompleted) {
+      ref.read(currentAudioDetailsProvider.notifier).loadRefinedImmediately();
+    }
     if (sourcePath != null && artworkBytes != null && artworkBytes.isNotEmpty) {
       _fileArtworkBytesCache[sourcePath] = artworkBytes;
     }
