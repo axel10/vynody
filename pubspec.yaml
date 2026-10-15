@@ -140,7 +140,7 @@ dependencies:
   flutter_desktop_lyrics: 
     git:
       url: https://github.com/axel10/flutter_desktop_lyrics
-      ref: cbaf3458e79efd34016ca1cc3f76e53c890960a0
+      ref: master
   dbus: ^0.7.14
   linux_directory_access:
     git:

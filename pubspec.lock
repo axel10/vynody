@@ -533,8 +533,8 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: cbaf3458e79efd34016ca1cc3f76e53c890960a0
-      resolved-ref: cbaf3458e79efd34016ca1cc3f76e53c890960a0
+      ref: master
+      resolved-ref: "8b21d52a51fec322fc966b4c5c897897afe703b0"
       url: "https://github.com/axel10/flutter_desktop_lyrics"
     source: git
     version: "0.0.1"
