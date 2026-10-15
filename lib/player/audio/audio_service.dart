@@ -3373,6 +3373,8 @@ class AudioService extends Notifier<AudioSnapshot> {
             ),
           );
           break;
+        case PlaybackSourceType.genre:
+          break;
       }
     } catch (e) {
       debugPrint('[AudioService] Error handling queue finished: $e');
@@ -3593,6 +3595,8 @@ class AudioService extends Notifier<AudioSnapshot> {
               name: nextArtist.name,
             ),
           );
+          break;
+        case PlaybackSourceType.genre:
           break;
       }
     } catch (e) {

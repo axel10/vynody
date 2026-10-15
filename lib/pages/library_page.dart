@@ -13,6 +13,7 @@ import 'recently_played_tab.dart';
 import 'playlist_tab.dart';
 import 'recently_added_tab.dart';
 import 'rated_songs_tab.dart';
+import 'genres_tab.dart';
 import 'library_dashboard_view.dart';
 import 'main_layout_riverpod.dart';
 import '../widgets/library_selection_scope.dart';
@@ -246,7 +247,7 @@ class _LibrarySubHostPageState extends ConsumerState<LibrarySubHostPage> {
     final double leftPadding = railWidth;
 
     final int activeIndex = ref.watch(libraryActiveTabIndexProvider);
-    final int clampedIndex = activeIndex.clamp(0, 6);
+    final int clampedIndex = activeIndex.clamp(0, 7);
     _builtSubTabs.add(clampedIndex);
 
     final String title = switch (clampedIndex) {
@@ -257,6 +258,7 @@ class _LibrarySubHostPageState extends ConsumerState<LibrarySubHostPage> {
       4 => l10n.albums,
       5 => l10n.artists,
       6 => l10n.ratedSongs,
+      7 => l10n.genres,
       _ => l10n.list,
     };
 
@@ -299,6 +301,11 @@ class _LibrarySubHostPageState extends ConsumerState<LibrarySubHostPage> {
             contentTopPadding: topPadding,
             contentLeftPadding: leftPadding,
           );
+        case 7:
+          return GenresTab(
+            contentTopPadding: topPadding,
+            contentLeftPadding: leftPadding,
+          );
         default:
           return const SizedBox.shrink();
       }
@@ -335,7 +342,7 @@ class _LibrarySubHostPageState extends ConsumerState<LibrarySubHostPage> {
                 sizing: StackFit.expand,
                 index: clampedIndex,
                 children: [
-                  for (int i = 0; i < 7; i++)
+                  for (int i = 0; i < 8; i++)
                     _builtSubTabs.contains(i)
                         ? buildSubTab(i)
                         : const SizedBox.shrink(),

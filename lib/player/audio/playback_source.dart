@@ -3,6 +3,7 @@ enum PlaybackSourceType {
   folder,
   album,
   artist,
+  genre,
 }
 
 class PlaybackSource {

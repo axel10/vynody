@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 
 import 'package:vynody/models/album_summary.dart';
+import 'package:vynody/models/genre_summary.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/library/album_library.dart';
@@ -31,23 +32,6 @@ class TimeMachineAlbumEntry {
   final int totalPlayCount;
   final int maxRating;
   final int? lastPlayedAt;
-}
-
-/// 流派统计摘要
-class GenreSummary {
-  const GenreSummary({
-    required this.name,
-    required this.songCount,
-    this.representativeArtworkPath,
-    this.representativeThumbnailPath,
-    required this.sampleSongs,
-  });
-
-  final String name;
-  final int songCount;
-  final String? representativeArtworkPath;
-  final String? representativeThumbnailPath;
-  final List<MusicFile> sampleSongs;
 }
 
 /// 流派列表 Provider：仅返回包含有效歌曲的流派，并按歌曲数量从多到少排序
@@ -120,7 +104,7 @@ final genreLibraryProvider = StreamProvider<List<GenreSummary>>((ref) async* {
           songCount: entry.value.length,
           representativeArtworkPath: sampleWithArtwork.artworkPath,
           representativeThumbnailPath: sampleWithArtwork.thumbnailPath,
-          sampleSongs: entry.value,
+          songs: entry.value,
         ),
       );
     }

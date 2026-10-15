@@ -13,6 +13,7 @@ enum LibrarySelectionScope {
   folderRoot,
   artist,
   album,
+  genre,
   webdav,
   navidrome,
   bottomSheet,

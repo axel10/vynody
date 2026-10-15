@@ -21,7 +21,7 @@ import '../dialogs/library_source_filter_dialog.dart';
 import 'package:vynody/player/library/library_source_filter.dart';
 import 'package:vynody/player/settings/settings_service.dart';
 import '../widgets/artist_context_menu.dart';
-import '../widgets/playback_ui_tuning.dart';
+import '../widgets/master_detail_scaffold.dart';
 
 class ArtistsTab extends ConsumerStatefulWidget {
   final double contentTopPadding;
@@ -48,7 +48,6 @@ class _ArtistsTabState extends ConsumerState<ArtistsTab>
   ArtistSortField _sortField = ArtistSortField.artist;
   bool _sortAscending = true;
   String? _selectedArtistKey;
-  bool _isDetailPushed = false;
 
   List<ArtistSummary>? _lastRawArtists;
   String? _lastSearchQuery;
@@ -164,286 +163,144 @@ class _ArtistsTabState extends ConsumerState<ArtistsTab>
           allSongs = const [];
         }
 
-        return LayoutBuilder(
-          builder: (context, constraints) {
-            final isLandscape =
-                MediaQuery.orientationOf(context) == Orientation.landscape;
+        final isLandscape =
+            MediaQuery.orientationOf(context) == Orientation.landscape;
+        final selectedArtist = visibleArtists.isNotEmpty
+            ? visibleArtists.firstWhere(
+                (a) => a.queryKey == _selectedArtistKey,
+                orElse: () => visibleArtists.first,
+              )
+            : null;
 
-            if (isLandscape && _isDetailPushed) {
-              _isDetailPushed = false;
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (mounted) {
-                  Navigator.of(context).popUntil(
-                    (route) => route.settings.name != 'artist_detail',
-                  );
-                }
+        final Widget? selectionPanel = isSelectionMode
+            ? LibrarySelectionPanel(
+                key: const ValueKey('artist-selection-panel'),
+                selectedSongs: selectedSongs,
+                allSongs: allSongs,
+                title: l10n.selectedArtistsCount(selectedCount),
+                onToggleSelectAll: () =>
+                    toggleSelectAll(visibleArtists.map((a) => a.queryKey)),
+                onCancel: cancelSelection,
+              )
+            : (isLandscape && isSongSelectionMode
+                ? LibrarySelectionPanel(
+                    key: const ValueKey('song-selection-panel'),
+                    selectedSongs: (selectedArtist?.songs ?? const <MusicFile>[])
+                        .where((s) => currentSelection.selectedKeys.contains(s.path))
+                        .toList(),
+                    allSongs: selectedArtist?.songs ?? const <MusicFile>[],
+                    onToggleSelectAll: () {
+                      if (selectedArtist != null) {
+                        ref.read(librarySelectionStateProvider.notifier).toggleSelectAll(
+                          selectedArtist.songs.map((s) => s.path),
+                          scope: LibrarySelectionScope.library,
+                        );
+                      }
+                    },
+                    onCancel: () {
+                      ref.read(librarySelectionStateProvider.notifier).clear();
+                    },
+                  )
+                : null);
+
+        return MasterDetailScaffold<ArtistSummary>(
+          items: visibleArtists,
+          itemKey: (artist) => artist.queryKey,
+          selectedKey: _selectedArtistKey,
+          onSelectedKeyChanged: (key) {
+            setState(() {
+              _selectedArtistKey = key;
+            });
+          },
+          routeName: 'artist_detail',
+          contentTopPadding: widget.contentTopPadding,
+          contentLeftPadding: widget.contentLeftPadding,
+          masterScrollController: _scrollController,
+          hasPlayingMusic: currentMusic != null,
+          isSelectionMode: isSelectionMode || (isLandscape && isSongSelectionMode),
+          selectionPanel: selectionPanel,
+          masterToolbarBuilder: (context, isWide) => _ArtistsToolbar(
+            searchController: _searchController,
+            searchQuery: _searchQuery,
+            sortField: _sortField,
+            sortAscending: _sortAscending,
+            artistCount: visibleArtists.length,
+            artistsLabel: artistsLabel,
+            isWide: isWide,
+            onSearchChanged: (value) {
+              setState(() {
+                _searchQuery = value.trim();
               });
-            }
-
-            final selectedArtist = _resolveSelectedArtist(visibleArtists);
-
-            Widget mainContent;
-
-            if (isLandscape) {
-              _syncSelectedArtist(visibleArtists);
-              final showBottomPanel = isSelectionMode || (isLandscape && isSongSelectionMode);
-              mainContent = Padding(
-                padding: EdgeInsets.only(
-                  top: widget.contentTopPadding,
-                  left: widget.contentLeftPadding,
-                ),
-                child: Column(
-                  children: [
-                    _ArtistsToolbar(
-                    searchController: _searchController,
-                    searchQuery: _searchQuery,
-                    sortField: _sortField,
-                    sortAscending: _sortAscending,
-                    artistCount: visibleArtists.length,
-                    artistsLabel: artistsLabel,
-                    isWide: true,
-                    onSearchChanged: (value) {
-                      setState(() {
-                        _searchQuery = value.trim();
-                      });
-                    },
-                    onSearchCleared: () {
-                      _searchController.clear();
-                      setState(() {
-                        _searchQuery = '';
-                      });
-                    },
-                    onSortChanged: (field, sortAscending) {
-                      setState(() {
-                        _sortField = field;
-                        _sortAscending = sortAscending;
-                      });
-                      final settings = ref.read(settingsServiceProvider);
-                      settings.artistSortField = field;
-                      settings.artistSortAscending = sortAscending;
-                    },
-                  ),
-                  Expanded(
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        SizedBox(
-                          width: constraints.maxWidth >= 1100 ? 300 : 260,
-                          child: _ArtistListPane(
-                            artists: visibleArtists,
-                            selectedArtistKey: selectedArtist?.queryKey,
-                            noArtistsLabel: noArtistsLabel,
-                            scrollController: _scrollController,
-                            isSelectionMode: isSelectionMode,
-                            selectedArtistKeysInSelectionMode: selectedKeys,
-                            hasBottomPanel: showBottomPanel,
-                            onArtistSelected: (artist) {
-                              final artistIndex = visibleArtists.indexOf(artist);
-                              handleItemTap(
-                                index: artistIndex >= 0 ? artistIndex : 0,
-                                itemKey: artist.queryKey,
-                                allKeys: visibleArtists.map((a) => a.queryKey).toList(),
-                                onNormalTap: () {
-                                  if (!isSongSelectionMode) {
-                                    setState(() {
-                                      _selectedArtistKey = artist.queryKey;
-                                    });
-                                  }
-                                },
-                              );
-                            },
-                            onArtistLongPressed: (artist) {
-                              final artistIndex = visibleArtists.indexOf(artist);
-                              if (artistIndex >= 0) {
-                                lastAnchorIndex = artistIndex;
-                              }
-                              if (isSelectionMode) {
-                                toggleSelection(artist.queryKey);
-                              } else if (!isSongSelectionMode) {
-                                enterSelectionMode(artist.queryKey);
-                              }
-                            },
-                          ),
-                        ),
-                        Expanded(
-                          child: _ArtistDetailPane(
-                            artist: selectedArtist,
-                            emptyLabel: noArtistsLabel,
-                            hasBottomPanel: showBottomPanel,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            );
-          } else {
-              final bottomOffset = MiniPlayerUiTuning.getListBottomPadding(
-                context,
-                hasPlayingMusic: currentMusic != null,
-                isSelectionMode: isSelectionMode,
-              );
-              mainContent = Padding(
-                padding: EdgeInsets.only(
-                  left: widget.contentLeftPadding,
-                ),
-                child: CustomScrollView(
-                  controller: _scrollController,
-                  slivers: [
-                      if (widget.contentTopPadding > 0)
-                        SliverToBoxAdapter(
-                          child: SizedBox(height: widget.contentTopPadding),
-                        ),
-                      SliverToBoxAdapter(
-                        child: _ArtistsToolbar(
-                        searchController: _searchController,
-                        searchQuery: _searchQuery,
-                        sortField: _sortField,
-                        sortAscending: _sortAscending,
-                        artistCount: visibleArtists.length,
-                        artistsLabel: artistsLabel,
-                        isWide: false,
-                        onSearchChanged: (value) {
-                          setState(() {
-                            _searchQuery = value.trim();
-                          });
-                        },
-                        onSearchCleared: () {
-                          _searchController.clear();
-                          setState(() {
-                            _searchQuery = '';
-                          });
-                        },
-                        onSortChanged: (field, sortAscending) {
-                          setState(() {
-                            _sortField = field;
-                            _sortAscending = sortAscending;
-                          });
-                          final settings = ref.read(settingsServiceProvider);
-                          settings.artistSortField = field;
-                          settings.artistSortAscending = sortAscending;
-                        },
-                      ),
-                    ),
-                    if (visibleArtists.isEmpty)
-                      SliverFillRemaining(
-                        hasScrollBody: false,
-                        child: Center(
-                          child: Text(
-                            noArtistsLabel,
-                            style: Theme.of(context).textTheme.titleMedium,
-                          ),
-                        ),
-                      )
-                    else
-                      SliverPadding(
-                        padding: EdgeInsets.fromLTRB(16, 16, 16, bottomOffset),
-                        sliver: SliverList(
-                          delegate: SliverChildBuilderDelegate(
-                            (context, index) {
-                              if (index.isOdd) {
-                                return const SizedBox(height: 8);
-                              }
-                              final artistIndex = index ~/ 2;
-                              final artist = visibleArtists[artistIndex];
-                              final isSelected = this.isSelected(artist.queryKey);
-                              return _ArtistListItem(
-                                artist: artist,
-                                selected: false,
-                                isSelectionMode: isSelectionMode,
-                                isSelectedInSelectionMode: isSelected,
-                                selectedArtists: isSelectionMode
-                                    ? visibleArtists
-                                        .where((a) => this.isSelected(a.queryKey))
-                                        .toList()
-                                    : null,
-                                onTap: () {
-                                  handleItemTap(
-                                    index: artistIndex,
-                                    itemKey: artist.queryKey,
-                                    allKeys: visibleArtists.map((a) => a.queryKey).toList(),
-                                    onNormalTap: () {
-                                      setState(() {
-                                        _selectedArtistKey = artist.queryKey;
-                                      });
-                                      _isDetailPushed = true;
-                                      Navigator.of(context).push(
-                                        MaterialPageRoute<void>(
-                                          settings: const RouteSettings(
-                                            name: 'artist_detail',
-                                          ),
-                                          builder: (_) =>
-                                              ArtistDetailPage(artist: artist),
-                                        ),
-                                      ).then((_) {
-                                        if (mounted) {
-                                          _isDetailPushed = false;
-                                        }
-                                      });
-                                    },
-                                  );
-                                },
-                                onLongPress: () {
-                                  lastAnchorIndex = artistIndex;
-                                  if (isSelectionMode) {
-                                    toggleSelection(artist.queryKey);
-                                  } else {
-                                    enterSelectionMode(artist.queryKey);
-                                  }
-                                },
-                                onSelectionToggled: () => toggleSelection(artist.queryKey),
-                                onMultiSelect: (key) => enterSelectionMode(key),
-                              );
-                            },
-                            childCount: visibleArtists.length * 2 - 1,
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              );
-          }
-
-            return Stack(
-              children: [
-                Positioned.fill(child: mainContent),
-                AnimatedSelectionPanel(
-                  isVisible: isSelectionMode || (isLandscape && isSongSelectionMode),
-                  child: isSelectionMode
-                      ? LibrarySelectionPanel(
-                          key: const ValueKey('artist-selection-panel'),
-                          selectedSongs: selectedSongs,
-                          allSongs: allSongs,
-                          title: l10n.selectedArtistsCount(selectedCount),
-                          onToggleSelectAll: () =>
-                              toggleSelectAll(visibleArtists.map((a) => a.queryKey)),
-                          onCancel: cancelSelection,
-                        )
-                      : (isLandscape && isSongSelectionMode
-                          ? LibrarySelectionPanel(
-                              key: const ValueKey('song-selection-panel'),
-                              selectedSongs: (selectedArtist?.songs ?? const <MusicFile>[])
-                                  .where((s) => currentSelection.selectedKeys.contains(s.path))
-                                  .toList(),
-                              allSongs: selectedArtist?.songs ?? const <MusicFile>[],
-                              onToggleSelectAll: () {
-                                if (selectedArtist != null) {
-                                  ref.read(librarySelectionStateProvider.notifier).toggleSelectAll(
-                                    selectedArtist.songs.map((s) => s.path),
-                                    scope: LibrarySelectionScope.library,
-                                  );
-                                }
-                              },
-                              onCancel: () {
-                                ref.read(librarySelectionStateProvider.notifier).clear();
-                              },
-                            )
-                          : const SizedBox.shrink(key: ValueKey('artist-selection-panel-hidden'))),
-                ),
-              ],
+            },
+            onSearchCleared: () {
+              _searchController.clear();
+              setState(() {
+                _searchQuery = '';
+              });
+            },
+            onSortChanged: (field, sortAscending) {
+              setState(() {
+                _sortField = field;
+                _sortAscending = sortAscending;
+              });
+              final settings = ref.read(settingsServiceProvider);
+              settings.artistSortField = field;
+              settings.artistSortAscending = sortAscending;
+            },
+          ),
+          masterItemBuilder: (context, artist, index, isSelected, isWide, onTap) {
+            final isItemSelection = this.isSelected(artist.queryKey);
+            return _ArtistListItem(
+              artist: artist,
+              selected: isWide && isSelected,
+              isSelectionMode: isSelectionMode,
+              isSelectedInSelectionMode: isItemSelection,
+              selectedArtists: isSelectionMode
+                  ? visibleArtists
+                      .where((a) => this.isSelected(a.queryKey))
+                      .toList()
+                  : null,
+              onTap: () {
+                final artistIndex = visibleArtists.indexOf(artist);
+                handleItemTap(
+                  index: artistIndex >= 0 ? artistIndex : 0,
+                  itemKey: artist.queryKey,
+                  allKeys: visibleArtists.map((a) => a.queryKey).toList(),
+                  onNormalTap: onTap,
+                );
+              },
+              onLongPress: () {
+                final artistIndex = visibleArtists.indexOf(artist);
+                if (artistIndex >= 0) {
+                  lastAnchorIndex = artistIndex;
+                }
+                if (isSelectionMode) {
+                  toggleSelection(artist.queryKey);
+                } else if (!isSongSelectionMode) {
+                  enterSelectionMode(artist.queryKey);
+                }
+              },
+              onSelectionToggled: () => toggleSelection(artist.queryKey),
+              onMultiSelect: (key) => enterSelectionMode(key),
             );
           },
+          detailBuilder: (context, artist) => _ArtistDetailPane(
+            artist: artist,
+            emptyLabel: noArtistsLabel,
+            hasBottomPanel: isSelectionMode || (isLandscape && isSongSelectionMode),
+          ),
+          detailPageBuilder: (context, artist) => ArtistDetailPage(artist: artist),
+          emptyMasterBuilder: (context) => Center(
+            child: Text(
+              noArtistsLabel,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+          ),
+          emptyDetailBuilder: (context) => _ArtistDetailPane(
+            artist: null,
+            emptyLabel: noArtistsLabel,
+            hasBottomPanel: isSelectionMode || (isLandscape && isSongSelectionMode),
+          ),
         );
       },
     );
@@ -484,118 +341,6 @@ class _ArtistsTabState extends ConsumerState<ArtistsTab>
     });
 
     return filtered;
-  }
-
-  ArtistSummary? _resolveSelectedArtist(List<ArtistSummary> visibleArtists) {
-    if (visibleArtists.isEmpty) return null;
-
-    final selectedKey = _selectedArtistKey;
-    if (selectedKey != null) {
-      for (final artist in visibleArtists) {
-        if (artist.queryKey == selectedKey) {
-          return artist;
-        }
-      }
-    }
-
-    return visibleArtists.first;
-  }
-
-  void _syncSelectedArtist(List<ArtistSummary> visibleArtists) {
-    if (visibleArtists.isEmpty) return;
-
-    final selectedKey = _selectedArtistKey;
-    if (selectedKey != null &&
-        visibleArtists.any((artist) => artist.queryKey == selectedKey)) {
-      return;
-    }
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || visibleArtists.isEmpty) return;
-      final fallbackKey = visibleArtists.first.queryKey;
-      if (_selectedArtistKey == fallbackKey) return;
-      setState(() {
-        _selectedArtistKey = fallbackKey;
-      });
-    });
-  }
-}
-
-class _ArtistListPane extends StatelessWidget {
-  const _ArtistListPane({
-    required this.artists,
-    required this.selectedArtistKey,
-    required this.noArtistsLabel,
-    required this.scrollController,
-    required this.onArtistSelected,
-    this.isSelectionMode = false,
-    this.selectedArtistKeysInSelectionMode = const {},
-    this.onArtistLongPressed,
-    this.hasBottomPanel = false,
-  });
-
-  final List<ArtistSummary> artists;
-  final String? selectedArtistKey;
-  final String noArtistsLabel;
-  final ScrollController scrollController;
-  final ValueChanged<ArtistSummary> onArtistSelected;
-  final bool isSelectionMode;
-  final Set<String> selectedArtistKeysInSelectionMode;
-  final ValueChanged<ArtistSummary>? onArtistLongPressed;
-  final bool hasBottomPanel;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final bottomPadding = hasBottomPanel ? 180.0 : 12.0;
-    return Container(
-      decoration: BoxDecoration(
-        border: Border(
-          right: BorderSide(
-            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2),
-            width: 1,
-          ),
-        ),
-      ),
-      child: artists.isEmpty
-          ? Center(
-              child: Text(noArtistsLabel, style: theme.textTheme.titleMedium),
-            )
-          : Scrollbar(
-              controller: scrollController,
-              thumbVisibility: true,
-              child: ListView.builder(
-                controller: scrollController,
-                padding: EdgeInsets.fromLTRB(8, 8, 8, bottomPadding),
-                itemCount: artists.length,
-                itemBuilder: (context, index) {
-                  final artist = artists[index];
-                  final selected = artist.queryKey == selectedArtistKey;
-                  final isSelected = selectedArtistKeysInSelectionMode.contains(artist.queryKey);
-                  return Padding(
-                    key: ValueKey(artist.queryKey),
-                    padding: const EdgeInsets.only(bottom: 2),
-                    child: _ArtistListItem(
-                      artist: artist,
-                      selected: selected,
-                      isSelectionMode: isSelectionMode,
-                      isSelectedInSelectionMode: isSelected,
-                      selectedArtists: isSelectionMode
-                          ? artists
-                              .where((a) => selectedArtistKeysInSelectionMode
-                                  .contains(a.queryKey))
-                              .toList()
-                          : null,
-                      onTap: () => onArtistSelected(artist),
-                      onLongPress: onArtistLongPressed != null ? () => onArtistLongPressed!(artist) : null,
-                      onMultiSelect: onArtistLongPressed != null ? (key) => onArtistLongPressed!(artist) : null,
-                      onSelectionToggled: () => onArtistSelected(artist),
-                    ),
-                  );
-                },
-              ),
-            ),
-    );
   }
 }
 

@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/app_localizations.dart';
 import 'package:vynody/models/album_summary.dart';
 import 'package:vynody/models/artist_summary.dart';
+import 'package:vynody/models/genre_summary.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/audio/playback_source.dart';
@@ -20,6 +21,7 @@ import 'package:vynody/widgets/artist_avatar.dart';
 import 'package:vynody/widgets/song_thumbnail.dart';
 import 'album_detail_page.dart';
 import 'artist_detail_page.dart';
+import 'genre_detail_page.dart';
 import '../widgets/playback_ui_tuning.dart';
 import '../widgets/section_type_toggle.dart';
 
@@ -222,6 +224,7 @@ class LibraryDashboardView extends ConsumerWidget {
                     horizontalPadding: horizontalPadding,
                     contentLeftPadding: contentLeftPadding,
                     l10n: l10n,
+                    onViewAll: () => onNavigateToSubIndex(7),
                   ),
                 ),
               ),
@@ -298,6 +301,7 @@ class _WideQuickAccessBar extends ConsumerWidget {
         ref.watch(playlistServiceProvider).playlists.length;
     final albumsCount = ref.watch(albumLibraryProvider).value?.length;
     final artistsCount = ref.watch(artistLibraryProvider).value?.length;
+    final genresCount = ref.watch(genreLibraryProvider).value?.length;
 
     final items = [
       (
@@ -350,6 +354,14 @@ class _WideQuickAccessBar extends ConsumerWidget {
         gradient: const [Color(0xFF06B6D4), Color(0xFF3B82F6)],
         badgeText:
             albumsCount != null && albumsCount > 0 ? '$albumsCount' : null,
+      ),
+      (
+        index: 7,
+        title: l10n.genres,
+        icon: Icons.style_rounded,
+        gradient: const [Color(0xFF8B5CF6), Color(0xFFA855F7)],
+        badgeText:
+            genresCount != null && genresCount > 0 ? '$genresCount' : null,
       ),
     ];
 
@@ -546,6 +558,7 @@ class _PortraitLibraryMenuCard extends ConsumerWidget {
         ref.watch(playlistServiceProvider).playlists.length;
     final albumsCount = ref.watch(albumLibraryProvider).value?.length;
     final artistsCount = ref.watch(artistLibraryProvider).value?.length;
+    final genresCount = ref.watch(genreLibraryProvider).value?.length;
 
     final items = [
       _LibraryMenuItem(
@@ -570,6 +583,14 @@ class _PortraitLibraryMenuCard extends ConsumerWidget {
         badgeText:
             albumsCount != null && albumsCount > 0 ? '$albumsCount' : null,
         onTap: () => onTapSubIndex(4),
+      ),
+      _LibraryMenuItem(
+        icon: Icons.style_rounded,
+        iconGradient: const [Color(0xFF8B5CF6), Color(0xFFA855F7)],
+        title: l10n.genres,
+        badgeText:
+            genresCount != null && genresCount > 0 ? '$genresCount' : null,
+        onTap: () => onTapSubIndex(7),
       ),
       _LibraryMenuItem(
         icon: Icons.history_rounded,
@@ -1924,16 +1945,17 @@ class _GenresRowSection extends ConsumerWidget {
   const _GenresRowSection({
     required this.horizontalPadding,
     required this.l10n,
+    required this.onViewAll,
     this.contentLeftPadding = 0.0,
   });
 
   final double horizontalPadding;
   final AppLocalizations l10n;
+  final VoidCallback onViewAll;
   final double contentLeftPadding;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
     final asyncGenres = ref.watch(genreLibraryProvider);
 
     return asyncGenres.when(
@@ -1948,12 +1970,10 @@ class _GenresRowSection extends ConsumerWidget {
                 left: contentLeftPadding + horizontalPadding,
                 right: horizontalPadding,
               ),
-              child: Text(
-                l10n.genres,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: -0.3,
-                ),
+              child: _SectionHeader(
+                title: l10n.genres,
+                onViewAll: onViewAll,
+                l10n: l10n,
               ),
             ),
             const SizedBox(height: 12),
@@ -1973,12 +1993,14 @@ class _GenresRowSection extends ConsumerWidget {
                   return _GenreCard(
                     genre: genre,
                     onTap: () {
-                      if (genre.sampleSongs.isNotEmpty) {
-                        ref.read(audioServiceProvider).playPlaylist(
-                              genre.sampleSongs,
-                              initialIndex: 0,
-                            );
-                      }
+                      Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          settings: const RouteSettings(
+                            name: 'genre_detail',
+                          ),
+                          builder: (_) => GenreDetailPage(genre: genre),
+                        ),
+                      );
                     },
                   );
                 },

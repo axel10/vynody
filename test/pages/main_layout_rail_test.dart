@@ -85,15 +85,15 @@ void main() {
     // Now 完成 should be visible
     expect(find.text('完成'), findsOneWidget);
 
-    // Checkboxes should be displayed for each sub item (7 check icons since all visible by default)
-    expect(find.byIcon(Icons.check_rounded), findsNWidgets(7));
+    // Checkboxes should be displayed for each sub item (8 check icons since all visible by default)
+    expect(find.byIcon(Icons.check_rounded), findsNWidgets(8));
 
     // Toggle (uncheck) "播放列表"
     await tester.tap(find.text('播放列表'));
     await tester.pumpAndSettle();
 
-    // Now 播放列表 is unchecked (6 check icons remaining)
-    expect(find.byIcon(Icons.check_rounded), findsNWidgets(6));
+    // Now 播放列表 is unchecked (7 check icons remaining)
+    expect(find.byIcon(Icons.check_rounded), findsNWidgets(7));
     expect(settingsService.isLibraryTabVisible('playlist'), isFalse);
 
     // Click 完成 to exit edit mode

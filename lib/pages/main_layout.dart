@@ -1793,6 +1793,13 @@ class _SlidingNavigationRailState
         icon: Icons.star_outline_rounded,
         selectedIcon: Icons.star_rounded,
       ),
+      (
+        id: 'genres',
+        index: 7,
+        label: l10n.genres,
+        icon: Icons.style_outlined,
+        selectedIcon: Icons.style_rounded,
+      ),
     ];
 
     const double itemHeight = 44.0;
