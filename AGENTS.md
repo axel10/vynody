@@ -30,6 +30,8 @@ flutter run -d <device-id>               # dev run on a device
 
 - 简单的UI调整应该尽量快的出结果，不要想太多，如果效果不好我会继续调整
 
+- 对主项目分析代码请使用flutter analyze lib，排除掉其他无关文件夹的dart代码
+
 ## Architecture notes
 
 - **State management:** Riverpod (`flutter_riverpod` v3). Providers live co-located with their domain code (e.g., `lib/player/audio/` has audio providers).
