@@ -2067,34 +2067,39 @@ class _GenresRowSectionState extends ConsumerState<_GenresRowSection> {
             ),
           ),
           const SizedBox(height: 12),
-          SizedBox(
+          _CarouselScrollWrapper(
             height: 80,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              physics: const BouncingScrollPhysics(),
-              padding: EdgeInsets.only(
-                left: widget.contentLeftPadding + widget.horizontalPadding,
-                right: widget.horizontalPadding,
-              ),
-              itemCount: _cachedGenres!.length,
-              separatorBuilder: (_, _) => const SizedBox(width: 12),
-              itemBuilder: (context, index) {
-                final genre = _cachedGenres![index];
-                return _GenreCard(
-                  genre: genre,
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        settings: const RouteSettings(
-                          name: 'genre_detail',
+            buttonPadding: widget.horizontalPadding > 20 ? 14.0 : 8.0,
+            leftButtonOffset: widget.contentLeftPadding,
+            builder: (context, controller) {
+              return ListView.separated(
+                controller: controller,
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                padding: EdgeInsets.only(
+                  left: widget.contentLeftPadding + widget.horizontalPadding,
+                  right: widget.horizontalPadding,
+                ),
+                itemCount: _cachedGenres!.length,
+                separatorBuilder: (_, _) => const SizedBox(width: 12),
+                itemBuilder: (context, index) {
+                  final genre = _cachedGenres![index];
+                  return _GenreCard(
+                    genre: genre,
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          settings: const RouteSettings(
+                            name: 'genre_detail',
+                          ),
+                          builder: (_) => GenreDetailPage(genre: genre),
                         ),
-                        builder: (_) => GenreDetailPage(genre: genre),
-                      ),
-                    );
-                  },
-                );
-              },
-            ),
+                      );
+                    },
+                  );
+                },
+              );
+            },
           ),
         ],
       );
