@@ -445,6 +445,66 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard> {
                   showAudioInfo: showAudioInfo,
                 );
 
+                final Widget? portraitControlsWidget = !effectiveIsLandscape
+                    ? SizedBox(
+                        key: const ValueKey(
+                          'controls_sizing_box',
+                        ),
+                        width: coverNormalLayout.controls.width,
+                        child: SizeLogger(
+                          name: 'Controls',
+                          child: PlaybackControls(
+                            width: width,
+                            layoutWidth: coverNormalLayout.controls.width,
+                            controlsScale: coverNormalLayout.controlsScale,
+                            tLyrics: (effectiveIsLyricsMode &&
+                                    _isPortraitLyricsControlsExpanded)
+                                ? 1.0
+                                : 0.0,
+                            topButtonsCollapseT: (effectiveIsLyricsMode &&
+                                    _isPortraitLyricsControlsExpanded)
+                                ? portraitControlsExpandProgress
+                                : 0.0,
+                            isLandscape: false,
+                            isTransitioning: false,
+                            showVisualizerToggle:
+                                widget.showVisualizerToggle,
+                            overrideProgress:
+                                widget.overrideProgress,
+                            overridePosition:
+                                widget.overridePosition,
+                            overrideWaveform:
+                                widget.overrideWaveform,
+                            onShowMoreMenu:
+                                widget.onShowMoreMenu,
+                            onCyclePlaylistMode:
+                                widget.onCyclePlaylistMode,
+                            onShowPlaylistModeSelector:
+                                widget.onShowPlaylistModeSelector,
+                            onScrubbing: widget.onScrubbing,
+                            onSeek: widget.onSeek,
+                            onToggleVisualizer:
+                                widget.onToggleVisualizer,
+                            onTagCompletionTap:
+                                widget.onTagCompletionTap,
+                            onTagCompletionLongPress:
+                                widget.onTagCompletionLongPress,
+                            onSleepTimerTap:
+                                widget.onSleepTimerTap,
+                            onEqualizerTap:
+                                widget.onEqualizerTap,
+                            onPrevious: widget.onPrevious,
+                            onPlayPause: widget.onPlayPause,
+                            onNext: widget.onNext,
+                            onVolumeTap: widget.onVolumeTap,
+                            onVolumeDrag: widget.onVolumeDrag,
+                            onVolumeScroll:
+                                widget.onVolumeScroll,
+                          ),
+                        ),
+                      )
+                    : null;
+
                 return TweenAnimationBuilder<double>(
                   duration: animDuration,
                   curve: animCurve,
@@ -612,89 +672,121 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard> {
                                   },
                                 ),
                               ),
-                            Positioned(
-                              top: layout.controls.top,
-                              left: layout.controls.left,
-                              width: layout.controls.width,
-                              height: layout.controls.height +
-                                  (effectiveIsLandscape ? 36.0 : 0.0),
-                              child: IgnorePointer(
-                                ignoring: layout.controls.opacity < 0.05,
-                                child: FittedBox(
-                                  fit: BoxFit.scaleDown,
-                                  alignment: effectiveIsLandscape
-                                      ? Alignment.center
-                                      : Alignment.topCenter,
-                                  child: Consumer(
-                                    builder: (context, ref, child) {
-                                      final double layoutWidth =
-                                          (effectiveIsLandscape && optimize)
-                                              ? targetLayout.controls.width
-                                              : layout.controls.width;
-                                      return SizedBox(
-                                        key: const ValueKey(
-                                          'controls_sizing_box',
+                            if (!effectiveIsLandscape &&
+                                portraitControlsWidget != null)
+                              Positioned(
+                                top: coverNormalLayout.controls.top,
+                                left: coverNormalLayout.controls.left,
+                                width: coverNormalLayout.controls.width,
+                                height: coverNormalLayout.controls.height,
+                                child: ExcludeSemantics(
+                                  excluding: isTransitioning,
+                                  child: Transform.translate(
+                                    offset: Offset(
+                                      layout.controls.left -
+                                          coverNormalLayout.controls.left,
+                                      layout.controls.top -
+                                          coverNormalLayout.controls.top,
+                                    ),
+                                    child: RepaintBoundary(
+                                      child: IgnorePointer(
+                                        ignoring: layout.controls.opacity < 0.05,
+                                        child: FittedBox(
+                                          fit: BoxFit.scaleDown,
+                                          alignment: Alignment.topCenter,
+                                          child: portraitControlsWidget,
                                         ),
-                                        width: layoutWidth,
-                                        child: SizeLogger(
-                                          name: 'Controls',
-                                          child: PlaybackControls(
-                                            width: width,
-                                            layoutWidth: layoutWidth,
-                                            controlsScale:
-                                                (effectiveIsLandscape && optimize)
-                                                    ? targetLayout.controlsScale
-                                                    : layout.controlsScale,
-                                            tLyrics:
-                                                (effectiveIsLandscape && optimize)
-                                                    ? targetTLyrics
-                                                    : tLyrics,
-                                            topButtonsCollapseT:
-                                                topButtonsCollapseT,
-                                            isLandscape: effectiveIsLandscape,
-                                            isTransitioning:
-                                                isEnteringLyricsMode,
-                                            showVisualizerToggle:
-                                                widget.showVisualizerToggle,
-                                            overrideProgress:
-                                                widget.overrideProgress,
-                                            overridePosition:
-                                                widget.overridePosition,
-                                            overrideWaveform:
-                                                widget.overrideWaveform,
-                                            onShowMoreMenu:
-                                                widget.onShowMoreMenu,
-                                            onCyclePlaylistMode:
-                                                widget.onCyclePlaylistMode,
-                                            onShowPlaylistModeSelector:
-                                                widget.onShowPlaylistModeSelector,
-                                            onScrubbing: widget.onScrubbing,
-                                            onSeek: widget.onSeek,
-                                            onToggleVisualizer:
-                                                widget.onToggleVisualizer,
-                                            onTagCompletionTap:
-                                                widget.onTagCompletionTap,
-                                            onTagCompletionLongPress:
-                                                widget.onTagCompletionLongPress,
-                                            onSleepTimerTap:
-                                                widget.onSleepTimerTap,
-                                            onEqualizerTap:
-                                                widget.onEqualizerTap,
-                                            onPrevious: widget.onPrevious,
-                                            onPlayPause: widget.onPlayPause,
-                                            onNext: widget.onNext,
-                                            onVolumeTap: widget.onVolumeTap,
-                                            onVolumeDrag: widget.onVolumeDrag,
-                                            onVolumeScroll:
-                                                widget.onVolumeScroll,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              )
+                            else
+                              Positioned(
+                                top: layout.controls.top,
+                                left: layout.controls.left,
+                                width: layout.controls.width,
+                                height: layout.controls.height +
+                                    (effectiveIsLandscape ? 36.0 : 0.0),
+                                child: IgnorePointer(
+                                  ignoring: layout.controls.opacity < 0.05,
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    alignment: effectiveIsLandscape
+                                        ? Alignment.center
+                                        : Alignment.topCenter,
+                                    child: Consumer(
+                                      builder: (context, ref, child) {
+                                        final double layoutWidth =
+                                            (effectiveIsLandscape && optimize)
+                                                ? targetLayout.controls.width
+                                                : layout.controls.width;
+                                        return SizedBox(
+                                          key: const ValueKey(
+                                            'controls_sizing_box',
                                           ),
-                                        ),
-                                      );
-                                    },
+                                          width: layoutWidth,
+                                          child: SizeLogger(
+                                            name: 'Controls',
+                                            child: PlaybackControls(
+                                              width: width,
+                                              layoutWidth: layoutWidth,
+                                              controlsScale:
+                                                  (effectiveIsLandscape &&
+                                                          optimize)
+                                                      ? targetLayout
+                                                          .controlsScale
+                                                      : layout.controlsScale,
+                                              tLyrics: (effectiveIsLandscape &&
+                                                      optimize)
+                                                  ? targetTLyrics
+                                                  : tLyrics,
+                                              topButtonsCollapseT:
+                                                  topButtonsCollapseT,
+                                              isLandscape: effectiveIsLandscape,
+                                              isTransitioning:
+                                                  isEnteringLyricsMode,
+                                              showVisualizerToggle:
+                                                  widget.showVisualizerToggle,
+                                              overrideProgress:
+                                                  widget.overrideProgress,
+                                              overridePosition:
+                                                  widget.overridePosition,
+                                              overrideWaveform:
+                                                  widget.overrideWaveform,
+                                              onShowMoreMenu:
+                                                  widget.onShowMoreMenu,
+                                              onCyclePlaylistMode:
+                                                  widget.onCyclePlaylistMode,
+                                              onShowPlaylistModeSelector: widget
+                                                  .onShowPlaylistModeSelector,
+                                              onScrubbing: widget.onScrubbing,
+                                              onSeek: widget.onSeek,
+                                              onToggleVisualizer:
+                                                  widget.onToggleVisualizer,
+                                              onTagCompletionTap:
+                                                  widget.onTagCompletionTap,
+                                              onTagCompletionLongPress: widget
+                                                  .onTagCompletionLongPress,
+                                              onSleepTimerTap:
+                                                  widget.onSleepTimerTap,
+                                              onEqualizerTap:
+                                                  widget.onEqualizerTap,
+                                              onPrevious: widget.onPrevious,
+                                              onPlayPause: widget.onPlayPause,
+                                              onNext: widget.onNext,
+                                              onVolumeTap: widget.onVolumeTap,
+                                              onVolumeDrag: widget.onVolumeDrag,
+                                              onVolumeScroll:
+                                                  widget.onVolumeScroll,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
                             if (layout.cover.width > 0 && layout.cover.height > 0)
                               Positioned(
                                 top: layout.cover.top,
