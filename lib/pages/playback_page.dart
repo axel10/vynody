@@ -1391,16 +1391,22 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
                   isSmallWin,
                 ),
                 RepaintBoundary(
-                  child: (!isLyricsMode && showTopDragHandle)
-                      ? GestureDetector(
-                          behavior: HitTestBehavior.translucent,
-                          onVerticalDragStart: _handleVerticalDragStart,
-                          onVerticalDragUpdate: _handleVerticalDragUpdate,
-                          onVerticalDragEnd: _handleVerticalDragEnd,
-                          onVerticalDragCancel: _handleVerticalDragCancel,
-                          child: content,
-                        )
-                      : content,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.translucent,
+                    onVerticalDragStart: (!isLyricsMode && showTopDragHandle)
+                        ? _handleVerticalDragStart
+                        : null,
+                    onVerticalDragUpdate: (!isLyricsMode && showTopDragHandle)
+                        ? _handleVerticalDragUpdate
+                        : null,
+                    onVerticalDragEnd: (!isLyricsMode && showTopDragHandle)
+                        ? _handleVerticalDragEnd
+                        : null,
+                    onVerticalDragCancel: (!isLyricsMode && showTopDragHandle)
+                        ? _handleVerticalDragCancel
+                        : null,
+                    child: content,
+                  ),
                 ),
                 Positioned(
                   left: 0,
