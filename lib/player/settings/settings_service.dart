@@ -653,6 +653,8 @@ class SettingsService extends ChangeNotifier {
   static const String _keyDesktopLyricsFontSize = 'desktop_lyrics_font_size';
   static const String _keyDesktopLyricsShowTranslation = 'desktop_lyrics_show_translation';
   static const String _keyDesktopLyricsShowBackground = 'desktop_lyrics_show_background';
+  static const String _keyDesktopLyricsWindowX = 'desktop_lyrics_window_x';
+  static const String _keyDesktopLyricsWindowY = 'desktop_lyrics_window_y';
   static const String _keyHasShownOnboarding = 'has_shown_onboarding';
   static const String _keyHasShownCoverTapLyricTip =
       'has_shown_cover_tap_lyric_tip';
@@ -3636,6 +3638,32 @@ class SettingsService extends ChangeNotifier {
   bool get desktopLyricsShowBackground => _desktopLyricsShowBackgroundProperty.value;
   set desktopLyricsShowBackground(bool value) {
     _desktopLyricsShowBackgroundProperty.value = value;
+  }
+
+  double? get desktopLyricsWindowX =>
+      _prefs.containsKey(_keyDesktopLyricsWindowX)
+          ? _prefs.getDouble(_keyDesktopLyricsWindowX)
+          : null;
+
+  set desktopLyricsWindowX(double? value) {
+    if (value != null) {
+      _prefs.setDouble(_keyDesktopLyricsWindowX, value);
+    } else {
+      _prefs.remove(_keyDesktopLyricsWindowX);
+    }
+  }
+
+  double? get desktopLyricsWindowY =>
+      _prefs.containsKey(_keyDesktopLyricsWindowY)
+          ? _prefs.getDouble(_keyDesktopLyricsWindowY)
+          : null;
+
+  set desktopLyricsWindowY(double? value) {
+    if (value != null) {
+      _prefs.setDouble(_keyDesktopLyricsWindowY, value);
+    } else {
+      _prefs.remove(_keyDesktopLyricsWindowY);
+    }
   }
 }
 

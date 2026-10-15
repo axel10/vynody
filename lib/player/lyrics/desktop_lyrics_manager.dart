@@ -109,6 +109,16 @@ class DesktopLyricsManager {
           settings.desktopLyricsFontSize = (action.data!['fontSize'] as num).toDouble();
         }
         break;
+      case DesktopLyricsActionType.windowMoved:
+        if (action.data != null) {
+          final x = (action.data!['x'] as num?)?.toDouble();
+          final y = (action.data!['y'] as num?)?.toDouble();
+          if (x != null && y != null) {
+            settings.desktopLyricsWindowX = x;
+            settings.desktopLyricsWindowY = y;
+          }
+        }
+        break;
       case DesktopLyricsActionType.close:
         settings.enableDesktopLyrics = false;
         break;
@@ -179,6 +189,9 @@ class DesktopLyricsManager {
 
     await DesktopLyrics.controller.show(
       initialStyle: _buildStyle(settings),
+      isLocked: settings.desktopLyricsLocked,
+      initialX: settings.desktopLyricsWindowX,
+      initialY: settings.desktopLyricsWindowY,
     );
 
     if (settings.desktopLyricsLocked) {
@@ -235,11 +248,12 @@ class DesktopLyricsManager {
 
     if (!isShowing) return;
 
-    final elapsed = now.difference(_lastSentTime);
+    final isPlaying = ref.read(audioIsPlayingProvider);
+    final elapsed = isPlaying ? now.difference(_lastSentTime) : Duration.zero;
     final expectedPos = _lastSentPosition + elapsed;
     // 检测是否发生跳转（Seek）：实际位置与按时间流逝推算的位置偏差大于 500ms
     final isSeek = (position - expectedPos).abs() > const Duration(milliseconds: 500);
-    final needPeriodicSync = elapsed > const Duration(seconds: 2);
+    final needPeriodicSync = now.difference(_lastSentTime) > const Duration(seconds: 2);
 
     if (isSeek || needPeriodicSync) {
       _syncPlaybackState(currentPosition: position);
@@ -260,16 +274,14 @@ class DesktopLyricsManager {
         : (baseLyrics?.syncedLines ?? const []);
 
     if (lines.isEmpty) {
-      // AppLog.log(
-      //   '[DesktopLyrics] _syncCurrentLine lines EMPTY! song="${currentMusic?.title}" '
-      //   'hasLyrics=${lyricsState.hasLyrics} loading=${lyricsState.isLyricsLoading} force=$force',
-      //   mirrorToConsole: true,
-      // );
-      if (_lastActiveLineIndex != -1 || force) {
+      final placeholderTitle = currentMusic?.title ?? '';
+      final isAlreadyPlaceholder = _lastActiveLineIndex == -1 &&
+          DesktopLyrics.controller.currentLine?.text == placeholderTitle;
+      if (!isAlreadyPlaceholder) {
         _lastActiveLineIndex = -1;
         DesktopLyrics.controller.updateLyricLine(
           currentMusic != null
-              ? DesktopLyricLine(timestampMs: 0, text: currentMusic.title ?? '')
+              ? DesktopLyricLine(timestampMs: 0, text: placeholderTitle)
               : null,
         );
       }
