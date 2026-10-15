@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
+import 'dart:ui' show PointerDeviceKind;
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -104,61 +105,29 @@ Future<void> navigateToMainTab(
   int? fromIndex,
   List<String> args = const [],
 }) async {
-  // 切页前先收起所有 tooltip，避免鼠标事件在路由切换期间继续驱动
-  // 旧页面或新页面上的 RawTooltip 状态。
+  // 切页前先收起所有 tooltip，避免鼠标事件在切换期间继续驱动
   Tooltip.dismissAllToolTips();
 
-  // 让当前指针事件先完全结束，再执行路由替换。
   await Future<void>.delayed(Duration.zero);
   if (!context.mounted) return;
 
   final navigator = Navigator.of(context, rootNavigator: true);
-  final currentRoute = ModalRoute.of(context);
-  final bool isCurrentPlayback =
-      currentRoute?.settings.name == 'main-tab-1' || fromIndex == 1;
+  final container = ProviderScope.containerOf(context, listen: false);
 
   if (index == 1) {
-    if (isCurrentPlayback) return;
-    await navigator.push(
-      buildMainLayoutRoute(
-        args: args,
-        initialIndex: 1,
-        fromIndex: fromIndex,
-      ),
-    );
-  } else if (isCurrentPlayback) {
+    // 目标是播放页：完全不产生路由跳转，若在二级页面则退回根页面后滑开抽屉
     if (navigator.canPop()) {
-      if (index != _currentBaseTabIndex && currentRoute != null) {
-        navigator.replaceRouteBelow<void>(
-          anchorRoute: currentRoute,
-          newRoute: buildMainLayoutRoute(
-            args: args,
-            initialIndex: index,
-            fromIndex: 1,
-          ),
-        );
-      }
-      _currentBaseTabIndex = index;
-      navigator.pop();
-    } else {
-      _currentBaseTabIndex = index;
-      await navigator.pushReplacement(
-        buildMainLayoutRoute(
-          args: args,
-          initialIndex: index,
-          fromIndex: fromIndex,
-        ),
-      );
+      navigator.popUntil((route) => route.isFirst);
     }
+    container.read(isPlaybackDrawerOpenProvider.notifier).open();
   } else {
+    // 目标是普通主页面：收起播放页抽屉
+    container.read(isPlaybackDrawerOpenProvider.notifier).close();
+    if (navigator.canPop()) {
+      navigator.popUntil((route) => route.isFirst);
+    }
     _currentBaseTabIndex = index;
-    await navigator.pushReplacement(
-      buildMainLayoutRoute(
-        args: args,
-        initialIndex: index,
-        fromIndex: fromIndex,
-      ),
-    );
+    container.read(mainTabIndexProvider.notifier).setIndex(index);
   }
 }
 
@@ -199,8 +168,13 @@ class _MainLayoutState extends ConsumerState<MainLayout>
   final Set<int> _visitedTabs = <int>{};
   final FloatingDockScrollHelper _dockScrollHelper = FloatingDockScrollHelper();
 
+  late final AnimationController _playbackDrawerAnimController;
+  bool _isPlaybackDrawerOpen = false;
+
   bool _isOnboardingDialogOpen = false;
   bool _isTrialResetNoticeDialogOpen = false;
+  bool _isMouseActive = false;
+  Timer? _mouseInactiveTimer;
 
   MainLayoutUiController get _ui => _uiController;
 
@@ -232,6 +206,38 @@ class _MainLayoutState extends ConsumerState<MainLayout>
       settings.resetInactivity();
     }
 
+    final isMouseOrTrackpad = event.kind == PointerDeviceKind.mouse ||
+        event.kind == PointerDeviceKind.trackpad;
+
+    if (isMouseOrTrackpad) {
+      if (event is PointerHoverEvent ||
+          event is PointerMoveEvent ||
+          event is PointerDownEvent) {
+        settings.resetInactivity();
+        if (!_isMouseActive) {
+          setState(() {
+            _isMouseActive = true;
+          });
+        }
+        _mouseInactiveTimer?.cancel();
+        _mouseInactiveTimer = Timer(const Duration(seconds: 3), () {
+          if (mounted && _isMouseActive) {
+            setState(() {
+              _isMouseActive = false;
+            });
+          }
+        });
+      }
+    } else if (event.kind == PointerDeviceKind.touch) {
+      // 触控输入：移动端（Android/iOS）触摸不展示左上角按钮，立即将其隐藏
+      if (_isMouseActive) {
+        _mouseInactiveTimer?.cancel();
+        setState(() {
+          _isMouseActive = false;
+        });
+      }
+    }
+
     if (event is PointerDownEvent) {
       debugPrint('event.buttons: ${event.buttons}');
       if (event.buttons == 16) {
@@ -245,7 +251,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
       }
     }
 
-    if (_currentIndex != 1) {
+    if (!_isPlaybackDrawerOpen) {
       return;
     }
     if (settings.isImmersiveTabBarEnabled) {
@@ -256,10 +262,46 @@ class _MainLayoutState extends ConsumerState<MainLayout>
     }
   }
 
-  Future<void> _collapsePlayback() async {
-    final previousTab = ref.read(previousMainTabIndexProvider);
-    final targetIndex = (previousTab == 1 || previousTab < 0) ? 0 : previousTab;
-    await _onDestinationSelected(targetIndex);
+  void _expandPlayback({bool animated = true}) {
+    if (_isPlaybackDrawerOpen && _playbackDrawerAnimController.value == 1.0) {
+      return;
+    }
+    setState(() {
+      _isPlaybackDrawerOpen = true;
+    });
+    ref.read(isPlaybackDrawerOpenProvider.notifier).setOpen(true);
+    if (animated) {
+      _playbackDrawerAnimController.animateTo(
+        1.0,
+        curve: Curves.easeOutCubic,
+      );
+    } else {
+      _playbackDrawerAnimController.value = 1.0;
+    }
+  }
+
+  void _collapsePlayback({bool animated = true}) {
+    ref.read(isPlaybackDrawerOpenProvider.notifier).setOpen(false);
+    if (animated) {
+      _playbackDrawerAnimController
+          .animateTo(
+        0.0,
+        curve: Curves.easeOutCubic,
+      )
+          .then((_) {
+        if (!mounted) return;
+        setState(() {
+          _isPlaybackDrawerOpen = false;
+        });
+      });
+    } else {
+      _playbackDrawerAnimController.value = 0.0;
+      if (mounted) {
+        setState(() {
+          _isPlaybackDrawerOpen = false;
+        });
+      }
+    }
   }
 
   Future<void> _handleBackPressed() async {
@@ -273,9 +315,9 @@ class _MainLayoutState extends ConsumerState<MainLayout>
       if (didPop) return;
     }
 
-    // 如果在播放页，返回上一 Tab
-    if (_currentIndex == 1) {
-      await _collapsePlayback();
+    // 如果播放页抽屉展开，优先收起抽屉
+    if (_isPlaybackDrawerOpen || _playbackDrawerAnimController.value > 0.0) {
+      _collapsePlayback();
       return;
     }
 
@@ -327,10 +369,21 @@ class _MainLayoutState extends ConsumerState<MainLayout>
     final isStressTest = widget.args.any(
       (arg) => arg == '--stress-test' || arg == '--audio-stress-test',
     );
-    final initialIndex = isStressTest
-        ? 0
-        : (needOnboarding ? 0 : widget.initialIndex);
-    _currentIndex = initialIndex;
+    final bool shouldOpenPlaybackInitially =
+        !isStressTest && !needOnboarding && widget.initialIndex == 1;
+
+    _playbackDrawerAnimController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 320),
+      value: shouldOpenPlaybackInitially ? 1.0 : 0.0,
+    )..addListener(() {
+        if (mounted) setState(() {});
+      });
+
+    _isPlaybackDrawerOpen = shouldOpenPlaybackInitially;
+
+    final initialBaseIndex = widget.initialIndex == 1 ? 0 : widget.initialIndex;
+    _currentIndex = isStressTest ? 0 : (needOnboarding ? 0 : initialBaseIndex);
     _visitedTabs.add(_currentIndex);
     _lastVolume = ref.read(audioVolumeProvider);
     _audioService = ref.read(audioServiceProvider);
@@ -341,10 +394,11 @@ class _MainLayoutState extends ConsumerState<MainLayout>
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      ref.read(mainTabIndexProvider.notifier).setIndex(_currentIndex);
-      if (_currentIndex != 1) {
-        _currentBaseTabIndex = _currentIndex;
+      if (shouldOpenPlaybackInitially) {
+        ref.read(isPlaybackDrawerOpenProvider.notifier).setOpen(true);
       }
+      ref.read(mainTabIndexProvider.notifier).setIndex(_currentIndex);
+      _currentBaseTabIndex = _currentIndex;
       if (needOnboarding) {
         _triggerOnboardingFlow();
       } else {
@@ -386,7 +440,9 @@ class _MainLayoutState extends ConsumerState<MainLayout>
 
   @override
   void dispose() {
+    _playbackDrawerAnimController.dispose();
     _windowResizeDebounceTimer?.cancel();
+    _mouseInactiveTimer?.cancel();
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
       windowManager.removeListener(this);
     }
@@ -683,32 +739,26 @@ class _MainLayoutState extends ConsumerState<MainLayout>
       await _openSettingsPage();
       return;
     }
-    // 在普通主页面（0: 文件夹, 2: 曲库, 3: 队列, 4: 共享）之间切换时：
-    // 原位直接 setState，无需销毁重建 MainLayout，使侧边 Rail / 底部 Dock 的胶囊平移动画流畅播放！
-    if (_currentIndex != 1 && index != 1) {
-      if (_currentIndex != 1) {
-        ref.read(previousMainTabIndexProvider.notifier).setIndex(_currentIndex);
-      }
-      ref.read(mainTabIndexProvider.notifier).setIndex(index);
-      ref.read(floatingDockCollapsedProvider.notifier).setCollapsed(false);
-      _currentBaseTabIndex = index;
-      Tooltip.dismissAllToolTips();
-      setState(() {
-        _currentIndex = index;
-      });
+    if (index == 1) {
+      _expandPlayback();
       return;
     }
-
-    // 涉及播放页（进入/退出播放页 index: 1）时，调用 navigateToMainTab 以执行上下平移路由转场动画
-    if (_currentIndex != 1) {
-      ref.read(previousMainTabIndexProvider.notifier).setIndex(_currentIndex);
+    if (_isPlaybackDrawerOpen) {
+      _collapsePlayback();
     }
+    _selectTab(index);
+  }
+
+  void _selectTab(int index) {
+    if (_currentIndex == index) return;
+    ref.read(previousMainTabIndexProvider.notifier).setIndex(_currentIndex);
     ref.read(mainTabIndexProvider.notifier).setIndex(index);
-    await navigateToMainTab(
-      context,
-      index: index,
-      fromIndex: _currentIndex,
-    );
+    ref.read(floatingDockCollapsedProvider.notifier).setCollapsed(false);
+    _currentBaseTabIndex = index;
+    Tooltip.dismissAllToolTips();
+    setState(() {
+      _currentIndex = index;
+    });
   }
 
   Future<void> _openSettingsPage() async {
@@ -728,11 +778,6 @@ class _MainLayoutState extends ConsumerState<MainLayout>
     bool useSidebar,
     bool isCoverFlowImmersive,
   ) {
-    final bool isPlayback = _currentIndex == 1;
-    if (isPlayback) {
-      return const PlaybackPage();
-    }
-
     _visitedTabs.add(_currentIndex);
     // 窗口足够宽时左侧导航栏展开为图标 + 文字，否则收回为纯图标
     final double railWidth =
@@ -1171,26 +1216,40 @@ class _MainLayoutState extends ConsumerState<MainLayout>
       }
     });
 
+    ref.listen<bool>(isPlaybackDrawerOpenProvider, (previous, next) {
+      if (next) {
+        _expandPlayback();
+      } else {
+        _collapsePlayback();
+      }
+    });
+
+    ref.listen<int>(mainTabIndexProvider, (previous, next) {
+      if (next == 1) {
+        _expandPlayback();
+      } else if (_currentIndex != next && next >= 0 && next <= 4) {
+        _selectTab(next);
+      }
+    });
+
     final settings = ref.watch(settingsServiceProvider);
     final theme = Theme.of(context);
     final bool isDesktop =
         Platform.isWindows || Platform.isLinux || Platform.isMacOS;
     final bool showCustomTitleBar =
         Platform.isWindows || Platform.isLinux || Platform.isMacOS;
-    final bool isPlayback = _currentIndex == 1;
-    final navBgBaseColor =
-        theme.navigationBarTheme.backgroundColor ?? theme.colorScheme.surface;
-    final navIndicatorBaseColor =
-        theme.navigationBarTheme.indicatorColor ??
-        theme.colorScheme.secondaryContainer;
-    final navBgOpacityTarget = isPlayback ? 0.0 : 1.0;
-
     final Size size = MediaQuery.of(context).size;
     final bool isSmallWin = PlaybackPageUiTuning.isSmallWindow(
       size,
       isWaveformEnabled: ref.watch(isEffectiveWaveformEnabledProvider),
       isSmallWindowMode: settings.isSmallWindowMode,
     );
+    final bool isPlayback = isSmallWin || _isPlaybackDrawerOpen;
+    final navBgBaseColor =
+        theme.navigationBarTheme.backgroundColor ?? theme.colorScheme.surface;
+    final navIndicatorBaseColor =
+        theme.navigationBarTheme.indicatorColor ??
+        theme.colorScheme.secondaryContainer;
     final bool isDrawerOpen =
         isDesktop && !isSmallWin && ref.watch(rightQueueDrawerProvider);
     final double effectiveWidth =
@@ -1201,16 +1260,10 @@ class _MainLayoutState extends ConsumerState<MainLayout>
         isLandscape &&
         ref.watch(isCoverFlowImmersiveActiveProvider);
     final bool useSidebar = isLandscape;
-    final bool isSidebarHidden =
-        (isLandscape && isPlayback) ||
-        isCoverFlowImmersive;
+    final bool isSidebarHidden = isCoverFlowImmersive;
     final bool hideImmersiveTabBar = isSidebarHidden;
     final bool isKeyboardVisible =
         MediaQuery.of(context).viewInsets.bottom > 0;
-    final bool hideBottomBar =
-        (isPlayback && isSmallWin) ||
-        isCoverFlowImmersive ||
-        isKeyboardVisible;
 
     final double railWidth =
         (useSidebar && !isSidebarHidden) ? sidebarRailWidthFor(size.width) : 0.0;
@@ -1262,8 +1315,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                                 child: GlobalDropTarget(
                                   enable:
                                       _currentIndex != 3 &&
-                                      !(_currentIndex == 1 &&
-                                          isSmallWin &&
+                                      !(isSmallWin &&
                                           settings.smallWindowBottomPanelMode !=
                                               SmallWindowBottomPanelMode.collapsed),
                                   child: _buildCurrentPage(
@@ -1288,147 +1340,84 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                           ],
                         ),
                       ),
-                        if (useSidebar)
-                          Positioned(
-                            left: 0,
-                            top: 0,
-                            bottom: 0,
-                            child: SizedBox(
-                              width: railWidth,
-                              child: AnimatedOpacity(
-                                duration: const Duration(milliseconds: 300),
-                                curve: Curves.easeInOut,
-                                opacity: hideImmersiveTabBar ? 0.0 : 1.0,
-                                child: IgnorePointer(
-                                  ignoring: hideImmersiveTabBar,
-                                  child: TweenAnimationBuilder<double>(
-                                    duration: const Duration(milliseconds: 120),
-                                    curve: Curves.easeOut,
-                                    tween: Tween<double>(
-                                      begin: navBgOpacityTarget,
-                                      end: navBgOpacityTarget,
-                                    ),
-                                    builder: (context, animatedOpacity, child) {
-                                      final double targetRailAlpha =
-                                          theme.brightness == Brightness.dark
-                                              ? 0.65
-                                              : 0.75;
-                                      return SlidingNavigationRail(
-                                        backgroundColor: Color.lerp(
-                                              navBgBaseColor.withValues(alpha: 0.0),
-                                              navBgBaseColor.withValues(
-                                                alpha: targetRailAlpha,
-                                              ),
-                                              animatedOpacity,
-                                            ) ??
-                                            navBgBaseColor.withValues(
-                                              alpha: targetRailAlpha,
-                                            ),
-                                        width: railWidth,
-                                        extended:
-                                            railWidth >= kSidebarRailWidthExtended,
-                                        selectedIndex: _currentIndex,
-                                        onDestinationSelected: (index) {
-                                          if (index == 1) {
-                                            ref.read(settingsServiceProvider).resetInactivity();
-                                          }
-                                          if (index == 2) {
-                                            ref
-                                                .read(
-                                                  libraryActiveTabIndexProvider
-                                                      .notifier,
-                                                )
-                                                .set(-1);
-                                          }
-                                          _onDestinationSelected(index);
-                                        },
-                                        // 媒体库子项始终保持展开
-                                        isLibraryExpanded: true,
-                                        librarySubIndex: ref.watch(
-                                          libraryActiveTabIndexProvider,
-                                        ),
-                                        onLibrarySubDestinationSelected: (
-                                          subIndex,
-                                        ) {
-                                          Tooltip.dismissAllToolTips();
-                                          ref
-                                              .read(
-                                                librarySelectionScopeProvider
-                                                    .notifier,
-                                              )
-                                              .clear();
-                                          ref
-                                              .read(
-                                                libraryActiveTabIndexProvider
-                                                    .notifier,
-                                              )
-                                              .set(subIndex);
-                                          if (_currentIndex != 2) {
-                                            _onDestinationSelected(2);
-                                          }
-                                        },
-                                        indicatorColor: Color.lerp(
-                                              navIndicatorBaseColor.withValues(
-                                                alpha: 0.0,
-                                              ),
-                                              navIndicatorBaseColor,
-                                              animatedOpacity,
-                                            ) ??
-                                            navIndicatorBaseColor,
-                                        isPlayback: isPlayback,
-                                        isSettingsActive: ref.watch(
-                                          isSettingsPageActiveProvider,
-                                        ),
-                                      );
-                                    },
+                      if (useSidebar)
+                        Positioned(
+                          left: 0,
+                          top: 0,
+                          bottom: 0,
+                          child: SizedBox(
+                            width: railWidth,
+                            child: AnimatedOpacity(
+                              duration: const Duration(milliseconds: 300),
+                              curve: Curves.easeInOut,
+                              opacity: hideImmersiveTabBar ? 0.0 : 1.0,
+                              child: IgnorePointer(
+                                ignoring: hideImmersiveTabBar,
+                                child: SlidingNavigationRail(
+                                  backgroundColor: navBgBaseColor.withValues(
+                                    alpha: theme.brightness == Brightness.dark
+                                        ? 0.65
+                                        : 0.75,
+                                  ),
+                                  width: railWidth,
+                                  extended:
+                                      railWidth >= kSidebarRailWidthExtended,
+                                  selectedIndex: _currentIndex,
+                                  onDestinationSelected: (index) {
+                                    if (index == 1) {
+                                      ref.read(settingsServiceProvider).resetInactivity();
+                                    }
+                                    if (index == 2) {
+                                      ref
+                                          .read(
+                                            libraryActiveTabIndexProvider
+                                                .notifier,
+                                          )
+                                          .set(-1);
+                                    }
+                                    _onDestinationSelected(index);
+                                  },
+                                  isLibraryExpanded: true,
+                                  librarySubIndex: ref.watch(
+                                    libraryActiveTabIndexProvider,
+                                  ),
+                                  onLibrarySubDestinationSelected: (
+                                    subIndex,
+                                  ) {
+                                    Tooltip.dismissAllToolTips();
+                                    ref
+                                        .read(
+                                          librarySelectionScopeProvider
+                                              .notifier,
+                                        )
+                                        .clear();
+                                    ref
+                                        .read(
+                                          libraryActiveTabIndexProvider
+                                              .notifier,
+                                        )
+                                        .set(subIndex);
+                                    if (_currentIndex != 2) {
+                                      _onDestinationSelected(2);
+                                    }
+                                  },
+                                  indicatorColor: navIndicatorBaseColor,
+                                  isPlayback: false,
+                                  isSettingsActive: ref.watch(
+                                    isSettingsPageActiveProvider,
                                   ),
                                 ),
                               ),
                             ),
                           ),
-                        if (showCustomTitleBar)
-                          Positioned(
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            child: DesktopWindowTitleBar(
-                              brightness: (isPlayback &&
-                                      !ref.watch(rightQueueDrawerProvider))
-                                  ? Brightness.dark
-                                  : theme.brightness,
-                              showSmallWindowButton: isPlayback,
-                              showButtonGroupBackground: isPlayback &&
-                                  !ref.watch(rightQueueDrawerProvider),
-                              hideButtonsWhenInactive: isPlayback &&
-                                  !ref.watch(rightQueueDrawerProvider),
-                              isPlayback: isPlayback,
-                              onCollapsePlayback: _collapsePlayback,
-                            ),
-                          ),
-                        if (!Platform.isMacOS &&
-                            isPlayback &&
-                            !isSmallWin &&
-                            (isLandscape || isDesktop))
-                          Positioned(
-                            top: collapseButtonTop,
-                            left: collapseButtonLeft,
-                            child: AnimatedOpacity(
-                              duration: const Duration(milliseconds: 200),
-                              opacity: settings.isUserInactive ? 0.0 : 1.0,
-                              curve: Curves.easeInOut,
-                              child: IgnorePointer(
-                                ignoring: settings.isUserInactive,
-                                child: _buildPlaybackCollapseButton(context),
-                              ),
-                            ),
-                          ),
+                        ),
+
                       if (useSidebar)
                         AnimatedPositioned(
                           duration: const Duration(milliseconds: 300),
                           curve: Curves.easeOutCubic,
                           bottom:
-                              (!isPlayback &&
-                                  currentMusic != null &&
+                              (currentMusic != null &&
                                   !hideMiniPlayerForSelection &&
                                   !isCoverFlowImmersive &&
                                   !isKeyboardVisible)
@@ -1456,7 +1445,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                             child: IgnorePointer(
                               ignoring: isCoverFlowImmersive,
                               child: Center(
-                                child: !isPlayback && currentMusic != null
+                                child: currentMusic != null
                                     ? Builder(
                                         builder: (context) {
                                           final audio = ref.read(
@@ -1552,13 +1541,11 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                         FloatingDockBottomBar(
                           currentIndex: _currentIndex,
                           onDestinationSelected: _onDestinationSelected,
-                          isPlayback: isPlayback,
+                          isPlayback: false,
                           isHidden:
-                              hideBottomBar ||
+                              isCoverFlowImmersive ||
                               hideMiniPlayerForSelection ||
-                              (isPlayback &&
-                                  settings.isImmersiveTabBarEnabled &&
-                                  settings.isUserInactive),
+                              isKeyboardVisible,
                           hideMiniPlayer:
                               hideMiniPlayerForSelection ||
                               isCoverFlowImmersive,
@@ -1575,6 +1562,92 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                                           _currentIndex == 3))
                                   ? 80.0
                                   : 0.0),
+                        ),
+                      // 播放页抽屉（Sliding Bottom Sheet）：直接覆盖在底层页面与底层 Dock 之上
+                      if (isSmallWin ||
+                          _isPlaybackDrawerOpen ||
+                          _playbackDrawerAnimController.value > 0.0)
+                        Positioned.fill(
+                          child: AnimatedBuilder(
+                            animation: _playbackDrawerAnimController,
+                            builder: (context, child) {
+                              final double progress = isSmallWin
+                                  ? 1.0
+                                  : _playbackDrawerAnimController.value;
+                              final double screenHeight = size.height;
+                              final double offsetY = isSmallWin
+                                  ? 0.0
+                                  : ((1.0 - progress) * screenHeight)
+                                      .clamp(0.0, screenHeight);
+
+                              return Transform.translate(
+                                offset: Offset(0, offsetY),
+                                child: child,
+                              );
+                            },
+                            child: Stack(
+                              children: [
+                                Positioned.fill(
+                                  child: PlaybackPage(
+                                    onCollapse: _collapsePlayback,
+                                  ),
+                                ),
+                                if (!useSidebar && !isSmallWin)
+                                  FloatingDockBottomBar(
+                                    currentIndex: 1,
+                                    onDestinationSelected: (index) {
+                                      if (index == 1) return;
+                                      _collapsePlayback();
+                                      if (index == 5) {
+                                        _openSettingsPage();
+                                      } else {
+                                        _selectTab(index);
+                                      }
+                                    },
+                                    isPlayback: true,
+                                    isHidden: settings.isImmersiveTabBarEnabled &&
+                                        settings.isUserInactive,
+                                    hideMiniPlayer: true,
+                                    rightDrawerWidth: 0.0,
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      if (showCustomTitleBar)
+                        Positioned(
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          child: DesktopWindowTitleBar(
+                            brightness: (isPlayback &&
+                                    !ref.watch(rightQueueDrawerProvider))
+                                ? Brightness.dark
+                                : theme.brightness,
+                            showSmallWindowButton: isPlayback,
+                            showButtonGroupBackground: isPlayback &&
+                                !ref.watch(rightQueueDrawerProvider),
+                            hideButtonsWhenInactive: isPlayback &&
+                                !ref.watch(rightQueueDrawerProvider),
+                            isPlayback: isPlayback,
+                            onCollapsePlayback: _collapsePlayback,
+                          ),
+                        ),
+                      if (!Platform.isMacOS &&
+                          isPlayback &&
+                          !isSmallWin)
+                        Positioned(
+                          top: collapseButtonTop,
+                          left: collapseButtonLeft,
+                          child: AnimatedOpacity(
+                            duration: const Duration(milliseconds: 200),
+                            opacity: _isMouseActive ? 1.0 : 0.0,
+                            curve: Curves.easeInOut,
+                            child: IgnorePointer(
+                              ignoring: !_isMouseActive,
+                              child: _buildPlaybackCollapseButton(context),
+                            ),
+                          ),
                         ),
                     ],
                   ),

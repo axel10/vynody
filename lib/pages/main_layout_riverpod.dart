@@ -109,6 +109,38 @@ final previousMainTabIndexProvider =
       PreviousMainTabIndexNotifier.new,
     );
 
+class IsPlaybackDrawerOpenNotifier extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void open() {
+    if (!state) {
+      state = true;
+    }
+  }
+
+  void close() {
+    if (state) {
+      state = false;
+    }
+  }
+
+  void toggle() {
+    state = !state;
+  }
+
+  void setOpen(bool open) {
+    if (state != open) {
+      state = open;
+    }
+  }
+}
+
+final isPlaybackDrawerOpenProvider =
+    NotifierProvider<IsPlaybackDrawerOpenNotifier, bool>(
+  IsPlaybackDrawerOpenNotifier.new,
+);
+
 class IsAlbum3DViewActiveNotifier extends Notifier<bool> {
   @override
   bool build() => false;

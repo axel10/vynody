@@ -835,14 +835,9 @@ class _MyAppState extends ConsumerState<MyApp>
           final isStressTest = widget.args.any(
             (arg) => arg == '--stress-test' || arg == '--audio-stress-test',
           );
-          if (needOnboarding || isStressTest) {
-            return [
-              buildMainLayoutRoute(args: widget.args, initialIndex: 0),
-            ];
-          }
+          final initialIndex = (needOnboarding || isStressTest) ? 0 : 1;
           return [
-            buildMainLayoutRoute(args: widget.args, initialIndex: 0),
-            buildMainLayoutRoute(args: widget.args, initialIndex: 1),
+            buildMainLayoutRoute(args: widget.args, initialIndex: initialIndex),
           ];
         },
         onGenerateRoute: (settings) {

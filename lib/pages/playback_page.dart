@@ -40,19 +40,23 @@ import '../widgets/mini_lyrics_view.dart';
 import 'package:vynody/player/pro/pro_models.dart';
 import 'package:vynody/player/pro/pro_license_service.dart';
 import 'main_layout_riverpod.dart';
+import 'main_layout.dart' show navigateToMainTab;
+import '../widgets/app_tooltip.dart';
 import 'package:vynody/utils/app_snack_bar.dart';
 import 'package:oktoast/oktoast.dart';
 
 // PlaybackPage is now cleaner as volume HUD is handled globally
 
 class PlaybackPage extends ConsumerStatefulWidget {
-  const PlaybackPage({super.key});
+  final VoidCallback? onCollapse;
+  const PlaybackPage({super.key, this.onCollapse});
 
   @override
   ConsumerState<PlaybackPage> createState() => _PlaybackPageState();
 }
 
-class _PlaybackPageState extends ConsumerState<PlaybackPage> {
+class _PlaybackPageState extends ConsumerState<PlaybackPage>
+    with SingleTickerProviderStateMixin {
   final GlobalKey _coverKey = GlobalKey();
   final GlobalKey _lyricsKey = GlobalKey();
   bool _showVolumeSlider = false;
@@ -65,6 +69,11 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
   Timer? _volumeSliderTimer;
   final Map<String, Uint8List> _fileArtworkBytesCache = {};
   final Set<String> _loadingPaths = {};
+
+  late final AnimationController _dismissAnimController;
+  Animation<double>? _dismissAnimation;
+  double _dragOffsetY = 0.0;
+  bool _isDraggingDown = false;
 
   void _startVolumeSliderTimer() {
     _volumeSliderTimer?.cancel();
@@ -94,9 +103,134 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
     debugPrint('[PlaybackPage][Trace] $message');
   }
 
+  void _triggerCollapse() {
+    if (widget.onCollapse != null) {
+      widget.onCollapse!();
+    } else {
+      final previousTab = ref.read(previousMainTabIndexProvider);
+      final targetIndex =
+          (previousTab == 1 || previousTab < 0) ? 0 : previousTab;
+      navigateToMainTab(context, index: targetIndex, fromIndex: 1);
+    }
+  }
+
+  void _handleVerticalDragStart(DragStartDetails details) {
+    if (_dismissAnimController.isAnimating) {
+      _dismissAnimController.stop();
+    }
+    _isDraggingDown = true;
+  }
+
+  void _handleVerticalDragUpdate(DragUpdateDetails details) {
+    if (!_isDraggingDown) return;
+    final delta = details.primaryDelta ?? 0.0;
+    final newOffset = _dragOffsetY + delta;
+    if (newOffset >= 0) {
+      setState(() {
+        _dragOffsetY = newOffset;
+      });
+    } else if (_dragOffsetY > 0) {
+      setState(() {
+        _dragOffsetY = 0.0;
+      });
+    }
+  }
+
+  void _handleVerticalDragEnd(DragEndDetails details) {
+    if (!_isDraggingDown) return;
+    _isDraggingDown = false;
+    final velocityY = details.primaryVelocity ?? 0.0;
+    if (_dragOffsetY > 100.0 || velocityY > 600.0) {
+      final screenHeight = MediaQuery.sizeOf(context).height;
+      _dismissAnimation = Tween<double>(
+        begin: _dragOffsetY,
+        end: screenHeight,
+      ).animate(
+        CurvedAnimation(
+          parent: _dismissAnimController,
+          curve: Curves.easeOutCubic,
+        ),
+      );
+      _dismissAnimController.forward(from: 0.0).then((_) {
+        if (!mounted) return;
+        _triggerCollapse();
+        _dragOffsetY = 0.0;
+        _dismissAnimController.reset();
+      });
+    } else {
+      _dismissAnimation = Tween<double>(
+        begin: _dragOffsetY,
+        end: 0.0,
+      ).animate(
+        CurvedAnimation(
+          parent: _dismissAnimController,
+          curve: Curves.easeOutCubic,
+        ),
+      );
+      _dismissAnimController.forward(from: 0.0);
+    }
+  }
+
+  void _handleVerticalDragCancel() {
+    if (!_isDraggingDown) return;
+    _isDraggingDown = false;
+    if (_dragOffsetY > 0) {
+      _dismissAnimation = Tween<double>(
+        begin: _dragOffsetY,
+        end: 0.0,
+      ).animate(
+        CurvedAnimation(
+          parent: _dismissAnimController,
+          curve: Curves.easeOutCubic,
+        ),
+      );
+      _dismissAnimController.forward(from: 0.0);
+    }
+  }
+
+  Widget _buildTopDragHandle() {
+    return AppTooltip(
+      message: Localizations.maybeLocaleOf(context)?.languageCode == 'zh'
+          ? '下拉或点击收起播放页'
+          : 'Drag down or tap to collapse',
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: _triggerCollapse,
+        onVerticalDragStart: _handleVerticalDragStart,
+        onVerticalDragUpdate: _handleVerticalDragUpdate,
+        onVerticalDragEnd: _handleVerticalDragEnd,
+        onVerticalDragCancel: _handleVerticalDragCancel,
+        child: Container(
+          width: 96,
+          height: 28,
+          alignment: Alignment.center,
+          color: Colors.transparent,
+          child: Container(
+            width: 38,
+            height: 4.5,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.35),
+              borderRadius: BorderRadius.circular(2.25),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
+    _dismissAnimController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 260),
+    )..addListener(() {
+        if (_dismissAnimation != null) {
+          setState(() {
+            _dragOffsetY = _dismissAnimation!.value;
+          });
+        }
+      });
     _audioService = ref.read(audioServiceProvider);
     final initialMusic = ref.read(audioCurrentMusicProvider);
     _pendingArtworkBytes = initialMusic?.artworkBytes;
@@ -155,6 +289,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
         audio.setLyricsActive(false);
       });
     }
+    _dismissAnimController.dispose();
     super.dispose();
   }
 
@@ -1037,7 +1172,10 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
             ),
           );
 
-          return Container(
+          final bool showTopDragHandle =
+              (Platform.isAndroid || Platform.isIOS) && !isSmallWin;
+
+          final pageContent = Container(
             color: Colors.black,
             child: Stack(
               clipBehavior: Clip.none,
@@ -1248,7 +1386,18 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                   settings,
                   isSmallWin,
                 ),
-                RepaintBoundary(child: content),
+                RepaintBoundary(
+                  child: (!isLyricsMode && showTopDragHandle)
+                      ? GestureDetector(
+                          behavior: HitTestBehavior.translucent,
+                          onVerticalDragStart: _handleVerticalDragStart,
+                          onVerticalDragUpdate: _handleVerticalDragUpdate,
+                          onVerticalDragEnd: _handleVerticalDragEnd,
+                          onVerticalDragCancel: _handleVerticalDragCancel,
+                          child: content,
+                        )
+                      : content,
+                ),
                 Positioned(
                   left: 0,
                   right: 0,
@@ -1342,9 +1491,33 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage> {
                       },
                     ),
                   ),
+                if (showTopDragHandle)
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    child: SafeArea(
+                      bottom: false,
+                      child: Align(
+                        alignment: Alignment.topCenter,
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 8.0),
+                          child: _buildTopDragHandle(),
+                        ),
+                      ),
+                    ),
+                  ),
               ],
             ),
           );
+
+          if ((Platform.isAndroid || Platform.isIOS) && _dragOffsetY > 0.0) {
+            return Transform.translate(
+              offset: Offset(0, _dragOffsetY),
+              child: pageContent,
+            );
+          }
+          return pageContent;
         },
       ),
     );
