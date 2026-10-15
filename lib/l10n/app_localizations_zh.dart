@@ -737,6 +737,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get showPlaybackAudioInfoDescription => '在播放控制下方显示音频格式、采样率和比特率等详细信息';
 
   @override
+  String get showPlaybackTopDragHandle => '显示顶部拖拽横条';
+
+  @override
+  String get showPlaybackTopDragHandleDescription => '在播放页顶部显示下拉收起指示条';
+
+  @override
   String get waveformLongPressSeekSpeed => '长按波形快进速度';
 
   @override
@@ -6010,6 +6016,12 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get showPlaybackAudioInfoDescription => '在播放控制下方顯示音訊格式、取樣率和位元率等詳細資訊';
+
+  @override
+  String get showPlaybackTopDragHandle => '顯示頂部拖拽橫條';
+
+  @override
+  String get showPlaybackTopDragHandleDescription => '在播放頁頂部顯示下拉收起指示條';
 
   @override
   String get waveformLongPressSeekSpeed => '長按波形快進速度';

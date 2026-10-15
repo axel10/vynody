@@ -759,6 +759,14 @@ class AppLocalizationsFr extends AppLocalizations {
       'Afficher le format audio, le taux d\'échantillonnage et le débit binaire sous les commandes de lecture';
 
   @override
+  String get showPlaybackTopDragHandle =>
+      'Afficher la barre de glissement supérieure';
+
+  @override
+  String get showPlaybackTopDragHandleDescription =>
+      'Afficher l\'indicateur pour réduire vers le bas en haut de la page de lecture';
+
+  @override
   String get waveformLongPressSeekSpeed => 'Vitesse d\'avance appui long';
 
   @override

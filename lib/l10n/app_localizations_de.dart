@@ -757,6 +757,13 @@ class AppLocalizationsDe extends AppLocalizations {
       'Format, Samplerate und Bitrate unter der Wiedergabesteuerung anzeigen';
 
   @override
+  String get showPlaybackTopDragHandle => 'Oberen Ziehbalken anzeigen';
+
+  @override
+  String get showPlaybackTopDragHandleDescription =>
+      'Den Griff zum Herunterziehen oben auf der Wiedergabeseite anzeigen';
+
+  @override
   String get waveformLongPressSeekSpeed =>
       'Spulgeschwindigkeit bei langem Drücken';
 

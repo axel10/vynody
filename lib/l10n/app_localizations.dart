@@ -1509,6 +1509,18 @@ abstract class AppLocalizations {
   /// **'在播放控制下方显示音频格式、采样率和比特率等详细信息'**
   String get showPlaybackAudioInfoDescription;
 
+  /// No description provided for @showPlaybackTopDragHandle.
+  ///
+  /// In zh, this message translates to:
+  /// **'显示顶部拖拽横条'**
+  String get showPlaybackTopDragHandle;
+
+  /// No description provided for @showPlaybackTopDragHandleDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'在播放页顶部显示下拉收起指示条'**
+  String get showPlaybackTopDragHandleDescription;
+
   /// Long-press waveform progress bar fast-forward speed label
   ///
   /// In zh, this message translates to:

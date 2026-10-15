@@ -751,6 +751,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Display audio format, sample rate, and bitrate specifications below playback controls';
 
   @override
+  String get showPlaybackTopDragHandle => 'Show Top Drag Handle';
+
+  @override
+  String get showPlaybackTopDragHandleDescription =>
+      'Display the pull-down handle bar at the top of the playback page';
+
+  @override
   String get waveformLongPressSeekSpeed => 'Long-press Waveform Seek Speed';
 
   @override

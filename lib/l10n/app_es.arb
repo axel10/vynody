@@ -246,6 +246,8 @@
   "progressBarStyleScrollingWaveform": "Forma de onda desplazable",
   "showPlaybackAudioInfo": "Mostrar información de audio",
   "showPlaybackAudioInfoDescription": "Mostrar formato de audio, frecuencia de muestreo y tasa de bits debajo de los controles de reproducción",
+  "showPlaybackTopDragHandle": "Mostrar barra superior de arrastre",
+  "showPlaybackTopDragHandleDescription": "Mostrar el indicador de deslizamiento hacia abajo en la parte superior de la página de reproducción",
   "waveformLongPressSeekSpeed": "Velocidad de avance con pulsación larga",
   "waveformLongPressSeekSpeedDescription": "Velocidad de reproducción al mantener pulsada la barra de onda (×)",
   "enableWaveformLongPressSeek": "Activar avance con pulsación larga en onda",

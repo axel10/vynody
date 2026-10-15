@@ -678,6 +678,58 @@ class VisualizerOptionsDialog extends ConsumerWidget {
                       setDialogState(() {});
                     },
                   ),
+                  if (Platform.isAndroid || Platform.isIOS) ...[
+                    Divider(
+                      height: 1,
+                      thickness: 1,
+                      indent: 16,
+                      endIndent: 16,
+                      color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.06),
+                    ),
+                    SwitchListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 4,
+                      ),
+                      secondary: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(
+                          Icons.drag_handle_rounded,
+                          color: theme.colorScheme.primary,
+                          size: 20,
+                        ),
+                      ),
+                      title: Text(
+                        l10n.showPlaybackTopDragHandle,
+                        style: TextStyle(
+                          color: isDark ? Colors.white : theme.colorScheme.onSurface,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      subtitle: Text(
+                        l10n.showPlaybackTopDragHandleDescription,
+                        style: TextStyle(
+                          color: isDark
+                              ? Colors.white70
+                              : theme.colorScheme.onSurfaceVariant,
+                          fontSize: 12,
+                        ),
+                      ),
+                      value: settings.showPlaybackTopDragHandle,
+                      activeThumbColor: theme.colorScheme.primary,
+                      activeTrackColor:
+                          theme.colorScheme.primary.withValues(alpha: 0.5),
+                      onChanged: (val) {
+                        settings.showPlaybackTopDragHandle = val;
+                        setDialogState(() {});
+                      },
+                    ),
+                  ],
                 ],
               ),
             ),

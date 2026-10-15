@@ -254,6 +254,8 @@
   "progressBarStyleScrollingWaveform": "Scrolling Waveform",
   "showPlaybackAudioInfo": "Show Audio Spec Info",
   "showPlaybackAudioInfoDescription": "Display audio format, sample rate, and bitrate specifications below playback controls",
+  "showPlaybackTopDragHandle": "Show Top Drag Handle",
+  "showPlaybackTopDragHandleDescription": "Display the pull-down handle bar at the top of the playback page",
   "waveformLongPressSeekSpeed": "Long-press Waveform Seek Speed",
   "waveformLongPressSeekSpeedDescription": "Playback speed when holding the scrolling waveform progress bar (×)",
   "enableWaveformLongPressSeek": "Enable Long-press Waveform Seek",

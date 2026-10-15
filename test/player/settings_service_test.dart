@@ -612,7 +612,7 @@ void main() {
       final prefs = await SharedPreferences.getInstance();
       final settings = SettingsService(prefs);
 
-      expect(settings.visibleLibraryTabs.length, 7);
+      expect(settings.visibleLibraryTabs.length, SettingsService.defaultVisibleLibraryTabs.length);
       expect(settings.isLibraryTabVisible('playlist'), isTrue);
 
       settings.toggleLibraryTabVisibility('playlist');
@@ -643,6 +643,24 @@ void main() {
       reloaded.rewindToStartOnPrevious = true;
       expect(reloaded.rewindToStartOnPrevious, isTrue);
       expect(prefs.getBool('rewind_to_start_on_previous'), isTrue);
+    });
+
+    test('showPlaybackTopDragHandle defaults to true, persists, and resets', () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final settings = SettingsService(prefs);
+
+      expect(settings.showPlaybackTopDragHandle, isTrue);
+
+      settings.showPlaybackTopDragHandle = false;
+      expect(settings.showPlaybackTopDragHandle, isFalse);
+      expect(prefs.getBool('show_playback_top_drag_handle'), isFalse);
+
+      final reloaded = SettingsService(prefs);
+      expect(reloaded.showPlaybackTopDragHandle, isFalse);
+
+      settings.resetVisualizerAppearance();
+      expect(settings.showPlaybackTopDragHandle, isTrue);
     });
   });
 }

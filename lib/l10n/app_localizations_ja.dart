@@ -740,6 +740,13 @@ class AppLocalizationsJa extends AppLocalizations {
       '再生コントロールの下にオーディオ形式、サンプリングレート、ビットレートなどを表示します';
 
   @override
+  String get showPlaybackTopDragHandle => '上部ドラッグバーを表示';
+
+  @override
+  String get showPlaybackTopDragHandleDescription =>
+      '再生画面の上部にプルダウン折りたたみバーを表示します';
+
+  @override
   String get waveformLongPressSeekSpeed => '波形長押し早送り速度';
 
   @override

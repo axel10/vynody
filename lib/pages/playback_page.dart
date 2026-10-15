@@ -1176,8 +1176,10 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
             ),
           );
 
-          final bool showTopDragHandle =
+          final bool enableDragDismiss =
               (Platform.isAndroid || Platform.isIOS) && !isSmallWin;
+          final bool showTopDragHandle =
+              enableDragDismiss && settings.showPlaybackTopDragHandle;
 
           final pageContent = Container(
             color: Colors.black,
@@ -1393,16 +1395,16 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
                 RepaintBoundary(
                   child: GestureDetector(
                     behavior: HitTestBehavior.translucent,
-                    onVerticalDragStart: (!isLyricsMode && showTopDragHandle)
+                    onVerticalDragStart: (!isLyricsMode && enableDragDismiss)
                         ? _handleVerticalDragStart
                         : null,
-                    onVerticalDragUpdate: (!isLyricsMode && showTopDragHandle)
+                    onVerticalDragUpdate: (!isLyricsMode && enableDragDismiss)
                         ? _handleVerticalDragUpdate
                         : null,
-                    onVerticalDragEnd: (!isLyricsMode && showTopDragHandle)
+                    onVerticalDragEnd: (!isLyricsMode && enableDragDismiss)
                         ? _handleVerticalDragEnd
                         : null,
-                    onVerticalDragCancel: (!isLyricsMode && showTopDragHandle)
+                    onVerticalDragCancel: (!isLyricsMode && enableDragDismiss)
                         ? _handleVerticalDragCancel
                         : null,
                     child: content,
@@ -1521,7 +1523,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
             ),
           );
 
-          if (showTopDragHandle) {
+          if (enableDragDismiss) {
             return Transform.translate(
               offset: Offset(0, _dragOffsetY),
               child: pageContent,
