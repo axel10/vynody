@@ -344,6 +344,15 @@ class $SongsTable extends Songs with TableInfo<$SongsTable, Song> {
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _yearMeta = const VerificationMeta('year');
+  @override
+  late final GeneratedColumn<int> year = GeneratedColumn<int>(
+    'year',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _lastSeenRootScanSessionIdMeta =
       const VerificationMeta('lastSeenRootScanSessionId');
   @override
@@ -388,6 +397,7 @@ class $SongsTable extends Songs with TableInfo<$SongsTable, Song> {
     format,
     codec,
     fileRating,
+    year,
     lastSeenRootScanSessionId,
   ];
   @override
@@ -626,6 +636,12 @@ class $SongsTable extends Songs with TableInfo<$SongsTable, Song> {
         fileRating.isAcceptableOrUnknown(data['fileRating']!, _fileRatingMeta),
       );
     }
+    if (data.containsKey('year')) {
+      context.handle(
+        _yearMeta,
+        year.isAcceptableOrUnknown(data['year']!, _yearMeta),
+      );
+    }
     if (data.containsKey('lastSeenRootScanSessionId')) {
       context.handle(
         _lastSeenRootScanSessionIdMeta,
@@ -768,6 +784,10 @@ class $SongsTable extends Songs with TableInfo<$SongsTable, Song> {
         DriftSqlType.int,
         data['${effectivePrefix}fileRating'],
       ),
+      year: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}year'],
+      ),
       lastSeenRootScanSessionId: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}lastSeenRootScanSessionId'],
@@ -813,6 +833,7 @@ class Song extends DataClass implements Insertable<Song> {
   final String? format;
   final String? codec;
   final int? fileRating;
+  final int? year;
   final int? lastSeenRootScanSessionId;
   const Song({
     required this.id,
@@ -846,6 +867,7 @@ class Song extends DataClass implements Insertable<Song> {
     this.format,
     this.codec,
     this.fileRating,
+    this.year,
     this.lastSeenRootScanSessionId,
   });
   @override
@@ -937,6 +959,9 @@ class Song extends DataClass implements Insertable<Song> {
     }
     if (!nullToAbsent || fileRating != null) {
       map['fileRating'] = Variable<int>(fileRating);
+    }
+    if (!nullToAbsent || year != null) {
+      map['year'] = Variable<int>(year);
     }
     if (!nullToAbsent || lastSeenRootScanSessionId != null) {
       map['lastSeenRootScanSessionId'] = Variable<int>(
@@ -1035,6 +1060,7 @@ class Song extends DataClass implements Insertable<Song> {
       fileRating: fileRating == null && nullToAbsent
           ? const Value.absent()
           : Value(fileRating),
+      year: year == null && nullToAbsent ? const Value.absent() : Value(year),
       lastSeenRootScanSessionId:
           lastSeenRootScanSessionId == null && nullToAbsent
           ? const Value.absent()
@@ -1081,6 +1107,7 @@ class Song extends DataClass implements Insertable<Song> {
       format: serializer.fromJson<String?>(json['format']),
       codec: serializer.fromJson<String?>(json['codec']),
       fileRating: serializer.fromJson<int?>(json['fileRating']),
+      year: serializer.fromJson<int?>(json['year']),
       lastSeenRootScanSessionId: serializer.fromJson<int?>(
         json['lastSeenRootScanSessionId'],
       ),
@@ -1121,6 +1148,7 @@ class Song extends DataClass implements Insertable<Song> {
       'format': serializer.toJson<String?>(format),
       'codec': serializer.toJson<String?>(codec),
       'fileRating': serializer.toJson<int?>(fileRating),
+      'year': serializer.toJson<int?>(year),
       'lastSeenRootScanSessionId': serializer.toJson<int?>(
         lastSeenRootScanSessionId,
       ),
@@ -1159,6 +1187,7 @@ class Song extends DataClass implements Insertable<Song> {
     Value<String?> format = const Value.absent(),
     Value<String?> codec = const Value.absent(),
     Value<int?> fileRating = const Value.absent(),
+    Value<int?> year = const Value.absent(),
     Value<int?> lastSeenRootScanSessionId = const Value.absent(),
   }) => Song(
     id: id ?? this.id,
@@ -1204,6 +1233,7 @@ class Song extends DataClass implements Insertable<Song> {
     format: format.present ? format.value : this.format,
     codec: codec.present ? codec.value : this.codec,
     fileRating: fileRating.present ? fileRating.value : this.fileRating,
+    year: year.present ? year.value : this.year,
     lastSeenRootScanSessionId: lastSeenRootScanSessionId.present
         ? lastSeenRootScanSessionId.value
         : this.lastSeenRootScanSessionId,
@@ -1273,6 +1303,7 @@ class Song extends DataClass implements Insertable<Song> {
       fileRating: data.fileRating.present
           ? data.fileRating.value
           : this.fileRating,
+      year: data.year.present ? data.year.value : this.year,
       lastSeenRootScanSessionId: data.lastSeenRootScanSessionId.present
           ? data.lastSeenRootScanSessionId.value
           : this.lastSeenRootScanSessionId,
@@ -1313,6 +1344,7 @@ class Song extends DataClass implements Insertable<Song> {
           ..write('format: $format, ')
           ..write('codec: $codec, ')
           ..write('fileRating: $fileRating, ')
+          ..write('year: $year, ')
           ..write('lastSeenRootScanSessionId: $lastSeenRootScanSessionId')
           ..write(')'))
         .toString();
@@ -1351,6 +1383,7 @@ class Song extends DataClass implements Insertable<Song> {
     format,
     codec,
     fileRating,
+    year,
     lastSeenRootScanSessionId,
   ]);
   @override
@@ -1391,6 +1424,7 @@ class Song extends DataClass implements Insertable<Song> {
           other.format == this.format &&
           other.codec == this.codec &&
           other.fileRating == this.fileRating &&
+          other.year == this.year &&
           other.lastSeenRootScanSessionId == this.lastSeenRootScanSessionId);
 }
 
@@ -1426,6 +1460,7 @@ class SongsCompanion extends UpdateCompanion<Song> {
   final Value<String?> format;
   final Value<String?> codec;
   final Value<int?> fileRating;
+  final Value<int?> year;
   final Value<int?> lastSeenRootScanSessionId;
   const SongsCompanion({
     this.id = const Value.absent(),
@@ -1459,6 +1494,7 @@ class SongsCompanion extends UpdateCompanion<Song> {
     this.format = const Value.absent(),
     this.codec = const Value.absent(),
     this.fileRating = const Value.absent(),
+    this.year = const Value.absent(),
     this.lastSeenRootScanSessionId = const Value.absent(),
   });
   SongsCompanion.insert({
@@ -1493,6 +1529,7 @@ class SongsCompanion extends UpdateCompanion<Song> {
     this.format = const Value.absent(),
     this.codec = const Value.absent(),
     this.fileRating = const Value.absent(),
+    this.year = const Value.absent(),
     this.lastSeenRootScanSessionId = const Value.absent(),
   }) : path = Value(path);
   static Insertable<Song> custom({
@@ -1527,6 +1564,7 @@ class SongsCompanion extends UpdateCompanion<Song> {
     Expression<String>? format,
     Expression<String>? codec,
     Expression<int>? fileRating,
+    Expression<int>? year,
     Expression<int>? lastSeenRootScanSessionId,
   }) {
     return RawValuesInsertable({
@@ -1562,6 +1600,7 @@ class SongsCompanion extends UpdateCompanion<Song> {
       if (format != null) 'format': format,
       if (codec != null) 'codec': codec,
       if (fileRating != null) 'fileRating': fileRating,
+      if (year != null) 'year': year,
       if (lastSeenRootScanSessionId != null)
         'lastSeenRootScanSessionId': lastSeenRootScanSessionId,
     });
@@ -1599,6 +1638,7 @@ class SongsCompanion extends UpdateCompanion<Song> {
     Value<String?>? format,
     Value<String?>? codec,
     Value<int?>? fileRating,
+    Value<int?>? year,
     Value<int?>? lastSeenRootScanSessionId,
   }) {
     return SongsCompanion(
@@ -1633,6 +1673,7 @@ class SongsCompanion extends UpdateCompanion<Song> {
       format: format ?? this.format,
       codec: codec ?? this.codec,
       fileRating: fileRating ?? this.fileRating,
+      year: year ?? this.year,
       lastSeenRootScanSessionId:
           lastSeenRootScanSessionId ?? this.lastSeenRootScanSessionId,
     );
@@ -1734,6 +1775,9 @@ class SongsCompanion extends UpdateCompanion<Song> {
     if (fileRating.present) {
       map['fileRating'] = Variable<int>(fileRating.value);
     }
+    if (year.present) {
+      map['year'] = Variable<int>(year.value);
+    }
     if (lastSeenRootScanSessionId.present) {
       map['lastSeenRootScanSessionId'] = Variable<int>(
         lastSeenRootScanSessionId.value,
@@ -1776,6 +1820,7 @@ class SongsCompanion extends UpdateCompanion<Song> {
           ..write('format: $format, ')
           ..write('codec: $codec, ')
           ..write('fileRating: $fileRating, ')
+          ..write('year: $year, ')
           ..write('lastSeenRootScanSessionId: $lastSeenRootScanSessionId')
           ..write(')'))
         .toString();
@@ -6578,6 +6623,15 @@ class $RemoteSongsTable extends RemoteSongs
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _yearMeta = const VerificationMeta('year');
+  @override
+  late final GeneratedColumn<int> year = GeneratedColumn<int>(
+    'year',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -6603,6 +6657,7 @@ class $RemoteSongsTable extends RemoteSongs
     createdAt,
     updatedAt,
     deletedAt,
+    year,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -6784,6 +6839,12 @@ class $RemoteSongsTable extends RemoteSongs
         deletedAt.isAcceptableOrUnknown(data['deletedAt']!, _deletedAtMeta),
       );
     }
+    if (data.containsKey('year')) {
+      context.handle(
+        _yearMeta,
+        year.isAcceptableOrUnknown(data['year']!, _yearMeta),
+      );
+    }
     return context;
   }
 
@@ -6885,6 +6946,10 @@ class $RemoteSongsTable extends RemoteSongs
         DriftSqlType.int,
         data['${effectivePrefix}deletedAt'],
       ),
+      year: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}year'],
+      ),
     );
   }
 
@@ -6918,6 +6983,7 @@ class RemoteSong extends DataClass implements Insertable<RemoteSong> {
   final int? createdAt;
   final int? updatedAt;
   final int? deletedAt;
+  final int? year;
   const RemoteSong({
     required this.id,
     required this.serverId,
@@ -6942,6 +7008,7 @@ class RemoteSong extends DataClass implements Insertable<RemoteSong> {
     this.createdAt,
     this.updatedAt,
     this.deletedAt,
+    this.year,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -7006,6 +7073,9 @@ class RemoteSong extends DataClass implements Insertable<RemoteSong> {
     }
     if (!nullToAbsent || deletedAt != null) {
       map['deletedAt'] = Variable<int>(deletedAt);
+    }
+    if (!nullToAbsent || year != null) {
+      map['year'] = Variable<int>(year);
     }
     return map;
   }
@@ -7073,6 +7143,7 @@ class RemoteSong extends DataClass implements Insertable<RemoteSong> {
       deletedAt: deletedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(deletedAt),
+      year: year == null && nullToAbsent ? const Value.absent() : Value(year),
     );
   }
 
@@ -7105,6 +7176,7 @@ class RemoteSong extends DataClass implements Insertable<RemoteSong> {
       createdAt: serializer.fromJson<int?>(json['createdAt']),
       updatedAt: serializer.fromJson<int?>(json['updatedAt']),
       deletedAt: serializer.fromJson<int?>(json['deletedAt']),
+      year: serializer.fromJson<int?>(json['year']),
     );
   }
   @override
@@ -7134,6 +7206,7 @@ class RemoteSong extends DataClass implements Insertable<RemoteSong> {
       'createdAt': serializer.toJson<int?>(createdAt),
       'updatedAt': serializer.toJson<int?>(updatedAt),
       'deletedAt': serializer.toJson<int?>(deletedAt),
+      'year': serializer.toJson<int?>(year),
     };
   }
 
@@ -7161,6 +7234,7 @@ class RemoteSong extends DataClass implements Insertable<RemoteSong> {
     Value<int?> createdAt = const Value.absent(),
     Value<int?> updatedAt = const Value.absent(),
     Value<int?> deletedAt = const Value.absent(),
+    Value<int?> year = const Value.absent(),
   }) => RemoteSong(
     id: id ?? this.id,
     serverId: serverId ?? this.serverId,
@@ -7193,6 +7267,7 @@ class RemoteSong extends DataClass implements Insertable<RemoteSong> {
     createdAt: createdAt.present ? createdAt.value : this.createdAt,
     updatedAt: updatedAt.present ? updatedAt.value : this.updatedAt,
     deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    year: year.present ? year.value : this.year,
   );
   RemoteSong copyWithCompanion(RemoteSongsCompanion data) {
     return RemoteSong(
@@ -7241,6 +7316,7 @@ class RemoteSong extends DataClass implements Insertable<RemoteSong> {
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      year: data.year.present ? data.year.value : this.year,
     );
   }
 
@@ -7269,7 +7345,8 @@ class RemoteSong extends DataClass implements Insertable<RemoteSong> {
           ..write('cachedFilePath: $cachedFilePath, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
-          ..write('deletedAt: $deletedAt')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('year: $year')
           ..write(')'))
         .toString();
   }
@@ -7299,6 +7376,7 @@ class RemoteSong extends DataClass implements Insertable<RemoteSong> {
     createdAt,
     updatedAt,
     deletedAt,
+    year,
   ]);
   @override
   bool operator ==(Object other) =>
@@ -7329,7 +7407,8 @@ class RemoteSong extends DataClass implements Insertable<RemoteSong> {
           other.cachedFilePath == this.cachedFilePath &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
-          other.deletedAt == this.deletedAt);
+          other.deletedAt == this.deletedAt &&
+          other.year == this.year);
 }
 
 class RemoteSongsCompanion extends UpdateCompanion<RemoteSong> {
@@ -7356,6 +7435,7 @@ class RemoteSongsCompanion extends UpdateCompanion<RemoteSong> {
   final Value<int?> createdAt;
   final Value<int?> updatedAt;
   final Value<int?> deletedAt;
+  final Value<int?> year;
   const RemoteSongsCompanion({
     this.id = const Value.absent(),
     this.serverId = const Value.absent(),
@@ -7380,6 +7460,7 @@ class RemoteSongsCompanion extends UpdateCompanion<RemoteSong> {
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
+    this.year = const Value.absent(),
   });
   RemoteSongsCompanion.insert({
     this.id = const Value.absent(),
@@ -7405,6 +7486,7 @@ class RemoteSongsCompanion extends UpdateCompanion<RemoteSong> {
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
+    this.year = const Value.absent(),
   }) : serverId = Value(serverId),
        remoteId = Value(remoteId),
        virtualUri = Value(virtualUri);
@@ -7432,6 +7514,7 @@ class RemoteSongsCompanion extends UpdateCompanion<RemoteSong> {
     Expression<int>? createdAt,
     Expression<int>? updatedAt,
     Expression<int>? deletedAt,
+    Expression<int>? year,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -7457,6 +7540,7 @@ class RemoteSongsCompanion extends UpdateCompanion<RemoteSong> {
       if (createdAt != null) 'createdAt': createdAt,
       if (updatedAt != null) 'updatedAt': updatedAt,
       if (deletedAt != null) 'deletedAt': deletedAt,
+      if (year != null) 'year': year,
     });
   }
 
@@ -7484,6 +7568,7 @@ class RemoteSongsCompanion extends UpdateCompanion<RemoteSong> {
     Value<int?>? createdAt,
     Value<int?>? updatedAt,
     Value<int?>? deletedAt,
+    Value<int?>? year,
   }) {
     return RemoteSongsCompanion(
       id: id ?? this.id,
@@ -7509,6 +7594,7 @@ class RemoteSongsCompanion extends UpdateCompanion<RemoteSong> {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       deletedAt: deletedAt ?? this.deletedAt,
+      year: year ?? this.year,
     );
   }
 
@@ -7584,6 +7670,9 @@ class RemoteSongsCompanion extends UpdateCompanion<RemoteSong> {
     if (deletedAt.present) {
       map['deletedAt'] = Variable<int>(deletedAt.value);
     }
+    if (year.present) {
+      map['year'] = Variable<int>(year.value);
+    }
     return map;
   }
 
@@ -7612,7 +7701,8 @@ class RemoteSongsCompanion extends UpdateCompanion<RemoteSong> {
           ..write('cachedFilePath: $cachedFilePath, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
-          ..write('deletedAt: $deletedAt')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('year: $year')
           ..write(')'))
         .toString();
   }
@@ -9141,6 +9231,7 @@ typedef $$SongsTableCreateCompanionBuilder =
       Value<String?> format,
       Value<String?> codec,
       Value<int?> fileRating,
+      Value<int?> year,
       Value<int?> lastSeenRootScanSessionId,
     });
 typedef $$SongsTableUpdateCompanionBuilder =
@@ -9176,6 +9267,7 @@ typedef $$SongsTableUpdateCompanionBuilder =
       Value<String?> format,
       Value<String?> codec,
       Value<int?> fileRating,
+      Value<int?> year,
       Value<int?> lastSeenRootScanSessionId,
     });
 
@@ -9340,6 +9432,11 @@ class $$SongsTableFilterComposer
 
   ColumnFilters<int> get fileRating => $composableBuilder(
     column: $table.fileRating,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get year => $composableBuilder(
+    column: $table.year,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -9513,6 +9610,11 @@ class $$SongsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get year => $composableBuilder(
+    column: $table.year,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get lastSeenRootScanSessionId => $composableBuilder(
     column: $table.lastSeenRootScanSessionId,
     builder: (column) => ColumnOrderings(column),
@@ -9653,6 +9755,9 @@ class $$SongsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<int> get year =>
+      $composableBuilder(column: $table.year, builder: (column) => column);
+
   GeneratedColumn<int> get lastSeenRootScanSessionId => $composableBuilder(
     column: $table.lastSeenRootScanSessionId,
     builder: (column) => column,
@@ -9718,6 +9823,7 @@ class $$SongsTableTableManager
                 Value<String?> format = const Value.absent(),
                 Value<String?> codec = const Value.absent(),
                 Value<int?> fileRating = const Value.absent(),
+                Value<int?> year = const Value.absent(),
                 Value<int?> lastSeenRootScanSessionId = const Value.absent(),
               }) => SongsCompanion(
                 id: id,
@@ -9751,6 +9857,7 @@ class $$SongsTableTableManager
                 format: format,
                 codec: codec,
                 fileRating: fileRating,
+                year: year,
                 lastSeenRootScanSessionId: lastSeenRootScanSessionId,
               ),
           createCompanionCallback:
@@ -9786,6 +9893,7 @@ class $$SongsTableTableManager
                 Value<String?> format = const Value.absent(),
                 Value<String?> codec = const Value.absent(),
                 Value<int?> fileRating = const Value.absent(),
+                Value<int?> year = const Value.absent(),
                 Value<int?> lastSeenRootScanSessionId = const Value.absent(),
               }) => SongsCompanion.insert(
                 id: id,
@@ -9819,6 +9927,7 @@ class $$SongsTableTableManager
                 format: format,
                 codec: codec,
                 fileRating: fileRating,
+                year: year,
                 lastSeenRootScanSessionId: lastSeenRootScanSessionId,
               ),
           withReferenceMapper: (p0) => p0
@@ -12221,6 +12330,7 @@ typedef $$RemoteSongsTableCreateCompanionBuilder =
       Value<int?> createdAt,
       Value<int?> updatedAt,
       Value<int?> deletedAt,
+      Value<int?> year,
     });
 typedef $$RemoteSongsTableUpdateCompanionBuilder =
     RemoteSongsCompanion Function({
@@ -12247,6 +12357,7 @@ typedef $$RemoteSongsTableUpdateCompanionBuilder =
       Value<int?> createdAt,
       Value<int?> updatedAt,
       Value<int?> deletedAt,
+      Value<int?> year,
     });
 
 class $$RemoteSongsTableFilterComposer
@@ -12370,6 +12481,11 @@ class $$RemoteSongsTableFilterComposer
 
   ColumnFilters<int> get deletedAt => $composableBuilder(
     column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get year => $composableBuilder(
+    column: $table.year,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -12497,6 +12613,11 @@ class $$RemoteSongsTableOrderingComposer
     column: $table.deletedAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get year => $composableBuilder(
+    column: $table.year,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$RemoteSongsTableAnnotationComposer
@@ -12598,6 +12719,9 @@ class $$RemoteSongsTableAnnotationComposer
 
   GeneratedColumn<int> get deletedAt =>
       $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get year =>
+      $composableBuilder(column: $table.year, builder: (column) => column);
 }
 
 class $$RemoteSongsTableTableManager
@@ -12660,6 +12784,7 @@ class $$RemoteSongsTableTableManager
                 Value<int?> createdAt = const Value.absent(),
                 Value<int?> updatedAt = const Value.absent(),
                 Value<int?> deletedAt = const Value.absent(),
+                Value<int?> year = const Value.absent(),
               }) => RemoteSongsCompanion(
                 id: id,
                 serverId: serverId,
@@ -12684,6 +12809,7 @@ class $$RemoteSongsTableTableManager
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,
+                year: year,
               ),
           createCompanionCallback:
               ({
@@ -12710,6 +12836,7 @@ class $$RemoteSongsTableTableManager
                 Value<int?> createdAt = const Value.absent(),
                 Value<int?> updatedAt = const Value.absent(),
                 Value<int?> deletedAt = const Value.absent(),
+                Value<int?> year = const Value.absent(),
               }) => RemoteSongsCompanion.insert(
                 id: id,
                 serverId: serverId,
@@ -12734,6 +12861,7 @@ class $$RemoteSongsTableTableManager
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,
+                year: year,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))

@@ -727,6 +727,7 @@ class MetadataHelper {
       String? format;
       String? codec;
       int? fileRating;
+      int? year;
 
       try {
         final targetPath = await resolveReadTargetPath(filePath);
@@ -753,6 +754,7 @@ class MetadataHelper {
         format = metadata.format;
         codec = metadata.codec;
         fileRating = metadata.rating;
+        year = metadata.year;
         artworkData = metadata.pictures.isNotEmpty
             ? metadata.pictures.first.bytes
             : null;
@@ -895,6 +897,7 @@ class MetadataHelper {
         format: format ?? existing?.format,
         codec: codec ?? existing?.codec,
         fileRating: fileRating ?? existing?.fileRating,
+        year: year ?? existing?.year,
       );
 
       // 5. 将解析结果存入数据库
@@ -989,14 +992,10 @@ class MetadataHelper {
         'path': targetPath,
         'token': RootIsolateToken.instance,
       });
-      String? format = metadata.format;
-      if (format == null || format.isEmpty) {
-        var ext = p.extension(filePath).replaceAll('.', '').toLowerCase();
-        if (ext.contains('?')) ext = ext.split('?').first;
-        if (ext != 'cache' && ext != 'tmp' && ext.isNotEmpty) {
-          format = (ext == 'mpeg') ? 'mp3' : (ext == 'mp4' ? 'm4a' : ext);
-        }
-      }
+      final (format, codec) = resolveFormatAndCodec(
+        path: filePath,
+        rawFormat: metadata.format,
+      );
 
       return SongMetadata(
         path: filePath,
@@ -1012,6 +1011,8 @@ class MetadataHelper {
         channels: metadata.channels,
         bitDepth: metadata.bitDepth,
         format: format,
+        codec: codec,
+        year: metadata.year,
       );
     } catch (e) {
       debugPrint('Error reading metadata from file $filePath: $e');
@@ -1374,8 +1375,9 @@ class MetadataHelper {
       final sampleRate = tagFile.sampleRate > 0 ? tagFile.sampleRate : null;
       final channels = tagFile.channels > 0 ? tagFile.channels : null;
       final bitDepth = tagFile.bitDepth;
-      final format = tagFile.format;
+      final (format, codec) = resolveFormatAndCodec(path: path, rawFormat: tagFile.format);
       final rating = tagFile.rating > 0 ? tagFile.rating.clamp(1, 5) : null;
+      final year = tagFile.year > 0 ? tagFile.year : null;
 
       return TagLibMetadata(
         title: title.isNotEmpty ? title : null,
@@ -1391,7 +1393,9 @@ class MetadataHelper {
         channels: channels,
         bitDepth: bitDepth,
         format: format,
+        codec: codec,
         rating: rating,
+        year: year,
       );
     } finally {
       tagFile.close();
@@ -1428,8 +1432,9 @@ class MetadataHelper {
       final sampleRate = tagFile.sampleRate > 0 ? tagFile.sampleRate : null;
       final channels = tagFile.channels > 0 ? tagFile.channels : null;
       final bitDepth = tagFile.bitDepth;
-      final format = tagFile.format;
+      final (format, codec) = resolveFormatAndCodec(path: path, rawFormat: tagFile.format);
       final rating = tagFile.rating > 0 ? tagFile.rating.clamp(1, 5) : null;
+      final year = tagFile.year > 0 ? tagFile.year : null;
 
       return TagLibMetadata(
         title: title.isNotEmpty ? title : null,
@@ -1445,14 +1450,43 @@ class MetadataHelper {
         channels: channels,
         bitDepth: bitDepth,
         format: format,
+        codec: codec,
         rating: rating,
+        year: year,
       );
     } finally {
       tagFile.close();
     }
   }
 
-  static Future<List<Map<String, dynamic>>> readMetadataBatch(
+  /// Resolves normalized audio format and codec from file path and optional raw TagLib format string.
+  static (String? format, String? codec) resolveFormatAndCodec({
+    required String path,
+    String? rawFormat,
+  }) {
+    var ext = p.extension(path).replaceAll('.', '').toLowerCase();
+    if (ext.contains('?')) ext = ext.split('?').first;
+    String? format = rawFormat?.trim().isNotEmpty == true ? rawFormat!.trim() : null;
+    if (format == null || format.isEmpty) {
+      if (ext != 'cache' && ext != 'tmp' && ext.isNotEmpty) {
+        format = (ext == 'mpeg') ? 'mp3' : (ext == 'mp4' ? 'm4a' : ext);
+      }
+    }
+    String? codec;
+    if (format != null) {
+      final fLower = format.toLowerCase();
+      if (fLower == 'mp3' || fLower == 'mpeg') {
+        codec = 'mp3';
+      } else if (fLower == 'm4a' || fLower == 'mp4') {
+        codec = 'aac';
+      } else {
+        codec = format;
+      }
+    }
+    return (format, codec);
+  }
+
+  static Future<List<ScannedFileMetadata>> readMetadataBatch(
     List<String> filePaths, {
     bool getImage = false,
     int? isolateCount,
@@ -1469,21 +1503,12 @@ class MetadataHelper {
           readCover: getImage,
         );
 
-        final results = <Map<String, dynamic>>[];
+        final results = <ScannedFileMetadata>[];
         int successCount = 0;
         int failCount = 0;
         for (final item in batchResults) {
-          final originalPath = item.path;
-          String? title = item.title.trim().isNotEmpty ? item.title.trim() : null;
-          String? album = item.album.trim().isNotEmpty ? item.album.trim() : null;
-          String? artist = item.artist.trim().isNotEmpty ? item.artist.trim() : null;
-          int? duration = item.duration.inMilliseconds > 0 ? item.duration.inMilliseconds : null;
-          int? trackNumber = item.track > 0 ? item.track : null;
-          bool hasArtwork = item.hasCover;
-          bool isSuccess = item.success;
-          Uint8List? artworkBytes = item.coverData;
-
-          if (isSuccess) {
+          final metadata = _scannedMetadataFromBatchItem(item);
+          if (metadata.isSuccess) {
             successCount++;
           } else {
             failCount++;
@@ -1491,51 +1516,7 @@ class MetadataHelper {
               debugPrint('[MetadataHelper] batch item failed: path=${item.path}, error=${item.error}');
             }
           }
-
-          int? lastModified;
-          try {
-            lastModified = File(originalPath).lastModifiedSync().millisecondsSinceEpoch;
-          } catch (_) {}
-
-          final bitrate = item.bitrate > 0 ? item.bitrate * 1000 : null;
-          final sampleRate = item.sampleRate > 0 ? item.sampleRate : null;
-          final channels = item.channels > 0 ? item.channels : null;
-          final bitDepth = item.bitDepth;
-          final rating = item.rating > 0 ? item.rating.clamp(1, 5) : null;
-          var ext = p.extension(originalPath).replaceAll('.', '').toLowerCase();
-          if (ext.contains('?')) ext = ext.split('?').first;
-          String? format;
-          String? codec;
-          if (ext != 'cache' && ext != 'tmp' && ext.isNotEmpty) {
-            format = (ext == 'mpeg') ? 'mp3' : (ext == 'mp4' ? 'm4a' : ext);
-            if (format == 'mp3') {
-              codec = 'mp3';
-            } else if (format == 'm4a' || format == 'mp4') {
-              codec = 'aac';
-            } else {
-              codec = format;
-            }
-          }
-
-          results.add(<String, dynamic>{
-            'path': originalPath,
-            'title': title,
-            'album': album,
-            'artist': artist,
-            'duration': duration,
-            'trackNumber': trackNumber,
-            'hasArtwork': hasArtwork,
-            'artworkBytes': artworkBytes,
-            'lastModifiedTime': lastModified,
-            'bitrate': bitrate,
-            'sampleRate': sampleRate,
-            'channels': channels,
-            'bitDepth': bitDepth,
-            'format': format,
-            'codec': codec,
-            'fileRating': rating,
-            'error': isSuccess ? null : (item.error ?? 'Failed to read metadata'),
-          });
+          results.add(metadata);
         }
         debugPrint('[MetadataHelper] readMetadataBatch completed: total=${filePaths.length}, success=$successCount, fail=$failCount');
         return results;
@@ -1551,7 +1532,79 @@ class MetadataHelper {
     });
   }
 
-  static Future<List<Map<String, dynamic>>> _readMetadataBatchIsolate(
+  static ScannedFileMetadata _scannedMetadataFromBatchItem(
+    taglib.BatchTagMetadata item,
+  ) {
+    final originalPath = item.path;
+    final (format, codec) = resolveFormatAndCodec(
+      path: originalPath,
+      rawFormat: item.format,
+    );
+
+    int? lastModified;
+    try {
+      lastModified = File(originalPath).lastModifiedSync().millisecondsSinceEpoch;
+    } catch (_) {}
+
+    final isSuccess = item.success;
+    return ScannedFileMetadata(
+      path: originalPath,
+      title: item.title.trim().isNotEmpty ? item.title.trim() : null,
+      album: item.album.trim().isNotEmpty ? item.album.trim() : null,
+      artist: item.artist.trim().isNotEmpty ? item.artist.trim() : null,
+      duration: item.duration.inMilliseconds > 0 ? item.duration.inMilliseconds : null,
+      trackNumber: item.track > 0 ? item.track : null,
+      hasArtwork: item.hasCover,
+      artworkBytes: item.coverData,
+      lastModifiedTime: lastModified,
+      bitrate: item.bitrate > 0 ? item.bitrate * 1000 : null,
+      sampleRate: item.sampleRate > 0 ? item.sampleRate : null,
+      channels: item.channels > 0 ? item.channels : null,
+      bitDepth: item.bitDepth,
+      format: format,
+      codec: codec,
+      fileRating: item.rating > 0 ? item.rating.clamp(1, 5) : null,
+      year: item.year > 0 ? item.year : null,
+      error: isSuccess ? null : (item.error ?? 'Failed to read metadata'),
+    );
+  }
+
+  static ScannedFileMetadata _scannedMetadataFromTagLibFile(
+    String path,
+    taglib.TagLibFile tagFile, {
+    required bool getImage,
+    int? lastModifiedTime,
+  }) {
+    final (format, codec) = resolveFormatAndCodec(
+      path: path,
+      rawFormat: tagFile.format,
+    );
+    final hasArtwork = tagFile.hasCover;
+
+    return ScannedFileMetadata(
+      path: path,
+      title: tagFile.title.trim().isNotEmpty ? tagFile.title.trim() : null,
+      album: tagFile.album.trim().isNotEmpty ? tagFile.album.trim() : null,
+      artist: tagFile.artist.trim().isNotEmpty ? tagFile.artist.trim() : null,
+      albumArtist: _extractAlbumArtist(tagFile),
+      duration: tagFile.duration.inMilliseconds > 0 ? tagFile.duration.inMilliseconds : null,
+      trackNumber: tagFile.track > 0 ? tagFile.track : null,
+      hasArtwork: hasArtwork,
+      artworkBytes: getImage && hasArtwork ? tagFile.coverData : null,
+      lastModifiedTime: lastModifiedTime,
+      bitrate: tagFile.bitrate > 0 ? tagFile.bitrate * 1000 : null,
+      sampleRate: tagFile.sampleRate > 0 ? tagFile.sampleRate : null,
+      channels: tagFile.channels > 0 ? tagFile.channels : null,
+      bitDepth: tagFile.bitDepth,
+      format: format,
+      codec: codec,
+      fileRating: tagFile.rating > 0 ? tagFile.rating.clamp(1, 5) : null,
+      year: tagFile.year > 0 ? tagFile.year : null,
+      error: null,
+    );
+  }
+
+  static Future<List<ScannedFileMetadata>> _readMetadataBatchIsolate(
     Map<String, dynamic> args,
   ) async {
     final paths = (args['paths'] as List).cast<String>();
@@ -1562,7 +1615,7 @@ class MetadataHelper {
       BackgroundIsolateBinaryMessenger.ensureInitialized(token);
     }
 
-    final results = <Map<String, dynamic>>[];
+    final results = <ScannedFileMetadata>[];
     for (final path in paths) {
       final file = File(path);
       try {
@@ -1584,77 +1637,28 @@ class MetadataHelper {
           throw Exception('Failed to open file via TagLib.');
         }
         try {
-          final title = tagFile.title;
-          final artist = tagFile.artist;
-          final album = tagFile.album;
-          final albumArtist = _extractAlbumArtist(tagFile);
-          final duration = tagFile.duration.inMilliseconds;
-          final trackNumber = tagFile.track;
-          final hasArtwork = tagFile.hasCover;
-          final artworkBytes = getImage && hasArtwork ? tagFile.coverData : null;
           final lastModified = _safeLastModifiedMillis(file);
-          final bitrate = tagFile.bitrate > 0 ? tagFile.bitrate * 1000 : null;
-          final sampleRate = tagFile.sampleRate > 0 ? tagFile.sampleRate : null;
-          final channels = tagFile.channels > 0 ? tagFile.channels : null;
-          final bitDepth = tagFile.bitDepth;
-          final rating = tagFile.rating > 0 ? tagFile.rating.clamp(1, 5) : null;
-          var ext = p.extension(path).replaceAll('.', '').toLowerCase();
-          if (ext.contains('?')) ext = ext.split('?').first;
-          String? format = tagFile.format?.trim().isNotEmpty == true ? tagFile.format!.trim() : null;
-          if (format == null || format.isEmpty) {
-            if (ext != 'cache' && ext != 'tmp' && ext.isNotEmpty) {
-              format = (ext == 'mpeg') ? 'mp3' : (ext == 'mp4' ? 'm4a' : ext);
-            }
-          }
-          String? codec;
-          if (format != null) {
-            final fLower = format.toLowerCase();
-            if (fLower == 'mp3' || fLower == 'mpeg') {
-              codec = 'mp3';
-            } else if (fLower == 'm4a' || fLower == 'mp4') {
-              codec = 'aac';
-            } else {
-              codec = format;
-            }
-          }
-
-          results.add(<String, dynamic>{
-            'path': path,
-            'title': title.isNotEmpty ? title : null,
-            'album': album.isNotEmpty ? album : null,
-            'artist': artist.isNotEmpty ? artist : null,
-            'albumArtist': albumArtist,
-            'duration': duration > 0 ? duration : null,
-            'trackNumber': trackNumber > 0 ? trackNumber : null,
-            'lastModifiedTime': lastModified,
-            'hasArtwork': hasArtwork,
-            'artworkBytes': artworkBytes,
-            'bitrate': bitrate,
-            'sampleRate': sampleRate,
-            'channels': channels,
-            'bitDepth': bitDepth,
-            'format': format,
-            'codec': codec,
-            'fileRating': rating,
-            'error': null,
-          });
+          results.add(
+            _scannedMetadataFromTagLibFile(
+              path,
+              tagFile,
+              getImage: getImage,
+              lastModifiedTime: lastModified,
+            ),
+          );
         } finally {
           tagFile.close();
         }
       } catch (e) {
         final lastModified = _safeLastModifiedMillis(file);
-        results.add(<String, dynamic>{
-          'path': path,
-          'title': null,
-          'album': null,
-          'artist': null,
-          'duration': null,
-          'trackNumber': null,
-          'lastModifiedTime': lastModified,
-          'hasArtwork': false,
-          'artworkBytes': null,
-          'error': e.toString(),
-        });
+        results.add(
+          ScannedFileMetadata(
+            path: path,
+            lastModifiedTime: lastModified,
+            hasArtwork: false,
+            error: e.toString(),
+          ),
+        );
       }
     }
     return results;
@@ -1956,6 +1960,7 @@ class TagLibMetadata {
   final String? format;
   final String? codec;
   final int? rating;
+  final int? year;
 
   TagLibMetadata({
     this.title,
@@ -1973,7 +1978,101 @@ class TagLibMetadata {
     this.format,
     this.codec,
     this.rating,
+    this.year,
   });
+}
+
+/// Strongly-typed metadata representation produced during batch or isolated scanning.
+class ScannedFileMetadata {
+  final String path;
+  final String? title;
+  final String? album;
+  final String? artist;
+  final String? albumArtist;
+  final int? duration;
+  final int? trackNumber;
+  final int? year;
+  final bool hasArtwork;
+  final Uint8List? artworkBytes;
+  final int? lastModifiedTime;
+  final int? bitrate;
+  final int? sampleRate;
+  final int? channels;
+  final int? bitDepth;
+  final String? format;
+  final String? codec;
+  final int? fileRating;
+  final String? error;
+
+  const ScannedFileMetadata({
+    required this.path,
+    this.title,
+    this.album,
+    this.artist,
+    this.albumArtist,
+    this.duration,
+    this.trackNumber,
+    this.year,
+    this.hasArtwork = false,
+    this.artworkBytes,
+    this.lastModifiedTime,
+    this.bitrate,
+    this.sampleRate,
+    this.channels,
+    this.bitDepth,
+    this.format,
+    this.codec,
+    this.fileRating,
+    this.error,
+  });
+
+  bool get hasError => error != null;
+  bool get isSuccess => error == null;
+
+  Map<String, dynamic> toMap() => {
+    'path': path,
+    'title': title,
+    'album': album,
+    'artist': artist,
+    'albumArtist': albumArtist,
+    'duration': duration,
+    'trackNumber': trackNumber,
+    'year': year,
+    'hasArtwork': hasArtwork,
+    'artworkBytes': artworkBytes,
+    'lastModifiedTime': lastModifiedTime,
+    'bitrate': bitrate,
+    'sampleRate': sampleRate,
+    'channels': channels,
+    'bitDepth': bitDepth,
+    'format': format,
+    'codec': codec,
+    'fileRating': fileRating,
+    'error': error,
+  };
+
+  factory ScannedFileMetadata.fromMap(Map<String, dynamic> map) =>
+      ScannedFileMetadata(
+        path: map['path'] as String? ?? '',
+        title: map['title'] as String?,
+        album: map['album'] as String?,
+        artist: map['artist'] as String?,
+        albumArtist: map['albumArtist'] as String?,
+        duration: map['duration'] as int?,
+        trackNumber: map['trackNumber'] as int?,
+        year: map['year'] as int?,
+        hasArtwork: (map['hasArtwork'] as bool?) ?? false,
+        artworkBytes: map['artworkBytes'] as Uint8List?,
+        lastModifiedTime: map['lastModifiedTime'] as int?,
+        bitrate: map['bitrate'] as int?,
+        sampleRate: map['sampleRate'] as int?,
+        channels: map['channels'] as int?,
+        bitDepth: map['bitDepth'] as int?,
+        format: map['format'] as String?,
+        codec: map['codec'] as String?,
+        fileRating: map['fileRating'] as int?,
+        error: map['error'] as String?,
+      );
 }
 
 class AndroidSafStorageHelper {

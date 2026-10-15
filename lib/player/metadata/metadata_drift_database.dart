@@ -25,7 +25,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   static final MetadataDriftDatabase instance = MetadataDriftDatabase._();
 
   @override
-  int get schemaVersion => 42;
+  int get schemaVersion => 43;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -432,6 +432,16 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       }
       if (from < 42) {
         await _addColumnIfMissing(m, 'songs', 'fileRating', 'INTEGER');
+      }
+      if (from < 43) {
+        await _addColumnIfMissing(m, 'songs', 'year', 'INTEGER');
+        await _addColumnIfMissing(m, 'remote_songs', 'year', 'INTEGER');
+        await m.database.customStatement('''
+          UPDATE songs
+          SET metadataTextScanned = NULL
+          WHERE metadataTextScanned IS NOT NULL
+            AND (isAppModified = 0 OR isAppModified IS NULL)
+        ''');
       }
     },
   );
@@ -2816,6 +2826,8 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       bitDepth: row.read<int?>('bitDepth'),
       format: row.read<String?>('format'),
       codec: row.read<String?>('codec'),
+      fileRating: row.read<int?>('fileRating'),
+      year: row.read<int?>('year'),
     );
   }
 
@@ -2860,6 +2872,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       format: row.format,
       codec: row.codec,
       fileRating: row.fileRating,
+      year: row.year,
     );
   }
 
@@ -2898,6 +2911,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       format: Value(song.format),
       codec: Value(song.codec),
       fileRating: Value(song.fileRating),
+      year: Value(song.year),
       lastSeenRootScanSessionId: lastSeenRootScanSessionId == null
           ? const Value.absent()
           : Value(lastSeenRootScanSessionId),
@@ -2953,6 +2967,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       createdAt: Value(song.createdAt ?? now),
       updatedAt: Value(now),
       deletedAt: Value(song.deletedAt),
+      year: Value(song.year),
     );
   }
 
@@ -2974,6 +2989,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       waveformBlob: row.read<Uint8List?>('waveformBlob'),
       createdAt: row.read<int?>('createdAt'),
       deletedAt: row.read<int?>('deletedAt'),
+      year: row.read<int?>('year'),
     );
   }
 
@@ -2995,6 +3011,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       waveformBlob: row.waveformBlob,
       createdAt: row.createdAt,
       deletedAt: row.deletedAt,
+      year: row.year,
     );
   }
 
@@ -3559,6 +3576,7 @@ class Songs extends Table {
   TextColumn get format => text().nullable().named('format')();
   TextColumn get codec => text().nullable().named('codec')();
   IntColumn get fileRating => integer().nullable().named('fileRating')();
+  IntColumn get year => integer().nullable().named('year')();
   IntColumn get lastSeenRootScanSessionId =>
       integer().nullable().named('lastSeenRootScanSessionId')();
 
@@ -3761,6 +3779,7 @@ class RemoteSongs extends Table {
   IntColumn get createdAt => integer().nullable().named('createdAt')();
   IntColumn get updatedAt => integer().nullable().named('updatedAt')();
   IntColumn get deletedAt => integer().nullable().named('deletedAt')();
+  IntColumn get year => integer().nullable().named('year')();
 
   @override
   List<String> get customConstraints => const ['UNIQUE(virtualUri)'];

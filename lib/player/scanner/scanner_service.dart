@@ -2373,7 +2373,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     final db = MetadataDatabase();
 
     for (final result in batchResults) {
-      final filePath = result['path'] as String? ?? '';
+      final filePath = result.path;
       if (filePath.isEmpty) continue;
 
       final entry = entryByPath[filePath];
@@ -2892,7 +2892,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
             artworkPendingPaths: artworkPendingPaths,
           );
         }
-        final filePath = result['path'] as String? ?? '';
+        final filePath = result.path;
         if (filePath.isEmpty) continue;
 
         try {
@@ -3322,7 +3322,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
 
   SongMetadata _buildScannedMetadataFromBatchResult(
     String filePath,
-    Map<String, dynamic> result, {
+    dynamic result, {
     SongMetadata? existing,
     int? sourceFlags,
     int? mediaId,

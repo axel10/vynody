@@ -5,6 +5,7 @@ import 'package:path/path.dart' as p;
 import 'package:flutter/foundation.dart';
 
 import 'package:vynody/player/metadata/metadata_database.dart';
+import 'package:vynody/player/metadata/metadata_helper.dart';
 import 'package:vynody/player/scanner/scanner_metadata_store.dart';
 import 'package:vynody/player/scanner/scanner_scan_support.dart';
 
@@ -201,7 +202,7 @@ class ScannerScanPipeline {
 
   SongMetadata buildScannedMetadataFromBatchResult(
     String filePath,
-    Map<String, dynamic> result, {
+    dynamic result, {
     SongMetadata? existing,
     int? sourceFlags,
     int? mediaId,
@@ -212,6 +213,12 @@ class ScannerScanPipeline {
     int? fallbackDuration,
     int? fallbackTrackNumber,
   }) {
+    final scanned = result is ScannedFileMetadata
+        ? result
+        : (result is Map<String, dynamic>
+            ? ScannedFileMetadata.fromMap(result)
+            : const ScannedFileMetadata(path: ''));
+
     final now = DateTime.now().millisecondsSinceEpoch;
     int? fileLastModified;
     try {
@@ -219,19 +226,19 @@ class ScannerScanPipeline {
     } catch (_) {}
 
     final lastModified =
-        result['lastModifiedTime'] as int? ??
+        scanned.lastModifiedTime ??
         fileLastModified ??
         existing?.lastModifiedTime ??
         now;
     final resolvedFallbackTitle =
         _cleanText(fallbackTitle) ?? p.basenameWithoutExtension(filePath);
 
-    final hasError = result['error'] != null;
+    final hasError = scanned.hasError;
     final bool readFailed = hasError ||
-        (result['title'] == null &&
-            result['artist'] == null &&
-            result['album'] == null &&
-            result['duration'] == null);
+        (scanned.title == null &&
+            scanned.artist == null &&
+            scanned.album == null &&
+            scanned.duration == null);
 
     final int? resolvedMetadataTextScanned =
         readFailed ? existing?.metadataTextScanned : lastModified;
@@ -240,27 +247,27 @@ class ScannerScanPipeline {
       path: filePath,
       mediaId: mediaId ?? existing?.mediaId,
       title:
-          _cleanText(result['title'] as String?) ??
+          _cleanText(scanned.title) ??
           (hasError ? _cleanText(existing?.title) : null) ??
           resolvedFallbackTitle,
       album:
-          _cleanText(result['album'] as String?) ??
+          _cleanText(scanned.album) ??
           (hasError ? _cleanText(existing?.album) : null) ??
           _cleanText(fallbackAlbum) ??
           'Unknown Album',
       artist:
-          _cleanText(result['artist'] as String?) ??
+          _cleanText(scanned.artist) ??
           (hasError ? _cleanText(existing?.artist) : null) ??
           _cleanText(fallbackArtist) ??
           'Unknown Artist',
       albumArtist:
-          _cleanText(result['albumArtist'] as String?) ??
+          _cleanText(scanned.albumArtist) ??
           (hasError ? _cleanText(existing?.albumArtist) : null) ??
           _cleanText(fallbackAlbumArtist),
       duration:
-          result['duration'] as int? ?? existing?.duration ?? fallbackDuration,
+          scanned.duration ?? existing?.duration ?? fallbackDuration,
       trackNumber:
-          result['trackNumber'] as int? ??
+          scanned.trackNumber ??
           (hasError ? existing?.trackNumber : null) ??
           fallbackTrackNumber,
       sourceFlags: sourceFlags ?? existing?.sourceFlags,
@@ -276,14 +283,15 @@ class ScannerScanPipeline {
       createdAt: existing?.createdAt ?? now,
       genres: existing?.genres,
       isAppModified: existing?.isAppModified ?? false,
-      hasArtwork: (result['hasArtwork'] as bool?) ?? existing?.hasArtwork,
-      bitrate: result['bitrate'] as int? ?? (hasError ? existing?.bitrate : null) ?? existing?.bitrate,
-      sampleRate: result['sampleRate'] as int? ?? (hasError ? existing?.sampleRate : null) ?? existing?.sampleRate,
-      channels: result['channels'] as int? ?? (hasError ? existing?.channels : null) ?? existing?.channels,
-      bitDepth: result['bitDepth'] as int? ?? (hasError ? existing?.bitDepth : null) ?? existing?.bitDepth,
-      format: result['format'] as String? ?? (hasError ? existing?.format : null) ?? existing?.format,
-      codec: result['codec'] as String? ?? (hasError ? existing?.codec : null) ?? existing?.codec,
-      fileRating: result['fileRating'] as int? ?? (hasError ? existing?.fileRating : null) ?? existing?.fileRating,
+      hasArtwork: scanned.hasArtwork,
+      bitrate: scanned.bitrate ?? (hasError ? existing?.bitrate : null) ?? existing?.bitrate,
+      sampleRate: scanned.sampleRate ?? (hasError ? existing?.sampleRate : null) ?? existing?.sampleRate,
+      channels: scanned.channels ?? (hasError ? existing?.channels : null) ?? existing?.channels,
+      bitDepth: scanned.bitDepth ?? (hasError ? existing?.bitDepth : null) ?? existing?.bitDepth,
+      format: scanned.format ?? (hasError ? existing?.format : null) ?? existing?.format,
+      codec: scanned.codec ?? (hasError ? existing?.codec : null) ?? existing?.codec,
+      fileRating: scanned.fileRating ?? (hasError ? existing?.fileRating : null) ?? existing?.fileRating,
+      year: scanned.year ?? (hasError ? existing?.year : null) ?? existing?.year,
     );
   }
 

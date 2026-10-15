@@ -68,6 +68,7 @@ abstract class SongMetadata with _$SongMetadata {
     String? format,
     String? codec,
     int? fileRating,
+    int? year,
   }) = _SongMetadata;
 
   bool get isModified => isAppModified;
@@ -104,6 +105,7 @@ abstract class SongMetadata with _$SongMetadata {
       'format': format,
       'codec': codec,
       'fileRating': fileRating,
+      'year': year,
     };
   }
 
@@ -148,6 +150,7 @@ abstract class SongMetadata with _$SongMetadata {
       format: map['format'],
       codec: map['codec'],
       fileRating: map['fileRating'] as int?,
+      year: map['year'] as int?,
     );
   }
 }
