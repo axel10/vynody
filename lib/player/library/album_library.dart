@@ -6,6 +6,7 @@ import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/library/library_source_filter.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
+import 'package:vynody/utils/stream_utils.dart';
 
 final albumLibraryProvider = StreamProvider<List<AlbumSummary>>((ref) async* {
   final db = MetadataDatabase();
@@ -27,7 +28,10 @@ final albumLibraryProvider = StreamProvider<List<AlbumSummary>>((ref) async* {
       (rootPathsKey.isNotEmpty ||
           hasSystemMedia ||
           remoteRootsKey.isNotEmpty);
-  await for (final songs in db.watchAllSongMetadata()) {
+  final songsStream = db
+      .watchAllSongMetadata()
+      .throttleLeadingAndTrailing(const Duration(seconds: 1));
+  await for (final songs in songsStream) {
     final validSongs = songs.where((s) {
       if (shouldFilter && !scanner.isPathInActiveRoots(s.path)) {
         return false;

@@ -10,6 +10,7 @@ import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/library/library_source_filter.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
+import 'package:vynody/utils/stream_utils.dart';
 
 final artistLibraryProvider = StreamProvider<List<ArtistSummary>>((ref) async* {
   final repository = ArtistLibraryRepository();
@@ -60,7 +61,12 @@ class ArtistLibraryRepository {
     final sessionId = ++_artistLibrarySessionSeq;
     _artistLibraryLog('session#$sessionId start');
 
-    await for (final songs in _database.watchAllSongMetadata()) {
+    final songsStream = _database
+        .watchAllSongMetadata()
+        .throttleLeadingAndTrailing(const Duration(seconds: 1));
+
+    await for (final songs in songsStream) {
+      final stopwatch = Stopwatch()..start();
       final filteredSongs = songs.where((song) {
         final flags = song.sourceFlags ?? 0;
         if ((flags & SongSourceFlags.external) != 0) return false;
@@ -75,9 +81,10 @@ class ArtistLibraryRepository {
       final caches = await _database.getArtistCachesByKeys(cacheKeys);
       final imageCaches = await _database.getArtistImageCachesByIds(cacheKeys);
       final orderedGroups = _sortGroupsForDisplay(groups, caches);
+      stopwatch.stop();
       _artistLibraryLog(
         'session#$sessionId loaded songs=${songs.length} groups=${groups.length} '
-        'caches=${caches.length} imageCaches=${imageCaches.length}',
+        'caches=${caches.length} imageCaches=${imageCaches.length} in ${stopwatch.elapsedMilliseconds}ms',
       );
       yield _buildSummaries(orderedGroups, caches, imageCaches);
     }
