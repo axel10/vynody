@@ -150,7 +150,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
       ).animate(
         CurvedAnimation(
           parent: _dismissAnimController,
-          curve: Curves.easeOutCubic,
+          curve: Curves.easeInQuad,
         ),
       );
       _dismissAnimController.forward(from: 0.0).then((_) {
@@ -165,7 +165,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
       ).animate(
         CurvedAnimation(
           parent: _dismissAnimController,
-          curve: Curves.easeOutCubic,
+          curve: const Cubic(0.2, 0.0, 0.15, 1.0),
         ),
       );
       _dismissAnimController.forward(from: 0.0);
@@ -182,7 +182,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
       ).animate(
         CurvedAnimation(
           parent: _dismissAnimController,
-          curve: Curves.easeOutCubic,
+          curve: const Cubic(0.2, 0.0, 0.15, 1.0),
         ),
       );
       _dismissAnimController.forward(from: 0.0);

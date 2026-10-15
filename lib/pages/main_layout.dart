@@ -63,22 +63,19 @@ Route<void> buildMainLayoutRoute({
     settings: RouteSettings(name: 'main-tab-$initialIndex'),
     pageBuilder: (context, animation, secondaryAnimation) =>
         MainLayout(args: args, initialIndex: initialIndex),
-    transitionDuration: const Duration(milliseconds: 320),
+    transitionDuration: const Duration(milliseconds: 380),
     reverseTransitionDuration: const Duration(milliseconds: 280),
     transitionsBuilder: (context, animation, secondaryAnimation, child) {
       if (initialIndex == 1) {
-        // 进入播放页：自底向上滑入；退出播放页：自顶向下滑出收起
-        // 注意：在 reverse (pop) 期间，Flutter 传入 animation 的 value 是从 1.0 递减到 0.0。
-        // 若 reverseCurve 设为 easeIn，会导致动画前半段极快、后半段在屏幕底端近乎停滞并在路由销毁时突兀消失；
-        // 使用 easeOutCubic 能让退场动画在后半段保持充足动量完整滑出视口。
+        // 进入播放页：Apple Music 风格平滑饱满微缓入滑入（0.2, 0.0, 0.15, 1.0）；退出播放页：自顶向下滑落顺势滑出收起（easeInQuad）
         final slideAnimation = Tween<Offset>(
           begin: const Offset(0.0, 1.0),
           end: Offset.zero,
         ).animate(
           CurvedAnimation(
             parent: animation,
-            curve: Curves.easeOutCubic,
-            reverseCurve: Curves.easeOutCubic,
+            curve: const Cubic(0.2, 0.0, 0.15, 1.0),
+            reverseCurve: Curves.easeInQuad,
           ),
         );
         return SlideTransition(
@@ -88,7 +85,8 @@ Route<void> buildMainLayoutRoute({
       } else if (fromIndex == 1) {
         final curvedAnimation = CurvedAnimation(
           parent: animation,
-          curve: Curves.easeOutCubic,
+          curve: const Cubic(0.2, 0.0, 0.15, 1.0),
+          reverseCurve: Curves.easeInQuad,
         );
         return FadeTransition(
           opacity: curvedAnimation,
@@ -274,7 +272,8 @@ class _MainLayoutState extends ConsumerState<MainLayout>
     if (animated) {
       _playbackDrawerAnimController.animateTo(
         1.0,
-        curve: Curves.easeOutCubic,
+        duration: const Duration(milliseconds: 380),
+        curve: const Cubic(0.2, 0.0, 0.15, 1.0),
       );
     } else {
       _playbackDrawerAnimController.value = 1.0;
@@ -287,7 +286,8 @@ class _MainLayoutState extends ConsumerState<MainLayout>
       _playbackDrawerAnimController
           .animateTo(
         0.0,
-        curve: Curves.easeOutCubic,
+        duration: const Duration(milliseconds: 280),
+        curve: Curves.easeInQuad,
       )
           .then((_) {
         if (!mounted) return;
@@ -408,7 +408,8 @@ class _MainLayoutState extends ConsumerState<MainLayout>
 
     _playbackDrawerAnimController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 320),
+      duration: const Duration(milliseconds: 380),
+      reverseDuration: const Duration(milliseconds: 280),
       value: shouldOpenPlaybackInitially ? 1.0 : 0.0,
     );
 
