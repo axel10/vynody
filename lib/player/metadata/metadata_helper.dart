@@ -1547,6 +1547,15 @@ class MetadataHelper {
     } catch (_) {}
 
     final isSuccess = item.success;
+    final rawGenre = item.genre.trim();
+    final List<String>? genres = rawGenre.isNotEmpty
+        ? rawGenre
+            .split(RegExp(r'[;,/、\\|]'))
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .toSet()
+            .toList()
+        : null;
     return ScannedFileMetadata(
       path: originalPath,
       title: item.title.trim().isNotEmpty ? item.title.trim() : null,
@@ -1565,6 +1574,7 @@ class MetadataHelper {
       codec: codec,
       fileRating: item.rating > 0 ? item.rating.clamp(1, 5) : null,
       year: item.year > 0 ? item.year : null,
+      genres: genres,
       error: isSuccess ? null : (item.error ?? 'Failed to read metadata'),
     );
   }
@@ -1580,6 +1590,15 @@ class MetadataHelper {
       rawFormat: tagFile.format,
     );
     final hasArtwork = tagFile.hasCover;
+    final rawGenre = tagFile.genre.trim();
+    final List<String>? genres = rawGenre.isNotEmpty
+        ? rawGenre
+            .split(RegExp(r'[;,/、\\|]'))
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .toSet()
+            .toList()
+        : null;
 
     return ScannedFileMetadata(
       path: path,
@@ -1600,6 +1619,7 @@ class MetadataHelper {
       codec: codec,
       fileRating: tagFile.rating > 0 ? tagFile.rating.clamp(1, 5) : null,
       year: tagFile.year > 0 ? tagFile.year : null,
+      genres: genres,
       error: null,
     );
   }
@@ -1992,6 +2012,7 @@ class ScannedFileMetadata {
   final int? duration;
   final int? trackNumber;
   final int? year;
+  final List<String>? genres;
   final bool hasArtwork;
   final Uint8List? artworkBytes;
   final int? lastModifiedTime;
@@ -2013,6 +2034,7 @@ class ScannedFileMetadata {
     this.duration,
     this.trackNumber,
     this.year,
+    this.genres,
     this.hasArtwork = false,
     this.artworkBytes,
     this.lastModifiedTime,
@@ -2038,6 +2060,7 @@ class ScannedFileMetadata {
     'duration': duration,
     'trackNumber': trackNumber,
     'year': year,
+    'genres': genres,
     'hasArtwork': hasArtwork,
     'artworkBytes': artworkBytes,
     'lastModifiedTime': lastModifiedTime,
@@ -2061,6 +2084,7 @@ class ScannedFileMetadata {
         duration: map['duration'] as int?,
         trackNumber: map['trackNumber'] as int?,
         year: map['year'] as int?,
+        genres: (map['genres'] as List?)?.map((e) => e.toString()).toList(),
         hasArtwork: (map['hasArtwork'] as bool?) ?? false,
         artworkBytes: map['artworkBytes'] as Uint8List?,
         lastModifiedTime: map['lastModifiedTime'] as int?,

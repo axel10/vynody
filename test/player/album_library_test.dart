@@ -105,5 +105,77 @@ void main() {
       expect(albums.length, 2);
       expect(albums.map((a) => a.artist), containsAll(['Queen', 'Abba']));
     });
+
+    test('computes sortedGenres by count descending and yearRangeText for multiple years', () {
+      final songs = [
+        const SongMetadata(
+          path: '/music/rock/01.mp3',
+          title: 'Track 1',
+          album: 'Anthology',
+          artist: 'The Band',
+          albumArtist: 'The Band',
+          year: 1998,
+          genres: ['Rock', 'Pop'],
+        ),
+        const SongMetadata(
+          path: '/music/rock/02.mp3',
+          title: 'Track 2',
+          album: 'Anthology',
+          artist: 'The Band',
+          albumArtist: 'The Band',
+          year: 2004,
+          genres: ['Rock', 'Classic Rock'],
+        ),
+        const SongMetadata(
+          path: '/music/rock/03.mp3',
+          title: 'Track 3',
+          album: 'Anthology',
+          artist: 'The Band',
+          albumArtist: 'The Band',
+          year: 2001,
+          genres: ['Rock'],
+        ),
+      ];
+
+      final albums = buildAlbumSummaries(songs);
+      expect(albums.length, 1);
+      final album = albums.first;
+
+      // Rock: 3 tracks, Pop: 1 track, Classic Rock: 1 track
+      expect(album.sortedGenres.first, 'Rock');
+      expect(album.sortedGenres, containsAllInOrder(['Rock']));
+      expect(album.sortedGenres.length, 3);
+      expect(album.yearRangeText, '1998 - 2004');
+      expect(album.genresText, contains('Rock'));
+    });
+
+    test('computes single year when all tracks share same year', () {
+      final songs = [
+        const SongMetadata(
+          path: '/music/pop/01.mp3',
+          title: 'Pop 1',
+          album: 'Pop Album',
+          artist: 'Pop Star',
+          year: 2023,
+          genres: ['Pop'],
+        ),
+        const SongMetadata(
+          path: '/music/pop/02.mp3',
+          title: 'Pop 2',
+          album: 'Pop Album',
+          artist: 'Pop Star',
+          year: 2023,
+          genres: ['Pop', 'Dance'],
+        ),
+      ];
+
+      final albums = buildAlbumSummaries(songs);
+      expect(albums.length, 1);
+      final album = albums.first;
+
+      expect(album.yearRangeText, '2023');
+      expect(album.sortedGenres, ['Pop', 'Dance']);
+      expect(album.genresText, 'Pop / Dance');
+    });
   });
 }

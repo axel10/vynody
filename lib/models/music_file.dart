@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'package:audio_core/audio_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'music_lyric.dart';
@@ -40,6 +41,8 @@ abstract class MusicFile with _$MusicFile {
     String? codec,
     int? fileRating,
     @Default(0) int rating,
+    int? year,
+    List<String>? genres,
   }) = _MusicFile;
 
   AudioDetails? toAudioDetails() {
@@ -135,7 +138,9 @@ abstract class MusicFile with _$MusicFile {
         other.lastModifiedTime == lastModifiedTime &&
         other.lyrics == lyrics &&
         other.isMissing == isMissing &&
-        other.rating == rating;
+        other.rating == rating &&
+        other.year == year &&
+        listEquals(other.genres, genres);
   }
 
   @override
@@ -162,6 +167,8 @@ abstract class MusicFile with _$MusicFile {
         lyrics,
         isMissing,
         rating,
+        year,
+        genres != null ? Object.hashAll(genres!) : null,
       ]);
 }
 

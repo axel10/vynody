@@ -281,7 +281,7 @@ class ScannerScanPipeline {
       metadataTextScanned: resolvedMetadataTextScanned,
       metadataImgScanned: existing?.metadataImgScanned,
       createdAt: existing?.createdAt ?? now,
-      genres: existing?.genres,
+      genres: scanned.genres ?? (hasError ? existing?.genres : null) ?? existing?.genres,
       isAppModified: existing?.isAppModified ?? false,
       hasArtwork: scanned.hasArtwork,
       bitrate: scanned.bitrate ?? (hasError ? existing?.bitrate : null) ?? existing?.bitrate,

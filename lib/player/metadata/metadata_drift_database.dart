@@ -25,7 +25,7 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
   static final MetadataDriftDatabase instance = MetadataDriftDatabase._();
 
   @override
-  int get schemaVersion => 43;
+  int get schemaVersion => 44;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -440,6 +440,15 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
           UPDATE songs
           SET metadataTextScanned = NULL
           WHERE metadataTextScanned IS NOT NULL
+            AND (isAppModified = 0 OR isAppModified IS NULL)
+        ''');
+      }
+      if (from < 44) {
+        await m.database.customStatement('''
+          UPDATE songs
+          SET metadataTextScanned = NULL
+          WHERE metadataTextScanned IS NOT NULL
+            AND genres IS NULL
             AND (isAppModified = 0 OR isAppModified IS NULL)
         ''');
       }

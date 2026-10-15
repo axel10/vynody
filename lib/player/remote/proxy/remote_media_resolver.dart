@@ -385,6 +385,17 @@ class RemoteMediaResolver {
         : (trackId.isNotEmpty ? trackId : null);
 
     final uri = buildSubsonicUri(server.id, trackId);
+    final year = trackJson['year'] as int?;
+    final genre = trackJson['genre'] as String?;
+    final genres = (genre != null && genre.trim().isNotEmpty)
+        ? genre
+            .split(RegExp(r'[;,/、\\|]'))
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .toSet()
+            .toList()
+        : null;
+
     return MusicFile(
       path: uri,
       name: '$title.$suffix',
@@ -397,6 +408,8 @@ class RemoteMediaResolver {
           ? 'subsonic-cover://${server.id}/$effectiveCoverArt'
           : null,
       isMissing: false,
+      year: year != null && year > 0 ? year : null,
+      genres: genres,
     );
   }
 
@@ -419,6 +432,23 @@ class RemoteMediaResolver {
         : (trackId.isNotEmpty ? trackId : null);
 
     final uri = buildJellyfinUri(server.id, trackId);
+    final year = trackJson['ProductionYear'] as int? ?? trackJson['year'] as int?;
+    List<String>? genres;
+    if (trackJson['Genres'] is List) {
+      genres = (trackJson['Genres'] as List)
+          .map((e) => e.toString().trim())
+          .where((e) => e.isNotEmpty)
+          .toSet()
+          .toList();
+    } else if (trackJson['genre'] is String && (trackJson['genre'] as String).trim().isNotEmpty) {
+      genres = (trackJson['genre'] as String)
+          .split(RegExp(r'[;,/、\\|]'))
+          .map((e) => e.trim())
+          .where((e) => e.isNotEmpty)
+          .toSet()
+          .toList();
+    }
+
     return MusicFile(
       path: uri,
       name: '$title.$suffix',
@@ -431,6 +461,8 @@ class RemoteMediaResolver {
           ? 'jellyfin-cover://${server.id}/$effectiveCoverArt'
           : null,
       isMissing: false,
+      year: year != null && year > 0 ? year : null,
+      genres: genres,
     );
   }
 
@@ -454,6 +486,8 @@ class RemoteMediaResolver {
       thumbnailPath: metadata?.thumbnailPath,
       artworkPath: metadata?.artworkPath,
       isMissing: false,
+      year: metadata?.year,
+      genres: metadata?.genres,
     );
   }
 

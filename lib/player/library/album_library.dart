@@ -78,6 +78,8 @@ List<AlbumSummary> buildAlbumSummaries(Iterable<SongMetadata> songs) {
       artworkHeight: metadata.artworkHeight,
       durationMillis: metadata.duration,
       lastModifiedTime: metadata.lastModifiedTime,
+      year: metadata.year,
+      genres: metadata.genres,
     );
 
     validEntries.add((metadata, song));
@@ -139,6 +141,37 @@ List<AlbumSummary> buildAlbumSummaries(Iterable<SongMetadata> songs) {
       (sum, song) => sum + (song.durationMillis ?? 0),
     );
 
+    final albumYears = <int>{};
+    final genreFreq = <String, int>{};
+    for (final song in sortedSongs) {
+      if (song.year != null && song.year! > 0) {
+        albumYears.add(song.year!);
+      }
+      final songGenres = song.genres;
+      if (songGenres != null) {
+        for (final g in songGenres) {
+          final trimmed = g.trim();
+          if (trimmed.isNotEmpty) {
+            genreFreq[trimmed] = (genreFreq[trimmed] ?? 0) + 1;
+          }
+        }
+      }
+    }
+
+    final sortedGenres = genreFreq.keys.toList()
+      ..sort((a, b) {
+        final countCompare = genreFreq[b]!.compareTo(genreFreq[a]!);
+        if (countCompare != 0) return countCompare;
+        return a.compareTo(b);
+      });
+
+    final int? minYear = albumYears.isNotEmpty
+        ? albumYears.reduce((a, b) => a < b ? a : b)
+        : null;
+    final int? maxYear = albumYears.isNotEmpty
+        ? albumYears.reduce((a, b) => a > b ? a : b)
+        : null;
+
     final albumArtist = groupArtists[entry.key] ??
         sortedSongs.first.albumArtist ??
         sortedSongs.first.artist ??
@@ -151,6 +184,9 @@ List<AlbumSummary> buildAlbumSummaries(Iterable<SongMetadata> songs) {
       songs: sortedSongs,
       representativeSong: representativeSong,
       totalDurationMillis: totalDurationMillis,
+      genres: sortedGenres,
+      minYear: minYear,
+      maxYear: maxYear,
     );
   }).toList(growable: false)
     ..sort((a, b) {

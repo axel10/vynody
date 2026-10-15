@@ -71,13 +71,22 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage>
     final double barHeight = getBarHeight(context);
     final durationText =
         _formatDuration(widget.album.totalDurationMillis) ?? l10n.durationZero;
+    final yearText = widget.album.yearRangeText;
+    final genreText = widget.album.genresText;
+    final trackCountText = l10n.songCount(widget.album.trackCount);
+
+    final metadataParts = <String>[
+      if (yearText != null && yearText.isNotEmpty) yearText,
+      if (genreText != null && genreText.isNotEmpty) genreText,
+      '$trackCountText · $durationText',
+    ];
 
     final metadataWidget = Wrap(
       crossAxisAlignment: WrapCrossAlignment.center,
       spacing: 8,
       children: [
         Text(
-          '${l10n.songCount(widget.album.trackCount)} · $durationText',
+          metadataParts.join(' · '),
           style: theme.textTheme.bodyMedium?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
             fontWeight: FontWeight.w600,

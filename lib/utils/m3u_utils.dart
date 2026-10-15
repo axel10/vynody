@@ -648,6 +648,8 @@ class M3uUtils {
       themeColorsBlob: metadata.themeColorsBlob,
       lastModifiedTime: metadata.lastModifiedTime,
       isMissing: !exists,
+      year: metadata.year,
+      genres: metadata.genres,
     );
   }
 }
