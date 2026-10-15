@@ -375,6 +375,7 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
             subtitle: '',
             songsCount: totalSongsCount,
             totalDuration: Duration(milliseconds: totalDurationMs),
+            representativeSong: representativeSong,
             coverImagePath: representativeSong?.thumbnailPath ?? (representativeSong != null ? scanner.metadataMap[representativeSong.path]?.thumbnailPath : null),
             topHeader: isPortrait ? SizedBox(height: headerHeight) : null,
             coverWidget: representativeSong != null

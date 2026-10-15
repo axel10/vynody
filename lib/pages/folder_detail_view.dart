@@ -422,6 +422,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
             subtitle: _getParentFolderName(folder, scanner),
             songsCount: folder.allSongs.length,
             totalDuration: Duration(milliseconds: totalDurationMs),
+            representativeSong: representativeSong,
             coverImagePath: representativeSong?.thumbnailPath ?? (representativeSong != null ? scanner.metadataMap[representativeSong.path]?.thumbnailPath : null),
             topHeader: isPortrait ? SizedBox(height: headerHeight) : null,
             coverWidget: () {

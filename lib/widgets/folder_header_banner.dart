@@ -1,9 +1,15 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
+import 'package:audio_core/audio_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vynody/l10n/app_localizations.dart';
+import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
+import 'package:vynody/player/metadata/artwork_resolver.dart';
+import 'package:vynody/player/remote/proxy/remote_media_resolver.dart';
+import 'package:vynody/player/remote/remote_service_providers.dart';
 import 'package:vynody/utils/blur_constants.dart';
 import 'package:vynody/utils/layout_constants.dart';
 import 'folder_scan_widgets.dart';
@@ -17,6 +23,10 @@ class FolderHeaderBanner extends ConsumerStatefulWidget {
     required this.totalDuration,
     required this.coverWidget,
     this.coverImagePath,
+    this.representativeSong,
+    this.songPath,
+    this.songId,
+    this.artworkPath,
     this.topHeader,
     required this.actionButtons,
     this.actionButtonsScrollable = false,
@@ -37,6 +47,10 @@ class FolderHeaderBanner extends ConsumerStatefulWidget {
   final Duration totalDuration;
   final Widget coverWidget;
   final String? coverImagePath;
+  final MusicFile? representativeSong;
+  final String? songPath;
+  final int? songId;
+  final String? artworkPath;
   final Widget? topHeader;
   final List<Widget> actionButtons;
   final bool actionButtonsScrollable;
@@ -57,43 +71,149 @@ class FolderHeaderBanner extends ConsumerStatefulWidget {
 class _FolderHeaderBannerState extends ConsumerState<FolderHeaderBanner> {
   double? _aspectRatio;
   String? _resolvedPath;
+  RawArtwork? _rawArtwork;
+  int _resolveGeneration = 0;
 
   @override
   void initState() {
     super.initState();
-    _checkImageAspectRatio();
+    _resolveInitialState();
   }
 
   @override
   void didUpdateWidget(FolderHeaderBanner oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.coverImagePath != widget.coverImagePath) {
-      _checkImageAspectRatio();
+    if (oldWidget.coverImagePath != widget.coverImagePath ||
+        oldWidget.representativeSong != widget.representativeSong ||
+        oldWidget.songPath != widget.songPath ||
+        oldWidget.artworkPath != widget.artworkPath ||
+        oldWidget.songId != widget.songId) {
+      _resolveInitialState();
     }
   }
 
-  void _checkImageAspectRatio() {
-    final path = widget.coverImagePath;
+  void _resolveInitialState() {
+    final song = widget.representativeSong;
+    final path = widget.coverImagePath ?? song?.thumbnailPath ?? song?.artworkPath;
     if (path != null && path.isNotEmpty && File(path).existsSync()) {
       _resolvedPath = path;
-      final fileImage = FileImage(File(path));
-      final stream = fileImage.resolve(ImageConfiguration.empty);
-      stream.addListener(ImageStreamListener((ImageInfo info, bool _) {
-        if (mounted) {
-          final w = info.image.width;
-          final h = info.image.height;
-          if (w > 0 && h > 0) {
+    } else {
+      _resolvedPath = null;
+    }
+    _checkImageAspectRatio();
+    _loadHighResArtwork();
+  }
+
+  void _updateAspectRatioFromBytes(Uint8List bytes) {
+    final memoryImage = MemoryImage(bytes);
+    final stream = memoryImage.resolve(ImageConfiguration.empty);
+    stream.addListener(ImageStreamListener((ImageInfo info, bool _) {
+      if (mounted) {
+        final w = info.image.width;
+        final h = info.image.height;
+        if (w > 0 && h > 0) {
+          final ratio = w / h;
+          if (_aspectRatio != ratio) {
             setState(() {
-              _aspectRatio = w / h;
+              _aspectRatio = ratio;
             });
           }
         }
-      }));
+      }
+    }));
+  }
+
+  void _updateAspectRatioFromFile(String filePath) {
+    final file = File(filePath);
+    if (!file.existsSync()) return;
+    final fileImage = FileImage(file);
+    final stream = fileImage.resolve(ImageConfiguration.empty);
+    stream.addListener(ImageStreamListener((ImageInfo info, bool _) {
+      if (mounted) {
+        final w = info.image.width;
+        final h = info.image.height;
+        if (w > 0 && h > 0) {
+          final ratio = w / h;
+          if (_aspectRatio != ratio) {
+            setState(() {
+              _aspectRatio = ratio;
+            });
+          }
+        }
+      }
+    }));
+  }
+
+  void _checkImageAspectRatio() {
+    final path = _resolvedPath;
+    if (path != null && path.isNotEmpty && File(path).existsSync()) {
+      _updateAspectRatioFromFile(path);
+    } else if (_rawArtwork?.bytes != null && _rawArtwork!.bytes!.isNotEmpty) {
+      _updateAspectRatioFromBytes(_rawArtwork!.bytes!);
+    } else if (_rawArtwork?.filePath != null && _rawArtwork!.filePath!.isNotEmpty) {
+      _updateAspectRatioFromFile(_rawArtwork!.filePath!);
     } else {
       setState(() {
-        _resolvedPath = null;
         _aspectRatio = null;
       });
+    }
+  }
+
+  Future<void> _loadHighResArtwork() async {
+    final song = widget.representativeSong;
+    final path = song?.path ?? widget.songPath;
+    if (path == null || path.isEmpty) {
+      return;
+    }
+
+    if (song?.artworkBytes != null && song!.artworkBytes!.isNotEmpty) {
+      final raw = RawArtwork(bytes: song.artworkBytes);
+      if (mounted) {
+        setState(() {
+          _rawArtwork = raw;
+        });
+        _updateAspectRatioFromBytes(song.artworkBytes!);
+      }
+      return;
+    }
+
+    final currentGen = ++_resolveGeneration;
+    final targetId = song?.id ?? widget.songId;
+    final targetArtworkPath = song?.artworkPath ?? widget.artworkPath;
+    final targetThumbnailPath = song?.thumbnailPath ?? widget.coverImagePath;
+
+    AudioCoreController? audioController;
+    try {
+      audioController = ref.read(audioServiceProvider).player;
+    } catch (_) {}
+
+    RemoteMediaResolver? remoteResolver;
+    if (RemoteMediaResolver.isRemoteUri(path)) {
+      try {
+        remoteResolver = await ref.read(remoteMediaResolverProvider.future);
+      } catch (_) {}
+    }
+
+    final raw = await ArtworkResolver.resolveForCarousel(
+      path: path,
+      id: targetId,
+      artworkPath: targetArtworkPath,
+      thumbnailPath: targetThumbnailPath,
+      audioController: audioController,
+      remoteResolver: remoteResolver,
+    );
+
+    if (!mounted || currentGen != _resolveGeneration) return;
+
+    if (raw != null && raw.isNotEmpty) {
+      setState(() {
+        _rawArtwork = raw;
+      });
+      if (raw.bytes != null && raw.bytes!.isNotEmpty) {
+        _updateAspectRatioFromBytes(raw.bytes!);
+      } else if (raw.filePath != null && raw.filePath!.isNotEmpty) {
+        _updateAspectRatioFromFile(raw.filePath!);
+      }
     }
   }
 
@@ -126,13 +246,13 @@ class _FolderHeaderBannerState extends ConsumerState<FolderHeaderBanner> {
     final l10n = AppLocalizations.of(context)!;
     final durationText = _formatDurationText(l10n);
 
-    final hasImage = _resolvedPath != null && _resolvedPath!.isNotEmpty;
-    final coverFile = hasImage ? File(_resolvedPath!) : null;
+    final hasRawImage = _rawArtwork != null && _rawArtwork!.isNotEmpty;
+    final hasLocalFile = _resolvedPath != null && _resolvedPath!.isNotEmpty;
+    final hasImage = hasRawImage || hasLocalFile;
+    final coverFile = hasLocalFile ? File(_resolvedPath!) : null;
     final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
     final isWideOrSquare = hasImage && (_aspectRatio == null || _aspectRatio! >= 0.85);
     final bool isLowEndDevice = widget.isLowEndDevice ?? ref.watch(isLowMidEndDeviceProvider);
-
-
 
     return _OverscrollStretchBuilder(
       builder: (context, overscroll) {
@@ -167,6 +287,7 @@ class _FolderHeaderBannerState extends ConsumerState<FolderHeaderBanner> {
             durationText: durationText,
             coverWidget: widget.coverWidget,
             coverFile: coverFile,
+            rawArtwork: _rawArtwork,
             hasImage: hasImage,
             isWideOrSquare: isWideOrSquare,
             topHeader: widget.topHeader,
@@ -518,6 +639,7 @@ class _FolderPortraitHeaderBanner extends StatelessWidget {
     required this.durationText,
     required this.coverWidget,
     required this.coverFile,
+    this.rawArtwork,
     required this.hasImage,
     required this.isWideOrSquare,
     required this.topHeader,
@@ -543,6 +665,7 @@ class _FolderPortraitHeaderBanner extends StatelessWidget {
   final String durationText;
   final Widget coverWidget;
   final File? coverFile;
+  final RawArtwork? rawArtwork;
   final bool hasImage;
   final bool isWideOrSquare;
   final Widget? topHeader;
@@ -560,6 +683,57 @@ class _FolderPortraitHeaderBanner extends StatelessWidget {
   final Duration totalDuration;
   final bool isLowEndDevice;
   final double overscroll;
+
+  Widget _buildBannerImage({
+    required BoxFit fit,
+    Alignment alignment = Alignment.center,
+    double? width,
+    double? height,
+  }) {
+    if (rawArtwork != null && rawArtwork!.isNotEmpty) {
+      if (rawArtwork!.bytes != null && rawArtwork!.bytes!.isNotEmpty) {
+        return Image.memory(
+          rawArtwork!.bytes!,
+          fit: fit,
+          alignment: alignment,
+          width: width,
+          height: height,
+          gaplessPlayback: true,
+        );
+      }
+      if (rawArtwork!.filePath != null && rawArtwork!.filePath!.isNotEmpty) {
+        return Image.file(
+          File(rawArtwork!.filePath!),
+          fit: fit,
+          alignment: alignment,
+          width: width,
+          height: height,
+          gaplessPlayback: true,
+        );
+      }
+      if (rawArtwork!.remoteUrl != null && rawArtwork!.remoteUrl!.isNotEmpty) {
+        return Image.network(
+          rawArtwork!.remoteUrl!,
+          fit: fit,
+          alignment: alignment,
+          width: width,
+          height: height,
+          gaplessPlayback: true,
+        );
+      }
+    }
+    if (coverFile != null) {
+      return Image.file(
+        coverFile!,
+        fit: fit,
+        alignment: alignment,
+        width: width,
+        height: height,
+        gaplessPlayback: true,
+      );
+    }
+    return const SizedBox.shrink();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -616,8 +790,7 @@ class _FolderPortraitHeaderBanner extends StatelessWidget {
                         opacity: isDark ? 1.0 : _kLightModeBlurredCoverOpacity,
                         child: ImageFiltered(
                           imageFilter: AppBlur.heavyFilter,
-                          child: Image.file(
-                            coverFile!,
+                          child: _buildBannerImage(
                             fit: BoxFit.cover,
                             alignment: Alignment.center,
                           ),
@@ -633,8 +806,7 @@ class _FolderPortraitHeaderBanner extends StatelessWidget {
                       Positioned.fill(
                         child: Opacity(
                           opacity: isDark ? 1.0 : _kLightModeCoverOpacity,
-                          child: Image.file(
-                            coverFile!,
+                          child: _buildBannerImage(
                             fit: BoxFit.cover,
                             alignment: Alignment.center,
                             width: double.infinity,
@@ -825,8 +997,7 @@ class _FolderPortraitHeaderBanner extends StatelessWidget {
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(12),
                               child: hasImage
-                                  ? Image.file(
-                                      coverFile!,
+                                  ? _buildBannerImage(
                                       fit: BoxFit.contain,
                                     )
                                   : coverWidget,
