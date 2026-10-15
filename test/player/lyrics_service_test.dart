@@ -161,13 +161,12 @@ void main() {
     );
 
     test(
-      'performs dual concurrent searches when artist is provided and picks target from detailed query',
+      'performs single full-text query with title and artist when artist is provided',
       () async {
         final queryHistory = <Map<String, dynamic>>[];
         final mockClient = _MultiResponseNetworkClient((path, params) {
           queryHistory.add(params ?? {});
-          if (params != null && params.containsKey('artist_name')) {
-            // Detailed query returns the target song
+          if (params != null && params['q'] == 'Hello Target Artist') {
             return [
               {
                 'id': 100,
@@ -179,20 +178,8 @@ void main() {
                 'syncedLyrics': '[00:10.00] Hello from target',
               },
             ];
-          } else {
-            // Broad title query only returns a different artist
-            return [
-              {
-                'id': 1,
-                'trackName': 'Hello',
-                'artistName': 'Other Superstar',
-                'albumName': 'Pop Album',
-                'duration': 200,
-                'plainLyrics': 'Hello other',
-                'syncedLyrics': '[00:10.00] Hello other',
-              },
-            ];
           }
+          return [];
         });
 
         final service = LyricsService(
@@ -215,16 +202,52 @@ void main() {
         expect(result!.track.id, 100);
         expect(result.track.artistName, 'Target Artist');
         expect(result.lyricsText, contains('Hello from target'));
-        expect(queryHistory, hasLength(2));
-        // One query is title-only, the other has artist_name / album_name
-        expect(
-          queryHistory.any((p) => p['q'] == 'Hello' && !p.containsKey('artist_name')),
-          isTrue,
+        expect(queryHistory, hasLength(1));
+        expect(queryHistory.single, {'q': 'Hello Target Artist'});
+      },
+    );
+
+    test(
+      'falls back to title and album when artist is missing',
+      () async {
+        final queryHistory = <Map<String, dynamic>>[];
+        final mockClient = _MultiResponseNetworkClient((path, params) {
+          queryHistory.add(params ?? {});
+          if (params != null && params['q'] == 'Hello Special Album') {
+            return [
+              {
+                'id': 200,
+                'trackName': 'Hello',
+                'artistName': 'Any Artist',
+                'albumName': 'Special Album',
+                'duration': 200,
+                'plainLyrics': 'Album match lyrics',
+                'syncedLyrics': '[00:10.00] Album match lyrics',
+              },
+            ];
+          }
+          return [];
+        });
+
+        final service = LyricsService(
+          client: mockClient,
+          cacheRepository: _NoopLyricsCacheRepository(),
         );
-        expect(
-          queryHistory.any((p) => p['artist_name'] == 'Target Artist'),
-          isTrue,
+
+        final result = await service.fetchBestLyrics(
+          query: const LyricsQuery(
+            filePath: '/music/Hello.mp3',
+            fileName: 'Hello.mp3',
+            title: 'Hello',
+            album: 'Special Album',
+            duration: Duration(seconds: 200),
+          ),
         );
+
+        expect(result, isNotNull);
+        expect(result!.track.id, 200);
+        expect(queryHistory, hasLength(1));
+        expect(queryHistory.single, {'q': 'Hello Special Album'});
       },
     );
 

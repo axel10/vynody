@@ -760,15 +760,13 @@ class LyricsService {
     }
   }
 
-  /// 在线搜索逻辑：包含精准匹配与模糊评分两个阶段。
+  /// 在线搜索逻辑：基于标题+艺术家/专辑的单次全文检索与客户端加权评分。
   ///
   /// 逻辑概述：
-  /// - 发起并发双请求：
-  ///   1. 仅歌曲标题作为主检索词（q 参数）发起宽泛搜索，容错率高。
-  ///   2. 若包含艺术家或专辑信息，同时发起带标题、艺术家、专辑的精确/组合搜索。
-  /// - 合并双请求返回的候选集并去重。
+  /// - 构建全文检索词 q：优先 "$title $artist"，无艺术家时使用 "$title $album"，均无则使用 "$title"。
+  /// - 发起单次全文搜索 (https://lrclib.net/api/search?q=...)。
   /// - 在客户端结合当前播放歌曲的完整元数据（标题、歌手、专辑、精确时长）进行加权综合打分。
-  /// - 只有综合评分高于阈值（默认 65 分）或时长偏差极小（3秒内）的最佳候选（排名第一项）才会作为匹配结果保存至本地数据库并返回。
+  /// - 只有综合评分高于阈值（默认 65 分）的最佳候选才会保存至本地数据库并返回。
   Future<LyricSelectionResult?> _fetchBestLyricsInternal(
     LyricsQuery query, {
     CancelToken? cancelToken,
@@ -781,8 +779,8 @@ class LyricsService {
       'album="${query.album ?? ''}" duration=${query.duration?.inSeconds ?? 'n/a'}s',
     );
 
-    // 1. 优先尝试主流程（包含标题宽泛搜索 + 精准元数据搜索并发）
-    final primaryResult = await _fetchBestLyricsWithDualSearch(
+    // 1. 优先尝试主流程（基于 标题+艺术家/专辑 单次全文搜索）
+    final primaryResult = await _fetchBestLyricsWithSearch(
       query,
       cacheQuery: query,
       searchTitle: query.title,
@@ -811,7 +809,7 @@ class LyricsService {
         '(original: "${query.title}")',
       );
 
-      final fallbackResult = await _fetchBestLyricsWithDualSearch(
+      final fallbackResult = await _fetchBestLyricsWithSearch(
         query,
         cacheQuery: query,
         searchTitle: cleanFallbackTitle,
@@ -831,7 +829,7 @@ class LyricsService {
     return null;
   }
 
-  Future<LyricSelectionResult?> _fetchBestLyricsWithDualSearch(
+  Future<LyricSelectionResult?> _fetchBestLyricsWithSearch(
     LyricsQuery query, {
     required LyricsQuery cacheQuery,
     required String searchTitle,
@@ -848,68 +846,51 @@ class LyricsService {
       return null;
     }
 
-    final hasExtraMeta =
-        (searchArtist != null && searchArtist.trim().isNotEmpty) ||
-        (searchAlbum != null && searchAlbum.trim().isNotEmpty);
+    final searchText = _buildSearchText(
+      title: trimmedTitle,
+      artist: searchArtist,
+      album: searchAlbum,
+    );
 
     _logDebug(
-      'phase dual-search -> title="$trimmedTitle" artist="${searchArtist ?? ''}" '
-      'album="${searchAlbum ?? ''}" hasExtraMeta=$hasExtraMeta '
+      'phase single-search -> query="$searchText" '
+      'artist="${searchArtist ?? ''}" album="${searchAlbum ?? ''}" '
       'duration=${query.duration?.inSeconds ?? 'n/a'}s',
     );
 
-    // 发起并发搜索
-    final searchTasks = <Future<List<LyricTrack>>>[
-      // 任务 1：仅标题宽泛搜索 (q = searchTitle)
-      searchTracksByQuery(
+    final List<LyricTrack> rawTracks;
+    try {
+      rawTracks = await searchTracksByQuery(
         title: trimmedTitle,
-        q: trimmedTitle,
+        q: searchText,
         cancelToken: cancelToken,
-      ).catchError((Object e) {
-        _logDebug('title search error: $e');
-        return <LyricTrack>[];
-      }),
-    ];
-
-    if (hasExtraMeta) {
-      // 任务 2：带标题、艺术家、专辑的精确/组合搜索
-      searchTasks.add(
-        searchTracksByQuery(
-          title: trimmedTitle,
-          artist: searchArtist,
-          album: searchAlbum,
-          cancelToken: cancelToken,
-        ).catchError((Object e) {
-          _logDebug('detailed search error: $e');
-          return <LyricTrack>[];
-        }),
       );
+    } catch (e) {
+      _logDebug('search error for "$searchText": $e');
+      return null;
     }
 
-    final responses = await Future.wait(searchTasks);
     if (cancelToken?.isCancelled == true) {
       return null;
     }
 
-    // 合并结果并去重
+    // 提取并去重有效歌词候选
     final candidateTracks = <LyricTrack>[];
     final seenKeys = <String>{};
 
-    for (final trackList in responses) {
-      for (final track in trackList) {
-        if (!track.hasLyrics) continue;
-        final trackId = track.id?.toString() ?? '';
-        final trackKey = trackId.isNotEmpty
-            ? trackId
-            : '${track.displayTitle}|${track.artistName ?? ''}|${track.albumName ?? ''}|${track.lyricsId ?? ''}|${track.duration ?? ''}';
-        if (seenKeys.add(trackKey)) {
-          candidateTracks.add(track);
-        }
+    for (final track in rawTracks) {
+      if (!track.hasLyrics) continue;
+      final trackId = track.id?.toString() ?? '';
+      final trackKey = trackId.isNotEmpty
+          ? trackId
+          : '${track.displayTitle}|${track.artistName ?? ''}|${track.albumName ?? ''}|${track.lyricsId ?? ''}|${track.duration ?? ''}';
+      if (seenKeys.add(trackKey)) {
+        candidateTracks.add(track);
       }
     }
 
     if (candidateTracks.isEmpty) {
-      _logDebug('phase search empty -> title="$trimmedTitle"');
+      _logDebug('phase search empty -> query="$searchText"');
       return null;
     }
 
@@ -930,14 +911,14 @@ class LyricsService {
     }
 
     if (scoredResults.isEmpty) {
-      _logDebug('phase scoring empty -> title="$trimmedTitle"');
+      _logDebug('phase scoring empty -> query="$searchText"');
       return null;
     }
 
     scoredResults.sort(_compareSelectionResults);
     final bestCandidate = scoredResults.first;
     _logDebug(
-      'phase scored -> title="$trimmedTitle" '
+      'phase scored -> query="$searchText" '
       'bestScore=${bestCandidate.score.toStringAsFixed(1)} '
       'bestArtist="${bestCandidate.track.artistName ?? ''}" '
       'durationDiff=${bestCandidate.durationDiffSeconds}s '
@@ -946,7 +927,7 @@ class LyricsService {
 
     if (bestCandidate.score < _acceptThreshold) {
       _logDebug(
-        'phase rejected all -> title="$trimmedTitle" '
+        'phase rejected all -> query="$searchText" '
         'bestScore=${bestCandidate.score.toStringAsFixed(1)} threshold=$_acceptThreshold',
       );
       return null;
@@ -957,7 +938,7 @@ class LyricsService {
     }
 
     _logDebug(
-      'phase accepted -> title="$trimmedTitle" '
+      'phase accepted -> query="$searchText" '
       'candidateTitle="${bestCandidate.track.displayTitle}" artist="${bestCandidate.track.artistName}" '
       'score=${bestCandidate.score.toStringAsFixed(1)}',
     );
@@ -1006,7 +987,7 @@ class LyricsService {
           'track_name': title,
           if (artist != null && artist.trim().isNotEmpty) 'artist_name': artist,
           if (album != null && album.trim().isNotEmpty) 'album_name': album,
-          'q': _buildSearchTextFromParts(
+          'q': _buildSearchText(
             title: title,
             artist: artist,
             album: album,
@@ -1109,19 +1090,21 @@ class LyricsService {
   }
 
 
-  String _buildSearchTextFromParts({
+  String _buildSearchText({
     required String title,
     String? artist,
     String? album,
   }) {
-    final parts = <String>[title];
-    if (artist != null && artist.trim().isNotEmpty) {
-      parts.add(artist);
+    final cleanTitle = title.trim();
+    final cleanArtist = artist?.trim();
+    if (cleanArtist != null && cleanArtist.isNotEmpty) {
+      return '$cleanTitle $cleanArtist'.trim();
     }
-    if (album != null && album.trim().isNotEmpty) {
-      parts.add(album);
+    final cleanAlbum = album?.trim();
+    if (cleanAlbum != null && cleanAlbum.isNotEmpty) {
+      return '$cleanTitle $cleanAlbum'.trim();
     }
-    return parts.join(' ').trim();
+    return cleanTitle;
   }
 
   String _lyricsTextFromRecord(LyricsCacheRecord record) {
