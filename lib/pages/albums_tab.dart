@@ -23,6 +23,7 @@ import 'package:vynody/player/library/library_source_filter.dart';
 import 'package:vynody/player/settings/settings_service.dart';
 import 'main_layout_riverpod.dart';
 import 'package:vynody/utils/layout_constants.dart';
+import '../utils/app_log.dart';
 import '../widgets/draggable_album_item.dart';
 import '../widgets/album_context_menu.dart';
 import '../widgets/playback_ui_tuning.dart';
@@ -607,8 +608,15 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab>
                     itemKey: album.id,
                     allKeys: albums.map((a) => a.id).toList(),
                     onNormalTap: () {
+                      AppLog.log(
+                        '[NavTrace] AlbumsTab onNormalTap: pushing AlbumDetailPage for album="${album.title}" (id=${album.id})',
+                        mirrorToConsole: true,
+                      );
                       Navigator.of(context).push(
-                        MaterialPageRoute<void>(builder: (_) => AlbumDetailPage(album: album)),
+                        MaterialPageRoute<void>(
+                          settings: RouteSettings(name: 'album_detail_${album.id}'),
+                          builder: (_) => AlbumDetailPage(album: album),
+                        ),
                       );
                     },
                   );
@@ -732,8 +740,15 @@ class _AlbumCard extends ConsumerWidget {
   }
 
   void _openAlbumDetail(BuildContext context) {
+    AppLog.log(
+      '[NavTrace] AlbumsTab _openAlbumDetail: pushing AlbumDetailPage for album="${album.title}" (id=${album.id})',
+      mirrorToConsole: true,
+    );
     Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => AlbumDetailPage(album: album)),
+      MaterialPageRoute<void>(
+        settings: RouteSettings(name: 'album_detail_${album.id}'),
+        builder: (_) => AlbumDetailPage(album: album),
+      ),
     );
   }
 }

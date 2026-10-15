@@ -20,6 +20,7 @@ import '../widgets/library_selection_scope.dart';
 import '../widgets/auto_hide_header.dart';
 import '../widgets/app_top_nav_bar.dart';
 import '../utils/layout_constants.dart';
+import '../utils/app_log.dart';
 
 // 媒体库页面：统一采用局部嵌套 Navigator 架构。
 // 横屏下外层 Rail 栏始终常驻显示，右侧二级页面平级流畅切换并避让 Rail；
@@ -70,19 +71,34 @@ class LibraryPageState extends ConsumerState<LibraryPage> {
   /// 供外层（如 MainLayout 的 Android 返回键或快捷键）拦截调用
   bool handleBackPressed() {
     final selectionState = ref.read(librarySelectionStateProvider);
+    final is3d = ref.read(isAlbum3DViewActiveProvider);
+    final canPop = _navigatorKey.currentState?.canPop() ?? false;
+    AppLog.log(
+      '[NavTrace] LibraryPageState.handleBackPressed: '
+      'selectionActive=${selectionState.isActive}, '
+      'is3DActive=$is3d, '
+      'navigatorState=${_navigatorKey.currentState != null ? "exists" : "NULL"}, '
+      'canPop=$canPop, '
+      '_isSubHostPushed=$_isSubHostPushed',
+      mirrorToConsole: true,
+    );
     if (selectionState.isActive &&
         selectionState.scope != LibrarySelectionScope.none) {
+      AppLog.log('[NavTrace] LibraryPageState: clearing selection mode', mirrorToConsole: true);
       ref.read(librarySelectionStateProvider.notifier).clear();
       return true;
     }
-    if (ref.read(isAlbum3DViewActiveProvider)) {
+    if (is3d) {
+      AppLog.log('[NavTrace] LibraryPageState: clearing 3D view', mirrorToConsole: true);
       ref.read(isAlbum3DViewActiveProvider.notifier).set(false);
       return true;
     }
-    if (_navigatorKey.currentState?.canPop() ?? false) {
+    if (canPop) {
+      AppLog.log('[NavTrace] LibraryPageState: popping nested navigator route', mirrorToConsole: true);
       _navigatorKey.currentState?.maybePop();
       return true;
     }
+    AppLog.log('[NavTrace] LibraryPageState: cannot pop nested navigator, returning false', mirrorToConsole: true);
     return false;
   }
 
@@ -91,11 +107,16 @@ class LibraryPageState extends ConsumerState<LibraryPage> {
     bool initialAlbums3DView = false,
     int initialAlbums3DIndex = 0,
   }) {
+    AppLog.log(
+      '[NavTrace] LibraryPage._openSubHost: index=$index, isSubHostPushed=$_isSubHostPushed',
+      mirrorToConsole: true,
+    );
     ref.read(librarySelectionScopeProvider.notifier).clear();
-    ref.read(libraryActiveTabIndexProvider.notifier).set(index);
 
     if (_isSubHostPushed) {
+      ref.read(libraryActiveTabIndexProvider.notifier).set(index);
       // 已经在二级页面宿主，若栈顶有三级详情页，先退回到二级宿主
+      AppLog.log('[NavTrace] LibraryPage._openSubHost: already pushed, popUntil library_sub_host', mirrorToConsole: true);
       _navigatorKey.currentState?.popUntil(
         (route) => route.settings.name == 'library_sub_host' || route.isFirst,
       );
@@ -103,12 +124,14 @@ class LibraryPageState extends ConsumerState<LibraryPage> {
     }
 
     _isSubHostPushed = true;
+    ref.read(libraryActiveTabIndexProvider.notifier).set(index);
     final route = _buildSubHostRoute(
       initialAlbums3DView: initialAlbums3DView,
       initialAlbums3DIndex: initialAlbums3DIndex,
     );
 
     _navigatorKey.currentState?.push(route).then((_) {
+      AppLog.log('[NavTrace] LibraryPage: subHost route popped! isSubHostPushed=false', mirrorToConsole: true);
       _isSubHostPushed = false;
       if (mounted && ref.read(libraryActiveTabIndexProvider) != -1) {
         ref.read(libraryActiveTabIndexProvider.notifier).set(-1);
@@ -179,37 +202,52 @@ class LibraryPageState extends ConsumerState<LibraryPage> {
       }
     });
 
-    return Navigator(
-      key: _navigatorKey,
-      observers: [_heroController],
-      onGenerateInitialRoutes: (navigator, initialRoute) {
-        final persistedIndex = ref.read(libraryActiveTabIndexProvider);
-        final bool hasDeepLink =
-            widget.initialAlbums3DView || widget.initialTabIndex != 0;
-        final int targetIndex = widget.initialAlbums3DView
-            ? 4
-            : (widget.initialTabIndex != 0
-                ? widget.initialTabIndex
-                : persistedIndex);
-
-        final routes = <Route<void>>[_buildDashboardRoute()];
-        if (hasDeepLink || targetIndex >= 0) {
-          _isSubHostPushed = true;
-          final subRoute = _buildSubHostRoute(
-            initialAlbums3DView: widget.initialAlbums3DView,
-            initialAlbums3DIndex: widget.initialAlbums3DIndex,
-          );
-          subRoute.popped.then((_) {
-            _isSubHostPushed = false;
-            if (mounted && ref.read(libraryActiveTabIndexProvider) != -1) {
-              ref.read(libraryActiveTabIndexProvider.notifier).set(-1);
-            }
-          });
-          routes.add(subRoute);
-        }
-        return routes;
+    return NotificationListener<NavigationNotification>(
+      onNotification: (notification) {
+        // 阻止嵌套 Navigator 向上冒泡 NavigationNotification 覆盖外层返回控制
+        return true;
       },
-      onGenerateRoute: (settings) => _buildDashboardRoute(),
+      child: Navigator(
+        key: _navigatorKey,
+        observers: [_heroController],
+        onGenerateInitialRoutes: (navigator, initialRoute) {
+          final persistedIndex = ref.read(libraryActiveTabIndexProvider);
+          final bool hasDeepLink =
+              widget.initialAlbums3DView || widget.initialTabIndex != 0;
+          final int targetIndex = widget.initialAlbums3DView
+              ? 4
+              : (widget.initialTabIndex != 0
+                  ? widget.initialTabIndex
+                  : persistedIndex);
+          AppLog.log(
+            '[NavTrace] LibraryPage onGenerateInitialRoutes: initialTabIndex=${widget.initialTabIndex}, '
+            'persistedIndex=$persistedIndex, targetIndex=$targetIndex, hasDeepLink=$hasDeepLink',
+            mirrorToConsole: true,
+          );
+
+          final routes = <Route<void>>[_buildDashboardRoute()];
+          if (hasDeepLink || targetIndex >= 0) {
+            _isSubHostPushed = true;
+            final subRoute = _buildSubHostRoute(
+              initialAlbums3DView: widget.initialAlbums3DView,
+              initialAlbums3DIndex: widget.initialAlbums3DIndex,
+            );
+            subRoute.popped.then((_) {
+              AppLog.log(
+                '[NavTrace] LibraryPage subRoute (initial) POPPED! Resetting libraryActiveTabIndexProvider to -1',
+                mirrorToConsole: true,
+              );
+              _isSubHostPushed = false;
+              if (mounted && ref.read(libraryActiveTabIndexProvider) != -1) {
+                ref.read(libraryActiveTabIndexProvider.notifier).set(-1);
+              }
+            });
+            routes.add(subRoute);
+          }
+          return routes;
+        },
+        onGenerateRoute: (settings) => _buildDashboardRoute(),
+      ),
     );
   }
 }
@@ -314,50 +352,36 @@ class _LibrarySubHostPageState extends ConsumerState<LibrarySubHostPage> {
     final isSelectionActive = ref.watch(isLibrarySelectionActiveProvider);
     final is3DViewActive =
         (clampedIndex == 4) && ref.watch(isAlbum3DViewActiveProvider);
-    final canPop = !isSelectionActive && !is3DViewActive;
 
     final bool hideTopNavBar = isLandscape && is3DViewActive;
 
-    return PopScope(
-      canPop: canPop,
-      onPopInvokedWithResult: (didPop, result) {
-        if (didPop) return;
-        if (isSelectionActive) {
-          ref.read(librarySelectionStateProvider.notifier).clear();
-          return;
-        }
-        if (is3DViewActive) {
-          ref.read(isAlbum3DViewActiveProvider.notifier).set(false);
-          return;
-        }
-      },
-      child: AutoHideHeaderScope(
-        forceVisible: isSelectionActive || (!isLandscape && is3DViewActive),
-        builder: (context, isHeaderVisible) => Scaffold(
-          key: const ValueKey('library_subhost_scaffold'),
-          body: Stack(
-            fit: StackFit.expand,
-            children: [
-              IndexedStack(
-                sizing: StackFit.expand,
-                index: clampedIndex,
-                children: [
-                  for (int i = 0; i < 8; i++)
-                    _builtSubTabs.contains(i)
-                        ? buildSubTab(i)
-                        : const SizedBox.shrink(),
-                ],
-              ),
-              Positioned(
-                top: 0,
-                left: leftPadding,
-                right: 0,
-                height: headerHeight,
-                child: AnimatedSlide(
-                  offset: hideTopNavBar ? const Offset(0, -1.0) : Offset.zero,
-                  duration: const Duration(milliseconds: 250),
-                  curve: Curves.easeInOutCubic,
-                  child: AnimatedOpacity(
+    final scaffold = AutoHideHeaderScope(
+      forceVisible: isSelectionActive || (!isLandscape && is3DViewActive),
+      builder: (context, isHeaderVisible) => Scaffold(
+        key: const ValueKey('library_subhost_scaffold'),
+        body: Stack(
+          fit: StackFit.expand,
+          children: [
+            IndexedStack(
+              sizing: StackFit.expand,
+              index: clampedIndex,
+              children: [
+                for (int i = 0; i < 8; i++)
+                  _builtSubTabs.contains(i)
+                      ? buildSubTab(i)
+                      : const SizedBox.shrink(),
+              ],
+            ),
+            Positioned(
+              top: 0,
+              left: leftPadding,
+              right: 0,
+              height: headerHeight,
+              child: AnimatedSlide(
+                offset: hideTopNavBar ? const Offset(0, -1.0) : Offset.zero,
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeInOutCubic,
+                child: AnimatedOpacity(
                     opacity: hideTopNavBar ? 0.0 : 1.0,
                     duration: const Duration(milliseconds: 250),
                     curve: Curves.easeInOutCubic,
@@ -376,8 +400,19 @@ class _LibrarySubHostPageState extends ConsumerState<LibrarySubHostPage> {
             ],
           ),
         ),
-      ),
-    );
+      );
+
+    if (isSelectionActive) {
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, result) {
+          if (didPop) return;
+          ref.read(librarySelectionStateProvider.notifier).clear();
+        },
+        child: scaffold,
+      );
+    }
+    return scaffold;
   }
 }
 

@@ -228,5 +228,69 @@ void main() {
       expect(find.text('PlaybackPage'), findsNothing);
       expect(rootNavKey.currentState?.canPop(), isFalse);
     });
+
+    testWidgets('Expanded playback drawer intercepts back press and collapses before popping base page', (tester) async {
+      bool isPlaybackOpen = true;
+      bool appPopped = false;
+
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: StatefulBuilder(
+              builder: (context, setState) {
+                return PopScope(
+                  canPop: false,
+                  onPopInvokedWithResult: (didPop, result) {
+                    if (didPop) return;
+                    if (isPlaybackOpen) {
+                      setState(() {
+                        isPlaybackOpen = false;
+                      });
+                      return;
+                    }
+                    appPopped = true;
+                  },
+                  child: Scaffold(
+                    body: Stack(
+                      children: [
+                        const Center(child: Text('UnderlyingLibraryPage')),
+                        if (isPlaybackOpen)
+                          Positioned.fill(
+                            child: PopScope(
+                              canPop: false,
+                              onPopInvokedWithResult: (didPop, result) {
+                                if (didPop) return;
+                                setState(() {
+                                  isPlaybackOpen = false;
+                                });
+                              },
+                              child: const ColoredBox(
+                                color: Colors.black,
+                                child: Center(child: Text('PlaybackDrawer')),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      expect(find.text('PlaybackDrawer'), findsOneWidget);
+
+      // System back press while playback is open
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+
+      // Verify: PlaybackDrawer was collapsed, app was NOT popped!
+      expect(find.text('PlaybackDrawer'), findsNothing);
+      expect(find.text('UnderlyingLibraryPage'), findsOneWidget);
+      expect(appPopped, isFalse);
+    });
   });
 }

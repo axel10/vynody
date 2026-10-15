@@ -669,30 +669,35 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
       }
     }
 
-    return Navigator(
-      key: _navigatorKey,
-      pages: pages,
-      observers: [_heroController],
-      onDidRemovePage: (page) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted) return;
-          final pageKeyStr = page.key?.toString() ?? '';
-          if (pageKeyStr.contains('remote-folder-page-') ||
-              pageKeyStr.contains('webdav-page-')) {
-            ref.read(activeRemoteSessionProvider.notifier).popWebDavPath();
-          } else if (pageKeyStr.contains('remote-folder-root-') ||
-              pageKeyStr.contains('webdav-root-') ||
-              pageKeyStr.contains('remote-page-')) {
-            ref.read(activeRemoteSessionProvider.notifier).clear();
-          } else if (pageKeyStr.contains('remote-album-') ||
-              pageKeyStr.contains('remote-artist-') ||
-              pageKeyStr.contains('remote-playlist-')) {
-            ref.read(activeRemoteSessionProvider.notifier).popNavidromeDetail();
-          } else if (pageKeyStr.contains('folder-page-')) {
-            _goBack(scanner);
-          }
-        });
+    return NotificationListener<NavigationNotification>(
+      onNotification: (notification) {
+        return true;
       },
+      child: Navigator(
+        key: _navigatorKey,
+        pages: pages,
+        observers: [_heroController],
+        onDidRemovePage: (page) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            final pageKeyStr = page.key?.toString() ?? '';
+            if (pageKeyStr.contains('remote-folder-page-') ||
+                pageKeyStr.contains('webdav-page-')) {
+              ref.read(activeRemoteSessionProvider.notifier).popWebDavPath();
+            } else if (pageKeyStr.contains('remote-folder-root-') ||
+                pageKeyStr.contains('webdav-root-') ||
+                pageKeyStr.contains('remote-page-')) {
+              ref.read(activeRemoteSessionProvider.notifier).clear();
+            } else if (pageKeyStr.contains('remote-album-') ||
+                pageKeyStr.contains('remote-artist-') ||
+                pageKeyStr.contains('remote-playlist-')) {
+              ref.read(activeRemoteSessionProvider.notifier).popNavidromeDetail();
+            } else if (pageKeyStr.contains('folder-page-')) {
+              _goBack(scanner);
+            }
+          });
+        },
+      ),
     );
   }
 }

@@ -21,6 +21,7 @@ import '../widgets/song_thumbnail.dart';
 import 'package:vynody/utils/layout_constants.dart';
 import '../widgets/auto_hide_header.dart';
 import '../widgets/app_top_nav_bar.dart';
+import '../utils/app_log.dart';
 
 class AlbumDetailPage extends ConsumerStatefulWidget {
   const AlbumDetailPage({super.key, required this.album});
@@ -42,10 +43,18 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage>
   void initState() {
     super.initState();
     _scrollController = ScrollController();
+    AppLog.log(
+      '[NavTrace] AlbumDetailPage.initState: album="${widget.album.title}" (id=${widget.album.id}, songs=${widget.album.songs.length})',
+      mirrorToConsole: true,
+    );
   }
 
   @override
   void dispose() {
+    AppLog.log(
+      '[NavTrace] AlbumDetailPage.dispose: album="${widget.album.title}" (id=${widget.album.id})',
+      mirrorToConsole: true,
+    );
     _scrollController.dispose();
     super.dispose();
   }
@@ -323,6 +332,10 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage>
           return PopScope(
             canPop: false,
             onPopInvokedWithResult: (didPop, result) {
+              AppLog.log(
+                '[NavTrace] AlbumDetailPage.PopScope invoked (selection mode): didPop=$didPop, result=$result',
+                mirrorToConsole: true,
+              );
               if (didPop) return;
               cancelSongSelection();
             },

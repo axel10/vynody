@@ -13,6 +13,7 @@ import 'package:window_manager/window_manager.dart';
 
 import '../l10n/app_localizations.dart';
 import '../main.dart' show navigatorKey;
+import '../utils/app_log.dart';
 import 'package:vynody/utils/blur_constants.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/audio/audio_service.dart';
@@ -307,38 +308,71 @@ class _MainLayoutState extends ConsumerState<MainLayout>
   Future<void> _handleBackPressed() async {
     if (!Platform.isAndroid) return;
 
-    // 如果当前页面之上还有 Modal/浮层路由（例如弹窗、抽屉、底部面板、上下文菜单等），优先关闭最顶层 Modal
     final mainModalRoute = ModalRoute.of(context);
     final rootNav = Navigator.of(context, rootNavigator: true);
+    final mainIsCurrent = mainModalRoute?.isCurrent;
+    final mainRouteName = mainModalRoute?.settings.name;
+    final rootCanPop = rootNav.canPop();
+    AppLog.log(
+      '[NavTrace] MainLayout._handleBackPressed triggered! '
+      '_currentIndex=$_currentIndex, '
+      'mainRoute="$mainRouteName", '
+      'mainIsCurrent=$mainIsCurrent, '
+      'rootCanPop=$rootCanPop, '
+      'isPlaybackDrawerOpen=$_isPlaybackDrawerOpen (${_playbackDrawerAnimController.value})',
+      mirrorToConsole: true,
+    );
+
+    // 如果当前页面之上还有 Modal/浮层路由（例如弹窗、抽屉、底部面板、上下文菜单等），优先关闭最顶层 Modal
     if (mainModalRoute != null && !mainModalRoute.isCurrent) {
+      AppLog.log('[NavTrace] MainLayout: rootNav has overlay route, attempting rootNav.maybePop()...', mirrorToConsole: true);
       final didPop = await rootNav.maybePop();
+      AppLog.log('[NavTrace] MainLayout: rootNav.maybePop result=$didPop', mirrorToConsole: true);
       if (didPop) return;
     }
 
     // 如果播放页抽屉展开，优先收起抽屉
     if (_isPlaybackDrawerOpen || _playbackDrawerAnimController.value > 0.0) {
+      AppLog.log('[NavTrace] MainLayout: collapsing playback drawer', mirrorToConsole: true);
       _collapsePlayback();
       return;
     }
 
     // 如果在曲库页且当前处于 3D 唱片封面流视图，则返回普通网格视图并恢复竖屏
     if (_currentIndex == 2) {
-      if (ref.read(isAlbum3DViewActiveProvider)) {
+      final is3d = ref.read(isAlbum3DViewActiveProvider);
+      final libState = _libraryPageKey.currentState;
+      AppLog.log(
+        '[NavTrace] MainLayout: index 2 (LibraryPage), is3dView=$is3d, libraryPageState=${libState != null ? "exists" : "NULL"}',
+        mirrorToConsole: true,
+      );
+      if (is3d) {
         ref.read(isAlbum3DViewActiveProvider.notifier).set(false);
         return;
       }
-      if (_libraryPageKey.currentState?.handleBackPressed() ?? false) {
+      final handled = libState?.handleBackPressed() ?? false;
+      AppLog.log('[NavTrace] MainLayout: _libraryPageKey.currentState.handleBackPressed() returned $handled', mirrorToConsole: true);
+      if (handled) {
         return;
       }
     }
 
     // 如果在目录页，且当前处于非根目录，则返回上一级目录
     if (_currentIndex == 0) {
-      if (_foldersPageKey.currentState?.handleBackPressed() ?? false) {
+      final folderState = _foldersPageKey.currentState;
+      AppLog.log(
+        '[NavTrace] MainLayout: index 0 (FoldersPage), foldersPageState=${folderState != null ? "exists" : "NULL"}',
+        mirrorToConsole: true,
+      );
+      if (folderState?.handleBackPressed() ?? false) {
         return;
       }
     }
 
+    AppLog.log(
+      '[NavTrace] MainLayout: NO HANDLER CONSUMED BACK EVENT -> Calling SystemNavigator.pop() (EXITING APP!)',
+      mirrorToConsole: true,
+    );
     await SystemNavigator.pop();
   }
 
@@ -1287,6 +1321,10 @@ class _MainLayoutState extends ConsumerState<MainLayout>
       child: PopScope(
             canPop: false,
             onPopInvokedWithResult: (didPop, result) {
+              AppLog.log(
+                '[NavTrace] MainLayout.PopScope invoked: didPop=$didPop, result=$result',
+                mirrorToConsole: true,
+              );
               if (didPop) return;
               _handleBackPressed();
             },

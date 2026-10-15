@@ -849,6 +849,14 @@ class _MyAppState extends ConsumerState<MyApp>
           return buildMainLayoutRoute(args: widget.args, initialIndex: 0);
         },
         navigatorKey: navigatorKey,
+        onNavigationNotification: (notification) {
+          if (Platform.isAndroid) {
+            SystemNavigator.setFrameworkHandlesBack(true);
+            return true;
+          }
+          SystemNavigator.setFrameworkHandlesBack(notification.canHandlePop);
+          return true;
+        },
       );
 
     if (Platform.isLinux) {

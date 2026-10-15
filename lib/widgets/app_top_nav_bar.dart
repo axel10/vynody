@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import 'package:vynody/l10n/app_localizations.dart';
+import 'package:vynody/utils/app_log.dart';
 import 'package:vynody/utils/blur_constants.dart';
 import 'package:vynody/utils/layout_constants.dart';
 import 'app_tooltip.dart';
@@ -119,7 +120,25 @@ class AppTopNavBar extends StatelessWidget {
                     useRootOverlay: true,
                     child: IconButton(
                       icon: const Icon(Icons.arrow_back_rounded),
-                      onPressed: onBack ?? () => Navigator.of(context).maybePop(),
+                      onPressed: () {
+                        final nav = Navigator.of(context);
+                        final rootNav = Navigator.of(context, rootNavigator: true);
+                        final currentRoute = ModalRoute.of(context);
+                        AppLog.log(
+                          '[NavTrace] AppTopNavBar back button pressed! '
+                          'title="${title ?? ''}", '
+                          'route="${currentRoute?.settings.name}", '
+                          'localCanPop=${nav.canPop()}, '
+                          'rootCanPop=${rootNav.canPop()}, '
+                          'hasCustomOnBack=${onBack != null}',
+                          mirrorToConsole: true,
+                        );
+                        if (onBack != null) {
+                          onBack!();
+                        } else {
+                          nav.maybePop();
+                        }
+                      },
                     ),
                   ),
                   SizedBox(width: titleSpacing),
