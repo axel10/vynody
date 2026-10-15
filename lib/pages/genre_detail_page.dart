@@ -401,33 +401,54 @@ class _GenreInfo extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 14),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  FilledButton.icon(
-                    onPressed: onPlayAll,
-                    icon: const Icon(Icons.play_arrow_rounded, size: 20),
-                    label: Text(l10n.playAll),
-                    style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 10,
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final isNarrow = isPortrait && constraints.maxWidth < 260;
+                  return Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      FilledButton.icon(
+                        onPressed: onPlayAll,
+                        icon: const Icon(Icons.play_arrow_rounded, size: 20),
+                        label: Text(l10n.playAll),
+                        style: FilledButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 10,
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  OutlinedButton.icon(
-                    onPressed: onShufflePlay,
-                    icon: const Icon(Icons.shuffle_rounded, size: 18),
-                    label: Text(l10n.shuffle),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 10,
-                      ),
-                    ),
-                  ),
-                ],
+                      const SizedBox(width: 10),
+                      if (isNarrow)
+                        Tooltip(
+                          message: l10n.shuffle,
+                          child: OutlinedButton(
+                            onPressed: onShufflePlay,
+                            style: OutlinedButton.styleFrom(
+                              fixedSize: const Size(32, 32),
+                              minimumSize: const Size(32, 32),
+                              padding: EdgeInsets.zero,
+                              shape: const CircleBorder(),
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                            child: const Icon(Icons.shuffle_rounded, size: 18),
+                          ),
+                        )
+                      else
+                        OutlinedButton.icon(
+                          onPressed: onShufflePlay,
+                          icon: const Icon(Icons.shuffle_rounded, size: 18),
+                          label: Text(l10n.shuffle),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 10,
+                            ),
+                          ),
+                        ),
+                    ],
+                  );
+                },
               ),
             ],
           ),
