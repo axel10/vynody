@@ -16,7 +16,9 @@ typedef MasterItemWidgetBuilder<T> = Widget Function(
 /// 特性：
 /// 1. 横屏/宽屏：左侧 Master 列表 + 右侧 Detail 详情（两栏分栏），左栏带分割线，右栏无选中时显示占位组件；
 /// 2. 竖屏/窄屏：一级页面仅显示 Master 列表，点击条目通过 Navigator.push 进入二级详情页；
-/// 3. 横竖屏旋转自适应：在竖屏下 Push 了二级详情页时，若旋转到横屏，自动 pop 详情页回到两栏布局，保证界面状态零闪烁与零错位；
+/// 3. 横竖屏旋转自适应：
+///    - 竖屏下 Push 了二级详情页时若旋转到横屏，自动 pop 详情页回到两栏布局，状态零闪烁与零错位；
+///    - 横屏下若用户显式点击了某个条目，拉到竖屏时自动推入对应的二级详情页；若用户未在横屏点击过条目，拉到竖屏则停留在主列表；
 /// 4. 选中项智能保持：横屏下确保选中项有效，支持外部受控与自动选中第一项；
 /// 5. 多选面板自适应：自动处理横屏与竖屏下底部多选浮层的动画与避让高度。
 class MasterDetailScaffold<T> extends StatefulWidget {
@@ -115,6 +117,9 @@ class MasterDetailScaffold<T> extends StatefulWidget {
 class _MasterDetailScaffoldState<T> extends State<MasterDetailScaffold<T>> {
   bool _isDetailPushed = false;
   late ScrollController _internalScrollController;
+  bool? _lastIsLandscape;
+  bool _hasUserExplicitlySelected = false;
+  String? _explicitlySelectedKey;
 
   ScrollController get _effectiveScrollController =>
       widget.masterScrollController ?? _internalScrollController;
@@ -161,6 +166,8 @@ class _MasterDetailScaffoldState<T> extends State<MasterDetailScaffold<T>> {
 
   void _openDetailOnPortrait(T item) {
     final key = widget.itemKey(item);
+    _hasUserExplicitlySelected = true;
+    _explicitlySelectedKey = key;
     widget.onSelectedKeyChanged(key);
     _isDetailPushed = true;
 
@@ -174,6 +181,12 @@ class _MasterDetailScaffoldState<T> extends State<MasterDetailScaffold<T>> {
         .then((_) {
           if (mounted) {
             _isDetailPushed = false;
+            final currentIsLandscape =
+                MediaQuery.orientationOf(context) == Orientation.landscape;
+            if (!currentIsLandscape) {
+              _hasUserExplicitlySelected = false;
+              _explicitlySelectedKey = null;
+            }
           }
         });
   }
@@ -184,6 +197,8 @@ class _MasterDetailScaffoldState<T> extends State<MasterDetailScaffold<T>> {
       return;
     }
     if (isLandscape) {
+      _hasUserExplicitlySelected = true;
+      _explicitlySelectedKey = widget.itemKey(item);
       widget.onSelectedKeyChanged(widget.itemKey(item));
     } else {
       _openDetailOnPortrait(item);
@@ -211,6 +226,35 @@ class _MasterDetailScaffoldState<T> extends State<MasterDetailScaffold<T>> {
             }
           });
         }
+
+        // 若由横屏拉到/旋转为竖屏，且用户在横屏显式点击选择了某个具体项，自动推入二级详情页
+        if (_lastIsLandscape == true &&
+            !isLandscape &&
+            !_isDetailPushed &&
+            !widget.isSelectionMode &&
+            _hasUserExplicitlySelected &&
+            _explicitlySelectedKey != null) {
+          final targetKey = _explicitlySelectedKey;
+          T? targetItem;
+          for (final item in items) {
+            if (widget.itemKey(item) == targetKey) {
+              targetItem = item;
+              break;
+            }
+          }
+          if (targetItem != null) {
+            final itemToOpen = targetItem;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted &&
+                  !_isDetailPushed &&
+                  MediaQuery.orientationOf(context) == Orientation.portrait) {
+                _openDetailOnPortrait(itemToOpen);
+              }
+            });
+          }
+        }
+
+        _lastIsLandscape = isLandscape;
 
         final selectedItem = _resolveSelectedItem(items);
         final showBottomPanel = widget.isSelectionMode || widget.selectionPanel != null;
