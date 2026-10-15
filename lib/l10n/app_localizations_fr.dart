@@ -5565,7 +5565,8 @@ class AppLocalizationsFr extends AppLocalizations {
       'Titres les plus écoutés au cours des 7 derniers jours';
 
   @override
-  String get thisWeekTopAlbumsSubtitle => '近 7 天循环最多的专辑';
+  String get thisWeekTopAlbumsSubtitle =>
+      'Albums les plus écoutés au cours des 7 derniers jours';
 
   @override
   String get timeMachine => 'Machine à remonter le temps';
@@ -5574,10 +5575,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get timeMachineSubtitle => 'Redécouvrez vos anciens favoris';
 
   @override
-  String get timeMachineSongsSubtitle => '重温好久没听的常听或高分歌曲';
+  String get timeMachineSongsSubtitle =>
+      'Redécouvrez vos anciens morceaux favoris';
 
   @override
-  String get emptyTimeMachineSongs => '暂无需要重温的歌曲';
+  String get emptyTimeMachineSongs =>
+      'Aucun ancien morceau favori à redécouvrir pour le moment';
 
   @override
   String get topRated => 'Les mieux notés';

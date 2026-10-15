@@ -5514,7 +5514,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get thisWeekTopSubtitle => 'Son 7 günde en çok çalınan şarkılar';
 
   @override
-  String get thisWeekTopAlbumsSubtitle => '近 7 天循环最多的专辑';
+  String get thisWeekTopAlbumsSubtitle => 'Son 7 günde en çok çalınan albümler';
 
   @override
   String get timeMachine => 'Zaman Tüneli';
@@ -5523,10 +5523,12 @@ class AppLocalizationsTr extends AppLocalizations {
   String get timeMachineSubtitle => 'Geçmiş favorilerinizi yeniden keşfedin';
 
   @override
-  String get timeMachineSongsSubtitle => '重温好久没听的常听或高分歌曲';
+  String get timeMachineSongsSubtitle =>
+      'Geçmiş favori şarkılarınızı yeniden keşfedin';
 
   @override
-  String get emptyTimeMachineSongs => '暂无需要重温的歌曲';
+  String get emptyTimeMachineSongs =>
+      'Henüz yeniden keşfedilecek eski favori şarkı yok';
 
   @override
   String get topRated => 'En Yüksek Puanlılar';

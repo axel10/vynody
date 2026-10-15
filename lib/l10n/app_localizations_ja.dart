@@ -5309,7 +5309,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get thisWeekTopSubtitle => '過去7日間で最も再生された曲';
 
   @override
-  String get thisWeekTopAlbumsSubtitle => '近 7 天循环最多的专辑';
+  String get thisWeekTopAlbumsSubtitle => '過去7日間で最も再生されたアルバム';
 
   @override
   String get timeMachine => 'タイムマシン';
@@ -5318,10 +5318,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get timeMachineSubtitle => 'しばらく聴いていないお気に入りのアルバムを再発見';
 
   @override
-  String get timeMachineSongsSubtitle => '重温好久没听的常听或高分歌曲';
+  String get timeMachineSongsSubtitle => 'しばらく聴いていないお気に入りの曲を再発見';
 
   @override
-  String get emptyTimeMachineSongs => '暂无需要重温的歌曲';
+  String get emptyTimeMachineSongs => '再発見するお気に入りの曲はまだありません';
 
   @override
   String get topRated => '高評価';
