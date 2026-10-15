@@ -48,7 +48,7 @@ import 'package:oktoast/oktoast.dart';
 // PlaybackPage is now cleaner as volume HUD is handled globally
 
 class PlaybackPage extends ConsumerStatefulWidget {
-  final VoidCallback? onCollapse;
+  final void Function({bool animated})? onCollapse;
   const PlaybackPage({super.key, this.onCollapse});
 
   @override
@@ -104,9 +104,9 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
     debugPrint('[PlaybackPage][Trace] $message');
   }
 
-  void _triggerCollapse() {
+  void _triggerCollapse({bool animated = true}) {
     if (widget.onCollapse != null) {
-      widget.onCollapse!();
+      widget.onCollapse!(animated: animated);
     } else {
       final previousTab = ref.read(previousMainTabIndexProvider);
       final targetIndex =
@@ -141,7 +141,8 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
     if (!_isDraggingDown) return;
     _isDraggingDown = false;
     final velocityY = details.primaryVelocity ?? 0.0;
-    if (_dragOffsetY > 100.0 || velocityY > 600.0) {
+    // 当向下拖拽超过 80 像素或滑动手势速度达到 280 像素/秒以上时触发收起
+    if (_dragOffsetY > 80.0 || velocityY > 280.0) {
       final screenHeight = MediaQuery.sizeOf(context).height;
       _dismissAnimation = Tween<double>(
         begin: _dragOffsetY,
@@ -154,9 +155,8 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
       );
       _dismissAnimController.forward(from: 0.0).then((_) {
         if (!mounted) return;
-        _triggerCollapse();
-        _dragOffsetY = 0.0;
-        _dismissAnimController.reset();
+        // 页面已在内部完全平移至屏幕下方，直接无动画收起外层抽屉，避免位移提前归零导致在顶部闪现
+        _triggerCollapse(animated: false);
       });
     } else {
       _dismissAnimation = Tween<double>(
@@ -196,7 +196,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
           : 'Drag down or tap to collapse',
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onTap: _triggerCollapse,
+        onTap: () => _triggerCollapse(animated: true),
         onVerticalDragStart: _handleVerticalDragStart,
         onVerticalDragUpdate: _handleVerticalDragUpdate,
         onVerticalDragEnd: _handleVerticalDragEnd,
@@ -1521,7 +1521,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
             ),
           );
 
-          if ((Platform.isAndroid || Platform.isIOS) && _dragOffsetY > 0.0) {
+          if (showTopDragHandle) {
             return Transform.translate(
               offset: Offset(0, _dragOffsetY),
               child: pageContent,
