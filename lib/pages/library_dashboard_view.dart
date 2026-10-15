@@ -1468,9 +1468,10 @@ class _TimeMachineAlbumsSectionState
 }
 
 // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
 // 6. 最近添加（专辑横向流）
 // ---------------------------------------------------------------------------
-class _RecentlyAddedAlbumsSection extends ConsumerWidget {
+class _RecentlyAddedAlbumsSection extends ConsumerStatefulWidget {
   const _RecentlyAddedAlbumsSection({
     required this.horizontalPadding,
     required this.onViewAll,
@@ -1486,32 +1487,52 @@ class _RecentlyAddedAlbumsSection extends ConsumerWidget {
   final double contentLeftPadding;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final asyncAlbums = ref.watch(recentlyAddedAlbumsProvider);
+  ConsumerState<_RecentlyAddedAlbumsSection> createState() =>
+      _RecentlyAddedAlbumsSectionState();
+}
 
-    return asyncAlbums.when(
-      data: (albums) {
-        if (albums.isEmpty) return const SizedBox.shrink();
-        return _HorizontalAlbumSection(
-          title: l10n.recentlyAdded,
-          albums: albums,
-          horizontalPadding: horizontalPadding,
-          contentLeftPadding: contentLeftPadding,
-          onViewAll: onViewAll,
-          l10n: l10n,
-          isWide: isWide,
-        );
-      },
-      loading: () => const SizedBox.shrink(),
-      error: (_, _) => const SizedBox.shrink(),
-    );
+class _RecentlyAddedAlbumsSectionState
+    extends ConsumerState<_RecentlyAddedAlbumsSection> {
+  List<AlbumSummary>? _cachedAlbums;
+
+  @override
+  Widget build(BuildContext context) {
+    ref.listen(recentlyAddedAlbumsProvider, (_, next) {
+      if (_cachedAlbums == null && next.hasValue) {
+        setState(() {
+          _cachedAlbums = next.value!.toList(growable: false);
+        });
+      }
+    });
+
+    if (_cachedAlbums == null) {
+      final initial = ref.read(recentlyAddedAlbumsProvider);
+      if (initial.hasValue) {
+        _cachedAlbums = initial.value!.toList(growable: false);
+      }
+    }
+
+    if (_cachedAlbums != null) {
+      if (_cachedAlbums!.isEmpty) return const SizedBox.shrink();
+      return _HorizontalAlbumSection(
+        title: widget.l10n.recentlyAdded,
+        albums: _cachedAlbums!,
+        horizontalPadding: widget.horizontalPadding,
+        contentLeftPadding: widget.contentLeftPadding,
+        onViewAll: widget.onViewAll,
+        l10n: widget.l10n,
+        isWide: widget.isWide,
+      );
+    }
+
+    return const SizedBox.shrink();
   }
 }
 
 // ---------------------------------------------------------------------------
 // 7. 已评分（专辑横向流）
 // ---------------------------------------------------------------------------
-class _TopRatedAlbumsSection extends ConsumerWidget {
+class _TopRatedAlbumsSection extends ConsumerStatefulWidget {
   const _TopRatedAlbumsSection({
     required this.horizontalPadding,
     required this.onViewAll,
@@ -1527,33 +1548,53 @@ class _TopRatedAlbumsSection extends ConsumerWidget {
   final double contentLeftPadding;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final asyncAlbums = ref.watch(topRatedAlbumsProvider);
+  ConsumerState<_TopRatedAlbumsSection> createState() =>
+      _TopRatedAlbumsSectionState();
+}
 
-    return asyncAlbums.when(
-      data: (albums) {
-        if (albums.isEmpty) return const SizedBox.shrink();
-        return _HorizontalAlbumSection(
-          title: l10n.ratedSongs,
-          subtitle: l10n.ratedSongsSubtitle,
-          albums: albums,
-          horizontalPadding: horizontalPadding,
-          contentLeftPadding: contentLeftPadding,
-          onViewAll: onViewAll,
-          l10n: l10n,
-          isWide: isWide,
-        );
-      },
-      loading: () => const SizedBox.shrink(),
-      error: (_, _) => const SizedBox.shrink(),
-    );
+class _TopRatedAlbumsSectionState
+    extends ConsumerState<_TopRatedAlbumsSection> {
+  List<AlbumSummary>? _cachedAlbums;
+
+  @override
+  Widget build(BuildContext context) {
+    ref.listen(topRatedAlbumsProvider, (_, next) {
+      if (_cachedAlbums == null && next.hasValue) {
+        setState(() {
+          _cachedAlbums = next.value!.toList(growable: false);
+        });
+      }
+    });
+
+    if (_cachedAlbums == null) {
+      final initial = ref.read(topRatedAlbumsProvider);
+      if (initial.hasValue) {
+        _cachedAlbums = initial.value!.toList(growable: false);
+      }
+    }
+
+    if (_cachedAlbums != null) {
+      if (_cachedAlbums!.isEmpty) return const SizedBox.shrink();
+      return _HorizontalAlbumSection(
+        title: widget.l10n.ratedSongs,
+        subtitle: widget.l10n.ratedSongsSubtitle,
+        albums: _cachedAlbums!,
+        horizontalPadding: widget.horizontalPadding,
+        contentLeftPadding: widget.contentLeftPadding,
+        onViewAll: widget.onViewAll,
+        l10n: widget.l10n,
+        isWide: widget.isWide,
+      );
+    }
+
+    return const SizedBox.shrink();
   }
 }
 
 // ---------------------------------------------------------------------------
 // 8. 独立通栏：专辑
 // ---------------------------------------------------------------------------
-class _AlbumsRowSection extends ConsumerWidget {
+class _AlbumsRowSection extends ConsumerStatefulWidget {
   const _AlbumsRowSection({
     required this.horizontalPadding,
     required this.onViewAll,
@@ -1569,25 +1610,43 @@ class _AlbumsRowSection extends ConsumerWidget {
   final double contentLeftPadding;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final asyncAlbums = ref.watch(albumLibraryProvider);
+  ConsumerState<_AlbumsRowSection> createState() => _AlbumsRowSectionState();
+}
 
-    return asyncAlbums.when(
-      data: (albums) {
-        if (albums.isEmpty) return const SizedBox.shrink();
-        return _HorizontalAlbumSection(
-          title: l10n.albums,
-          albums: albums,
-          horizontalPadding: horizontalPadding,
-          contentLeftPadding: contentLeftPadding,
-          onViewAll: onViewAll,
-          l10n: l10n,
-          isWide: isWide,
-        );
-      },
-      loading: () => const SizedBox.shrink(),
-      error: (_, _) => const SizedBox.shrink(),
-    );
+class _AlbumsRowSectionState extends ConsumerState<_AlbumsRowSection> {
+  List<AlbumSummary>? _cachedAlbums;
+
+  @override
+  Widget build(BuildContext context) {
+    ref.listen(albumLibraryProvider, (_, next) {
+      if (_cachedAlbums == null && next.hasValue) {
+        setState(() {
+          _cachedAlbums = next.value!.toList(growable: false);
+        });
+      }
+    });
+
+    if (_cachedAlbums == null) {
+      final initial = ref.read(albumLibraryProvider);
+      if (initial.hasValue) {
+        _cachedAlbums = initial.value!.toList(growable: false);
+      }
+    }
+
+    if (_cachedAlbums != null) {
+      if (_cachedAlbums!.isEmpty) return const SizedBox.shrink();
+      return _HorizontalAlbumSection(
+        title: widget.l10n.albums,
+        albums: _cachedAlbums!,
+        horizontalPadding: widget.horizontalPadding,
+        contentLeftPadding: widget.contentLeftPadding,
+        onViewAll: widget.onViewAll,
+        l10n: widget.l10n,
+        isWide: widget.isWide,
+      );
+    }
+
+    return const SizedBox.shrink();
   }
 }
 
@@ -1708,6 +1767,7 @@ class _ArtistsRowSectionState extends ConsumerState<_ArtistsRowSection> {
   final Set<String> _prefetchedKeys = <String>{};
   StreamSubscription<String>? _imageUpdateSub;
   Timer? _debounceInvalidateTimer;
+  List<ArtistSummary>? _cachedArtists;
 
   @override
   void initState() {
@@ -1745,71 +1805,82 @@ class _ArtistsRowSectionState extends ConsumerState<_ArtistsRowSection> {
 
   @override
   Widget build(BuildContext context) {
-    final asyncArtists = ref.watch(artistLibraryProvider);
+    ref.listen(artistLibraryProvider, (_, next) {
+      if (_cachedArtists == null && next.hasValue) {
+        setState(() {
+          _cachedArtists = next.value!.toList(growable: false);
+        });
+      }
+    });
 
-    final scale = widget.isWide
-        ? kDashboardDesktopCoverScale
-        : kDashboardMobileCoverScale;
-    final avatarDiameter = (96.0 * scale).roundToDouble();
-    final cardWidth = avatarDiameter;
-    final listHeight = avatarDiameter + 52.0;
-    final separatorWidth = widget.isWide ? 18.0 : 16.0;
+    if (_cachedArtists == null) {
+      final initial = ref.read(artistLibraryProvider);
+      if (initial.hasValue) {
+        _cachedArtists = initial.value!.toList(growable: false);
+      }
+    }
 
-    return asyncArtists.when(
-      data: (artists) {
-        if (artists.isEmpty) return const SizedBox.shrink();
-        final preview = artists.take(12).toList();
-        _prefetchDisplayedArtists(preview);
+    if (_cachedArtists != null) {
+      if (_cachedArtists!.isEmpty) return const SizedBox.shrink();
+      final preview = _cachedArtists!.take(12).toList();
+      _prefetchDisplayedArtists(preview);
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: EdgeInsets.only(
-                left: widget.contentLeftPadding + widget.horizontalPadding,
-                right: widget.horizontalPadding,
-              ),
-              child: _SectionHeader(
-                title: widget.l10n.artists,
-                onViewAll: widget.onViewAll,
-                l10n: widget.l10n,
-              ),
+      final scale = widget.isWide
+          ? kDashboardDesktopCoverScale
+          : kDashboardMobileCoverScale;
+      final avatarDiameter = (96.0 * scale).roundToDouble();
+      final cardWidth = avatarDiameter;
+      final listHeight = avatarDiameter + 52.0;
+      final separatorWidth = widget.isWide ? 18.0 : 16.0;
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: EdgeInsets.only(
+              left: widget.contentLeftPadding + widget.horizontalPadding,
+              right: widget.horizontalPadding,
             ),
-            const SizedBox(height: 12),
-            _CarouselScrollWrapper(
-              height: listHeight,
-              centerHeight: avatarDiameter,
-              buttonPadding: widget.horizontalPadding > 20 ? 14.0 : 8.0,
-              leftButtonOffset: widget.contentLeftPadding,
-              builder: (context, controller) {
-                return ListView.separated(
-                  controller: controller,
-                  scrollDirection: Axis.horizontal,
-                  physics: const BouncingScrollPhysics(),
-                  padding: EdgeInsets.only(
-                    left: widget.contentLeftPadding + widget.horizontalPadding,
-                    right: widget.horizontalPadding,
-                  ),
-                  itemCount: preview.length,
-                  separatorBuilder: (_, _) => SizedBox(width: separatorWidth),
-                  itemBuilder: (context, index) {
-                    final artist = preview[index];
-                    return _DashboardArtistItem(
-                      artist: artist,
-                      avatarDiameter: avatarDiameter,
-                      cardWidth: cardWidth,
-                      isWide: widget.isWide,
-                    );
-                  },
-                );
-              },
+            child: _SectionHeader(
+              title: widget.l10n.artists,
+              onViewAll: widget.onViewAll,
+              l10n: widget.l10n,
             ),
-          ],
-        );
-      },
-      loading: () => const SizedBox.shrink(),
-      error: (_, _) => const SizedBox.shrink(),
-    );
+          ),
+          const SizedBox(height: 12),
+          _CarouselScrollWrapper(
+            height: listHeight,
+            centerHeight: avatarDiameter,
+            buttonPadding: widget.horizontalPadding > 20 ? 14.0 : 8.0,
+            leftButtonOffset: widget.contentLeftPadding,
+            builder: (context, controller) {
+              return ListView.separated(
+                controller: controller,
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                padding: EdgeInsets.only(
+                  left: widget.contentLeftPadding + widget.horizontalPadding,
+                  right: widget.horizontalPadding,
+                ),
+                itemCount: preview.length,
+                separatorBuilder: (_, _) => SizedBox(width: separatorWidth),
+                itemBuilder: (context, index) {
+                  final artist = preview[index];
+                  return _DashboardArtistItem(
+                    artist: artist,
+                    avatarDiameter: avatarDiameter,
+                    cardWidth: cardWidth,
+                    isWide: widget.isWide,
+                  );
+                },
+              );
+            },
+          ),
+        ],
+      );
+    }
+
+    return const SizedBox.shrink();
   }
 }
 
@@ -1941,7 +2012,7 @@ class _DashboardArtistItemState extends ConsumerState<_DashboardArtistItem> {
 // ---------------------------------------------------------------------------
 // 独立通栏：流派（只展示有歌曲的流派）
 // ---------------------------------------------------------------------------
-class _GenresRowSection extends ConsumerWidget {
+class _GenresRowSection extends ConsumerStatefulWidget {
   const _GenresRowSection({
     required this.horizontalPadding,
     required this.l10n,
@@ -1955,63 +2026,81 @@ class _GenresRowSection extends ConsumerWidget {
   final double contentLeftPadding;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final asyncGenres = ref.watch(genreLibraryProvider);
+  ConsumerState<_GenresRowSection> createState() => _GenresRowSectionState();
+}
 
-    return asyncGenres.when(
-      data: (genres) {
-        if (genres.isEmpty) return const SizedBox.shrink();
+class _GenresRowSectionState extends ConsumerState<_GenresRowSection> {
+  List<GenreSummary>? _cachedGenres;
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
+  @override
+  Widget build(BuildContext context) {
+    ref.listen(genreLibraryProvider, (_, next) {
+      if (_cachedGenres == null && next.hasValue) {
+        setState(() {
+          _cachedGenres = next.value!.toList(growable: false);
+        });
+      }
+    });
+
+    if (_cachedGenres == null) {
+      final initial = ref.read(genreLibraryProvider);
+      if (initial.hasValue) {
+        _cachedGenres = initial.value!.toList(growable: false);
+      }
+    }
+
+    if (_cachedGenres != null) {
+      if (_cachedGenres!.isEmpty) return const SizedBox.shrink();
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: EdgeInsets.only(
+              left: widget.contentLeftPadding + widget.horizontalPadding,
+              right: widget.horizontalPadding,
+            ),
+            child: _SectionHeader(
+              title: widget.l10n.genres,
+              onViewAll: widget.onViewAll,
+              l10n: widget.l10n,
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 80,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
               padding: EdgeInsets.only(
-                left: contentLeftPadding + horizontalPadding,
-                right: horizontalPadding,
+                left: widget.contentLeftPadding + widget.horizontalPadding,
+                right: widget.horizontalPadding,
               ),
-              child: _SectionHeader(
-                title: l10n.genres,
-                onViewAll: onViewAll,
-                l10n: l10n,
-              ),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              height: 80,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                physics: const BouncingScrollPhysics(),
-                padding: EdgeInsets.only(
-                  left: contentLeftPadding + horizontalPadding,
-                  right: horizontalPadding,
-                ),
-                itemCount: genres.length,
-                separatorBuilder: (_, _) => const SizedBox(width: 12),
-                itemBuilder: (context, index) {
-                  final genre = genres[index];
-                  return _GenreCard(
-                    genre: genre,
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          settings: const RouteSettings(
-                            name: 'genre_detail',
-                          ),
-                          builder: (_) => GenreDetailPage(genre: genre),
+              itemCount: _cachedGenres!.length,
+              separatorBuilder: (_, _) => const SizedBox(width: 12),
+              itemBuilder: (context, index) {
+                final genre = _cachedGenres![index];
+                return _GenreCard(
+                  genre: genre,
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        settings: const RouteSettings(
+                          name: 'genre_detail',
                         ),
-                      );
-                    },
-                  );
-                },
-              ),
+                        builder: (_) => GenreDetailPage(genre: genre),
+                      ),
+                    );
+                  },
+                );
+              },
             ),
-          ],
-        );
-      },
-      loading: () => const SizedBox.shrink(),
-      error: (_, _) => const SizedBox.shrink(),
-    );
+          ),
+        ],
+      );
+    }
+
+    return const SizedBox.shrink();
   }
 }
 
