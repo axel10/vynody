@@ -658,5 +658,116 @@ void main() {
     scaleWidget = tester.widget(animatedScaleFinder);
     expect(scaleWidget.scale, closeTo(0.95, 0.001));
   });
+
+  testWidgets(
+      'FloatingDockScrollHelper supports mouse wheel step-by-step scrolling with debounce',
+      (tester) async {
+    late WidgetRef capturedRef;
+    late BuildContext capturedContext;
+    final helper = FloatingDockScrollHelper();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          home: Scaffold(
+            body: Consumer(
+              builder: (context, ref, _) {
+                capturedRef = ref;
+                capturedContext = context;
+                return const SizedBox();
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final metricsMid = FixedScrollMetrics(
+      minScrollExtent: 0,
+      maxScrollExtent: 1000,
+      pixels: 50,
+      viewportDimension: 500,
+      axisDirection: AxisDirection.down,
+      devicePixelRatio: 1.0,
+    );
+
+    // 1. 模拟鼠标滚轮向下滚第 1 格 (30px)，紧跟 ScrollEndNotification
+    helper.handleScrollNotification(
+      ScrollUpdateNotification(
+        metrics: metricsMid,
+        context: capturedContext,
+        scrollDelta: 30.0,
+      ),
+      capturedRef,
+    );
+    helper.handleScrollNotification(
+      ScrollEndNotification(
+        metrics: metricsMid,
+        context: capturedContext,
+      ),
+      capturedRef,
+    );
+    expect(capturedRef.read(floatingDockCollapsedProvider), false);
+
+    // 2. 模拟鼠标滚轮在防抖窗口期内继续向下滚第 2 格 (30px)，紧跟 ScrollEndNotification
+    helper.handleScrollNotification(
+      ScrollUpdateNotification(
+        metrics: metricsMid,
+        context: capturedContext,
+        scrollDelta: 30.0,
+      ),
+      capturedRef,
+    );
+    helper.handleScrollNotification(
+      ScrollEndNotification(
+        metrics: metricsMid,
+        context: capturedContext,
+      ),
+      capturedRef,
+    );
+    expect(capturedRef.read(floatingDockCollapsedProvider), false);
+
+    // 3. 模拟滚第 3 格 (20px，总计 30+30+20 = 80px >= 72px) -> 触发收起
+    helper.handleScrollNotification(
+      ScrollUpdateNotification(
+        metrics: metricsMid,
+        context: capturedContext,
+        scrollDelta: 20.0,
+      ),
+      capturedRef,
+    );
+    expect(capturedRef.read(floatingDockCollapsedProvider), true);
+
+    // 4. 收起状态下，模拟鼠标向上滚第 1 格 (-35px) 和 ScrollEndNotification
+    helper.handleScrollNotification(
+      ScrollUpdateNotification(
+        metrics: metricsMid,
+        context: capturedContext,
+        scrollDelta: -35.0,
+      ),
+      capturedRef,
+    );
+    helper.handleScrollNotification(
+      ScrollEndNotification(
+        metrics: metricsMid,
+        context: capturedContext,
+      ),
+      capturedRef,
+    );
+    expect(capturedRef.read(floatingDockCollapsedProvider), true);
+
+    // 5. 向上滚第 2 格 (-40px，总计 35+40 = 75px >= 72px) -> 触发展开
+    helper.handleScrollNotification(
+      ScrollUpdateNotification(
+        metrics: metricsMid,
+        context: capturedContext,
+        scrollDelta: -40.0,
+      ),
+      capturedRef,
+    );
+    expect(capturedRef.read(floatingDockCollapsedProvider), false);
+
+    helper.dispose();
+  });
 }
 

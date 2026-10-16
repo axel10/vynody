@@ -173,6 +173,36 @@ final libraryActiveTabIndexProvider =
       LibraryActiveTabIndexNotifier.new,
     );
 
+class SelectedGenreKeyNotifier extends Notifier<String?> {
+  @override
+  String? build() => null;
+
+  void set(String? value) {
+    if (!ref.mounted) return;
+    state = value;
+  }
+}
+
+final selectedGenreKeyProvider =
+    NotifierProvider<SelectedGenreKeyNotifier, String?>(
+  SelectedGenreKeyNotifier.new,
+);
+
+class SelectedArtistKeyNotifier extends Notifier<String?> {
+  @override
+  String? build() => null;
+
+  void set(String? value) {
+    if (!ref.mounted) return;
+    state = value;
+  }
+}
+
+final selectedArtistKeyProvider =
+    NotifierProvider<SelectedArtistKeyNotifier, String?>(
+  SelectedArtistKeyNotifier.new,
+);
+
 final isCoverFlowImmersiveActiveProvider = Provider<bool>((ref) {
   final mainIndex = ref.watch(mainTabIndexProvider);
   final libIndex = ref.watch(libraryActiveTabIndexProvider);
@@ -245,6 +275,7 @@ class FloatingDockScrollHelper {
   FloatingDockScrollHelper({
     this.collapseScrollThreshold = 72.0,
     this.expandScrollThreshold = 72.0,
+    this.scrollEndResetDebounce = const Duration(milliseconds: 400),
   });
 
   /// 触发收起所需的向下累计滚动距离 (逻辑像素)
@@ -253,13 +284,36 @@ class FloatingDockScrollHelper {
   /// 触发展开所需的向上累计滚动距离 (逻辑像素)
   final double expandScrollThreshold;
 
+  /// 滚动间歇清空累计距离的防抖时长 (兼容脉冲式的鼠标滚轮连续滚动累加)
+  final Duration scrollEndResetDebounce;
+
   double _accumulatedDownScroll = 0.0;
   double _accumulatedUpScroll = 0.0;
+  Timer? _resetDebounceTimer;
+
+  void dispose() {
+    _resetDebounceTimer?.cancel();
+    _resetDebounceTimer = null;
+  }
 
   void reset(WidgetRef ref) {
+    _resetDebounceTimer?.cancel();
     _accumulatedDownScroll = 0.0;
     _accumulatedUpScroll = 0.0;
-    ref.read(floatingDockCollapseProgressProvider.notifier).reset();
+    if (ref.context.mounted) {
+      ref.read(floatingDockCollapseProgressProvider.notifier).reset();
+    }
+  }
+
+  void _scheduleReset(WidgetRef ref) {
+    _resetDebounceTimer?.cancel();
+    _resetDebounceTimer = Timer(scrollEndResetDebounce, () {
+      _accumulatedDownScroll = 0.0;
+      _accumulatedUpScroll = 0.0;
+      if (ref.context.mounted) {
+        ref.read(floatingDockCollapseProgressProvider.notifier).reset();
+      }
+    });
   }
 
   bool handleScrollNotification(
@@ -274,6 +328,7 @@ class FloatingDockScrollHelper {
 
     // 接近顶部缓冲区时，展开 Dock 并清空所有累计距离
     if (notification.metrics.pixels <= 20.0) {
+      _resetDebounceTimer?.cancel();
       _accumulatedDownScroll = 0.0;
       _accumulatedUpScroll = 0.0;
       ref.read(floatingDockCollapseProgressProvider.notifier).reset();
@@ -287,6 +342,7 @@ class FloatingDockScrollHelper {
     final isNearBottom = notification.metrics.maxScrollExtent > 0 &&
         notification.metrics.pixels >= notification.metrics.maxScrollExtent - 20.0;
     if (isNearBottom) {
+      _resetDebounceTimer?.cancel();
       _accumulatedDownScroll = 0.0;
       _accumulatedUpScroll = 0.0;
       ref.read(floatingDockCollapseProgressProvider.notifier).reset();
@@ -296,29 +352,33 @@ class FloatingDockScrollHelper {
       return false;
     }
 
-    // 若已经收起，判断向上滚动展开（单次手势达到阈值展开，换向或松手清零）
+    // 若已经收起，判断向上滚动展开（防抖窗口期内累计达到阈值展开，向下滚动或超时清零）
     if (isCollapsed) {
       if (_accumulatedDownScroll != 0.0) {
         _accumulatedDownScroll = 0.0;
         ref.read(floatingDockCollapseProgressProvider.notifier).reset();
       }
 
-      // 手势换向或手势结束（松手）：清空向上累计，保证慢速小幅微调不误触
-      if (notification is UserScrollNotification ||
-          notification is ScrollEndNotification) {
-        _accumulatedUpScroll = 0.0;
-      } else if (notification is ScrollUpdateNotification) {
+      if (notification is ScrollUpdateNotification) {
         final dy = notification.scrollDelta ?? 0.0;
         if (dy > 0) {
           // 向下滚动：重置向上累计
+          _resetDebounceTimer?.cancel();
           _accumulatedUpScroll = 0.0;
         } else if (dy < 0) {
           // 向上滚动（dy < 0，对应内容向下移动）
+          _resetDebounceTimer?.cancel();
           _accumulatedUpScroll += -dy;
           if (_accumulatedUpScroll >= expandScrollThreshold) {
             _accumulatedUpScroll = 0.0;
             ref.read(floatingDockCollapsedProvider.notifier).setCollapsed(false);
+          } else {
+            _scheduleReset(ref);
           }
+        }
+      } else if (notification is ScrollEndNotification) {
+        if (_accumulatedUpScroll > 0.0) {
+          _scheduleReset(ref);
         }
       }
       return false;
@@ -329,8 +389,9 @@ class FloatingDockScrollHelper {
 
     if (notification is ScrollUpdateNotification) {
       final dy = notification.scrollDelta ?? 0.0;
-      if (notification.metrics.pixels > 30.0) {
+      if (notification.metrics.pixels > 20.0) {
         if (dy > 0) {
+          _resetDebounceTimer?.cancel();
           _accumulatedDownScroll += dy;
           if (_accumulatedDownScroll >= collapseScrollThreshold) {
             _accumulatedDownScroll = 0.0;
@@ -342,8 +403,10 @@ class FloatingDockScrollHelper {
             ref
                 .read(floatingDockCollapseProgressProvider.notifier)
                 .setProgress(progress);
+            _scheduleReset(ref);
           }
         } else if (dy < 0) {
+          _resetDebounceTimer?.cancel();
           _accumulatedDownScroll = (_accumulatedDownScroll + dy * 1.5)
               .clamp(0.0, collapseScrollThreshold);
           final progress = (_accumulatedDownScroll / collapseScrollThreshold)
@@ -351,12 +414,16 @@ class FloatingDockScrollHelper {
           ref
               .read(floatingDockCollapseProgressProvider.notifier)
               .setProgress(progress);
+          if (_accumulatedDownScroll > 0.0) {
+            _scheduleReset(ref);
+          }
         }
       }
     } else if (notification is ScrollEndNotification) {
+      // 滚动停止时视觉缩小进度立即复位，累计位移通过防抖延时清零（兼顾脉冲式滚轮连续累加）
+      ref.read(floatingDockCollapseProgressProvider.notifier).reset();
       if (_accumulatedDownScroll > 0.0) {
-        _accumulatedDownScroll = 0.0;
-        ref.read(floatingDockCollapseProgressProvider.notifier).reset();
+        _scheduleReset(ref);
       }
     }
 

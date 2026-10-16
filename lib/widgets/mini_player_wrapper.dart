@@ -33,6 +33,12 @@ class _MiniPlayerWrapperState extends ConsumerState<MiniPlayerWrapper> {
   final FloatingDockScrollHelper _dockScrollHelper = FloatingDockScrollHelper();
 
   @override
+  void dispose() {
+    _dockScrollHelper.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final settings = ref.watch(settingsServiceProvider);
     final currentTabIndex = ref.watch(mainTabIndexProvider);

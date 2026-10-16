@@ -473,6 +473,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
 
   @override
   void dispose() {
+    _dockScrollHelper.dispose();
     _playbackDrawerAnimController.dispose();
     _windowResizeDebounceTimer?.cancel();
     _mouseInactiveTimer?.cancel();
