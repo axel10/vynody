@@ -157,11 +157,17 @@ final isAlbum3DViewActiveProvider =
       IsAlbum3DViewActiveNotifier.new,
     );
 
-class LibraryActiveTabIndexNotifier extends Notifier<int> {
+/// 媒体库二级分类的当前索引。
+///
+/// `null` 表示「当前不在任何二级页」（即停在媒体库仪表盘），其余情况恒为
+/// `[0, 8]` 区间内的合法索引。此前用 `-1` 同时兼任「不在二级页」与「索引」
+/// 两种语义，导致宿主页把 `-1` clamp 成 `0`（播放列表）后出现离场闪烁；
+/// 改为可空类型后二者彻底分离，索引不再可能出现非法负值。
+class LibraryActiveTabIndexNotifier extends Notifier<int?> {
   @override
-  int build() => -1;
+  int? build() => null;
 
-  void set(int value) {
+  void set(int? value) {
     if (state != value) {
       state = value;
     }
@@ -169,7 +175,7 @@ class LibraryActiveTabIndexNotifier extends Notifier<int> {
 }
 
 final libraryActiveTabIndexProvider =
-    NotifierProvider<LibraryActiveTabIndexNotifier, int>(
+    NotifierProvider<LibraryActiveTabIndexNotifier, int?>(
       LibraryActiveTabIndexNotifier.new,
     );
 

@@ -134,8 +134,8 @@ class LibraryPageState extends ConsumerState<LibraryPage> {
     _navigatorKey.currentState?.push(route).then((_) {
       AppLog.log('[NavTrace] LibraryPage: subHost route popped! isSubHostPushed=false', mirrorToConsole: true);
       _isSubHostPushed = false;
-      if (mounted && ref.read(libraryActiveTabIndexProvider) != -1) {
-        ref.read(libraryActiveTabIndexProvider.notifier).set(-1);
+      if (mounted && ref.read(libraryActiveTabIndexProvider) != null) {
+        ref.read(libraryActiveTabIndexProvider.notifier).set(null);
       }
     });
   }
@@ -186,8 +186,8 @@ class LibraryPageState extends ConsumerState<LibraryPage> {
   @override
   Widget build(BuildContext context) {
     // 监听全局或 Rail 触发的子分类索引变更
-    ref.listen<int>(libraryActiveTabIndexProvider, (previous, next) {
-      if (next >= 0) {
+    ref.listen<int?>(libraryActiveTabIndexProvider, (previous, next) {
+      if (next != null) {
         if (!_isSubHostPushed) {
           _openSubHost(next);
         } else {
@@ -197,7 +197,7 @@ class LibraryPageState extends ConsumerState<LibraryPage> {
                 route.settings.name == 'library_sub_host' || route.isFirst,
           );
         }
-      } else if (next == -1 && _isSubHostPushed) {
+      } else if (_isSubHostPushed) {
         // 重置为仪表盘，退回根路由
         _navigatorKey.currentState?.popUntil((route) => route.isFirst);
       }
@@ -212,10 +212,10 @@ class LibraryPageState extends ConsumerState<LibraryPage> {
         key: _navigatorKey,
         observers: [_heroController],
         onGenerateInitialRoutes: (navigator, initialRoute) {
-          final persistedIndex = ref.read(libraryActiveTabIndexProvider);
+          final int? persistedIndex = ref.read(libraryActiveTabIndexProvider);
           final bool hasDeepLink =
               widget.initialAlbums3DView || widget.initialTabIndex != 0;
-          final int targetIndex = widget.initialAlbums3DView
+          final int? targetIndex = widget.initialAlbums3DView
               ? 4
               : (widget.initialTabIndex != 0
                   ? widget.initialTabIndex
@@ -227,7 +227,7 @@ class LibraryPageState extends ConsumerState<LibraryPage> {
           );
 
           final routes = <Route<void>>[_buildDashboardRoute()];
-          if (hasDeepLink || targetIndex >= 0) {
+          if (hasDeepLink || targetIndex != null) {
             _isSubHostPushed = true;
             final subRoute = _buildSubHostRoute(
               initialAlbums3DView: widget.initialAlbums3DView,
@@ -235,12 +235,12 @@ class LibraryPageState extends ConsumerState<LibraryPage> {
             );
             subRoute.popped.then((_) {
               AppLog.log(
-                '[NavTrace] LibraryPage subRoute (initial) POPPED! Resetting libraryActiveTabIndexProvider to -1',
+                '[NavTrace] LibraryPage subRoute (initial) POPPED! Resetting libraryActiveTabIndexProvider to null',
                 mirrorToConsole: true,
               );
               _isSubHostPushed = false;
-              if (mounted && ref.read(libraryActiveTabIndexProvider) != -1) {
-                ref.read(libraryActiveTabIndexProvider.notifier).set(-1);
+              if (mounted && ref.read(libraryActiveTabIndexProvider) != null) {
+                ref.read(libraryActiveTabIndexProvider.notifier).set(null);
               }
             });
             routes.add(subRoute);
@@ -273,6 +273,13 @@ class LibrarySubHostPage extends ConsumerStatefulWidget {
 class _LibrarySubHostPageState extends ConsumerState<LibrarySubHostPage> {
   final Set<int> _builtSubTabs = {};
 
+  /// 最后一次有效的子分类索引。
+  /// 退出二级页时 [libraryActiveTabIndexProvider] 会被置回 null（语义是「回到仪表盘」），
+  /// 而 route.popped / push().then() 是在 pop 被调用的瞬间就完成的（不等离场动画结束），
+  /// 宿主页在离场动画播放期间仍会重建一次。此处在 provider 为 null 时冻结上一帧的
+  /// 索引，避免离场瞬间 IndexedStack 回落到默认页造成视觉跳变。
+  int _lastSubIndex = 0;
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -285,8 +292,11 @@ class _LibrarySubHostPageState extends ConsumerState<LibrarySubHostPage> {
     final double topPadding = headerHeight;
     final double leftPadding = railWidth;
 
-    final int activeIndex = ref.watch(libraryActiveTabIndexProvider);
-    final int clampedIndex = activeIndex.clamp(0, 8);
+    final int? activeIndex = ref.watch(libraryActiveTabIndexProvider);
+    if (activeIndex != null) {
+      _lastSubIndex = activeIndex.clamp(0, 8);
+    }
+    final int clampedIndex = _lastSubIndex;
     _builtSubTabs.add(clampedIndex);
 
     final String title = switch (clampedIndex) {

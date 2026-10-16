@@ -51,7 +51,7 @@ class _FixedLibraryTabIndexNotifier extends LibraryActiveTabIndexNotifier {
   final int _index;
 
   @override
-  int build() => _index;
+  int? build() => _index;
 }
 
 void main() {

@@ -1425,7 +1425,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                                     .read(
                                       libraryActiveTabIndexProvider.notifier,
                                     )
-                                    .set(-1);
+                                    .set(null);
                               }
                               _onDestinationSelected(index);
                             },
@@ -1732,7 +1732,8 @@ class SlidingNavigationRail extends ConsumerStatefulWidget {
   final bool isPlayback;
   final bool isSettingsActive;
   final bool isLibraryExpanded;
-  final int librarySubIndex;
+  /// 当前选中的媒体库二级分类索引；null 表示停在媒体库仪表盘
+  final int? librarySubIndex;
   final ValueChanged<int> onLibrarySubDestinationSelected;
 
   const SlidingNavigationRail({
@@ -1908,17 +1909,18 @@ class _SlidingNavigationRailState extends ConsumerState<SlidingNavigationRail> {
       0,
       destinations.length - 1,
     );
-    final bool isLibrarySubActive = widget.librarySubIndex >= 0;
+    final int? activeSubIndex = widget.librarySubIndex;
+    final bool isLibrarySubActive = activeSubIndex != null;
 
     // 设置页固定钉在左下角，其余条目放进可滚动区
     final rows = <_RailRow>[];
     int pillRow = -1;
 
     final bool hasVisibleActiveSub =
-        isLibrarySubActive &&
-        widget.librarySubIndex < librarySubDestinations.length &&
+        activeSubIndex != null &&
+        activeSubIndex < librarySubDestinations.length &&
         settings.isLibraryTabVisible(
-          librarySubDestinations[widget.librarySubIndex].id,
+          librarySubDestinations[activeSubIndex].id,
         );
 
     // 1. 上方主要导航区：文件(0)、播放(1)、媒体库(2)、队列(3)、分享(4)
@@ -2223,11 +2225,11 @@ class _SlidingNavigationRailState extends ConsumerState<SlidingNavigationRail> {
           setState(() {
             _isEditingLibrary = false;
           });
-          final currentSub = ref.read(libraryActiveTabIndexProvider);
-          if (currentSub >= 0 && currentSub < subDestinations.length) {
+          final int? currentSub = ref.read(libraryActiveTabIndexProvider);
+          if (currentSub != null && currentSub < subDestinations.length) {
             final id = subDestinations[currentSub].id;
             if (!ref.read(settingsServiceProvider).isLibraryTabVisible(id)) {
-              ref.read(libraryActiveTabIndexProvider.notifier).set(-1);
+              ref.read(libraryActiveTabIndexProvider.notifier).set(null);
             }
           }
         },

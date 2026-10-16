@@ -19,7 +19,7 @@ void main() {
 
   Widget buildRail({
     int selectedIndex = 2,
-    int librarySubIndex = -1,
+    int? librarySubIndex,
     bool isLibraryExpanded = true,
     bool extended = true,
   }) {
@@ -50,8 +50,8 @@ void main() {
     );
   }
 
-  testWidgets('When librarySubIndex is -1, playlist is not selected', (tester) async {
-    await tester.pumpWidget(buildRail(librarySubIndex: -1));
+  testWidgets('When librarySubIndex is null, playlist is not selected', (tester) async {
+    await tester.pumpWidget(buildRail());
     await tester.pumpAndSettle();
 
     // Verify 媒体库 and sub-items are rendered
@@ -65,7 +65,7 @@ void main() {
 
   testWidgets('Hovering 媒体库 shows 编辑 button, clicking it enters edit mode with checkboxes',
       (tester) async {
-    await tester.pumpWidget(buildRail(librarySubIndex: -1));
+    await tester.pumpWidget(buildRail());
     await tester.pumpAndSettle();
 
     // Simulate mouse hover over 媒体库 section header row
