@@ -624,7 +624,12 @@ class _MyAppState extends ConsumerState<MyApp>
       useMaterial3: true,
       pageTransitionsTheme: const PageTransitionsTheme(
         builders: {
-          TargetPlatform.android: ZoomPageTransitionsBuilder(),
+          // Android 关闭 Zoom 转场的快照：SnapshotWidget 会在返回时把下层页面的当前
+          // 画面截成静态图播完整个转场，而恢复绘制的第一帧 ink 水波纹还没被 tick 归零，
+          // 于是「返回时入口残留高亮」被定格到动画结束（详见 .workbuddy/memory/2026-10-16.md）。
+          TargetPlatform.android: ZoomPageTransitionsBuilder(
+            allowSnapshotting: false,
+          ),
           TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
           TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
           TargetPlatform.windows: ZoomPageTransitionsBuilder(),

@@ -141,6 +141,25 @@ FFMPEG_BASE_URL=https://github.com/axel10/audio_core/releases/download
 即「禁止离开」只有提示没有拦截。已改为：删掉 `sharing_page.dart` 的 PopScope，
 在 `_handleBackPressed()` 里加 index 4 分支。
 
+## 页面转场与 ink 反馈（Android）
+
+`lib/main.dart` 的 `pageTransitionsTheme` 里 **android 必须用
+`ZoomPageTransitionsBuilder(allowSnapshotting: false)`**（2026-10-16 真机验证后落地）。
+默认的 Zoom 转场中，`_ZoomExitTransition` 会给下层页面套 `SnapshotWidget`
+（动画进行中 `allowSnapshotting = true`），返回时把下层页面的**当前画面截成静态图**播完整个转场；
+而恢复绘制的第一帧，下层页面的 ink 水波纹还没被 tick 归零（页面被覆盖期间被
+`TickerMode(false)` 冻结，恢复后要等下一次 `handleBeginFrame` 才 tick），
+于是表现为「按返回键时上一页被点击的入口残留高亮，动画结束后消失」。
+
+相关事实：
+- ink 动画总时长（Android M3 默认 InkSparkle 617ms / InkRipple 225+375ms）远长于路由过渡
+  300ms，所以 push 完成时水波纹必然还停在中途 —— 这是该现象成立的前提。
+- iOS/macOS 走 Cupertino 转场、无 SnapshotWidget，所以没这个问题；
+  windows/linux 目前仍是默认 Zoom（同一机制存在，尚未处理）。
+- 换成 `FadeUpwardsPageTransitionsBuilder` 或全局去掉涟漪也能规避，但前者视觉不符、
+  后者丢失点击反馈，均不作为选项。
+- 排查全过程见 `2026-10-16.md`。
+
 ## 协作偏好
 
 - 称呼用户直接用「你」，不要用名字。
