@@ -22,6 +22,7 @@ import 'package:vynody/player/library/library_source_filter.dart';
 import 'package:vynody/player/settings/settings_service.dart';
 import '../widgets/artist_context_menu.dart';
 import '../widgets/master_detail_scaffold.dart';
+import 'main_layout_riverpod.dart';
 
 class ArtistsTab extends ConsumerStatefulWidget {
   final double contentTopPadding;
@@ -47,7 +48,6 @@ class _ArtistsTabState extends ConsumerState<ArtistsTab>
   String _searchQuery = '';
   ArtistSortField _sortField = ArtistSortField.artist;
   bool _sortAscending = true;
-  String? _selectedArtistKey;
 
   List<ArtistSummary>? _lastRawArtists;
   String? _lastSearchQuery;
@@ -165,9 +165,10 @@ class _ArtistsTabState extends ConsumerState<ArtistsTab>
 
         final isLandscape =
             MediaQuery.orientationOf(context) == Orientation.landscape;
+        final currentArtistKey = ref.watch(selectedArtistKeyProvider);
         final selectedArtist = visibleArtists.isNotEmpty
             ? visibleArtists.firstWhere(
-                (a) => a.queryKey == _selectedArtistKey,
+                (a) => a.queryKey == currentArtistKey,
                 orElse: () => visibleArtists.first,
               )
             : null;
@@ -206,12 +207,9 @@ class _ArtistsTabState extends ConsumerState<ArtistsTab>
         return MasterDetailScaffold<ArtistSummary>(
           items: visibleArtists,
           itemKey: (artist) => artist.queryKey,
-          selectedKey: _selectedArtistKey,
-          onSelectedKeyChanged: (key) {
-            setState(() {
-              _selectedArtistKey = key;
-            });
-          },
+          selectedKeyProvider: selectedArtistKeyProvider,
+          onKeySelected: (ref, key) =>
+              ref.read(selectedArtistKeyProvider.notifier).set(key),
           routeName: 'artist_detail',
           contentTopPadding: widget.contentTopPadding,
           contentLeftPadding: widget.contentLeftPadding,

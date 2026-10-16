@@ -10,6 +10,7 @@ import '../widgets/master_detail_scaffold.dart';
 import '../widgets/library_selection_scope.dart';
 import '../widgets/library_selection_panel.dart';
 import '../widgets/song_thumbnail.dart';
+import 'main_layout_riverpod.dart';
 
 class GenresTab extends ConsumerStatefulWidget {
   final double contentTopPadding;
@@ -35,7 +36,6 @@ class _GenresTabState extends ConsumerState<GenresTab>
   String _searchQuery = '';
   GenreSortField _sortField = GenreSortField.genre;
   bool _sortAscending = true;
-  String? _selectedGenreKey;
 
   List<GenreSummary>? _lastRawGenres;
   String? _lastSearchQuery;
@@ -160,9 +160,10 @@ class _GenresTabState extends ConsumerState<GenresTab>
 
         final isLandscape =
             MediaQuery.orientationOf(context) == Orientation.landscape;
+        final currentGenreKey = ref.watch(selectedGenreKeyProvider);
         final selectedGenre = visibleGenres.isNotEmpty
             ? visibleGenres.firstWhere(
-                (g) => g.queryKey == _selectedGenreKey,
+                (g) => g.queryKey == currentGenreKey,
                 orElse: () => visibleGenres.first,
               )
             : null;
@@ -201,12 +202,9 @@ class _GenresTabState extends ConsumerState<GenresTab>
         return MasterDetailScaffold<GenreSummary>(
           items: visibleGenres,
           itemKey: (genre) => genre.queryKey,
-          selectedKey: _selectedGenreKey,
-          onSelectedKeyChanged: (key) {
-            setState(() {
-              _selectedGenreKey = key;
-            });
-          },
+          selectedKeyProvider: selectedGenreKeyProvider,
+          onKeySelected: (ref, key) =>
+              ref.read(selectedGenreKeyProvider.notifier).set(key),
           routeName: 'genre_detail',
           contentTopPadding: widget.contentTopPadding,
           contentLeftPadding: widget.contentLeftPadding,

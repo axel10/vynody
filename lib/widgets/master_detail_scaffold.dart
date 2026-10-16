@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show ProviderListenable;
 import 'library_selection_scope.dart';
 import 'playback_ui_tuning.dart';
 
@@ -19,15 +21,17 @@ typedef MasterItemWidgetBuilder<T> = Widget Function(
 /// 3. 横竖屏旋转自适应：
 ///    - 竖屏下 Push 了二级详情页时若旋转到横屏，自动 pop 详情页回到两栏布局，状态零闪烁与零错位；
 ///    - 横屏下若用户显式点击了某个条目，拉到竖屏时自动推入对应的二级详情页；若用户未在横屏点击过条目，拉到竖屏则停留在主列表；
-/// 4. 选中项智能保持：横屏下确保选中项有效，支持外部受控与自动选中第一项；
+/// 4. 选中项智能保持：横屏下确保选中项有效，支持外部受控、通过 selectedKeyProvider 自动响应与自动选中第一项；
 /// 5. 多选面板自适应：自动处理横屏与竖屏下底部多选浮层的动画与避让高度。
-class MasterDetailScaffold<T> extends StatefulWidget {
+class MasterDetailScaffold<T> extends ConsumerStatefulWidget {
   const MasterDetailScaffold({
     super.key,
     required this.items,
     required this.itemKey,
-    required this.selectedKey,
-    required this.onSelectedKeyChanged,
+    this.selectedKey,
+    this.onSelectedKeyChanged,
+    this.selectedKeyProvider,
+    this.onKeySelected,
     required this.routeName,
     required this.masterItemBuilder,
     required this.detailBuilder,
@@ -53,11 +57,17 @@ class MasterDetailScaffold<T> extends StatefulWidget {
   /// 获取每个条目的唯一标识 Key
   final String Function(T item) itemKey;
 
-  /// 当前选中的条目 Key
+  /// 当前选中的条目 Key（外部受控模式）
   final String? selectedKey;
 
   /// 选中 Key 发生变化时的回调
-  final ValueChanged<String> onSelectedKeyChanged;
+  final ValueChanged<String>? onSelectedKeyChanged;
+
+  /// 选中的 key 的 Provider 监听源（用于跨路由/跨页面自动响应选中项变更）
+  final ProviderListenable<String?>? selectedKeyProvider;
+
+  /// 当在列表手动切换选中 key 时，若传入了此回调，自动回写 Provider
+  final void Function(WidgetRef ref, String key)? onKeySelected;
 
   /// 竖屏下 push 详情页的路由名称（用于横屏时自动 pop 回退，如 'artist_detail' / 'genre_detail'）
   final String routeName;
@@ -111,23 +121,81 @@ class MasterDetailScaffold<T> extends StatefulWidget {
   final bool wrapWithInkWell;
 
   @override
-  State<MasterDetailScaffold<T>> createState() => _MasterDetailScaffoldState<T>();
+  ConsumerState<MasterDetailScaffold<T>> createState() =>
+      _MasterDetailScaffoldState<T>();
 }
 
-class _MasterDetailScaffoldState<T> extends State<MasterDetailScaffold<T>> {
+class _MasterDetailScaffoldState<T>
+    extends ConsumerState<MasterDetailScaffold<T>> {
   bool _isDetailPushed = false;
   late ScrollController _internalScrollController;
   bool? _lastIsLandscape;
   bool _hasUserExplicitlySelected = false;
   String? _explicitlySelectedKey;
+  String? _internalSelectedKey;
 
   ScrollController get _effectiveScrollController =>
       widget.masterScrollController ?? _internalScrollController;
+
+  String? get _effectiveSelectedKey =>
+      widget.selectedKey ?? _internalSelectedKey;
 
   @override
   void initState() {
     super.initState();
     _internalScrollController = ScrollController();
+    final initKey = widget.selectedKey ??
+        (widget.selectedKeyProvider != null
+            ? ref.read(widget.selectedKeyProvider!)
+            : null);
+    if (initKey != null) {
+      _internalSelectedKey = initKey;
+      _hasUserExplicitlySelected = true;
+      _explicitlySelectedKey = initKey;
+      _scrollToSelectedKey(initKey, widget.items);
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant MasterDetailScaffold<T> oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.selectedKey != null &&
+        widget.selectedKey != oldWidget.selectedKey) {
+      _internalSelectedKey = widget.selectedKey;
+      _hasUserExplicitlySelected = true;
+      _explicitlySelectedKey = widget.selectedKey;
+      _scrollToSelectedKey(widget.selectedKey, widget.items);
+    } else if (oldWidget.items.isEmpty && widget.items.isNotEmpty) {
+      final key = _effectiveSelectedKey;
+      if (key != null) {
+        _scrollToSelectedKey(key, widget.items);
+      }
+    }
+  }
+
+  void _scrollToSelectedKey(String? key, List<T> items) {
+    if (key == null || items.isEmpty) return;
+    final index = items.indexWhere((item) => widget.itemKey(item) == key);
+    if (index < 0) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_effectiveScrollController.hasClients) return;
+      const double estimatedItemExtent = 64.0;
+      final targetOffset = (index * estimatedItemExtent).clamp(
+        0.0,
+        _effectiveScrollController.position.maxScrollExtent,
+      );
+      final currentOffset = _effectiveScrollController.offset;
+      final viewportHeight =
+          _effectiveScrollController.position.viewportDimension;
+      if (targetOffset < currentOffset ||
+          targetOffset > currentOffset + viewportHeight - estimatedItemExtent) {
+        _effectiveScrollController.animateTo(
+          targetOffset,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOutCubic,
+        );
+      }
+    });
   }
 
   @override
@@ -136,9 +204,48 @@ class _MasterDetailScaffoldState<T> extends State<MasterDetailScaffold<T>> {
     super.dispose();
   }
 
+  T? _findItemByKey(String key, List<T> items) {
+    for (final item in items) {
+      if (widget.itemKey(item) == key) return item;
+    }
+    return null;
+  }
+
+  void _selectKey(
+    String key, {
+    required bool isUserAction,
+    required bool isLandscape,
+  }) {
+    _hasUserExplicitlySelected = true;
+    _explicitlySelectedKey = key;
+    if (_internalSelectedKey != key) {
+      setState(() {
+        _internalSelectedKey = key;
+      });
+    }
+    if (widget.onKeySelected != null) {
+      widget.onKeySelected!(ref, key);
+    }
+    widget.onSelectedKeyChanged?.call(key);
+    _scrollToSelectedKey(key, widget.items);
+
+    if (!isLandscape && !isUserAction && !_isDetailPushed) {
+      final targetItem = _findItemByKey(key, widget.items);
+      if (targetItem != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted &&
+              !_isDetailPushed &&
+              MediaQuery.orientationOf(context) == Orientation.portrait) {
+            _openDetailOnPortrait(targetItem);
+          }
+        });
+      }
+    }
+  }
+
   T? _resolveSelectedItem(List<T> items) {
     if (items.isEmpty) return null;
-    final selectedKey = widget.selectedKey;
+    final selectedKey = _effectiveSelectedKey;
     if (selectedKey != null) {
       for (final item in items) {
         if (widget.itemKey(item) == selectedKey) {
@@ -151,7 +258,7 @@ class _MasterDetailScaffoldState<T> extends State<MasterDetailScaffold<T>> {
 
   void _syncSelectedItem(List<T> items) {
     if (items.isEmpty) return;
-    final selectedKey = widget.selectedKey;
+    final selectedKey = _effectiveSelectedKey;
     if (selectedKey != null &&
         items.any((item) => widget.itemKey(item) == selectedKey)) {
       return;
@@ -159,8 +266,14 @@ class _MasterDetailScaffoldState<T> extends State<MasterDetailScaffold<T>> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || items.isEmpty) return;
       final fallbackKey = widget.itemKey(items.first);
-      if (widget.selectedKey == fallbackKey) return;
-      widget.onSelectedKeyChanged(fallbackKey);
+      if (_effectiveSelectedKey == fallbackKey) return;
+      setState(() {
+        _internalSelectedKey = fallbackKey;
+      });
+      if (widget.onKeySelected != null) {
+        widget.onKeySelected!(ref, fallbackKey);
+      }
+      widget.onSelectedKeyChanged?.call(fallbackKey);
     });
   }
 
@@ -168,7 +281,13 @@ class _MasterDetailScaffoldState<T> extends State<MasterDetailScaffold<T>> {
     final key = widget.itemKey(item);
     _hasUserExplicitlySelected = true;
     _explicitlySelectedKey = key;
-    widget.onSelectedKeyChanged(key);
+    setState(() {
+      _internalSelectedKey = key;
+    });
+    if (widget.onKeySelected != null) {
+      widget.onKeySelected!(ref, key);
+    }
+    widget.onSelectedKeyChanged?.call(key);
     _isDetailPushed = true;
 
     Navigator.of(context)
@@ -196,10 +315,9 @@ class _MasterDetailScaffoldState<T> extends State<MasterDetailScaffold<T>> {
         widget.onItemTapOverride!(item, index)) {
       return;
     }
+    final key = widget.itemKey(item);
     if (isLandscape) {
-      _hasUserExplicitlySelected = true;
-      _explicitlySelectedKey = widget.itemKey(item);
-      widget.onSelectedKeyChanged(widget.itemKey(item));
+      _selectKey(key, isUserAction: true, isLandscape: true);
     } else {
       _openDetailOnPortrait(item);
     }
@@ -207,6 +325,16 @@ class _MasterDetailScaffoldState<T> extends State<MasterDetailScaffold<T>> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.selectedKeyProvider != null) {
+      ref.listen<String?>(widget.selectedKeyProvider!, (previous, next) {
+        if (next != null && next != _effectiveSelectedKey) {
+          final isLandscape =
+              MediaQuery.orientationOf(context) == Orientation.landscape;
+          _selectKey(next, isUserAction: false, isLandscape: isLandscape);
+        }
+      });
+    }
+
     final theme = Theme.of(context);
     final items = widget.items;
 
@@ -313,7 +441,7 @@ class _MasterDetailScaffoldState<T> extends State<MasterDetailScaffold<T>> {
                                       final item = items[index];
                                       final isSelected =
                                           widget.itemKey(item) ==
-                                          widget.selectedKey;
+                                          _effectiveSelectedKey;
                                       void handleTap() => _handleMasterTap(
                                           item, index, true);
 
@@ -401,7 +529,7 @@ class _MasterDetailScaffoldState<T> extends State<MasterDetailScaffold<T>> {
                           final itemIndex = index ~/ 2;
                           final item = items[itemIndex];
                           final isSelected =
-                              widget.itemKey(item) == widget.selectedKey;
+                              widget.itemKey(item) == _effectiveSelectedKey;
                           void handleTap() => _handleMasterTap(
                               item, itemIndex, false);
 

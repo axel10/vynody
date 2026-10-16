@@ -22,6 +22,7 @@ import 'package:vynody/widgets/song_thumbnail.dart';
 import 'album_detail_page.dart';
 import 'artist_detail_page.dart';
 import 'genre_detail_page.dart';
+import 'main_layout_riverpod.dart';
 import '../widgets/playback_ui_tuning.dart';
 import '../widgets/section_type_toggle.dart';
 
@@ -224,6 +225,7 @@ class LibraryDashboardView extends ConsumerWidget {
                     horizontalPadding: horizontalPadding,
                     contentLeftPadding: contentLeftPadding,
                     l10n: l10n,
+                    isWide: isWide,
                     onViewAll: () => onNavigateToSubIndex(7),
                   ),
                 ),
@@ -1871,6 +1873,7 @@ class _ArtistsRowSectionState extends ConsumerState<_ArtistsRowSection> {
                     avatarDiameter: avatarDiameter,
                     cardWidth: cardWidth,
                     isWide: widget.isWide,
+                    onViewAll: widget.onViewAll,
                   );
                 },
               );
@@ -1890,12 +1893,14 @@ class _DashboardArtistItem extends ConsumerStatefulWidget {
     required this.avatarDiameter,
     required this.cardWidth,
     required this.isWide,
+    required this.onViewAll,
   });
 
   final ArtistSummary artist;
   final double avatarDiameter;
   final double cardWidth;
   final bool isWide;
+  final VoidCallback onViewAll;
 
   @override
   ConsumerState<_DashboardArtistItem> createState() =>
@@ -1975,11 +1980,17 @@ class _DashboardArtistItemState extends ConsumerState<_DashboardArtistItem> {
     return InkWell(
       borderRadius: BorderRadius.circular(50),
       onTap: () {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => ArtistDetailPage(artist: artist),
-          ),
-        );
+        if (widget.isWide) {
+          ref.read(selectedArtistKeyProvider.notifier).set(artist.queryKey);
+          widget.onViewAll();
+        } else {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              settings: const RouteSettings(name: 'artist_detail'),
+              builder: (_) => ArtistDetailPage(artist: artist),
+            ),
+          );
+        }
       },
       child: SizedBox(
         width: widget.cardWidth,
@@ -2018,12 +2029,14 @@ class _GenresRowSection extends ConsumerStatefulWidget {
     required this.l10n,
     required this.onViewAll,
     this.contentLeftPadding = 0.0,
+    required this.isWide,
   });
 
   final double horizontalPadding;
   final AppLocalizations l10n;
   final VoidCallback onViewAll;
   final double contentLeftPadding;
+  final bool isWide;
 
   @override
   ConsumerState<_GenresRowSection> createState() => _GenresRowSectionState();
@@ -2087,14 +2100,21 @@ class _GenresRowSectionState extends ConsumerState<_GenresRowSection> {
                   return _GenreCard(
                     genre: genre,
                     onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          settings: const RouteSettings(
-                            name: 'genre_detail',
+                      if (widget.isWide) {
+                        ref
+                            .read(selectedGenreKeyProvider.notifier)
+                            .set(genre.queryKey);
+                        widget.onViewAll();
+                      } else {
+                        Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            settings: const RouteSettings(
+                              name: 'genre_detail',
+                            ),
+                            builder: (_) => GenreDetailPage(genre: genre),
                           ),
-                          builder: (_) => GenreDetailPage(genre: genre),
-                        ),
-                      );
+                        );
+                      }
                     },
                   );
                 },
