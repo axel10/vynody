@@ -162,15 +162,6 @@ class _DesktopWindowTitleBarState extends ConsumerState<DesktopWindowTitleBar>
                     ? _MacosPlaybackCapsuleBar(
                         brightness: widget.brightness,
                         items: [
-                          if (widget.onCollapsePlayback != null)
-                            _MacosCapsuleItemData(
-                              icon: Icons.keyboard_arrow_down_rounded,
-                              iconSize: 18,
-                              tooltip: Localizations.maybeLocaleOf(context)?.languageCode == 'zh'
-                                  ? '收起播放页'
-                                  : 'Collapse Playback',
-                              onPressed: widget.onCollapsePlayback!,
-                            ),
                           if (showMiniButton)
                             _MacosCapsuleItemData(
                               icon: isSmallWindowMode

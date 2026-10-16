@@ -42,6 +42,7 @@ import 'package:vynody/player/pro/pro_license_service.dart';
 import 'main_layout_riverpod.dart';
 import 'main_layout.dart' show navigateToMainTab;
 import '../widgets/app_tooltip.dart';
+import '../utils/app_orientation_manager.dart';
 import 'package:vynody/utils/app_snack_bar.dart';
 import 'package:oktoast/oktoast.dart';
 
@@ -49,7 +50,12 @@ import 'package:oktoast/oktoast.dart';
 
 class PlaybackPage extends ConsumerStatefulWidget {
   final void Function({bool animated})? onCollapse;
-  const PlaybackPage({super.key, this.onCollapse});
+  final bool isMouseActive;
+  const PlaybackPage({
+    super.key,
+    this.onCollapse,
+    this.isMouseActive = true,
+  });
 
   @override
   ConsumerState<PlaybackPage> createState() => _PlaybackPageState();
@@ -212,6 +218,53 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.35),
               borderRadius: BorderRadius.circular(2.25),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPlaybackCollapseButton(BuildContext context) {
+    return AppTooltip(
+      message: Localizations.maybeLocaleOf(context)?.languageCode == 'zh'
+          ? '收起播放页'
+          : 'Collapse Playback',
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(22),
+        child: BackdropFilter(
+          filter: AppBlur.mediumFilter,
+          child: Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.18),
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.25),
+                width: 0.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.10),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(22),
+                onTap: () => _triggerCollapse(animated: true),
+                child: const Center(
+                  child: Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    color: Colors.white,
+                    size: 26,
+                  ),
+                ),
+              ),
             ),
           ),
         ),
@@ -1181,6 +1234,27 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
           final bool showTopDragHandle =
               enableDragDismiss && settings.showPlaybackTopDragHandle;
 
+          final double collapseButtonTop;
+          if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+            collapseButtonTop = 44.0;
+          } else if (Platform.isIOS) {
+            final isTablet =
+                MediaQuery.sizeOf(context).shortestSide >=
+                AppOrientationManager.tabletShortestSideBreakpoint;
+            collapseButtonTop = isTablet
+                ? math.max(56.0, MediaQuery.paddingOf(context).top + 8.0)
+                : math.max(12.0, MediaQuery.paddingOf(context).top + 8.0);
+          } else {
+            collapseButtonTop = math.max(
+              12.0,
+              MediaQuery.paddingOf(context).top + 8.0,
+            );
+          }
+          final double collapseButtonLeft = math.max(
+            16.0,
+            MediaQuery.paddingOf(context).left + 8.0,
+          );
+
           final pageContent = Container(
             color: Colors.black,
             child: Stack(
@@ -1516,6 +1590,20 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
                           padding: const EdgeInsets.only(top: 8.0),
                           child: _buildTopDragHandle(),
                         ),
+                      ),
+                    ),
+                  ),
+                if (!isSmallWin)
+                  Positioned(
+                    top: collapseButtonTop,
+                    left: collapseButtonLeft,
+                    child: AnimatedOpacity(
+                      duration: const Duration(milliseconds: 200),
+                      opacity: widget.isMouseActive ? 1.0 : 0.0,
+                      curve: Curves.easeInOut,
+                      child: IgnorePointer(
+                        ignoring: !widget.isMouseActive,
+                        child: _buildPlaybackCollapseButton(context),
                       ),
                     ),
                   ),

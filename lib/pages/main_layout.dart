@@ -45,7 +45,6 @@ import '../widgets/playback_ui_tuning.dart';
 import '../widgets/global_drop_target.dart';
 import '../widgets/library_selection_scope.dart';
 import '../utils/layout_constants.dart';
-import '../utils/app_orientation_manager.dart';
 import 'package:vynody/player/platform/right_queue_drawer_controller.dart';
 import '../widgets/right_queue_panel.dart';
 import 'package:vynody/utils/deleted_song_snack.dart';
@@ -1311,27 +1310,6 @@ class _MainLayoutState extends ConsumerState<MainLayout>
         ? sidebarRailWidthFor(size.width)
         : 0.0;
 
-    final double collapseButtonTop;
-    if (Platform.isWindows || Platform.isLinux) {
-      collapseButtonTop = 44.0;
-    } else if (Platform.isIOS) {
-      final isTablet =
-          MediaQuery.sizeOf(context).shortestSide >=
-          AppOrientationManager.tabletShortestSideBreakpoint;
-      collapseButtonTop = isTablet
-          ? math.max(56.0, MediaQuery.paddingOf(context).top + 8.0)
-          : math.max(12.0, MediaQuery.paddingOf(context).top + 8.0);
-    } else {
-      collapseButtonTop = math.max(
-        12.0,
-        MediaQuery.paddingOf(context).top + 8.0,
-      );
-    }
-    final double collapseButtonLeft = math.max(
-      16.0,
-      MediaQuery.paddingOf(context).left + 8.0,
-    );
-
     final mainAppWidget = Focus(
       autofocus: true,
       child: PopScope(
@@ -1648,7 +1626,10 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                       child: Stack(
                         children: [
                           Positioned.fill(
-                            child: PlaybackPage(onCollapse: _collapsePlayback),
+                            child: PlaybackPage(
+                              onCollapse: _collapsePlayback,
+                              isMouseActive: _isMouseActive,
+                            ),
                           ),
                           if (!useSidebar && !isSmallWin)
                             FloatingDockBottomBar(
@@ -1689,21 +1670,6 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                       hideButtonsWhenInactive:
                           isPlayback && !ref.watch(rightQueueDrawerProvider),
                       isPlayback: isPlayback,
-                      onCollapsePlayback: _collapsePlayback,
-                    ),
-                  ),
-                if (!Platform.isMacOS && isPlayback && !isSmallWin)
-                  Positioned(
-                    top: collapseButtonTop,
-                    left: collapseButtonLeft,
-                    child: AnimatedOpacity(
-                      duration: const Duration(milliseconds: 200),
-                      opacity: _isMouseActive ? 1.0 : 0.0,
-                      curve: Curves.easeInOut,
-                      child: IgnorePointer(
-                        ignoring: !_isMouseActive,
-                        child: _buildPlaybackCollapseButton(context),
-                      ),
                     ),
                   ),
               ],
@@ -1715,53 +1681,6 @@ class _MainLayoutState extends ConsumerState<MainLayout>
     );
 
     return mainAppWidget;
-  }
-
-  Widget _buildPlaybackCollapseButton(BuildContext context) {
-    return AppTooltip(
-      message: Localizations.maybeLocaleOf(context)?.languageCode == 'zh'
-          ? '收起播放页'
-          : 'Collapse Playback',
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(22),
-        child: BackdropFilter(
-          filter: AppBlur.mediumFilter,
-          child: Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.18),
-              borderRadius: BorderRadius.circular(22),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.25),
-                width: 0.5,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.10),
-                  blurRadius: 6,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(22),
-                onTap: _collapsePlayback,
-                child: const Center(
-                  child: Icon(
-                    Icons.keyboard_arrow_down_rounded,
-                    color: Colors.white,
-                    size: 26,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
   }
 }
 
