@@ -219,14 +219,17 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab>
             final itemWidth = (contentWidth - 32 - (crossAxisCount - 1) * 16) / crossAxisCount;
             final childAspectRatio = itemWidth / (itemWidth + textHeight);
 
-                final bottomPadding = 120.0 + (isSelectionMode ? 120.0 : 0.0);
+                // 多选面板高度：3D cover flow 用单行精简版，普通网格列表用完整版
+                final selectionPanelHeight = _is3DView ? 120.0 : 220.0;
+                final bottomPadding =
+                    120.0 + (isSelectionMode ? selectionPanelHeight : 0.0);
                 final bottomOffset = isCoverFlowImmersive
                     ? (isSelectionMode ? 100.0 : 0.0)
                     : MiniPlayerUiTuning.getListBottomPadding(
                         context,
                         hasPlayingMusic: currentMusic != null,
                         isSelectionMode: isSelectionMode,
-                        selectionPanelHeight: 120.0,
+                        selectionPanelHeight: selectionPanelHeight,
                       );
 
                 final toolbar = _AlbumsToolbar(
@@ -490,7 +493,7 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab>
                         selectedSongs: selectedSongs,
                         allSongs: allSongs,
                         title: l10n.selectedAlbumsCount(selectedCount),
-                        hideSecondaryActions: true,
+                        hideSecondaryActions: _is3DView,
                         onToggleSelectAll: () =>
                             toggleSelectAll(visibleAlbums.map((a) => a.id)),
                         onCancel: cancelSelection,
