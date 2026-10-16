@@ -9772,6 +9772,12 @@ abstract class AppLocalizations {
   /// **'未知年份'**
   String get unknownYear;
 
+  /// Summary of selected years and their total songs
+  ///
+  /// In zh, this message translates to:
+  /// **'已选择 {yearCount} 个年份 ({songCount} 首歌曲)'**
+  String selectedYearsWithTotalSongs(Object yearCount, Object songCount);
+
   /// Rated songs
   ///
   /// In zh, this message translates to:

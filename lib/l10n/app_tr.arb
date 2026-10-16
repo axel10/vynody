@@ -2149,6 +2149,7 @@
   "copyYearName": "Yılı Kopyala",
   "years": "Yıllar",
   "unknownYear": "Bilinmeyen Yıl",
+  "selectedYearsWithTotalSongs": "{yearCount} yıl seçildi ({songCount} şarkı)",
   "ratedSongs": "Puanlananlar",
   "thisWeekTop": "Bu Hafta En Çok Dinlenenler",
   "thisWeekTopSubtitle": "Son 7 günde en çok çalınan şarkılar",

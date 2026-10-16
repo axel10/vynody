@@ -3616,6 +3616,14 @@
   "@unknownYear": {
     "description": "Unknown release year"
   },
+  "selectedYearsWithTotalSongs": "已选择 {yearCount} 个年份 ({songCount} 首歌曲)",
+  "@selectedYearsWithTotalSongs": {
+    "description": "Summary of selected years and their total songs",
+    "placeholders": {
+      "yearCount": {},
+      "songCount": {}
+    }
+  },
   "ratedSongs": "已评分",
   "@ratedSongs": {
     "description": "Rated songs"

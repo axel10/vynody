@@ -2025,6 +2025,7 @@
   "copyYearName": "Copier l'année",
   "years": "Années",
   "unknownYear": "Année inconnue",
+  "selectedYearsWithTotalSongs": "{yearCount} années sélectionnées ({songCount} morceaux)",
   "ratedSongs": "Morceaux notés",
   "thisWeekTop": "Les plus écoutés cette semaine",
   "thisWeekTopSubtitle": "Titres les plus écoutés au cours des 7 derniers jours",

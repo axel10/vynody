@@ -2124,6 +2124,7 @@
   "copyYearName": "年代をコピー",
   "years": "年代",
   "unknownYear": "年不明",
+  "selectedYearsWithTotalSongs": "{yearCount}件の年代を選択中 ({songCount}曲)",
   "ratedSongs": "評価済み",
   "thisWeekTop": "今週のよく聴く曲",
   "thisWeekTopSubtitle": "過去7日間で最も再生された曲",

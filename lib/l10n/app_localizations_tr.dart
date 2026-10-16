@@ -5535,6 +5535,11 @@ class AppLocalizationsTr extends AppLocalizations {
   String get unknownYear => 'Bilinmeyen Yıl';
 
   @override
+  String selectedYearsWithTotalSongs(Object yearCount, Object songCount) {
+    return '$yearCount yıl seçildi ($songCount şarkı)';
+  }
+
+  @override
   String get ratedSongs => 'Puanlananlar';
 
   @override

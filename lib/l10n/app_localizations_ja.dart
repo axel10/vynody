@@ -5330,6 +5330,11 @@ class AppLocalizationsJa extends AppLocalizations {
   String get unknownYear => '年不明';
 
   @override
+  String selectedYearsWithTotalSongs(Object yearCount, Object songCount) {
+    return '$yearCount件の年代を選択中 ($songCount曲)';
+  }
+
+  @override
   String get ratedSongs => '評価済み';
 
   @override

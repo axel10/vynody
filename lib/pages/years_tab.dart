@@ -10,6 +10,7 @@ import '../widgets/master_detail_scaffold.dart';
 import '../widgets/library_selection_scope.dart';
 import '../widgets/library_selection_panel.dart';
 import '../widgets/song_thumbnail.dart';
+import '../widgets/draggable_year_item.dart';
 import '../widgets/year_context_menu.dart';
 import 'main_layout_riverpod.dart';
 
@@ -266,6 +267,11 @@ class _YearsTabState extends ConsumerState<YearsTab>
               selected: isWide && isSelected,
               isSelectionMode: isSelectionMode,
               isSelectedInSelectionMode: isItemSelection,
+              selectedYears: isSelectionMode
+                  ? visibleYears
+                      .where((y) => this.isSelected(y.queryKey))
+                      .toList()
+                  : null,
               onTap: () {
                 handleItemTap(
                   index: yearIndex >= 0 ? yearIndex : 0,
@@ -333,6 +339,7 @@ class _YearListItem extends ConsumerWidget {
     this.onLongPress,
     this.isSelectionMode = false,
     this.isSelectedInSelectionMode = false,
+    this.selectedYears,
     this.onMultiSelect,
   });
 
@@ -343,6 +350,9 @@ class _YearListItem extends ConsumerWidget {
   final VoidCallback? onLongPress;
   final bool isSelectionMode;
   final bool isSelectedInSelectionMode;
+
+  /// 多选模式下已选中的年份分组（用于批量拖拽）
+  final List<YearSummary>? selectedYears;
   final void Function(String yearKey)? onMultiSelect;
 
   @override
@@ -354,7 +364,10 @@ class _YearListItem extends ConsumerWidget {
         (year.representativeThumbnailPath != null &&
             year.representativeThumbnailPath!.isNotEmpty);
 
-    return Material(
+    final isItemHighlighted =
+        isSelectionMode ? isSelectedInSelectionMode : selected;
+
+    final content = Material(
       color: selected
           ? theme.colorScheme.primaryContainer.withValues(alpha: 0.6)
           : (isSelectedInSelectionMode
@@ -453,6 +466,14 @@ class _YearListItem extends ConsumerWidget {
           ),
         ),
       ),
+    );
+
+    return DraggableYearItem(
+      year: year,
+      isSelectionMode: isSelectionMode,
+      isSelected: isItemHighlighted,
+      selectedYears: selectedYears,
+      child: RepaintBoundary(child: content),
     );
   }
 }

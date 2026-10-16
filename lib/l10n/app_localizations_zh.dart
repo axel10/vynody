@@ -5242,6 +5242,11 @@ class AppLocalizationsZh extends AppLocalizations {
   String get unknownYear => '未知年份';
 
   @override
+  String selectedYearsWithTotalSongs(Object yearCount, Object songCount) {
+    return '已选择 $yearCount 个年份 ($songCount 首歌曲)';
+  }
+
+  @override
   String get ratedSongs => '已评分';
 
   @override
@@ -10544,6 +10549,11 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get unknownYear => '未知年份';
+
+  @override
+  String selectedYearsWithTotalSongs(Object yearCount, Object songCount) {
+    return '已選擇 $yearCount 個年份 ($songCount 首歌曲)';
+  }
 
   @override
   String get ratedSongs => '已評分';

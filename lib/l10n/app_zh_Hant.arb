@@ -1740,6 +1740,7 @@
   "copyYearName": "複製年份",
   "years": "年份",
   "unknownYear": "未知年份",
+  "selectedYearsWithTotalSongs": "已選擇 {yearCount} 個年份 ({songCount} 首歌曲)",
   "ratedSongs": "已評分",
   "thisWeekTop": "本週常聽",
   "thisWeekTopSubtitle": "近 7 天循環最多的單曲",

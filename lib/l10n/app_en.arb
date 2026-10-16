@@ -2416,6 +2416,7 @@
   "copyYearName": "Copy Year",
   "years": "Years",
   "unknownYear": "Unknown Year",
+  "selectedYearsWithTotalSongs": "Selected {yearCount} years ({songCount} songs)",
   "ratedSongs": "Rated",
   "thisWeekTop": "Top This Week",
   "thisWeekTopSubtitle": "Most played tracks in past 7 days",

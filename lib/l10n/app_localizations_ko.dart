@@ -5335,6 +5335,11 @@ class AppLocalizationsKo extends AppLocalizations {
   String get unknownYear => '알 수 없는 연도';
 
   @override
+  String selectedYearsWithTotalSongs(Object yearCount, Object songCount) {
+    return '$yearCount개 연도 선택됨 ($songCount곡)';
+  }
+
+  @override
   String get ratedSongs => '평가됨';
 
   @override
