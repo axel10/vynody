@@ -16,11 +16,7 @@ import 'package:vynody/widgets/playback_ui_tuning.dart';
 export 'playback_ui_tuning.dart';
 
 class MiniPlayerWrapper extends ConsumerStatefulWidget {
-  const MiniPlayerWrapper({
-    super.key,
-    required this.child,
-    this.tabIndex,
-  });
+  const MiniPlayerWrapper({super.key, required this.child, this.tabIndex});
 
   final Widget child;
   final int? tabIndex;
@@ -61,59 +57,65 @@ class _MiniPlayerWrapperState extends ConsumerState<MiniPlayerWrapper> {
 
     final selectionScope = ref.watch(librarySelectionScopeProvider);
     final librarySelectionActive = selectionScope != LibrarySelectionScope.none;
-    final bool isKeyboardVisible =
-        MediaQuery.of(context).viewInsets.bottom > 0;
+    final bool isKeyboardVisible = MediaQuery.of(context).viewInsets.bottom > 0;
 
     if (useSidebar) {
       return widget.child;
     }
+
+    // The page behind a pushed detail route still paints MainLayout's dock
+    // during the route transition. Keep this page's dock out of that same
+    // transition so the two docks are never visible at once on Android.
+    final routeAnimation = ModalRoute.of(context)?.animation;
+    final dock = FloatingDockBottomBar(
+      currentIndex: activeTabIndex,
+      onDestinationSelected: (index) async {
+        // 在二级页面内点击当前所在的主 tab 保持当前页面，不做任何操作
+        if (index == activeTabIndex) {
+          return;
+        }
+        if (index == 5) {
+          if (Platform.isIOS || Platform.isMacOS) {
+            await Navigator.of(context).push(
+              CupertinoPageRoute<void>(builder: (_) => const SettingsPage()),
+            );
+          } else {
+            await Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const SettingsPage()),
+            );
+          }
+          return;
+        }
+        if (index == 1) {
+          await navigateToMainTab(context, index: 1);
+          return;
+        }
+        Navigator.of(context).popUntil((route) => route.isFirst);
+        await navigateToMainTab(context, index: index);
+      },
+      isPlayback: false,
+      isHidden: librarySelectionActive || isKeyboardVisible,
+      hideMiniPlayer: librarySelectionActive || isKeyboardVisible,
+    );
 
     return Stack(
       children: [
         Positioned.fill(
           child: NotificationListener<ScrollNotification>(
             onNotification: (notification) =>
-                _dockScrollHelper.handleScrollNotification(
-              notification,
-              ref,
-            ),
+                _dockScrollHelper.handleScrollNotification(notification, ref),
             child: widget.child,
           ),
         ),
-        FloatingDockBottomBar(
-          currentIndex: activeTabIndex,
-          onDestinationSelected: (index) async {
-            // 在二级页面内点击当前所在的主 tab 保持当前页面，不做任何操作
-            if (index == activeTabIndex) {
-              return;
-            }
-            if (index == 5) {
-              if (Platform.isIOS || Platform.isMacOS) {
-                await Navigator.of(context).push(
-                  CupertinoPageRoute<void>(
-                    builder: (_) => const SettingsPage(),
-                  ),
-                );
-              } else {
-                await Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => const SettingsPage(),
-                  ),
-                );
-              }
-              return;
-            }
-            if (index == 1) {
-              await navigateToMainTab(context, index: 1);
-              return;
-            }
-            Navigator.of(context).popUntil((route) => route.isFirst);
-            await navigateToMainTab(context, index: index);
-          },
-          isPlayback: false,
-          isHidden: librarySelectionActive || isKeyboardVisible,
-          hideMiniPlayer: librarySelectionActive || isKeyboardVisible,
-        ),
+        if (routeAnimation == null)
+          dock
+        else
+          AnimatedBuilder(
+            animation: routeAnimation,
+            child: dock,
+            builder: (context, child) =>
+                routeAnimation.value >= 1.0 ? child! : const SizedBox.shrink(),
+          ),
       ],
     );
   }
