@@ -11,6 +11,9 @@ class ScannerNavigationState extends ChangeNotifier {
 
   List<MusicFolder> get history => List.unmodifiable(_history);
 
+  /// 历史深度。供上层做结构指纹计算，避免为了取长度而复制整个列表。
+  int get historyLength => _history.length;
+
   void setState(MusicFolder? current, List<MusicFolder> history) {
     _currentFolder = current;
     _history

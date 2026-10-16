@@ -54,7 +54,13 @@ class ScanProgressInfoNotifier extends Notifier<ScanProgressInfo> {
 
   @override
   ScanProgressInfo build() {
-    final localScanner = ref.watch(scannerServiceProvider);
+    final localScanner = ref.read(scannerServiceProvider);
+    // 只订阅扫描开关与远程进度。ScanProgressInfo 没有值相等实现，
+    // 每次 build 都会把下游全部刷新，所以不能让缩略图/元数据写入
+    // （它们同样会 notifyListeners）把这里一起唤起来。
+    final isScanning = ref.watch(
+      scannerServiceProvider.select((s) => s.isScanning),
+    );
     final remoteProgress = ref.watch(remoteScanProgressProvider);
 
     if (_observedScanner != localScanner) {
@@ -70,7 +76,7 @@ class ScanProgressInfoNotifier extends Notifier<ScanProgressInfo> {
       _lastLocalProgressInfo = null;
     });
 
-    return _calculateState(localScanner, remoteProgress);
+    return _calculateState(remoteProgress, isScanning: isScanning);
   }
 
   void _handleLocalProgress(ScanProgress progress) {
@@ -97,9 +103,9 @@ class ScanProgressInfoNotifier extends Notifier<ScanProgressInfo> {
   }
 
   ScanProgressInfo _calculateState(
-    ScannerService localScanner,
-    RemoteScanProgress remoteProgress,
-  ) {
+    RemoteScanProgress remoteProgress, {
+    required bool isScanning,
+  }) {
     if (remoteProgress.isScanning) {
       final discovered = remoteProgress.totalDiscovered;
       final completed = remoteProgress.processedCount;
@@ -114,7 +120,7 @@ class ScanProgressInfoNotifier extends Notifier<ScanProgressInfo> {
       );
     }
 
-    if (localScanner.isScanning) {
+    if (isScanning) {
       return _lastLocalProgressInfo ?? const ScanProgressInfo(isScanning: true);
     }
 

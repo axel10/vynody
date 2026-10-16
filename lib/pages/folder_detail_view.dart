@@ -342,8 +342,13 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
     final activeHighlightedSongPath =
         widget.highlightedSongPath ?? ref.watch(songHighlightProvider);
     final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
+    // 订阅结构版本而不是整个 ScannerService：列表内缩略图逐张生成时
+    // 只会刷新各自 SongThumbnail，不再触发整页重建。
+    final structureRevision = ref.watch(
+      scannerServiceProvider.select((s) => s.structureRevision),
+    );
     final folder = _effectiveFolder;
-    final scanner = ref.watch(scannerServiceProvider);
+    final scanner = ref.read(scannerServiceProvider);
     final settings = ref.watch(settingsServiceProvider);
     final l10n = AppLocalizations.of(context)!;
     final hasPermission = ref.watch(
@@ -376,9 +381,19 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
     );
 
     final representativeSong = scanner.getRepresentativeSongForFolder(folder);
+    // 文件夹头图这一条路径需要跟随缩略图生成实时更新，所以单独订阅；
+    // 页面主体不因缩略图变化而重建。
+    final representativeCoverPath = ref.watch(
+      scannerServiceProvider.select(
+        (s) => representativeSong == null
+            ? null
+            : s.metadataMap[representativeSong.path]?.thumbnailPath,
+      ),
+    );
 
     int totalDurationMs = 0;
-    final folderKey = '${folder.path}_${folder.allSongs.length}';
+    final folderKey =
+        '${folder.path}_${folder.allSongs.length}_$structureRevision';
     if (_cachedFolderKey == folderKey && _cachedTotalDurationMs != null) {
       totalDurationMs = _cachedTotalDurationMs!;
     } else {
@@ -423,7 +438,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
             songsCount: folder.allSongs.length,
             totalDuration: Duration(milliseconds: totalDurationMs),
             representativeSong: representativeSong,
-            coverImagePath: representativeSong?.thumbnailPath ?? (representativeSong != null ? scanner.metadataMap[representativeSong.path]?.thumbnailPath : null),
+            coverImagePath: representativeSong?.thumbnailPath ?? representativeCoverPath,
             topHeader: isPortrait ? SizedBox(height: headerHeight) : null,
             coverWidget: () {
               final defaultCover = SizedBox(

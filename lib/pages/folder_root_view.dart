@@ -248,15 +248,22 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
 
   @override
   Widget build(BuildContext context) {
-    final scanner = ref.watch(scannerServiceProvider);
+    // 组合订阅「结构版本 + 根目录视图」：
+    // rootFolders 是缓存视图实例，结构未变时判等成立，所以列表内缩略图
+    // 逐张生成不会触发整页重建；带上结构版本是为了覆盖「歌曲总数变化」
+    // 这类需要刷新曲目数/时长统计的场景。
+    final rootFolderSnapshot = ref.watch(
+      scannerServiceProvider.select(
+        (s) => (s.structureRevision, s.rootFolders),
+      ),
+    );
+    final rootFolders = rootFolderSnapshot.$2;
+    final scanner = ref.read(scannerServiceProvider);
     final settings = ref.watch(settingsServiceProvider);
     final l10n = AppLocalizations.of(context)!;
     final isRootSelectionMode =
         ref.watch(librarySelectionScopeProvider) ==
         LibrarySelectionScope.folderRoot;
-    final rootFolders = ref.watch(
-      scannerServiceProvider.select((scanner) => scanner.rootFolders),
-    );
     final remoteServers =
         ref.watch(remoteServersProvider).asData?.value ?? [];
     final hasPermission = ref.watch(

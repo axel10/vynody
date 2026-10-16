@@ -497,7 +497,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
   }
 
   Widget _buildMusicDirectoryPage(AppLocalizations l10n, ThemeData theme) {
-    final scanner = ref.watch(scannerServiceProvider);
+    final scanner = ref.read(scannerServiceProvider);
     final rootFolders = ref.watch(
       scannerServiceProvider.select((s) => s.rootFolders),
     );

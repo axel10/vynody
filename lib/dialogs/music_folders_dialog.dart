@@ -229,8 +229,9 @@ class _MusicFoldersDialogState extends ConsumerState<MusicFoldersDialog> {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final scanner = ref.watch(scannerServiceProvider);
-    final rootFolders = scanner.rootFolders;
+    final rootFolders = ref.watch(
+      scannerServiceProvider.select((s) => s.rootFolders),
+    );
 
     final mediaQuery = MediaQuery.of(context);
     final isPortrait = mediaQuery.orientation == Orientation.portrait;

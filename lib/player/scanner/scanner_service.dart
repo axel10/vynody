@@ -65,6 +65,11 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
   final ScannerNavigationState _navigationState = ScannerNavigationState();
   final List<MusicFolder> _scannedRootFolders = [];
   final List<MusicFolder> _rootFolders = [];
+  /// [_rootFolders] 的缓存视图。必须复用同一实例，否则
+  /// `select((s) => s.rootFolders)` 会因为每次拿到新的 List 而永不判等，
+  /// 退化成「无 select 的全量订阅」。结构变化时由
+  /// [_refreshStructureRevision] 置空以重建视图。
+  List<MusicFolder>? _rootFoldersView;
   final Map<String, bool> _rootAvailability = {};
   final List<SongMetadata> _pendingStage3IncrementalMetadata = [];
   Timer? _metadataNotifyTimer;
@@ -94,6 +99,14 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
   late final ScannerDirectoryScanner _directoryScanner;
   int _metadataRevision = 0;
   int _albumLibraryRevision = 0;
+  /// 「显示树 + 导航历史」的结构版本号。
+  ///
+  /// 只在根目录增删/替换、系统媒体库切换、导航切换这类真正影响列表结构的事件上递增。
+  /// 缩略图路径等纯封面元数据更新不会改变它，因此列表页订阅这个值而不是整个
+  /// [ScannerService]，就不会因为一屏缩略图逐张生成而反复整页重建。
+  /// 缩略图自身的刷新由 SongThumbnail 内部的 select 负责。
+  int _structureRevision = 0;
+  int? _lastStructureFingerprint;
   bool _skipShortAudioScanEnabled = false;
   int _skipShortAudioScanThresholdSeconds = _defaultShortAudioThresholdSeconds;
   bool _linuxFlatpak = false;
@@ -129,7 +142,8 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       Platform.isMacOS || Platform.isIOS || _linuxFlatpak;
 
   List<String> get rootPaths => _roots.rootPaths;
-  List<MusicFolder> get rootFolders => List.unmodifiable(_rootFolders);
+  List<MusicFolder> get rootFolders =>
+      _rootFoldersView ??= List.unmodifiable(_rootFolders);
   bool get isScanning => _scanCoordinator.isScanning;
   bool get isBackgroundTaskPaused => _scanCoordinator.isBackgroundPaused;
   ScannerRuntimeState get runtimeState => _scanCoordinator.state;
@@ -422,7 +436,10 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
         _updateFolderRepSongCache(_systemMediaFolder!, path, updated);
       }
       await MetadataDatabase().insertOrUpdateSong(updated);
-      notifyListeners();
+      // 缩略图路径只是补全封面，不改变列表结构。走 150ms 节流而非立即全量通知，
+      // 否则一屏缩略图逐张生成时会连续触发整页重建。
+      // SongThumbnail 自身已通过 setState 立即展示新封面，无需同步广播。
+      _scheduleMetadataNotify();
       enqueueFolderCoverChainRefresh(p.dirname(path));
     } else {
       final db = MetadataDatabase();
@@ -448,7 +465,8 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
           _updateFolderRepSongCache(_systemMediaFolder!, path, updated);
         }
         await db.insertOrUpdateSong(updated);
-        notifyListeners();
+        // 同上：缩略图更新走节流通知，避免整页重建。
+        _scheduleMetadataNotify();
         enqueueFolderCoverChainRefresh(p.dirname(path));
       }
     }
@@ -689,6 +707,8 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
   Map<String, SongMetadata> get metadataMap => _metadataStore.metadataMap;
   int get metadataRevision => _metadataRevision;
   int get albumLibraryRevision => _albumLibraryRevision;
+  /// 见 [_structureRevision]。列表页应 select 这个值，而不是 watch 整个 ScannerService。
+  int get structureRevision => _structureRevision;
   bool isRootPathAvailable(String path) {
     final normalizedPath = _normalizePath(path);
     if (normalizedPath.isEmpty) return true;
@@ -765,6 +785,40 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     _metadataRevision++;
   }
 
+  /// 计算「显示树 + 导航历史」的轻量指纹。
+  ///
+  /// 只看对象 identity，因此能捕获根目录被替换/增删、系统媒体库切换与导航切换，
+  /// 但不被元数据或缩略图路径变化扰动。常驻成本是 O(根目录数)。
+  int _computeStructureFingerprint() {
+    var hash = Object.hash(
+      _rootFolders.length,
+      _scannedRootFolders.length,
+      _navigationState.currentFolder?.path,
+      _navigationState.historyLength,
+      // 全库歌曲总数：扫描过程中歌曲逐步入库时，页面上的曲目数/时长统计
+      // 需要跟着刷新；而缩略图更新不改变总数，因此不会引起重建。
+      _metadataStore.metadataMap.length,
+    );
+    for (final folder in _rootFolders) {
+      hash = Object.hash(hash, identityHashCode(folder));
+    }
+    for (final folder in _scannedRootFolders) {
+      hash = Object.hash(hash, identityHashCode(folder));
+    }
+    return hash;
+  }
+
+  /// 结构确实变了才推进 [_structureRevision]，避免页面级订阅者无谓重建。
+  void _refreshStructureRevision() {
+    final fingerprint = _computeStructureFingerprint();
+    if (fingerprint == _lastStructureFingerprint) return;
+    _lastStructureFingerprint = fingerprint;
+    _structureRevision++;
+    // 元素被替换/增删后必须重建视图，select(rootFolders) 才能感知变化。
+    // 元素内部的变动（如 folder.files 增删）通过引用实时可见，无需重建。
+    _rootFoldersView = null;
+  }
+
   void _markAlbumLibraryMutated() {
     _albumLibraryRevision++;
   }
@@ -826,6 +880,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       folder.invalidateCache();
     }
     _systemMediaFolder?.invalidateCache();
+    _refreshStructureRevision();
 
     if (isScanning != _lastNotifiedScanningState) {
       _lastNotifiedScanningState = isScanning;
@@ -2246,6 +2301,9 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
 
   void _handleNavigationChanged() {
     if (_isDisposed) return;
+
+    // 导航切换会改变当前文件夹，列表页需要立刻重建。
+    _refreshStructureRevision();
 
     // Navigation changes should feel immediate even while a scan is running.
     // The throttled notifyListeners() path is still used for metadata/scan
@@ -3702,6 +3760,11 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     bool syncTree = true,
   }) {
     _failedThumbnailPaths.remove(metadata.path);
+    if (syncTree) {
+      // 用户编辑标签会就地替换 folder.files 里的 MusicFile，顶层目录对象
+      // identity 不变，指纹感知不到，这里显式推进结构版本让列表页重建。
+      _structureRevision++;
+    }
     _metadataStore.updateMetadataForPath(
       metadata,
       artworkBytes: artworkBytes,
