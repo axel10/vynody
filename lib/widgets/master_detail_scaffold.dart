@@ -441,7 +441,9 @@ class _MasterDetailScaffoldState<T>
                                   : const SizedBox.shrink())
                               : Scrollbar(
                                   controller: _effectiveScrollController,
-                                  thumbVisibility: true,
+                                  // 静止时不常驻显示滚动条，仅在滚动/拖动时淡入，
+                                  // 滚动结束后自动淡出（与左侧 Rail 的滚动条行为保持一致）。
+                                  thumbVisibility: false,
                                   child: ListView.builder(
                                     controller: _effectiveScrollController,
                                     padding: EdgeInsets.fromLTRB(
