@@ -134,6 +134,11 @@ class _MasterDetailScaffoldState<T>
   String? _explicitlySelectedKey;
   String? _internalSelectedKey;
 
+  /// 横屏下由本组件自动兜底选中的 key（用户并未点击）。
+  /// 用于把「外部受控 selectedKey 变成兜底值」这种回声与真正的用户选择区分开，
+  /// 否则自动兜底会被误判为用户显式选择，拉到竖屏时错误地自动 push 详情页。
+  String? _autoSelectedFallbackKey;
+
   ScrollController get _effectiveScrollController =>
       widget.masterScrollController ?? _internalScrollController;
 
@@ -162,8 +167,12 @@ class _MasterDetailScaffoldState<T>
     if (widget.selectedKey != null &&
         widget.selectedKey != oldWidget.selectedKey) {
       _internalSelectedKey = widget.selectedKey;
-      _hasUserExplicitlySelected = true;
-      _explicitlySelectedKey = widget.selectedKey;
+      // 若这次外部受控变更只是本组件自动兜底选中后回写到上层的回声，
+      // 则不算作「用户显式选择」，避免拉到竖屏时误触发自动跳转。
+      if (widget.selectedKey != _autoSelectedFallbackKey) {
+        _hasUserExplicitlySelected = true;
+        _explicitlySelectedKey = widget.selectedKey;
+      }
       _scrollToSelectedKey(widget.selectedKey, widget.items);
     } else if (oldWidget.items.isEmpty && widget.items.isNotEmpty) {
       final key = _effectiveSelectedKey;
@@ -216,6 +225,8 @@ class _MasterDetailScaffoldState<T>
     required bool isUserAction,
     required bool isLandscape,
   }) {
+    // 一旦有了真实的选择来源，就作废兜底记录，后续外部受控变更不再被视为回声。
+    _autoSelectedFallbackKey = null;
     _hasUserExplicitlySelected = true;
     _explicitlySelectedKey = key;
     if (_internalSelectedKey != key) {
@@ -267,6 +278,8 @@ class _MasterDetailScaffoldState<T>
       if (!mounted || items.isEmpty) return;
       final fallbackKey = widget.itemKey(items.first);
       if (_effectiveSelectedKey == fallbackKey) return;
+      // 记录兜底选中值，供 didUpdateWidget 识别外部受控 selectedKey 的回声。
+      _autoSelectedFallbackKey = fallbackKey;
       setState(() {
         _internalSelectedKey = fallbackKey;
       });
@@ -279,6 +292,7 @@ class _MasterDetailScaffoldState<T>
 
   void _openDetailOnPortrait(T item) {
     final key = widget.itemKey(item);
+    _autoSelectedFallbackKey = null;
     _hasUserExplicitlySelected = true;
     _explicitlySelectedKey = key;
     setState(() {

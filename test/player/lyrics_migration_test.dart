@@ -47,13 +47,30 @@ void main() {
     final rawDb = sqlite.sqlite3.open(dbFile.path);
 
     // 1. 创建 v38 结构表
+    //
+    // songs 表按 v38 的真实结构保留迁移会读写的列：
+    // genres（from < 11 引入）、metadataTextScanned（from < 18 引入）、
+    // isAppModified（from < 28 引入）。from < 43 / from < 44 的 UPDATE 依赖这三列，
+    // 缺任意一列都会让迁移在真实 v38 库上同样失败，因此这里必须保留。
     rawDb.execute('''
       CREATE TABLE songs (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         path TEXT NOT NULL UNIQUE,
         title TEXT,
         album TEXT,
-        artist TEXT
+        artist TEXT,
+        genres TEXT,
+        metadataTextScanned INTEGER,
+        isAppModified INTEGER
+      );
+
+      -- v38 已存在 remote_songs（from < 32 引入），迁移会为其补 year 列
+      CREATE TABLE remote_songs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        serverId TEXT NOT NULL,
+        remoteId TEXT NOT NULL,
+        virtualUri TEXT NOT NULL,
+        UNIQUE(virtualUri)
       );
 
       CREATE TABLE lyrics_cache (
@@ -96,7 +113,11 @@ void main() {
 
     const testSongPath = r'C:\Users\Administrator\Downloads\OneRepublic - Someday.flac';
     rawDb.execute(
-      'INSERT INTO songs (path, title, album, artist) VALUES (?, ?, ?, ?)',
+      '''
+      INSERT INTO songs (
+        path, title, album, artist, metadataTextScanned, isAppModified
+      ) VALUES (?, ?, ?, ?, 1, 0)
+      ''',
       [testSongPath, 'Someday', 'Human', 'OneRepublic'],
     );
 

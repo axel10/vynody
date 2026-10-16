@@ -722,6 +722,11 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
     String column,
     String sqlType,
   ) async {
+    // 表不存在时不建列：PRAGMA table_info 对缺失的表返回空结果，
+    // 若不加此判断会被误判成「列缺失」，进而对不存在的表执行 ALTER 直接抛异常。
+    if (!await _tableExists(table)) {
+      return;
+    }
     if (await _columnExists(table, column)) {
       return;
     }

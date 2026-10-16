@@ -52,6 +52,11 @@ FFMPEG_BASE_URL=https://github.com/axel10/audio_core/releases/download
 - `flutter` 不在 PATH，用前先 `export PATH="$HOME/flutter/bin:$PATH"`。
 - 沙箱会拦截 `~/.pub-cache` 写入，直接 `flutter analyze` 会因 pub get 失败而中断，
   必须带上 `--no-pub`（项目已有 `.dart_tool/package_config.json`，够用）。
+- 沙箱注入的 `HTTP_PROXY/HTTPS_PROXY` 会让 `flutter test` 全部加载失败
+  （`Unable to connect to flutter_tester process: WebSocketException: Invalid WebSocket upgrade request`），
+  跑测试前必须清掉代理：
+  `unset HTTP_PROXY HTTPS_PROXY http_proxy https_proxy all_proxy ALL_PROXY && export NO_PROXY=127.0.0.1,localhost`
+  （`flutter analyze` 不受影响，无需清）。
 
 ## 协作偏好
 

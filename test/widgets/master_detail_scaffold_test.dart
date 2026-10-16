@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vynody/widgets/master_detail_scaffold.dart';
 
@@ -21,33 +22,38 @@ class _TestContainerState extends State<_TestContainer> {
 
   @override
   Widget build(BuildContext context) {
-    return MediaQuery(
-      data: MediaQueryData(
-        size: widget.screenSize,
-      ),
-      child: MaterialApp(
-        home: Scaffold(
-          body: MasterDetailScaffold<String>(
-            items: items,
-            itemKey: (item) => item,
-            selectedKey: _selectedKey,
-            onSelectedKeyChanged: (key) {
-              setState(() {
-                _selectedKey = key;
-              });
-            },
-            routeName: 'test_detail',
-            masterItemBuilder: (context, item, index, isSelected, isWide, onTap) {
-              return ListTile(
-                title: Text(item),
-                selected: isSelected,
-                onTap: onTap,
-              );
-            },
-            detailBuilder: (context, item) => Text('Detail Content: $item'),
-            detailPageBuilder: (context, item) => Scaffold(
-              appBar: AppBar(title: Text('Detail Page: $item')),
-              body: Text('Page Body: $item'),
+    // MasterDetailScaffold 是 ConsumerStatefulWidget，需要 ProviderScope 祖先。
+    return ProviderScope(
+      child: MediaQuery(
+        data: MediaQueryData(
+          size: widget.screenSize,
+        ),
+        child: MaterialApp(
+          home: Scaffold(
+            body: MasterDetailScaffold<String>(
+              items: items,
+              itemKey: (item) => item,
+              selectedKey: _selectedKey,
+              onSelectedKeyChanged: (key) {
+                setState(() {
+                  _selectedKey = key;
+                });
+              },
+              routeName: 'test_detail',
+              masterItemBuilder:
+                  (context, item, index, isSelected, isWide, onTap) {
+                return ListTile(
+                  title: Text(item),
+                  selected: isSelected,
+                  onTap: onTap,
+                );
+              },
+              detailBuilder: (context, item) =>
+                  Text('Detail Content: $item'),
+              detailPageBuilder: (context, item) => Scaffold(
+                appBar: AppBar(title: Text('Detail Page: $item')),
+                body: Text('Page Body: $item'),
+              ),
             ),
           ),
         ),
