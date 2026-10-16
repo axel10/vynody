@@ -276,9 +276,17 @@ class _DashboardHeader extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final albumsCount = ref.watch(albumLibraryProvider).value?.length ?? 0;
-    final artistsCount = ref.watch(artistLibraryProvider).value?.length ?? 0;
-    final playlistsCount = ref.watch(playlistServiceProvider).playlists.length;
+    // 只订阅计数（int 可判等）：StreamProvider 每次 emit 的是新的 List 实例，
+    // 直接 watch 整份列表会让本行标题每次数据变更都重建。
+    final albumsCount = ref.watch(
+      albumLibraryProvider.select((v) => v.value?.length ?? 0),
+    );
+    final artistsCount = ref.watch(
+      artistLibraryProvider.select((v) => v.value?.length ?? 0),
+    );
+    final playlistsCount = ref.watch(
+      playlistServiceProvider.select((v) => v.playlists.length),
+    );
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.baseline,
@@ -327,12 +335,21 @@ class _WideQuickAccessBar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final playlistsCount =
-        ref.watch(playlistServiceProvider).playlists.length;
-    final albumsCount = ref.watch(albumLibraryProvider).value?.length;
-    final artistsCount = ref.watch(artistLibraryProvider).value?.length;
-    final genresCount = ref.watch(genreLibraryProvider).value?.length;
-    final yearsCount = ref.watch(yearLibraryProvider).value?.length;
+    final playlistsCount = ref.watch(
+      playlistServiceProvider.select((v) => v.playlists.length),
+    );
+    final albumsCount = ref.watch(
+      albumLibraryProvider.select((v) => v.value?.length),
+    );
+    final artistsCount = ref.watch(
+      artistLibraryProvider.select((v) => v.value?.length),
+    );
+    final genresCount = ref.watch(
+      genreLibraryProvider.select((v) => v.value?.length),
+    );
+    final yearsCount = ref.watch(
+      yearLibraryProvider.select((v) => v.value?.length),
+    );
 
     final items = [
       (
@@ -593,12 +610,21 @@ class _PortraitLibraryMenuCard extends ConsumerWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    final playlistsCount =
-        ref.watch(playlistServiceProvider).playlists.length;
-    final albumsCount = ref.watch(albumLibraryProvider).value?.length;
-    final artistsCount = ref.watch(artistLibraryProvider).value?.length;
-    final genresCount = ref.watch(genreLibraryProvider).value?.length;
-    final yearsCount = ref.watch(yearLibraryProvider).value?.length;
+    final playlistsCount = ref.watch(
+      playlistServiceProvider.select((v) => v.playlists.length),
+    );
+    final albumsCount = ref.watch(
+      albumLibraryProvider.select((v) => v.value?.length),
+    );
+    final artistsCount = ref.watch(
+      artistLibraryProvider.select((v) => v.value?.length),
+    );
+    final genresCount = ref.watch(
+      genreLibraryProvider.select((v) => v.value?.length),
+    );
+    final yearsCount = ref.watch(
+      yearLibraryProvider.select((v) => v.value?.length),
+    );
 
     final items = [
       _LibraryMenuItem(

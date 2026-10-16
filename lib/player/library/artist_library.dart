@@ -7,40 +7,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:vynody/models/artist_summary.dart';
 import 'package:vynody/models/music_file.dart';
-import 'package:vynody/player/audio/audio_riverpod.dart';
-import 'package:vynody/player/library/library_source_filter.dart';
+import 'package:vynody/player/library/library_catalog.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/utils/stream_utils.dart';
 
-final artistLibraryProvider = StreamProvider<List<ArtistSummary>>((ref) async* {
-  final repository = ArtistLibraryRepository();
-  final isReady = ref.watch(scannerServiceProvider.select((s) => s.isReady));
-  final rootPathsKey = ref.watch(
-    scannerServiceProvider.select((s) => s.rootPaths.join('|')),
-  );
-  final hasSystemMedia = ref.watch(
-    scannerServiceProvider.select((s) => s.systemMediaFolder != null),
-  );
-  final remoteRootsKey = ref.watch(
-    scannerServiceProvider
-        .select((s) => s.remoteRoots.map((r) => r.virtualUri).join('|')),
-  );
-  final sourceFilter = ref.watch(librarySourceFilterProvider);
-  final scanner = ref.read(scannerServiceProvider);
-  final shouldFilter =
-      isReady &&
-      (rootPathsKey.isNotEmpty ||
-          hasSystemMedia ||
-          remoteRootsKey.isNotEmpty);
-  yield* repository.watchArtistSummaries(
-    isPathAllowed: (path) {
-      if (shouldFilter && !scanner.isPathInActiveRoots(path)) {
-        return false;
-      }
-      return sourceFilter.matchesSongPath(path);
-    },
-  );
-});
+/// 艺术家列表 Provider：从 [libraryCatalogProvider] 派生，
+/// 自身不再订阅 songs 表；艺术家缓存表查询由快照 Lazy 承担。
+final artistLibraryProvider = StreamProvider<List<ArtistSummary>>(
+  (ref) => catalogDerived(ref, (catalog) => catalog.artists),
+);
 
 int _artistLibrarySessionSeq = 0;
 
@@ -55,38 +30,45 @@ class ArtistLibraryRepository {
 
   final MetadataDatabase _database;
 
-  Stream<List<ArtistSummary>> watchArtistSummaries({
-    bool Function(String path)? isPathAllowed,
-  }) async* {
+  /// 一次性把歌曲列表聚合为艺术家摘要（含两张缓存表查询）。
+  ///
+  /// 曲库快照 [LibraryCatalog] 与下方的流式版本共用这一份实现，
+  /// 避免出现两套聚合逻辑。
+  Future<List<ArtistSummary>> buildSummariesFor(
+    Iterable<SongMetadata> songs,
+  ) async {
+    final stopwatch = Stopwatch()..start();
+    final filteredSongs = songs
+        .where(
+          (song) => ((song.sourceFlags ?? 0) & SongSourceFlags.external) == 0,
+        )
+        .toList(growable: false);
+    final groups = _groupSongsByArtist(filteredSongs);
+
+    final cacheKeys = groups
+        .map((group) => group.queryKey)
+        .toList(growable: false);
+    final caches = await _database.getArtistCachesByKeys(cacheKeys);
+    final imageCaches = await _database.getArtistImageCachesByIds(cacheKeys);
+    final orderedGroups = _sortGroupsForDisplay(groups, caches);
+    stopwatch.stop();
+    _artistLibraryLog(
+      'loaded songs=${filteredSongs.length} groups=${groups.length} '
+      'caches=${caches.length} imageCaches=${imageCaches.length} in ${stopwatch.elapsedMilliseconds}ms',
+    );
+    return _buildSummaries(orderedGroups, caches, imageCaches);
+  }
+
+  /// 流式版本：`audio_service` 在「播放下一首 / 上一首艺术家」时取首帧使用。
+  /// 主页面的艺术家列表已改由曲库快照提供，这里只服务这条低频路径。
+  Stream<List<ArtistSummary>> watchArtistSummaries() async* {
     final sessionId = ++_artistLibrarySessionSeq;
     _artistLibraryLog('session#$sessionId start');
 
-    final songsStream = _database
+    await for (final songs in _database
         .watchAllSongMetadata()
-        .throttleLeadingAndTrailing(const Duration(seconds: 1));
-
-    await for (final songs in songsStream) {
-      final stopwatch = Stopwatch()..start();
-      final filteredSongs = songs.where((song) {
-        final flags = song.sourceFlags ?? 0;
-        if ((flags & SongSourceFlags.external) != 0) return false;
-        if (isPathAllowed != null && !isPathAllowed(song.path)) return false;
-        return true;
-      }).toList(growable: false);
-      final groups = _groupSongsByArtist(filteredSongs);
-
-      final cacheKeys = groups
-          .map((group) => group.queryKey)
-          .toList(growable: false);
-      final caches = await _database.getArtistCachesByKeys(cacheKeys);
-      final imageCaches = await _database.getArtistImageCachesByIds(cacheKeys);
-      final orderedGroups = _sortGroupsForDisplay(groups, caches);
-      stopwatch.stop();
-      _artistLibraryLog(
-        'session#$sessionId loaded songs=${songs.length} groups=${groups.length} '
-        'caches=${caches.length} imageCaches=${imageCaches.length} in ${stopwatch.elapsedMilliseconds}ms',
-      );
-      yield _buildSummaries(orderedGroups, caches, imageCaches);
+        .throttleLeadingAndTrailing(const Duration(seconds: 1))) {
+      yield await buildSummariesFor(songs);
     }
     _artistLibraryLog('session#$sessionId complete');
   }

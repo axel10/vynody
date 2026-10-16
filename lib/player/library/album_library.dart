@@ -3,45 +3,16 @@ import 'package:path/path.dart' as p;
 
 import 'package:vynody/models/album_summary.dart';
 import 'package:vynody/models/music_file.dart';
-import 'package:vynody/player/audio/audio_riverpod.dart';
-import 'package:vynody/player/library/library_source_filter.dart';
+import 'package:vynody/player/library/library_catalog.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
-import 'package:vynody/utils/stream_utils.dart';
 
-final albumLibraryProvider = StreamProvider<List<AlbumSummary>>((ref) async* {
-  final db = MetadataDatabase();
-  final isReady = ref.watch(scannerServiceProvider.select((s) => s.isReady));
-  final rootPathsKey = ref.watch(
-    scannerServiceProvider.select((s) => s.rootPaths.join('|')),
-  );
-  final hasSystemMedia = ref.watch(
-    scannerServiceProvider.select((s) => s.systemMediaFolder != null),
-  );
-  final remoteRootsKey = ref.watch(
-    scannerServiceProvider
-        .select((s) => s.remoteRoots.map((r) => r.virtualUri).join('|')),
-  );
-  final sourceFilter = ref.watch(librarySourceFilterProvider);
-  final scanner = ref.read(scannerServiceProvider);
-  final shouldFilter =
-      isReady &&
-      (rootPathsKey.isNotEmpty ||
-          hasSystemMedia ||
-          remoteRootsKey.isNotEmpty);
-  final songsStream = db
-      .watchAllSongMetadata()
-      .throttleLeadingAndTrailing(const Duration(seconds: 1));
-  await for (final songs in songsStream) {
-    final validSongs = songs.where((s) {
-      if (shouldFilter && !scanner.isPathInActiveRoots(s.path)) {
-        return false;
-      }
-      return sourceFilter.matchesSongPath(s.path);
-    });
-    yield buildAlbumSummaries(validSongs);
-  }
-});
+/// 专辑列表 Provider：从 [libraryCatalogProvider] 派生，
+/// 自身不再订阅 songs 表，因此不会重复付出全表查询与反序列化。
+final albumLibraryProvider = StreamProvider<List<AlbumSummary>>(
+  (ref) => catalogDerived(ref, (catalog) => catalog.albums),
+);
 
+/// 专辑聚合实现：同时被曲库快照与 `audio_service` 的「播放下一张专辑」复用。
 List<AlbumSummary> buildAlbumSummaries(Iterable<SongMetadata> songs) {
   final validEntries = <(SongMetadata, MusicFile)>[];
 

@@ -75,6 +75,30 @@ FFMPEG_BASE_URL=https://github.com/axel10/audio_core/releases/download
 回归测试：`test/widgets/views_layout_smoke_test.dart` 的「五类条目均支持右键菜单」
 （`tester.tap(..., buttons: kSecondaryMouseButton)`，需 `import 'package:flutter/gestures.dart'`）。
 
+## MainLayout 是全应用 rebuild 的放大器
+
+`main_layout.dart` 的 `MainLayout.build()` 里 watch 了 `audioCurrentMusicProvider` /
+`settingsServiceProvider` / `librarySelectionScopeProvider` / `rightQueueDrawerProvider` /
+`isCoverFlowImmersiveActiveProvider` / `isEffectiveWaveformEnabledProvider`，并且
+`_buildCurrentPage()`（约 `:846`）**每次 build 都新建非 const 的 `FoldersPage` / `LibraryPage` 实例**
+（`QueuePage` / `SharingPage` 是 `const`，靠 `==` 短路，不受影响）。
+
+后果：**任何 `setState`（最典型是 `_expandPlayback()` 置 `_isPlaybackDrawerOpen`）都会
+把当前页 + 所有已访问页的整棵子树 rebuild 一遍**，包括 `IndexedStack` 里不可见的那几页。
+实测打开播放页的前 3 帧因此付出 19/59/37ms 的 CPU 忙时（帧预算 16.7ms）。
+
+改这块时要留意：拆页面 State、或把页面实例缓存到字段、或对 IndexedStack 子页加
+`RepaintBoundary`+const 化，都能直接削掉这个代价；不要在这里随手加 `ref.watch`。
+
+## 性能排查时的两个坑
+
+- **`stackDepth: 128` 会把深层栈的根侧帧截断**（DevTools 导出的 CPU profile）。
+  按「栈内是否含 `drawFrame` / `flushSemantics`」做阶段归属时，深层 rebuild 栈会系统性少算这些帧。
+  结论要以 **leaf 自耗时** 为准，不要只看 inclusive。
+- **真机/模拟器开了无障碍服务时 semantics 全程开启**，播放页整页 `Transform.translate` 滑动会让
+  语义树几何每帧失效、全量重传（实测 `__updateSemantics` FFI 可占自耗 9%）。
+  项目自身没有 `ensureSemantics` / `SemanticsHandle`，遇到这类异常占比先确认是不是设备侧无障碍或 DevTools 造成的。
+
 ## 环境注意事项
 
 - Bash 工具的 `grep` 在本机结果不可靠（会漏匹配），排查代码一律优先用 Grep 工具。
@@ -159,6 +183,30 @@ FFMPEG_BASE_URL=https://github.com/axel10/audio_core/releases/download
 - 换成 `FadeUpwardsPageTransitionsBuilder` 或全局去掉涟漪也能规避，但前者视觉不符、
   后者丢失点击反馈，均不作为选项。
 - 排查全过程见 `2026-10-16.md`。
+
+## 曲库单一数据源（LibraryCatalog）约定
+
+**全应用只有 `lib/player/library/library_catalog.dart` 的 `libraryCatalogProvider` 允许订阅
+`db.watchAllSongMetadata()`。** 新增任何曲库视图（按专辑/艺术家/流派/年份/评分/播放次数的聚合）
+一律走 `catalogDerived(ref, (catalog) => ...)` 从快照派生，禁止再自己 `await for` 那个流 ——
+否则就回到「一次 songs 表写入触发 N 路全表重扫」的老问题。
+
+- `LibraryCatalog` 的聚合字段全是 `late final`，**必须保持惰性**：
+  只打开年份页时只算年份，不能变成「算全部」。这是不产生单页回归的前提。
+- 派生 provider 必须保持 `StreamProvider<...>` 类型与名字，
+  因为测试用 `overrideWith((ref) => Stream.value(...))`（如
+  `test/widgets/views_layout_smoke_test.dart:426/431`）。
+- 过滤语义目前**两层**：`catalog.songs`（仅排除 external / deletedAt）与
+  `catalog.visibleSongs`（再加活动根目录 + 来源过滤）。
+  `allRatedSongsProvider` / `timeMachineAlbumsProvider` 用前者，其余用后者 —— 是历史遗留的不一致，
+  尚未统一。
+- `library_catalog.dart` ↔ `album_library.dart` / `artist_library.dart` 是**循环 import**
+  （Dart 允许；顶层 provider 都是惰性构造，无初始化顺序风险）。改这几个文件时别被绕晕。
+- `ArtistLibraryRepository.buildSummariesFor()` 是艺术家聚合的唯一实现，
+  `watchArtistSummaries()` 只是它的流式包装，仍被 `audio_service.dart` 的
+  「播放下一首/上一首艺术家」使用（那条路径每次全表扫一次，低频，未优化）。
+- catalog 常驻（媒体库页在 MainLayout 的 IndexedStack 里常驻，dashboard 又在 Navigator 栈底），
+  所以它是长期活着的单例快照；这也是它能省下 5 份重复 `SongMetadata` 的原因。
 
 ## 协作偏好
 

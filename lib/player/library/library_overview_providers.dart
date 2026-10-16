@@ -7,8 +7,8 @@ import 'package:vynody/models/music_file.dart';
 import 'package:vynody/models/year_summary.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/library/album_library.dart';
+import 'package:vynody/player/library/library_catalog.dart';
 import 'package:vynody/player/library/library_insights_service.dart';
-import 'package:vynody/player/library/library_source_filter.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/widgets/section_type_toggle.dart';
 
@@ -35,252 +35,36 @@ class TimeMachineAlbumEntry {
   final int? lastPlayedAt;
 }
 
-/// 流派列表 Provider：仅返回包含有效歌曲的流派，并按歌曲数量从多到少排序
-final genreLibraryProvider = StreamProvider<List<GenreSummary>>((ref) async* {
-  final db = MetadataDatabase();
-  final isReady = ref.watch(scannerServiceProvider.select((s) => s.isReady));
-  final rootPathsKey = ref.watch(
-    scannerServiceProvider.select((s) => s.rootPaths.join('|')),
-  );
-  final hasSystemMedia = ref.watch(
-    scannerServiceProvider.select((s) => s.systemMediaFolder != null),
-  );
-  final remoteRootsKey = ref.watch(
-    scannerServiceProvider
-        .select((s) => s.remoteRoots.map((r) => r.virtualUri).join('|')),
-  );
-  final sourceFilter = ref.watch(librarySourceFilterProvider);
-  final scanner = ref.read(scannerServiceProvider);
-  final shouldFilter =
-      isReady &&
-      (rootPathsKey.isNotEmpty ||
-          hasSystemMedia ||
-          remoteRootsKey.isNotEmpty);
-
-  await for (final songs in db.watchAllSongMetadata()) {
-    final genreMap = <String, List<MusicFile>>{};
-
-    for (final s in songs) {
-      if (s.deletedAt != null) continue;
-      final flags = s.sourceFlags ?? 0;
-      if ((flags & SongSourceFlags.external) != 0) continue;
-      if (shouldFilter && !scanner.isPathInActiveRoots(s.path)) continue;
-      if (!sourceFilter.matchesSongPath(s.path)) continue;
-
-      final parsedGenres = s.genres;
-      if (parsedGenres == null || parsedGenres.isEmpty) continue;
-
-      final musicFile = MusicFile(
-        path: s.path,
-        name: s.path.split(RegExp(r'[/\\]')).last,
-        title: s.title,
-        artist: s.artist,
-        album: s.album,
-        artworkPath: s.artworkPath,
-        thumbnailPath: s.thumbnailPath,
-        durationMillis: s.duration,
-        id: s.id,
-      );
-
-      for (final g in parsedGenres) {
-        final trimmed = g.trim();
-        if (trimmed.isNotEmpty) {
-          genreMap.putIfAbsent(trimmed, () => []).add(musicFile);
-        }
-      }
-    }
-
-    final list = <GenreSummary>[];
-    for (final entry in genreMap.entries) {
-      if (entry.value.isEmpty) continue;
-      final sampleWithArtwork = entry.value.firstWhere(
-        (m) => (m.artworkPath != null && m.artworkPath!.isNotEmpty) ||
-               (m.thumbnailPath != null && m.thumbnailPath!.isNotEmpty),
-        orElse: () => entry.value.first,
-      );
-
-      list.add(
-        GenreSummary(
-          name: entry.key,
-          songCount: entry.value.length,
-          representativeArtworkPath: sampleWithArtwork.artworkPath,
-          representativeThumbnailPath: sampleWithArtwork.thumbnailPath,
-          songs: entry.value,
-        ),
-      );
-    }
-
-    list.sort((a, b) => b.songCount.compareTo(a.songCount));
-    yield list;
-  }
-});
+/// 流派列表 Provider：仅返回包含有效歌曲的流派，并按歌曲数量从多到少排序。
+/// 聚合数据来自 [libraryCatalogProvider]，自身不再订阅 songs 表。
+final genreLibraryProvider = StreamProvider<List<GenreSummary>>(
+  (ref) => catalogDerived(ref, (catalog) => catalog.genres),
+);
 
 /// 发行年份列表 Provider：
 /// 按音频元数据中的发行年份聚合歌曲，年份由新到旧排列；
 /// 未提取到年份的歌曲统一归入「未知年份」分组并固定排在列表末尾。
-final yearLibraryProvider = StreamProvider<List<YearSummary>>((ref) async* {
-  final db = MetadataDatabase();
-  final isReady = ref.watch(scannerServiceProvider.select((s) => s.isReady));
-  final rootPathsKey = ref.watch(
-    scannerServiceProvider.select((s) => s.rootPaths.join('|')),
-  );
-  final hasSystemMedia = ref.watch(
-    scannerServiceProvider.select((s) => s.systemMediaFolder != null),
-  );
-  final remoteRootsKey = ref.watch(
-    scannerServiceProvider
-        .select((s) => s.remoteRoots.map((r) => r.virtualUri).join('|')),
-  );
-  final sourceFilter = ref.watch(librarySourceFilterProvider);
-  final scanner = ref.read(scannerServiceProvider);
-  final shouldFilter =
-      isReady &&
-      (rootPathsKey.isNotEmpty ||
-          hasSystemMedia ||
-          remoteRootsKey.isNotEmpty);
+/// 聚合数据来自 [libraryCatalogProvider]，自身不再订阅 songs 表。
+final yearLibraryProvider = StreamProvider<List<YearSummary>>(
+  (ref) => catalogDerived(ref, (catalog) => catalog.years),
+);
 
-  await for (final songs in db.watchAllSongMetadata()) {
-    final yearMap = <int?, List<MusicFile>>{};
-
-    for (final s in songs) {
-      if (s.deletedAt != null) continue;
-      final flags = s.sourceFlags ?? 0;
-      if ((flags & SongSourceFlags.external) != 0) continue;
-      if (shouldFilter && !scanner.isPathInActiveRoots(s.path)) continue;
-      if (!sourceFilter.matchesSongPath(s.path)) continue;
-
-      final musicFile = MusicFile(
-        path: s.path,
-        name: s.path.split(RegExp(r'[/\\]')).last,
-        title: s.title,
-        artist: s.artist,
-        album: s.album,
-        artworkPath: s.artworkPath,
-        thumbnailPath: s.thumbnailPath,
-        durationMillis: s.duration,
-        id: s.id,
-        year: s.year,
-        genres: s.genres,
-      );
-
-      yearMap.putIfAbsent(s.year, () => []).add(musicFile);
-    }
-
-    final list = <YearSummary>[];
-    for (final entry in yearMap.entries) {
-      if (entry.value.isEmpty) continue;
-      final sampleWithArtwork = entry.value.firstWhere(
-        (m) =>
-            (m.artworkPath != null && m.artworkPath!.isNotEmpty) ||
-            (m.thumbnailPath != null && m.thumbnailPath!.isNotEmpty),
-        orElse: () => entry.value.first,
-      );
-
-      list.add(
-        YearSummary(
-          year: entry.key,
-          songCount: entry.value.length,
-          representativeArtworkPath: sampleWithArtwork.artworkPath,
-          representativeThumbnailPath: sampleWithArtwork.thumbnailPath,
-          songs: entry.value,
-        ),
-      );
-    }
-
-    list.sort((a, b) {
-      // 未知年份分组固定沉底，其余按年份由新到旧
-      if (a.year == null && b.year == null) return 0;
-      if (a.year == null) return 1;
-      if (b.year == null) return -1;
-      return b.year!.compareTo(a.year!);
-    });
-    yield list;
-  }
-});
-
-/// 你的收藏 / 高评分歌曲 Provider（4~5 星）
-final topRatedSongsProvider = StreamProvider<List<LibraryInsightSongEntry>>((ref) async* {
-  final db = MetadataDatabase();
+/// 全部已打分歌曲 Provider（用于二级页已评分曲目列表）。
+///
+/// 歌曲来源为曲库快照；只有评分数据变化时才会重新计算，
+/// 不会再因为一次打分而重扫 songs 表。
+final allRatedSongsProvider = StreamProvider<List<LibraryInsightSongEntry>>((ref) {
   final ratingService = ref.watch(songRatingServiceProvider);
   final allRatings = ratingService.allRatings;
 
   if (allRatings.isEmpty) {
-    yield const <LibraryInsightSongEntry>[];
-    return;
+    return Stream.value(const <LibraryInsightSongEntry>[]);
   }
 
-  await for (final songs in db.watchAllSongMetadata()) {
-    if (allRatings.isEmpty) {
-      yield const <LibraryInsightSongEntry>[];
-      continue;
-    }
-
+  return catalogDerived(ref, (catalog) {
     final list = <LibraryInsightSongEntry>[];
 
-    for (final s in songs) {
-      if (s.deletedAt != null) continue;
-      final flags = s.sourceFlags ?? 0;
-      if ((flags & SongSourceFlags.external) != 0) continue;
-
-      final normalizedPath = s.path.replaceAll('\\', '/');
-      final rating = allRatings[normalizedPath] ??
-          allRatings[s.path] ??
-          ratingService.getRating(s.path);
-      if (rating < 4) continue;
-
-      list.add(
-        LibraryInsightSongEntry(
-          song: MusicFile(
-            path: s.path,
-            name: p.basename(s.path),
-            title: s.title,
-            artist: s.artist,
-            album: s.album,
-            artworkPath: s.artworkPath,
-            thumbnailPath: s.thumbnailPath,
-            durationMillis: s.duration,
-            id: s.id,
-          ),
-          playCount: rating,
-          createdAt: s.createdAt,
-        ),
-      );
-    }
-
-    list.sort((a, b) {
-      final rCompare = b.playCount.compareTo(a.playCount);
-      if (rCompare != 0) return rCompare;
-      return (b.createdAt ?? 0).compareTo(a.createdAt ?? 0);
-    });
-
-    yield list;
-  }
-});
-
-/// 全部已打分歌曲 Provider（用于二级页已评分曲目列表）
-final allRatedSongsProvider = StreamProvider<List<LibraryInsightSongEntry>>((ref) async* {
-  final db = MetadataDatabase();
-  final ratingService = ref.watch(songRatingServiceProvider);
-  final allRatings = ratingService.allRatings;
-
-  if (allRatings.isEmpty) {
-    yield const <LibraryInsightSongEntry>[];
-    return;
-  }
-
-  await for (final songs in db.watchAllSongMetadata()) {
-    if (allRatings.isEmpty) {
-      yield const <LibraryInsightSongEntry>[];
-      continue;
-    }
-
-    final list = <LibraryInsightSongEntry>[];
-
-    for (final s in songs) {
-      if (s.deletedAt != null) continue;
-      final flags = s.sourceFlags ?? 0;
-      if ((flags & SongSourceFlags.external) != 0) continue;
-
+    for (final s in catalog.songs) {
       final normalizedPath = s.path.replaceAll('\\', '/');
       final rating = allRatings[normalizedPath] ??
           allRatings[s.path] ??
@@ -312,35 +96,29 @@ final allRatedSongsProvider = StreamProvider<List<LibraryInsightSongEntry>>((ref
       return (b.createdAt ?? 0).compareTo(a.createdAt ?? 0);
     });
 
-    yield list;
-  }
+    return list;
+  });
 });
 
 /// 拾光机 / 重温旧爱专辑 Provider：
 /// 满足历史高频播放（playCount >= 2）或主动打分（rating >= 4），且在近 30 天内未曾播放的专辑
-final timeMachineAlbumsProvider = StreamProvider<List<TimeMachineAlbumEntry>>((ref) async* {
+final timeMachineAlbumsProvider = StreamProvider<List<TimeMachineAlbumEntry>>((ref) {
   final mostPlayedAsync = ref.watch(mostPlayedSongsProvider(LibraryTimeRange.allTime));
   final ratingService = ref.watch(songRatingServiceProvider);
   final allRatings = ratingService.allRatings;
 
-  final mostPlayedList = mostPlayedAsync.value ?? const [];
   final nowMillis = DateTime.now().millisecondsSinceEpoch;
   final thirtyDaysAgoMillis = nowMillis - const Duration(days: 30).inMilliseconds;
 
   final insightMap = <String, LibraryInsightSongEntry>{};
-  for (final item in mostPlayedList) {
+  for (final item in mostPlayedAsync.value ?? const <LibraryInsightSongEntry>[]) {
     insightMap[item.song.path.replaceAll('\\', '/')] = item;
   }
 
-  final db = MetadataDatabase();
-  await for (final songs in db.watchAllSongMetadata()) {
+  return catalogDerived(ref, (catalog) {
     final albumGroups = <String, List<(SongMetadata, int playCount, int rating, int? lastPlayed)>>{};
 
-    for (final s in songs) {
-      if (s.deletedAt != null) continue;
-      final flags = s.sourceFlags ?? 0;
-      if ((flags & SongSourceFlags.external) != 0) continue;
-
+    for (final s in catalog.songs) {
       final normalizedPath = s.path.replaceAll('\\', '/');
       final insight = insightMap[normalizedPath];
       final playCount = insight?.playCount ?? 0;
@@ -430,8 +208,8 @@ final timeMachineAlbumsProvider = StreamProvider<List<TimeMachineAlbumEntry>>((r
       return scoreB.compareTo(scoreA);
     });
 
-    yield results.take(12).toList();
-  }
+    return results.take(12).toList();
+  });
 });
 
 /// 最多播放专辑 Provider（按时间跨度统计）：
@@ -567,80 +345,6 @@ final mostPlayedFilterProvider =
     NotifierProvider<MostPlayedFilterNotifier, MostPlayedFilterState>(
   MostPlayedFilterNotifier.new,
 );
-
-/// 拾光机 / 重温旧爱单曲 Provider：
-/// 满足历史高频播放（playCount >= 2）或主动打分（rating >= 4），且在近 30 天内未曾播放的单曲
-final timeMachineSongsProvider = StreamProvider<List<LibraryInsightSongEntry>>((ref) async* {
-  final mostPlayedAsync = ref.watch(mostPlayedSongsProvider(LibraryTimeRange.allTime));
-  final ratingService = ref.watch(songRatingServiceProvider);
-  final allRatings = ratingService.allRatings;
-
-  final mostPlayedList = mostPlayedAsync.value ?? const [];
-  final nowMillis = DateTime.now().millisecondsSinceEpoch;
-  final thirtyDaysAgoMillis = nowMillis - const Duration(days: 30).inMilliseconds;
-
-  final insightMap = <String, LibraryInsightSongEntry>{};
-  for (final item in mostPlayedList) {
-    insightMap[item.song.path.replaceAll('\\', '/')] = item;
-  }
-
-  final db = MetadataDatabase();
-  await for (final songs in db.watchAllSongMetadata()) {
-    final list = <LibraryInsightSongEntry>[];
-
-    for (final s in songs) {
-      if (s.deletedAt != null) continue;
-      final flags = s.sourceFlags ?? 0;
-      if ((flags & SongSourceFlags.external) != 0) continue;
-
-      final normalizedPath = s.path.replaceAll('\\', '/');
-      final insight = insightMap[normalizedPath];
-      final playCount = insight?.playCount ?? 0;
-      final lastPlayedAt = insight?.lastPlayedAt;
-      final rating = allRatings[normalizedPath] ?? allRatings[s.path] ?? 0;
-
-      if (lastPlayedAt != null && lastPlayedAt > thirtyDaysAgoMillis) {
-        continue;
-      }
-
-      if (playCount < 2 && rating < 4) {
-        continue;
-      }
-
-      list.add(
-        LibraryInsightSongEntry(
-          song: MusicFile(
-            path: s.path,
-            name: p.basename(s.path),
-            title: s.title,
-            artist: s.artist,
-            album: s.album,
-            artworkPath: s.artworkPath,
-            thumbnailPath: s.thumbnailPath,
-            durationMillis: s.duration,
-            id: s.id,
-          ),
-          playCount: playCount,
-          lastPlayedAt: lastPlayedAt,
-          createdAt: s.createdAt,
-          sourceFlags: s.sourceFlags,
-        ),
-      );
-    }
-
-    list.sort((a, b) {
-      final ratingA = allRatings[a.song.path.replaceAll('\\', '/')] ?? allRatings[a.song.path] ?? 0;
-      final ratingB = allRatings[b.song.path.replaceAll('\\', '/')] ?? allRatings[b.song.path] ?? 0;
-      final scoreA = a.playCount + (ratingA * 3);
-      final scoreB = b.playCount + (ratingB * 3);
-      final scoreCmp = scoreB.compareTo(scoreA);
-      if (scoreCmp != 0) return scoreCmp;
-      return (b.lastPlayedAt ?? 0).compareTo(a.lastPlayedAt ?? 0);
-    });
-
-    yield list.take(12).toList();
-  }
-});
 
 /// TimeMachineAlbumEntry 转换为 AlbumSummary 便于使用专辑卡片渲染
 extension TimeMachineAlbumEntryX on TimeMachineAlbumEntry {
