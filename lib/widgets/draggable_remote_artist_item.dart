@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:super_drag_and_drop/super_drag_and_drop.dart';
 import 'package:vynody/l10n/app_localizations.dart';
 import 'package:vynody/player/remote/remote_server_models.dart';
-import 'package:vynody/widgets/draggable_preview_card.dart';
+import 'package:vynody/widgets/drag/drag_payload.dart';
+import 'package:vynody/widgets/drag/drag_preview_card.dart';
+import 'package:vynody/widgets/drag/drag_source.dart';
 
-/// Wraps a remote artist item widget (Navidrome / Jellyfin) to provide system-level native drag source support.
-/// Enables dragging a remote artist into queue drawer, standalone queue window, or custom playlists.
+/// Wraps a remote artist item widget (Navidrome / Jellyfin) to provide
+/// system-level native drag source support.
+///
+/// Enables dragging a remote artist into the queue drawer, the standalone queue
+/// window, or custom playlists. Dragging a remote artist that is part of a
+/// multi-selection carries every selected artist.
 class DraggableRemoteArtistItem extends StatelessWidget {
   final RemoteServer server;
   final Map<String, dynamic> artist;
@@ -14,7 +19,6 @@ class DraggableRemoteArtistItem extends StatelessWidget {
   final bool isSelectionMode;
   final bool isSelected;
   final Set<String>? selectedArtistIds;
-  final List<Map<String, dynamic>>? allArtists;
 
   const DraggableRemoteArtistItem({
     super.key,
@@ -25,85 +29,58 @@ class DraggableRemoteArtistItem extends StatelessWidget {
     this.isSelectionMode = false,
     this.isSelected = false,
     this.selectedArtistIds,
-    this.allArtists,
   });
 
   @override
   Widget build(BuildContext context) {
-    if (!enabled || !DesktopDraggableWrapper.isPlatformSupported) {
-      return child;
-    }
+    // Non-null only while this artist is the anchor of a multi-selection, which
+    // is also the only case where the drag carries more than one artist.
+    final selection = selectedArtistIds;
+    final batchSelection = (isSelectionMode &&
+            isSelected &&
+            selection != null &&
+            selection.length > 1)
+        ? selection
+        : null;
 
-    final artistId = artist['id'] as String? ?? '';
-    final artistName = artist['name'] as String? ?? '未知艺术家';
-    final albumCount = artist['albumCount'] as int? ?? 0;
-    final isJellyfin = server.type == RemoteServerType.jellyfin;
-    final scheme = isJellyfin ? 'jellyfin-artist' : 'subsonic-artist';
-
-    final isBatch = isSelectionMode &&
-        isSelected &&
-        selectedArtistIds != null &&
-        selectedArtistIds!.length > 1;
-
-    return DesktopDraggableWrapper(
+    return DragSource(
       enabled: enabled,
-      dragItemProvider: (request) async {
-        debugPrint(
-            '[DRAG] DraggableRemoteArtistItem.dragItemProvider called for: $artistName (id: $artistId, isBatch: $isBatch)');
-        final List<String> uris;
-        if (isBatch) {
-          uris = selectedArtistIds!
-              .map((id) => '$scheme://${server.id}/$id')
-              .toList();
-        } else {
-          uris = ['$scheme://${server.id}/$artistId'];
-        }
-
-        final item = DragItem(
-          localData: <String, dynamic>{
-            'type': 'remote_artist',
-            'serverId': server.id,
-            'artistId': artistId,
-            'name': artistName,
-            'paths': uris,
-            'count': uris.length,
-          },
-        );
-
-        if (uris.isNotEmpty) {
-          final firstUri = Uri.tryParse(uris.first);
-          if (firstUri != null) {
-            item.add(Formats.uri(NamedUri(firstUri)));
-          }
-          item.add(Formats.plainText(uris.join('\n')));
-        }
-
-        request.session.dragCompleted.addListener(() {
-          final op = request.session.dragCompleted.value;
-          debugPrint(
-              '[DRAG] DraggableRemoteArtistItem drag completed for "$artistName". Result operation: $op');
-        });
-        return item;
+      buildPayload: () {
+        final batch = batchSelection;
+        final artistId = artist['id'] as String? ?? '';
+        return RemoteCollectionPayload([
+          for (final id in batch ?? <String>{artistId})
+            RemoteCollectionRef(
+              serverType: server.type,
+              serverId: server.id,
+              kind: RemoteCollectionKind.artist,
+              id: id,
+            ),
+        ]);
       },
-      dragBuilder: (context, child) {
-        debugPrint(
-            '[DRAG] DraggableRemoteArtistItem.dragBuilder called for: $artistName');
+      buildPreview: (context) {
         final l10n = AppLocalizations.of(context)!;
-        if (isBatch) {
+        final isJellyfin = server.type == RemoteServerType.jellyfin;
+        final artistName = artist['name'] as String? ?? '未知艺术家';
+        final albumCount = artist['albumCount'] as int? ?? 0;
+
+        final batch = batchSelection;
+        if (batch != null) {
           return AppDraggablePreviewCard(
             title: artistName,
-            subtitle: l10n.selectedArtistsCount(selectedArtistIds!.length),
+            subtitle: l10n.selectedArtistsCount(batch.length),
             defaultIcon: Icons.mic_rounded,
-            badgeText: '${selectedArtistIds!.length}',
-            count: selectedArtistIds!.length,
+            badgeText: '${batch.length}',
+            count: batch.length,
             isBatch: true,
           );
         }
-        final serverLabel = isJellyfin ? l10n.jellyfinArtist : l10n.navidromeArtist;
-        final subtitle = albumCount > 0 ? l10n.albumCount(albumCount) : serverLabel;
+
+        final serverLabel =
+            isJellyfin ? l10n.jellyfinArtist : l10n.navidromeArtist;
         return AppDraggablePreviewCard(
           title: artistName,
-          subtitle: subtitle,
+          subtitle: albumCount > 0 ? l10n.albumCount(albumCount) : serverLabel,
           defaultIcon: Icons.mic_rounded,
           badgeText: albumCount > 0 ? l10n.albumCount(albumCount) : null,
           count: 1,

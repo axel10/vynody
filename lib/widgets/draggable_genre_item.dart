@@ -1,12 +1,16 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:super_drag_and_drop/super_drag_and_drop.dart';
 import 'package:vynody/l10n/app_localizations.dart';
 import 'package:vynody/models/genre_summary.dart';
-import 'package:vynody/widgets/draggable_preview_card.dart';
+import 'package:vynody/widgets/drag/drag_cover.dart';
+import 'package:vynody/widgets/drag/drag_payload.dart';
+import 'package:vynody/widgets/drag/drag_preview_card.dart';
+import 'package:vynody/widgets/drag/drag_source.dart';
 
 /// Wraps a genre item widget to provide system-level native drag source support.
-/// Enables dragging a genre from local library into standalone queue window or other apps.
+///
+/// Enables dragging a genre from the local library into the standalone queue
+/// window or other apps. Dragging a genre that is part of a multi-selection
+/// carries the songs of every selected genre.
 class DraggableGenreItem extends StatelessWidget {
   final GenreSummary genre;
   final Widget child;
@@ -27,86 +31,52 @@ class DraggableGenreItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!enabled || !DesktopDraggableWrapper.isPlatformSupported) {
-      return child;
-    }
+    // Non-null only while this genre is the anchor of a multi-selection, which
+    // is also the only case where the drag carries more than one genre.
+    final selection = selectedGenres;
+    final batchSelection = (isSelectionMode &&
+            isSelected &&
+            selection != null &&
+            selection.length > 1)
+        ? selection
+        : null;
 
-    final isBatch = isSelectionMode &&
-        isSelected &&
-        selectedGenres != null &&
-        selectedGenres!.length > 1;
-
-    final hasThumb = genre.representativeThumbnailPath != null &&
-        genre.representativeThumbnailPath!.isNotEmpty &&
-        File(genre.representativeThumbnailPath!).existsSync();
-    final hasArt = genre.representativeArtworkPath != null &&
-        genre.representativeArtworkPath!.isNotEmpty &&
-        File(genre.representativeArtworkPath!).existsSync();
-    final coverPath = hasThumb
-        ? genre.representativeThumbnailPath
-        : (hasArt ? genre.representativeArtworkPath : null);
-
-    return DesktopDraggableWrapper(
+    return DragSource(
       enabled: enabled,
-      dragItemProvider: (request) async {
-        debugPrint(
-            '[DRAG] DraggableGenreItem.dragItemProvider called for: ${genre.name} (${genre.songs.length} songs, isBatch: $isBatch)');
-        final List<String> songPaths;
-        if (isBatch) {
-          final set = <String>{};
-          for (final g in selectedGenres!) {
-            for (final s in g.songs) {
-              set.add(s.path);
-            }
-          }
-          songPaths = set.toList();
-        } else {
-          songPaths = genre.songs.map((s) => s.path).toList();
+      buildPayload: () {
+        final batch = batchSelection;
+        if (batch != null) {
+          return SongPathsPayload.flattened(batch.map((item) => item.songs));
         }
-
-        final item = DragItem(
-          localData: <String, dynamic>{
-            'type': 'genre',
-            'id': genre.queryKey,
-            'name': genre.name,
-            'paths': songPaths,
-            'count': songPaths.length,
-          },
+        return SongPathsPayload(
+          paths: [for (final song in genre.songs) song.path],
         );
-        if (songPaths.isNotEmpty) {
-          final first = songPaths.first;
-          if (File(first).existsSync()) {
-            item.add(Formats.fileUri(Uri.file(first)));
-          }
-          item.add(Formats.plainText(songPaths.join('\n')));
-        }
-        request.session.dragCompleted.addListener(() {
-          final op = request.session.dragCompleted.value;
-          debugPrint(
-              '[DRAG] DraggableGenreItem drag completed for "${genre.name}". Result operation: $op');
-        });
-        return item;
       },
-      dragBuilder: (context, child) {
-        debugPrint(
-            '[DRAG] DraggableGenreItem.dragBuilder called for: ${genre.name}');
+      buildPreview: (context) {
         final l10n = AppLocalizations.of(context)!;
-        if (isBatch) {
-          final totalSongs = selectedGenres!.fold<int>(
-              0, (sum, g) => sum + g.songs.length);
+        final coverPath = resolveDragCoverPath(
+          thumbnailPath: genre.representativeThumbnailPath,
+          artworkPath: genre.representativeArtworkPath,
+        );
+
+        final batch = batchSelection;
+        if (batch != null) {
+          final totalSongs = batch.fold<int>(
+            0,
+            (sum, item) => sum + item.songs.length,
+          );
           return AppDraggablePreviewCard(
             title: genre.name,
-            subtitle: l10n.selectedGenresWithTotalSongs(
-              selectedGenres!.length,
-              totalSongs,
-            ),
+            subtitle:
+                l10n.selectedGenresWithTotalSongs(batch.length, totalSongs),
             imagePath: coverPath,
             defaultIcon: Icons.style_rounded,
-            badgeText: '${selectedGenres!.length}',
-            count: selectedGenres!.length,
+            badgeText: '${batch.length}',
+            count: batch.length,
             isBatch: true,
           );
         }
+
         return AppDraggablePreviewCard(
           title: genre.name,
           subtitle: l10n.songsCountFormat(genre.songCount),

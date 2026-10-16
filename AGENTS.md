@@ -32,7 +32,7 @@ flutter run -d <device-id>               # dev run on a device
 
 - 对主项目分析代码请使用flutter analyze lib，排除掉其他无关文件夹的dart代码
 
--写文案的时候注意不要用太粗俗直白的语言，多用一些书面化的词汇
+- 写文案的时候注意不要用太粗俗直白的语言，多用一些书面化的词汇
 
 ## Architecture notes
 

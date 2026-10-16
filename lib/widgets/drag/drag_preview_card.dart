@@ -1,7 +1,6 @@
 import 'dart:io';
+
 import 'package:flutter/material.dart';
-import 'package:super_drag_and_drop/super_drag_and_drop.dart';
-import 'package:vynody/utils/drop_data_utils.dart';
 
 /// Reusable visual preview card shown when dragging items across the app or desktop.
 class AppDraggablePreviewCard extends StatelessWidget {
@@ -177,58 +176,6 @@ class AppDraggablePreviewCard extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-/// Generic wrapper that handles desktop platform verification, translucent hit testing,
-/// and SuperDragAndDrop configuration.
-class DesktopDraggableWrapper extends StatelessWidget {
-  final Widget child;
-  final bool enabled;
-  final Future<DragItem?> Function(DragItemRequest request) dragItemProvider;
-  final Widget Function(BuildContext context, Widget child) dragBuilder;
-  final List<DropOperation> Function()? allowedOperations;
-
-  const DesktopDraggableWrapper({
-    super.key,
-    required this.child,
-    this.enabled = true,
-    required this.dragItemProvider,
-    required this.dragBuilder,
-    this.allowedOperations,
-  });
-
-  static bool get isPlatformSupported => DropDataUtils.isPlatformSupported;
-
-  @override
-  Widget build(BuildContext context) {
-    if (!enabled || !isPlatformSupported) {
-      return child;
-    }
-
-    return DragItemWidget(
-      dragItemProvider: (request) async {
-        DropDataUtils.isInternalDragActive = true;
-        request.session.dragCompleted.addListener(() {
-          Future.delayed(const Duration(milliseconds: 350), () {
-            DropDataUtils.isInternalDragActive = false;
-          });
-        });
-        try {
-          return await dragItemProvider(request);
-        } catch (e) {
-          DropDataUtils.isInternalDragActive = false;
-          rethrow;
-        }
-      },
-      allowedOperations: allowedOperations ??
-          () => const [DropOperation.copy, DropOperation.link],
-      dragBuilder: dragBuilder,
-      child: DraggableWidget(
-        hitTestBehavior: HitTestBehavior.translucent,
-        child: child,
       ),
     );
   }

@@ -1,12 +1,16 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:super_drag_and_drop/super_drag_and_drop.dart';
 import 'package:vynody/l10n/app_localizations.dart';
 import 'package:vynody/models/artist_summary.dart';
-import 'package:vynody/widgets/draggable_preview_card.dart';
+import 'package:vynody/widgets/drag/drag_cover.dart';
+import 'package:vynody/widgets/drag/drag_payload.dart';
+import 'package:vynody/widgets/drag/drag_preview_card.dart';
+import 'package:vynody/widgets/drag/drag_source.dart';
 
 /// Wraps an artist item widget to provide system-level native drag source support.
-/// Enables dragging an artist from local library into standalone queue window or other apps.
+///
+/// Enables dragging an artist from the local library into the standalone queue
+/// window or other apps. Dragging an artist that is part of a multi-selection
+/// carries the songs of every selected artist.
 class DraggableArtistItem extends StatelessWidget {
   final ArtistSummary artist;
   final Widget child;
@@ -27,86 +31,54 @@ class DraggableArtistItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!enabled || !DesktopDraggableWrapper.isPlatformSupported) {
-      return child;
-    }
+    // Non-null only while this artist is the anchor of a multi-selection, which
+    // is also the only case where the drag carries more than one artist.
+    final selection = selectedArtists;
+    final batchSelection = (isSelectionMode &&
+            isSelected &&
+            selection != null &&
+            selection.length > 1)
+        ? selection
+        : null;
 
-    final isBatch = isSelectionMode &&
-        isSelected &&
-        selectedArtists != null &&
-        selectedArtists!.length > 1;
-    final rep = artist.representativeSong;
-    final cachedImageValid = artist.cachedImagePath != null &&
-        artist.cachedImagePath!.isNotEmpty &&
-        File(artist.cachedImagePath!).existsSync();
-    final hasThumb = rep.thumbnailPath != null &&
-        rep.thumbnailPath!.isNotEmpty &&
-        File(rep.thumbnailPath!).existsSync();
-    final hasArt = rep.artworkPath != null &&
-        rep.artworkPath!.isNotEmpty &&
-        File(rep.artworkPath!).existsSync();
-    final coverPath = cachedImageValid
-        ? artist.cachedImagePath
-        : (hasThumb ? rep.thumbnailPath : (hasArt ? rep.artworkPath : null));
-
-    return DesktopDraggableWrapper(
+    return DragSource(
       enabled: enabled,
-      dragItemProvider: (request) async {
-        debugPrint(
-            '[DRAG] DraggableArtistItem.dragItemProvider called for: ${artist.name} (${artist.songs.length} songs, isBatch: $isBatch)');
-        final List<String> songPaths;
-        if (isBatch) {
-          final set = <String>{};
-          for (final a in selectedArtists!) {
-            for (final s in a.songs) {
-              set.add(s.path);
-            }
-          }
-          songPaths = set.toList();
-        } else {
-          songPaths = artist.songs.map((s) => s.path).toList();
+      buildPayload: () {
+        final batch = batchSelection;
+        if (batch != null) {
+          return SongPathsPayload.flattened(batch.map((item) => item.songs));
         }
-
-        final item = DragItem(
-          localData: <String, dynamic>{
-            'type': 'artist',
-            'id': artist.queryKey,
-            'name': artist.name,
-            'paths': songPaths,
-            'count': songPaths.length,
-          },
+        return SongPathsPayload(
+          paths: [for (final song in artist.songs) song.path],
         );
-        if (songPaths.isNotEmpty) {
-          final first = songPaths.first;
-          if (File(first).existsSync()) {
-            item.add(Formats.fileUri(Uri.file(first)));
-          }
-          item.add(Formats.plainText(songPaths.join('\n')));
-        }
-        request.session.dragCompleted.addListener(() {
-          final op = request.session.dragCompleted.value;
-          debugPrint(
-              '[DRAG] DraggableArtistItem drag completed for "${artist.name}". Result operation: $op');
-        });
-        return item;
       },
-      dragBuilder: (context, child) {
-        debugPrint(
-            '[DRAG] DraggableArtistItem.dragBuilder called for: ${artist.name}');
+      buildPreview: (context) {
         final l10n = AppLocalizations.of(context)!;
-        if (isBatch) {
-          final totalSongs = selectedArtists!.fold<int>(
-              0, (sum, a) => sum + a.songs.length);
+        final representative = artist.representativeSong;
+        final coverPath = resolveDragCoverPath(
+          cachedImagePath: artist.cachedImagePath,
+          thumbnailPath: representative.thumbnailPath,
+          artworkPath: representative.artworkPath,
+        );
+
+        final batch = batchSelection;
+        if (batch != null) {
+          final totalSongs = batch.fold<int>(
+            0,
+            (sum, item) => sum + item.songs.length,
+          );
           return AppDraggablePreviewCard(
             title: artist.name,
-            subtitle: l10n.selectedArtistsWithTotalSongs(selectedArtists!.length, totalSongs),
+            subtitle:
+                l10n.selectedArtistsWithTotalSongs(batch.length, totalSongs),
             imagePath: coverPath,
             defaultIcon: Icons.mic_rounded,
-            badgeText: '${selectedArtists!.length}',
-            count: selectedArtists!.length,
+            badgeText: '${batch.length}',
+            count: batch.length,
             isBatch: true,
           );
         }
+
         return AppDraggablePreviewCard(
           title: artist.name,
           subtitle: l10n.songsCountFormat(artist.songCount),

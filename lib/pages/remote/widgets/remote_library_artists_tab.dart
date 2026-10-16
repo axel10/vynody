@@ -557,7 +557,6 @@ class RemoteLibraryArtistItem extends ConsumerWidget {
       isSelectionMode: isSelectionMode,
       isSelected: isMultiSelected,
       selectedArtistIds: selectedArtistIds,
-      allArtists: allArtists,
       child: itemWidget,
     );
   }

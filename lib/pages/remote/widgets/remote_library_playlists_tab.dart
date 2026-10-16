@@ -688,7 +688,6 @@ class RemoteLibraryPlaylistItem extends ConsumerWidget {
       isSelectionMode: isSelectionMode,
       isSelected: isMultiSelected,
       selectedPlaylistIds: selectedPlaylistIds,
-      allPlaylists: allPlaylists,
       child: itemWidget,
     );
   }

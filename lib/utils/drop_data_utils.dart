@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:super_drag_and_drop/super_drag_and_drop.dart';
-import 'package:vynody/models/music_file.dart';
 
 /// Centralized utility for extracting file paths from SuperDragAndDrop events and sessions.
 class DropDataUtils {
@@ -14,9 +13,44 @@ class DropDataUtils {
       !Platform.environment.containsKey('FLUTTER_TEST') &&
       (Platform.isWindows || Platform.isMacOS || Platform.isLinux);
 
-  /// Indicates whether an in-app drag session (initiated via [DesktopDraggableWrapper]) is currently active.
+  /// Number of in-app drag sessions (initiated via `DragSource`) still alive.
+  static int _activeInternalDrags = 0;
+
+  /// How long the internal-drag flag stays raised after a session completes.
+  ///
+  /// The native session can report completion marginally before the drop
+  /// handler runs; this grace window bridges that gap without ever flipping the
+  /// flag back to `false` while a drag is still in flight.
+  static const _postDragGrace = Duration(milliseconds: 350);
+
+  /// Keeps [isInternalDragActive] raised for the whole lifetime of [session].
+  ///
+  /// Counted rather than boolean so a drop handler that runs slightly late
+  /// cannot be mistaken for an external file drop, and so overlapping sessions
+  /// cannot cancel each other out.
+  static void trackInternalDrag(DragSession session) {
+    if (session.dragCompleted.value != null) {
+      // The session already finished before the data provider resolved.
+      return;
+    }
+    _activeInternalDrags++;
+
+    var released = false;
+    void release() {
+      if (released) return;
+      released = true;
+      session.dragCompleted.removeListener(release);
+      Future.delayed(_postDragGrace, () {
+        if (_activeInternalDrags > 0) _activeInternalDrags--;
+      });
+    }
+
+    session.dragCompleted.addListener(release);
+  }
+
+  /// Indicates whether an in-app drag session is currently active.
   /// Used by global backdrop targets to avoid swallowing internal drag operations.
-  static bool isInternalDragActive = false;
+  static bool get isInternalDragActive => _activeInternalDrags > 0;
 
   /// Reads a specific format from a [DataReader] with error handling and timeout.
   static Future<T?> readFormatSafely<T extends Object>(
@@ -62,10 +96,6 @@ class DropDataUtils {
           '[DropDataUtils] processing item $i: localData=${item.localData}, reader=${item.dataReader != null}');
 
       // 1. Fast in-memory extraction (localData)
-      if (item.localData is MusicFile) {
-        paths.add((item.localData as MusicFile).path);
-        continue;
-      }
       if (item.localData is Map) {
         final map = item.localData as Map;
         if (map['paths'] is List) {

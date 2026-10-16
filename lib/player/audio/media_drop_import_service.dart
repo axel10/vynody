@@ -17,6 +17,7 @@ import 'package:vynody/player/remote/remote_server_models.dart';
 import 'package:vynody/player/remote/remote_server_riverpod.dart';
 import 'package:vynody/utils/app_log.dart';
 import 'package:vynody/utils/remote_context_menu_utils.dart';
+import 'package:vynody/widgets/drag/drag_payload.dart';
 
 final mediaDropImportServiceProvider = Provider<MediaDropImportService>((ref) {
   return MediaDropImportService(ref);
@@ -303,98 +304,69 @@ class MediaDropImportService {
           name: p.basename(targetPath),
         ));
       }
-    } else if (path.startsWith('subsonic-artist://') ||
-        path.startsWith('jellyfin-artist://')) {
-      final uri = Uri.tryParse(path);
-      final serverId = uri?.host ?? '';
-      final artistId = uri != null && uri.pathSegments.isNotEmpty
-          ? uri.pathSegments.join('/')
-          : '';
-      final server = servers.firstWhereOrNull((s) => s.id == serverId);
-      if (server != null && artistId.isNotEmpty) {
-        try {
-          final password = await getPassword(server.id);
-          final client = clientCache.putIfAbsent(
-            server.id,
-            () => RemoteMediaLibraryClient.create(
-              server: server,
-              password: password,
-            ),
-          );
-          final tracks =
-              await fetchSubsonicArtistTracks(client, server, artistId);
-          debugPrint(
-              '[MediaDropImport] Resolved remote artist $artistId, found ${tracks.length} tracks');
-          songs.addAll(tracks);
-        } catch (e) {
-          AppLog.log(
-              '[MediaDropImport] Error resolving remote artist $path: $e',
-              mirrorToConsole: true);
-        }
-      }
-    } else if (path.startsWith('subsonic-playlist://') ||
-        path.startsWith('jellyfin-playlist://')) {
-      final uri = Uri.tryParse(path);
-      final serverId = uri?.host ?? '';
-      final playlistId = uri != null && uri.pathSegments.isNotEmpty
-          ? uri.pathSegments.join('/')
-          : '';
-      final server = servers.firstWhereOrNull((s) => s.id == serverId);
-      if (server != null && playlistId.isNotEmpty) {
-        try {
-          final password = await getPassword(server.id);
-          final client = clientCache.putIfAbsent(
-            server.id,
-            () => RemoteMediaLibraryClient.create(
-              server: server,
-              password: password,
-            ),
-          );
-          final tracks =
-              await fetchSubsonicPlaylistTracks(client, server, playlistId);
-          debugPrint(
-              '[MediaDropImport] Resolved remote playlist $playlistId, found ${tracks.length} tracks');
-          songs.addAll(tracks);
-        } catch (e) {
-          AppLog.log(
-              '[MediaDropImport] Error resolving remote playlist $path: $e',
-              mirrorToConsole: true);
-        }
-      }
-    } else if (path.startsWith('subsonic-album://') ||
-        path.startsWith('jellyfin-album://')) {
-      final uri = Uri.tryParse(path);
-      final serverId = uri?.host ?? '';
-      final albumId = uri != null && uri.pathSegments.isNotEmpty
-          ? uri.pathSegments.join('/')
-          : '';
-      final server = servers.firstWhereOrNull((s) => s.id == serverId);
-      if (server != null && albumId.isNotEmpty) {
-        try {
-          final password = await getPassword(server.id);
-          final client = clientCache.putIfAbsent(
-            server.id,
-            () => RemoteMediaLibraryClient.create(
-              server: server,
-              password: password,
-            ),
-          );
-          final tracks =
-              await fetchSubsonicAlbumTracks(client, server, albumId);
-          debugPrint(
-              '[MediaDropImport] Resolved remote album $albumId, found ${tracks.length} tracks');
-          songs.addAll(tracks);
-        } catch (e) {
-          AppLog.log(
-              '[MediaDropImport] Error resolving remote album $path: $e',
-              mirrorToConsole: true);
-        }
-      }
+    } else if (RemoteCollectionRef.tryParse(path) case final ref?) {
+      songs.addAll(
+        await _resolveRemoteCollection(
+          ref,
+          servers: servers,
+          getPassword: getPassword,
+          clientCache: clientCache,
+        ),
+      );
     } else if (path.startsWith('http://') || path.startsWith('https://')) {
       songs.add(MusicFile(path: path, name: p.basename(path)));
     } else {
       debugPrint('[MediaDropImport] Dropped path unrecognized: $path');
     }
     return songs;
+  }
+
+  /// Resolves a dragged remote collection (album / artist / playlist) into its
+  /// tracks.
+  ///
+  /// [RemoteCollectionRef] already carries the server type and kind, so this is
+  /// the single place that turns a remote drag reference into songs — adding a
+  /// new collection kind means extending [RemoteCollectionKind], not adding
+  /// another `startsWith` branch.
+  Future<List<MusicFile>> _resolveRemoteCollection(
+    RemoteCollectionRef ref, {
+    required List<RemoteServer> servers,
+    required Future<String> Function(String serverId) getPassword,
+    required Map<String, RemoteMediaLibraryClient> clientCache,
+  }) async {
+    final server = servers.firstWhereOrNull((s) => s.id == ref.serverId);
+    if (server == null) {
+      debugPrint(
+          '[MediaDropImport] Remote server ${ref.serverId} not found for $ref');
+      return const [];
+    }
+
+    try {
+      final password = await getPassword(server.id);
+      final client = clientCache.putIfAbsent(
+        server.id,
+        () => RemoteMediaLibraryClient.create(
+          server: server,
+          password: password,
+        ),
+      );
+      final tracks = switch (ref.kind) {
+        RemoteCollectionKind.album =>
+          await fetchSubsonicAlbumTracks(client, server, ref.id),
+        RemoteCollectionKind.artist =>
+          await fetchSubsonicArtistTracks(client, server, ref.id),
+        RemoteCollectionKind.playlist =>
+          await fetchSubsonicPlaylistTracks(client, server, ref.id),
+      };
+      debugPrint(
+          '[MediaDropImport] Resolved remote ${ref.kind.slug} ${ref.id}, found ${tracks.length} tracks');
+      return tracks;
+    } catch (e) {
+      AppLog.log(
+        '[MediaDropImport] Error resolving remote ${ref.kind.slug} $ref: $e',
+        mirrorToConsole: true,
+      );
+      return const [];
+    }
   }
 }

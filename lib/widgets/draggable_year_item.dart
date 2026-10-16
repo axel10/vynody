@@ -1,13 +1,16 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:super_drag_and_drop/super_drag_and_drop.dart';
 import 'package:vynody/l10n/app_localizations.dart';
 import 'package:vynody/models/year_summary.dart';
-import 'package:vynody/widgets/draggable_preview_card.dart';
+import 'package:vynody/widgets/drag/drag_cover.dart';
+import 'package:vynody/widgets/drag/drag_payload.dart';
+import 'package:vynody/widgets/drag/drag_preview_card.dart';
+import 'package:vynody/widgets/drag/drag_source.dart';
 
 /// Wraps a year item widget to provide system-level native drag source support.
+///
 /// Enables dragging a release year (and its songs) from the local library into
-/// the standalone queue window or other apps.
+/// the standalone queue window or other apps. Dragging a year that is part of a
+/// multi-selection carries the songs of every selected year.
 class DraggableYearItem extends StatelessWidget {
   final YearSummary year;
   final Widget child;
@@ -28,88 +31,52 @@ class DraggableYearItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!enabled || !DesktopDraggableWrapper.isPlatformSupported) {
-      return child;
-    }
+    // Non-null only while this year is the anchor of a multi-selection, which is
+    // also the only case where the drag carries more than one year.
+    final selection = selectedYears;
+    final batchSelection = (isSelectionMode &&
+            isSelected &&
+            selection != null &&
+            selection.length > 1)
+        ? selection
+        : null;
 
-    final l10n = AppLocalizations.of(context)!;
-    final label = year.labelWith(l10n.unknownYear);
-
-    final isBatch = isSelectionMode &&
-        isSelected &&
-        selectedYears != null &&
-        selectedYears!.length > 1;
-
-    final hasThumb = year.representativeThumbnailPath != null &&
-        year.representativeThumbnailPath!.isNotEmpty &&
-        File(year.representativeThumbnailPath!).existsSync();
-    final hasArt = year.representativeArtworkPath != null &&
-        year.representativeArtworkPath!.isNotEmpty &&
-        File(year.representativeArtworkPath!).existsSync();
-    final coverPath = hasThumb
-        ? year.representativeThumbnailPath
-        : (hasArt ? year.representativeArtworkPath : null);
-
-    return DesktopDraggableWrapper(
+    return DragSource(
       enabled: enabled,
-      dragItemProvider: (request) async {
-        debugPrint(
-            '[DRAG] DraggableYearItem.dragItemProvider called for: $label (${year.songs.length} songs, isBatch: $isBatch)');
-        final List<String> songPaths;
-        if (isBatch) {
-          final set = <String>{};
-          for (final y in selectedYears!) {
-            for (final s in y.songs) {
-              set.add(s.path);
-            }
-          }
-          songPaths = set.toList();
-        } else {
-          songPaths = year.songs.map((s) => s.path).toList();
+      buildPayload: () {
+        final batch = batchSelection;
+        if (batch != null) {
+          return SongPathsPayload.flattened(batch.map((item) => item.songs));
         }
-
-        final item = DragItem(
-          localData: <String, dynamic>{
-            'type': 'year',
-            'id': year.queryKey,
-            'name': label,
-            'paths': songPaths,
-            'count': songPaths.length,
-          },
+        return SongPathsPayload(
+          paths: [for (final song in year.songs) song.path],
         );
-        if (songPaths.isNotEmpty) {
-          final first = songPaths.first;
-          if (File(first).existsSync()) {
-            item.add(Formats.fileUri(Uri.file(first)));
-          }
-          item.add(Formats.plainText(songPaths.join('\n')));
-        }
-        request.session.dragCompleted.addListener(() {
-          final op = request.session.dragCompleted.value;
-          debugPrint(
-              '[DRAG] DraggableYearItem drag completed for "$label". Result operation: $op');
-        });
-        return item;
       },
-      dragBuilder: (context, child) {
-        debugPrint('[DRAG] DraggableYearItem.dragBuilder called for: $label');
+      buildPreview: (context) {
         final l10n = AppLocalizations.of(context)!;
-        if (isBatch) {
-          final totalSongs = selectedYears!.fold<int>(
-              0, (sum, y) => sum + y.songs.length);
+        final label = year.labelWith(l10n.unknownYear);
+        final coverPath = resolveDragCoverPath(
+          thumbnailPath: year.representativeThumbnailPath,
+          artworkPath: year.representativeArtworkPath,
+        );
+
+        final batch = batchSelection;
+        if (batch != null) {
+          final totalSongs = batch.fold<int>(
+            0,
+            (sum, item) => sum + item.songs.length,
+          );
           return AppDraggablePreviewCard(
             title: label,
-            subtitle: l10n.selectedYearsWithTotalSongs(
-              selectedYears!.length,
-              totalSongs,
-            ),
+            subtitle: l10n.selectedYearsWithTotalSongs(batch.length, totalSongs),
             imagePath: coverPath,
             defaultIcon: Icons.calendar_month_rounded,
-            badgeText: '${selectedYears!.length}',
-            count: selectedYears!.length,
+            badgeText: '${batch.length}',
+            count: batch.length,
             isBatch: true,
           );
         }
+
         return AppDraggablePreviewCard(
           title: label,
           subtitle: l10n.songsCountFormat(year.songCount),

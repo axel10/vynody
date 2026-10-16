@@ -467,16 +467,13 @@ class RemoteLibraryAlbumCard extends ConsumerWidget {
 
     return DraggableRemoteAlbumItem(
       server: server,
-      album: album,
       albumId: albumId,
       title: title,
       artist: artist,
-      coverId: coverId,
       songCount: songCount,
       isSelectionMode: isSelectionMode,
       isSelected: isSelected,
       selectedAlbumIds: selectedAlbumIds,
-      allAlbums: filteredAlbums,
       child: card,
     );
   }
