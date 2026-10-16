@@ -23,6 +23,7 @@ import 'package:smtc_windows/smtc_windows.dart';
 import 'utils/app_log.dart';
 import 'utils/app_orientation_manager.dart';
 import 'utils/memory_trace.dart';
+import 'utils/startup_profiler.dart';
 import 'package:vynody/player/sharing/security/tls_certificate_service.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/player/metadata/metadata_helper.dart';
@@ -154,6 +155,10 @@ Future<void> _handleFileOpenArgs(
 }
 
 void main(List<String> args) async {
+
+  // 录制启动时cpu占用，需要用时解除注释
+
+  // StartupProfiler.recordStartup(duration: const Duration(seconds: 10));
   WidgetsFlutterBinding.ensureInitialized();
   if (DesktopLyrics.isLyricsWindow(args)) {
     FlutterError.onError = (FlutterErrorDetails details) {

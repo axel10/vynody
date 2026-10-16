@@ -49,6 +49,7 @@ dependencies:
   path: ^1.9.1
   permission_handler: ^12.0.1
   path_provider: ^2.1.5
+  vm_service: ^14.3.0
   device_info_plus: ^12.4.0
   dio: ^5.7.0
   sqlite3: ^3.5.0
