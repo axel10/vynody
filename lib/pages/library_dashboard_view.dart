@@ -17,14 +17,19 @@ import 'package:vynody/player/library/artist_library.dart';
 import 'package:vynody/player/library/library_insights_service.dart';
 import 'package:vynody/player/library/library_overview_providers.dart';
 import 'package:vynody/player/metadata/theaudiodb_artist_service.dart';
+import 'package:vynody/utils/song_context_menu_utils.dart';
+import 'package:vynody/widgets/album_context_menu.dart';
 import 'package:vynody/widgets/album_cover.dart';
 import 'package:vynody/widgets/artist_avatar.dart';
+import 'package:vynody/widgets/artist_context_menu.dart';
 import 'package:vynody/widgets/draggable_album_item.dart';
 import 'package:vynody/widgets/draggable_artist_item.dart';
 import 'package:vynody/widgets/draggable_genre_item.dart';
 import 'package:vynody/widgets/draggable_song_item.dart';
 import 'package:vynody/widgets/draggable_year_item.dart';
+import 'package:vynody/widgets/genre_context_menu.dart';
 import 'package:vynody/widgets/song_thumbnail.dart';
+import 'package:vynody/widgets/year_context_menu.dart';
 import 'album_detail_page.dart';
 import 'artist_detail_page.dart';
 import 'genre_detail_page.dart';
@@ -1104,6 +1109,15 @@ class _RecentlyPlayedSection extends ConsumerWidget {
                               initialIndex: index,
                             );
                       },
+                      onSecondaryTapDown: (details) =>
+                          _openDashboardSongMenu(
+                        context,
+                        ref,
+                        entry.song,
+                        globalPosition: details.globalPosition,
+                      ),
+                      onLongPress: () =>
+                          _openDashboardSongMenu(context, ref, entry.song),
                     );
                   },
                 );
@@ -1118,18 +1132,66 @@ class _RecentlyPlayedSection extends ConsumerWidget {
   }
 }
 
+/// 媒体库首页单曲条目的操作菜单。
+///
+/// 传入 [globalPosition] 时按右键菜单弹出；不传（长按）则按底部弹窗呈现。
+Future<void> _openDashboardSongMenu(
+  BuildContext context,
+  WidgetRef ref,
+  MusicFile song, {
+  Offset? globalPosition,
+}) async {
+  final audio = ref.read(audioServiceProvider);
+  final playlistService = ref.read(playlistServiceProvider);
+
+  Future<void> addToPlaylist() async {
+    await showAddSongsToPlaylistDialog(context, playlistService, [song]);
+  }
+
+  void onPlayNext() => audio.enqueueNext([song]);
+  void onAddToQueue() => audio.appendToQueue([song]);
+
+  if (globalPosition == null) {
+    await showSongBottomSheet(
+      context,
+      song: song,
+      songs: [song],
+      mode: SongContextMenuMode.full,
+      onPlayNext: onPlayNext,
+      onAddToQueue: onAddToQueue,
+      onAddToPlaylist: addToPlaylist,
+    );
+    return;
+  }
+
+  await showSongContextMenu(
+    context,
+    globalPosition,
+    song: song,
+    songs: [song],
+    mode: SongContextMenuMode.full,
+    onPlayNext: onPlayNext,
+    onAddToQueue: onAddToQueue,
+    onAddToPlaylist: addToPlaylist,
+  );
+}
+
 class _SongCard extends StatefulWidget {
   const _SongCard({
     required this.song,
     required this.onPlay,
     this.width = 126.0,
     this.isWide = false,
+    this.onSecondaryTapDown,
+    this.onLongPress,
   });
 
   final MusicFile song;
   final VoidCallback onPlay;
   final double width;
   final bool isWide;
+  final void Function(TapDownDetails details)? onSecondaryTapDown;
+  final VoidCallback? onLongPress;
 
   @override
   State<_SongCard> createState() => _SongCardState();
@@ -1153,6 +1215,8 @@ class _SongCardState extends State<_SongCard> {
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: widget.onPlay,
+        onLongPress: widget.onLongPress,
+        onSecondaryTapDown: widget.onSecondaryTapDown,
         child: SizedBox(
           width: size,
           child: Column(
@@ -1353,18 +1417,20 @@ class _HorizontalAlbumSection extends StatelessWidget {
                   final album = preview[index];
                   return Consumer(
                     builder: (context, ref, _) {
+                      void openDetails() {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => AlbumDetailPage(album: album),
+                          ),
+                        );
+                      }
+
                       return _AlbumCard(
                         key: ValueKey(album.id),
                         album: album,
                         width: cardWidth,
                         isWide: isWide,
-                        onTap: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => AlbumDetailPage(album: album),
-                            ),
-                          );
-                        },
+                        onTap: openDetails,
                         onPlay: () {
                           if (album.songs.isNotEmpty) {
                             ref.read(audioServiceProvider).playPlaylist(
@@ -1375,6 +1441,23 @@ class _HorizontalAlbumSection extends StatelessWidget {
                                   ),
                                 );
                           }
+                        },
+                        onSecondaryTapDown: (details) {
+                          showAlbumContextMenu(
+                            context: context,
+                            globalPosition: details.globalPosition,
+                            ref: ref,
+                            album: album,
+                            onViewDetails: openDetails,
+                          );
+                        },
+                        onLongPress: () {
+                          showAlbumBottomSheet(
+                            context: context,
+                            ref: ref,
+                            album: album,
+                            onViewDetails: openDetails,
+                          );
                         },
                       );
                     },
@@ -1709,6 +1792,8 @@ class _AlbumCard extends StatefulWidget {
     required this.isWide,
     required this.onTap,
     required this.onPlay,
+    this.onSecondaryTapDown,
+    this.onLongPress,
   });
 
   final AlbumSummary album;
@@ -1716,6 +1801,8 @@ class _AlbumCard extends StatefulWidget {
   final bool isWide;
   final VoidCallback onTap;
   final VoidCallback onPlay;
+  final void Function(TapDownDetails details)? onSecondaryTapDown;
+  final VoidCallback? onLongPress;
 
   @override
   State<_AlbumCard> createState() => _AlbumCardState();
@@ -1739,6 +1826,8 @@ class _AlbumCardState extends State<_AlbumCard> {
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: widget.onTap,
+        onLongPress: widget.onLongPress,
+        onSecondaryTapDown: widget.onSecondaryTapDown,
         child: SizedBox(
           width: size,
           child: Column(
@@ -2028,20 +2117,39 @@ class _DashboardArtistItemState extends ConsumerState<_DashboardArtistItem> {
     final artist = widget.artist;
     final displayPath = _cachedImagePath ?? artist.cachedImagePath;
 
+    void openDetails() {
+      if (widget.isWide) {
+        ref.read(selectedArtistKeyProvider.notifier).set(artist.queryKey);
+        widget.onViewAll();
+      } else {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            settings: const RouteSettings(name: 'artist_detail'),
+            builder: (_) => ArtistDetailPage(artist: artist),
+          ),
+        );
+      }
+    }
+
     final card = InkWell(
       borderRadius: BorderRadius.circular(50),
-      onTap: () {
-        if (widget.isWide) {
-          ref.read(selectedArtistKeyProvider.notifier).set(artist.queryKey);
-          widget.onViewAll();
-        } else {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              settings: const RouteSettings(name: 'artist_detail'),
-              builder: (_) => ArtistDetailPage(artist: artist),
-            ),
-          );
-        }
+      onTap: openDetails,
+      onSecondaryTapDown: (details) {
+        showArtistContextMenu(
+          context: context,
+          globalPosition: details.globalPosition,
+          ref: ref,
+          artist: artist,
+          onViewDetails: openDetails,
+        );
+      },
+      onLongPress: () {
+        showArtistBottomSheet(
+          context: context,
+          ref: ref,
+          artist: artist,
+          onViewDetails: openDetails,
+        );
       },
       child: SizedBox(
         width: widget.cardWidth,
@@ -2150,25 +2258,41 @@ class _GenresRowSectionState extends ConsumerState<_GenresRowSection> {
                 separatorBuilder: (_, _) => const SizedBox(width: 12),
                 itemBuilder: (context, index) {
                   final genre = _cachedGenres![index];
+
+                  void openDetails() {
+                    if (widget.isWide) {
+                      ref
+                          .read(selectedGenreKeyProvider.notifier)
+                          .set(genre.queryKey);
+                      widget.onViewAll();
+                    } else {
+                      Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          settings: const RouteSettings(
+                            name: 'genre_detail',
+                          ),
+                          builder: (_) => GenreDetailPage(genre: genre),
+                        ),
+                      );
+                    }
+                  }
+
                   return _GenreCard(
                     genre: genre,
-                    onTap: () {
-                      if (widget.isWide) {
-                        ref
-                            .read(selectedGenreKeyProvider.notifier)
-                            .set(genre.queryKey);
-                        widget.onViewAll();
-                      } else {
-                        Navigator.of(context).push(
-                          MaterialPageRoute<void>(
-                            settings: const RouteSettings(
-                              name: 'genre_detail',
-                            ),
-                            builder: (_) => GenreDetailPage(genre: genre),
-                          ),
-                        );
-                      }
-                    },
+                    onTap: openDetails,
+                    onSecondaryTapDown: (details) => showGenreContextMenu(
+                      context: context,
+                      globalPosition: details.globalPosition,
+                      ref: ref,
+                      genre: genre,
+                      onViewDetails: openDetails,
+                    ),
+                    onLongPress: () => showGenreBottomSheet(
+                      context: context,
+                      ref: ref,
+                      genre: genre,
+                      onViewDetails: openDetails,
+                    ),
                   );
                 },
               );
@@ -2186,10 +2310,14 @@ class _GenreCard extends StatefulWidget {
   const _GenreCard({
     required this.genre,
     required this.onTap,
+    this.onSecondaryTapDown,
+    this.onLongPress,
   });
 
   final GenreSummary genre;
   final VoidCallback onTap;
+  final void Function(TapDownDetails details)? onSecondaryTapDown;
+  final VoidCallback? onLongPress;
 
   @override
   State<_GenreCard> createState() => _GenreCardState();
@@ -2209,7 +2337,10 @@ class _GenreCardState extends State<_GenreCard> {
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
       child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onTap: widget.onTap,
+        onLongPress: widget.onLongPress,
+        onSecondaryTapDown: widget.onSecondaryTapDown,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
           width: 160,
@@ -2376,25 +2507,41 @@ class _YearsRowSectionState extends ConsumerState<_YearsRowSection> {
                 separatorBuilder: (_, _) => const SizedBox(width: 12),
                 itemBuilder: (context, index) {
                   final year = _cachedYears![index];
+
+                  void openDetails() {
+                    if (widget.isWide) {
+                      ref
+                          .read(selectedYearKeyProvider.notifier)
+                          .set(year.queryKey);
+                      widget.onViewAll();
+                    } else {
+                      Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          settings: const RouteSettings(
+                            name: 'year_detail',
+                          ),
+                          builder: (_) => YearDetailPage(year: year),
+                        ),
+                      );
+                    }
+                  }
+
                   return _YearCard(
                     year: year,
-                    onTap: () {
-                      if (widget.isWide) {
-                        ref
-                            .read(selectedYearKeyProvider.notifier)
-                            .set(year.queryKey);
-                        widget.onViewAll();
-                      } else {
-                        Navigator.of(context).push(
-                          MaterialPageRoute<void>(
-                            settings: const RouteSettings(
-                              name: 'year_detail',
-                            ),
-                            builder: (_) => YearDetailPage(year: year),
-                          ),
-                        );
-                      }
-                    },
+                    onTap: openDetails,
+                    onSecondaryTapDown: (details) => showYearContextMenu(
+                      context: context,
+                      globalPosition: details.globalPosition,
+                      ref: ref,
+                      year: year,
+                      onViewDetails: openDetails,
+                    ),
+                    onLongPress: () => showYearBottomSheet(
+                      context: context,
+                      ref: ref,
+                      year: year,
+                      onViewDetails: openDetails,
+                    ),
                   );
                 },
               );
@@ -2412,10 +2559,14 @@ class _YearCard extends StatefulWidget {
   const _YearCard({
     required this.year,
     required this.onTap,
+    this.onSecondaryTapDown,
+    this.onLongPress,
   });
 
   final YearSummary year;
   final VoidCallback onTap;
+  final void Function(TapDownDetails details)? onSecondaryTapDown;
+  final VoidCallback? onLongPress;
 
   @override
   State<_YearCard> createState() => _YearCardState();
@@ -2435,7 +2586,10 @@ class _YearCardState extends State<_YearCard> {
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
       child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onTap: widget.onTap,
+        onLongPress: widget.onLongPress,
+        onSecondaryTapDown: widget.onSecondaryTapDown,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
           width: 160,

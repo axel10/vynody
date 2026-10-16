@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:flutter/gestures.dart' show kSecondaryMouseButton;
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oktoast/oktoast.dart';
@@ -468,6 +469,96 @@ void main() {
       expect(find.byType(DraggableArtistItem), findsWidgets, reason: 'artists row');
       expect(find.byType(DraggableGenreItem), findsWidgets, reason: 'genres row');
       expect(find.byType(DraggableYearItem), findsWidgets, reason: 'years row');
+    });
+
+    testWidgets('LibraryDashboardView - 五类条目均支持右键菜单', (tester) async {
+      // 该视图以独立路由（`library_dashboard`）呈现，因此需要直接渲染；
+      // 视口给足高度，保证每个 sliver 区块都真正 build 出来。
+      tester.view.physicalSize = const Size(1440, 3400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final songs = demoData.songs;
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: ProviderContainer(
+            overrides: [
+              settingsServiceProvider.overrideWith((ref) => settingsService),
+              audioServiceProvider.overrideWith((ref) => audioService),
+              audioSnapshotProvider.overrideWith((ref) => audioSnapshot),
+              audioCurrentMusicProvider.overrideWith((ref) => audioSnapshot.currentMusic),
+              scannerServiceProvider.overrideWith((ref) => scannerService),
+              albumLibraryProvider.overrideWith((ref) => Stream.value(demoData.albums)),
+              artistLibraryProvider.overrideWith((ref) => Stream.value(demoArtists)),
+              playlistServiceProvider.overrideWith((ref) => playlistService),
+              recentlyPlayedSongsProvider.overrideWith((ref, range) => Stream.value(demoInsightEntries)),
+              mostPlayedSongsProvider.overrideWith((ref, range) => Stream.value(demoInsightEntries)),
+              recentlyAddedSongsProvider.overrideWith((ref, range) => Stream.value(demoInsightEntries)),
+              genreLibraryProvider.overrideWith(
+                (ref) => Stream.value([
+                  GenreSummary(name: 'Pop', songCount: songs.length, songs: songs),
+                ]),
+              ),
+              yearLibraryProvider.overrideWith(
+                (ref) => Stream.value([
+                  YearSummary(year: 2024, songCount: songs.length, songs: songs),
+                ]),
+              ),
+              isProUnlockedProvider.overrideWith((ref) => true),
+              isEffectiveWaveformEnabledProvider.overrideWith((ref) => true),
+            ],
+          ),
+          child: OKToast(
+            child: MaterialApp(
+              debugShowCheckedModeBanner: false,
+              locale: const Locale('zh'),
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: Material(
+                child: SizedBox(
+                  width: 1440,
+                  height: 3400,
+                  child: LibraryDashboardView(
+                    contentTopPadding: 0,
+                    contentLeftPadding: 0,
+                    onNavigateToSubIndex: (_) {},
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(tester.takeException(), isNull);
+
+      Future<void> expectContextMenuOn(
+        Finder finder, {
+        required String reason,
+      }) async {
+        await tester.tap(finder.first, buttons: kSecondaryMouseButton);
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 400));
+        expect(
+          find.byType(PopupMenuItem<String>),
+          findsWidgets,
+          reason: '$reason 右键后应弹出操作菜单',
+        );
+
+        // 点击菜单外的遮罩关闭，避免影响下一类条目
+        await tester.tapAt(const Offset(2, 2));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 400));
+      }
+
+      await expectContextMenuOn(find.byType(DraggableSongItem), reason: 'songs row');
+      await expectContextMenuOn(find.byType(DraggableAlbumItem), reason: 'albums row');
+      await expectContextMenuOn(find.byType(DraggableArtistItem), reason: 'artists row');
+      await expectContextMenuOn(find.byType(DraggableGenreItem), reason: 'genres row');
+      await expectContextMenuOn(find.byType(DraggableYearItem), reason: 'years row');
     });
 
     testWidgets('LibraryPage - renders hierarchical menu in portrait and navigates to subpage', (tester) async {

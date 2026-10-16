@@ -58,6 +58,22 @@ FFMPEG_BASE_URL=https://github.com/axel10/audio_core/releases/download
   横屏内嵌歌曲多选、专辑/艺术家详情页、返回键语义）。该文件在「条件性 PopScope」写法下会有 4 条失败，
   可用来验证这类回归。
 
+## 媒体库条目的右键菜单（全站统一三件套）
+
+新增「一类实体」的右键菜单照抄三件套（已有 album / artist / genre / year）：
+1. `lib/widgets/<entity>_context_menu.dart`：`show<Entity>ContextMenu`（`AppContextMenu.show` +
+   `buildContextMenuItem`，后者定义在 `lib/utils/song_context_menu_utils.dart`）
+   + `show<Entity>BottomSheet` + 共用的 `_handle<Entity>MenuAction`。
+2. 卡片/列表项根节点挂 `GestureDetector(behavior: HitTestBehavior.opaque, onSecondaryTapDown, onLongPress)`；
+   右键 → ContextMenu，长按 → BottomSheet。已用 `InkWell` 的（艺术家条目）直接用其自带回调。
+3. l10n 需要 `view<Entity>Details` / `copy<Entity>Name` 两个键，改完 9 个 arb 必须跑 `flutter gen-l10n`。
+
+覆盖范围（截至 2026-10-16 全部接通）：媒体库二级页（专辑/艺术家/流派/年份 tab）、
+`library_dashboard_view.dart` 首页五类卡片（歌曲/专辑/艺术家/流派/年份）。
+仪表盘的卡片**不传** `onMultiSelect`（首页没有多选 UI），所以菜单里没有「多选」项。
+回归测试：`test/widgets/views_layout_smoke_test.dart` 的「五类条目均支持右键菜单」
+（`tester.tap(..., buttons: kSecondaryMouseButton)`，需 `import 'package:flutter/gestures.dart'`）。
+
 ## 环境注意事项
 
 - Bash 工具的 `grep` 在本机结果不可靠（会漏匹配），排查代码一律优先用 Grep 工具。
