@@ -2894,12 +2894,14 @@ class AudioService extends Notifier<AudioSnapshot> {
     final safeIndex = startIndex.clamp(0, songs.length - 1);
     final tracks = songs.map(_audioTrackForSong).toList(growable: false);
     final activeId = _player.playlist.activePlaylistId ?? _player.playlist.queuePlaylistId;
-    await _player.playlist.updatePlaylistTracks(
+    // 换队列与定位当前项必须一次完成：拆成 updatePlaylistTracks + playByIndex
+    // 两步时，若当前曲目不在新列表里，currentMusic 会短暂为 null（~100ms），
+    // 收起态的浮动 Dock 会据此判定「没有 Mini 播放器」而重播一次展开/收起动画。
+    await _player.playlist.replaceActiveTracksAndSelect(
       activeId,
       tracks,
-      reconcile: false,
+      startIndex: safeIndex,
     );
-    await _player.playlist.playByIndex(safeIndex);
 
     final current = currentMusic;
     if (current != null) {

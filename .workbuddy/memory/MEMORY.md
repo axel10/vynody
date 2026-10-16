@@ -12,6 +12,7 @@
 | 曲库数据 | `lib/player/library/library_catalog.dart` 的 `libraryCatalogProvider` 是**全应用唯一**允许订阅 `db.watchAllSongMetadata()` 的地方 | 新曲库视图一律 `catalogDerived(ref, (c) => ...)` 从快照派生，禁止自己 `await for` 那个流。派生 provider 保持 `StreamProvider` 类型与名字（测试用 `overrideWith`）。`LibraryCatalog` 聚合字段全是 `late final`，**必须保持惰性**。过滤两层：`catalog.songs`（仅排除 external/deletedAt）vs `catalog.visibleSongs`（再加活动根目录+来源过滤），历史上 `allRatedSongsProvider`/`timeMachineAlbumsProvider` 用前者，其余用后者，未统一 |
 | 返回键 | `MainLayout` 的 `PopScope(canPop:false)` → `_handleBackPressed()`（`main_layout.dart` 约 `:1315`），全应用唯一裁决点 | 顺序：最上层 Modal → 播放抽屉 → index 2（媒体库）→ index 0（目录回上级）→ index 4（共享页有传输则 toast 拦住）→ `SystemNavigator.pop()`；非 Android 直接 return |
 | 艺术家聚合 | `ArtistLibraryRepository.buildSummariesFor()` | `watchArtistSummaries()` 只是流式包装，仍被 `audio_service.dart` 的「下一首/上一首艺术家」使用（每次全表扫，低频未优化） |
+| 播放队列整体替换 | `PlaylistController.replaceActiveTracksAndSelect(id, tracks, startIndex:)`（audio_core），`_playQueueTracks` 是唯一调用者 | 禁止拆成 `updatePlaylistTracks(reconcile:false)` + `playByIndex` 两步：中间会发一次 `_currentIndex = null` 通知，`currentMusic` 瞬时为 null（~100ms），收起态浮动 Dock 会据此重播一次收起动画（`floating_dock_bottom_bar.dart` 的 `isCollapsed = showMini && …`）。回归测试 `audio_core/test/playlist_replace_active_tracks_test.dart` |
 
 `library_catalog.dart` ↔ `album_library.dart` / `artist_library.dart` 是**循环 import**（Dart 允许，顶层 provider 惰性构造，无初始化顺序风险），别被绕晕。
 

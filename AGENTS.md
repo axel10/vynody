@@ -36,6 +36,8 @@ flutter run -d <device-id>               # dev run on a device
 
 - 系统里一般有安装rg和fd，用grep和find之前先看看要不要用这两个工具替代
 
+- 如果觉得光看代码无法发现问题请积极地提出在代码里添加日志，要求用户运行并提供日志的方法定位问题
+
 ## Architecture notes
 
 - **State management:** Riverpod (`flutter_riverpod` v3). Providers live co-located with their domain code (e.g., `lib/player/audio/` has audio providers).
