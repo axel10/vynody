@@ -807,18 +807,16 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
           ),
         );
 
-        if (widget.isSelectionMode) {
-          return PopScope(
-            canPop: false,
-            onPopInvokedWithResult: (didPop, result) {
-              if (didPop) return;
-              widget.onClearAllSelection();
-            },
-            child: scaffold,
-          );
-        }
-
-        return scaffold;
+        // PopScope 常驻、仅切换 canPop：避免多选开关导致根节点类型变化，
+        // 否则整棵子树（含滚动位置）会被销毁重建。
+        return PopScope(
+          canPop: !widget.isSelectionMode,
+          onPopInvokedWithResult: (didPop, result) {
+            if (didPop) return;
+            widget.onClearAllSelection();
+          },
+          child: scaffold,
+        );
       },
     );
 

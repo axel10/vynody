@@ -409,17 +409,19 @@ class _LibrarySubHostPageState extends ConsumerState<LibrarySubHostPage> {
         ),
       );
 
-    if (isSelectionActive) {
-      return PopScope(
-        canPop: false,
-        onPopInvokedWithResult: (didPop, result) {
-          if (didPop) return;
-          ref.read(librarySelectionStateProvider.notifier).clear();
-        },
-        child: scaffold,
-      );
-    }
-    return scaffold;
+    // PopScope 必须常驻、只切换 canPop。
+    // 若按 isSelectionActive 在「包一层 PopScope」与「直接返回 scaffold」之间切换，
+    // 根节点类型会从 AutoHideHeaderScope 变成 PopScope，Flutter 会销毁并重建整棵子树：
+    // 各子 tab 的 State 连同选中项一起被 dispose，mixin 的 dispose 又会 clear 共享的多选状态，
+    // 于是表现为「一进入多选就立刻退出」。
+    return PopScope(
+      canPop: !isSelectionActive,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        ref.read(librarySelectionStateProvider.notifier).clear();
+      },
+      child: scaffold,
+    );
   }
 }
 

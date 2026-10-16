@@ -378,17 +378,16 @@ class _ArtistDetailContentState extends ConsumerState<ArtistDetailContent>
       ],
     );
 
-    if (isSelectionMode) {
-      return PopScope(
-        canPop: false,
-        onPopInvokedWithResult: (didPop, result) {
-          if (didPop) return;
-          cancelSongSelection();
-        },
-        child: content,
-      );
-    }
-    return content;
+    // PopScope 常驻、仅切换 canPop：避免多选开关导致根节点类型变化，
+    // 否则整棵子树（含滚动位置）会被销毁重建。
+    return PopScope(
+      canPop: !isSelectionMode,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        cancelSongSelection();
+      },
+      child: content,
+    );
   }
 }
 

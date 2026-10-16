@@ -42,6 +42,22 @@ FFMPEG_BASE_URL=https://github.com/axel10/audio_core/releases/download
 设置页钉在 Rail 左下角；窗口高度不足时 Rail 中间区可滚动。竖屏/移动端仍走
 卡片索引页 + `LibrarySubPage`。
 
+## 媒体库多选（LibrarySelection）约定
+
+- 单一数据源：`lib/widgets/library_selection_scope.dart` 的 `librarySelectionStateProvider`
+  （全局一份，靠 `scope` 区分 library / artist / album / playlist / queue / folder / genre / year …）。
+  页面通过 `SelectionStateMixin` / `SongSelectionMixin` 接入，两个 mixin 的 `dispose` 会用
+  `Future.microtask(clearIfScope(scope))` 收尾。
+- **禁止**按多选状态条件性地在「包一层 PopScope」与「返回原 widget」之间切换：
+  根节点 runtimeType 一变，Flutter 会销毁并重建整棵子树，持有选中项的 widget 也在其中，
+  其 dispose 的微任务会把刚建立的多选状态清掉（表现为一进入多选就退出），
+  同时搜索词/排序/滚动位置等 State 全部丢失。
+  正确写法：PopScope 常驻，只切 `canPop: !isSelectionMode`（参考 `sharing_page.dart:721`、
+  `remote_control_page.dart:249`、`remote_folder_browser_page.dart:1844`）。
+- 测试：`test/pages/library_multiselect_test.dart`（真实页面级：LibrarySubHostPage + ArtistsTab、
+  横屏内嵌歌曲多选、专辑/艺术家详情页、返回键语义）。该文件在「条件性 PopScope」写法下会有 4 条失败，
+  可用来验证这类回归。
+
 ## 环境注意事项
 
 - Bash 工具的 `grep` 在本机结果不可靠（会漏匹配），排查代码一律优先用 Grep 工具。

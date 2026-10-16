@@ -328,21 +328,20 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage>
         );
 
         final wrapped = MiniPlayerWrapper(child: content);
-        if (isSelectionMode) {
-          return PopScope(
-            canPop: false,
-            onPopInvokedWithResult: (didPop, result) {
-              AppLog.log(
-                '[NavTrace] AlbumDetailPage.PopScope invoked (selection mode): didPop=$didPop, result=$result',
-                mirrorToConsole: true,
-              );
-              if (didPop) return;
-              cancelSongSelection();
-            },
-            child: wrapped,
-          );
-        }
-        return wrapped;
+        // PopScope 常驻、仅切换 canPop：避免多选开关导致根节点类型变化，
+        // 否则整棵子树（含滚动位置）会被销毁重建。
+        return PopScope(
+          canPop: !isSelectionMode,
+          onPopInvokedWithResult: (didPop, result) {
+            AppLog.log(
+              '[NavTrace] AlbumDetailPage.PopScope invoked (selection mode): didPop=$didPop, result=$result',
+              mirrorToConsole: true,
+            );
+            if (didPop) return;
+            cancelSongSelection();
+          },
+          child: wrapped,
+        );
       },
     );
   }
