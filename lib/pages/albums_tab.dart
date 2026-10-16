@@ -677,7 +677,9 @@ class _AlbumCard extends ConsumerWidget {
         size: 250,
         width: double.infinity,
         height: double.infinity,
-        borderRadius: BorderRadius.zero,
+        // Hero flights are painted outside AlbumGridCard's clip, so the
+        // artwork itself must carry the card's corner radius.
+        borderRadius: BorderRadius.circular(12),
       ),
       songs: album.songs,
       title: album.title,
