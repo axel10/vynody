@@ -288,9 +288,19 @@ final songMetadataProvider = StreamProvider.family<SongMetadata?, String>((ref, 
 });
 
 class CurrentAudioDetailsNotifier extends Notifier<AudioDetails?> {
+  /// 精解析（TagLib）防抖延迟：等轮播动画结束，并防抖用户快速划歌
+  static const Duration _refineDelay = Duration(milliseconds: 350);
+
   Timer? _debounceTimer;
   String? _currentPath;
   int? _currentLastModifiedTime;
+
+  /// 本曲目精解析的截止时刻。锚点是「切到这首歌」，而不是「最后一次 build」，
+  /// 这样频发的 rebuild 不会把精解析无限往后推。
+  DateTime? _refineDeadline;
+
+  /// 已经为哪条路径发起过精解析（成功/失败都算），避免 rebuild 时重复走 FFI。切歌时重置。
+  String? _refineTriedPath;
 
   static AudioDetails buildFastAudioDetails(MusicFile music) {
     var ext = p.extension(music.path).replaceAll('.', '').toLowerCase();
@@ -326,14 +336,23 @@ class CurrentAudioDetailsNotifier extends Notifier<AudioDetails?> {
   @override
   AudioDetails? build() {
     ref.onDispose(() {
+      // 注意：riverpod 在 provider **重建**（watch 依赖变化）时也会先触发 onDispose
+      // （`ProviderElement._performRebuild()` → `runOnDispose()`）。
+      // 所以这里取消掉的防抖定时器，必须由下面的「同曲目早退」分支补挂回来，
+      // 否则同一首歌只要在 350ms 窗口内被 rebuild 一次，精解析就永远不会执行，
+      // 表现为「只显示格式名、没有采样率/位深/码率」。
       _debounceTimer?.cancel();
+      _debounceTimer = null;
     });
 
     final currentMusic = ref.watch(audioCurrentMusicProvider);
     if (currentMusic == null) {
       _currentPath = null;
       _currentLastModifiedTime = null;
+      _refineDeadline = null;
+      _refineTriedPath = null;
       _debounceTimer?.cancel();
+      _debounceTimer = null;
       return null;
     }
 
@@ -342,12 +361,20 @@ class CurrentAudioDetailsNotifier extends Notifier<AudioDetails?> {
     if (_currentPath == currentMusic.path &&
         _currentLastModifiedTime == currentMusic.lastModifiedTime &&
         state != null) {
+      // 上面的 onDispose 已经把待执行的精解析定时器取消了，这里补挂
+      _armRefine(currentMusic);
       return state;
+    }
+
+    if (_currentPath != currentMusic.path) {
+      _refineDeadline = null;
+      _refineTriedPath = null;
     }
 
     _currentPath = currentMusic.path;
     _currentLastModifiedTime = currentMusic.lastModifiedTime;
     _debounceTimer?.cancel();
+    _debounceTimer = null;
 
     final audioService = ref.read(audioServiceProvider);
     final cached = audioService.getCachedAudioDetails(
@@ -394,9 +421,7 @@ class CurrentAudioDetailsNotifier extends Notifier<AudioDetails?> {
         lastModifiedTime: currentMusic.lastModifiedTime,
       );
       if (refined.bitDepth == null && _formatMayHaveBitDepth(refined.formatName)) {
-        _debounceTimer = Timer(const Duration(milliseconds: 350), () {
-          _loadRefinedDetails(currentMusic);
-        });
+        _armRefine(currentMusic);
       }
       return refined;
     }
@@ -405,11 +430,31 @@ class CurrentAudioDetailsNotifier extends Notifier<AudioDetails?> {
     final fastDetails = cached ?? buildFastAudioDetails(currentMusic);
 
     // 延迟 350ms（等待轮播动画结束并防抖用户快速划歌），随后后台异步读取 TagLib 详细信息并写回数据库
-    _debounceTimer = Timer(const Duration(milliseconds: 350), () {
-      _loadRefinedDetails(currentMusic);
-    });
+    _armRefine(currentMusic);
 
     return fastDetails;
+  }
+
+  /// 安排一次精解析。幂等：已在跑、或本曲目已发起过，就直接返回。
+  ///
+  /// 之所以要能在 [build] 的早退分支里反复调用，是因为 rebuild 会先跑
+  /// `ref.onDispose` 把定时器取消掉（见 build 里的注释）。
+  void _armRefine(MusicFile music) {
+    if (_refineTriedPath == music.path) return;
+    if (_debounceTimer?.isActive ?? false) return;
+
+    _refineDeadline ??= DateTime.now().add(_refineDelay);
+    final remaining = _refineDeadline!.difference(DateTime.now());
+    if (remaining <= Duration.zero) {
+      // 防抖窗口已被反复 rebuild 耗尽，直接解析，避免精解析被无限推迟
+      _loadRefinedDetails(music);
+      return;
+    }
+
+    _debounceTimer = Timer(remaining, () {
+      _debounceTimer = null;
+      _loadRefinedDetails(music);
+    });
   }
 
   static bool _formatMayHaveBitDepth(String format) {
@@ -470,6 +515,7 @@ class CurrentAudioDetailsNotifier extends Notifier<AudioDetails?> {
   /// 供外部在轮播动画完成（onCarouselAnimationComplete）时立即唤起深度解析，无需等待剩余防抖时间
   void loadRefinedImmediately() {
     _debounceTimer?.cancel();
+    _debounceTimer = null;
     final currentMusic = ref.read(audioCurrentMusicProvider);
     if (currentMusic != null) {
       if (state == null ||
@@ -481,6 +527,8 @@ class CurrentAudioDetailsNotifier extends Notifier<AudioDetails?> {
   }
 
   Future<void> _loadRefinedDetails(MusicFile music) async {
+    // 标记本曲目已发起过精解析，避免 rebuild 补挂时重复走 TagLib FFI
+    _refineTriedPath = music.path;
     final audioService = ref.read(audioServiceProvider);
 
     final cached = audioService.getCachedAudioDetails(
