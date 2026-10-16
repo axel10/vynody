@@ -711,64 +711,60 @@ class _SharingPageState extends ConsumerState<SharingPage>
     }
 
 
-    final sessions = ref.watch(activeTransfersProvider);
-    final hasActiveTransfers = sessions.any(
-      (s) =>
-          s.status == TransferStatus.transferring ||
-          s.status == TransferStatus.pending,
-    );
-
-    return PopScope(
-      canPop: !hasActiveTransfers,
-      onPopInvokedWithResult: (didPop, result) {
-        if (didPop) return;
-        showToast(l10n.transferInProgressDoNotLeave);
-      },
-      child: Scaffold(
-        appBar: AppBar(
-          automaticallyImplyLeading: false,
-          centerTitle: true,
-          scrolledUnderElevation: 0,
-          surfaceTintColor: Colors.transparent,
-          title: TabBar(
-            controller: _tabController,
-            isScrollable: true,
-            tabAlignment: TabAlignment.center,
-            tabs: [
-              Tab(
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.share_outlined, size: 18),
-                    const SizedBox(width: 6),
-                    Text(l10n.tabLanSharing),
-                  ],
-                ),
-              ),
-              Tab(
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.cloud_outlined, size: 18),
-                    const SizedBox(width: 6),
-                    Text(l10n.tabCloudServers),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        body: TabBarView(
+    // 本页常驻在 MainLayout 的 IndexedStack 中（访问过就会一直挂在 widget 树上），
+    // 而 PopScope 注册在「路由」层面、与可见性无关：在这里挂 PopScope 会让
+    // 其它 tab 按返回键时也触发本页的回调（弹出「请勿离开共享页」）。
+    // 因此「传输中禁止返回」统一交给 MainLayout._handleBackPressed() 裁决。
+    return Scaffold(
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        centerTitle: true,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
+        title: TabBar(
           controller: _tabController,
-          children: [
-            !isProUnlocked
-                ? _buildProLockedView(context, theme, l10n, bottomOffset)
-                : _buildLanSharingContent(context, theme, l10n, bottomOffset),
-            !isProUnlocked
-                ? _buildProLockedView(context, theme, l10n, bottomOffset, isCloud: true)
-                : _buildCloudServersView(context, theme, l10n, bottomOffset),
+          isScrollable: true,
+          tabAlignment: TabAlignment.center,
+          tabs: [
+            Tab(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.share_outlined, size: 18),
+                  const SizedBox(width: 6),
+                  Text(l10n.tabLanSharing),
+                ],
+              ),
+            ),
+            Tab(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.cloud_outlined, size: 18),
+                  const SizedBox(width: 6),
+                  Text(l10n.tabCloudServers),
+                ],
+              ),
+            ),
           ],
         ),
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          !isProUnlocked
+              ? _buildProLockedView(context, theme, l10n, bottomOffset)
+              : _buildLanSharingContent(context, theme, l10n, bottomOffset),
+          !isProUnlocked
+              ? _buildProLockedView(
+                  context,
+                  theme,
+                  l10n,
+                  bottomOffset,
+                  isCloud: true,
+                )
+              : _buildCloudServersView(context, theme, l10n, bottomOffset),
+        ],
       ),
     );
   }

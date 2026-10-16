@@ -9,6 +9,7 @@ import '../widgets/app_tooltip.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
+import 'package:oktoast/oktoast.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../l10n/app_localizations.dart';
@@ -372,6 +373,30 @@ class _MainLayoutState extends ConsumerState<MainLayout>
         mirrorToConsole: true,
       );
       if (folderState?.handleBackPressed() ?? false) {
+        return;
+      }
+    }
+
+    // 共享页：有正在进行的传输时禁止返回，提示用户留在共享页；
+    // 无传输则维持原有行为（继续往下走 → 退出应用）。
+    // 注意：判定必须放在这里，而不能放在 SharingPage 自己的 PopScope 里 ——
+    // SharingPage 常驻在 IndexedStack 中，挂在它上面的 PopScope 会在其它 tab
+    // 按返回键时同样被触发（PopScope 注册在路由上、与可见性无关）。
+    if (_currentIndex == 4) {
+      final hasActiveTransfers = ref
+          .read(activeTransfersProvider)
+          .any(
+            (s) =>
+                s.status == TransferStatus.transferring ||
+                s.status == TransferStatus.pending,
+          );
+      AppLog.log(
+        '[NavTrace] MainLayout: index 4 (SharingPage), hasActiveTransfers=$hasActiveTransfers',
+        mirrorToConsole: true,
+      );
+      if (hasActiveTransfers) {
+        if (!mounted) return;
+        showToast(AppLocalizations.of(context)!.transferInProgressDoNotLeave);
         return;
       }
     }
