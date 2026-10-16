@@ -1,18 +1,14 @@
 name: Build Desktop And Android
 
 on:
+  # 仅手动触发：在 Actions 页面点 "Run workflow" 才会构建。
+  # 需要发版时把 tag_name 填成与 pubspec.yaml 一致的版本号，release job 会自动创建 Release。
   workflow_dispatch:
     inputs:
       tag_name:
-        description: 'Tag name for the release (leave empty to skip release job unless it is a tag push)'
+        description: 'Tag name for the release (leave empty to skip release job)'
         required: false
         default: ''
-  push:
-    branches:
-      - main
-      - master
-    tags:
-      - 'v*'
 
 jobs:
   check-version:
