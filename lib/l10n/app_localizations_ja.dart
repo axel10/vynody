@@ -5318,6 +5318,12 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String get viewYearDetails => '年代の詳細を表示';
+
+  @override
+  String get copyYearName => '年代をコピー';
+
+  @override
   String get years => '年代';
 
   @override

@@ -2145,6 +2145,8 @@
   "viewGenreDetails": "Tür Ayrıntılarını Görüntüle",
   "copyGenreName": "Tür Adını Kopyala",
   "selectedGenresWithTotalSongs": "{genreCount} tür seçildi ({songCount} şarkı)",
+  "viewYearDetails": "Yıl Ayrıntılarını Görüntüle",
+  "copyYearName": "Yılı Kopyala",
   "years": "Yıllar",
   "unknownYear": "Bilinmeyen Yıl",
   "ratedSongs": "Puanlananlar",

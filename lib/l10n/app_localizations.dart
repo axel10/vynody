@@ -9748,6 +9748,18 @@ abstract class AppLocalizations {
   /// **'已选择 {genreCount} 个流派 ({songCount} 首歌曲)'**
   String selectedGenresWithTotalSongs(Object genreCount, Object songCount);
 
+  /// Context menu action to view year details
+  ///
+  /// In zh, this message translates to:
+  /// **'查看年份详情'**
+  String get viewYearDetails;
+
+  /// Context menu action to copy the release year
+  ///
+  /// In zh, this message translates to:
+  /// **'复制年份'**
+  String get copyYearName;
+
   /// Music release years
   ///
   /// In zh, this message translates to:

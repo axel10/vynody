@@ -10,6 +10,7 @@ import '../widgets/master_detail_scaffold.dart';
 import '../widgets/library_selection_scope.dart';
 import '../widgets/library_selection_panel.dart';
 import '../widgets/song_thumbnail.dart';
+import '../widgets/year_context_menu.dart';
 import 'main_layout_riverpod.dart';
 
 class YearsTab extends ConsumerStatefulWidget {
@@ -283,6 +284,7 @@ class _YearsTabState extends ConsumerState<YearsTab>
                   enterSelectionMode(year.queryKey);
                 }
               },
+              onMultiSelect: (key) => enterSelectionMode(key),
             );
           },
           detailBuilder: (context, year) => YearDetailContent(
@@ -322,27 +324,29 @@ class _YearsTabState extends ConsumerState<YearsTab>
   }
 }
 
-class _YearListItem extends StatelessWidget {
+class _YearListItem extends ConsumerWidget {
   const _YearListItem({
     required this.year,
     required this.label,
     required this.selected,
     required this.onTap,
-    required this.onLongPress,
+    this.onLongPress,
     this.isSelectionMode = false,
     this.isSelectedInSelectionMode = false,
+    this.onMultiSelect,
   });
 
   final YearSummary year;
   final String label;
   final bool selected;
   final VoidCallback onTap;
-  final VoidCallback onLongPress;
+  final VoidCallback? onLongPress;
   final bool isSelectionMode;
   final bool isSelectedInSelectionMode;
+  final void Function(String yearKey)? onMultiSelect;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
     final hasCover = (year.representativeArtworkPath != null &&
@@ -357,69 +361,95 @@ class _YearListItem extends StatelessWidget {
               ? theme.colorScheme.secondaryContainer.withValues(alpha: 0.5)
               : Colors.transparent),
       borderRadius: BorderRadius.circular(10),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(10),
-        onTap: onTap,
-        onLongPress: onLongPress,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          child: Row(
-            children: [
-              if (isSelectionMode) ...[
-                Checkbox(
-                  value: isSelectedInSelectionMode,
-                  onChanged: (_) => onTap(),
-                ),
-                const SizedBox(width: 6),
-              ],
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: SizedBox(
-                  width: 44,
-                  height: 44,
-                  child: hasCover && year.songs.isNotEmpty
-                      ? SongThumbnail(
-                          path: year.songs.first.path,
-                          artworkPath: year.representativeArtworkPath,
-                          thumbnailPath: year.representativeThumbnailPath,
-                          size: 44,
-                        )
-                      : Container(
-                          color: theme.colorScheme.surfaceContainerHighest,
-                          child: Icon(
-                            Icons.calendar_month_rounded,
-                            size: 24,
-                            color: theme.colorScheme.primary,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onSecondaryTapDown: (details) {
+          if (!isSelectionMode) {
+            showYearContextMenu(
+              context: context,
+              globalPosition: details.globalPosition,
+              ref: ref,
+              year: year,
+              onMultiSelect: onMultiSelect,
+            );
+          }
+        },
+        onLongPress: () {
+          if (onLongPress != null) {
+            onLongPress!();
+          } else if (!isSelectionMode) {
+            showYearBottomSheet(
+              context: context,
+              ref: ref,
+              year: year,
+              onMultiSelect: onMultiSelect,
+            );
+          }
+        },
+        child: InkWell(
+          borderRadius: BorderRadius.circular(10),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            child: Row(
+              children: [
+                if (isSelectionMode) ...[
+                  Checkbox(
+                    value: isSelectedInSelectionMode,
+                    onChanged: (_) => onTap(),
+                  ),
+                  const SizedBox(width: 6),
+                ],
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: SizedBox(
+                    width: 44,
+                    height: 44,
+                    child: hasCover && year.songs.isNotEmpty
+                        ? SongThumbnail(
+                            path: year.songs.first.path,
+                            artworkPath: year.representativeArtworkPath,
+                            thumbnailPath: year.representativeThumbnailPath,
+                            size: 44,
+                          )
+                        : Container(
+                            color: theme.colorScheme.surfaceContainerHighest,
+                            child: Icon(
+                              Icons.calendar_month_rounded,
+                              size: 24,
+                              color: theme.colorScheme.primary,
+                            ),
                           ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        label,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight:
+                              selected ? FontWeight.bold : FontWeight.w500,
+                          color: selected ? theme.colorScheme.primary : null,
                         ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      label,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontWeight: selected ? FontWeight.bold : FontWeight.w500,
-                        color: selected ? theme.colorScheme.primary : null,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${l10n.songCount(year.songCount)} · ${l10n.albumCount(year.albumCount)}',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
+                      const SizedBox(height: 2),
+                      Text(
+                        '${l10n.songCount(year.songCount)} · ${l10n.albumCount(year.albumCount)}',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

@@ -1736,6 +1736,8 @@
   "viewGenreDetails": "查看流派詳情",
   "copyGenreName": "複製流派名稱",
   "selectedGenresWithTotalSongs": "已選擇 {genreCount} 個流派 ({songCount} 首歌曲)",
+  "viewYearDetails": "查看年份詳情",
+  "copyYearName": "複製年份",
   "years": "年份",
   "unknownYear": "未知年份",
   "ratedSongs": "已評分",

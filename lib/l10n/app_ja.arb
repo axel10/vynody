@@ -2120,6 +2120,8 @@
   "viewGenreDetails": "ジャンルの詳細を表示",
   "copyGenreName": "ジャンル名をコピー",
   "selectedGenresWithTotalSongs": "{genreCount}件のジャンルを選択中 ({songCount}曲)",
+  "viewYearDetails": "年代の詳細を表示",
+  "copyYearName": "年代をコピー",
   "years": "年代",
   "unknownYear": "年不明",
   "ratedSongs": "評価済み",

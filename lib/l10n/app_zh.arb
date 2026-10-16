@@ -3600,6 +3600,14 @@
       "songCount": {}
     }
   },
+  "viewYearDetails": "查看年份详情",
+  "@viewYearDetails": {
+    "description": "Context menu action to view year details"
+  },
+  "copyYearName": "复制年份",
+  "@copyYearName": {
+    "description": "Context menu action to copy the release year"
+  },
   "years": "年份",
   "@years": {
     "description": "Music release years"

@@ -5576,6 +5576,12 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
+  String get viewYearDetails => 'Ver detalles del año';
+
+  @override
+  String get copyYearName => 'Copiar año';
+
+  @override
   String get years => 'Años';
 
   @override

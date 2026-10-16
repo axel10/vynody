@@ -2412,6 +2412,8 @@
   "viewGenreDetails": "View Genre Details",
   "copyGenreName": "Copy Genre Name",
   "selectedGenresWithTotalSongs": "Selected {genreCount} genres ({songCount} songs)",
+  "viewYearDetails": "View Year Details",
+  "copyYearName": "Copy Year",
   "years": "Years",
   "unknownYear": "Unknown Year",
   "ratedSongs": "Rated",

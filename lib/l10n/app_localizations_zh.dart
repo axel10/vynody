@@ -5230,6 +5230,12 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get viewYearDetails => '查看年份详情';
+
+  @override
+  String get copyYearName => '复制年份';
+
+  @override
   String get years => '年份';
 
   @override
@@ -10526,6 +10532,12 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String selectedGenresWithTotalSongs(Object genreCount, Object songCount) {
     return '已選擇 $genreCount 個流派 ($songCount 首歌曲)';
   }
+
+  @override
+  String get viewYearDetails => '查看年份詳情';
+
+  @override
+  String get copyYearName => '複製年份';
 
   @override
   String get years => '年份';

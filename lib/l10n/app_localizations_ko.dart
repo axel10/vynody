@@ -5323,6 +5323,12 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String get viewYearDetails => '연도 상세 보기';
+
+  @override
+  String get copyYearName => '연도 복사';
+
+  @override
   String get years => '연도';
 
   @override

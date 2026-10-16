@@ -5523,6 +5523,12 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
+  String get viewYearDetails => 'Yıl Ayrıntılarını Görüntüle';
+
+  @override
+  String get copyYearName => 'Yılı Kopyala';
+
+  @override
   String get years => 'Yıllar';
 
   @override

@@ -5564,6 +5564,12 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String get viewYearDetails => 'Jahresdetails anzeigen';
+
+  @override
+  String get copyYearName => 'Jahr kopieren';
+
+  @override
   String get years => 'Jahre';
 
   @override

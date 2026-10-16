@@ -2021,6 +2021,8 @@
   "viewGenreDetails": "Genre-Details anzeigen",
   "copyGenreName": "Genre-Namen kopieren",
   "selectedGenresWithTotalSongs": "{genreCount} Genres ausgewählt ({songCount} Titel)",
+  "viewYearDetails": "Jahresdetails anzeigen",
+  "copyYearName": "Jahr kopieren",
   "years": "Jahre",
   "unknownYear": "Unbekanntes Jahr",
   "ratedSongs": "Bewertet",
