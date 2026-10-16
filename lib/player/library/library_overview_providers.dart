@@ -4,6 +4,7 @@ import 'package:path/path.dart' as p;
 import 'package:vynody/models/album_summary.dart';
 import 'package:vynody/models/genre_summary.dart';
 import 'package:vynody/models/music_file.dart';
+import 'package:vynody/models/year_summary.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/library/album_library.dart';
 import 'package:vynody/player/library/library_insights_service.dart';
@@ -110,6 +111,89 @@ final genreLibraryProvider = StreamProvider<List<GenreSummary>>((ref) async* {
     }
 
     list.sort((a, b) => b.songCount.compareTo(a.songCount));
+    yield list;
+  }
+});
+
+/// 发行年份列表 Provider：
+/// 按音频元数据中的发行年份聚合歌曲，年份由新到旧排列；
+/// 未提取到年份的歌曲统一归入「未知年份」分组并固定排在列表末尾。
+final yearLibraryProvider = StreamProvider<List<YearSummary>>((ref) async* {
+  final db = MetadataDatabase();
+  final isReady = ref.watch(scannerServiceProvider.select((s) => s.isReady));
+  final rootPathsKey = ref.watch(
+    scannerServiceProvider.select((s) => s.rootPaths.join('|')),
+  );
+  final hasSystemMedia = ref.watch(
+    scannerServiceProvider.select((s) => s.systemMediaFolder != null),
+  );
+  final remoteRootsKey = ref.watch(
+    scannerServiceProvider
+        .select((s) => s.remoteRoots.map((r) => r.virtualUri).join('|')),
+  );
+  final sourceFilter = ref.watch(librarySourceFilterProvider);
+  final scanner = ref.read(scannerServiceProvider);
+  final shouldFilter =
+      isReady &&
+      (rootPathsKey.isNotEmpty ||
+          hasSystemMedia ||
+          remoteRootsKey.isNotEmpty);
+
+  await for (final songs in db.watchAllSongMetadata()) {
+    final yearMap = <int?, List<MusicFile>>{};
+
+    for (final s in songs) {
+      if (s.deletedAt != null) continue;
+      final flags = s.sourceFlags ?? 0;
+      if ((flags & SongSourceFlags.external) != 0) continue;
+      if (shouldFilter && !scanner.isPathInActiveRoots(s.path)) continue;
+      if (!sourceFilter.matchesSongPath(s.path)) continue;
+
+      final musicFile = MusicFile(
+        path: s.path,
+        name: s.path.split(RegExp(r'[/\\]')).last,
+        title: s.title,
+        artist: s.artist,
+        album: s.album,
+        artworkPath: s.artworkPath,
+        thumbnailPath: s.thumbnailPath,
+        durationMillis: s.duration,
+        id: s.id,
+        year: s.year,
+        genres: s.genres,
+      );
+
+      yearMap.putIfAbsent(s.year, () => []).add(musicFile);
+    }
+
+    final list = <YearSummary>[];
+    for (final entry in yearMap.entries) {
+      if (entry.value.isEmpty) continue;
+      final sampleWithArtwork = entry.value.firstWhere(
+        (m) =>
+            (m.artworkPath != null && m.artworkPath!.isNotEmpty) ||
+            (m.thumbnailPath != null && m.thumbnailPath!.isNotEmpty),
+        orElse: () => entry.value.first,
+      );
+
+      list.add(
+        YearSummary(
+          year: entry.key,
+          songCount: entry.value.length,
+          representativeArtworkPath: sampleWithArtwork.artworkPath,
+          representativeThumbnailPath: sampleWithArtwork.thumbnailPath,
+          songs: entry.value,
+        ),
+      );
+    }
+
+    list.sort((a, b) {
+      // 未知年份分组固定沉底，其余按年份由新到旧
+      if (a.year == null && b.year == null) return 0;
+      if (a.year == null) return 1;
+      if (b.year == null) return -1;
+      return b.year!.compareTo(a.year!);
+    });
     yield list;
   }
 });

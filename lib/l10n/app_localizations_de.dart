@@ -5553,6 +5553,12 @@ class AppLocalizationsDe extends AppLocalizations {
   String get genres => 'Genres';
 
   @override
+  String get years => 'Jahre';
+
+  @override
+  String get unknownYear => 'Unbekanntes Jahr';
+
+  @override
   String get ratedSongs => 'Bewertet';
 
   @override

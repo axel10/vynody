@@ -14,6 +14,7 @@ import 'package:vynody/utils/language_code_utils.dart';
 import 'package:vynody/player/scanner/scanner_sorting.dart';
 import 'package:vynody/player/library/playlist_service.dart';
 import 'package:vynody/player/library/genre_library.dart';
+import 'package:vynody/player/library/year_library.dart';
 import 'package:vynody/player/lyrics/timeline/lyrics_timeline_repository.dart';
 import 'package:vynody/utils/app_proxy_manager.dart';
 import 'package:vynody/utils/localized_text.dart';
@@ -444,6 +445,7 @@ class SettingsService extends ChangeNotifier {
     'artists',
     'ratedSongs',
     'genres',
+    'years',
   ];
   static const String _keyVisibleLibraryTabs = 'visible_library_sub_tabs';
   static const String defaultMainControlsLeftButton = 'visualizer';
@@ -684,6 +686,8 @@ class SettingsService extends ChangeNotifier {
   static const String _keyArtistSortAscending = 'artist_sort_ascending';
   static const String _keyGenreSortField = 'genre_sort_field';
   static const String _keyGenreSortAscending = 'genre_sort_ascending';
+  static const String _keyYearSortField = 'year_sort_field';
+  static const String _keyYearSortAscending = 'year_sort_ascending';
   static const String _keyPlaylistSortField = 'playlist_sort_field';
   static const String _keyPlaylistSortAscending = 'playlist_sort_ascending';
   static const String _keyNavidromeAlbumSortType = 'navidrome_album_sort_type';
@@ -905,6 +909,23 @@ class SettingsService extends ChangeNotifier {
     onChanged: notifyListeners,
   );
 
+  late final _yearSortFieldProperty = SettingProperty<YearSortField>(
+    key: _keyYearSortField,
+    defaultValue: YearSortField.year,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+    customRead: (prefs, key, def) =>
+        YearSortFieldX.fromStorageValue(prefs.getString(key), def),
+    customWrite: (prefs, key, val) => prefs.setString(key, val.storageValue),
+  );
+
+  late final _yearSortAscendingProperty = SettingProperty<bool>(
+    key: _keyYearSortAscending,
+    defaultValue: false,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
   late final _playlistSortFieldProperty = SettingProperty<PlaylistSortField>(
     key: _keyPlaylistSortField,
     defaultValue: PlaylistSortField.custom,
@@ -1092,6 +1113,9 @@ class SettingsService extends ChangeNotifier {
         final merged = List<String>.from(list);
         if (!merged.contains('genres')) {
           merged.add('genres');
+        }
+        if (!merged.contains('years')) {
+          merged.add('years');
         }
         return merged;
       }
@@ -3176,6 +3200,14 @@ class SettingsService extends ChangeNotifier {
   bool get genreSortAscending => _genreSortAscendingProperty.value;
   set genreSortAscending(bool value) =>
       _genreSortAscendingProperty.value = value;
+
+  YearSortField get yearSortField => _yearSortFieldProperty.value;
+  set yearSortField(YearSortField value) =>
+      _yearSortFieldProperty.value = value;
+
+  bool get yearSortAscending => _yearSortAscendingProperty.value;
+  set yearSortAscending(bool value) =>
+      _yearSortAscendingProperty.value = value;
 
   PlaylistSortField get playlistSortField => _playlistSortFieldProperty.value;
   set playlistSortField(PlaylistSortField value) =>

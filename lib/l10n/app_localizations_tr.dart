@@ -5512,6 +5512,12 @@ class AppLocalizationsTr extends AppLocalizations {
   String get genres => 'Türler';
 
   @override
+  String get years => 'Yıllar';
+
+  @override
+  String get unknownYear => 'Bilinmeyen Yıl';
+
+  @override
   String get ratedSongs => 'Puanlananlar';
 
   @override

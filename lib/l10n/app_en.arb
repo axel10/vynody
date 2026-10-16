@@ -2409,6 +2409,8 @@
   "timelineActionRestore": "Rollback",
   "lyricsRestoredSuccess": "Lyrics restored successfully",
   "genres": "Genres",
+  "years": "Years",
+  "unknownYear": "Unknown Year",
   "ratedSongs": "Rated",
   "thisWeekTop": "Top This Week",
   "thisWeekTopSubtitle": "Most played tracks in past 7 days",

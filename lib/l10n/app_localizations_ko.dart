@@ -5312,6 +5312,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get genres => '장르';
 
   @override
+  String get years => '연도';
+
+  @override
+  String get unknownYear => '알 수 없는 연도';
+
+  @override
   String get ratedSongs => '평가됨';
 
   @override

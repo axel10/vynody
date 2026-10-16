@@ -3584,6 +3584,14 @@
   "@genres": {
     "description": "Music genres"
   },
+  "years": "年份",
+  "@years": {
+    "description": "Music release years"
+  },
+  "unknownYear": "未知年份",
+  "@unknownYear": {
+    "description": "Unknown release year"
+  },
   "ratedSongs": "已评分",
   "@ratedSongs": {
     "description": "Rated songs"

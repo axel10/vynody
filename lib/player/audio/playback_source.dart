@@ -4,6 +4,7 @@ enum PlaybackSourceType {
   album,
   artist,
   genre,
+  year,
 }
 
 class PlaybackSource {

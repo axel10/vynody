@@ -2018,6 +2018,8 @@
   "timelineActionRestore": "Restauration",
   "lyricsRestoredSuccess": "Paroles restaurées avec succès",
   "genres": "Genres",
+  "years": "Années",
+  "unknownYear": "Année inconnue",
   "ratedSongs": "Morceaux notés",
   "thisWeekTop": "Les plus écoutés cette semaine",
   "thisWeekTopSubtitle": "Titres les plus écoutés au cours des 7 derniers jours",

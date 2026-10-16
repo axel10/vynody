@@ -2117,6 +2117,8 @@
   "timelineActionRestore": "ロールバック",
   "lyricsRestoredSuccess": "歌詞をこのバージョンに復元しました",
   "genres": "ジャンル",
+  "years": "年代",
+  "unknownYear": "年不明",
   "ratedSongs": "評価済み",
   "thisWeekTop": "今週のよく聴く曲",
   "thisWeekTopSubtitle": "過去7日間で最も再生された曲",

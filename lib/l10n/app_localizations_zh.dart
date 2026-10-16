@@ -5219,6 +5219,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get genres => '流派';
 
   @override
+  String get years => '年份';
+
+  @override
+  String get unknownYear => '未知年份';
+
+  @override
   String get ratedSongs => '已评分';
 
   @override
@@ -10498,6 +10504,12 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get genres => '流派';
+
+  @override
+  String get years => '年份';
+
+  @override
+  String get unknownYear => '未知年份';
 
   @override
   String get ratedSongs => '已評分';

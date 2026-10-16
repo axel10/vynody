@@ -2018,6 +2018,8 @@
   "timelineActionRestore": "Rollback",
   "lyricsRestoredSuccess": "Songtext-Version erfolgreich wiederhergestellt",
   "genres": "Genres",
+  "years": "Jahre",
+  "unknownYear": "Unbekanntes Jahr",
   "ratedSongs": "Bewertet",
   "thisWeekTop": "Diese Woche am meisten gehört",
   "thisWeekTopSubtitle": "Die am häufigsten gespielten Titel der letzten 7 Tage",

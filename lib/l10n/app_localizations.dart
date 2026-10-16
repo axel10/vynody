@@ -9730,6 +9730,18 @@ abstract class AppLocalizations {
   /// **'流派'**
   String get genres;
 
+  /// Music release years
+  ///
+  /// In zh, this message translates to:
+  /// **'年份'**
+  String get years;
+
+  /// Unknown release year
+  ///
+  /// In zh, this message translates to:
+  /// **'未知年份'**
+  String get unknownYear;
+
   /// Rated songs
   ///
   /// In zh, this message translates to:

@@ -188,6 +188,21 @@ final selectedGenreKeyProvider =
   SelectedGenreKeyNotifier.new,
 );
 
+class SelectedYearKeyNotifier extends Notifier<String?> {
+  @override
+  String? build() => null;
+
+  void set(String? value) {
+    if (!ref.mounted) return;
+    state = value;
+  }
+}
+
+final selectedYearKeyProvider =
+    NotifierProvider<SelectedYearKeyNotifier, String?>(
+  SelectedYearKeyNotifier.new,
+);
+
 class SelectedArtistKeyNotifier extends Notifier<String?> {
   @override
   String? build() => null;

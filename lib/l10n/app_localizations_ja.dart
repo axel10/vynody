@@ -5307,6 +5307,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get genres => 'ジャンル';
 
   @override
+  String get years => '年代';
+
+  @override
+  String get unknownYear => '年不明';
+
+  @override
   String get ratedSongs => '評価済み';
 
   @override

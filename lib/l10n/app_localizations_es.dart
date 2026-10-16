@@ -5565,6 +5565,12 @@ class AppLocalizationsEs extends AppLocalizations {
   String get genres => 'Géneros';
 
   @override
+  String get years => 'Años';
+
+  @override
+  String get unknownYear => 'Año desconocido';
+
+  @override
   String get ratedSongs => 'Calificadas';
 
   @override

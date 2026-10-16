@@ -2142,6 +2142,8 @@
   "timelineActionRestore": "Geri Alma",
   "lyricsRestoredSuccess": "Şarkı sözleri başarıyla geri yüklendi",
   "genres": "Türler",
+  "years": "Yıllar",
+  "unknownYear": "Bilinmeyen Yıl",
   "ratedSongs": "Puanlananlar",
   "thisWeekTop": "Bu Hafta En Çok Dinlenenler",
   "thisWeekTopSubtitle": "Son 7 günde en çok çalınan şarkılar",

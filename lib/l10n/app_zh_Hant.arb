@@ -1733,6 +1733,8 @@
   "timelineActionRestore": "版本回滾",
   "lyricsRestoredSuccess": "已成功還原該版本歌詞",
   "genres": "流派",
+  "years": "年份",
+  "unknownYear": "未知年份",
   "ratedSongs": "已評分",
   "thisWeekTop": "本週常聽",
   "thisWeekTopSubtitle": "近 7 天循環最多的單曲",

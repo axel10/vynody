@@ -14,6 +14,7 @@ enum LibrarySelectionScope {
   artist,
   album,
   genre,
+  year,
   webdav,
   navidrome,
   bottomSheet,

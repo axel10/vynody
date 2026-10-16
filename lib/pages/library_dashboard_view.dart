@@ -9,6 +9,7 @@ import 'package:vynody/models/album_summary.dart';
 import 'package:vynody/models/artist_summary.dart';
 import 'package:vynody/models/genre_summary.dart';
 import 'package:vynody/models/music_file.dart';
+import 'package:vynody/models/year_summary.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/audio/playback_source.dart';
 import 'package:vynody/player/library/album_library.dart';
@@ -23,6 +24,7 @@ import 'album_detail_page.dart';
 import 'artist_detail_page.dart';
 import 'genre_detail_page.dart';
 import 'main_layout_riverpod.dart';
+import 'year_detail_page.dart';
 import '../widgets/playback_ui_tuning.dart';
 import '../widgets/section_type_toggle.dart';
 
@@ -218,8 +220,8 @@ class LibraryDashboardView extends ConsumerWidget {
               // 8. 独立通栏：流派（只展示有歌曲的流派）
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: EdgeInsets.only(
-                    bottom: bottomInset,
+                  padding: const EdgeInsets.only(
+                    bottom: 32,
                   ),
                   child: _GenresRowSection(
                     horizontalPadding: horizontalPadding,
@@ -227,6 +229,22 @@ class LibraryDashboardView extends ConsumerWidget {
                     l10n: l10n,
                     isWide: isWide,
                     onViewAll: () => onNavigateToSubIndex(7),
+                  ),
+                ),
+              ),
+
+              // 9. 独立通栏：年份（样式与流派一致）
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    bottom: bottomInset,
+                  ),
+                  child: _YearsRowSection(
+                    horizontalPadding: horizontalPadding,
+                    contentLeftPadding: contentLeftPadding,
+                    l10n: l10n,
+                    isWide: isWide,
+                    onViewAll: () => onNavigateToSubIndex(8),
                   ),
                 ),
               ),
@@ -304,6 +322,7 @@ class _WideQuickAccessBar extends ConsumerWidget {
     final albumsCount = ref.watch(albumLibraryProvider).value?.length;
     final artistsCount = ref.watch(artistLibraryProvider).value?.length;
     final genresCount = ref.watch(genreLibraryProvider).value?.length;
+    final yearsCount = ref.watch(yearLibraryProvider).value?.length;
 
     final items = [
       (
@@ -364,6 +383,14 @@ class _WideQuickAccessBar extends ConsumerWidget {
         gradient: const [Color(0xFF8B5CF6), Color(0xFFA855F7)],
         badgeText:
             genresCount != null && genresCount > 0 ? '$genresCount' : null,
+      ),
+      (
+        index: 8,
+        title: l10n.years,
+        icon: Icons.calendar_month_rounded,
+        gradient: const [Color(0xFF0EA5E9), Color(0xFF38BDF8)],
+        badgeText:
+            yearsCount != null && yearsCount > 0 ? '$yearsCount' : null,
       ),
     ];
 
@@ -561,6 +588,7 @@ class _PortraitLibraryMenuCard extends ConsumerWidget {
     final albumsCount = ref.watch(albumLibraryProvider).value?.length;
     final artistsCount = ref.watch(artistLibraryProvider).value?.length;
     final genresCount = ref.watch(genreLibraryProvider).value?.length;
+    final yearsCount = ref.watch(yearLibraryProvider).value?.length;
 
     final items = [
       _LibraryMenuItem(
@@ -593,6 +621,14 @@ class _PortraitLibraryMenuCard extends ConsumerWidget {
         badgeText:
             genresCount != null && genresCount > 0 ? '$genresCount' : null,
         onTap: () => onTapSubIndex(7),
+      ),
+      _LibraryMenuItem(
+        icon: Icons.calendar_month_rounded,
+        iconGradient: const [Color(0xFF0EA5E9), Color(0xFF38BDF8)],
+        title: l10n.years,
+        badgeText:
+            yearsCount != null && yearsCount > 0 ? '$yearsCount' : null,
+        onTap: () => onTapSubIndex(8),
       ),
       _LibraryMenuItem(
         icon: Icons.history_rounded,
@@ -2228,6 +2264,230 @@ class _GenreCardState extends State<_GenreCard> {
                     const SizedBox(height: 2),
                     Text(
                       l10n.trackCountShort(widget.genre.songCount),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 独立通栏：年份（样式与流派一致）
+// ---------------------------------------------------------------------------
+class _YearsRowSection extends ConsumerStatefulWidget {
+  const _YearsRowSection({
+    required this.horizontalPadding,
+    required this.l10n,
+    required this.onViewAll,
+    this.contentLeftPadding = 0.0,
+    required this.isWide,
+  });
+
+  final double horizontalPadding;
+  final AppLocalizations l10n;
+  final VoidCallback onViewAll;
+  final double contentLeftPadding;
+  final bool isWide;
+
+  @override
+  ConsumerState<_YearsRowSection> createState() => _YearsRowSectionState();
+}
+
+class _YearsRowSectionState extends ConsumerState<_YearsRowSection> {
+  List<YearSummary>? _cachedYears;
+
+  @override
+  Widget build(BuildContext context) {
+    // 首次拿到数据即拷贝一份快照，页面停留期间不再跟随 provider 刷新，避免列表跳动
+    ref.listen(yearLibraryProvider, (_, next) {
+      if (_cachedYears == null && next.hasValue) {
+        setState(() {
+          _cachedYears = next.value!.toList(growable: false);
+        });
+      }
+    });
+
+    if (_cachedYears == null) {
+      final initial = ref.read(yearLibraryProvider);
+      if (initial.hasValue) {
+        _cachedYears = initial.value!.toList(growable: false);
+      }
+    }
+
+    if (_cachedYears != null) {
+      if (_cachedYears!.isEmpty) return const SizedBox.shrink();
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: EdgeInsets.only(
+              left: widget.contentLeftPadding + widget.horizontalPadding,
+              right: widget.horizontalPadding,
+            ),
+            child: _SectionHeader(
+              title: widget.l10n.years,
+              onViewAll: widget.onViewAll,
+              l10n: widget.l10n,
+            ),
+          ),
+          const SizedBox(height: 12),
+          _CarouselScrollWrapper(
+            height: 80,
+            buttonPadding: widget.horizontalPadding > 20 ? 14.0 : 8.0,
+            leftButtonOffset: widget.contentLeftPadding,
+            builder: (context, controller) {
+              return ListView.separated(
+                controller: controller,
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                padding: EdgeInsets.only(
+                  left: widget.contentLeftPadding + widget.horizontalPadding,
+                  right: widget.horizontalPadding,
+                ),
+                itemCount: _cachedYears!.length,
+                separatorBuilder: (_, _) => const SizedBox(width: 12),
+                itemBuilder: (context, index) {
+                  final year = _cachedYears![index];
+                  return _YearCard(
+                    year: year,
+                    onTap: () {
+                      if (widget.isWide) {
+                        ref
+                            .read(selectedYearKeyProvider.notifier)
+                            .set(year.queryKey);
+                        widget.onViewAll();
+                      } else {
+                        Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            settings: const RouteSettings(
+                              name: 'year_detail',
+                            ),
+                            builder: (_) => YearDetailPage(year: year),
+                          ),
+                        );
+                      }
+                    },
+                  );
+                },
+              );
+            },
+          ),
+        ],
+      );
+    }
+
+    return const SizedBox.shrink();
+  }
+}
+
+class _YearCard extends StatefulWidget {
+  const _YearCard({
+    required this.year,
+    required this.onTap,
+  });
+
+  final YearSummary year;
+  final VoidCallback onTap;
+
+  @override
+  State<_YearCard> createState() => _YearCardState();
+}
+
+class _YearCardState extends State<_YearCard> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    final isDark = theme.brightness == Brightness.dark;
+
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          width: 160,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: _isHovered
+                  ? [
+                      theme.colorScheme.primaryContainer,
+                      theme.colorScheme.surfaceContainerHighest,
+                    ]
+                  : [
+                      theme.colorScheme.surfaceContainerHighest.withValues(
+                        alpha: isDark ? 0.65 : 0.85,
+                      ),
+                      theme.colorScheme.surfaceContainerLow.withValues(
+                        alpha: isDark ? 0.45 : 0.75,
+                      ),
+                    ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: _isHovered
+                  ? theme.colorScheme.primary.withValues(alpha: 0.4)
+                  : theme.colorScheme.outlineVariant.withValues(alpha: 0.25),
+            ),
+          ),
+          child: Row(
+            children: [
+              if (widget.year.songs.isNotEmpty)
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: SongThumbnail(
+                    path: widget.year.songs.first.path,
+                    artworkPath: widget.year.representativeArtworkPath,
+                    thumbnailPath: widget.year.representativeThumbnailPath,
+                    size: 44,
+                  ),
+                )
+              else
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    Icons.calendar_month_rounded,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.year.labelWith(l10n.unknownYear),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      l10n.trackCountShort(widget.year.songCount),
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
