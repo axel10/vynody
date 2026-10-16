@@ -5512,6 +5512,17 @@ class AppLocalizationsTr extends AppLocalizations {
   String get genres => 'Türler';
 
   @override
+  String get viewGenreDetails => 'Tür Ayrıntılarını Görüntüle';
+
+  @override
+  String get copyGenreName => 'Tür Adını Kopyala';
+
+  @override
+  String selectedGenresWithTotalSongs(Object genreCount, Object songCount) {
+    return '$genreCount tür seçildi ($songCount şarkı)';
+  }
+
+  @override
   String get years => 'Yıllar';
 
   @override

@@ -282,7 +282,13 @@ class _GenreDetailContentState extends ConsumerState<GenreDetailContent>
             ],
             SliverToBoxAdapter(
               child: SizedBox(
-                height: (isSelectionMode || widget.hasBottomPanel) ? 140 : 40,
+                height: MiniPlayerUiTuning.getListBottomPadding(
+                  context,
+                  hasPlayingMusic: currentMusic != null,
+                  isSelectionMode: widget.hasBottomPanel ||
+                      (isSelectionMode && widget.showSelectionPanel),
+                  selectionPanelHeight: 220.0,
+                ),
               ),
             ),
           ],
@@ -300,6 +306,16 @@ class _GenreDetailContentState extends ConsumerState<GenreDetailContent>
       ],
     );
 
+    if (isSelectionMode) {
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, result) {
+          if (didPop) return;
+          cancelSongSelection();
+        },
+        child: content,
+      );
+    }
     return content;
   }
 }
@@ -492,6 +508,7 @@ class _AlbumSectionSliver extends StatelessWidget {
     final isPortrait =
         MediaQuery.orientationOf(context) == Orientation.portrait;
     final horizontalPadding = isPortrait ? 20.0 : 28.0;
+    final isMixedSection = RemoteMediaHelper.isMixed(section.songs);
 
     return SliverPadding(
       padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
@@ -504,11 +521,15 @@ class _AlbumSectionSliver extends StatelessWidget {
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child: SongThumbnail(
-                      path: section.representativeSong.path,
-                      artworkPath: section.representativeSong.artworkPath,
-                      thumbnailPath: section.representativeSong.thumbnailPath,
-                      size: 44,
+                    child: RemoteMediaBadge.wrapCover(
+                      child: SongThumbnail(
+                        path: section.representativeSong.path,
+                        artworkPath: section.representativeSong.artworkPath,
+                        thumbnailPath: section.representativeSong.thumbnailPath,
+                        size: 44,
+                      ),
+                      songs: section.songs,
+                      title: section.title,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -564,6 +585,8 @@ class _AlbumSectionSliver extends StatelessWidget {
                   isSelected: isSelected,
                   isSelectionMode: isSelectionMode,
                   showDivider: songIndex > 0,
+                  showRemoteIndicator:
+                      isMixedSection && RemoteMediaHelper.isRemote(song),
                   onTap: () => onSongTap(songIndex),
                   onLongPress: () => onSongLongPress(song),
                   onSecondaryTapDown: (details) =>
@@ -599,6 +622,7 @@ class _SongTile extends StatelessWidget {
     required this.onTap,
     required this.onLongPress,
     required this.onSecondaryTapDown,
+    this.showRemoteIndicator = false,
   });
 
   final MusicFile song;
@@ -610,6 +634,7 @@ class _SongTile extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback onLongPress;
   final void Function(TapDownDetails details) onSecondaryTapDown;
+  final bool showRemoteIndicator;
 
   @override
   Widget build(BuildContext context) {
@@ -697,7 +722,7 @@ class _SongTile extends StatelessWidget {
                           ),
                           RemoteMediaBadge.songTrailing(
                             song: song,
-                            isMixed: false,
+                            isMixed: showRemoteIndicator,
                           ),
                         ],
                       ),
@@ -712,6 +737,20 @@ class _SongTile extends StatelessWidget {
                         ),
                       ),
                     ],
+                    const SizedBox(width: 4),
+                    GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTapDown: onSecondaryTapDown,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: Icon(
+                          Icons.more_horiz_rounded,
+                          size: 16,
+                          color: theme.colorScheme.onSurfaceVariant
+                              .withValues(alpha: 0.7),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),

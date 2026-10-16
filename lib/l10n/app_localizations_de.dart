@@ -5553,6 +5553,17 @@ class AppLocalizationsDe extends AppLocalizations {
   String get genres => 'Genres';
 
   @override
+  String get viewGenreDetails => 'Genre-Details anzeigen';
+
+  @override
+  String get copyGenreName => 'Genre-Namen kopieren';
+
+  @override
+  String selectedGenresWithTotalSongs(Object genreCount, Object songCount) {
+    return '$genreCount Genres ausgewählt ($songCount Titel)';
+  }
+
+  @override
   String get years => 'Jahre';
 
   @override

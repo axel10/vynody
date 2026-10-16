@@ -3584,6 +3584,22 @@
   "@genres": {
     "description": "Music genres"
   },
+  "viewGenreDetails": "查看流派详情",
+  "@viewGenreDetails": {
+    "description": "Context menu action to view genre details"
+  },
+  "copyGenreName": "复制流派名称",
+  "@copyGenreName": {
+    "description": "Context menu action to copy the genre name"
+  },
+  "selectedGenresWithTotalSongs": "已选择 {genreCount} 个流派 ({songCount} 首歌曲)",
+  "@selectedGenresWithTotalSongs": {
+    "description": "Summary of selected genres and their total songs",
+    "placeholders": {
+      "genreCount": {},
+      "songCount": {}
+    }
+  },
   "years": "年份",
   "@years": {
     "description": "Music release years"

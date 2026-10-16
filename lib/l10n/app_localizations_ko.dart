@@ -5312,6 +5312,17 @@ class AppLocalizationsKo extends AppLocalizations {
   String get genres => '장르';
 
   @override
+  String get viewGenreDetails => '장르 상세 보기';
+
+  @override
+  String get copyGenreName => '장르 이름 복사';
+
+  @override
+  String selectedGenresWithTotalSongs(Object genreCount, Object songCount) {
+    return '$genreCount개 장르 선택됨 ($songCount곡)';
+  }
+
+  @override
   String get years => '연도';
 
   @override

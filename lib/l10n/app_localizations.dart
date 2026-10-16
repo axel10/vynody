@@ -9730,6 +9730,24 @@ abstract class AppLocalizations {
   /// **'流派'**
   String get genres;
 
+  /// Context menu action to view genre details
+  ///
+  /// In zh, this message translates to:
+  /// **'查看流派详情'**
+  String get viewGenreDetails;
+
+  /// Context menu action to copy the genre name
+  ///
+  /// In zh, this message translates to:
+  /// **'复制流派名称'**
+  String get copyGenreName;
+
+  /// Summary of selected genres and their total songs
+  ///
+  /// In zh, this message translates to:
+  /// **'已选择 {genreCount} 个流派 ({songCount} 首歌曲)'**
+  String selectedGenresWithTotalSongs(Object genreCount, Object songCount);
+
   /// Music release years
   ///
   /// In zh, this message translates to:

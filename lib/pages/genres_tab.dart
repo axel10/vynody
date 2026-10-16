@@ -10,6 +10,8 @@ import '../widgets/master_detail_scaffold.dart';
 import '../widgets/library_selection_scope.dart';
 import '../widgets/library_selection_panel.dart';
 import '../widgets/song_thumbnail.dart';
+import '../widgets/draggable_genre_item.dart';
+import '../widgets/genre_context_menu.dart';
 import 'main_layout_riverpod.dart';
 
 class GenresTab extends ConsumerStatefulWidget {
@@ -248,6 +250,11 @@ class _GenresTabState extends ConsumerState<GenresTab>
               selected: isWide && isSelected,
               isSelectionMode: isSelectionMode,
               isSelectedInSelectionMode: isItemSelection,
+              selectedGenres: isSelectionMode
+                  ? visibleGenres
+                      .where((g) => this.isSelected(g.queryKey))
+                      .toList()
+                  : null,
               onTap: () {
                 final genreIndex = visibleGenres.indexOf(genre);
                 handleItemTap(
@@ -268,6 +275,8 @@ class _GenresTabState extends ConsumerState<GenresTab>
                   enterSelectionMode(genre.queryKey);
                 }
               },
+              onSelectionToggled: () => toggleSelection(genre.queryKey),
+              onMultiSelect: (key) => enterSelectionMode(key),
             );
           },
           detailBuilder: (context, genre) => GenreDetailContent(
@@ -307,25 +316,31 @@ class _GenresTabState extends ConsumerState<GenresTab>
   }
 }
 
-class _GenreListItem extends StatelessWidget {
+class _GenreListItem extends ConsumerWidget {
   const _GenreListItem({
     required this.genre,
     required this.selected,
     required this.onTap,
-    required this.onLongPress,
+    this.onLongPress,
     this.isSelectionMode = false,
     this.isSelectedInSelectionMode = false,
+    this.selectedGenres,
+    this.onSelectionToggled,
+    this.onMultiSelect,
   });
 
   final GenreSummary genre;
   final bool selected;
   final VoidCallback onTap;
-  final VoidCallback onLongPress;
+  final VoidCallback? onLongPress;
   final bool isSelectionMode;
   final bool isSelectedInSelectionMode;
+  final List<GenreSummary>? selectedGenres;
+  final VoidCallback? onSelectionToggled;
+  final void Function(String genreKey)? onMultiSelect;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
     final hasCover = (genre.representativeArtworkPath != null &&
@@ -333,76 +348,123 @@ class _GenreListItem extends StatelessWidget {
         (genre.representativeThumbnailPath != null &&
             genre.representativeThumbnailPath!.isNotEmpty);
 
-    return Material(
-      color: selected
-          ? theme.colorScheme.primaryContainer.withValues(alpha: 0.6)
-          : (isSelectedInSelectionMode
-              ? theme.colorScheme.secondaryContainer.withValues(alpha: 0.5)
-              : Colors.transparent),
-      borderRadius: BorderRadius.circular(10),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(10),
-        onTap: onTap,
-        onLongPress: onLongPress,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          child: Row(
-            children: [
-              if (isSelectionMode) ...[
-                Checkbox(
-                  value: isSelectedInSelectionMode,
-                  onChanged: (_) => onTap(),
-                ),
-                const SizedBox(width: 6),
-              ],
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: SizedBox(
-                  width: 44,
-                  height: 44,
-                  child: hasCover && genre.songs.isNotEmpty
-                      ? SongThumbnail(
-                          path: genre.songs.first.path,
-                          artworkPath: genre.representativeArtworkPath,
-                          thumbnailPath: genre.representativeThumbnailPath,
-                          size: 44,
-                        )
-                      : Container(
-                          color: theme.colorScheme.surfaceContainerHighest,
-                          child: Icon(
-                            Icons.style_rounded,
-                            size: 24,
-                            color: theme.colorScheme.primary,
-                          ),
-                        ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
+    final isItemHighlighted =
+        isSelectionMode ? isSelectedInSelectionMode : selected;
+    final backgroundColor = isItemHighlighted
+        ? (isSelectionMode
+            ? theme.colorScheme.secondaryContainer.withValues(alpha: 0.5)
+            : theme.colorScheme.primaryContainer.withValues(alpha: 0.6))
+        : Colors.transparent;
+
+    return DraggableGenreItem(
+      genre: genre,
+      isSelectionMode: isSelectionMode,
+      isSelected: isItemHighlighted,
+      selectedGenres: selectedGenres,
+      child: RepaintBoundary(
+        child: Material(
+          color: backgroundColor,
+          borderRadius: BorderRadius.circular(10),
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onSecondaryTapDown: (details) {
+              if (!isSelectionMode) {
+                showGenreContextMenu(
+                  context: context,
+                  globalPosition: details.globalPosition,
+                  ref: ref,
+                  genre: genre,
+                  onMultiSelect: onMultiSelect,
+                );
+              }
+            },
+            onLongPress: () {
+              if (onLongPress != null) {
+                onLongPress!();
+              } else if (!isSelectionMode) {
+                showGenreBottomSheet(
+                  context: context,
+                  ref: ref,
+                  genre: genre,
+                  onMultiSelect: onMultiSelect,
+                );
+              }
+            },
+            child: InkWell(
+              borderRadius: BorderRadius.circular(10),
+              onTap: onTap,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                child: Row(
                   children: [
-                    Text(
-                      genre.name,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontWeight: selected ? FontWeight.bold : FontWeight.w500,
-                        color: selected ? theme.colorScheme.primary : null,
+                    if (isSelectionMode) ...[
+                      SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: Checkbox(
+                          value: isSelectedInSelectionMode,
+                          onChanged: (_) {
+                            if (onSelectionToggled != null) {
+                              onSelectionToggled!();
+                            } else {
+                              onTap();
+                            }
+                          },
+                        ),
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                      const SizedBox(width: 6),
+                    ],
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: SizedBox(
+                        width: 44,
+                        height: 44,
+                        child: hasCover && genre.songs.isNotEmpty
+                            ? SongThumbnail(
+                                path: genre.songs.first.path,
+                                artworkPath: genre.representativeArtworkPath,
+                                thumbnailPath: genre.representativeThumbnailPath,
+                                size: 44,
+                              )
+                            : Container(
+                                color: theme.colorScheme.surfaceContainerHighest,
+                                child: Icon(
+                                  Icons.style_rounded,
+                                  size: 24,
+                                  color: theme.colorScheme.primary,
+                                ),
+                              ),
+                      ),
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${l10n.songCount(genre.songCount)} · ${l10n.albumCount(genre.albumCount)}',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            genre.name,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              fontWeight: selected ? FontWeight.bold : FontWeight.w500,
+                              color: selected ? theme.colorScheme.primary : null,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '${l10n.songCount(genre.songCount)} · ${l10n.albumCount(genre.albumCount)}',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
               ),
-            ],
+            ),
           ),
         ),
       ),

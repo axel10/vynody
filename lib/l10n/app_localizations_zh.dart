@@ -5219,6 +5219,17 @@ class AppLocalizationsZh extends AppLocalizations {
   String get genres => '流派';
 
   @override
+  String get viewGenreDetails => '查看流派详情';
+
+  @override
+  String get copyGenreName => '复制流派名称';
+
+  @override
+  String selectedGenresWithTotalSongs(Object genreCount, Object songCount) {
+    return '已选择 $genreCount 个流派 ($songCount 首歌曲)';
+  }
+
+  @override
   String get years => '年份';
 
   @override
@@ -10504,6 +10515,17 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get genres => '流派';
+
+  @override
+  String get viewGenreDetails => '查看流派詳情';
+
+  @override
+  String get copyGenreName => '複製流派名稱';
+
+  @override
+  String selectedGenresWithTotalSongs(Object genreCount, Object songCount) {
+    return '已選擇 $genreCount 個流派 ($songCount 首歌曲)';
+  }
 
   @override
   String get years => '年份';
