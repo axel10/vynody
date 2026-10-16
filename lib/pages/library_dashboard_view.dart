@@ -19,6 +19,11 @@ import 'package:vynody/player/library/library_overview_providers.dart';
 import 'package:vynody/player/metadata/theaudiodb_artist_service.dart';
 import 'package:vynody/widgets/album_cover.dart';
 import 'package:vynody/widgets/artist_avatar.dart';
+import 'package:vynody/widgets/draggable_album_item.dart';
+import 'package:vynody/widgets/draggable_artist_item.dart';
+import 'package:vynody/widgets/draggable_genre_item.dart';
+import 'package:vynody/widgets/draggable_song_item.dart';
+import 'package:vynody/widgets/draggable_year_item.dart';
 import 'package:vynody/widgets/song_thumbnail.dart';
 import 'album_detail_page.dart';
 import 'artist_detail_page.dart';
@@ -1141,7 +1146,7 @@ class _SongCardState extends State<_SongCard> {
     final iconSize = widget.isWide ? 24.0 : 22.0;
     final btnOffset = widget.isWide ? 10.0 : 8.0;
 
-    return MouseRegion(
+    final card = MouseRegion(
       cursor: SystemMouseCursors.click,
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
@@ -1202,6 +1207,14 @@ class _SongCardState extends State<_SongCard> {
           ),
         ),
       ),
+    );
+
+    return DraggableSongItem(
+      song: widget.song,
+      // The dashboard offers no selection UI, so force a single-song drag even
+      // when a selection is still active elsewhere in the library.
+      isSelected: false,
+      child: card,
     );
   }
 }
@@ -1719,7 +1732,7 @@ class _AlbumCardState extends State<_AlbumCard> {
     final iconSize = widget.isWide ? 24.0 : 22.0;
     final btnOffset = widget.isWide ? 10.0 : 8.0;
 
-    return MouseRegion(
+    final card = MouseRegion(
       cursor: SystemMouseCursors.click,
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
@@ -1776,6 +1789,8 @@ class _AlbumCardState extends State<_AlbumCard> {
         ),
       ),
     );
+
+    return DraggableAlbumItem(album: widget.album, child: card);
   }
 }
 
@@ -2013,7 +2028,7 @@ class _DashboardArtistItemState extends ConsumerState<_DashboardArtistItem> {
     final artist = widget.artist;
     final displayPath = _cachedImagePath ?? artist.cachedImagePath;
 
-    return InkWell(
+    final card = InkWell(
       borderRadius: BorderRadius.circular(50),
       onTap: () {
         if (widget.isWide) {
@@ -2053,6 +2068,8 @@ class _DashboardArtistItemState extends ConsumerState<_DashboardArtistItem> {
         ),
       ),
     );
+
+    return DraggableArtistItem(artist: widget.artist, child: card);
   }
 }
 
@@ -2187,7 +2204,7 @@ class _GenreCardState extends State<_GenreCard> {
     final l10n = AppLocalizations.of(context)!;
     final isDark = theme.brightness == Brightness.dark;
 
-    return MouseRegion(
+    final card = MouseRegion(
       cursor: SystemMouseCursors.click,
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
@@ -2276,6 +2293,8 @@ class _GenreCardState extends State<_GenreCard> {
         ),
       ),
     );
+
+    return DraggableGenreItem(genre: widget.genre, child: card);
   }
 }
 
@@ -2411,7 +2430,7 @@ class _YearCardState extends State<_YearCard> {
     final l10n = AppLocalizations.of(context)!;
     final isDark = theme.brightness == Brightness.dark;
 
-    return MouseRegion(
+    final card = MouseRegion(
       cursor: SystemMouseCursors.click,
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
@@ -2500,6 +2519,8 @@ class _YearCardState extends State<_YearCard> {
         ),
       ),
     );
+
+    return DraggableYearItem(year: widget.year, child: card);
   }
 }
 

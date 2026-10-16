@@ -9,12 +9,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:vynody/l10n/app_localizations.dart';
 import 'package:vynody/models/artist_summary.dart';
+import 'package:vynody/models/genre_summary.dart';
+import 'package:vynody/models/year_summary.dart';
 import 'package:vynody/pages/album_detail_page.dart';
 import 'package:vynody/pages/albums_tab.dart';
 import 'package:vynody/pages/artist_detail_page.dart';
 import 'package:vynody/pages/artists_tab.dart';
 import 'package:vynody/pages/folder_detail_view.dart';
 import 'package:vynody/pages/folder_page.dart';
+import 'package:vynody/pages/library_dashboard_view.dart';
 import 'package:vynody/pages/library_page.dart';
 import 'package:vynody/pages/main_layout_riverpod.dart';
 import 'package:vynody/pages/most_played_tab.dart';
@@ -26,9 +29,15 @@ import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/library/album_library.dart';
 import 'package:vynody/player/library/artist_library.dart';
 import 'package:vynody/player/library/library_insights_service.dart';
+import 'package:vynody/player/library/library_overview_providers.dart';
 import 'package:vynody/player/library/playlist_service.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/player/pro/pro_license_service.dart';
+import 'package:vynody/widgets/draggable_album_item.dart';
+import 'package:vynody/widgets/draggable_artist_item.dart';
+import 'package:vynody/widgets/draggable_genre_item.dart';
+import 'package:vynody/widgets/draggable_song_item.dart';
+import 'package:vynody/widgets/draggable_year_item.dart';
 
 import 'helpers/mobile_screenshot_harness.dart';
 
@@ -385,6 +394,80 @@ void main() {
         await tester.pump(const Duration(milliseconds: 350));
         expect(tester.takeException(), isNull);
       }
+    });
+
+    testWidgets('LibraryDashboardView - every entry card is a drag source', (tester) async {
+      // The dashboard is pushed as its own route (`library_dashboard`), so the
+      // tab-switching smoke test above never renders it. Render it directly with
+      // a viewport tall enough that every sliver section is actually built.
+      tester.view.physicalSize = const Size(1440, 3400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final songs = demoData.songs;
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: ProviderContainer(
+            overrides: [
+              settingsServiceProvider.overrideWith((ref) => settingsService),
+              audioServiceProvider.overrideWith((ref) => audioService),
+              audioSnapshotProvider.overrideWith((ref) => audioSnapshot),
+              audioCurrentMusicProvider.overrideWith((ref) => audioSnapshot.currentMusic),
+              scannerServiceProvider.overrideWith((ref) => scannerService),
+              albumLibraryProvider.overrideWith((ref) => Stream.value(demoData.albums)),
+              artistLibraryProvider.overrideWith((ref) => Stream.value(demoArtists)),
+              playlistServiceProvider.overrideWith((ref) => playlistService),
+              recentlyPlayedSongsProvider.overrideWith((ref, range) => Stream.value(demoInsightEntries)),
+              mostPlayedSongsProvider.overrideWith((ref, range) => Stream.value(demoInsightEntries)),
+              recentlyAddedSongsProvider.overrideWith((ref, range) => Stream.value(demoInsightEntries)),
+              genreLibraryProvider.overrideWith(
+                (ref) => Stream.value([
+                  GenreSummary(name: 'Pop', songCount: songs.length, songs: songs),
+                ]),
+              ),
+              yearLibraryProvider.overrideWith(
+                (ref) => Stream.value([
+                  YearSummary(year: 2024, songCount: songs.length, songs: songs),
+                ]),
+              ),
+              isProUnlockedProvider.overrideWith((ref) => true),
+              isEffectiveWaveformEnabledProvider.overrideWith((ref) => true),
+            ],
+          ),
+          child: OKToast(
+            child: MaterialApp(
+              debugShowCheckedModeBanner: false,
+              locale: const Locale('zh'),
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: Material(
+                child: SizedBox(
+                  width: 1440,
+                  height: 3400,
+                  child: LibraryDashboardView(
+                    contentTopPadding: 0,
+                    contentLeftPadding: 0,
+                    onNavigateToSubIndex: (_) {},
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(tester.takeException(), isNull);
+
+      // Each of the five dashboard entry types must be wrapped by its drag
+      // source, otherwise that row silently loses drag support.
+      expect(find.byType(DraggableSongItem), findsWidgets, reason: 'songs row');
+      expect(find.byType(DraggableAlbumItem), findsWidgets, reason: 'albums row');
+      expect(find.byType(DraggableArtistItem), findsWidgets, reason: 'artists row');
+      expect(find.byType(DraggableGenreItem), findsWidgets, reason: 'genres row');
+      expect(find.byType(DraggableYearItem), findsWidgets, reason: 'years row');
     });
 
     testWidgets('LibraryPage - renders hierarchical menu in portrait and navigates to subpage', (tester) async {
