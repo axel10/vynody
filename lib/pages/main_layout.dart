@@ -1600,10 +1600,15 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                     },
                   ),
                 // 播放页抽屉（Sliding Bottom Sheet）：直接覆盖在底层页面与底层 Dock 之上
+                // 桌面端队列抽屉展开时需避让，只覆盖队列抽屉左侧区域
                 if (isSmallWin ||
                     _isPlaybackDrawerOpen ||
                     _playbackDrawerAnimController.value > 0.0)
-                  Positioned.fill(
+                  Positioned(
+                    left: 0,
+                    top: 0,
+                    bottom: 0,
+                    right: isDrawerOpen ? kRightQueueDrawerWidth : 0.0,
                     child: AnimatedBuilder(
                       animation: _playbackDrawerAnimController,
                       builder: (context, child) {
