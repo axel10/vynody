@@ -2311,27 +2311,38 @@ class AudioService extends Notifier<AudioSnapshot> {
 
     final themeColorsBlob = ThemeColorHelper.colorsMapToBlob(colors);
     final updatedSong = current.copyWith(themeColorsBlob: themeColorsBlob);
-    final updatedMetadata = SongMetadata(
-      id: updatedSong.id,
+
+    // 必须以数据库里的现成记录为基准做增量更新：insertOrUpdateSong 是整行写入，
+    // 这里若重新构造一个 SongMetadata 而漏填字段，未列出的列（year、genres、
+    // 音频规格、sourceFlags、albumArtist、fileRating 等）会被一并写成 null，
+    // 表现为「播放一次后歌曲从所属年份分组里消失、播放页规格变空」。
+    final baseMetadata = existingMetadata ??
+        SongMetadata(
+          path: updatedSong.path,
+          title: updatedSong.title ?? updatedSong.displayName,
+          album: updatedSong.album ?? 'Unknown',
+          artist: updatedSong.artist ?? 'Unknown',
+        );
+    final updatedMetadata = baseMetadata.copyWith(
+      id: updatedSong.id ?? baseMetadata.id,
       path: updatedSong.path,
-      title: updatedSong.title ?? updatedSong.displayName,
-      album: updatedSong.album ?? 'Unknown',
-      artist: updatedSong.artist ?? 'Unknown',
-      duration: updatedSong.durationMillis,
-      artworkPath: updatedSong.artworkPath,
-      thumbnailPath: updatedSong.thumbnailPath,
-      artworkWidth: updatedSong.artworkWidth,
-      artworkHeight: updatedSong.artworkHeight,
-      trackNumber: updatedSong.trackNumber,
+      title: updatedSong.title ?? baseMetadata.title,
+      album: updatedSong.album ?? baseMetadata.album,
+      artist: updatedSong.artist ?? baseMetadata.artist,
+      duration: updatedSong.durationMillis ?? baseMetadata.duration,
+      artworkPath: updatedSong.artworkPath ?? baseMetadata.artworkPath,
+      thumbnailPath: updatedSong.thumbnailPath ?? baseMetadata.thumbnailPath,
+      artworkWidth: updatedSong.artworkWidth ?? baseMetadata.artworkWidth,
+      artworkHeight: updatedSong.artworkHeight ?? baseMetadata.artworkHeight,
+      trackNumber: updatedSong.trackNumber ?? baseMetadata.trackNumber,
       themeColorsBlob: themeColorsBlob,
       waveformBlob: updatedSong.waveformBlob,
-      lastModifiedTime: updatedSong.lastModifiedTime,
+      lastModifiedTime:
+          updatedSong.lastModifiedTime ?? baseMetadata.lastModifiedTime,
       metadataTextScanned:
-          existingMetadata?.metadataTextScanned ?? updatedSong.lastModifiedTime,
+          baseMetadata.metadataTextScanned ?? updatedSong.lastModifiedTime,
       metadataImgScanned:
-          existingMetadata?.metadataImgScanned ?? updatedSong.lastModifiedTime,
-      createdAt: existingMetadata?.createdAt,
-      genres: existingMetadata?.genres,
+          baseMetadata.metadataImgScanned ?? updatedSong.lastModifiedTime,
     );
 
     _replaceQueueSongsByPath(current.path, updatedSong);
