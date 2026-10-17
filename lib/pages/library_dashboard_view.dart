@@ -357,42 +357,42 @@ class _WideQuickAccessBar extends ConsumerWidget {
         index: 1,
         title: l10n.recentlyPlayed,
         icon: Icons.history_rounded,
-        gradient: const [Color(0xFF10B981), Color(0xFF14B8A6)],
+        gradient: const [Color(0xFF34C759), Color(0xFF28A745)],
         badgeText: null,
       ),
       (
         index: 2,
         title: l10n.mostPlayed,
         icon: Icons.local_fire_department_rounded,
-        gradient: const [Color(0xFFEF4444), Color(0xFFF43F5E)],
+        gradient: const [Color(0xFFFF3B30), Color(0xFFE02B20)],
         badgeText: null,
       ),
       (
         index: 3,
         title: l10n.recentlyAdded,
         icon: Icons.auto_awesome_rounded,
-        gradient: const [Color(0xFFF59E0B), Color(0xFFEAB308)],
+        gradient: const [Color(0xFFFF9F0A), Color(0xFFE68B00)],
         badgeText: null,
       ),
       (
         index: 6,
         title: l10n.ratedSongs,
         icon: Icons.star_rounded,
-        gradient: const [Color(0xFFEAB308), Color(0xFFF59E0B)],
+        gradient: const [Color(0xFFFFCC00), Color(0xFFE6B800)],
         badgeText: null,
       ),
       (
         index: 0,
         title: l10n.playlist,
         icon: Icons.queue_music_rounded,
-        gradient: const [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+        gradient: const [Color(0xFFFA243C), Color(0xFFE01E37)],
         badgeText: playlistsCount > 0 ? '$playlistsCount' : null,
       ),
       (
         index: 5,
         title: l10n.artists,
         icon: Icons.mic_external_on_rounded,
-        gradient: const [Color(0xFFF97316), Color(0xFFFB923C)],
+        gradient: const [Color(0xFFFF9500), Color(0xFFE07D00)],
         badgeText:
             artistsCount != null && artistsCount > 0 ? '$artistsCount' : null,
       ),
@@ -400,7 +400,7 @@ class _WideQuickAccessBar extends ConsumerWidget {
         index: 4,
         title: l10n.albums,
         icon: Icons.album_rounded,
-        gradient: const [Color(0xFF06B6D4), Color(0xFF3B82F6)],
+        gradient: const [Color(0xFF007AFF), Color(0xFF0062D2)],
         badgeText:
             albumsCount != null && albumsCount > 0 ? '$albumsCount' : null,
       ),
@@ -408,7 +408,7 @@ class _WideQuickAccessBar extends ConsumerWidget {
         index: 7,
         title: l10n.genres,
         icon: Icons.style_rounded,
-        gradient: const [Color(0xFF8B5CF6), Color(0xFFA855F7)],
+        gradient: const [Color(0xFF5856D6), Color(0xFF4745BA)],
         badgeText:
             genresCount != null && genresCount > 0 ? '$genresCount' : null,
       ),
@@ -416,7 +416,7 @@ class _WideQuickAccessBar extends ConsumerWidget {
         index: 8,
         title: l10n.years,
         icon: Icons.calendar_month_rounded,
-        gradient: const [Color(0xFF0EA5E9), Color(0xFF38BDF8)],
+        gradient: const [Color(0xFF30B0C7), Color(0xFF258C9E)],
         badgeText:
             yearsCount != null && yearsCount > 0 ? '$yearsCount' : null,
       ),
@@ -522,9 +522,9 @@ class _WideQuickCardState extends State<_WideQuickCard> {
                   borderRadius: BorderRadius.circular(10),
                   boxShadow: [
                     BoxShadow(
-                      color: widget.gradient.first.withValues(alpha: 0.35),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
+                      color: Colors.black.withValues(alpha: 0.08),
+                      blurRadius: 4,
+                      offset: const Offset(0, 1.5),
                     ),
                   ],
                 ),
@@ -630,14 +630,14 @@ class _PortraitLibraryMenuCard extends ConsumerWidget {
     final items = [
       _LibraryMenuItem(
         icon: Icons.queue_music_rounded,
-        iconGradient: const [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+        iconGradient: const [Color(0xFFFA243C), Color(0xFFE01E37)],
         title: l10n.playlist,
         badgeText: playlistsCount > 0 ? '$playlistsCount' : null,
         onTap: () => onTapSubIndex(0),
       ),
       _LibraryMenuItem(
         icon: Icons.mic_external_on_rounded,
-        iconGradient: const [Color(0xFFF97316), Color(0xFFFB923C)],
+        iconGradient: const [Color(0xFFFF9500), Color(0xFFE07D00)],
         title: l10n.artists,
         badgeText:
             artistsCount != null && artistsCount > 0 ? '$artistsCount' : null,
@@ -645,7 +645,7 @@ class _PortraitLibraryMenuCard extends ConsumerWidget {
       ),
       _LibraryMenuItem(
         icon: Icons.album_rounded,
-        iconGradient: const [Color(0xFF06B6D4), Color(0xFF3B82F6)],
+        iconGradient: const [Color(0xFF007AFF), Color(0xFF0062D2)],
         title: l10n.albums,
         badgeText:
             albumsCount != null && albumsCount > 0 ? '$albumsCount' : null,
@@ -653,7 +653,7 @@ class _PortraitLibraryMenuCard extends ConsumerWidget {
       ),
       _LibraryMenuItem(
         icon: Icons.style_rounded,
-        iconGradient: const [Color(0xFF8B5CF6), Color(0xFFA855F7)],
+        iconGradient: const [Color(0xFF5856D6), Color(0xFF4745BA)],
         title: l10n.genres,
         badgeText:
             genresCount != null && genresCount > 0 ? '$genresCount' : null,
@@ -661,7 +661,7 @@ class _PortraitLibraryMenuCard extends ConsumerWidget {
       ),
       _LibraryMenuItem(
         icon: Icons.calendar_month_rounded,
-        iconGradient: const [Color(0xFF0EA5E9), Color(0xFF38BDF8)],
+        iconGradient: const [Color(0xFF30B0C7), Color(0xFF258C9E)],
         title: l10n.years,
         badgeText:
             yearsCount != null && yearsCount > 0 ? '$yearsCount' : null,
@@ -669,25 +669,25 @@ class _PortraitLibraryMenuCard extends ConsumerWidget {
       ),
       _LibraryMenuItem(
         icon: Icons.history_rounded,
-        iconGradient: const [Color(0xFF10B981), Color(0xFF14B8A6)],
+        iconGradient: const [Color(0xFF34C759), Color(0xFF28A745)],
         title: l10n.recentlyPlayed,
         onTap: () => onTapSubIndex(1),
       ),
       _LibraryMenuItem(
         icon: Icons.local_fire_department_rounded,
-        iconGradient: const [Color(0xFFEF4444), Color(0xFFF43F5E)],
+        iconGradient: const [Color(0xFFFF3B30), Color(0xFFE02B20)],
         title: l10n.mostPlayed,
         onTap: () => onTapSubIndex(2),
       ),
       _LibraryMenuItem(
         icon: Icons.auto_awesome_rounded,
-        iconGradient: const [Color(0xFFF59E0B), Color(0xFFEAB308)],
+        iconGradient: const [Color(0xFFFF9F0A), Color(0xFFE68B00)],
         title: l10n.recentlyAdded,
         onTap: () => onTapSubIndex(3),
       ),
       _LibraryMenuItem(
         icon: Icons.star_rounded,
-        iconGradient: const [Color(0xFFEAB308), Color(0xFFF59E0B)],
+        iconGradient: const [Color(0xFFFFCC00), Color(0xFFE6B800)],
         title: l10n.ratedSongs,
         onTap: () => onTapSubIndex(6),
       ),
@@ -757,9 +757,9 @@ class _PortraitLibraryMenuCard extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(10),
                   boxShadow: [
                     BoxShadow(
-                      color: item.iconGradient.first.withValues(alpha: 0.35),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
+                      color: Colors.black.withValues(alpha: 0.08),
+                      blurRadius: 4,
+                      offset: const Offset(0, 1.5),
                     ),
                   ],
                 ),

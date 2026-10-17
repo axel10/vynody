@@ -53,18 +53,18 @@ enum SettingsSection {
 
   List<Color> get iconGradient {
     return switch (this) {
-      SettingsSection.home => const [Color(0xFF64748B), Color(0xFF475569)],
-      SettingsSection.general => const [Color(0xFF64748B), Color(0xFF475569)],
-      SettingsSection.audio => const [Color(0xFF8B5CF6), Color(0xFF6366F1)],
-      SettingsSection.scanning => const [Color(0xFF0EA5E9), Color(0xFF0284C7)],
-      SettingsSection.tags => const [Color(0xFFF59E0B), Color(0xFFD97706)],
-      SettingsSection.transcode => const [Color(0xFF10B981), Color(0xFF059669)],
-      SettingsSection.lyrics => const [Color(0xFFEC4899), Color(0xFFD946EF)],
-      SettingsSection.acoustid => const [Color(0xFF06B6D4), Color(0xFF0891B2)],
-      SettingsSection.storage => const [Color(0xFFF97316), Color(0xFFEA580C)],
-      SettingsSection.shortcuts => const [Color(0xFF6366F1), Color(0xFF4F46E5)],
-      SettingsSection.windows => const [Color(0xFF0284C7), Color(0xFF2563EB)],
-      SettingsSection.about => const [Color(0xFF6B7280), Color(0xFF4B5563)],
+      SettingsSection.home => const [Color(0xFF8E8E93), Color(0xFF7C7C82)],
+      SettingsSection.general => const [Color(0xFF8E8E93), Color(0xFF7C7C82)],
+      SettingsSection.audio => const [Color(0xFFFF375F), Color(0xFFE0284F)],
+      SettingsSection.scanning => const [Color(0xFF007AFF), Color(0xFF0062D2)],
+      SettingsSection.tags => const [Color(0xFFFF9500), Color(0xFFE07D00)],
+      SettingsSection.transcode => const [Color(0xFF34C759), Color(0xFF28A745)],
+      SettingsSection.lyrics => const [Color(0xFF5856D6), Color(0xFF4745BA)],
+      SettingsSection.acoustid => const [Color(0xFF30B0C7), Color(0xFF258C9E)],
+      SettingsSection.storage => const [Color(0xFF64748B), Color(0xFF475569)],
+      SettingsSection.shortcuts => const [Color(0xFF636366), Color(0xFF48484A)],
+      SettingsSection.windows => const [Color(0xFF007AFF), Color(0xFF0062D2)],
+      SettingsSection.about => const [Color(0xFF8E8E93), Color(0xFF7C7C82)],
     };
   }
 
