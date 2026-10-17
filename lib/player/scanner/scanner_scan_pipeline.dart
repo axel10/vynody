@@ -281,9 +281,11 @@ class ScannerScanPipeline {
       metadataTextScanned: resolvedMetadataTextScanned,
       metadataImgScanned: existing?.metadataImgScanned,
       createdAt: existing?.createdAt ?? now,
-      genres: scanned.genres ?? (hasError ? existing?.genres : null) ?? existing?.genres,
+      genres: scanned.genres ?? existing?.genres,
       isAppModified: existing?.isAppModified ?? false,
-      hasArtwork: scanned.hasArtwork,
+      // scanned.hasArtwork 是非空 bool，读取失败时是 false。若直接写进去，
+      // 一次失败就会把「库里本来有封面」的记录标成无封面。
+      hasArtwork: hasError ? existing?.hasArtwork : scanned.hasArtwork,
       bitrate: scanned.bitrate ?? (hasError ? existing?.bitrate : null) ?? existing?.bitrate,
       sampleRate: scanned.sampleRate ?? (hasError ? existing?.sampleRate : null) ?? existing?.sampleRate,
       channels: scanned.channels ?? (hasError ? existing?.channels : null) ?? existing?.channels,

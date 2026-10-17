@@ -13,6 +13,7 @@ import 'package:vynody/player/scanner/scanner_path_utils.dart';
 import 'package:vynody/player/metadata/artwork_constants.dart';
 import 'package:flutter_taglib/flutter_taglib.dart' as taglib;
 import 'package:vynody/player/library/music_file_utils.dart';
+import 'package:vynody/utils/app_log.dart' as app_log;
 import 'package:on_audio_query/on_audio_query.dart';
 
 Future<Map<String, dynamic>?> _buildArtworkFiles({
@@ -708,11 +709,6 @@ class MetadataHelper {
     }
 
     try {
-      final existingArtworkPath = existing?.artworkPath;
-      final existingThumbnailPath = existing?.thumbnailPath;
-      final existingArtworkWidth = existing?.artworkWidth;
-      final existingArtworkHeight = existing?.artworkHeight;
-      final existingThemeColorsBlob = existing?.themeColorsBlob;
       Uint8List? artworkData;
       String? title;
       String? album;
@@ -728,6 +724,11 @@ class MetadataHelper {
       String? codec;
       int? fileRating;
       int? year;
+      List<String>? genres;
+      bool? hasArtwork;
+      // 标签解析是否整体失败。封面字段的取舍依赖它：读取失败时必须保留
+      // 库内已有封面路径，不能因为「这次没读到」就当成「文件确实没有封面」。
+      bool tagReadFailed = false;
 
       try {
         final targetPath = await resolveReadTargetPath(filePath);
@@ -755,10 +756,13 @@ class MetadataHelper {
         codec = metadata.codec;
         fileRating = metadata.rating;
         year = metadata.year;
+        genres = metadata.genres;
+        hasArtwork = metadata.hasArtwork;
         artworkData = metadata.pictures.isNotEmpty
             ? metadata.pictures.first.bytes
             : null;
       } catch (e) {
+        tagReadFailed = true;
         debugPrint('TagLib read error for $filePath: $e');
       }
 
@@ -826,18 +830,9 @@ class MetadataHelper {
             debugPrint('Failed to fetch system artwork via safeQueryArtwork for $songId: $e');
           }
         }
-      } else if (!generateThumbnail && existing != null) {
-        artworkPath = existingArtworkPath;
-        thumbnailPath = existingThumbnailPath;
-        artworkWidth = existingArtworkWidth;
-        artworkHeight = existingArtworkHeight;
-        themeColorsBlob = existingThemeColorsBlob;
       }
 
       // 如果是更新现有记录，保留原有的 createdAt；否则使用当前时间
-      final createdAt =
-          existing?.createdAt ?? DateTime.now().millisecondsSinceEpoch;
-
       int? resolvedSourceFlags = sourceFlags ?? existing?.sourceFlags;
       try {
         final prefs = await SharedPreferences.getInstance();
@@ -869,35 +864,65 @@ class MetadataHelper {
       final int? textScannedTime =
           readFailed ? existing?.metadataTextScanned : lastModified;
 
-      final song = SongMetadata(
+      // 【整行写入的安全基底】
+      // insertOrUpdateSong → _songCompanion 把 SongMetadata 的每一列都写成
+      // Value(...)，没有 Value.absent()，所以「构造时没写的字段」等于
+      // 「主动把该列清成 NULL」。历史上这里用 new SongMetadata(...) 逐个字段填，
+      // 漏了 genres / hasArtwork / waveformBlob / deletedAt 等列，于是每次
+      // 重读标签都会把它们洗掉（流派页整专辑消失就是这么来的）。
+      // 改成以库内记录为基底 copyWith：没写的列一律保持旧值，以后新增字段
+      // 即使忘了在这里处理，最坏结果也只是「沿用旧值」，不会静默清空。
+      final base =
+          existing ??
+          SongMetadata(
+            path: filePath,
+            title: p.basenameWithoutExtension(filePath),
+            album: 'Unknown Album',
+            artist: 'Unknown Artist',
+          );
+
+      // 封面相关字段：只有本次「确实探测过封面」才采用探测结果。
+      // generateThumbnail 为 false 或标签解析整体抛异常、且也没找到目录封面时，
+      // 一律沿用旧值，避免一次读取失败就把库里已有的封面路径清空。
+      final bool artworkProbed =
+          generateThumbnail &&
+          (!tagReadFailed || artworkPath != null || thumbnailPath != null);
+
+      final song = base.copyWith(
         path: filePath,
-        title: title ?? p.basenameWithoutExtension(filePath),
-        album: album ?? 'Unknown Album',
-        artist: artist ?? 'Unknown Artist',
-        albumArtist: albumArtist ?? existing?.albumArtist,
-        duration: duration ?? existing?.duration,
-        artworkPath: artworkPath,
-        thumbnailPath: thumbnailPath,
-        artworkWidth: artworkWidth,
-        artworkHeight: artworkHeight,
-        trackNumber: trackNumber ?? existing?.trackNumber,
-        themeColorsBlob: themeColorsBlob,
+        title: title ?? base.title,
+        album: album ?? base.album,
+        artist: artist ?? base.artist,
+        albumArtist: albumArtist ?? base.albumArtist,
+        duration: duration ?? base.duration,
+        artworkPath: artworkProbed ? artworkPath : base.artworkPath,
+        thumbnailPath: artworkProbed ? thumbnailPath : base.thumbnailPath,
+        artworkWidth: artworkProbed ? artworkWidth : base.artworkWidth,
+        artworkHeight: artworkProbed ? artworkHeight : base.artworkHeight,
+        // 主题色是派生数据，重新生成要解码图片再做量化，代价较高；
+        // 只有本次真的产出新色才覆盖，避免无谓丢色。
+        themeColorsBlob: themeColorsBlob ?? base.themeColorsBlob,
+        trackNumber: trackNumber ?? base.trackNumber,
         lastModifiedTime: lastModified,
         metadataTextScanned: textScannedTime,
         metadataImgScanned: generateThumbnail
-            ? (readFailed ? existing?.metadataImgScanned : lastModified)
-            : existing?.metadataImgScanned,
-        createdAt: createdAt,
+            ? (readFailed ? base.metadataImgScanned : lastModified)
+            : base.metadataImgScanned,
+        createdAt: base.createdAt ?? DateTime.now().millisecondsSinceEpoch,
         sourceFlags: resolvedSourceFlags,
-        isAppModified: existing?.isAppModified ?? false,
-        bitrate: bitrate ?? existing?.bitrate,
-        sampleRate: sampleRate ?? existing?.sampleRate,
-        channels: channels ?? existing?.channels,
-        bitDepth: bitDepth ?? existing?.bitDepth,
-        format: format ?? existing?.format,
-        codec: codec ?? existing?.codec,
-        fileRating: fileRating ?? existing?.fileRating,
-        year: year ?? existing?.year,
+        bitrate: bitrate ?? base.bitrate,
+        sampleRate: sampleRate ?? base.sampleRate,
+        channels: channels ?? base.channels,
+        bitDepth: bitDepth ?? base.bitDepth,
+        format: format ?? base.format,
+        codec: codec ?? base.codec,
+        fileRating: fileRating ?? base.fileRating,
+        year: year ?? base.year,
+        // 流派：标签里读不到时保留库内旧值，宁可留旧也不写空。
+        genres: (genres != null && genres.isNotEmpty) ? genres : base.genres,
+        hasArtwork: hasArtwork ?? base.hasArtwork,
+        // id / mediaId / isAppModified / waveformBlob / deletedAt 有意不覆盖：
+        // 它们不是「读文件能得到的列」，必须原样保留。
       );
 
       // 5. 将解析结果存入数据库
@@ -1013,6 +1038,7 @@ class MetadataHelper {
         format: format,
         codec: codec,
         year: metadata.year,
+        genres: metadata.genres,
       );
     } catch (e) {
       debugPrint('Error reading metadata from file $filePath: $e');
@@ -1101,25 +1127,35 @@ class MetadataHelper {
       final resolvedAlbum = (album != null && album.trim().isNotEmpty)
           ? album.trim()
           : (existing?.album ?? 'Unknown Album');
-      final resolvedDuration = duration ?? existing?.duration;
-      final resolvedTrackNumber = trackNumber ?? existing?.trackNumber;
 
-      final song = SongMetadata(
+      // 与 processMetadata 同一条原则：以库内记录为基底 copyWith，
+      // 让「没写的列」保持旧值，而不是被整行写入清成 NULL。
+      final base =
+          existing ??
+          SongMetadata(
+            path: remoteUri,
+            title: p.basenameWithoutExtension(remoteUri),
+            album: 'Unknown Album',
+            artist: 'Unknown Artist',
+          );
+      final now = DateTime.now().millisecondsSinceEpoch;
+
+      final song = base.copyWith(
         path: remoteUri,
         title: resolvedTitle,
         album: resolvedAlbum,
         artist: resolvedArtist,
-        duration: resolvedDuration,
+        duration: duration ?? base.duration,
         artworkPath: artworkPath,
         thumbnailPath: thumbnailPath,
         artworkWidth: artworkWidth,
         artworkHeight: artworkHeight,
-        trackNumber: resolvedTrackNumber,
+        trackNumber: trackNumber ?? base.trackNumber,
         themeColorsBlob: themeColorsBlob,
-        waveformBlob: existing?.waveformBlob,
-        lastModifiedTime: DateTime.now().millisecondsSinceEpoch,
-        metadataImgScanned: DateTime.now().millisecondsSinceEpoch,
-        metadataTextScanned: DateTime.now().millisecondsSinceEpoch,
+        lastModifiedTime: now,
+        metadataImgScanned: now,
+        metadataTextScanned: now,
+        createdAt: base.createdAt ?? now,
       );
 
       await db.insertOrUpdateSong(song);
@@ -1249,6 +1285,22 @@ class MetadataHelper {
     return null;
   }
 
+  /// 把标签里的流派原始文本切成列表。
+  ///
+  /// 允许的分隔符与批量扫描路径保持一致，避免单文件读取与批量读取
+  /// 对同一份标签给出不同的流派分组。
+  static List<String>? parseGenreTag(String? rawGenre) {
+    final raw = rawGenre?.trim();
+    if (raw == null || raw.isEmpty) return null;
+    final genres = raw
+        .split(RegExp(r'[;,/、\\|]'))
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toSet()
+        .toList(growable: false);
+    return genres.isEmpty ? null : genres;
+  }
+
   static Never _throwTagLibNotSupported() {
     final probeError = taglib.TagLibFile.lastSupportProbeError;
     if (probeError != null) {
@@ -1295,6 +1347,7 @@ class MetadataHelper {
         bitDepth: bitDepth,
         format: format,
         rating: rating,
+        genres: parseGenreTag(tagFile.genre),
       );
     } finally {
       tagFile.close();
@@ -1340,6 +1393,7 @@ class MetadataHelper {
         bitDepth: bitDepth,
         format: format,
         rating: rating,
+        genres: parseGenreTag(tagFile.genre),
       );
     } finally {
       tagFile.close();
@@ -1396,6 +1450,7 @@ class MetadataHelper {
         codec: codec,
         rating: rating,
         year: year,
+        genres: parseGenreTag(tagFile.genre),
       );
     } finally {
       tagFile.close();
@@ -1453,6 +1508,7 @@ class MetadataHelper {
         codec: codec,
         rating: rating,
         year: year,
+        genres: parseGenreTag(tagFile.genre),
       );
     } finally {
       tagFile.close();
@@ -1506,10 +1562,14 @@ class MetadataHelper {
         final results = <ScannedFileMetadata>[];
         int successCount = 0;
         int failCount = 0;
+        int withGenreCount = 0;
         for (final item in batchResults) {
           final metadata = _scannedMetadataFromBatchItem(item);
           if (metadata.isSuccess) {
             successCount++;
+            if (metadata.genres?.isNotEmpty ?? false) {
+              withGenreCount++;
+            }
           } else {
             failCount++;
             if (failCount <= 5) {
@@ -1519,6 +1579,14 @@ class MetadataHelper {
           results.add(metadata);
         }
         debugPrint('[MetadataHelper] readMetadataBatch completed: total=${filePaths.length}, success=$successCount, fail=$failCount');
+        // 扫描入库阶段「流派读到没有」是判断数据源是否可靠的关键指标：
+        // 若 success 远大于 withGenre，说明批次读取没拿到 GENRE，流派缺失
+        // 就不该再怀疑播放链路。一次扫描只打一行，不产生噪声。
+        app_log.AppLog.log(
+          '[ScanGenre] readMetadataBatch total=${filePaths.length} '
+          'success=$successCount fail=$failCount withGenre=$withGenreCount',
+          mirrorToConsole: true,
+        );
         return results;
       }
     } catch (e, stackTrace) {
@@ -1981,6 +2049,7 @@ class TagLibMetadata {
   final String? codec;
   final int? rating;
   final int? year;
+  final List<String>? genres;
 
   TagLibMetadata({
     this.title,
@@ -1999,6 +2068,7 @@ class TagLibMetadata {
     this.codec,
     this.rating,
     this.year,
+    this.genres,
   });
 }
 

@@ -1630,6 +1630,16 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
       path: normalizedPath,
       sourceFlags: mergedSourceFlags,
     );
+
+    if (existing != null) {
+      _debugWarnColumnWipe(
+        source: 'insertOrUpdateSong',
+        path: normalizedPath,
+        before: _songFromTableRow(existing),
+        after: updatedSong,
+      );
+    }
+
     final companion = _songCompanion(
       updatedSong,
       lastSeenRootScanSessionId: rootScanSessionId,
@@ -1675,6 +1685,14 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
     await transaction(() async {
       for (final song in normalizedSongs) {
         final existing = existingByPath[_pathLookupKey(song.path)];
+        if (existing != null) {
+          _debugWarnColumnWipe(
+            source: 'insertOrUpdateSongsMerged',
+            path: song.path,
+            before: existing,
+            after: song,
+          );
+        }
         final mergedCompanion = _songCompanion(
           song.copyWith(
             sourceFlags: _mergeSourceFlags(
@@ -2890,6 +2908,12 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
     );
   }
 
+  /// 把 [SongMetadata] 摊平成「整行写入」的 companion。
+  ///
+  /// 注意：除 `lastSeenRootScanSessionId` 外，所有列都是 `Value(...)`，
+  /// 没有 `Value.absent()`。也就是说传进来的对象缺哪个字段，库里对应列就被
+  /// 写成 NULL。调用方若需要「只改几列」，必须以 `existing.copyWith(...)`
+  /// 为基底构造，不要用 `SongMetadata(...)` 重新拼一个。
   SongsCompanion _songCompanion(
     SongMetadata song, {
     int? lastSeenRootScanSessionId,
@@ -3148,6 +3172,67 @@ class MetadataDriftDatabase extends _$MetadataDriftDatabase {
     return decodedValue
         .map((item) => item?.toString() ?? '')
         .toList(growable: false);
+  }
+
+  /// 调试用：抓「整行写入把库里已有列洗成 NULL」的现行。
+  ///
+  /// `insertOrUpdateSong` / `insertOrUpdateSongsMerged` 都通过 [_songCompanion]
+  /// 整行写入：每一列都是 `Value(...)`，没有 `Value.absent()`。因此用
+  /// `SongMetadata(...)` 重新构造、而不是以库内记录为基底 `copyWith` 的调用方，
+  /// 只要漏填某个字段，库里已有的值就会被一起写成 NULL
+  /// （流派页整专辑消失、年份分组消失都是这个特征）。
+  ///
+  /// 正确写法见 `MetadataHelper.processMetadata`：`existing.copyWith(...)`，
+  /// 未列出的列自动保持旧值。这里只在「旧值非空 → 新值变空」时告警，
+  /// 用来兜住将来新增的写库调用方。
+  ///
+  /// 不检查 `artworkPath` / `thumbnailPath` / `waveformBlob` / `hasArtwork`：
+  /// 这几列有合法的清空场景（封面被删、波形随元数据失效等）。
+  void _debugWarnColumnWipe({
+    required String source,
+    required String path,
+    required SongMetadata? before,
+    required SongMetadata after,
+  }) {
+    if (before == null) return;
+
+    final wiped = <String>[];
+    void check(String name, Object? oldValue, Object? newValue) {
+      if (oldValue == null) return;
+      if (oldValue is String && oldValue.trim().isEmpty) return;
+      if (oldValue is Iterable && oldValue.isEmpty) return;
+      if (newValue == null || (newValue is String && newValue.trim().isEmpty)) {
+        wiped.add(name);
+      }
+    }
+
+    check('genres', before.genres, after.genres);
+    check('year', before.year, after.year);
+    check('albumArtist', before.albumArtist, after.albumArtist);
+    check('duration', before.duration, after.duration);
+    check('trackNumber', before.trackNumber, after.trackNumber);
+    check('bitrate', before.bitrate, after.bitrate);
+    check('sampleRate', before.sampleRate, after.sampleRate);
+    check('channels', before.channels, after.channels);
+    check('bitDepth', before.bitDepth, after.bitDepth);
+    check('format', before.format, after.format);
+    check('codec', before.codec, after.codec);
+    check('fileRating', before.fileRating, after.fileRating);
+    check('createdAt', before.createdAt, after.createdAt);
+    if (wiped.isEmpty) return;
+
+    final frames = StackTrace.current
+        .toString()
+        .split('\n')
+        .where((line) => line.trim().isNotEmpty)
+        .take(18)
+        .join('\n');
+    AppLog.log(
+      '[ColumnWipe] $source 整行写入把已有列清空: ${wiped.join(', ')}\n'
+      '  path=$path\n'
+      '$frames',
+      mirrorToConsole: true,
+    );
   }
 
   List<String>? _decodeGenres(String? rawValue) {
