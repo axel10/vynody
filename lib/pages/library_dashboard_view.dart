@@ -22,6 +22,7 @@ import 'package:vynody/widgets/album_context_menu.dart';
 import 'package:vynody/widgets/album_cover.dart';
 import 'package:vynody/widgets/artist_avatar.dart';
 import 'package:vynody/widgets/artist_context_menu.dart';
+import 'package:vynody/widgets/default_cover_art.dart';
 import 'package:vynody/widgets/draggable_album_item.dart';
 import 'package:vynody/widgets/draggable_artist_item.dart';
 import 'package:vynody/widgets/draggable_genre_item.dart';
@@ -46,40 +47,6 @@ const double kDashboardDesktopCoverScale = 1.9;
 
 /// 竖屏移动端下封面缩放系数
 const double kDashboardMobileCoverScale = 1.2;
-
-/// 流派封面比例（宽:高 = 2:3）。
-///
-/// 素材统一为 500×750，卡片高度、轮播容器高度都由此推导；
-/// 与素材同比例时 `BoxFit.cover` 不会横向裁掉构图。
-const double kGenreCoverHeightFactor = 3 / 2;
-
-/// 流派横向列表的整体缩放系数。
-///
-/// 只改这一个数即可统一放大/缩小每个流派条目：卡片宽度与条目间距同步缩放，
-/// 高度按 [kGenreCoverHeightFactor] 自动跟随，轮播容器也一起变。
-/// 1.0 = 基准（桌面 180×270、移动 132×198）；常用 0.85 更紧凑、1.15 / 1.3 更醒目。
-const double kDashboardGenreCardScale = 1.5;
-
-/// 桌面横屏下流派卡基准宽度（2:3 竖版，高度按 [kGenreCoverHeightFactor] 推导）。
-///
-/// 实际宽度还要乘 [kDashboardGenreCardScale]，想调整条目大小就改那个系数，不要改这里。
-/// 相对旧版 8:9 保持卡面面积相当（180×270 ≈ 208×234），只是形状更窄更高，
-/// 因此宽度比方形专辑封面（126 × 1.9 ≈ 239）窄一档是预期效果。
-const double kDashboardGenreCardWidthWide = 180.0;
-
-/// 竖屏移动端下流派卡基准宽度（132×198 ≈ 旧版 152×171 的面积）。
-const double kDashboardGenreCardWidthNarrow = 132.0;
-
-/// 流派卡左下角文字的阴影。
-///
-/// 卡片刻意不加暗色渐变层（会把封面整体压灰），白字直接压在图上，
-/// 只能靠一圈贴边阴影把字从背景里"抠"出来。三层半径递减叠加，
-/// 小半径负责边缘分离，大半径负责压住大面积浅色背景。
-const List<Shadow> kGenreLabelShadows = <Shadow>[
-  Shadow(blurRadius: 10, color: Color(0x8C000000)),
-  Shadow(blurRadius: 3, color: Color(0xB3000000)),
-  Shadow(blurRadius: 1, color: Color(0xCC000000)),
-];
 
 /// 桌面端与移动端统一的响应式媒体库首页（Dashboard 仪表盘）
 class LibraryDashboardView extends ConsumerWidget {
@@ -1405,7 +1372,99 @@ class _CoverPlayButtonState extends State<_CoverPlayButton> {
 }
 
 // ---------------------------------------------------------------------------
-// 通用横向专辑流滚动区块（Apple Music 风格 Carousel）
+// 通用横向封面队列滚动区块（Apple Music 风格 Carousel）
+// ---------------------------------------------------------------------------
+
+/// 媒体库首页所有横向队列的共同骨架：区块标题 + 悬浮翻页按钮 + 横向列表。
+///
+/// 卡宽、间距、容器高度全部由 [kDashboardDesktopCoverScale] /
+/// [kDashboardMobileCoverScale] 推导，专辑 / 流派 / 年份三行因此永远同尺寸，
+/// 纵向滚动时卡面左边缘与卡宽保持一致。子项差异（封面来源、标题、点击行为）
+/// 全部交给 [itemBuilder]，这里只管几何与滚动。
+class _HorizontalCoverSection extends StatelessWidget {
+  const _HorizontalCoverSection({
+    required this.title,
+    this.subtitle,
+    required this.itemCount,
+    required this.itemBuilder,
+    required this.horizontalPadding,
+    required this.onViewAll,
+    required this.l10n,
+    this.isWide = false,
+    this.contentLeftPadding = 0.0,
+  });
+
+  final String title;
+  final String? subtitle;
+  final int itemCount;
+
+  /// 构建单个条目；[cardWidth] 已按当前断点算好，直接用作封面边长即可。
+  final Widget Function(BuildContext context, int index, double cardWidth)
+      itemBuilder;
+
+  final double horizontalPadding;
+  final VoidCallback onViewAll;
+  final AppLocalizations l10n;
+  final bool isWide;
+  final double contentLeftPadding;
+
+  @override
+  Widget build(BuildContext context) {
+    if (itemCount == 0) return const SizedBox.shrink();
+
+    final scale =
+        isWide ? kDashboardDesktopCoverScale : kDashboardMobileCoverScale;
+    final cardWidth = (126.0 * scale).roundToDouble();
+    final listHeight = cardWidth + 70.0;
+    final separatorWidth = isWide ? 16.0 : 14.0;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 30),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: EdgeInsets.only(
+              left: contentLeftPadding + horizontalPadding,
+              right: horizontalPadding,
+            ),
+            child: _SectionHeader(
+              title: title,
+              subtitle: subtitle,
+              onViewAll: onViewAll,
+              l10n: l10n,
+            ),
+          ),
+          const SizedBox(height: 12),
+          _CarouselScrollWrapper(
+            height: listHeight,
+            centerHeight: cardWidth,
+            buttonPadding: horizontalPadding > 20 ? 14.0 : 8.0,
+            leftButtonOffset: contentLeftPadding,
+            builder: (context, controller) {
+              return ListView.separated(
+                controller: controller,
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                padding: EdgeInsets.only(
+                  left: contentLeftPadding + horizontalPadding,
+                  right: horizontalPadding,
+                ),
+                itemCount: itemCount,
+                separatorBuilder: (_, _) => SizedBox(width: separatorWidth),
+                itemBuilder: (context, index) =>
+                    itemBuilder(context, index, cardWidth),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 通用横向专辑流滚动区块
 // ---------------------------------------------------------------------------
 class _HorizontalAlbumSection extends StatelessWidget {
   const _HorizontalAlbumSection({
@@ -1430,105 +1489,201 @@ class _HorizontalAlbumSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (albums.isEmpty) return const SizedBox.shrink();
+    final preview = albums.take(15).toList(growable: false);
 
-    final scale = isWide ? kDashboardDesktopCoverScale : kDashboardMobileCoverScale;
-    final cardWidth = (126.0 * scale).roundToDouble();
-    final coverSize = cardWidth;
-    final listHeight = coverSize + 70.0;
-    final separatorWidth = isWide ? 16.0 : 14.0;
-    final preview = albums.take(15).toList();
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 30),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: EdgeInsets.only(
-              left: contentLeftPadding + horizontalPadding,
-              right: horizontalPadding,
-            ),
-            child: _SectionHeader(
-              title: title,
-              subtitle: subtitle,
-              onViewAll: onViewAll,
-              l10n: l10n,
-            ),
-          ),
-          const SizedBox(height: 12),
-          _CarouselScrollWrapper(
-            height: listHeight,
-            centerHeight: coverSize,
-            buttonPadding: horizontalPadding > 20 ? 14.0 : 8.0,
-            leftButtonOffset: contentLeftPadding,
-            builder: (context, controller) {
-              return ListView.separated(
-                controller: controller,
-                scrollDirection: Axis.horizontal,
-                physics: const BouncingScrollPhysics(),
-                padding: EdgeInsets.only(
-                  left: contentLeftPadding + horizontalPadding,
-                  right: horizontalPadding,
+    return _HorizontalCoverSection(
+      title: title,
+      subtitle: subtitle,
+      itemCount: preview.length,
+      horizontalPadding: horizontalPadding,
+      contentLeftPadding: contentLeftPadding,
+      onViewAll: onViewAll,
+      l10n: l10n,
+      isWide: isWide,
+      itemBuilder: (context, index, cardWidth) {
+        final album = preview[index];
+        return Consumer(
+          builder: (context, ref, _) {
+            void openDetails() {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => AlbumDetailPage(album: album),
                 ),
-                itemCount: preview.length,
-                separatorBuilder: (_, _) => SizedBox(width: separatorWidth),
-                itemBuilder: (context, index) {
-                  final album = preview[index];
-                  return Consumer(
-                    builder: (context, ref, _) {
-                      void openDetails() {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => AlbumDetailPage(album: album),
-                          ),
-                        );
-                      }
-
-                      return _AlbumCard(
-                        key: ValueKey(album.id),
-                        album: album,
-                        width: cardWidth,
-                        isWide: isWide,
-                        onTap: openDetails,
-                        onPlay: () {
-                          if (album.songs.isNotEmpty) {
-                            ref.read(audioServiceProvider).playPlaylist(
-                                  album.songs,
-                                  source: PlaybackSource(
-                                    type: PlaybackSourceType.album,
-                                    id: album.id,
-                                  ),
-                                );
-                          }
-                        },
-                        onSecondaryTapDown: (details) {
-                          showAlbumContextMenu(
-                            context: context,
-                            globalPosition: details.globalPosition,
-                            ref: ref,
-                            album: album,
-                            onViewDetails: openDetails,
-                          );
-                        },
-                        onLongPress: () {
-                          showAlbumBottomSheet(
-                            context: context,
-                            ref: ref,
-                            album: album,
-                            onViewDetails: openDetails,
-                          );
-                        },
-                      );
-                    },
-                  );
-                },
               );
-            },
+            }
+
+            return _AlbumCard(
+              key: ValueKey(album.id),
+              album: album,
+              width: cardWidth,
+              isWide: isWide,
+              onTap: openDetails,
+              onPlay: () {
+                if (album.songs.isNotEmpty) {
+                  ref.read(audioServiceProvider).playPlaylist(
+                        album.songs,
+                        source: PlaybackSource(
+                          type: PlaybackSourceType.album,
+                          id: album.id,
+                        ),
+                      );
+                }
+              },
+              onSecondaryTapDown: (details) {
+                showAlbumContextMenu(
+                  context: context,
+                  globalPosition: details.globalPosition,
+                  ref: ref,
+                  album: album,
+                  onViewDetails: openDetails,
+                );
+              },
+              onLongPress: () {
+                showAlbumBottomSheet(
+                  context: context,
+                  ref: ref,
+                  album: album,
+                  onViewDetails: openDetails,
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+/// 首页「集合」类封面卡（流派 / 年份）：与 [_AlbumCard] 同构。
+///
+/// 封面取集合代表曲的专辑封面（[GenreSummary.representativeArtworkPath] /
+/// [YearSummary.representativeArtworkPath]），标题是集合名，
+/// 副标题固定为曲目数——不再用流派专属插画，也不再往封面压字。
+class _CollectionCoverCard extends StatefulWidget {
+  const _CollectionCoverCard({
+    required this.title,
+    required this.subtitle,
+    required this.coverSong,
+    required this.artworkPath,
+    required this.thumbnailPath,
+    required this.width,
+    required this.isWide,
+    required this.onTap,
+    this.onPlay,
+    this.onSecondaryTapDown,
+    this.onLongPress,
+  });
+
+  final String title;
+  final String subtitle;
+
+  /// 代表曲；为空时退回默认专辑封面。
+  final MusicFile? coverSong;
+  final String? artworkPath;
+  final String? thumbnailPath;
+  final double width;
+  final bool isWide;
+  final VoidCallback onTap;
+  final VoidCallback? onPlay;
+  final void Function(TapDownDetails details)? onSecondaryTapDown;
+  final VoidCallback? onLongPress;
+
+  @override
+  State<_CollectionCoverCard> createState() => _CollectionCoverCardState();
+}
+
+class _CollectionCoverCardState extends State<_CollectionCoverCard> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final size = widget.width;
+    final btnSize = widget.isWide ? 40.0 : 36.0;
+    final iconSize = widget.isWide ? 24.0 : 22.0;
+    final btnOffset = widget.isWide ? 10.0 : 8.0;
+    final radius = BorderRadius.circular(12);
+    final song = widget.coverSong;
+
+    final card = MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: widget.onTap,
+        onLongPress: widget.onLongPress,
+        onSecondaryTapDown: widget.onSecondaryTapDown,
+        child: SizedBox(
+          width: size,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Stack(
+                children: [
+                  if (song == null)
+                    SizedBox(
+                      width: size,
+                      height: size,
+                      child: DefaultCoverArt.album(borderRadius: radius),
+                    )
+                  else
+                    SongThumbnail(
+                      path: song.path,
+                      id: song.id,
+                      artworkPath:
+                          widget.artworkPath ?? song.artworkPath,
+                      thumbnailPath:
+                          widget.thumbnailPath ?? song.thumbnailPath,
+                      size: size,
+                      borderRadius: radius,
+                      isAlbum: true,
+                    ),
+                  if (widget.onPlay != null)
+                    Positioned(
+                      right: btnOffset,
+                      bottom: btnOffset,
+                      child: AnimatedOpacity(
+                        duration: const Duration(milliseconds: 150),
+                        opacity: _isHovered ? 1.0 : 0.0,
+                        child: IgnorePointer(
+                          ignoring: !_isHovered,
+                          child: _CoverPlayButton(
+                            size: btnSize,
+                            iconSize: iconSize,
+                            onTap: widget.onPlay!,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                widget.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  fontSize: widget.isWide ? 14.5 : 14.0,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                widget.subtitle,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
+
+    return card;
   }
 }
 
@@ -2271,7 +2426,7 @@ class _GenresRowSectionState extends ConsumerState<_GenresRowSection> {
     ref.listen(genreLibraryProvider, (_, next) {
       if (_cachedGenres == null && next.hasValue) {
         setState(() {
-          _cachedGenres = dedupeGenresByCoverArt(next.value!);
+          _cachedGenres = next.value!.toList(growable: false);
         });
       }
     });
@@ -2279,240 +2434,80 @@ class _GenresRowSectionState extends ConsumerState<_GenresRowSection> {
     if (_cachedGenres == null) {
       final initial = ref.read(genreLibraryProvider);
       if (initial.hasValue) {
-        _cachedGenres = dedupeGenresByCoverArt(initial.value!);
+        _cachedGenres = initial.value!.toList(growable: false);
       }
     }
 
-    if (_cachedGenres != null) {
-      if (_cachedGenres!.isEmpty) return const SizedBox.shrink();
+    final genres = _cachedGenres;
+    if (genres == null) return const SizedBox.shrink();
+    final preview = genres.take(15).toList(growable: false);
 
-      // 流派卡为 2:3 竖版，基准宽度见 kDashboardGenreCardWidthWide / Narrow，
-      // 实际大小统一由 kDashboardGenreCardScale 缩放（间距同步跟随）
-      final cardWidth = (widget.isWide
-              ? kDashboardGenreCardWidthWide
-              : kDashboardGenreCardWidthNarrow) *
-          kDashboardGenreCardScale;
-      final cardGap = (widget.isWide ? 14.0 : 12.0) * kDashboardGenreCardScale;
+    // 与专辑队列同构：封面取代表曲的专辑封面，副标题是曲目数。
+    // 流派专属插画仍用于流派列表页与详情页，首页不再使用，因此也无需按封面去重
+    // （同一首歌可能同时属于多个流派，封面相同反而是正确表达）。
+    return _HorizontalCoverSection(
+      title: widget.l10n.genres,
+      itemCount: preview.length,
+      horizontalPadding: widget.horizontalPadding,
+      contentLeftPadding: widget.contentLeftPadding,
+      onViewAll: widget.onViewAll,
+      l10n: widget.l10n,
+      isWide: widget.isWide,
+      itemBuilder: (context, index, cardWidth) {
+        final genre = preview[index];
 
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: EdgeInsets.only(
-              left: widget.contentLeftPadding + widget.horizontalPadding,
-              right: widget.horizontalPadding,
-            ),
-            child: _SectionHeader(
-              title: widget.l10n.genres,
-              onViewAll: widget.onViewAll,
-              l10n: widget.l10n,
-            ),
-          ),
-          const SizedBox(height: 12),
-          _CarouselScrollWrapper(
-            height: cardWidth * kGenreCoverHeightFactor,
-            buttonPadding: widget.horizontalPadding > 20 ? 14.0 : 8.0,
-            leftButtonOffset: widget.contentLeftPadding,
-            builder: (context, controller) {
-              return ListView.separated(
-                controller: controller,
-                scrollDirection: Axis.horizontal,
-                physics: const BouncingScrollPhysics(),
-                padding: EdgeInsets.only(
-                  left: widget.contentLeftPadding + widget.horizontalPadding,
-                  right: widget.horizontalPadding,
-                ),
-                itemCount: _cachedGenres!.length,
-                separatorBuilder: (_, _) => SizedBox(width: cardGap),
-                itemBuilder: (context, index) {
-                  final genre = _cachedGenres![index];
-
-                  void openDetails() {
-                    if (widget.isWide) {
-                      ref
-                          .read(selectedGenreKeyProvider.notifier)
-                          .set(genre.queryKey);
-                      widget.onViewAll();
-                    } else {
-                      Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          settings: const RouteSettings(
-                            name: 'genre_detail',
-                          ),
-                          builder: (_) => GenreDetailPage(genre: genre),
-                        ),
-                      );
-                    }
-                  }
-
-                  return _GenreCard(
-                    genre: genre,
-                    cardWidth: cardWidth,
-                    onTap: openDetails,
-                    onSecondaryTapDown: (details) => showGenreContextMenu(
-                      context: context,
-                      globalPosition: details.globalPosition,
-                      ref: ref,
-                      genre: genre,
-                      onViewDetails: openDetails,
-                    ),
-                    onLongPress: () => showGenreBottomSheet(
-                      context: context,
-                      ref: ref,
-                      genre: genre,
-                      onViewDetails: openDetails,
-                    ),
-                  );
-                },
-              );
-            },
-          ),
-        ],
-      );
-    }
-
-    return const SizedBox.shrink();
-  }
-}
-
-/// 首页流派卡：流派封面铺满整卡，左下角压流派名与曲目数。
-///
-/// 封面素材已去掉自带字样，因此文字重新叠回画面。**不加暗色渐变层**（会把封面压灰），
-/// 而是靠 [kGenreLabelShadows] 的描边式阴影保证白字在任意亮度的封面上都能读清。
-/// 卡片与素材同为 2:3（[kGenreCoverHeightFactor]），`BoxFit.cover` 不会裁掉构图。
-class _GenreCard extends StatefulWidget {
-  const _GenreCard({
-    required this.genre,
-    required this.onTap,
-    required this.cardWidth,
-    this.onSecondaryTapDown,
-    this.onLongPress,
-  });
-
-  final GenreSummary genre;
-  final VoidCallback onTap;
-
-  /// 卡片宽度；高度按流派图比例（2:3）推导。
-  final double cardWidth;
-  final void Function(TapDownDetails details)? onSecondaryTapDown;
-  final VoidCallback? onLongPress;
-
-  @override
-  State<_GenreCard> createState() => _GenreCardState();
-}
-
-class _GenreCardState extends State<_GenreCard> {
-  bool _isHovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final l10n = AppLocalizations.of(context)!;
-    final genre = widget.genre;
-
-    final width = widget.cardWidth;
-    final height = width * kGenreCoverHeightFactor;
-
-    // 卡片尺寸由 kDashboardGenreCardScale 统一驱动，文字也跟着卡宽等比推导，
-    // 否则把系数调到 1.5 后文字会显得极小；两端夹住，避免极端系数下过大过小。
-    final titleFontSize = (width * 0.082).clamp(14.0, 23.0);
-    final countFontSize = (titleFontSize * 0.76).clamp(11.0, 17.0);
-    final edgeInset = (width * 0.055).clamp(10.0, 20.0);
-    final bottomInset = (width * 0.05).clamp(9.0, 18.0);
-
-    return DraggableGenreItem(
-      genre: genre,
-      child: MouseRegion(
-        cursor: SystemMouseCursors.click,
-        onEnter: (_) => setState(() => _isHovered = true),
-        onExit: (_) => setState(() => _isHovered = false),
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: widget.onTap,
-          onLongPress: widget.onLongPress,
-          onSecondaryTapDown: widget.onSecondaryTapDown,
-          child: RepaintBoundary(
-            child: Semantics(
-              button: true,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 180),
-                curve: Curves.easeOut,
-                width: width,
-                height: height,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: _isHovered
-                        ? theme.colorScheme.primary.withValues(alpha: 0.65)
-                        : theme.colorScheme.outlineVariant
-                            .withValues(alpha: 0.18),
-                  ),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(13),
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      _buildArtwork(context, width),
-                      Positioned(
-                        left: edgeInset,
-                        right: edgeInset,
-                        bottom: bottomInset,
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              genre.name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.titleSmall?.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w700,
-                                fontSize: titleFontSize,
-                                height: 1.15,
-                                letterSpacing: 0.1,
-                                shadows: kGenreLabelShadows,
-                              ),
-                            ),
-                            SizedBox(height: titleFontSize * 0.16),
-                            Text(
-                              l10n.trackCountShort(genre.songCount),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.labelSmall?.copyWith(
-                                color: Colors.white.withValues(alpha: 0.9),
-                                fontWeight: FontWeight.w500,
-                                fontSize: countFontSize,
-                                height: 1.1,
-                                shadows: kGenreLabelShadows,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+        void openDetails() {
+          if (widget.isWide) {
+            ref.read(selectedGenreKeyProvider.notifier).set(genre.queryKey);
+            widget.onViewAll();
+          } else {
+            Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                settings: const RouteSettings(name: 'genre_detail'),
+                builder: (_) => GenreDetailPage(genre: genre),
               ),
+            );
+          }
+        }
+
+        return DraggableGenreItem(
+          key: ValueKey('genre-${genre.queryKey}'),
+          genre: genre,
+          child: _CollectionCoverCard(
+            title: genre.name,
+            subtitle: widget.l10n.trackCountShort(genre.songCount),
+            coverSong: genre.songs.isEmpty ? null : genre.songs.first,
+            artworkPath: genre.representativeArtworkPath,
+            thumbnailPath: genre.representativeThumbnailPath,
+            width: cardWidth,
+            isWide: widget.isWide,
+            onTap: openDetails,
+            onPlay: genre.songs.isEmpty
+                ? null
+                : () => ref.read(audioServiceProvider).playPlaylist(
+                      genre.songs,
+                      source: PlaybackSource(
+                        type: PlaybackSourceType.genre,
+                        id: genre.queryKey,
+                        name: genre.name,
+                      ),
+                    ),
+            onSecondaryTapDown: (details) => showGenreContextMenu(
+              context: context,
+              globalPosition: details.globalPosition,
+              ref: ref,
+              genre: genre,
+              onViewDetails: openDetails,
+            ),
+            onLongPress: () => showGenreBottomSheet(
+              context: context,
+              ref: ref,
+              genre: genre,
+              onViewDetails: openDetails,
             ),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildArtwork(BuildContext context, double width) {
-    // 按实际显示尺寸解码，避免把 500px 原图整张读进内存
-    final devicePixelRatio = MediaQuery.devicePixelRatioOf(context);
-    return Image.asset(
-      widget.genre.imageAssetPath,
-      fit: BoxFit.cover,
-      cacheWidth: (width * devicePixelRatio).round(),
-      gaplessPlayback: true,
-      errorBuilder: (context, error, stackTrace) => ColoredBox(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-      ),
+        );
+      },
     );
   }
 }
@@ -2560,209 +2555,75 @@ class _YearsRowSectionState extends ConsumerState<_YearsRowSection> {
       }
     }
 
-    if (_cachedYears != null) {
-      if (_cachedYears!.isEmpty) return const SizedBox.shrink();
+    final years = _cachedYears;
+    if (years == null) return const SizedBox.shrink();
+    final preview = years.take(15).toList(growable: false);
 
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: EdgeInsets.only(
-              left: widget.contentLeftPadding + widget.horizontalPadding,
-              right: widget.horizontalPadding,
-            ),
-            child: _SectionHeader(
-              title: widget.l10n.years,
-              onViewAll: widget.onViewAll,
-              l10n: widget.l10n,
-            ),
-          ),
-          const SizedBox(height: 12),
-          _CarouselScrollWrapper(
-            height: 80,
-            buttonPadding: widget.horizontalPadding > 20 ? 14.0 : 8.0,
-            leftButtonOffset: widget.contentLeftPadding,
-            builder: (context, controller) {
-              return ListView.separated(
-                controller: controller,
-                scrollDirection: Axis.horizontal,
-                physics: const BouncingScrollPhysics(),
-                padding: EdgeInsets.only(
-                  left: widget.contentLeftPadding + widget.horizontalPadding,
-                  right: widget.horizontalPadding,
-                ),
-                itemCount: _cachedYears!.length,
-                separatorBuilder: (_, _) => const SizedBox(width: 12),
-                itemBuilder: (context, index) {
-                  final year = _cachedYears![index];
+    // 与流派 / 专辑队列同构：封面取代表曲的专辑封面，副标题是曲目数。
+    return _HorizontalCoverSection(
+      title: widget.l10n.years,
+      itemCount: preview.length,
+      horizontalPadding: widget.horizontalPadding,
+      contentLeftPadding: widget.contentLeftPadding,
+      onViewAll: widget.onViewAll,
+      l10n: widget.l10n,
+      isWide: widget.isWide,
+      itemBuilder: (context, index, cardWidth) {
+        final year = preview[index];
 
-                  void openDetails() {
-                    if (widget.isWide) {
-                      ref
-                          .read(selectedYearKeyProvider.notifier)
-                          .set(year.queryKey);
-                      widget.onViewAll();
-                    } else {
-                      Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          settings: const RouteSettings(
-                            name: 'year_detail',
-                          ),
-                          builder: (_) => YearDetailPage(year: year),
-                        ),
-                      );
-                    }
-                  }
-
-                  return _YearCard(
-                    year: year,
-                    onTap: openDetails,
-                    onSecondaryTapDown: (details) => showYearContextMenu(
-                      context: context,
-                      globalPosition: details.globalPosition,
-                      ref: ref,
-                      year: year,
-                      onViewDetails: openDetails,
-                    ),
-                    onLongPress: () => showYearBottomSheet(
-                      context: context,
-                      ref: ref,
-                      year: year,
-                      onViewDetails: openDetails,
-                    ),
-                  );
-                },
-              );
-            },
-          ),
-        ],
-      );
-    }
-
-    return const SizedBox.shrink();
-  }
-}
-
-class _YearCard extends StatefulWidget {
-  const _YearCard({
-    required this.year,
-    required this.onTap,
-    this.onSecondaryTapDown,
-    this.onLongPress,
-  });
-
-  final YearSummary year;
-  final VoidCallback onTap;
-  final void Function(TapDownDetails details)? onSecondaryTapDown;
-  final VoidCallback? onLongPress;
-
-  @override
-  State<_YearCard> createState() => _YearCardState();
-}
-
-class _YearCardState extends State<_YearCard> {
-  bool _isHovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final l10n = AppLocalizations.of(context)!;
-    final isDark = theme.brightness == Brightness.dark;
-
-    final card = MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: widget.onTap,
-        onLongPress: widget.onLongPress,
-        onSecondaryTapDown: widget.onSecondaryTapDown,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          width: 160,
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: _isHovered
-                  ? [
-                      theme.colorScheme.primaryContainer,
-                      theme.colorScheme.surfaceContainerHighest,
-                    ]
-                  : [
-                      theme.colorScheme.surfaceContainerHighest.withValues(
-                        alpha: isDark ? 0.65 : 0.85,
-                      ),
-                      theme.colorScheme.surfaceContainerLow.withValues(
-                        alpha: isDark ? 0.45 : 0.75,
-                      ),
-                    ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: _isHovered
-                  ? theme.colorScheme.primary.withValues(alpha: 0.4)
-                  : theme.colorScheme.outlineVariant.withValues(alpha: 0.25),
-            ),
-          ),
-          child: Row(
-            children: [
-              if (widget.year.songs.isNotEmpty)
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: SongThumbnail(
-                    path: widget.year.songs.first.path,
-                    artworkPath: widget.year.representativeArtworkPath,
-                    thumbnailPath: widget.year.representativeThumbnailPath,
-                    size: 44,
-                  ),
-                )
-              else
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.primary.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(
-                    Icons.calendar_month_rounded,
-                    color: theme.colorScheme.primary,
-                  ),
-                ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.year.labelWith(l10n.unknownYear),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      l10n.trackCountShort(widget.year.songCount),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
+        void openDetails() {
+          if (widget.isWide) {
+            ref.read(selectedYearKeyProvider.notifier).set(year.queryKey);
+            widget.onViewAll();
+          } else {
+            Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                settings: const RouteSettings(name: 'year_detail'),
+                builder: (_) => YearDetailPage(year: year),
               ),
-            ],
-          ),
-        ),
-      ),
-    );
+            );
+          }
+        }
 
-    return DraggableYearItem(year: widget.year, child: card);
+        return DraggableYearItem(
+          key: ValueKey('year-${year.queryKey}'),
+          year: year,
+          child: _CollectionCoverCard(
+            title: year.labelWith(widget.l10n.unknownYear),
+            subtitle: widget.l10n.trackCountShort(year.songCount),
+            coverSong: year.songs.isEmpty ? null : year.songs.first,
+            artworkPath: year.representativeArtworkPath,
+            thumbnailPath: year.representativeThumbnailPath,
+            width: cardWidth,
+            isWide: widget.isWide,
+            onTap: openDetails,
+            onPlay: year.songs.isEmpty
+                ? null
+                : () => ref.read(audioServiceProvider).playPlaylist(
+                      year.songs,
+                      source: PlaybackSource(
+                        type: PlaybackSourceType.year,
+                        id: year.queryKey,
+                        name: year.labelWith(widget.l10n.unknownYear),
+                      ),
+                    ),
+            onSecondaryTapDown: (details) => showYearContextMenu(
+              context: context,
+              globalPosition: details.globalPosition,
+              ref: ref,
+              year: year,
+              onViewDetails: openDetails,
+            ),
+            onLongPress: () => showYearBottomSheet(
+              context: context,
+              ref: ref,
+              year: year,
+              onViewDetails: openDetails,
+            ),
+          ),
+        );
+      },
+    );
   }
 }
 
