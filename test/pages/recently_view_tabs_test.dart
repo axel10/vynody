@@ -210,9 +210,13 @@ void main() {
     // 每一行专辑都是拖拽源
     expect(find.byType(DraggableAlbumItem), findsWidgets);
 
-    // 长按第一行进入多选
+    // 长按第一行进入多选。
+    // 列表已改为 SliverList 懒构建，不再有 ListView 包裹，按拖拽源定位第一行。
     final firstRow = find
-        .descendant(of: find.byType(ListView), matching: find.byType(InkWell))
+        .descendant(
+          of: find.byType(DraggableAlbumItem).first,
+          matching: find.byType(InkWell),
+        )
         .first;
     await tester.longPress(firstRow);
     await tester.pump();

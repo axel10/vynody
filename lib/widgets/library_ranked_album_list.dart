@@ -471,20 +471,25 @@ class _LibraryRankedAlbumListState extends ConsumerState<LibraryRankedAlbumList>
                     isSelectionMode: selectionMode,
                   ),
                 ),
-                sliver: SliverToBoxAdapter(
-                  child: Align(
-                    alignment: Alignment.center,
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: kSingleColumnContentMaxWidth),
-                      child: ListView.separated(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: filteredItems.length,
-                        separatorBuilder: (_, _) => const SizedBox(height: 4),
-                        itemBuilder: (context, index) {
-                          final entry = filteredItems[index];
-                          final album = entry.toAlbumSummary();
-                          return _RankedAlbumTile(
+                // 必须用 sliver 懒构建：此处最多有 500 个专辑条目
+                //（watchRecentlyAdded/watchMostPlayed 默认 limit=500），
+                // 原来的 `ListView.separated(shrinkWrap: true)` 包在 SliverToBoxAdapter
+                // 里会在一帧内测量并构建全部行，切到专辑视图时整页掉帧。
+                // 与歌曲列表（SliverFixedExtentList.builder）保持同一种懒加载语义。
+                sliver: SliverList.builder(
+                  itemCount: filteredItems.length,
+                  itemBuilder: (context, index) {
+                    final entry = filteredItems[index];
+                    final album = entry.toAlbumSummary();
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Align(
+                        alignment: Alignment.center,
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(
+                            maxWidth: kSingleColumnContentMaxWidth,
+                          ),
+                          child: _RankedAlbumTile(
                             index: index + 1,
                             entry: entry,
                             album: album,
@@ -524,11 +529,11 @@ class _LibraryRankedAlbumListState extends ConsumerState<LibraryRankedAlbumList>
                                 audio.playPlaylist(album.songs);
                               }
                             },
-                          );
-                        },
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
+                    );
+                  },
                 ),
               ),
           ],

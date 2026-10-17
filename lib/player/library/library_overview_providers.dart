@@ -216,19 +216,34 @@ final timeMachineAlbumsProvider = StreamProvider<List<TimeMachineAlbumEntry>>((r
   });
 });
 
+/// 只在「还没有任何值」时才需要把页面切成整页加载态。
+///
+/// StreamProvider / Provider 在上游刷新重建时会带着旧值进入 loading（reload）。
+/// 若这时仍返回 `AsyncValue.loading()`，页面会整页换成加载圈（列表连同页头一起
+/// 闪一下），所以 reload 必须沿用旧值——与「曲库派生页禁把 reload 当首次加载」
+/// 是同一条约束。
+bool _needsFullPageLoad(AsyncValue<Object?> value) =>
+    value.isLoading && !value.hasValue;
+
+/// 是否要把该上游的错误透出成页面错误态。
+///
+/// 已有旧值时（reload 失败）沿用上一次成功的数据，避免一次刷新失败把列表清空。
+bool _isFatalError(AsyncValue<Object?> value) =>
+    value.hasError && !value.hasValue;
+
 /// 最多播放专辑 Provider（按时间跨度统计）：
 final mostPlayedAlbumsProvider =
     Provider.family<AsyncValue<List<TimeMachineAlbumEntry>>, LibraryTimeRange>((ref, range) {
   final mostPlayedAsync = ref.watch(mostPlayedSongsProvider(range));
   final albumsAsync = ref.watch(albumLibraryProvider);
 
-  if (mostPlayedAsync.isLoading || albumsAsync.isLoading) {
+  if (_needsFullPageLoad(mostPlayedAsync) || _needsFullPageLoad(albumsAsync)) {
     return const AsyncValue.loading();
   }
-  if (mostPlayedAsync.hasError) {
+  if (_isFatalError(mostPlayedAsync)) {
     return AsyncValue.error(mostPlayedAsync.error!, mostPlayedAsync.stackTrace!);
   }
-  if (albumsAsync.hasError) {
+  if (_isFatalError(albumsAsync)) {
     return AsyncValue.error(albumsAsync.error!, albumsAsync.stackTrace!);
   }
 
@@ -415,13 +430,13 @@ final recentlyAddedAlbumsProvider = Provider<AsyncValue<List<AlbumSummary>>>((re
   final recentSongsAsync = ref.watch(recentlyAddedSongsProvider(LibraryTimeRange.allTime));
   final albumsAsync = ref.watch(albumLibraryProvider);
 
-  if (recentSongsAsync.isLoading || albumsAsync.isLoading) {
+  if (_needsFullPageLoad(recentSongsAsync) || _needsFullPageLoad(albumsAsync)) {
     return const AsyncValue.loading();
   }
-  if (recentSongsAsync.hasError) {
+  if (_isFatalError(recentSongsAsync)) {
     return AsyncValue.error(recentSongsAsync.error!, recentSongsAsync.stackTrace!);
   }
-  if (albumsAsync.hasError) {
+  if (_isFatalError(albumsAsync)) {
     return AsyncValue.error(albumsAsync.error!, albumsAsync.stackTrace!);
   }
 
@@ -468,13 +483,13 @@ final topRatedAlbumsProvider = Provider<AsyncValue<List<AlbumSummary>>>((ref) {
   final ratedSongsAsync = ref.watch(allRatedSongsProvider);
   final albumsAsync = ref.watch(albumLibraryProvider);
 
-  if (ratedSongsAsync.isLoading || albumsAsync.isLoading) {
+  if (_needsFullPageLoad(ratedSongsAsync) || _needsFullPageLoad(albumsAsync)) {
     return const AsyncValue.loading();
   }
-  if (ratedSongsAsync.hasError) {
+  if (_isFatalError(ratedSongsAsync)) {
     return AsyncValue.error(ratedSongsAsync.error!, ratedSongsAsync.stackTrace!);
   }
-  if (albumsAsync.hasError) {
+  if (_isFatalError(albumsAsync)) {
     return AsyncValue.error(albumsAsync.error!, albumsAsync.stackTrace!);
   }
 
@@ -545,13 +560,13 @@ AsyncValue<List<TimeMachineAlbumEntry>> _combineInsightAlbums(
   AsyncValue<List<AlbumSummary>> albumsAsync, {
   required int? Function(TimeMachineAlbumEntry entry) sortKeySelector,
 }) {
-  if (songsAsync.isLoading || albumsAsync.isLoading) {
+  if (_needsFullPageLoad(songsAsync) || _needsFullPageLoad(albumsAsync)) {
     return const AsyncValue.loading();
   }
-  if (songsAsync.hasError) {
+  if (_isFatalError(songsAsync)) {
     return AsyncValue.error(songsAsync.error!, songsAsync.stackTrace!);
   }
-  if (albumsAsync.hasError) {
+  if (_isFatalError(albumsAsync)) {
     return AsyncValue.error(albumsAsync.error!, albumsAsync.stackTrace!);
   }
 
