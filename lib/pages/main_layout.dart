@@ -2323,6 +2323,8 @@ class _SlidingNavigationRailState extends ConsumerState<SlidingNavigationRail> {
       child: InkWell(
         borderRadius: BorderRadius.circular(6),
         onTap: onTap,
+        splashFactory: NoSplash.splashFactory,
+        highlightColor: Colors.transparent,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
           child: Text(
@@ -2402,6 +2404,9 @@ class _SlidingNavigationRailState extends ConsumerState<SlidingNavigationRail> {
       child: InkWell(
         borderRadius: BorderRadius.circular(10),
         onTap: onTap,
+        // 导航栏条目只保留悬浮提示，点击时不出现水波纹与高亮底色
+        splashFactory: NoSplash.splashFactory,
+        highlightColor: Colors.transparent,
         child: SizedBox.expand(child: content),
       ),
     );
