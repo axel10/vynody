@@ -199,8 +199,8 @@ class FolderSubfoldersSliver extends StatelessWidget {
               padding: EdgeInsets.only(
                 top: 8,
                 bottom: paddingBottom,
-                left: 16,
-                right: 16,
+                left: kGridHorizontalPadding,
+                right: kGridHorizontalPadding,
               ),
               sliver: SliverToBoxAdapter(
                 child: ReorderableBuilder(
@@ -225,8 +225,8 @@ class FolderSubfoldersSliver extends StatelessWidget {
                       gridDelegate:
                           SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: crossAxisCount,
-                        crossAxisSpacing: 16,
-                        mainAxisSpacing: 16,
+                        crossAxisSpacing: kGridCrossAxisSpacing,
+                        mainAxisSpacing: kGridMainAxisSpacing,
                         childAspectRatio: childAspectRatio,
                       ),
                       children: children,
@@ -297,14 +297,14 @@ class FolderSubfoldersSliver extends StatelessWidget {
             padding: EdgeInsets.only(
               top: 8,
               bottom: paddingBottom,
-              left: 16,
-              right: 16,
+              left: kGridHorizontalPadding,
+              right: kGridHorizontalPadding,
             ),
             sliver: SliverGrid(
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: crossAxisCount,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
+                crossAxisSpacing: kGridCrossAxisSpacing,
+                mainAxisSpacing: kGridMainAxisSpacing,
                 childAspectRatio: childAspectRatio,
               ),
               delegate: SliverChildBuilderDelegate(
@@ -673,14 +673,14 @@ class FolderSongsSliver extends StatelessWidget {
         padding: EdgeInsets.only(
           top: topPadding,
           bottom: bottomPadding,
-          left: 16,
-          right: 16,
+          left: kGridHorizontalPadding,
+          right: kGridHorizontalPadding,
         ),
         sliver: SliverGrid(
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: crossAxisCount,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
+            crossAxisSpacing: kGridCrossAxisSpacing,
+            mainAxisSpacing: kGridMainAxisSpacing,
             childAspectRatio: childAspectRatio,
           ),
           delegate: SliverChildBuilderDelegate(

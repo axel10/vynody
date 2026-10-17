@@ -216,7 +216,10 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab>
               context,
               isPortrait: isPortrait,
             );
-            final itemWidth = (contentWidth - 32 - (crossAxisCount - 1) * 16) / crossAxisCount;
+            final itemWidth = calculateGridItemWidth(
+              width: contentWidth,
+              crossAxisCount: crossAxisCount,
+            );
             final childAspectRatio = itemWidth / (itemWidth + textHeight);
 
                 // 多选面板高度：3D cover flow 用单行精简版，普通网格列表用完整版
@@ -588,12 +591,12 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab>
   }) {
     return [
       SliverPadding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.symmetric(horizontal: kGridHorizontalPadding),
         sliver: SliverGrid(
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: crossAxisCount,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
+            crossAxisSpacing: kGridCrossAxisSpacing,
+            mainAxisSpacing: kGridMainAxisSpacing,
             childAspectRatio: childAspectRatio,
           ),
           delegate: SliverChildBuilderDelegate(

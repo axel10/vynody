@@ -430,8 +430,8 @@ class RemoteServersSliver extends ConsumerWidget {
               padding: EdgeInsets.only(
                 top: 8,
                 bottom: bottomPadding,
-                left: 16,
-                right: 16,
+                left: kGridHorizontalPadding,
+                right: kGridHorizontalPadding,
               ),
               sliver: SliverToBoxAdapter(
                 child: ReorderableBuilder(
@@ -449,8 +449,8 @@ class RemoteServersSliver extends ConsumerWidget {
                       gridDelegate:
                           SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: crossAxisCount,
-                        crossAxisSpacing: 16,
-                        mainAxisSpacing: 16,
+                        crossAxisSpacing: kGridCrossAxisSpacing,
+                        mainAxisSpacing: kGridMainAxisSpacing,
                         childAspectRatio: childAspectRatio,
                       ),
                       children: children,
@@ -491,14 +491,14 @@ class RemoteServersSliver extends ConsumerWidget {
             padding: EdgeInsets.only(
               top: 8,
               bottom: bottomPadding,
-              left: 16,
-              right: 16,
+              left: kGridHorizontalPadding,
+              right: kGridHorizontalPadding,
             ),
             sliver: SliverGrid(
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: crossAxisCount,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
+                crossAxisSpacing: kGridCrossAxisSpacing,
+                mainAxisSpacing: kGridMainAxisSpacing,
                 childAspectRatio: childAspectRatio,
               ),
               delegate: SliverChildBuilderDelegate(

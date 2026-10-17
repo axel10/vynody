@@ -94,3 +94,30 @@ double getTitleBarTopPadding(
   return defaultWindowPadding;
 }
 
+// ---------------------------------------------------------------------------
+// 网格布局规范与间距常量 (Grid Layout Constants & Helpers)
+// ---------------------------------------------------------------------------
+
+/// 网格视图的标准横向（列）间距
+const double kGridCrossAxisSpacing = 16.0;
+
+/// 网格视图的标准纵向（行）间距（呼吸感留白，参考 Apple Music 等现代排版）
+const double kGridMainAxisSpacing = 24.0;
+
+/// 网格视图的标准左右内边距
+const double kGridHorizontalPadding = 16.0;
+
+/// 根据容器可用宽度与列数，按照标准网格间距规范计算单个卡片的宽度
+double calculateGridItemWidth({
+  required double width,
+  required int crossAxisCount,
+  double horizontalPadding = kGridHorizontalPadding,
+  double crossAxisSpacing = kGridCrossAxisSpacing,
+}) {
+  if (crossAxisCount <= 0 || width <= 0) return 0.0;
+  final totalPadding = horizontalPadding * 2;
+  final totalSpacing = (crossAxisCount - 1) * crossAxisSpacing;
+  final itemWidth = (width - totalPadding - totalSpacing) / crossAxisCount;
+  return itemWidth > 0 ? itemWidth : 0.0;
+}
+

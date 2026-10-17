@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../player/remote/remote_library_navigation.dart';
 import '../../../player/remote/remote_server_models.dart';
+import '../../../utils/layout_constants.dart';
 import '../../../utils/remote_context_menu_utils.dart';
 import '../../../utils/selection_utils.dart';
 import '../../../widgets/album_grid_card.dart';
@@ -234,9 +235,10 @@ class RemoteLibraryAlbumsView extends ConsumerWidget {
             MediaQuery.of(context).orientation == Orientation.portrait;
         final double textHeight =
             calculateAlbumGridTextHeight(context, isPortrait: isPortrait);
-        final itemWidth =
-            (constraints.maxWidth - 32 - (crossAxisCount - 1) * 16) /
-                crossAxisCount;
+        final itemWidth = calculateGridItemWidth(
+          width: constraints.maxWidth,
+          crossAxisCount: crossAxisCount,
+        );
         final childAspectRatio = itemWidth / (itemWidth + textHeight);
 
         return Center(
@@ -275,15 +277,19 @@ class RemoteLibraryAlbumsView extends ConsumerWidget {
                               child: toolbar!,
                             ),
                           SliverPadding(
-                            padding:
-                                EdgeInsets.fromLTRB(16, 0, 16, bottomOffset),
+                            padding: EdgeInsets.fromLTRB(
+                              kGridHorizontalPadding,
+                              0,
+                              kGridHorizontalPadding,
+                              bottomOffset,
+                            ),
                             sliver: SliverGrid(
                               gridDelegate:
                                   SliverGridDelegateWithFixedCrossAxisCount(
                                 crossAxisCount: crossAxisCount,
                                 childAspectRatio: childAspectRatio,
-                                crossAxisSpacing: 16,
-                                mainAxisSpacing: 16,
+                                crossAxisSpacing: kGridCrossAxisSpacing,
+                                mainAxisSpacing: kGridMainAxisSpacing,
                               ),
                               delegate: SliverChildBuilderDelegate(
                                 (context, index) {

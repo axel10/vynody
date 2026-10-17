@@ -94,14 +94,14 @@ class WebDavSubfoldersSliver extends ConsumerWidget {
             padding: const EdgeInsets.only(
               top: 8,
               bottom: 8,
-              left: 16,
-              right: 16,
+              left: kGridHorizontalPadding,
+              right: kGridHorizontalPadding,
             ),
             sliver: SliverGrid(
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: crossAxisCount,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
+                crossAxisSpacing: kGridCrossAxisSpacing,
+                mainAxisSpacing: kGridMainAxisSpacing,
                 childAspectRatio: childAspectRatio,
               ),
               delegate: SliverChildBuilderDelegate(
@@ -284,14 +284,14 @@ class WebDavSongsSliver extends ConsumerWidget {
             padding: const EdgeInsets.only(
               top: 8,
               bottom: 8,
-              left: 16,
-              right: 16,
+              left: kGridHorizontalPadding,
+              right: kGridHorizontalPadding,
             ),
             sliver: SliverGrid(
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: crossAxisCount,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
+                crossAxisSpacing: kGridCrossAxisSpacing,
+                mainAxisSpacing: kGridMainAxisSpacing,
                 childAspectRatio: childAspectRatio,
               ),
               delegate: SliverChildBuilderDelegate(
