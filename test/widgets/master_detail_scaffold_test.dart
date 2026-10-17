@@ -101,7 +101,7 @@ void main() {
   );
 
   testWidgets(
-    'Landscape with explicit click pushes detail page when resized to portrait',
+    'Landscape explicit click does not push detail page when resized to portrait',
     (tester) async {
       // 1. Start in landscape (800 x 400)
       await tester.binding.setSurfaceSize(const Size(800, 400));
@@ -132,39 +132,23 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Should auto-push the detail page for Item2
-      expect(find.text('Detail Page: Item2'), findsOneWidget);
-      expect(find.text('Page Body: Item2'), findsOneWidget);
+      // 旋转为竖屏后不再自动跳转详情页，停留在主列表
+      expect(find.text('Detail Page: Item2'), findsNothing);
+      expect(find.text('Page Body: Item2'), findsNothing);
+      expect(find.text('Item1'), findsOneWidget);
+      expect(find.text('Item2'), findsOneWidget);
 
-      // 4. If user pops the detail page in portrait
+      // 4. 用户主动点击才进入二级详情页
+      await tester.tap(find.text('Item2'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Detail Page: Item2'), findsOneWidget);
+
+      // 5. 返回后停留在主列表
       final NavigatorState navigator = tester.state(find.byType(Navigator).last);
       navigator.pop();
       await tester.pumpAndSettle();
 
-      // Back on master list
-      expect(find.text('Detail Page: Item2'), findsNothing);
-      expect(find.text('Item1'), findsOneWidget);
-
-      // 5. Rotate to landscape and back to portrait without clicking
-      await tester.binding.setSurfaceSize(const Size(800, 400));
-      await tester.pumpWidget(
-        _TestContainer(
-          key: testWidgetKey,
-          screenSize: const Size(800, 400),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      await tester.binding.setSurfaceSize(const Size(400, 800));
-      await tester.pumpWidget(
-        _TestContainer(
-          key: testWidgetKey,
-          screenSize: const Size(400, 800),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      // Since user popped it in portrait, it should NOT auto-push again!
       expect(find.text('Detail Page: Item2'), findsNothing);
       expect(find.text('Item1'), findsOneWidget);
     },
