@@ -35,7 +35,11 @@ class GenreSummary {
   /// 因此可以安全地用于选中态比较、多选集合等场景。
   String get queryKey => normalizeGenreKey(name);
 
-  /// 流派展示图（`assets/images/genre/webp/*.webp`）。
+  /// 流派插画资源（`assets/images/genre/webp/*.webp`）。
+  ///
+  /// UI 已全部改用专辑封面（[representativeArtworkPath]），此 getter 仅保留
+  /// 供资源清单校验（`test/models/genre_naming_test.dart`）与图标键映射使用，
+  /// 新增界面**不要**再渲染它。
   ///
   /// 未命中任何流派规则时回落到 `default.webp`，因此永远非空。
   String get imageAssetPath =>

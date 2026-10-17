@@ -12,6 +12,7 @@ import '../widgets/library_selection_scope.dart';
 import '../widgets/library_selection_panel.dart';
 import '../widgets/draggable_genre_item.dart';
 import '../widgets/genre_context_menu.dart';
+import '../widgets/song_thumbnail.dart';
 import 'main_layout_riverpod.dart';
 
 class GenresTab extends ConsumerStatefulWidget {
@@ -351,6 +352,9 @@ class _GenreListItem extends ConsumerWidget {
             : theme.colorScheme.primaryContainer.withValues(alpha: 0.6))
         : Colors.transparent;
     final iconPath = genre.iconAssetPath;
+    final hasCover =
+        (genre.representativeArtworkPath?.isNotEmpty ?? false) ||
+            (genre.representativeThumbnailPath?.isNotEmpty ?? false);
 
     return DraggableGenreItem(
       genre: genre,
@@ -413,38 +417,36 @@ class _GenreListItem extends ConsumerWidget {
                     ClipRRect(
                       borderRadius: BorderRadius.circular(8),
                       child: SizedBox(
-                        // 流派封面为 2:3 竖版，缩略图同比，否则 cover 会裁掉构图
-                        width: 36,
-                        height: 54,
-                        child: Stack(
-                          fit: StackFit.expand,
-                          children: [
-                            Image.asset(
-                              genre.imageAssetPath,
-                              fit: BoxFit.cover,
-                              cacheWidth: 72,
-                              gaplessPlayback: true,
-                              errorBuilder: (context, error, stackTrace) =>
-                                  ColoredBox(
-                                color: theme.colorScheme.surfaceContainerHighest,
+                        width: 44,
+                        height: 44,
+                        child: hasCover && genre.songs.isNotEmpty
+                            ? SongThumbnail(
+                                path: genre.songs.first.path,
+                                artworkPath: genre.representativeArtworkPath,
+                                thumbnailPath:
+                                    genre.representativeThumbnailPath,
+                                size: 44,
+                              )
+                            : Container(
+                                color:
+                                    theme.colorScheme.surfaceContainerHighest,
+                                alignment: Alignment.center,
+                                child: iconPath != null
+                                    ? SvgPicture.asset(
+                                        iconPath,
+                                        width: 22,
+                                        height: 22,
+                                        colorFilter: ColorFilter.mode(
+                                          theme.colorScheme.primary,
+                                          BlendMode.srcIn,
+                                        ),
+                                      )
+                                    : Icon(
+                                        Icons.music_note_rounded,
+                                        size: 22,
+                                        color: theme.colorScheme.primary,
+                                      ),
                               ),
-                            ),
-                            if (iconPath != null)
-                              Positioned(
-                                left: 3,
-                                bottom: 3,
-                                child: SvgPicture.asset(
-                                  iconPath,
-                                  width: 12,
-                                  height: 12,
-                                  colorFilter: const ColorFilter.mode(
-                                    Colors.white,
-                                    BlendMode.srcIn,
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
