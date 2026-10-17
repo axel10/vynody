@@ -3,9 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/app_localizations.dart';
 import 'package:vynody/player/library/library_insights_service.dart';
+import 'package:vynody/player/library/library_overview_providers.dart';
+import '../widgets/library_ranked_album_list.dart';
 import '../widgets/library_ranked_song_list.dart';
+import '../widgets/section_type_toggle.dart';
+import '../widgets/time_range_dropdown.dart';
 
-class RecentlyAddedTab extends ConsumerStatefulWidget {
+class RecentlyAddedTab extends ConsumerWidget {
   final double contentTopPadding;
   final double contentLeftPadding;
 
@@ -16,40 +20,76 @@ class RecentlyAddedTab extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<RecentlyAddedTab> createState() => _RecentlyAddedTabState();
-}
-
-class _RecentlyAddedTabState extends ConsumerState<RecentlyAddedTab> {
-  LibraryTimeRange _selectedRange = LibraryTimeRange.allTime;
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final asyncItems = ref.watch(recentlyAddedSongsProvider(_selectedRange));
+    final filterState = ref.watch(recentlyAddedFilterProvider);
+    final filterNotifier = ref.read(recentlyAddedFilterProvider.notifier);
 
-    return asyncItems.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, _) => Center(child: Text(error.toString())),
-      data: (items) => LibraryRankedSongList(
-        contentTopPadding: widget.contentTopPadding,
-        contentLeftPadding: widget.contentLeftPadding,
-        title: l10n.recentlyAdded,
-        subtitle: l10n.recentlyAddedDescription,
-        items: items,
-        selectedRange: _selectedRange,
-        onRangeChanged: (value) {
-          setState(() {
-            _selectedRange = value;
-          });
-        },
-        emptyText: _selectedRange == LibraryTimeRange.allTime
-            ? l10n.noRecentlyAddedSongs
-            : l10n.noRecentlyAddedInRange,
-        trailingBuilder: (context, entry) => InsightMetricText(
-          primary: formatInsightDate(context, entry.createdAt),
-          secondary: l10n.addedOn,
-        ),
-      ),
+    final centerAction = SectionTypeToggle(
+      selected: filterState.type,
+      onChanged: (val) => filterNotifier.setType(val),
+      songsLabel: l10n.songs,
+      albumsLabel: l10n.albums,
     );
+
+    final headerTrailing = TimeRangeDropdown(
+      selected: filterState.range,
+      onChanged: (val) => filterNotifier.setRange(val),
+    );
+
+    final isAlbums = filterState.type == SectionItemType.albums;
+
+    if (isAlbums) {
+      final asyncAlbums = ref.watch(recentlyAddedAlbumsRankedProvider(filterState.range));
+      return asyncAlbums.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, _) => Center(child: Text(error.toString())),
+        data: (albums) => LibraryRankedAlbumList(
+          contentTopPadding: contentTopPadding,
+          contentLeftPadding: contentLeftPadding,
+          title: l10n.recentlyAdded,
+          subtitle: l10n.recentlyAddedDescription,
+          items: albums,
+          selectedRange: filterState.range,
+          onRangeChanged: (val) => filterNotifier.setRange(val),
+          showTimeRange: false,
+          showRankIndex: false,
+          centerAction: centerAction,
+          headerTrailing: headerTrailing,
+          emptyText: filterState.range == LibraryTimeRange.allTime
+              ? l10n.noRecentlyAddedSongs
+              : l10n.noRecentlyAddedInRange,
+          trailingBuilder: (context, entry) => InsightMetricText(
+            primary: formatInsightDate(context, entry.latestAddedAt),
+            secondary: l10n.addedOn,
+          ),
+        ),
+      );
+    } else {
+      final asyncSongs = ref.watch(recentlyAddedSongsProvider(filterState.range));
+      return asyncSongs.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, _) => Center(child: Text(error.toString())),
+        data: (songs) => LibraryRankedSongList(
+          contentTopPadding: contentTopPadding,
+          contentLeftPadding: contentLeftPadding,
+          title: l10n.recentlyAdded,
+          subtitle: l10n.recentlyAddedDescription,
+          items: songs,
+          selectedRange: filterState.range,
+          onRangeChanged: (val) => filterNotifier.setRange(val),
+          showTimeRange: false,
+          centerAction: centerAction,
+          headerTrailing: headerTrailing,
+          emptyText: filterState.range == LibraryTimeRange.allTime
+              ? l10n.noRecentlyAddedSongs
+              : l10n.noRecentlyAddedInRange,
+          trailingBuilder: (context, entry) => InsightMetricText(
+            primary: formatInsightDate(context, entry.createdAt),
+            secondary: l10n.addedOn,
+          ),
+        ),
+      );
+    }
   }
 }

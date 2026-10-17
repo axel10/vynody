@@ -23,6 +23,7 @@ class TimeMachineAlbumEntry {
     this.totalPlayCount = 0,
     this.maxRating = 0,
     this.lastPlayedAt,
+    this.latestAddedAt,
   });
 
   final String album;
@@ -33,6 +34,9 @@ class TimeMachineAlbumEntry {
   final int totalPlayCount;
   final int maxRating;
   final int? lastPlayedAt;
+
+  /// 专辑内最新一首歌的入库时间，仅「最近添加」专辑视图使用。
+  final int? latestAddedAt;
 }
 
 /// 流派列表 Provider：仅返回包含有效歌曲的流派，并按歌曲数量从多到少排序。
@@ -290,9 +294,10 @@ final thisWeekTopAlbumsProvider = Provider<AsyncValue<List<TimeMachineAlbumEntry
   return fullListAsync.whenData((list) => list.take(12).toList());
 });
 
-/// 最多播放页面筛选状态模型
-class MostPlayedFilterState {
-  const MostPlayedFilterState({
+/// 二级洞察页（最近播放 / 最多播放 / 最近添加）共用的筛选状态：
+/// [type] 决定展示单曲还是专辑，[range] 决定统计的时间跨度。
+class LibraryInsightFilterState {
+  const LibraryInsightFilterState({
     this.type = SectionItemType.songs,
     this.range = LibraryTimeRange.allTime,
   });
@@ -300,20 +305,20 @@ class MostPlayedFilterState {
   final SectionItemType type;
   final LibraryTimeRange range;
 
-  MostPlayedFilterState copyWith({
+  LibraryInsightFilterState copyWith({
     SectionItemType? type,
     LibraryTimeRange? range,
   }) {
-    return MostPlayedFilterState(
+    return LibraryInsightFilterState(
       type: type ?? this.type,
       range: range ?? this.range,
     );
   }
 }
 
-class MostPlayedFilterNotifier extends Notifier<MostPlayedFilterState> {
+class LibraryInsightFilterNotifier extends Notifier<LibraryInsightFilterState> {
   @override
-  MostPlayedFilterState build() => const MostPlayedFilterState();
+  LibraryInsightFilterState build() => const LibraryInsightFilterState();
 
   void setType(SectionItemType type) {
     if (state.type != type) {
@@ -332,18 +337,28 @@ class MostPlayedFilterNotifier extends Notifier<MostPlayedFilterState> {
     required LibraryTimeRange range,
   }) {
     if (state.type != type || state.range != range) {
-      state = MostPlayedFilterState(type: type, range: range);
+      state = LibraryInsightFilterState(type: type, range: range);
     }
   }
 
   void reset() {
-    state = const MostPlayedFilterState();
+    state = const LibraryInsightFilterState();
   }
 }
 
 final mostPlayedFilterProvider =
-    NotifierProvider<MostPlayedFilterNotifier, MostPlayedFilterState>(
-  MostPlayedFilterNotifier.new,
+    NotifierProvider<LibraryInsightFilterNotifier, LibraryInsightFilterState>(
+  LibraryInsightFilterNotifier.new,
+);
+
+final recentlyPlayedFilterProvider =
+    NotifierProvider<LibraryInsightFilterNotifier, LibraryInsightFilterState>(
+  LibraryInsightFilterNotifier.new,
+);
+
+final recentlyAddedFilterProvider =
+    NotifierProvider<LibraryInsightFilterNotifier, LibraryInsightFilterState>(
+  LibraryInsightFilterNotifier.new,
 );
 
 /// TimeMachineAlbumEntry 转换为 AlbumSummary 便于使用专辑卡片渲染
@@ -475,3 +490,175 @@ final topRatedAlbumsProvider = Provider<AsyncValue<List<AlbumSummary>>>((ref) {
 
   return AsyncValue.data(orderedList);
 });
+
+/// 最近播放专辑 Provider（按时间跨度）：
+/// 把最近播放的歌曲按「专辑 + 艺术家」聚合，按专辑内最近一次播放时间倒序。
+final recentlyPlayedAlbumsProvider =
+    Provider.family<AsyncValue<List<TimeMachineAlbumEntry>>, LibraryTimeRange>((
+      ref,
+      range,
+    ) {
+      final songsAsync = ref.watch(recentlyPlayedSongsProvider(range));
+      final albumsAsync = ref.watch(albumLibraryProvider);
+      return _combineInsightAlbums(
+        songsAsync,
+        albumsAsync,
+        sortKeySelector: (entry) => entry.lastPlayedAt,
+      );
+    });
+
+/// 最近添加专辑 Provider（按时间跨度）：
+/// 把区间内入库的歌曲按「专辑 + 艺术家」聚合，按专辑内最新入库时间倒序。
+/// 与首页横流使用的 [recentlyAddedAlbumsProvider] 不同，本 Provider 支持时间跨度、
+/// 保留完整专辑曲目，并额外携带入库时间供列表展示。
+final recentlyAddedAlbumsRankedProvider =
+    Provider.family<AsyncValue<List<TimeMachineAlbumEntry>>, LibraryTimeRange>((
+      ref,
+      range,
+    ) {
+      final songsAsync = ref.watch(recentlyAddedSongsProvider(range));
+      final albumsAsync = ref.watch(albumLibraryProvider);
+      return _combineInsightAlbums(
+        songsAsync,
+        albumsAsync,
+        sortKeySelector: (entry) => entry.latestAddedAt,
+      );
+    });
+
+AsyncValue<List<TimeMachineAlbumEntry>> _combineInsightAlbums(
+  AsyncValue<List<LibraryInsightSongEntry>> songsAsync,
+  AsyncValue<List<AlbumSummary>> albumsAsync, {
+  required int? Function(TimeMachineAlbumEntry entry) sortKeySelector,
+}) {
+  if (songsAsync.isLoading || albumsAsync.isLoading) {
+    return const AsyncValue.loading();
+  }
+  if (songsAsync.hasError) {
+    return AsyncValue.error(songsAsync.error!, songsAsync.stackTrace!);
+  }
+  if (albumsAsync.hasError) {
+    return AsyncValue.error(albumsAsync.error!, albumsAsync.stackTrace!);
+  }
+
+  return AsyncValue.data(
+    _aggregateInsightAlbums(
+      songs: songsAsync.value ?? const <LibraryInsightSongEntry>[],
+      albums: albumsAsync.value ?? const <AlbumSummary>[],
+      sortKeySelector: sortKeySelector,
+    ),
+  );
+}
+
+String _insightAlbumKey(String album, String artist) =>
+    '${album.trim().toLowerCase()}::${artist.trim().toLowerCase()}';
+
+/// 把歌曲级洞察条目按专辑聚合。
+///
+/// 曲目列表优先取专辑库里的完整专辑，匹配不到时（例如外部来源曲目）
+/// 退化为本次命中的歌曲集合，避免整条记录被丢弃。
+List<TimeMachineAlbumEntry> _aggregateInsightAlbums({
+  required List<LibraryInsightSongEntry> songs,
+  required List<AlbumSummary> albums,
+  required int? Function(TimeMachineAlbumEntry entry) sortKeySelector,
+}) {
+  if (songs.isEmpty) return const <TimeMachineAlbumEntry>[];
+
+  final albumIndex = <String, AlbumSummary>{
+    for (final album in albums)
+      _insightAlbumKey(album.title, album.artist): album,
+  };
+
+  final buckets = <String, _InsightAlbumBucket>{};
+
+  for (final entry in songs) {
+    final song = entry.song;
+    final key = _insightAlbumKey(song.album ?? '', song.artist ?? '');
+    final bucket = buckets.putIfAbsent(
+      key,
+      () => _InsightAlbumBucket(
+        album: (song.album ?? '').trim(),
+        artist: (song.artist ?? '').trim(),
+      ),
+    );
+    bucket.playCount += entry.playCount;
+    bucket.matchedSongs.add(song);
+
+    final playedAt = entry.lastPlayedAt;
+    if (playedAt != null &&
+        (bucket.lastPlayedAt == null || playedAt > bucket.lastPlayedAt!)) {
+      bucket.lastPlayedAt = playedAt;
+    }
+    final addedAt = entry.createdAt;
+    if (addedAt != null &&
+        (bucket.latestAddedAt == null || addedAt > bucket.latestAddedAt!)) {
+      bucket.latestAddedAt = addedAt;
+    }
+  }
+
+  final results = <TimeMachineAlbumEntry>[];
+
+  for (final bucket in buckets.values) {
+    final album = albumIndex[_insightAlbumKey(bucket.album, bucket.artist)];
+    final albumSongs =
+        (album != null && album.songs.isNotEmpty) ? album.songs : bucket.matchedSongs;
+    if (albumSongs.isEmpty) continue;
+
+    final artworkPath = album?.representativeSong.artworkPath?.isNotEmpty == true
+        ? album!.representativeSong.artworkPath
+        : _firstArtworkPath(bucket.matchedSongs);
+    final thumbnailPath = album?.representativeSong.thumbnailPath?.isNotEmpty == true
+        ? album!.representativeSong.thumbnailPath
+        : _firstThumbnailPath(bucket.matchedSongs);
+
+    results.add(
+      TimeMachineAlbumEntry(
+        album: album?.title ?? bucket.album,
+        artist: album?.artist ?? bucket.artist,
+        artworkPath: artworkPath,
+        thumbnailPath: thumbnailPath,
+        songs: albumSongs,
+        totalPlayCount: bucket.playCount,
+        lastPlayedAt: bucket.lastPlayedAt,
+        latestAddedAt: bucket.latestAddedAt,
+      ),
+    );
+  }
+
+  results.sort((a, b) {
+    final keyA = sortKeySelector(a);
+    final keyB = sortKeySelector(b);
+    if (keyA == null && keyB == null) return 0;
+    if (keyA == null) return 1;
+    if (keyB == null) return -1;
+    return keyB.compareTo(keyA);
+  });
+
+  return results;
+}
+
+String? _firstArtworkPath(List<MusicFile> songs) {
+  for (final song in songs) {
+    final path = song.artworkPath;
+    if (path != null && path.isNotEmpty) return path;
+  }
+  return null;
+}
+
+String? _firstThumbnailPath(List<MusicFile> songs) {
+  for (final song in songs) {
+    final path = song.thumbnailPath;
+    if (path != null && path.isNotEmpty) return path;
+  }
+  return null;
+}
+
+class _InsightAlbumBucket {
+  _InsightAlbumBucket({required this.album, required this.artist});
+
+  final String album;
+  final String artist;
+  final List<MusicFile> matchedSongs = <MusicFile>[];
+  int playCount = 0;
+  int? lastPlayedAt;
+  int? latestAddedAt;
+}

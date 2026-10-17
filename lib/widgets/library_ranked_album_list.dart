@@ -24,6 +24,8 @@ class LibraryRankedAlbumList extends ConsumerStatefulWidget {
     this.headerTrailing,
     this.headerAction,
     required this.emptyText,
+    this.showRankIndex = true,
+    this.trailingBuilder,
     this.contentTopPadding = 0.0,
     this.contentLeftPadding = 0.0,
   });
@@ -38,6 +40,12 @@ class LibraryRankedAlbumList extends ConsumerStatefulWidget {
   final Widget? headerTrailing;
   final Widget? headerAction;
   final String emptyText;
+
+  /// 是否显示「01、02…」排名序号；最近播放 / 最近添加这类非排行视图可关闭。
+  final bool showRankIndex;
+
+  /// 自定义右侧指标，默认显示专辑总播放次数。
+  final Widget Function(BuildContext context, TimeMachineAlbumEntry entry)? trailingBuilder;
   final double contentTopPadding;
   final double contentLeftPadding;
 
@@ -442,6 +450,8 @@ class _LibraryRankedAlbumListState extends ConsumerState<LibraryRankedAlbumList>
                           return _RankedAlbumTile(
                             index: index + 1,
                             entry: entry,
+                            showRankIndex: widget.showRankIndex,
+                            trailingBuilder: widget.trailingBuilder,
                             onTap: () {
                               if (entry.songs.isEmpty) return;
                               final albumSummary = AlbumSummary(
@@ -486,12 +496,16 @@ class _RankedAlbumTile extends StatelessWidget {
     required this.entry,
     required this.onTap,
     required this.onPlay,
+    this.showRankIndex = true,
+    this.trailingBuilder,
   });
 
   final int index;
   final TimeMachineAlbumEntry entry;
   final VoidCallback onTap;
   final VoidCallback onPlay;
+  final bool showRankIndex;
+  final Widget Function(BuildContext context, TimeMachineAlbumEntry entry)? trailingBuilder;
 
   @override
   Widget build(BuildContext context) {
@@ -509,19 +523,21 @@ class _RankedAlbumTile extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           child: Row(
             children: [
-              SizedBox(
-                width: 28,
-                child: Text(
-                  index.toString().padLeft(2, '0'),
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: isTop3
-                        ? theme.colorScheme.primary
-                        : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+              if (showRankIndex) ...[
+                SizedBox(
+                  width: 28,
+                  child: Text(
+                    index.toString().padLeft(2, '0'),
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: isTop3
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 8),
+                const SizedBox(width: 8),
+              ],
               SongThumbnail(
                 path: entry.songs.isNotEmpty ? entry.songs.first.path : entry.album,
                 artworkPath: entry.artworkPath,
@@ -558,14 +574,19 @@ class _RankedAlbumTile extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              Text(
-                l10n.playCountLabel(entry.totalPlayCount),
-                style: theme.textTheme.labelMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: theme.colorScheme.onSurfaceVariant,
+              if (trailingBuilder != null) ...[
+                trailingBuilder!(context, entry),
+                const SizedBox(width: 4),
+              ] else ...[
+                Text(
+                  l10n.playCountLabel(entry.totalPlayCount),
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 6),
+                const SizedBox(width: 6),
+              ],
               IconButton(
                 icon: const Icon(Icons.play_circle_outline_rounded, size: 24),
                 tooltip: l10n.play,

@@ -71,6 +71,19 @@ class LibraryDashboardView extends ConsumerWidget {
       hasPlayingMusic: currentMusic != null,
     );
 
+    // 进入二级页前把该页的筛选状态复位为「单曲 + 全部时间」，
+    // 避免上一次停留的专辑视图或时间跨度被带进下一次进入。
+    void openSubPage(int sub) {
+      if (sub == 1) {
+        ref.read(recentlyPlayedFilterProvider.notifier).reset();
+      } else if (sub == 2) {
+        ref.read(mostPlayedFilterProvider.notifier).reset();
+      } else if (sub == 3) {
+        ref.read(recentlyAddedFilterProvider.notifier).reset();
+      }
+      onNavigateToSubIndex(sub);
+    }
+
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       body: LayoutBuilder(
@@ -100,12 +113,7 @@ class LibraryDashboardView extends ConsumerWidget {
                     ? Padding(
                         padding: const EdgeInsets.only(top: 14, bottom: 28),
                         child: _WideQuickAccessBar(
-                          onTapSubIndex: (sub) {
-                            if (sub == 2) {
-                              ref.read(mostPlayedFilterProvider.notifier).reset();
-                            }
-                            onNavigateToSubIndex(sub);
-                          },
+                          onTapSubIndex: openSubPage,
                           l10n: l10n,
                           contentLeftPadding: contentLeftPadding,
                           horizontalPadding: horizontalPadding,
@@ -119,12 +127,7 @@ class LibraryDashboardView extends ConsumerWidget {
                           bottom: 22,
                         ),
                         child: _PortraitLibraryMenuCard(
-                          onTapSubIndex: (sub) {
-                            if (sub == 2) {
-                              ref.read(mostPlayedFilterProvider.notifier).reset();
-                            }
-                            onNavigateToSubIndex(sub);
-                          },
+                          onTapSubIndex: openSubPage,
                           l10n: l10n,
                         ),
                       ),
@@ -139,7 +142,7 @@ class LibraryDashboardView extends ConsumerWidget {
                   child: _RecentlyPlayedSection(
                     horizontalPadding: horizontalPadding,
                     contentLeftPadding: contentLeftPadding,
-                    onViewAll: () => onNavigateToSubIndex(1),
+                    onViewAll: () => openSubPage(1),
                     l10n: l10n,
                     isWide: isWide,
                   ),
@@ -179,7 +182,7 @@ class LibraryDashboardView extends ConsumerWidget {
                 child: _RecentlyAddedAlbumsSection(
                   horizontalPadding: horizontalPadding,
                   contentLeftPadding: contentLeftPadding,
-                  onViewAll: () => onNavigateToSubIndex(3),
+                  onViewAll: () => openSubPage(3),
                   l10n: l10n,
                   isWide: isWide,
                 ),
