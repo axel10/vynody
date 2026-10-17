@@ -3,11 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/app_localizations.dart';
 import 'package:vynody/models/album_summary.dart';
+import 'package:vynody/models/music_file.dart';
 import 'package:vynody/pages/album_detail_page.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/library/library_insights_service.dart';
 import 'package:vynody/player/library/library_overview_providers.dart';
 import 'package:vynody/utils/layout_constants.dart';
+import 'album_context_menu.dart';
+import 'draggable_album_item.dart';
+import 'library_selection_panel.dart';
+import 'library_selection_scope.dart';
 import 'playback_ui_tuning.dart';
 import 'song_thumbnail.dart';
 
@@ -26,6 +31,7 @@ class LibraryRankedAlbumList extends ConsumerStatefulWidget {
     required this.emptyText,
     this.showRankIndex = true,
     this.trailingBuilder,
+    this.selectionScope = LibrarySelectionScope.album,
     this.contentTopPadding = 0.0,
     this.contentLeftPadding = 0.0,
   });
@@ -46,6 +52,10 @@ class LibraryRankedAlbumList extends ConsumerStatefulWidget {
 
   /// 自定义右侧指标，默认显示专辑总播放次数。
   final Widget Function(BuildContext context, TimeMachineAlbumEntry entry)? trailingBuilder;
+
+  /// 多选作用域。默认专辑 Tab；最近播放/最多播放/最近添加各自传入独立作用域，
+  /// 避免同一 IndexedStack 内的页面互相串选。
+  final LibrarySelectionScope selectionScope;
   final double contentTopPadding;
   final double contentLeftPadding;
 
@@ -53,7 +63,11 @@ class LibraryRankedAlbumList extends ConsumerStatefulWidget {
   ConsumerState<LibraryRankedAlbumList> createState() => _LibraryRankedAlbumListState();
 }
 
-class _LibraryRankedAlbumListState extends ConsumerState<LibraryRankedAlbumList> {
+class _LibraryRankedAlbumListState extends ConsumerState<LibraryRankedAlbumList>
+    with SelectionStateMixin<LibraryRankedAlbumList, String> {
+  @override
+  LibrarySelectionScope get selectionScope => widget.selectionScope;
+
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
@@ -133,9 +147,30 @@ class _LibraryRankedAlbumListState extends ConsumerState<LibraryRankedAlbumList>
     final currentMusic = ref.watch(audioCurrentMusicProvider);
 
     final filteredItems = _filterItems(widget.items);
-    final allSongs = filteredItems.expand((e) => e.songs).toList();
+    final playAllSongs = filteredItems.expand((e) => e.songs).toList();
+    final selectionMode = isSelectionMode;
+    final visibleKeys = [for (final entry in filteredItems) entry.stableId];
+    final selectedSongs = selectionMode
+        ? _collectSongs(
+            filteredItems.where((entry) => isSelected(entry.stableId)),
+          )
+        : const <MusicFile>[];
+    final allSongsInView = selectionMode
+        ? _collectSongs(filteredItems)
+        : const <MusicFile>[];
 
-    return NotificationListener<ScrollNotification>(
+    void openAlbum(TimeMachineAlbumEntry entry) {
+      if (entry.songs.isEmpty) return;
+      final album = entry.toAlbumSummary();
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          settings: RouteSettings(name: 'album_detail_${album.id}'),
+          builder: (_) => AlbumDetailPage(album: album),
+        ),
+      );
+    }
+
+    final content = NotificationListener<ScrollNotification>(
       onNotification: (notification) {
         if (notification is ScrollStartNotification &&
             notification.dragDetails != null &&
@@ -223,17 +258,17 @@ class _LibraryRankedAlbumListState extends ConsumerState<LibraryRankedAlbumList>
                                       Expanded(
                                         child: _buildSearchField(theme, l10n),
                                       ),
-                                      if (allSongs.isNotEmpty) ...[
+                                      if (playAllSongs.isNotEmpty) ...[
                                         const SizedBox(width: 16),
                                         FilledButton.icon(
-                                          onPressed: () => audio.playPlaylist(allSongs),
+                                          onPressed: () => audio.playPlaylist(playAllSongs),
                                           icon: const Icon(Icons.play_arrow_rounded),
                                           label: Text(l10n.playAll),
                                         ),
                                         const SizedBox(width: 12),
                                         OutlinedButton.icon(
                                           onPressed: () {
-                                            final shuffled = List.of(allSongs)..shuffle();
+                                            final shuffled = List.of(playAllSongs)..shuffle();
                                             audio.playPlaylist(shuffled);
                                           },
                                           icon: const Icon(Icons.shuffle_rounded),
@@ -274,16 +309,16 @@ class _LibraryRankedAlbumListState extends ConsumerState<LibraryRankedAlbumList>
                                         child: _buildSearchField(theme, l10n),
                                       ),
                                       const SizedBox(width: 16),
-                                      if (allSongs.isNotEmpty) ...[
+                                      if (playAllSongs.isNotEmpty) ...[
                                         FilledButton.icon(
-                                          onPressed: () => audio.playPlaylist(allSongs),
+                                          onPressed: () => audio.playPlaylist(playAllSongs),
                                           icon: const Icon(Icons.play_arrow_rounded),
                                           label: Text(l10n.playAll),
                                         ),
                                         const SizedBox(width: 12),
                                         OutlinedButton.icon(
                                           onPressed: () {
-                                            final shuffled = List.of(allSongs)..shuffle();
+                                            final shuffled = List.of(playAllSongs)..shuffle();
                                             audio.playPlaylist(shuffled);
                                           },
                                           icon: const Icon(Icons.shuffle_rounded),
@@ -369,13 +404,13 @@ class _LibraryRankedAlbumListState extends ConsumerState<LibraryRankedAlbumList>
                                           : CrossFadeState.showFirst,
                                       duration: const Duration(milliseconds: 200),
                                     ),
-                                    if (allSongs.isNotEmpty) ...[
+                                    if (playAllSongs.isNotEmpty) ...[
                                       const SizedBox(height: 16),
                                       Row(
                                         children: [
                                           Expanded(
                                             child: FilledButton.icon(
-                                              onPressed: () => audio.playPlaylist(allSongs),
+                                              onPressed: () => audio.playPlaylist(playAllSongs),
                                               icon: const Icon(Icons.play_arrow_rounded),
                                               label: Text(l10n.playAll),
                                             ),
@@ -384,7 +419,7 @@ class _LibraryRankedAlbumListState extends ConsumerState<LibraryRankedAlbumList>
                                           Expanded(
                                             child: OutlinedButton.icon(
                                               onPressed: () {
-                                                final shuffled = List.of(allSongs)..shuffle();
+                                                final shuffled = List.of(playAllSongs)..shuffle();
                                                 audio.playPlaylist(shuffled);
                                               },
                                               icon: const Icon(Icons.shuffle_rounded),
@@ -433,6 +468,7 @@ class _LibraryRankedAlbumListState extends ConsumerState<LibraryRankedAlbumList>
                   MiniPlayerUiTuning.getListBottomPadding(
                     context,
                     hasPlayingMusic: currentMusic != null,
+                    isSelectionMode: selectionMode,
                   ),
                 ),
                 sliver: SliverToBoxAdapter(
@@ -447,33 +483,45 @@ class _LibraryRankedAlbumListState extends ConsumerState<LibraryRankedAlbumList>
                         separatorBuilder: (_, _) => const SizedBox(height: 4),
                         itemBuilder: (context, index) {
                           final entry = filteredItems[index];
+                          final album = entry.toAlbumSummary();
                           return _RankedAlbumTile(
                             index: index + 1,
                             entry: entry,
+                            album: album,
                             showRankIndex: widget.showRankIndex,
                             trailingBuilder: widget.trailingBuilder,
+                            isSelectionMode: selectionMode,
+                            isSelected: isSelected(entry.stableId),
                             onTap: () {
-                              if (entry.songs.isEmpty) return;
-                              final albumSummary = AlbumSummary(
-                                id: '${entry.album}|${entry.artist}',
-                                title: entry.album,
-                                artist: entry.artist,
-                                songs: entry.songs,
-                                representativeSong: entry.songs.first,
-                                totalDurationMillis: entry.songs.fold<int>(
-                                  0,
-                                  (sum, s) => sum + (s.durationMillis ?? 0),
-                                ),
+                              handleItemTap(
+                                index: index,
+                                itemKey: entry.stableId,
+                                allKeys: visibleKeys,
+                                onNormalTap: () => openAlbum(entry),
                               );
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => AlbumDetailPage(album: albumSummary),
-                                ),
+                            },
+                            onLongPress: () {
+                              lastAnchorIndex = index;
+                              if (selectionMode) {
+                                toggleSelection(entry.stableId);
+                              } else {
+                                enterSelectionMode(entry.stableId);
+                              }
+                            },
+                            onSecondaryTapDown: (details) {
+                              if (selectionMode) return;
+                              showAlbumContextMenu(
+                                context: context,
+                                globalPosition: details.globalPosition,
+                                ref: ref,
+                                album: album,
+                                onMultiSelect: (id) => enterSelectionMode(id),
+                                onViewDetails: () => openAlbum(entry),
                               );
                             },
                             onPlay: () {
-                              if (entry.songs.isNotEmpty) {
-                                audio.playPlaylist(entry.songs);
+                              if (album.songs.isNotEmpty) {
+                                audio.playPlaylist(album.songs);
                               }
                             },
                           );
@@ -487,6 +535,35 @@ class _LibraryRankedAlbumListState extends ConsumerState<LibraryRankedAlbumList>
         ),
       ),
     );
+
+    return Stack(
+      children: [
+        content,
+        AnimatedSelectionPanel(
+          isVisible: selectionMode,
+          child: LibrarySelectionPanel(
+            key: const ValueKey('ranked-album-selection-panel'),
+            selectedSongs: selectedSongs,
+            allSongs: allSongsInView,
+            title: l10n.selectedAlbumsCount(selectedCount),
+            onToggleSelectAll: () => toggleSelectAll(visibleKeys),
+            onCancel: cancelSelection,
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// 收集专辑条目下的全部曲目并去重（多选面板按歌曲维度操作）。
+  List<MusicFile> _collectSongs(Iterable<TimeMachineAlbumEntry> entries) {
+    final seenPaths = <String>{};
+    final songs = <MusicFile>[];
+    for (final entry in entries) {
+      for (final song in entry.songs) {
+        if (seenPaths.add(song.path)) songs.add(song);
+      }
+    }
+    return songs;
   }
 }
 
@@ -494,107 +571,170 @@ class _RankedAlbumTile extends StatelessWidget {
   const _RankedAlbumTile({
     required this.index,
     required this.entry,
+    required this.album,
     required this.onTap,
     required this.onPlay,
+    required this.onLongPress,
+    required this.onSecondaryTapDown,
     this.showRankIndex = true,
     this.trailingBuilder,
+    this.isSelectionMode = false,
+    this.isSelected = false,
   });
 
   final int index;
   final TimeMachineAlbumEntry entry;
+  final AlbumSummary album;
   final VoidCallback onTap;
   final VoidCallback onPlay;
+  final VoidCallback onLongPress;
+  final void Function(TapDownDetails details) onSecondaryTapDown;
   final bool showRankIndex;
   final Widget Function(BuildContext context, TimeMachineAlbumEntry entry)? trailingBuilder;
+  final bool isSelectionMode;
+  final bool isSelected;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
     final isTop3 = index <= 3;
+    final representative = album.representativeSong;
 
-    return Material(
-      color: Colors.transparent,
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
+    final tile = AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+      decoration: BoxDecoration(
+        color: isSelectionMode && isSelected
+            ? theme.colorScheme.primaryContainer.withValues(alpha: 0.35)
+            : Colors.transparent,
         borderRadius: BorderRadius.circular(12),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          child: Row(
-            children: [
-              if (showRankIndex) ...[
-                SizedBox(
-                  width: 28,
-                  child: Text(
-                    index.toString().padLeft(2, '0'),
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      color: isTop3
-                          ? theme.colorScheme.primary
-                          : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: onTap,
+          onLongPress: onLongPress,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            child: Row(
+              children: [
+                if (showRankIndex) ...[
+                  SizedBox(
+                    width: 28,
+                    child: Text(
+                      index.toString().padLeft(2, '0'),
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: isTop3
+                            ? theme.colorScheme.primary
+                            : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                      ),
                     ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                SizedBox(
+                  width: 48,
+                  height: 48,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Opacity(
+                        opacity: isSelectionMode ? (isSelected ? 0.5 : 0.7) : 1.0,
+                        child: SongThumbnail(
+                          path: representative.path,
+                          artworkPath: representative.artworkPath ?? entry.artworkPath,
+                          thumbnailPath: representative.thumbnailPath ?? entry.thumbnailPath,
+                          size: 48,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      if (isSelectionMode)
+                        Positioned.fill(
+                          child: Align(
+                            alignment: Alignment.center,
+                            child: SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: Checkbox(
+                                value: isSelected,
+                                onChanged: (_) => onTap(),
+                                fillColor: WidgetStateProperty.all(Colors.white),
+                                checkColor: Colors.black,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        entry.album,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14.5,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        entry.artist.isNotEmpty
+                            ? '${entry.artist} • ${l10n.songCount(entry.songs.length)}'
+                            : l10n.songCount(entry.songs.length),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(width: 8),
-              ],
-              SongThumbnail(
-                path: entry.songs.isNotEmpty ? entry.songs.first.path : entry.album,
-                artworkPath: entry.artworkPath,
-                thumbnailPath: entry.thumbnailPath,
-                size: 48,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      entry.album,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14.5,
-                      ),
+                if (trailingBuilder != null) ...[
+                  trailingBuilder!(context, entry),
+                  const SizedBox(width: 4),
+                ] else ...[
+                  Text(
+                    l10n.playCountLabel(entry.totalPlayCount),
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      entry.artist.isNotEmpty
-                          ? '${entry.artist} • ${l10n.songCount(entry.songs.length)}'
-                          : l10n.songCount(entry.songs.length),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              if (trailingBuilder != null) ...[
-                trailingBuilder!(context, entry),
-                const SizedBox(width: 4),
-              ] else ...[
-                Text(
-                  l10n.playCountLabel(entry.totalPlayCount),
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: theme.colorScheme.onSurfaceVariant,
                   ),
+                  const SizedBox(width: 6),
+                ],
+                IconButton(
+                  icon: const Icon(Icons.play_circle_outline_rounded, size: 24),
+                  tooltip: l10n.play,
+                  onPressed: onPlay,
                 ),
-                const SizedBox(width: 6),
               ],
-              IconButton(
-                icon: const Icon(Icons.play_circle_outline_rounded, size: 24),
-                tooltip: l10n.play,
-                onPressed: onPlay,
-              ),
-            ],
+            ),
           ),
         ),
+      ),
+    );
+
+    return DraggableAlbumItem(
+      album: album,
+      enabled: !isSelectionMode,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onSecondaryTapDown: onSecondaryTapDown,
+        child: tile,
       ),
     );
   }

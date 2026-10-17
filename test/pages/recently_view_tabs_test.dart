@@ -7,13 +7,16 @@ import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:vynody/l10n/app_localizations.dart';
+import 'package:vynody/pages/most_played_tab.dart';
 import 'package:vynody/pages/recently_added_tab.dart';
 import 'package:vynody/pages/recently_played_tab.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/library/album_library.dart';
 import 'package:vynody/player/library/library_insights_service.dart';
+import 'package:vynody/widgets/draggable_album_item.dart';
 import 'package:vynody/widgets/library_ranked_album_list.dart';
 import 'package:vynody/widgets/library_ranked_song_list.dart';
+import 'package:vynody/widgets/library_selection_panel.dart';
 import 'package:vynody/widgets/section_type_toggle.dart';
 import 'package:vynody/widgets/time_range_dropdown.dart';
 
@@ -128,6 +131,9 @@ void main() {
         audioSnapshotProvider.overrideWith((ref) => audioSnapshot),
         audioCurrentMusicProvider.overrideWith((ref) => null),
         albumLibraryProvider.overrideWith((ref) => Stream.value(demoData.albums)),
+        mostPlayedSongsProvider.overrideWith(
+          (ref, range) => Stream.value(demoInsightEntries),
+        ),
         recentlyPlayedSongsProvider.overrideWith(
           (ref, range) => Stream.value(demoInsightEntries),
         ),
@@ -191,5 +197,29 @@ void main() {
 
     expect(find.byType(LibraryRankedAlbumList), findsOneWidget);
     expect(find.byType(LibraryRankedSongList), findsNothing);
+  });
+
+  testWidgets('MostPlayedTab 专辑视图 - 支持长按多选、拖拽与底部操作面板', (tester) async {
+    await tester.pumpWidget(buildTestTab(const MostPlayedTab()));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+
+    await switchToAlbums(tester);
+
+    expect(find.byType(LibraryRankedAlbumList), findsOneWidget);
+    // 每一行专辑都是拖拽源
+    expect(find.byType(DraggableAlbumItem), findsWidgets);
+
+    // 长按第一行进入多选
+    final firstRow = find
+        .descendant(of: find.byType(ListView), matching: find.byType(InkWell))
+        .first;
+    await tester.longPress(firstRow);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.byType(LibrarySelectionPanel), findsOneWidget);
+    expect(find.byType(Checkbox), findsWidgets);
+    expect(tester.takeException(), isNull);
   });
 }

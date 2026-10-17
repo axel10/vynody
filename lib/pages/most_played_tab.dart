@@ -6,6 +6,7 @@ import 'package:vynody/player/library/library_insights_service.dart';
 import 'package:vynody/player/library/library_overview_providers.dart';
 import '../widgets/library_ranked_album_list.dart';
 import '../widgets/library_ranked_song_list.dart';
+import '../widgets/library_selection_scope.dart';
 import '../widgets/section_type_toggle.dart';
 import '../widgets/time_range_dropdown.dart';
 
@@ -53,6 +54,7 @@ class MostPlayedTab extends ConsumerWidget {
           selectedRange: filterState.range,
           onRangeChanged: (val) => filterNotifier.setRange(val),
           showTimeRange: false,
+          selectionScope: LibrarySelectionScope.mostPlayed,
           centerAction: centerAction,
           headerTrailing: headerTrailing,
           emptyText: filterState.range == LibraryTimeRange.allTime
@@ -74,6 +76,7 @@ class MostPlayedTab extends ConsumerWidget {
           selectedRange: filterState.range,
           onRangeChanged: (val) => filterNotifier.setRange(val),
           showTimeRange: false,
+          selectionScope: LibrarySelectionScope.mostPlayed,
           centerAction: centerAction,
           headerTrailing: headerTrailing,
           emptyText: filterState.range == LibraryTimeRange.allTime

@@ -18,6 +18,12 @@ enum LibrarySelectionScope {
   webdav,
   navidrome,
   bottomSheet,
+
+  /// 最近播放 / 最多播放 / 最近添加三个二级页各自独立的多选作用域。
+  /// 三页与专辑 Tab 都常驻在同一个 IndexedStack 里，必须互不串扰。
+  recentlyPlayed,
+  mostPlayed,
+  recentlyAdded,
 }
 
 @immutable

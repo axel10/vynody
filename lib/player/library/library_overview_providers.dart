@@ -363,6 +363,9 @@ final recentlyAddedFilterProvider =
 
 /// TimeMachineAlbumEntry 转换为 AlbumSummary 便于使用专辑卡片渲染
 extension TimeMachineAlbumEntryX on TimeMachineAlbumEntry {
+  /// 与专辑库一致的稳定标识，用于多选 key、Hero tag 与详情页路由。
+  String get stableId => '${album.toLowerCase()}::${artist.toLowerCase()}';
+
   AlbumSummary toAlbumSummary() {
     final rep = songs.firstWhere(
       (s) =>
@@ -381,7 +384,7 @@ extension TimeMachineAlbumEntryX on TimeMachineAlbumEntry {
             ),
     );
     return AlbumSummary(
-      id: '${album.toLowerCase()}::${artist.toLowerCase()}',
+      id: stableId,
       title: album,
       artist: artist,
       songs: songs,

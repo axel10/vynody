@@ -32,6 +32,7 @@ class LibraryRankedSongList extends ConsumerStatefulWidget {
     this.headerAction,
     required this.emptyText,
     required this.trailingBuilder,
+    this.selectionScope = LibrarySelectionScope.library,
     this.contentTopPadding = 0.0,
     this.contentLeftPadding = 0.0,
   });
@@ -48,6 +49,10 @@ class LibraryRankedSongList extends ConsumerStatefulWidget {
   final Widget? headerAction;
   final String emptyText;
   final Widget Function(BuildContext, LibraryInsightSongEntry) trailingBuilder;
+
+  /// 多选作用域，默认曲库通用作用域。最近播放/最多播放/最近添加各自传入独立作用域，
+  /// 避免同一 IndexedStack 内的页面互相串选。
+  final LibrarySelectionScope selectionScope;
   final double contentTopPadding;
   final double contentLeftPadding;
 
@@ -58,7 +63,8 @@ class LibraryRankedSongList extends ConsumerStatefulWidget {
 class _LibraryRankedSongListState extends ConsumerState<LibraryRankedSongList>
     with SongSelectionMixin<LibraryRankedSongList> {
   @override
-  LibrarySelectionScope get selectionScope => LibrarySelectionScope.library;
+  LibrarySelectionScope get selectionScope => widget.selectionScope;
+
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
