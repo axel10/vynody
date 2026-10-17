@@ -14,6 +14,7 @@
 | 浮动 Dock 收起态 | `floatingDockCollapsedProvider` / `floatingDockCollapseProgressProvider`（`lib/pages/main_layout_riverpod.dart`），滚动判定在 `FloatingDockScrollHelper` | 受设置项 `enableFloatingDockScrollCollapse` 控制：helper 顶部早退 + notifier `build()` 里 select 该开关（关闭即复位为展开）；视觉展开态是 `floating_dock_bottom_bar.dart` 的 `isCollapsed`。`mini_player_wrapper.dart` 与 `main_layout.dart` 各挂一个 helper 实例 |
 | l10n 文案 | 9 个 `lib/l10n/app_*.arb` 同步维护（`git log -- lib/l10n/app_ja.arb` 可验证）。`l10n.yaml: template-arb-file: app_zh.arb` | 非模板 locale 缺 key 会回退到**模板语言（中文）**并记入 `untranslated message(s)`（`gen_l10n.dart:1033-1045`），日志只打 stdout。改完跑 `flutter gen-l10n` |
 | 新增设置项 | `lib/player/settings/settings_service.dart`（key 段 `:443-660` / property 段 `:1076+` / 访问器段 `:2324+`） | 6 处：①`_keyXxx` 常量 ②`SettingProperty<T>` ③getter+setter ④若有重置按钮还要进对应 `resetXxx()` ⑤`settings_search_registry.dart` 手写条目（curated 列表，不能从设置派生）⑥`lib/pages/settings/sections/<组>_section.dart` UI。构造期断言拦截漏写 `customRead/customWrite` 的静默失败。`settings.<属性>` 调用点约 676 处 / 164 个属性名 |
+| 流派聚合键 | `lib/models/genre_naming.dart` 的 `normalizeGenreKey()`（末尾查 `_genreKeyEquivalents` 把连写/连字符收敛：`JPop`→`j pop`） | 它同时是 `GenreSummary.queryKey` 与 `matchGenreAssetKey()` 的输入，改它等于改分组和封面命中两件事。`_acronymDisplays`（展示名）吃 `raw.toLowerCase()`，不经归一化，不能跟着一起改。`_exactAssetAliases` 只保留归一化**可达**的键；`_substringAssetRules` 里的连写 needle 必须留（长尾写法如 `kpop dance` 只靠子串命中） |
 
 `library_catalog.dart` ↔ `album_library.dart`/`artist_library.dart` 循环 import（Dart 允许，顶层 provider 惰性构造，无初始化顺序风险）。
 

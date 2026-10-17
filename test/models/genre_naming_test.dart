@@ -55,6 +55,20 @@ void main() {
       expect(normalizeGenreKey('摇滚，流行'), '摇滚 流行');
     });
 
+    test('连字符与连写收敛到同一个键', () {
+      expect(normalizeGenreKey('J-Pop'), normalizeGenreKey('JPop'));
+      expect(normalizeGenreKey('K-Pop'), normalizeGenreKey('KPop'));
+      expect(normalizeGenreKey('Hip-Hop'), normalizeGenreKey('HipHop'));
+      expect(normalizeGenreKey('Lo-Fi'), normalizeGenreKey('Lofi'));
+      expect(normalizeGenreKey('J-Pop'), 'j pop');
+    });
+
+    test('R&B 的所有写法（含无分隔的 RnB）收敛到同一个键', () {
+      for (final raw in ['R&B', 'R and B', 'r & b', 'RnB', 'R B']) {
+        expect(normalizeGenreKey(raw), 'r and b', reason: raw);
+      }
+    });
+
     test('空串与纯空白返回空键', () {
       expect(normalizeGenreKey(''), '');
       expect(normalizeGenreKey('   '), '');

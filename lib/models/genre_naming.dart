@@ -48,12 +48,32 @@ const List<String> kGenreAssetKeys = <String>[
   'soundtrack',
 ];
 
+/// 「连字符 / 空格 / 连写」三种写法的等价表。
+///
+/// 键是 [normalizeGenreKey] 文本归一化结果**去掉全部空格**后的形态，
+/// 值是规范聚合键。只收 [ _acronymDisplays ] 里已被认定为「同一流派多种
+/// 写法」的组，不做同义词合并（`Rap` 归到 `Hip-Hop` 这类由资源键层负责）。
+///
+/// 为什么需要这一层：标点归一后 `J-Pop` 变成 `j pop`、`JPop` 仍是 `jpop`，
+/// 两者键不同就会在库里裂成两个条目；而 [pickGenreDisplayName] 又会把两条
+/// 都美化成 `J-Pop`，列表里看起来就是同一个流派重复出现了两次。
+const Map<String, String> _genreKeyEquivalents = <String, String>{
+  'jpop': 'j pop',
+  'kpop': 'k pop',
+  'hiphop': 'hip hop',
+  'lofi': 'lo fi',
+  'rnb': 'r and b',
+  'rb': 'r and b',
+  'randb': 'r and b',
+};
+
 /// 把流派原始文本收敛成稳定的聚合键。
 ///
 /// 规则：小写化 → 全角转半角 → 撇号删除 → `&`/`+` 改写为 `and`
-/// → 其余标点视为分隔符 → 折叠空白。
+/// → 其余标点视为分隔符 → 折叠空白 → 查 [_genreKeyEquivalents] 合并连写差异。
 ///
-/// 因此 `R&B`、`R and B`、`r & b` 会落到同一个键 `r and b`。
+/// 因此 `R&B`、`R and B`、`RnB` 会落到同一个键 `r and b`，
+/// `J-Pop` 与 `JPop` 会落到同一个键 `j pop`。
 String normalizeGenreKey(String raw) {
   if (raw.isEmpty) return '';
 
@@ -72,7 +92,8 @@ String normalizeGenreKey(String raw) {
     ' ',
   );
   s = s.replaceAll(RegExp(r'\s+'), ' ').trim();
-  return s;
+  // 连写与带分隔符的写法收敛到同一个聚合键（见 _genreKeyEquivalents）
+  return _genreKeyEquivalents[s.replaceAll(' ', '')] ?? s;
 }
 
 /// 已知缩写的美化写法，仅在原文全为小写时生效。
@@ -122,10 +143,12 @@ String pickGenreDisplayName(String raw) {
 ///
 /// 这里放两类：写法固定的标准流派名，以及太短、用子串匹配会误伤的词
 /// （`ost` / `dub` / `ska` / `rap` / `edm` 等）。
+///
+/// 连写形态（`JPop` / `KPop` / `HipHop` / `Lofi` / `RnB`）不必单列：
+/// [normalizeGenreKey] 已把它们收敛成带分隔符的规范键。
 const Map<String, String> _exactAssetAliases = <String, String>{
   // ── 说唱 ────────────────────────────────────────────────────────────
   'hip hop': 'hip-hop',
-  'hiphop': 'hip-hop',
   'rap': 'hip-hop',
   'trap': 'hip-hop',
   'drill': 'hip-hop',
@@ -139,8 +162,6 @@ const Map<String, String> _exactAssetAliases = <String, String>{
 
   // ── R&B ─────────────────────────────────────────────────────────────
   'r and b': 'r-b',
-  'rnb': 'r-b',
-  'r b': 'r-b',
   'rhythm and blues': 'r-b',
   'contemporary r and b': 'r-b',
   'neo soul': 'r-b',
@@ -185,7 +206,6 @@ const Map<String, String> _exactAssetAliases = <String, String>{
   'field recording': 'ambient',
   '氛围': 'ambient',
   '新世纪': 'ambient',
-  'lofi': 'lo-fi',
   'lo fi': 'lo-fi',
   'chillhop': 'lo-fi',
   'jazzhop': 'lo-fi',
@@ -202,7 +222,6 @@ const Map<String, String> _exactAssetAliases = <String, String>{
   '动漫': 'anime',
   '二次元': 'anime',
   'j pop': 'j-pop',
-  'jpop': 'j-pop',
   'city pop': 'j-pop',
   '日系': 'j-pop',
   '日本流行': 'j-pop',
@@ -311,7 +330,6 @@ const Map<String, String> _exactAssetAliases = <String, String>{
   // ── 流行 ────────────────────────────────────────────────────────────
   'pop': 'pop',
   'k pop': 'k-pop',
-  'kpop': 'k-pop',
   'mandopop': 'pop',
   'cantopop': 'pop',
   'synthpop': 'pop',
