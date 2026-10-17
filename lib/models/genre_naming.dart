@@ -13,16 +13,17 @@
 /// 3. [genreImageAssetKey] / [genreIconAssetKey] —— 资源键。
 library;
 
-/// 兜底资源键：没有命中任何规则时使用的通用图（`default.webp`）。
-const String kFallbackGenreAssetKey = 'default';
+/// 兜底资源键：没有命中任何规则时使用的通用图（`music.webp`）。
+const String kFallbackGenreAssetKey = 'music';
 
 /// 全部有专属图的流派资源键。
 ///
-/// 与 `assets/images/genre/webp/` 下的文件名一一对应；
-/// 除 [kFallbackGenreAssetKey] 外，每个键在 `assets/icons/genre/` 下都有同名图标。
+/// 与 `assets/images/genre/webp/` 下的文件名**逐字一致**（含连字符），
+/// 拼路径时不再做任何转换，改名漏改一处就会立刻 404。
+/// 图标不保证同名，见 [_iconKeyByImageKey]。
 const List<String> kGenreAssetKeys = <String>[
   'ambient',
-  'anime_jpop',
+  'anime',
   'blues',
   'classical',
   'country',
@@ -30,16 +31,18 @@ const List<String> kGenreAssetKeys = <String>[
   'electronic',
   'folk',
   'funk',
-  'hip_hop',
+  'hip-hop',
   'indie',
+  'j-pop',
   'jazz',
+  'k-pop',
   'latin',
-  'lofi',
+  'lo-fi',
   'metal',
   'pop',
   'punk',
+  'r-b',
   'reggae',
-  'rnb',
   'rock',
   'soul',
   'soundtrack',
@@ -121,26 +124,27 @@ String pickGenreDisplayName(String raw) {
 /// （`ost` / `dub` / `ska` / `rap` / `edm` 等）。
 const Map<String, String> _exactAssetAliases = <String, String>{
   // ── 说唱 ────────────────────────────────────────────────────────────
-  'hip hop': 'hip_hop',
-  'hiphop': 'hip_hop',
-  'rap': 'hip_hop',
-  'trap': 'hip_hop',
-  'drill': 'hip_hop',
-  'grime': 'hip_hop',
-  'boom bap': 'hip_hop',
-  'gangsta rap': 'hip_hop',
-  '说唱': 'hip_hop',
-  '嘻哈': 'hip_hop',
-  '饶舌': 'hip_hop',
-  '饒舌': 'hip_hop',
+  'hip hop': 'hip-hop',
+  'hiphop': 'hip-hop',
+  'rap': 'hip-hop',
+  'trap': 'hip-hop',
+  'drill': 'hip-hop',
+  'grime': 'hip-hop',
+  'boom bap': 'hip-hop',
+  'gangsta rap': 'hip-hop',
+  '说唱': 'hip-hop',
+  '嘻哈': 'hip-hop',
+  '饶舌': 'hip-hop',
+  '饒舌': 'hip-hop',
 
   // ── R&B ─────────────────────────────────────────────────────────────
-  'r and b': 'rnb',
-  'rnb': 'rnb',
-  'rhythm and blues': 'rnb',
-  'contemporary r and b': 'rnb',
-  'neo soul': 'rnb',
-  '节奏布鲁斯': 'rnb',
+  'r and b': 'r-b',
+  'rnb': 'r-b',
+  'r b': 'r-b',
+  'rhythm and blues': 'r-b',
+  'contemporary r and b': 'r-b',
+  'neo soul': 'r-b',
+  '节奏布鲁斯': 'r-b',
 
   // ── 电子舞曲 ────────────────────────────────────────────────────────
   'edm': 'edm',
@@ -181,26 +185,27 @@ const Map<String, String> _exactAssetAliases = <String, String>{
   'field recording': 'ambient',
   '氛围': 'ambient',
   '新世纪': 'ambient',
-  'lofi': 'lofi',
-  'lo fi': 'lofi',
-  'chillhop': 'lofi',
-  'jazzhop': 'lofi',
-  'chill': 'lofi',
-  'chillout': 'lofi',
-  '低保真': 'lofi',
+  'lofi': 'lo-fi',
+  'lo fi': 'lo-fi',
+  'chillhop': 'lo-fi',
+  'jazzhop': 'lo-fi',
+  'chill': 'lo-fi',
+  'chillout': 'lo-fi',
+  '低保真': 'lo-fi',
 
   // ── 日系 ────────────────────────────────────────────────────────────
-  'anime': 'anime_jpop',
-  'j pop': 'anime_jpop',
-  'jpop': 'anime_jpop',
-  'city pop': 'anime_jpop',
-  'vocaloid': 'anime_jpop',
-  'anison': 'anime_jpop',
-  'acg': 'anime_jpop',
-  '动漫': 'anime_jpop',
-  '二次元': 'anime_jpop',
-  '日系': 'anime_jpop',
-  '日本流行': 'anime_jpop',
+  // 封面已拆成 anime / j-pop 两张：二次元向归 anime，日语流行向归 j-pop。
+  'anime': 'anime',
+  'vocaloid': 'anime',
+  'anison': 'anime',
+  'acg': 'anime',
+  '动漫': 'anime',
+  '二次元': 'anime',
+  'j pop': 'j-pop',
+  'jpop': 'j-pop',
+  'city pop': 'j-pop',
+  '日系': 'j-pop',
+  '日本流行': 'j-pop',
 
   // ── 影视 / 游戏原声 ─────────────────────────────────────────────────
   'soundtrack': 'soundtrack',
@@ -305,8 +310,8 @@ const Map<String, String> _exactAssetAliases = <String, String>{
 
   // ── 流行 ────────────────────────────────────────────────────────────
   'pop': 'pop',
-  'k pop': 'pop',
-  'kpop': 'pop',
+  'k pop': 'k-pop',
+  'kpop': 'k-pop',
   'mandopop': 'pop',
   'cantopop': 'pop',
   'synthpop': 'pop',
@@ -323,19 +328,26 @@ const Map<String, String> _exactAssetAliases = <String, String>{
 /// 只收长度足够、不会误伤的关键词；顺序遵循「越具体越靠前」，
 /// 大类（`rock` / `pop`）放在最后兜住长尾写法。
 const List<(String, String)> _substringAssetRules = <(String, String)>[
-  // 日系先于 pop，否则 j-pop 会被 pop 吞掉
-  ('anime', 'anime_jpop'),
-  ('jpop', 'anime_jpop'),
-  ('vocaloid', 'anime_jpop'),
-  ('动漫', 'anime_jpop'),
-  ('二次元', 'anime_jpop'),
-  ('日系', 'anime_jpop'),
+  // 日系先于 pop，否则 j-pop / k-pop 会被 pop 吞掉
+  ('anime', 'anime'),
+  ('vocaloid', 'anime'),
+  ('anison', 'anime'),
+  ('动漫', 'anime'),
+  ('二次元', 'anime'),
+  ('j pop', 'j-pop'),
+  ('jpop', 'j-pop'),
+  ('city pop', 'j-pop'),
+  ('日系', 'j-pop'),
+  ('日本流行', 'j-pop'),
+  ('k pop', 'k-pop'),
+  ('kpop', 'k-pop'),
 
   // 低保真先于 hip hop / electronic
-  ('lofi', 'lofi'),
-  ('chillhop', 'lofi'),
-  ('jazzhop', 'lofi'),
-  ('低保真', 'lofi'),
+  ('lofi', 'lo-fi'),
+  ('lo fi', 'lo-fi'),
+  ('chillhop', 'lo-fi'),
+  ('jazzhop', 'lo-fi'),
+  ('低保真', 'lo-fi'),
 
   // 原声先于 rock / classical
   ('soundtrack', 'soundtrack'),
@@ -361,9 +373,9 @@ const List<(String, String)> _substringAssetRules = <(String, String)>[
   ('metal', 'metal'),
   ('金属', 'metal'),
 
-  ('rhythm and blues', 'rnb'),
-  ('r and b', 'rnb'),
-  ('节奏布鲁斯', 'rnb'),
+  ('rhythm and blues', 'r-b'),
+  ('r and b', 'r-b'),
+  ('节奏布鲁斯', 'r-b'),
 
   ('soul', 'soul'),
   ('灵魂', 'soul'),
@@ -436,9 +448,27 @@ String? matchGenreAssetKey(String raw) {
   return null;
 }
 
+/// 图片资源键 → 图标资源键的差异映射。
+///
+/// 图片按素材原名用连字符（`hip-hop.webp`、`r-b.webp`），图标沿用初版的下划线
+/// 命名（`hip_hop.svg`、`rnb.svg`），两者不再同名；日系三张图（anime / j-pop /
+/// k-pop）里前两张共用一枚 `anime_jpop.svg`。未列出的键两套资源同名。
+const Map<String, String> _iconKeyByImageKey = <String, String>{
+  'hip-hop': 'hip_hop',
+  'lo-fi': 'lofi',
+  'r-b': 'rnb',
+  'anime': 'anime_jpop',
+  'j-pop': 'anime_jpop',
+  'k-pop': 'kpop',
+};
+
 /// 图片资源键，未命中时回落到 [kFallbackGenreAssetKey]。
 String genreImageAssetKey(String raw) =>
     matchGenreAssetKey(raw) ?? kFallbackGenreAssetKey;
 
 /// 图标资源键；兜底流派没有专属图标，返回 `null` 表示不渲染图标。
-String? genreIconAssetKey(String raw) => matchGenreAssetKey(raw);
+String? genreIconAssetKey(String raw) {
+  final imageKey = matchGenreAssetKey(raw);
+  if (imageKey == null) return null;
+  return _iconKeyByImageKey[imageKey] ?? imageKey;
+}

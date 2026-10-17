@@ -57,6 +57,26 @@ PopScope 注册在**路由**上，与 widget 可见性无关（`IndexedStack` �
 
 三条坑（详见 2026-10-17 日志）：①provider 重建会**先**跑 `ref.onDispose`，而切歌后封面/主题色/波形回写都会触发重建 → 精解析定时器被取消，是「有时有有时没有」的真因（已修）。②`setCachedAudioDetails` 无条件写入，`sampleRate == 0` 的缓存会让该曲目整行空白。③远程曲目 path 无扩展名、`getAudioDetails` 仅在已缓存时解析，trackJson 的 `samplingRate`/`bitRate` 未读。
 
+## 流派封面（assets/images/genre/webp）与图标（assets/icons/genre）
+
+**封面键 ≠ 图标键，已解耦**（2026-10-17）。封面按素材原名用连字符（`hip-hop.webp`/`r-b.webp`/`lo-fi.webp`/`j-pop.webp`/`k-pop.webp`/`anime.webp`/`music.webp` 兜底），图标沿用下划线（`hip_hop.svg`/`rnb.svg`/`lofi.svg`），日系三张图共用 `anime_jpop.svg`。对应关系在 `genre_naming.dart` 的 `_iconKeyByImageKey`；`genreImageAssetKey()` 走 `matchGenreAssetKey() ?? kFallbackGenreAssetKey`，`genreIconAssetKey()` 再查那张表。两者曾靠「同名」隐式耦合，改名即静默 404。
+
+**封面统一 500×750（2:3）**，卡片与缩略图都按 `kGenreCoverHeightFactor = 3/2` 推导（`library_dashboard_view.dart`）。`kGenreAssetKeys` 必须与 webp 文件名逐字一致 —— 有测试双向比对目录与清单，改名漏同步会直接失败。子串规则的 needle 是归一化后的空格形式，只有资源键用连字符。
+
+**首页流派横向行按封面去重**：`dedupeGenresByCoverArt()`（`genre_summary.dart`）。封面键多对一（Rap/Trap/Drill → hip-hop），多个流派会排出多张相同图；兜底 `music.webp` 同理。每组取 `songCount` 最大者作代表、沿用首次出现位置，**兜底封面（`GenreSummary.usesFallbackCover`）固定排最后**。**流派列表页 `genres_tab` 不去重**（那里有文字标签，且要能进每一个流派）。
+
+**首页流派卡文字层**：卡片是纯图 + 左下角「流派名 / N 首」，**不加暗色渐变层**（用户明确要求，会把封面压灰），可读性靠 `kGenreLabelShadows`（三层半径递减的黑阴影）。字号由卡宽等比推导 `(width * 0.082).clamp(14, 23)`，因为 `kDashboardGenreCardScale` 用户常年调到 1.5；写死字号会显小。曲目数 alpha 0.9。封面素材本身已不带字样，不要再加 `Semantics(label:)` 重复朗读。
+
+**条目大小调 `kDashboardGenreCardScale`**（`library_dashboard_view.dart`，宽度与间距同步缩放，高度按 2:3 跟随；基准是 `kDashboardGenreCardWidthWide = 180` / `Narrow = 132`，别直接改基准）。系数是设计侧常用旋钮，会被反复调，别当成固定值假设。
+
+图标渲染点只剩 `genres_tab.dart`（12px）；首页流派卡左上角的图标徽章已于 2026-10-17 移除。
+
+24 个 `*.svg` 由 `genre_naming.dart` 的 `genreIconAssetKey()` 映射（都是 `colorFilter: srcIn` 着色，所以 SVG 里只要保持白色填充/描边即可）。
+
+**两套来源混用**：15 个是位图描摹（`viewBox 0 0 100 100`、纯 `L` 折线），9 个是字体字形（`viewBox 0 0 512 512` + `scale(...,-...)`）。2026-10-17 已把描摹的 15 个重做（8 个手绘 + 7 个平滑重拟合），字体那 9 个未动。新增/替换图标：统一 `viewBox="0 0 100 100"`、内容留 10~90 的 10 单位边距、线宽≈7，`<path fill="#FFFFFF">` 或 `fill="none" stroke="#FFFFFF"`。
+
+改完必须用 `encodeSvg()`（vector_graphics_compiler，flutter_svg 同解析器）逐个编译验证；flutter_test 里要关掉三个 optimizer（`enableMasking/Clipping/OverdrawOptimizer: false`），否则 `PathOps library was not initialized`。
+
 ## 环境注意事项（本机）
 
 - **shell 里搜索一律用 `rg`/`fd`，不要用 `grep`/`find`**：PATH 里的这两个是 WorkBuddy 的 toybox shim（`toybox 0.8.13 (is not GNU grep 9.0)`），精简实现会漏匹配。原生版在 `/opt/homebrew/bin`，结构化搜索优先用宿主 Grep/Glob 工具。

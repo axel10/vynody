@@ -413,15 +413,16 @@ class _GenreListItem extends ConsumerWidget {
                     ClipRRect(
                       borderRadius: BorderRadius.circular(8),
                       child: SizedBox(
-                        width: 44,
-                        height: 44,
+                        // 流派封面为 2:3 竖版，缩略图同比，否则 cover 会裁掉构图
+                        width: 36,
+                        height: 54,
                         child: Stack(
                           fit: StackFit.expand,
                           children: [
                             Image.asset(
                               genre.imageAssetPath,
                               fit: BoxFit.cover,
-                              cacheWidth: 88,
+                              cacheWidth: 72,
                               gaplessPlayback: true,
                               errorBuilder: (context, error, stackTrace) =>
                                   ColoredBox(
@@ -430,12 +431,12 @@ class _GenreListItem extends ConsumerWidget {
                             ),
                             if (iconPath != null)
                               Positioned(
-                                left: 4,
-                                bottom: 4,
+                                left: 3,
+                                bottom: 3,
                                 child: SvgPicture.asset(
                                   iconPath,
-                                  width: 14,
-                                  height: 14,
+                                  width: 12,
+                                  height: 12,
                                   colorFilter: const ColorFilter.mode(
                                     Colors.white,
                                     BlendMode.srcIn,
