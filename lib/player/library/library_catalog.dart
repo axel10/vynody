@@ -5,6 +5,7 @@ import 'package:path/path.dart' as p;
 
 import 'package:vynody/models/album_summary.dart';
 import 'package:vynody/models/artist_summary.dart';
+import 'package:vynody/models/genre_naming.dart';
 import 'package:vynody/models/genre_summary.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/models/year_summary.dart';
@@ -114,55 +115,101 @@ Stream<T> catalogDerived<T>(
       );
 }
 
+/// 按归一化键聚合流派。
+///
+/// 标签里的流派是自由文本，`Rock` / `rock` / `ROCK` 会被 [normalizeGenreKey]
+/// 归到同一个键，避免同一流派在库里裂成好几份；组内挑出现次数最多的原始
+/// 写法作为展示名，并对全小写英文做首字母美化。
+///
+/// 同一首歌可能带多个指向同一流派的标签（如 `Rock` + `rock`），因此歌曲按
+/// 路径去重，否则 songCount 会虚高。
 List<GenreSummary> _buildGenreSummaries(List<SongMetadata> songs) {
-  final genreMap = <String, List<MusicFile>>{};
+  final groups = <String, _GenreGroup>{};
 
   for (final s in songs) {
     final parsedGenres = s.genres;
     if (parsedGenres == null || parsedGenres.isEmpty) continue;
 
-    final musicFile = MusicFile(
-      path: s.path,
-      name: p.basename(s.path),
-      title: s.title,
-      artist: s.artist,
-      album: s.album,
-      artworkPath: s.artworkPath,
-      thumbnailPath: s.thumbnailPath,
-      durationMillis: s.duration,
-      id: s.id,
-    );
-
+    // 同一首歌的多个流派标签共用同一个 MusicFile，避免重复构造
+    MusicFile? musicFile;
     for (final g in parsedGenres) {
-      final trimmed = g.trim();
-      if (trimmed.isNotEmpty) {
-        genreMap.putIfAbsent(trimmed, () => []).add(musicFile);
-      }
+      final key = normalizeGenreKey(g);
+      if (key.isEmpty) continue;
+
+      final file = musicFile ??= MusicFile(
+        path: s.path,
+        name: p.basename(s.path),
+        title: s.title,
+        artist: s.artist,
+        album: s.album,
+        artworkPath: s.artworkPath,
+        thumbnailPath: s.thumbnailPath,
+        durationMillis: s.duration,
+        id: s.id,
+      );
+
+      groups
+          .putIfAbsent(key, () => _GenreGroup())
+          .addSong(file, rawName: g);
     }
   }
 
   final list = <GenreSummary>[];
-  for (final entry in genreMap.entries) {
-    if (entry.value.isEmpty) continue;
-    final sampleWithArtwork = entry.value.firstWhere(
-      (m) => (m.artworkPath != null && m.artworkPath!.isNotEmpty) ||
-             (m.thumbnailPath != null && m.thumbnailPath!.isNotEmpty),
-      orElse: () => entry.value.first,
+  for (final group in groups.values) {
+    final groupSongs = group.songs;
+    if (groupSongs.isEmpty) continue;
+
+    final sampleWithArtwork = groupSongs.firstWhere(
+      (m) =>
+          (m.artworkPath != null && m.artworkPath!.isNotEmpty) ||
+          (m.thumbnailPath != null && m.thumbnailPath!.isNotEmpty),
+      orElse: () => groupSongs.first,
     );
 
     list.add(
       GenreSummary(
-        name: entry.key,
-        songCount: entry.value.length,
+        name: group.displayName,
+        songCount: groupSongs.length,
         representativeArtworkPath: sampleWithArtwork.artworkPath,
         representativeThumbnailPath: sampleWithArtwork.thumbnailPath,
-        songs: entry.value,
+        songs: groupSongs,
       ),
     );
   }
 
-  list.sort((a, b) => b.songCount.compareTo(a.songCount));
+  list.sort((a, b) {
+    final byCount = b.songCount.compareTo(a.songCount);
+    return byCount != 0 ? byCount : a.name.compareTo(b.name);
+  });
   return list;
+}
+
+/// 归一化流派的聚合暂存：按路径去重歌曲，并统计各种原始写法的出现次数。
+class _GenreGroup {
+  final Map<String, MusicFile> _songsByPath = <String, MusicFile>{};
+  final Map<String, int> _rawNameCounts = <String, int>{};
+
+  void addSong(MusicFile song, {required String rawName}) {
+    _songsByPath.putIfAbsent(song.path, () => song);
+    final trimmed = rawName.trim();
+    if (trimmed.isEmpty) return;
+    _rawNameCounts.update(trimmed, (v) => v + 1, ifAbsent: () => 1);
+  }
+
+  List<MusicFile> get songs => _songsByPath.values.toList(growable: false);
+
+  /// 组内出现次数最多的原始写法作为展示名；平手时取先出现的那个。
+  String get displayName {
+    String? best;
+    var bestCount = 0;
+    for (final entry in _rawNameCounts.entries) {
+      if (entry.value > bestCount) {
+        best = entry.key;
+        bestCount = entry.value;
+      }
+    }
+    return pickGenreDisplayName(best ?? '');
+  }
 }
 
 List<YearSummary> _buildYearSummaries(List<SongMetadata> songs) {

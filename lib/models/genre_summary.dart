@@ -1,3 +1,4 @@
+import 'genre_naming.dart';
 import 'music_file.dart';
 
 /// 流派统计摘要模型
@@ -28,8 +29,25 @@ class GenreSummary {
   /// 兼容旧属性命名
   List<MusicFile> get sampleSongs => songs;
 
-  /// 唯一标识 Key（忽略首尾空格与大小写）
-  String get queryKey => name.trim().toLowerCase();
+  /// 唯一标识 Key（忽略大小写、标点与连接符差异）。
+  ///
+  /// 与 [normalizeGenreKey] 同源：`R&B` 与 `R and B` 会得到同一个 Key，
+  /// 因此可以安全地用于选中态比较、多选集合等场景。
+  String get queryKey => normalizeGenreKey(name);
+
+  /// 流派展示图（`assets/images/genre/webp/*.webp`）。
+  ///
+  /// 未命中任何流派规则时回落到 `default.webp`，因此永远非空。
+  String get imageAssetPath =>
+      'assets/images/genre/webp/${genreImageAssetKey(name)}.webp';
+
+  /// 流派图标（`assets/icons/genre/*.svg`）。
+  ///
+  /// 兜底流派没有专属图标，返回 `null`，调用方需自行跳过渲染。
+  String? get iconAssetPath {
+    final key = genreIconAssetKey(name);
+    return key == null ? null : 'assets/icons/genre/$key.svg';
+  }
 
   /// 总播放时长（毫秒）
   int get totalDurationMillis {

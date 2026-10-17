@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../l10n/app_localizations.dart';
 import 'package:vynody/models/album_summary.dart';
@@ -46,6 +47,15 @@ const double kDashboardDesktopCoverScale = 1.9;
 
 /// 竖屏移动端下封面缩放系数
 const double kDashboardMobileCoverScale = 1.2;
+
+/// 桌面横屏下流派卡宽度（8:9 竖版，高度按比例推导）。
+///
+/// 取专辑封面宽度（126 × 1.9 ≈ 239）的约 0.87 倍：竖版卡本身更高，
+/// 宽度略窄一点即可与方形封面在视觉上分量相当，同时避免整行被撑得过矮/过高。
+const double kDashboardGenreCardWidthWide = 208.0;
+
+/// 竖屏移动端下流派卡宽度，与专辑封面宽度（126 × 1.2 ≈ 151）基本齐平。
+const double kDashboardGenreCardWidthNarrow = 152.0;
 
 /// 桌面端与移动端统一的响应式媒体库首页（Dashboard 仪表盘）
 class LibraryDashboardView extends ConsumerWidget {
@@ -2252,6 +2262,11 @@ class _GenresRowSectionState extends ConsumerState<_GenresRowSection> {
     if (_cachedGenres != null) {
       if (_cachedGenres!.isEmpty) return const SizedBox.shrink();
 
+      // 流派卡为 8:9 竖版（与流派图同比例），桌面端取专辑封面宽度的约 0.87 倍
+      final cardWidth = widget.isWide
+          ? kDashboardGenreCardWidthWide
+          : kDashboardGenreCardWidthNarrow;
+
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -2268,7 +2283,7 @@ class _GenresRowSectionState extends ConsumerState<_GenresRowSection> {
           ),
           const SizedBox(height: 12),
           _CarouselScrollWrapper(
-            height: 80,
+            height: cardWidth * 9 / 8,
             buttonPadding: widget.horizontalPadding > 20 ? 14.0 : 8.0,
             leftButtonOffset: widget.contentLeftPadding,
             builder: (context, controller) {
@@ -2281,7 +2296,9 @@ class _GenresRowSectionState extends ConsumerState<_GenresRowSection> {
                   right: widget.horizontalPadding,
                 ),
                 itemCount: _cachedGenres!.length,
-                separatorBuilder: (_, _) => const SizedBox(width: 12),
+                separatorBuilder: (_, _) => SizedBox(
+                  width: widget.isWide ? 14 : 12,
+                ),
                 itemBuilder: (context, index) {
                   final genre = _cachedGenres![index];
 
@@ -2305,6 +2322,7 @@ class _GenresRowSectionState extends ConsumerState<_GenresRowSection> {
 
                   return _GenreCard(
                     genre: genre,
+                    cardWidth: cardWidth,
                     onTap: openDetails,
                     onSecondaryTapDown: (details) => showGenreContextMenu(
                       context: context,
@@ -2332,16 +2350,24 @@ class _GenresRowSectionState extends ConsumerState<_GenresRowSection> {
   }
 }
 
+/// 首页流派卡：竖版流派图铺满卡面，左上角叠流派图标，底部压暗后放名称与曲目数。
+///
+/// 流派图是打包资源且与卡片同为 8:9，因此 `BoxFit.cover` 不会裁掉主体；
+/// 图标为纯白单色 SVG，叠在画面上会随底色糊掉，所以带一层半透明深色徽章底。
 class _GenreCard extends StatefulWidget {
   const _GenreCard({
     required this.genre,
     required this.onTap,
+    required this.cardWidth,
     this.onSecondaryTapDown,
     this.onLongPress,
   });
 
   final GenreSummary genre;
   final VoidCallback onTap;
+
+  /// 卡片宽度；高度按流派图比例（8:9）推导。
+  final double cardWidth;
   final void Function(TapDownDetails details)? onSecondaryTapDown;
   final VoidCallback? onLongPress;
 
@@ -2356,102 +2382,161 @@ class _GenreCardState extends State<_GenreCard> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
-    final isDark = theme.brightness == Brightness.dark;
+    final genre = widget.genre;
 
-    final card = MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: widget.onTap,
-        onLongPress: widget.onLongPress,
-        onSecondaryTapDown: widget.onSecondaryTapDown,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          width: 160,
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: _isHovered
-                  ? [
-                      theme.colorScheme.primaryContainer,
-                      theme.colorScheme.surfaceContainerHighest,
-                    ]
-                  : [
-                      theme.colorScheme.surfaceContainerHighest.withValues(
-                        alpha: isDark ? 0.65 : 0.85,
-                      ),
-                      theme.colorScheme.surfaceContainerLow.withValues(
-                        alpha: isDark ? 0.45 : 0.75,
-                      ),
-                    ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: _isHovered
-                  ? theme.colorScheme.primary.withValues(alpha: 0.4)
-                  : theme.colorScheme.outlineVariant.withValues(alpha: 0.25),
-            ),
-          ),
-          child: Row(
-            children: [
-              if (widget.genre.sampleSongs.isNotEmpty)
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: SongThumbnail(
-                    path: widget.genre.sampleSongs.first.path,
-                    artworkPath: widget.genre.representativeArtworkPath,
-                    thumbnailPath: widget.genre.representativeThumbnailPath,
-                    size: 44,
-                  ),
-                )
-              else
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.primary.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(
-                    Icons.music_note_rounded,
-                    color: theme.colorScheme.primary,
-                  ),
+    final width = widget.cardWidth;
+    final height = width * 9 / 8;
+    final iconPath = genre.iconAssetPath;
+    // 桌面端卡片更大，图标徽章与文字同步放大一档，避免留白显空
+    final isLarge = width >= 180;
+    final edgeInset = isLarge ? 14.0 : 12.0;
+
+    return DraggableGenreItem(
+      genre: genre,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (_) => setState(() => _isHovered = true),
+        onExit: (_) => setState(() => _isHovered = false),
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: widget.onTap,
+          onLongPress: widget.onLongPress,
+          onSecondaryTapDown: widget.onSecondaryTapDown,
+          child: RepaintBoundary(
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              curve: Curves.easeOut,
+              width: width,
+              height: height,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: _isHovered
+                      ? theme.colorScheme.primary.withValues(alpha: 0.65)
+                      : theme.colorScheme.outlineVariant.withValues(alpha: 0.18),
                 ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(13),
+                child: Stack(
+                  fit: StackFit.expand,
                   children: [
-                    Text(
-                      widget.genre.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
+                    _buildArtwork(context, width),
+                    const _GenreCardScrim(),
+                    if (iconPath != null)
+                      Positioned(
+                        left: isLarge ? 12 : 10,
+                        top: isLarge ? 12 : 10,
+                        child: _GenreIconBadge(
+                          assetPath: iconPath,
+                          size: isLarge ? 36 : 33,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      l10n.trackCountShort(widget.genre.songCount),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
+                    Positioned(
+                      left: edgeInset,
+                      right: edgeInset,
+                      bottom: isLarge ? 12 : 10,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            genre.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                              fontSize: isLarge ? 15.5 : 14.5,
+                              height: 1.15,
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            l10n.trackCountShort(genre.songCount),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: Colors.white.withValues(alpha: 0.72),
+                              fontSize: isLarge ? 12.5 : 12.0,
+                              height: 1.1,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
               ),
-            ],
+            ),
           ),
         ),
       ),
     );
+  }
 
-    return DraggableGenreItem(genre: widget.genre, child: card);
+  Widget _buildArtwork(BuildContext context, double width) {
+    // 按实际显示尺寸解码，避免把 500px 原图整张读进内存
+    final devicePixelRatio = MediaQuery.devicePixelRatioOf(context);
+    return Image.asset(
+      widget.genre.imageAssetPath,
+      fit: BoxFit.cover,
+      cacheWidth: (width * devicePixelRatio).round(),
+      gaplessPlayback: true,
+      errorBuilder: (context, error, stackTrace) => ColoredBox(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      ),
+    );
+  }
+}
+
+/// 流派卡渐变遮罩：上半段保留原图，下半段压到接近纯黑以承载文字。
+class _GenreCardScrim extends StatelessWidget {
+  const _GenreCardScrim();
+
+  @override
+  Widget build(BuildContext context) {
+    return const DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: <Color>[
+            Color(0x00000000),
+            Color(0x00000000),
+            Color(0x99000000),
+            Color(0xE6000000),
+          ],
+          stops: <double>[0.0, 0.44, 0.76, 1.0],
+        ),
+      ),
+    );
+  }
+}
+
+/// 叠在流派图左上角的图标徽章。
+class _GenreIconBadge extends StatelessWidget {
+  const _GenreIconBadge({required this.assetPath, this.size = 32});
+
+  final String assetPath;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      padding: EdgeInsets.all(size * 0.19),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.42),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
+      ),
+      child: SvgPicture.asset(
+        assetPath,
+        colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+      ),
+    );
   }
 }
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../l10n/app_localizations.dart';
 import 'package:vynody/models/music_file.dart';
@@ -9,7 +10,6 @@ import 'genre_detail_page.dart';
 import '../widgets/master_detail_scaffold.dart';
 import '../widgets/library_selection_scope.dart';
 import '../widgets/library_selection_panel.dart';
-import '../widgets/song_thumbnail.dart';
 import '../widgets/draggable_genre_item.dart';
 import '../widgets/genre_context_menu.dart';
 import 'main_layout_riverpod.dart';
@@ -343,11 +343,6 @@ class _GenreListItem extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
-    final hasCover = (genre.representativeArtworkPath != null &&
-            genre.representativeArtworkPath!.isNotEmpty) ||
-        (genre.representativeThumbnailPath != null &&
-            genre.representativeThumbnailPath!.isNotEmpty);
-
     final isItemHighlighted =
         isSelectionMode ? isSelectedInSelectionMode : selected;
     final backgroundColor = isItemHighlighted
@@ -355,6 +350,7 @@ class _GenreListItem extends ConsumerWidget {
             ? theme.colorScheme.secondaryContainer.withValues(alpha: 0.5)
             : theme.colorScheme.primaryContainer.withValues(alpha: 0.6))
         : Colors.transparent;
+    final iconPath = genre.iconAssetPath;
 
     return DraggableGenreItem(
       genre: genre,
@@ -419,21 +415,35 @@ class _GenreListItem extends ConsumerWidget {
                       child: SizedBox(
                         width: 44,
                         height: 44,
-                        child: hasCover && genre.songs.isNotEmpty
-                            ? SongThumbnail(
-                                path: genre.songs.first.path,
-                                artworkPath: genre.representativeArtworkPath,
-                                thumbnailPath: genre.representativeThumbnailPath,
-                                size: 44,
-                              )
-                            : Container(
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            Image.asset(
+                              genre.imageAssetPath,
+                              fit: BoxFit.cover,
+                              cacheWidth: 88,
+                              gaplessPlayback: true,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  ColoredBox(
                                 color: theme.colorScheme.surfaceContainerHighest,
-                                child: Icon(
-                                  Icons.style_rounded,
-                                  size: 24,
-                                  color: theme.colorScheme.primary,
+                              ),
+                            ),
+                            if (iconPath != null)
+                              Positioned(
+                                left: 4,
+                                bottom: 4,
+                                child: SvgPicture.asset(
+                                  iconPath,
+                                  width: 14,
+                                  height: 14,
+                                  colorFilter: const ColorFilter.mode(
+                                    Colors.white,
+                                    BlendMode.srcIn,
+                                  ),
                                 ),
                               ),
+                          ],
+                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
