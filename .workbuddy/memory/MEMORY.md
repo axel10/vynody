@@ -29,14 +29,11 @@
 
 - 右键菜单三件套：`lib/widgets/<entity>_context_menu.dart`（`show<Entity>ContextMenu` + `show<Entity>BottomSheet` + 共用 `_handle...`）；条目根挂 `GestureDetector(behavior: opaque, onSecondaryTapDown, onLongPress)`；l10n 加 `view<Entity>Details`/`copy<Entity>Name`。首页卡片不传 `onMultiSelect`。回归 `test/widgets/views_layout_smoke_test.dart`。
 
-## 流派封面（2026-10-17 起全用专辑封面）
+## 流派封面（2026-10-17 起全用专辑封面，插画/图标资源已删）
 
-首页流派行、流派列表页、详情页统一用 `GenreSummary.representativeArtworkPath/ThumbnailPath` + `SongThumbnail`（列表 44 方形、详情 96/116）。无封面时兜底图标：列表页用 `iconAssetPath` 的 SVG（`colorFilter: srcIn` 着色 primary），详情页渐变 + 图标。
+首页流派行、流派列表页、详情页统一用 `GenreSummary.representativeArtworkPath/ThumbnailPath` + `SongThumbnail`（列表 44 方形、详情 96/116）。无封面兜底：列表页 `surfaceContainerHighest` + `Icons.music_note_rounded`，详情页渐变 + 图标。
 
-`assets/images/genre/webp` 插画**已无任何 UI 引用**：只留在 `genre_naming.dart` 的资源键体系里给图标键映射（`_iconKeyByImageKey`）和目录/清单双向比对测试用。`GenreSummary.imageAssetPath` 仅为兼容保留，新界面不要渲染。
-
-- 封面键用连字符（`hip-hop.webp`），图标键用下划线（`hip_hop.svg`）；`kGenreAssetKeys` 与 webp 文件名逐字一致。
-- 图标 24 个 SVG，全部 `srcIn` 着色（保持白色填充）。新增统一 `viewBox="0 0 100 100"`、内容留 10 单位边距、线宽≈7。改完用 `encodeSvg()`（vector_graphics_compiler）编译验证；flutter_test 里要关 `enableMasking/Clipping/OverdrawOptimizer`，否则 `PathOps library was not initialized`。
+`assets/images/genre/`、`assets/icons/genre/`、pubspec 声明、`genre_naming.dart` 的资源键体系（`matchGenreAssetKey` / `genreImageAssetKey` / `genreIconAssetKey` / `kGenreAssetKeys` / `_iconKeyByImageKey` / 别名表 / 子串规则）与 `GenreSummary.imageAssetPath|iconAssetPath|usesFallbackCover` 已全部删除。`genre_naming.dart` 只剩 `normalizeGenreKey()` 与 `pickGenreDisplayName()`：聚合键只用于分组与相等判断，展示名保留原始排版，两者不可混用。新增流派 UI 一律取代表曲专辑封面，不要再引入任何流派素材。
 
 ## 播放页音频规格
 

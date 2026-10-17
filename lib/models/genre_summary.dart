@@ -35,28 +35,6 @@ class GenreSummary {
   /// 因此可以安全地用于选中态比较、多选集合等场景。
   String get queryKey => normalizeGenreKey(name);
 
-  /// 流派插画资源（`assets/images/genre/webp/*.webp`）。
-  ///
-  /// UI 已全部改用专辑封面（[representativeArtworkPath]），此 getter 仅保留
-  /// 供资源清单校验（`test/models/genre_naming_test.dart`）与图标键映射使用，
-  /// 新增界面**不要**再渲染它。
-  ///
-  /// 未命中任何流派规则时回落到 `default.webp`，因此永远非空。
-  String get imageAssetPath =>
-      'assets/images/genre/webp/${genreImageAssetKey(name)}.webp';
-
-  /// 流派图标（`assets/icons/genre/*.svg`）。
-  ///
-  /// 兜底流派没有专属图标，返回 `null`，调用方需自行跳过渲染。
-  String? get iconAssetPath {
-    final key = genreIconAssetKey(name);
-    return key == null ? null : 'assets/icons/genre/$key.svg';
-  }
-
-  /// 是否使用兜底封面：未命中任何流派规则，与所有其他未识别流派共用 `music.webp`。
-  bool get usesFallbackCover =>
-      genreImageAssetKey(name) == kFallbackGenreAssetKey;
-
   /// 总播放时长（毫秒）
   int get totalDurationMillis {
     int sum = 0;

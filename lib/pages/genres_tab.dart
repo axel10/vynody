@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 import '../l10n/app_localizations.dart';
 import 'package:vynody/models/music_file.dart';
@@ -351,7 +350,6 @@ class _GenreListItem extends ConsumerWidget {
             ? theme.colorScheme.secondaryContainer.withValues(alpha: 0.5)
             : theme.colorScheme.primaryContainer.withValues(alpha: 0.6))
         : Colors.transparent;
-    final iconPath = genre.iconAssetPath;
     final hasCover =
         (genre.representativeArtworkPath?.isNotEmpty ?? false) ||
             (genre.representativeThumbnailPath?.isNotEmpty ?? false);
@@ -431,21 +429,11 @@ class _GenreListItem extends ConsumerWidget {
                                 color:
                                     theme.colorScheme.surfaceContainerHighest,
                                 alignment: Alignment.center,
-                                child: iconPath != null
-                                    ? SvgPicture.asset(
-                                        iconPath,
-                                        width: 22,
-                                        height: 22,
-                                        colorFilter: ColorFilter.mode(
-                                          theme.colorScheme.primary,
-                                          BlendMode.srcIn,
-                                        ),
-                                      )
-                                    : Icon(
-                                        Icons.music_note_rounded,
-                                        size: 22,
-                                        color: theme.colorScheme.primary,
-                                      ),
+                                child: Icon(
+                                  Icons.music_note_rounded,
+                                  size: 22,
+                                  color: theme.colorScheme.primary,
+                                ),
                               ),
                       ),
                     ),
