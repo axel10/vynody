@@ -11,6 +11,7 @@ import 'package:vynody/player/remote/services/remote_scan_root.dart';
 import 'package:vynody/player/settings/settings_service.dart';
 import 'package:vynody/utils/folder_helpers.dart';
 import 'package:vynody/utils/remote_context_menu_utils.dart';
+import 'package:vynody/widgets/album_grid_card.dart';
 import 'package:vynody/widgets/folder_grid_card.dart';
 import 'package:vynody/widgets/folder_layout_utils.dart';
 import 'package:vynody/widgets/folder_list_tile.dart';
@@ -83,6 +84,10 @@ class WebDavSubfoldersSliver extends ConsumerWidget {
         context,
         width,
         crossAxisCount,
+        textHeight: calculateAlbumGridTextHeight(
+          context,
+          isPortrait: MediaQuery.of(context).orientation == Orientation.portrait,
+        ),
       );
 
           return SliverPadding(
@@ -269,6 +274,10 @@ class WebDavSongsSliver extends ConsumerWidget {
         context,
         width,
         crossAxisCount,
+        textHeight: calculateAlbumGridTextHeight(
+          context,
+          isPortrait: MediaQuery.of(context).orientation == Orientation.portrait,
+        ),
       );
 
       return SliverPadding(

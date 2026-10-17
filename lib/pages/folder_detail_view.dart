@@ -22,6 +22,7 @@ import 'package:vynody/utils/folder_helpers.dart';
 import 'package:vynody/utils/selection_utils.dart';
 import 'package:vynody/utils/song_locator_helper.dart';
 import '../widgets/folder_header_nav_bar.dart';
+import '../widgets/album_grid_card.dart';
 import '../widgets/folder_layout_utils.dart';
 import '../widgets/folder_content_slivers.dart';
 import '../widgets/playback_ui_tuning.dart';
@@ -273,9 +274,9 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
     final int crossAxisCount = getFolderGridCrossAxisCount(crossAxisExtent);
 
     final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
-    final textScale = MediaQuery.textScalerOf(context).scale(10) / 10;
-    final clampedScale = textScale.clamp(1.0, 1.3);
-    final double textHeight = (isPortrait ? 72.0 : 84.0) * clampedScale;
+    // Folder and song grids both use the album typography budget.
+    final double textHeight =
+        calculateAlbumGridTextHeight(context, isPortrait: isPortrait);
     final double cardWidth = (crossAxisExtent - (crossAxisCount - 1) * 16) / crossAxisCount;
     final double cardHeight = cardWidth + textHeight;
 

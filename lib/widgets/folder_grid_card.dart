@@ -7,6 +7,8 @@ import '../widgets/song_thumbnail.dart';
 import 'default_cover_art.dart';
 import 'draggable_folder_item.dart';
 
+/// Borderless folder card for grid layouts, matching [AlbumGridCard]'s
+/// typography rhythm so folder and album grids read as one system.
 class FolderGridCard extends StatelessWidget {
   const FolderGridCard({
     super.key,
@@ -44,11 +46,14 @@ class FolderGridCard extends StatelessWidget {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
     final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
+    final isWide = MediaQuery.of(context).size.width >= 780;
 
     final isSystem = folder.path == 'system';
+    final coverRadius = BorderRadius.circular(12);
     final defaultCoverWidget = DefaultCoverArt.folder(
       isSystem: isSystem,
       iconSize: 48,
+      borderRadius: coverRadius,
     );
 
     Widget coverWidget;
@@ -58,7 +63,9 @@ class FolderGridCard extends StatelessWidget {
         size: 200,
         width: double.infinity,
         height: double.infinity,
-        borderRadius: BorderRadius.zero,
+        // Hero flights are painted outside the card's clip, so the artwork
+        // itself must carry the cover's corner radius.
+        borderRadius: coverRadius,
         fallbackWidget: defaultCoverWidget,
       );
     } else {
@@ -67,135 +74,139 @@ class FolderGridCard extends StatelessWidget {
 
     final cardCover = ExcludeSemantics(
       child: ClipRRect(
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
+        borderRadius: coverRadius,
         child: Stack(
-        fit: StackFit.expand,
-        children: [
-          coverWidget,
-          if (isSelectionMode)
-            Container(
-              color: isSelected
-                  ? theme.colorScheme.primaryContainer.withValues(alpha: 0.4)
-                  : Colors.black26,
-            ),
-          if (isSelectionMode)
-            Positioned(
-              top: 8,
-              left: 8,
-              child: Icon(
-                isSelected ? Icons.check_circle_rounded : Icons.radio_button_off_rounded,
-                color: isSelected ? theme.colorScheme.primary : Colors.white70,
-                size: 24,
+          fit: StackFit.expand,
+          children: [
+            coverWidget,
+            if (isSelectionMode)
+              Positioned.fill(
+                child: Container(
+                  color: isSelected
+                      ? theme.colorScheme.primaryContainer.withValues(alpha: 0.3)
+                      : Colors.black26,
+                ),
               ),
-            ),
-          if (isIndexed)
-            Positioned(
-              top: 8,
-              right: 8,
-              child: Tooltip(
-                message: l10n.remoteFolderAlreadyIndexed,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(6.0),
-                  child: BackdropFilter(
-                    filter: AppBlur.lightFilter,
-                    child: Container(
-                      padding: const EdgeInsets.all(4.5),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.5),
-                        borderRadius: BorderRadius.circular(6.0),
-                        border: Border.all(
-                          color: theme.colorScheme.primary.withValues(alpha: 0.5),
-                          width: 0.8,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.25),
-                            blurRadius: 4,
-                            offset: const Offset(0, 1.5),
+            if (isSelectionMode)
+              Positioned(
+                top: 8,
+                left: 8,
+                child: SizedBox(
+                  width: 28,
+                  height: 28,
+                  child: Checkbox(
+                    value: isSelected,
+                    onChanged: (_) => onTap?.call(),
+                    fillColor: WidgetStateProperty.all(Colors.white),
+                    checkColor: Colors.black,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                ),
+              ),
+            if (isIndexed)
+              Positioned(
+                top: 8,
+                right: 8,
+                child: Tooltip(
+                  message: l10n.remoteFolderAlreadyIndexed,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(6.0),
+                    child: BackdropFilter(
+                      filter: AppBlur.lightFilter,
+                      child: Container(
+                        padding: const EdgeInsets.all(4.5),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.5),
+                          borderRadius: BorderRadius.circular(6.0),
+                          border: Border.all(
+                            color: theme.colorScheme.primary.withValues(alpha: 0.5),
+                            width: 0.8,
                           ),
-                        ],
-                      ),
-                      child: Icon(
-                        Icons.library_add_check_rounded,
-                        size: 13.0,
-                        color: theme.colorScheme.primary,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.25),
+                              blurRadius: 4,
+                              offset: const Offset(0, 1.5),
+                            ),
+                          ],
+                        ),
+                        child: Icon(
+                          Icons.library_add_check_rounded,
+                          size: 13.0,
+                          color: theme.colorScheme.primary,
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
           ],
         ),
       ),
     );
 
-    final card = GestureDetector(
-      onSecondaryTapDown: onSecondaryTapDown,
-      onLongPress: onLongPress,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        enableFeedback: false,
+    final card = MouseRegion(
+      cursor: onTap == null
+          ? SystemMouseCursors.basic
+          : SystemMouseCursors.click,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onTap: onTap,
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            color: theme.colorScheme.surfaceContainerLow.withValues(alpha: 0.6),
-            border: Border.all(
-              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.25),
+        onLongPress: onLongPress,
+        onSecondaryTapDown: onSecondaryTapDown,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            AspectRatio(
+              aspectRatio: 1.0,
+              child: enableHero
+                  ? Hero(
+                      tag: 'folder-cover-${folder.path}',
+                      child: cardCover,
+                    )
+                  : cardCover,
             ),
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                AspectRatio(
-                  aspectRatio: 1.0,
-                  child: enableHero
-                      ? Hero(
-                          tag: 'folder-cover-${folder.path}',
-                          child: cardCover,
-                        )
-                      : cardCover,
-                ),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          customTitle ?? folder.name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: (isPortrait
-                                  ? theme.textTheme.titleSmall
-                                  : theme.textTheme.titleMedium)
-                              ?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          subtitle ?? l10n.songsCountFormat(songsCount),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: (isPortrait
-                                  ? theme.textTheme.bodySmall
-                                  : theme.textTheme.bodyMedium)
-                              ?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-                          ),
-                        ),
-                      ],
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      customTitle ?? folder.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: (isPortrait
+                              ? theme.textTheme.titleSmall
+                              : theme.textTheme.titleMedium)
+                          ?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        fontSize: isWide ? 14.5 : 14.0,
+                        color: isSelectionMode && isSelected
+                            ? theme.colorScheme.primary
+                            : null,
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle ?? l10n.songsCountFormat(songsCount),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: (isPortrait
+                              ? theme.textTheme.bodySmall
+                              : theme.textTheme.bodyMedium)
+                          ?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );

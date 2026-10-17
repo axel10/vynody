@@ -5,6 +5,7 @@ import 'package:vynody/models/music_file.dart';
 import 'package:vynody/models/music_folder.dart';
 import 'package:vynody/player/scanner/scanner_service.dart';
 import 'package:vynody/player/settings/settings_service.dart';
+import 'album_grid_card.dart';
 import 'folder_grid_card.dart';
 import 'folder_list_tile.dart';
 import 'song_grid_card.dart';
@@ -168,10 +169,16 @@ class FolderSubfoldersSliver extends StatelessWidget {
 
       final width = crossAxisExtent ?? MediaQuery.sizeOf(context).width;
       final crossAxisCount = getFolderGridCrossAxisCount(width);
+      // Folder cards share the album card typography budget so both grids
+      // keep an identical cover-to-text rhythm.
       final childAspectRatio = calculateFolderGridChildAspectRatio(
         context,
         width,
         crossAxisCount,
+        textHeight: calculateAlbumGridTextHeight(
+          context,
+          isPortrait: MediaQuery.of(context).orientation == Orientation.portrait,
+        ),
       );
 
       final paddingBottom = bottomPadding ?? (isRoot ? 160.0 : 0.0);
@@ -654,6 +661,12 @@ class FolderSongsSliver extends StatelessWidget {
         context,
         width,
         crossAxisCount,
+        // Song cards share the album card typography budget so every grid in
+        // the folder page keeps the same cover-to-text rhythm.
+        textHeight: calculateAlbumGridTextHeight(
+          context,
+          isPortrait: MediaQuery.of(context).orientation == Orientation.portrait,
+        ),
       );
 
       return SliverPadding(
