@@ -11,19 +11,16 @@ import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/audio/playback_source.dart';
 import 'package:vynody/player/library/artist_library.dart';
 import 'package:vynody/player/metadata/theaudiodb_artist_service.dart';
-import 'package:vynody/utils/song_context_menu_utils.dart';
+import '../widgets/album_sections.dart';
 import '../widgets/artist_avatar.dart';
-import '../widgets/song_thumbnail.dart';
 import '../widgets/remote_media_badge.dart';
 import '../widgets/mini_player_wrapper.dart';
 import '../widgets/library_selection_panel.dart';
 import '../widgets/library_selection_scope.dart';
-import '../widgets/draggable_song_item.dart';
-import '../widgets/auto_hide_header.dart';
-import '../widgets/app_top_nav_bar.dart';
-import '../utils/layout_constants.dart';
+import '../widgets/detail_page_shell.dart';
+import '../widgets/library_selection_back_guard.dart';
 
-class ArtistDetailPage extends ConsumerStatefulWidget {
+class ArtistDetailPage extends StatelessWidget {
   const ArtistDetailPage({
     super.key,
     required this.artist,
@@ -34,67 +31,19 @@ class ArtistDetailPage extends ConsumerStatefulWidget {
   final VoidCallback? onGoBack;
 
   @override
-  ConsumerState<ArtistDetailPage> createState() => _ArtistDetailPageState();
-}
-
-class _ArtistDetailPageState extends ConsumerState<ArtistDetailPage> {
-  late final ScrollController _scrollController;
-
-  @override
-  void initState() {
-    super.initState();
-    _scrollController = ScrollController();
-  }
-
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  static double getBarHeight(BuildContext context) =>
-      AppTopNavBar.getBarHeight(context);
-
-  @override
   Widget build(BuildContext context) {
-    final double barHeight = getBarHeight(context);
-    final isLandscape =
-        MediaQuery.orientationOf(context) == Orientation.landscape;
-    final double leftPadding =
-        isLandscape ? sidebarRailWidthFor(MediaQuery.of(context).size.width) : 0.0;
-
-    return AutoHideHeaderScope(
-      builder: (context, isHeaderVisible) {
-        final Widget content = Scaffold(
-          body: Padding(
-            padding: EdgeInsets.only(left: leftPadding),
-            child: Stack(
-              children: [
-                ArtistDetailContent(
-                  artist: widget.artist,
-                  scrollController: _scrollController,
-                  topPadding: barHeight + 8,
-                ),
-                Positioned(
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  child: AutoHideHeader(
-                    isVisible: isHeaderVisible,
-                    child: AppTopNavBar(
-                      title: widget.artist.name,
-                      titleKey: const ValueKey('album_title'),
-                      onBack: widget.onGoBack ?? () => Navigator.of(context).maybePop(),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-
-        return MiniPlayerWrapper(child: content);
-      },
+    return LibrarySelectionBackGuard(
+      child: DetailPageShell(
+        title: artist.name,
+        titleKey: const ValueKey('album_title'),
+        onGoBack: onGoBack,
+        contentBuilder: (context, scrollController, topPadding) =>
+            ArtistDetailContent(
+          artist: artist,
+          scrollController: scrollController,
+          topPadding: topPadding,
+        ),
+      ),
     );
   }
 }
@@ -126,6 +75,8 @@ class _ArtistDetailContentState extends ConsumerState<ArtistDetailContent>
 
   String? _cachedImagePath;
   StreamSubscription<String>? _imageUpdateSub;
+
+  final AlbumSectionsCache _albumCache = AlbumSectionsCache();
 
   @override
   void initState() {
@@ -191,34 +142,22 @@ class _ArtistDetailContentState extends ConsumerState<ArtistDetailContent>
     }
   }
 
-  List<MusicFile>? _lastArtistSongs;
-  String? _lastUnknownAlbumLabel;
-  List<_AlbumSection>? _cachedAlbumSections;
-  List<MusicFile>? _cachedDisplaySongs;
-
-  void _ensureAlbumSectionsCached(String unknownAlbumLabel) {
-    if (!identical(_lastArtistSongs, widget.artist.songs) ||
-        _lastUnknownAlbumLabel != unknownAlbumLabel ||
-        _cachedAlbumSections == null) {
-      _lastArtistSongs = widget.artist.songs;
-      _lastUnknownAlbumLabel = unknownAlbumLabel;
-      _cachedAlbumSections = _buildAlbumSections(widget.artist.songs, unknownAlbumLabel);
-      _cachedDisplaySongs = _cachedAlbumSections!
-          .expand((section) => section.songs)
-          .toList(growable: false);
-    }
-  }
+  PlaybackSource get _artistSource => PlaybackSource(
+        type: PlaybackSourceType.artist,
+        id: widget.artist.queryKey,
+        name: widget.artist.name,
+      );
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final unknownAlbumLabel = l10n.unknownAlbum;
     final theme = Theme.of(context);
     final audio = ref.read(audioServiceProvider);
     final currentMusic = ref.watch(audioCurrentMusicProvider);
-    _ensureAlbumSectionsCached(unknownAlbumLabel);
-    final albumSections = _cachedAlbumSections!;
-    final displaySongs = _cachedDisplaySongs!;
+
+    _albumCache.update(widget.artist.songs, l10n.unknownAlbum);
+    final sections = _albumCache.sections;
+    final displaySongs = _albumCache.allSongs;
 
     final selectedSongs = isSelectionMode
         ? getSelectedSongs(displaySongs)
@@ -226,8 +165,9 @@ class _ArtistDetailContentState extends ConsumerState<ArtistDetailContent>
 
     final isPortrait =
         MediaQuery.orientationOf(context) == Orientation.portrait;
+    final horizontalPadding = isPortrait ? 20.0 : 28.0;
 
-    final content = Stack(
+    return Stack(
       children: [
         CustomScrollView(
           controller: widget.scrollController,
@@ -238,120 +178,65 @@ class _ArtistDetailContentState extends ConsumerState<ArtistDetailContent>
             SliverToBoxAdapter(
               child: Padding(
                 padding: EdgeInsets.fromLTRB(
-                  isPortrait ? 20 : 28,
+                  horizontalPadding,
                   widget.topPadding > 0 ? widget.topPadding + 12 : 24,
-                  isPortrait ? 20 : 28,
+                  horizontalPadding,
                   20,
                 ),
                 child: _ArtistInfo(
                   artist: widget.artist,
                   cachedImagePath: _cachedImagePath,
-                  onPlayAll: () => audio.playPlaylist(
-                    displaySongs,
-                    source: PlaybackSource(
-                      type: PlaybackSourceType.artist,
-                      id: widget.artist.queryKey,
-                      name: widget.artist.name,
-                    ),
-                  ),
+                  onPlayAll: () =>
+                      audio.playPlaylist(displaySongs, source: _artistSource),
                   onShufflePlay: () => audio.playPlaylist(
                     List.of(displaySongs)..shuffle(),
-                    source: PlaybackSource(
-                      type: PlaybackSourceType.artist,
-                      id: widget.artist.queryKey,
-                      name: widget.artist.name,
-                    ),
+                    source: _artistSource,
                   ),
                 ),
               ),
             ),
-            if (albumSections.isEmpty)
+            if (sections.isEmpty)
               SliverFillRemaining(
                 hasScrollBody: false,
                 child: Center(
                   child: Text(l10n.emptyList, style: theme.textTheme.titleMedium),
                 ),
               )
-            else ...[
-              for (int i = 0; i < albumSections.length; i++) ...[
+            else
+              for (int i = 0; i < sections.length; i++) ...[
                 if (i > 0) const SliverToBoxAdapter(child: SizedBox(height: 36)),
-                _AlbumSectionSliver(
-                    section: albumSections[i],
-                    currentMusic: currentMusic,
-                    theme: theme,
-                    onPlayAlbum: () => audio.playPlaylist(
-                      albumSections[i].songs,
-                      source: PlaybackSource(
-                        type: PlaybackSourceType.album,
-                        id: '${albumSections[i].title.toLowerCase()}::${(albumSections[i].songs.firstOrNull?.albumArtist ?? albumSections[i].songs.firstOrNull?.artist ?? "").toLowerCase()}',
-                        name: albumSections[i].title,
-                      ),
-                    ),
-                    onShufflePlayAlbum: () => audio.playPlaylist(
-                      List.of(albumSections[i].songs)..shuffle(),
-                      source: PlaybackSource(
-                        type: PlaybackSourceType.album,
-                        id: '${albumSections[i].title.toLowerCase()}::${(albumSections[i].songs.firstOrNull?.albumArtist ?? albumSections[i].songs.firstOrNull?.artist ?? "").toLowerCase()}',
-                        name: albumSections[i].title,
-                      ),
-                    ),
-                    onSongTap: (songIndex) {
-                      final song = albumSections[i].songs[songIndex];
-                      final globalIndex = albumSections[i].startIndex + songIndex;
-
-                      handleSongTap(
-                        index: globalIndex,
-                        songPath: song.path,
-                        allSongs: displaySongs,
-                        onNormalTap: () {
-                          audio.playPlaylist(
-                            displaySongs,
-                            initialIndex: globalIndex,
-                            source: PlaybackSource(
-                              type: PlaybackSourceType.artist,
-                              id: widget.artist.queryKey,
-                              name: widget.artist.name,
-                            ),
-                          );
-                        },
-                      );
-                    },
-                    onSongSecondaryTapDown: (details, song) {
-                      if (!isSelectionMode) {
-                        showSongContextMenu(
-                          context,
-                          details.globalPosition,
-                          song: song,
-                          songs: [song],
-                          mode: SongContextMenuMode.full,
-                          onPlayNext: () =>
-                              ref.read(audioServiceProvider).enqueueNext([song]),
-                          onAddToQueue: () =>
-                              ref.read(audioServiceProvider).appendToQueue([song]),
-                          onAddToPlaylist: () async {
-                            await showAddSongsToPlaylistDialog(
-                              context,
-                              ref.read(playlistServiceProvider),
-                              [song],
-                            );
-                          },
+                AlbumSectionSliver(
+                  section: sections[i],
+                  currentMusicPath: currentMusic?.path,
+                  onSongTap: (section, songIndex) {
+                    final song = section.songs[songIndex];
+                    final globalIndex = section.startIndex + songIndex;
+                    handleSongTap(
+                      index: globalIndex,
+                      songPath: song.path,
+                      allSongs: displaySongs,
+                      onNormalTap: () {
+                        audio.playPlaylist(
+                          displaySongs,
+                          initialIndex: globalIndex,
+                          source: _artistSource,
                         );
-                      }
-                    },
-                    onSongLongPress: (song) {
-                      final songIndex = albumSections[i].songs.indexOf(song);
-                      if (songIndex != -1) {
-                        lastAnchorIndex = albumSections[i].startIndex + songIndex;
-                      }
-                      if (!isSelectionMode) {
-                        enterSongSelectionMode(song.path);
-                      }
-                    },
-                    isSelectionMode: isSelectionMode,
-                    selectedSongPaths: selectedSongPaths,
-                  ),
+                      },
+                    );
+                  },
+                  onSongLongPress: (section, song) {
+                    final songIndex = section.songs.indexOf(song);
+                    if (songIndex != -1) {
+                      lastAnchorIndex = section.startIndex + songIndex;
+                    }
+                    if (!isSelectionMode) {
+                      enterSongSelectionMode(song.path);
+                    }
+                  },
+                  isSelectionMode: isSelectionMode,
+                  selectedSongPaths: selectedSongPaths,
+                ),
               ],
-            ],
             SliverToBoxAdapter(
               child: SizedBox(
                 height: MiniPlayerUiTuning.getListBottomPadding(
@@ -376,17 +261,6 @@ class _ArtistDetailContentState extends ConsumerState<ArtistDetailContent>
           ),
         ),
       ],
-    );
-
-    // PopScope 常驻、仅切换 canPop：避免多选开关导致根节点类型变化，
-    // 否则整棵子树（含滚动位置）会被销毁重建。
-    return PopScope(
-      canPop: !isSelectionMode,
-      onPopInvokedWithResult: (didPop, result) {
-        if (didPop) return;
-        cancelSongSelection();
-      },
-      child: content,
     );
   }
 }
@@ -633,499 +507,4 @@ class _ArtistInfo extends StatelessWidget {
       ],
     );
   }
-}
-
-class _AlbumSectionSliver extends StatelessWidget {
-  const _AlbumSectionSliver({
-    required this.section,
-    required this.currentMusic,
-    required this.theme,
-    required this.onPlayAlbum,
-    required this.onShufflePlayAlbum,
-    required this.onSongTap,
-    required this.onSongSecondaryTapDown,
-    required this.onSongLongPress,
-    this.isSelectionMode = false,
-    required this.selectedSongPaths,
-  });
-
-  final _AlbumSection section;
-  final MusicFile? currentMusic;
-  final ThemeData theme;
-  final VoidCallback onPlayAlbum;
-  final VoidCallback onShufflePlayAlbum;
-  final ValueChanged<int> onSongTap;
-  final void Function(TapDownDetails details, MusicFile song)
-  onSongSecondaryTapDown;
-  final ValueChanged<MusicFile> onSongLongPress;
-  final bool isSelectionMode;
-  final Set<String> selectedSongPaths;
-
-  @override
-  Widget build(BuildContext context) {
-    final isMixedSection = RemoteMediaHelper.isMixed(section.songs);
-
-    return SliverPadding(
-      padding: const EdgeInsets.symmetric(horizontal: 28),
-      sliver: SliverToBoxAdapter(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final isWide = constraints.maxWidth >= 600;
-            return isWide
-                ? _buildWideLayout(context, isMixedSection, constraints.maxWidth)
-                : _buildNarrowLayout(context, isMixedSection);
-          },
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAlbumCover({required double size, double borderRadius = 10}) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(borderRadius),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(borderRadius),
-        child: RemoteMediaBadge.wrapCover(
-          child: SongThumbnail.fromSong(
-            section.representativeSong,
-            size: size,
-            borderRadius: BorderRadius.circular(borderRadius),
-          ),
-          songs: section.songs,
-          title: section.title,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeaderRow(BuildContext context, String subtitle) {
-    final l10n = AppLocalizations.of(context)!;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                section.title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 17,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                subtitle,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                  fontSize: 12,
-                ),
-              ),
-            ],
-          ),
-        ),
-        IconButton(
-          tooltip: l10n.playAll,
-          visualDensity: VisualDensity.compact,
-          icon: const Icon(Icons.play_arrow_rounded, size: 20),
-          onPressed: onPlayAlbum,
-        ),
-        IconButton(
-          tooltip: l10n.shufflePlay,
-          visualDensity: VisualDensity.compact,
-          icon: const Icon(Icons.shuffle_rounded, size: 18),
-          onPressed: onShufflePlayAlbum,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSongList(bool isMixedSection) {
-    return Column(
-      children: [
-        for (int i = 0; i < section.songs.length; i++)
-          _AlbumSongTile(
-            key: ValueKey(section.songs[i].path),
-            song: section.songs[i],
-            trackIndex: i + 1,
-            isCurrent: currentMusic?.path == section.songs[i].path,
-            theme: theme,
-            showRemoteIndicator:
-                isMixedSection && RemoteMediaHelper.isRemote(section.songs[i]),
-            onTap: () => onSongTap(i),
-            onSecondaryTapDown: (details) =>
-                onSongSecondaryTapDown(details, section.songs[i]),
-            onLongPress: () => onSongLongPress(section.songs[i]),
-            isSelectionMode: isSelectionMode,
-            isSelected: selectedSongPaths.contains(section.songs[i].path),
-            selectedPaths: selectedSongPaths,
-            showTopDivider: i > 0,
-          ),
-      ],
-    );
-  }
-
-  Widget _buildWideLayout(
-    BuildContext context,
-    bool isMixedSection,
-    double availableWidth,
-  ) {
-    final l10n = AppLocalizations.of(context)!;
-    final durationLabel =
-        _formatDuration(section.totalDurationMillis) ?? l10n.durationZero;
-    final countLabel = l10n.songCount(section.songs.length);
-    final subtitle = '$countLabel · $durationLabel';
-
-    final double coverSize;
-    final double gap;
-    final double coverRadius;
-
-    if (availableWidth >= 1000) {
-      coverSize = 220.0;
-      gap = 28.0;
-      coverRadius = 12.0;
-    } else if (availableWidth >= 800) {
-      coverSize = 190.0;
-      gap = 24.0;
-      coverRadius = 10.0;
-    } else {
-      coverSize = 160.0;
-      gap = 20.0;
-      coverRadius = 8.0;
-    }
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildAlbumCover(size: coverSize, borderRadius: coverRadius),
-        SizedBox(width: gap),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeaderRow(context, subtitle),
-              const SizedBox(height: 8),
-              _buildSongList(isMixedSection),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildNarrowLayout(BuildContext context, bool isMixedSection) {
-    final l10n = AppLocalizations.of(context)!;
-    final durationLabel =
-        _formatDuration(section.totalDurationMillis) ?? l10n.durationZero;
-    final countLabel = l10n.songCount(section.songs.length);
-    final subtitle = '$countLabel · $durationLabel';
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            _buildAlbumCover(size: 84, borderRadius: 8),
-            const SizedBox(width: 14),
-            Expanded(
-              child: _buildHeaderRow(context, subtitle),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        _buildSongList(isMixedSection),
-      ],
-    );
-  }
-}
-
-class _AlbumSongTile extends StatelessWidget {
-  const _AlbumSongTile({
-    super.key,
-    required this.song,
-    required this.trackIndex,
-    required this.isCurrent,
-    required this.theme,
-    this.showRemoteIndicator = false,
-    required this.onTap,
-    required this.onSecondaryTapDown,
-    required this.onLongPress,
-    this.isSelectionMode = false,
-    this.isSelected = false,
-    this.selectedPaths,
-    this.showTopDivider = false,
-  });
-
-  final MusicFile song;
-  final int trackIndex;
-  final bool isCurrent;
-  final ThemeData theme;
-  final bool showRemoteIndicator;
-  final VoidCallback onTap;
-  final void Function(TapDownDetails details) onSecondaryTapDown;
-  final VoidCallback onLongPress;
-  final bool isSelectionMode;
-  final bool isSelected;
-  final Iterable<String>? selectedPaths;
-  final bool showTopDivider;
-
-  @override
-  Widget build(BuildContext context) {
-    final durationLabel = _formatDuration(song.durationMillis);
-    final isTileSelected = isSelectionMode ? isSelected : isCurrent;
-
-    final tileWidget = RepaintBoundary(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (showTopDivider && !isTileSelected)
-            Divider(
-              height: 1,
-              thickness: 0.5,
-              indent: 32,
-              endIndent: 8,
-              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2),
-            ),
-          SizedBox(
-            height: 38.0,
-            child: Material(
-              color: isTileSelected
-                  ? theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.55)
-                  : Colors.transparent,
-              borderRadius: BorderRadius.circular(6),
-              child: InkWell(
-                enableFeedback: false,
-                canRequestFocus: false,
-                borderRadius: BorderRadius.circular(6),
-                onTap: onTap,
-                onLongPress: onLongPress,
-                onSecondaryTapDown: onSecondaryTapDown,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                  child: Row(
-                    children: [
-                      if (isSelectionMode) ...[
-                        SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: Checkbox(
-                            value: isSelected,
-                            onChanged: (_) => onTap(),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                      ] else ...[
-                        SizedBox(
-                          width: 24,
-                          child: isCurrent
-                              ? Icon(
-                                  Icons.volume_up_rounded,
-                                  size: 16,
-                                  color: theme.colorScheme.primary,
-                                )
-                              : Text(
-                                  '${song.trackNumber ?? trackIndex}',
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: theme.colorScheme.onSurfaceVariant,
-                                    fontSize: 12,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                        ),
-                        const SizedBox(width: 8),
-                      ],
-                      Expanded(
-                        child: Row(
-                          children: [
-                            Flexible(
-                              child: Text(
-                                song.displayName,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  color: isCurrent
-                                      ? theme.colorScheme.primary
-                                      : theme.colorScheme.onSurface,
-                                  fontWeight: isCurrent ? FontWeight.w600 : FontWeight.w400,
-                                  fontSize: 13.5,
-                                ),
-                              ),
-                            ),
-                            RemoteMediaBadge.songTrailing(
-                              song: song,
-                              isMixed: showRemoteIndicator,
-                            ),
-                          ],
-                        ),
-                      ),
-                      if (durationLabel != null) ...[
-                        const SizedBox(width: 12),
-                        Text(
-                          durationLabel,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                      const SizedBox(width: 4),
-                      GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTapDown: onSecondaryTapDown,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          child: Icon(
-                            Icons.more_horiz_rounded,
-                            size: 16,
-                            color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-
-    return DraggableSongItem(
-      song: song,
-      enabled: !song.isMissing,
-      isSelected: isSelected,
-      isSelectionMode: isSelectionMode,
-      selectedPaths: selectedPaths,
-      child: tileWidget,
-    );
-  }
-}
-
-String? _formatDuration(int? durationMs) {
-  if (durationMs == null) return null;
-  final duration = Duration(milliseconds: durationMs);
-  final hours = duration.inHours;
-  final minutes = duration.inMinutes.remainder(60);
-  final seconds = duration.inSeconds.remainder(60);
-  if (hours > 0) {
-    return '$hours:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
-  }
-  return '${duration.inMinutes}:${seconds.toString().padLeft(2, '0')}';
-}
-
-class _AlbumSection {
-  const _AlbumSection({
-    required this.title,
-    required this.songs,
-    required this.representativeSong,
-    required this.totalDurationMillis,
-    required this.startIndex,
-  });
-
-  final String title;
-  final List<MusicFile> songs;
-  final MusicFile representativeSong;
-  final int totalDurationMillis;
-  final int startIndex;
-
-}
-
-List<_AlbumSection> _buildAlbumSections(
-  List<MusicFile> songs,
-  String unknownAlbumLabel,
-) {
-  final grouped = <String, List<MusicFile>>{};
-  final titles = <String, String>{};
-  final unknownKey = unknownAlbumLabel.toLowerCase();
-
-  for (final song in songs) {
-    final rawAlbum = song.album?.trim();
-    final isUnknown = rawAlbum == null || rawAlbum.isEmpty;
-    final normalizedTitle = isUnknown ? unknownAlbumLabel : rawAlbum;
-    final key = normalizedTitle.toLowerCase();
-
-    grouped.putIfAbsent(key, () => <MusicFile>[]).add(song);
-    titles[key] = normalizedTitle;
-  }
-
-  final orderedKeys = grouped.keys.toList()
-    ..sort((a, b) {
-      final leftUnknown = a == unknownKey;
-      final rightUnknown = b == unknownKey;
-      if (leftUnknown != rightUnknown) {
-        return leftUnknown ? 1 : -1;
-      }
-      return titles[a]!.toLowerCase().compareTo(titles[b]!.toLowerCase());
-    });
-
-  final sections = <_AlbumSection>[];
-  var startIndex = 0;
-
-  for (final key in orderedKeys) {
-    final albumSongs = List<MusicFile>.from(grouped[key]!)
-      ..sort(_compareAlbumSongs);
-    final representativeSong = albumSongs.firstWhere(
-      (song) => _hasArtwork(song),
-      orElse: () => albumSongs.first,
-    );
-    final totalDurationMillis = albumSongs.fold<int>(
-      0,
-      (sum, song) => sum + (song.durationMillis ?? 0),
-    );
-    final title = titles[key]!;
-
-    sections.add(
-      _AlbumSection(
-        title: title,
-        songs: albumSongs,
-        representativeSong: representativeSong,
-        totalDurationMillis: totalDurationMillis,
-        startIndex: startIndex,
-      ),
-    );
-    startIndex += albumSongs.length;
-  }
-
-  return sections;
-}
-
-bool _hasArtwork(MusicFile song) {
-  final hasBytes = song.artworkBytes?.isNotEmpty ?? false;
-  final hasArtworkPath = song.artworkPath?.isNotEmpty ?? false;
-  final hasThumbnailPath = song.thumbnailPath?.isNotEmpty ?? false;
-  return hasBytes || hasArtworkPath || hasThumbnailPath;
-}
-
-int _compareAlbumSongs(MusicFile a, MusicFile b) {
-  final leftTrack = a.trackNumber;
-  final rightTrack = b.trackNumber;
-  if (leftTrack != null && rightTrack != null && leftTrack != rightTrack) {
-    return leftTrack.compareTo(rightTrack);
-  }
-  if (leftTrack != null && rightTrack == null) return -1;
-  if (leftTrack == null && rightTrack != null) return 1;
-
-  final titleCompare = a.displayName.toLowerCase().compareTo(
-    b.displayName.toLowerCase(),
-  );
-  if (titleCompare != 0) return titleCompare;
-  return a.path.toLowerCase().compareTo(b.path.toLowerCase());
 }

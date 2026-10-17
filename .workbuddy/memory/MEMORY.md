@@ -16,10 +16,11 @@
 | l10n | 9 个 `lib/l10n/app_*.arb` 同步，模板 `app_zh.arb` | 缺 key 静默回退中文且只记 stdout；改完 `flutter gen-l10n` |
 | 设置项 | `settings_service.dart` 三段（key/property/访问器） | 6 处：key 常量、`SettingProperty`、getter+setter、`resetXxx()`、`settings_search_registry.dart`、`sections/<组>_section.dart` |
 | 流派聚合键 | `normalizeGenreKey()`（`_genreKeyEquivalents` 收敛连写：`JPop`→`j pop`） | 同源派生 `queryKey` 与 `matchGenreAssetKey()`；`_acronymDisplays` 吃 `raw.toLowerCase()` 不能跟着改；`_substringAssetRules` 连写 needle 必须留 |
+| 艺术家/流派/年份详情页 | `widgets/album_sections.dart`（`AlbumSection` + `AlbumSectionsCache` + `AlbumSectionSliver` + `AlbumSongTile`）、`collection_detail_content.dart`（流派/年份共用内容）、`collection_detail_header.dart`、`detail_page_shell.dart` | 禁再各写一份 `_AlbumSection` / 分组排序 / 曲目行；三页布局规则必须一致：分组宽度 ≥600 走「左封面右列表」，否则小封面 + 下方列表 |
 
 ## 硬性禁止
 
-- **IndexedStack 常驻子页禁挂 PopScope**：PopScope 注册在路由上，与可见性无关。一个 `canPop:false` 让整条路由 `doNotPop`，且 `onPopInvoked` 派发给该路由全部 PopEntry（别的 tab 按返回也触发）。共用 tab 一律写进 `_handleBackPressed()`；只有独占路由的页面才挂（`remote_control_page.dart:249`）。
+- **IndexedStack 常驻子页禁挂 PopScope**：PopScope 注册在路由上，与可见性无关。一个 `canPop:false` 让整条路由 `doNotPop`，且 `onPopInvoked` 派发给该路由全部 PopEntry（别的 tab 按返回也触发）。共用 tab 一律写进 `_handleBackPressed()`；只有独占路由的页面才挂（`remote_control_page.dart:249`）。艺术家/流派/年份三页已改为：内容层不挂，页面层套 `widgets/library_selection_back_guard.dart`。
 - **多选状态禁止条件切换 widget 根节点**：runtimeType 一变子树重建，dispose 微任务清掉刚建的多选状态（一进多选就退出）。唯一状态 `librarySelectionStateProvider`，`SelectionStateMixin`/`SongSelectionMixin` 接入。回归 `test/pages/library_multiselect_test.dart`。
 - **禁裸 `ref.watch(scannerServiceProvider)`**：`updateSongThumbnailPath` 每张缩略图都 `notifyListeners()`。取实例用 `ref.read`，响应树变化用 `.select((s) => s.structureRevision)`（指纹不含缩略图量；推进点：重写的 `notifyListeners()`、`_handleNavigationChanged()`、`updateMetadataForPath(syncTree:true)`）。`rootFolders` 返回缓存视图 `_rootFoldersView`，别现写 `List.unmodifiable`（新实例让 `select` 永不判等）。`ScanProgressInfo` 无 `==`，其 notifier 的 `build()` 只能 select `isScanning`，不能换 `ref.read`。
 - **MainLayout 是 rebuild 放大器**：`_buildCurrentPage()` 每次 build 新建非 const 的 `FoldersPage`/`LibraryPage`，任何 `setState` 都 rebuild 全部已访问页（含不可见）。别随手加 `ref.watch`。
