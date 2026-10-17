@@ -297,6 +297,14 @@ extension LyricsAiProviderX on LyricsAiProvider {
   }
 }
 
+/// 单条配置项的唯一载体，封装「读盘 / 写盘 / 默认值 / 变更回调」四件事。
+///
+/// [prefs] 的原生读写通道只覆盖 `bool` / `int` / `double` / `String`。其余类型
+/// （枚举、`Color`、`List`…）**必须**成对提供 [customRead] 与 [customWrite]，
+/// 否则读会恒为 [defaultValue]、写会被静默丢弃 —— 对外表现为「界面上改了、重启不生效」。
+///
+/// 这条约定原先只存在于隐含的代码习惯里，漏掉后既不报错也不打日志。现改为构造期断言，
+/// 让新增配置项时立刻在 debug 下暴露，而不是留到用户侧变成一条查不到原因的「设置不生效」。
 class SettingProperty<T> {
   final String key;
   final T defaultValue;
@@ -316,7 +324,26 @@ class SettingProperty<T> {
     this.onChanged,
     this.customRead,
     this.customWrite,
-  }) : _value = _read(prefs, key, defaultValue, customRead);
+  }) : _value = _read(prefs, key, defaultValue, customRead) {
+    assert(
+      customRead != null || _hasImplicitCodec(T),
+      'SettingProperty<$T>(key: $key) 缺少 customRead：'
+          'SharedPreferences 原生读取只支持 bool / int / double / String，'
+          '其它类型必须提供 customRead，否则永远只能读到 defaultValue。',
+    );
+    assert(
+      customWrite != null || _hasImplicitCodec(T),
+      'SettingProperty<$T>(key: $key) 缺少 customWrite：'
+          'SharedPreferences 原生写入只支持 bool / int / double / String，'
+          '其它类型必须提供 customWrite，否则赋值会被静默丢弃。',
+    );
+  }
+
+  /// [type] 是否落在 `SharedPreferences` 原生支持的类型集合内。
+  ///
+  /// 与 [_read] / [_write] 内部的分支判断共用同一集合；任何一处放宽都要同步另一处。
+  static bool _hasImplicitCodec(Type type) =>
+      type == bool || type == int || type == double || type == String;
 
   T get value => _value;
 
