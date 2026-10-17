@@ -78,6 +78,13 @@ final List<SettingSearchItem> settingsSearchRegistry = [
     description: (l10n) => l10n.expandPortraitLyricsControlsOnScrollDescription,
   ),
   SettingSearchItem(
+    id: 'general.floating_dock_scroll_collapse',
+    section: SettingsSection.general,
+    icon: Icons.unfold_less_rounded,
+    title: (l10n) => l10n.floatingDockScrollCollapse,
+    description: (l10n) => l10n.floatingDockScrollCollapseDescription,
+  ),
+  SettingSearchItem(
     id: 'general.playback_button_layout',
     section: SettingsSection.general,
     icon: Icons.tune_rounded,

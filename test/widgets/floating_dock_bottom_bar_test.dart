@@ -329,6 +329,9 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
+        overrides: [
+          settingsServiceProvider.overrideWith((ref) => settings),
+        ],
         child: MaterialApp(
           home: Scaffold(
             body: Consumer(
@@ -425,6 +428,9 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
+        overrides: [
+          settingsServiceProvider.overrideWith((ref) => settings),
+        ],
         child: MaterialApp(
           home: Scaffold(
             body: Consumer(
@@ -476,6 +482,9 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
+        overrides: [
+          settingsServiceProvider.overrideWith((ref) => settings),
+        ],
         child: MaterialApp(
           home: Scaffold(
             body: Consumer(
@@ -555,6 +564,9 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
+        overrides: [
+          settingsServiceProvider.overrideWith((ref) => settings),
+        ],
         child: MaterialApp(
           home: Scaffold(
             body: Consumer(
@@ -668,6 +680,9 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
+        overrides: [
+          settingsServiceProvider.overrideWith((ref) => settings),
+        ],
         child: MaterialApp(
           home: Scaffold(
             body: Consumer(

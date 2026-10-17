@@ -449,6 +449,8 @@ class SettingsService extends ChangeNotifier {
   static const String _keyCloseToTray = 'close_to_tray';
   static const String _keyCloseWindowAction = 'close_window_action';
   static const String _keyImmersiveTabBar = 'immersive_tab_bar_enabled';
+  static const String _keyFloatingDockScrollCollapse =
+      'floating_dock_scroll_collapse_enabled';
   static const String _keyWindowsAudioOutputMode = 'windows_audio_output_mode';
   static const String _keyWindowsAudioDeviceId = 'windows_audio_device_id';
   static const String _keyWasapiReleaseOnPause = 'wasapi_release_on_pause';
@@ -1102,6 +1104,14 @@ class SettingsService extends ChangeNotifier {
   late final _expandPortraitLyricsControlsOnScrollProperty =
       SettingProperty<bool>(
     key: _keyExpandPortraitLyricsControlsOnScroll,
+    defaultValue: true,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
+  /// 底部悬浮栏是否随列表滚动自动收起；关闭后悬浮栏始终完整展开
+  late final _enableFloatingDockScrollCollapseProperty = SettingProperty<bool>(
+    key: _keyFloatingDockScrollCollapse,
     defaultValue: true,
     prefs: _prefs,
     onChanged: notifyListeners,
@@ -2334,6 +2344,11 @@ class SettingsService extends ChangeNotifier {
       _expandPortraitLyricsControlsOnScrollProperty.value;
   set expandPortraitLyricsControlsOnScroll(bool value) =>
       _expandPortraitLyricsControlsOnScrollProperty.value = value;
+
+  bool get enableFloatingDockScrollCollapse =>
+      _enableFloatingDockScrollCollapseProperty.value;
+  set enableFloatingDockScrollCollapse(bool value) =>
+      _enableFloatingDockScrollCollapseProperty.value = value;
 
   List<String> get topButtonsOrder => _topButtonsOrderProperty.value;
   set topButtonsOrder(List<String> value) {

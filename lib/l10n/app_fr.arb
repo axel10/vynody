@@ -194,6 +194,8 @@
   "collapseButtonsInLandscapeLyricsDescription": "Réduit les 7 boutons, aligne le titre à gauche et ajoute des boutons à droite en mode paroles paysage",
   "expandPortraitLyricsControlsOnScroll": "Développer les commandes lors du défilement des paroles en portrait",
   "expandPortraitLyricsControlsOnScrollDescription": "Développer les commandes et la barre de progression lors du défilement des paroles en mode portrait",
+  "floatingDockScrollCollapse": "Réduire le dock au défilement",
+  "floatingDockScrollCollapseDescription": "Réduit le dock flottant à un mini-lecteur sur une seule ligne lors d'un défilement vers le bas, et le redéploie lors d'un défilement vers le haut ou à l'approche du début ou de la fin de la liste. Désactivé, le dock reste toujours entièrement déployé.",
   "sampleStride": "Pas d'échantillonnage",
   "sampleStrideDescription": "Plus la valeur est grande, plus l'analyse est rapide mais moins précise (défaut: 4)",
   "waveformSegments": "Segments de forme d'onde",

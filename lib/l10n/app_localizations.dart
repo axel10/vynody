@@ -1197,6 +1197,18 @@ abstract class AppLocalizations {
   /// **'在竖屏歌词模式下滚动歌词时自动展开底部播放控件与进度条'**
   String get expandPortraitLyricsControlsOnScrollDescription;
 
+  /// Collapse floating dock on scroll label
+  ///
+  /// In zh, this message translates to:
+  /// **'悬浮栏随滚动收起'**
+  String get floatingDockScrollCollapse;
+
+  /// Collapse floating dock on scroll description
+  ///
+  /// In zh, this message translates to:
+  /// **'向下滚动列表时自动收拢悬浮栏，仅保留单行迷你播放器；向上滚动或回到列表顶部、底部时自动展开。关闭后悬浮栏不再收起，始终保持完整展开。'**
+  String get floatingDockScrollCollapseDescription;
+
   /// Sample Stride label
   ///
   /// In zh, this message translates to:

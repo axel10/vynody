@@ -721,6 +721,14 @@
   "@expandPortraitLyricsControlsOnScrollDescription": {
     "description": "Expand controls on portrait lyrics scroll description"
   },
+  "floatingDockScrollCollapse": "悬浮栏随滚动收起",
+  "@floatingDockScrollCollapse": {
+    "description": "Collapse floating dock on scroll label"
+  },
+  "floatingDockScrollCollapseDescription": "向下滚动列表时自动收拢悬浮栏，仅保留单行迷你播放器；向上滚动或回到列表顶部、底部时自动展开。关闭后悬浮栏不再收起，始终保持完整展开。",
+  "@floatingDockScrollCollapseDescription": {
+    "description": "Collapse floating dock on scroll description"
+  },
   "sampleStride": "采样步长",
   "@sampleStride": {
     "description": "Sample Stride label"

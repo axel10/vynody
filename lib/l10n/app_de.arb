@@ -194,6 +194,8 @@
   "collapseButtonsInLandscapeLyricsDescription": "Klappt die 7-Schaltflächen-Zeile ein, richtet den Titel links aus und fügt rechte Aktionstasten im Querformat-Songtext-Modus hinzu",
   "expandPortraitLyricsControlsOnScroll": "Bedienelemente beim Scrollen im Hochformat-Songtextmodus erweitern",
   "expandPortraitLyricsControlsOnScrollDescription": "Bedienelemente und Fortschrittsbalken beim Scrollen von Songtexten im Hochformat erweitern",
+  "floatingDockScrollCollapse": "Dock beim Scrollen einklappen",
+  "floatingDockScrollCollapseDescription": "Klappt das schwebende Dock beim Scrollen nach unten zu einem einzeiligen Mini-Player zusammen und klappt es beim Scrollen nach oben oder am Anfang bzw. Ende der Liste wieder aus. Deaktiviert bleibt das Dock immer vollständig ausgeklappt.",
   "sampleStride": "Abtastschritt",
   "sampleStrideDescription": "Größere Werte scannen schneller, aber mit geringerer Wellenformgenauigkeit (Standard: 4)",
   "waveformSegments": "Wellenform-Segmente",

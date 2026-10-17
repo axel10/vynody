@@ -194,6 +194,8 @@
   "collapseButtonsInLandscapeLyricsDescription": "가로 가사 모드에서 7개 버튼 행을 접고 제목을 왼쪽으로 정렬하며 오른쪽에 작업 버튼을 추가합니다",
   "expandPortraitLyricsControlsOnScroll": "세로 가사 스크롤 시 재생 컨트롤 확장",
   "expandPortraitLyricsControlsOnScrollDescription": "세로 가사 모드에서 스크롤할 때 하단 재생 컨트롤과 진행률 표시줄을 확장합니다",
+  "floatingDockScrollCollapse": "스크롤 시 독 접기",
+  "floatingDockScrollCollapseDescription": "아래로 스크롤하면 하단 독을 접어 한 줄 미니 플레이어만 표시하고, 위로 스크롤하거나 목록의 처음·끝에 도달하면 다시 펼칩니다. 끄면 독은 항상 완전히 펼쳐진 상태로 유지됩니다.",
   "sampleStride": "샘플 간격",
   "sampleStrideDescription": "값이 클수록 빠르게 스캔하지만 파형 정밀도가 낮아집니다 (기본값: 4)",
   "waveformSegments": "파형 세그먼트",

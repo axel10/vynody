@@ -595,6 +595,13 @@ class AppLocalizationsDe extends AppLocalizations {
       'Bedienelemente und Fortschrittsbalken beim Scrollen von Songtexten im Hochformat erweitern';
 
   @override
+  String get floatingDockScrollCollapse => 'Dock beim Scrollen einklappen';
+
+  @override
+  String get floatingDockScrollCollapseDescription =>
+      'Klappt das schwebende Dock beim Scrollen nach unten zu einem einzeiligen Mini-Player zusammen und klappt es beim Scrollen nach oben oder am Anfang bzw. Ende der Liste wieder aus. Deaktiviert bleibt das Dock immer vollständig ausgeklappt.';
+
+  @override
   String get sampleStride => 'Abtastschritt';
 
   @override

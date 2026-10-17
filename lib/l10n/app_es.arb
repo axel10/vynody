@@ -194,6 +194,8 @@
   "collapseButtonsInLandscapeLyricsDescription": "Colapsa la fila de 7 botones, alinea el título a la izquierda y añade botones de acción a la derecha en modo letras horizontal",
   "expandPortraitLyricsControlsOnScroll": "Expandir controles al desplazar la letra en vertical",
   "expandPortraitLyricsControlsOnScrollDescription": "Expandir los controles y la barra de progreso al desplazarse por las letras en modo vertical",
+  "floatingDockScrollCollapse": "Contraer el dock al desplazar",
+  "floatingDockScrollCollapseDescription": "Contrae el dock flotante a un mini reproductor de una sola línea al desplazarte hacia abajo y lo vuelve a expandir al desplazarte hacia arriba o al llegar al principio o al final de la lista. Si se desactiva, el dock permanece siempre completamente expandido.",
   "sampleStride": "Paso de muestreo",
   "sampleStrideDescription": "Valores más grandes escanean más rápido pero con menor precisión de forma de onda (predeterminado: 4)",
   "waveformSegments": "Segmentos de forma de onda",

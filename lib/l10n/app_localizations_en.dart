@@ -590,6 +590,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'Expand bottom playback controls and progress bar when scrolling lyrics in portrait mode';
 
   @override
+  String get floatingDockScrollCollapse =>
+      'Collapse the floating bar on scroll';
+
+  @override
+  String get floatingDockScrollCollapseDescription =>
+      'Collapse the floating bar into a single-line mini player when scrolling down, and expand it again when scrolling up or reaching the top or bottom of the list. Turn off to keep the floating bar fully expanded at all times.';
+
+  @override
   String get sampleStride => 'Sample Stride';
 
   @override

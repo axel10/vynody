@@ -177,6 +177,8 @@
   "collapseButtonsInLandscapeLyricsDescription": "進入橫屏歌詞模式時收起 7 按鈕列、標題左對齊並在右側顯示快捷按鈕",
   "expandPortraitLyricsControlsOnScroll": "直向歌詞滾動展開播放控制元件",
   "expandPortraitLyricsControlsOnScrollDescription": "在直向歌詞模式下滾動歌詞時自動展開底部播放控制元件與進度條",
+  "floatingDockScrollCollapse": "懸浮欄隨捲動收起",
+  "floatingDockScrollCollapseDescription": "向下捲動清單時自動收攏懸浮欄，僅保留單行迷你播放器；向上捲動或回到清單頂部、底部時自動展開。關閉後懸浮欄不再收起，始終保持完整展開。",
   "sampleStride": "取樣步長",
   "sampleStrideDescription": "值越大掃描越快但波形精度越低（預設：4）",
   "waveformSegments": "波形分段",

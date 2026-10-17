@@ -581,6 +581,13 @@ class AppLocalizationsZh extends AppLocalizations {
       '在竖屏歌词模式下滚动歌词时自动展开底部播放控件与进度条';
 
   @override
+  String get floatingDockScrollCollapse => '悬浮栏随滚动收起';
+
+  @override
+  String get floatingDockScrollCollapseDescription =>
+      '向下滚动列表时自动收拢悬浮栏，仅保留单行迷你播放器；向上滚动或回到列表顶部、底部时自动展开。关闭后悬浮栏不再收起，始终保持完整展开。';
+
+  @override
   String get sampleStride => '采样步长';
 
   @override
@@ -5888,6 +5895,13 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   @override
   String get expandPortraitLyricsControlsOnScrollDescription =>
       '在直向歌詞模式下滾動歌詞時自動展開底部播放控制元件與進度條';
+
+  @override
+  String get floatingDockScrollCollapse => '懸浮欄隨捲動收起';
+
+  @override
+  String get floatingDockScrollCollapseDescription =>
+      '向下捲動清單時自動收攏懸浮欄，僅保留單行迷你播放器；向上捲動或回到清單頂部、底部時自動展開。關閉後懸浮欄不再收起，始終保持完整展開。';
 
   @override
   String get sampleStride => '取樣步長';

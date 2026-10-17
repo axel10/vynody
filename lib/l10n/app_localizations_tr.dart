@@ -592,6 +592,13 @@ class AppLocalizationsTr extends AppLocalizations {
       'Dikey şarkı sözü modunda kaydırırken oynatma kontrollerini ve ilerleme çubuğunu otomatik genişlet';
 
   @override
+  String get floatingDockScrollCollapse => 'Kaydırmada dock\'u daralt';
+
+  @override
+  String get floatingDockScrollCollapseDescription =>
+      'Aşağı kaydırırken yüzen dock\'u tek satırlık mini oynatıcıya daraltır; yukarı kaydırdığınızda veya listenin başına ya da sonuna geldiğinizde yeniden genişletir. Kapalıyken dock her zaman tamamen geniş kalır.';
+
+  @override
   String get sampleStride => 'Örnekleme Adımı';
 
   @override

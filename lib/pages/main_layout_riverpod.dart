@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:vynody/player/audio/audio_riverpod.dart';
 
 class MainLayoutUiState {
   const MainLayoutUiState({
@@ -275,7 +276,17 @@ final floatingDockCollapseProgressProvider =
 
 class FloatingDockCollapsedNotifier extends Notifier<bool> {
   @override
-  bool build() => false;
+  bool build() {
+    // 订阅「滚动收起」开关：关闭时收起态恒为 false（完整展开）。
+    // 开关翻转会让本 provider 重建，因此关闭的那一刻收起状态即被复位，
+    // 重新开启时不会残留上一次的收起态。
+    ref.watch(
+      settingsServiceProvider.select(
+        (s) => s.enableFloatingDockScrollCollapse,
+      ),
+    );
+    return false;
+  }
 
   void setCollapsed(bool value) {
     if (!ref.mounted) return;
@@ -342,6 +353,13 @@ class FloatingDockScrollHelper {
     WidgetRef ref,
   ) {
     if (notification.metrics.axis != Axis.vertical) {
+      return false;
+    }
+
+    // 设置里关闭「滚动收起」时，悬浮栏始终完整展开：
+    // 清空滚动累计与缩小指示，避免残留半收起的小幅缩放。
+    if (!ref.read(settingsServiceProvider).enableFloatingDockScrollCollapse) {
+      reset(ref);
       return false;
     }
 

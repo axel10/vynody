@@ -583,6 +583,13 @@ class AppLocalizationsKo extends AppLocalizations {
       '세로 가사 모드에서 스크롤할 때 하단 재생 컨트롤과 진행률 표시줄을 확장합니다';
 
   @override
+  String get floatingDockScrollCollapse => '스크롤 시 독 접기';
+
+  @override
+  String get floatingDockScrollCollapseDescription =>
+      '아래로 스크롤하면 하단 독을 접어 한 줄 미니 플레이어만 표시하고, 위로 스크롤하거나 목록의 처음·끝에 도달하면 다시 펼칩니다. 끄면 독은 항상 완전히 펼쳐진 상태로 유지됩니다.';
+
+  @override
   String get sampleStride => '샘플 간격';
 
   @override

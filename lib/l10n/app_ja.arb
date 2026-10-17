@@ -194,6 +194,8 @@
   "collapseButtonsInLandscapeLyricsDescription": "横画面歌詞モードで7つのボタン行を折りたたみ、タイトルを左揃えにして右側にアクションボタンを追加します",
   "expandPortraitLyricsControlsOnScroll": "縦画面歌詞スクロール時に操作パネルを展開",
   "expandPortraitLyricsControlsOnScrollDescription": "縦画面の歌詞モードでスクロール時に下部の再生コントロールと進行バーを展開します",
+  "floatingDockScrollCollapse": "スクロールでドックを折りたたむ",
+  "floatingDockScrollCollapseDescription": "下にスクロールするとドックを折りたたみ、1 行のミニプレーヤーのみを表示します。上にスクロールするか、リストの先頭・末尾に到達すると自動的に展開します。オフにするとドックは常に展開されたままになります。",
   "sampleStride": "サンプルストライド",
   "sampleStrideDescription": "値が大きいとスキャンは速いが波形精度が低下（デフォルト: 4）",
   "waveformSegments": "波形セグメント数",

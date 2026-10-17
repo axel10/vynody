@@ -654,6 +654,14 @@ class GeneralSection extends ConsumerWidget {
                 settings.expandPortraitLyricsControlsOnScroll = value;
               },
             ),
+            SwitchListTile(
+              title: Text(l10n.floatingDockScrollCollapse),
+              subtitle: Text(l10n.floatingDockScrollCollapseDescription),
+              value: settings.enableFloatingDockScrollCollapse,
+              onChanged: (value) {
+                settings.enableFloatingDockScrollCollapse = value;
+              },
+            ),
             ListTile(
               title: Text(l10n.playbackButtonLayoutTitle),
               subtitle: Text(l10n.playbackButtonLayoutDescription),

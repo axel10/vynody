@@ -598,6 +598,13 @@ class AppLocalizationsEs extends AppLocalizations {
       'Expandir los controles y la barra de progreso al desplazarse por las letras en modo vertical';
 
   @override
+  String get floatingDockScrollCollapse => 'Contraer el dock al desplazar';
+
+  @override
+  String get floatingDockScrollCollapseDescription =>
+      'Contrae el dock flotante a un mini reproductor de una sola línea al desplazarte hacia abajo y lo vuelve a expandir al desplazarte hacia arriba o al llegar al principio o al final de la lista. Si se desactiva, el dock permanece siempre completamente expandido.';
+
+  @override
   String get sampleStride => 'Paso de muestreo';
 
   @override

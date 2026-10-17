@@ -583,6 +583,13 @@ class AppLocalizationsJa extends AppLocalizations {
       '縦画面の歌詞モードでスクロール時に下部の再生コントロールと進行バーを展開します';
 
   @override
+  String get floatingDockScrollCollapse => 'スクロールでドックを折りたたむ';
+
+  @override
+  String get floatingDockScrollCollapseDescription =>
+      '下にスクロールするとドックを折りたたみ、1 行のミニプレーヤーのみを表示します。上にスクロールするか、リストの先頭・末尾に到達すると自動的に展開します。オフにするとドックは常に展開されたままになります。';
+
+  @override
   String get sampleStride => 'サンプルストライド';
 
   @override

@@ -202,6 +202,8 @@
   "collapseButtonsInLandscapeLyricsDescription": "Collapse the 7-button row, left-align title, and add action buttons in landscape lyrics mode",
   "expandPortraitLyricsControlsOnScroll": "Expand controls on portrait lyrics scroll",
   "expandPortraitLyricsControlsOnScrollDescription": "Expand bottom playback controls and progress bar when scrolling lyrics in portrait mode",
+  "floatingDockScrollCollapse": "Collapse the floating bar on scroll",
+  "floatingDockScrollCollapseDescription": "Collapse the floating bar into a single-line mini player when scrolling down, and expand it again when scrolling up or reaching the top or bottom of the list. Turn off to keep the floating bar fully expanded at all times.",
   "sampleStride": "Sample Stride",
   "sampleStrideDescription": "Larger values scan faster but with lower waveform precision (default: 4)",
   "waveformSegments": "Waveform Segments",

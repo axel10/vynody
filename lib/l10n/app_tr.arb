@@ -258,6 +258,8 @@
   "collapseButtonsInLandscapeLyricsDescription": "Yatay sözler modunda 7 düğmeli satırı daralt, başlığı sola hizala ve sağda işlem düğmelerini göster",
   "expandPortraitLyricsControlsOnScroll": "Dikey şarkı sözü kaydırmasında kontrolleri genişlet",
   "expandPortraitLyricsControlsOnScrollDescription": "Dikey şarkı sözü modunda kaydırırken oynatma kontrollerini ve ilerleme çubuğunu otomatik genişlet",
+  "floatingDockScrollCollapse": "Kaydırmada dock'u daralt",
+  "floatingDockScrollCollapseDescription": "Aşağı kaydırırken yüzen dock'u tek satırlık mini oynatıcıya daraltır; yukarı kaydırdığınızda veya listenin başına ya da sonuna geldiğinizde yeniden genişletir. Kapalıyken dock her zaman tamamen geniş kalır.",
   "sampleStride": "Örnekleme Adımı",
   "sampleStrideDescription": "Daha büyük değerler daha hızlı tarar ancak dalga formu hassasiyetini düşürür (varsayılan: 4)",
   "waveformSegments": "Dalga Formu Dilimleri",

@@ -597,6 +597,13 @@ class AppLocalizationsFr extends AppLocalizations {
       'Développer les commandes et la barre de progression lors du défilement des paroles en mode portrait';
 
   @override
+  String get floatingDockScrollCollapse => 'Réduire le dock au défilement';
+
+  @override
+  String get floatingDockScrollCollapseDescription =>
+      'Réduit le dock flottant à un mini-lecteur sur une seule ligne lors d\'un défilement vers le bas, et le redéploie lors d\'un défilement vers le haut ou à l\'approche du début ou de la fin de la liste. Désactivé, le dock reste toujours entièrement déployé.';
+
+  @override
   String get sampleStride => 'Pas d\'échantillonnage';
 
   @override
