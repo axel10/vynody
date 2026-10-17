@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:vynody/models/genre_summary.dart';
 import 'package:vynody/player/audio/playback_source.dart';
 import '../widgets/collection_detail_content.dart';
-import '../widgets/collection_detail_header.dart';
 import '../widgets/detail_page_shell.dart';
 import '../widgets/library_selection_back_guard.dart';
 
@@ -64,15 +63,6 @@ class GenreDetailContent extends StatelessWidget {
         id: genre.queryKey,
         name: genre.name,
       ),
-      cover: genre.songs.isEmpty
-          ? null
-          : CollectionCover(
-              size: 96,
-              songPath: genre.songs.first.path,
-              artworkPath: genre.representativeArtworkPath,
-              thumbnailPath: genre.representativeThumbnailPath,
-              fallbackIcon: Icons.style_rounded,
-            ),
       showSelectionPanel: showSelectionPanel,
       hasBottomPanel: hasBottomPanel,
       scrollController: scrollController,

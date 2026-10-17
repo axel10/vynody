@@ -36,6 +36,8 @@
 
 `assets/images/genre/`、`assets/icons/genre/`、pubspec 声明、`genre_naming.dart` 的资源键体系（`matchGenreAssetKey` / `genreImageAssetKey` / `genreIconAssetKey` / `kGenreAssetKeys` / `_iconKeyByImageKey` / 别名表 / 子串规则）与 `GenreSummary.imageAssetPath|iconAssetPath|usesFallbackCover` 已全部删除。`genre_naming.dart` 只剩 `normalizeGenreKey()` 与 `pickGenreDisplayName()`：聚合键只用于分组与相等判断，展示名保留原始排版，两者不可混用。新增流派 UI 一律取代表曲专辑封面，不要再引入任何流派素材。
 
+**两套「代表曲」规则不可混用**：集合摘要（`library_catalog.dart` 的 `_buildGenreSummaries`/`_buildYearSummaries`）按数据库原始顺序取「第一首带封面路径的歌」，与详情页 `buildAlbumSections` 的「专辑名排序首组 + 音轨号」结果必然不一致。因此**流派/年份列表页与详情页页头都不显示集合级封面**（2026-10-17 起；`_GenreListItem`/`_YearListItem` 只剩标题 + 歌曲数·专辑数，`CollectionCover` 类已删），封面只在专辑分组里出现。集合级 `representativeArtworkPath` 仅剩首页卡片（`library_dashboard_view.dart`）、右键菜单/底部弹窗（`genre_context_menu.dart`/`year_context_menu.dart`）、拖拽预览（`draggable_*_item.dart`）在使用。要真正统一集合封面，只能抽公共 helper 让 catalog 复用分组排序规则。
+
 ## 播放页音频规格
 
 `PlaybackAudioInfoLabel`（`playback_progress_section.dart:304`），数据源唯一 `currentAudioDetailsProvider`。坑：①provider 重建先跑 `onDispose` 会取消精解析定时器（已修）；②`setCachedAudioDetails` 无条件写，`sampleRate==0` 的缓存让整行空白；③远程曲目 path 无扩展名，未读 trackJson 的 `samplingRate`/`bitRate`。

@@ -4,7 +4,6 @@ import '../l10n/app_localizations.dart';
 import 'package:vynody/models/year_summary.dart';
 import 'package:vynody/player/audio/playback_source.dart';
 import '../widgets/collection_detail_content.dart';
-import '../widgets/collection_detail_header.dart';
 import '../widgets/detail_page_shell.dart';
 import '../widgets/library_selection_back_guard.dart';
 
@@ -71,15 +70,6 @@ class YearDetailContent extends StatelessWidget {
         id: year.queryKey,
         name: title,
       ),
-      cover: year.songs.isEmpty
-          ? null
-          : CollectionCover(
-              size: 96,
-              songPath: year.songs.first.path,
-              artworkPath: year.representativeArtworkPath,
-              thumbnailPath: year.representativeThumbnailPath,
-              fallbackIcon: Icons.calendar_month_rounded,
-            ),
       showSelectionPanel: showSelectionPanel,
       hasBottomPanel: hasBottomPanel,
       scrollController: scrollController,

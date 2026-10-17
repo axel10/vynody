@@ -24,7 +24,6 @@ class CollectionDetailContent extends ConsumerStatefulWidget {
     required this.totalDurationMillis,
     required this.songs,
     required this.source,
-    this.cover,
     this.showSelectionPanel = true,
     this.hasBottomPanel = false,
     this.scrollController,
@@ -41,9 +40,6 @@ class CollectionDetailContent extends ConsumerStatefulWidget {
 
   /// 播放全部、随机播放与单曲播放共用的播放来源。
   final PlaybackSource source;
-
-  /// 竖屏展示的封面；横屏不展示。
-  final Widget? cover;
 
   final bool showSelectionPanel;
   final bool hasBottomPanel;
@@ -108,7 +104,6 @@ class _CollectionDetailContentState extends ConsumerState<CollectionDetailConten
                   title: widget.title,
                   metaLine:
                       '${l10n.songCount(widget.songCount)} · ${l10n.albumCount(widget.albumCount)} · $durationLabel',
-                  cover: widget.cover,
                   onPlayAll: () => _playAll(displaySongs),
                   onShufflePlay: () =>
                       _playAll(List<MusicFile>.of(displaySongs)..shuffle()),

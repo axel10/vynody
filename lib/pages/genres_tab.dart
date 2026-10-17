@@ -11,7 +11,6 @@ import '../widgets/library_selection_scope.dart';
 import '../widgets/library_selection_panel.dart';
 import '../widgets/draggable_genre_item.dart';
 import '../widgets/genre_context_menu.dart';
-import '../widgets/song_thumbnail.dart';
 import 'main_layout_riverpod.dart';
 
 class GenresTab extends ConsumerStatefulWidget {
@@ -350,9 +349,6 @@ class _GenreListItem extends ConsumerWidget {
             ? theme.colorScheme.secondaryContainer.withValues(alpha: 0.5)
             : theme.colorScheme.primaryContainer.withValues(alpha: 0.6))
         : Colors.transparent;
-    final hasCover =
-        (genre.representativeArtworkPath?.isNotEmpty ?? false) ||
-            (genre.representativeThumbnailPath?.isNotEmpty ?? false);
 
     return DraggableGenreItem(
       genre: genre,
@@ -412,32 +408,6 @@ class _GenreListItem extends ConsumerWidget {
                       ),
                       const SizedBox(width: 6),
                     ],
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: SizedBox(
-                        width: 44,
-                        height: 44,
-                        child: hasCover && genre.songs.isNotEmpty
-                            ? SongThumbnail(
-                                path: genre.songs.first.path,
-                                artworkPath: genre.representativeArtworkPath,
-                                thumbnailPath:
-                                    genre.representativeThumbnailPath,
-                                size: 44,
-                              )
-                            : Container(
-                                color:
-                                    theme.colorScheme.surfaceContainerHighest,
-                                alignment: Alignment.center,
-                                child: Icon(
-                                  Icons.music_note_rounded,
-                                  size: 22,
-                                  color: theme.colorScheme.primary,
-                                ),
-                              ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,

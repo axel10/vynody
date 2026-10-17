@@ -9,7 +9,6 @@ import 'year_detail_page.dart';
 import '../widgets/master_detail_scaffold.dart';
 import '../widgets/library_selection_scope.dart';
 import '../widgets/library_selection_panel.dart';
-import '../widgets/song_thumbnail.dart';
 import '../widgets/draggable_year_item.dart';
 import '../widgets/year_context_menu.dart';
 import 'main_layout_riverpod.dart';
@@ -359,10 +358,6 @@ class _YearListItem extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
-    final hasCover = (year.representativeArtworkPath != null &&
-            year.representativeArtworkPath!.isNotEmpty) ||
-        (year.representativeThumbnailPath != null &&
-            year.representativeThumbnailPath!.isNotEmpty);
 
     final isItemHighlighted =
         isSelectionMode ? isSelectedInSelectionMode : selected;
@@ -413,29 +408,6 @@ class _YearListItem extends ConsumerWidget {
                   ),
                   const SizedBox(width: 6),
                 ],
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: SizedBox(
-                    width: 44,
-                    height: 44,
-                    child: hasCover && year.songs.isNotEmpty
-                        ? SongThumbnail(
-                            path: year.songs.first.path,
-                            artworkPath: year.representativeArtworkPath,
-                            thumbnailPath: year.representativeThumbnailPath,
-                            size: 44,
-                          )
-                        : Container(
-                            color: theme.colorScheme.surfaceContainerHighest,
-                            child: Icon(
-                              Icons.calendar_month_rounded,
-                              size: 24,
-                              color: theme.colorScheme.primary,
-                            ),
-                          ),
-                  ),
-                ),
-                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,

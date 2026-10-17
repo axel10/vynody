@@ -10,7 +10,6 @@ import 'package:vynody/models/year_summary.dart';
 import 'package:vynody/pages/genre_detail_page.dart';
 import 'package:vynody/pages/year_detail_page.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
-import 'package:vynody/widgets/collection_detail_header.dart';
 import 'package:vynody/widgets/song_thumbnail.dart';
 
 import 'helpers/mobile_screenshot_harness.dart';
@@ -158,7 +157,15 @@ void main() {
     });
   }
 
-  testWidgets('流派详情页 - 横屏不展示集合封面，列表按专辑分组渲染',
+  /// 详情页头部不再有集合封面（96 方形），封面只出现在专辑分组里。
+  void expectNoHeaderCover() {
+    expect(
+      find.byWidgetPredicate((w) => w is SongThumbnail && w.size == 96),
+      findsNothing,
+    );
+  }
+
+  testWidgets('流派详情页 - 横屏头部无集合封面，列表按专辑分组渲染',
       (tester) async {
     setLandscape(tester);
     await tester.pumpWidget(
@@ -167,7 +174,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
-    expect(find.byType(CollectionCover), findsNothing);
+    expectNoHeaderCover();
     expect(find.text(sampleGenre.name), findsWidgets);
     // 宽列表区使用「左侧专辑大图 + 右侧曲目列表」布局
     expect(
@@ -176,7 +183,7 @@ void main() {
     );
   });
 
-  testWidgets('年份详情页 - 横屏不展示集合封面，列表按专辑分组渲染',
+  testWidgets('年份详情页 - 横屏头部无集合封面，列表按专辑分组渲染',
       (tester) async {
     setLandscape(tester);
     await tester.pumpWidget(
@@ -185,7 +192,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
-    expect(find.byType(CollectionCover), findsNothing);
+    expectNoHeaderCover();
     expect(find.text('2024'), findsWidgets);
     expect(
       find.byWidgetPredicate((w) => w is SongThumbnail && w.size == 190),
@@ -193,7 +200,7 @@ void main() {
     );
   });
 
-  testWidgets('流派详情页 - 竖屏保留集合封面', (tester) async {
+  testWidgets('流派详情页 - 竖屏头部同样无集合封面', (tester) async {
     setPortrait(tester);
     await tester.pumpWidget(
       buildTestApp(child: GenreDetailPage(genre: sampleGenre)),
@@ -201,10 +208,15 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
-    expect(find.byType(CollectionCover), findsOneWidget);
+    expectNoHeaderCover();
+    // 窄屏分组封面为 84 小图，曲目列表在其下方展开
+    expect(
+      find.byWidgetPredicate((w) => w is SongThumbnail && w.size == 84),
+      findsWidgets,
+    );
   });
 
-  testWidgets('年份详情页 - 竖屏保留集合封面', (tester) async {
+  testWidgets('年份详情页 - 竖屏头部同样无集合封面', (tester) async {
     setPortrait(tester);
     await tester.pumpWidget(
       buildTestApp(child: YearDetailPage(year: sampleYear)),
@@ -212,6 +224,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
-    expect(find.byType(CollectionCover), findsOneWidget);
+    expectNoHeaderCover();
+    expect(
+      find.byWidgetPredicate((w) => w is SongThumbnail && w.size == 84),
+      findsWidgets,
+    );
   });
 }
