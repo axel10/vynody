@@ -108,6 +108,8 @@ class _YearsTabState extends ConsumerState<YearsTab>
     final noYearsLabel = l10n.emptyList;
 
     return yearsAsync.when(
+      // 曲库快照重算时保留上一次的列表，避免整页闪加载圈。
+      skipLoadingOnReload: true,
       loading: () => const Center(
         child: SizedBox(
           width: 28,

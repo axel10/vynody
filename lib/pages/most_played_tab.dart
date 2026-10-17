@@ -43,6 +43,7 @@ class MostPlayedTab extends ConsumerWidget {
     if (isAlbums) {
       final asyncAlbums = ref.watch(mostPlayedAlbumsProvider(filterState.range));
       return asyncAlbums.when(
+        skipLoadingOnReload: true,
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => Center(child: Text(error.toString())),
         data: (albums) => LibraryRankedAlbumList(
@@ -65,6 +66,7 @@ class MostPlayedTab extends ConsumerWidget {
     } else {
       final asyncSongs = ref.watch(mostPlayedSongsProvider(filterState.range));
       return asyncSongs.when(
+        skipLoadingOnReload: true,
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => Center(child: Text(error.toString())),
         data: (songs) => LibraryRankedSongList(

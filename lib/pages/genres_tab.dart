@@ -99,6 +99,8 @@ class _GenresTabState extends ConsumerState<GenresTab>
     final noGenresLabel = l10n.emptyList;
 
     return genresAsync.when(
+      // 曲库快照重算时保留上一次的列表，避免整页闪加载圈。
+      skipLoadingOnReload: true,
       loading: () => const Center(
         child: SizedBox(
           width: 28,

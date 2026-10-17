@@ -155,6 +155,7 @@ class _RatedSongsTabState extends ConsumerState<RatedSongsTab> {
     final asyncItems = ref.watch(allRatedSongsProvider);
 
     return asyncItems.when(
+      skipLoadingOnReload: true,
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, _) => Center(child: Text(error.toString())),
       data: (items) {

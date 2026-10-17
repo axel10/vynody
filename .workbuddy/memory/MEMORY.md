@@ -27,6 +27,7 @@
 - **MainLayout 是 rebuild 放大器**：`_buildCurrentPage()` 每次 build 新建非 const 的 `FoldersPage`/`LibraryPage`，任何 `setState` 都 rebuild 全部已访问页（含不可见）。别随手加 `ref.watch`。
 - **Riverpod 3 禁在 `initState`/`dispose`/`build` 里改 provider 状态**：抛 “Tried to modify a provider while the widget tree was building”。需要「页面销毁即复位」时，在 `initState` 里先 `ref.read(x.notifier)` 存字段，再在 `dispose` 里 `Future.microtask(() => notifier.reset())`（`LibrarySubHostPageState` 是范本）。Notifier 内 `reset()` 先判 `ref.mounted` 与 `isDefault`，避免容器已销毁时抛 unmounted ref。
 - **Android 转场**：必须 `ZoomPageTransitionsBuilder(allowSnapshotting: false)`，否则返回时下层被快照，ink 高亮残留。
+- **曲库派生页禁把 reload 当首次加载**：播放写 `songs` 表 → catalog 重出快照 → 派生 provider 是「有旧值的 reload」。`AsyncValue.when` 默认 `skipLoadingOnReload: false`，会把整页换成加载圈（播放后一直闪的元凶）。判 loading 只认「没有旧值」，用 `skipLoadingOnReload: true` 或 `value ?? 上次缓存`。
 - **写 `songs` 表只能基于 DB 记录 `copyWith`**：`insertOrUpdateSong` → `_songCompanion` 是整行写入，`Value(null)` 照写。任何链路里 `new SongMetadata(...)` 再整行写，都会把未列出的列（`year`、`genres`、`bitrate/sampleRate/format/codec`、`albumArtist`、`sourceFlags`、`fileRating`、`hasArtwork`）清成 null。曾因此让「播放一次后歌曲从年份页消失」（`saveCurrentSongThemeColors`，已修）。
 
 ## 新增实体 / 条目

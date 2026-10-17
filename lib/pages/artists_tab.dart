@@ -103,6 +103,9 @@ class _ArtistsTabState extends ConsumerState<ArtistsTab>
     final noArtistsLabel = l10n.noArtists;
 
     return artistsAsync.when(
+      // 播放等写入会让曲库快照重算，派生 provider 会回到「有旧值的 reload」；
+      // 若沿用 loading 分支，整页会被加载圈顶掉，看起来就是一直闪。
+      skipLoadingOnReload: true,
       loading: () => const Center(
         child: SizedBox(
           width: 28,
