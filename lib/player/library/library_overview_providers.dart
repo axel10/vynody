@@ -305,6 +305,11 @@ class LibraryInsightFilterState {
   final SectionItemType type;
   final LibraryTimeRange range;
 
+  /// 是否为页面的初始状态（歌曲 + 全部时间）。
+  /// 用于让 [LibraryInsightFilterNotifier.reset] 幂等，避免无意义地触发通知。
+  bool get isDefault =>
+      type == SectionItemType.songs && range == LibraryTimeRange.allTime;
+
   LibraryInsightFilterState copyWith({
     SectionItemType? type,
     LibraryTimeRange? range,
@@ -341,7 +346,14 @@ class LibraryInsightFilterNotifier extends Notifier<LibraryInsightFilterState> {
     }
   }
 
+  /// 复位为「歌曲 + 全部时间」。
+  ///
+  /// 已处于初始状态时直接返回：宿主页销毁阶段会调用它，此时若仍发出通知，
+  /// 会去 markNeedsBuild 一批已经在拆卸中的元素。
+  /// 容器已销毁（热重启、登出等）时静默跳过，避免 unmounted ref 异常。
   void reset() {
+    if (!ref.mounted) return;
+    if (state.isDefault) return;
     state = const LibraryInsightFilterState();
   }
 }

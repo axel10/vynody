@@ -17,6 +17,7 @@
 | 设置项 | `settings_service.dart` 三段（key/property/访问器） | 6 处：key 常量、`SettingProperty`、getter+setter、`resetXxx()`、`settings_search_registry.dart`、`sections/<组>_section.dart` |
 | 流派聚合键 | `normalizeGenreKey()`（`_genreKeyEquivalents` 收敛连写：`JPop`→`j pop`） | 同源派生 `queryKey` 与 `matchGenreAssetKey()`；`_acronymDisplays` 吃 `raw.toLowerCase()` 不能跟着改；`_substringAssetRules` 连写 needle 必须留 |
 | 艺术家/流派/年份详情页 | `widgets/album_sections.dart`（`AlbumSection` + `AlbumSectionsCache` + `AlbumSectionSliver` + `AlbumSongTile`）、`collection_detail_content.dart`（流派/年份共用内容）、`collection_detail_header.dart`、`detail_page_shell.dart` | 禁再各写一份 `_AlbumSection` / 分组排序 / 曲目行；三页布局规则必须一致：分组宽度 ≥600 走「左封面右列表」，否则小封面 + 下方列表 |
+| 洞察页视图状态 | `LibraryInsightFilterNotifier`（单曲/专辑 + 时间跨度），生命周期对齐二级宿主页 | 复位点唯一：`_LibrarySubHostPageState.dispose`（微任务里调 `reset()`）；离开媒体库主页面由 `LibraryPageState.dismissSubPages()` 退栈触发（监听 `mainTabIndexProvider`）。禁在仪表盘/各入口各写一份 reset |
 
 ## 硬性禁止
 
@@ -24,6 +25,7 @@
 - **多选状态禁止条件切换 widget 根节点**：runtimeType 一变子树重建，dispose 微任务清掉刚建的多选状态（一进多选就退出）。唯一状态 `librarySelectionStateProvider`，`SelectionStateMixin`/`SongSelectionMixin` 接入。回归 `test/pages/library_multiselect_test.dart`。
 - **禁裸 `ref.watch(scannerServiceProvider)`**：`updateSongThumbnailPath` 每张缩略图都 `notifyListeners()`。取实例用 `ref.read`，响应树变化用 `.select((s) => s.structureRevision)`（指纹不含缩略图量；推进点：重写的 `notifyListeners()`、`_handleNavigationChanged()`、`updateMetadataForPath(syncTree:true)`）。`rootFolders` 返回缓存视图 `_rootFoldersView`，别现写 `List.unmodifiable`（新实例让 `select` 永不判等）。`ScanProgressInfo` 无 `==`，其 notifier 的 `build()` 只能 select `isScanning`，不能换 `ref.read`。
 - **MainLayout 是 rebuild 放大器**：`_buildCurrentPage()` 每次 build 新建非 const 的 `FoldersPage`/`LibraryPage`，任何 `setState` 都 rebuild 全部已访问页（含不可见）。别随手加 `ref.watch`。
+- **Riverpod 3 禁在 `initState`/`dispose`/`build` 里改 provider 状态**：抛 “Tried to modify a provider while the widget tree was building”。需要「页面销毁即复位」时，在 `initState` 里先 `ref.read(x.notifier)` 存字段，再在 `dispose` 里 `Future.microtask(() => notifier.reset())`（`LibrarySubHostPageState` 是范本）。Notifier 内 `reset()` 先判 `ref.mounted` 与 `isDefault`，避免容器已销毁时抛 unmounted ref。
 - **Android 转场**：必须 `ZoomPageTransitionsBuilder(allowSnapshotting: false)`，否则返回时下层被快照，ink 高亮残留。
 
 ## 新增实体 / 条目

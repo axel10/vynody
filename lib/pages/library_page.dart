@@ -17,6 +17,7 @@ import 'genres_tab.dart';
 import 'years_tab.dart';
 import 'library_dashboard_view.dart';
 import 'main_layout_riverpod.dart';
+import '../player/library/library_overview_providers.dart';
 import '../widgets/library_selection_scope.dart';
 import '../widgets/auto_hide_header.dart';
 import '../widgets/app_top_nav_bar.dart';
@@ -103,6 +104,13 @@ class LibraryPageState extends ConsumerState<LibraryPage> {
     return false;
   }
 
+  /// 把二级宿主（以及其上的三级详情）退回仪表盘，让页面状态随路由一起销毁。
+  /// 供「离开媒体库主页面」时调用；返回键路径走 [handleBackPressed]，不需要它。
+  void dismissSubPages() {
+    if (!_isSubHostPushed) return;
+    _navigatorKey.currentState?.popUntil((route) => route.isFirst);
+  }
+
   void _openSubHost(
     int index, {
     bool initialAlbums3DView = false,
@@ -185,6 +193,16 @@ class LibraryPageState extends ConsumerState<LibraryPage> {
 
   @override
   Widget build(BuildContext context) {
+    // 切到其它主页面（Rail / 底栏 / 深链）时，媒体库二级宿主已不是「当前页面」，
+    // 主动把它退回仪表盘：二级宿主是局部 Navigator 里的一条路由，离开主页面并不会销毁它，
+    // 页面状态（洞察页筛选、各 tab 滚动位置、三级详情）会悄悄留在内存里，
+    // 下次从 Rail 子项直接进来时又原样出现，于是就成了「旧专辑 tab + 旧滚动位置」的残影。
+    ref.listen<int>(mainTabIndexProvider, (previous, next) {
+      if (previous == 2 && next != 2) {
+        dismissSubPages();
+      }
+    });
+
     // 监听全局或 Rail 触发的子分类索引变更
     ref.listen<int?>(libraryActiveTabIndexProvider, (previous, next) {
       if (next != null) {
@@ -279,6 +297,45 @@ class _LibrarySubHostPageState extends ConsumerState<LibrarySubHostPage> {
   /// 宿主页在离场动画播放期间仍会重建一次。此处在 provider 为 null 时冻结上一帧的
   /// 索引，避免离场瞬间 IndexedStack 回落到默认页造成视觉跳变。
   int _lastSubIndex = 0;
+
+  /// 三类洞察页（最近播放 / 最多播放 / 最近添加）的筛选 Notifier。
+  ///
+  /// 这些状态放在全局常驻的 [LibraryInsightFilterNotifier] 里，不随 Widget 树销毁
+  /// 而回收；而页面的滚动进度依附于 Widget 树，退出即归零。若只在「某些入口」
+  /// 手动 reset，就会出现「滚动回到顶部、视图却还停在专辑 tab」的半记忆状态。
+  /// 这里把筛选状态的生命周期与本宿主页对齐：页面销毁 → 全部复位成「歌曲 + 全部时间」，
+  /// 于是无论从仪表盘、Rail 侧边栏还是深链进入，行为都一致。
+  ///
+  /// Riverpod 禁止在 [dispose] 中使用 ref，必须在 initState 里取出 Notifier 存为字段。
+  late final LibraryInsightFilterNotifier _recentlyPlayedFilter;
+  late final LibraryInsightFilterNotifier _mostPlayedFilter;
+  late final LibraryInsightFilterNotifier _recentlyAddedFilter;
+
+  @override
+  void initState() {
+    super.initState();
+    _recentlyPlayedFilter = ref.read(recentlyPlayedFilterProvider.notifier);
+    _mostPlayedFilter = ref.read(mostPlayedFilterProvider.notifier);
+    _recentlyAddedFilter = ref.read(recentlyAddedFilterProvider.notifier);
+  }
+
+  @override
+  void dispose() {
+    // 不能在这里直接改 provider：Riverpod 把 dispose 也算作「生命周期内修改」，
+    // 会抛 “Tried to modify a provider while the widget tree was building”。
+    // 放到微任务里执行，此时页面已彻底离场，不会出现视图回跳。
+    final filters = [
+      _recentlyPlayedFilter,
+      _mostPlayedFilter,
+      _recentlyAddedFilter,
+    ];
+    Future.microtask(() {
+      for (final filter in filters) {
+        filter.reset();
+      }
+    });
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
