@@ -371,6 +371,7 @@ class _GenreListItem extends ConsumerWidget {
                   ref: ref,
                   genre: genre,
                   onMultiSelect: onMultiSelect,
+                  showViewDetails: false,
                 );
               }
             },

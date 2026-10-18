@@ -381,6 +381,7 @@ class _YearListItem extends ConsumerWidget {
               ref: ref,
               year: year,
               onMultiSelect: onMultiSelect,
+              showViewDetails: false,
             );
           }
         },

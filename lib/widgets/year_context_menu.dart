@@ -15,6 +15,87 @@ import 'app_context_menu.dart';
 import 'library_selection_scope.dart';
 import 'song_thumbnail.dart';
 
+/// Shared menu configuration for both the popup context menu and the
+/// long-press bottom sheet.
+List<List<ContextMenuAction>> _buildYearMenuActionGroups(
+  AppLocalizations l10n,
+  YearSummary year, {
+  required bool showViewDetails,
+  required bool showMultiSelect,
+}) {
+  final songs = year.songs;
+  final canEditTags = songs.isNotEmpty &&
+      songs.any((s) => !RemoteMediaResolver.isRemoteUri(s.path));
+
+  return [
+    [
+      ContextMenuAction(
+        value: 'play_all',
+        label: l10n.playAll,
+        icon: Icons.play_arrow_rounded,
+        enabled: songs.isNotEmpty,
+      ),
+      ContextMenuAction(
+        value: 'shuffle',
+        label: l10n.shufflePlay,
+        icon: Icons.shuffle_rounded,
+        enabled: songs.isNotEmpty,
+      ),
+      ContextMenuAction(
+        value: 'play_next',
+        label: l10n.playNext,
+        icon: Icons.queue_play_next_rounded,
+        enabled: songs.isNotEmpty,
+      ),
+      ContextMenuAction(
+        value: 'add_to_queue',
+        label: l10n.addToQueue,
+        icon: Icons.queue_music_rounded,
+        enabled: songs.isNotEmpty,
+      ),
+      ContextMenuAction(
+        value: 'add_to_playlist',
+        label: l10n.addToPlaylist,
+        icon: Icons.playlist_add_rounded,
+        enabled: songs.isNotEmpty,
+      ),
+      ContextMenuAction(
+        value: 'edit_tags',
+        label: songs.length > 1
+            ? '${l10n.batchEditSongTagsTitle} (${songs.length})'
+            : l10n.editSongTagsTitle,
+        icon: Icons.edit_note_rounded,
+        enabled: canEditTags,
+      ),
+      ContextMenuAction(
+        value: 'transcode',
+        label: l10n.transcodeAction,
+        icon: Icons.sync_rounded,
+        enabled: songs.isNotEmpty,
+      ),
+    ],
+    [
+      if (showViewDetails)
+        ContextMenuAction(
+          value: 'view_details',
+          label: l10n.viewYearDetails,
+          icon: Icons.calendar_month_rounded,
+        ),
+      ContextMenuAction(
+        value: 'copy_year',
+        label: l10n.copyYearName,
+        icon: Icons.copy_rounded,
+      ),
+      if (showMultiSelect)
+        ContextMenuAction(
+          value: 'multi_select',
+          label: l10n.multiSelect,
+          icon: Icons.checklist_rounded,
+        ),
+    ],
+  ];
+}
+
 /// Shows context menu (at mouse position) for a release year.
 Future<String?> showYearContextMenu({
   required BuildContext context,
@@ -23,86 +104,19 @@ Future<String?> showYearContextMenu({
   required YearSummary year,
   void Function(String yearKey)? onMultiSelect,
   VoidCallback? onViewDetails,
+  bool showViewDetails = true,
 }) async {
   final l10n = AppLocalizations.of(context)!;
-  final songs = year.songs;
 
-  final canEditTags = songs.isNotEmpty &&
-      songs.any((s) => !RemoteMediaResolver.isRemoteUri(s.path));
-
-  final items = <PopupMenuEntry<String>>[
-    buildContextMenuItem<String>(
-      value: 'play_all',
-      label: l10n.playAll,
-      icon: Icons.play_arrow_rounded,
-      enabled: songs.isNotEmpty,
-      context: context,
+  final items = buildContextMenuPopupItems(
+    context,
+    _buildYearMenuActionGroups(
+      l10n,
+      year,
+      showViewDetails: showViewDetails,
+      showMultiSelect: onMultiSelect != null,
     ),
-    buildContextMenuItem<String>(
-      value: 'shuffle',
-      label: l10n.shufflePlay,
-      icon: Icons.shuffle_rounded,
-      enabled: songs.isNotEmpty,
-      context: context,
-    ),
-    buildContextMenuItem<String>(
-      value: 'play_next',
-      label: l10n.playNext,
-      icon: Icons.queue_play_next_rounded,
-      enabled: songs.isNotEmpty,
-      context: context,
-    ),
-    buildContextMenuItem<String>(
-      value: 'add_to_queue',
-      label: l10n.addToQueue,
-      icon: Icons.queue_music_rounded,
-      enabled: songs.isNotEmpty,
-      context: context,
-    ),
-    buildContextMenuItem<String>(
-      value: 'add_to_playlist',
-      label: l10n.addToPlaylist,
-      icon: Icons.playlist_add_rounded,
-      enabled: songs.isNotEmpty,
-      context: context,
-    ),
-    buildContextMenuItem<String>(
-      value: 'edit_tags',
-      label: songs.length > 1
-          ? '${l10n.batchEditSongTagsTitle} (${songs.length})'
-          : l10n.editSongTagsTitle,
-      icon: Icons.edit_note_rounded,
-      enabled: canEditTags,
-      context: context,
-    ),
-    buildContextMenuItem<String>(
-      value: 'transcode',
-      label: l10n.transcodeAction,
-      icon: Icons.sync_rounded,
-      enabled: songs.isNotEmpty,
-      context: context,
-    ),
-    const PopupMenuDivider(),
-    buildContextMenuItem<String>(
-      value: 'view_details',
-      label: l10n.viewYearDetails,
-      icon: Icons.calendar_month_rounded,
-      context: context,
-    ),
-    buildContextMenuItem<String>(
-      value: 'copy_year',
-      label: l10n.copyYearName,
-      icon: Icons.copy_rounded,
-      context: context,
-    ),
-    if (onMultiSelect != null)
-      buildContextMenuItem<String>(
-        value: 'multi_select',
-        label: l10n.multiSelect,
-        icon: Icons.checklist_rounded,
-        context: context,
-      ),
-  ];
+  );
 
   final selected = await AppContextMenu.show<String>(
     context: context,
@@ -134,11 +148,7 @@ Future<String?> showYearBottomSheet({
 }) async {
   final l10n = AppLocalizations.of(context)!;
   final theme = Theme.of(context);
-  final songs = year.songs;
   final label = year.labelWith(l10n.unknownYear);
-
-  final canEditTags = songs.isNotEmpty &&
-      songs.any((s) => !RemoteMediaResolver.isRemoteUri(s.path));
 
   final previousScope = ref.read(librarySelectionScopeProvider);
   ref
@@ -206,76 +216,15 @@ Future<String?> showYearBottomSheet({
                           const SizedBox(height: 12),
                           const Divider(height: 1),
                           const SizedBox(height: 8),
-                          _buildYearBottomSheetItem(
-                            context: context,
-                            value: 'play_all',
-                            label: l10n.playAll,
-                            icon: Icons.play_arrow_rounded,
-                            enabled: songs.isNotEmpty,
-                          ),
-                          _buildYearBottomSheetItem(
-                            context: context,
-                            value: 'shuffle',
-                            label: l10n.shufflePlay,
-                            icon: Icons.shuffle_rounded,
-                            enabled: songs.isNotEmpty,
-                          ),
-                          _buildYearBottomSheetItem(
-                            context: context,
-                            value: 'play_next',
-                            label: l10n.playNext,
-                            icon: Icons.queue_play_next_rounded,
-                            enabled: songs.isNotEmpty,
-                          ),
-                          _buildYearBottomSheetItem(
-                            context: context,
-                            value: 'add_to_queue',
-                            label: l10n.addToQueue,
-                            icon: Icons.queue_music_rounded,
-                            enabled: songs.isNotEmpty,
-                          ),
-                          _buildYearBottomSheetItem(
-                            context: context,
-                            value: 'add_to_playlist',
-                            label: l10n.addToPlaylist,
-                            icon: Icons.playlist_add_rounded,
-                            enabled: songs.isNotEmpty,
-                          ),
-                          _buildYearBottomSheetItem(
-                            context: context,
-                            value: 'edit_tags',
-                            label: songs.length > 1
-                                ? '${l10n.batchEditSongTagsTitle} (${songs.length})'
-                                : l10n.editSongTagsTitle,
-                            icon: Icons.edit_note_rounded,
-                            enabled: canEditTags,
-                          ),
-                          _buildYearBottomSheetItem(
-                            context: context,
-                            value: 'transcode',
-                            label: l10n.transcodeAction,
-                            icon: Icons.sync_rounded,
-                            enabled: songs.isNotEmpty,
-                          ),
-                          _buildYearBottomSheetItem(
-                            context: context,
-                            value: 'view_details',
-                            label: l10n.viewYearDetails,
-                            icon: Icons.calendar_month_rounded,
-                          ),
-                          _buildYearBottomSheetItem(
-                            context: context,
-                            value: 'copy_year',
-                            label: l10n.copyYearName,
-                            icon: Icons.copy_rounded,
-                          ),
-                          if (onMultiSelect != null)
-                            _buildYearBottomSheetItem(
-                              context: context,
-                              value: 'multi_select',
-                              label: l10n.multiSelect,
-                              icon: Icons.checklist_rounded,
+                          ...buildContextMenuSheetItems(
+                            context,
+                            _buildYearMenuActionGroups(
+                              l10n,
+                              year,
+                              showViewDetails: true,
+                              showMultiSelect: onMultiSelect != null,
                             ),
+                          ),
                         ],
                       ),
                     ),
@@ -424,34 +373,4 @@ class _YearBottomSheetCover extends StatelessWidget {
       ),
     );
   }
-}
-
-Widget _buildYearBottomSheetItem({
-  required BuildContext context,
-  required String value,
-  required String label,
-  required IconData icon,
-  bool enabled = true,
-  Color? iconColor,
-}) {
-  final theme = Theme.of(context);
-  return ListTile(
-    leading: Icon(
-      icon,
-      color: enabled
-          ? (iconColor ?? theme.colorScheme.onSurfaceVariant)
-          : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
-    ),
-    title: Text(
-      label,
-      style: theme.textTheme.bodyLarge?.copyWith(
-        color: enabled
-            ? (iconColor ?? theme.colorScheme.onSurface)
-            : theme.colorScheme.onSurface.withValues(alpha: 0.4),
-      ),
-    ),
-    enabled: enabled,
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    onTap: () => Navigator.pop(context, value),
-  );
 }

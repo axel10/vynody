@@ -16,6 +16,96 @@ import 'album_cover.dart';
 import 'app_context_menu.dart';
 import 'library_selection_scope.dart';
 
+/// Shared menu configuration for both the popup context menu and the
+/// long-press bottom sheet.
+List<List<ContextMenuAction>> _buildAlbumMenuActionGroups(
+  AppLocalizations l10n,
+  AlbumSummary album, {
+  required bool showMultiSelect,
+}) {
+  final songs = album.songs;
+  final canEditTags = songs.isNotEmpty &&
+      songs.any((s) => !RemoteMediaResolver.isRemoteUri(s.path));
+
+  return [
+    [
+      ContextMenuAction(
+        value: 'play_all',
+        label: l10n.playAll,
+        icon: Icons.play_arrow_rounded,
+        enabled: songs.isNotEmpty,
+      ),
+      ContextMenuAction(
+        value: 'shuffle',
+        label: l10n.shufflePlay,
+        icon: Icons.shuffle_rounded,
+        enabled: songs.isNotEmpty,
+      ),
+      ContextMenuAction(
+        value: 'play_next',
+        label: l10n.playNext,
+        icon: Icons.queue_play_next_rounded,
+        enabled: songs.isNotEmpty,
+      ),
+      ContextMenuAction(
+        value: 'add_to_queue',
+        label: l10n.addToQueue,
+        icon: Icons.queue_music_rounded,
+        enabled: songs.isNotEmpty,
+      ),
+      ContextMenuAction(
+        value: 'add_to_playlist',
+        label: l10n.addToPlaylist,
+        icon: Icons.playlist_add_rounded,
+        enabled: songs.isNotEmpty,
+      ),
+      ContextMenuAction(
+        value: 'add_to_favorites',
+        label: l10n.addToFavorites,
+        icon: Icons.favorite_border_rounded,
+        enabled: songs.isNotEmpty,
+      ),
+      ContextMenuAction(
+        value: 'edit_tags',
+        label: songs.length > 1
+            ? '${l10n.batchEditSongTagsTitle} (${songs.length})'
+            : l10n.editSongTagsTitle,
+        icon: Icons.edit_note_rounded,
+        enabled: canEditTags,
+      ),
+      ContextMenuAction(
+        value: 'transcode',
+        label: l10n.transcodeAction,
+        icon: Icons.sync_rounded,
+        enabled: songs.isNotEmpty,
+      ),
+    ],
+    [
+      ContextMenuAction(
+        value: 'view_details',
+        label: l10n.viewAlbumDetails,
+        icon: Icons.album_rounded,
+      ),
+      ContextMenuAction(
+        value: 'copy_album',
+        label: l10n.copyAlbumTitle,
+        icon: Icons.copy_rounded,
+      ),
+      ContextMenuAction(
+        value: 'copy_artist',
+        label: l10n.copyArtistName,
+        icon: Icons.mic_rounded,
+      ),
+      if (showMultiSelect)
+        ContextMenuAction(
+          value: 'multi_select',
+          label: l10n.multiSelect,
+          icon: Icons.checklist_rounded,
+        ),
+    ],
+  ];
+}
+
 /// Shows context menu (at mouse position) for an album.
 Future<String?> showAlbumContextMenu({
   required BuildContext context,
@@ -26,97 +116,15 @@ Future<String?> showAlbumContextMenu({
   VoidCallback? onViewDetails,
 }) async {
   final l10n = AppLocalizations.of(context)!;
-  final songs = album.songs;
 
-  final canEditTags = songs.isNotEmpty &&
-      songs.any((s) => !RemoteMediaResolver.isRemoteUri(s.path));
-
-  final items = <PopupMenuEntry<String>>[
-    buildContextMenuItem<String>(
-      value: 'play_all',
-      label: l10n.playAll,
-      icon: Icons.play_arrow_rounded,
-      enabled: songs.isNotEmpty,
-      context: context,
+  final items = buildContextMenuPopupItems(
+    context,
+    _buildAlbumMenuActionGroups(
+      l10n,
+      album,
+      showMultiSelect: onMultiSelect != null,
     ),
-    buildContextMenuItem<String>(
-      value: 'shuffle',
-      label: l10n.shufflePlay,
-      icon: Icons.shuffle_rounded,
-      enabled: songs.isNotEmpty,
-      context: context,
-    ),
-    buildContextMenuItem<String>(
-      value: 'play_next',
-      label: l10n.playNext,
-      icon: Icons.queue_play_next_rounded,
-      enabled: songs.isNotEmpty,
-      context: context,
-    ),
-    buildContextMenuItem<String>(
-      value: 'add_to_queue',
-      label: l10n.addToQueue,
-      icon: Icons.queue_music_rounded,
-      enabled: songs.isNotEmpty,
-      context: context,
-    ),
-    buildContextMenuItem<String>(
-      value: 'add_to_playlist',
-      label: l10n.addToPlaylist,
-      icon: Icons.playlist_add_rounded,
-      enabled: songs.isNotEmpty,
-      context: context,
-    ),
-    buildContextMenuItem<String>(
-      value: 'add_to_favorites',
-      label: l10n.addToFavorites,
-      icon: Icons.favorite_border_rounded,
-      enabled: songs.isNotEmpty,
-      context: context,
-    ),
-    buildContextMenuItem<String>(
-      value: 'edit_tags',
-      label: songs.length > 1
-          ? '${l10n.batchEditSongTagsTitle} (${songs.length})'
-          : l10n.editSongTagsTitle,
-      icon: Icons.edit_note_rounded,
-      enabled: canEditTags,
-      context: context,
-    ),
-    buildContextMenuItem<String>(
-      value: 'transcode',
-      label: l10n.transcodeAction,
-      icon: Icons.sync_rounded,
-      enabled: songs.isNotEmpty,
-      context: context,
-    ),
-    const PopupMenuDivider(),
-    buildContextMenuItem<String>(
-      value: 'view_details',
-      label: l10n.viewAlbumDetails,
-      icon: Icons.album_rounded,
-      context: context,
-    ),
-    buildContextMenuItem<String>(
-      value: 'copy_album',
-      label: l10n.copyAlbumTitle,
-      icon: Icons.copy_rounded,
-      context: context,
-    ),
-    buildContextMenuItem<String>(
-      value: 'copy_artist',
-      label: l10n.copyArtistName,
-      icon: Icons.mic_rounded,
-      context: context,
-    ),
-    if (onMultiSelect != null)
-      buildContextMenuItem<String>(
-        value: 'multi_select',
-        label: l10n.multiSelect,
-        icon: Icons.checklist_rounded,
-        context: context,
-      ),
-  ];
+  );
 
   final selected = await AppContextMenu.show<String>(
     context: context,
@@ -148,10 +156,6 @@ Future<String?> showAlbumBottomSheet({
 }) async {
   final l10n = AppLocalizations.of(context)!;
   final theme = Theme.of(context);
-  final songs = album.songs;
-
-  final canEditTags = songs.isNotEmpty &&
-      songs.any((s) => !RemoteMediaResolver.isRemoteUri(s.path));
 
   final previousScope = ref.read(librarySelectionScopeProvider);
   ref
@@ -222,89 +226,14 @@ Future<String?> showAlbumBottomSheet({
                           const SizedBox(height: 12),
                           const Divider(height: 1),
                           const SizedBox(height: 8),
-                          _buildAlbumBottomSheetItem(
-                            context: context,
-                            value: 'play_all',
-                            label: l10n.playAll,
-                            icon: Icons.play_arrow_rounded,
-                            enabled: songs.isNotEmpty,
-                          ),
-                          _buildAlbumBottomSheetItem(
-                            context: context,
-                            value: 'shuffle',
-                            label: l10n.shufflePlay,
-                            icon: Icons.shuffle_rounded,
-                            enabled: songs.isNotEmpty,
-                          ),
-                          _buildAlbumBottomSheetItem(
-                            context: context,
-                            value: 'play_next',
-                            label: l10n.playNext,
-                            icon: Icons.queue_play_next_rounded,
-                            enabled: songs.isNotEmpty,
-                          ),
-                          _buildAlbumBottomSheetItem(
-                            context: context,
-                            value: 'add_to_queue',
-                            label: l10n.addToQueue,
-                            icon: Icons.queue_music_rounded,
-                            enabled: songs.isNotEmpty,
-                          ),
-                          _buildAlbumBottomSheetItem(
-                            context: context,
-                            value: 'add_to_playlist',
-                            label: l10n.addToPlaylist,
-                            icon: Icons.playlist_add_rounded,
-                            enabled: songs.isNotEmpty,
-                          ),
-                          _buildAlbumBottomSheetItem(
-                            context: context,
-                            value: 'add_to_favorites',
-                            label: l10n.addToFavorites,
-                            icon: Icons.favorite_border_rounded,
-                            enabled: songs.isNotEmpty,
-                          ),
-                          _buildAlbumBottomSheetItem(
-                            context: context,
-                            value: 'edit_tags',
-                            label: songs.length > 1
-                                ? '${l10n.batchEditSongTagsTitle} (${songs.length})'
-                                : l10n.editSongTagsTitle,
-                            icon: Icons.edit_note_rounded,
-                            enabled: canEditTags,
-                          ),
-                          _buildAlbumBottomSheetItem(
-                            context: context,
-                            value: 'transcode',
-                            label: l10n.transcodeAction,
-                            icon: Icons.sync_rounded,
-                            enabled: songs.isNotEmpty,
-                          ),
-                          _buildAlbumBottomSheetItem(
-                            context: context,
-                            value: 'view_details',
-                            label: l10n.viewAlbumDetails,
-                            icon: Icons.album_rounded,
-                          ),
-                          _buildAlbumBottomSheetItem(
-                            context: context,
-                            value: 'copy_album',
-                            label: l10n.copyAlbumTitle,
-                            icon: Icons.copy_rounded,
-                          ),
-                          _buildAlbumBottomSheetItem(
-                            context: context,
-                            value: 'copy_artist',
-                            label: l10n.copyArtistName,
-                            icon: Icons.mic_rounded,
-                          ),
-                          if (onMultiSelect != null)
-                            _buildAlbumBottomSheetItem(
-                              context: context,
-                              value: 'multi_select',
-                              label: l10n.multiSelect,
-                              icon: Icons.checklist_rounded,
+                          ...buildContextMenuSheetItems(
+                            context,
+                            _buildAlbumMenuActionGroups(
+                              l10n,
+                              album,
+                              showMultiSelect: onMultiSelect != null,
                             ),
+                          ),
                         ],
                       ),
                     ),
@@ -429,34 +358,4 @@ Future<void> _handleAlbumMenuAction({
       onMultiSelect?.call(album.id);
       break;
   }
-}
-
-Widget _buildAlbumBottomSheetItem({
-  required BuildContext context,
-  required String value,
-  required String label,
-  required IconData icon,
-  bool enabled = true,
-  Color? iconColor,
-}) {
-  final theme = Theme.of(context);
-  return ListTile(
-    leading: Icon(
-      icon,
-      color: enabled
-          ? (iconColor ?? theme.colorScheme.onSurfaceVariant)
-          : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
-    ),
-    title: Text(
-      label,
-      style: theme.textTheme.bodyLarge?.copyWith(
-        color: enabled
-            ? (iconColor ?? theme.colorScheme.onSurface)
-            : theme.colorScheme.onSurface.withValues(alpha: 0.4),
-      ),
-    ),
-    enabled: enabled,
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    onTap: () => Navigator.pop(context, value),
-  );
 }

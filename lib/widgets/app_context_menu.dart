@@ -117,3 +117,78 @@ class AppContextMenu {
     );
   }
 }
+
+/// A single menu action shared by the popup context menu (right click) and the
+/// long-press bottom sheet, so both surfaces are configured in one place.
+class ContextMenuAction {
+  const ContextMenuAction({
+    required this.value,
+    required this.label,
+    required this.icon,
+    this.enabled = true,
+  });
+
+  final String value;
+  final String label;
+  final IconData icon;
+  final bool enabled;
+}
+
+/// Builds popup menu entries from grouped [actions]. A divider is inserted
+/// between consecutive non-empty groups.
+List<PopupMenuEntry<String>> buildContextMenuPopupItems(
+  BuildContext context,
+  List<List<ContextMenuAction>> actions,
+) {
+  final entries = <PopupMenuEntry<String>>[];
+  var isFirstGroup = true;
+  for (final group in actions) {
+    if (group.isEmpty) continue;
+    if (!isFirstGroup) entries.add(const PopupMenuDivider());
+    isFirstGroup = false;
+    for (final action in group) {
+      entries.add(
+        AppContextMenu.buildItem<String>(
+          value: action.value,
+          label: action.label,
+          icon: action.icon,
+          enabled: action.enabled,
+          context: context,
+        ),
+      );
+    }
+  }
+  return entries;
+}
+
+/// Builds bottom sheet rows from grouped [actions]. Groups are flattened
+/// (the sheet has no group dividers).
+List<Widget> buildContextMenuSheetItems(
+  BuildContext context,
+  List<List<ContextMenuAction>> actions,
+) {
+  final theme = Theme.of(context);
+  return [
+    for (final group in actions)
+      for (final action in group)
+        ListTile(
+          leading: Icon(
+            action.icon,
+            color: action.enabled
+                ? theme.colorScheme.onSurfaceVariant
+                : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+          ),
+          title: Text(
+            action.label,
+            style: theme.textTheme.bodyLarge?.copyWith(
+              color: action.enabled
+                  ? theme.colorScheme.onSurface
+                  : theme.colorScheme.onSurface.withValues(alpha: 0.4),
+            ),
+          ),
+          enabled: action.enabled,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          onTap: () => Navigator.pop(context, action.value),
+        ),
+  ];
+}

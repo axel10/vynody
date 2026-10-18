@@ -485,6 +485,7 @@ class _ArtistListItemState extends ConsumerState<_ArtistListItem> {
                   ref: ref,
                   artist: artist,
                   onMultiSelect: widget.onMultiSelect,
+                  showViewDetails: false,
                 );
               }
             },
