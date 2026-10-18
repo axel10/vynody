@@ -87,7 +87,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get sortBy => '정렬 기준';
 
   @override
-  String get sortScope => '범위';
+  String get sortOnlyThisFolder => '이 폴더만';
 
   @override
   String get sortOrder => '정렬 순서';
@@ -108,10 +108,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get descending => '내림차순';
 
   @override
-  String get currentFolderScope => '현재 폴더';
+  String get sortOnlyThisFolderHint => '이 폴더에만 위 설정을 사용합니다';
 
   @override
-  String get globalScope => '전체';
+  String get sortFollowsGlobalHint => '이 폴더는 전역 정렬 설정을 따릅니다';
 
   @override
   String get visualizerSettings => '재생 페이지 설정';

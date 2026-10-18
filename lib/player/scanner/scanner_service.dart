@@ -131,8 +131,6 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
   SortOrder _globalSortOrder = SortOrder.ascending;
   Map<String, FolderSortSettings> _folderSortOverrides = {};
 
-  SortCriteria get sortCriteria => _currentSortSettings.criteria;
-  SortOrder get sortOrder => _currentSortSettings.order;
   SortCriteria get globalSortCriteria => _globalSortCriteria;
   SortOrder get globalSortOrder => _globalSortOrder;
   bool get skipShortAudioScanEnabled => _skipShortAudioScanEnabled;
@@ -958,43 +956,70 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     handler(normalized, isMissing);
   }
 
-  void setSortCriteria(
-    SortCriteria criteria, {
-    SortScope scope = SortScope.global,
-    String? folderPath,
-  }) {
-    if (scope == SortScope.currentFolder &&
-        _updateFolderSortSettings(folderPath: folderPath, criteria: criteria)) {
-      _sortAndNotify(refreshCovers: false);
-      return;
+  /// 修改全局排序。未带目录覆盖的目录都跟随这一份设置。
+  void setGlobalSort({SortCriteria? criteria, SortOrder? order}) {
+    var changed = false;
+    if (criteria != null && criteria != _globalSortCriteria) {
+      _globalSortCriteria = criteria;
+      changed = true;
     }
-
-    if (_globalSortCriteria == criteria) {
-      return;
+    if (order != null && order != _globalSortOrder) {
+      _globalSortOrder = order;
+      changed = true;
     }
+    if (!changed) return;
 
-    _globalSortCriteria = criteria;
     unawaited(_saveGlobalSortSettings());
     _sortAndNotify(refreshCovers: false);
   }
 
-  void setSortOrder(
-    SortOrder order, {
-    SortScope scope = SortScope.global,
-    String? folderPath,
+  /// 修改 [folderPath] 的目录级排序（必然写入一份覆盖）。
+  ///
+  /// 调用方需先通过 [setFolderSortLocalized] 把该目录设为「仅此目录」，
+  /// 否则这里会凭空造出一份覆盖，让目录脱离全局设置。
+  void setFolderSort(
+    String folderPath, {
+    SortCriteria? criteria,
+    SortOrder? order,
   }) {
-    if (scope == SortScope.currentFolder &&
-        _updateFolderSortSettings(folderPath: folderPath, order: order)) {
+    assert(
+      _folderSortOverrides.containsKey(_sortFolderKey(folderPath)),
+      'setFolderSort 要求该目录已开启「仅此目录」',
+    );
+    if (_writeFolderSortOverride(
+      folderPath,
+      criteria: criteria,
+      order: order,
+    )) {
       _sortAndNotify(refreshCovers: false);
+    }
+  }
+
+  /// 切换「仅此目录」。
+  ///
+  /// 打开时把当前生效的设置物化成一份覆盖（画面不变，后续改动只影响此目录）；
+  /// 关闭时删除覆盖，该目录回到全局设置。
+  void setFolderSortLocalized(String folderPath, bool localized) {
+    final key = _sortFolderKey(folderPath);
+    final hasOverride = _folderSortOverrides.containsKey(key);
+
+    if (localized) {
+      if (hasOverride) return;
+      _folderSortOverrides = {
+        ..._folderSortOverrides,
+        key: _resolveSortSettingsForFolder(folderPath),
+      };
+      unawaited(_saveFolderSortOverrides());
+      // 覆盖值与当前生效值一致，列表顺序不变，只需让顶栏等监听者刷新状态。
+      notifyListeners();
       return;
     }
 
-    if (_globalSortOrder == order) {
-      return;
-    }
-
-    _globalSortOrder = order;
-    unawaited(_saveGlobalSortSettings());
+    if (!hasOverride) return;
+    final next = Map<String, FolderSortSettings>.from(_folderSortOverrides)
+      ..remove(key);
+    _folderSortOverrides = next;
+    unawaited(_saveFolderSortOverrides());
     _sortAndNotify(refreshCovers: false);
   }
 
@@ -1465,6 +1490,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       }
     }
     await _roots.setRootPaths(updatedRoots);
+    _pruneSortOverridesForPaths(normalizedTargets);
     for (final path in normalizedTargets) {
       _rootAvailability.remove(_pathLookupKey(path));
     }
@@ -3886,17 +3912,6 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     return compareNatural(a.toLowerCase(), b.toLowerCase());
   }
 
-  FolderSortSettings get _currentSortSettings {
-    final currentFolder = _navigationState.currentFolder;
-    if (currentFolder == null) {
-      return FolderSortSettings(
-        criteria: _globalSortCriteria,
-        order: _globalSortOrder,
-      );
-    }
-    return _resolveSortSettingsForFolder(currentFolder.path);
-  }
-
   FolderSortSettings getGlobalSortSettings() {
     return FolderSortSettings(
       criteria: _globalSortCriteria,
@@ -3904,22 +3919,13 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     );
   }
 
+  /// 返回 [path] 当前**生效**的排序（有目录覆盖则取覆盖，否则取全局）。
   FolderSortSettings getSortSettingsForFolder(String path) {
     return _resolveSortSettingsForFolder(path);
   }
 
   bool hasSortOverrideForFolder(String path) {
     return _folderSortOverrides.containsKey(_sortFolderKey(path));
-  }
-
-  SortScope get sortScopeForCurrentView {
-    final currentFolder = _navigationState.currentFolder;
-    if (currentFolder == null) {
-      return SortScope.global;
-    }
-    return hasSortOverrideForFolder(currentFolder.path)
-        ? SortScope.currentFolder
-        : SortScope.global;
   }
 
   FolderSortSettings _resolveSortSettingsForFolder(String path) {
@@ -3937,19 +3943,14 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     return _pathLookupKey(path);
   }
 
-  bool _updateFolderSortSettings({
-    String? folderPath,
+  /// 写入（或更新）[folderPath] 的目录级排序，返回值表示设置是否真的变了。
+  bool _writeFolderSortOverride(
+    String folderPath, {
     SortCriteria? criteria,
     SortOrder? order,
   }) {
-    final targetPath = folderPath ?? _navigationState.currentFolder?.path;
-    if (targetPath == null) {
-      return false;
-    }
-
-    final key = _sortFolderKey(targetPath);
-    final currentSettings =
-        _folderSortOverrides[key] ??
+    final key = _sortFolderKey(folderPath);
+    final currentSettings = _folderSortOverrides[key] ??
         FolderSortSettings(
           criteria: _globalSortCriteria,
           order: _globalSortOrder,
@@ -3961,12 +3962,44 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
 
     if (currentSettings.criteria == nextSettings.criteria &&
         currentSettings.order == nextSettings.order) {
-      return true;
+      return false;
     }
 
     _folderSortOverrides = {..._folderSortOverrides, key: nextSettings};
     unawaited(_saveFolderSortOverrides());
     return true;
+  }
+
+  /// 根目录被移除后清掉其下所有目录的排序覆盖，避免陈旧路径日后被复用命中。
+  void _pruneSortOverridesForPaths(Iterable<String> removedPaths) {
+    if (_folderSortOverrides.isEmpty) return;
+
+    final removedKeys = removedPaths
+        .map(_pathLookupKey)
+        .where((key) => key.isNotEmpty)
+        .toList(growable: false);
+    if (removedKeys.isEmpty) return;
+
+    final next = <String, FolderSortSettings>{};
+    var removed = 0;
+    for (final entry in _folderSortOverrides.entries) {
+      final key = entry.key;
+      final isUnderRemoved = removedKeys.any(
+        (removedKey) =>
+            key == removedKey ||
+            key.startsWith('$removedKey/') ||
+            key.startsWith('$removedKey\\'),
+      );
+      if (isUnderRemoved) {
+        removed++;
+      } else {
+        next[key] = entry.value;
+      }
+    }
+    if (removed == 0) return;
+
+    _folderSortOverrides = next;
+    unawaited(_saveFolderSortOverrides());
   }
 
   Future<void> _loadSortSettings() async {

@@ -22,6 +22,7 @@ class FolderHeaderNavBar extends ConsumerWidget {
     this.onLocateCurrentSong,
     required this.onSortPressed,
     this.isSortActive = false,
+    this.isSortHighlighted = false,
     this.onClearAllSelection,
     this.scrollController,
     this.onRefresh,
@@ -34,10 +35,16 @@ class FolderHeaderNavBar extends ConsumerWidget {
   final VoidCallback? onGoBack;
   final VoidCallback? onLocateCurrentSong;
   final VoidCallback onSortPressed;
+  /// 排序按钮处于「进行中的模式」（根目录拖拽排序）：图标换成对勾，带底色
   final bool isSortActive;
+
+  /// 当前目录有独立排序覆盖：只给图标着色，不加底色
+  final bool isSortHighlighted;
   final VoidCallback? onClearAllSelection;
   final ScrollController? scrollController;
   final VoidCallback? onRefresh;
+
+  bool get _sortHighlighted => isSortActive || isSortHighlighted;
 
   void _handleLocate(WidgetRef ref, BuildContext context) {
     if (onLocateCurrentSong != null) {
@@ -175,14 +182,14 @@ class FolderHeaderNavBar extends ConsumerWidget {
                     Icon(
                       isSortActive ? Icons.check_rounded : Icons.sort,
                       size: 20,
-                      color: isSortActive
+                      color: _sortHighlighted
                           ? Theme.of(context).colorScheme.primary
                           : null,
                     ),
                     const SizedBox(width: 12),
                     Text(
                       l10n.sort,
-                      style: isSortActive
+                      style: _sortHighlighted
                           ? TextStyle(
                               color: Theme.of(context).colorScheme.primary,
                               fontWeight: FontWeight.bold,
@@ -265,14 +272,15 @@ class FolderHeaderNavBar extends ConsumerWidget {
           FolderNavIconButton(
             style: style,
             tooltip: l10n.sort,
+            // 只有「模式进行中」才铺底色；目录级覆盖只着色图标
             isSelected: isSortActive,
             icon: Icon(
               isSortActive ? Icons.check_rounded : Icons.sort,
               size: 20,
-              color: isSortActive
+              color: _sortHighlighted
                   ? Theme.of(context).colorScheme.primary
                   : style.iconColor,
-              shadows: isSortActive ? null : style.shadows,
+              shadows: _sortHighlighted ? null : style.shadows,
             ),
             onPressed: onSortPressed,
           ),

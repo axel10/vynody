@@ -90,7 +90,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get sortBy => 'Sıralama Ölçütü';
 
   @override
-  String get sortScope => 'Kapsam';
+  String get sortOnlyThisFolder => 'Yalnızca bu klasör';
 
   @override
   String get sortOrder => 'Sıralama Düzeni';
@@ -111,10 +111,10 @@ class AppLocalizationsTr extends AppLocalizations {
   String get descending => 'Azalan';
 
   @override
-  String get currentFolderScope => 'Geçerli Klasör';
+  String get sortOnlyThisFolderHint => 'Bu klasör yukarıdaki ayarları kullanır';
 
   @override
-  String get globalScope => 'Genel';
+  String get sortFollowsGlobalHint => 'Bu klasör genel sıralamayı izler';
 
   @override
   String get visualizerSettings => 'Çalma Sayfası Ayarları';

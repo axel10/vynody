@@ -99,10 +99,13 @@
     "description": "Rebuilding database message"
   },
   "sortBy": "排序方式",
-  "sortScope": "作用域",
+  "sortOnlyThisFolder": "仅此目录",
   "sortOrder": "排序顺序",
   "@sortBy": {
     "description": "Sort by"
+  },
+  "@sortOnlyThisFolder": {
+    "description": "Use sort settings for this folder only"
   },
   "title": "标题",
   "@title": {
@@ -124,13 +127,13 @@
   "@descending": {
     "description": "Descending order"
   },
-  "currentFolderScope": "当前目录",
-  "@currentFolderScope": {
-    "description": "Current folder sort scope"
+  "sortOnlyThisFolderHint": "此目录单独使用上面的排序设置",
+  "@sortOnlyThisFolderHint": {
+    "description": "Hint when the folder has its own sort settings"
   },
-  "globalScope": "全局",
-  "@globalScope": {
-    "description": "Global sort scope"
+  "sortFollowsGlobalHint": "此目录跟随全局排序设置",
+  "@sortFollowsGlobalHint": {
+    "description": "Hint when the folder follows global sort settings"
   },
   "visualizerSettings": "播放页设置",
   "@visualizerSettings": {

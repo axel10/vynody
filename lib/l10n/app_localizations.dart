@@ -255,11 +255,11 @@ abstract class AppLocalizations {
   /// **'排序方式'**
   String get sortBy;
 
-  /// No description provided for @sortScope.
+  /// Use sort settings for this folder only
   ///
   /// In zh, this message translates to:
-  /// **'作用域'**
-  String get sortScope;
+  /// **'仅此目录'**
+  String get sortOnlyThisFolder;
 
   /// No description provided for @sortOrder.
   ///
@@ -297,17 +297,17 @@ abstract class AppLocalizations {
   /// **'降序'**
   String get descending;
 
-  /// Current folder sort scope
+  /// Hint when the folder has its own sort settings
   ///
   /// In zh, this message translates to:
-  /// **'当前目录'**
-  String get currentFolderScope;
+  /// **'此目录单独使用上面的排序设置'**
+  String get sortOnlyThisFolderHint;
 
-  /// Global sort scope
+  /// Hint when the folder follows global sort settings
   ///
   /// In zh, this message translates to:
-  /// **'全局'**
-  String get globalScope;
+  /// **'此目录跟随全局排序设置'**
+  String get sortFollowsGlobalHint;
 
   /// Visualizer settings
   ///

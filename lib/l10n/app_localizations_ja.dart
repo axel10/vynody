@@ -88,7 +88,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get sortBy => '並び替え基準';
 
   @override
-  String get sortScope => '範囲';
+  String get sortOnlyThisFolder => 'このフォルダのみ';
 
   @override
   String get sortOrder => '並び順';
@@ -109,10 +109,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get descending => '降順';
 
   @override
-  String get currentFolderScope => '現在のフォルダ';
+  String get sortOnlyThisFolderHint => 'このフォルダだけ上の設定を使います';
 
   @override
-  String get globalScope => '全体';
+  String get sortFollowsGlobalHint => 'このフォルダは全体の並び順に従います';
 
   @override
   String get visualizerSettings => '再生ページ設定';

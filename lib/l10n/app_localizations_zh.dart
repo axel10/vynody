@@ -86,7 +86,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get sortBy => '排序方式';
 
   @override
-  String get sortScope => '作用域';
+  String get sortOnlyThisFolder => '仅此目录';
 
   @override
   String get sortOrder => '排序顺序';
@@ -107,10 +107,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get descending => '降序';
 
   @override
-  String get currentFolderScope => '当前目录';
+  String get sortOnlyThisFolderHint => '此目录单独使用上面的排序设置';
 
   @override
-  String get globalScope => '全局';
+  String get sortFollowsGlobalHint => '此目录跟随全局排序设置';
 
   @override
   String get visualizerSettings => '播放页设置';
@@ -5402,7 +5402,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get sortBy => '排序方式';
 
   @override
-  String get sortScope => '作用範圍';
+  String get sortOnlyThisFolder => '僅此目錄';
 
   @override
   String get sortOrder => '排序順序';
@@ -5423,10 +5423,10 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get descending => '遞減';
 
   @override
-  String get currentFolderScope => '目前目錄';
+  String get sortOnlyThisFolderHint => '此目錄單獨使用上面的排序設定';
 
   @override
-  String get globalScope => '全域';
+  String get sortFollowsGlobalHint => '此目錄跟隨全域排序設定';
 
   @override
   String get visualizerSettings => '播放頁設定';

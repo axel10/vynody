@@ -879,6 +879,8 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
           onGoBack: widget.onGoBack,
           onLocateCurrentSong: widget.onLocateCurrentSong,
           onSortPressed: () => _showSortDialog(context, scanner),
+          // 此目录脱离全局排序时给排序图标着色，提示它被单独设定过
+          isSortHighlighted: scanner.hasSortOverrideForFolder(current.path),
           onClearAllSelection: widget.onClearAllSelection,
           scrollController: _breadcrumbsScrollController,
           onRefresh: _handleRefresh,

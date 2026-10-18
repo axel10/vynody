@@ -7,8 +7,6 @@ enum SortCriteria { title, filename, trackNumber }
 
 enum SortOrder { ascending, descending }
 
-enum SortScope { global, currentFolder }
-
 extension SortCriteriaX on SortCriteria {
   String get storageValue => switch (this) {
     SortCriteria.title => 'title',
@@ -47,24 +45,6 @@ extension SortOrderX on SortOrder {
   }
 }
 
-extension SortScopeX on SortScope {
-  String get storageValue => switch (this) {
-    SortScope.global => 'global',
-    SortScope.currentFolder => 'current_folder',
-  };
-
-  static SortScope fromStorageValue(String? value) {
-    switch (value?.trim().toLowerCase()) {
-      case 'current_folder':
-      case 'currentfolder':
-        return SortScope.currentFolder;
-      case 'global':
-      default:
-        return SortScope.global;
-    }
-  }
-}
-
 class FolderSortSettings {
   const FolderSortSettings({required this.criteria, required this.order});
 
@@ -93,31 +73,20 @@ class FolderSortSettings {
 class ScannerFolderSorter {
   const ScannerFolderSorter();
 
-  void sortFolders(
-    List<MusicFolder> folders, {
-    required SortCriteria criteria,
-    required SortOrder order,
-  }) {
-    final folderComparator = _folderComparator(
-      criteria: criteria,
-      order: order,
-    );
-    folders.sort(folderComparator);
-    for (final folder in folders) {
-      sortFolderRecursive(folder, criteria: criteria, order: order);
-    }
-  }
-
+  /// 整棵目录树按各自解析出的设置重排。
+  ///
+  /// 根目录本身的显示顺序由用户拖拽决定（`ScannerService._roots.rootPaths`），
+  /// 这里不碰传入的 [folders] 顺序。
   void sortFoldersForTree(
     List<MusicFolder> folders, {
     required FolderSortSettings Function(String path) resolveSettings,
   }) {
-    folders.sort((a, b) => _compareNaturally(a.name, b.name));
     for (final folder in folders) {
       sortFolderRecursiveForTree(folder, resolveSettings: resolveSettings);
     }
   }
 
+  /// 只重排指定目录自身的「直接子目录 + 曲目」，不递归。
   void sortSpecificFolders(
     Iterable<MusicFolder> folders, {
     required FolderSortSettings Function(String path) resolveSettings,
@@ -125,55 +94,12 @@ class ScannerFolderSorter {
     for (final folder in folders) {
       final settings = resolveSettings(folder.path);
       folder.subFolders.sort(
-        _folderComparator(criteria: settings.criteria, order: settings.order),
+        _folderComparator(order: settings.order),
       );
-      final comparator = _comparatorFor(
-        criteria: settings.criteria,
-        order: settings.order,
+      folder.files.sort(
+        _comparatorFor(criteria: settings.criteria, order: settings.order),
       );
-      folder.files.sort(comparator);
       folder.representativeSongCache = null;
-    }
-  }
-
-  void sortFolderRecursive(
-    MusicFolder folder, {
-    required SortCriteria criteria,
-    required SortOrder order,
-  }) {
-    folder.subFolders.sort(_folderComparator(criteria: criteria, order: order));
-
-    int Function(MusicFile, MusicFile) comparator;
-
-    switch (criteria) {
-      case SortCriteria.title:
-        comparator = (a, b) => _compareNaturally(a.displayName, b.displayName);
-        break;
-      case SortCriteria.filename:
-        comparator = (a, b) => _compareNaturally(a.name, b.name);
-        break;
-      case SortCriteria.trackNumber:
-        comparator = (a, b) {
-          if (a.trackNumber != null && b.trackNumber != null) {
-            return a.trackNumber!.compareTo(b.trackNumber!);
-          }
-          if (a.trackNumber != null) return -1;
-          if (b.trackNumber != null) return 1;
-          return _compareNaturally(a.name, b.name);
-        };
-        break;
-    }
-
-    if (order == SortOrder.descending) {
-      final baseComparator = comparator;
-      comparator = (a, b) => baseComparator(b, a);
-    }
-
-    folder.files.sort(comparator);
-    folder.representativeSongCache = null;
-
-    for (final subFolder in folder.subFolders) {
-      sortFolderRecursive(subFolder, criteria: criteria, order: order);
     }
   }
 
@@ -183,13 +109,11 @@ class ScannerFolderSorter {
   }) {
     final settings = resolveSettings(folder.path);
     folder.subFolders.sort(
-      _folderComparator(criteria: settings.criteria, order: settings.order),
+      _folderComparator(order: settings.order),
     );
-    final comparator = _comparatorFor(
-      criteria: settings.criteria,
-      order: settings.order,
+    folder.files.sort(
+      _comparatorFor(criteria: settings.criteria, order: settings.order),
     );
-    folder.files.sort(comparator);
     folder.representativeSongCache = null;
 
     for (final subFolder in folder.subFolders) {
@@ -201,49 +125,37 @@ class ScannerFolderSorter {
     required SortCriteria criteria,
     required SortOrder order,
   }) {
-    int Function(MusicFile, MusicFile) comparator;
+    final direction = order == SortOrder.descending ? -1 : 1;
 
     switch (criteria) {
       case SortCriteria.title:
-        comparator = (a, b) => _compareNaturally(a.displayName, b.displayName);
-        break;
+        return (a, b) =>
+            direction * _compareNaturally(a.displayName, b.displayName);
       case SortCriteria.filename:
-        comparator = (a, b) => _compareNaturally(a.name, b.name);
-        break;
+        return (a, b) => direction * _compareNaturally(a.name, b.name);
       case SortCriteria.trackNumber:
-        comparator = (a, b) {
-          if (a.trackNumber != null && b.trackNumber != null) {
-            return a.trackNumber!.compareTo(b.trackNumber!);
+        return (a, b) {
+          final left = a.trackNumber;
+          final right = b.trackNumber;
+          if (left == null && right == null) {
+            return direction * _compareNaturally(a.name, b.name);
           }
-          if (a.trackNumber != null) return -1;
-          if (b.trackNumber != null) return 1;
-          return _compareNaturally(a.name, b.name);
+          // 缺失音轨号恒定排在末尾，不随升 / 降序翻转
+          if (left == null) return 1;
+          if (right == null) return -1;
+          final byTrack = left.compareTo(right);
+          if (byTrack != 0) return direction * byTrack;
+          return direction * _compareNaturally(a.name, b.name);
         };
-        break;
     }
-
-    if (order == SortOrder.descending) {
-      final baseComparator = comparator;
-      comparator = (a, b) => baseComparator(b, a);
-    }
-
-    return comparator;
   }
 
+  /// 子目录只按名称排（排序依据只作用于曲目），方向跟随设置。
   int Function(MusicFolder, MusicFolder) _folderComparator({
-    required SortCriteria criteria,
     required SortOrder order,
   }) {
-    int Function(MusicFolder, MusicFolder) comparator = (a, b) {
-      return _compareNaturally(a.name, b.name);
-    };
-
-    if (order == SortOrder.descending) {
-      final baseComparator = comparator;
-      comparator = (a, b) => baseComparator(b, a);
-    }
-
-    return comparator;
+    final direction = order == SortOrder.descending ? -1 : 1;
+    return (a, b) => direction * _compareNaturally(a.name, b.name);
   }
 
   int _compareNaturally(String left, String right) {

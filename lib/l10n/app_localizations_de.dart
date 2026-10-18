@@ -89,7 +89,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get sortBy => 'Sortieren nach';
 
   @override
-  String get sortScope => 'Bereich';
+  String get sortOnlyThisFolder => 'Nur dieser Ordner';
 
   @override
   String get sortOrder => 'Sortierreihenfolge';
@@ -110,10 +110,12 @@ class AppLocalizationsDe extends AppLocalizations {
   String get descending => 'Absteigend';
 
   @override
-  String get currentFolderScope => 'Aktueller Ordner';
+  String get sortOnlyThisFolderHint =>
+      'Nur dieser Ordner verwendet die Einstellungen oben';
 
   @override
-  String get globalScope => 'Global';
+  String get sortFollowsGlobalHint =>
+      'Dieser Ordner folgt der globalen Sortierung';
 
   @override
   String get visualizerSettings => 'Wiedergabeseiten-Einstellungen';

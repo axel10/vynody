@@ -22,6 +22,10 @@ Future<void> showFolderSortSheet({
 }
 
 /// 目录排序设置浮层
+///
+/// 「排序方式 / 排序顺序」始终作用于**当前生效**的那一份设置：
+/// - 未开启「仅此目录」时写全局，此目录及所有未覆盖的目录一起变；
+/// - 开启后写此目录的独立覆盖，其它目录不受影响。
 class FolderSortSheet extends StatefulWidget {
   const FolderSortSheet({
     super.key,
@@ -31,7 +35,7 @@ class FolderSortSheet extends StatefulWidget {
 
   final ScannerService scanner;
 
-  /// 当前所在目录（用于「当前目录」作用域读写）
+  /// 当前所在目录
   final String folderPath;
 
   @override
@@ -39,56 +43,56 @@ class FolderSortSheet extends StatefulWidget {
 }
 
 class _FolderSortSheetState extends State<FolderSortSheet> {
-  late SortScope _scope;
+  late bool _localized;
   late SortCriteria _criteria;
   late SortOrder _order;
 
   @override
   void initState() {
     super.initState();
-    _scope = widget.scanner.hasSortOverrideForFolder(widget.folderPath)
-        ? SortScope.currentFolder
-        : SortScope.global;
-    final settings = _settingsFor(_scope);
+    _localized = widget.scanner.hasSortOverrideForFolder(widget.folderPath);
+    // 打开时一律展示「当前生效」的设置，而不是全局设置
+    final settings = widget.scanner.getSortSettingsForFolder(widget.folderPath);
     _criteria = settings.criteria;
     _order = settings.order;
-  }
-
-  FolderSortSettings _settingsFor(SortScope scope) {
-    return scope == SortScope.currentFolder
-        ? widget.scanner.getSortSettingsForFolder(widget.folderPath)
-        : widget.scanner.getGlobalSortSettings();
-  }
-
-  /// 切换作用域只切换「正在编辑哪一份设置」，不立刻写库
-  void _selectScope(SortScope scope) {
-    if (scope == _scope) return;
-    final settings = _settingsFor(scope);
-    setState(() {
-      _scope = scope;
-      _criteria = settings.criteria;
-      _order = settings.order;
-    });
   }
 
   void _selectCriteria(SortCriteria criteria) {
     if (criteria == _criteria) return;
     setState(() => _criteria = criteria);
-    widget.scanner.setSortCriteria(
-      criteria,
-      scope: _scope,
-      folderPath: widget.folderPath,
-    );
+    _writeSettings(criteria: criteria);
   }
 
   void _selectOrder(SortOrder order) {
     if (order == _order) return;
     setState(() => _order = order);
-    widget.scanner.setSortOrder(
-      order,
-      scope: _scope,
-      folderPath: widget.folderPath,
-    );
+    _writeSettings(order: order);
+  }
+
+  void _writeSettings({SortCriteria? criteria, SortOrder? order}) {
+    if (_localized) {
+      widget.scanner.setFolderSort(
+        widget.folderPath,
+        criteria: criteria,
+        order: order,
+      );
+      return;
+    }
+    widget.scanner.setGlobalSort(criteria: criteria, order: order);
+  }
+
+  /// 开关即时落库：打开 = 物化一份覆盖（画面不变）；关闭 = 删除覆盖、回到全局。
+  void _toggleLocalized(bool value) {
+    if (value == _localized) return;
+    setState(() {
+      _localized = value;
+      if (!value) {
+        final global = widget.scanner.getGlobalSortSettings();
+        _criteria = global.criteria;
+        _order = global.order;
+      }
+    });
+    widget.scanner.setFolderSortLocalized(widget.folderPath, value);
   }
 
   @override
@@ -99,31 +103,13 @@ class _FolderSortSheetState extends State<FolderSortSheet> {
       sheetMaxWidth: 600,
       dialogMaxWidth: 520,
       landscapeMaxWidth: 720,
-      title: l10n.sortBy,
+      title: l10n.sort,
       child: SingleChildScrollView(
         padding: const EdgeInsets.only(top: 4, bottom: 24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _SortOptionGroup<SortScope>(
-              title: l10n.sortScope,
-              groupValue: _scope,
-              onChanged: _selectScope,
-              options: [
-                _SortOption(
-                  value: SortScope.currentFolder,
-                  label: l10n.currentFolderScope,
-                  icon: Icons.folder_outlined,
-                ),
-                _SortOption(
-                  value: SortScope.global,
-                  label: l10n.globalScope,
-                  icon: Icons.public_rounded,
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
             _SortOptionGroup<SortCriteria>(
               title: l10n.sortBy,
               groupValue: _criteria,
@@ -164,12 +150,82 @@ class _FolderSortSheetState extends State<FolderSortSheet> {
                 ),
               ],
             ),
+            const SizedBox(height: 20),
+            _SortScopeCard(
+              localized: _localized,
+              onChanged: _toggleLocalized,
+              title: l10n.sortOnlyThisFolder,
+              subtitle: _localized
+                  ? l10n.sortOnlyThisFolderHint
+                  : l10n.sortFollowsGlobalHint,
+            ),
             const SizedBox(height: 24),
             FilledButton(
               onPressed: () => Navigator.of(context).pop(),
               child: Text(l10n.done),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 「仅此目录」开关卡片
+class _SortScopeCard extends StatelessWidget {
+  const _SortScopeCard({
+    required this.localized,
+    required this.onChanged,
+    required this.title,
+    required this.subtitle,
+  });
+
+  final bool localized;
+  final ValueChanged<bool> onChanged;
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Material(
+      color: isDark
+          ? Colors.white.withValues(alpha: 0.04)
+          : Colors.black.withValues(alpha: 0.025),
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.06)
+              : Colors.black.withValues(alpha: 0.06),
+        ),
+      ),
+      child: SwitchListTile(
+        value: localized,
+        onChanged: onChanged,
+        dense: true,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+        title: Text(
+          title,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            fontWeight: localized ? FontWeight.w600 : FontWeight.w400,
+          ),
+        ),
+        subtitle: Text(
+          subtitle,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        secondary: Icon(
+          localized ? Icons.folder_outlined : Icons.public_rounded,
+          size: 20,
+          color: localized
+              ? theme.colorScheme.primary
+              : theme.colorScheme.onSurfaceVariant,
         ),
       ),
     );
@@ -223,41 +279,39 @@ class _SortOptionGroup<T> extends StatelessWidget {
             ),
           ),
         ),
-        Container(
-          decoration: BoxDecoration(
-            color: isDark
-                ? Colors.white.withValues(alpha: 0.04)
-                : Colors.black.withValues(alpha: 0.025),
+        Material(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.04)
+              : Colors.black.withValues(alpha: 0.025),
+          clipBehavior: Clip.antiAlias,
+          shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(
+            side: BorderSide(
               color: isDark
                   ? Colors.white.withValues(alpha: 0.06)
                   : Colors.black.withValues(alpha: 0.06),
             ),
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: RadioGroup<T>(
-              groupValue: groupValue,
-              onChanged: (value) {
-                if (value != null) onChanged(value);
-              },
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  for (var i = 0; i < options.length; i++) ...[
-                    if (i > 0)
-                      Divider(
-                        height: 0.5,
-                        thickness: 0.5,
-                        indent: 16,
-                        endIndent: 16,
-                        color: dividerColor,
-                      ),
-                    _buildOptionTile(context, options[i]),
-                  ],
+          child: RadioGroup<T>(
+            groupValue: groupValue,
+            onChanged: (value) {
+              if (value != null) onChanged(value);
+            },
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (var i = 0; i < options.length; i++) ...[
+                  if (i > 0)
+                    Divider(
+                      height: 0.5,
+                      thickness: 0.5,
+                      indent: 16,
+                      endIndent: 16,
+                      color: dividerColor,
+                    ),
+                  _buildOptionTile(context, options[i]),
                 ],
-              ),
+              ],
             ),
           ),
         ),

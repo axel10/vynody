@@ -91,7 +91,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get sortBy => 'Trier par';
 
   @override
-  String get sortScope => 'Portée';
+  String get sortOnlyThisFolder => 'Ce dossier uniquement';
 
   @override
   String get sortOrder => 'Ordre de tri';
@@ -112,10 +112,11 @@ class AppLocalizationsFr extends AppLocalizations {
   String get descending => 'Décroissant';
 
   @override
-  String get currentFolderScope => 'Dossier actuel';
+  String get sortOnlyThisFolderHint =>
+      'Ce dossier utilise les réglages ci-dessus';
 
   @override
-  String get globalScope => 'Global';
+  String get sortFollowsGlobalHint => 'Ce dossier suit le tri global';
 
   @override
   String get visualizerSettings => 'Paramètres de la page de lecture';

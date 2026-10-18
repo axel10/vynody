@@ -88,7 +88,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sortBy => 'Sort By';
 
   @override
-  String get sortScope => 'Scope';
+  String get sortOnlyThisFolder => 'This folder only';
 
   @override
   String get sortOrder => 'Sort Order';
@@ -109,10 +109,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get descending => 'Descending';
 
   @override
-  String get currentFolderScope => 'Current Folder';
+  String get sortOnlyThisFolderHint => 'This folder uses the settings above';
 
   @override
-  String get globalScope => 'Global';
+  String get sortFollowsGlobalHint =>
+      'This folder follows the global sort settings';
 
   @override
   String get visualizerSettings => 'Playback Page Settings';
