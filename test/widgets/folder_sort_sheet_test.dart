@@ -54,6 +54,8 @@ void main() {
 
     final scanner = ScannerService(autoInitialize: false);
     addTearDown(scanner.dispose);
+    // 显式给全局一个非默认值，避免和「默认音轨号」撞车
+    scanner.setGlobalSort(criteria: SortCriteria.filename);
 
     await tester.pumpWidget(
       _wrap(FolderSortSheet(scanner: scanner, folderPath: folder)),
@@ -71,7 +73,7 @@ void main() {
 
     expect(scanner.getSortSettingsForFolder(folder).criteria,
         SortCriteria.title);
-    // 全局仍是默认的文件名，未被牵连
+    // 全局仍是文件名，未被牵连
     expect(scanner.getGlobalSortSettings().criteria, SortCriteria.filename);
   });
 

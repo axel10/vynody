@@ -26,8 +26,16 @@ void main() {
 
     expect(scanner.hasSortOverrideForFolder(folder), isFalse);
     final resolved = scanner.getSortSettingsForFolder(folder);
-    expect(resolved.criteria, SortCriteria.filename);
+    expect(resolved.criteria, SortCriteria.trackNumber);
     expect(resolved.order, SortOrder.ascending);
+  });
+
+  test('从未写过排序设置时默认按音轨号升序', () {
+    final scanner = buildService();
+    addTearDown(scanner.dispose);
+
+    expect(scanner.getGlobalSortSettings().criteria, SortCriteria.trackNumber);
+    expect(scanner.getGlobalSortSettings().order, SortOrder.ascending);
   });
 
   test('开启「仅此目录」物化覆盖，但值仍等于当前生效设置', () {
@@ -47,6 +55,7 @@ void main() {
     final scanner = buildService();
     addTearDown(scanner.dispose);
 
+    scanner.setGlobalSort(criteria: SortCriteria.title);
     scanner.setFolderSortLocalized(folder, true);
     scanner.setFolderSort(folder, criteria: SortCriteria.trackNumber);
     scanner.setFolderSort(folder, order: SortOrder.descending);
@@ -56,7 +65,7 @@ void main() {
     expect(scanner.getSortSettingsForFolder(folder).order,
         SortOrder.descending);
     // 其它目录与全局不受影响
-    expect(scanner.getGlobalSortSettings().criteria, SortCriteria.filename);
+    expect(scanner.getGlobalSortSettings().criteria, SortCriteria.title);
     expect(scanner.getGlobalSortSettings().order, SortOrder.ascending);
     expect(scanner.hasSortOverrideForFolder('/music/jazz'), isFalse);
   });
@@ -65,15 +74,16 @@ void main() {
     final scanner = buildService();
     addTearDown(scanner.dispose);
 
+    scanner.setGlobalSort(criteria: SortCriteria.title);
     scanner.setFolderSortLocalized(folder, true);
-    scanner.setFolderSort(folder, criteria: SortCriteria.title);
+    scanner.setFolderSort(folder, criteria: SortCriteria.filename);
     expect(scanner.hasSortOverrideForFolder(folder), isTrue);
 
     scanner.setFolderSortLocalized(folder, false);
 
     expect(scanner.hasSortOverrideForFolder(folder), isFalse);
     expect(scanner.getSortSettingsForFolder(folder).criteria,
-        SortCriteria.filename);
+        SortCriteria.title);
   });
 
   test('全局改动不会穿透已开启「仅此目录」的目录', () {
@@ -81,12 +91,12 @@ void main() {
     addTearDown(scanner.dispose);
 
     scanner.setFolderSortLocalized(folder, true);
-    scanner.setGlobalSort(criteria: SortCriteria.trackNumber);
+    scanner.setGlobalSort(criteria: SortCriteria.filename);
 
     expect(scanner.getSortSettingsForFolder(folder).criteria,
-        SortCriteria.filename);
-    expect(scanner.getSortSettingsForFolder('/music/jazz').criteria,
         SortCriteria.trackNumber);
+    expect(scanner.getSortSettingsForFolder('/music/jazz').criteria,
+        SortCriteria.filename);
   });
 
   test('重复开启 / 重复关闭都不会产生多余状态', () {

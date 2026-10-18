@@ -121,13 +121,19 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
   static const String _keyGlobalSortCriteria = 'folder_sort_global_criteria';
   static const String _keyGlobalSortOrder = 'folder_sort_global_order';
   static const String _keyFolderSortOverrides = 'folder_sort_overrides';
+
+  /// 从未写过排序设置时的默认值：按音轨号升序。
+  ///
+  /// 不能改 [SortCriteriaX.fromStorageValue] 的兜底值——WebDAV 浏览用的是
+  /// 同一个枚举，那边的默认仍是文件名。
+  static const SortCriteria _defaultSortCriteria = SortCriteria.trackNumber;
   static const int _defaultShortAudioThresholdSeconds = 30;
   static const bool _scanTimingEnabled = false;
   static const Duration _defaultDirectoryRescanBatchWindow = Duration(
     milliseconds: 900,
   );
 
-  SortCriteria _globalSortCriteria = SortCriteria.filename;
+  SortCriteria _globalSortCriteria = _defaultSortCriteria;
   SortOrder _globalSortOrder = SortOrder.ascending;
   Map<String, FolderSortSettings> _folderSortOverrides = {};
 
@@ -1011,6 +1017,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       };
       unawaited(_saveFolderSortOverrides());
       // 覆盖值与当前生效值一致，列表顺序不变，只需让顶栏等监听者刷新状态。
+      _markSortOrderChanged();
       notifyListeners();
       return;
     }
@@ -1052,6 +1059,7 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       if (refreshCovers) {
         unawaited(_refreshAllFolderRepresentativeSongs());
       }
+      _markSortOrderChanged();
       _timeScanStepSync('stage sortAndNotify notify listeners', () {
         notifyListeners();
       });
@@ -1059,6 +1067,14 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
       totalStopwatch.stop();
       _logScanTiming('stage sortAndNotify total', totalStopwatch);
     }
+  }
+
+  /// 排序结果变了：文件夹是就地重排，对象 identity 与歌曲总数都不变，
+  /// [_refreshStructureRevision] 的指纹感知不到，必须显式推进结构版本，
+  /// 否则列表停在旧顺序、顶栏的「仅此目录」高亮也不会刷新。
+  void _markSortOrderChanged() {
+    _structureRevision++;
+    _rootFoldersView = null;
   }
 
   Future<void> _refreshAllFolderRepresentativeSongs() async {
@@ -4004,9 +4020,11 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
 
   Future<void> _loadSortSettings() async {
     final prefs = await SharedPreferences.getInstance();
-    _globalSortCriteria = SortCriteriaX.fromStorageValue(
-      prefs.getString(_keyGlobalSortCriteria),
-    );
+    final storedCriteria = prefs.getString(_keyGlobalSortCriteria);
+    // 只有「从未写过」才用新默认值；显式存过 filename 的老用户保持原样
+    _globalSortCriteria = storedCriteria == null
+        ? _defaultSortCriteria
+        : SortCriteriaX.fromStorageValue(storedCriteria);
     _globalSortOrder = SortOrderX.fromStorageValue(
       prefs.getString(_keyGlobalSortOrder),
     );
