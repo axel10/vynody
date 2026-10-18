@@ -437,19 +437,9 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     );
   }
 
-  void _writeLog(String message) {
-    // debugPrint('[LYRICS_DEBUG] $message');
-  }
-
   @override
   void initState() {
     super.initState();
-    try {
-      final file = File('/Volumes/Untitled/projects/vynody/lyrics_debug.log');
-      if (file.existsSync()) {
-        file.deleteSync();
-      }
-    } catch (_) {}
     _timelineOffsetSeconds = _timelineOffsetToSeconds(
       widget.lyrics?.timelineOffset,
     );
@@ -1266,7 +1256,6 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     }
 
     final activeIndex = _activeLineIndex(lines, isGenerating: isGenerating);
-    _writeLog('_scheduleScrollIfNeeded: activeIndex=$activeIndex _lastActiveIndex=$_lastActiveIndex force=$force');
     if (activeIndex < 0 || (!force && activeIndex == _lastActiveIndex)) return;
 
     bool shouldScroll = true;
@@ -1323,7 +1312,6 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !_scrollController.hasClients) return;
-      _writeLog('PostFrameCallback: activeIndex=$activeIndex, scheduling to...');
       if (kDebugMode) {
         final currentOffset = _scrollController.offset;
         final viewportHeight = _scrollController.position.viewportDimension;
@@ -1513,9 +1501,7 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
     }
 
     final currentOffset = _scrollController.offset;
-    _writeLog('_scrollToLineIndex: index=$index target=$target currentOffset=$currentOffset difference=${(target - currentOffset).abs()} animate=$animate');
     if ((target - currentOffset).abs() < 1.0) {
-      _writeLog('_scrollToLineIndex: difference is less than 1.0, early exit');
       return;
     }
     if (kDebugMode) {
@@ -1752,7 +1738,6 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
 
   @override
   Widget build(BuildContext context) {
-    _writeLog('build: position=${widget.position.inMilliseconds}ms');
     final l10n = AppLocalizations.of(context)!;
     final lyricsState = ref.watch(lyricsControllerProvider);
     final currentSong = ref.watch(audioCurrentMusicProvider);
@@ -1861,7 +1846,6 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        _writeLog('LayoutBuilder: maxWidth=${constraints.maxWidth} maxHeight=${constraints.maxHeight}');
         final double screenWidth = MediaQuery.sizeOf(context).width;
         final isPortrait = (MediaQuery.of(context).orientation == Orientation.portrait) || isSmallWin;
         final double panelWidth = constraints.maxWidth;
@@ -1997,11 +1981,9 @@ class _LyricsPanelState extends rpod.ConsumerState<LyricsPanel> {
             final oldTop = _oldItemCenters![k] - _oldLineHeights![k] / 2;
             final newTop = itemCenters[k] - lineHeights[k] / 2;
             final delta = newTop - oldTop;
-            _writeLog('JitterMitigation: k=$k, oldTop=$oldTop, newTop=$newTop, delta=$delta');
             if (delta.abs() > 0.01) {
               final newOffset = currentOffset + delta;
               _scrollController.position.correctPixels(newOffset);
-              _writeLog('JitterMitigation: corrected scroll pixels to $newOffset');
               if (kDebugMode) {
                 debugPrint(
                   '[LyricsPanel] Anti-jitter scroll correction: '

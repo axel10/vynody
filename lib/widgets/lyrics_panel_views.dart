@@ -1066,6 +1066,7 @@ class WordWordLyricsWidget extends ConsumerStatefulWidget {
 class _WordWordLyricsWidgetState extends ConsumerState<WordWordLyricsWidget>
     with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late final Ticker _ticker;
+
   Duration _basePosition = Duration.zero;
   DateTime _baseWallClock = DateTime.now();
   Duration _pausedElapsed = Duration.zero;
@@ -1073,11 +1074,76 @@ class _WordWordLyricsWidgetState extends ConsumerState<WordWordLyricsWidget>
   bool _isBackgroundSuspended = false;
   bool _isInitialized = false;
 
+  /// 最近一次播放速度。纠偏时需要按它换算「本该渲染到的位置」。
+  double _speed = 1.0;
+
+  /// 与 provider 的偏差，按 [_correctionWindowMs] 线性摊入。
+  /// provider 是 250ms 一跳的阶梯值，直接对齐会整段回退，这里只平滑纠偏。
+  Duration _correction = Duration.zero;
+  DateTime _correctionAt = DateTime.now();
+  static const int _correctionWindowMs = 240;
+
+  /// 纠偏上限：超过就是真的 seek/跳转，直接硬对齐。
+  static const int _maxSoftCorrectionMs = 900;
+
+  /// 续接位置与 provider 的最大允许偏差（超过视为 seek / 重播）。
+  static const int _resumeMaxGapMs = 400;
+
+  /// 同一行内 State 被重建时（元素被替换）续接上一刻渲染到的位置，
+  /// 否则新 State 会以 provider 阶梯值重新起算，肉眼就是「回跳半句」。
+  static int? _resumeLineKeyMs;
+  static int _resumePositionMs = 0;
+  static DateTime _resumeAt = DateTime.fromMillisecondsSinceEpoch(0);
+
+  int get _lineKeyMs => widget.words.isEmpty
+      ? 0
+      : widget.words.first.timestamp.inMilliseconds;
+
+  Duration? _resumeSnapshot(DateTime now) {
+    if (_resumeLineKeyMs != _lineKeyMs) return null;
+    final age = now.difference(_resumeAt).inMilliseconds;
+    if (age < 0 || age > 1200) return null;
+    return Duration(milliseconds: _resumePositionMs + age);
+  }
+
+  void _rememberRendered(Duration position, DateTime now) {
+    _resumeLineKeyMs = _lineKeyMs;
+    _resumePositionMs = position.inMilliseconds;
+    _resumeAt = now;
+  }
 
   void _syncBaseline({Duration? seekPosition}) {
-    _basePosition = seekPosition ?? ref.read(audioPositionProvider);
-    _baseWallClock = DateTime.now();
+    final now = DateTime.now();
+    final previousLocal = _isInitialized
+        ? _calculateCurrentPosition(_speed)
+        : null;
+    final Duration target = seekPosition ?? ref.read(audioPositionProvider);
+
+    // 取「续接值」或「当前渲染值」作为锚点，让误差只以纠偏的形式慢慢吃掉。
+    var hard = true;
+    var anchor = target;
+    if (!_isInitialized) {
+      final resume = _resumeSnapshot(now);
+      // 只有「和当前 provider 相差不大」才认定是同一行内的重建续接；
+      // 差值大说明是 seek / 重播，按新位置硬对齐。
+      if (resume != null &&
+          (resume - target).inMilliseconds.abs() <= _resumeMaxGapMs) {
+        anchor = resume;
+        hard = false;
+      }
+    } else if (_isPlaying && previousLocal != null) {
+      final errorMs = (target - previousLocal).inMilliseconds;
+      if (errorMs.abs() <= _maxSoftCorrectionMs) {
+        anchor = previousLocal;
+        hard = false;
+      }
+    }
+
+    _basePosition = anchor;
+    _baseWallClock = now;
     _pausedElapsed = Duration.zero;
+    _correction = hard ? Duration.zero : target - anchor;
+    _correctionAt = now;
     _isInitialized = true;
   }
 
@@ -1085,15 +1151,31 @@ class _WordWordLyricsWidgetState extends ConsumerState<WordWordLyricsWidget>
     if (!_isInitialized) {
       return ref.read(audioPositionProvider);
     }
+    final now = DateTime.now();
     final rawElapsed = _isPlaying
-        ? _pausedElapsed + DateTime.now().difference(_baseWallClock)
+        ? _pausedElapsed + now.difference(_baseWallClock)
         : _pausedElapsed;
+    final Duration base;
     if ((speed - 1.0).abs() > 0.001 && speed > 0) {
       final scaledElapsedMs =
           (rawElapsed.inMicroseconds * speed / 1000).round();
-      return _basePosition + Duration(milliseconds: scaledElapsedMs);
+      base = _basePosition + Duration(milliseconds: scaledElapsedMs);
+    } else {
+      base = _basePosition + rawElapsed;
     }
-    return _basePosition + rawElapsed;
+    if (_correction.inMilliseconds == 0) return base;
+    final elapsed = now.difference(_correctionAt).inMilliseconds;
+    // t=0 时输出必须等于 anchor（接上刚才那一帧），
+    // [_correctionWindowMs] 内把差值线性摊完，之后作为恒定偏移叠加，
+    // 这样任何时刻都不会出现「一步退回」。
+    if (elapsed >= _correctionWindowMs) {
+      return base + _correction;
+    }
+    final progress = elapsed / _correctionWindowMs;
+    return base +
+        Duration(
+          milliseconds: (_correction.inMilliseconds * progress).round(),
+        );
   }
 
   @override
@@ -1236,12 +1318,16 @@ class _WordWordLyricsWidgetState extends ConsumerState<WordWordLyricsWidget>
       _updateTickerState();
     }
 
+    _speed = speed;
     final currentPosition = _calculateCurrentPosition(speed);
 
     final currentMusic = ref.watch(audioCurrentMusicProvider);
     final timelineOffsetMs =
         currentMusic?.lyrics?.timelineOffset.inMilliseconds ?? 0;
     final currentMs = currentPosition.inMilliseconds - timelineOffsetMs;
+
+    // 记下这一刻渲染到的位置，供同一行的后继 State 续接。
+    _rememberRendered(currentPosition, DateTime.now());
 
     final activeChild = Text(
       fullText,
