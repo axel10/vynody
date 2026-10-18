@@ -13,6 +13,12 @@ typedef MasterItemWidgetBuilder<T> = Widget Function(
   VoidCallback onTap,
 );
 
+/// 左侧 Master 列表为滚动条预留的右侧空白（逻辑像素）。
+///
+/// 滚动条是悬浮绘制在内容之上的（桌面端默认厚度 8），条目的选中态背景若铺满
+/// 整个栏宽，右缘就会压在滚动条底下，故右侧额外留出这段间距。
+const double _masterScrollbarReserve = 12.0;
+
 /// 响应式主从分栏/两级页面通用脚手架
 ///
 /// 特性：
@@ -388,7 +394,7 @@ class _MasterDetailScaffoldState<T>
                                     padding: EdgeInsets.fromLTRB(
                                       8,
                                       8,
-                                      8,
+                                      8 + _masterScrollbarReserve,
                                       bottomPadding,
                                     ),
                                     itemCount: items.length,
