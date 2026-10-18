@@ -38,7 +38,7 @@
 - **写 `songs` 表只能基于 DB 记录 `copyWith`**：`_songCompanion` 整行写入（全 `Value(...)`，无 `Value.absent()`），`Value(null)` 照写。任何链路 `SongMetadata(...)` 再整行写都会把未列出的列（year/genres/bitrate/sampleRate/format/codec/albumArtist/sourceFlags/fileRating/hasArtwork/waveformBlob/deletedAt/createdAt）清成 null，已因此让歌从年份页/流派页消失过。新记录入库才用最小兜底构造；`id/mediaId/isAppModified/waveformBlob/deletedAt` 属「读文件得不到的列」，永不出现在读标签路径的 copyWith 里。封面四列用 `artworkProbed = generateThumbnail && (!tagReadFailed || 有产出)` 控制，标签解析抛异常不得清空旧封面。
 - **`TagLibMetadata` 是标签字段清单，新增标签列必须三处同步**：字段 → 四个 reader（`readMetadataIsolate`/`readMetadataWithImageIsolate`/两个 `_readMetadata*IsolateEntryPoint`）赋值 → `processMetadata` 里 `值 ?? base.值` 回落。`genres`/`hasArtwork` 就是这么漏的。
 - **诊断钩子 `_debugWarnColumnWipe`**：写库时「库里某列非空 → 本次写成空」会打 `[ColumnWipe]` + 调用栈（13 列）。看到它 = 有调用方还在拼整行。
-- **排序写入必须显式推进结构版本**：文件夹是就地 `sort`，`_computeStructureFingerprint` 只看对象 identity 与歌曲总数，感知不到顺序变化 → 改排序走 `_markSortOrderChanged()`（`_structureRevision++` + `_rootFoldersView = null`），否则列表停在旧顺序、顶栏「仅此目录」高亮不刷新。目录默认排序 = 音轨号升序（`_defaultSortCriteria`，仅 prefs 无该 key 时生效）；`SortCriteriaX.fromStorageValue` 兜底仍是 `filename`（WebDAV 共用同一枚举，不可改）。
+- **排序写入必须显式推进结构版本**：文件夹是就地 `sort`，`_computeStructureFingerprint` 只看对象 identity 与歌曲总数，感知不到顺序变化 → 改排序走 `_markSortOrderChanged()`（`_structureRevision++` + `_rootFoldersView = null`），否则列表停在旧顺序、顶栏「仅此目录」高亮不刷新。目录默认排序 = 音轨号升序（`_defaultSortCriteria`，仅 prefs 无该 key 时生效）；`SortCriteriaX.fromStorageValue` 兜底仍是 `filename`（WebDAV 共用同一枚举，不可改）。UI 侧唯一写入口是 `applySortSettings()`（浮层点「确定」才调用，只重排一次），选项本身只改本地状态。
 
 ## 新增实体 / 条目
 

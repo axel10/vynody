@@ -9,7 +9,8 @@ import '../widgets/app_bottom_sheet.dart';
 /// - 窄屏 / 竖屏：底部抽屉
 /// - 宽屏 / 横屏 / 桌面端：居中弹窗
 ///
-/// 选项即时生效（写入 [ScannerService] 的排序设置），无需二次确认。
+/// 选项只改浮层内的待生效状态，点「确定」才写入 [ScannerService]；
+/// 直接关闭（关闭按钮 / 点遮罩 / 下拉）等同于取消，不改任何设置。
 Future<void> showFolderSortSheet({
   required BuildContext context,
   required ScannerService scanner,
@@ -60,28 +61,14 @@ class _FolderSortSheetState extends State<FolderSortSheet> {
   void _selectCriteria(SortCriteria criteria) {
     if (criteria == _criteria) return;
     setState(() => _criteria = criteria);
-    _writeSettings(criteria: criteria);
   }
 
   void _selectOrder(SortOrder order) {
     if (order == _order) return;
     setState(() => _order = order);
-    _writeSettings(order: order);
   }
 
-  void _writeSettings({SortCriteria? criteria, SortOrder? order}) {
-    if (_localized) {
-      widget.scanner.setFolderSort(
-        widget.folderPath,
-        criteria: criteria,
-        order: order,
-      );
-      return;
-    }
-    widget.scanner.setGlobalSort(criteria: criteria, order: order);
-  }
-
-  /// 开关即时落库：打开 = 物化一份覆盖（画面不变）；关闭 = 删除覆盖、回到全局。
+  /// 开关只改待生效状态：关掉时把选项同步成全局值，因为确定后此目录跟随全局。
   void _toggleLocalized(bool value) {
     if (value == _localized) return;
     setState(() {
@@ -92,7 +79,17 @@ class _FolderSortSheetState extends State<FolderSortSheet> {
         _order = global.order;
       }
     });
-    widget.scanner.setFolderSortLocalized(widget.folderPath, value);
+  }
+
+  /// 确定：把浮层里的选择一次性写下去，然后关闭。
+  void _confirm() {
+    widget.scanner.applySortSettings(
+      widget.folderPath,
+      localized: _localized,
+      criteria: _criteria,
+      order: _order,
+    );
+    Navigator.of(context).pop();
   }
 
   @override
@@ -160,9 +157,22 @@ class _FolderSortSheetState extends State<FolderSortSheet> {
                   : l10n.sortFollowsGlobalHint,
             ),
             const SizedBox(height: 24),
-            FilledButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text(l10n.done),
+            Row(
+              children: [
+                Expanded(
+                  child: TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: Text(l10n.cancel),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: FilledButton(
+                    onPressed: _confirm,
+                    child: Text(l10n.confirm),
+                  ),
+                ),
+              ],
             ),
           ],
         ),

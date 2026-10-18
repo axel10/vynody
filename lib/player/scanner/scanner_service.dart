@@ -1030,6 +1030,54 @@ class ScannerService extends ChangeNotifier with WidgetsBindingObserver {
     _sortAndNotify(refreshCovers: false);
   }
 
+  /// 一次性应用浮层里的选择（浮层点「确定」时调用）。
+  ///
+  /// [localized] 为真：把 [criteria]/[order] 写成该目录的独立覆盖；
+  /// 为假：删除该目录的覆盖（回到全局），并把 [criteria]/[order] 写进全局设置。
+  ///
+  /// 只在此处收口成一次重排 + 一次通知，避免逐项写入触发多轮全树排序。
+  void applySortSettings(
+    String folderPath, {
+    required bool localized,
+    required SortCriteria criteria,
+    required SortOrder order,
+  }) {
+    final key = _sortFolderKey(folderPath);
+    var changed = false;
+
+    if (localized) {
+      final current = _folderSortOverrides[key];
+      if (current == null ||
+          current.criteria != criteria ||
+          current.order != order) {
+        _folderSortOverrides = {
+          ..._folderSortOverrides,
+          key: FolderSortSettings(criteria: criteria, order: order),
+        };
+        unawaited(_saveFolderSortOverrides());
+        changed = true;
+      }
+    } else {
+      if (_folderSortOverrides.containsKey(key)) {
+        final next = Map<String, FolderSortSettings>.from(_folderSortOverrides)
+          ..remove(key);
+        _folderSortOverrides = next;
+        unawaited(_saveFolderSortOverrides());
+        changed = true;
+      }
+      if (_globalSortCriteria != criteria || _globalSortOrder != order) {
+        _globalSortCriteria = criteria;
+        _globalSortOrder = order;
+        unawaited(_saveGlobalSortSettings());
+        changed = true;
+      }
+    }
+
+    if (changed) {
+      _sortAndNotify(refreshCovers: false);
+    }
+  }
+
   void _sortAndNotify({bool refreshCovers = true}) {
     final totalStopwatch = Stopwatch()..start();
     try {
