@@ -25,6 +25,10 @@ class _MockAudioService extends Fake implements AudioService {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  setUp(() {
+    FloatingDockScrollHelper.traceEnabled = false;
+  });
+
   late SettingsService settings;
 
   setUp(() async {

@@ -821,9 +821,20 @@ class _MainLayoutState extends ConsumerState<MainLayout>
 
   void _selectTab(int index) {
     if (_currentIndex == index) return;
+    // if (FloatingDockScrollHelper.traceEnabled) {
+    //   AppLog.log(
+    //     '[DockTrace] _selectTab $_currentIndex → $index '
+    //     'collapsed=${ref.read(floatingDockCollapsedProvider)} '
+    //     'prep=${ref.read(floatingDockCollapseProgressProvider).toStringAsFixed(2)}',
+    //     mirrorToConsole: true,
+    //   );
+    // }
     ref.read(previousMainTabIndexProvider.notifier).setIndex(_currentIndex);
     ref.read(mainTabIndexProvider.notifier).setIndex(index);
-    ref.read(floatingDockCollapsedProvider.notifier).setCollapsed(false);
+    // 切页不干预收起态：收起是由滚动派生的状态。这里若强行 setCollapsed(false)，
+    // 展开动画（300ms）会和新页面紧接着的向下滚动收起判定撞在一起，
+    // 表现为「先展开一下又收起」。只清掉上一页残留的累计距离与半收起进度。
+    _dockScrollHelper.reset(ref);
     _currentBaseTabIndex = index;
     Tooltip.dismissAllToolTips();
     setState(() {

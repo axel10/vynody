@@ -8,6 +8,7 @@ import 'package:vynody/player/audio/audio_service.dart';
 import 'package:vynody/utils/app_orientation_manager.dart';
 import 'package:vynody/utils/playback_utils.dart';
 import 'package:vynody/pages/main_layout_riverpod.dart';
+import 'package:vynody/utils/app_log.dart';
 import 'package:vynody/widgets/animated_play_pause_button.dart';
 import 'package:vynody/widgets/app_tooltip.dart';
 import 'package:vynody/widgets/mini_player_widgets.dart';
@@ -41,6 +42,38 @@ class FloatingDockBottomBar extends ConsumerStatefulWidget {
 class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
   bool _isDragging = false;
   double _dragProgress = 0.0;
+
+  /// 诊断用：记录上一次 build 时的收起相关状态，变化时打点，
+  /// 用来区分「provider 标志位变了」与「标志位没变但视觉变了」
+  bool? _lastTracedCollapsedState;
+  bool? _lastTracedShowMini;
+  double? _lastTracedProgress;
+  int? _lastTracedIndex;
+
+  void _traceDockState(
+    bool isCollapsedState,
+    bool showMini,
+    double prepProgress,
+  ) {
+    if (!FloatingDockScrollHelper.traceEnabled) return;
+    final changed =
+        _lastTracedCollapsedState != isCollapsedState ||
+        _lastTracedShowMini != showMini ||
+        _lastTracedProgress != prepProgress ||
+        _lastTracedIndex != widget.currentIndex;
+    if (!changed) return;
+    // AppLog.log(
+    //   '[DockTrace] dock.build collapsed=$isCollapsedState showMini=$showMini '
+    //   'prep=${prepProgress.toStringAsFixed(2)} index=${widget.currentIndex} '
+    //   'isPlayback=${widget.isPlayback} isHidden=${widget.isHidden} '
+    //   'hideMini=${widget.hideMiniPlayer}',
+    //   mirrorToConsole: true,
+    // );
+    _lastTracedCollapsedState = isCollapsedState;
+    _lastTracedShowMini = showMini;
+    _lastTracedProgress = prepProgress;
+    _lastTracedIndex = widget.currentIndex;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -93,6 +126,7 @@ class _FloatingDockBottomBarState extends ConsumerState<FloatingDockBottomBar> {
     final collapsePrepProgress = ref.watch(
       floatingDockCollapseProgressProvider,
     );
+    _traceDockState(isCollapsedState, showMini, collapsePrepProgress);
     final double prepScale = isCollapsed
         ? 1.0
         : (1.0 - (0.05 * collapsePrepProgress));
