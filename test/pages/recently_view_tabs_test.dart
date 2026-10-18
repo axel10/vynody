@@ -14,13 +14,19 @@ import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/library/album_library.dart';
 import 'package:vynody/player/library/library_insights_service.dart';
 import 'package:vynody/widgets/draggable_album_item.dart';
-import 'package:vynody/widgets/library_ranked_album_list.dart';
-import 'package:vynody/widgets/library_ranked_song_list.dart';
+import 'package:vynody/widgets/library_insight_list.dart';
 import 'package:vynody/widgets/library_selection_panel.dart';
 import 'package:vynody/widgets/section_type_toggle.dart';
 import 'package:vynody/widgets/time_range_dropdown.dart';
 
 import '../widgets/helpers/mobile_screenshot_harness.dart';
+
+/// 单曲 / 专辑共用同一个 [LibraryInsightList]，用它的 `type` 判断当前展示模式。
+SectionItemType _insightType(WidgetTester tester) =>
+    tester.widget<LibraryInsightList>(find.byType(LibraryInsightList)).type;
+
+String _searchText(WidgetTester tester) =>
+    tester.widget<TextField>(find.byType(TextField).first).controller?.text ?? '';
 
 class _FakePathProvider extends Fake
     with MockPlatformInterfaceMixin
@@ -167,6 +173,32 @@ void main() {
     await tester.pump(const Duration(milliseconds: 200));
   }
 
+  testWidgets('切换单曲 / 专辑不会销毁列表 State（搜索词保留）', (tester) async {
+    await tester.pumpWidget(buildTestTab(const RecentlyAddedTab()));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+
+    // 宽屏（800x900）下 header 常驻搜索框
+    await tester.enterText(find.byType(TextField).first, 'cit');
+    await tester.pump();
+    expect(_searchText(tester), 'cit');
+
+    await switchToAlbums(tester);
+    expect(_insightType(tester), SectionItemType.albums);
+
+    // 不依赖文案，直接用 toggle 回调切回单曲
+    tester
+        .widget<SectionTypeToggle>(find.byType(SectionTypeToggle))
+        .onChanged(SectionItemType.songs);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(_insightType(tester), SectionItemType.songs);
+
+    // 旧实现里单曲 / 专辑是两个不同的 Widget 类型，切回来会重建 State，
+    // 搜索词与滚动位置都会被清空。
+    expect(_searchText(tester), 'cit', reason: '切视图应保留同一个列表 State');
+  });
+
   testWidgets('RecentlyPlayedTab - 默认单曲视图，切换后展示专辑视图', (tester) async {
     await tester.pumpWidget(buildTestTab(const RecentlyPlayedTab()));
     await tester.pump();
@@ -174,13 +206,11 @@ void main() {
 
     expect(find.byType(SectionTypeToggle), findsOneWidget);
     expect(find.byType(TimeRangeDropdown), findsOneWidget);
-    expect(find.byType(LibraryRankedSongList), findsOneWidget);
-    expect(find.byType(LibraryRankedAlbumList), findsNothing);
+    expect(_insightType(tester), SectionItemType.songs);
 
     await switchToAlbums(tester);
 
-    expect(find.byType(LibraryRankedAlbumList), findsOneWidget);
-    expect(find.byType(LibraryRankedSongList), findsNothing);
+    expect(_insightType(tester), SectionItemType.albums);
   });
 
   testWidgets('RecentlyAddedTab - 默认单曲视图，切换后展示专辑视图', (tester) async {
@@ -190,13 +220,11 @@ void main() {
 
     expect(find.byType(SectionTypeToggle), findsOneWidget);
     expect(find.byType(TimeRangeDropdown), findsOneWidget);
-    expect(find.byType(LibraryRankedSongList), findsOneWidget);
-    expect(find.byType(LibraryRankedAlbumList), findsNothing);
+    expect(_insightType(tester), SectionItemType.songs);
 
     await switchToAlbums(tester);
 
-    expect(find.byType(LibraryRankedAlbumList), findsOneWidget);
-    expect(find.byType(LibraryRankedSongList), findsNothing);
+    expect(_insightType(tester), SectionItemType.albums);
   });
 
   testWidgets('MostPlayedTab 专辑视图 - 支持长按多选、拖拽与底部操作面板', (tester) async {
@@ -206,7 +234,7 @@ void main() {
 
     await switchToAlbums(tester);
 
-    expect(find.byType(LibraryRankedAlbumList), findsOneWidget);
+    expect(_insightType(tester), SectionItemType.albums);
     // 每一行专辑都是拖拽源
     expect(find.byType(DraggableAlbumItem), findsWidgets);
 

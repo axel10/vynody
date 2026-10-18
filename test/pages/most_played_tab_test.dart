@@ -11,12 +11,15 @@ import 'package:vynody/pages/most_played_tab.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/library/album_library.dart';
 import 'package:vynody/player/library/library_insights_service.dart';
-import 'package:vynody/widgets/library_ranked_album_list.dart';
-import 'package:vynody/widgets/library_ranked_song_list.dart';
+import 'package:vynody/widgets/library_insight_list.dart';
 import 'package:vynody/widgets/section_type_toggle.dart';
 import 'package:vynody/widgets/time_range_dropdown.dart';
 
 import '../widgets/helpers/mobile_screenshot_harness.dart';
+
+/// 单曲 / 专辑共用同一个 [LibraryInsightList]，用它的 `type` 判断当前展示模式。
+SectionItemType _insightType(WidgetTester tester) =>
+    tester.widget<LibraryInsightList>(find.byType(LibraryInsightList)).type;
 
 class _FakePathProvider extends Fake
     with MockPlatformInterfaceMixin
@@ -163,11 +166,10 @@ void main() {
     expect(find.byType(TimeRangeDropdown), findsOneWidget);
 
     // Defaults to songs
-    expect(find.byType(LibraryRankedSongList), findsOneWidget);
-    expect(find.byType(LibraryRankedAlbumList), findsNothing);
+    expect(_insightType(tester), SectionItemType.songs);
   });
 
-  testWidgets('MostPlayedTab - switching toggle to albums displays LibraryRankedAlbumList', (tester) async {
+  testWidgets('MostPlayedTab - switching toggle to albums displays album rows', (tester) async {
     await tester.pumpWidget(buildTestTab());
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 200));
@@ -179,8 +181,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 200));
 
-    // Should now display LibraryRankedAlbumList
-    expect(find.byType(LibraryRankedAlbumList), findsOneWidget);
-    expect(find.byType(LibraryRankedSongList), findsNothing);
+    // Should now display album mode
+    expect(_insightType(tester), SectionItemType.albums);
   });
 }

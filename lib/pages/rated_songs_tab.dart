@@ -7,7 +7,9 @@ import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/library/library_insights_service.dart';
 import 'package:vynody/player/library/library_overview_providers.dart';
 import 'package:vynody/player/settings/settings_service.dart';
-import '../widgets/library_ranked_song_list.dart';
+import '../widgets/library_insight_list.dart';
+import '../widgets/library_selection_scope.dart';
+import '../widgets/section_type_toggle.dart';
 
 class RatedSongsTab extends ConsumerStatefulWidget {
   final double contentTopPadding;
@@ -161,12 +163,14 @@ class _RatedSongsTabState extends ConsumerState<RatedSongsTab> {
       data: (items) {
         final processedItems = _sortAndFilterItems(items);
 
-        return LibraryRankedSongList(
+        return LibraryInsightList(
+          type: SectionItemType.songs,
+          selectionScope: LibrarySelectionScope.library,
           contentTopPadding: widget.contentTopPadding,
           contentLeftPadding: widget.contentLeftPadding,
           title: l10n.ratedSongs,
           subtitle: l10n.ratedSongsSubtitle,
-          items: processedItems,
+          songs: processedItems,
           showTimeRange: false,
           customFilterBar: _buildFilterBar(theme, l10n),
           headerAction: IconButton(
@@ -174,10 +178,8 @@ class _RatedSongsTabState extends ConsumerState<RatedSongsTab> {
             icon: const Icon(Icons.sort_rounded),
             onPressed: () => _showSortDialog(context, l10n),
           ),
-          emptyText: items.isEmpty
-              ? l10n.emptyRatedSongs
-              : l10n.noMatchingResults,
-          trailingBuilder: (context, entry) => Row(
+          emptyText: l10n.emptyRatedSongs,
+          songTrailing: (context, entry) => Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               const Icon(

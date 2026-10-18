@@ -31,11 +31,14 @@ import 'package:vynody/player/library/library_insights_service.dart';
 import 'package:vynody/player/library/library_overview_providers.dart';
 import 'package:vynody/player/library/playlist_service.dart';
 import 'package:vynody/player/pro/pro_license_service.dart';
-import 'package:vynody/widgets/library_ranked_album_list.dart';
-import 'package:vynody/widgets/library_ranked_song_list.dart';
+import 'package:vynody/widgets/library_insight_list.dart';
 import 'package:vynody/widgets/section_type_toggle.dart';
 
 import '../widgets/helpers/mobile_screenshot_harness.dart';
+
+/// 单曲 / 专辑共用同一个 [LibraryInsightList]，用它的 `type` 判断当前展示模式。
+SectionItemType _insightType(WidgetTester tester) =>
+    tester.widget<LibraryInsightList>(find.byType(LibraryInsightList)).type;
 
 class _FakePathProviderPlatform extends Fake
     with MockPlatformInterfaceMixin
@@ -223,12 +226,12 @@ void main() {
     // 从 Rail 子项进入「最近播放」
     container.read(libraryActiveTabIndexProvider.notifier).set(1);
     await settle(tester);
-    expect(find.byType(LibraryRankedSongList), findsOneWidget);
+    expect(_insightType(tester), SectionItemType.songs);
 
     // 切到专辑视图
     await tester.tap(find.text('专辑').first);
     await settle(tester);
-    expect(find.byType(LibraryRankedAlbumList), findsOneWidget);
+    expect(_insightType(tester), SectionItemType.albums);
     expect(container.read(recentlyPlayedFilterProvider).type, SectionItemType.albums);
 
     // 停留在媒体库（页内切换子分类）时状态应保留
@@ -263,8 +266,7 @@ void main() {
     container.read(libraryActiveTabIndexProvider.notifier).set(1);
     await settle(tester);
 
-    expect(find.byType(LibraryRankedSongList), findsOneWidget);
-    expect(find.byType(LibraryRankedAlbumList), findsNothing);
+    expect(_insightType(tester), SectionItemType.songs);
     expect(tester.takeException(), isNull);
   });
 }

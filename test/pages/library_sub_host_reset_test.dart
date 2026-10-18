@@ -24,11 +24,14 @@ import 'package:vynody/player/library/album_library.dart';
 import 'package:vynody/player/library/library_insights_service.dart';
 import 'package:vynody/player/library/library_overview_providers.dart';
 import 'package:vynody/player/library/playlist_service.dart';
-import 'package:vynody/widgets/library_ranked_album_list.dart';
-import 'package:vynody/widgets/library_ranked_song_list.dart';
+import 'package:vynody/widgets/library_insight_list.dart';
 import 'package:vynody/widgets/section_type_toggle.dart';
 
 import '../widgets/helpers/mobile_screenshot_harness.dart';
+
+/// 单曲 / 专辑共用同一个 [LibraryInsightList]，用它的 `type` 判断当前展示模式。
+SectionItemType _insightType(WidgetTester tester) =>
+    tester.widget<LibraryInsightList>(find.byType(LibraryInsightList)).type;
 
 class _FakePathProviderPlatform extends Fake
     with MockPlatformInterfaceMixin
@@ -194,14 +197,14 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
 
-    expect(find.byType(LibraryRankedSongList), findsOneWidget);
+    expect(_insightType(tester), SectionItemType.songs);
 
     // 切到专辑视图
     await tester.tap(find.text('专辑').first);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
 
-    expect(find.byType(LibraryRankedAlbumList), findsOneWidget);
+    expect(_insightType(tester), SectionItemType.albums);
     expect(
       container.read(recentlyPlayedFilterProvider).type,
       SectionItemType.albums,
