@@ -3,21 +3,17 @@ import 'dart:ui';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:oktoast/oktoast.dart';
-import 'package:vynody/dialogs/ai_guide_dialog.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/lyrics/lyrics_riverpod.dart';
 import 'package:vynody/player/lyrics/lyrics_song_task_state.dart';
-import 'package:vynody/player/pro/pro_models.dart';
+import 'package:vynody/player/pro/pro_license_service.dart';
 import 'package:vynody/utils/playback_utils.dart';
-import 'package:vynody/dialogs/lyrics_model_recommendation_dialog.dart';
-import 'package:vynody/utils/app_snack_bar.dart';
 import 'package:vynody/widgets/animated_play_pause_button.dart';
 import 'package:vynody/widgets/app_tooltip.dart';
 import 'package:vynody/widgets/playback_ui_tuning.dart';
-import 'package:vynody/player/pro/pro_license_service.dart';
 import 'package:vynody/player/settings/settings_service.dart';
+import 'lyrics_toggle_actions.dart';
 import 'playback_progress_section.dart';
 import '../../l10n/app_localizations.dart';
 
@@ -91,149 +87,6 @@ class PlaybackControls extends ConsumerWidget {
       return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
     }
     return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
-  }
-
-  Future<void> _handleTranslationTap(
-    BuildContext context,
-    WidgetRef ref,
-    MusicFile? currentMusic,
-    AppLocalizations l10n,
-  ) async {
-    if (currentMusic == null) return;
-    final lyricsController = ref.read(lyricsControllerProvider.notifier);
-    final taskState = lyricsController.taskStateForSong(currentMusic.path);
-    if (taskState.isTranslationBusy) {
-      showToast(l10n.songAlreadyQueuedForTranslation);
-      return;
-    }
-
-    final lyricsState = ref.read(lyricsControllerProvider);
-    final displayLyrics = lyricsController.currentLyricsForCurrentSong();
-    final targetLang = lyricsState.lyricsTranslationLanguageCode;
-    final effectiveLang =
-        displayLyrics?.getEffectiveTranslationLanguage(targetLang) ?? targetLang;
-    final translation = displayLyrics?.translationFor(effectiveLang);
-    final hasTranslation = translation != null && translation.hasContent;
-
-    if (hasTranslation) {
-      final settings = ref.read(settingsServiceProvider);
-      final nextState = !settings.showLyricsTranslation;
-      settings.showLyricsTranslation = nextState;
-      showToast(nextState ? l10n.lyricsTranslationEnabled : l10n.lyricsTranslationDisabled);
-      return;
-    }
-
-    if (!lyricsState.hasLyrics &&
-        (displayLyrics == null || displayLyrics.plainText.trim().isEmpty)) {
-      showToast(l10n.noLyricsAvailableForTranslation);
-      return;
-    }
-
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(l10n.translateLyrics),
-        content: Text(l10n.noTranslationAiPrompt),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: Text(l10n.cancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: Text(l10n.confirm),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm != true || !context.mounted) return;
-
-    if (!await checkProGate(context, ref, feature: ProFeature.aiTranslation)) {
-      return;
-    }
-    if (!context.mounted) return;
-    if (await ensureGeminiApiKey(context, ref)) {
-      if (!context.mounted) return;
-      ref.read(settingsServiceProvider).showLyricsTranslation = true;
-      final errorMessage =
-          await lyricsController.translateLyricsForCurrentSong();
-      if (errorMessage != null && context.mounted) {
-        AppSnackBar.show(context, ref, SnackBar(content: Text(errorMessage)));
-      }
-    }
-  }
-
-  Future<void> _handleWordByWordTap(
-    BuildContext context,
-    WidgetRef ref,
-    MusicFile? currentMusic,
-    AppLocalizations l10n,
-  ) async {
-    if (currentMusic == null) return;
-    final lyricsController = ref.read(lyricsControllerProvider.notifier);
-    final taskState = lyricsController.taskStateForSong(currentMusic.path);
-    if (taskState.isGenerationBusy) {
-      showToast(l10n.convertingToKaraoke);
-      return;
-    }
-
-    final displayLyrics = lyricsController.currentLyricsForCurrentSong();
-    final syncedLines = displayLyrics?.syncedLines ?? const [];
-    final hasWordByWord = syncedLines
-        .any((line) => line.words != null && line.words!.isNotEmpty);
-    final hasTimedLyrics = syncedLines.any((line) => line.isTimed);
-
-    if (hasWordByWord) {
-      final settings = ref.read(settingsServiceProvider);
-      final nextState = !settings.showLyricsWordByWord;
-      settings.showLyricsWordByWord = nextState;
-      showToast(
-        nextState
-            ? l10n.wordByWordLyricsEnabled
-            : l10n.wordByWordLyricsDisabled,
-      );
-      return;
-    }
-
-    if (!hasTimedLyrics) {
-      showToast(l10n.karaokeRequiresSyncedLyrics);
-      return;
-    }
-
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(l10n.convertToKaraoke),
-        content: Text(l10n.noKaraokeAiPrompt),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: Text(l10n.cancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: Text(l10n.confirm),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm != true || !context.mounted) return;
-
-    if (!await checkProGate(context, ref, feature: ProFeature.aiLyrics)) return;
-    if (!context.mounted) return;
-    if (await ensureLyricsGenerationApiKey(context, ref)) {
-      if (!context.mounted) return;
-      if (!await ensureLyricsKaraokeModelRecommendation(context, ref)) return;
-      if (!context.mounted) return;
-      ref.read(settingsServiceProvider).showLyricsWordByWord = true;
-      final errorMessage =
-          await lyricsController.convertToKaraokeLyricsForCurrentSong();
-      if (errorMessage != null && context.mounted) {
-        AppSnackBar.show(context, ref, SnackBar(content: Text(errorMessage)));
-      }
-    }
   }
 
   @override
@@ -700,7 +553,7 @@ class PlaybackControls extends ConsumerWidget {
           tooltip: hasTranslation
               ? (showLyricsTranslation ? l10n.disableLyricsTranslation : l10n.enableLyricsTranslation)
               : l10n.generateLyricsTranslation,
-          onTap: () => _handleTranslationTap(context, ref, currentMusic, l10n),
+          onTap: () => handleLyricsTranslationTap(context, ref, currentMusic, l10n),
         ),
         buildLyricsTopButton(
           icon: Icons.mic_external_on_rounded,
@@ -710,7 +563,7 @@ class PlaybackControls extends ConsumerWidget {
           tooltip: hasWordByWord
               ? (showLyricsWordByWord ? l10n.disableWordByWordLyrics : l10n.enableWordByWordLyrics)
               : l10n.generateWordByWordLyrics,
-          onTap: () => _handleWordByWordTap(context, ref, currentMusic, l10n),
+          onTap: () => handleLyricsWordByWordTap(context, ref, currentMusic, l10n),
         ),
       ],
     );

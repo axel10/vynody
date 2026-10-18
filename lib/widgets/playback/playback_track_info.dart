@@ -6,12 +6,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/audio/app_playback_mode.dart';
+import 'package:vynody/player/lyrics/lyrics_riverpod.dart';
 import 'package:vynody/utils/playback_utils.dart';
 import 'package:vynody/utils/song_context_menu_utils.dart';
 import 'package:vynody/widgets/app_tooltip.dart';
 import 'package:vynody/widgets/marquee_text.dart';
 import 'package:vynody/player/library/playlist_service.dart';
 import 'package:vynody/widgets/playback_ui_tuning.dart';
+import 'lyrics_toggle_actions.dart';
 import '../../l10n/app_localizations.dart';
 
 enum TrackInfoMenuTarget { title, artistAlbum }
@@ -453,6 +455,24 @@ class PlaybackTrackInfo extends ConsumerWidget {
       final isRandomMode = ref.watch(audioIsRandomModeProvider);
       final sleepTimerRemaining = ref.watch(audioSleepTimerRemainingProvider);
       final playbackMode = ref.watch(audioPlaybackModeProvider);
+      final showLyricsTranslation = ref.watch(
+        settingsServiceProvider.select((s) => s.showLyricsTranslation),
+      );
+      final showLyricsWordByWord = ref.watch(
+        settingsServiceProvider.select((s) => s.showLyricsWordByWord),
+      );
+      final lyricsState = ref.watch(lyricsControllerProvider);
+      final displayLyrics = ref
+          .read(lyricsControllerProvider.notifier)
+          .currentLyricsForCurrentSong();
+      final targetLang = lyricsState.lyricsTranslationLanguageCode;
+      final effectiveLang = displayLyrics
+          ?.getEffectiveTranslationLanguage(targetLang) ?? targetLang;
+      final translation = displayLyrics?.translationFor(effectiveLang);
+      final hasTranslation = translation != null && translation.hasContent;
+      final syncedLines = displayLyrics?.syncedLines ?? const [];
+      final hasWordByWord = syncedLines
+          .any((line) => line.words != null && line.words!.isNotEmpty);
 
       return Row(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -579,6 +599,22 @@ class PlaybackTrackInfo extends ConsumerWidget {
                   onSelected: (value) async {
                     final audio = ref.read(audioServiceProvider);
                     switch (value) {
+                      case 'translation':
+                        await handleLyricsTranslationTap(
+                          context,
+                          ref,
+                          currentMusic,
+                          l10n,
+                        );
+                        break;
+                      case 'word_by_word':
+                        await handleLyricsWordByWordTap(
+                          context,
+                          ref,
+                          currentMusic,
+                          l10n,
+                        );
+                        break;
                       case 'favorite':
                         if (currentMusic != null) {
                           await playlistService.toggleFavoriteSong(currentMusic!);
@@ -620,6 +656,32 @@ class PlaybackTrackInfo extends ConsumerWidget {
                     }
                   },
                   itemBuilder: (context) => [
+                    buildContextMenuItem<String>(
+                      value: 'translation',
+                      label: hasTranslation
+                          ? (showLyricsTranslation
+                                ? l10n.disableLyricsTranslation
+                                : l10n.enableLyricsTranslation)
+                          : l10n.generateLyricsTranslation,
+                      icon: Icons.translate_rounded,
+                      context: context,
+                      iconColor: showLyricsTranslation
+                          ? Theme.of(context).colorScheme.primary
+                          : null,
+                    ),
+                    buildContextMenuItem<String>(
+                      value: 'word_by_word',
+                      label: hasWordByWord
+                          ? (showLyricsWordByWord
+                                ? l10n.disableWordByWordLyrics
+                                : l10n.enableWordByWordLyrics)
+                          : l10n.generateWordByWordLyrics,
+                      icon: Icons.mic_external_on_rounded,
+                      context: context,
+                      iconColor: showLyricsWordByWord
+                          ? Theme.of(context).colorScheme.primary
+                          : null,
+                    ),
                     buildContextMenuItem<String>(
                       value: 'favorite',
                       label: isFavorite
