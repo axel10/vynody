@@ -101,81 +101,112 @@ class _FolderSortSheetState extends State<FolderSortSheet> {
       dialogMaxWidth: 520,
       landscapeMaxWidth: 720,
       title: l10n.sort,
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.only(top: 4, bottom: 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _SortOptionGroup<SortCriteria>(
-              title: l10n.sortBy,
-              groupValue: _criteria,
-              onChanged: _selectCriteria,
-              options: [
-                _SortOption(
-                  value: SortCriteria.title,
-                  label: l10n.title,
-                  icon: Icons.title_rounded,
-                ),
-                _SortOption(
-                  value: SortCriteria.filename,
-                  label: l10n.fileName,
-                  icon: Icons.insert_drive_file_outlined,
-                ),
-                _SortOption(
-                  value: SortCriteria.trackNumber,
-                  label: l10n.trackNumber,
-                  icon: Icons.format_list_numbered_rounded,
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            _SortOptionGroup<SortOrder>(
-              title: l10n.sortOrder,
-              groupValue: _order,
-              onChanged: _selectOrder,
-              options: [
-                _SortOption(
-                  value: SortOrder.ascending,
-                  label: l10n.ascending,
-                  icon: Icons.arrow_upward_rounded,
-                ),
-                _SortOption(
-                  value: SortOrder.descending,
-                  label: l10n.descending,
-                  icon: Icons.arrow_downward_rounded,
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            _SortScopeCard(
-              localized: _localized,
-              onChanged: _toggleLocalized,
-              title: l10n.sortOnlyThisFolder,
-              subtitle: _localized
-                  ? l10n.sortOnlyThisFolderHint
-                  : l10n.sortFollowsGlobalHint,
-            ),
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                Expanded(
-                  child: TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: Text(l10n.cancel),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // 选项区可滚动，底部按钮固定，不随内容滚走
+          Flexible(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.only(top: 4, bottom: 8),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _SortOptionGroup<SortCriteria>(
+                    title: l10n.sortBy,
+                    groupValue: _criteria,
+                    onChanged: _selectCriteria,
+                    options: [
+                      _SortOption(
+                        value: SortCriteria.title,
+                        label: l10n.title,
+                        icon: Icons.title_rounded,
+                      ),
+                      _SortOption(
+                        value: SortCriteria.filename,
+                        label: l10n.fileName,
+                        icon: Icons.insert_drive_file_outlined,
+                      ),
+                      _SortOption(
+                        value: SortCriteria.trackNumber,
+                        label: l10n.trackNumber,
+                        icon: Icons.format_list_numbered_rounded,
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: FilledButton(
-                    onPressed: _confirm,
-                    child: Text(l10n.confirm),
+                  const SizedBox(height: 20),
+                  _SortOptionGroup<SortOrder>(
+                    title: l10n.sortOrder,
+                    groupValue: _order,
+                    onChanged: _selectOrder,
+                    options: [
+                      _SortOption(
+                        value: SortOrder.ascending,
+                        label: l10n.ascending,
+                        icon: Icons.arrow_upward_rounded,
+                      ),
+                      _SortOption(
+                        value: SortOrder.descending,
+                        label: l10n.descending,
+                        icon: Icons.arrow_downward_rounded,
+                      ),
+                    ],
                   ),
-                ),
-              ],
+                  const SizedBox(height: 20),
+                  _SortScopeCard(
+                    localized: _localized,
+                    onChanged: _toggleLocalized,
+                    title: l10n.sortOnlyThisFolder,
+                    subtitle: _localized
+                        ? l10n.sortOnlyThisFolderHint
+                        : l10n.sortFollowsGlobalHint,
+                  ),
+                ],
+              ),
             ),
-          ],
+          ),
+          _buildFooter(context, l10n),
+        ],
+      ),
+    );
+  }
+
+  /// 固定在底部的操作区：上缘细分隔线 + 取消 / 确定。
+  Widget _buildFooter(BuildContext context, AppLocalizations l10n) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    // 底部抽屉贴着屏幕底缘，需要自己兜住手势条安全区
+    final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
+
+    return Container(
+      padding: EdgeInsets.only(top: 12, bottom: bottomInset + 12),
+      decoration: BoxDecoration(
+        border: Border(
+          top: BorderSide(
+            width: 0.5,
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.08)
+                : Colors.black.withValues(alpha: 0.08),
+          ),
         ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(l10n.cancel),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: FilledButton(
+              onPressed: _confirm,
+              child: Text(l10n.confirm),
+            ),
+          ),
+        ],
       ),
     );
   }
