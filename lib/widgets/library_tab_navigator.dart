@@ -21,6 +21,7 @@ class LibraryTabNavigator extends StatefulWidget {
     super.key,
     required this.navigatorKey,
     required this.builder,
+    this.onHasChildRouteChanged,
   });
 
   /// 由 [LibrarySubHostPage] 统一持有并交给返回键分发使用。
@@ -29,12 +30,22 @@ class LibraryTabNavigator extends StatefulWidget {
   /// 子分类根页面。
   final WidgetBuilder builder;
 
+  /// 本分类栈里「根路由之上是否还有页面」变化时回调。
+  ///
+  /// 宿主据此收起自己的顶部导航栏：三级页面自带 [AppTopNavBar]，两者位置完全重合，
+  /// 若宿主顶栏继续盖在上面，用户点到的会是宿主的返回按钮（弹掉整个二级宿主），
+  /// 看到的是子分类标题而不是详情页标题。
+  final ValueChanged<bool>? onHasChildRouteChanged;
+
   @override
   State<LibraryTabNavigator> createState() => _LibraryTabNavigatorState();
 }
 
 class _LibraryTabNavigatorState extends State<LibraryTabNavigator> {
   late final HeroController _heroController = HeroController();
+  late final _TabRouteStackObserver _stackObserver = _TabRouteStackObserver(
+    (hasChild) => widget.onHasChildRouteChanged?.call(hasChild),
+  );
 
   @override
   void dispose() {
@@ -56,11 +67,55 @@ class _LibraryTabNavigatorState extends State<LibraryTabNavigator> {
       onNotification: (notification) => true,
       child: Navigator(
         key: widget.navigatorKey,
-        observers: [_heroController],
+        observers: [_heroController, _stackObserver],
         onGenerateInitialRoutes: (navigator, initialRoute) =>
             <Route<void>>[_buildRootRoute()],
         onGenerateRoute: (settings) => _buildRootRoute(),
       ),
     );
+  }
+}
+
+/// 只关心「根路由之上是否还有页面」，用推入/弹出计数而不是 `canPop()`，
+/// 避免依赖 pop 过程中 `_history` 的中间态。
+class _TabRouteStackObserver extends NavigatorObserver {
+  _TabRouteStackObserver(this.onChanged);
+
+  final ValueChanged<bool> onChanged;
+  int _childRouteCount = 0;
+
+  bool _isRoot(Route<dynamic> route) =>
+      route.settings.name == kLibraryTabRootRouteName;
+
+  void _emit() => onChanged(_childRouteCount > 0);
+
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    // 初始路由的 didPush 发生在 Navigator 首次构建期间，此时 previousRoute 为 null
+    // 且计数本就不该变化 —— 早退可以顺带避开「build 中 setState」。
+    if (_isRoot(route)) return;
+    _childRouteCount++;
+    _emit();
+  }
+
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    if (_isRoot(route)) return;
+    if (_childRouteCount > 0) _childRouteCount--;
+    _emit();
+  }
+
+  @override
+  void didRemove(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    if (_isRoot(route)) return;
+    if (_childRouteCount > 0) _childRouteCount--;
+    _emit();
+  }
+
+  @override
+  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) {
+    if (oldRoute != null && _isRoot(oldRoute)) return;
+    if (newRoute != null && _isRoot(newRoute)) return;
+    // 非根路由之间的替换不改变计数。
   }
 }

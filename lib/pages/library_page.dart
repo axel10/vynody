@@ -319,6 +319,13 @@ class LibrarySubHostPage extends ConsumerStatefulWidget {
 class _LibrarySubHostPageState extends ConsumerState<LibrarySubHostPage> {
   final Set<int> _builtSubTabs = {};
 
+  /// 栈里压了三级页面的子分类索引。
+  ///
+  /// 三级详情页自带 [AppTopNavBar]，位置与宿主顶栏完全重合；宿主顶栏是 Stack 里
+  /// 后画的那个，会盖在 `IndexedStack` 之上。若不放它让位，用户看到的是子分类标题，
+  /// 点左上角返回实际弹掉的是二级宿主（直接回媒体库首页），而不是当前分类的详情页。
+  final Set<int> _tabsWithChildRoutes = {};
+
   late final List<GlobalKey<NavigatorState>> _tabNavigatorKeys =
       widget.tabNavigatorKeys ??
       List<GlobalKey<NavigatorState>>.generate(
@@ -372,6 +379,19 @@ class _LibrarySubHostPageState extends ConsumerState<LibrarySubHostPage> {
     super.dispose();
   }
 
+  /// 某个子分类栈里「根路由之上是否还有页面」发生变化。
+  ///
+  /// 只在真正变化时 setState，且只可能由 push / pop 手势触发（初始根路由的
+  /// didPush 会被 observer 过滤掉），所以不会落到 build 阶段。
+  void _handleTabChildRouteChanged(int index, bool hasChild) {
+    if (!mounted) return;
+    final bool changed = hasChild
+        ? _tabsWithChildRoutes.add(index)
+        : _tabsWithChildRoutes.remove(index);
+    if (!changed) return;
+    setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -406,7 +426,16 @@ class _LibrarySubHostPageState extends ConsumerState<LibrarySubHostPage> {
     final is3DViewActive =
         (clampedIndex == 4) && ref.watch(isAlbum3DViewActiveProvider);
 
-    final bool hideTopNavBar = isLandscape && is3DViewActive;
+    // 当前分类压着三级页面时宿主顶栏必须让位：
+    // 详情页自带同位置的 AppTopNavBar，而宿主这条在 Stack 里后画，会整个盖住它。
+    final bool tabHasChildRoute = _tabsWithChildRoutes.contains(clampedIndex);
+    final bool hideTopNavBar = tabHasChildRoute || (isLandscape && is3DViewActive);
+
+    // 让位给详情页时必须是瞬时的：详情页顶栏本来就在同一位置，
+    // 播一段淡出只会让两个标题交叠闪一下。3D 视图收起仍走 250ms 过渡。
+    final Duration headerDuration = tabHasChildRoute
+        ? Duration.zero
+        : const Duration(milliseconds: 250);
 
     final scaffold = AutoHideHeaderScope(
       forceVisible: isSelectionActive || (!isLandscape && is3DViewActive),
@@ -425,6 +454,8 @@ class _LibrarySubHostPageState extends ConsumerState<LibrarySubHostPage> {
                           key: ValueKey('library_tab_navigator_$i'),
                           navigatorKey: _tabNavigatorKeys[i],
                           builder: (_) => _buildSubTabRoot(i),
+                          onHasChildRouteChanged: (hasChild) =>
+                              _handleTabChildRouteChanged(i, hasChild),
                         )
                       : const SizedBox.shrink(),
               ],
@@ -436,17 +467,18 @@ class _LibrarySubHostPageState extends ConsumerState<LibrarySubHostPage> {
               height: headerHeight,
               child: AnimatedSlide(
                 offset: hideTopNavBar ? const Offset(0, -1.0) : Offset.zero,
-                duration: const Duration(milliseconds: 250),
+                duration: headerDuration,
                 curve: Curves.easeInOutCubic,
                 child: AnimatedOpacity(
                     opacity: hideTopNavBar ? 0.0 : 1.0,
-                    duration: const Duration(milliseconds: 250),
+                    duration: headerDuration,
                     curve: Curves.easeInOutCubic,
                     child: IgnorePointer(
                       ignoring: hideTopNavBar,
                       child: AutoHideHeader(
                         isVisible: isHeaderVisible,
                         child: AppTopNavBar(
+                          key: const ValueKey('library_subhost_top_bar'),
                           title: title,
                         ),
                       ),

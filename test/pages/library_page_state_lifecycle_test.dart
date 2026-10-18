@@ -342,4 +342,66 @@ void main() {
     expect(keys[4].currentState!.canPop(), isFalse);
     expect(tester.takeException(), isNull);
   });
+
+  // 回归：三级页面进的是子分类自己的 Navigator，落在宿主的 IndexedStack（body）里，
+  // 而宿主顶栏是 Stack 里后画的那个 —— 两者位置完全重合。若宿主顶栏不让位，
+  // 用户看到的是子分类标题，点左上角返回实际弹掉的是整个二级宿主（直接回媒体库首页）。
+  testWidgets('打开详情页后宿主顶栏让位，左上角返回只退详情', (tester) async {
+    setSurface(tester, const Size(430, 932));
+    final container = createContainer();
+    final keys = List<GlobalKey<NavigatorState>>.generate(
+      9,
+      (index) => GlobalKey<NavigatorState>(debugLabel: 'test_library_tab_$index'),
+    );
+
+    await tester.pumpWidget(
+      wrap(container, LibrarySubHostPage(tabNavigatorKeys: keys)),
+    );
+    await settle(tester);
+
+    final hostBar = find.byKey(const ValueKey('library_subhost_top_bar'));
+    // 最近的 AnimatedOpacity 是 AutoHideHeader 内部那个（跟随滚动隐藏），
+    // 宿主顶栏的「让位」开关是再外面一层，所以要取第 2 个祖先。
+    double hostBarOpacity() => tester
+        .widget<AnimatedOpacity>(
+          find.ancestor(of: hostBar, matching: find.byType(AnimatedOpacity)).at(1),
+        )
+        .opacity;
+
+    // 根页面：宿主顶栏在位
+    container.read(libraryActiveTabIndexProvider.notifier).set(4);
+    await settle(tester);
+    expect(hostBar, findsOneWidget);
+    expect(hostBarOpacity(), 1.0);
+
+    // 进详情：宿主顶栏必须让位，露出详情页自己的顶栏（详情标题 + 详情返回按钮）
+    await tester.tap(find.byType(AlbumGridCard).first);
+    await settle(tester);
+    expect(find.byType(AlbumDetailPage), findsOneWidget);
+    expect(
+      hostBarOpacity(),
+      0.0,
+      reason: '详情页自带同位置的顶栏，宿主顶栏盖在上面会顶掉它的标题与返回按钮',
+    );
+
+    // 点详情页自己的左上角返回：只退详情，不能弹掉二级宿主
+    final detailBack = find.descendant(
+      of: find.byType(AlbumDetailPage),
+      matching: find.byIcon(Icons.arrow_back_rounded),
+    );
+    expect(detailBack, findsOneWidget);
+    await tester.tap(detailBack);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AlbumDetailPage), findsNothing);
+    expect(find.byType(AlbumsTab), findsOneWidget, reason: '应回到专辑网格，而不是媒体库首页');
+    expect(keys[4].currentState!.canPop(), isFalse);
+    expect(hostBarOpacity(), 1.0, reason: '回到根页面后宿主顶栏要恢复');
+
+    // 从其它主页面切回媒体库（页面不销毁）后，栈里的详情页仍应让宿主顶栏保持让位
+    await tester.tap(find.byType(AlbumGridCard).first);
+    await settle(tester);
+    expect(hostBarOpacity(), 0.0);
+    expect(tester.takeException(), isNull);
+  });
 }
