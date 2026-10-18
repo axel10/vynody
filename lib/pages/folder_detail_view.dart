@@ -9,10 +9,10 @@ import 'package:vynody/models/music_file.dart';
 import 'package:vynody/models/music_folder.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/audio/playback_source.dart';
-import 'package:vynody/player/scanner/scanner_sorting.dart';
 import 'package:vynody/player/scanner/scanner_service.dart';
 import 'package:vynody/player/scanner/scanner_path_utils.dart';
 import 'package:vynody/utils/song_context_menu_utils.dart';
+import '../dialogs/folder_sort_sheet.dart';
 import '../widgets/library_selection_panel.dart';
 import '../widgets/folder_header_banner.dart';
 import '../widgets/song_thumbnail.dart';
@@ -888,156 +888,10 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
   }
 
   void _showSortDialog(BuildContext context, ScannerService scanner) {
-    final currentFolder = _effectiveFolder;
-    final currentFolderPath = currentFolder.path;
-    final globalSettings = scanner.getGlobalSortSettings();
-    final currentFolderSettings = scanner.getSortSettingsForFolder(currentFolderPath);
-    final initialScope = scanner.hasSortOverrideForFolder(currentFolderPath)
-        ? SortScope.currentFolder
-        : SortScope.global;
-    var selectedScope = initialScope;
-    var selectedCriteria = initialScope == SortScope.currentFolder
-        ? currentFolderSettings.criteria
-        : globalSettings.criteria;
-    var selectedOrder = initialScope == SortScope.currentFolder
-        ? currentFolderSettings.order
-        : globalSettings.order;
-
-    showDialog(
+    showFolderSortSheet(
       context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            void syncSelectionForScope(SortScope scope) {
-              final settings =
-                  scope == SortScope.currentFolder
-                  ? scanner.getSortSettingsForFolder(currentFolderPath)
-                  : scanner.getGlobalSortSettings();
-              selectedCriteria = settings.criteria;
-              selectedOrder = settings.order;
-            }
-
-            return AlertDialog(
-              title: Text(AppLocalizations.of(context)!.sortBy),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    AppLocalizations.of(context)!.sortScope,
-                    style: Theme.of(context).textTheme.titleSmall,
-                  ),
-                  RadioGroup<SortScope>(
-                    onChanged: (v) {
-                      if (v == null || v == selectedScope) return;
-                      setState(() {
-                        selectedScope = v;
-                        syncSelectionForScope(v);
-                      });
-                    },
-                    groupValue: selectedScope,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        ListTile(
-                          title: Text(
-                            AppLocalizations.of(context)!.currentFolderScope,
-                          ),
-                          leading: const Radio(
-                            value: SortScope.currentFolder,
-                          ),
-                        ),
-                        ListTile(
-                          title: Text(
-                            AppLocalizations.of(context)!.globalScope,
-                          ),
-                          leading: const Radio(value: SortScope.global),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    AppLocalizations.of(context)!.sortBy,
-                    style: Theme.of(context).textTheme.titleSmall,
-                  ),
-                  RadioGroup<SortCriteria>(
-                    onChanged: (v) {
-                      if (v == null) return;
-                      setState(() {
-                        selectedCriteria = v;
-                      });
-                      scanner.setSortCriteria(
-                        v,
-                        scope: selectedScope,
-                        folderPath: currentFolder.path,
-                      );
-                    },
-                    groupValue: selectedCriteria,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        ListTile(
-                          title: Text(AppLocalizations.of(context)!.title),
-                          leading: const Radio(value: SortCriteria.title),
-                        ),
-                        ListTile(
-                          title: Text(AppLocalizations.of(context)!.fileName),
-                          leading: const Radio(value: SortCriteria.filename),
-                        ),
-                        ListTile(
-                          title: Text(
-                            AppLocalizations.of(context)!.trackNumber,
-                          ),
-                          leading: const Radio(value: SortCriteria.trackNumber),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    AppLocalizations.of(context)!.sortOrder,
-                    style: Theme.of(context).textTheme.titleSmall,
-                  ),
-                  RadioGroup<SortOrder>(
-                    onChanged: (v) {
-                      if (v == null) return;
-                      setState(() {
-                        selectedOrder = v;
-                      });
-                      scanner.setSortOrder(
-                        v,
-                        scope: selectedScope,
-                        folderPath: currentFolder.path,
-                      );
-                    },
-                    groupValue: selectedOrder,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        ListTile(
-                          title: Text(AppLocalizations.of(context)!.ascending),
-                          leading: const Radio(value: SortOrder.ascending),
-                        ),
-                        ListTile(
-                          title: Text(AppLocalizations.of(context)!.descending),
-                          leading: const Radio(value: SortOrder.descending),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text(AppLocalizations.of(context)!.confirm),
-                ),
-              ],
-            );
-          },
-        );
-      },
+      scanner: scanner,
+      folderPath: _effectiveFolder.path,
     );
   }
 }
