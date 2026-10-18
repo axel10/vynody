@@ -26,6 +26,12 @@ class SongThumbnail extends ConsumerStatefulWidget {
   final Widget? fallbackWidget;
   final bool isAlbum;
 
+  /// 图片源（文件路径 <-> 内存字节）切换时保留上一帧画面，避免出现空白帧。
+  ///
+  /// 列表中行被回收复用时同一位置的 State 会换成另一首歌，此时应保持 false，
+  /// 否则会短暂显示上一首的封面；只有始终代表「同一张封面」的场景（迷你播放器）才置 true。
+  final bool gaplessPlayback;
+
   const SongThumbnail({
     super.key,
     required this.path,
@@ -39,6 +45,7 @@ class SongThumbnail extends ConsumerStatefulWidget {
     this.borderRadius,
     this.fallbackWidget,
     this.isAlbum = false,
+    this.gaplessPlayback = false,
   });
 
   /// Factory constructor for a [MusicFile].
@@ -51,6 +58,7 @@ class SongThumbnail extends ConsumerStatefulWidget {
     this.borderRadius,
     this.fallbackWidget,
     this.isAlbum = false,
+    this.gaplessPlayback = false,
   })  : path = song.path,
         id = song.id,
         thumbnailPath = song.thumbnailPath,
@@ -67,6 +75,7 @@ class SongThumbnail extends ConsumerStatefulWidget {
     this.borderRadius,
     this.fallbackWidget,
     this.isAlbum = true,
+    this.gaplessPlayback = false,
   })  : path = album.representativeSong.path,
         id = album.representativeSong.id,
         thumbnailPath = album.representativeSong.thumbnailPath,
@@ -83,6 +92,7 @@ class SongThumbnail extends ConsumerStatefulWidget {
     this.borderRadius,
     this.fallbackWidget,
     this.isAlbum = false,
+    this.gaplessPlayback = false,
   })  : path = metadata.path,
         id = metadata.id,
         thumbnailPath = metadata.thumbnailPath,
@@ -245,6 +255,9 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
           width: layoutWidth,
           height: layoutHeight,
           fit: BoxFit.cover,
+          cacheWidth: targetCacheWidth,
+          cacheHeight: targetCacheHeight,
+          gaplessPlayback: widget.gaplessPlayback,
           errorBuilder: (_, _, _) => _fallbackIcon(layoutWidth, layoutHeight, radius),
         ),
       );
@@ -261,6 +274,7 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
           fit: BoxFit.cover,
           cacheWidth: targetCacheWidth,
           cacheHeight: targetCacheHeight,
+          gaplessPlayback: widget.gaplessPlayback,
           filterQuality: FilterQuality.low,
           errorBuilder: (_, _, _) => _fallbackIcon(layoutWidth, layoutHeight, radius),
         ),
@@ -279,6 +293,7 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
           fit: BoxFit.cover,
           cacheWidth: targetCacheWidth,
           cacheHeight: targetCacheHeight,
+          gaplessPlayback: widget.gaplessPlayback,
           filterQuality: FilterQuality.low,
           frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
             if (wasSynchronouslyLoaded || frame != null) {

@@ -54,14 +54,18 @@ class MiniArtwork extends ConsumerWidget {
         ? currentMusic.copyWith(artworkBytes: memoryBytes)
         : currentMusic;
 
+    // 不要在这里按封面字节给 SongThumbnail 加 key：播放开始后
+    // _prepareCurrentPlaybackArtwork 会写入一个新的 artworkBytes 对象，
+    // key 一变就会把 State 整体重建，新 State 首帧没有旧画面 → 封面临时空白。
+    // SongThumbnail 内部 didUpdateWidget 已处理 path/artwork 变化，无需外部 key。
     return SongThumbnail.fromSong(
       songForThumbnail,
-      key: ValueKey('${currentMusic.path}_${memoryBytes?.hashCode ?? 0}'),
       size: size,
       width: size,
       height: size,
       borderRadius: BorderRadius.circular(borderRadius),
       fallbackWidget: fallbackWidget,
+      gaplessPlayback: true,
     );
   }
 }

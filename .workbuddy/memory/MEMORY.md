@@ -23,6 +23,7 @@
 
 ## 硬性禁止
 
+- **封面组件禁按「字节对象」加 key**：`AudioService._prepareCurrentPlaybackArtwork()` 每次播放都会写一个全新 `Uint8List`（`readAsBytes()`），任何以 `bytes.hashCode` 组成的 key 都会让 State 整体重建，新 State 首帧无旧 `_imageInfo` → 封面临时全白。`MiniArtwork` 已删该 key（`SongThumbnail.didUpdateWidget` 自己处理 path/artwork 变化）并传 `gaplessPlayback: true`（文件源 ↔ 内存源切换时保留上一帧）。`SongThumbnail.gaplessPlayback` 默认 false：列表行回收复用会换成另一首歌，开了会短暂显示上一首封面。回归 `test/widgets/mini_artwork_test.dart`。
 - **IndexedStack 常驻子页禁挂 PopScope**：PopScope 注册在路由上，与可见性无关。一个 `canPop:false` 让整条路由 `doNotPop`，且 `onPopInvoked` 派发给该路由全部 PopEntry（别的 tab 按返回也触发）。共用 tab 一律写进 `_handleBackPressed()`；只有独占路由的页面才挂（`remote_control_page.dart:249`）。艺术家/流派/年份三页已改为：内容层不挂，页面层套 `widgets/library_selection_back_guard.dart`。
 - **多选状态禁止条件切换 widget 根节点**：runtimeType 一变子树重建，dispose 微任务清掉刚建的多选状态（一进多选就退出）。唯一状态 `librarySelectionStateProvider`，`SelectionStateMixin`/`SongSelectionMixin` 接入。回归 `test/pages/library_multiselect_test.dart`。
 - **禁裸 `ref.watch(scannerServiceProvider)`**：`updateSongThumbnailPath` 每张缩略图都 `notifyListeners()`。取实例用 `ref.read`，响应树变化用 `.select((s) => s.structureRevision)`（指纹不含缩略图量；推进点：重写的 `notifyListeners()`、`_handleNavigationChanged()`、`updateMetadataForPath(syncTree:true)`）。`rootFolders` 返回缓存视图 `_rootFoldersView`，别现写 `List.unmodifiable`（新实例让 `select` 永不判等）。`ScanProgressInfo` 无 `==`，其 notifier 的 `build()` 只能 select `isScanning`，不能换 `ref.read`。

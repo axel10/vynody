@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 import 'package:audio_core/audio_core.dart';
 import 'package:flutter/material.dart';
@@ -122,5 +123,46 @@ void main() {
     expect(songThumbnail.path, '/test/music.mp3');
     expect(songThumbnail.width, 36.0);
     expect(songThumbnail.height, 36.0);
+  });
+
+  testWidgets('MiniArtwork 封面字节到达时不重建缩略图（避免播放时闪白）',
+      (tester) async {
+    // 1x1 透明 PNG：仅用于让 Image.memory 能正常解码，避免测试里报资源错误。
+    final bytes = base64Decode(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8AAAwAB/AF+g7oAAAAASUVORK5CYII=',
+    );
+    final testMusic = MusicFile(
+      path: '/test/music.mp3',
+      name: 'music.mp3',
+      title: 'Test Song',
+      artist: 'Test Artist',
+      artworkBytes: bytes,
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          audioCurrentMusicProvider.overrideWithValue(testMusic),
+          audioServiceProvider.overrideWith((ref) => _FakeAudioService(testMusic)),
+        ],
+        child: const MaterialApp(
+          home: Scaffold(
+            body: MiniArtwork(),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final songThumbnail = tester.widget<SongThumbnail>(
+      find.byType(SongThumbnail),
+    );
+    // 播放开始后 AudioService 会写入一个新的 artworkBytes 对象；
+    // 一旦外层用字节 hashCode 当 key，State 会被整体重建，首帧没有画面 → 封面闪白。
+    expect(songThumbnail.key, isNull);
+    expect(songThumbnail.gaplessPlayback, isTrue);
+
+    final image = tester.widget<Image>(find.byType(Image));
+    expect(image.gaplessPlayback, isTrue);
   });
 }
