@@ -1281,7 +1281,7 @@ class SettingsService extends ChangeNotifier {
 
   late final _waveformChunksProperty = SettingProperty<int>(
     key: _keyWaveformChunks,
-    defaultValue: 120,
+    defaultValue: 100,
     prefs: _prefs,
     onChanged: notifyListeners,
   );
