@@ -787,9 +787,9 @@ class _LibraryInsightListState extends ConsumerState<LibraryInsightList>
     return [
       SliverPadding(
         padding: EdgeInsets.fromLTRB(
-          12,
+          kInsightListHorizontalInset,
           4,
-          12,
+          kInsightListHorizontalInset,
           MiniPlayerUiTuning.getListBottomPadding(
             context,
             hasPlayingMusic: currentMusic != null,
@@ -807,9 +807,9 @@ class _LibraryInsightListState extends ConsumerState<LibraryInsightList>
               alignment: Alignment.center,
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: kSingleColumnContentMaxWidth),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 2),
-                  child: _SongListItem(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: _SongListItem(
                     entry: entry,
                     l10n: l10n,
                     audio: audio,
@@ -858,9 +858,9 @@ class _LibraryInsightListState extends ConsumerState<LibraryInsightList>
     return [
       SliverPadding(
         padding: EdgeInsets.fromLTRB(
-          16,
-          12,
-          16,
+          kInsightListHorizontalInset,
+          4,
+          kInsightListHorizontalInset,
           MiniPlayerUiTuning.getListBottomPadding(
             context,
             hasPlayingMusic: currentMusic != null,
@@ -932,6 +932,16 @@ class _LibraryInsightListState extends ConsumerState<LibraryInsightList>
     ];
   }
 }
+
+/// 洞察列表卡片的水平内边距：单曲与专辑两种视图必须共用，否则切视图时
+/// 卡片宽度与封面左边缘都会跳动（旧实现单曲 12/16 + sliver 12、专辑固定 10 + sliver 16）。
+EdgeInsets _insightRowPadding(BuildContext context) => EdgeInsets.symmetric(
+  horizontal: MediaQuery.of(context).orientation == Orientation.portrait ? 12 : 16,
+  vertical: 8,
+);
+
+/// Sliver 外层的水平留白，同样两种视图共用。
+const double kInsightListHorizontalInset = 12;
 
 class _SongListItem extends ConsumerWidget {
   const _SongListItem({
@@ -1015,10 +1025,7 @@ class _SongListItem extends ConsumerWidget {
               onTap: onTap,
               onLongPress: onLongPress,
               child: Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: MediaQuery.of(context).orientation == Orientation.portrait ? 12 : 16,
-                  vertical: 8,
-                ),
+                padding: _insightRowPadding(context),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
@@ -1198,7 +1205,7 @@ class _RankedAlbumTile extends StatelessWidget {
           onTap: onTap,
           onLongPress: onLongPress,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            padding: _insightRowPadding(context),
             child: Row(
               children: [
                 if (showRankIndex) ...[
@@ -1217,8 +1224,8 @@ class _RankedAlbumTile extends StatelessWidget {
                   const SizedBox(width: 8),
                 ],
                 SizedBox(
-                  width: 48,
-                  height: 48,
+                  width: 44,
+                  height: 44,
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
@@ -1228,8 +1235,7 @@ class _RankedAlbumTile extends StatelessWidget {
                           path: representative.path,
                           artworkPath: representative.artworkPath ?? entry.artworkPath,
                           thumbnailPath: representative.thumbnailPath ?? entry.thumbnailPath,
-                          size: 48,
-                          borderRadius: BorderRadius.circular(8),
+                          size: 44,
                         ),
                       ),
                       if (isSelectionMode)
@@ -1254,7 +1260,7 @@ class _RankedAlbumTile extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(width: 14),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1263,12 +1269,9 @@ class _RankedAlbumTile extends StatelessWidget {
                         entry.album,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14.5,
-                        ),
+                        style: theme.textTheme.bodyLarge,
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(height: 3),
                       Text(
                         entry.artist.isNotEmpty
                             ? '${entry.artist} • ${l10n.songCount(entry.songs.length)}'
