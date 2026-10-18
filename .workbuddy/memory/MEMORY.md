@@ -23,6 +23,7 @@
 ## 硬性禁止
 
 - **宿主顶栏必须给三级页让位**：详情页在子分类 Navigator 里（宿主 body），宿主 `AppTopNavBar` 是 Stack 后画的那个，会盖住详情顶栏 —— 标题变分类名，返回按钮弹掉整个二级宿主。链路：`LibraryTabNavigator.onHasChildRouteChanged` → `_tabsWithChildRoutes` → `hideTopNavBar`（duration 用 `Duration.zero`）。测试取 `library_subhost_top_bar` 外层 `AnimatedOpacity`：`find.ancestor` 最近那个是 `AutoHideHeader` 内部的，要 `.at(1)`。
+- **嵌套 `AutoHideHeaderScope` 各管自己的滚动**：`_ownsNotification()` 用「通知来源往上数的最近一个 scope 是不是自己」判定，外层不再收内层的 ScrollNotification（否则详情页下滑 → 返回后根页面顶栏也是塌的，点标题回顶还会滚到详情页）。回归 `test/widgets/auto_hide_header_test.dart` 的 Nested scope 用例。
 - **禁持二进制、禁按字节做 key**：①`themeColorsBlob`/`waveformBlob`/`artworkBytes` 不许进 `MusicFolder.files` 与 `representativeSongCache`，树是会话级常驻，播一次就留一份且 GC 收不回 —— 执行点 `scanner_tree_builder` 三个工厂、`ScannerMetadataStore._updateMusicFileInFolder`（copyWith 三项写死 null，`artworkBytes` 只当清空哨兵），数据源永远 SQLite（读侧 DB 优先、生成后写回），播放态自己持一份。②`_prepareCurrentPlaybackArtwork()` 每次播放都写全新 `Uint8List`，`bytes.hashCode` 组成的 key 会让 State 重建、首帧无 `_imageInfo` → 封面全白；`SongThumbnail.gaplessPlayback` 默认 false，靠内部 `_keepLastFrame`（`oldWidget.path == widget.path` 才保留，初值 true）。`_needsPlaybackMetadataRefresh()` 为真时仍会 `structureRevision++` 并写 `thumbnailPath`。
 - **IndexedStack 常驻子页禁挂 PopScope**：PopScope 注册在路由上、与可见性无关；`canPop:false` 让整条路由 `doNotPop` 且派发给该路由全部 PopEntry。共用 tab 一律写进 `_handleBackPressed()`；艺术家/流派/年份在页面层套 `library_selection_back_guard.dart`。
 - **多选状态禁止条件切换 widget 根节点**：runtimeType 一变子树重建，dispose 微任务清掉刚建的多选状态（一进多选就退出）。唯一状态 `librarySelectionStateProvider`。

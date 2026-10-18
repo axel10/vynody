@@ -68,7 +68,25 @@ class _AutoHideHeaderScopeState extends State<AutoHideHeaderScope> {
     return false;
   }
 
+  /// 该通知是否由本 scope 管辖 —— 即从通知来源往上数，最近的一个
+  /// [AutoHideHeaderScope] 是不是自己。中间夹着另一个 scope 就说明它有自己的顶栏。
+  bool _ownsNotification(ScrollNotification notification) {
+    final BuildContext? notificationContext = notification.context;
+    if (notificationContext == null) return true;
+    return notificationContext.findAncestorStateOfType<_AutoHideHeaderScopeState>() ==
+        this;
+  }
+
   bool _onNotification(ScrollNotification notification) {
+    // 嵌套的 scope 自己管自己的顶栏，滚动通知不应穿透到外层。
+    //
+    // 典型场景：媒体库每个子分类各有一条 Navigator，三级详情页压在这条 Navigator 里
+    // （即宿主页 body 内），而宿主的 AutoHideHeaderScope 在更外层。滚动通知会沿
+    // Element 树一路冒泡，若外层照单全收，就会出现「详情页下滑 → 返回后根页面的
+    // 顶栏也停在收起态」，以及点标题回顶时把详情页的滚动视图滚回顶部。
+    // 文件夹页的 root / detail 视图是同一套结构。
+    if (!_ownsNotification(notification)) return false;
+
     // 捕获最近活跃的垂直滚动位置，支持点击顶部栏标题统一回顶
     if (notification.metrics.axis == Axis.vertical && notification.context != null) {
       final scrollable = Scrollable.maybeOf(notification.context!);
