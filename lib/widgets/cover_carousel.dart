@@ -537,6 +537,11 @@ class _CoverItemState extends ConsumerState<_CoverItem> {
   void dispose() {
     widget.animation.removeListener(_handleAnimationUpdate);
     _loadTimer?.cancel();
+    // 轮播项自己缓存的封面原图字节，Item 销毁时必须放掉，
+    // 否则它比页面活得久（Overlay/动画期）且没有任何回收入口。
+    _artworkBytes = null;
+    _artworkFilePath = null;
+    _remoteArtworkUrl = null;
     super.dispose();
   }
 

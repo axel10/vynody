@@ -419,6 +419,17 @@ class ScannerMetadataStore {
     }
   }
 
+  /// 把一条元数据同步到目录树里的 `MusicFile`。
+  ///
+  /// 硬性规定：**目录树不放二进制列**。`themeColorsBlob` / `waveformBlob` /
+  /// `artworkBytes` 在这里一律写死为 null，无论调用方（播放、改标签、存回文件）
+  /// 传了什么。原因是树是会话级常驻对象（只有重扫才由 tree builder 重建），
+  /// 每首歌各留一份封面（100KB~1MB）或波形（几 KB）会无上限累积，且 GC 收不回。
+  /// 这三者都由 SQLite 持有：树上只留 `thumbnailPath` / `artworkPath` 这类引用，
+  /// UI 需要时从 DB 读或按需生成，播放态（currentMusic / 队列）自己持有一份。
+  ///
+  /// [artworkBytes] 在这里只当「用户清空了封面」的哨兵（传空数组表示清空），
+  /// 非空时一律忽略其内容。
   void _updateMusicFileInFolder(
     MusicFolder folder,
     SongMetadata metadata, {
@@ -438,9 +449,9 @@ class ScannerMetadataStore {
           artworkPath: isArtworkCleared ? null : (metadata.artworkPath ?? file.artworkPath),
           artworkWidth: isArtworkCleared ? null : (metadata.artworkWidth ?? file.artworkWidth),
           artworkHeight: isArtworkCleared ? null : (metadata.artworkHeight ?? file.artworkHeight),
-          themeColorsBlob: isArtworkCleared ? null : (metadata.themeColorsBlob ?? file.themeColorsBlob),
+          themeColorsBlob: null,
           waveformBlob: null,
-          artworkBytes: isArtworkCleared ? null : (artworkBytes ?? file.artworkBytes),
+          artworkBytes: null,
           lastModifiedTime: metadata.lastModifiedTime,
         );
       }

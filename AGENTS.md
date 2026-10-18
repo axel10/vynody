@@ -38,6 +38,8 @@ flutter run -d <device-id>               # dev run on a device
 
 - 如果觉得光看代码无法发现问题请积极地提出在代码里添加日志，要求用户运行并提供日志的方法定位问题
 
+- 如果你在阅读代码的过程中发现明显不合理的地方，无论是否和本次任务有关都请立刻向用户汇报
+
 ## Architecture notes
 
 - **State management:** Riverpod (`flutter_riverpod` v3). Providers live co-located with their domain code (e.g., `lib/player/audio/` has audio providers).

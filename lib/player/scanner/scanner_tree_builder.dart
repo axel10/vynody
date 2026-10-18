@@ -318,8 +318,10 @@ class ScannerTreeBuilder {
       artworkPath: song.artworkPath,
       artworkWidth: song.artworkWidth,
       artworkHeight: song.artworkHeight,
-      themeColorsBlob: song.themeColorsBlob,
-      waveformBlob: song.waveformBlob,
+      // 目录树硬性规定：不存二进制列。
+      // themeColorsBlob / waveformBlob / artworkBytes 一律不写进树——树是会话级
+      // 常驻对象（重扫才重建），而这三者都能从 DB 读回或按需重新生成。
+      // 需要它们的只有播放态（currentMusic / 队列）和具体页面，各自持有、各自释放。
       lastModifiedTime: song.lastModifiedTime,
       hasArtwork: song.hasArtwork,
       bitrate: song.bitrate,
@@ -345,8 +347,7 @@ class ScannerTreeBuilder {
       artworkPath: metadata?.artworkPath,
       artworkWidth: metadata?.artworkWidth,
       artworkHeight: metadata?.artworkHeight,
-      themeColorsBlob: metadata?.themeColorsBlob,
-      waveformBlob: metadata?.waveformBlob,
+      // 同 musicFileFromSongMetadata：树里不放二进制列。
       lastModifiedTime: metadata?.lastModifiedTime,
       hasArtwork: metadata?.hasArtwork,
       bitrate: metadata?.bitrate,
@@ -472,7 +473,7 @@ class ScannerTreeBuilder {
       artworkPath: resolvedMetadata?.artworkPath,
       artworkWidth: resolvedMetadata?.artworkWidth,
       artworkHeight: resolvedMetadata?.artworkHeight,
-      themeColorsBlob: resolvedMetadata?.themeColorsBlob,
+      // 同前：树里不放二进制列（themeColorsBlob / waveformBlob / artworkBytes）。
       lastModifiedTime: resolvedMetadata?.lastModifiedTime,
       hasArtwork: resolvedMetadata?.hasArtwork,
     );

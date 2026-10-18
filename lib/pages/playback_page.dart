@@ -327,6 +327,9 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
     _heroWarmupTimer?.cancel();
     _volumeSliderTimer?.cancel();
     _fileArtworkBytesCache.clear();
+    // 播放页是封面字节的唯一长期持有者（轮播 / 背景需要原图）。
+    // 页面销毁就把引用一起放掉，让大图字节随 State 一起被回收。
+    _pendingArtworkBytes = null;
     _loadingPaths.clear();
     // 延迟重置，避免在 dispose 过程中触发 notifyListeners 导致的 "locked" 错误
     final settings = _settingsService;
