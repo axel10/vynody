@@ -110,6 +110,16 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
   // Remote artwork URL state
   String? _remoteArtworkUrl;
 
+  /// 本次重建是否仍代表同一首歌。
+  ///
+  /// 播放一首歌时后台会补写/重算封面（thumbnailPath、artworkWidth/Height、内存字节），
+  /// 这些变化都会让图片源（FileImage / ResizeImage / MemoryImage）的 key 改变，
+  /// 而 [Image] 在源变化 + 非 gapless 时会把 `_imageInfo` 清空，
+  /// 于是首帧就是空白 —— 表现为「第一次播放某首歌时列表里那张封面闪一下」。
+  /// 同一首歌重绘时保留上一帧；换成另一首歌必须立刻清空，
+  /// 否则列表行回收复用会短暂显示上一首的封面。
+  bool _keepLastFrame = true;
+
   static final Set<String> _failedRemoteUrls = <String>{};
   static final Set<String> _verifiedExistingPaths = <String>{};
 
@@ -192,6 +202,8 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
   @override
   void didUpdateWidget(SongThumbnail oldWidget) {
     super.didUpdateWidget(oldWidget);
+    // 只有还是同一首歌时才允许保留上一帧；换歌必须清空（列表行回收复用场景）。
+    _keepLastFrame = oldWidget.path == widget.path;
     // Reset so we retry if the path/id/artworkPath changes (e.g. list recycling).
     if (oldWidget.path != widget.path ||
         oldWidget.id != widget.id ||
@@ -246,6 +258,7 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
     }
 
     final radius = widget.borderRadius ?? BorderRadius.circular(4);
+    final bool gaplessPlayback = widget.gaplessPlayback || _keepLastFrame;
 
     if (widget.bytes != null && widget.bytes!.isNotEmpty) {
       return ClipRRect(
@@ -257,7 +270,7 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
           fit: BoxFit.cover,
           cacheWidth: targetCacheWidth,
           cacheHeight: targetCacheHeight,
-          gaplessPlayback: widget.gaplessPlayback,
+          gaplessPlayback: gaplessPlayback,
           errorBuilder: (_, _, _) => _fallbackIcon(layoutWidth, layoutHeight, radius),
         ),
       );
@@ -274,7 +287,7 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
           fit: BoxFit.cover,
           cacheWidth: targetCacheWidth,
           cacheHeight: targetCacheHeight,
-          gaplessPlayback: widget.gaplessPlayback,
+          gaplessPlayback: gaplessPlayback,
           filterQuality: FilterQuality.low,
           errorBuilder: (_, _, _) => _fallbackIcon(layoutWidth, layoutHeight, radius),
         ),
@@ -293,7 +306,7 @@ class _SongThumbnailState extends ConsumerState<SongThumbnail> {
           fit: BoxFit.cover,
           cacheWidth: targetCacheWidth,
           cacheHeight: targetCacheHeight,
-          gaplessPlayback: widget.gaplessPlayback,
+          gaplessPlayback: gaplessPlayback,
           filterQuality: FilterQuality.low,
           frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
             if (wasSynchronouslyLoaded || frame != null) {
