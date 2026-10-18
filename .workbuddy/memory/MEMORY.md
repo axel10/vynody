@@ -10,7 +10,7 @@
 | FFmpeg 版本 | `audio_core/ffmpeg_version.env`，禁脚本硬编码 | flatpak 清单与 `build-ffmpeg.yml` 的 tag 无硬校验，靠手同步 |
 | 曲库数据 | `libraryCatalogProvider` 是唯一订阅 `db.watchAllSongMetadata()` 处 | 新视图用 `catalogDerived(ref, (c) => ...)`，禁自己 `await for`；派生 provider 保持 `StreamProvider` 与原名（测试 override）。`songs` 排除 external/deletedAt，`visibleSongs` 再加根目录/来源 |
 | 返回键 | `MainLayout._handleBackPressed()` | Modal → 播放抽屉 → index 2 → index 0 回上级 → index 4 传输中拦 → `SystemNavigator.pop()` |
-| 队列整体替换 | `PlaylistController.replaceActiveTracksAndSelect` | 禁拆成 `updatePlaylistTracks`+`playByIndex`：中间 `currentMusic` 瞬时 null，Dock 重播收起动画 |
+| 队列整体替换 | `PlaylistController.replaceActiveTracksAndSelect` | 禁拆成 `updatePlaylistTracks`+`playByIndex`：中间 `currentMusic` 瞬时 null，Dock 重播收起动画；启动恢复 `_restorePlaybackSession` 同理禁拆 `addTracksToPlaylist`+`setActivePlaylist`（冷启动 `_currentIndex=null` 时前者会置 0 并 notify → 播放页背景先闪队列第一首） |
 | 浮动 Dock 收起 | `floatingDockCollapsed(Progress)Provider` | 开关 `enableFloatingDockScrollCollapse`；`mini_player_wrapper` 与 `main_layout` 各一个 helper。收起态由滚动派生，切主页面/切子分类**禁** `setCollapsed`，只 `helper.reset(ref)`（清累计+进度+`_lastPixels`）。顶部缓冲区展开必须边沿触发，且**边沿只对同一 Scrollable 成立**（用 `notification.context` 判同源；换列表/进子目录后 prev 视为 null，否则旧列表 px 跳变会被误判成「滚回顶部」→ 先展开再收起）；底部无条件展开。诊断日志受 `FloatingDockScrollHelper.traceEnabled` 控制 |
 | l10n | 9 个 `lib/l10n/app_*.arb` 同步，模板 `app_zh.arb` | 缺 key 静默回退中文只记 stdout；改完 `flutter gen-l10n` |
 | 设置项 | `settings_service.dart` 三段（key/property/访问器） | 6 处：key 常量、`SettingProperty`、getter+setter、`resetXxx()`、`settings_search_registry.dart`、`sections/<组>_section.dart` |

@@ -700,35 +700,47 @@ class AudioService extends Notifier<AudioSnapshot> {
       _resetPlaybackTrackingForSong(null);
       notifyListeners();
 
-      await _player.playlist.ensureQueuePlaylist();
-      final tracks = session.queue.map(_audioTrackForSong).toList(growable: false);
-      await _player.playlist.addTracksToPlaylist(
-        _player.playlist.queuePlaylistId,
-        tracks,
-        reconcile: false,
-      );
-
       _playbackMode = session.playbackMode;
       _currentSource = session.source;
       _player.playlist.setMode(_playbackMode.toCoreMode());
 
       if (restoredIndex >= 0 && restoredIndex < session.queue.length) {
         final currentSong = session.queue[restoredIndex];
+
+        // 原子写入：队列替换与选中 restoredIndex 必须一步完成。
+        // 不能拆成 addTracksToPlaylist + setActivePlaylist 两步——前者在
+        // 当前曲目为空时会先把 _currentIndex 置 0 并 notifyListeners，
+        // 播放页背景会先闪队列第一首的封面，再被第二步纠正回来。
+        final tracks = session.queue
+            .map(_audioTrackForSong)
+            .toList(growable: false);
         if ((Platform.isIOS || Platform.isMacOS) &&
             !RemoteMediaResolver.isRemoteUri(currentSong.path)) {
           await _player.registerPersistentAccess(path: currentSong.path);
           await _player.beginScopedAccess(path: currentSong.path);
         }
         try {
+          await _player.playlist.replaceActiveTracksAndSelect(
+            _player.playlist.queuePlaylistId,
+            tracks,
+            startIndex: restoredIndex,
+            reason: PlaybackReason.playlistChanged,
+          );
+        } catch (e) {
+          AppLog.log(
+            '[RestorePlaybackSession] replaceActiveTracksAndSelect failed: $e',
+            mirrorToConsole: true,
+          );
+          await _player.playlist.ensureQueuePlaylist();
+          await _player.playlist.addTracksToPlaylist(
+            _player.playlist.queuePlaylistId,
+            tracks,
+            reconcile: false,
+          );
           await _player.playlist.setActivePlaylist(
             _player.playlist.queuePlaylistId,
             startIndex: restoredIndex,
             autoPlay: false,
-          );
-        } catch (e) {
-          AppLog.log(
-            '[RestorePlaybackSession] setActivePlaylist failed: $e',
-            mirrorToConsole: true,
           );
         }
 
