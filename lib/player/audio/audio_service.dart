@@ -1198,10 +1198,13 @@ class AudioService extends Notifier<AudioSnapshot> {
     );
 
     _replaceQueueSongsByPath(song.path, updatedSong);
-    _scannerService?.updateMetadataForPath(
-      metadata,
-      artworkBytes: artworkBytes,
-    );
+    // 目录树只写路径类字段，不写封面字节。
+    // ScannerService 的 folder.files 会随目录树常驻整个会话（重扫才重建），
+    // 若把 artworkBytes 写进去，每首在会话里播过一次的歌都会留下一整张封面
+    // （100KB~1MB，且不走 ImageCache），无标签曲库很容易累积到几十上百 MB。
+    // 播放链路需要的字节已经在 updatedSong 里（currentMusic / 队列），
+    // 列表行只需 thumbnailPath；这里生成的缩略图已随 metadata 一并写回。
+    _scannerService?.updateMetadataForPath(metadata);
     return updatedSong;
   }
 
@@ -2349,10 +2352,10 @@ class AudioService extends Notifier<AudioSnapshot> {
 
     _applyThemeColors(colors);
     await _db.insertOrUpdateSong(updatedMetadata);
-    _scannerService?.updateMetadataForPath(
-      updatedMetadata,
-      artworkBytes: updatedSong.artworkBytes,
-    );
+    // 同 _resolveMetadataForPlayback：目录树只更新路径/主题色，不塞封面字节。
+    // 这个函数每首「首次播放且还没算过主题色」的歌都会跑一次，是最主要的
+    // 常驻点；播放侧要用的字节已经跟着 updatedSong 进了 currentMusic / 队列。
+    _scannerService?.updateMetadataForPath(updatedMetadata);
     await _playlistService?.updateSongMetadataByPath(
       updatedMetadata,
       artworkBytes: updatedSong.artworkBytes,
