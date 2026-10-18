@@ -1,16 +1,18 @@
-// 媒体库二级页「离开主页面即销毁」的回归测试。
+// 媒体库页面状态生命周期的回归测试。
 //
-// 场景：最近播放页切到专辑视图 → 点 Rail 切到其它主页面 → 再从 Rail 子项回到媒体库。
-// 二级宿主页是 LibraryPage 内部 Navigator 的一条路由，切走主页面并不会销毁它，
-// 于是页面状态（洞察页筛选、各 tab 滚动位置、三级详情）会残留：回来后仍然是专辑 tab。
+// 语义（2026-10-18 起）：状态生命周期 = Widget 生命周期。
+// - 页内切换子分类：不销毁页面 → 保留（覆盖「洞察页筛选、各 tab 滚动位置、三级详情」）；
+// - 切到其它主页面：同样不销毁二级宿主 → 保留，回来后原样恢复；
+// - 真正退出（回到仪表盘 / 二级宿主出栈）：dispose → 复位（筛选回到「歌曲 + 全部时间」）。
 //
-// 现在 LibraryPage 监听 mainTabIndexProvider，离开媒体库主页面时主动把二级宿主退回仪表盘，
-// 让页面状态随路由一起销毁（筛选状态在宿主页 dispose 时复位）。
+// 曾经的做法是监听 mainTabIndexProvider，一旦离开媒体库主页面就 popUntil 到仪表盘，
+// 顺带让各分类的三级详情一起出栈 —— 于是切走再回来必然丢状态，出栈时还会多放一次
+// 封面 Hero 反向飞行。现在离开主页面不再碰路由栈。
 //
 // 锁定的行为：
-// 1. 页面存活（停留在媒体库内）时状态必须保留 —— 页内切子分类不应丢视图与滚动位置；
-// 2. 离开媒体库主页面后，二级宿主退栈、筛选状态复位；
-// 3. 从 Rail 子项重新进入时是干净页面（歌曲 + 全部时间）。
+// 1. 页面存活（停留在媒体库内）时状态必须保留 —— 页内切子分类不应丢视图；
+// 2. 切到其它主页面后仍保留，子分类索引与筛选状态都不变；
+// 3. 退回仪表盘（provider 置 null）时二级宿主出栈，筛选状态复位。
 
 import 'dart:io';
 
@@ -22,6 +24,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:vynody/l10n/app_localizations.dart';
 import 'package:vynody/models/artist_summary.dart';
+import 'package:vynody/pages/album_detail_page.dart';
+import 'package:vynody/pages/albums_tab.dart';
 import 'package:vynody/pages/library_page.dart';
 import 'package:vynody/pages/main_layout_riverpod.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
@@ -31,6 +35,7 @@ import 'package:vynody/player/library/library_insights_service.dart';
 import 'package:vynody/player/library/library_overview_providers.dart';
 import 'package:vynody/player/library/playlist_service.dart';
 import 'package:vynody/player/pro/pro_license_service.dart';
+import 'package:vynody/widgets/album_grid_card.dart';
 import 'package:vynody/widgets/library_insight_list.dart';
 import 'package:vynody/widgets/section_type_toggle.dart';
 
@@ -213,7 +218,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
   }
 
-  testWidgets('离开媒体库主页面会销毁二级宿主，从 Rail 子项回来是干净页面', (tester) async {
+  testWidgets('切主页面保留页面状态，退回仪表盘才复位', (tester) async {
     setSurface(tester, const Size(430, 932));
     final container = createContainer();
 
@@ -245,15 +250,30 @@ void main() {
       reason: '二级宿主存活期间，页内切换子分类不应丢视图',
     );
 
-    // 点 Rail 切到其它主页面（例如队列）
+    // 点 Rail 切到其它主页面（例如队列）：不销毁页面，状态保留
     container.read(mainTabIndexProvider.notifier).setIndex(3);
     await settle(tester);
 
     expect(
       container.read(libraryActiveTabIndexProvider),
-      isNull,
-      reason: '离开媒体库主页面时二级宿主应退回仪表盘',
+      1,
+      reason: '切到其它主页面不应退回仪表盘，子分类索引原样保留',
     );
+    expect(
+      container.read(recentlyPlayedFilterProvider).type,
+      SectionItemType.albums,
+      reason: '切换主页面不销毁二级宿主，筛选状态应保留',
+    );
+
+    // 切回媒体库：仍是原来的«专辑»视图
+    container.read(mainTabIndexProvider.notifier).setIndex(2);
+    await settle(tester);
+    expect(_insightType(tester), SectionItemType.albums);
+
+    // 真正退出：退回仪表盘，二级宿主出栈，筛选状态复位
+    container.read(libraryActiveTabIndexProvider.notifier).set(null);
+    await settle(tester);
+
     expect(
       container.read(recentlyPlayedFilterProvider).isDefault,
       isTrue,
@@ -261,12 +281,65 @@ void main() {
     );
 
     // 再从 Rail 子项回到「最近播放」：应是歌曲视图
-    container.read(mainTabIndexProvider.notifier).setIndex(2);
-    await settle(tester);
     container.read(libraryActiveTabIndexProvider.notifier).set(1);
     await settle(tester);
 
     expect(_insightType(tester), SectionItemType.songs);
+    expect(tester.takeException(), isNull);
+  });
+
+  // 回归：每个子分类各持一条 Navigator 栈。曾经 9 个分类共用一条栈，切分类靠
+  // popUntil 回到宿主，于是「进专辑详情 → 切到艺术家 → 切回专辑」必然丢详情，
+  // 而且那次出栈还会触发封面 Hero 反向飞向已经不可见的专辑网格。
+  testWidgets('进专辑详情后切子分类再切回，详情页仍在', (tester) async {
+    setSurface(tester, const Size(430, 932));
+    final container = createContainer();
+    final keys = List<GlobalKey<NavigatorState>>.generate(
+      9,
+      (index) => GlobalKey<NavigatorState>(debugLabel: 'test_library_tab_$index'),
+    );
+
+    await tester.pumpWidget(
+      wrap(container, LibrarySubHostPage(tabNavigatorKeys: keys)),
+    );
+    await settle(tester);
+
+    // 进入「专辑」子分类
+    container.read(libraryActiveTabIndexProvider.notifier).set(4);
+    await settle(tester);
+    expect(find.byType(AlbumsTab), findsOneWidget);
+
+    // 点第一张专辑卡进入详情
+    await tester.tap(find.byType(AlbumGridCard).first);
+    await settle(tester);
+    expect(find.byType(AlbumDetailPage), findsOneWidget);
+    expect(keys[4].currentState!.canPop(), isTrue);
+
+    // 切到「艺术家」：专辑分类的栈不能被出栈
+    container.read(libraryActiveTabIndexProvider.notifier).set(5);
+    await settle(tester);
+    expect(
+      keys[4].currentState!.canPop(),
+      isTrue,
+      reason: '切子分类不应出栈，专辑详情必须留在自己的栈里',
+    );
+    expect(
+      keys[5].currentState!.canPop(),
+      isFalse,
+      reason: '其它子分类应停在自己的根页面',
+    );
+
+    // 切回「专辑」：详情页原样恢复
+    container.read(libraryActiveTabIndexProvider.notifier).set(4);
+    await settle(tester);
+    expect(find.byType(AlbumDetailPage), findsOneWidget);
+    expect(keys[4].currentState!.canPop(), isTrue);
+
+    // 在自己的栈里按返回：详情页关闭，回到专辑网格，不影响其它分类
+    await keys[4].currentState!.maybePop();
+    await tester.pumpAndSettle();
+    expect(find.byType(AlbumDetailPage), findsNothing);
+    expect(keys[4].currentState!.canPop(), isFalse);
     expect(tester.takeException(), isNull);
   });
 }

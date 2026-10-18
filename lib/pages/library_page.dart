@@ -19,12 +19,25 @@ import 'library_dashboard_view.dart';
 import 'main_layout_riverpod.dart';
 import '../player/library/library_overview_providers.dart';
 import '../widgets/library_selection_scope.dart';
+import '../widgets/library_tab_navigator.dart';
 import '../widgets/auto_hide_header.dart';
 import '../widgets/app_top_nav_bar.dart';
 import '../utils/layout_constants.dart';
 import '../utils/app_log.dart';
 
-// 媒体库页面：统一采用局部嵌套 Navigator 架构。
+// 媒体库页面：两级嵌套 Navigator 架构。
+//
+// 第一级是本页自带的局部 Navigator，栈里只有「仪表盘」与「二级宿主」；第二级是
+// 二级宿主内部为每个子分类各开的一个 Navigator（见 library_tab_navigator.dart），
+// 三级页面（专辑 / 艺术家 / 流派 / 年份详情）压在自己子分类的栈里。
+//
+// 这样横向切换子分类（Rail 子项）只是改 IndexedStack 的索引，不动任何路由栈：
+// 各分类的滚动位置、搜索词、多选状态与详情页原地保留，也不会因为「出栈」而触发
+// 封面 Hero 飞向不可见的分类。
+//
+// 状态生命周期：切子分类 / 切主页面都不销毁页面，状态保留；只有真正退出页面
+// （二级宿主出栈回到仪表盘）才会 dispose 并复位。
+//
 // 横屏下外层 Rail 栏始终常驻显示，右侧二级页面平级流畅切换并避让 Rail；
 // 竖屏下二级页面渲染顶部标题与返回按钮，原生支持 iOS 边缘滑动返回与 Android 物理/手势返回；
 // 横竖屏旋转期间，当前二级页面位置、滚动偏好与路由栈天然保活，零闪烁。
@@ -55,8 +68,20 @@ class LibraryPageState extends ConsumerState<LibraryPage> {
   late final HeroController _heroController;
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
 
+  /// 各子分类各自持有的 Navigator key，交给二级宿主挂载、由返回键统一分发。
+  final List<GlobalKey<NavigatorState>> _tabNavigatorKeys =
+      List<GlobalKey<NavigatorState>>.generate(
+        9,
+        (index) => GlobalKey<NavigatorState>(debugLabel: 'library_tab_$index'),
+      );
+
   /// 标记二级宿主页是否已压在局部 Navigator 栈顶
   bool _isSubHostPushed = false;
+
+  /// 当前展示的子分类索引，null 表示停在仪表盘。
+  /// 与 [libraryActiveTabIndexProvider] 同步，但页面退出动画期间 provider 会被置回
+  /// null，这里保留最后的值，避免返回键分发瞬间找不到当前分类。
+  int? _activeSubIndex;
 
   @override
   void initState() {
@@ -70,17 +95,24 @@ class LibraryPageState extends ConsumerState<LibraryPage> {
     super.dispose();
   }
 
-  /// 供外层（如 MainLayout 的 Android 返回键或快捷键）拦截调用
+  /// 供外层（如 MainLayout 的 Android 返回键或快捷键）拦截调用。
+  ///
+  /// 顺序：多选 → 3D 视图 → 当前子分类的三级详情 → 二级宿主 → 交给外层。
   bool handleBackPressed() {
     final selectionState = ref.read(librarySelectionStateProvider);
     final is3d = ref.read(isAlbum3DViewActiveProvider);
-    final canPop = _navigatorKey.currentState?.canPop() ?? false;
+    final int? subIndex = _activeSubIndex;
+    final NavigatorState? tabNavigator =
+        subIndex == null ? null : _tabNavigatorKeys[subIndex].currentState;
+    final bool tabCanPop = tabNavigator?.canPop() ?? false;
+    final bool hostCanPop = _navigatorKey.currentState?.canPop() ?? false;
     AppLog.log(
       '[NavTrace] LibraryPageState.handleBackPressed: '
       'selectionActive=${selectionState.isActive}, '
       'is3DActive=$is3d, '
-      'navigatorState=${_navigatorKey.currentState != null ? "exists" : "NULL"}, '
-      'canPop=$canPop, '
+      'subIndex=$subIndex, '
+      'tabCanPop=$tabCanPop, '
+      'hostCanPop=$hostCanPop, '
       '_isSubHostPushed=$_isSubHostPushed',
       mirrorToConsole: true,
     );
@@ -95,20 +127,18 @@ class LibraryPageState extends ConsumerState<LibraryPage> {
       ref.read(isAlbum3DViewActiveProvider.notifier).set(false);
       return true;
     }
-    if (canPop) {
+    if (tabCanPop) {
+      AppLog.log('[NavTrace] LibraryPageState: popping tab navigator route', mirrorToConsole: true);
+      tabNavigator?.maybePop();
+      return true;
+    }
+    if (hostCanPop) {
       AppLog.log('[NavTrace] LibraryPageState: popping nested navigator route', mirrorToConsole: true);
       _navigatorKey.currentState?.maybePop();
       return true;
     }
     AppLog.log('[NavTrace] LibraryPageState: cannot pop nested navigator, returning false', mirrorToConsole: true);
     return false;
-  }
-
-  /// 把二级宿主（以及其上的三级详情）退回仪表盘，让页面状态随路由一起销毁。
-  /// 供「离开媒体库主页面」时调用；返回键路径走 [handleBackPressed]，不需要它。
-  void dismissSubPages() {
-    if (!_isSubHostPushed) return;
-    _navigatorKey.currentState?.popUntil((route) => route.isFirst);
   }
 
   void _openSubHost(
@@ -123,12 +153,8 @@ class LibraryPageState extends ConsumerState<LibraryPage> {
     ref.read(librarySelectionScopeProvider.notifier).clear();
 
     if (_isSubHostPushed) {
+      // 已在二级宿主内：只切换子分类索引，各分类的路由栈原地保留。
       ref.read(libraryActiveTabIndexProvider.notifier).set(index);
-      // 已经在二级页面宿主，若栈顶有三级详情页，先退回到二级宿主
-      AppLog.log('[NavTrace] LibraryPage._openSubHost: already pushed, popUntil library_sub_host', mirrorToConsole: true);
-      _navigatorKey.currentState?.popUntil(
-        (route) => route.settings.name == 'library_sub_host' || route.isFirst,
-      );
       return;
     }
 
@@ -178,6 +204,7 @@ class LibraryPageState extends ConsumerState<LibraryPage> {
     final page = LibrarySubHostPage(
       initialAlbums3DView: initialAlbums3DView,
       initialAlbums3DIndex: initialAlbums3DIndex,
+      tabNavigatorKeys: _tabNavigatorKeys,
     );
 
     return (Platform.isIOS || Platform.isMacOS)
@@ -193,31 +220,24 @@ class LibraryPageState extends ConsumerState<LibraryPage> {
 
   @override
   Widget build(BuildContext context) {
-    // 切到其它主页面（Rail / 底栏 / 深链）时，媒体库二级宿主已不是「当前页面」，
-    // 主动把它退回仪表盘：二级宿主是局部 Navigator 里的一条路由，离开主页面并不会销毁它，
-    // 页面状态（洞察页筛选、各 tab 滚动位置、三级详情）会悄悄留在内存里，
-    // 下次从 Rail 子项直接进来时又原样出现，于是就成了「旧专辑 tab + 旧滚动位置」的残影。
-    ref.listen<int>(mainTabIndexProvider, (previous, next) {
-      if (previous == 2 && next != 2) {
-        dismissSubPages();
-      }
-    });
-
-    // 监听全局或 Rail 触发的子分类索引变更
+    // 监听全局或 Rail 触发的子分类索引变更。
+    //
+    // 关键：非 null 时不再做任何出栈动作。二级宿主是局部 Navigator 上的一条路由，
+    // 里面每个子分类各自持有 Navigator，切分类只是换 IndexedStack 的索引；
+    // 曾经在这里 popUntil 到宿主，导致切走就丢详情、还顺带播放了一次封面 Hero
+    // 反向飞向不可见分类的动画。
     ref.listen<int?>(libraryActiveTabIndexProvider, (previous, next) {
       if (next != null) {
+        _activeSubIndex = next;
         if (!_isSubHostPushed) {
           _openSubHost(next);
-        } else {
-          // 已在宿主中，若栈顶有三级详情页，先退回到二级宿主以显示新选中的子分类
-          _navigatorKey.currentState?.popUntil(
-            (route) =>
-                route.settings.name == 'library_sub_host' || route.isFirst,
-          );
         }
-      } else if (_isSubHostPushed) {
-        // 重置为仪表盘，退回根路由
-        _navigatorKey.currentState?.popUntil((route) => route.isFirst);
+      } else {
+        _activeSubIndex = null;
+        if (_isSubHostPushed) {
+          // 语义是「回到仪表盘」，属于真正退出二级页面，出栈即复位页面状态。
+          _navigatorKey.currentState?.popUntil((route) => route.isFirst);
+        }
       }
     });
 
@@ -247,6 +267,7 @@ class LibraryPageState extends ConsumerState<LibraryPage> {
           final routes = <Route<void>>[_buildDashboardRoute()];
           if (hasDeepLink || targetIndex != null) {
             _isSubHostPushed = true;
+            _activeSubIndex = targetIndex;
             final subRoute = _buildSubHostRoute(
               initialAlbums3DView: widget.initialAlbums3DView,
               initialAlbums3DIndex: widget.initialAlbums3DIndex,
@@ -273,15 +294,22 @@ class LibraryPageState extends ConsumerState<LibraryPage> {
 
 /// 媒体库二级分类通用宿主页面：
 /// 内部通过 IndexedStack 平级常驻承载所有子分类，保证滚动位置不丢失；
+/// 每个子分类外包一层 [LibraryTabNavigator]，各自持有独立的路由栈，三级详情页
+/// 归属到自己的分类，横向切分类不会出栈、也不会丢详情；
 /// 竖屏下显示 AppBar 返回顶栏并支持边缘侧滑返回手势；横屏下自动隐藏顶栏，左侧避让 Rail 栏。
 class LibrarySubHostPage extends ConsumerStatefulWidget {
   final bool initialAlbums3DView;
   final int initialAlbums3DIndex;
 
+  /// 各子分类 Navigator 的 key。由 [LibraryPageState] 持有，返回键在宿主层
+  /// 统一分发到「当前子分类的导航栈」时要用到；缺省时自建（供独立挂载与测试使用）。
+  final List<GlobalKey<NavigatorState>>? tabNavigatorKeys;
+
   const LibrarySubHostPage({
     super.key,
     this.initialAlbums3DView = false,
     this.initialAlbums3DIndex = 0,
+    this.tabNavigatorKeys,
   });
 
   @override
@@ -290,6 +318,13 @@ class LibrarySubHostPage extends ConsumerStatefulWidget {
 
 class _LibrarySubHostPageState extends ConsumerState<LibrarySubHostPage> {
   final Set<int> _builtSubTabs = {};
+
+  late final List<GlobalKey<NavigatorState>> _tabNavigatorKeys =
+      widget.tabNavigatorKeys ??
+      List<GlobalKey<NavigatorState>>.generate(
+        9,
+        (index) => GlobalKey<NavigatorState>(debugLabel: 'library_tab_$index'),
+      );
 
   /// 最后一次有效的子分类索引。
   /// 退出二级页时 [libraryActiveTabIndexProvider] 会被置回 null（语义是「回到仪表盘」），
@@ -346,8 +381,6 @@ class _LibrarySubHostPageState extends ConsumerState<LibrarySubHostPage> {
     final double railWidth =
         isLandscape ? sidebarRailWidthFor(MediaQuery.of(context).size.width) : 0.0;
     final double headerHeight = AppTopNavBar.getBarHeight(context);
-    final double topPadding = headerHeight;
-    final double leftPadding = railWidth;
 
     final int? activeIndex = ref.watch(libraryActiveTabIndexProvider);
     if (activeIndex != null) {
@@ -369,60 +402,6 @@ class _LibrarySubHostPageState extends ConsumerState<LibrarySubHostPage> {
       _ => l10n.list,
     };
 
-    Widget buildSubTab(int index) {
-      switch (index) {
-        case 0:
-          return PlaylistTab(
-            contentTopPadding: topPadding,
-            contentLeftPadding: leftPadding,
-          );
-        case 1:
-          return RecentlyPlayedTab(
-            contentTopPadding: topPadding,
-            contentLeftPadding: leftPadding,
-          );
-        case 2:
-          return MostPlayedTab(
-            contentTopPadding: topPadding,
-            contentLeftPadding: leftPadding,
-          );
-        case 3:
-          return RecentlyAddedTab(
-            contentTopPadding: topPadding,
-            contentLeftPadding: leftPadding,
-          );
-        case 4:
-          return AlbumsTab(
-            initial3DView: widget.initialAlbums3DView,
-            initial3DIndex: widget.initialAlbums3DIndex,
-            contentTopPadding: topPadding,
-            contentLeftPadding: leftPadding,
-          );
-        case 5:
-          return ArtistsTab(
-            contentTopPadding: topPadding,
-            contentLeftPadding: leftPadding,
-          );
-        case 6:
-          return RatedSongsTab(
-            contentTopPadding: topPadding,
-            contentLeftPadding: leftPadding,
-          );
-        case 7:
-          return GenresTab(
-            contentTopPadding: topPadding,
-            contentLeftPadding: leftPadding,
-          );
-        case 8:
-          return YearsTab(
-            contentTopPadding: topPadding,
-            contentLeftPadding: leftPadding,
-          );
-        default:
-          return const SizedBox.shrink();
-      }
-    }
-
     final isSelectionActive = ref.watch(isLibrarySelectionActiveProvider);
     final is3DViewActive =
         (clampedIndex == 4) && ref.watch(isAlbum3DViewActiveProvider);
@@ -442,13 +421,17 @@ class _LibrarySubHostPageState extends ConsumerState<LibrarySubHostPage> {
               children: [
                 for (int i = 0; i < 9; i++)
                   _builtSubTabs.contains(i)
-                      ? buildSubTab(i)
+                      ? LibraryTabNavigator(
+                          key: ValueKey('library_tab_navigator_$i'),
+                          navigatorKey: _tabNavigatorKeys[i],
+                          builder: (_) => _buildSubTabRoot(i),
+                        )
                       : const SizedBox.shrink(),
               ],
             ),
             Positioned(
               top: 0,
-              left: leftPadding,
+              left: railWidth,
               right: 0,
               height: headerHeight,
               child: AnimatedSlide(
@@ -489,6 +472,84 @@ class _LibrarySubHostPageState extends ConsumerState<LibrarySubHostPage> {
       },
       child: scaffold,
     );
+  }
+  /// 子分类根页面。
+  ///
+  /// 这段代码在 [LibraryTabNavigator] 的路由里执行，路由的 builder 只在创建时取一次，
+  /// 所以内边距必须在这里基于「当前路由的 context」重新计算：宿主 build 时算出的值
+  /// 一旦被捕获，横竖屏旋转后就会停在旧值上。
+  Widget _buildSubTabRoot(int index) {
+    return Builder(
+      builder: (tabContext) {
+        final bool isLandscape =
+            MediaQuery.of(tabContext).orientation == Orientation.landscape;
+        return _buildSubTab(
+          index,
+          topPadding: AppTopNavBar.getBarHeight(tabContext),
+          leftPadding: isLandscape
+              ? sidebarRailWidthFor(MediaQuery.of(tabContext).size.width)
+              : 0.0,
+        );
+      },
+    );
+  }
+
+  Widget _buildSubTab(
+    int index, {
+    required double topPadding,
+    required double leftPadding,
+  }) {
+    switch (index) {
+      case 0:
+        return PlaylistTab(
+          contentTopPadding: topPadding,
+          contentLeftPadding: leftPadding,
+        );
+      case 1:
+        return RecentlyPlayedTab(
+          contentTopPadding: topPadding,
+          contentLeftPadding: leftPadding,
+        );
+      case 2:
+        return MostPlayedTab(
+          contentTopPadding: topPadding,
+          contentLeftPadding: leftPadding,
+        );
+      case 3:
+        return RecentlyAddedTab(
+          contentTopPadding: topPadding,
+          contentLeftPadding: leftPadding,
+        );
+      case 4:
+        return AlbumsTab(
+          initial3DView: widget.initialAlbums3DView,
+          initial3DIndex: widget.initialAlbums3DIndex,
+          contentTopPadding: topPadding,
+          contentLeftPadding: leftPadding,
+        );
+      case 5:
+        return ArtistsTab(
+          contentTopPadding: topPadding,
+          contentLeftPadding: leftPadding,
+        );
+      case 6:
+        return RatedSongsTab(
+          contentTopPadding: topPadding,
+          contentLeftPadding: leftPadding,
+        );
+      case 7:
+        return GenresTab(
+          contentTopPadding: topPadding,
+          contentLeftPadding: leftPadding,
+        );
+      case 8:
+        return YearsTab(
+          contentTopPadding: topPadding,
+          contentLeftPadding: leftPadding,
+        );
+      default:
+        return const SizedBox.shrink();
+    }
   }
 }
 

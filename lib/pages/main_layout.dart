@@ -1420,7 +1420,10 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                                     .read(settingsServiceProvider)
                                     .resetInactivity();
                               }
-                              if (index == 2) {
+                              // 只有「再次点击已选中的媒体库主项」才退回仪表盘；
+                              // 从其它主页面切回媒体库时不清空子分类索引，让原页面
+                              // （含各子分类的路由栈）原样恢复。
+                              if (index == 2 && _currentIndex == 2) {
                                 ref
                                     .read(
                                       libraryActiveTabIndexProvider.notifier,
