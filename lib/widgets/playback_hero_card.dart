@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'dart:ui' show lerpDouble;
 import 'dart:math' as math;
-import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -96,6 +96,7 @@ class PlaybackHeroCard extends ConsumerStatefulWidget {
     this.overrideProgress,
     this.overridePosition,
     this.overrideWaveform,
+    this.scrubProgressListenable,
     this.lyricsBottomSpacerHeight = 0.0,
     this.lyricsBottomTabBarHeight = 0.0,
     this.coverKey,
@@ -112,6 +113,12 @@ class PlaybackHeroCard extends ConsumerStatefulWidget {
   final List<double>? overrideWaveform;
   final double? overrideProgress;
   final Duration? overridePosition;
+
+  /// 拖动/抛掷进度条时的预览进度（null = 未在拖动）。
+  ///
+  /// 相比 [overrideProgress]/[overridePosition] 的“值传递”，这个 Listenable 不会
+  /// 让上层页面为了更新一次进度而 setState，从而避免整页按指针频率重建。
+  final ValueListenable<double?>? scrubProgressListenable;
   final bool showVisualizerToggle;
   final VoidCallback? onShowMoreMenu;
   final VoidCallback? onMiniTap;
@@ -475,6 +482,8 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard> {
                                 widget.overridePosition,
                             overrideWaveform:
                                 widget.overrideWaveform,
+                            scrubProgressListenable:
+                                widget.scrubProgressListenable,
                             onShowMoreMenu:
                                 widget.onShowMoreMenu,
                             onCyclePlaylistMode:
@@ -754,6 +763,8 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard> {
                                                   widget.overridePosition,
                                               overrideWaveform:
                                                   widget.overrideWaveform,
+                                              scrubProgressListenable: widget
+                                                  .scrubProgressListenable,
                                               onShowMoreMenu:
                                                   widget.onShowMoreMenu,
                                               onCyclePlaylistMode:

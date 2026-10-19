@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'dart:ui';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vynody/models/music_file.dart';
@@ -32,6 +33,48 @@ class ZeroPaddingTrackShape extends RoundedRectSliderTrackShape {
   }
 }
 
+/// 只订阅「拖动预览进度」的已播放时间文本。
+///
+/// 滚动波形在拖动期间每个指针事件、抛掷期间每一帧都会上报进度。如果上游用
+/// setState 承载这个值，整页（封面轮播 / 歌词 / 可视化 / Dock）都会按指针频率重建。
+/// 这里把重建范围收敛到这一个 Text：进度条本身由自己的 CustomPainter repaint 驱动。
+class _ScrubAwareTimeBuilder extends StatelessWidget {
+  const _ScrubAwareTimeBuilder({
+    required this.listenable,
+    required this.duration,
+    required this.fallback,
+    required this.builder,
+  });
+
+  /// 拖动中的预览进度（null = 未在拖动）。为 null 时退化为普通值传递。
+  final ValueListenable<double?>? listenable;
+  final Duration duration;
+
+  /// 非拖动状态下的时间（[overridePosition] 优先于引擎 position）。
+  final Duration fallback;
+  final Widget Function(Duration value) builder;
+
+  @override
+  Widget build(BuildContext context) {
+    final listenable = this.listenable;
+    if (listenable == null) {
+      return builder(fallback);
+    }
+    return ValueListenableBuilder<double?>(
+      valueListenable: listenable,
+      builder: (context, scrubValue, _) {
+        final int totalMs = duration.inMilliseconds;
+        if (scrubValue == null || totalMs <= 0) {
+          return builder(fallback);
+        }
+        return builder(
+          Duration(milliseconds: (scrubValue * totalMs).round()),
+        );
+      },
+    );
+  }
+}
+
 class PlaybackProgressSection extends ConsumerWidget {
   final MusicFile? currentMusic;
   final double controlsScale;
@@ -42,6 +85,7 @@ class PlaybackProgressSection extends ConsumerWidget {
   final double? overrideProgress;
   final Duration? overridePosition;
   final List<double>? overrideWaveform;
+  final ValueListenable<double?>? scrubProgressListenable;
   final ValueChanged<double>? onScrubbing;
   final ValueChanged<double>? onSeek;
 
@@ -56,6 +100,7 @@ class PlaybackProgressSection extends ConsumerWidget {
     this.overrideProgress,
     this.overridePosition,
     this.overrideWaveform,
+    this.scrubProgressListenable,
     this.onScrubbing,
     this.onSeek,
   });
@@ -216,44 +261,50 @@ class PlaybackProgressSection extends ConsumerWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                if (isInlineInfo)
-                  Text(
-                    formatDuration(overridePosition ?? position),
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: math.max(
-                        PlaybackHeroCardUiTuning.minProgressTimeFontSize,
-                        12 * controlsScale,
-                      ),
-                      fontFeatures: const [FontFeature.tabularFigures()],
-                    ),
-                  )
-                else
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(100),
-                      boxShadow: PlaybackHeroCardUiTuning.waveformOverlayTimeCapsuleShadow(
-                        controlsScale,
-                      ),
-                    ),
-                    child: Text(
-                      formatDuration(overridePosition ?? position),
-                      style: TextStyle(
-                        color: controlIconColor,
-                        fontSize: math.max(
-                          PlaybackHeroCardUiTuning.minProgressTimeFontSize,
-                          11 * controlsScale,
+                _ScrubAwareTimeBuilder(
+                  listenable: scrubProgressListenable,
+                  duration: duration,
+                  fallback: overridePosition ?? position,
+                  builder: (elapsed) => isInlineInfo
+                      ? Text(
+                          formatDuration(elapsed),
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: math.max(
+                              PlaybackHeroCardUiTuning.minProgressTimeFontSize,
+                              12 * controlsScale,
+                            ),
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          ),
+                        )
+                      : Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(100),
+                            boxShadow: PlaybackHeroCardUiTuning
+                                .waveformOverlayTimeCapsuleShadow(controlsScale),
+                          ),
+                          child: Text(
+                            formatDuration(elapsed),
+                            style: TextStyle(
+                              color: controlIconColor,
+                              fontSize: math.max(
+                                PlaybackHeroCardUiTuning
+                                    .minProgressTimeFontSize,
+                                11 * controlsScale,
+                              ),
+                              fontWeight: FontWeight.w600,
+                              fontFeatures: const [
+                                FontFeature.tabularFigures(),
+                              ],
+                            ),
+                          ),
                         ),
-                        fontWeight: FontWeight.w600,
-                        fontFeatures: const [FontFeature.tabularFigures()],
-                      ),
-                    ),
-                  ),
+                ),
                 if (isInlineInfo)
                   Text(
                     formatDuration(duration),
@@ -382,6 +433,7 @@ class PlaybackOverlayProgressTimeLayer extends ConsumerWidget {
   final double? overrideProgress;
   final Duration? overridePosition;
   final List<double>? overrideWaveform;
+  final ValueListenable<double?>? scrubProgressListenable;
   final ValueChanged<double>? onScrubbing;
   final ValueChanged<double>? onSeek;
   final bool isLandscape;
@@ -398,6 +450,7 @@ class PlaybackOverlayProgressTimeLayer extends ConsumerWidget {
     this.overrideProgress,
     this.overridePosition,
     this.overrideWaveform,
+    this.scrubProgressListenable,
     this.onScrubbing,
     this.onSeek,
     this.playButtonRowWidth,
@@ -495,49 +548,59 @@ class PlaybackOverlayProgressTimeLayer extends ConsumerWidget {
                   Positioned(
                     left: 0,
                     bottom: PlaybackHeroCardUiTuning.waveformOverlayTimeBottom,
-                    child: (isLandscape || isFullWaveform)
-                        ? Text(
-                            formatDuration(overridePosition ?? position),
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: math.max(
-                                PlaybackHeroCardUiTuning
-                                    .minProgressTimeFontSize,
-                                12 * controlsScale,
-                              ),
-                              fontWeight: FontWeight.bold,
-                              shadows: const [
-                                Shadow(color: Colors.black45, blurRadius: 4),
-                              ],
-                              fontFeatures: const [FontFeature.tabularFigures()],
-                            ),
-                          )
-                        : Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 3,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(100),
-                              boxShadow: PlaybackHeroCardUiTuning.waveformOverlayTimeCapsuleShadow(
-                                controlsScale,
-                              ),
-                            ),
-                            child: Text(
-                              formatDuration(overridePosition ?? position),
+                    child: _ScrubAwareTimeBuilder(
+                      listenable: scrubProgressListenable,
+                      duration: duration,
+                      fallback: overridePosition ?? position,
+                      builder: (elapsed) => (isLandscape || isFullWaveform)
+                          ? Text(
+                              formatDuration(elapsed),
                               style: TextStyle(
-                                color: controlIconColor,
+                                color: Colors.white,
                                 fontSize: math.max(
                                   PlaybackHeroCardUiTuning
                                       .minProgressTimeFontSize,
-                                  11 * controlsScale,
+                                  12 * controlsScale,
                                 ),
                                 fontWeight: FontWeight.bold,
-                                fontFeatures: const [FontFeature.tabularFigures()],
+                                shadows: const [
+                                  Shadow(color: Colors.black45, blurRadius: 4),
+                                ],
+                                fontFeatures: const [
+                                  FontFeature.tabularFigures(),
+                                ],
+                              ),
+                            )
+                          : Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(100),
+                                boxShadow: PlaybackHeroCardUiTuning
+                                    .waveformOverlayTimeCapsuleShadow(
+                                      controlsScale,
+                                    ),
+                              ),
+                              child: Text(
+                                formatDuration(elapsed),
+                                style: TextStyle(
+                                  color: controlIconColor,
+                                  fontSize: math.max(
+                                    PlaybackHeroCardUiTuning
+                                        .minProgressTimeFontSize,
+                                    11 * controlsScale,
+                                  ),
+                                  fontWeight: FontWeight.bold,
+                                  fontFeatures: const [
+                                    FontFeature.tabularFigures(),
+                                  ],
+                                ),
                               ),
                             ),
-                          ),
+                    ),
                   ),
                   Positioned(
                     right: 0,

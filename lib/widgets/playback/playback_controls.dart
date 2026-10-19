@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'dart:ui';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -28,6 +29,7 @@ class PlaybackControls extends ConsumerWidget {
   final double? overrideProgress;
   final Duration? overridePosition;
   final List<double>? overrideWaveform;
+  final ValueListenable<double?>? scrubProgressListenable;
   final VoidCallback? onShowMoreMenu;
   final VoidCallback? onCyclePlaylistMode;
   final VoidCallback? onShowPlaylistModeSelector;
@@ -60,6 +62,7 @@ class PlaybackControls extends ConsumerWidget {
     this.overrideProgress,
     this.overridePosition,
     this.overrideWaveform,
+    this.scrubProgressListenable,
     this.onShowMoreMenu,
     this.onCyclePlaylistMode,
     this.onShowPlaylistModeSelector,
@@ -963,6 +966,7 @@ class PlaybackControls extends ConsumerWidget {
                 overrideProgress: overrideProgress,
                 overridePosition: overridePosition,
                 overrideWaveform: overrideWaveform,
+                scrubProgressListenable: scrubProgressListenable,
                 onScrubbing: onScrubbing,
                 onSeek: onSeek,
                 isLandscape: effectiveIsLandscape,
@@ -1033,6 +1037,7 @@ class PlaybackControls extends ConsumerWidget {
             overrideProgress: overrideProgress,
             overridePosition: overridePosition,
             overrideWaveform: overrideWaveform,
+            scrubProgressListenable: scrubProgressListenable,
             onScrubbing: onScrubbing,
             onSeek: onSeek,
           ),
@@ -1091,6 +1096,7 @@ class PlaybackControls extends ConsumerWidget {
           overrideProgress: overrideProgress,
           overridePosition: overridePosition,
           overrideWaveform: overrideWaveform,
+          scrubProgressListenable: scrubProgressListenable,
           onScrubbing: onScrubbing,
           onSeek: onSeek,
         ),

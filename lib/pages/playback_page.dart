@@ -66,8 +66,15 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
   final GlobalKey _coverKey = GlobalKey();
   final GlobalKey _lyricsKey = GlobalKey();
   bool _showVolumeSlider = false;
-  bool _isScrubbingProgress = false;
-  double _scrubProgress = 0.0; // Added missing declaration
+
+  /// 拖动/抛掷进度条时的预览进度（null = 未在拖动）。
+  ///
+  /// 刻意不用 setState：滚动波形在拖动期间每个指针事件、抛掷期间每一帧都会上报一次，
+  /// setState 会让整页（封面轮播 / 歌词面板 / 可视化 / Dock）按指针频率重建。
+  /// 这里只广播给真正需要跟随的那一小块（已播放时间文本），波形本身由自己的
+  /// CustomPainter repaint 驱动。
+  final ValueNotifier<double?> _scrubProgressNotifier =
+      ValueNotifier<double?>(null);
   Orientation? _lastOrientation;
   Uint8List? _pendingArtworkBytes;
   String? _pendingArtworkPath;
@@ -348,6 +355,7 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
       });
     }
     _dismissAnimController.dispose();
+    _scrubProgressNotifier.dispose();
     super.dispose();
   }
 
@@ -1107,36 +1115,27 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
                   isNext: isNext,
                   lyricsBottomSpacerHeight: lyricsBottomSpacerHeight,
                   lyricsBottomTabBarHeight: lyricsBottomTabBarHeight,
-                  overrideProgress: _isScrubbingProgress
-                      ? _scrubProgress
-                      : null,
-                  overridePosition: _isScrubbingProgress
-                      ? Duration(
-                          milliseconds:
-                              (_scrubProgress * duration.inMilliseconds)
-                                  .round(),
-                        )
-                      : null,
+                  scrubProgressListenable: _scrubProgressNotifier,
                   showVisualizerToggle: isVisualizerEnabled,
                   onShowMoreMenu: () => _showMoreMenu(context, audio),
                   onCyclePlaylistMode: () => _cyclePlaylistMode(audio),
                   onShowPlaylistModeSelector: () =>
                       _showPlaylistModeSelector(context, audio),
                   onScrubbing: (val) {
-                    _handleInteraction();
-                    setState(() {
-                      _isScrubbingProgress = true;
-                      _scrubProgress = val;
-                    });
+                    // 只在手势开始那一下重置无操作计时器，
+                    // 否则每个指针事件都会重建一个 Timer。
+                    if (_scrubProgressNotifier.value == null) {
+                      _handleInteraction();
+                    }
+                    _scrubProgressNotifier.value = val.clamp(0.0, 1.0);
                   },
                   onSeek: (val) {
                     final target = Duration(
                       milliseconds: (val * duration.inMilliseconds).round(),
                     );
-                    setState(() {
-                      _isScrubbingProgress = false;
-                      _scrubProgress = val;
-                    });
+                    // AudioService.seek() 会立刻把 _position 置为目标值并 notifyListeners，
+                    // 清空预览不会造成回跳。
+                    _scrubProgressNotifier.value = null;
                     audio.seek(target);
                   },
                   onToggleVisualizer: () => _toggleVisualizer(audio),
