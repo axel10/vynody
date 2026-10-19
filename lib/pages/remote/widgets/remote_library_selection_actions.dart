@@ -415,7 +415,6 @@ class RemoteLibrarySelectionActions {
         server: server,
         password: password,
         songs: songs,
-        collectionName: server.name,
       );
       onClearSelection();
       if (context.mounted) {

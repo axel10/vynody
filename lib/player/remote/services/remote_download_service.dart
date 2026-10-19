@@ -10,6 +10,7 @@ import '../../../models/music_file.dart';
 import '../../../transcode/transcode_riverpod.dart';
 import '../../../utils/file_selector_helper.dart';
 import '../../audio/audio_riverpod.dart';
+import '../../library/music_file_utils.dart';
 import '../../metadata/metadata_helper.dart';
 import '../../sharing/sharing_riverpod.dart';
 import '../clients/subsonic_client.dart';
@@ -248,11 +249,17 @@ class RemoteDownloadNotifier extends Notifier<List<RemoteDownloadTask>> {
   }
 
   /// Builds the local destination file path for a remote music track.
+  ///
+  /// [collectionFolder] 是曲目所属集合的外层目录名（艺术家名 / 歌单名）。
+  /// [groupByAlbum] 决定集合目录下是否再按专辑分一层：
+  /// 艺术家下载要 `<艺术家>/<专辑>/`，歌单下载只要 `<歌单名>/`。
   Future<String> buildLocalTrackPath({
     required MusicFile song,
     required String baseFolder,
     RemoteServer? server,
     String? webDavPath,
+    String? collectionFolder,
+    bool groupByAlbum = true,
   }) async {
     // 1. For WebDAV, preserve the exact directory hierarchy from the server
     String? resolvedWebDavPath = webDavPath;
@@ -294,27 +301,43 @@ class RemoteDownloadNotifier extends Notifier<List<RemoteDownloadTask>> {
       }
     }
 
-    // 2. Subsonic / generic remote tracks: organize by Artist / Album / Track
-    final artist = _sanitize(song.artist, fallback: 'Unknown Artist');
-    final album = _sanitize(song.album, fallback: 'Unknown Album');
+    // 2. Subsonic / generic remote tracks: 集合目录（可选）+ 专辑目录（可选）+ 曲目。
+    // 不套单曲艺术家：合辑里 song.artist 每首都不同，按它分层会把一张专辑拆散。
+    final folderSegments = <String>[
+      if (collectionFolder != null && collectionFolder.trim().isNotEmpty)
+        _sanitize(collectionFolder, fallback: 'Unknown'),
+      if (groupByAlbum) _sanitize(song.album, fallback: 'Unknown Album'),
+    ];
     final trackNum = song.trackNumber;
     final trackPrefix = trackNum != null && trackNum > 0
         ? '${trackNum.toString().padLeft(2, '0')} - '
         : '';
     final title = _sanitize(song.title ?? song.name, fallback: 'Track');
 
-    String ext = '.mp3';
-    if (song.path.isNotEmpty) {
-      final uri = Uri.tryParse(song.path);
-      final rawExt =
-          uri != null ? p.extension(uri.path) : p.extension(song.path);
-      if (rawExt.isNotEmpty && rawExt.length <= 5) {
-        ext = rawExt;
+    final filename = '$trackPrefix$title${_resolveExtension(song)}';
+    return p.joinAll([baseFolder, ...folderSegments, filename]);
+  }
+
+  /// 解析远端曲目的落盘扩展名。
+  ///
+  /// 远端路径是虚拟 URI（如 `subsonic://server/trackId`），从里面取不到扩展名；
+  /// 所以优先看 `name`（Subsonic 侧为 `title.suffix`），只认已知音频扩展名，
+  /// 最后才回落到 `.mp3`。
+  String _resolveExtension(MusicFile song) {
+    for (final raw in [song.name, song.path]) {
+      if (raw.isEmpty) continue;
+      String candidate = raw;
+      if (raw.contains('://')) {
+        final uri = Uri.tryParse(raw);
+        if (uri == null) continue;
+        candidate = uri.path;
+      }
+      final ext = p.extension(candidate).toLowerCase();
+      if (MusicFileUtils.supportedAudioExtensions.contains(ext)) {
+        return ext;
       }
     }
-
-    final filename = '$trackPrefix$title$ext';
-    return p.join(baseFolder, artist, album, filename);
+    return '.mp3';
   }
 
   /// Enqueues a single Subsonic track for download.
@@ -324,6 +347,8 @@ class RemoteDownloadNotifier extends Notifier<List<RemoteDownloadTask>> {
     required MusicFile song,
     String? trackId,
     bool skipWritableCheck = false,
+    String? collectionFolder,
+    bool groupByAlbum = true,
   }) async {
     if (!skipWritableCheck) {
       final ready = await ensureDownloadFolderWritable();
@@ -344,6 +369,8 @@ class RemoteDownloadNotifier extends Notifier<List<RemoteDownloadTask>> {
       song: song,
       baseFolder: baseFolder,
       server: server,
+      collectionFolder: collectionFolder,
+      groupByAlbum: groupByAlbum,
     );
 
     final taskId = 'subsonic_${server.id}_$actualTrackId';
@@ -412,7 +439,8 @@ class RemoteDownloadNotifier extends Notifier<List<RemoteDownloadTask>> {
     required RemoteServer server,
     required String password,
     required List<MusicFile> songs,
-    String? collectionName,
+    String? collectionFolder,
+    bool groupByAlbum = true,
   }) async {
     final ready = await ensureDownloadFolderWritable();
     if (!ready) return [];
@@ -424,6 +452,8 @@ class RemoteDownloadNotifier extends Notifier<List<RemoteDownloadTask>> {
         password: password,
         song: song,
         skipWritableCheck: true,
+        collectionFolder: collectionFolder,
+        groupByAlbum: groupByAlbum,
       );
       if (task != null) {
         enqueued.add(task);
@@ -439,6 +469,8 @@ class RemoteDownloadNotifier extends Notifier<List<RemoteDownloadTask>> {
     required MusicFile song,
     String? trackId,
     bool skipWritableCheck = false,
+    String? collectionFolder,
+    bool groupByAlbum = true,
   }) async {
     if (!skipWritableCheck) {
       final ready = await ensureDownloadFolderWritable();
@@ -461,6 +493,8 @@ class RemoteDownloadNotifier extends Notifier<List<RemoteDownloadTask>> {
       song: song,
       baseFolder: baseFolder,
       server: server,
+      collectionFolder: collectionFolder,
+      groupByAlbum: groupByAlbum,
     );
 
     final taskId = 'jellyfin_${server.id}_$resolvedTrackId';
@@ -529,7 +563,8 @@ class RemoteDownloadNotifier extends Notifier<List<RemoteDownloadTask>> {
     required RemoteServer server,
     required String password,
     required List<MusicFile> songs,
-    String? collectionName,
+    String? collectionFolder,
+    bool groupByAlbum = true,
   }) async {
     final ready = await ensureDownloadFolderWritable();
     if (!ready) return [];
@@ -541,6 +576,8 @@ class RemoteDownloadNotifier extends Notifier<List<RemoteDownloadTask>> {
         password: password,
         song: song,
         skipWritableCheck: true,
+        collectionFolder: collectionFolder,
+        groupByAlbum: groupByAlbum,
       );
       if (task != null) {
         enqueued.add(task);
@@ -550,25 +587,31 @@ class RemoteDownloadNotifier extends Notifier<List<RemoteDownloadTask>> {
   }
 
   /// Enqueues tracks for any structured remote server (Subsonic / Jellyfin).
+  ///
+  /// [collectionFolder]：集合目录名。艺术家下载传艺术家名（下一层继续按专辑分），
+  /// 歌单下载传歌单名并把 [groupByAlbum] 置 false；专辑下载两者都不传，直接按专辑名落盘。
   Future<List<RemoteDownloadTask>> enqueueRemoteTracks({
     required RemoteServer server,
     required String password,
     required List<MusicFile> songs,
-    String? collectionName,
+    String? collectionFolder,
+    bool groupByAlbum = true,
   }) async {
     if (server.type == RemoteServerType.jellyfin) {
       return enqueueJellyfinTracks(
         server: server,
         password: password,
         songs: songs,
-        collectionName: collectionName,
+        collectionFolder: collectionFolder,
+        groupByAlbum: groupByAlbum,
       );
     }
     return enqueueSubsonicTracks(
       server: server,
       password: password,
       songs: songs,
-      collectionName: collectionName,
+      collectionFolder: collectionFolder,
+      groupByAlbum: groupByAlbum,
     );
   }
 
@@ -1244,13 +1287,15 @@ class RemoteDownloadService {
     required RemoteServer server,
     required String password,
     required List<MusicFile> songs,
-    required String collectionName,
+    String? collectionFolder,
+    bool groupByAlbum = true,
   }) async {
     await _ref.read(remoteDownloadTasksProvider.notifier).enqueueSubsonicTracks(
           server: server,
           password: password,
           songs: songs,
-          collectionName: collectionName,
+          collectionFolder: collectionFolder,
+          groupByAlbum: groupByAlbum,
         );
   }
 

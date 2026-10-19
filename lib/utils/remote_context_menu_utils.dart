@@ -445,7 +445,6 @@ Future<void> _handleAlbumMenuSelection({
           server: server,
           password: password,
           songs: trackList,
-          collectionName: albumTitle,
         );
         if (context.mounted) {
           AppSnackBar.show(
@@ -1088,7 +1087,7 @@ Future<void> _handleArtistMenuSelection({
           server: server,
           password: password,
           songs: trackList,
-          collectionName: artistName,
+          collectionFolder: artistName,
         );
         if (context.mounted) {
           AppSnackBar.show(
@@ -1403,7 +1402,8 @@ Future<void> _handlePlaylistMenuSelection({
           server: server,
           password: password,
           songs: trackList,
-          collectionName: playlistName,
+          collectionFolder: playlistName,
+          groupByAlbum: false,
         );
         if (context.mounted) {
           AppSnackBar.show(

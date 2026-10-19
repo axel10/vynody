@@ -832,7 +832,7 @@ class _RemoteArtistDetailContentState
                                                 server: widget.server,
                                                 password: widget.password,
                                                 songs: _allSongs,
-                                                collectionName:
+                                                collectionFolder:
                                                     widget.artistName,
                                               );
                                               if (context.mounted) {
@@ -1045,7 +1045,7 @@ class _RemoteArtistDetailContentState
                                                     server: widget.server,
                                                     password: widget.password,
                                                     songs: _allSongs,
-                                                    collectionName:
+                                                    collectionFolder:
                                                         widget.artistName,
                                                   );
                                                   if (context.mounted) {
@@ -1239,7 +1239,7 @@ class _RemoteArtistDetailContentState
                 server: widget.server,
                 password: widget.password,
                 songs: sel,
-                collectionName: widget.artistName,
+                collectionFolder: widget.artistName,
               );
               cancelSongSelection();
               if (context.mounted) {

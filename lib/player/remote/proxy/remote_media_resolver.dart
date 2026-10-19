@@ -374,6 +374,7 @@ class RemoteMediaResolver {
     final trackId = trackJson['id'] as String? ?? '';
     final title = trackJson['title'] as String? ?? '';
     final artist = trackJson['artist'] as String?;
+    final albumArtist = extractAlbumArtist(trackJson);
     final album = trackJson['album'] as String?;
     final trackNumber = trackJson['track'] as int?;
     final durationSeconds = trackJson['duration'] as int? ?? 0;
@@ -401,6 +402,7 @@ class RemoteMediaResolver {
       name: '$title.$suffix',
       title: title,
       artist: artist,
+      albumArtist: albumArtist,
       album: album,
       trackNumber: trackNumber,
       durationMillis: durationSeconds * 1000,
@@ -413,6 +415,32 @@ class RemoteMediaResolver {
     );
   }
 
+  /// Resolves the album-level artist of a Subsonic / OpenSubsonic song json.
+  ///
+  /// 合辑（Various Artists）里每首歌的 `artist` 都不同，只有专辑艺术家是统一的，
+  /// 下载时按它分层才不会把一张专辑拆成一堆目录。
+  /// 优先级：`displayAlbumArtist`（OpenSubsonic）→ `albumArtists[0].name` → `albumArtist`（旧字段）。
+  static String? extractAlbumArtist(Map<String, dynamic> trackJson) {
+    final display = trackJson['displayAlbumArtist'];
+    if (display is String && display.trim().isNotEmpty) {
+      return display.trim();
+    }
+
+    final albumArtists = trackJson['albumArtists'];
+    if (albumArtists is List && albumArtists.isNotEmpty) {
+      final first = albumArtists.first;
+      if (first is Map) {
+        final name = first['name'];
+        if (name is String && name.trim().isNotEmpty) return name.trim();
+      }
+    }
+
+    final legacy = trackJson['albumArtist'] ?? trackJson['AlbumArtist'];
+    if (legacy is String && legacy.trim().isNotEmpty) return legacy.trim();
+
+    return null;
+  }
+
   /// Constructs a [MusicFile] model from a Jellyfin track JSON object.
   static MusicFile buildMusicFileFromJellyfin(
     Map<String, dynamic> trackJson,
@@ -421,6 +449,7 @@ class RemoteMediaResolver {
     final trackId = trackJson['id'] as String? ?? '';
     final title = trackJson['title'] as String? ?? trackJson['name'] as String? ?? '';
     final artist = trackJson['artist'] as String?;
+    final albumArtist = extractAlbumArtist(trackJson);
     final album = trackJson['album'] as String?;
     final trackNumber = trackJson['track'] as int?;
     final durationSeconds = trackJson['duration'] as int? ?? 0;
@@ -454,6 +483,7 @@ class RemoteMediaResolver {
       name: '$title.$suffix',
       title: title,
       artist: artist,
+      albumArtist: albumArtist,
       album: album,
       trackNumber: trackNumber,
       durationMillis: durationSeconds * 1000,

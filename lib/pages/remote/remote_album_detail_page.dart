@@ -429,7 +429,6 @@ class _RemoteAlbumDetailPageState
                   server: widget.server,
                   password: widget.password,
                   songs: _tracks,
-                  collectionName: widget.albumName,
                 );
                 if (context.mounted) {
                   AppSnackBar.show(
@@ -937,7 +936,6 @@ class _RemoteAlbumDetailPageState
                     server: widget.server,
                     password: widget.password,
                     songs: sel,
-                    collectionName: widget.albumName,
                   );
                   cancelSongSelection();
                   if (context.mounted) {

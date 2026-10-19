@@ -8,6 +8,7 @@
 |---|---|---|
 | Rail 宽度 | `layout_constants.dart` 的 `sidebarRailWidthFor()`，禁 `80.0` | `main_layout.dart` 的 `railWidth`/`leftPadding`；`library_page.dart` |
 | FFmpeg 版本 | `audio_core/ffmpeg_version.env`，禁脚本硬编码 | flatpak 清单与 `build-ffmpeg.yml` 的 tag 无硬校验，靠手同步 |
+| 远程下载落盘 | `remote_download_service.dart` 的 `buildLocalTrackPath()`：专辑=专辑名一层；艺术家=`collectionFolder`+专辑；歌单=`collectionFolder`+`groupByAlbum:false`；WebDAV/SMB 照抄远端层级 | 新入口必须显式传 `collectionFolder`/`groupByAlbum`，不传即专辑模式。禁再用单曲 `artist` 分层（合辑会被拆散） |
 | 曲库数据 | `libraryCatalogProvider` 是唯一订阅 `db.watchAllSongMetadata()` 处 | 新视图用 `catalogDerived(ref, (c) => ...)`，禁自己 `await for`；派生 provider 保持 `StreamProvider` 与原名（测试 override）。`songs` 排除 external/deletedAt，`visibleSongs` 再加根目录/来源 |
 | 返回键 | `MainLayout._handleBackPressed()` | Modal → 播放抽屉 → index 2 → index 0 回上级 → index 4 传输中拦 → `SystemNavigator.pop()` |
 | 队列整体替换 | `PlaylistController.replaceActiveTracksAndSelect` | 禁拆成 `updatePlaylistTracks`+`playByIndex`：中间 `currentMusic` 瞬时 null，Dock 重播收起动画；启动恢复 `_restorePlaybackSession` 同理禁拆 `addTracksToPlaylist`+`setActivePlaylist`（冷启动 `_currentIndex=null` 时前者会置 0 并 notify → 播放页背景先闪队列第一首） |

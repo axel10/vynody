@@ -742,7 +742,8 @@ class _RemotePlaylistDetailContentState
       server: widget.server,
       password: widget.password,
       songs: _tracks,
-      collectionName: _currentName,
+      collectionFolder: _currentName,
+      groupByAlbum: false,
     );
 
     if (mounted) {
@@ -1731,7 +1732,8 @@ class _RemotePlaylistDetailContentState
                 server: widget.server,
                 password: widget.password,
                 songs: sel,
-                collectionName: _currentName,
+                collectionFolder: _currentName,
+                groupByAlbum: false,
               );
               cancelSongSelection();
               if (context.mounted) {

@@ -325,12 +325,32 @@ class JellyfinClient {
     final container = item['Container'] as String? ?? 'mp3';
     final isStarred = item['UserData']?['IsFavorite'] == true;
 
+    // 专辑艺术家：合辑里每首歌的 Artists 都不同，下载分目录要用专辑级的这个。
+    final rawAlbumArtist = item['AlbumArtist'] as String?;
+    String? albumArtistName =
+        (rawAlbumArtist != null && rawAlbumArtist.trim().isNotEmpty)
+            ? rawAlbumArtist.trim()
+            : null;
+    if (albumArtistName == null) {
+      final albumArtists = item['AlbumArtists'] as List?;
+      if (albumArtists != null && albumArtists.isNotEmpty) {
+        final first = albumArtists.first;
+        if (first is Map) {
+          final name = first['Name'];
+          if (name is String && name.trim().isNotEmpty) {
+            albumArtistName = name.trim();
+          }
+        }
+      }
+    }
+
     return {
       'id': id,
       'title': name,
       'name': name,
       'artist': artistName,
       'artistId': artistId,
+      'albumArtist': albumArtistName,
       'album': albumName,
       'albumId': albumId,
       'track': trackNum,

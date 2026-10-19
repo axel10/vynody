@@ -290,7 +290,6 @@ class _RemoteLibrarySongsViewState
       server: widget.server,
       password: widget.password,
       songs: widget.songs,
-      collectionName: l10n.songs,
     );
 
     if (mounted) {
