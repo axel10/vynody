@@ -203,6 +203,41 @@ class BlurredArtworkRasterizer {
     _cache[key] = image;
   }
 
+  /// 计算封面内容的轻量指纹，用于让缓存 key 感知「同一首歌换了封面」。
+  ///
+  /// 不能用 `Uint8List.hashCode`：它是 identity hash，而 `_prepareCurrentPlaybackArtwork()`
+  /// 每次播放都会新建一份 bytes，内容没变也会判成不同，导致每次切歌都重新光栅化。
+  ///
+  /// 这里取样「长度 + 头部 32KB + 尾部 32KB」做 FNV-1a：封面被重新编码后，
+  /// 头部的容器头与早期熵编码数据必然变化，误命中旧 key 的概率可以忽略；
+  /// 同时开销与文件大小解耦（几 MB 的大封面也只扫 64KB）。
+  static String fingerprintOf(Uint8List bytes) {
+    const int sampleSize = 32 * 1024;
+    const int fnvPrime = 0x01000193;
+    int hash = 0x811c9dc5;
+
+    void mix(int value) {
+      hash ^= value & 0xFF;
+      hash = (hash * fnvPrime) & 0xFFFFFFFF;
+    }
+
+    final int length = bytes.length;
+    final int headEnd = length < sampleSize ? length : sampleSize;
+    for (int i = 0; i < headEnd; i++) {
+      mix(bytes[i]);
+    }
+    if (length > sampleSize * 2) {
+      for (int i = length - sampleSize; i < length; i++) {
+        mix(bytes[i]);
+      }
+    }
+    mix(length);
+    mix(length >> 8);
+    mix(length >> 16);
+    mix(length >> 24);
+    return '${length.toRadixString(16)}_${hash.toRadixString(16)}';
+  }
+
   /// 清理所有缓存资源
   void clear() {
     for (final image in _cache.values) {
@@ -240,6 +275,13 @@ class StaticBlurredArtwork extends StatefulWidget {
 class _StaticBlurredArtworkState extends State<StaticBlurredArtwork> {
   ui.Image? _blurredImage;
 
+  /// 当前展示的位图对应的缓存 key，用于丢弃过期的异步结果。
+  String? _activeKey;
+
+  /// 上一次计算指纹所用的 bytes 实例及其结果（bytes 实例变更时才重算）。
+  Uint8List? _fingerprintSource;
+  String? _fingerprintValue;
+
   @override
   void initState() {
     super.initState();
@@ -257,8 +299,44 @@ class _StaticBlurredArtworkState extends State<StaticBlurredArtwork> {
     }
   }
 
+  /// 解析缓存 key。
+  ///
+  /// key 必须带上封面「内容」指纹，只带 songKey 会让播放中替换封面后
+  /// 仍命中旧位图（`didUpdateWidget` 触发了，但 `getCached` 直接返回老图）。
+  String _resolveCacheKey() {
+    final int sigma = widget.blurSigma.toInt();
+    final Uint8List? bytes = widget.cachedBytes;
+    final String signature;
+    if (bytes != null && bytes.isNotEmpty) {
+      if (!identical(bytes, _fingerprintSource)) {
+        _fingerprintSource = bytes;
+        _fingerprintValue = BlurredArtworkRasterizer.fingerprintOf(bytes);
+      }
+      signature = _fingerprintValue!;
+    } else {
+      // 冷启动尚未预载 bytes 时只能拿文件兜底：长度 + 最后修改时间，
+      // 原地覆盖封面文件同样能换 key。
+      signature = _fileSignature(widget.artworkPath) ?? 'no_bytes';
+    }
+    return '${widget.songKey}_sigma_${sigma}_$signature';
+  }
+
+  static String? _fileSignature(String? path) {
+    if (path == null || path.isEmpty) return null;
+    try {
+      final file = File(path);
+      if (!file.existsSync()) return null;
+      final stat = file.statSync();
+      return 'f${stat.size}_${stat.modified.millisecondsSinceEpoch}';
+    } catch (_) {
+      return null;
+    }
+  }
+
   void _loadBlurredImage() {
-    final key = '${widget.songKey}_sigma_${widget.blurSigma.toInt()}';
+    final key = _resolveCacheKey();
+    _activeKey = key;
+
     final cached = BlurredArtworkRasterizer.instance.getCached(key);
     if (cached != null) {
       if (_blurredImage != cached) {
@@ -282,11 +360,10 @@ class _StaticBlurredArtworkState extends State<StaticBlurredArtwork> {
       blurSigma: widget.blurSigma,
     )
         .then((image) {
-      if (mounted && key == '${widget.songKey}_sigma_${widget.blurSigma.toInt()}') {
-        setState(() {
-          _blurredImage = image;
-        });
-      }
+      if (!mounted || _activeKey != key) return;
+      setState(() {
+        _blurredImage = image;
+      });
     });
   }
 
