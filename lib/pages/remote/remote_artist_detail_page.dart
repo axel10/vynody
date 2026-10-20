@@ -825,8 +825,10 @@ class _RemoteArtistDetailContentState
                                           const SizedBox(width: 10),
                                           IconButton.filledTonal(
                                             onPressed: () async {
-                                              await runWithRemoteTrackLoadProgress<
-                                                  void>(
+                                              // null = 用户在进度浮层里取消了。
+                                              final queued =
+                                                  await runWithRemoteTrackLoadProgress<
+                                                      bool>(
                                                 context: context,
                                                 immediate: true,
                                                 task: () async {
@@ -842,8 +844,10 @@ class _RemoteArtistDetailContentState
                                                         collectionFolder:
                                                             widget.artistName,
                                                       );
+                                                  return true;
                                                 },
                                               );
+                                              if (queued != true) return;
                                               if (context.mounted) {
                                                 AppSnackBar.show(
                                                   context,

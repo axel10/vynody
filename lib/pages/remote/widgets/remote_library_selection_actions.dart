@@ -115,6 +115,7 @@ class RemoteLibrarySelectionActions {
       }
       progress.addToTotal(expectedTotal);
       for (final albumId in selectedAlbumIds) {
+        progress.throwIfCancelled();
         final tracks =
             await fetchSubsonicAlbumTracks(client, server, albumId);
         allSongs.addAll(tracks);
@@ -122,6 +123,7 @@ class RemoteLibrarySelectionActions {
       }
     } else if (isArtistSelectionMode) {
       for (final artistId in selectedArtistIds) {
+        progress.throwIfCancelled();
         final tracks =
             await fetchSubsonicArtistTracks(client, server, artistId);
         allSongs.addAll(tracks);
@@ -129,6 +131,7 @@ class RemoteLibrarySelectionActions {
     } else if (isPlaylistSelectionMode) {
       // 歌单列表不带曲目数，拿不到分母，但已加载数照样往上走。
       for (final playlistId in selectedPlaylistIds) {
+        progress.throwIfCancelled();
         final tracks =
             await fetchSubsonicPlaylistTracks(client, server, playlistId);
         allSongs.addAll(tracks);

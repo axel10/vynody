@@ -424,7 +424,8 @@ class _RemoteAlbumDetailPageState
       OutlinedButton.icon(
         onPressed: _tracks.isNotEmpty
             ? () async {
-                await runWithRemoteTrackLoadProgress<void>(
+                // 返回 null 表示用户在进度浮层里点了取消，这时不该再报「已加入」。
+                final queued = await runWithRemoteTrackLoadProgress<bool>(
                   context: context,
                   immediate: true,
                   task: () async {
@@ -435,8 +436,10 @@ class _RemoteAlbumDetailPageState
                           password: widget.password,
                           songs: _tracks,
                         );
+                    return true;
                   },
                 );
+                if (queued != true) return;
                 if (context.mounted) {
                   AppSnackBar.show(
                     context,
@@ -937,7 +940,7 @@ class _RemoteAlbumDetailPageState
                 onDownload: () async {
                   final sel = List<MusicFile>.from(selectedSongs);
                   if (sel.isEmpty) return;
-                  await runWithRemoteTrackLoadProgress<void>(
+                  final queued = await runWithRemoteTrackLoadProgress<bool>(
                     context: context,
                     immediate: true,
                     task: () async {
@@ -948,8 +951,11 @@ class _RemoteAlbumDetailPageState
                             password: widget.password,
                             songs: sel,
                           );
+                      return true;
                     },
                   );
+                  // 取消时保留选中状态，方便用户直接重试。
+                  if (queued != true) return;
                   cancelSongSelection();
                   if (context.mounted) {
                     AppSnackBar.show(

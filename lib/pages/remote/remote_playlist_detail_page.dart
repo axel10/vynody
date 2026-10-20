@@ -738,7 +738,8 @@ class _RemotePlaylistDetailContentState
     if (_tracks.isEmpty) return;
     final l10n = AppLocalizations.of(context)!;
 
-    await runWithRemoteTrackLoadProgress<void>(
+    // null = 用户在进度浮层里点了取消，别再报「已加入 N 首」。
+    final queued = await runWithRemoteTrackLoadProgress<bool>(
       context: context,
       immediate: true,
       task: () async {
@@ -749,8 +750,10 @@ class _RemotePlaylistDetailContentState
               collectionFolder: _currentName,
               groupByAlbum: false,
             );
+        return true;
       },
     );
+    if (queued != true) return;
 
     if (mounted) {
       AppSnackBar.show(

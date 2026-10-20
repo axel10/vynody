@@ -97,6 +97,7 @@ Future<List<MusicFile>> fetchSubsonicArtistTracks(
       progress.setLoaded(baseLoaded + allSongs.length);
 
       for (final al in albumList) {
+        progress.throwIfCancelled();
         final aId = al['id'] as String?;
         if (aId != null) {
           final fullAlbum = await client.getAlbum(aId);
@@ -115,6 +116,10 @@ Future<List<MusicFile>> fetchSubsonicArtistTracks(
       }
       return allSongs;
     }
+  } on RemoteTrackLoadCancelled {
+    // 取消要穿透出去，不能被下面兜底的 catch 吞掉，
+    // 否则多选艺术家时会逐个白跑一遍 getArtist。
+    rethrow;
   } catch (_) {}
   return [];
 }

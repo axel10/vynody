@@ -34,7 +34,10 @@ Future<T?> runWithRemoteTrackLoadProgress<T>({
   Route<void>? dialogRoute;
 
   void show() {
-    if (!progress.isActive || dialogVisible || !context.mounted) return;
+    // 已取消就别再弹了：延迟计时器可能在取消之后才到期，
+    // 那时 task 还没跑到检查点，isActive 仍是 true。
+    if (!progress.isActive || progress.isCancelled || dialogVisible) return;
+    if (!context.mounted) return;
     dialogVisible = true;
     shownAt = DateTime.now();
     _showProgressDialog(context, (navigator, route) {
@@ -43,6 +46,29 @@ Future<T?> runWithRemoteTrackLoadProgress<T>({
     });
   }
 
+  // 按路由对象收，而不是 pop 当前栈顶：流程极快时浮层的 builder 可能还没跑过，
+  // 靠它的 context 会是 null；而有别的弹窗叠上来时 pop 又会关错人。
+  void close() {
+    if (!dialogVisible) return;
+    dialogVisible = false;
+    final navigator = dialogNavigator;
+    final route = dialogRoute;
+    if (navigator == null || route == null) return;
+    if (route.navigator != navigator) return;
+    if (route.isCurrent) {
+      navigator.pop();
+    } else {
+      navigator.removeRoute(route);
+    }
+  }
+
+  // 点了取消就立刻收起浮层，不必等 task 跑到下一个检查点。
+  void onProgressChanged() {
+    if (progress.isCancelled) close();
+  }
+
+  progress.addListener(onProgressChanged);
+
   if (immediate) {
     show();
   }
@@ -50,9 +76,12 @@ Future<T?> runWithRemoteTrackLoadProgress<T>({
 
   try {
     return await task();
+  } on RemoteTrackLoadCancelled {
+    return null;
   } finally {
     delayTimer?.cancel();
-    if (dialogVisible && shownAt != null) {
+    progress.removeListener(onProgressChanged);
+    if (!progress.isCancelled && dialogVisible && shownAt != null) {
       final elapsed = DateTime.now().difference(shownAt!).inMilliseconds;
       final remain = _kProgressMinVisible.inMilliseconds - elapsed;
       if (remain > 0) {
@@ -60,19 +89,7 @@ Future<T?> runWithRemoteTrackLoadProgress<T>({
       }
     }
     progress.end();
-    // 按路由对象收，而不是 pop 当前栈顶：流程极快时浮层的 builder 可能还没跑过，
-    // 靠它的 context 会是 null；而有别的弹窗叠上来时 pop 又会关错人。
-    final navigator = dialogNavigator;
-    final route = dialogRoute;
-    if (dialogVisible && navigator != null && route != null) {
-      if (route.navigator == navigator) {
-        if (route.isCurrent) {
-          navigator.pop();
-        } else {
-          navigator.removeRoute(route);
-        }
-      }
-    }
+    close();
   }
 }
 
@@ -165,6 +182,22 @@ class _RemoteTrackLoadProgressDialog extends StatelessWidget {
                             style: theme.textTheme.bodyMedium?.copyWith(
                               fontWeight: FontWeight.w600,
                             ),
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        // 拉取/入队都是逐个条目进行的，取消只需在下一个条目
+                        // 开头跳出循环；浮层会立刻收起，不用等当前请求回来。
+                        TextButton(
+                          onPressed: () => remoteTrackLoadProgress.cancel(),
+                          style: TextButton.styleFrom(
+                            minimumSize: const Size(0, 32),
+                            padding: const EdgeInsets.symmetric(horizontal: 10),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            foregroundColor: theme.colorScheme.primary,
+                          ),
+                          child: Text(
+                            l10n.cancel,
+                            style: const TextStyle(fontSize: 13),
                           ),
                         ),
                       ],

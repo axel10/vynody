@@ -443,26 +443,34 @@ class RemoteDownloadNotifier extends Notifier<List<RemoteDownloadTask>> {
     String? collectionFolder,
     bool groupByAlbum = true,
   }) async {
+    // 取消后连目录可写性检查都不该再跑（没配目录时它会弹选择框）。
+    final progress = remoteTrackLoadProgress;
+    progress.throwIfCancelled();
     final ready = await ensureDownloadFolderWritable();
     if (!ready) return [];
 
     final List<RemoteDownloadTask> enqueued = [];
-    final progress = remoteTrackLoadProgress;
     progress.setStage(RemoteTrackLoadStage.queueing);
     progress.setTotal(songs.length);
-    for (final song in songs) {
-      final task = await enqueueSubsonicTrack(
-        server: server,
-        password: password,
-        song: song,
-        skipWritableCheck: true,
-        collectionFolder: collectionFolder,
-        groupByAlbum: groupByAlbum,
-      );
-      if (task != null) {
-        enqueued.add(task);
+    try {
+      for (final song in songs) {
+        progress.throwIfCancelled();
+        final task = await enqueueSubsonicTrack(
+          server: server,
+          password: password,
+          song: song,
+          skipWritableCheck: true,
+          collectionFolder: collectionFolder,
+          groupByAlbum: groupByAlbum,
+        );
+        if (task != null) {
+          enqueued.add(task);
+        }
+        progress.advance();
       }
-      progress.advance();
+    } on RemoteTrackLoadCancelled {
+      _discardEnqueued(enqueued);
+      rethrow;
     }
     return enqueued;
   }
@@ -571,26 +579,34 @@ class RemoteDownloadNotifier extends Notifier<List<RemoteDownloadTask>> {
     String? collectionFolder,
     bool groupByAlbum = true,
   }) async {
+    // 取消后连目录可写性检查都不该再跑（没配目录时它会弹选择框）。
+    final progress = remoteTrackLoadProgress;
+    progress.throwIfCancelled();
     final ready = await ensureDownloadFolderWritable();
     if (!ready) return [];
 
     final List<RemoteDownloadTask> enqueued = [];
-    final progress = remoteTrackLoadProgress;
     progress.setStage(RemoteTrackLoadStage.queueing);
     progress.setTotal(songs.length);
-    for (final song in songs) {
-      final task = await enqueueJellyfinTrack(
-        server: server,
-        password: password,
-        song: song,
-        skipWritableCheck: true,
-        collectionFolder: collectionFolder,
-        groupByAlbum: groupByAlbum,
-      );
-      if (task != null) {
-        enqueued.add(task);
+    try {
+      for (final song in songs) {
+        progress.throwIfCancelled();
+        final task = await enqueueJellyfinTrack(
+          server: server,
+          password: password,
+          song: song,
+          skipWritableCheck: true,
+          collectionFolder: collectionFolder,
+          groupByAlbum: groupByAlbum,
+        );
+        if (task != null) {
+          enqueued.add(task);
+        }
+        progress.advance();
       }
-      progress.advance();
+    } on RemoteTrackLoadCancelled {
+      _discardEnqueued(enqueued);
+      rethrow;
     }
     return enqueued;
   }
@@ -743,17 +759,23 @@ class RemoteDownloadNotifier extends Notifier<List<RemoteDownloadTask>> {
         files.where((file) => !file.isDirectory && file.isAudio).toList();
     progress.setStage(RemoteTrackLoadStage.queueing);
     progress.setTotal(audioFiles.length);
-    for (final file in audioFiles) {
-      final task = await enqueueWebDavFile(
-        server: server,
-        password: password,
-        file: file,
-        skipWritableCheck: true,
-      );
-      if (task != null) {
-        enqueued.add(task);
+    try {
+      for (final file in audioFiles) {
+        progress.throwIfCancelled();
+        final task = await enqueueWebDavFile(
+          server: server,
+          password: password,
+          file: file,
+          skipWritableCheck: true,
+        );
+        if (task != null) {
+          enqueued.add(task);
+        }
+        progress.advance();
       }
-      progress.advance();
+    } on RemoteTrackLoadCancelled {
+      _discardEnqueued(enqueued);
+      rethrow;
     }
     return enqueued;
   }
@@ -866,16 +888,22 @@ class RemoteDownloadNotifier extends Notifier<List<RemoteDownloadTask>> {
         files.where((file) => !file.isDirectory && file.isAudio).toList();
     progress.setStage(RemoteTrackLoadStage.queueing);
     progress.setTotal(audioFiles.length);
-    for (final file in audioFiles) {
-      final task = await enqueueSmbFile(
-        server: server,
-        file: file,
-        skipWritableCheck: true,
-      );
-      if (task != null) {
-        enqueued.add(task);
+    try {
+      for (final file in audioFiles) {
+        progress.throwIfCancelled();
+        final task = await enqueueSmbFile(
+          server: server,
+          file: file,
+          skipWritableCheck: true,
+        );
+        if (task != null) {
+          enqueued.add(task);
+        }
+        progress.advance();
       }
-      progress.advance();
+    } on RemoteTrackLoadCancelled {
+      _discardEnqueued(enqueued);
+      rethrow;
     }
     return enqueued;
   }
@@ -1142,6 +1170,24 @@ class RemoteDownloadNotifier extends Notifier<List<RemoteDownloadTask>> {
     }
 
     state = state.where((t) => t.id != id).toList();
+    _processQueue();
+  }
+
+  /// 用户在「加载曲目」浮层里取消时，把本次已入队、尚未下完的任务一并撤掉。
+  /// 点取消就是「这批不要了」，留着继续下载会让人以为取消没生效。
+  void _discardEnqueued(List<RemoteDownloadTask> tasks) {
+    if (tasks.isEmpty) return;
+    final ids = tasks.map((t) => t.id).toSet();
+    for (final id in ids) {
+      final token = _cancelTokens[id];
+      if (token != null && !token.isCancelled) {
+        token.cancel('Cancelled by user');
+      }
+      _cancelTokens.remove(id);
+      _lastBytesMap.remove(id);
+      _lastTimeMap.remove(id);
+    }
+    state = state.where((t) => !ids.contains(t.id)).toList();
     _processQueue();
   }
 

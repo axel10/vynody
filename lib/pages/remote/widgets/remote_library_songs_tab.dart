@@ -287,7 +287,8 @@ class _RemoteLibrarySongsViewState
     final l10n = AppLocalizations.of(context)!;
 
     // 整库下载可能要入队上千首，逐首入队期间用进度浮层报数。
-    await runWithRemoteTrackLoadProgress<void>(
+    // null = 用户在浮层里点了取消，这时不该再报「已加入 N 首」。
+    final queued = await runWithRemoteTrackLoadProgress<bool>(
       context: context,
       immediate: true,
       task: () async {
@@ -296,8 +297,10 @@ class _RemoteLibrarySongsViewState
               password: widget.password,
               songs: widget.songs,
             );
+        return true;
       },
     );
+    if (queued != true) return;
 
     if (mounted) {
       AppSnackBar.show(
