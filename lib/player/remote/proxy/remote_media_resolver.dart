@@ -709,9 +709,24 @@ class RemoteMediaResolver {
     String downloadUrl;
     Map<String, String>? headers;
 
+    // 每种协议必须用各自的客户端：Jellyfin 的曲目 id 不是路径，SMB 也不是
+    // HTTP 资源，落到 WebDavClient 只会拼出一个必然 404 的 URL。
     if (info.type == RemoteServerType.subsonic) {
       final client = SubsonicClient(server: server, password: password);
       downloadUrl = client.buildDownloadUrl(info.trackIdOrPath);
+    } else if (info.type == RemoteServerType.jellyfin) {
+      final client = JellyfinClient(server: server, password: password);
+      await client.authenticate();
+      // maxBitRate: 0 → static=true，取原文件。转码 / AI 分析要的是源音频，
+      // 拿服务端转码后的副本既降质又要多转一次。
+      downloadUrl = client.buildStreamUrl(info.trackIdOrPath, maxBitRate: 0);
+    } else if (info.type == RemoteServerType.smb) {
+      final parts = parseSmbParts(info.trackIdOrPath);
+      downloadUrl = await LocalStreamProxy.instance.buildSmbStreamUrl(
+        serverId: server.id,
+        share: parts.$1,
+        relativePath: parts.$2,
+      );
     } else {
       final client = WebDavClient(server: server, password: password);
       downloadUrl = client.buildStreamUrl(info.trackIdOrPath);
