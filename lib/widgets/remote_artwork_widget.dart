@@ -60,6 +60,13 @@ class RemoteArtworkWidget extends StatefulWidget {
 class _RemoteArtworkWidgetState extends State<RemoteArtworkWidget> {
   String? _localDiskPath;
 
+  /// 上一次渲染所用图片 URL，用于判断本次重建是否仍是同一张封面。
+  ///
+  /// 同一张封面在「网络图 → 磁盘图」之间切换时源（NetworkImage/FileImage）会变，
+  /// 非 gapless 会让 Image 清空已解码的帧，于是先闪一下空白再出新图；
+  /// 换成另一张封面（列表行复用）时必须立刻清空，否则会短暂显示上一张。
+  String? _renderedImageUrl;
+
   @override
   void initState() {
     super.initState();
@@ -71,6 +78,10 @@ class _RemoteArtworkWidgetState extends State<RemoteArtworkWidget> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.coverArtId != widget.coverArtId ||
         oldWidget.server?.id != widget.server?.id) {
+      // 行被回收复用成另一个条目：先丢掉上一张的磁盘路径，
+      // 否则 build 里的 existsSync 会让它继续顶着旧封面。
+      _localDiskPath = null;
+      _renderedImageUrl = null;
       _checkLocalDiskCache();
     }
   }
@@ -109,11 +120,9 @@ class _RemoteArtworkWidgetState extends State<RemoteArtworkWidget> {
     final diskKey = md5.convert(utf8.encode(imageUrl)).toString();
     final cachedPath = RemoteArtworkWidget._diskFileCache[diskKey];
     if (cachedPath != null && File(cachedPath).existsSync()) {
-      if (mounted && _localDiskPath != cachedPath) {
-        setState(() {
-          _localDiskPath = cachedPath;
-        });
-      }
+      // initState / didUpdateWidget 之后紧跟一次 build，直接赋值即可；
+      // 在这里 setState 只会多排一帧，且首帧仍走不到磁盘分支。
+      _localDiskPath = cachedPath;
       return;
     }
 
@@ -132,7 +141,8 @@ class _RemoteArtworkWidgetState extends State<RemoteArtworkWidget> {
           '${RemoteArtworkWidget._thumbnailsDirPath}/remote_$diskKey.jpg';
       if (File(filePath).existsSync()) {
         RemoteArtworkWidget._diskFileCache[diskKey] = filePath;
-        if (mounted) {
+        // await 期间可能已经被复用到别的条目，URL 变了就不要把旧图塞进来。
+        if (mounted && _resolveImageUrl() == imageUrl) {
           setState(() {
             _localDiskPath = filePath;
           });
@@ -182,11 +192,9 @@ class _RemoteArtworkWidgetState extends State<RemoteArtworkWidget> {
           if (bytes.isNotEmpty) {
             await targetFile.writeAsBytes(bytes);
             RemoteArtworkWidget._diskFileCache[diskKey] = targetFile.path;
-            if (mounted && _localDiskPath == null) {
-              setState(() {
-                _localDiskPath = targetFile.path;
-              });
-            }
+            // 故意不在这里切到 Image.file：此刻网络图已经显示在用户眼前，
+            // 换成 FileImage 会重新解码、中间空一帧，表现为「封面加载完又闪一下」。
+            // 落盘只服务下次进入（内存 imageCache 未命中时），本次渲染维持现状。
           }
         }
       } catch (_) {
@@ -203,6 +211,10 @@ class _RemoteArtworkWidgetState extends State<RemoteArtworkWidget> {
     final radius = widget.borderRadius ?? BorderRadius.circular(8);
 
     final imageUrl = _resolveImageUrl();
+    // 仍是同一张封面（URL 未变）时保留上一帧，避免换图片源那一帧变空白；
+    // 换成另一张封面时必须立刻清空，否则行复用会闪出上一张。
+    final bool keepLastFrame = imageUrl != null && _renderedImageUrl == imageUrl;
+    _renderedImageUrl = imageUrl;
     if (imageUrl == null) {
       return _buildFallback(context, w, h, radius);
     }
@@ -220,15 +232,30 @@ class _RemoteArtworkWidgetState extends State<RemoteArtworkWidget> {
           cacheWidth: cacheW > 0 ? cacheW : null,
           cacheHeight: cacheH > 0 ? cacheH : null,
           fit: widget.fit,
+          gaplessPlayback: keepLastFrame,
           errorBuilder: (_, _, _) {
             // If local file was somehow deleted/corrupted, fall back to network
-            return _buildNetworkImage(context, imageUrl, w, h, radius);
+            return _buildNetworkImage(
+              context,
+              imageUrl,
+              w,
+              h,
+              radius,
+              keepLastFrame: keepLastFrame,
+            );
           },
         ),
       );
     }
 
-    return _buildNetworkImage(context, imageUrl, w, h, radius);
+    return _buildNetworkImage(
+      context,
+      imageUrl,
+      w,
+      h,
+      radius,
+      keepLastFrame: keepLastFrame,
+    );
   }
 
   Widget _buildNetworkImage(
@@ -236,8 +263,9 @@ class _RemoteArtworkWidgetState extends State<RemoteArtworkWidget> {
     String imageUrl,
     double w,
     double h,
-    BorderRadius radius,
-  ) {
+    BorderRadius radius, {
+    bool keepLastFrame = false,
+  }) {
     // 2. Check retry cooldown (instead of permanent blacklisting)
     final attempts = RemoteArtworkWidget._failedAttempts[imageUrl] ?? 0;
     final lastFailed = RemoteArtworkWidget._failedTimestamps[imageUrl];
@@ -263,6 +291,7 @@ class _RemoteArtworkWidgetState extends State<RemoteArtworkWidget> {
         cacheWidth: cacheW > 0 ? cacheW : null,
         cacheHeight: cacheH > 0 ? cacheH : null,
         fit: widget.fit,
+        gaplessPlayback: keepLastFrame,
         frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
           if (wasSynchronouslyLoaded || frame != null) {
             // Trigger disk caching once image successfully loads
