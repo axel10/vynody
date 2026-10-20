@@ -1821,6 +1821,44 @@
   "createdPlaylistSuccess": "プレイリストを作成しました: {name}",
   "loadingAlbumTracks": "アルバムの曲を読み込み中...",
   "loadingArtistTracks": "アーティストの曲を読み込み中...",
+  "downloadPrepLoadingTracks": "曲を読み込み中",
+  "downloadPrepQueueingTracks": "ダウンロードキューに追加中",
+  "trackLoadLoadedKnown": "{total} 曲中 {loaded} 曲を読み込み済み",
+  "@trackLoadLoadedKnown": {
+    "placeholders": {
+      "loaded": {
+        "type": "int"
+      }, "total": {
+        "type": "int"
+      }
+    }
+  },
+  "trackLoadLoadedUnknown": "{loaded} 曲を読み込み済み",
+  "@trackLoadLoadedUnknown": {
+    "placeholders": {
+      "loaded": {
+        "type": "int"
+      }
+    }
+  },
+  "trackLoadQueuedKnown": "{total} 曲中 {loaded} 曲を追加済み",
+  "@trackLoadQueuedKnown": {
+    "placeholders": {
+      "loaded": {
+        "type": "int"
+      }, "total": {
+        "type": "int"
+      }
+    }
+  },
+  "trackLoadQueuedUnknown": "{loaded} 曲を追加済み",
+  "@trackLoadQueuedUnknown": {
+    "placeholders": {
+      "loaded": {
+        "type": "int"
+      }
+    }
+  },
   "loadingFolderAudio": "フォルダの音声を読み込み中...",
   "noAudioFilesInFolder": "このフォルダ内に音声ファイルがありません",
   "failedToLoadFolder": "フォルダの読み込みに失敗しました: {error}",

@@ -8067,6 +8067,42 @@ abstract class AppLocalizations {
   /// **'正在加载艺术家歌曲...'**
   String get loadingArtistTracks;
 
+  /// No description provided for @downloadPrepLoadingTracks.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在加载曲目'**
+  String get downloadPrepLoadingTracks;
+
+  /// No description provided for @downloadPrepQueueingTracks.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在加入下载队列'**
+  String get downloadPrepQueueingTracks;
+
+  /// No description provided for @trackLoadLoadedKnown.
+  ///
+  /// In zh, this message translates to:
+  /// **'已加载 {loaded} / 共 {total} 首'**
+  String trackLoadLoadedKnown(int loaded, int total);
+
+  /// No description provided for @trackLoadLoadedUnknown.
+  ///
+  /// In zh, this message translates to:
+  /// **'已加载 {loaded} 首'**
+  String trackLoadLoadedUnknown(int loaded);
+
+  /// No description provided for @trackLoadQueuedKnown.
+  ///
+  /// In zh, this message translates to:
+  /// **'已加入 {loaded} / 共 {total} 首'**
+  String trackLoadQueuedKnown(int loaded, int total);
+
+  /// No description provided for @trackLoadQueuedUnknown.
+  ///
+  /// In zh, this message translates to:
+  /// **'已加入 {loaded} 首'**
+  String trackLoadQueuedUnknown(int loaded);
+
   /// No description provided for @loadingFolderAudio.
   ///
   /// In zh, this message translates to:

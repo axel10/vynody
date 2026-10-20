@@ -15,6 +15,7 @@ import '../../widgets/album_detail_widgets.dart';
 import '../../widgets/mini_player_wrapper.dart';
 import '../../widgets/playing_equalizer_icon.dart';
 import '../../dialogs/remote_playlist_dialog.dart';
+import '../../dialogs/remote_track_load_progress_dialog.dart';
 import '../../widgets/draggable_song_item.dart';
 import '../../l10n/app_localizations.dart';
 import '../../player/remote/services/remote_download_service.dart';
@@ -423,12 +424,18 @@ class _RemoteAlbumDetailPageState
       OutlinedButton.icon(
         onPressed: _tracks.isNotEmpty
             ? () async {
-                final notifier =
-                    ref.read(remoteDownloadTasksProvider.notifier);
-                await notifier.enqueueRemoteTracks(
-                  server: widget.server,
-                  password: widget.password,
-                  songs: _tracks,
+                await runWithRemoteTrackLoadProgress<void>(
+                  context: context,
+                  immediate: true,
+                  task: () async {
+                    await ref
+                        .read(remoteDownloadTasksProvider.notifier)
+                        .enqueueRemoteTracks(
+                          server: widget.server,
+                          password: widget.password,
+                          songs: _tracks,
+                        );
+                  },
                 );
                 if (context.mounted) {
                   AppSnackBar.show(
@@ -930,12 +937,18 @@ class _RemoteAlbumDetailPageState
                 onDownload: () async {
                   final sel = List<MusicFile>.from(selectedSongs);
                   if (sel.isEmpty) return;
-                  final notifier =
-                      ref.read(remoteDownloadTasksProvider.notifier);
-                  await notifier.enqueueRemoteTracks(
-                    server: widget.server,
-                    password: widget.password,
-                    songs: sel,
+                  await runWithRemoteTrackLoadProgress<void>(
+                    context: context,
+                    immediate: true,
+                    task: () async {
+                      await ref
+                          .read(remoteDownloadTasksProvider.notifier)
+                          .enqueueRemoteTracks(
+                            server: widget.server,
+                            password: widget.password,
+                            songs: sel,
+                          );
+                    },
                   );
                   cancelSongSelection();
                   if (context.mounted) {

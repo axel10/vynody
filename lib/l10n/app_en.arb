@@ -1844,6 +1844,44 @@
   },
   "loadingAlbumTracks": "Loading album tracks...",
   "loadingArtistTracks": "Loading artist tracks...",
+  "downloadPrepLoadingTracks": "Loading tracks",
+  "downloadPrepQueueingTracks": "Adding to download queue",
+  "trackLoadLoadedKnown": "{loaded} of {total} loaded",
+  "@trackLoadLoadedKnown": {
+    "placeholders": {
+      "loaded": {
+        "type": "int"
+      }, "total": {
+        "type": "int"
+      }
+    }
+  },
+  "trackLoadLoadedUnknown": "{loaded} loaded",
+  "@trackLoadLoadedUnknown": {
+    "placeholders": {
+      "loaded": {
+        "type": "int"
+      }
+    }
+  },
+  "trackLoadQueuedKnown": "{loaded} of {total} queued",
+  "@trackLoadQueuedKnown": {
+    "placeholders": {
+      "loaded": {
+        "type": "int"
+      }, "total": {
+        "type": "int"
+      }
+    }
+  },
+  "trackLoadQueuedUnknown": "{loaded} queued",
+  "@trackLoadQueuedUnknown": {
+    "placeholders": {
+      "loaded": {
+        "type": "int"
+      }
+    }
+  },
   "loadingFolderAudio": "Loading folder audio...",
   "noAudioFilesInFolder": "No audio files in this folder",
   "failedToLoadFolder": "Failed to load folder: {error}",

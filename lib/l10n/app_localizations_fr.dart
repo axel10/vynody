@@ -4590,6 +4590,32 @@ class AppLocalizationsFr extends AppLocalizations {
   String get loadingArtistTracks => 'Chargement des pistes de l\'artiste...';
 
   @override
+  String get downloadPrepLoadingTracks => 'Chargement des pistes';
+
+  @override
+  String get downloadPrepQueueingTracks => 'Ajout à la file de téléchargement';
+
+  @override
+  String trackLoadLoadedKnown(int loaded, int total) {
+    return '$loaded sur $total chargées';
+  }
+
+  @override
+  String trackLoadLoadedUnknown(int loaded) {
+    return '$loaded chargées';
+  }
+
+  @override
+  String trackLoadQueuedKnown(int loaded, int total) {
+    return '$loaded sur $total ajoutées';
+  }
+
+  @override
+  String trackLoadQueuedUnknown(int loaded) {
+    return '$loaded ajoutées';
+  }
+
+  @override
   String get loadingFolderAudio => 'Chargement de l\'audio du dossier...';
 
   @override

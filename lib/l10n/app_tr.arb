@@ -1846,6 +1846,44 @@
   "createdPlaylistSuccess": "Çalma listesi oluşturuldu: {name}",
   "loadingAlbumTracks": "Albüm parçaları yükleniyor...",
   "loadingArtistTracks": "Sanatçı parçaları yükleniyor...",
+  "downloadPrepLoadingTracks": "Parçalar yükleniyor",
+  "downloadPrepQueueingTracks": "İndirme kuyruğuna ekleniyor",
+  "trackLoadLoadedKnown": "{total} parçadan {loaded} tanesi yüklendi",
+  "@trackLoadLoadedKnown": {
+    "placeholders": {
+      "loaded": {
+        "type": "int"
+      }, "total": {
+        "type": "int"
+      }
+    }
+  },
+  "trackLoadLoadedUnknown": "{loaded} parça yüklendi",
+  "@trackLoadLoadedUnknown": {
+    "placeholders": {
+      "loaded": {
+        "type": "int"
+      }
+    }
+  },
+  "trackLoadQueuedKnown": "{total} parçadan {loaded} tanesi eklendi",
+  "@trackLoadQueuedKnown": {
+    "placeholders": {
+      "loaded": {
+        "type": "int"
+      }, "total": {
+        "type": "int"
+      }
+    }
+  },
+  "trackLoadQueuedUnknown": "{loaded} parça eklendi",
+  "@trackLoadQueuedUnknown": {
+    "placeholders": {
+      "loaded": {
+        "type": "int"
+      }
+    }
+  },
   "loadingFolderAudio": "Klasör sesi yükleniyor...",
   "noAudioFilesInFolder": "Bu klasörde ses dosyası yok",
   "failedToLoadFolder": "Klasör yüklenemedi: {error}",

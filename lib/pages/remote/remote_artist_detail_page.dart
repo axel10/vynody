@@ -15,6 +15,7 @@ import '../../widgets/remote_artwork_widget.dart';
 import '../../widgets/mini_player_wrapper.dart';
 import '../../widgets/playing_equalizer_icon.dart';
 import '../../l10n/app_localizations.dart';
+import '../../dialogs/remote_track_load_progress_dialog.dart';
 import '../../player/remote/services/remote_download_service.dart';
 import '../../player/remote/remote_library_navigation.dart';
 import '../../utils/app_snack_bar.dart';
@@ -824,16 +825,24 @@ class _RemoteArtistDetailContentState
                                           const SizedBox(width: 10),
                                           IconButton.filledTonal(
                                             onPressed: () async {
-                                              final notifier = ref.read(
-                                                  remoteDownloadTasksProvider
-                                                      .notifier);
-                                              await notifier
-                                                  .enqueueRemoteTracks(
-                                                server: widget.server,
-                                                password: widget.password,
-                                                songs: _allSongs,
-                                                collectionFolder:
-                                                    widget.artistName,
+                                              await runWithRemoteTrackLoadProgress<
+                                                  void>(
+                                                context: context,
+                                                immediate: true,
+                                                task: () async {
+                                                  await ref
+                                                      .read(
+                                                          remoteDownloadTasksProvider
+                                                              .notifier)
+                                                      .enqueueRemoteTracks(
+                                                        server: widget.server,
+                                                        password:
+                                                            widget.password,
+                                                        songs: _allSongs,
+                                                        collectionFolder:
+                                                            widget.artistName,
+                                                      );
+                                                },
                                               );
                                               if (context.mounted) {
                                                 AppSnackBar.show(

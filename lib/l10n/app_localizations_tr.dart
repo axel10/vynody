@@ -4546,6 +4546,32 @@ class AppLocalizationsTr extends AppLocalizations {
   String get loadingArtistTracks => 'Sanatçı parçaları yükleniyor...';
 
   @override
+  String get downloadPrepLoadingTracks => 'Parçalar yükleniyor';
+
+  @override
+  String get downloadPrepQueueingTracks => 'İndirme kuyruğuna ekleniyor';
+
+  @override
+  String trackLoadLoadedKnown(int loaded, int total) {
+    return '$total parçadan $loaded tanesi yüklendi';
+  }
+
+  @override
+  String trackLoadLoadedUnknown(int loaded) {
+    return '$loaded parça yüklendi';
+  }
+
+  @override
+  String trackLoadQueuedKnown(int loaded, int total) {
+    return '$total parçadan $loaded tanesi eklendi';
+  }
+
+  @override
+  String trackLoadQueuedUnknown(int loaded) {
+    return '$loaded parça eklendi';
+  }
+
+  @override
   String get loadingFolderAudio => 'Klasör sesi yükleniyor...';
 
   @override

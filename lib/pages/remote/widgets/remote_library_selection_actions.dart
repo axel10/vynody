@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oktoast/oktoast.dart';
 import '../../../dialogs/remote_playlist_dialog.dart';
+import '../../../dialogs/remote_track_load_progress_dialog.dart';
 import '../../../dialogs/transcode_dialog.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../models/music_file.dart';
@@ -10,6 +11,7 @@ import '../../../player/audio/playback_source.dart';
 import '../../../player/remote/clients/remote_media_library_client.dart';
 import '../../../player/remote/remote_server_models.dart';
 import '../../../player/remote/services/remote_download_service.dart';
+import '../../../player/remote/services/remote_track_load_progress.dart';
 import '../../../player/remote/remote_server_riverpod.dart';
 import '../../../utils/app_snack_bar.dart';
 import '../../../utils/remote_context_menu_utils.dart';
@@ -96,17 +98,27 @@ class RemoteLibrarySelectionActions {
     required Set<String> selectedSongPaths,
     List<MusicFile> searchedSongs = const [],
     List<MusicFile>? songs,
+    Map<String, int> albumSongCounts = const {},
   }) async {
     final client = RemoteMediaLibraryClient.create(
       server: server,
       password: password,
     );
+    final progress = remoteTrackLoadProgress;
     final List<MusicFile> allSongs = [];
     if (isAlbumSelectionMode) {
+      // 专辑列表项自带 songCount，几张加起来就是分母；每拉完一张专辑再
+      // 累加已加载数，这样「共 N 首、已加载 M 首」才有真实刻度。
+      var expectedTotal = 0;
+      for (final albumId in selectedAlbumIds) {
+        expectedTotal += albumSongCounts[albumId] ?? 0;
+      }
+      progress.addToTotal(expectedTotal);
       for (final albumId in selectedAlbumIds) {
         final tracks =
             await fetchSubsonicAlbumTracks(client, server, albumId);
         allSongs.addAll(tracks);
+        progress.advance(tracks.length);
       }
     } else if (isArtistSelectionMode) {
       for (final artistId in selectedArtistIds) {
@@ -115,10 +127,12 @@ class RemoteLibrarySelectionActions {
         allSongs.addAll(tracks);
       }
     } else if (isPlaylistSelectionMode) {
+      // 歌单列表不带曲目数，拿不到分母，但已加载数照样往上走。
       for (final playlistId in selectedPlaylistIds) {
         final tracks =
             await fetchSubsonicPlaylistTracks(client, server, playlistId);
         allSongs.addAll(tracks);
+        progress.advance(tracks.length);
       }
     } else if (isSongSelectionMode) {
       final pool = songs ?? searchedSongs;
@@ -404,18 +418,24 @@ class RemoteLibrarySelectionActions {
   }) async {
     final l10n = AppLocalizations.of(context)!;
     try {
-      final songs = await _withLoading(
+      // 勾选下载同样要先把曲目拉回来再入队，进度浮层跟着首数走。
+      final songs = await runWithRemoteTrackLoadProgress<List<MusicFile>>(
         context: context,
-        message: l10n.loadingAlbumTracks,
-        task: onFetchSongs,
+        immediate: true,
+        task: () async {
+          final list = await onFetchSongs();
+          if (list.isEmpty) return list;
+          await ref
+              .read(remoteDownloadTasksProvider.notifier)
+              .enqueueRemoteTracks(
+                server: server,
+                password: password,
+                songs: list,
+              );
+          return list;
+        },
       );
       if (songs == null || songs.isEmpty) return;
-      final notifier = ref.read(remoteDownloadTasksProvider.notifier);
-      await notifier.enqueueRemoteTracks(
-        server: server,
-        password: password,
-        songs: songs,
-      );
       onClearSelection();
       if (context.mounted) {
         AppSnackBar.show(

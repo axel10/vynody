@@ -1722,6 +1722,44 @@
   "createdPlaylistSuccess": "Lista de reproducción creada: {name}",
   "loadingAlbumTracks": "Cargando pistas del álbum...",
   "loadingArtistTracks": "Cargando pistas del artista...",
+  "downloadPrepLoadingTracks": "Cargando pistas",
+  "downloadPrepQueueingTracks": "Añadiendo a la cola de descargas",
+  "trackLoadLoadedKnown": "{loaded} de {total} cargadas",
+  "@trackLoadLoadedKnown": {
+    "placeholders": {
+      "loaded": {
+        "type": "int"
+      }, "total": {
+        "type": "int"
+      }
+    }
+  },
+  "trackLoadLoadedUnknown": "{loaded} cargadas",
+  "@trackLoadLoadedUnknown": {
+    "placeholders": {
+      "loaded": {
+        "type": "int"
+      }
+    }
+  },
+  "trackLoadQueuedKnown": "{loaded} de {total} en cola",
+  "@trackLoadQueuedKnown": {
+    "placeholders": {
+      "loaded": {
+        "type": "int"
+      }, "total": {
+        "type": "int"
+      }
+    }
+  },
+  "trackLoadQueuedUnknown": "{loaded} en cola",
+  "@trackLoadQueuedUnknown": {
+    "placeholders": {
+      "loaded": {
+        "type": "int"
+      }
+    }
+  },
   "loadingFolderAudio": "Cargando audio de la carpeta...",
   "noAudioFilesInFolder": "No hay archivos de audio en esta carpeta",
   "failedToLoadFolder": "Error al cargar la carpeta: {error}",

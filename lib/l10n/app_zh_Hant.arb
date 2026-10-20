@@ -1443,6 +1443,44 @@
   "createdPlaylistSuccess": "已建立歌單: {name}",
   "loadingAlbumTracks": "正在載入專輯曲目...",
   "loadingArtistTracks": "正在載入藝術家歌曲...",
+  "downloadPrepLoadingTracks": "正在載入曲目",
+  "downloadPrepQueueingTracks": "正在加入下載佇列",
+  "trackLoadLoadedKnown": "已載入 {loaded} / 共 {total} 首",
+  "@trackLoadLoadedKnown": {
+    "placeholders": {
+      "loaded": {
+        "type": "int"
+      }, "total": {
+        "type": "int"
+      }
+    }
+  },
+  "trackLoadLoadedUnknown": "已載入 {loaded} 首",
+  "@trackLoadLoadedUnknown": {
+    "placeholders": {
+      "loaded": {
+        "type": "int"
+      }
+    }
+  },
+  "trackLoadQueuedKnown": "已加入 {loaded} / 共 {total} 首",
+  "@trackLoadQueuedKnown": {
+    "placeholders": {
+      "loaded": {
+        "type": "int"
+      }, "total": {
+        "type": "int"
+      }
+    }
+  },
+  "trackLoadQueuedUnknown": "已加入 {loaded} 首",
+  "@trackLoadQueuedUnknown": {
+    "placeholders": {
+      "loaded": {
+        "type": "int"
+      }
+    }
+  },
   "loadingFolderAudio": "正在載入資料夾音訊...",
   "noAudioFilesInFolder": "該資料夾內沒有音訊檔案",
   "failedToLoadFolder": "載入資料夾失敗: {error}",

@@ -1722,6 +1722,44 @@
   "createdPlaylistSuccess": "재생목록 생성됨: {name}",
   "loadingAlbumTracks": "앨범 트랙 로딩 중...",
   "loadingArtistTracks": "아티스트 트랙 로딩 중...",
+  "downloadPrepLoadingTracks": "트랙 불러오는 중",
+  "downloadPrepQueueingTracks": "다운로드 대기열에 추가 중",
+  "trackLoadLoadedKnown": "{total}곡 중 {loaded}곡 불러옴",
+  "@trackLoadLoadedKnown": {
+    "placeholders": {
+      "loaded": {
+        "type": "int"
+      }, "total": {
+        "type": "int"
+      }
+    }
+  },
+  "trackLoadLoadedUnknown": "{loaded}곡 불러옴",
+  "@trackLoadLoadedUnknown": {
+    "placeholders": {
+      "loaded": {
+        "type": "int"
+      }
+    }
+  },
+  "trackLoadQueuedKnown": "{total}곡 중 {loaded}곡 추가함",
+  "@trackLoadQueuedKnown": {
+    "placeholders": {
+      "loaded": {
+        "type": "int"
+      }, "total": {
+        "type": "int"
+      }
+    }
+  },
+  "trackLoadQueuedUnknown": "{loaded}곡 추가함",
+  "@trackLoadQueuedUnknown": {
+    "placeholders": {
+      "loaded": {
+        "type": "int"
+      }
+    }
+  },
   "loadingFolderAudio": "폴더 오디오 로딩 중...",
   "noAudioFilesInFolder": "이 폴더에 오디오 파일이 없습니다",
   "failedToLoadFolder": "폴더 로드 실패: {error}",

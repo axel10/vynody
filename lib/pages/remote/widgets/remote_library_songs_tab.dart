@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../models/music_file.dart';
+import '../../../dialogs/remote_track_load_progress_dialog.dart';
 import '../../../player/audio/audio_riverpod.dart';
 import '../../../player/audio/playback_source.dart';
 import '../../../player/remote/proxy/remote_media_resolver.dart';
@@ -284,12 +285,18 @@ class _RemoteLibrarySongsViewState
   Future<void> _downloadAll() async {
     if (widget.songs.isEmpty) return;
     final l10n = AppLocalizations.of(context)!;
-    final notifier = ref.read(remoteDownloadTasksProvider.notifier);
 
-    await notifier.enqueueSubsonicTracks(
-      server: widget.server,
-      password: widget.password,
-      songs: widget.songs,
+    // 整库下载可能要入队上千首，逐首入队期间用进度浮层报数。
+    await runWithRemoteTrackLoadProgress<void>(
+      context: context,
+      immediate: true,
+      task: () async {
+        await ref.read(remoteDownloadTasksProvider.notifier).enqueueSubsonicTracks(
+              server: widget.server,
+              password: widget.password,
+              songs: widget.songs,
+            );
+      },
     );
 
     if (mounted) {

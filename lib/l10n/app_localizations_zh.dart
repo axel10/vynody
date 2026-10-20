@@ -4293,6 +4293,32 @@ class AppLocalizationsZh extends AppLocalizations {
   String get loadingArtistTracks => '正在加载艺术家歌曲...';
 
   @override
+  String get downloadPrepLoadingTracks => '正在加载曲目';
+
+  @override
+  String get downloadPrepQueueingTracks => '正在加入下载队列';
+
+  @override
+  String trackLoadLoadedKnown(int loaded, int total) {
+    return '已加载 $loaded / 共 $total 首';
+  }
+
+  @override
+  String trackLoadLoadedUnknown(int loaded) {
+    return '已加载 $loaded 首';
+  }
+
+  @override
+  String trackLoadQueuedKnown(int loaded, int total) {
+    return '已加入 $loaded / 共 $total 首';
+  }
+
+  @override
+  String trackLoadQueuedUnknown(int loaded) {
+    return '已加入 $loaded 首';
+  }
+
+  @override
   String get loadingFolderAudio => '正在加载文件夹音频...';
 
   @override
@@ -9607,6 +9633,32 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get loadingArtistTracks => '正在載入藝術家歌曲...';
+
+  @override
+  String get downloadPrepLoadingTracks => '正在載入曲目';
+
+  @override
+  String get downloadPrepQueueingTracks => '正在加入下載佇列';
+
+  @override
+  String trackLoadLoadedKnown(int loaded, int total) {
+    return '已載入 $loaded / 共 $total 首';
+  }
+
+  @override
+  String trackLoadLoadedUnknown(int loaded) {
+    return '已載入 $loaded 首';
+  }
+
+  @override
+  String trackLoadQueuedKnown(int loaded, int total) {
+    return '已加入 $loaded / 共 $total 首';
+  }
+
+  @override
+  String trackLoadQueuedUnknown(int loaded) {
+    return '已加入 $loaded 首';
+  }
 
   @override
   String get loadingFolderAudio => '正在載入資料夾音訊...';

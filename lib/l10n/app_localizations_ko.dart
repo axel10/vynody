@@ -4375,6 +4375,32 @@ class AppLocalizationsKo extends AppLocalizations {
   String get loadingArtistTracks => '아티스트 트랙 로딩 중...';
 
   @override
+  String get downloadPrepLoadingTracks => '트랙 불러오는 중';
+
+  @override
+  String get downloadPrepQueueingTracks => '다운로드 대기열에 추가 중';
+
+  @override
+  String trackLoadLoadedKnown(int loaded, int total) {
+    return '$total곡 중 $loaded곡 불러옴';
+  }
+
+  @override
+  String trackLoadLoadedUnknown(int loaded) {
+    return '$loaded곡 불러옴';
+  }
+
+  @override
+  String trackLoadQueuedKnown(int loaded, int total) {
+    return '$total곡 중 $loaded곡 추가함';
+  }
+
+  @override
+  String trackLoadQueuedUnknown(int loaded) {
+    return '$loaded곡 추가함';
+  }
+
+  @override
   String get loadingFolderAudio => '폴더 오디오 로딩 중...';
 
   @override

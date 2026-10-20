@@ -4533,6 +4533,32 @@ class AppLocalizationsEn extends AppLocalizations {
   String get loadingArtistTracks => 'Loading artist tracks...';
 
   @override
+  String get downloadPrepLoadingTracks => 'Loading tracks';
+
+  @override
+  String get downloadPrepQueueingTracks => 'Adding to download queue';
+
+  @override
+  String trackLoadLoadedKnown(int loaded, int total) {
+    return '$loaded of $total loaded';
+  }
+
+  @override
+  String trackLoadLoadedUnknown(int loaded) {
+    return '$loaded loaded';
+  }
+
+  @override
+  String trackLoadQueuedKnown(int loaded, int total) {
+    return '$loaded of $total queued';
+  }
+
+  @override
+  String trackLoadQueuedUnknown(int loaded) {
+    return '$loaded queued';
+  }
+
+  @override
   String get loadingFolderAudio => 'Loading folder audio...';
 
   @override

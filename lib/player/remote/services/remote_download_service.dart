@@ -20,6 +20,7 @@ import '../clients/jellyfin_client.dart';
 import '../proxy/local_stream_proxy.dart';
 import '../proxy/remote_media_resolver.dart';
 import '../remote_server_models.dart';
+import 'remote_track_load_progress.dart';
 
 enum RemoteDownloadStatus {
   pending,
@@ -446,6 +447,9 @@ class RemoteDownloadNotifier extends Notifier<List<RemoteDownloadTask>> {
     if (!ready) return [];
 
     final List<RemoteDownloadTask> enqueued = [];
+    final progress = remoteTrackLoadProgress;
+    progress.setStage(RemoteTrackLoadStage.queueing);
+    progress.setTotal(songs.length);
     for (final song in songs) {
       final task = await enqueueSubsonicTrack(
         server: server,
@@ -458,6 +462,7 @@ class RemoteDownloadNotifier extends Notifier<List<RemoteDownloadTask>> {
       if (task != null) {
         enqueued.add(task);
       }
+      progress.advance();
     }
     return enqueued;
   }
@@ -570,6 +575,9 @@ class RemoteDownloadNotifier extends Notifier<List<RemoteDownloadTask>> {
     if (!ready) return [];
 
     final List<RemoteDownloadTask> enqueued = [];
+    final progress = remoteTrackLoadProgress;
+    progress.setStage(RemoteTrackLoadStage.queueing);
+    progress.setTotal(songs.length);
     for (final song in songs) {
       final task = await enqueueJellyfinTrack(
         server: server,
@@ -582,6 +590,7 @@ class RemoteDownloadNotifier extends Notifier<List<RemoteDownloadTask>> {
       if (task != null) {
         enqueued.add(task);
       }
+      progress.advance();
     }
     return enqueued;
   }
@@ -729,18 +738,22 @@ class RemoteDownloadNotifier extends Notifier<List<RemoteDownloadTask>> {
     if (!ready) return [];
 
     final List<RemoteDownloadTask> enqueued = [];
-    for (final file in files) {
-      if (!file.isDirectory && file.isAudio) {
-        final task = await enqueueWebDavFile(
-          server: server,
-          password: password,
-          file: file,
-          skipWritableCheck: true,
-        );
-        if (task != null) {
-          enqueued.add(task);
-        }
+    final progress = remoteTrackLoadProgress;
+    final audioFiles =
+        files.where((file) => !file.isDirectory && file.isAudio).toList();
+    progress.setStage(RemoteTrackLoadStage.queueing);
+    progress.setTotal(audioFiles.length);
+    for (final file in audioFiles) {
+      final task = await enqueueWebDavFile(
+        server: server,
+        password: password,
+        file: file,
+        skipWritableCheck: true,
+      );
+      if (task != null) {
+        enqueued.add(task);
       }
+      progress.advance();
     }
     return enqueued;
   }
@@ -848,17 +861,21 @@ class RemoteDownloadNotifier extends Notifier<List<RemoteDownloadTask>> {
     if (!ready) return [];
 
     final List<RemoteDownloadTask> enqueued = [];
-    for (final file in files) {
-      if (!file.isDirectory && file.isAudio) {
-        final task = await enqueueSmbFile(
-          server: server,
-          file: file,
-          skipWritableCheck: true,
-        );
-        if (task != null) {
-          enqueued.add(task);
-        }
+    final progress = remoteTrackLoadProgress;
+    final audioFiles =
+        files.where((file) => !file.isDirectory && file.isAudio).toList();
+    progress.setStage(RemoteTrackLoadStage.queueing);
+    progress.setTotal(audioFiles.length);
+    for (final file in audioFiles) {
+      final task = await enqueueSmbFile(
+        server: server,
+        file: file,
+        skipWritableCheck: true,
+      );
+      if (task != null) {
+        enqueued.add(task);
       }
+      progress.advance();
     }
     return enqueued;
   }

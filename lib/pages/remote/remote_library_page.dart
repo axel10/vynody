@@ -353,6 +353,14 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
       selectedSongPaths: _selectedSongPaths,
       searchedSongs: songsSource,
       songs: songsSource,
+      // 专辑列表项自带 songCount，多选下载时用它当加载进度的分母。
+      albumSongCounts: {
+        for (final album in _albums)
+          if (album['id'] != null)
+            album['id'].toString(): album['songCount'] is int
+                ? album['songCount'] as int
+                : 0,
+      },
     );
   }
 

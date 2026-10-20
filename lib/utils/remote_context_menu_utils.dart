@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oktoast/oktoast.dart';
 import '../dialogs/remote_playlist_dialog.dart';
+import '../dialogs/remote_track_load_progress_dialog.dart';
 import '../dialogs/song_details_dialog.dart';
 import '../l10n/app_localizations.dart';
 import '../models/music_file.dart';
@@ -18,6 +19,7 @@ import '../player/remote/remote_server_models.dart';
 import '../player/remote/remote_server_riverpod.dart';
 import '../pages/remote/remote_download_manager_page.dart';
 import '../player/remote/services/remote_download_service.dart';
+import '../player/remote/services/remote_track_load_progress.dart';
 import '../player/remote/services/remote_scan_root.dart';
 import '../player/remote/services/remote_directory_scanner.dart';
 import '../widgets/library_selection_scope.dart';
@@ -82,6 +84,18 @@ Future<List<MusicFile>> fetchSubsonicArtistTracks(
         }
       }
 
+      // 专辑列表自带 songCount，先据此估出总曲目数，进度才有分母可显示。
+      // 多选多个艺术家时这里是连续调用的，所以分母用累加、已加载按本次起点叠加，
+      // 不能用覆盖式 setTotal / setLoaded（否则只剩最后一个艺术家的刻度）。
+      final progress = remoteTrackLoadProgress;
+      final baseLoaded = progress.loaded;
+      final expectedTotal = albumList.fold<int>(0, (sum, al) {
+        final count = al['songCount'];
+        return sum + (count is int ? count : 0);
+      });
+      progress.addToTotal(expectedTotal);
+      progress.setLoaded(baseLoaded + allSongs.length);
+
       for (final al in albumList) {
         final aId = al['id'] as String?;
         if (aId != null) {
@@ -96,6 +110,7 @@ Future<List<MusicFile>> fetchSubsonicArtistTracks(
               }
             }
           }
+          progress.setLoaded(baseLoaded + allSongs.length);
         }
       }
       return allSongs;
@@ -438,33 +453,42 @@ Future<void> _handleAlbumMenuSelection({
       showToast(ok ? l10n.starredSuccess : l10n.starFailed);
       break;
     case 'download':
-      final trackList = await getOrFetchSongs();
-      if (trackList.isNotEmpty && context.mounted) {
-        final notifier = ref.read(remoteDownloadTasksProvider.notifier);
-        await notifier.enqueueRemoteTracks(
-          server: server,
-          password: password,
-          songs: trackList,
-        );
-        if (context.mounted) {
-          AppSnackBar.show(
-            context,
-            ref,
-            SnackBar(
-              content: Text(l10n.batchAddedToDownloadQueue(trackList.length)),
-              action: SnackBarAction(
-                label: l10n.viewDownloadProgress,
-                onPressed: () {
-                  Navigator.of(context, rootNavigator: true).push(
-                    MaterialPageRoute(
-                      builder: (_) => const RemoteDownloadManagerPage(),
-                    ),
-                  );
-                },
-              ),
+      // 拉曲目和入队都按「首」上报进度，集合较大时才有可感知的反馈。
+      final trackList = await runWithRemoteTrackLoadProgress<List<MusicFile>>(
+        context: context,
+        task: () async {
+          final list = (songs != null && songs.isNotEmpty)
+              ? songs
+              : await _fetchAlbumTracks(client, server, albumId);
+          if (list.isEmpty) return list;
+          await ref
+              .read(remoteDownloadTasksProvider.notifier)
+              .enqueueRemoteTracks(
+                server: server,
+                password: password,
+                songs: list,
+              );
+          return list;
+        },
+      );
+      if (trackList != null && trackList.isNotEmpty && context.mounted) {
+        AppSnackBar.show(
+          context,
+          ref,
+          SnackBar(
+            content: Text(l10n.batchAddedToDownloadQueue(trackList.length)),
+            action: SnackBarAction(
+              label: l10n.viewDownloadProgress,
+              onPressed: () {
+                Navigator.of(context, rootNavigator: true).push(
+                  MaterialPageRoute(
+                    builder: (_) => const RemoteDownloadManagerPage(),
+                  ),
+                );
+              },
             ),
-          );
-        }
+          ),
+        );
       }
       break;
     case 'view_details':
@@ -1080,34 +1104,41 @@ Future<void> _handleArtistMenuSelection({
       showToast(ok ? l10n.unstarredSuccess : l10n.starFailed);
       break;
     case 'download':
-      final trackList = await getArtistSongs();
-      if (trackList.isNotEmpty && context.mounted) {
-        final notifier = ref.read(remoteDownloadTasksProvider.notifier);
-        await notifier.enqueueRemoteTracks(
-          server: server,
-          password: password,
-          songs: trackList,
-          collectionFolder: artistName,
-        );
-        if (context.mounted) {
-          AppSnackBar.show(
-            context,
-            ref,
-            SnackBar(
-              content: Text(l10n.batchAddedToDownloadQueue(trackList.length)),
-              action: SnackBarAction(
-                label: l10n.viewDownloadProgress,
-                onPressed: () {
-                  Navigator.of(context, rootNavigator: true).push(
-                    MaterialPageRoute(
-                      builder: (_) => const RemoteDownloadManagerPage(),
-                    ),
-                  );
-                },
-              ),
+      // 艺术家要逐张专辑拉曲目，是最需要「共 N 首 / 已加载 M 首」的场景。
+      final trackList = await runWithRemoteTrackLoadProgress<List<MusicFile>>(
+        context: context,
+        task: () async {
+          final list = await _fetchArtistTracks(client, server, artistId);
+          if (list.isEmpty) return list;
+          await ref
+              .read(remoteDownloadTasksProvider.notifier)
+              .enqueueRemoteTracks(
+                server: server,
+                password: password,
+                songs: list,
+                collectionFolder: artistName,
+              );
+          return list;
+        },
+      );
+      if (trackList != null && trackList.isNotEmpty && context.mounted) {
+        AppSnackBar.show(
+          context,
+          ref,
+          SnackBar(
+            content: Text(l10n.batchAddedToDownloadQueue(trackList.length)),
+            action: SnackBarAction(
+              label: l10n.viewDownloadProgress,
+              onPressed: () {
+                Navigator.of(context, rootNavigator: true).push(
+                  MaterialPageRoute(
+                    builder: (_) => const RemoteDownloadManagerPage(),
+                  ),
+                );
+              },
             ),
-          );
-        }
+          ),
+        );
       }
       break;
     case 'view_details':
@@ -1395,35 +1426,43 @@ Future<void> _handlePlaylistMenuSelection({
       }
       break;
     case 'download':
-      final trackList = await getPlaylistSongs();
-      if (trackList.isNotEmpty && context.mounted) {
-        final notifier = ref.read(remoteDownloadTasksProvider.notifier);
-        await notifier.enqueueRemoteTracks(
-          server: server,
-          password: password,
-          songs: trackList,
-          collectionFolder: playlistName,
-          groupByAlbum: false,
-        );
-        if (context.mounted) {
-          AppSnackBar.show(
-            context,
-            ref,
-            SnackBar(
-              content: Text(l10n.batchAddedToDownloadQueue(trackList.length)),
-              action: SnackBarAction(
-                label: l10n.viewDownloadProgress,
-                onPressed: () {
-                  Navigator.of(context, rootNavigator: true).push(
-                    MaterialPageRoute(
-                      builder: (_) => const RemoteDownloadManagerPage(),
-                    ),
-                  );
-                },
-              ),
+      final trackList = await runWithRemoteTrackLoadProgress<List<MusicFile>>(
+        context: context,
+        task: () async {
+          final list = (songs != null && songs.isNotEmpty)
+              ? songs
+              : await _fetchPlaylistTracks(client, server, playlistId);
+          if (list.isEmpty) return list;
+          await ref
+              .read(remoteDownloadTasksProvider.notifier)
+              .enqueueRemoteTracks(
+                server: server,
+                password: password,
+                songs: list,
+                collectionFolder: playlistName,
+                groupByAlbum: false,
+              );
+          return list;
+        },
+      );
+      if (trackList != null && trackList.isNotEmpty && context.mounted) {
+        AppSnackBar.show(
+          context,
+          ref,
+          SnackBar(
+            content: Text(l10n.batchAddedToDownloadQueue(trackList.length)),
+            action: SnackBarAction(
+              label: l10n.viewDownloadProgress,
+              onPressed: () {
+                Navigator.of(context, rootNavigator: true).push(
+                  MaterialPageRoute(
+                    builder: (_) => const RemoteDownloadManagerPage(),
+                  ),
+                );
+              },
             ),
-          );
-        }
+          ),
+        );
       }
       break;
     case 'rename':

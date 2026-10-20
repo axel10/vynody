@@ -1722,6 +1722,44 @@
   "createdPlaylistSuccess": "Playlist créée : {name}",
   "loadingAlbumTracks": "Chargement des pistes de l'album...",
   "loadingArtistTracks": "Chargement des pistes de l'artiste...",
+  "downloadPrepLoadingTracks": "Chargement des pistes",
+  "downloadPrepQueueingTracks": "Ajout à la file de téléchargement",
+  "trackLoadLoadedKnown": "{loaded} sur {total} chargées",
+  "@trackLoadLoadedKnown": {
+    "placeholders": {
+      "loaded": {
+        "type": "int"
+      }, "total": {
+        "type": "int"
+      }
+    }
+  },
+  "trackLoadLoadedUnknown": "{loaded} chargées",
+  "@trackLoadLoadedUnknown": {
+    "placeholders": {
+      "loaded": {
+        "type": "int"
+      }
+    }
+  },
+  "trackLoadQueuedKnown": "{loaded} sur {total} ajoutées",
+  "@trackLoadQueuedKnown": {
+    "placeholders": {
+      "loaded": {
+        "type": "int"
+      }, "total": {
+        "type": "int"
+      }
+    }
+  },
+  "trackLoadQueuedUnknown": "{loaded} ajoutées",
+  "@trackLoadQueuedUnknown": {
+    "placeholders": {
+      "loaded": {
+        "type": "int"
+      }
+    }
+  },
   "loadingFolderAudio": "Chargement de l'audio du dossier...",
   "noAudioFilesInFolder": "Aucun fichier audio dans ce dossier",
   "failedToLoadFolder": "Échec du chargement du dossier : {error}",

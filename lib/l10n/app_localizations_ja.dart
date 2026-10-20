@@ -4370,6 +4370,32 @@ class AppLocalizationsJa extends AppLocalizations {
   String get loadingArtistTracks => 'アーティストの曲を読み込み中...';
 
   @override
+  String get downloadPrepLoadingTracks => '曲を読み込み中';
+
+  @override
+  String get downloadPrepQueueingTracks => 'ダウンロードキューに追加中';
+
+  @override
+  String trackLoadLoadedKnown(int loaded, int total) {
+    return '$total 曲中 $loaded 曲を読み込み済み';
+  }
+
+  @override
+  String trackLoadLoadedUnknown(int loaded) {
+    return '$loaded 曲を読み込み済み';
+  }
+
+  @override
+  String trackLoadQueuedKnown(int loaded, int total) {
+    return '$total 曲中 $loaded 曲を追加済み';
+  }
+
+  @override
+  String trackLoadQueuedUnknown(int loaded) {
+    return '$loaded 曲を追加済み';
+  }
+
+  @override
   String get loadingFolderAudio => 'フォルダの音声を読み込み中...';
 
   @override

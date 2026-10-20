@@ -2628,6 +2628,44 @@
   },
   "loadingAlbumTracks": "正在加载专辑曲目...",
   "loadingArtistTracks": "正在加载艺术家歌曲...",
+  "downloadPrepLoadingTracks": "正在加载曲目",
+  "downloadPrepQueueingTracks": "正在加入下载队列",
+  "trackLoadLoadedKnown": "已加载 {loaded} / 共 {total} 首",
+  "@trackLoadLoadedKnown": {
+    "placeholders": {
+      "loaded": {
+        "type": "int"
+      }, "total": {
+        "type": "int"
+      }
+    }
+  },
+  "trackLoadLoadedUnknown": "已加载 {loaded} 首",
+  "@trackLoadLoadedUnknown": {
+    "placeholders": {
+      "loaded": {
+        "type": "int"
+      }
+    }
+  },
+  "trackLoadQueuedKnown": "已加入 {loaded} / 共 {total} 首",
+  "@trackLoadQueuedKnown": {
+    "placeholders": {
+      "loaded": {
+        "type": "int"
+      }, "total": {
+        "type": "int"
+      }
+    }
+  },
+  "trackLoadQueuedUnknown": "已加入 {loaded} 首",
+  "@trackLoadQueuedUnknown": {
+    "placeholders": {
+      "loaded": {
+        "type": "int"
+      }
+    }
+  },
   "loadingFolderAudio": "正在加载文件夹音频...",
   "noAudioFilesInFolder": "该文件夹内没有音频文件",
   "failedToLoadFolder": "加载文件夹失败: {error}",

@@ -17,6 +17,7 @@ import '../../widgets/remote_artwork_widget.dart';
 import '../../widgets/mini_player_wrapper.dart';
 import '../../widgets/playing_equalizer_icon.dart';
 import '../../l10n/app_localizations.dart';
+import '../../dialogs/remote_track_load_progress_dialog.dart';
 import '../../utils/app_snack_bar.dart';
 import '../../utils/remote_context_menu_utils.dart';
 import '../../widgets/library_selection_panel.dart';
@@ -736,14 +737,19 @@ class _RemotePlaylistDetailContentState
   Future<void> _downloadAll() async {
     if (_tracks.isEmpty) return;
     final l10n = AppLocalizations.of(context)!;
-    final notifier = ref.read(remoteDownloadTasksProvider.notifier);
 
-    await notifier.enqueueRemoteTracks(
-      server: widget.server,
-      password: widget.password,
-      songs: _tracks,
-      collectionFolder: _currentName,
-      groupByAlbum: false,
+    await runWithRemoteTrackLoadProgress<void>(
+      context: context,
+      immediate: true,
+      task: () async {
+        await ref.read(remoteDownloadTasksProvider.notifier).enqueueRemoteTracks(
+              server: widget.server,
+              password: widget.password,
+              songs: _tracks,
+              collectionFolder: _currentName,
+              groupByAlbum: false,
+            );
+      },
     );
 
     if (mounted) {
