@@ -96,7 +96,7 @@ Vynody uses **Flutter** across all platforms for UI presentation and system inte
 | **Linux** | Audio Core (Rust) | Rodio backend integrated with FFmpeg decoding |
 | **macOS** | Audio Core (Rust) | Rodio backend, **AVFoundation decoding prioritized with FFmpeg fallback** |
 | **iOS** | Audio Core (Rust) | Rodio backend, **AVFoundation decoding prioritized with FFmpeg fallback** |
-| **Android** | ExoPlayer (Media3) | Leverages Android Audio Offload for hardware-level low power consumption |
+| **Android** | ExoPlayer (Media3) | Deep buffer output via ExoPlayer for steadier playback and fewer CPU wakeups |
 
 **Core Tech Stack & Integrations:**
 - **UI & Architecture**: Flutter 3.x + Riverpod state management

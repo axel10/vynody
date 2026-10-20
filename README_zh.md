@@ -96,7 +96,7 @@ Vynody 在全平台统一使用 **Flutter** 作为前端 UI 和系统交互引�
 | **Linux** | Audio Core (Rust) | 基于 Rodio 对接 FFmpeg 解码 |
 | **macOS** | Audio Core (Rust) | 基于 Rodio，**AVFoundation 解码优先，FFmpeg 解码兜底** |
 | **iOS** | Audio Core (Rust) | 基于 Rodio，**AVFoundation 解码优先，FFmpeg 解码兜底** |
-| **Android** | ExoPlayer (Media3) | 接入 Android 系统音频硬件卸载（Audio Offload），实现超低功耗 |
+| **Android** | ExoPlayer (Media3) | 走 ExoPlayer 深度缓冲（Deep Buffer）输出，播放更稳、唤醒更少 |
 
 **核心技术栈与服务：**
 - **UI & 架构**：Flutter 3.x + Riverpod 状态管理

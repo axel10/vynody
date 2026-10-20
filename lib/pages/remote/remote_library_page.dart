@@ -447,6 +447,9 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
     }).toList();
   }
 
+  String _artistSortName(Map<String, dynamic> artist) =>
+      (artist['name'] as String? ?? '').toLowerCase();
+
   List<Map<String, dynamic>> _getFilteredArtists() {
     var result = _artists.where((artist) {
       if (_artistSearchQuery.isEmpty) return true;
@@ -458,6 +461,21 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
       result =
           result.where((a) => _starredArtistIds.contains(a['id'])).toList();
     }
+
+    result.sort((a, b) {
+      int cmp;
+      if (_artistSortField == 'albumCount') {
+        cmp = ((a['albumCount'] as num?)?.toInt() ?? 0)
+            .compareTo((b['albumCount'] as num?)?.toInt() ?? 0);
+      } else {
+        cmp = _artistSortName(a).compareTo(_artistSortName(b));
+      }
+      // 同专辑数时按名字升序兜底，保证顺序稳定
+      if (cmp == 0) {
+        cmp = _artistSortName(a).compareTo(_artistSortName(b));
+      }
+      return _artistSortAsc ? cmp : -cmp;
+    });
     return result;
   }
 
