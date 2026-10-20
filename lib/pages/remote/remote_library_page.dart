@@ -16,6 +16,7 @@ import '../../widgets/library_selection_panel.dart';
 import '../../widgets/library_selection_scope.dart';
 import 'remote_download_manager_page.dart';
 import 'widgets/remote_library_header_bottom.dart';
+import 'widgets/remote_library_common_widgets.dart';
 import 'widgets/remote_library_selection_actions.dart';
 import 'widgets/remote_library_albums_tab.dart';
 import 'widgets/remote_library_artists_tab.dart';
@@ -109,6 +110,9 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
   // Connection state
   String? _connectionError;
   bool _isRetrying = false;
+
+  /// 排序 / 筛选条件变更触发的再次请求：叠加轻量加载态提示
+  bool _isReloadingContent = false;
 
   // Multi-selection state
   final Set<String> _selectedAlbumIds = {};
@@ -543,7 +547,31 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
     _loadPlaylists();
   }
 
+  /// 再次请求加载态使用的分类图标（与各标签页自身的加载视图保持一致）
+  IconData get _reloadingContentIcon => switch (_tabController.index) {
+        1 => Icons.mic_rounded,
+        2 => Icons.music_note_rounded,
+        3 => Icons.queue_music_rounded,
+        _ => Icons.album_rounded,
+      };
+
+  void _beginContentReload() {
+    if (!mounted || _isReloadingContent) return;
+    setState(() {
+      _isReloadingContent = true;
+    });
+  }
+
+  void _endContentReload() {
+    if (!mounted || !_isReloadingContent) return;
+    setState(() {
+      _isReloadingContent = false;
+    });
+  }
+
   void _handleTabChanged() {
+    // 切页时旧分类的请求结果不再影响当前视图，顺带收掉加载遮罩
+    _isReloadingContent = false;
     _cancelSelection();
     if (mounted) {
       setState(() {});
@@ -1947,6 +1975,13 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
               Positioned.fill(
                 child: mainBody,
               ),
+              if (_isReloadingContent)
+                Positioned.fill(
+                  child: RemoteLibraryReloadingOverlay(
+                    server: widget.server,
+                    icon: _reloadingContentIcon,
+                  ),
+                ),
             AnimatedSelectionPanel(
               isVisible: _isSelectionMode,
               child: LibrarySelectionPanel(
@@ -2091,12 +2126,15 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
           _albumSearchQuery = '';
         });
       },
-      onSortTypeChanged: (newSort) {
+      onSortTypeChanged: (newSort) async {
+        if (newSort == _albumSortType) return;
         setState(() {
           _albumSortType = newSort;
+          _isReloadingContent = _albums.isNotEmpty;
         });
         ref.read(settingsServiceProvider).navidromeAlbumSortType = newSort;
-        _loadAlbums(forceRefresh: true);
+        await _loadAlbums(forceRefresh: true);
+        _endContentReload();
       },
     );
   }
@@ -2121,12 +2159,14 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
           _artistSearchQuery = '';
         });
       },
-      onToggleStarredOnly: (selected) {
+      onToggleStarredOnly: (selected) async {
         setState(() {
           _artistStarredOnly = selected;
         });
         if (selected && _starredArtistIds.isEmpty) {
-          _fetchStarredArtists();
+          _beginContentReload();
+          await _fetchStarredArtists();
+          _endContentReload();
         }
       },
       onSortChanged: (field, asc) {
@@ -2166,12 +2206,14 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
           _isSongSearchExpanded = expanded;
         });
       },
-      onToggleStarredOnly: (selected) {
+      onToggleStarredOnly: (selected) async {
         setState(() {
           _songStarredOnly = selected;
         });
         if (selected && _starredSongIds.isEmpty) {
-          _fetchStarredSongs();
+          _beginContentReload();
+          await _fetchStarredSongs();
+          _endContentReload();
         }
       },
       onSortChanged: (field, asc) {

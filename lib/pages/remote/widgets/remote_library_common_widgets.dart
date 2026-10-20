@@ -155,6 +155,40 @@ class RemoteLibraryLoadingView extends StatelessWidget {
   }
 }
 
+/// 条件变更（排序 / 筛选）再次请求时的轻量加载态。
+///
+/// 复用 [RemoteLibraryLoadingView]，以半透明遮罩叠在已有内容之上：
+/// 既给出明确反馈，又不会整页清空、丢失滚动位置。
+/// 遮罩只做视觉提示，不拦截手势 —— 竖屏时顶栏也在 body 里，
+/// 吞掉点击会把返回按钮一起锁死。
+class RemoteLibraryReloadingOverlay extends StatelessWidget {
+  final RemoteServer server;
+  final IconData icon;
+  final String? message;
+
+  const RemoteLibraryReloadingOverlay({
+    super.key,
+    required this.server,
+    required this.icon,
+    this.message,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return IgnorePointer(
+      child: ColoredBox(
+        color: theme.colorScheme.surface.withValues(alpha: 0.72),
+        child: RemoteLibraryLoadingView(
+          server: server,
+          icon: icon,
+          message: message,
+        ),
+      ),
+    );
+  }
+}
+
 /// 统一风格的远程数据加载失败与重试界面
 class RemoteLibraryErrorView extends StatelessWidget {
   final String error;
