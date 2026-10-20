@@ -4,11 +4,13 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oktoast/oktoast.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import '../../../models/music_file.dart';
 import '../../../transcode/transcode_riverpod.dart';
 import '../../../utils/file_selector_helper.dart';
+import '../../../utils/localized_text.dart';
 import '../../audio/audio_riverpod.dart';
 import '../../library/music_file_utils.dart';
 import '../../metadata/metadata_helper.dart';
@@ -21,6 +23,7 @@ import '../proxy/local_stream_proxy.dart';
 import '../proxy/remote_media_resolver.dart';
 import '../remote_server_models.dart';
 import 'remote_download_request.dart';
+import 'remote_payload_guard.dart';
 import 'remote_track_load_progress.dart';
 
 // 落盘层级 / 请求模型与下载执行分开维护，但对外仍从本文件导出，
@@ -128,6 +131,43 @@ class RemoteDownloadNotifier extends Notifier<List<RemoteDownloadTask>> {
   final Map<String, CancelToken> _cancelTokens = {};
   final Map<String, int> _lastBytesMap = {};
   final Map<String, DateTime> _lastTimeMap = {};
+
+  /// 已提示过的「服务器侧问题」（serverId → 问题种类），避免批量下载时
+  /// 每条失败任务各弹一次 Toast。某台服务器成功下载后整组清空。
+  final Map<String, Set<String>> _warnedServerIssues = {};
+
+  bool _shouldWarnServerIssue(String serverId, String kind) {
+    return _warnedServerIssues
+        .putIfAbsent(serverId, () => <String>{})
+        .add(kind);
+  }
+
+  void _clearServerIssues(String serverId) {
+    _warnedServerIssues.remove(serverId);
+  }
+
+  /// 把「服务端用 HTTP 状态码拒绝」翻成能和服务器设置对上的话。
+  ///
+  /// Jellyfin 的下载走 `/Audio/{id}/stream`，不受用户策略里的「允许下载」约束，
+  /// 所以不存在 Subsonic 那种「200 + 失败 JSON」；它拒绝时用的是标准状态码，
+  /// Dio 直接抛 DioException。原样透出 `DioException [bad response]...`
+  /// 用户既看不懂也定位不到问题。
+  ({String? kind, String message})? _describeHttpFailure(Object error) {
+    if (error is! DioException) return null;
+    switch (error.response?.statusCode) {
+      // 401 = token 失效 / 密码错；403 = 该账号无权限（也可能是反代 / WAF 拦截）。
+      case 401:
+      case 403:
+        return (
+          kind: 'download_rejected',
+          message: currentAppL10n.remoteDownloadUnauthorized,
+        );
+      // 404 = 曲目已从库里移除，或当前账号看不到它。
+      case 404:
+        return (kind: null, message: currentAppL10n.remoteDownloadTrackMissing);
+    }
+    return null;
+  }
 
   @override
   List<RemoteDownloadTask> build() {
@@ -823,7 +863,7 @@ class RemoteDownloadNotifier extends Notifier<List<RemoteDownloadTask>> {
     final tempFile = File(tempPath);
 
     try {
-      await _dio.download(
+      final response = await _dio.download(
         task.downloadUrl,
         tempPath,
         cancelToken: cancelToken,
@@ -858,6 +898,16 @@ class RemoteDownloadNotifier extends Notifier<List<RemoteDownloadTask>> {
           });
         },
       );
+
+      // 二进制端点失败时同样回 200，只是响应体换成了失败 JSON（Subsonic code 50）
+      // 或反代自己的 HTML 错误页。必须在「有没有字节」的判定之前识别，否则这些
+      // 载荷会被当音频搬进音乐库并标记完成。
+      final payloadError = RemotePayloadGuard.inspect(
+        tempFile,
+        contentType: response.headers.value(HttpHeaders.contentTypeHeader),
+        parseSubsonicError: task.isSubsonic,
+      );
+      if (payloadError != null) throw payloadError;
 
       if (tempFile.existsSync() && tempFile.lengthSync() > 0) {
         bool savedSuccessfully = false;
@@ -940,6 +990,9 @@ class RemoteDownloadNotifier extends Notifier<List<RemoteDownloadTask>> {
           _lastBytesMap.remove(task.id);
           _lastTimeMap.remove(task.id);
 
+          // 该服务器已恢复正常：清掉去重标记，下次再出问题时仍会提示。
+          _clearServerIssues(task.server.id);
+
           int finalSize = task.totalBytes;
           try {
             final targetFile = File(task.targetPath);
@@ -987,10 +1040,37 @@ class RemoteDownloadNotifier extends Notifier<List<RemoteDownloadTask>> {
               ));
         }
       } else {
+        final isBinaryEndpointError = e is SubsonicException;
+        final downloadsDisabled =
+            isBinaryEndpointError && e.isDownloadsDisabled;
+        // 反向代理返回的 HTML 错误页 / 非音频内容，与「关闭下载」是两回事：
+        // 前者是部署问题，文案要指向代理，不能让用户去翻服务端下载开关。
+        final nonMediaPayload = isBinaryEndpointError &&
+            e.code == RemotePayloadGuard.errorNonMediaPayload;
+        // Jellyfin / WebDAV 的拒绝走标准状态码，Dio 直接抛 DioException。
+        final httpFailure = _describeHttpFailure(e);
+
+        final String? friendlyMessage = downloadsDisabled
+            ? currentAppL10n.remoteServerDownloadsDisabled
+            : nonMediaPayload
+                ? currentAppL10n.remoteDownloadNotAudioResponse
+                : httpFailure?.message;
+
+        final issueKind = downloadsDisabled
+            ? 'downloads_disabled'
+            : nonMediaPayload
+                ? 'non_media_payload'
+                : httpFailure?.kind;
+        if (issueKind != null &&
+            friendlyMessage != null &&
+            _shouldWarnServerIssue(task.server.id, issueKind)) {
+          _showServerIssueToast(friendlyMessage);
+        }
+
         debugPrint('[RemoteDownload] Download error for ${task.song.displayName}: $e');
         _updateTask(task.id, (t) => t.copyWith(
               status: RemoteDownloadStatus.failed,
-              error: e.toString(),
+              error: friendlyMessage ?? e.toString(),
               speedBytesPerSec: 0,
             ));
       }
@@ -1170,6 +1250,16 @@ class RemoteDownloadNotifier extends Notifier<List<RemoteDownloadTask>> {
     } else {
       apply();
     }
+  }
+
+  /// 提示「服务端已关闭下载」。
+  ///
+  /// 下载队列可能在没有界面的场景里跑（后台续传、测试、桌面托盘），没有 Toast
+  /// 宿主时 showToast 会抛异常；这里降级为只记任务错误文案。
+  void _showServerIssueToast(String message) {
+    try {
+      showToast(message);
+    } catch (_) {}
   }
 }
 

@@ -2796,6 +2796,22 @@
   },
   "waitingInQueue": "排队等待中...",
   "downloadCancelled": "已取消",
+  "remoteServerDownloadsDisabled": "服务端已关闭下载",
+  "@remoteServerDownloadsDisabled": {
+    "description": "Toast / download task error when the media server has downloads disabled"
+  },
+  "remoteDownloadNotAudioResponse": "服务器返回错误页而非音频，请检查反向代理设置",
+  "@remoteDownloadNotAudioResponse": {
+    "description": "Toast / download task error when a 200 response carries an HTML/XML error page instead of media (typically a reverse proxy error page)"
+  },
+  "remoteDownloadUnauthorized": "服务端拒绝下载：认证失败或没有下载权限",
+  "@remoteDownloadUnauthorized": {
+    "description": "Download task error when the server rejects the request with HTTP 401/403 (invalid token, no download permission, or disabled downloads)"
+  },
+  "remoteDownloadTrackMissing": "服务端上找不到该曲目，可能已删除或无权访问",
+  "@remoteDownloadTrackMissing": {
+    "description": "Download task error when the server responds with HTTP 404 for the track"
+  },
   "fileNotFoundAtPath": "未找到文件: {path}",
   "@fileNotFoundAtPath": {
     "description": "Toast when downloaded file is not found",

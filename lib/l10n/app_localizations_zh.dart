@@ -4489,6 +4489,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get downloadCancelled => '已取消';
 
   @override
+  String get remoteServerDownloadsDisabled => '服务端已关闭下载';
+
+  @override
+  String get remoteDownloadNotAudioResponse => '服务器返回错误页而非音频，请检查反向代理设置';
+
+  @override
+  String get remoteDownloadUnauthorized => '服务端拒绝下载：认证失败或没有下载权限';
+
+  @override
+  String get remoteDownloadTrackMissing => '服务端上找不到该曲目，可能已删除或无权访问';
+
+  @override
   String fileNotFoundAtPath(String path) {
     return '未找到文件: $path';
   }
@@ -9829,6 +9841,18 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get downloadCancelled => '已取消';
+
+  @override
+  String get remoteServerDownloadsDisabled => '伺服器已關閉下載';
+
+  @override
+  String get remoteDownloadNotAudioResponse => '伺服器傳回錯誤頁而非音訊，請檢查反向代理設定';
+
+  @override
+  String get remoteDownloadUnauthorized => '伺服器拒絕下載：驗證失敗或沒有下載權限';
+
+  @override
+  String get remoteDownloadTrackMissing => '伺服器上找不到該曲目，可能已刪除或無權存取';
 
   @override
   String fileNotFoundAtPath(String path) {

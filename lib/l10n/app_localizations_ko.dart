@@ -4571,6 +4571,21 @@ class AppLocalizationsKo extends AppLocalizations {
   String get downloadCancelled => '취소됨';
 
   @override
+  String get remoteServerDownloadsDisabled => '서버에서 다운로드가 비활성화되어 있습니다';
+
+  @override
+  String get remoteDownloadNotAudioResponse =>
+      '서버가 오디오 대신 오류 페이지를 반환했습니다. 리버스 프록시 설정을 확인하세요';
+
+  @override
+  String get remoteDownloadUnauthorized =>
+      '서버가 다운로드를 거부했습니다(인증 실패 또는 다운로드 권한 없음)';
+
+  @override
+  String get remoteDownloadTrackMissing =>
+      '서버에서 이 곡을 찾을 수 없습니다. 삭제되었거나 접근 권한이 없을 수 있습니다';
+
+  @override
   String fileNotFoundAtPath(String path) {
     return '파일을 찾을 수 없음: $path';
   }

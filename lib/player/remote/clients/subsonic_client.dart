@@ -11,6 +11,9 @@ class SubsonicException implements Exception {
   final int? code;
   const SubsonicException(this.message, {this.code});
 
+  /// 服务端拒绝下载（Navidrome 关闭下载时返回该码）。
+  bool get isDownloadsDisabled => code == SubsonicClient.errorDownloadsDisabled;
+
   @override
   String toString() => message;
 }
@@ -18,6 +21,10 @@ class SubsonicException implements Exception {
 class SubsonicClient {
   static const String clientName = 'Vynody';
   static const String apiVersion = '1.16.1';
+
+  /// Subsonic 错误码：当前用户无权执行该操作。Navidrome 关闭服务端下载时，
+  /// `download.view` 返回的就是这个码（message 为 "downloads are disabled"）。
+  static const int errorDownloadsDisabled = 50;
 
   final RemoteServer server;
   final String password;
@@ -118,6 +125,35 @@ class SubsonicClient {
     }
     return buildUrl('stream', params);
   }
+
+  /// 识别「HTTP 200 但内容是失败 JSON」的响应体。
+  ///
+  /// 二进制端点（`download.view` / `stream`）失败时不会返回 4xx，而是 200 +
+  /// `subsonic-response.status == "failed"` 的 JSON；下载类调用必须先过这一道，
+  /// 否则错误体会被当成音频落盘并标记完成。返回 null 表示这不是错误体
+  /// （真实音频字节、空内容、正常响应）。
+  static SubsonicException? parseErrorBody(String body) {
+    final trimmed = body.trimLeft();
+    // 音频二进制不会以 '{' 开头，先做一次零成本的形态判断。
+    if (trimmed.isEmpty || trimmed.codeUnitAt(0) != 0x7B /* { */) return null;
+    try {
+      final decoded = jsonDecode(trimmed);
+      if (decoded is! Map<String, dynamic>) return null;
+      final sub = decoded['subsonic-response'];
+      if (sub is! Map<String, dynamic>) return null;
+      if (sub['status'] != 'failed') return null;
+      final error = sub['error'];
+      if (error is! Map<String, dynamic>) return null;
+      final message = error['message'] as String? ?? 'Subsonic request failed';
+      final code = error['code'];
+      return SubsonicException(message, code: code is int ? code : null);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  // 检查「刚下载完的文件」不要用这里，用 `RemotePayloadGuard.inspect`：
+  // 它只读文件头（反代错误页可能几 MB）、还能识别 HTML 错误页。
 
   /// Constructs cover art URL for a given cover ID or track ID.
   String buildCoverArtUrl(String coverArtId, {int size = 300}) {

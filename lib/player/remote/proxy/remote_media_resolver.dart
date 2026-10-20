@@ -18,6 +18,7 @@ import '../clients/subsonic_client.dart';
 import '../clients/webdav_client.dart';
 import '../clients/smb_client.dart';
 import '../clients/jellyfin_client.dart';
+import '../services/remote_payload_guard.dart';
 import 'local_stream_proxy.dart';
 import '../../metadata/metadata_database.dart';
 
@@ -736,12 +737,27 @@ class RemoteMediaResolver {
       }
     }
 
-    await dio.download(
+    final response = await dio.download(
       downloadUrl,
       tempFile.path,
       onReceiveProgress: onProgress,
       cancelToken: cancelToken,
     );
+
+    // 服务端失败同样是 200，只是响应体换成失败 JSON；反向代理出错时更可能是
+    // 一张 HTML 错误页。不识别的话，转码/AI 分析拿到的是一个网页，报错会指向
+    // ffmpeg / 音频解析器，掩盖真实原因。
+    final payloadError = RemotePayloadGuard.inspect(
+      tempFile,
+      contentType: response.headers.value(HttpHeaders.contentTypeHeader),
+      parseSubsonicError: info.type == RemoteServerType.subsonic,
+    );
+    if (payloadError != null) {
+      try {
+        await taskTempDir.delete(recursive: true);
+      } catch (_) {}
+      throw payloadError;
+    }
 
     return tempFile;
   }

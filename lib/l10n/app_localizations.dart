@@ -8403,6 +8403,30 @@ abstract class AppLocalizations {
   /// **'已取消'**
   String get downloadCancelled;
 
+  /// Toast / download task error when the media server has downloads disabled
+  ///
+  /// In zh, this message translates to:
+  /// **'服务端已关闭下载'**
+  String get remoteServerDownloadsDisabled;
+
+  /// Toast / download task error when a 200 response carries an HTML/XML error page instead of media (typically a reverse proxy error page)
+  ///
+  /// In zh, this message translates to:
+  /// **'服务器返回错误页而非音频，请检查反向代理设置'**
+  String get remoteDownloadNotAudioResponse;
+
+  /// Download task error when the server rejects the request with HTTP 401/403 (invalid token, no download permission, or disabled downloads)
+  ///
+  /// In zh, this message translates to:
+  /// **'服务端拒绝下载：认证失败或没有下载权限'**
+  String get remoteDownloadUnauthorized;
+
+  /// Download task error when the server responds with HTTP 404 for the track
+  ///
+  /// In zh, this message translates to:
+  /// **'服务端上找不到该曲目，可能已删除或无权访问'**
+  String get remoteDownloadTrackMissing;
+
   /// Toast when downloaded file is not found
   ///
   /// In zh, this message translates to:

@@ -4742,6 +4742,22 @@ class AppLocalizationsTr extends AppLocalizations {
   String get downloadCancelled => 'İptal edildi';
 
   @override
+  String get remoteServerDownloadsDisabled =>
+      'Bu sunucuda indirmeler devre dışı';
+
+  @override
+  String get remoteDownloadNotAudioResponse =>
+      'Sunucu ses yerine bir hata sayfası döndürdü. Ters proxy ayarlarını kontrol edin';
+
+  @override
+  String get remoteDownloadUnauthorized =>
+      'Sunucu indirmeyi reddetti: kimlik doğrulama başarısız veya indirme izni yok';
+
+  @override
+  String get remoteDownloadTrackMissing =>
+      'Bu parça artık sunucuda yok. Silinmiş veya erişilemiyor olabilir';
+
+  @override
   String fileNotFoundAtPath(String path) {
     return '$path konumunda dosya bulunamadı';
   }

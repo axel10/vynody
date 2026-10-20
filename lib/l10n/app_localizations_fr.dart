@@ -4788,6 +4788,22 @@ class AppLocalizationsFr extends AppLocalizations {
   String get downloadCancelled => 'Annulé';
 
   @override
+  String get remoteServerDownloadsDisabled =>
+      'Les téléchargements sont désactivés sur ce serveur';
+
+  @override
+  String get remoteDownloadNotAudioResponse =>
+      'Le serveur a renvoyé une page d\'erreur au lieu d\'un fichier audio. Vérifiez la configuration du proxy inverse';
+
+  @override
+  String get remoteDownloadUnauthorized =>
+      'Le serveur a refusé le téléchargement : authentification échouée ou téléchargement non autorisé';
+
+  @override
+  String get remoteDownloadTrackMissing =>
+      'Ce morceau n\'est plus disponible sur le serveur. Il a peut-être été supprimé ou n\'est pas accessible';
+
+  @override
   String fileNotFoundAtPath(String path) {
     return 'Fichier introuvable à $path';
   }

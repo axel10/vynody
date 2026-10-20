@@ -2012,6 +2012,10 @@
   },
   "waitingInQueue": "Waiting in queue...",
   "downloadCancelled": "Cancelled",
+  "remoteServerDownloadsDisabled": "Downloads are disabled on this server",
+  "remoteDownloadNotAudioResponse": "The server returned an error page instead of audio. Check your reverse proxy settings",
+  "remoteDownloadUnauthorized": "The server refused the download: authentication failed or downloading is not allowed",
+  "remoteDownloadTrackMissing": "This track is no longer available on the server. It may have been deleted or is not accessible",
   "fileNotFoundAtPath": "File not found at {path}",
   "@fileNotFoundAtPath": {
     "description": "Toast when downloaded file is not found",

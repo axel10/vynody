@@ -4566,6 +4566,21 @@ class AppLocalizationsJa extends AppLocalizations {
   String get downloadCancelled => 'キャンセル済み';
 
   @override
+  String get remoteServerDownloadsDisabled => 'サーバー側でダウンロードが無効になっています';
+
+  @override
+  String get remoteDownloadNotAudioResponse =>
+      'サーバーが音声ではなくエラーページを返しました。リバースプロキシの設定を確認してください';
+
+  @override
+  String get remoteDownloadUnauthorized =>
+      'サーバーがダウンロードを拒否しました（認証失敗、またはダウンロード権限がありません）';
+
+  @override
+  String get remoteDownloadTrackMissing =>
+      'サーバー上にこの曲が見つかりません。削除されたか、アクセス権がない可能性があります';
+
+  @override
   String fileNotFoundAtPath(String path) {
     return 'ファイルが見つかりません: $path';
   }
