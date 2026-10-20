@@ -11,6 +11,9 @@ class SubsonicException implements Exception {
   final int? code;
   const SubsonicException(this.message, {this.code});
 
+  /// Server disabled downloads (`error.code == 50`); content must come from `stream` instead.
+  bool get isDownloadsDisabled => code == SubsonicClient.errorDownloadsDisabled;
+
   @override
   String toString() => message;
 }
@@ -18,6 +21,9 @@ class SubsonicException implements Exception {
 class SubsonicClient {
   static const String clientName = 'Vynody';
   static const String apiVersion = '1.16.1';
+
+  /// Subsonic error code for "downloads are disabled".
+  static const int errorDownloadsDisabled = 50;
 
   final RemoteServer server;
   final String password;
@@ -117,6 +123,49 @@ class SubsonicClient {
       params['maxBitRate'] = bitRate;
     }
     return buildUrl('stream', params);
+  }
+
+  /// Parses a raw response body to detect a Subsonic JSON error payload.
+  ///
+  /// Binary media endpoints (`download`/`stream`) return errors as HTTP 200
+  /// with a JSON body instead of a non-2xx status, so download transports must
+  /// inspect what they actually received. Returns the parsed [SubsonicException],
+  /// or `null` when the body is not a Subsonic error response (e.g. real audio bytes).
+  static SubsonicException? parseErrorBody(String body) {
+    final trimmed = body.trimLeft();
+    if (trimmed.isEmpty || trimmed.codeUnitAt(0) != 0x7B /* '{' */) {
+      return null;
+    }
+    try {
+      final decoded = jsonDecode(trimmed);
+      if (decoded is! Map<String, dynamic>) return null;
+      final sub = decoded['subsonic-response'];
+      if (sub is! Map<String, dynamic>) return null;
+      if (sub['status'] != 'failed') return null;
+      final error = sub['error'];
+      if (error is! Map<String, dynamic>) return null;
+      final message = error['message'] as String? ?? 'Subsonic request failed';
+      final code = error['code'] as int?;
+      return SubsonicException(message, code: code);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Parses a small downloaded response file without assuming it is text.
+  /// Invalid UTF-8 is treated as binary media, not as a download failure.
+  static SubsonicException? parseErrorFile(File file) {
+    try {
+      if (!file.existsSync()) return null;
+      final length = file.lengthSync();
+      if (length == 0 || length > 64 * 1024) return null;
+      return parseErrorBody(utf8.decode(
+        file.readAsBytesSync(),
+        allowMalformed: false,
+      ));
+    } catch (_) {
+      return null;
+    }
   }
 
   /// Constructs cover art URL for a given cover ID or track ID.

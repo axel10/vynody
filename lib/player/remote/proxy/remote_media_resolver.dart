@@ -708,9 +708,13 @@ class RemoteMediaResolver {
     String downloadUrl;
     Map<String, String>? headers;
 
+    String? fallbackUrl;
     if (info.type == RemoteServerType.subsonic) {
       final client = SubsonicClient(server: server, password: password);
       downloadUrl = client.buildDownloadUrl(info.trackIdOrPath);
+      // Fallback for servers with downloads disabled (code 50); request the
+      // original file via stream instead of a transcoded one.
+      fallbackUrl = client.buildStreamUrl(info.trackIdOrPath, maxBitRate: 0);
     } else {
       final client = WebDavClient(server: server, password: password);
       downloadUrl = client.buildStreamUrl(info.trackIdOrPath);
@@ -736,14 +740,41 @@ class RemoteMediaResolver {
       }
     }
 
-    await dio.download(
-      downloadUrl,
-      tempFile.path,
-      onReceiveProgress: onProgress,
-      cancelToken: cancelToken,
-    );
+    try {
+      await dio.download(
+        downloadUrl,
+        tempFile.path,
+        onReceiveProgress: onProgress,
+        cancelToken: cancelToken,
+      );
 
-    return tempFile;
+      // Subsonic binary endpoints return errors as HTTP 200 + JSON body.
+      if (fallbackUrl != null && tempFile.existsSync()) {
+        final error = SubsonicClient.parseErrorFile(tempFile);
+        if (error != null) {
+          if (!error.isDownloadsDisabled) throw error;
+          await dio.download(
+            fallbackUrl,
+            tempFile.path,
+            onReceiveProgress: onProgress,
+            cancelToken: cancelToken,
+          );
+          final retryError = SubsonicClient.parseErrorFile(tempFile);
+          if (retryError != null) throw retryError;
+        }
+      }
+
+      return tempFile;
+    } catch (_) {
+      try {
+        await taskTempDir.delete(recursive: true);
+        final parentDir = taskTempDir.parent;
+        if (await parentDir.exists() && await parentDir.list().isEmpty) {
+          await parentDir.delete();
+        }
+      } catch (_) {}
+      rethrow;
+    }
   }
 }
 

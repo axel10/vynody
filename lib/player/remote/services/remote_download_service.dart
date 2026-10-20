@@ -39,6 +39,8 @@ class RemoteDownloadTask {
   final String? smbShare;
   final String? smbPath;
   final String downloadUrl;
+  /// Fallback `stream` URL used when the server rejects `download.view` with code 50.
+  final String? fallbackUrl;
   final Map<String, String>? headers;
   final String targetPath;
   final RemoteDownloadStatus status;
@@ -58,6 +60,7 @@ class RemoteDownloadTask {
     this.smbShare,
     this.smbPath,
     required this.downloadUrl,
+    this.fallbackUrl,
     this.headers,
     required this.targetPath,
     this.status = RemoteDownloadStatus.pending,
@@ -93,6 +96,7 @@ class RemoteDownloadTask {
       smbShare: smbShare,
       smbPath: smbPath,
       downloadUrl: downloadUrl,
+      fallbackUrl: fallbackUrl,
       headers: headers,
       targetPath: targetPath,
       status: status ?? this.status,
@@ -425,6 +429,9 @@ class RemoteDownloadNotifier extends Notifier<List<RemoteDownloadTask>> {
       song: song,
       trackId: actualTrackId,
       downloadUrl: downloadUrl,
+      // Playback-channel fallback for servers that disable downloads (code 50).
+      // maxBitRate 0 requests the original file instead of a transcoded stream.
+      fallbackUrl: client.buildStreamUrl(actualTrackId, maxBitRate: 0),
       targetPath: targetPath,
       status: RemoteDownloadStatus.pending,
     );
@@ -901,9 +908,9 @@ class RemoteDownloadNotifier extends Notifier<List<RemoteDownloadTask>> {
     final tempPath = p.join(tempDir.path, tempFileName);
     final tempFile = File(tempPath);
 
-    try {
-      await _dio.download(
-        task.downloadUrl,
+    Future<void> performDownload(String url) {
+      return _dio.download(
+        url,
         tempPath,
         cancelToken: cancelToken,
         options: Options(
@@ -937,6 +944,39 @@ class RemoteDownloadNotifier extends Notifier<List<RemoteDownloadTask>> {
           });
         },
       );
+    }
+
+    try {
+      await performDownload(task.downloadUrl);
+
+      // Subsonic binary endpoints report failures as HTTP 200 + JSON error body
+      // instead of a non-2xx status. Detect that before treating the file as audio.
+      final downloadError = task.isSubsonic
+          ? _readSubsonicDownloadError(tempFile)
+          : null;
+      if (downloadError != null) {
+        if (downloadError.isDownloadsDisabled && task.fallbackUrl != null) {
+          debugPrint(
+            '[RemoteDownload] ${task.song.displayName}: downloads disabled, '
+            'falling back to stream endpoint',
+          );
+          _updateTask(task.id, (t) => t.copyWith(
+                bytesDownloaded: 0,
+                totalBytes: 0,
+                speedBytesPerSec: 0,
+              ));
+          await performDownload(task.fallbackUrl!);
+          final fallbackError = task.isSubsonic
+              ? _readSubsonicDownloadError(tempFile)
+              : null;
+          if (fallbackError != null) {
+            throw fallbackError;
+          }
+        } else {
+          throw downloadError;
+        }
+      }
+
 
       if (tempFile.existsSync() && tempFile.lengthSync() > 0) {
         bool savedSuccessfully = false;
@@ -1085,6 +1125,14 @@ class RemoteDownloadNotifier extends Notifier<List<RemoteDownloadTask>> {
     }
 
     _processQueue();
+  }
+
+  /// Reads the freshly downloaded temp file and detects a Subsonic JSON error
+  /// body (binary endpoints return errors as HTTP 200 + JSON). Only applies to
+  /// Subsonic tasks, and only inspects small payloads to avoid reading large
+  /// audio files as text.
+  SubsonicException? _readSubsonicDownloadError(File tempFile) {
+    return SubsonicClient.parseErrorFile(tempFile);
   }
 
   void pauseTask(String id) {
