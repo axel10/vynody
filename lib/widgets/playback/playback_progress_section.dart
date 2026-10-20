@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/foundation.dart';
@@ -30,6 +31,94 @@ class ZeroPaddingTrackShape extends RoundedRectSliderTrackShape {
         offset.dy + (parentBox.size.height - trackHeight) / 2;
     final double trackWidth = parentBox.size.width;
     return Rect.fromLTWH(trackLeft, trackTop, trackWidth, trackHeight);
+  }
+}
+
+/// 标准（非波形）进度条。
+///
+/// [Slider] 是受控组件：拇指位置完全取自 `value`，自身不保留拖动位置。原实现把
+/// `onChanged` 直接接到上层的 `onScrubbing`，而上层只更新了「时间文本预览」的
+/// listenable，`value` 仍然由引擎进度驱动 —— 结果就是拖动期间拇指停在按下的
+/// 位置不动，只在引擎每 250ms 上报一次进度时闪一下。
+///
+/// 这里在本地持有拖动值：拖动期间不理会外部进度，松手 seek 后再由外部值接管，
+/// 与 [WaveformProgressBar] 的交互模型保持一致。
+class _StandardProgressSlider extends StatefulWidget {
+  const _StandardProgressSlider({
+    required this.value,
+    this.onScrubbing,
+    this.onSeek,
+  });
+
+  final double value;
+  final ValueChanged<double>? onScrubbing;
+  final ValueChanged<double>? onSeek;
+
+  @override
+  State<_StandardProgressSlider> createState() =>
+      _StandardProgressSliderState();
+}
+
+class _StandardProgressSliderState extends State<_StandardProgressSlider> {
+  /// 拖动中的预览值；null 表示未拖动，此时跟随 [widget.value]。
+  double? _dragValue;
+  bool _isDragging = false;
+
+  /// 松手后外部进度迟迟不更新时的兜底，避免拇指永久停在拖动位置。
+  Timer? _handoffTimer;
+
+  /// 外部进度与拖动值视为「已追平」的容差（约占整条轨道的 0.5%）。
+  static const double _handoffEpsilon = 0.005;
+
+  @override
+  void dispose() {
+    _handoffTimer?.cancel();
+    super.dispose();
+  }
+
+  void _handleChanged(double value) {
+    setState(() {
+      _isDragging = true;
+      _dragValue = value;
+    });
+    widget.onScrubbing?.call(value);
+  }
+
+  void _handleChangeEnd(double value) {
+    _isDragging = false;
+    widget.onSeek?.call(value);
+    _handoffTimer?.cancel();
+    _handoffTimer = Timer(const Duration(milliseconds: 600), () {
+      if (!mounted) return;
+      setState(() => _dragValue = null);
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant _StandardProgressSlider oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final double? dragValue = _dragValue;
+    if (dragValue == null || _isDragging) {
+      return;
+    }
+    // 松手后交还控制权：外部进度追平拖动值（seek 生效），或发生换曲之类的大跳变。
+    final bool caughtUp = (widget.value - dragValue).abs() <= _handoffEpsilon;
+    final bool jumped = (widget.value - oldWidget.value).abs() > 0.2;
+    if (caughtUp || jumped) {
+      _handoffTimer?.cancel();
+      _handoffTimer = null;
+      _dragValue = null;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final double displayValue = (_dragValue ?? widget.value).clamp(0.0, 1.0);
+    return Slider(
+      value: displayValue,
+      onChanged: widget.onScrubbing == null ? null : _handleChanged,
+      onChangeEnd: widget.onSeek == null ? null : _handleChangeEnd,
+    );
   }
 }
 
@@ -154,12 +243,10 @@ class PlaybackProgressSection extends ConsumerWidget {
             thumbColor: Colors.white,
             overlayColor: Colors.white.withValues(alpha: 0.1),
           ),
-          child: Slider(
+          child: _StandardProgressSlider(
             value: displayProgress.clamp(0.0, 1.0),
-            onChanged: onScrubbing,
-            onChangeEnd: (value) {
-              onSeek?.call(value);
-            },
+            onScrubbing: onScrubbing,
+            onSeek: onSeek,
           ),
         ),
       );

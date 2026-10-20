@@ -42,6 +42,8 @@
 - **诊断钩子 `_debugWarnColumnWipe`**：写库时「库里某列非空 → 本次写成空」会打 `[ColumnWipe]` + 调用栈（13 列）。看到它 = 有调用方还在拼整行。
 - **排序写入必须显式推进结构版本**：文件夹是就地 `sort`，`_computeStructureFingerprint` 只看对象 identity 与歌曲总数，感知不到顺序变化 → 改排序走 `_markSortOrderChanged()`（`_structureRevision++` + `_rootFoldersView = null`），否则列表停在旧顺序、顶栏「仅此目录」高亮不刷新。目录默认排序 = 音轨号升序（`_defaultSortCriteria`，仅 prefs 无该 key 时生效）；`SortCriteriaX.fromStorageValue` 兜底仍是 `filename`（WebDAV 共用同一枚举，不可改）。UI 侧唯一写入口是 `applySortSettings()`（浮层点「确定」才调用，只重排一次），选项本身只改本地状态。
 
+- **`Slider` 是受控组件，`onChanged` 必须回流到 `value`**：Flutter 内部 `_currentDragValue` 只用于计算增量，绘制永远取 `widget.value` → 只把拖动值转给外部 notifier 而不回写，拖动期间拇指就停在按下位置、只随引擎进度抖跳（播放页标准进度条踩过）。要跟手只能本地持有拖动值再看现有三处实现：`_StandardProgressSlider`、`WaveformProgressBar`、`MiniPlayerProgressInfo`。
+
 ## 新增实体 / 条目
 
 右键菜单三件套：`lib/widgets/<entity>_context_menu.dart`（`show<Entity>ContextMenu` + `show<Entity>BottomSheet` + 共用 `_handle...`）；条目根挂 `GestureDetector(behavior: opaque, onSecondaryTapDown, onLongPress)`；l10n 加 `view<Entity>Details`/`copy<Entity>Name`。首页卡片不传 `onMultiSelect`。
