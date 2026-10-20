@@ -26,6 +26,7 @@ import '../../dialogs/transcode_dialog.dart';
 import '../../utils/app_snack_bar.dart';
 import '../../utils/folder_helpers.dart';
 import '../../utils/remote_context_menu_utils.dart';
+import '../../utils/remote_download_feedback.dart';
 import '../../utils/song_context_menu_utils.dart';
 import '../../widgets/library_selection_panel.dart';
 import '../../widgets/library_selection_scope.dart';
@@ -453,33 +454,13 @@ class _RemoteFolderBrowserPageState
 
 
   Future<void> _downloadSingleAudio(WebDavFile item) async {
-    final l10n = AppLocalizations.of(context)!;
-    final notifier = ref.read(remoteDownloadTasksProvider.notifier);
-    await notifier.enqueueWebDavFile(
-      server: widget.server,
-      password: widget.password,
-      file: item,
-    );
+    await ref.read(remoteDownloadTasksProvider.notifier).enqueueWebDavFile(
+          server: widget.server,
+          password: widget.password,
+          file: item,
+        );
 
-    if (mounted) {
-      AppSnackBar.show(
-        context,
-        ref,
-        SnackBar(
-          content: Text(l10n.addedToDownloadQueue),
-          action: SnackBarAction(
-            label: l10n.viewDownloadProgress,
-            onPressed: () {
-              Navigator.of(context, rootNavigator: true).push(
-                MaterialPageRoute(
-                  builder: (_) => const RemoteDownloadManagerPage(),
-                ),
-              );
-            },
-          ),
-        ),
-      );
-    }
+    showRemoteDownloadQueuedFeedback(context, ref, 1);
   }
 
   void _clearAllSelection() {
@@ -733,25 +714,10 @@ class _RemoteFolderBrowserPageState
               password: widget.password,
               files: webDavFiles,
             );
-            AppSnackBar.show(
+            showRemoteDownloadQueuedFeedback(
               context,
               ref,
-              SnackBar(
-                content: Text(
-                  AppLocalizations.of(context)!
-                      .batchAddedToDownloadQueue(webDavFiles.length),
-                ),
-                action: SnackBarAction(
-                  label: AppLocalizations.of(context)!.viewDownloadProgress,
-                  onPressed: () {
-                    Navigator.of(context, rootNavigator: true).push(
-                      MaterialPageRoute(
-                        builder: (_) => const RemoteDownloadManagerPage(),
-                      ),
-                    );
-                  },
-                ),
-              ),
+              webDavFiles.length,
             );
           }
         } else {
@@ -1736,30 +1702,11 @@ class _RemoteFolderBrowserPageState
                               password: widget.password,
                               files: webDavFiles,
                             );
-                            if (mounted) {
-                              AppSnackBar.show(
-                                context,
-                                ref,
-                                SnackBar(
-                                  content: Text(
-                                    l10n.batchAddedToDownloadQueue(
-                                        webDavFiles.length),
-                                  ),
-                                  action: SnackBarAction(
-                                    label: l10n.viewDownloadProgress,
-                                    onPressed: () {
-                                      Navigator.of(context, rootNavigator: true)
-                                          .push(
-                                        MaterialPageRoute(
-                                          builder: (_) =>
-                                              const RemoteDownloadManagerPage(),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                ),
-                              );
-                            }
+                            showRemoteDownloadQueuedFeedback(
+                              context,
+                              ref,
+                              webDavFiles.length,
+                            );
                           }
                           _clearAllSelection();
                         },

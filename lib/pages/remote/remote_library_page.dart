@@ -338,9 +338,14 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
     _updateSelectionScope();
   }
 
-  Future<List<MusicFile>> _fetchSelectedSongs() {
+  /// 勾选下载的曲目批次：按「勾的是哪个栏目」分组，保证落盘结构与同一 Tab
+  /// 里的单曲下载一致 ——
+  /// 专辑 Tab → `专辑/曲目`；艺术家 Tab → 各 `艺术家/专辑/曲目`；
+  /// 歌单 Tab → 各 `歌单/曲目`；歌曲 Tab → `专辑/曲目`；
+  /// 搜索 Tab → 勾艺术家走艺术家，勾专辑 / 歌曲走专辑。
+  Future<List<RemoteDownloadBatch>> _fetchSelectedDownloadBatches() {
     final songsSource = _tabController.index == 4 ? _searchedSongs : _songs;
-    return RemoteLibrarySelectionActions.fetchSelectedSongs(
+    return RemoteLibrarySelectionActions.fetchSelectedBatches(
       server: widget.server,
       password: widget.password,
       isAlbumSelectionMode: _isAlbumSelectionMode,
@@ -361,7 +366,23 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
                 ? album['songCount'] as int
                 : 0,
       },
+      // 每个勾选的集合都要带上自己的目录名，多个艺术家 / 歌单才不会挤进同一层。
+      artistNames: {
+        for (final artist in [..._artists, ..._searchedArtists])
+          if (artist['id'] != null && artist['name'] != null)
+            artist['id'].toString(): artist['name'] as String,
+      },
+      playlistNames: {
+        for (final playlist in _playlists)
+          if (playlist['id'] != null && playlist['name'] != null)
+            playlist['id'].toString(): playlist['name'] as String,
+      },
     );
+  }
+
+  Future<List<MusicFile>> _fetchSelectedSongs() async {
+    final batches = await _fetchSelectedDownloadBatches();
+    return [for (final batch in batches) ...batch.songs];
   }
 
   List<MusicFile> _getFilteredSongs() {
@@ -2012,7 +2033,7 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
                   ref: ref,
                   server: widget.server,
                   password: widget.password,
-                  onFetchSongs: _fetchSelectedSongs,
+                  onFetchBatches: _fetchSelectedDownloadBatches,
                   onClearSelection: _cancelSelection,
                 ),
                 onTranscode: () =>

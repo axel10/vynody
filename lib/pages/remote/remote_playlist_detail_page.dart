@@ -20,6 +20,7 @@ import '../../l10n/app_localizations.dart';
 import '../../dialogs/remote_track_load_progress_dialog.dart';
 import '../../utils/app_snack_bar.dart';
 import '../../utils/remote_context_menu_utils.dart';
+import '../../utils/remote_download_feedback.dart';
 import '../../widgets/library_selection_panel.dart';
 import '../../widgets/library_selection_scope.dart';
 import 'remote_artist_detail_page.dart';
@@ -736,44 +737,27 @@ class _RemotePlaylistDetailContentState
 
   Future<void> _downloadAll() async {
     if (_tracks.isEmpty) return;
-    final l10n = AppLocalizations.of(context)!;
 
     // null = 用户在进度浮层里点了取消，别再报「已加入 N 首」。
     final queued = await runWithRemoteTrackLoadProgress<bool>(
       context: context,
       immediate: true,
       task: () async {
-        await ref.read(remoteDownloadTasksProvider.notifier).enqueueRemoteTracks(
-              server: widget.server,
-              password: widget.password,
-              songs: _tracks,
-              collectionFolder: _currentName,
-              groupByAlbum: false,
+        await ref.read(remoteDownloadTasksProvider.notifier).enqueue(
+              RemoteDownloadRequest(
+                server: widget.server,
+                password: widget.password,
+                songs: _tracks,
+                layout: RemoteDownloadLayout.playlist,
+                collectionFolder: _currentName,
+              ),
             );
         return true;
       },
     );
     if (queued != true) return;
 
-    if (mounted) {
-      AppSnackBar.show(
-        context,
-        ref,
-        SnackBar(
-          content: Text(l10n.batchAddedToDownloadQueue(_tracks.length)),
-          action: SnackBarAction(
-            label: l10n.viewDownloadProgress,
-            onPressed: () {
-              Navigator.of(context, rootNavigator: true).push(
-                MaterialPageRoute(
-                  builder: (_) => const RemoteDownloadManagerPage(),
-                ),
-              );
-            },
-          ),
-        ),
-      );
-    }
+    showRemoteDownloadQueuedFeedback(context, ref, _tracks.length);
   }
 
   Future<void> _removeTrackAt(int index) async {
@@ -1422,6 +1406,8 @@ class _RemotePlaylistDetailContentState
                                   password: widget.password,
                                   song: song,
                                   playlist: _tracks,
+                                  downloadLayout: RemoteDownloadLayout.playlist,
+                                  downloadCollectionFolder: _currentName,
                                   onRemoveFromPlaylist: () => _removeTrackAt(index),
                                   onViewArtist: () {
                                     if (song.artist != null && song.artist!.isNotEmpty) {
@@ -1656,6 +1642,11 @@ class _RemotePlaylistDetailContentState
                                                     password: widget.password,
                                                     song: song,
                                                     playlist: _tracks,
+                                                    downloadLayout:
+                                                        RemoteDownloadLayout
+                                                            .playlist,
+                                                    downloadCollectionFolder:
+                                                        _currentName,
                                                     onRemoveFromPlaylist: () => _removeTrackAt(index),
                                                     onViewArtist: () {
                                                       if (song.artist != null && song.artist!.isNotEmpty) {
@@ -1736,34 +1727,17 @@ class _RemotePlaylistDetailContentState
             onDownload: () async {
               final sel = List<MusicFile>.from(selectedSongs);
               if (sel.isEmpty) return;
-              final notifier = ref.read(remoteDownloadTasksProvider.notifier);
-              await notifier.enqueueRemoteTracks(
-                server: widget.server,
-                password: widget.password,
-                songs: sel,
-                collectionFolder: _currentName,
-                groupByAlbum: false,
-              );
-              cancelSongSelection();
-              if (context.mounted) {
-                AppSnackBar.show(
-                  context,
-                  ref,
-                  SnackBar(
-                    content: Text(l10n.batchAddedToDownloadQueue(sel.length)),
-                    action: SnackBarAction(
-                      label: l10n.viewDownloadProgress,
-                      onPressed: () {
-                        Navigator.of(context, rootNavigator: true).push(
-                          MaterialPageRoute(
-                            builder: (_) => const RemoteDownloadManagerPage(),
-                          ),
-                        );
-                      },
+              await ref.read(remoteDownloadTasksProvider.notifier).enqueue(
+                    RemoteDownloadRequest(
+                      server: widget.server,
+                      password: widget.password,
+                      songs: sel,
+                      layout: RemoteDownloadLayout.playlist,
+                      collectionFolder: _currentName,
                     ),
-                  ),
-                );
-              }
+                  );
+              cancelSongSelection();
+              showRemoteDownloadQueuedFeedback(context, ref, sel.length);
             },
           ),
         ),

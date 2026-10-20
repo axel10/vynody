@@ -20,7 +20,12 @@ import '../clients/jellyfin_client.dart';
 import '../proxy/local_stream_proxy.dart';
 import '../proxy/remote_media_resolver.dart';
 import '../remote_server_models.dart';
+import 'remote_download_request.dart';
 import 'remote_track_load_progress.dart';
+
+// 落盘层级 / 请求模型与下载执行分开维护，但对外仍从本文件导出，
+// 调用方只认一个 import。
+export 'remote_download_request.dart';
 
 enum RemoteDownloadStatus {
   pending,
@@ -251,16 +256,19 @@ class RemoteDownloadNotifier extends Notifier<List<RemoteDownloadTask>> {
 
   /// Builds the local destination file path for a remote music track.
   ///
-  /// [collectionFolder] 是曲目所属集合的外层目录名（艺术家名 / 歌单名）。
-  /// [groupByAlbum] 决定集合目录下是否再按专辑分一层：
-  /// 艺术家下载要 `<艺术家>/<专辑>/`，歌单下载只要 `<歌单名>/`。
+  /// [layout] 决定集合层与专辑层，[collectionFolder] 是集合目录名
+  /// （艺术家名 / 歌单名，专辑层级不需要）：
+  /// - [RemoteDownloadLayout.album]：`<专辑>/`
+  /// - [RemoteDownloadLayout.artist]：`<艺术家>/<专辑>/`，缺集合名时逐曲回落到
+  ///   专辑艺术家（合辑才不会散架）
+  /// - [RemoteDownloadLayout.playlist]：`<歌单>/`，缺集合名时退回 `<专辑>/`
   Future<String> buildLocalTrackPath({
     required MusicFile song,
     required String baseFolder,
     RemoteServer? server,
     String? webDavPath,
     String? collectionFolder,
-    bool groupByAlbum = true,
+    RemoteDownloadLayout layout = RemoteDownloadLayout.album,
   }) async {
     // 1. For WebDAV, preserve the exact directory hierarchy from the server
     String? resolvedWebDavPath = webDavPath;
@@ -304,10 +312,21 @@ class RemoteDownloadNotifier extends Notifier<List<RemoteDownloadTask>> {
 
     // 2. Subsonic / generic remote tracks: 集合目录（可选）+ 专辑目录（可选）+ 曲目。
     // 不套单曲艺术家：合辑里 song.artist 每首都不同，按它分层会把一张专辑拆散。
+    final resolvedCollection = collectionFolder != null &&
+            collectionFolder.trim().isNotEmpty
+        ? collectionFolder
+        : (layout == RemoteDownloadLayout.artist
+            ? (song.albumArtist ?? song.artist)
+            : null);
+    final hasCollection =
+        resolvedCollection != null && resolvedCollection.trim().isNotEmpty;
     final folderSegments = <String>[
-      if (collectionFolder != null && collectionFolder.trim().isNotEmpty)
-        _sanitize(collectionFolder, fallback: 'Unknown'),
-      if (groupByAlbum) _sanitize(song.album, fallback: 'Unknown Album'),
+      if (hasCollection) _sanitize(resolvedCollection, fallback: 'Unknown'),
+      // 歌单目录下不再按专辑分层，专辑页与艺术家页都要专辑层。
+      // 没有集合名时（例如勾选里混进了认不出名字的歌单）统一退回专辑层，
+      // 免得整批文件平铺到下载根目录。
+      if (!hasCollection || layout != RemoteDownloadLayout.playlist)
+        _sanitize(song.album, fallback: 'Unknown Album'),
     ];
     final trackNum = song.trackNumber;
     final trackPrefix = trackNum != null && trackNum > 0
@@ -341,303 +360,160 @@ class RemoteDownloadNotifier extends Notifier<List<RemoteDownloadTask>> {
     return '.mp3';
   }
 
-  /// Enqueues a single Subsonic track for download.
-  Future<RemoteDownloadTask?> enqueueSubsonicTrack({
-    required RemoteServer server,
-    required String password,
-    required MusicFile song,
-    String? trackId,
-    bool skipWritableCheck = false,
-    String? collectionFolder,
-    bool groupByAlbum = true,
-  }) async {
-    if (!skipWritableCheck) {
-      final ready = await ensureDownloadFolderWritable();
-      if (!ready) return null;
-    }
-
-    final client = SubsonicClient(server: server, password: password);
-    final baseFolder = await getDownloadFolderPath();
-
-    final resolvedTrackId =
-        trackId ?? RemoteMediaResolver.extractSubsonicTrackId(song);
-    final actualTrackId = resolvedTrackId ??
-        (song.id != null && song.id! > 0
-            ? song.id.toString()
-            : 'unknown_${song.path.hashCode}');
-
-    final targetPath = await buildLocalTrackPath(
-      song: song,
-      baseFolder: baseFolder,
-      server: server,
-      collectionFolder: collectionFolder,
-      groupByAlbum: groupByAlbum,
-    );
-
-    final taskId = 'subsonic_${server.id}_$actualTrackId';
-
-    // If already in queue, don't duplicate
-    final existingIndex = state.indexWhere((t) => t.id == taskId);
-    if (existingIndex >= 0) {
-      final existing = state[existingIndex];
-      if (existing.status == RemoteDownloadStatus.completed) {
-        return existing;
-      }
-      if (existing.status == RemoteDownloadStatus.failed ||
-          existing.status == RemoteDownloadStatus.cancelled ||
-          existing.status == RemoteDownloadStatus.paused) {
-        retryTask(taskId);
-        return state.firstWhere((t) => t.id == taskId);
-      }
-      return existing;
-    }
-
-    // Check if target file already exists locally
-    final exists = await _checkFileExistsLocally(targetPath);
-    if (exists) {
-      int fileSize = 0;
-      try {
-        final targetFile = File(targetPath);
-        if (targetFile.existsSync()) {
-          fileSize = targetFile.lengthSync();
-        }
-      } catch (_) {}
-
-      final task = RemoteDownloadTask(
-        id: taskId,
-        server: server,
-        song: song,
-        trackId: actualTrackId,
-        downloadUrl: client.buildDownloadUrl(actualTrackId),
-        targetPath: targetPath,
-        status: RemoteDownloadStatus.completed,
-        bytesDownloaded: fileSize,
-        totalBytes: fileSize,
-        completedAt: DateTime.now(),
-      );
-      state = [task, ...state];
-      return task;
-    }
-
-    final downloadUrl = client.buildDownloadUrl(actualTrackId);
-    final task = RemoteDownloadTask(
-      id: taskId,
-      server: server,
-      song: song,
-      trackId: actualTrackId,
-      downloadUrl: downloadUrl,
-      targetPath: targetPath,
-      status: RemoteDownloadStatus.pending,
-    );
-
-    state = [...state, task];
-    _processQueue();
-    return task;
-  }
-
-  /// Enqueues multiple Subsonic tracks.
-  Future<List<RemoteDownloadTask>> enqueueSubsonicTracks({
-    required RemoteServer server,
-    required String password,
-    required List<MusicFile> songs,
-    String? collectionFolder,
-    bool groupByAlbum = true,
-  }) async {
-    // 取消后连目录可写性检查都不该再跑（没配目录时它会弹选择框）。
-    final progress = remoteTrackLoadProgress;
-    progress.throwIfCancelled();
-    final ready = await ensureDownloadFolderWritable();
-    if (!ready) return [];
-
-    final List<RemoteDownloadTask> enqueued = [];
-    progress.setStage(RemoteTrackLoadStage.queueing);
-    progress.setTotal(songs.length);
-    try {
-      for (final song in songs) {
-        progress.throwIfCancelled();
-        final task = await enqueueSubsonicTrack(
-          server: server,
-          password: password,
-          song: song,
-          skipWritableCheck: true,
-          collectionFolder: collectionFolder,
-          groupByAlbum: groupByAlbum,
-        );
-        if (task != null) {
-          enqueued.add(task);
-        }
-        progress.advance();
-      }
-    } on RemoteTrackLoadCancelled {
-      _discardEnqueued(enqueued);
-      rethrow;
-    }
-    return enqueued;
-  }
-
-  /// Enqueues a single Jellyfin track for download.
-  Future<RemoteDownloadTask?> enqueueJellyfinTrack({
-    required RemoteServer server,
-    required String password,
-    required MusicFile song,
-    String? trackId,
-    bool skipWritableCheck = false,
-    String? collectionFolder,
-    bool groupByAlbum = true,
-  }) async {
-    if (!skipWritableCheck) {
-      final ready = await ensureDownloadFolderWritable();
-      if (!ready) return null;
-    }
-
-    final client = JellyfinClient(server: server, password: password);
-    try {
-      await client.authenticate();
-    } catch (_) {}
-    final baseFolder = await getDownloadFolderPath();
-
-    final resolvedTrackId = trackId ??
-        RemoteMediaResolver.parseUri(song.path)?.trackIdOrPath ??
-        (song.id != null && song.id! > 0
-            ? song.id.toString()
-            : 'unknown_${song.path.hashCode}');
-
-    final targetPath = await buildLocalTrackPath(
-      song: song,
-      baseFolder: baseFolder,
-      server: server,
-      collectionFolder: collectionFolder,
-      groupByAlbum: groupByAlbum,
-    );
-
-    final taskId = 'jellyfin_${server.id}_$resolvedTrackId';
-
-    // If already in queue, don't duplicate
-    final existingIndex = state.indexWhere((t) => t.id == taskId);
-    if (existingIndex >= 0) {
-      final existing = state[existingIndex];
-      if (existing.status == RemoteDownloadStatus.completed) {
-        return existing;
-      }
-      if (existing.status == RemoteDownloadStatus.failed ||
-          existing.status == RemoteDownloadStatus.cancelled ||
-          existing.status == RemoteDownloadStatus.paused) {
-        retryTask(taskId);
-        return state.firstWhere((t) => t.id == taskId);
-      }
-      return existing;
-    }
-
-    // Check if target file already exists locally
-    final exists = await _checkFileExistsLocally(targetPath);
-    if (exists) {
-      int fileSize = 0;
-      try {
-        final targetFile = File(targetPath);
-        if (targetFile.existsSync()) {
-          fileSize = targetFile.lengthSync();
-        }
-      } catch (_) {}
-
-      final task = RemoteDownloadTask(
-        id: taskId,
-        server: server,
-        song: song,
-        trackId: resolvedTrackId,
-        downloadUrl: client.buildStreamUrl(resolvedTrackId),
-        targetPath: targetPath,
-        status: RemoteDownloadStatus.completed,
-        bytesDownloaded: fileSize,
-        totalBytes: fileSize,
-        completedAt: DateTime.now(),
-      );
-      state = [task, ...state];
-      return task;
-    }
-
-    final downloadUrl = client.buildStreamUrl(resolvedTrackId);
-    final task = RemoteDownloadTask(
-      id: taskId,
-      server: server,
-      song: song,
-      trackId: resolvedTrackId,
-      downloadUrl: downloadUrl,
-      targetPath: targetPath,
-      status: RemoteDownloadStatus.pending,
-    );
-
-    state = [...state, task];
-    _processQueue();
-    return task;
-  }
-
-  /// Enqueues multiple Jellyfin tracks.
-  Future<List<RemoteDownloadTask>> enqueueJellyfinTracks({
-    required RemoteServer server,
-    required String password,
-    required List<MusicFile> songs,
-    String? collectionFolder,
-    bool groupByAlbum = true,
-  }) async {
-    // 取消后连目录可写性检查都不该再跑（没配目录时它会弹选择框）。
-    final progress = remoteTrackLoadProgress;
-    progress.throwIfCancelled();
-    final ready = await ensureDownloadFolderWritable();
-    if (!ready) return [];
-
-    final List<RemoteDownloadTask> enqueued = [];
-    progress.setStage(RemoteTrackLoadStage.queueing);
-    progress.setTotal(songs.length);
-    try {
-      for (final song in songs) {
-        progress.throwIfCancelled();
-        final task = await enqueueJellyfinTrack(
-          server: server,
-          password: password,
-          song: song,
-          skipWritableCheck: true,
-          collectionFolder: collectionFolder,
-          groupByAlbum: groupByAlbum,
-        );
-        if (task != null) {
-          enqueued.add(task);
-        }
-        progress.advance();
-      }
-    } on RemoteTrackLoadCancelled {
-      _discardEnqueued(enqueued);
-      rethrow;
-    }
-    return enqueued;
-  }
-
-  /// Enqueues tracks for any structured remote server (Subsonic / Jellyfin).
+  /// 结构化媒体服务器（Subsonic / Jellyfin）唯一的入队入口。
   ///
-  /// [collectionFolder]：集合目录名。艺术家下载传艺术家名（下一层继续按专辑分），
-  /// 歌单下载传歌单名并把 [groupByAlbum] 置 false；专辑下载两者都不传，直接按专辑名落盘。
-  Future<List<RemoteDownloadTask>> enqueueRemoteTracks({
-    required RemoteServer server,
-    required String password,
-    required List<MusicFile> songs,
-    String? collectionFolder,
-    bool groupByAlbum = true,
-  }) async {
-    if (server.type == RemoteServerType.jellyfin) {
-      return enqueueJellyfinTracks(
-        server: server,
-        password: password,
-        songs: songs,
-        collectionFolder: collectionFolder,
-        groupByAlbum: groupByAlbum,
+  /// 落盘层级由 [RemoteDownloadRequest.batches] 里每一批的
+  /// [RemoteDownloadBatch.layout] 决定：调用方一次性描述「哪些曲目、按哪一层
+  /// 落盘」，service 不再替调用方猜。这样同一页面里单曲下载与勾选下载必然同构。
+  Future<List<RemoteDownloadTask>> enqueue(RemoteDownloadRequest request) async {
+    final source = _structuredSourceFor(request.server, request.password);
+    if (source == null) {
+      debugPrint(
+        '[RemoteDownload] 跳过入队：${request.server.type.name} 不是结构化媒体服务器',
       );
+      return const [];
     }
-    return enqueueSubsonicTracks(
-      server: server,
-      password: password,
-      songs: songs,
-      collectionFolder: collectionFolder,
-      groupByAlbum: groupByAlbum,
+
+    final batches = request.nonEmptyBatches;
+    if (batches.isEmpty) return const [];
+
+    // 取消后连目录可写性检查都不该再跑（没配目录时它会弹选择框）。
+    final progress = remoteTrackLoadProgress;
+    progress.throwIfCancelled();
+    final ready = await ensureDownloadFolderWritable();
+    if (!ready) return const [];
+
+    // 鉴权等一次性准备在整批里只做一次（原实现每首都要 authenticate）。
+    await source.prepare();
+
+    final created = <RemoteDownloadTask>[];
+    final all = <RemoteDownloadTask>[];
+    progress.setStage(RemoteTrackLoadStage.queueing);
+    progress.setTotal(request.songCount);
+    debugPrint(
+      '[RemoteDownload] 入队 ${request.songCount} 首 / ${batches.length} 批 '
+      '(${request.server.type.name}: ${request.server.name})',
     );
+    try {
+      for (final batch in batches) {
+        for (final song in batch.songs) {
+          progress.throwIfCancelled();
+          final result = await _enqueueStructuredTrack(
+            request: request,
+            source: source,
+            song: song,
+            layout: batch.layout,
+            collectionFolder: batch.collectionFolder,
+          );
+          all.add(result.task);
+          // 只记「本次新建」的任务：取消回滚时不能误删队列里早就下完的条目。
+          if (result.created) created.add(result.task);
+          progress.advance();
+        }
+      }
+    } on RemoteTrackLoadCancelled {
+      _discardEnqueued(created);
+      rethrow;
+    }
+    return all;
+  }
+
+  /// 单条结构化曲目的入队：去重 → 本地已存在检查 → 造任务 → 调度。
+  ///
+  /// 协议差异全部收敛在 [_StructuredDownloadSource] 里，Subsonic 与 Jellyfin
+  /// 共用这一条流程。
+  Future<({RemoteDownloadTask task, bool created})> _enqueueStructuredTrack({
+    required RemoteDownloadRequest request,
+    required _StructuredDownloadSource source,
+    required MusicFile song,
+    RemoteDownloadLayout layout = RemoteDownloadLayout.album,
+    String? collectionFolder,
+  }) async {
+    final baseFolder = await getDownloadFolderPath();
+    final trackId = source.resolveTrackId(song);
+    final targetPath = await buildLocalTrackPath(
+      song: song,
+      baseFolder: baseFolder,
+      server: request.server,
+      collectionFolder: collectionFolder,
+      layout: layout,
+    );
+    final taskId = '${source.taskIdPrefix}_${request.server.id}_$trackId';
+
+    // If already in queue, don't duplicate
+    final existingIndex = state.indexWhere((t) => t.id == taskId);
+    if (existingIndex >= 0) {
+      final existing = state[existingIndex];
+      if (existing.status == RemoteDownloadStatus.failed ||
+          existing.status == RemoteDownloadStatus.cancelled ||
+          existing.status == RemoteDownloadStatus.paused) {
+        retryTask(taskId);
+        return (
+          task: state.firstWhere((t) => t.id == taskId),
+          created: false,
+        );
+      }
+      return (task: existing, created: false);
+    }
+
+    final downloadUrl = source.buildDownloadUrl(trackId);
+
+    // Check if target file already exists locally
+    if (await _checkFileExistsLocally(targetPath)) {
+      int fileSize = 0;
+      try {
+        final targetFile = File(targetPath);
+        if (targetFile.existsSync()) {
+          fileSize = targetFile.lengthSync();
+        }
+      } catch (_) {}
+
+      final skipped = RemoteDownloadTask(
+        id: taskId,
+        server: request.server,
+        song: song,
+        trackId: trackId,
+        downloadUrl: downloadUrl,
+        targetPath: targetPath,
+        status: RemoteDownloadStatus.completed,
+        bytesDownloaded: fileSize,
+        totalBytes: fileSize,
+        completedAt: DateTime.now(),
+      );
+      debugPrint('[RemoteDownload] 本地已存在，跳过：$targetPath');
+      state = [skipped, ...state];
+      return (task: skipped, created: false);
+    }
+
+    final task = RemoteDownloadTask(
+      id: taskId,
+      server: request.server,
+      song: song,
+      trackId: trackId,
+      downloadUrl: downloadUrl,
+      targetPath: targetPath,
+      status: RemoteDownloadStatus.pending,
+    );
+
+    state = [...state, task];
+    _processQueue();
+    return (task: task, created: true);
+  }
+
+  /// 按服务器类型挑出协议适配器；WebDAV / SMB 走文件浏览器那条链路。
+  _StructuredDownloadSource? _structuredSourceFor(
+    RemoteServer server,
+    String password,
+  ) {
+    switch (server.type) {
+      case RemoteServerType.subsonic:
+        return _SubsonicDownloadSource(server, password);
+      case RemoteServerType.jellyfin:
+        return _JellyfinDownloadSource(server, password);
+      case RemoteServerType.webdav:
+      case RemoteServerType.smb:
+        return null;
+    }
   }
 
   /// Enqueues a WebDAV file for download.
@@ -1318,68 +1194,71 @@ final activeTotalSpeedProvider = Provider<double>((ref) {
       .fold(0.0, (sum, t) => sum + t.speedBytesPerSec);
 });
 
-/// Legacy wrapper for backwards compatibility
-final remoteDownloadServiceProvider = Provider<RemoteDownloadService>((ref) {
-  return RemoteDownloadService(ref);
-});
+/// 结构化媒体服务器的协议差异点。
+///
+/// 入队流程本身（去重、已存在检查、任务构造、并发调度、取消回滚）两种协议
+/// 完全一致，差异只有：任务 id 前缀、trackId 解析、下载 URL 构造，
+/// 以及 Jellyfin 需要在整批开始前鉴权一次。
+abstract class _StructuredDownloadSource {
+  /// 任务 id 前缀，只用于区分来源，不参与落盘路径。
+  String get taskIdPrefix;
 
-class RemoteDownloadService {
-  final Ref _ref;
-  RemoteDownloadService(this._ref);
+  /// 入队前的一次性准备。
+  Future<void> prepare() async {}
 
-  Future<String> getDownloadFolderPath() async {
-    return _ref.read(remoteDownloadTasksProvider.notifier).getDownloadFolderPath();
+  String resolveTrackId(MusicFile song);
+
+  String buildDownloadUrl(String trackId);
+
+  /// 远端路径里取不到 id 时的兜底，保证同一首歌在队列里稳定同一个 id。
+  static String fallbackTrackId(MusicFile song) =>
+      song.id != null && song.id! > 0
+          ? song.id.toString()
+          : 'unknown_${song.path.hashCode}';
+}
+
+class _SubsonicDownloadSource extends _StructuredDownloadSource {
+  _SubsonicDownloadSource(RemoteServer server, String password)
+      : _client = SubsonicClient(server: server, password: password);
+
+  final SubsonicClient _client;
+
+  @override
+  String get taskIdPrefix => 'subsonic';
+
+  @override
+  String resolveTrackId(MusicFile song) =>
+      RemoteMediaResolver.extractSubsonicTrackId(song) ??
+      _StructuredDownloadSource.fallbackTrackId(song);
+
+  @override
+  String buildDownloadUrl(String trackId) => _client.buildDownloadUrl(trackId);
+}
+
+class _JellyfinDownloadSource extends _StructuredDownloadSource {
+  _JellyfinDownloadSource(RemoteServer server, String password)
+      : _client = JellyfinClient(server: server, password: password);
+
+  final JellyfinClient _client;
+
+  @override
+  String get taskIdPrefix => 'jellyfin';
+
+  @override
+  Future<void> prepare() async {
+    try {
+      await _client.authenticate();
+    } catch (e) {
+      // 鉴权失败也继续：后续下载请求会带着会话缓存失败，错误会落到任务上。
+      debugPrint('[RemoteDownload] Jellyfin 鉴权失败：$e');
+    }
   }
 
-  Future<bool> downloadTrack({
-    required RemoteServer server,
-    required String password,
-    required MusicFile song,
-    required String trackId,
-  }) async {
-    final task = await _ref.read(remoteDownloadTasksProvider.notifier).enqueueSubsonicTrack(
-          server: server,
-          password: password,
-          song: song,
-          trackId: trackId,
-        );
-    return task != null;
-  }
+  @override
+  String resolveTrackId(MusicFile song) =>
+      RemoteMediaResolver.parseUri(song.path)?.trackIdOrPath ??
+      _StructuredDownloadSource.fallbackTrackId(song);
 
-  Future<void> downloadTracks({
-    required RemoteServer server,
-    required String password,
-    required List<MusicFile> songs,
-    String? collectionFolder,
-    bool groupByAlbum = true,
-  }) async {
-    await _ref.read(remoteDownloadTasksProvider.notifier).enqueueSubsonicTracks(
-          server: server,
-          password: password,
-          songs: songs,
-          collectionFolder: collectionFolder,
-          groupByAlbum: groupByAlbum,
-        );
-  }
-
-  Future<bool> downloadSmbFile({
-    required RemoteServer server,
-    required SmbFile file,
-  }) async {
-    final task = await _ref.read(remoteDownloadTasksProvider.notifier).enqueueSmbFile(
-          server: server,
-          file: file,
-        );
-    return task != null;
-  }
-
-  Future<void> downloadSmbFiles({
-    required RemoteServer server,
-    required List<SmbFile> files,
-  }) async {
-    await _ref.read(remoteDownloadTasksProvider.notifier).enqueueSmbFiles(
-          server: server,
-          files: files,
-        );
-  }
+  @override
+  String buildDownloadUrl(String trackId) => _client.buildStreamUrl(trackId);
 }

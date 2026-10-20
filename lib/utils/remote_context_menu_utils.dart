@@ -17,13 +17,12 @@ import '../player/remote/clients/smb_client.dart';
 import '../player/remote/proxy/remote_media_resolver.dart';
 import '../player/remote/remote_server_models.dart';
 import '../player/remote/remote_server_riverpod.dart';
-import '../pages/remote/remote_download_manager_page.dart';
 import '../player/remote/services/remote_download_service.dart';
 import '../player/remote/services/remote_track_load_progress.dart';
 import '../player/remote/services/remote_scan_root.dart';
 import '../player/remote/services/remote_directory_scanner.dart';
 import '../widgets/library_selection_scope.dart';
-import 'app_snack_bar.dart';
+import 'remote_download_feedback.dart';
 import 'song_context_menu_utils.dart';
 import '../widgets/app_context_menu.dart';
 
@@ -466,34 +465,18 @@ Future<void> _handleAlbumMenuSelection({
               ? songs
               : await _fetchAlbumTracks(client, server, albumId);
           if (list.isEmpty) return list;
-          await ref
-              .read(remoteDownloadTasksProvider.notifier)
-              .enqueueRemoteTracks(
-                server: server,
-                password: password,
-                songs: list,
+          await ref.read(remoteDownloadTasksProvider.notifier).enqueue(
+                RemoteDownloadRequest(
+                  server: server,
+                  password: password,
+                  songs: list,
+                ),
               );
           return list;
         },
       );
-      if (trackList != null && trackList.isNotEmpty && context.mounted) {
-        AppSnackBar.show(
-          context,
-          ref,
-          SnackBar(
-            content: Text(l10n.batchAddedToDownloadQueue(trackList.length)),
-            action: SnackBarAction(
-              label: l10n.viewDownloadProgress,
-              onPressed: () {
-                Navigator.of(context, rootNavigator: true).push(
-                  MaterialPageRoute(
-                    builder: (_) => const RemoteDownloadManagerPage(),
-                  ),
-                );
-              },
-            ),
-          ),
-        );
+      if (trackList != null && trackList.isNotEmpty) {
+        showRemoteDownloadQueuedFeedback(context, ref, trackList.length);
       }
       break;
     case 'view_details':
@@ -509,6 +492,10 @@ Future<void> _handleAlbumMenuSelection({
 }
 
 /// Shows context menu for a remote song.
+///
+/// [downloadLayout] / [downloadCollectionFolder] 描述曲目所在页面的目录维度
+/// （艺术家页传 artist + 艺术家名，歌单页传 playlist + 歌单名），
+/// 保证单曲下载的落盘结构与同页面批量下载一致。
 Future<void> showRemoteSongContextMenu({
   required BuildContext context,
   required Offset globalPosition,
@@ -520,6 +507,8 @@ Future<void> showRemoteSongContextMenu({
   VoidCallback? onViewAlbum,
   VoidCallback? onViewArtist,
   VoidCallback? onRemoveFromPlaylist,
+  RemoteDownloadLayout downloadLayout = RemoteDownloadLayout.album,
+  String? downloadCollectionFolder,
 }) async {
   final l10n = AppLocalizations.of(context)!;
   final client = RemoteMediaLibraryClient.create(server: server, password: password);
@@ -627,6 +616,8 @@ Future<void> showRemoteSongContextMenu({
       onViewAlbum: onViewAlbum,
       onViewArtist: onViewArtist,
       onRemoveFromPlaylist: onRemoveFromPlaylist,
+      downloadLayout: downloadLayout,
+      downloadCollectionFolder: downloadCollectionFolder,
     );
     return;
   }
@@ -730,6 +721,8 @@ Future<void> showRemoteSongContextMenu({
     onViewAlbum: onViewAlbum,
     onViewArtist: onViewArtist,
     onRemoveFromPlaylist: onRemoveFromPlaylist,
+    downloadLayout: downloadLayout,
+    downloadCollectionFolder: downloadCollectionFolder,
   );
 }
 
@@ -745,6 +738,8 @@ Future<void> _handleSongMenuSelection({
   VoidCallback? onViewAlbum,
   VoidCallback? onViewArtist,
   VoidCallback? onRemoveFromPlaylist,
+  RemoteDownloadLayout downloadLayout = RemoteDownloadLayout.album,
+  String? downloadCollectionFolder,
 }) async {
   final l10n = AppLocalizations.of(context)!;
   final audio = ref.read(audioServiceProvider);
@@ -781,31 +776,16 @@ Future<void> _handleSongMenuSelection({
       showToast(ok ? l10n.starredSuccess : l10n.starFailed);
       break;
     case 'download':
-      final notifier = ref.read(remoteDownloadTasksProvider.notifier);
-      await notifier.enqueueRemoteTracks(
-        server: server,
-        password: password,
-        songs: [song],
-      );
-      if (context.mounted) {
-        AppSnackBar.show(
-          context,
-          ref,
-          SnackBar(
-            content: Text(l10n.addedToDownloadQueue),
-            action: SnackBarAction(
-              label: l10n.viewDownloadProgress,
-              onPressed: () {
-                Navigator.of(context, rootNavigator: true).push(
-                  MaterialPageRoute(
-                    builder: (_) => const RemoteDownloadManagerPage(),
-                  ),
-                );
-              },
+      await ref.read(remoteDownloadTasksProvider.notifier).enqueue(
+            RemoteDownloadRequest(
+              server: server,
+              password: password,
+              songs: [song],
+              layout: downloadLayout,
+              collectionFolder: downloadCollectionFolder,
             ),
-          ),
-        );
-      }
+          );
+      showRemoteDownloadQueuedFeedback(context, ref, 1);
       break;
     case 'remove_from_playlist':
       onRemoveFromPlaylist?.call();
@@ -1115,35 +1095,20 @@ Future<void> _handleArtistMenuSelection({
         task: () async {
           final list = await _fetchArtistTracks(client, server, artistId);
           if (list.isEmpty) return list;
-          await ref
-              .read(remoteDownloadTasksProvider.notifier)
-              .enqueueRemoteTracks(
-                server: server,
-                password: password,
-                songs: list,
-                collectionFolder: artistName,
+          await ref.read(remoteDownloadTasksProvider.notifier).enqueue(
+                RemoteDownloadRequest(
+                  server: server,
+                  password: password,
+                  songs: list,
+                  layout: RemoteDownloadLayout.artist,
+                  collectionFolder: artistName,
+                ),
               );
           return list;
         },
       );
-      if (trackList != null && trackList.isNotEmpty && context.mounted) {
-        AppSnackBar.show(
-          context,
-          ref,
-          SnackBar(
-            content: Text(l10n.batchAddedToDownloadQueue(trackList.length)),
-            action: SnackBarAction(
-              label: l10n.viewDownloadProgress,
-              onPressed: () {
-                Navigator.of(context, rootNavigator: true).push(
-                  MaterialPageRoute(
-                    builder: (_) => const RemoteDownloadManagerPage(),
-                  ),
-                );
-              },
-            ),
-          ),
-        );
+      if (trackList != null && trackList.isNotEmpty) {
+        showRemoteDownloadQueuedFeedback(context, ref, trackList.length);
       }
       break;
     case 'view_details':
@@ -1438,36 +1403,20 @@ Future<void> _handlePlaylistMenuSelection({
               ? songs
               : await _fetchPlaylistTracks(client, server, playlistId);
           if (list.isEmpty) return list;
-          await ref
-              .read(remoteDownloadTasksProvider.notifier)
-              .enqueueRemoteTracks(
-                server: server,
-                password: password,
-                songs: list,
-                collectionFolder: playlistName,
-                groupByAlbum: false,
+          await ref.read(remoteDownloadTasksProvider.notifier).enqueue(
+                RemoteDownloadRequest(
+                  server: server,
+                  password: password,
+                  songs: list,
+                  layout: RemoteDownloadLayout.playlist,
+                  collectionFolder: playlistName,
+                ),
               );
           return list;
         },
       );
-      if (trackList != null && trackList.isNotEmpty && context.mounted) {
-        AppSnackBar.show(
-          context,
-          ref,
-          SnackBar(
-            content: Text(l10n.batchAddedToDownloadQueue(trackList.length)),
-            action: SnackBarAction(
-              label: l10n.viewDownloadProgress,
-              onPressed: () {
-                Navigator.of(context, rootNavigator: true).push(
-                  MaterialPageRoute(
-                    builder: (_) => const RemoteDownloadManagerPage(),
-                  ),
-                );
-              },
-            ),
-          ),
-        );
+      if (trackList != null && trackList.isNotEmpty) {
+        showRemoteDownloadQueuedFeedback(context, ref, trackList.length);
       }
       break;
     case 'rename':
@@ -1781,31 +1730,12 @@ Future<void> _handleWebDavFileMenuSelection({
       }
       break;
     case 'download':
-      final notifier = ref.read(remoteDownloadTasksProvider.notifier);
-      await notifier.enqueueWebDavFile(
-        server: server,
-        password: password,
-        file: file,
-      );
-      if (context.mounted) {
-        AppSnackBar.show(
-          context,
-          ref,
-          SnackBar(
-            content: Text(l10n.addedToDownloadQueue),
-            action: SnackBarAction(
-              label: l10n.viewDownloadProgress,
-              onPressed: () {
-                Navigator.of(context, rootNavigator: true).push(
-                  MaterialPageRoute(
-                    builder: (_) => const RemoteDownloadManagerPage(),
-                  ),
-                );
-              },
-            ),
-          ),
-        );
-      }
+      await ref.read(remoteDownloadTasksProvider.notifier).enqueueWebDavFile(
+            server: server,
+            password: password,
+            file: file,
+          );
+      showRemoteDownloadQueuedFeedback(context, ref, 1);
       break;
     case 'details':
       if (song != null && context.mounted) {
@@ -2288,31 +2218,12 @@ Future<void> _handleWebDavFolderMenuSelection({
           return;
         }
         if (context.mounted) {
-          final notifier = ref.read(remoteDownloadTasksProvider.notifier);
-          await notifier.enqueueWebDavFiles(
-            server: server,
-            password: password,
-            files: audioItems,
-          );
-          if (context.mounted) {
-            AppSnackBar.show(
-              context,
-              ref,
-              SnackBar(
-                content: Text(l10n.batchAddedToDownloadQueue(audioItems.length)),
-                action: SnackBarAction(
-                  label: l10n.viewDownloadProgress,
-                  onPressed: () {
-                    Navigator.of(context, rootNavigator: true).push(
-                      MaterialPageRoute(
-                        builder: (_) => const RemoteDownloadManagerPage(),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            );
-          }
+          await ref.read(remoteDownloadTasksProvider.notifier).enqueueWebDavFiles(
+                server: server,
+                password: password,
+                files: audioItems,
+              );
+          showRemoteDownloadQueuedFeedback(context, ref, audioItems.length);
         }
       } catch (e) {
         showToast(l10n.failedToLoadFolder(e.toString()));

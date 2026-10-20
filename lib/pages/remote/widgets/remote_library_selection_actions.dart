@@ -15,9 +15,9 @@ import '../../../player/remote/services/remote_track_load_progress.dart';
 import '../../../player/remote/remote_server_riverpod.dart';
 import '../../../utils/app_snack_bar.dart';
 import '../../../utils/remote_context_menu_utils.dart';
+import '../../../utils/remote_download_feedback.dart';
 import '../../../player/library/playlist_service.dart';
 import '../../../player/remote/proxy/remote_media_resolver.dart';
-import '../remote_download_manager_page.dart';
 
 class RemoteLibrarySelectionActions {
   static const String starredPlaylistId = '__navidrome_starred_songs__';
@@ -85,6 +85,100 @@ class RemoteLibrarySelectionActions {
     }
   }
 
+  /// 把当前勾选拉成一串「按集合分组」的曲目批次。
+  ///
+  /// 分组是下载落盘层级的唯一来源：勾了几个艺术家就出几个艺术家批次，
+  /// 勾了几个歌单就出几个歌单批次，每批各带自己的目录名。这样批量下载的
+  /// 目录结构与「同一页面里下载单曲」完全一致，也不会把多个艺术家的同名
+  /// 专辑混到一个目录里。
+  static Future<List<RemoteDownloadBatch>> fetchSelectedBatches({
+    required RemoteServer server,
+    required String password,
+    required bool isAlbumSelectionMode,
+    required bool isArtistSelectionMode,
+    required bool isPlaylistSelectionMode,
+    required bool isSongSelectionMode,
+    required Set<String> selectedAlbumIds,
+    required Set<String> selectedArtistIds,
+    required Set<String> selectedPlaylistIds,
+    required Set<String> selectedSongPaths,
+    List<MusicFile> searchedSongs = const [],
+    List<MusicFile>? songs,
+    Map<String, int> albumSongCounts = const {},
+    Map<String, String> artistNames = const {},
+    Map<String, String> playlistNames = const {},
+  }) async {
+    final client = RemoteMediaLibraryClient.create(
+      server: server,
+      password: password,
+    );
+    final progress = remoteTrackLoadProgress;
+    final batches = <RemoteDownloadBatch>[];
+    if (isAlbumSelectionMode) {
+      // 专辑列表项自带 songCount，几张加起来就是分母；每拉完一张专辑再
+      // 累加已加载数，这样「共 N 首、已加载 M 首」才有真实刻度。
+      var expectedTotal = 0;
+      for (final albumId in selectedAlbumIds) {
+        expectedTotal += albumSongCounts[albumId] ?? 0;
+      }
+      progress.addToTotal(expectedTotal);
+      for (final albumId in selectedAlbumIds) {
+        progress.throwIfCancelled();
+        final tracks =
+            await fetchSubsonicAlbumTracks(client, server, albumId);
+        if (tracks.isNotEmpty) {
+          batches.add(RemoteDownloadBatch(songs: tracks));
+        }
+        progress.advance(tracks.length);
+      }
+    } else if (isArtistSelectionMode) {
+      for (final artistId in selectedArtistIds) {
+        progress.throwIfCancelled();
+        final tracks =
+            await fetchSubsonicArtistTracks(client, server, artistId);
+        if (tracks.isNotEmpty) {
+          batches.add(
+            RemoteDownloadBatch(
+              songs: tracks,
+              layout: RemoteDownloadLayout.artist,
+              // 目录名跟着各自勾选的艺术家走；名字缺失时下载服务会逐曲回落到
+              // 专辑艺术家，不会把合辑拆散。
+              collectionFolder: artistNames[artistId],
+            ),
+          );
+        }
+      }
+    } else if (isPlaylistSelectionMode) {
+      // 歌单列表不带曲目数，拿不到分母，但已加载数照样往上走。
+      for (final playlistId in selectedPlaylistIds) {
+        progress.throwIfCancelled();
+        final tracks =
+            await fetchSubsonicPlaylistTracks(client, server, playlistId);
+        if (tracks.isNotEmpty) {
+          batches.add(
+            RemoteDownloadBatch(
+              songs: tracks,
+              layout: RemoteDownloadLayout.playlist,
+              collectionFolder: playlistNames[playlistId],
+            ),
+          );
+        }
+        progress.advance(tracks.length);
+      }
+    } else if (isSongSelectionMode) {
+      final pool = songs ?? searchedSongs;
+      final selected = [
+        for (final song in pool)
+          if (selectedSongPaths.contains(song.path)) song,
+      ];
+      if (selected.isNotEmpty) {
+        batches.add(RemoteDownloadBatch(songs: selected));
+      }
+    }
+    return batches;
+  }
+
+  /// 只要曲目本身（播放、加队列、收藏、转码这些不关心目录结构的动作）。
   static Future<List<MusicFile>> fetchSelectedSongs({
     required RemoteServer server,
     required String password,
@@ -100,52 +194,22 @@ class RemoteLibrarySelectionActions {
     List<MusicFile>? songs,
     Map<String, int> albumSongCounts = const {},
   }) async {
-    final client = RemoteMediaLibraryClient.create(
+    final batches = await fetchSelectedBatches(
       server: server,
       password: password,
+      isAlbumSelectionMode: isAlbumSelectionMode,
+      isArtistSelectionMode: isArtistSelectionMode,
+      isPlaylistSelectionMode: isPlaylistSelectionMode,
+      isSongSelectionMode: isSongSelectionMode,
+      selectedAlbumIds: selectedAlbumIds,
+      selectedArtistIds: selectedArtistIds,
+      selectedPlaylistIds: selectedPlaylistIds,
+      selectedSongPaths: selectedSongPaths,
+      searchedSongs: searchedSongs,
+      songs: songs,
+      albumSongCounts: albumSongCounts,
     );
-    final progress = remoteTrackLoadProgress;
-    final List<MusicFile> allSongs = [];
-    if (isAlbumSelectionMode) {
-      // 专辑列表项自带 songCount，几张加起来就是分母；每拉完一张专辑再
-      // 累加已加载数，这样「共 N 首、已加载 M 首」才有真实刻度。
-      var expectedTotal = 0;
-      for (final albumId in selectedAlbumIds) {
-        expectedTotal += albumSongCounts[albumId] ?? 0;
-      }
-      progress.addToTotal(expectedTotal);
-      for (final albumId in selectedAlbumIds) {
-        progress.throwIfCancelled();
-        final tracks =
-            await fetchSubsonicAlbumTracks(client, server, albumId);
-        allSongs.addAll(tracks);
-        progress.advance(tracks.length);
-      }
-    } else if (isArtistSelectionMode) {
-      for (final artistId in selectedArtistIds) {
-        progress.throwIfCancelled();
-        final tracks =
-            await fetchSubsonicArtistTracks(client, server, artistId);
-        allSongs.addAll(tracks);
-      }
-    } else if (isPlaylistSelectionMode) {
-      // 歌单列表不带曲目数，拿不到分母，但已加载数照样往上走。
-      for (final playlistId in selectedPlaylistIds) {
-        progress.throwIfCancelled();
-        final tracks =
-            await fetchSubsonicPlaylistTracks(client, server, playlistId);
-        allSongs.addAll(tracks);
-        progress.advance(tracks.length);
-      }
-    } else if (isSongSelectionMode) {
-      final pool = songs ?? searchedSongs;
-      for (final song in pool) {
-        if (selectedSongPaths.contains(song.path)) {
-          allSongs.add(song);
-        }
-      }
-    }
-    return allSongs;
+    return [for (final batch in batches) ...batch.songs];
   }
 
   static Future<void> playAlbumDirectly({
@@ -416,49 +480,31 @@ class RemoteLibrarySelectionActions {
     required WidgetRef ref,
     required RemoteServer server,
     required String password,
-    required Future<List<MusicFile>> Function() onFetchSongs,
+    required Future<List<RemoteDownloadBatch>> Function() onFetchBatches,
     required VoidCallback onClearSelection,
   }) async {
-    final l10n = AppLocalizations.of(context)!;
     try {
       // 勾选下载同样要先把曲目拉回来再入队，进度浮层跟着首数走。
-      final songs = await runWithRemoteTrackLoadProgress<List<MusicFile>>(
+      final batches = await runWithRemoteTrackLoadProgress<List<RemoteDownloadBatch>>(
         context: context,
         immediate: true,
         task: () async {
-          final list = await onFetchSongs();
+          final list = await onFetchBatches();
           if (list.isEmpty) return list;
-          await ref
-              .read(remoteDownloadTasksProvider.notifier)
-              .enqueueRemoteTracks(
-                server: server,
-                password: password,
-                songs: list,
+          await ref.read(remoteDownloadTasksProvider.notifier).enqueue(
+                RemoteDownloadRequest.grouped(
+                  server: server,
+                  password: password,
+                  batches: list,
+                ),
               );
           return list;
         },
       );
-      if (songs == null || songs.isEmpty) return;
+      if (batches == null || batches.isEmpty) return;
       onClearSelection();
-      if (context.mounted) {
-        AppSnackBar.show(
-          context,
-          ref,
-          SnackBar(
-            content: Text(l10n.batchAddedToDownloadQueue(songs.length)),
-            action: SnackBarAction(
-              label: l10n.viewDownloadProgress,
-              onPressed: () {
-                Navigator.of(context, rootNavigator: true).push(
-                  MaterialPageRoute(
-                    builder: (_) => const RemoteDownloadManagerPage(),
-                  ),
-                );
-              },
-            ),
-          ),
-        );
-      }
+      final count = batches.fold<int>(0, (sum, batch) => sum + batch.songs.length);
+      showRemoteDownloadQueuedFeedback(context, ref, count);
     } catch (e) {
       showToast(e.toString());
     }

@@ -18,8 +18,8 @@ import '../../l10n/app_localizations.dart';
 import '../../dialogs/remote_track_load_progress_dialog.dart';
 import '../../player/remote/services/remote_download_service.dart';
 import '../../player/remote/remote_library_navigation.dart';
-import '../../utils/app_snack_bar.dart';
 import '../../utils/remote_context_menu_utils.dart';
+import '../../utils/remote_download_feedback.dart';
 import '../../widgets/library_selection_panel.dart';
 import '../../widgets/library_selection_scope.dart';
 import 'remote_download_manager_page.dart';
@@ -836,45 +836,29 @@ class _RemoteArtistDetailContentState
                                                       .read(
                                                           remoteDownloadTasksProvider
                                                               .notifier)
-                                                      .enqueueRemoteTracks(
-                                                        server: widget.server,
-                                                        password:
-                                                            widget.password,
-                                                        songs: _allSongs,
-                                                        collectionFolder:
-                                                            widget.artistName,
+                                                      .enqueue(
+                                                        RemoteDownloadRequest(
+                                                          server:
+                                                              widget.server,
+                                                          password: widget
+                                                              .password,
+                                                          songs: _allSongs,
+                                                          layout:
+                                                              RemoteDownloadLayout
+                                                                  .artist,
+                                                          collectionFolder: widget
+                                                              .artistName,
+                                                        ),
                                                       );
                                                   return true;
                                                 },
                                               );
                                               if (queued != true) return;
-                                              if (context.mounted) {
-                                                AppSnackBar.show(
-                                                  context,
-                                                  ref,
-                                                  SnackBar(
-                                                    content: Text(
-                                                      l10n.batchAddedToDownloadQueue(
-                                                          _allSongs.length),
-                                                    ),
-                                                    action: SnackBarAction(
-                                                      label: l10n
-                                                          .viewDownloadProgress,
-                                                      onPressed: () {
-                                                        Navigator.of(context,
-                                                                rootNavigator:
-                                                                    true)
-                                                            .push(
-                                                          MaterialPageRoute(
-                                                            builder: (_) =>
-                                                                const RemoteDownloadManagerPage(),
-                                                          ),
-                                                        );
-                                                      },
-                                                    ),
-                                                  ),
-                                                );
-                                              }
+                                              showRemoteDownloadQueuedFeedback(
+                                                context,
+                                                ref,
+                                                _allSongs.length,
+                                              );
                                             },
                                             tooltip: l10n.download,
                                             style: IconButton.styleFrom(
@@ -1050,45 +1034,29 @@ class _RemoteArtistDetailContentState
                                         OutlinedButton.icon(
                                           onPressed: _allSongs.isNotEmpty
                                               ? () async {
-                                                  final notifier = ref.read(
-                                                      remoteDownloadTasksProvider
-                                                          .notifier);
-                                                  await notifier
-                                                      .enqueueRemoteTracks(
-                                                    server: widget.server,
-                                                    password: widget.password,
-                                                    songs: _allSongs,
-                                                    collectionFolder:
-                                                        widget.artistName,
+                                                  await ref
+                                                      .read(
+                                                          remoteDownloadTasksProvider
+                                                              .notifier)
+                                                      .enqueue(
+                                                        RemoteDownloadRequest(
+                                                          server:
+                                                              widget.server,
+                                                          password: widget
+                                                              .password,
+                                                          songs: _allSongs,
+                                                          layout:
+                                                              RemoteDownloadLayout
+                                                                  .artist,
+                                                          collectionFolder: widget
+                                                              .artistName,
+                                                        ),
+                                                      );
+                                                  showRemoteDownloadQueuedFeedback(
+                                                    context,
+                                                    ref,
+                                                    _allSongs.length,
                                                   );
-                                                  if (context.mounted) {
-                                                    AppSnackBar.show(
-                                                      context,
-                                                      ref,
-                                                      SnackBar(
-                                                        content: Text(
-                                                          l10n.batchAddedToDownloadQueue(
-                                                              _allSongs
-                                                                  .length),
-                                                        ),
-                                                        action: SnackBarAction(
-                                                          label: l10n
-                                                              .viewDownloadProgress,
-                                                          onPressed: () {
-                                                            Navigator.of(context,
-                                                                    rootNavigator:
-                                                                        true)
-                                                                .push(
-                                                              MaterialPageRoute(
-                                                                builder: (_) =>
-                                                                    const RemoteDownloadManagerPage(),
-                                                              ),
-                                                            );
-                                                          },
-                                                        ),
-                                                      ),
-                                                    );
-                                                  }
                                                 }
                                               : null,
                                           icon: const Icon(
@@ -1247,33 +1215,17 @@ class _RemoteArtistDetailContentState
             onDownload: () async {
               final sel = List<MusicFile>.from(selectedSongs);
               if (sel.isEmpty) return;
-              final notifier = ref.read(remoteDownloadTasksProvider.notifier);
-              await notifier.enqueueRemoteTracks(
-                server: widget.server,
-                password: widget.password,
-                songs: sel,
-                collectionFolder: widget.artistName,
-              );
-              cancelSongSelection();
-              if (context.mounted) {
-                AppSnackBar.show(
-                  context,
-                  ref,
-                  SnackBar(
-                    content: Text(l10n.batchAddedToDownloadQueue(sel.length)),
-                    action: SnackBarAction(
-                      label: l10n.viewDownloadProgress,
-                      onPressed: () {
-                        Navigator.of(context, rootNavigator: true).push(
-                          MaterialPageRoute(
-                            builder: (_) => const RemoteDownloadManagerPage(),
-                          ),
-                        );
-                      },
+              await ref.read(remoteDownloadTasksProvider.notifier).enqueue(
+                    RemoteDownloadRequest(
+                      server: widget.server,
+                      password: widget.password,
+                      songs: sel,
+                      layout: RemoteDownloadLayout.artist,
+                      collectionFolder: widget.artistName,
                     ),
-                  ),
-                );
-              }
+                  );
+              cancelSongSelection();
+              showRemoteDownloadQueuedFeedback(context, ref, sel.length);
             },
           ),
         ),
@@ -1502,6 +1454,8 @@ class _RemoteArtistDetailContentState
         password: widget.password,
         song: song,
         playlist: playlist,
+        downloadLayout: RemoteDownloadLayout.artist,
+        downloadCollectionFolder: widget.artistName,
         onViewAlbum: albumSection != null
             ? () {
                 RemoteLibraryNavUtils.openAlbum(

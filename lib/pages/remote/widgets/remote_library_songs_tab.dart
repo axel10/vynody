@@ -8,15 +8,14 @@ import '../../../player/audio/playback_source.dart';
 import '../../../player/remote/proxy/remote_media_resolver.dart';
 import '../../../player/remote/remote_server_models.dart';
 import '../../../player/remote/services/remote_download_service.dart';
-import '../../../utils/app_snack_bar.dart';
 import '../../../utils/remote_context_menu_utils.dart';
+import '../../../utils/remote_download_feedback.dart';
 import '../../../utils/selection_utils.dart';
 import '../../../utils/song_locator_helper.dart';
 import '../../../widgets/playing_equalizer_icon.dart';
 import '../../../widgets/remote_artwork_widget.dart';
 import '../../../widgets/draggable_song_item.dart';
 import '../../../player/remote/remote_library_navigation.dart';
-import '../remote_download_manager_page.dart';
 import 'remote_library_common_widgets.dart';
 import 'remote_library_toolbar_widgets.dart';
 
@@ -284,7 +283,6 @@ class _RemoteLibrarySongsViewState
 
   Future<void> _downloadAll() async {
     if (widget.songs.isEmpty) return;
-    final l10n = AppLocalizations.of(context)!;
 
     // 整库下载可能要入队上千首，逐首入队期间用进度浮层报数。
     // null = 用户在浮层里点了取消，这时不该再报「已加入 N 首」。
@@ -292,35 +290,19 @@ class _RemoteLibrarySongsViewState
       context: context,
       immediate: true,
       task: () async {
-        await ref.read(remoteDownloadTasksProvider.notifier).enqueueSubsonicTracks(
-              server: widget.server,
-              password: widget.password,
-              songs: widget.songs,
+        await ref.read(remoteDownloadTasksProvider.notifier).enqueue(
+              RemoteDownloadRequest(
+                server: widget.server,
+                password: widget.password,
+                songs: widget.songs,
+              ),
             );
         return true;
       },
     );
     if (queued != true) return;
 
-    if (mounted) {
-      AppSnackBar.show(
-        context,
-        ref,
-        SnackBar(
-          content: Text(l10n.batchAddedToDownloadQueue(widget.songs.length)),
-          action: SnackBarAction(
-            label: l10n.viewDownloadProgress,
-            onPressed: () {
-              Navigator.of(context, rootNavigator: true).push(
-                MaterialPageRoute(
-                  builder: (_) => const RemoteDownloadManagerPage(),
-                ),
-              );
-            },
-          ),
-        ),
-      );
-    }
+    showRemoteDownloadQueuedFeedback(context, ref, widget.songs.length);
   }
 
   Widget _buildHeader(BuildContext context, BoxConstraints constraints) {

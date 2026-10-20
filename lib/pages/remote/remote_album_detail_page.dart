@@ -20,9 +20,9 @@ import '../../widgets/draggable_song_item.dart';
 import '../../l10n/app_localizations.dart';
 import '../../player/remote/services/remote_download_service.dart';
 import '../../player/remote/remote_library_navigation.dart';
-import '../../utils/app_snack_bar.dart';
 import '../../utils/layout_constants.dart';
 import '../../utils/remote_context_menu_utils.dart';
+import '../../utils/remote_download_feedback.dart';
 import '../../widgets/library_selection_panel.dart';
 import '../../widgets/library_selection_scope.dart';
 import 'remote_download_manager_page.dart';
@@ -429,39 +429,18 @@ class _RemoteAlbumDetailPageState
                   context: context,
                   immediate: true,
                   task: () async {
-                    await ref
-                        .read(remoteDownloadTasksProvider.notifier)
-                        .enqueueRemoteTracks(
-                          server: widget.server,
-                          password: widget.password,
-                          songs: _tracks,
+                    await ref.read(remoteDownloadTasksProvider.notifier).enqueue(
+                          RemoteDownloadRequest(
+                            server: widget.server,
+                            password: widget.password,
+                            songs: _tracks,
+                          ),
                         );
                     return true;
                   },
                 );
                 if (queued != true) return;
-                if (context.mounted) {
-                  AppSnackBar.show(
-                    context,
-                    ref,
-                    SnackBar(
-                      content: Text(
-                        l10n.batchAddedToDownloadQueue(_tracks.length),
-                      ),
-                      action: SnackBarAction(
-                        label: l10n.viewDownloadProgress,
-                        onPressed: () {
-                          Navigator.of(context, rootNavigator: true).push(
-                            MaterialPageRoute(
-                              builder: (_) =>
-                                  const RemoteDownloadManagerPage(),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  );
-                }
+                showRemoteDownloadQueuedFeedback(context, ref, _tracks.length);
               }
             : null,
         icon: const Icon(Icons.download_rounded, size: 18),
@@ -946,10 +925,12 @@ class _RemoteAlbumDetailPageState
                     task: () async {
                       await ref
                           .read(remoteDownloadTasksProvider.notifier)
-                          .enqueueRemoteTracks(
-                            server: widget.server,
-                            password: widget.password,
-                            songs: sel,
+                          .enqueue(
+                            RemoteDownloadRequest(
+                              server: widget.server,
+                              password: widget.password,
+                              songs: sel,
+                            ),
                           );
                       return true;
                     },
@@ -957,29 +938,7 @@ class _RemoteAlbumDetailPageState
                   // 取消时保留选中状态，方便用户直接重试。
                   if (queued != true) return;
                   cancelSongSelection();
-                  if (context.mounted) {
-                    AppSnackBar.show(
-                      context,
-                      ref,
-                      SnackBar(
-                        content: Text(
-                          l10n.batchAddedToDownloadQueue(sel.length),
-                        ),
-                        action: SnackBarAction(
-                          label: l10n.viewDownloadProgress,
-                          onPressed: () {
-                            Navigator.of(context, rootNavigator: true)
-                                .push(
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    const RemoteDownloadManagerPage(),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    );
-                  }
+                  showRemoteDownloadQueuedFeedback(context, ref, sel.length);
                 },
               ),
             ),
