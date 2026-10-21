@@ -263,6 +263,10 @@
   "@songNotInScannedFolders": {
     "description": "Toast message shown when the current song cannot be found in scanned directories"
   },
+  "remoteAlbumUnavailable": "无法定位到该歌曲的专辑，可能已被移除或服务器不可用",
+  "@remoteAlbumUnavailable": {
+    "description": "Toast message shown when the album of the currently playing remote song cannot be resolved"
+  },
   "queue": "队列",
   "@queue": {
     "description": "Queue"

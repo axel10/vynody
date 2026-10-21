@@ -80,6 +80,7 @@
   "queueCleared": "キューをクリアしました",
   "locateCurrentSong": "現在の曲を探す",
   "songNotInScannedFolders": "現在の曲はスキャンされたディレクトリにありません",
+  "remoteAlbumUnavailable": "この曲のアルバムが見つかりませんでした。削除されたか、サーバーに接続できない可能性があります。",
   "queue": "キュー",
   "queueEmpty": "キューは空です",
   "selectedSongs": "{count}曲選択中",

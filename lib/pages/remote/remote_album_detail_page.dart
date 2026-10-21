@@ -29,6 +29,7 @@ import 'remote_download_manager_page.dart';
 import 'widgets/remote_library_selection_actions.dart';
 import '../../utils/song_locator_helper.dart';
 import '../../widgets/auto_hide_header.dart';
+import '../../widgets/locate_song_button.dart';
 
 class RemoteAlbumDetailPage extends ConsumerStatefulWidget {
   final RemoteServer server;
@@ -484,8 +485,7 @@ class _RemoteAlbumDetailPageState
     ];
 
     final navActions = [
-      IconButton(
-        icon: const Icon(Icons.my_location_rounded, size: 20),
+      LocateSongIconButton(
         tooltip: l10n.locateCurrentSong,
         onPressed: _locateCurrentSong,
       ),

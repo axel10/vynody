@@ -80,6 +80,7 @@
   "queueCleared": "Cola vaciada",
   "locateCurrentSong": "Localizar canción actual",
   "songNotInScannedFolders": "La canción actual no está en los directorios escaneados",
+  "remoteAlbumUnavailable": "No se pudo localizar el álbum de esta canción. Puede que se haya eliminado o que el servidor no esté disponible.",
   "queue": "Cola",
   "queueEmpty": "La cola está vacía",
   "selectedSongs": "{count} canciones seleccionadas",

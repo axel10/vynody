@@ -501,6 +501,12 @@ abstract class AppLocalizations {
   /// **'当前歌曲不在扫描的目录中'**
   String get songNotInScannedFolders;
 
+  /// Toast message shown when the album of the currently playing remote song cannot be resolved
+  ///
+  /// In zh, this message translates to:
+  /// **'无法定位到该歌曲的专辑，可能已被移除或服务器不可用'**
+  String get remoteAlbumUnavailable;
+
   /// Queue
   ///
   /// In zh, this message translates to:

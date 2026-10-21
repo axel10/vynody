@@ -80,6 +80,7 @@
   "queueCleared": "Warteschlange geleert",
   "locateCurrentSong": "Aktuellen Song suchen",
   "songNotInScannedFolders": "Aktueller Song befindet sich nicht in gescannten Verzeichnissen",
+  "remoteAlbumUnavailable": "Das Album dieses Songs konnte nicht gefunden werden. Es wurde möglicherweise entfernt oder der Server ist nicht erreichbar.",
   "queue": "Warteschlange",
   "queueEmpty": "Warteschlange ist leer",
   "selectedSongs": "{count} Songs ausgewählt",

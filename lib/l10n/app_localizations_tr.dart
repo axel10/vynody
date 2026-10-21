@@ -215,6 +215,10 @@ class AppLocalizationsTr extends AppLocalizations {
       'Şu an çalan şarkı taranan dizinlerde yok';
 
   @override
+  String get remoteAlbumUnavailable =>
+      'Bu şarkının albümü bulunamadı. Kaldırılmış veya sunucuya ulaşılamıyor olabilir.';
+
+  @override
   String get queue => 'Sıra';
 
   @override

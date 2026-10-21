@@ -210,6 +210,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get songNotInScannedFolders => '현재 노래가 검색된 디렉토리에 없습니다';
 
   @override
+  String get remoteAlbumUnavailable =>
+      '이 곡의 앨범을 찾을 수 없습니다. 삭제되었거나 서버에 연결할 수 없을 수 있습니다.';
+
+  @override
   String get queue => '대기열';
 
   @override

@@ -9,6 +9,7 @@ import 'package:vynody/player/settings/settings_service.dart';
 import 'package:vynody/utils/song_locator_helper.dart';
 import 'folder_nav_bar_scaffold.dart';
 import 'folder_scan_widgets.dart';
+import 'locate_song_button.dart';
 export 'folder_nav_bar_scaffold.dart';
 
 class FolderHeaderNavBar extends ConsumerWidget {
@@ -232,15 +233,9 @@ class FolderHeaderNavBar extends ConsumerWidget {
         children: [
           FolderScanSpinner(style: style),
           if (currentMusic != null) ...[
-            FolderNavIconButton(
+            LocateSongNavButton(
               style: style,
               tooltip: l10n.locateCurrentSong,
-              icon: Icon(
-                Icons.my_location_rounded,
-                size: 20,
-                color: style.iconColor,
-                shadows: style.shadows,
-              ),
               onPressed: () => _handleLocate(ref, context),
             ),
           ],

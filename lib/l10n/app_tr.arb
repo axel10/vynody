@@ -77,6 +77,7 @@
   "queueCleared": "Sıra temizlendi",
   "locateCurrentSong": "Şu An Çalanı Bul",
   "songNotInScannedFolders": "Şu an çalan şarkı taranan dizinlerde yok",
+  "remoteAlbumUnavailable": "Bu şarkının albümü bulunamadı. Kaldırılmış veya sunucuya ulaşılamıyor olabilir.",
   "queue": "Sıra",
   "queueEmpty": "Sıra boş",
   "selectedSongs": "{count} şarkı seçildi",

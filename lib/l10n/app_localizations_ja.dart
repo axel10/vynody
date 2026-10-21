@@ -211,6 +211,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get songNotInScannedFolders => '現在の曲はスキャンされたディレクトリにありません';
 
   @override
+  String get remoteAlbumUnavailable =>
+      'この曲のアルバムが見つかりませんでした。削除されたか、サーバーに接続できない可能性があります。';
+
+  @override
   String get queue => 'キュー';
 
   @override

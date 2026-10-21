@@ -209,6 +209,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get songNotInScannedFolders => '当前歌曲不在扫描的目录中';
 
   @override
+  String get remoteAlbumUnavailable => '无法定位到该歌曲的专辑，可能已被移除或服务器不可用';
+
+  @override
   String get queue => '队列';
 
   @override
@@ -5564,6 +5567,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get songNotInScannedFolders => '目前歌曲不在掃描的目錄中';
+
+  @override
+  String get remoteAlbumUnavailable => '無法定位到該歌曲的專輯，可能已被移除或伺服器無法使用';
 
   @override
   String get queue => '佇列';

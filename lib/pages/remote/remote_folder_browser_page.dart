@@ -36,6 +36,7 @@ import '../../widgets/folder_content_slivers.dart';
 import '../../widgets/mini_player_wrapper.dart';
 import '../../widgets/song_thumbnail.dart';
 import '../../widgets/default_cover_art.dart';
+import '../../widgets/locate_song_button.dart';
 import 'remote_download_manager_page.dart';
 import 'widgets/webdav_content_slivers.dart';
 import '../../utils/selection_utils.dart';
@@ -2025,15 +2026,9 @@ class _RemoteFolderBrowserPageState
         children: [
           FolderScanSpinner(style: style),
           if (currentMusic != null) ...[
-            FolderNavIconButton(
+            LocateSongNavButton(
               style: style,
               tooltip: l10n.locateCurrentSong,
-              icon: Icon(
-                Icons.my_location_rounded,
-                size: 20,
-                color: style.iconColor,
-                shadows: style.shadows,
-              ),
               onPressed: _locateCurrentSong,
             ),
           ],

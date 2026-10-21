@@ -80,6 +80,7 @@
   "queueCleared": "File d'attente vidée",
   "locateCurrentSong": "Localiser la chanson actuelle",
   "songNotInScannedFolders": "La chanson actuelle n'est pas dans les répertoires analysés",
+  "remoteAlbumUnavailable": "Impossible de localiser l'album de cette chanson. Il a peut-être été supprimé ou le serveur est injoignable.",
   "queue": "File d'attente",
   "queueEmpty": "La file d'attente est vide",
   "selectedSongs": "{count} chansons sélectionnées",

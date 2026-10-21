@@ -217,6 +217,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'La chanson actuelle n\'est pas dans les répertoires analysés';
 
   @override
+  String get remoteAlbumUnavailable =>
+      'Impossible de localiser l\'album de cette chanson. Il a peut-être été supprimé ou le serveur est injoignable.';
+
+  @override
   String get queue => 'File d\'attente';
 
   @override

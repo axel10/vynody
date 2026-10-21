@@ -83,6 +83,7 @@
   "queueCleared": "Queue cleared",
   "locateCurrentSong": "Locate Current Song",
   "songNotInScannedFolders": "Current song is not in the scanned directories",
+  "remoteAlbumUnavailable": "Unable to locate the album for this song. It may have been removed or the server is unreachable.",
   "queue": "Queue",
   "queueEmpty": "Queue is empty",
   "selectedSongs": "{count} songs selected",
