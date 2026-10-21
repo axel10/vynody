@@ -292,11 +292,13 @@ class _StaticBlurredArtworkState extends State<StaticBlurredArtwork>
   /// 「背景闪一下」；这里保留上一张并做一次短暂交叉淡化。
   ui.Image? _outgoingImage;
 
-  late final AnimationController _crossFade = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 260),
-    value: 1.0,
-  );
+  /// 必须在 [initState] 里创建，不能写成 `late final` 的延迟初始化。
+  ///
+  /// 只显示过一张位图（从未交叉淡化）的实例，若沿用延迟初始化，`dispose()` 里
+  /// 的 `_crossFade.dispose()` 会成为第一次求值：此时 element 已 deactivate，
+  /// `createTicker` 去查 `TickerMode` 祖先会触发
+  /// 「Looking up a deactivated widget's ancestor is unsafe」。
+  late final AnimationController _crossFade;
 
   /// 当前展示的位图对应的缓存 key，用于丢弃过期的异步结果。
   String? _activeKey;
@@ -314,6 +316,11 @@ class _StaticBlurredArtworkState extends State<StaticBlurredArtwork>
   @override
   void initState() {
     super.initState();
+    _crossFade = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 260),
+      value: 1.0,
+    );
     _trace(
       'init key=${widget.key} song=${widget.songKey} '
       'bytes=${widget.cachedBytes?.length ?? 0} path=${widget.artworkPath}',
