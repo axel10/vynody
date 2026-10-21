@@ -100,6 +100,9 @@ class BlurredArtworkRasterizer {
       }
 
       if (bytes == null || bytes.isEmpty) {
+        if (kDebugMode) {
+          debugPrint('[BgFlash] rasterize abort: no bytes (key=$key)');
+        }
         return null;
       }
 
@@ -190,6 +193,9 @@ class BlurredArtworkRasterizer {
     if (_cache.containsKey(key)) {
       final old = _cache.remove(key);
       if (old != image) {
+        if (kDebugMode) {
+          debugPrint('[BgFlash] rasterizer replace key=$key (dispose old)');
+        }
         old?.dispose();
       }
     }
@@ -197,6 +203,9 @@ class BlurredArtworkRasterizer {
     while (_cache.length >= _maxCacheEntries) {
       final firstKey = _cache.keys.first;
       final evicted = _cache.remove(firstKey);
+      if (kDebugMode) {
+        debugPrint('[BgFlash] rasterizer evict $firstKey (capacity)');
+      }
       evicted?.dispose();
     }
 
@@ -272,8 +281,22 @@ class StaticBlurredArtwork extends StatefulWidget {
   State<StaticBlurredArtwork> createState() => _StaticBlurredArtworkState();
 }
 
-class _StaticBlurredArtworkState extends State<StaticBlurredArtwork> {
+class _StaticBlurredArtworkState extends State<StaticBlurredArtwork>
+    with SingleTickerProviderStateMixin {
   ui.Image? _blurredImage;
+
+  /// 交叉淡化时垫在下方的上一张位图。
+  ///
+  /// 同一首歌换封面源（如「服务器封面」→「缓存文件内嵌封面」）会得到不同的缓存
+  /// key，两张图内容并不相同。直接换 [RawImage] 的 image 是硬切，观感上就是
+  /// 「背景闪一下」；这里保留上一张并做一次短暂交叉淡化。
+  ui.Image? _outgoingImage;
+
+  late final AnimationController _crossFade = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 260),
+    value: 1.0,
+  );
 
   /// 当前展示的位图对应的缓存 key，用于丢弃过期的异步结果。
   String? _activeKey;
@@ -282,9 +305,19 @@ class _StaticBlurredArtworkState extends State<StaticBlurredArtwork> {
   Uint8List? _fingerprintSource;
   String? _fingerprintValue;
 
+  void _trace(String message) {
+    if (kDebugMode) {
+      debugPrint('[BgFlash] blurred artwork | $message');
+    }
+  }
+
   @override
   void initState() {
     super.initState();
+    _trace(
+      'init key=${widget.key} song=${widget.songKey} '
+      'bytes=${widget.cachedBytes?.length ?? 0} path=${widget.artworkPath}',
+    );
     _loadBlurredImage();
   }
 
@@ -295,6 +328,17 @@ class _StaticBlurredArtworkState extends State<StaticBlurredArtwork> {
         widget.cachedBytes != oldWidget.cachedBytes ||
         widget.artworkPath != oldWidget.artworkPath ||
         widget.blurSigma != oldWidget.blurSigma) {
+      if (kDebugMode) {
+        final reasons = <String>[
+          if (widget.songKey != oldWidget.songKey) 'songKey',
+          if (widget.cachedBytes != oldWidget.cachedBytes)
+            'bytes(${oldWidget.cachedBytes?.length ?? 0}->'
+                '${widget.cachedBytes?.length ?? 0})',
+          if (widget.artworkPath != oldWidget.artworkPath) 'artworkPath',
+          if (widget.blurSigma != oldWidget.blurSigma) 'sigma',
+        ];
+        _trace('update ${reasons.join(",")} song=${widget.songKey}');
+      }
       _loadBlurredImage();
     }
   }
@@ -339,19 +383,15 @@ class _StaticBlurredArtworkState extends State<StaticBlurredArtwork> {
 
     final cached = BlurredArtworkRasterizer.instance.getCached(key);
     if (cached != null) {
-      if (_blurredImage != cached) {
-        if (mounted) {
-          setState(() {
-            _blurredImage = cached;
-          });
-        } else {
-          _blurredImage = cached;
-        }
-      }
+      _trace('cache hit key=$key shown=${identityHashCode(_blurredImage)} '
+          '-> ${identityHashCode(cached)}');
+      _applyImage(cached);
       return;
     }
 
-    // 缓存未命中时异步生成
+    _trace('cache miss key=$key (start rasterize)');
+    // 缓存未命中时异步生成。注意这里**不清空** _blurredImage：
+    // 新位图就绪前继续显示上一张，否则会露出一帧黑色 fallback。
     BlurredArtworkRasterizer.instance
         .getOrRasterize(
       key: key,
@@ -360,11 +400,49 @@ class _StaticBlurredArtworkState extends State<StaticBlurredArtwork> {
       blurSigma: widget.blurSigma,
     )
         .then((image) {
-      if (!mounted || _activeKey != key) return;
-      setState(() {
-        _blurredImage = image;
-      });
+      if (!mounted || _activeKey != key) {
+        _trace('discard stale result key=$key');
+        return;
+      }
+      _trace('apply key=$key image=${identityHashCode(image)}');
+      _applyImage(image);
     });
+  }
+
+  void _applyImage(ui.Image? image) {
+    if (image == null || identical(image, _blurredImage)) return;
+
+    if (_blurredImage == null) {
+      // 该层首次拿到位图，由外层层淡入负责过渡，无需交叉淡化。
+      setState(() => _blurredImage = image);
+      return;
+    }
+
+    setState(() {
+      _outgoingImage = _blurredImage;
+      _blurredImage = image;
+    });
+
+    _crossFade.forward(from: 0).then((_) {
+      if (!mounted || _outgoingImage == null) return;
+      setState(() => _outgoingImage = null);
+    });
+  }
+
+  @override
+  void dispose() {
+    _crossFade.dispose();
+    super.dispose();
+  }
+
+  Widget _buildImage(ui.Image image) {
+    return RawImage(
+      image: image,
+      width: double.infinity,
+      height: double.infinity,
+      fit: BoxFit.cover,
+      filterQuality: FilterQuality.low,
+    );
   }
 
   @override
@@ -374,12 +452,17 @@ class _StaticBlurredArtworkState extends State<StaticBlurredArtwork> {
       return widget.fallback;
     }
 
-    return RawImage(
-      image: image,
-      width: double.infinity,
-      height: double.infinity,
-      fit: BoxFit.cover,
-      filterQuality: FilterQuality.low,
+    final outgoing = _outgoingImage;
+    if (outgoing == null) {
+      return _buildImage(image);
+    }
+
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        _buildImage(outgoing),
+        FadeTransition(opacity: _crossFade, child: _buildImage(image)),
+      ],
     );
   }
 }

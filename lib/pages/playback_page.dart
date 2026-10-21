@@ -84,6 +84,10 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
   final Map<String, Uint8List> _fileArtworkBytesCache = {};
   final Set<String> _loadingPaths = {};
 
+  /// 背景封面输入快照，用于只在「真正变化」时打一条 `[BgFlash]` 日志，
+  /// 避免页面每帧重建把日志刷屏。定位背景闪烁用，可随问题关闭一起删掉。
+  String? _lastBackgroundLogSignature;
+
   late final AnimationController _dismissAnimController;
   Animation<double>? _dismissAnimation;
   double _dragOffsetY = 0.0;
@@ -1846,6 +1850,19 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
                       ref.read(audioServiceProvider).getCachedArtwork(ScannerPathUtils.resolveIosSandboxPath(songPath)))
                   : null;
 
+              // [BgFlash] 输入快照：只在真正变化时打一条，用于定位背景闪烁来自
+              // 哪一次字节/路径变化（Navidrome 场景通常是「服务器封面」→「缓存文件内嵌封面」）。
+              if (kDebugMode) {
+                final signature =
+                    'song=$songKey cur=$isCurrentSong pend=$isPendingSong '
+                    'bytes=${cachedBytes?.length ?? 0}#${identityHashCode(cachedBytes)} '
+                    'art=$artworkPath thumb=$thumbnailPath';
+                if (signature != _lastBackgroundLogSignature) {
+                  _lastBackgroundLogSignature = signature;
+                  debugPrint('[BgFlash] bg inputs | $signature');
+                }
+              }
+
               // 与 CoverCarousel 保持完全一致的缓存尺寸与 ImageProvider 优先级，
               // 确保 100% 命中 Flutter ImageCache，直接复用已解码显存纹理，杜绝二次解码与重复内存占用。
               final bool isLowMidEnd = ref.read(isLowMidEndDeviceProvider);
@@ -1945,6 +1962,17 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
 
               // 过渡动画逻辑：新封面直接淡入盖在旧封面之上。
               // 这种方式避免了传统的“双向淡入淡出（Cross-fade）”可能导致的背景短暂变暗或跳动。
+              if (kDebugMode) {
+                final mode = content is StaticBlurredArtwork
+                    ? 'static_blurred'
+                    : (content.key?.toString().contains('bg_empty') ?? false)
+                        ? 'black_empty'
+                        : content.runtimeType.toString();
+                debugPrint(
+                  '[BgFlash] bg content | small=$isSmallWinValue mode=$mode '
+                  'song=$songKey',
+                );
+              }
               return _SafeBackgroundSwitcher(
                 songKey: songKey,
                 duration: const Duration(milliseconds: 1000),
@@ -2082,6 +2110,7 @@ class _SafeBackgroundSwitcherState extends State<_SafeBackgroundSwitcher>
   void didUpdateWidget(_SafeBackgroundSwitcher oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.songKey != oldWidget.songKey) {
+      _log('song changed ${oldWidget.songKey} -> ${widget.songKey}, adding layer');
       _addNewChild(widget.child, animate: true);
     } else {
       if (_items.isNotEmpty) {
@@ -2089,23 +2118,23 @@ class _SafeBackgroundSwitcherState extends State<_SafeBackgroundSwitcher>
         if (last.child.key != widget.child.key) {
           final isFromEmpty = last.child.key.toString().contains('bg_empty');
           if (isFromEmpty) {
+            _log('bg_empty -> ${widget.child.key}, adding layer');
             _addNewChild(widget.child, animate: true);
           } else {
+            _log(
+              'in-place replace ${last.child.key} -> ${widget.child.key} '
+              '(no animation)',
+            );
+            // 只换 child，不新建 _SwitcherItem：Stack 的子节点用 ObjectKey(item)
+            // 做匹配，换一个 item 实例等于换 key，会把整棵背景子树销毁重建，
+            // 正在展示的位图（StaticBlurredArtwork._blurredImage）随之丢失。
             setState(() {
-              _items[_items.length - 1] = _SwitcherItem(
-                child: widget.child,
-                controller: last.controller,
-                animation: last.animation,
-              );
+              last.child = widget.child;
             });
           }
         } else if (last.child != widget.child) {
           setState(() {
-            _items[_items.length - 1] = _SwitcherItem(
-              child: widget.child,
-              controller: last.controller,
-              animation: last.animation,
-            );
+            last.child = widget.child;
           });
         }
       }
@@ -2114,7 +2143,10 @@ class _SafeBackgroundSwitcherState extends State<_SafeBackgroundSwitcher>
 
   void _addNewChild(Widget child, {required bool animate}) {
     final key = child.key;
-    _log('Add new child: key=$key, animate=$animate');
+    _log(
+      'Add new child: key=$key, animate=$animate, '
+      'items=${_items.map((i) => i.child.key).toList()}',
+    );
 
     final controller = AnimationController(
       vsync: this,
@@ -2176,24 +2208,24 @@ class _SafeBackgroundSwitcherState extends State<_SafeBackgroundSwitcher>
   Widget build(BuildContext context) {
     return Stack(
       fit: StackFit.expand,
+      // 所有层统一用 FadeTransition 包裹：若「非最后一层」换成 KeyedSubtree，
+      // 新层插入时旧层的 runtimeType 会变，元素被重建 → 旧层位图丢失 → 变黑，
+      // 而它正好垫在新层淡入的下方，观感就是切歌时背景先塌黑。
       children: _items.map((item) {
-        final isLast = item == _items.last;
-        if (isLast) {
-          return FadeTransition(
-            key: ObjectKey(item),
-            opacity: item.animation,
-            child: item.child,
-          );
-        } else {
-          return KeyedSubtree(key: ObjectKey(item), child: item.child);
-        }
+        return FadeTransition(
+          key: ObjectKey(item),
+          opacity: item.animation,
+          child: item.child,
+        );
       }).toList(),
     );
   }
 }
 
 class _SwitcherItem {
-  final Widget child;
+  /// 可变：同一层内更新封面时只替换 child，保持 [ObjectKey] 不变，
+  /// 避免 Stack 重新创建整棵子树（会丢掉已光栅化的模糊位图，露出一帧黑底）。
+  Widget child;
   final AnimationController controller;
   final Animation<double> animation;
 

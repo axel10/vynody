@@ -1417,19 +1417,31 @@ class AudioService extends Notifier<AudioSnapshot> {
       }
 
       // If we still don't have artworkBytes but we have a thumbnailPath, read it
+      var usedThumbnailFallback = false;
       if (artworkBytes == null && thumbnailPath != null) {
         try {
           final file = File(thumbnailPath);
           if (await file.exists()) {
             artworkBytes = await file.readAsBytes();
+            usedThumbnailFallback = true;
           }
         } catch (_) {}
       }
 
       final currentSong = currentMusic;
       if (currentSong != null && currentSong.path == song.path) {
+        // song 是入参快照，可能比当前曲目旧（如轮播刚通过 setCachedArtwork 写入
+        // 了服务器封面字节）。这里若只是缩略图兜底，不要覆盖已有的封面字节：
+        // 两份内容不同会让播放页背景的缓存 key 变一次，观感就是背景闪一下。
+        final existingArtwork = currentSong.artworkBytes;
+        final appliedArtworkBytes =
+            (usedThumbnailFallback &&
+                    existingArtwork != null &&
+                    existingArtwork.length > (artworkBytes?.length ?? 0))
+                ? existingArtwork
+                : artworkBytes;
         final updated = currentSong.copyWith(
-          artworkBytes: artworkBytes,
+          artworkBytes: appliedArtworkBytes,
           artworkPath: artworkPath,
           thumbnailPath: thumbnailPath,
           themeColorsBlob: themeColorsBlob ?? currentSong.themeColorsBlob,
@@ -2558,11 +2570,13 @@ class AudioService extends Notifier<AudioSnapshot> {
       }
 
       // Fallback to thumbnail bytes if needed
+      var usedThumbnailFallback = false;
       if (highResBytes == null && thumbnailPath != null) {
         try {
           final file = File(thumbnailPath);
           if (await file.exists()) {
             highResBytes = await file.readAsBytes();
+            usedThumbnailFallback = true;
           }
         } catch (_) {}
       }
@@ -2590,6 +2604,7 @@ class AudioService extends Notifier<AudioSnapshot> {
           if (resThumbnail != null && File(resThumbnail).existsSync()) {
             thumbnailPath = resThumbnail;
             highResBytes = await File(resThumbnail).readAsBytes();
+            usedThumbnailFallback = true;
           }
         } catch (e) {
           debugPrint('AudioService: remote artwork hydrate error: $e');
@@ -2637,8 +2652,19 @@ class AudioService extends Notifier<AudioSnapshot> {
 
       if (currentMusic?.path == path) {
         final current = currentMusic!;
+        // 远程曲目拿不到 hi-res 封面时，这里会退化成「缩略图字节」（几十 KB）
+        // 甚至 null。若当前已经有一份封面字节（例如服务器封面），不要用更差的
+        // 来源覆盖它：两者内容不同，会让播放页背景的缓存 key 变两次，观感就是
+        // 进播放页后背景连切两次。
+        final existingArtwork = current.artworkBytes;
+        final bool isDowngrade = highResBytes == null ||
+            (usedThumbnailFallback &&
+                existingArtwork != null &&
+                highResBytes.length < existingArtwork.length);
+        final appliedArtworkBytes =
+            isDowngrade ? existingArtwork : highResBytes;
         final updatedSong = current.copyWith(
-          artworkBytes: highResBytes,
+          artworkBytes: appliedArtworkBytes,
           artworkPath: highResPath,
           thumbnailPath: thumbnailPath,
         );

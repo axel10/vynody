@@ -26,6 +26,8 @@
 | 洞察页列表 | `library_insight_list.dart`（单曲/专辑同一 widget，只换 body sliver）、`insight_metric_text.dart`；禁再写 `LibraryRankedSongList`/`AlbumList`；行内边距唯一来源 `_insightRowPadding` + `kInsightListHorizontalInset` |
 | 远程封面 | `remote_artwork_widget.dart`：磁盘落盘后**禁** `setState` 切 `Image.file`（换源重解码 → 空白帧）；`gaplessPlayback = _renderedImageUrl == imageUrl`；`didUpdateWidget` 里 coverArtId 变必须 `_localDiskPath = null`。判「同一张图」只能比 path/URL，禁 `bytes.hashCode`/identity |
 | 远程库二次请求反馈 | `RemoteLibraryReloadingOverlay` + 页面级 `_isReloadingContent`，叠在 `body` 的 Stack；触发点只有真实发请求的三处：专辑排序、歌曲/艺术家「只看收藏」补齐；首屏走各 tab 的 `isLoading && list.isEmpty` |
+| 远程播放写回缓存 | `AudioStreamCacheProxy` 把转发给播放器的 chunk 同步 append 到 `<cache>.part`（`StreamCacheWriter`），不再无条件另开第二条全量下载。`.part` 必须是 0 起**连续前缀**且 `written == expectedTotal` 才 rename；不完整就 `abort()` 删掉（`isTrackCached` 只看存在且 >0，半截文件绝不能占正式名）。同 key 单写入者：`beginStreamWrite` 用 `_pendingStreamWriteKeys` **同步**占位（内部有 await），`ensureTrackCached` 先 `await writer.done` 再决定是否真下载。只在 200 / 206-from-0 且有总长度时生效，chunked（Subsonic 转码、Jellyfin 非 static）退化为「转发 + 第二条下载」；tee 失败同样回退，故最坏等于旧行为 |
+| 写回收尾时机 | `writer.complete()`（rename + `onTrackCached`）必须在 `request.response.close()` **之前**，结构上靠 `try { ...完成... } finally { await close(); }` 固化。`close()` 要等播放器把缓冲排空，即**整首歌的播放时长**；而 `onTrackCached` 是波形 / 封面 / 元数据的唯一触发点（`_handleRemoteTrackCacheReady` → `getWaveformData(localFilePath:)`），放 `close()` 之后会让波形与音频信息整首不显示，**只有 seek 才显示**（seek 中断 tee → 回退第二条下载 → 缓存秒好）。另：所有 `unawaited` 的 prefetch 必须带 `onError`，否则连接失败会漏成调用方 zone 的未捕获异步错误 |
 
 ## 硬性禁止
 
@@ -42,6 +44,7 @@
 - **曲库派生页禁把 reload 当首次加载**：判 loading 只认「没有旧值」，统一用 `library_overview_providers.dart` 的 `_needsFullPageLoad()`/`_isFatalError()`。
 - **长列表禁 `SliverToBoxAdapter > ListView(shrinkWrap: true)`**：一律 `SliverList.builder`/`SliverFixedExtentList.builder`，逐行 `Align + ConstrainedBox(maxWidth: kSingleColumnContentMaxWidth)`。
 - **播放页背景模糊是预光栅化位图，key 必须含封面内容指纹**：`blurred_artwork_rasterizer.dart`，LRU 6 首；key = `songKey + sigma + 指纹`；禁只用 `songKey`，禁 `bytes.hashCode`。小窗 `small_*`、`BackdropFilter`、自定义图片仍实时模糊。
+- **背景层身份禁靠新建 `_SwitcherItem` 更新**：`_SafeBackgroundSwitcher` 的 Stack 子节点用 `ObjectKey(item)` 匹配，换 item 实例 = 换 key，整棵背景子树重建 → `_blurredImage` 归零 → 黑帧（观感「闪一下」）。只改 `item.child`（可变字段）。所有层统一 `FadeTransition(opacity: item.animation)`，禁给非最后一层换 `KeyedSubtree`（runtimeType 变同样重建）。`StaticBlurredArtwork` cache miss 时**禁清空** `_blurredImage`，换图走 260ms 交叉淡化。`flutter_taglib` 的 `AudioInfo` 无 `bitDepth`（`flutter_taglib_metadata_bridge.dart:572`）→ `flutter test` 全包编译不过，需先用 `flutter analyze` 或临时置 null 验证。
 - **视图切换禁换根 Widget 类型**：两视图共用同一 StatefulWidget，只换 body sliver。
 - **写 `songs` 表只能基于 DB 记录 `copyWith`**：`_songCompanion` 整行写入。`SongMetadata(...)` 整行写会把未列出列（year/genres/bitrate/format/codec/albumArtist/hasArtwork/waveformBlob/deletedAt…）清 null——已因此让歌从年份/流派页消失。`id/mediaId/isAppModified/waveformBlob/deletedAt` 永不进读标签路径的 copyWith；封面四列用 `artworkProbed = generateThumbnail && (!tagReadFailed || 有产出)`。
 - **`TagLibMetadata` 新增标签列要三处同步**：字段 → 四个 reader 赋值 → `processMetadata` 的 `值 ?? base.值` 回落。
