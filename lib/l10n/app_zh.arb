@@ -2602,6 +2602,7 @@
   "starredSongs": "我喜欢的音乐",
   "starredSongsDesc": "Navidrome 服务端已收藏歌曲",
   "starredArtists": "已收藏歌手",
+  "starredAlbums": "已收藏专辑",
   "shuffleAlbumOrder": "随机打乱专辑顺序",
   "threeDView": "3D 视图",
   "receiveFailed": "接收 \"{fileName}\" 失败",

@@ -4229,6 +4229,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get starredArtists => '已收藏歌手';
 
   @override
+  String get starredAlbums => '已收藏专辑';
+
+  @override
   String get shuffleAlbumOrder => '随机打乱专辑顺序';
 
   @override
@@ -9581,6 +9584,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get starredArtists => '已收藏歌手';
+
+  @override
+  String get starredAlbums => '已收藏專輯';
 
   @override
   String get shuffleAlbumOrder => '隨機打亂專輯順序';

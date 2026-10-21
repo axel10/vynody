@@ -1704,6 +1704,7 @@
   "starredSongs": "Canciones favoritas",
   "starredSongsDesc": "Canciones favoritas en el servidor Navidrome",
   "starredArtists": "Artistas favoritos",
+  "starredAlbums": "Álbumes favoritos",
   "shuffleAlbumOrder": "Mezclar orden de álbumes",
   "threeDView": "Vista 3D",
   "receiveFailed": "Error al recibir «{fileName}»",

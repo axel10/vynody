@@ -195,6 +195,45 @@ class RemoteResponsiveToolbar extends StatelessWidget {
   }
 }
 
+/// 统一的「只看收藏」开关按钮。
+///
+/// 与排序下拉框并排独立存在：未启用时沿用下拉框的中性底色，启用时红心高亮，
+/// 各标签页共用同一套尺寸与配色，避免每个 Tab 各自复制一份 IconButton 样式。
+class RemoteStarFilterButton extends StatelessWidget {
+  final bool active;
+  final String tooltip;
+  final ValueChanged<bool> onToggle;
+
+  const RemoteStarFilterButton({
+    super.key,
+    required this.active,
+    required this.tooltip,
+    required this.onToggle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return IconButton(
+      style: IconButton.styleFrom(
+        backgroundColor: active
+            ? Colors.redAccent.withValues(alpha: 0.15)
+            : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        minimumSize: const Size(32, 32),
+        fixedSize: const Size(32, 32),
+        padding: EdgeInsets.zero,
+      ),
+      icon: Icon(
+        active ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+        size: 16,
+        color: active ? Colors.redAccent : theme.colorScheme.onSurfaceVariant,
+      ),
+      tooltip: tooltip,
+      onPressed: () => onToggle(!active),
+    );
+  }
+}
+
 /// 统一风格的紧凑下拉菜单按钮
 class RemoteDropdownButton<T> extends StatelessWidget {
   final T value;

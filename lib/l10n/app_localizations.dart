@@ -7959,6 +7959,12 @@ abstract class AppLocalizations {
   /// **'已收藏歌手'**
   String get starredArtists;
 
+  /// No description provided for @starredAlbums.
+  ///
+  /// In zh, this message translates to:
+  /// **'已收藏专辑'**
+  String get starredAlbums;
+
   /// No description provided for @shuffleAlbumOrder.
   ///
   /// In zh, this message translates to:

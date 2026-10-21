@@ -487,6 +487,18 @@ class SubsonicClient {
     return const [];
   }
 
+  /// Fetches starred albums as a list of map entries.
+  Future<List<Map<String, dynamic>>> getStarredAlbums() async {
+    final starred = await getStarred2();
+    final albums = starred['album'];
+    if (albums is List) {
+      return albums.whereType<Map<String, dynamic>>().toList();
+    } else if (albums is Map<String, dynamic>) {
+      return [albums];
+    }
+    return const [];
+  }
+
   /// Searches across songs, albums, and artists.
   Future<Map<String, dynamic>> search(String query,
       {int artistCount = 20, int albumCount = 20, int songCount = 50}) async {

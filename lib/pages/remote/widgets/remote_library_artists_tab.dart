@@ -58,26 +58,10 @@ class RemoteLibraryArtistsToolbar extends StatelessWidget {
       onClear: onClearSearch,
     );
 
-    final starButton = IconButton(
-      style: IconButton.styleFrom(
-        backgroundColor: starredOnly
-            ? Colors.redAccent.withValues(alpha: 0.15)
-            : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-        minimumSize: const Size(32, 32),
-        fixedSize: const Size(32, 32),
-        padding: EdgeInsets.zero,
-      ),
-      icon: Icon(
-        starredOnly
-            ? Icons.favorite_rounded
-            : Icons.favorite_border_rounded,
-        size: 16,
-        color: starredOnly
-            ? Colors.redAccent
-            : theme.colorScheme.onSurfaceVariant,
-      ),
+    final starButton = RemoteStarFilterButton(
+      active: starredOnly,
       tooltip: l10n.starredArtists,
-      onPressed: () => onToggleStarredOnly(!starredOnly),
+      onToggle: onToggleStarredOnly,
     );
 
     final sortDropdown = RemoteDropdownButton<String>(

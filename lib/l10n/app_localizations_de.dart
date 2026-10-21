@@ -4520,6 +4520,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get starredArtists => 'Favorisierte Interpreten';
 
   @override
+  String get starredAlbums => 'Favorisierte Alben';
+
+  @override
   String get shuffleAlbumOrder => 'Album-Reihenfolge mischen';
 
   @override

@@ -796,6 +796,28 @@ class JellyfinClient {
         .toList();
   }
 
+  /// Fetches starred / favorite albums.
+  Future<List<Map<String, dynamic>>> getStarredAlbums() async {
+    final session = await authenticate();
+    final res = await _get(
+      '/Users/${session.userId}/Items',
+      {
+        'IncludeItemTypes': 'MusicAlbum',
+        'Filters': 'IsFavorite',
+        'Recursive': true,
+        'SortBy': 'SortName',
+        'SortOrder': 'Ascending',
+        'Fields': 'ChildCount,ItemCounts',
+      },
+    );
+
+    final items = res['Items'] as List? ?? [];
+    return items
+        .whereType<Map<String, dynamic>>()
+        .map(normalizeAlbumItem)
+        .toList();
+  }
+
   /// Fetches starred / favorite artists.
   Future<List<Map<String, dynamic>>> getStarredArtists() async {
     final session = await authenticate();

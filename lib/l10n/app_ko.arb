@@ -1704,6 +1704,7 @@
   "starredSongs": "좋아요 표시한 음악",
   "starredSongsDesc": "Navidrome 서버의 즐겨찾기 곡",
   "starredArtists": "즐겨찾는 아티스트",
+  "starredAlbums": "즐겨찾는 앨범",
   "shuffleAlbumOrder": "앨범 순서 셔플",
   "threeDView": "3D 뷰",
   "receiveFailed": "\"{fileName}\" 수신 실패",

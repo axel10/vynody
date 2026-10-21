@@ -2204,10 +2204,10 @@ class AudioService extends Notifier<AudioSnapshot> {
 
     final sw = Stopwatch()..start();
     String currentPhase = 'initiating';
-    AppLog.log(
-      '[WaveformRead #$sessionId] START reading waveform for "$path", notify=$notify',
-      mirrorToConsole: true,
-    );
+    // AppLog.log(
+    //   '[WaveformRead #$sessionId] START reading waveform for "$path", notify=$notify',
+    //   mirrorToConsole: true,
+    // );
 
     _waveformReadingLogTimer = Timer.periodic(
       const Duration(milliseconds: 500),
@@ -2216,10 +2216,10 @@ class AudioService extends Notifier<AudioSnapshot> {
           timer.cancel();
           return;
         }
-        AppLog.log(
-          '[WaveformRead #$sessionId] in-progress: elapsed=${sw.elapsedMilliseconds}ms, phase=$currentPhase, notify=$notify, currentMusicPath=${currentMusic?.path}',
-          mirrorToConsole: true,
-        );
+        // AppLog.log(
+        //   '[WaveformRead #$sessionId] in-progress: elapsed=${sw.elapsedMilliseconds}ms, phase=$currentPhase, notify=$notify, currentMusicPath=${currentMusic?.path}',
+        //   mirrorToConsole: true,
+        // );
       },
     );
 
@@ -2230,19 +2230,19 @@ class AudioService extends Notifier<AudioSnapshot> {
           sampleStride: settingsService.sampleStride,
           onPhaseChanged: (phase) {
             currentPhase = phase;
-            AppLog.log(
-              '[WaveformRead #$sessionId] phase changed -> $phase (at ${sw.elapsedMilliseconds}ms)',
-              mirrorToConsole: true,
-            );
+            // AppLog.log(
+            //   '[WaveformRead #$sessionId] phase changed -> $phase (at ${sw.elapsedMilliseconds}ms)',
+            //   mirrorToConsole: true,
+            // );
           },
         )
         .listen(
           (waveformChunk) {
             if (_waveformReadingSessionId != sessionId) {
-              AppLog.log(
-                '[WaveformRead #$sessionId] IGNORED: session superseded (current is $_waveformReadingSessionId)',
-                mirrorToConsole: true,
-              );
+              // AppLog.log(
+              //   '[WaveformRead #$sessionId] IGNORED: session superseded (current is $_waveformReadingSessionId)',
+              //   mirrorToConsole: true,
+              // );
               return;
             }
             if (path == currentMusic?.path && waveformChunk.isNotEmpty) {
@@ -2254,17 +2254,17 @@ class AudioService extends Notifier<AudioSnapshot> {
                 _waveformReadingLogTimer?.cancel();
                 _waveformReadingLogTimer = null;
                 sw.stop();
-                AppLog.log(
-                  '[WaveformRead #$sessionId] SUCCESS: read waveform in ${sw.elapsedMilliseconds}ms (${waveformChunk.length} chunks, blobLen=${blob.length}), notify=$notify',
-                  mirrorToConsole: true,
-                );
+                // AppLog.log(
+                //   '[WaveformRead #$sessionId] SUCCESS: read waveform in ${sw.elapsedMilliseconds}ms (${waveformChunk.length} chunks, blobLen=${blob.length}), notify=$notify',
+                //   mirrorToConsole: true,
+                // );
                 if (notify) {
                   notifyListeners();
                 } else {
-                  AppLog.log(
-                    '[WaveformRead #$sessionId] WARNING: notify=false was passed, notifyListeners() was SKIPPED! UI will NOT update until another trigger!',
-                    mirrorToConsole: true,
-                  );
+                  // AppLog.log(
+                  //   '[WaveformRead #$sessionId] WARNING: notify=false was passed, notifyListeners() was SKIPPED! UI will NOT update until another trigger!',
+                  //   mirrorToConsole: true,
+                  // );
                 }
               }
             }
@@ -2274,11 +2274,11 @@ class AudioService extends Notifier<AudioSnapshot> {
             _waveformReadingLogTimer?.cancel();
             _waveformReadingLogTimer = null;
             sw.stop();
-            AppLog.log(
-              '[WaveformRead #$sessionId] ERROR: failed after ${sw.elapsedMilliseconds}ms: $e',
-              mirrorToConsole: true,
-              stackTrace: stack,
-            );
+            // AppLog.log(
+            //   '[WaveformRead #$sessionId] ERROR: failed after ${sw.elapsedMilliseconds}ms: $e',
+            //   mirrorToConsole: true,
+            //   stackTrace: stack,
+            // );
           },
           onDone: () {
             if (_waveformReadingSessionId == sessionId) {

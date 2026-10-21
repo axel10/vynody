@@ -4525,6 +4525,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get starredArtists => 'Artistes favoris';
 
   @override
+  String get starredAlbums => 'Albums favoris';
+
+  @override
   String get shuffleAlbumOrder => 'Mélanger l\'ordre des albums';
 
   @override

@@ -4481,6 +4481,9 @@ class AppLocalizationsTr extends AppLocalizations {
   String get starredArtists => 'Yıldızlı Sanatçılar';
 
   @override
+  String get starredAlbums => 'Yıldızlı Albümler';
+
+  @override
   String get shuffleAlbumOrder => 'Albüm Sırasını Karıştır';
 
   @override

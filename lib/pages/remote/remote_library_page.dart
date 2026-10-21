@@ -53,11 +53,13 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
   // Albums state
   bool _isLoadingAlbums = false;
   String _albumSortType = 'alphabeticalByName';
+  bool _albumStarredOnly = false;
   List<Map<String, dynamic>> _albums = [];
   String? _albumsError;
   final TextEditingController _albumSearchController = TextEditingController();
   final FocusNode _albumSearchFocusNode = FocusNode();
   String _albumSearchQuery = '';
+  final Set<String> _starredAlbumIds = {};
 
   // Artists state
   bool _isLoadingArtists = false;
@@ -437,7 +439,7 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
   }
 
   List<Map<String, dynamic>> _getFilteredAlbums() {
-    return _albums.where((album) {
+    var result = _albums.where((album) {
       if (_albumSearchQuery.isEmpty) return true;
       final q = _albumSearchQuery.toLowerCase();
       final title = (album['title'] as String? ?? album['name'] as String? ?? '')
@@ -445,6 +447,31 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
       final artist = (album['artist'] as String? ?? '').toLowerCase();
       return title.contains(q) || artist.contains(q);
     }).toList();
+
+    // 「只看收藏」和歌曲 / 艺术家一致：在已加载列表上本地过滤，
+    // 不额外发请求，排序继续保持生效。
+    if (_albumStarredOnly) {
+      result = result
+          .where((a) => _starredAlbumIds.contains(a['id']?.toString()))
+          .toList();
+    }
+    return result;
+  }
+
+  Future<void> _fetchStarredAlbums() async {
+    try {
+      final starredList = await _client.getStarredAlbums();
+      final ids = starredList
+          .map((e) => e['id']?.toString() ?? '')
+          .where((id) => id.isNotEmpty)
+          .toSet();
+      if (!mounted) return;
+      setState(() {
+        _starredAlbumIds
+          ..clear()
+          ..addAll(ids);
+      });
+    } catch (_) {}
   }
 
   String _artistSortName(Map<String, dynamic> artist) =>
@@ -551,6 +578,16 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
     }
     final settings = ref.read(settingsServiceProvider);
     _albumSortType = settings.navidromeAlbumSortType;
+    // 「已收藏」已从排序项独立成开关：历史值归一到默认排序，
+    // 否则仍会按 starred 类型向服务端请求整份收藏列表。
+    if (_albumSortType == 'starred') {
+      _albumSortType = 'alphabeticalByName';
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        ref.read(settingsServiceProvider).navidromeAlbumSortType =
+            'alphabeticalByName';
+      });
+    }
     if (widget.server.type == RemoteServerType.jellyfin &&
         (_albumSortType == 'recent' || _albumSortType == 'frequent')) {
       _albumSortType = 'alphabeticalByName';
@@ -2132,6 +2169,7 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
       searchFocusNode: _albumSearchFocusNode,
       searchQuery: _albumSearchQuery,
       sortType: _albumSortType,
+      starredOnly: _albumStarredOnly,
       totalCount: _getFilteredAlbums().length,
       onSearchChanged: (val) {
         setState(() {
@@ -2153,6 +2191,31 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
         ref.read(settingsServiceProvider).navidromeAlbumSortType = newSort;
         await _loadAlbums(forceRefresh: true);
         _endContentReload();
+      },
+      onToggleStarredOnly: (selected) async {
+        if (selected == _albumStarredOnly) return;
+        setState(() {
+          _albumStarredOnly = selected;
+          if (selected) {
+            // 列表项本身带 starred / isFavorite，先就地补一批收藏 id，
+            // 大多数服务端下切筛选完全不发请求。
+            _starredAlbumIds.addAll(
+              _albums
+                  .where((a) => a['starred'] != null || a['isFavorite'] == true)
+                  .map((a) => a['id']?.toString() ?? '')
+                  .where((id) => id.isNotEmpty),
+            );
+          }
+        });
+        // 一个都没补到，说明列表没带收藏字段，先等一次收藏集再显示；
+        // 已经补到了就直接渲染，后台顺手刷新，兜住详情页里刚收藏的专辑。
+        if (selected && _starredAlbumIds.isEmpty) {
+          _beginContentReload();
+          await _fetchStarredAlbums();
+          _endContentReload();
+        } else if (selected) {
+          unawaited(_fetchStarredAlbums());
+        }
       },
     );
   }

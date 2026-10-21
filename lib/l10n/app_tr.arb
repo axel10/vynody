@@ -1828,6 +1828,7 @@
   "starredSongs": "Beğenilen Şarkılar",
   "starredSongsDesc": "Navidrome sunucusundaki yıldızlı şarkılar",
   "starredArtists": "Yıldızlı Sanatçılar",
+  "starredAlbums": "Yıldızlı Albümler",
   "shuffleAlbumOrder": "Albüm Sırasını Karıştır",
   "threeDView": "3D Görünüm",
   "receiveFailed": "«{fileName}» alınamadı",

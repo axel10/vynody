@@ -1704,6 +1704,7 @@
   "starredSongs": "Lieblingslieder",
   "starredSongsDesc": "Favorisierte Titel auf dem Navidrome-Server",
   "starredArtists": "Favorisierte Interpreten",
+  "starredAlbums": "Favorisierte Alben",
   "shuffleAlbumOrder": "Album-Reihenfolge mischen",
   "threeDView": "3D-Ansicht",
   "receiveFailed": "Empfangen von \"{fileName}\" fehlgeschlagen",

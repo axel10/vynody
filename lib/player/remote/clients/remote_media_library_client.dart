@@ -46,6 +46,7 @@ abstract class RemoteMediaLibraryClient {
   });
   Future<List<Map<String, dynamic>>> getStarredSongs();
   Future<List<Map<String, dynamic>>> getStarredArtists();
+  Future<List<Map<String, dynamic>>> getStarredAlbums();
   Future<bool> star({String? id, String? albumId, String? artistId});
   Future<bool> unstar({String? id, String? albumId, String? artistId});
   String buildStreamUrl(String trackId, {int? maxBitRate});
@@ -178,6 +179,10 @@ class SubsonicMediaLibraryClient implements RemoteMediaLibraryClient {
       client.getStarredArtists();
 
   @override
+  Future<List<Map<String, dynamic>>> getStarredAlbums() =>
+      client.getStarredAlbums();
+
+  @override
   Future<bool> star({String? id, String? albumId, String? artistId}) =>
       client.star(id: id, albumId: albumId, artistId: artistId);
 
@@ -302,6 +307,10 @@ class JellyfinMediaLibraryClient implements RemoteMediaLibraryClient {
   @override
   Future<List<Map<String, dynamic>>> getStarredArtists() =>
       client.getStarredArtists();
+
+  @override
+  Future<List<Map<String, dynamic>>> getStarredAlbums() =>
+      client.getStarredAlbums();
 
   @override
   Future<bool> star({String? id, String? albumId, String? artistId}) =>

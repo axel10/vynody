@@ -4310,6 +4310,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get starredArtists => '즐겨찾는 아티스트';
 
   @override
+  String get starredAlbums => '즐겨찾는 앨범';
+
+  @override
   String get shuffleAlbumOrder => '앨범 순서 셔플';
 
   @override

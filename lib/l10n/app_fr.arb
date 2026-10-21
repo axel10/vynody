@@ -1704,6 +1704,7 @@
   "starredSongs": "Morceaux favoris",
   "starredSongsDesc": "Morceaux favoris sur le serveur Navidrome",
   "starredArtists": "Artistes favoris",
+  "starredAlbums": "Albums favoris",
   "shuffleAlbumOrder": "Mélanger l'ordre des albums",
   "threeDView": "Vue 3D",
   "receiveFailed": "Échec de la réception de « {fileName} »",

@@ -1803,6 +1803,7 @@
   "starredSongs": "お気に入りの曲",
   "starredSongsDesc": "Navidrome サーバーでスター付きの曲",
   "starredArtists": "お気に入りアーティスト",
+  "starredAlbums": "お気に入りアルバム",
   "shuffleAlbumOrder": "アルバム順序をシャッフル",
   "threeDView": "3D ビュー",
   "receiveFailed": "「{fileName}」の受信に失敗しました",

@@ -1425,6 +1425,7 @@
   "starredSongs": "我喜愛的音樂",
   "starredSongsDesc": "Navidrome 伺服器已收藏歌曲",
   "starredArtists": "已收藏歌手",
+  "starredAlbums": "已收藏專輯",
   "shuffleAlbumOrder": "隨機打亂專輯順序",
   "threeDView": "3D 檢視",
   "receiveFailed": "接收「{fileName}」失敗",

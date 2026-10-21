@@ -4468,6 +4468,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get starredArtists => 'Starred Artists';
 
   @override
+  String get starredAlbums => 'Starred Albums';
+
+  @override
   String get shuffleAlbumOrder => 'Shuffle Album Order';
 
   @override

@@ -1818,6 +1818,7 @@
   "starredSongs": "Favorite Songs",
   "starredSongsDesc": "Navidrome server starred tracks",
   "starredArtists": "Starred Artists",
+  "starredAlbums": "Starred Albums",
   "shuffleAlbumOrder": "Shuffle Album Order",
   "threeDView": "3D View",
   "receiveFailed": "Failed to receive \"{fileName}\"",

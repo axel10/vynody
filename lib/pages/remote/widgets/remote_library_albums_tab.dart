@@ -20,6 +20,8 @@ class RemoteLibraryAlbumsToolbar extends StatelessWidget {
   final VoidCallback onClearSearch;
   final String sortType;
   final ValueChanged<String> onSortTypeChanged;
+  final bool starredOnly;
+  final ValueChanged<bool> onToggleStarredOnly;
   final bool isJellyfin;
   final int? totalCount;
 
@@ -32,6 +34,8 @@ class RemoteLibraryAlbumsToolbar extends StatelessWidget {
     required this.onClearSearch,
     required this.sortType,
     required this.onSortTypeChanged,
+    required this.starredOnly,
+    required this.onToggleStarredOnly,
     this.isJellyfin = false,
     this.totalCount,
   });
@@ -44,8 +48,6 @@ class RemoteLibraryAlbumsToolbar extends StatelessWidget {
         return l10n.sortRecentlyPlayed;
       case 'frequent':
         return l10n.sortMostPlayed;
-      case 'starred':
-        return l10n.sortStarred;
       case 'random':
         return l10n.sortRandom;
       case 'alphabeticalByName':
@@ -67,6 +69,12 @@ class RemoteLibraryAlbumsToolbar extends StatelessWidget {
       searchQuery: searchQuery,
       onChanged: onSearchChanged,
       onClear: onClearSearch,
+    );
+
+    final starButton = RemoteStarFilterButton(
+      active: starredOnly,
+      tooltip: l10n.starredAlbums,
+      onToggle: onToggleStarredOnly,
     );
 
     final sortDropdown = RemoteDropdownButton<String>(
@@ -107,13 +115,6 @@ class RemoteLibraryAlbumsToolbar extends StatelessWidget {
           ),
         ],
         buildRemoteMenuItem(
-          value: 'starred',
-          label: l10n.sortStarred,
-          icon: Icons.favorite_rounded,
-          isSelected: sortType == 'starred',
-          theme: theme,
-        ),
-        buildRemoteMenuItem(
           value: 'random',
           label: l10n.sortRandom,
           icon: Icons.shuffle_rounded,
@@ -148,6 +149,8 @@ class RemoteLibraryAlbumsToolbar extends StatelessWidget {
                 child: searchBar,
               ),
               const SizedBox(width: 8),
+              starButton,
+              const SizedBox(width: 8),
               sortDropdown,
             ],
           );
@@ -156,6 +159,8 @@ class RemoteLibraryAlbumsToolbar extends StatelessWidget {
         return Row(
           children: [
             Expanded(child: searchBar),
+            const SizedBox(width: 8),
+            starButton,
             const SizedBox(width: 8),
             sortDropdown,
           ],

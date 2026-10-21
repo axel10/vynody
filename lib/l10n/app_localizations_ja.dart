@@ -4305,6 +4305,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get starredArtists => 'お気に入りアーティスト';
 
   @override
+  String get starredAlbums => 'お気に入りアルバム';
+
+  @override
   String get shuffleAlbumOrder => 'アルバム順序をシャッフル';
 
   @override
