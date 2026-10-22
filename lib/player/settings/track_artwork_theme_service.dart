@@ -214,8 +214,10 @@ class TrackArtworkThemeService {
             ? File(path).lastModifiedSync().millisecondsSinceEpoch
             : DateTime.now().millisecondsSinceEpoch);
 
+    Uint8List? artworkBytes;
+    // 诊断用：记录封面字节的来源，解码失败时能直接区分「服务端返回」与「本地缓存内嵌」。
+    var artworkSource = 'none';
     try {
-      Uint8List? artworkBytes;
       if (isRemote) {
         try {
           final prefs = await SharedPreferences.getInstance();
@@ -223,6 +225,9 @@ class TrackArtworkThemeService {
           final resolver = RemoteMediaResolver(storage: storage);
           final coverId = baseMetadata.artworkPath ?? cached?.artworkPath;
           artworkBytes = await resolver.getArtworkBytes(path, coverArtId: coverId);
+          if (artworkBytes != null && artworkBytes.isNotEmpty) {
+            artworkSource = 'remote-cover';
+          }
         } catch (e) {
           debugPrint('[TrackArtworkThemeService] Failed to fetch remote artwork for $path: $e');
         }
@@ -238,7 +243,10 @@ class TrackArtworkThemeService {
                 final cacheFile = await controller.streamCacheManager.getCacheFile(key);
                 if (await cacheFile.exists() && (await cacheFile.length()) > 0) {
                   artworkBytes = await MetadataHelper.decodeEmbeddedArtwork(cacheFile.path);
-                  if (artworkBytes != null && artworkBytes.isNotEmpty) break;
+                  if (artworkBytes != null && artworkBytes.isNotEmpty) {
+                    artworkSource = 'stream-cache-embedded';
+                    break;
+                  }
                 }
               }
             }
@@ -246,11 +254,17 @@ class TrackArtworkThemeService {
         }
       } else {
         artworkBytes = await MetadataHelper.decodeEmbeddedArtwork(path);
+        if (artworkBytes != null && artworkBytes.isNotEmpty) {
+          artworkSource = 'file-embedded';
+        }
         if (artworkBytes == null || artworkBytes.isEmpty) {
           final dirCoverPath = MetadataHelper.findDirectoryCover(path);
           if (dirCoverPath != null) {
             try {
               artworkBytes = await File(dirCoverPath).readAsBytes();
+              if (artworkBytes.isNotEmpty) {
+                artworkSource = 'directory-cover';
+              }
             } catch (e) {
               debugPrint('Failed to read directory cover $dirCoverPath: $e');
             }
@@ -313,7 +327,10 @@ class TrackArtworkThemeService {
             artworkFound: artwork.artworkFound,
           );
     } catch (e) {
-      debugPrint('TrackArtworkThemeService failed for $path: $e');
+      debugPrint(
+        'TrackArtworkThemeService failed for $path '
+        '(source=$artworkSource, bytes=${artworkBytes?.length ?? 0}): $e',
+      );
       return TrackArtworkThemeResult.fromMetadata(path, cached);
     }
   }
