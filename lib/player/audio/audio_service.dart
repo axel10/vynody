@@ -231,7 +231,11 @@ class AudioService extends Notifier<AudioSnapshot> {
   bool _playbackSessionReady = false;
   late final PlaybackSessionManager _sessionManager;
   late final QueueBackgroundProcessor _queueBackgroundProcessor;
+  /// 用户的可视化开关，只决定「播放页要不要画频谱」，不再决定是否采集 FFT。
   bool _userVisualizerEnabled = true;
+  /// Pro 授权缓存：FFT 采集准入条件要在 tick / listener 热路径上求值，
+  /// 每次都走 ref 读 provider 既有被销毁后抛错的风险，也没必要。
+  bool _isProUnlocked = false;
   bool _isWindowMinimized = false;
   bool _isAppBackgrounded = false;
   AppLifecycleListener? _lifecycleListener;
@@ -324,6 +328,7 @@ class AudioService extends Notifier<AudioSnapshot> {
     _player.playlist.setMode(_playbackMode.toCoreMode());
 
     final isProUnlocked = ref.read(isProUnlockedProvider);
+    _isProUnlocked = isProUnlocked;
     _userVisualizerEnabled =
         isProUnlocked && settingsService.isVisualizerEnabled;
 
@@ -389,6 +394,7 @@ class AudioService extends Notifier<AudioSnapshot> {
 
     ref.listen<bool>(isProUnlockedProvider, (previous, isUnlocked) {
       if (_disposed || previous == isUnlocked) return;
+      _isProUnlocked = isUnlocked;
       final currentVisualizerEnabled =
           isUnlocked && settingsService.isVisualizerEnabled;
       if (_userVisualizerEnabled != currentVisualizerEnabled) {
@@ -521,8 +527,10 @@ class AudioService extends Notifier<AudioSnapshot> {
         }
       }
 
+      final isProUnlocked = ref.read(isProUnlockedProvider);
+      _isProUnlocked = isProUnlocked;
       final currentVisualizerEnabled =
-          ref.read(isProUnlockedProvider) && settingsService.isVisualizerEnabled;
+          isProUnlocked && settingsService.isVisualizerEnabled;
       if (_userVisualizerEnabled != currentVisualizerEnabled) {
         _userVisualizerEnabled = currentVisualizerEnabled;
         _updateEffectiveVisualizerState();
@@ -1763,16 +1771,23 @@ class AudioService extends Notifier<AudioSnapshot> {
 
   EqualizerConfig get equalizerConfig => _player.equalizerConfig;
 
+  /// FFT 采集准入：Pro + 前台。
+  ///
+  /// 与用户的可视化开关解耦 —— 关闭开关只是让播放页不再画频谱，
+  /// 迷你播放器 / 悬浮 Dock 的频谱仍然要有数据，所以前台一律采集。
+  /// 切后台、桌面最小化时停采，避免白烧 CPU 与事件通道。
+  bool get _isFftCaptureAllowed =>
+      _isProUnlocked && !_isAppBackgrounded && !_isWindowMinimized;
+
   void _updateEffectiveVisualizerState() {
-    final bool effectiveEnabled =
-        _userVisualizerEnabled && !_isAppBackgrounded && !_isWindowMinimized;
-    _player.visualizer.setEnabled(effectiveEnabled);
+    _player.visualizer.setEnabled(_isFftCaptureAllowed);
     notifyListeners();
   }
 
   void setVisualizerEnabled(bool enabled) {
     settingsService.isVisualizerEnabled = enabled;
     final isProUnlocked = ref.read(isProUnlockedProvider);
+    _isProUnlocked = isProUnlocked;
     _userVisualizerEnabled = enabled && isProUnlocked;
     _updateEffectiveVisualizerState();
   }
