@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/app_localizations.dart';
@@ -435,7 +436,11 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab>
                               child: CustomScrollView(
                                 key: const ValueKey('album_grid_view'),
                                 controller: _scrollController,
-                                cacheExtent: 1000,
+                                // 预构建范围只留约半屏：更大的 cacheExtent 会让
+                                // 几十张卡片在滚动中成批 initState（同步 stat +
+                                // 缩略图解析排队），收益只是少一点占位图，不值。
+                                scrollCacheExtent:
+                                    const ScrollCacheExtent.viewport(0.4),
                                 slivers: [
                                     if (widget.contentTopPadding > 0)
                                       SliverToBoxAdapter(

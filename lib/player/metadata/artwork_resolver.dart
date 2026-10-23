@@ -40,6 +40,19 @@ class ArtworkResolver {
       LinkedHashMap<String, String>();
   static final Set<String> _verifiedPaths = <String>{};
 
+  /// 缩略图解析的全局并发闸门（同一首歌的并发请求会被合并）。
+  static final _ThumbnailGate _thumbnailGate = _ThumbnailGate();
+
+  /// 负缓存：明确解析不到封面的歌曲，短期内不再重复走整条重链路。
+  ///
+  /// 没有这一层时，「没有内嵌封面也没有目录封面」的专辑每次被列表回收后
+  /// 重新构建都会再查一次库、再起一个 isolate 解析音频标签，然后照样返回 null。
+  static final LinkedHashMap<String, _NegativeArtworkEntry> _negativeCache =
+      LinkedHashMap<String, _NegativeArtworkEntry>();
+
+  static const Duration _negativeTtl = Duration(minutes: 5);
+  static const int _negativeCacheLimit = 4000;
+
   static void _cacheThumbnail(String path, String thumbPath) {
     _verifiedPaths.add(thumbPath);
     if (_verifiedPaths.length > 2000) {
@@ -204,10 +217,13 @@ class ArtworkResolver {
     return null;
   }
 
-  /// 缩略图组件专用的封面解析流程：
-  /// 1. 查找是否有缩略图缓存，若有直接返回缩略图路径；
-  /// 2. 没缓存则按照统一逻辑 (findRawArtwork) 查找封面；
-  /// 3. 从原图生成缩略图缓存并保存，通知回调后展示。
+  /// 缩略图组件专用的封面解析流程（带并发闸门与负缓存）：
+  /// 1. 内存缓存命中 / 传入的 thumbnailPath 有效时直接返回（微秒级，不进闸门）；
+  /// 2. 命中负缓存直接返回 null，不再查库、不再起 isolate 解析音频标签；
+  /// 3. 剩下的重活经 [_thumbnailGate] 排队执行：同一首歌的并发请求合并成一次，
+  ///    全局最多 [_ThumbnailGate.maxConcurrent] 个任务同时进行；
+  /// 4. 没缓存则按照统一逻辑 (findRawArtwork) 查找封面，
+  ///    从原图生成缩略图缓存并保存，通知回调后展示。
   static Future<String?> resolveForThumbnail({
     required String path,
     int? id,
@@ -215,9 +231,47 @@ class ArtworkResolver {
     String? artworkPath,
     RemoteMediaResolver? remoteResolver,
     void Function(String generatedPath)? onThumbnailGenerated,
-  }) async {
+  }) {
     final resolvedSongPath = ScannerPathUtils.resolveIosSandboxPath(path);
 
+    // 快速路径必须留在闸门外：这两步是微秒级同步操作，一旦进队列就会被
+    // 队首的重任务拖住，已经缓存过的封面反而变慢。
+    final cachedThumb = _tryCachedThumbnail(resolvedSongPath, thumbnailPath);
+    if (cachedThumb != null) return Future<String?>.value(cachedThumb);
+
+    // 远程曲目的封面依赖网络，拿不到不等于「这首歌没有封面」，
+    // 因此不做负缓存，否则网络恢复后仍会空白一整个 TTL。
+    final useNegativeCache = !RemoteMediaResolver.isRemoteUri(path);
+    final signature = '${thumbnailPath ?? ''}|${artworkPath ?? ''}';
+
+    if (useNegativeCache && _isNegativeCached(resolvedSongPath, signature)) {
+      return Future<String?>.value();
+    }
+
+    return _thumbnailGate.run('$resolvedSongPath|$signature', () async {
+      final result = await _resolveThumbnailSlow(
+        path: path,
+        id: id,
+        thumbnailPath: thumbnailPath,
+        artworkPath: artworkPath,
+        remoteResolver: remoteResolver,
+        onThumbnailGenerated: onThumbnailGenerated,
+      );
+      if (!useNegativeCache) return result;
+      if (result == null || result.isEmpty) {
+        _recordNegative(resolvedSongPath, signature);
+      } else {
+        _negativeCache.remove(resolvedSongPath);
+      }
+      return result;
+    });
+  }
+
+  /// 同步快速路径：缩略图内存缓存命中，或传入的 thumbnailPath 文件确实存在。
+  static String? _tryCachedThumbnail(
+    String resolvedSongPath,
+    String? thumbnailPath,
+  ) {
     // 1. 检查内存缓存
     if (_thumbnailCache.containsKey(resolvedSongPath)) {
       final cached = _thumbnailCache[resolvedSongPath]!;
@@ -239,6 +293,45 @@ class ArtworkResolver {
         return resolvedThumb;
       }
     }
+    return null;
+  }
+
+  static bool _isNegativeCached(String songPath, String signature) {
+    final entry = _negativeCache[songPath];
+    if (entry == null) return false;
+    if (entry.signature != signature) {
+      // 封面来源信息变了（例如扫描补上了 artworkPath），重新解析。
+      _negativeCache.remove(songPath);
+      return false;
+    }
+    if (DateTime.now().isAfter(entry.expiresAt)) {
+      _negativeCache.remove(songPath);
+      return false;
+    }
+    return true;
+  }
+
+  static void _recordNegative(String songPath, String signature) {
+    _negativeCache.remove(songPath);
+    _negativeCache[songPath] = _NegativeArtworkEntry(
+      signature: signature,
+      expiresAt: DateTime.now().add(_negativeTtl),
+    );
+    if (_negativeCache.length > _negativeCacheLimit) {
+      _negativeCache.remove(_negativeCache.keys.first);
+    }
+  }
+
+  /// 重活部分：查库 → [findRawArtwork] → 生成并落盘缩略图。
+  static Future<String?> _resolveThumbnailSlow({
+    required String path,
+    int? id,
+    String? thumbnailPath,
+    String? artworkPath,
+    RemoteMediaResolver? remoteResolver,
+    void Function(String generatedPath)? onThumbnailGenerated,
+  }) async {
+    final resolvedSongPath = ScannerPathUtils.resolveIosSandboxPath(path);
 
     // 3. 检查数据库已存在的 thumbnailPath 记录
     try {
@@ -383,5 +476,81 @@ class ArtworkResolver {
     } catch (_) {}
 
     return null;
+  }
+}
+
+/// 负缓存条目：记录当时用来解析的封面来源签名，签名不一致就视为过期。
+class _NegativeArtworkEntry {
+  const _NegativeArtworkEntry({
+    required this.signature,
+    required this.expiresAt,
+  });
+
+  final String signature;
+  final DateTime expiresAt;
+}
+
+/// 缩略图解析的全局并发闸门。
+///
+/// 列表滚动时一屏可能同时构建几十张封面，每一张都会走「查库 + 起 isolate
+/// 解析音频标签 + 必要时生成缩略图并写库」这条重链路。没有闸门时它们会全部
+/// 并发发起，滚动直接掉帧。扫描侧（ScannerMetadataStore）本来就限到 2 并发，
+/// 这里给 UI 侧补上同样的约束，并把同一首歌的并发请求合并成一次。
+class _ThumbnailGate {
+  /// 同时在跑的最大解析任务数。取 3：比扫描侧的 2 略激进，
+  /// 保证停下来之后封面能较快补齐，又不会让滚动期间的并发失控。
+  static const int maxConcurrent = 3;
+
+  int _active = 0;
+  final Map<String, Future<String?>> _inFlight = <String, Future<String?>>{};
+  final List<Completer<void>> _waiters = <Completer<void>>[];
+
+  Future<String?> run(String key, Future<String?> Function() task) {
+    final existing = _inFlight[key];
+    if (existing != null) return existing;
+
+    final completer = Completer<String?>();
+    _inFlight[key] = completer.future;
+    unawaited(_execute(key, task, completer));
+    return completer.future;
+  }
+
+  Future<void> _execute(
+    String key,
+    Future<String?> Function() task,
+    Completer<String?> completer,
+  ) async {
+    await _acquire();
+    try {
+      completer.complete(await task());
+    } catch (error, stackTrace) {
+      if (!completer.isCompleted) {
+        completer.completeError(error, stackTrace);
+      }
+    } finally {
+      _release();
+      if (identical(_inFlight[key], completer.future)) {
+        _inFlight.remove(key);
+      }
+    }
+  }
+
+  Future<void> _acquire() {
+    if (_active < maxConcurrent) {
+      _active++;
+      return Future<void>.value();
+    }
+    final completer = Completer<void>();
+    _waiters.add(completer);
+    return completer.future;
+  }
+
+  void _release() {
+    if (_waiters.isNotEmpty) {
+      // 名额直接移交给队首等待者，_active 保持不变。
+      _waiters.removeAt(0).complete();
+    } else {
+      _active--;
+    }
   }
 }
