@@ -128,6 +128,7 @@ class PlaybackHeroCardUiTuning {
   // 竖屏参数 (Portrait parameters)
   static const double pInfoHeight = 80.0;
   static const double pCoverMaxSide = 1000.0;
+  static const double pCoverMaxHeightFactor = 0.52; // 竖屏下封面边长占屏幕高度的最大比例
   static const double pNormalCoverInfoMinGap = 26.0; // 竖屏下标题区距离封面底部的最小距离
   static const double portraitControlsWidthFactor =
       1.0; // 竖屏控件区宽度比例 (0.0 - 1.0)
@@ -291,6 +292,37 @@ class PlaybackHeroCardUiTuning {
   // 控件区理想高度计算及缩放基准 (Ideal height calculation and scaling base)
   // 减小此值会让按钮和文字在相同屏幕宽度下显得更大
   static const double pControlsScaleBase = 375.0; // 竖屏缩放基准
+  static const double pControlsMinScale = 0.9; // 竖屏缩放下限
+  static const double pControlsMaxScale = 1.45; // 竖屏缩放上限（适配 iPad / 平板大屏）
+  static const double pControlsContentMaxHeightFactor = 0.38; // 竖屏下方内容区占屏幕总高度的最大比例上限
+
+  /// 计算竖屏模式下的控件区缩放比例（同时受屏幕宽度和可用高度双重约束）
+  static double portraitControlsScale(
+    double width, {
+    double? height,
+    bool isSmallWindow = false,
+  }) {
+    final double scaleFactor = isSmallWindow ? 0.82 : 1.0;
+    final double scaleByWidth = width / pControlsScaleBase;
+
+    double maxScale = pControlsMaxScale;
+    if (height != null && height > 0) {
+      // 竖屏下方内容区（标题+控件区）基础基准高度约为 316.0
+      // 限制下方内容区占屏幕总高度比例不超过 pControlsContentMaxHeightFactor (38%)
+      // 确保优先保留约 50% 空间给封面及呼吸留白，防止低分辨率/矮屏下控件区挤压封面
+      const double baseTotalContentHeight = 316.0;
+      final double scaleByHeight =
+          (height * pControlsContentMaxHeightFactor) / baseTotalContentHeight;
+      maxScale = math.min(maxScale, scaleByHeight);
+    }
+
+    return scaleByWidth.clamp(
+          pControlsMinScale,
+          math.max(pControlsMinScale, maxScale),
+        ) *
+        scaleFactor;
+  }
+
   static const double lControlsScaleBase = 550.0; // 横屏缩放基准
   static const double controlsTopButtonsHeight = 44.0; // 减小顶部按钮高度
   static const double controlsMainButtonsHeight = 72.0;

@@ -347,10 +347,11 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard> {
       curve: Curves.easeOutCubic,
       tween: Tween<double>(end: shouldExpandControls ? 1.0 : 0.0),
       builder: (context, portraitControlsExpandProgress, _) {
-        final double pNormalScale =
-            (size.width / PlaybackHeroCardUiTuning.pControlsScaleBase)
-                .clamp(0.9, 1.15) *
-            (isSmallWindow ? 0.82 : 1.0);
+        final double pNormalScale = PlaybackHeroCardUiTuning.portraitControlsScale(
+          size.width,
+          height: size.height,
+          isSmallWindow: isSmallWindow,
+        );
         final double audioInfoHeight = showAudioInfo
             ? (PlaybackHeroCardUiTuning.audioInfoGap +
                 PlaybackHeroCardUiTuning.audioInfoHeight)
@@ -937,7 +938,6 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard> {
     double lyricsBottomSpacerHeight = 0.0,
     bool showAudioInfo = true,
   }) {
-    final double scaleFactor = isSmallWindow ? 0.82 : 1.0;
     final bool isWaveformEnabled =
         progressBarStyle != ProgressBarStyle.standard;
     final bool isScrollingWaveform =
@@ -970,9 +970,11 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard> {
 
     final pNormalControlsWidth =
         width * PlaybackHeroCardUiTuning.portraitControlsWidthFactor;
-    final pNormalScale =
-        (width / PlaybackHeroCardUiTuning.pControlsScaleBase).clamp(0.9, 1.15) *
-        scaleFactor;
+    final pNormalScale = PlaybackHeroCardUiTuning.portraitControlsScale(
+      width,
+      height: height,
+      isSmallWindow: isSmallWindow,
+    );
 
     final double maxControlsHeightFactor = isSmallWindow
         ? 0.85
@@ -999,7 +1001,10 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard> {
         ? 0.0
         : math
               .min(
-                width,
+                math.min(
+                  width,
+                  height * PlaybackHeroCardUiTuning.pCoverMaxHeightFactor,
+                ),
                 pNormalBottomLimit -
                     pNormalTotalContentHeight -
                     PlaybackHeroCardUiTuning.pNormalCoverInfoMinGap,
@@ -1292,20 +1297,21 @@ class _PlaybackHeroCardState extends ConsumerState<PlaybackHeroCard> {
 
     final currentControlsScale =
         _lerp2DSmooth(
-          (width / PlaybackHeroCardUiTuning.pControlsScaleBase).clamp(
-            0.9,
-            1.15,
+          PlaybackHeroCardUiTuning.portraitControlsScale(
+            width,
+            height: height,
+            isSmallWindow: isSmallWindow,
           ),
-          (width / PlaybackHeroCardUiTuning.pControlsScaleBase).clamp(
-            0.9,
-            1.15,
+          PlaybackHeroCardUiTuning.portraitControlsScale(
+            width,
+            height: height,
+            isSmallWindow: isSmallWindow,
           ),
           lNormalControlsScale,
           lLyricsSpaceControlsScale,
           tLyrics,
           tLand,
-        ) *
-        scaleFactor;
+        );
 
     final double lLyricsCoverLeft;
     final double lLyricsInfoLeft;

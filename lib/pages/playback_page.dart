@@ -1359,11 +1359,11 @@ class _PlaybackPageState extends ConsumerState<PlaybackPage>
                                     scaleFactor;
 
                                 final pNormalScale =
-                                    (size.width /
-                                            PlaybackHeroCardUiTuning
-                                                .pControlsScaleBase)
-                                        .clamp(0.9, 1.15) *
-                                    scaleFactor;
+                                    PlaybackHeroCardUiTuning.portraitControlsScale(
+                                      size.width,
+                                      height: size.height,
+                                      isSmallWindow: isSmallWin,
+                                    );
                                 final double maxControlsHeightFactor =
                                     isSmallWin
                                     ? 0.85
