@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:vynody/l10n/app_localizations.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/widgets/app_tooltip.dart';
+import 'package:vynody/widgets/playing_equalizer_icon.dart';
 import 'package:vynody/widgets/song_thumbnail.dart';
 
 /// Unified song tile for Desktop Queue Drawer and Standalone Queue Window.
@@ -178,12 +179,10 @@ class _QueueSongTileState extends State<QueueSongTile> {
                             Row(
                               children: [
                                 if (widget.isCurrent) ...[
-                                  Icon(
-                                    widget.isPlaying
-                                        ? Icons.volume_up_rounded
-                                        : Icons.pause_rounded,
-                                    size: 14,
+                                  PlayingEqualizerIcon(
                                     color: theme.colorScheme.primary,
+                                    size: 14,
+                                    isPlaying: widget.isPlaying,
                                   ),
                                   const SizedBox(width: 4),
                                 ],

@@ -13,6 +13,7 @@ import 'package:vynody/utils/song_context_menu_utils.dart';
 import '../widgets/album_cover.dart';
 import '../widgets/album_detail_widgets.dart';
 import '../widgets/remote_media_badge.dart';
+import '../widgets/playing_equalizer_icon.dart';
 import '../widgets/mini_player_wrapper.dart';
 import '../widgets/library_selection_panel.dart';
 import '../widgets/library_selection_scope.dart';
@@ -461,19 +462,21 @@ class _AlbumSongItem extends StatelessWidget {
         : SizedBox(
             width: isLargeAlbum ? 40 : 32,
             child: Center(
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  trackLabel,
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  softWrap: false,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: isCurrent ? theme.colorScheme.primary : null,
-                    fontWeight: isCurrent ? FontWeight.w700 : null,
-                  ),
-                ),
-              ),
+              child: isCurrent
+                  ? PlayingEqualizerIcon(
+                      color: theme.colorScheme.primary,
+                      size: 16,
+                    )
+                  : FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        trackLabel,
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        softWrap: false,
+                        style: theme.textTheme.bodyMedium,
+                      ),
+                    ),
             ),
           );
 

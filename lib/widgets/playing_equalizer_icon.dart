@@ -36,12 +36,15 @@ class PlayingEqualizerIcon extends ConsumerStatefulWidget {
     super.key,
     required this.color,
     this.size = 16.0,
-    this.isPlaying = true,
+    this.isPlaying,
   });
 
   final Color color;
   final double size;
-  final bool isPlaying;
+
+  /// 是否正在播放。传 `null` 表示跟随全局播放状态
+  /// （[audioIsPlayingProvider]），供拿不到局部播放态的列表行直接复用。
+  final bool? isPlaying;
 
   @override
   ConsumerState<PlayingEqualizerIcon> createState() =>
@@ -62,6 +65,10 @@ class _PlayingEqualizerIconState extends ConsumerState<PlayingEqualizerIcon>
   int _retryCount = 0;
   bool _disposed = false;
 
+  /// 解析后的播放状态：`widget.isPlaying` 优先，缺省时跟随全局 provider。
+  /// 缓存成字段是为了让 [didUpdateWidget] 与 painter 复用同一份判定。
+  bool _isPlaying = true;
+
   @override
   void initState() {
     super.initState();
@@ -69,6 +76,7 @@ class _PlayingEqualizerIconState extends ConsumerState<PlayingEqualizerIcon>
       vsync: this,
       duration: const Duration(milliseconds: 1800),
     );
+    _isPlaying = widget.isPlaying ?? ref.read(audioIsPlayingProvider);
     _syncFallback();
     _subscribeFft();
   }
@@ -77,6 +85,7 @@ class _PlayingEqualizerIconState extends ConsumerState<PlayingEqualizerIcon>
   void didUpdateWidget(covariant PlayingEqualizerIcon oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.isPlaying != oldWidget.isPlaying) {
+      _isPlaying = widget.isPlaying ?? _isPlaying;
       _syncFallback();
     }
   }
@@ -134,7 +143,7 @@ class _PlayingEqualizerIconState extends ConsumerState<PlayingEqualizerIcon>
   }
 
   void _syncFallback() {
-    final needsFallback = widget.isPlaying && _heights.value.isEmpty;
+    final needsFallback = _isPlaying && _heights.value.isEmpty;
     if (needsFallback) {
       if (!_fallback.isAnimating) {
         _fallback.repeat();
@@ -156,6 +165,16 @@ class _PlayingEqualizerIconState extends ConsumerState<PlayingEqualizerIcon>
 
   @override
   Widget build(BuildContext context) {
+    // 没有外部指定播放态时，跟随全局；只在真正变化时重建一次。
+    if (widget.isPlaying == null) {
+      ref.listen<bool>(audioIsPlayingProvider, (previous, next) {
+        if (next == _isPlaying) return;
+        _isPlaying = next;
+        _syncFallback();
+        if (mounted) setState(() {});
+      });
+    }
+
     return SizedBox(
       width: widget.size,
       height: widget.size,
@@ -164,7 +183,7 @@ class _PlayingEqualizerIconState extends ConsumerState<PlayingEqualizerIcon>
           painter: _EqualizerBarsPainter(
             heights: _heights,
             fallback: _fallback,
-            isPlaying: widget.isPlaying,
+            isPlaying: _isPlaying,
             color: widget.color,
           ),
         ),

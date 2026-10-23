@@ -7,6 +7,7 @@ import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/audio/playback_source.dart';
 import 'package:vynody/utils/song_context_menu_utils.dart';
 import 'draggable_song_item.dart';
+import 'playing_equalizer_icon.dart';
 import 'remote_media_badge.dart';
 import 'song_thumbnail.dart';
 
@@ -523,10 +524,11 @@ class AlbumSongTile extends StatelessWidget {
                         SizedBox(
                           width: 24,
                           child: isCurrent
-                              ? Icon(
-                                  Icons.volume_up_rounded,
-                                  size: 16,
-                                  color: theme.colorScheme.primary,
+                              ? Center(
+                                  child: PlayingEqualizerIcon(
+                                    color: theme.colorScheme.primary,
+                                    size: 16,
+                                  ),
                                 )
                               : Text(
                                   '${song.trackNumber ?? trackIndex}',

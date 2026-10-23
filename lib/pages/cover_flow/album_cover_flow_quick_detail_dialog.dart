@@ -13,6 +13,7 @@ import 'package:vynody/utils/song_context_menu_utils.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../widgets/album_cover.dart';
+import '../../widgets/playing_equalizer_icon.dart';
 import '../../widgets/remote_media_badge.dart';
 import '../../widgets/volume_controls.dart';
 import '../../utils/blur_constants.dart';
@@ -363,12 +364,12 @@ class _AlbumCoverFlowQuickDetailDialogState
                                       .withValues(alpha: 0.45),
                             )
                           : (isCurrent
-                              ? Icon(
-                                  isPlaying
-                                      ? Icons.volume_up_rounded
-                                      : Icons.pause_rounded,
-                                  size: 18,
-                                  color: theme.colorScheme.primary,
+                              ? Center(
+                                  child: PlayingEqualizerIcon(
+                                    color: theme.colorScheme.primary,
+                                    size: 18,
+                                    isPlaying: isPlaying,
+                                  ),
                                 )
                               : Text(
                                   trackNumberStr,
