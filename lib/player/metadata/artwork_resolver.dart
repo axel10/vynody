@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/player/metadata/metadata_helper.dart';
+import 'package:vynody/player/metadata/thumbnail_scheduler.dart';
 import 'package:vynody/player/remote/proxy/remote_media_resolver.dart';
 import 'package:vynody/player/remote/remote_server_storage.dart';
 import 'package:vynody/player/scanner/scanner_path_utils.dart';
@@ -221,7 +222,8 @@ class ArtworkResolver {
   /// 1. 内存缓存命中 / 传入的 thumbnailPath 有效时直接返回（微秒级，不进闸门）；
   /// 2. 命中负缓存直接返回 null，不再查库、不再起 isolate 解析音频标签；
   /// 3. 剩下的重活经 [_thumbnailGate] 排队执行：同一首歌的并发请求合并成一次，
-  ///    全局最多 [_ThumbnailGate.maxConcurrent] 个任务同时进行；
+  ///    并发名额由 [ThumbnailScheduler] 与扫描侧共用（本地
+  ///    `clamp(cores ~/ 2, 2, 4)`，远程固定 2）；
   /// 4. 没缓存则按照统一逻辑 (findRawArtwork) 查找封面，
   ///    从原图生成缩略图缓存并保存，通知回调后展示。
   static Future<String?> resolveForThumbnail({
@@ -248,23 +250,28 @@ class ArtworkResolver {
       return Future<String?>.value();
     }
 
-    return _thumbnailGate.run('$resolvedSongPath|$signature', () async {
-      final result = await _resolveThumbnailSlow(
-        path: path,
-        id: id,
-        thumbnailPath: thumbnailPath,
-        artworkPath: artworkPath,
-        remoteResolver: remoteResolver,
-        onThumbnailGenerated: onThumbnailGenerated,
-      );
-      if (!useNegativeCache) return result;
-      if (result == null || result.isEmpty) {
-        _recordNegative(resolvedSongPath, signature);
-      } else {
-        _negativeCache.remove(resolvedSongPath);
-      }
-      return result;
-    });
+    final isRemote = RemoteMediaResolver.isRemoteUri(path);
+    return _thumbnailGate.run(
+      '$resolvedSongPath|$signature',
+      remote: isRemote,
+      task: () async {
+        final result = await _resolveThumbnailSlow(
+          path: path,
+          id: id,
+          thumbnailPath: thumbnailPath,
+          artworkPath: artworkPath,
+          remoteResolver: remoteResolver,
+          onThumbnailGenerated: onThumbnailGenerated,
+        );
+        if (!useNegativeCache) return result;
+        if (result == null || result.isEmpty) {
+          _recordNegative(resolvedSongPath, signature);
+        } else {
+          _negativeCache.remove(resolvedSongPath);
+        }
+        return result;
+      },
+    );
   }
 
   /// 同步快速路径：缩略图内存缓存命中，或传入的 thumbnailPath 文件确实存在。
@@ -496,61 +503,48 @@ class _NegativeArtworkEntry {
 /// 解析音频标签 + 必要时生成缩略图并写库」这条重链路。没有闸门时它们会全部
 /// 并发发起，滚动直接掉帧。扫描侧（ScannerMetadataStore）本来就限到 2 并发，
 /// 这里给 UI 侧补上同样的约束，并把同一首歌的并发请求合并成一次。
+/// 浏览侧的缩略图解析闸门。
+///
+/// 名额来自 [ThumbnailScheduler]，与扫描侧共用同一组槽位 —— 这样「扫描中浏览
+/// 专辑页」不会再叠成 5 路并发。类内只保留**按路径+签名合并同一请求**的单飞逻辑，
+/// 保证同一张卡被多处同时渲染时不会起两个 isolate。
 class _ThumbnailGate {
-  /// 同时在跑的最大解析任务数。取 3：比扫描侧的 2 略激进，
-  /// 保证停下来之后封面能较快补齐，又不会让滚动期间的并发失控。
-  static const int maxConcurrent = 3;
-
-  int _active = 0;
   final Map<String, Future<String?>> _inFlight = <String, Future<String?>>{};
-  final List<Completer<void>> _waiters = <Completer<void>>[];
 
-  Future<String?> run(String key, Future<String?> Function() task) {
+  Future<String?> run(
+    String key, {
+    required bool remote,
+    required Future<String?> Function() task,
+  }) {
     final existing = _inFlight[key];
     if (existing != null) return existing;
 
     final completer = Completer<String?>();
     _inFlight[key] = completer.future;
-    unawaited(_execute(key, task, completer));
+    unawaited(_execute(key, remote, task, completer));
     return completer.future;
   }
 
   Future<void> _execute(
     String key,
+    bool remote,
     Future<String?> Function() task,
     Completer<String?> completer,
   ) async {
-    await _acquire();
     try {
-      completer.complete(await task());
+      final result = await ThumbnailScheduler.instance.run(
+        remote: remote,
+        task: task,
+      );
+      if (!completer.isCompleted) completer.complete(result);
     } catch (error, stackTrace) {
       if (!completer.isCompleted) {
         completer.completeError(error, stackTrace);
       }
     } finally {
-      _release();
       if (identical(_inFlight[key], completer.future)) {
         _inFlight.remove(key);
       }
-    }
-  }
-
-  Future<void> _acquire() {
-    if (_active < maxConcurrent) {
-      _active++;
-      return Future<void>.value();
-    }
-    final completer = Completer<void>();
-    _waiters.add(completer);
-    return completer.future;
-  }
-
-  void _release() {
-    if (_waiters.isNotEmpty) {
-      // 名额直接移交给队首等待者，_active 保持不变。
-      _waiters.removeAt(0).complete();
-    } else {
-      _active--;
     }
   }
 }

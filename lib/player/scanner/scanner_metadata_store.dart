@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:vynody/models/music_folder.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/player/metadata/metadata_helper.dart';
+import 'package:vynody/player/metadata/thumbnail_scheduler.dart';
 import 'package:vynody/player/audio/playback_session_manager.dart';
 import 'package:vynody/player/scanner/scanner_path_utils.dart';
 
@@ -185,9 +186,6 @@ class ScannerMetadataStore {
   }
 
   final Set<String> _thumbnailsInFlight = {};
-  int _activeThumbnailLoads = 0;
-  static const int _maxConcurrentThumbnailLoads = 2;
-  final List<void Function()> _thumbnailQueue = [];
 
   Future<void> loadThumbnailForPath(String path) async {
     final cached = _metadataMap[path];
@@ -198,14 +196,10 @@ class ScannerMetadataStore {
       return;
     }
 
-    if (_activeThumbnailLoads >= _maxConcurrentThumbnailLoads) {
-      final completer = Completer<void>();
-      _thumbnailQueue.add(() {
-        completer.complete();
-      });
-      await completer.future;
-    }
-    _activeThumbnailLoads++;
+    // 名额与浏览侧（ArtworkResolver）共用，见 ThumbnailScheduler 的说明：
+    // 两侧各自计数时，扫描中浏览专辑页会叠成两份并发。
+    final remote = ThumbnailScheduler.isRemote(path);
+    await ThumbnailScheduler.instance.acquire(remote: remote);
 
     try {
       final stopwatch = Stopwatch()..start();
@@ -255,12 +249,8 @@ class ScannerMetadataStore {
       stopwatch.stop();
       _logTiming('loadThumbnailForPath($path)', stopwatch);
     } finally {
-      _activeThumbnailLoads--;
       _thumbnailsInFlight.remove(path);
-      if (_thumbnailQueue.isNotEmpty) {
-        final next = _thumbnailQueue.removeAt(0);
-        next();
-      }
+      ThumbnailScheduler.instance.release(remote: remote);
     }
   }
 
