@@ -51,7 +51,10 @@ class LibraryCatalog {
 /// 全应用唯一的 songs 表订阅点。
 ///
 /// 所有曲库派生视图（专辑 / 艺术家 / 流派 / 年份 / 已评分 / 拾光机）都从这里取值，
-/// 因此扫描入库、缩略图回写引发的连续写入只会产生一次全表重算。
+/// 因此扫描入库引发的连续写入只会产生一次全表重算。
+///
+/// 另外，写入若只改了展示字段（典型是缩略图回填写 `thumbnailPath`），结构签名
+/// 不变，本 Provider 不会产出新快照 —— 下游的聚合与排序完全不会被惊动。
 final libraryCatalogProvider = StreamProvider<LibraryCatalog>((ref) async* {
   final db = MetadataDatabase();
   final isReady = ref.watch(scannerServiceProvider.select((s) => s.isReady));
@@ -78,6 +81,8 @@ final libraryCatalogProvider = StreamProvider<LibraryCatalog>((ref) async* {
     return sourceFilter.matchesSongPath(path);
   }
 
+  List<SongMetadata>? lastKept;
+
   await for (final songs in db
       .watchAllSongMetadata()
       .throttleLeadingAndTrailing(const Duration(seconds: 1))) {
@@ -88,9 +93,87 @@ final libraryCatalogProvider = StreamProvider<LibraryCatalog>((ref) async* {
       if ((flags & SongSourceFlags.external) != 0) continue;
       kept.add(song);
     }
+    // 表级监听无法区分「哪一列变了」，而缩略图回填每补一张封面都会写一次库。
+    // 若每次写入都产出新快照，一张封面就会触发：全量 buildAlbumSummaries
+    // （每首歌 new 一个 MusicFile）+ 全量重排（comparator 里反复 toLowerCase）
+    // + 整棵 SliverGrid 重建。所以这里对「结构」做等价判断，结构没变就沿用
+    // 上一份快照，让纯展示字段的写入不再穿透到列表层。
+    if (lastKept != null && libraryStructureEquals(lastKept, kept)) {
+      continue;
+    }
+    lastKept = kept;
     yield LibraryCatalog(kept, isPathAllowed);
   }
 });
+
+/// 判断两份曲库快照的「结构」是否等价 —— 即所有会影响派生列表内容与顺序的字段。
+///
+/// 有意排除的字段：
+/// - `thumbnailPath`：缩略图回填的写入点。它只影响封面显示，而封面组件本身
+///   会走 artwork_resolver 解析（命中内存缓存，不会再起 isolate），因此列表
+///   不需要因它重算。
+/// - `themeColorsBlob` / `waveformBlob`：后台分析写入的展示数据，且每次查询
+///   都会生成新的 Uint8List 实例（identity hashCode），参与比较会让本函数
+///   恒为 false，反而把节流效果抹掉。
+///
+/// 新增「会影响列表内容」的字段时请同步补充 [_sameSongStructure]，否则该字段
+/// 的变更要等到下一次结构变化才会反映到界面上。
+///
+/// 暴露为公开函数是为了让测试能直接覆盖「哪些字段算结构」这条规则。
+bool libraryStructureEquals(
+  List<SongMetadata> previous,
+  List<SongMetadata> next,
+) {
+  if (identical(previous, next)) return true;
+  if (previous.length != next.length) return false;
+  for (var i = 0; i < previous.length; i++) {
+    if (!_sameSongStructure(previous[i], next[i])) return false;
+  }
+  return true;
+}
+
+bool _sameSongStructure(SongMetadata a, SongMetadata b) {
+  if (identical(a, b)) return true;
+  return a.path == b.path &&
+      a.title == b.title &&
+      a.album == b.album &&
+      a.artist == b.artist &&
+      a.albumArtist == b.albumArtist &&
+      a.trackNumber == b.trackNumber &&
+      a.duration == b.duration &&
+      a.year == b.year &&
+      a.lastModifiedTime == b.lastModifiedTime &&
+      a.createdAt == b.createdAt &&
+      a.deletedAt == b.deletedAt &&
+      a.sourceFlags == b.sourceFlags &&
+      a.isAppModified == b.isAppModified &&
+      a.id == b.id &&
+      a.mediaId == b.mediaId &&
+      a.fileRating == b.fileRating &&
+      a.artworkPath == b.artworkPath &&
+      a.artworkWidth == b.artworkWidth &&
+      a.artworkHeight == b.artworkHeight &&
+      a.hasArtwork == b.hasArtwork &&
+      a.bitrate == b.bitrate &&
+      a.sampleRate == b.sampleRate &&
+      a.channels == b.channels &&
+      a.bitDepth == b.bitDepth &&
+      a.format == b.format &&
+      a.codec == b.codec &&
+      _sameStringList(a.genres, b.genres);
+}
+
+/// 逐项比较流派列表。`List` 的 hashCode 是 identity 的，而每次查库都会
+/// 重新反序列化出一个新 List，所以不能用 `==` 或 hashCode 判等。
+bool _sameStringList(List<String>? a, List<String>? b) {
+  if (identical(a, b)) return true;
+  if (a == null || b == null) return a == null && b == null;
+  if (a.length != b.length) return false;
+  for (var i = 0; i < a.length; i++) {
+    if (a[i] != b[i]) return false;
+  }
+  return true;
+}
 
 /// 把 catalog 快照包装成 [Stream]，让派生 provider 保持原有的
 /// `StreamProvider<...>` 类型与 `overrideWith` 签名不变。
