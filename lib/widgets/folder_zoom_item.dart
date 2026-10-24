@@ -67,6 +67,7 @@ class FolderZoomItem extends StatelessWidget {
       FolderZoomTier.largeGrid || _ => 48.0,
     };
     final listIconSize = switch (metrics.tier) {
+      FolderZoomTier.minimalList => 0.0,
       FolderZoomTier.compactList => 22.0,
       FolderZoomTier.standardList => 28.0,
       FolderZoomTier.largeList => 38.0,
@@ -277,7 +278,7 @@ class FolderZoomItem extends StatelessWidget {
                 final listPadH = isPortrait ? 12.0 : 16.0;
                 final listCoverSize = getFolderListCoverSize(
                   metrics.animatedZoomScale,
-                ).clamp(32.0, math.max(32.0, H - 8.0));
+                ).clamp(0.0, math.max(0.0, H - 8.0));
                 final listCoverLeft = listPadH;
                 final listCoverTop =
                     ((H - listCoverSize) / 2.0).clamp(0.0, H);
@@ -300,13 +301,21 @@ class FolderZoomItem extends StatelessWidget {
                 final trailingSpace =
                     hasTrailing ? lerpDouble(44.0, 0.0, gridMorph)! : 0.0;
 
-                final listTextLeft = listCoverLeft + listCoverSize + 16.0;
-                final listTextTop = listCoverTop;
+                final coverProgress = (listCoverSize / 40.0).clamp(0.0, 1.0);
+                final listCoverGap = 16.0 * coverProgress;
+                final selectionOffset = (isSelectionMode && gridMorph < 0.5)
+                    ? (28.0 * (1.0 - coverProgress))
+                    : 0.0;
+
+                final listTextLeft =
+                    listCoverLeft + listCoverSize + listCoverGap + selectionOffset;
+                final listTextHeight =
+                    math.max(listCoverSize, math.max(0.0, H - 8.0));
+                final listTextTop = ((H - listTextHeight) / 2.0).clamp(0.0, H);
                 final listTextWidth = math.max(
                   0.0,
                   W - listTextLeft - listPadH - trailingSpace,
                 );
-                final listTextHeight = listCoverSize;
 
                 const gridTextLeft = 0.0;
                 final gridTextTop = gridCoverSize + 4.0;
@@ -325,13 +334,30 @@ class FolderZoomItem extends StatelessWidget {
                 return Stack(
                   clipBehavior: Clip.none,
                   children: [
-                    Positioned(
-                      left: coverLeft,
-                      top: coverTop,
-                      width: coverSize,
-                      height: coverSize,
-                      child: heroCover,
-                    ),
+                    if (coverSize > 0.5)
+                      Positioned(
+                        left: coverLeft,
+                        top: coverTop,
+                        width: coverSize,
+                        height: coverSize,
+                        child: heroCover,
+                      )
+                    else if (isSelectionMode && gridMorph < 0.5)
+                      Positioned(
+                        left: listCoverLeft,
+                        top: ((H - 24.0) / 2.0).clamp(0.0, H),
+                        width: 24.0,
+                        height: 24.0,
+                        child: Checkbox(
+                          value: isSelected,
+                          onChanged: (_) => onTap?.call(),
+                          fillColor: WidgetStateProperty.all(Colors.white),
+                          checkColor: Colors.black,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                      ),
                     Positioned(
                       left: textLeft,
                       top: textTop,

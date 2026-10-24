@@ -4,24 +4,26 @@ import 'package:vynody/widgets/folder_layout_utils.dart';
 
 void main() {
   group('FolderZoomTier & Snap tests', () {
-    test('snapFolderZoomScale snaps continuous values to 6 discrete tiers', () {
-      expect(snapFolderZoomScale(-0.1), equals(kFolderZoomTierCompactList));
-      expect(snapFolderZoomScale(0.0), equals(kFolderZoomTierCompactList));
-      expect(snapFolderZoomScale(0.08), equals(kFolderZoomTierCompactList));
-      expect(snapFolderZoomScale(0.12), equals(kFolderZoomTierStandardList));
-      expect(snapFolderZoomScale(0.24), equals(kFolderZoomTierStandardList));
-      expect(snapFolderZoomScale(0.35), equals(kFolderZoomTierLargeList));
-      expect(snapFolderZoomScale(0.49), equals(kFolderZoomTierLargeList));
-      expect(snapFolderZoomScale(0.55), equals(kFolderZoomTierSmallGrid));
+    test('snapFolderZoomScale snaps continuous values to 7 discrete tiers', () {
+      expect(snapFolderZoomScale(-0.1), equals(kFolderZoomTierMinimalList));
+      expect(snapFolderZoomScale(0.0), equals(kFolderZoomTierMinimalList));
+      expect(snapFolderZoomScale(0.05), equals(kFolderZoomTierMinimalList));
+      expect(snapFolderZoomScale(0.12), equals(kFolderZoomTierCompactList));
+      expect(snapFolderZoomScale(0.17), equals(kFolderZoomTierCompactList));
+      expect(snapFolderZoomScale(0.30), equals(kFolderZoomTierStandardList));
+      expect(snapFolderZoomScale(0.48), equals(kFolderZoomTierLargeList));
       expect(snapFolderZoomScale(0.65), equals(kFolderZoomTierSmallGrid));
-      expect(snapFolderZoomScale(0.75), equals(kFolderZoomTierMediumGrid));
-      expect(snapFolderZoomScale(0.85), equals(kFolderZoomTierMediumGrid));
-      expect(snapFolderZoomScale(0.92), equals(kFolderZoomTierLargeGrid));
+      expect(snapFolderZoomScale(0.80), equals(kFolderZoomTierMediumGrid));
+      expect(snapFolderZoomScale(0.98), equals(kFolderZoomTierLargeGrid));
       expect(snapFolderZoomScale(1.0), equals(kFolderZoomTierLargeGrid));
       expect(snapFolderZoomScale(1.5), equals(kFolderZoomTierLargeGrid));
     });
 
     test('stepFolderZoomScale increments and decrements by discrete tiers', () {
+      expect(
+        stepFolderZoomScale(kFolderZoomTierMinimalList, 1),
+        equals(kFolderZoomTierCompactList),
+      );
       expect(
         stepFolderZoomScale(kFolderZoomTierCompactList, 1),
         equals(kFolderZoomTierStandardList),
@@ -52,21 +54,23 @@ void main() {
         equals(kFolderZoomTierMediumGrid),
       );
       expect(
-        stepFolderZoomScale(kFolderZoomTierCompactList, -1),
-        equals(kFolderZoomTierCompactList),
+        stepFolderZoomScale(kFolderZoomTierMinimalList, -1),
+        equals(kFolderZoomTierMinimalList),
       );
     });
 
-    test('getFolderZoomTier correctly classifies all 6 tiers', () {
-      expect(getFolderZoomTier(0.0), equals(FolderZoomTier.compactList));
-      expect(getFolderZoomTier(0.2), equals(FolderZoomTier.standardList));
-      expect(getFolderZoomTier(0.4), equals(FolderZoomTier.largeList));
-      expect(getFolderZoomTier(0.6), equals(FolderZoomTier.smallGrid));
-      expect(getFolderZoomTier(0.8), equals(FolderZoomTier.mediumGrid));
-      expect(getFolderZoomTier(1.0), equals(FolderZoomTier.largeGrid));
+    test('getFolderZoomTier correctly classifies all 7 tiers', () {
+      expect(getFolderZoomTier(kFolderZoomTierMinimalList), equals(FolderZoomTier.minimalList));
+      expect(getFolderZoomTier(kFolderZoomTierCompactList), equals(FolderZoomTier.compactList));
+      expect(getFolderZoomTier(kFolderZoomTierStandardList), equals(FolderZoomTier.standardList));
+      expect(getFolderZoomTier(kFolderZoomTierLargeList), equals(FolderZoomTier.largeList));
+      expect(getFolderZoomTier(kFolderZoomTierSmallGrid), equals(FolderZoomTier.smallGrid));
+      expect(getFolderZoomTier(kFolderZoomTierMediumGrid), equals(FolderZoomTier.mediumGrid));
+      expect(getFolderZoomTier(kFolderZoomTierLargeGrid), equals(FolderZoomTier.largeGrid));
     });
 
-    test('isFolderZoomGrid separates list and grid views at 0.5', () {
+    test('isFolderZoomGrid separates list and grid views', () {
+      expect(isFolderZoomGrid(kFolderZoomTierMinimalList), isFalse);
       expect(isFolderZoomGrid(kFolderZoomTierCompactList), isFalse);
       expect(isFolderZoomGrid(kFolderZoomTierStandardList), isFalse);
       expect(isFolderZoomGrid(kFolderZoomTierLargeList), isFalse);
@@ -76,6 +80,7 @@ void main() {
     });
 
     test('getFolderListCoverSize returns discrete sizes for list tiers', () {
+      expect(getFolderListCoverSize(kFolderZoomTierMinimalList), equals(0.0));
       expect(getFolderListCoverSize(kFolderZoomTierCompactList), equals(40.0));
       expect(getFolderListCoverSize(kFolderZoomTierStandardList), equals(64.0));
       expect(getFolderListCoverSize(kFolderZoomTierLargeList), equals(88.0));

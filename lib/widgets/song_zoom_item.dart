@@ -259,6 +259,7 @@ class SongZoomItem extends ConsumerWidget {
     final gridFonts = folderGridFontSizes(metrics.targetCardWidth);
     final (double titleSize, double subSize, double infoSize) =
         switch (metrics.tier) {
+      FolderZoomTier.minimalList => (13.5, 11.5, 11.0),
       FolderZoomTier.compactList => (14.0, 12.0, 11.0),
       FolderZoomTier.standardList => (14.0, 12.0, 11.0),
       FolderZoomTier.largeList => (15.5, 13.0, 11.5),
@@ -356,7 +357,7 @@ class SongZoomItem extends ConsumerWidget {
                 final listPadH = isPortrait ? 12.0 : 16.0;
                 final listCoverSize = getFolderListCoverSize(
                   metrics.animatedZoomScale,
-                ).clamp(32.0, math.max(32.0, H - 8.0));
+                ).clamp(0.0, math.max(0.0, H - 8.0));
                 final listCoverLeft = listPadH;
                 final listCoverTop =
                     ((H - listCoverSize) / 2.0).clamp(0.0, H);
@@ -379,13 +380,21 @@ class SongZoomItem extends ConsumerWidget {
                 final trailingSpace =
                     hasTrailing ? lerpDouble(44.0, 0.0, gridMorph)! : 0.0;
 
-                final listTextLeft = listCoverLeft + listCoverSize + 16.0;
-                final listTextTop = listCoverTop;
+                final coverProgress = (listCoverSize / 40.0).clamp(0.0, 1.0);
+                final listCoverGap = 16.0 * coverProgress;
+                final selectionOffset = (effectiveSelectionMode && gridMorph < 0.5)
+                    ? (28.0 * (1.0 - coverProgress))
+                    : 0.0;
+
+                final listTextLeft =
+                    listCoverLeft + listCoverSize + listCoverGap + selectionOffset;
+                final listTextHeight =
+                    math.max(listCoverSize, math.max(0.0, H - 8.0));
+                final listTextTop = ((H - listTextHeight) / 2.0).clamp(0.0, H);
                 final listTextWidth = math.max(
                   0.0,
                   W - listTextLeft - listPadH - trailingSpace,
                 );
-                final listTextHeight = listCoverSize;
 
                 const gridTextLeft = 0.0;
                 final gridTextTop = gridCoverSize + 4.0;
@@ -456,13 +465,30 @@ class SongZoomItem extends ConsumerWidget {
                 return Stack(
                   clipBehavior: Clip.none,
                   children: [
-                    Positioned(
-                      left: coverLeft,
-                      top: coverTop,
-                      width: coverSize,
-                      height: coverSize,
-                      child: coverStack,
-                    ),
+                    if (coverSize > 0.5)
+                      Positioned(
+                        left: coverLeft,
+                        top: coverTop,
+                        width: coverSize,
+                        height: coverSize,
+                        child: coverStack,
+                      )
+                    else if (effectiveSelectionMode && gridMorph < 0.5)
+                      Positioned(
+                        left: listCoverLeft,
+                        top: ((H - 24.0) / 2.0).clamp(0.0, H),
+                        width: 24.0,
+                        height: 24.0,
+                        child: Checkbox(
+                          value: effectiveSelected,
+                          onChanged: (_) => effectiveOnTap?.call(),
+                          fillColor: WidgetStateProperty.all(Colors.white),
+                          checkColor: Colors.black,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                      ),
                     Positioned(
                       left: textLeft,
                       top: textTop,

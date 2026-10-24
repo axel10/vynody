@@ -8,16 +8,18 @@ import 'folder_nav_bar_scaffold.dart';
 export '../utils/layout_constants.dart';
 
 /// Discrete fixed tier values for `folderZoomScale`:
-/// List view (3 tiers): 0.0, 0.2, 0.4
-/// Grid view (3 tiers): 0.6, 0.8, 1.0
-const double kFolderZoomTierCompactList = 0.0;
-const double kFolderZoomTierStandardList = 0.2;
-const double kFolderZoomTierLargeList = 0.4;
-const double kFolderZoomTierSmallGrid = 0.6;
-const double kFolderZoomTierMediumGrid = 0.8;
+/// List view (4 tiers): 0.0, 1/6, 2/6, 3/6
+/// Grid view (3 tiers): 4/6, 5/6, 1.0
+const double kFolderZoomTierMinimalList = 0.0;
+const double kFolderZoomTierCompactList = 1.0 / 6.0;
+const double kFolderZoomTierStandardList = 2.0 / 6.0;
+const double kFolderZoomTierLargeList = 3.0 / 6.0;
+const double kFolderZoomTierSmallGrid = 4.0 / 6.0;
+const double kFolderZoomTierMediumGrid = 5.0 / 6.0;
 const double kFolderZoomTierLargeGrid = 1.0;
 
 const List<double> kFolderZoomTierValues = [
+  kFolderZoomTierMinimalList,
   kFolderZoomTierCompactList,
   kFolderZoomTierStandardList,
   kFolderZoomTierLargeList,
@@ -51,54 +53,129 @@ double stepFolderZoomScale(double current, int delta) {
 
 /// Discrete layout & typography tiers derived from `folderZoomScale`.
 enum FolderZoomTier {
-  /// Tier 0: Single-column compact list with smaller cover; song info on the right.
+  /// Tier 0: Single-column minimal list without cover/thumbnail (pure text).
+  minimalList,
+
+  /// Tier 1: Single-column compact list with smaller cover; song info on the right.
   compactList,
 
-  /// Tier 1: Single-column standard list with medium cover; 3-line column.
+  /// Tier 2: Single-column standard list with medium cover; 3-line column.
   standardList,
 
-  /// Tier 2: Single-column spacious list with large cover; 3-line column.
+  /// Tier 3: Single-column spacious list with large cover; 3-line column.
   largeList,
 
-  /// Tier 3: Multi-column compact grid with higher column density.
+  /// Tier 4: Multi-column compact grid with higher column density.
   smallGrid,
 
-  /// Tier 4: Multi-column standard grid.
+  /// Tier 5: Multi-column standard grid.
   mediumGrid,
 
-  /// Tier 5: Multi-column spacious grid with lower column density and larger cards.
+  /// Tier 6: Multi-column spacious grid with lower column density and larger cards.
   largeGrid,
 }
 
+extension FolderZoomTierX on FolderZoomTier {
+  /// Whether this tier represents a grid view.
+  bool get isGrid => switch (this) {
+        FolderZoomTier.minimalList ||
+        FolderZoomTier.compactList ||
+        FolderZoomTier.standardList ||
+        FolderZoomTier.largeList =>
+          false,
+        FolderZoomTier.smallGrid ||
+        FolderZoomTier.mediumGrid ||
+        FolderZoomTier.largeGrid =>
+          true,
+      };
+
+  /// Discrete cover size in list view (0.0 for minimal list with thumbnail hidden).
+  double get listCoverSize => switch (this) {
+        FolderZoomTier.minimalList => 0.0,
+        FolderZoomTier.compactList => 40.0,
+        FolderZoomTier.standardList => 64.0,
+        FolderZoomTier.largeList => 88.0,
+        _ => 0.0,
+      };
+
+  /// Discrete single-row tile extent (height) in list view.
+  double get listTileExtent => switch (this) {
+        FolderZoomTier.minimalList => 48.0,
+        FolderZoomTier.compactList => 56.0,
+        FolderZoomTier.standardList => 80.0,
+        FolderZoomTier.largeList => 104.0,
+        _ => 56.0,
+      };
+
+  /// Normalized zoom scale for this discrete tier.
+  double get zoomScale => kFolderZoomTierValues[index];
+}
+
 FolderZoomTier getFolderZoomTier(double zoomScale) {
-  if (zoomScale < 0.1) return FolderZoomTier.compactList;
-  if (zoomScale < 0.3) return FolderZoomTier.standardList;
-  if (zoomScale < 0.5) return FolderZoomTier.largeList;
-  if (zoomScale < 0.7) return FolderZoomTier.smallGrid;
-  if (zoomScale < 0.9) return FolderZoomTier.mediumGrid;
-  return FolderZoomTier.largeGrid;
+  final snapped = snapFolderZoomScale(zoomScale);
+  int bestIdx = 0;
+  double minDiff = double.infinity;
+  for (int i = 0; i < kFolderZoomTierValues.length; i++) {
+    final diff = (snapped - kFolderZoomTierValues[i]).abs();
+    if (diff < minDiff) {
+      minDiff = diff;
+      bestIdx = i;
+    }
+  }
+  return FolderZoomTier.values[bestIdx];
 }
 
-bool isFolderZoomGrid(double zoomScale) => zoomScale >= 0.5;
+/// Boundary threshold between list tiers and grid tiers.
+const double kFolderZoomGridThreshold =
+    (kFolderZoomTierLargeList + kFolderZoomTierSmallGrid) / 2.0;
 
-bool isFolderZoomCompactList(double zoomScale) => zoomScale < 0.1;
+bool isFolderZoomGrid(double zoomScale) => zoomScale >= kFolderZoomGridThreshold;
 
-/// Thumbnail size in list view (`zoomScale < 0.5`), ranging from `40px` to `88px`.
-///
-/// Discrete steps:
-/// - Compact List (`0.0`): `40px` cover, `56px` tile
-/// - Standard List (`0.2`): `64px` cover, `80px` tile
-/// - Large List (`0.4`): `88px` cover, `104px` tile
+/// Both Minimal List and Compact List use the 2-line right-aligned info layout.
+bool isFolderZoomCompactList(double zoomScale) =>
+    zoomScale < (kFolderZoomTierCompactList + kFolderZoomTierStandardList) / 2.0;
+
+/// Piecewise linear interpolation across list tiers for a layout property.
+double _interpolateListTierProperty(
+  double zoomScale,
+  double Function(FolderZoomTier tier) propertyGetter,
+) {
+  const listTiers = [
+    FolderZoomTier.minimalList,
+    FolderZoomTier.compactList,
+    FolderZoomTier.standardList,
+    FolderZoomTier.largeList,
+  ];
+
+  if (zoomScale <= listTiers.first.zoomScale) {
+    return propertyGetter(listTiers.first);
+  }
+  if (zoomScale >= listTiers.last.zoomScale) {
+    return propertyGetter(listTiers.last);
+  }
+
+  for (int i = 0; i < listTiers.length - 1; i++) {
+    final t0 = listTiers[i];
+    final t1 = listTiers[i + 1];
+    if (zoomScale >= t0.zoomScale && zoomScale <= t1.zoomScale) {
+      final span = t1.zoomScale - t0.zoomScale;
+      final fraction = span <= 0.0 ? 0.0 : (zoomScale - t0.zoomScale) / span;
+      return lerpDouble(propertyGetter(t0), propertyGetter(t1), fraction)!;
+    }
+  }
+  return propertyGetter(listTiers.last);
+}
+
+/// Thumbnail size in list view (`zoomScale < kFolderZoomGridThreshold`),
+/// ranging smoothly from `0px` (minimal list, hidden) to `88px` (large list).
 double getFolderListCoverSize(double zoomScale) {
-  if (zoomScale <= 0.0) return 40.0;
-  if (zoomScale >= 0.4) return 88.0;
-  final t = (zoomScale / 0.4).clamp(0.0, 1.0);
-  return lerpDouble(40.0, 88.0, t)!;
+  return _interpolateListTierProperty(zoomScale, (t) => t.listCoverSize);
 }
 
-/// Total height of a single row tile in list view (`coverSize + 16px` vertical padding).
+/// Total height of a single row tile in list view,
+/// ranging from `48px` (minimal list) to `104px` (large list).
 double getFolderListTileExtent(double zoomScale) {
-  return getFolderListCoverSize(zoomScale) + 16.0;
+  return _interpolateListTierProperty(zoomScale, (t) => t.listTileExtent);
 }
 
 /// Returns the discrete text block height below the cover in grid view.

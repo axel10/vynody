@@ -16,6 +16,7 @@ export 'folder_nav_bar_scaffold.dart';
 /// Returns the icon corresponding to the current [zoomScale] tier.
 IconData getFolderZoomTierIcon(double zoomScale) {
   return switch (getFolderZoomTier(zoomScale)) {
+    FolderZoomTier.minimalList => Icons.view_headline_rounded,
     FolderZoomTier.compactList => Icons.density_small_rounded,
     FolderZoomTier.standardList => Icons.density_medium_rounded,
     FolderZoomTier.largeList => Icons.density_large_rounded,
@@ -90,6 +91,7 @@ class _FolderZoomPopoverCard extends ConsumerWidget {
 
     final modeLabel = isGrid ? l10n.gridView : l10n.listView;
     final tierName = switch (tier) {
+      FolderZoomTier.minimalList => '极简',
       FolderZoomTier.compactList => '紧凑',
       FolderZoomTier.standardList => '标准',
       FolderZoomTier.largeList => '大图',
@@ -105,7 +107,7 @@ class _FolderZoomPopoverCard extends ConsumerWidget {
         child: BackdropFilter(
           filter: AppBlur.mediumFilter,
           child: Container(
-            width: 276,
+            width: 292,
             padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
             decoration: BoxDecoration(
               color: theme.colorScheme.surfaceContainerHigh
@@ -195,7 +197,7 @@ class _FolderZoomPopoverCard extends ConsumerWidget {
                           value: snapFolderZoomScale(zoomScale),
                           min: 0.0,
                           max: 1.0,
-                          divisions: 5,
+                          divisions: kFolderZoomTierValues.length - 1,
                           onChanged: (val) {
                             settings.folderZoomScale = snapFolderZoomScale(val);
                           },
@@ -223,6 +225,13 @@ class _FolderZoomPopoverCard extends ConsumerWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
+                    _ZoomTierPresetButton(
+                      icon: Icons.view_headline_rounded,
+                      tooltip: '${l10n.listView} · 极简',
+                      isSelected: tier == FolderZoomTier.minimalList,
+                      onTap: () => settings.folderZoomScale =
+                          kFolderZoomTierMinimalList,
+                    ),
                     _ZoomTierPresetButton(
                       icon: Icons.density_small_rounded,
                       tooltip: '${l10n.listView} · 紧凑',
