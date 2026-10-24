@@ -6,6 +6,7 @@ import '../utils/layout_constants.dart';
 import 'folder_nav_bar_scaffold.dart';
 
 export '../utils/layout_constants.dart';
+export 'zoom_item_scaffold.dart';
 
 /// Discrete fixed tier values for `folderZoomScale`:
 /// List view (4 tiers): 0.0, 1/6, 2/6, 3/6

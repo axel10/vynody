@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:math' as math;
 import 'dart:ui' show lerpDouble;
 import 'package:flutter/material.dart';
 import 'package:flutter_reorderable_grid_view/widgets/widgets.dart';
@@ -9,7 +8,6 @@ import '../l10n/app_localizations.dart';
 import '../player/remote/remote_server_models.dart';
 import '../player/remote/remote_server_riverpod.dart';
 import 'folder_layout_utils.dart';
-import 'hoverable_card.dart';
 import 'app_context_menu.dart';
 import 'pro/pro_badge.dart';
 import '../player/pro/pro_license_service.dart';
@@ -354,18 +352,10 @@ class RemoteServersSliver extends ConsumerWidget {
                       isProUnlocked: isProUnlocked,
                       isSortMode: true,
                       onTap: null,
-                      onSecondaryTapDown: (details) {
+                      onContextMenu: (position) {
                         showRemoteServerContextMenu(
                           context: context,
-                          position: details.globalPosition,
-                          server: server,
-                          ref: ref,
-                        );
-                      },
-                      onLongPressStart: (details) {
-                        showRemoteServerContextMenu(
-                          context: context,
-                          position: details.globalPosition,
+                          position: position,
                           server: server,
                           ref: ref,
                         );
@@ -421,18 +411,10 @@ class RemoteServersSliver extends ConsumerWidget {
                             ),
                           ),
                           onTap: null,
-                          onSecondaryTapDown: (details) {
+                          onContextMenu: (position) {
                             showRemoteServerContextMenu(
                               context: context,
-                              position: details.globalPosition,
-                              server: server,
-                              ref: ref,
-                            );
-                          },
-                          onLongPressStart: (details) {
-                            showRemoteServerContextMenu(
-                              context: context,
-                              position: details.globalPosition,
+                              position: position,
                               server: server,
                               ref: ref,
                             );
@@ -473,18 +455,10 @@ class RemoteServersSliver extends ConsumerWidget {
                   isProUnlocked: isProUnlocked,
                   isSortMode: false,
                   onTap: () => onOpenServer(server),
-                  onSecondaryTapDown: (details) {
+                  onContextMenu: (position) {
                     showRemoteServerContextMenu(
                       context: context,
-                      position: details.globalPosition,
-                      server: server,
-                      ref: ref,
-                    );
-                  },
-                  onLongPressStart: (details) {
-                    showRemoteServerContextMenu(
-                      context: context,
-                      position: details.globalPosition,
+                      position: position,
                       server: server,
                       ref: ref,
                     );
@@ -511,6 +485,7 @@ class RemoteServerZoomItem extends StatelessWidget {
   final VoidCallback? onLongPress;
   final void Function(LongPressStartDetails)? onLongPressStart;
   final void Function(TapDownDetails)? onSecondaryTapDown;
+  final void Function(Offset position)? onContextMenu;
   final Widget? trailing;
 
   const RemoteServerZoomItem({
@@ -523,15 +498,14 @@ class RemoteServerZoomItem extends StatelessWidget {
     this.onLongPress,
     this.onLongPressStart,
     this.onSecondaryTapDown,
+    this.onContextMenu,
     this.trailing,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
     final gridMorph = metrics.gridMorph;
-    final isGridTarget = metrics.isGridTarget;
 
     final isSubsonic = server.type == RemoteServerType.subsonic;
     final isJellyfin = server.type == RemoteServerType.jellyfin;
@@ -663,234 +637,58 @@ class RemoteServerZoomItem extends StatelessWidget {
       ),
     );
 
-    final TextStyle titleStyle;
-    final TextStyle subtitleStyle;
-    if (!isGridTarget) {
-      titleStyle = (theme.textTheme.bodyLarge ?? const TextStyle()).copyWith(
-        color: theme.colorScheme.onSurface,
-        fontWeight: FontWeight.w600,
-        height: 1.2,
-      );
-      subtitleStyle = (theme.textTheme.bodySmall ?? const TextStyle()).copyWith(
-        fontSize: 12.0,
-        color: theme.colorScheme.onSurfaceVariant,
-        height: 1.2,
-      );
-    } else {
-      final fonts = folderGridFontSizes(metrics.targetCardWidth);
-      titleStyle = ((isPortrait
-                  ? theme.textTheme.titleSmall
-                  : theme.textTheme.titleMedium) ??
-              const TextStyle())
-          .copyWith(
-        fontWeight: FontWeight.w600,
-        fontSize: fonts.title,
-        color: theme.colorScheme.onSurface,
-        height: 1.25,
-      );
-      subtitleStyle = (theme.textTheme.bodySmall ?? const TextStyle()).copyWith(
-        fontSize: fonts.subtitle,
-        color: theme.colorScheme.onSurfaceVariant,
-        height: 1.2,
-      );
-    }
-
-    final textColumn = Align(
-      alignment: Alignment.centerLeft,
-      child: OverflowBox(
-        minHeight: 0.0,
-        maxHeight: double.infinity,
-        alignment: Alignment.centerLeft,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    final listTrailingWidget = trailing ??
+        Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            AnimatedDefaultTextStyle(
-              duration: const Duration(milliseconds: 180),
-              curve: Curves.easeOutCubic,
-              style: titleStyle,
-              child: Text(
-                server.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            SizedBox(height: lerpDouble(4.0, 2.0, gridMorph)!),
-            AnimatedDefaultTextStyle(
-              duration: const Duration(milliseconds: 180),
-              curve: Curves.easeOutCubic,
-              style: subtitleStyle,
-              child: Text(
-                server.url.isEmpty ? typeLabel : server.url,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-
-    Widget? listTrailingWidget;
-    if (trailing != null) {
-      listTrailingWidget = trailing;
-    } else {
-      listTrailingWidget = Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: isSubsonic
-                  ? Colors.orange.withValues(alpha: 0.12)
-                  : Colors.blue.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              typeLabel,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
                 color: isSubsonic
-                    ? Colors.orange.shade800
-                    : Colors.blue.shade800,
+                    ? Colors.orange.withValues(alpha: 0.12)
+                    : Colors.blue.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                typeLabel,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: isSubsonic
+                      ? Colors.orange.shade800
+                      : Colors.blue.shade800,
+                ),
               ),
             ),
-          ),
-          if (!isProUnlocked) ...[
+            if (!isProUnlocked) ...[
+              const SizedBox(width: 8),
+              const ProBadge(),
+            ],
             const SizedBox(width: 8),
-            const ProBadge(),
+            Icon(
+              Icons.arrow_forward_ios_rounded,
+              size: 13,
+              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+            ),
           ],
-          const SizedBox(width: 8),
-          Icon(
-            Icons.arrow_forward_ios_rounded,
-            size: 13,
-            color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
-          ),
-        ],
-      );
-    }
+        );
 
     final double listTrailingEstimatedWidth =
         trailing != null ? 48.0 : (!isProUnlocked ? 130.0 : 90.0);
 
-    final itemContent = GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onSecondaryTapDown: onSecondaryTapDown,
-      onLongPressStart: onLongPressStart,
+    return ZoomItemScaffold(
+      metrics: metrics,
+      cover: coverStack,
+      titleText: server.name,
+      subtitleText: server.url.isEmpty ? typeLabel : server.url,
+      trailing: listTrailingWidget,
+      trailingWidth: listTrailingEstimatedWidth,
+      onTap: onTap,
       onLongPress: onLongPress,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(coverRadiusValue),
-        ),
-        child: Material(
-          color: Colors.transparent,
-          borderRadius: BorderRadius.circular(coverRadiusValue),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(coverRadiusValue),
-            enableFeedback: false,
-            onTap: onTap,
-            hoverColor: gridMorph < 0.5
-                ? theme.colorScheme.onSurface.withValues(alpha: 0.06)
-                : Colors.transparent,
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final W = constraints.maxWidth;
-                final H = constraints.maxHeight.isFinite
-                    ? constraints.maxHeight
-                    : metrics.animatedListExtent;
-
-                final listPadH = isPortrait ? 12.0 : 16.0;
-                final listCoverSize = getFolderListCoverSize(
-                  metrics.animatedZoomScale,
-                ).clamp(0.0, math.max(0.0, H - 8.0));
-                final listCoverLeft = listPadH;
-                final listCoverTop =
-                    ((H - listCoverSize) / 2.0).clamp(0.0, H);
-
-                final gridCoverSize = math.max(
-                  0.0,
-                  math.min(W, H - metrics.animatedGridTextHeight),
-                );
-                final gridCoverLeft = (W - gridCoverSize) / 2.0;
-                const gridCoverTop = 0.0;
-
-                final coverLeft =
-                    lerpDouble(listCoverLeft, gridCoverLeft, gridMorph)!;
-                final coverTop =
-                    lerpDouble(listCoverTop, gridCoverTop, gridMorph)!;
-                final coverSize =
-                    lerpDouble(listCoverSize, gridCoverSize, gridMorph)!;
-
-                final trailingSpace =
-                    lerpDouble(listTrailingEstimatedWidth, 0.0, gridMorph)!;
-
-                final coverProgress = (listCoverSize / 40.0).clamp(0.0, 1.0);
-                final listCoverGap = 16.0 * coverProgress;
-
-                final listTextLeft =
-                    listCoverLeft + listCoverSize + listCoverGap;
-                final listTextHeight =
-                    math.max(listCoverSize, math.max(0.0, H - 8.0));
-                final listTextTop =
-                    ((H - listTextHeight) / 2.0).clamp(0.0, H);
-                final listTextWidth = math.max(
-                  0.0,
-                  W - listTextLeft - listPadH - trailingSpace,
-                );
-
-                const gridTextLeft = 0.0;
-                final gridTextTop = gridCoverSize + 4.0;
-                final gridTextWidth = W;
-                final gridTextHeight = math.max(0.0, H - gridTextTop);
-
-                final textLeft =
-                    lerpDouble(listTextLeft, gridTextLeft, gridMorph)!;
-                final textTop =
-                    lerpDouble(listTextTop, gridTextTop, gridMorph)!;
-                final textWidth =
-                    lerpDouble(listTextWidth, gridTextWidth, gridMorph)!;
-                final textHeight =
-                    lerpDouble(listTextHeight, gridTextHeight, gridMorph)!;
-
-                return Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    if (coverSize > 0.5)
-                      Positioned(
-                        left: coverLeft,
-                        top: coverTop,
-                        width: coverSize,
-                        height: coverSize,
-                        child: coverStack,
-                      ),
-                    Positioned(
-                      left: textLeft,
-                      top: textTop,
-                      width: textWidth,
-                      height: textHeight,
-                      child: textColumn,
-                    ),
-                    if (gridMorph < 0.99 && listTrailingWidget != null)
-                      Positioned(
-                        right: listPadH,
-                        top: 0,
-                        bottom: 0,
-                        child: Opacity(
-                          opacity: (1.0 - gridMorph).clamp(0.0, 1.0),
-                          child: Center(child: listTrailingWidget),
-                        ),
-                      ),
-                  ],
-                );
-              },
-            ),
-          ),
-        ),
-      ),
+      onLongPressStart: onLongPressStart,
+      onSecondaryTapDown: onSecondaryTapDown,
+      onContextMenu: onContextMenu,
     );
-
-    return isGridTarget ? HoverableCard(child: itemContent) : itemContent;
   }
 }
 

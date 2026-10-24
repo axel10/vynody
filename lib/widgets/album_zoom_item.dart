@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'dart:ui' show lerpDouble;
 
 import 'package:flutter/material.dart';
@@ -58,8 +57,6 @@ class _AlbumZoomItemState extends State<AlbumZoomItem> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isPortrait =
-        MediaQuery.of(context).orientation == Orientation.portrait;
     final metrics = widget.metrics;
     final album = widget.album;
 
@@ -158,202 +155,42 @@ class _AlbumZoomItemState extends State<AlbumZoomItem> {
         ? theme.colorScheme.primary
         : theme.colorScheme.onSurface;
 
-    final TextStyle titleStyle;
-    final TextStyle subtitleStyle;
-    if (!isGridTarget) {
-      titleStyle = (theme.textTheme.bodyLarge ?? const TextStyle()).copyWith(
-        color: titleColor,
-        fontWeight: FontWeight.normal,
-        height: 1.2,
-      );
-      subtitleStyle = (theme.textTheme.bodySmall ?? const TextStyle()).copyWith(
-        fontSize: 12.0,
-        color: theme.colorScheme.onSurfaceVariant,
-        height: 1.2,
-      );
-    } else {
-      final fonts = folderGridFontSizes(metrics.targetCardWidth);
-      titleStyle = ((isPortrait
-                  ? theme.textTheme.titleSmall
-                  : theme.textTheme.titleMedium) ??
-              const TextStyle())
-          .copyWith(
-        fontWeight: FontWeight.w600,
-        fontSize: fonts.title,
-        color: titleColor,
-        height: 1.25,
-      );
-      subtitleStyle = (theme.textTheme.bodySmall ?? const TextStyle()).copyWith(
-        fontSize: fonts.subtitle,
-        color: theme.colorScheme.onSurfaceVariant,
-        height: 1.2,
-      );
-    }
+    final listCoverSize = getFolderListCoverSize(metrics.animatedZoomScale);
+    final coverProgress = (listCoverSize / 40.0).clamp(0.0, 1.0);
+    final selectionOffset = (widget.isSelectionMode && gridMorph < 0.5)
+        ? (28.0 * (1.0 - coverProgress))
+        : 0.0;
 
-    final textColumn = Align(
-      alignment: Alignment.centerLeft,
-      child: OverflowBox(
-        minHeight: 0.0,
-        maxHeight: double.infinity,
-        alignment: Alignment.centerLeft,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AnimatedDefaultTextStyle(
-              duration: const Duration(milliseconds: 180),
-              curve: Curves.easeOutCubic,
-              style: titleStyle,
-              child: Text(
-                album.title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            SizedBox(height: lerpDouble(4.0, 2.0, gridMorph)!),
-            AnimatedDefaultTextStyle(
-              duration: const Duration(milliseconds: 180),
-              curve: Curves.easeOutCubic,
-              style: subtitleStyle,
-              child: Text(
-                album.artist,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-
-    final listBgAlpha = (1.0 - gridMorph).clamp(0.0, 1.0);
-    final content = GestureDetector(
-      behavior: HitTestBehavior.opaque,
+    final scaffold = ZoomItemScaffold(
+      metrics: metrics,
+      cover: coverStack,
+      titleText: album.title,
+      subtitleText: album.artist,
+      titleColor: titleColor,
+      listTitleFontWeight: FontWeight.normal,
+      isSelected: isSelected,
+      isSelectionMode: widget.isSelectionMode,
+      selectionOffset: selectionOffset,
+      wrapHoverableCard: false,
+      onTap: widget.onTap,
+      onLongPress: widget.onLongPress,
       onSecondaryTapDown: widget.onSecondaryTapDown,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: widget.isSelectionMode && isSelected && listBgAlpha > 0.01
-              ? theme.colorScheme.primaryContainer
-                  .withValues(alpha: 0.35 * listBgAlpha)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(coverRadiusValue),
-        ),
-        child: Material(
-          color: Colors.transparent,
-          borderRadius: BorderRadius.circular(coverRadiusValue),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(coverRadiusValue),
-            enableFeedback: false,
-            onTap: widget.onTap,
-            onLongPress: widget.onLongPress,
-            hoverColor: gridMorph < 0.5
-                ? theme.colorScheme.onSurface.withValues(alpha: 0.06)
-                : Colors.transparent,
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final W = constraints.maxWidth;
-                final H = constraints.maxHeight.isFinite
-                    ? constraints.maxHeight
-                    : metrics.animatedListExtent;
-
-                final listPadH = isPortrait ? 12.0 : 16.0;
-                final listCoverSize = getFolderListCoverSize(
-                  metrics.animatedZoomScale,
-                ).clamp(0.0, math.max(0.0, H - 8.0));
-                final listCoverLeft = listPadH;
-                final listCoverTop = ((H - listCoverSize) / 2.0).clamp(0.0, H);
-
-                final gridCoverSize = math.max(
-                  0.0,
-                  math.min(W, H - metrics.animatedGridTextHeight),
-                );
-                final gridCoverLeft = (W - gridCoverSize) / 2.0;
-                const gridCoverTop = 0.0;
-
-                final coverLeft =
-                    lerpDouble(listCoverLeft, gridCoverLeft, gridMorph)!;
-                final coverTop =
-                    lerpDouble(listCoverTop, gridCoverTop, gridMorph)!;
-                final coverSize =
-                    lerpDouble(listCoverSize, gridCoverSize, gridMorph)!;
-
-                final coverProgress = (listCoverSize / 40.0).clamp(0.0, 1.0);
-                final listCoverGap = 16.0 * coverProgress;
-                final selectionOffset =
-                    (widget.isSelectionMode && gridMorph < 0.5)
-                        ? (28.0 * (1.0 - coverProgress))
-                        : 0.0;
-
-                final listTextLeft = listCoverLeft +
-                    listCoverSize +
-                    listCoverGap +
-                    selectionOffset;
-                final listTextHeight =
-                    math.max(listCoverSize, math.max(0.0, H - 8.0));
-                final listTextTop = ((H - listTextHeight) / 2.0).clamp(0.0, H);
-                final listTextWidth =
-                    math.max(0.0, W - listTextLeft - listPadH);
-
-                const gridTextLeft = 0.0;
-                final gridTextTop = gridCoverSize + 4.0;
-                final gridTextWidth = W;
-                final gridTextHeight = math.max(0.0, H - gridTextTop);
-
-                final textLeft =
-                    lerpDouble(listTextLeft, gridTextLeft, gridMorph)!;
-                final textTop =
-                    lerpDouble(listTextTop, gridTextTop, gridMorph)!;
-                final textWidth =
-                    lerpDouble(listTextWidth, gridTextWidth, gridMorph)!;
-                final textHeight =
-                    lerpDouble(listTextHeight, gridTextHeight, gridMorph)!;
-
-                return Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    if (coverSize > 0.5)
-                      Positioned(
-                        left: coverLeft,
-                        top: coverTop,
-                        width: coverSize,
-                        height: coverSize,
-                        child: coverStack,
-                      )
-                    else if (widget.isSelectionMode && gridMorph < 0.5)
-                      Positioned(
-                        left: listCoverLeft,
-                        top: ((H - 24.0) / 2.0).clamp(0.0, H),
-                        width: 24.0,
-                        height: 24.0,
-                        child: Checkbox(
-                          value: isSelected,
-                          onChanged: (_) =>
-                              (widget.onToggleSelect ?? widget.onTap)?.call(),
-                          fillColor: WidgetStateProperty.all(Colors.white),
-                          checkColor: Colors.black,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                        ),
-                      ),
-                    Positioned(
-                      left: textLeft,
-                      top: textTop,
-                      width: textWidth,
-                      height: textHeight,
-                      child: textColumn,
-                    ),
-                  ],
-                );
-              },
-            ),
-          ),
-        ),
-      ),
+      fallbackLeadingWhenNoCover: widget.isSelectionMode && gridMorph < 0.5
+          ? Checkbox(
+              value: isSelected,
+              onChanged: (_) =>
+                  (widget.onToggleSelect ?? widget.onTap)?.call(),
+              fillColor: WidgetStateProperty.all(Colors.white),
+              checkColor: Colors.black,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(4),
+              ),
+            )
+          : null,
     );
 
     // 悬停态只在网格档位有意义（列表档位用 InkWell 的 hoverColor）。
-    final withHover = MouseRegion(
+    return MouseRegion(
       onEnter: (_) {
         if (isGridTarget && !_isHovered) setState(() => _isHovered = true);
       },
@@ -361,9 +198,7 @@ class _AlbumZoomItemState extends State<AlbumZoomItem> {
         if (_isHovered) setState(() => _isHovered = false);
       },
       cursor: SystemMouseCursors.click,
-      child: isGridTarget ? HoverableCard(child: content) : content,
+      child: isGridTarget ? HoverableCard(child: scaffold) : scaffold,
     );
-
-    return withHover;
   }
 }
