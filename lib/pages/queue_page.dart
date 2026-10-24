@@ -4,7 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/app_localizations.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
-import '../widgets/song_tile.dart';
+import '../widgets/folder_layout_utils.dart';
+import '../widgets/folder_zoom_gesture_layer.dart';
+import '../widgets/library_zoom_popover.dart';
+import '../widgets/song_zoom_item.dart';
 import 'package:vynody/utils/song_context_menu_utils.dart';
 import 'package:vynody/utils/deleted_song_snack.dart';
 import 'package:vynody/utils/app_snack_bar.dart';
@@ -112,7 +115,10 @@ class _QueuePageState extends ConsumerState<QueuePage>
 
     if (targetIndex != null && targetIndex >= 0 && targetIndex < displayQueueLength) {
       if (_scrollController.hasClients) {
-        const double itemHeight = 80.0;
+        final queueZoomScale =
+            ref.read(settingsServiceProvider).queueZoomScale;
+        final double itemHeight =
+            getFolderListTileExtent(queueZoomScale) + 4.0;
         final double viewportHeight = _scrollController.position.viewportDimension;
         double targetOffset = (targetIndex * itemHeight) - (viewportHeight / 2) + (itemHeight / 2);
         
@@ -242,6 +248,10 @@ class _QueuePageState extends ConsumerState<QueuePage>
 
   @override
   Widget build(BuildContext context) {
+    final queueZoomScale = ref.watch(
+      settingsServiceProvider.select((s) => s.queueZoomScale),
+    );
+    final isPlaying = ref.watch(audioIsPlayingProvider);
     final isSelectionMode =
         ref.watch(librarySelectionScopeProvider) ==
         LibrarySelectionScope.queue;
@@ -354,6 +364,11 @@ class _QueuePageState extends ConsumerState<QueuePage>
           onPressed: canLocate ? _scrollToCurrentPlay : null,
           tooltip: l10n.locateCurrentSong,
         ),
+        LibraryZoomButton(
+          scope: LibraryZoomScope.queue,
+          iconSize: 20,
+          color: headerIconColor,
+        ),
         IconButton(
           icon: Icon(
             Icons.delete_sweep_rounded,
@@ -398,13 +413,19 @@ class _QueuePageState extends ConsumerState<QueuePage>
         ),
       );
     } else {
-      listOrEmpty = Column(
-        children: [
-                Expanded(
-                  child: Stack(
-                    children: [
-                      Positioned.fill(
-                        child: ReorderableListView.builder(
+      listOrEmpty = LayoutBuilder(
+        builder: (context, constraints) {
+          return FolderZoomSliverBuilder(
+            zoomScale: queueZoomScale,
+            width: constraints.maxWidth,
+            builder: (context, metrics) {
+              return Column(
+                children: [
+                  Expanded(
+                    child: Stack(
+                      children: [
+                        Positioned.fill(
+                          child: ReorderableListView.builder(
                           scrollController: _scrollController,
                           buildDefaultDragHandles: false,
                           cacheExtent: 1000.0,
@@ -565,83 +586,100 @@ class _QueuePageState extends ConsumerState<QueuePage>
                                         : 16,
                                     vertical: 4,
                                   ),
-                                  child: SongTile(
-                                    song: song,
-                                    isCurrent: isCurrent,
-                                    isSelected: isSelected,
-                                    isSelectionMode: isSelectionMode,
-                                    selectedPaths: isSelectionMode
-                                        ? selectedKeys
-                                            .map((i) => (i >= 0 &&
-                                                    i < displayQueue.length)
-                                                ? displayQueue[i].path
-                                                : null)
-                                            .whereType<String>()
-                                            .toSet()
-                                        : const <String>{},
-                                    isHighlighted: _highlightedIndex == index,
-                                    dragHandle: ReorderableDragStartListener(
-                                      index: index,
-                                      child: const MouseRegion(
-                                        cursor: SystemMouseCursors.grab,
-                                        child: Padding(
-                                          padding: EdgeInsets.symmetric(horizontal: 4.0),
-                                          child: Icon(Icons.drag_handle_rounded),
-                                        ),
-                                      ),
-                                    ),
-                                    onTap: () {
-                                      if (isMissing) {
-                                        showDeletedSongSnack(
-                                          context,
-                                          ref,
-                                          skipped: false,
-                                        );
-                                        return;
-                                      }
+                                  child: SizedBox(
+                                    height: metrics.animatedListExtent,
+                                    child: SongZoomItem(
+                                      song: song,
+                                      metrics: metrics,
+                                      isCurrent: isCurrent,
+                                      isPlaying: isPlaying && isCurrent,
+                                      isSelected: isSelected,
+                                      isSelectionMode: isSelectionMode,
+                                      selectedPaths: isSelectionMode
+                                          ? selectedKeys
+                                              .map((i) => (i >= 0 &&
+                                                      i < displayQueue.length)
+                                                  ? displayQueue[i].path
+                                                  : null)
+                                              .whereType<String>()
+                                              .toSet()
+                                          : const <String>{},
+                                      isHighlighted: _highlightedIndex == index,
+                                      dragHandle:
+                                          (isSelectionMode && _viewIndex == 0)
+                                              ? ReorderableDragStartListener(
+                                                  index: index,
+                                                  child: const MouseRegion(
+                                                    cursor:
+                                                        SystemMouseCursors
+                                                            .grab,
+                                                    child: Padding(
+                                                      padding:
+                                                          EdgeInsets.symmetric(
+                                                            horizontal: 4.0,
+                                                          ),
+                                                      child: Icon(
+                                                        Icons
+                                                            .drag_handle_rounded,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                )
+                                              : null,
+                                      enableDrag: false,
+                                      onTap: () {
+                                        if (isMissing) {
+                                          showDeletedSongSnack(
+                                            context,
+                                            ref,
+                                            skipped: false,
+                                          );
+                                          return;
+                                        }
 
-                                      handleItemTap(
-                                        index: index,
-                                        itemKey: index,
-                                        allKeys: List.generate(
-                                          displayQueue.length,
-                                          (i) => i,
-                                        ),
-                                        onNormalTap: () {
-                                          if (_viewIndex == 1 ||
-                                              _viewIndex == 2) {
-                                            final actualIndex = queue
-                                                .indexWhere(
-                                                  (s) => s.path == song.path,
-                                                );
-                                            if (actualIndex >= 0) {
+                                        handleItemTap(
+                                          index: index,
+                                          itemKey: index,
+                                          allKeys: List.generate(
+                                            displayQueue.length,
+                                            (i) => i,
+                                          ),
+                                          onNormalTap: () {
+                                            if (_viewIndex == 1 ||
+                                                _viewIndex == 2) {
+                                              final actualIndex = queue
+                                                  .indexWhere(
+                                                    (s) => s.path == song.path,
+                                                  );
+                                              if (actualIndex >= 0) {
+                                                ref
+                                                    .read(audioServiceProvider)
+                                                    .playAtIndex(actualIndex);
+                                              }
+                                            } else {
                                               ref
                                                   .read(audioServiceProvider)
-                                                  .playAtIndex(actualIndex);
+                                                  .playAtIndex(index);
                                             }
-                                          } else {
-                                            ref
-                                                .read(audioServiceProvider)
-                                                .playAtIndex(index);
-                                          }
-                                        },
-                                      );
-                                    },
-                                     onLongPress: () {
-                                       lastAnchorIndex = index;
-                                       if (!isSelectionMode) {
-                                         enterSelectionMode(index);
-                                       }
-                                     },
-                                    onSecondaryTapDown: (details) {
-                                      handleShowMenu(
-                                        context,
-                                        details.globalPosition,
-                                      );
-                                    },
-                                    onMorePressed: (buttonContext) {
-                                      handleShowBottomSheet(buttonContext);
-                                    },
+                                          },
+                                        );
+                                      },
+                                      onLongPress: () {
+                                        lastAnchorIndex = index;
+                                        if (!isSelectionMode) {
+                                          enterSelectionMode(index);
+                                        }
+                                      },
+                                      onSecondaryTapDown: (details) {
+                                        handleShowMenu(
+                                          context,
+                                          details.globalPosition,
+                                        );
+                                      },
+                                      onMorePressed: (buttonContext) {
+                                        handleShowBottomSheet(buttonContext);
+                                      },
+                                    ),
                                   ),
                                 ),
                               ),
@@ -654,7 +692,11 @@ class _QueuePageState extends ConsumerState<QueuePage>
                 ),
               ],
             );
-    }
+          },
+        );
+      },
+    );
+  }
 
     return Scaffold(
       body: QueueFileDropTarget(
@@ -671,7 +713,10 @@ class _QueuePageState extends ConsumerState<QueuePage>
         child: Stack(
           fit: StackFit.expand,
           children: [
-            listOrEmpty,
+            FolderZoomGestureLayer(
+              scope: LibraryZoomScope.queue,
+              child: listOrEmpty,
+            ),
             Positioned(
               top: 0,
               left: 0,

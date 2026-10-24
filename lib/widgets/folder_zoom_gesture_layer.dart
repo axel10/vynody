@@ -85,7 +85,13 @@ class _FolderZoomGestureLayerState extends ConsumerState<FolderZoomGestureLayer>
     if (steps == 0) return;
     final settings = ref.read(settingsServiceProvider);
     final current = settings.zoomScaleFor(widget.scope);
-    final next = stepFolderZoomScale(current, steps);
+    final stepped = stepFolderZoomScale(current, steps);
+    final next = widget.scope == LibraryZoomScope.queue
+        ? stepped.clamp(
+            kFolderZoomTierMinimalList,
+            kFolderZoomTierLargeList,
+          )
+        : stepped;
     if ((next - current).abs() < 1e-6) return;
     settings.setZoomScale(widget.scope, next);
     if (haptic) {

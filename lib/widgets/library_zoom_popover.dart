@@ -116,10 +116,14 @@ class LibraryZoomPopoverCard extends ConsumerWidget {
     );
     final settings = ref.read(settingsServiceProvider);
     final tier = getFolderZoomTier(zoomScale);
-    final isGrid = isFolderZoomGrid(zoomScale);
+    final isListOnly = scope == LibraryZoomScope.queue;
+    final isGrid = !isListOnly && isFolderZoomGrid(zoomScale);
 
     final modeLabel = isGrid ? l10n.gridView : l10n.listView;
     final tierName = _tierLabel(l10n, tier);
+
+    final maxScale = isListOnly ? kFolderZoomTierLargeList : 1.0;
+    final divisions = isListOnly ? 3 : (kFolderZoomTierValues.length - 1);
 
     void setScale(double value) => settings.setZoomScale(scope, value);
 
@@ -214,10 +218,11 @@ class LibraryZoomPopoverCard extends ConsumerWidget {
                           ),
                         ),
                         child: Slider(
-                          value: snapFolderZoomScale(zoomScale),
+                          value: snapFolderZoomScale(zoomScale)
+                              .clamp(0.0, maxScale),
                           min: 0.0,
-                          max: 1.0,
-                          divisions: kFolderZoomTierValues.length - 1,
+                          max: maxScale,
+                          divisions: divisions,
                           onChanged: (val) =>
                               setScale(snapFolderZoomScale(val)),
                         ),
@@ -231,7 +236,7 @@ class LibraryZoomPopoverCard extends ConsumerWidget {
                       ),
                       padding: EdgeInsets.zero,
                       icon: const Icon(Icons.add_rounded, size: 18),
-                      onPressed: zoomScale < 0.999
+                      onPressed: zoomScale < (maxScale - 0.001)
                           ? () => setScale(stepFolderZoomScale(zoomScale, 1))
                           : null,
                     ),
@@ -245,51 +250,57 @@ class LibraryZoomPopoverCard extends ConsumerWidget {
                       icon: Icons.view_headline_rounded,
                       tooltip: '${l10n.listView} · 极简',
                       isSelected: tier == FolderZoomTier.minimalList,
+                      horizontalPadding: isListOnly ? 16 : 9,
                       onTap: () => setScale(kFolderZoomTierMinimalList),
                     ),
                     _ZoomTierPresetButton(
                       icon: Icons.density_small_rounded,
                       tooltip: '${l10n.listView} · 紧凑',
                       isSelected: tier == FolderZoomTier.compactList,
+                      horizontalPadding: isListOnly ? 16 : 9,
                       onTap: () => setScale(kFolderZoomTierCompactList),
                     ),
                     _ZoomTierPresetButton(
                       icon: Icons.density_medium_rounded,
                       tooltip: '${l10n.listView} · 标准',
                       isSelected: tier == FolderZoomTier.standardList,
+                      horizontalPadding: isListOnly ? 16 : 9,
                       onTap: () => setScale(kFolderZoomTierStandardList),
                     ),
                     _ZoomTierPresetButton(
                       icon: Icons.density_large_rounded,
                       tooltip: '${l10n.listView} · 大图',
                       isSelected: tier == FolderZoomTier.largeList,
+                      horizontalPadding: isListOnly ? 16 : 9,
                       onTap: () => setScale(kFolderZoomTierLargeList),
                     ),
-                    Container(
-                      width: 1,
-                      height: 18,
-                      margin: const EdgeInsets.symmetric(horizontal: 2),
-                      color: theme.colorScheme.outlineVariant
-                          .withValues(alpha: 0.5),
-                    ),
-                    _ZoomTierPresetButton(
-                      icon: Icons.grid_on_rounded,
-                      tooltip: '${l10n.gridView} · 小',
-                      isSelected: tier == FolderZoomTier.smallGrid,
-                      onTap: () => setScale(kFolderZoomTierSmallGrid),
-                    ),
-                    _ZoomTierPresetButton(
-                      icon: Icons.grid_view_rounded,
-                      tooltip: '${l10n.gridView} · 中',
-                      isSelected: tier == FolderZoomTier.mediumGrid,
-                      onTap: () => setScale(kFolderZoomTierMediumGrid),
-                    ),
-                    _ZoomTierPresetButton(
-                      icon: Icons.view_module_rounded,
-                      tooltip: '${l10n.gridView} · 大',
-                      isSelected: tier == FolderZoomTier.largeGrid,
-                      onTap: () => setScale(kFolderZoomTierLargeGrid),
-                    ),
+                    if (!isListOnly) ...[
+                      Container(
+                        width: 1,
+                        height: 18,
+                        margin: const EdgeInsets.symmetric(horizontal: 2),
+                        color: theme.colorScheme.outlineVariant
+                            .withValues(alpha: 0.5),
+                      ),
+                      _ZoomTierPresetButton(
+                        icon: Icons.grid_on_rounded,
+                        tooltip: '${l10n.gridView} · 小',
+                        isSelected: tier == FolderZoomTier.smallGrid,
+                        onTap: () => setScale(kFolderZoomTierSmallGrid),
+                      ),
+                      _ZoomTierPresetButton(
+                        icon: Icons.grid_view_rounded,
+                        tooltip: '${l10n.gridView} · 中',
+                        isSelected: tier == FolderZoomTier.mediumGrid,
+                        onTap: () => setScale(kFolderZoomTierMediumGrid),
+                      ),
+                      _ZoomTierPresetButton(
+                        icon: Icons.view_module_rounded,
+                        tooltip: '${l10n.gridView} · 大',
+                        isSelected: tier == FolderZoomTier.largeGrid,
+                        onTap: () => setScale(kFolderZoomTierLargeGrid),
+                      ),
+                    ],
                   ],
                 ),
                 const SizedBox(height: 8),
@@ -328,12 +339,14 @@ class _ZoomTierPresetButton extends StatelessWidget {
     required this.isSelected,
     required this.onTap,
     this.tooltip,
+    this.horizontalPadding = 9.0,
   });
 
   final IconData icon;
   final bool isSelected;
   final VoidCallback onTap;
   final String? tooltip;
+  final double horizontalPadding;
 
   @override
   Widget build(BuildContext context) {
@@ -343,7 +356,7 @@ class _ZoomTierPresetButton extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 160),
-        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+        padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 6),
         decoration: BoxDecoration(
           color: isSelected
               ? theme.colorScheme.primary.withValues(alpha: 0.16)
@@ -397,10 +410,15 @@ class LibraryZoomButton extends ConsumerWidget {
       settingsServiceProvider.select((s) => s.zoomScaleFor(scope)),
     );
 
+    final isListOnly = scope == LibraryZoomScope.queue;
+    final tooltipText = isListOnly
+        ? l10n.listView
+        : (isFolderZoomGrid(zoomScale) ? l10n.gridView : l10n.listView);
+
     return Builder(
       builder: (btnContext) {
         return IconButton(
-          tooltip: isFolderZoomGrid(zoomScale) ? l10n.gridView : l10n.listView,
+          tooltip: tooltipText,
           visualDensity: visualDensity,
           onPressed: () => showLibraryZoomPopover(btnContext, scope: scope),
           icon: Icon(

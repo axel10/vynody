@@ -259,4 +259,40 @@ void main() {
 
     expect(settings.folderZoomScale, kFolderZoomTierLargeList);
   });
+
+  testWidgets('queue 记忆域限制在列表4档，到达 largeList 不会继续推进到网格', (tester) async {
+    settings.queueZoomScale = kFolderZoomTierLargeList;
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [settingsServiceProvider.overrideWith((ref) => settings)],
+        child: MaterialApp(
+          home: Scaffold(
+            body: FolderZoomGestureLayer(
+              scope: LibraryZoomScope.queue,
+              child: ListView.builder(
+                controller: controller,
+                itemCount: 10,
+                itemBuilder: (context, index) => Text('item $index'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final center = tester.getCenter(find.byType(ListView));
+    final pointer = TestPointer(1, PointerDeviceKind.mouse);
+    pointer.hover(center);
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendEventToBinding(pointer.scroll(const Offset(0, -100)));
+    await tester.pumpAndSettle();
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await tester.pumpAndSettle();
+
+    // 依然限制在 largeList，不能进入 smallGrid
+    expect(settings.queueZoomScale, kFolderZoomTierLargeList);
+  });
 }
