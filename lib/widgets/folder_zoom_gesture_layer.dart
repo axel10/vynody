@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
+import 'package:vynody/player/settings/settings_service.dart'
+    show LibraryZoomScope;
 import 'folder_layout_utils.dart';
 
 /// 两次滚轮事件之间静默多久，就算「新的一次滚动」。
@@ -23,20 +25,28 @@ const Duration kFolderZoomWheelGestureGap = Duration(milliseconds: 50);
 /// 不再决定跨几档——`1.08` 约等于双指间距变化 8%。
 const double kFolderZoomPinchStepRatio = 1.08;
 
-/// 给目录页的滚动区挂上「视图档位」的第二套调节入口：
+/// 给「按档位缩放条目」的滚动区挂上第二套调节入口：
 ///
 /// - 键鼠：`Ctrl` + 滚轮（macOS 上 `⌘` + 滚轮同样有效），向上滚放大、向下滚缩小，
 ///   一次滚动只走一档；
 /// - 触控板：双指捏合；
 /// - 触屏：双指捏合。
 ///
-/// 两者都只是把 [SettingsService.folderZoomScale] 沿 [kFolderZoomTierValues]
-/// 逐档步进，实际布局仍由 `FolderZoomSliverBuilder` 负责动画，
-/// 所以和右上角的档位弹窗完全共用一套状态。
+/// 两者都只是把 [scope] 对应的档位值沿 [kFolderZoomTierValues] 逐档步进，
+/// 实际布局仍由 `FolderZoomSliverBuilder` 负责动画，所以和右上角的档位弹窗
+/// 完全共用一套状态。
+///
+/// [scope] 决定写哪一份记忆：目录页是 [LibraryZoomScope.folder]（默认），
+/// 专辑页是 `album`，专辑详情的曲目是 `track`。
 class FolderZoomGestureLayer extends ConsumerStatefulWidget {
-  const FolderZoomGestureLayer({super.key, required this.child});
+  const FolderZoomGestureLayer({
+    super.key,
+    required this.child,
+    this.scope = LibraryZoomScope.folder,
+  });
 
   final Widget child;
+  final LibraryZoomScope scope;
 
   @override
   ConsumerState<FolderZoomGestureLayer> createState() =>
@@ -74,10 +84,10 @@ class _FolderZoomGestureLayerState extends ConsumerState<FolderZoomGestureLayer>
   void _stepTier(int steps, {bool haptic = false}) {
     if (steps == 0) return;
     final settings = ref.read(settingsServiceProvider);
-    final current = settings.folderZoomScale;
+    final current = settings.zoomScaleFor(widget.scope);
     final next = stepFolderZoomScale(current, steps);
     if ((next - current).abs() < 1e-6) return;
-    settings.folderZoomScale = next;
+    settings.setZoomScale(widget.scope, next);
     if (haptic) {
       HapticFeedback.selectionClick();
     }

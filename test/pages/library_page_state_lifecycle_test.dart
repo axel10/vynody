@@ -35,7 +35,7 @@ import 'package:vynody/player/library/library_insights_service.dart';
 import 'package:vynody/player/library/library_overview_providers.dart';
 import 'package:vynody/player/library/playlist_service.dart';
 import 'package:vynody/player/pro/pro_license_service.dart';
-import 'package:vynody/widgets/album_grid_card.dart';
+import 'package:vynody/widgets/album_zoom_item.dart';
 import 'package:vynody/widgets/library_insight_list.dart';
 import 'package:vynody/widgets/section_type_toggle.dart';
 
@@ -310,7 +310,7 @@ void main() {
     expect(find.byType(AlbumsTab), findsOneWidget);
 
     // 点第一张专辑卡进入详情
-    await tester.tap(find.byType(AlbumGridCard).first);
+    await tester.tap(find.byType(AlbumZoomItem).first);
     await settle(tester);
     expect(find.byType(AlbumDetailPage), findsOneWidget);
     expect(keys[4].currentState!.canPop(), isTrue);
@@ -375,7 +375,7 @@ void main() {
     expect(hostBarOpacity(), 1.0);
 
     // 进详情：宿主顶栏必须让位，露出详情页自己的顶栏（详情标题 + 详情返回按钮）
-    await tester.tap(find.byType(AlbumGridCard).first);
+    await tester.tap(find.byType(AlbumZoomItem).first);
     await settle(tester);
     expect(find.byType(AlbumDetailPage), findsOneWidget);
     expect(
@@ -399,7 +399,7 @@ void main() {
     expect(hostBarOpacity(), 1.0, reason: '回到根页面后宿主顶栏要恢复');
 
     // 从其它主页面切回媒体库（页面不销毁）后，栈里的详情页仍应让宿主顶栏保持让位
-    await tester.tap(find.byType(AlbumGridCard).first);
+    await tester.tap(find.byType(AlbumZoomItem).first);
     await settle(tester);
     expect(hostBarOpacity(), 0.0);
     expect(tester.takeException(), isNull);

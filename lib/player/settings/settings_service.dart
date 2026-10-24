@@ -20,8 +20,10 @@ import 'package:vynody/utils/app_proxy_manager.dart';
 import 'package:vynody/utils/localized_text.dart';
 import 'package:vynody/widgets/folder_layout_utils.dart'
     show
+        kFolderZoomTierMinimalList,
         kFolderZoomTierStandardList,
         kFolderZoomTierMediumGrid,
+        kFolderZoomTierLargeGrid,
         snapFolderZoomScale;
 
 export 'package:flutter/material.dart' show ThemeMode;
@@ -36,6 +38,20 @@ enum LyricsAiModelPurpose { generation, karaoke, translation }
 enum LyricsAiModelSlot { primary, fallback }
 
 enum LyricsSaveMethod { original, embedded, lrcFile }
+
+/// 视图片档位（`FolderZoomTier` 那套七档）的记忆域。
+///
+/// 档位体系共用一份几何与动画实现，但**各页面类别各存一份值**：专辑卡片比
+/// 文件夹条目更"重"，用户在专辑页放大卡片不代表他想让目录页也跟着变大。
+/// 新增一类视图时在这里加一项，并在 [SettingsService.zoomScaleFor] /
+/// [SettingsService.setZoomScale] 补一条分支即可。
+enum LibraryZoomScope {
+  /// 目录页（文件夹 + 曲目共用一档）。
+  folder,
+
+  /// 专辑页的专辑卡片。
+  album,
+}
 
 enum VisualizerStyle {
   bars,
@@ -709,6 +725,13 @@ class SettingsService extends ChangeNotifier {
   static const String _keyFolderViewMode = 'folder_view_mode';
   static const String _keyFolderZoomScale = 'folder_zoom_scale';
   static const double defaultFolderZoomScale = kFolderZoomTierMediumGrid;
+
+  /// 专辑页卡片的档位，与 `folder_zoom_scale` 分开记忆。
+  ///
+  /// 默认落在 `largeGrid`：横屏 6 列、竖屏 2 列，与改造前按宽度分档的观感最接近。
+  static const String _keyAlbumZoomScale = 'album_zoom_scale';
+  static const double defaultAlbumZoomScale = kFolderZoomTierLargeGrid;
+
   static const String _keyRemoteCacheMaxSizeBytes = 'remote_cache_max_size_bytes';
   static const int defaultRemoteCacheMaxSizeBytes = 2 * 1024 * 1024 * 1024; // 2 GB (0 = unlimited)
   static const String _keyRemotePrefetchCount = 'remote_prefetch_count';
@@ -905,6 +928,17 @@ class SettingsService extends ChangeNotifier {
         FolderViewMode.hybrid || FolderViewMode.grid => defaultFolderZoomScale,
       };
     },
+    customWrite: (prefs, key, val) =>
+        prefs.setDouble(key, snapFolderZoomScale(val)),
+  );
+
+  late final _albumZoomScaleProperty = SettingProperty<double>(
+    key: _keyAlbumZoomScale,
+    defaultValue: defaultAlbumZoomScale,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+    customRead: (prefs, key, def) =>
+        snapFolderZoomScale(prefs.getDouble(key) ?? def),
     customWrite: (prefs, key, val) =>
         prefs.setDouble(key, snapFolderZoomScale(val)),
   );
@@ -3214,6 +3248,26 @@ class SettingsService extends ChangeNotifier {
   double get folderZoomScale => _folderZoomScaleProperty.value;
   set folderZoomScale(double value) =>
       _folderZoomScaleProperty.value = snapFolderZoomScale(value);
+
+  double get albumZoomScale => _albumZoomScaleProperty.value;
+  set albumZoomScale(double value) =>
+      _albumZoomScaleProperty.value = snapFolderZoomScale(value);
+
+  /// 按记忆域读取档位。共享的缩放弹窗与手势层只认 [scope]，不认具体字段。
+  double zoomScaleFor(LibraryZoomScope scope) => switch (scope) {
+        LibraryZoomScope.folder => folderZoomScale,
+        LibraryZoomScope.album => albumZoomScale,
+      };
+
+  /// 按记忆域写入档位（内部已夹到最近的离散档）。
+  void setZoomScale(LibraryZoomScope scope, double value) {
+    switch (scope) {
+      case LibraryZoomScope.folder:
+        folderZoomScale = value;
+      case LibraryZoomScope.album:
+        albumZoomScale = value;
+    }
+  }
 
   String get windowsAudioOutputMode => _windowsAudioOutputModeProperty.value;
   set windowsAudioOutputMode(String value) {

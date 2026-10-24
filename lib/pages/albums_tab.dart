@@ -11,9 +11,10 @@ import 'package:vynody/models/album_summary.dart';
 import 'package:vynody/player/library/album_library.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/audio/playback_source.dart';
-import '../widgets/song_thumbnail.dart';
-import '../widgets/album_grid_card.dart';
-import '../widgets/remote_media_badge.dart';
+import '../widgets/album_zoom_item.dart';
+import '../widgets/folder_layout_utils.dart';
+import '../widgets/folder_zoom_gesture_layer.dart';
+import '../widgets/library_zoom_popover.dart';
 import 'album_detail_page.dart';
 import '../widgets/library_selection_scope.dart';
 import '../widgets/library_selection_panel.dart';
@@ -23,7 +24,6 @@ import '../dialogs/library_source_filter_dialog.dart';
 import 'package:vynody/player/library/library_source_filter.dart';
 import 'package:vynody/player/settings/settings_service.dart';
 import 'main_layout_riverpod.dart';
-import 'package:vynody/utils/layout_constants.dart';
 import '../utils/app_log.dart';
 import '../widgets/draggable_album_item.dart';
 import '../widgets/album_context_menu.dart';
@@ -106,6 +106,10 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab>
 
     final albumsAsync = ref.watch(albumLibraryProvider);
     final currentMusic = ref.watch(audioCurrentMusicProvider);
+    // 只认专辑自己的档位：目录页调大卡片不应该连带改变这里。
+    final albumZoomScale = ref.watch(
+      settingsServiceProvider.select((s) => s.albumZoomScale),
+    );
     final l10n = AppLocalizations.of(context)!;
 
     final albums = albumsAsync.value ?? _lastRawAlbums;
@@ -200,28 +204,10 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab>
             final isWide = constraints.maxWidth >= 780;
             final availableWidth = math.max(0.0, constraints.maxWidth - widget.contentLeftPadding);
             final contentWidth = math.min(availableWidth, kFolderPageMaxWidth);
-            final crossAxisCount = switch (contentWidth) {
-              >= 1350 => 6,
-              >= 1100 => 5,
-              >= 850 => 4,
-              >= 650 => 3,
-              _ => 2,
-            };
 
-            final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
             final bool isDesktop = Platform.isWindows || Platform.isLinux || Platform.isMacOS;
             final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
             final bool isCoverFlowImmersive = isLandscape && _is3DView;
-
-            final double textHeight = calculateAlbumCardTextHeight(
-              context,
-              isPortrait: isPortrait,
-            );
-            final itemWidth = calculateGridItemWidth(
-              width: contentWidth,
-              crossAxisCount: crossAxisCount,
-            );
-            final childAspectRatio = itemWidth / (itemWidth + textHeight);
 
                 // 多选面板高度：3D cover flow 用单行精简版，普通网格列表用完整版
                 final selectionPanelHeight = _is3DView ? 120.0 : 220.0;
@@ -433,59 +419,60 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab>
                           child: Center(
                             child: ConstrainedBox(
                               constraints: const BoxConstraints(maxWidth: kFolderPageMaxWidth),
-                              child: CustomScrollView(
-                                key: const ValueKey('album_grid_view'),
-                                controller: _scrollController,
-                                // 预构建范围只留约半屏：更大的 cacheExtent 会让
-                                // 几十张卡片在滚动中成批 initState（同步 stat +
-                                // 缩略图解析排队），收益只是少一点占位图，不值。
-                                scrollCacheExtent:
-                                    const ScrollCacheExtent.viewport(0.4),
-                                slivers: [
-                                    if (widget.contentTopPadding > 0)
-                                      SliverToBoxAdapter(
-                                        child: SizedBox(
-                                          height: widget.contentTopPadding,
-                                        ),
-                                      ),
-                                    SliverToBoxAdapter(child: toolbar),
-                                    if (visibleAlbums.isEmpty)
-                                      SliverFillRemaining(
-                                        hasScrollBody: false,
-                                        child: Center(
-                                          child: Text(
-                                            l10n.noAlbums,
-                                            style: Theme.of(context).textTheme.titleMedium,
+                              child: FolderZoomGestureLayer(
+                                scope: LibraryZoomScope.album,
+                                child: CustomScrollView(
+                                  key: const ValueKey('album_grid_view'),
+                                  controller: _scrollController,
+                                  // 预构建范围只留约半屏：更大的 cacheExtent 会让
+                                  // 几十张卡片在滚动中成批 initState（同步 stat +
+                                  // 缩略图解析排队），收益只是少一点占位图，不值。
+                                  scrollCacheExtent:
+                                      const ScrollCacheExtent.viewport(0.4),
+                                  slivers: [
+                                      if (widget.contentTopPadding > 0)
+                                        SliverToBoxAdapter(
+                                          child: SizedBox(
+                                            height: widget.contentTopPadding,
                                           ),
                                         ),
-                                      )
-                                    else ...[
-                                      if (knownAlbums.isNotEmpty) ...[
-                                        const SliverToBoxAdapter(child: SizedBox(height: 16)),
-                                        ..._albumSectionSlivers(
-                                          title: "",
-                                          albums: knownAlbums,
-                                          crossAxisCount: crossAxisCount,
-                                          childAspectRatio: childAspectRatio,
-                                          isSelectionMode: isSelectionMode,
-                                          isHeroEnabled: !_is3DView,
-                                        ),
+                                      SliverToBoxAdapter(child: toolbar),
+                                      if (visibleAlbums.isEmpty)
+                                        SliverFillRemaining(
+                                          hasScrollBody: false,
+                                          child: Center(
+                                            child: Text(
+                                              l10n.noAlbums,
+                                              style: Theme.of(context).textTheme.titleMedium,
+                                            ),
+                                          ),
+                                        )
+                                      else ...[
+                                        if (knownAlbums.isNotEmpty) ...[
+                                          const SliverToBoxAdapter(child: SizedBox(height: 16)),
+                                          ..._albumSectionSlivers(
+                                            albums: knownAlbums,
+                                            zoomScale: albumZoomScale,
+                                            width: contentWidth,
+                                            isSelectionMode: isSelectionMode,
+                                            isHeroEnabled: !_is3DView,
+                                          ),
+                                        ],
+                                        if (knownAlbums.isNotEmpty && unknownAlbums.isNotEmpty)
+                                          const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                                        if (unknownAlbums.isNotEmpty)
+                                          ..._albumSectionSlivers(
+                                            albums: unknownAlbums,
+                                            zoomScale: albumZoomScale,
+                                            width: contentWidth,
+                                            isSelectionMode: isSelectionMode,
+                                            isHeroEnabled: !_is3DView,
+                                          ),
+                                        SliverToBoxAdapter(child: SizedBox(height: bottomPadding)),
                                       ],
-                                      if (knownAlbums.isNotEmpty && unknownAlbums.isNotEmpty)
-                                        const SliverToBoxAdapter(child: SizedBox(height: 24)),
-                                      if (unknownAlbums.isNotEmpty)
-                                        ..._albumSectionSlivers(
-                                          title: l10n.unknownAlbum,
-                                          albums: unknownAlbums,
-                                          crossAxisCount: crossAxisCount,
-                                          childAspectRatio: childAspectRatio,
-                                          isSelectionMode: isSelectionMode,
-                                          isHeroEnabled: !_is3DView,
-                                        ),
-                                      SliverToBoxAdapter(child: SizedBox(height: bottomPadding)),
                                     ],
-                                  ],
-                                ),
+                                  ),
+                              ),
                               ),
                             ),
                           ),
@@ -586,177 +573,103 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab>
     return filtered;
   }
 
+  /// 一屏专辑按当前档位渲染：列表档位是「封面在左 + 标题/艺人」，网格档位按档位
+  /// 决定列数与卡片宽度，两者之间的过渡动画由 [FolderZoomSliverBuilder] 负责。
+  ///
+  /// [width] 是 sliver 实际拿到的外层宽度（已扣掉 `contentLeftPadding` 与
+  /// `kFolderPageMaxWidth` 的钳制），内边距由 [folderContentHorizontalPadding] 内部扣除。
   List<Widget> _albumSectionSlivers({
-    required String? title,
     required List<AlbumSummary> albums,
-    required int crossAxisCount,
-    required double childAspectRatio,
+    required double zoomScale,
+    required double width,
     required bool isSelectionMode,
     bool isHeroEnabled = true,
   }) {
+    final audio = ref.read(audioServiceProvider);
+    final isPortrait =
+        MediaQuery.orientationOf(context) == Orientation.portrait;
+
     return [
-      SliverPadding(
-        padding: const EdgeInsets.symmetric(horizontal: kGridHorizontalPadding),
-        sliver: SliverGrid(
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: crossAxisCount,
-            crossAxisSpacing: kGridCrossAxisSpacing,
-            mainAxisSpacing: kGridMainAxisSpacing,
-            childAspectRatio: childAspectRatio,
-          ),
-          delegate: SliverChildBuilderDelegate(
-            (context, index) {
-              final album = albums[index];
-              final isSelected = this.isSelected(album.id);
-              return _AlbumCard(
-                album: album,
-                isSelectionMode: isSelectionMode,
-                isSelected: isSelected,
-                isHeroEnabled: isHeroEnabled,
-                onTap: () {
-                  handleItemTap(
-                    index: index,
-                    itemKey: album.id,
-                    allKeys: albums.map((a) => a.id).toList(),
-                    onNormalTap: () {
-                      AppLog.log(
-                        '[NavTrace] AlbumsTab onNormalTap: pushing AlbumDetailPage for album="${album.title}" (id=${album.id})',
-                        mirrorToConsole: true,
-                      );
-                      Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          settings: RouteSettings(name: 'album_detail_${album.id}'),
-                          builder: (_) => AlbumDetailPage(album: album),
+      FolderZoomSliverBuilder(
+        zoomScale: snapFolderZoomScale(zoomScale),
+        width: width,
+        builder: (context, metrics) {
+          final hPad = folderContentHorizontalPadding(
+            isPortrait: isPortrait,
+            gridMorph: metrics.gridMorph,
+          );
+
+          return SliverPadding(
+            padding: EdgeInsets.only(left: hPad, right: hPad),
+            sliver: SliverGrid(
+              gridDelegate: SliverAnimatedZoomGridDelegate(metrics: metrics),
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  final album = albums[index];
+                  final isSelected = this.isSelected(album.id);
+
+                  return DraggableAlbumItem(
+                    album: album,
+                    enabled: !isSelectionMode,
+                    child: AlbumZoomItem(
+                      album: album,
+                      metrics: metrics,
+                      isSelected: isSelected,
+                      isSelectionMode: isSelectionMode,
+                      enableHero: isHeroEnabled,
+                      onTap: () {
+                        handleItemTap(
+                          index: index,
+                          itemKey: album.id,
+                          allKeys: albums.map((a) => a.id).toList(),
+                          onNormalTap: () => _openAlbumDetail(album),
+                        );
+                      },
+                      onLongPress: () {
+                        lastAnchorIndex = index;
+                        if (isSelectionMode) {
+                          toggleSelection(album.id);
+                        } else {
+                          enterSelectionMode(album.id);
+                        }
+                      },
+                      onSecondaryTapDown: (details) {
+                        if (!isSelectionMode) {
+                          showAlbumContextMenu(
+                            context: context,
+                            globalPosition: details.globalPosition,
+                            ref: ref,
+                            album: album,
+                            onMultiSelect: (id) => enterSelectionMode(id),
+                          );
+                        }
+                      },
+                      onPlay: () => audio.playPlaylist(
+                        album.songs,
+                        source: PlaybackSource(
+                          type: PlaybackSourceType.album,
+                          id: album.id,
+                          name: album.title,
                         ),
-                      );
-                    },
+                      ),
+                    ),
                   );
                 },
-                onLongPress: () {
-                  lastAnchorIndex = index;
-                  if (isSelectionMode) {
-                    toggleSelection(album.id);
-                  } else {
-                    enterSelectionMode(album.id);
-                  }
-                },
-                onMultiSelect: (id) => enterSelectionMode(id),
-              );
-            },
-            childCount: albums.length,
-          ),
-        ),
+                childCount: albums.length,
+              ),
+            ),
+          );
+        },
       ),
     ];
   }
-}
 
-/// Dynamically calculates album card text area height based on typography and scaling.
-double calculateAlbumCardTextHeight(
-  BuildContext context, {
-  required bool isPortrait,
-}) {
-  return calculateAlbumGridTextHeight(context, isPortrait: isPortrait);
-}
-
-class _AlbumCard extends ConsumerWidget {
-  const _AlbumCard({
-    required this.album,
-    this.isSelectionMode = false,
-    this.isSelected = false,
-    this.isHeroEnabled = true,
-    this.onTap,
-    this.onLongPress,
-    this.onMultiSelect,
-  });
-
-  final AlbumSummary album;
-  final bool isSelectionMode;
-  final bool isSelected;
-  final bool isHeroEnabled;
-  final VoidCallback? onTap;
-  final VoidCallback? onLongPress;
-  final void Function(String albumId)? onMultiSelect;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final audio = ref.read(audioServiceProvider);
-
-    Widget coverImage = RemoteMediaBadge.wrapCover(
-      child: SongThumbnail.fromAlbum(
-        album,
-        size: 250,
-        width: double.infinity,
-        height: double.infinity,
-        // Hero flights are painted outside AlbumGridCard's clip, so the
-        // artwork itself must carry the card's corner radius.
-        borderRadius: BorderRadius.circular(12),
-      ),
-      songs: album.songs,
-      title: album.title,
-      top: 8,
-      right: 8,
-    );
-
-    if (isHeroEnabled) {
-      coverImage = Hero(
-        tag: 'album-cover-${album.id}',
-        child: coverImage,
-      );
-    }
-
-    final card = AlbumGridCard(
-      cover: coverImage,
-      title: album.title,
-      subtitle: album.artist,
-      isSelected: isSelected,
-      isSelectionMode: isSelectionMode,
-      onTap: onTap ?? () => _openAlbumDetail(context),
-      onLongPress: () {
-        if (onLongPress != null) {
-          onLongPress!();
-        } else if (!isSelectionMode) {
-          showAlbumBottomSheet(
-            context: context,
-            ref: ref,
-            album: album,
-            onMultiSelect: onMultiSelect,
-          );
-        }
-      },
-      onSecondaryTapDown: (details) {
-        if (!isSelectionMode) {
-          showAlbumContextMenu(
-            context: context,
-            globalPosition: details.globalPosition,
-            ref: ref,
-            album: album,
-            onMultiSelect: onMultiSelect,
-          );
-        }
-      },
-      onPlay: () => audio.playPlaylist(
-        album.songs,
-        source: PlaybackSource(
-          type: PlaybackSourceType.album,
-          id: album.id,
-          name: album.title,
-        ),
-      ),
-    );
-
-    return DraggableAlbumItem(
-      album: album,
-      enabled: !isSelectionMode,
-      child: card,
-    );
-  }
-
-  void _openAlbumDetail(BuildContext context) {
+  void _openAlbumDetail(AlbumSummary album) {
     AppLog.log(
       '[NavTrace] AlbumsTab _openAlbumDetail: pushing AlbumDetailPage for album="${album.title}" (id=${album.id})',
       mirrorToConsole: true,
     );
+    if (!mounted) return;
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         settings: RouteSettings(name: 'album_detail_${album.id}'),
@@ -882,6 +795,8 @@ class _AlbumsToolbar extends ConsumerWidget {
             onPressed: onShufflePressed,
             icon: const Icon(Icons.shuffle_rounded),
           ),
+        // 档位只作用于网格视图；3D cover flow 是独立模式，不跟着缩放。
+        if (!is3DView) const LibraryZoomButton(scope: LibraryZoomScope.album),
         IconButton(
           tooltip: is3DView ? l10n.gridView : l10n.threeDView,
           onPressed: onViewModeToggled,
