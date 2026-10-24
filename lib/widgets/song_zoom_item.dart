@@ -60,7 +60,6 @@ class SongZoomItem extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final isPortrait =
         MediaQuery.of(context).orientation == Orientation.portrait;
-    final isWide = MediaQuery.of(context).size.width >= 780;
 
     final gridMorph = metrics.gridMorph;
     final compactMorph = metrics.compactMorph;
@@ -256,14 +255,17 @@ class SongZoomItem extends ConsumerWidget {
             ? theme.colorScheme.primary.withValues(alpha: 0.6)
             : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7);
 
+    // 网格档位的字号按**卡片宽度**分档（不是屏幕宽度）；列表档位与宽度无关。
+    final gridFonts = folderGridFontSizes(metrics.targetCardWidth);
     final (double titleSize, double subSize, double infoSize) =
         switch (metrics.tier) {
       FolderZoomTier.compactList => (14.0, 12.0, 11.0),
       FolderZoomTier.standardList => (14.0, 12.0, 11.0),
       FolderZoomTier.largeList => (15.0, 12.5, 11.0),
-      FolderZoomTier.smallGrid => (isWide ? 13.0 : 12.5, 10.5, 9.5),
-      FolderZoomTier.mediumGrid => (isWide ? 14.0 : 13.5, 11.5, 10.0),
-      FolderZoomTier.largeGrid || _ => (isWide ? 15.0 : 14.5, 12.5, 11.0),
+      FolderZoomTier.smallGrid ||
+      FolderZoomTier.mediumGrid ||
+      FolderZoomTier.largeGrid =>
+        (gridFonts.title, gridFonts.subtitle, gridFonts.info),
     };
 
     final TextStyle titleStyle;

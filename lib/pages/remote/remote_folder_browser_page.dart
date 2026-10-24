@@ -95,6 +95,9 @@ class _RemoteFolderBrowserPageState
   /// `LayoutBuilder` 给的列表内容宽度（已扣除最大宽度约束）。
   /// 「定位当前播放」用它估算偏移，避免用 `MediaQuery` 宽度高估卡片行高。
   double? _contentCrossAxisExtent;
+
+  /// 挂在标题横幅上：定位当前播放时实测横幅高度，不再靠 `190.0` 估算。
+  final GlobalKey _bannerMeasureKey = GlobalKey();
   final ValueNotifier<double> _scrollProgress = ValueNotifier<double>(0.0);
   bool _isCoverVisible = true;
   bool _isSearching = false;
@@ -1101,7 +1104,11 @@ class _RemoteFolderBrowserPageState
         zoomScale: settings.folderZoomScale,
       );
 
-      double fileOffset = 48.0 + 190.0;
+      double fileOffset = folderContentTopOffset(
+        context: context,
+        isPortrait: MediaQuery.of(context).orientation == Orientation.portrait,
+        bannerKey: _bannerMeasureKey,
+      );
       fileOffset += policy.calculateScrollOffset(
         folderCount: matchedFolders.length,
         songIndex: fileIndex,
@@ -1819,44 +1826,47 @@ class _RemoteFolderBrowserPageState
     required Widget bannerCoverWidget,
     Widget? topHeader,
   }) {
-    return FolderHeaderBanner(
-      title: title,
-      subtitle: subtitle,
-      songsCount: audioCount,
-      totalDuration: Duration(milliseconds: totalDurationMs),
-      songPath: bannerCoverVirtualUri,
-      coverImagePath: bannerCoverThumbnailPath,
-      coverWidget: bannerCoverWidget,
-      topHeader: topHeader,
-      heroTag: 'webdav-cover-$_currentPath',
-      isHeroModeEnabled: _isCoverVisible,
-      actionButtons: [
-        FolderPlayActionButtons(
-          totalSongsCount: audioCount,
-          onPlayAll: audioCount > 0 ? () => _playFolder(shuffle: false) : () {},
-          onShufflePlay:
-              audioCount > 0 ? () => _playFolder(shuffle: true) : () {},
-        ),
-      ],
-      actionButtonsScrollable: false,
-      isSearching: _isSearching,
-      searchController: _searchController,
-      searchQuery: _searchQuery,
-      searchHintText: l10n.searchInFolderAndSubfolders,
-      onSearchQueryChanged: (val) {
-        setState(() {
-          _searchQuery = val.trim();
-        });
-      },
-      onToggleSearch: (val) {
-        setState(() {
-          _isSearching = val;
-          if (!val) {
-            _searchQuery = '';
-            _searchController.clear();
-          }
-        });
-      },
+    return KeyedSubtree(
+      key: _bannerMeasureKey,
+      child: FolderHeaderBanner(
+        title: title,
+        subtitle: subtitle,
+        songsCount: audioCount,
+        totalDuration: Duration(milliseconds: totalDurationMs),
+        songPath: bannerCoverVirtualUri,
+        coverImagePath: bannerCoverThumbnailPath,
+        coverWidget: bannerCoverWidget,
+        topHeader: topHeader,
+        heroTag: 'webdav-cover-$_currentPath',
+        isHeroModeEnabled: _isCoverVisible,
+        actionButtons: [
+          FolderPlayActionButtons(
+            totalSongsCount: audioCount,
+            onPlayAll: audioCount > 0 ? () => _playFolder(shuffle: false) : () {},
+            onShufflePlay:
+                audioCount > 0 ? () => _playFolder(shuffle: true) : () {},
+          ),
+        ],
+        actionButtonsScrollable: false,
+        isSearching: _isSearching,
+        searchController: _searchController,
+        searchQuery: _searchQuery,
+        searchHintText: l10n.searchInFolderAndSubfolders,
+        onSearchQueryChanged: (val) {
+          setState(() {
+            _searchQuery = val.trim();
+          });
+        },
+        onToggleSearch: (val) {
+          setState(() {
+            _isSearching = val;
+            if (!val) {
+              _searchQuery = '';
+              _searchController.clear();
+            }
+          });
+        },
+      ),
     );
   }
 

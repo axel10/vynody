@@ -194,5 +194,66 @@ void main() {
         );
       },
     );
+
+    test('folderGridFontSizes 按卡片宽度分档，与屏幕宽度无关', () {
+      // 横屏 8 列的卡片约 142pt，1920 窗口 6 列约 265pt：屏幕更宽不等于字号更大。
+      expect(folderGridFontSizes(142.0).title, 12.5);
+      expect(folderGridFontSizes(265.0).title, 15.0);
+
+      // 手机竖屏 4 列的卡片约 84pt，必须落到最小档，否则标题被省略号吃掉。
+      expect(folderGridFontSizes(84.0).title, 11.5);
+      expect(folderGridFontSizes(84.0).subtitle, 9.5);
+
+      // 档位边界闭区间：正好等于阈值时归入更大的那一档。
+      expect(folderGridFontSizes(109.9).title, 11.5);
+      expect(folderGridFontSizes(110.0).title, 12.5);
+      expect(folderGridFontSizes(149.9).title, 12.5);
+      expect(folderGridFontSizes(150.0).title, 13.5);
+      expect(folderGridFontSizes(199.9).title, 13.5);
+      expect(folderGridFontSizes(200.0).title, 14.5);
+      expect(folderGridFontSizes(239.9).title, 14.5);
+      expect(folderGridFontSizes(240.0).title, 15.0);
+    });
+
+    testWidgets(
+      'FolderZoomSliverBuilder 的 targetCardWidth 与 Policy 同源',
+      (tester) async {
+        late FolderZoomLayoutMetrics metrics;
+        late FolderZoomPolicy policy;
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: CustomScrollView(
+                slivers: [
+                  FolderZoomSliverBuilder(
+                    zoomScale: kFolderZoomTierLargeGrid,
+                    width: 1280.0,
+                    builder: (context, m) {
+                      metrics = m;
+                      policy = FolderZoomPolicy.resolve(
+                        context: context,
+                        outerWidth: 1280.0,
+                        zoomScale: kFolderZoomTierLargeGrid,
+                      );
+                      return const SliverToBoxAdapter(
+                        child: SizedBox.shrink(),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+
+        // 字号档位读的是 metrics.targetCardWidth，偏移/宽高比读的是 policy：
+        // 两者算不出同一个宽度，字号就会和真实卡片宽度脱节。
+        expect(metrics.targetCardWidth, closeTo(policy.cardWidth, 1e-9));
+        expect(
+          metrics.targetChildAspectRatio,
+          closeTo(policy.childAspectRatio, 1e-9),
+        );
+      },
+    );
   });
 }

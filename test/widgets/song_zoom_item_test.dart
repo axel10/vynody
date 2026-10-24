@@ -29,6 +29,7 @@ void main() {
         animatedGridCols: 3.0,
         animatedGridTextHeight: 58.0,
         animatedListExtent: getFolderListTileExtent(scale),
+        targetCardWidth: 140.0,
       );
 
       await tester.pumpWidget(

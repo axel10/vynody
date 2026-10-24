@@ -3,6 +3,7 @@ import 'dart:ui' show lerpDouble;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import '../utils/layout_constants.dart';
+import 'folder_nav_bar_scaffold.dart';
 
 export '../utils/layout_constants.dart';
 
@@ -116,8 +117,73 @@ double calculateFolderZoomGridTextHeight(
   return baseHeight * clampedScale;
 }
 
+/// 网格条目的字号三元组：（标题、副标题、第三行信息）。
+typedef FolderGridFontSizes = ({double title, double subtitle, double info});
+
+/// 网格条目字号——按**卡片宽度**分档，而不是屏幕宽度。
+///
+/// 卡片宽度由列数与窗口宽度共同决定：横屏 8 列时卡片只有约 `142pt`，手机竖屏 4 列
+/// 只有约 `84pt`，而窗口宽度可能远大于 `780`。以前用
+/// `MediaQuery.size.width >= 780` 判「宽屏」，这些窄卡片也在吃宽屏字号，标题频繁
+/// 被省略号截断；反过来竖屏 2 列的大卡片（约 `183pt`）却拿到小字号。
+///
+/// 档位表就是唯一来源，[FolderZoomItem] 与 [SongZoomItem] 都从这里取，别再各自
+/// 按屏幕宽度写一份。
+FolderGridFontSizes folderGridFontSizes(double cardWidth) {
+  if (cardWidth >= 240.0) {
+    return (title: 15.0, subtitle: 12.5, info: 11.0);
+  }
+  if (cardWidth >= 200.0) {
+    return (title: 14.5, subtitle: 12.0, info: 10.5);
+  }
+  if (cardWidth >= 150.0) {
+    return (title: 13.5, subtitle: 11.5, info: 10.0);
+  }
+  if (cardWidth >= 110.0) {
+    return (title: 12.5, subtitle: 10.5, info: 9.5);
+  }
+  return (title: 11.5, subtitle: 9.5, info: 9.0);
+}
+
 /// 目录页列表视图的行间距（相邻两行 `Row` 之间）。
 const double kFolderListRowSpacing = 8.0;
+
+/// 标题横幅高度的兜底值：测不到实测高度时使用（首帧、或横幅已滚出缓存区）。
+const double kFolderHeaderBannerFallbackHeight = 190.0;
+
+/// 内容区上方「无权限访问」提示块的估算高度（`folder.path == 'system'` 且未授权时）。
+const double kFolderPermissionWarningHeight = 200.0;
+
+/// 「定位当前播放」要加在行偏移上的内容区上方高度：顶栏 + 标题横幅（+ 权限提示）。
+///
+/// 横幅高度不是常量——它随系统文字缩放、搜索框展开而变，所以优先用 [bannerKey]
+/// 实测（key 挂在横幅上）；横幅已经滚出缓存区、element 被卸载时回落到
+/// [kFolderHeaderBannerFallbackHeight]。
+///
+/// 竖屏时顶栏高度已包含在横幅的 `topHeader` 里，因此不再单独叠加。
+double folderContentTopOffset({
+  required BuildContext context,
+  required bool isPortrait,
+  GlobalKey? bannerKey,
+  bool hasPermissionWarning = false,
+}) {
+  final bannerHeight = _measuredBannerHeight(bannerKey);
+  final barHeight =
+      isPortrait ? 0.0 : FolderNavBarScaffold.getBarHeight(context);
+  return barHeight +
+      bannerHeight +
+      (hasPermissionWarning ? kFolderPermissionWarningHeight : 0.0);
+}
+
+double _measuredBannerHeight(GlobalKey? key) {
+  final renderObject = key?.currentContext?.findRenderObject();
+  if (renderObject is RenderBox &&
+      renderObject.hasSize &&
+      renderObject.size.height > 0) {
+    return renderObject.size.height;
+  }
+  return kFolderHeaderBannerFallbackHeight;
+}
 
 /// 目录页内容的左右内边距。
 ///
@@ -311,6 +377,12 @@ class FolderZoomLayoutMetrics {
   /// Animated row height in List View.
   final double animatedListExtent;
 
+  /// 目标网格卡片宽度（**不参与动画**）。
+  ///
+  /// 只用于「按卡片宽度做离散决策」——目前是 [folderGridFontSizes]。若跟着
+  /// `gridMorph` 连续插值，文字每帧都要重新排版，且字号会在动画中途乱跳。
+  final double targetCardWidth;
+
   const FolderZoomLayoutMetrics({
     required this.targetZoomScale,
     required this.animatedZoomScale,
@@ -319,6 +391,7 @@ class FolderZoomLayoutMetrics {
     required this.animatedGridCols,
     required this.animatedGridTextHeight,
     required this.animatedListExtent,
+    required this.targetCardWidth,
   });
 
   bool get isGridTarget => isFolderZoomGrid(targetZoomScale);
@@ -329,18 +402,13 @@ class FolderZoomLayoutMetrics {
 
   /// 排序态网格（固定 delegate、不参与 morph）所需的宽高比。
   ///
-  /// [outerWidth] 与 [FolderZoomPolicy.resolve] 同语义：未扣左右内边距的外层宽度。
-  double targetChildAspectRatio(double outerWidth) {
-    final contentWidth = math.max(
-      1.0,
-      outerWidth - kGridHorizontalPadding * 2,
-    );
-    final cardWidth = FolderZoomPolicy.gridCardWidth(
-      contentWidth: contentWidth,
-      crossAxisCount: targetGridCols,
-    );
-    final cardHeight = cardWidth + animatedGridTextHeight;
-    return (cardHeight > 0 && cardWidth > 0) ? cardWidth / cardHeight : 1.0;
+  /// 复算用的卡片宽度直接取 [targetCardWidth]（与 morph 网格同一来源），
+  /// 不再自己拿 `outerWidth - 2 * padding` 推一遍。
+  double get targetChildAspectRatio {
+    final cardHeight = targetCardWidth + animatedGridTextHeight;
+    return (cardHeight > 0 && targetCardWidth > 0)
+        ? targetCardWidth / cardHeight
+        : 1.0;
   }
 }
 
@@ -370,6 +438,7 @@ typedef _ZoomTargets = ({
   double gridCols,
   double gridTextHeight,
   double listExtent,
+  double cardWidth,
 });
 
 class _FolderZoomSliverBuilderState extends State<FolderZoomSliverBuilder>
@@ -394,6 +463,9 @@ class _FolderZoomSliverBuilderState extends State<FolderZoomSliverBuilder>
 
   late double _fromListExtent;
   late double _toListExtent;
+
+  /// 见 [FolderZoomLayoutMetrics.targetCardWidth]：不进动画，只跟着目标值跳。
+  double _targetCardWidth = 0.0;
 
   bool _initialized = false;
 
@@ -424,23 +496,33 @@ class _FolderZoomSliverBuilderState extends State<FolderZoomSliverBuilder>
     final zoomScale = widget.zoomScale;
     final isPortrait =
         MediaQuery.maybeOrientationOf(context) == Orientation.portrait;
+    final gridCols = FolderZoomPolicy.calculateCrossAxisCount(
+      width: widget.width,
+      tier: getFolderZoomTier(zoomScale),
+      isPortrait: isPortrait,
+    );
     return (
       gridMorph: isFolderZoomGrid(zoomScale) ? 1.0 : 0.0,
       compactMorph: isFolderZoomCompactList(zoomScale) ? 1.0 : 0.0,
-      gridCols: FolderZoomPolicy.calculateCrossAxisCount(
-        width: widget.width,
-        tier: getFolderZoomTier(zoomScale),
-        isPortrait: isPortrait,
-      ).toDouble(),
+      gridCols: gridCols.toDouble(),
       gridTextHeight: calculateFolderZoomGridTextHeight(
         context,
         zoomScale: zoomScale,
       ),
       listExtent: getFolderListTileExtent(zoomScale),
+      cardWidth: FolderZoomPolicy.gridCardWidth(
+        contentWidth: math.max(
+          1.0,
+          widget.width - kGridHorizontalPadding * 2,
+        ),
+        crossAxisCount: gridCols,
+      ),
     );
   }
 
   void _applyTargets(_ZoomTargets targets, {required bool animate}) {
+    _targetCardWidth = targets.cardWidth;
+
     if (animate) {
       _fromZoomScale = _eval(_fromZoomScale, _toZoomScale);
       _fromGridMorph = _eval(_fromGridMorph, _toGridMorph);
@@ -489,6 +571,7 @@ class _FolderZoomSliverBuilderState extends State<FolderZoomSliverBuilder>
       // Window resize: update column count immediately without lag.
       _fromGridCols = _toGridCols = targets.gridCols;
       _fromGridTextHeight = _toGridTextHeight = targets.gridTextHeight;
+      _targetCardWidth = targets.cardWidth;
     }
   }
 
@@ -509,6 +592,7 @@ class _FolderZoomSliverBuilderState extends State<FolderZoomSliverBuilder>
       animatedGridCols: _eval(_fromGridCols, _toGridCols),
       animatedGridTextHeight: _eval(_fromGridTextHeight, _toGridTextHeight),
       animatedListExtent: _eval(_fromListExtent, _toListExtent),
+      targetCardWidth: _targetCardWidth,
     );
     return widget.builder(context, metrics);
   }

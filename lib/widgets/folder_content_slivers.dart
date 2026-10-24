@@ -180,7 +180,7 @@ class FolderSubfoldersSliver extends StatelessWidget {
         if (isRoot && isSortMode && !isSelectionMode) {
           if (isGrid) {
             final crossAxisCount = metrics.targetGridCols;
-            final childAspectRatio = metrics.targetChildAspectRatio(width);
+            final childAspectRatio = metrics.targetChildAspectRatio;
 
             final List<MusicFolder> allFoldersWithSystem = [];
             final systemFolder = scanner.systemMediaFolder ??

@@ -78,6 +78,9 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
   /// `LayoutBuilder` 给的列表内容宽度（已扣除 rail / 最大宽度约束）。
   /// 「定位当前播放」用它估算偏移，避免用 `MediaQuery` 宽度高估卡片行高。
   double? _contentCrossAxisExtent;
+
+  /// 挂在标题横幅上：定位当前播放时实测横幅高度，不再靠 `190.0` 估算。
+  final GlobalKey _bannerMeasureKey = GlobalKey();
   bool _isSearching = false;
   bool _isSearchLoading = false;
   String _searchQuery = '';
@@ -264,12 +267,13 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
     final showPermissionWarning = folder.path == 'system' && !hasPermission;
     final settings = ref.read(settingsServiceProvider);
 
-    double fileOffset = 48.0;
-    fileOffset += 190.0;
-
-    if (showPermissionWarning) {
-      fileOffset += 200.0;
-    }
+    // 内容区上方的固定部分（顶栏 + 横幅 + 权限提示）用实测高度，不再写 48/190/200。
+    double fileOffset = folderContentTopOffset(
+      context: context,
+      isPortrait: MediaQuery.of(context).orientation == Orientation.portrait,
+      bannerKey: _bannerMeasureKey,
+      hasPermissionWarning: showPermissionWarning,
+    );
 
     final outerWidth =
         _contentCrossAxisExtent ?? MediaQuery.sizeOf(context).width;
@@ -432,88 +436,91 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
             child: SizedBox(height: headerHeight),
           ),
         SliverToBoxAdapter(
-          child: ValueListenableBuilder<bool>(
-            valueListenable: _isCoverVisible,
-            builder: (context, isCoverVisible, _) {
-              return FolderHeaderBanner(
-            title: folder.name,
-            subtitle: _getParentFolderName(folder, scanner),
-            songsCount: folder.allSongs.length,
-            totalDuration: Duration(milliseconds: totalDurationMs),
-            representativeSong: representativeSong,
-            coverImagePath: representativeSong?.thumbnailPath ?? representativeCoverPath,
-            topHeader: isPortrait ? SizedBox(height: headerHeight) : null,
-            coverWidget: () {
-              final defaultCover = SizedBox(
-                width: 100,
-                height: 100,
-                child: DefaultCoverArt.folder(
-                  isSystem: folder.path == 'system',
-                  iconSize: 42,
-                ),
-              );
-              if (representativeSong != null) {
-                return SongThumbnail(
-                  path: representativeSong.path,
-                  id: representativeSong.id,
-                  thumbnailPath: representativeSong.thumbnailPath,
-                  artworkPath: representativeSong.artworkPath,
-                  bytes: representativeSong.artworkBytes,
-                  size: 100,
-                  width: 100,
-                  height: 100,
-                  borderRadius: BorderRadius.zero,
-                  fallbackWidget: defaultCover,
+          child: KeyedSubtree(
+            key: _bannerMeasureKey,
+            child: ValueListenableBuilder<bool>(
+              valueListenable: _isCoverVisible,
+              builder: (context, isCoverVisible, _) {
+                return FolderHeaderBanner(
+                  title: folder.name,
+                  subtitle: _getParentFolderName(folder, scanner),
+                  songsCount: folder.allSongs.length,
+                  totalDuration: Duration(milliseconds: totalDurationMs),
+                  representativeSong: representativeSong,
+                  coverImagePath: representativeSong?.thumbnailPath ?? representativeCoverPath,
+                  topHeader: isPortrait ? SizedBox(height: headerHeight) : null,
+                  coverWidget: () {
+                    final defaultCover = SizedBox(
+                      width: 100,
+                      height: 100,
+                      child: DefaultCoverArt.folder(
+                        isSystem: folder.path == 'system',
+                        iconSize: 42,
+                      ),
+                    );
+                    if (representativeSong != null) {
+                      return SongThumbnail(
+                        path: representativeSong.path,
+                        id: representativeSong.id,
+                        thumbnailPath: representativeSong.thumbnailPath,
+                        artworkPath: representativeSong.artworkPath,
+                        bytes: representativeSong.artworkBytes,
+                        size: 100,
+                        width: 100,
+                        height: 100,
+                        borderRadius: BorderRadius.zero,
+                        fallbackWidget: defaultCover,
+                      );
+                    }
+                    return defaultCover;
+                  }(),
+                  actionButtons: [
+                    FolderPlayActionButtons(
+                      totalSongsCount: folder.allSongs.length,
+                      onPlayAll: () => audio.playPlaylist(
+                        folder.allSongs,
+                        source: PlaybackSource(
+                          type: PlaybackSourceType.folder,
+                          id: folder.path,
+                          name: folder.name,
+                        ),
+                      ),
+                      onShufflePlay: () => audio.playPlaylist(
+                        List.of(folder.allSongs)..shuffle(),
+                        source: PlaybackSource(
+                          type: PlaybackSourceType.folder,
+                          id: folder.path,
+                          name: folder.name,
+                        ),
+                      ),
+                    ),
+                  ],
+                  actionButtonsScrollable: false,
+                  isSearching: _isSearching,
+                  searchController: _searchController,
+                  searchQuery: _searchQuery,
+                  searchHintText: l10n.searchInFolderAndSubfolders,
+                  onSearchQueryChanged: (val) {
+                    setState(() {
+                      _searchQuery = val.trim();
+                    });
+                    _performSearch(val.trim());
+                  },
+                  onToggleSearch: (val) {
+                    setState(() {
+                      _isSearching = val;
+                      if (!val) {
+                        _searchQuery = '';
+                        _matchedSongs = [];
+                        _isSearchLoading = false;
+                      }
+                    });
+                  },
+                  heroTag: 'folder-cover-${folder.path}',
+                  isHeroModeEnabled: isCoverVisible,
                 );
-              }
-              return defaultCover;
-            }(),
-            actionButtons: [
-              FolderPlayActionButtons(
-                totalSongsCount: folder.allSongs.length,
-                onPlayAll: () => audio.playPlaylist(
-                  folder.allSongs,
-                  source: PlaybackSource(
-                    type: PlaybackSourceType.folder,
-                    id: folder.path,
-                    name: folder.name,
-                  ),
-                ),
-                onShufflePlay: () => audio.playPlaylist(
-                  List.of(folder.allSongs)..shuffle(),
-                  source: PlaybackSource(
-                    type: PlaybackSourceType.folder,
-                    id: folder.path,
-                    name: folder.name,
-                  ),
-                ),
-              ),
-            ],
-            actionButtonsScrollable: false,
-            isSearching: _isSearching,
-            searchController: _searchController,
-            searchQuery: _searchQuery,
-            searchHintText: l10n.searchInFolderAndSubfolders,
-            onSearchQueryChanged: (val) {
-              setState(() {
-                _searchQuery = val.trim();
-              });
-              _performSearch(val.trim());
-            },
-            onToggleSearch: (val) {
-              setState(() {
-                _isSearching = val;
-                if (!val) {
-                  _searchQuery = '';
-                  _matchedSongs = [];
-                  _isSearchLoading = false;
-                }
-              });
-            },
-            heroTag: 'folder-cover-${folder.path}',
-            isHeroModeEnabled: isCoverVisible,
-              );
-            },
+              },
+            ),
           ),
         ),
         if (folder.path == 'system' && !hasPermission)

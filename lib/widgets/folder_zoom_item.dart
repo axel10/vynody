@@ -54,7 +54,6 @@ class FolderZoomItem extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final isPortrait =
         MediaQuery.of(context).orientation == Orientation.portrait;
-    final isWide = MediaQuery.of(context).size.width >= 780;
 
     final gridMorph = metrics.gridMorph;
     final isGridTarget = metrics.isGridTarget;
@@ -182,12 +181,10 @@ class FolderZoomItem extends StatelessWidget {
         height: 1.2,
       );
     } else {
-      final tier = metrics.tier;
-      final (double titleSize, double subSize) = switch (tier) {
-        FolderZoomTier.smallGrid => (isWide ? 13.0 : 12.5, 10.5),
-        FolderZoomTier.mediumGrid => (isWide ? 14.0 : 13.5, 11.5),
-        FolderZoomTier.largeGrid || _ => (isWide ? 15.0 : 14.5, 12.5),
-      };
+      // 字号按**卡片宽度**分档（不是屏幕宽度）：卡片窄到 142pt 时用宽屏字号会截断标题。
+      final fonts = folderGridFontSizes(metrics.targetCardWidth);
+      final double titleSize = fonts.title;
+      final double subSize = fonts.subtitle;
       titleStyle = ((isPortrait
                   ? theme.textTheme.titleSmall
                   : theme.textTheme.titleMedium) ??
