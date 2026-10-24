@@ -300,7 +300,7 @@ class FolderZoomItem extends StatelessWidget {
                   0.0,
                   W - listTextLeft - listPadH - trailingSpace,
                 );
-                final listTextHeight = math.max(listCoverSize, H - 8.0);
+                final listTextHeight = listCoverSize;
 
                 const gridTextLeft = 0.0;
                 final gridTextTop = gridCoverSize + 4.0;
