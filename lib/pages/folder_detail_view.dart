@@ -17,12 +17,10 @@ import '../widgets/library_selection_panel.dart';
 import '../widgets/folder_header_banner.dart';
 import '../widgets/song_thumbnail.dart';
 import '../widgets/default_cover_art.dart';
-import 'package:vynody/player/settings/settings_service.dart';
 import 'package:vynody/utils/folder_helpers.dart';
 import 'package:vynody/utils/selection_utils.dart';
 import 'package:vynody/utils/song_locator_helper.dart';
 import '../widgets/folder_header_nav_bar.dart';
-import '../widgets/album_grid_card.dart';
 import '../widgets/folder_layout_utils.dart';
 import '../widgets/folder_content_slivers.dart';
 import '../widgets/playback_ui_tuning.dart';
@@ -271,37 +269,41 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
 
     final screenWidth = MediaQuery.of(context).size.width;
     final double crossAxisExtent = screenWidth - 32;
-    final int crossAxisCount = getFolderGridCrossAxisCount(crossAxisExtent);
+    final zoomScale = settings.folderZoomScale;
+    final int crossAxisCount =
+        getFolderZoomGridCrossAxisCount(crossAxisExtent, zoomScale);
 
-    final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
-    // Folder and song grids both use the album typography budget.
-    final double textHeight =
-        calculateAlbumGridTextHeight(context, isPortrait: isPortrait);
-    final double cardWidth = (crossAxisExtent - (crossAxisCount - 1) * 16) / crossAxisCount;
+    final double textHeight = calculateFolderZoomGridTextHeight(
+      context,
+      zoomScale: zoomScale,
+    );
+    final double cardWidth =
+        (crossAxisExtent - (crossAxisCount - 1) * 16) / crossAxisCount;
     final double cardHeight = cardWidth + textHeight;
+    final double listRowStride = getFolderListTileExtent(zoomScale) + 8.0;
 
-    final isFolderGrid = settings.folderViewMode == FolderViewMode.hybrid ||
-        settings.folderViewMode == FolderViewMode.grid;
-    final isSongGrid = settings.folderViewMode == FolderViewMode.grid;
+    final isGrid = isFolderZoomGrid(zoomScale);
 
-    if (isFolderGrid) {
+    if (isGrid) {
       final totalGridItems = matchedFolders.length;
       final int rows = (totalGridItems / crossAxisCount).ceil();
       fileOffset += rows * (cardHeight + 16);
     } else {
-      fileOffset += matchedFolders.length * 80.0;
+      fileOffset += matchedFolders.length * listRowStride;
     }
 
-    if (isSongGrid) {
+    if (isGrid) {
       final int songRows = (fileIndex / crossAxisCount).floor();
       fileOffset += songRows * (cardHeight + 16);
     } else {
-      fileOffset += fileIndex * 80.0;
+      fileOffset += fileIndex * listRowStride;
     }
 
     if (_localScrollController.hasClients) {
       final double viewportHeight = _localScrollController.position.viewportDimension;
-      double targetOffset = fileOffset - (viewportHeight / 2) + (isSongGrid ? cardHeight / 2 : 40.0);
+      double targetOffset = fileOffset -
+          (viewportHeight / 2) +
+          (isGrid ? cardHeight / 2 : listRowStride / 2);
       final maxScroll = _localScrollController.position.maxScrollExtent;
       targetOffset = targetOffset.clamp(0.0, maxScroll);
 
@@ -565,7 +567,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
         else ...[
           FolderSubfoldersSliver(
             folders: matchedFolders,
-            viewMode: settings.folderViewMode,
+            zoomScale: settings.folderZoomScale,
             scanner: scanner,
             isSelectionMode: widget.isSelectionMode,
             selectedFolderPaths: widget.selectedFolderPaths,
@@ -612,7 +614,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
             ),
           FolderSongsSliver(
             songs: matchedSongs,
-            viewMode: settings.folderViewMode,
+            zoomScale: settings.folderZoomScale,
             currentSongPath: currentMusic?.path,
             isPlaying: isPlaying,
             isSelectionMode: widget.isSelectionMode,

@@ -5,12 +5,323 @@ import 'package:vynody/l10n/app_localizations.dart';
 import 'package:vynody/models/music_folder.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/scanner/scanner_path_utils.dart';
-import 'package:vynody/player/settings/settings_service.dart';
+import 'package:vynody/utils/blur_constants.dart';
 import 'package:vynody/utils/song_locator_helper.dart';
+import 'folder_layout_utils.dart';
 import 'folder_nav_bar_scaffold.dart';
 import 'folder_scan_widgets.dart';
 import 'locate_song_button.dart';
 export 'folder_nav_bar_scaffold.dart';
+
+/// Returns the icon corresponding to the current [zoomScale] tier.
+IconData getFolderZoomTierIcon(double zoomScale) {
+  return switch (getFolderZoomTier(zoomScale)) {
+    FolderZoomTier.compactList => Icons.density_small_rounded,
+    FolderZoomTier.standardList => Icons.view_list_rounded,
+    FolderZoomTier.smallGrid => Icons.grid_on_rounded,
+    FolderZoomTier.largeGrid => Icons.grid_view_rounded,
+  };
+}
+
+/// Shows a floating popover below the top navigation bar with a live zoom slider
+/// and discrete tier presets.
+Future<void> showFolderZoomPopover(BuildContext anchorContext) async {
+  final renderBox = anchorContext.findRenderObject() as RenderBox?;
+  final overlay =
+      Overlay.maybeOf(anchorContext)?.context.findRenderObject() as RenderBox?;
+
+  double topOffset = FolderNavBarScaffold.getBarHeight(anchorContext) + 6.0;
+  double rightOffset = 16.0;
+
+  if (renderBox != null && overlay != null && renderBox.hasSize) {
+    final globalPos = renderBox.localToGlobal(Offset.zero, ancestor: overlay);
+    topOffset = globalPos.dy + renderBox.size.height + 6.0;
+    final calculatedRight =
+        overlay.size.width - (globalPos.dx + renderBox.size.width);
+    rightOffset = calculatedRight.clamp(12.0, overlay.size.width - 280.0);
+  }
+
+  await showGeneralDialog<void>(
+    context: anchorContext,
+    barrierDismissible: true,
+    barrierLabel: MaterialLocalizations.of(anchorContext).modalBarrierDismissLabel,
+    barrierColor: Colors.transparent,
+    transitionDuration: const Duration(milliseconds: 180),
+    pageBuilder: (dialogContext, animation, secondaryAnimation) {
+      return Stack(
+        children: [
+          Positioned(
+            top: topOffset,
+            right: rightOffset,
+            child: _FolderZoomPopoverCard(),
+          ),
+        ],
+      );
+    },
+    transitionBuilder: (context, animation, secondaryAnimation, child) {
+      final curved = CurvedAnimation(
+        parent: animation,
+        curve: Curves.easeOutCubic,
+        reverseCurve: Curves.easeInCubic,
+      );
+      return FadeTransition(
+        opacity: curved,
+        child: ScaleTransition(
+          scale: Tween<double>(begin: 0.94, end: 1.0).animate(curved),
+          alignment: Alignment.topRight,
+          child: child,
+        ),
+      );
+    },
+  );
+}
+
+class _FolderZoomPopoverCard extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    final settings = ref.watch(settingsServiceProvider);
+    final zoomScale = settings.folderZoomScale;
+    final tier = getFolderZoomTier(zoomScale);
+    final isGrid = isFolderZoomGrid(zoomScale);
+
+    final tierLabel = isGrid ? l10n.gridView : l10n.listView;
+    final percentText = '${(zoomScale * 100).round()}%';
+
+    return Material(
+      color: Colors.transparent,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: BackdropFilter(
+          filter: AppBlur.mediumFilter,
+          child: Container(
+            width: 268,
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainerHigh
+                  .withValues(alpha: 0.90),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.35),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.18),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      getFolderZoomTierIcon(zoomScale),
+                      size: 16,
+                      color: theme.colorScheme.primary,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        tierLabel,
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 7,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primaryContainer
+                            .withValues(alpha: 0.6),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        percentText,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: theme.colorScheme.onPrimaryContainer,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    IconButton(
+                      visualDensity: VisualDensity.compact,
+                      constraints: const BoxConstraints(
+                        minWidth: 28,
+                        minHeight: 28,
+                      ),
+                      padding: EdgeInsets.zero,
+                      icon: const Icon(Icons.remove_rounded, size: 18),
+                      onPressed: zoomScale > 0.0
+                          ? () {
+                              settings.folderZoomScale =
+                                  (zoomScale - 0.125).clamp(0.0, 1.0);
+                            }
+                          : null,
+                    ),
+                    Expanded(
+                      child: SliderTheme(
+                        data: SliderTheme.of(context).copyWith(
+                          trackHeight: 4,
+                          thumbShape: const RoundSliderThumbShape(
+                            enabledThumbRadius: 7,
+                          ),
+                          overlayShape: const RoundSliderOverlayShape(
+                            overlayRadius: 14,
+                          ),
+                        ),
+                        child: Slider(
+                          value: zoomScale,
+                          min: kFolderZoomMin,
+                          max: kFolderZoomMax,
+                          onChanged: (val) {
+                            settings.folderZoomScale = val;
+                          },
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      visualDensity: VisualDensity.compact,
+                      constraints: const BoxConstraints(
+                        minWidth: 28,
+                        minHeight: 28,
+                      ),
+                      padding: EdgeInsets.zero,
+                      icon: const Icon(Icons.add_rounded, size: 18),
+                      onPressed: zoomScale < 1.0
+                          ? () {
+                              settings.folderZoomScale =
+                                  (zoomScale + 0.125).clamp(0.0, 1.0);
+                            }
+                          : null,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _ZoomTierPresetButton(
+                      icon: Icons.density_small_rounded,
+                      isSelected: tier == FolderZoomTier.compactList,
+                      onTap: () => settings.folderZoomScale = 0.12,
+                    ),
+                    _ZoomTierPresetButton(
+                      icon: Icons.view_list_rounded,
+                      isSelected: tier == FolderZoomTier.standardList,
+                      onTap: () => settings.folderZoomScale = 0.36,
+                    ),
+                    _ZoomTierPresetButton(
+                      icon: Icons.grid_on_rounded,
+                      isSelected: tier == FolderZoomTier.smallGrid,
+                      onTap: () => settings.folderZoomScale = 0.62,
+                    ),
+                    _ZoomTierPresetButton(
+                      icon: Icons.grid_view_rounded,
+                      isSelected: tier == FolderZoomTier.largeGrid,
+                      onTap: () => settings.folderZoomScale = 0.88,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ZoomTierPresetButton extends StatelessWidget {
+  const _ZoomTierPresetButton({
+    required this.icon,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return InkWell(
+      borderRadius: BorderRadius.circular(8),
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? theme.colorScheme.primary.withValues(alpha: 0.16)
+              : theme.colorScheme.surfaceContainerHighest
+                  .withValues(alpha: 0.45),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isSelected
+                ? theme.colorScheme.primary.withValues(alpha: 0.6)
+                : Colors.transparent,
+          ),
+        ),
+        child: Icon(
+          icon,
+          size: 16,
+          color: isSelected
+              ? theme.colorScheme.primary
+              : theme.colorScheme.onSurfaceVariant,
+        ),
+      ),
+    );
+  }
+}
+
+/// Reusable navigation bar icon button that opens the folder zoom slider popover.
+class FolderZoomNavButton extends ConsumerWidget {
+  const FolderZoomNavButton({
+    super.key,
+    required this.style,
+  });
+
+  final FolderNavBarStyle style;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final zoomScale = ref.watch(
+      settingsServiceProvider.select((s) => s.folderZoomScale),
+    );
+    final isGrid = isFolderZoomGrid(zoomScale);
+
+    return Builder(
+      builder: (btnContext) {
+        return FolderNavIconButton(
+          style: style,
+          tooltip: isGrid ? l10n.gridView : l10n.listView,
+          icon: Icon(
+            getFolderZoomTierIcon(zoomScale),
+            size: 20,
+            color: style.iconColor,
+            shadows: style.shadows,
+          ),
+          onPressed: () => showFolderZoomPopover(btnContext),
+        );
+      },
+    );
+  }
+}
 
 class FolderHeaderNavBar extends ConsumerWidget {
   const FolderHeaderNavBar({
@@ -36,6 +347,7 @@ class FolderHeaderNavBar extends ConsumerWidget {
   final VoidCallback? onGoBack;
   final VoidCallback? onLocateCurrentSong;
   final VoidCallback onSortPressed;
+
   /// 排序按钮处于「进行中的模式」（根目录拖拽排序）：图标换成对勾，带底色
   final bool isSortActive;
 
@@ -129,13 +441,16 @@ class FolderHeaderNavBar extends ConsumerWidget {
     AppLocalizations l10n,
   ) {
     final currentMusic = ref.watch(audioCurrentMusicProvider);
-    final settings = ref.watch(settingsServiceProvider);
+    final zoomScale = ref.watch(
+      settingsServiceProvider.select((s) => s.folderZoomScale),
+    );
 
     if (style.isPortrait) {
       return Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           FolderScanSpinner(style: style),
+          FolderZoomNavButton(style: style),
           FolderNavActionMenu<String>(
             style: style,
             onSelected: (value) {
@@ -146,11 +461,7 @@ class FolderHeaderNavBar extends ConsumerWidget {
               } else if (value == 'sort') {
                 onSortPressed();
               } else if (value == 'view_mode') {
-                settings.folderViewMode = switch (settings.folderViewMode) {
-                  FolderViewMode.list => FolderViewMode.hybrid,
-                  FolderViewMode.hybrid => FolderViewMode.grid,
-                  FolderViewMode.grid => FolderViewMode.list,
-                };
+                showFolderZoomPopover(context);
               }
             },
             itemBuilder: (context) => [
@@ -204,21 +515,12 @@ class FolderHeaderNavBar extends ConsumerWidget {
                 value: 'view_mode',
                 child: Row(
                   children: [
-                    Icon(
-                      switch (settings.folderViewMode) {
-                        FolderViewMode.list => Icons.grid_view_rounded,
-                        FolderViewMode.hybrid => Icons.view_module_rounded,
-                        FolderViewMode.grid => Icons.view_list_rounded,
-                      },
-                      size: 20,
-                    ),
+                    Icon(getFolderZoomTierIcon(zoomScale), size: 20),
                     const SizedBox(width: 12),
                     Text(
-                      switch (settings.folderViewMode) {
-                        FolderViewMode.list => l10n.hybridView,
-                        FolderViewMode.hybrid => l10n.gridView,
-                        FolderViewMode.grid => l10n.listView,
-                      },
+                      isFolderZoomGrid(zoomScale)
+                          ? l10n.gridView
+                          : l10n.listView,
                     ),
                   ],
                 ),
@@ -239,35 +541,10 @@ class FolderHeaderNavBar extends ConsumerWidget {
               onPressed: () => _handleLocate(ref, context),
             ),
           ],
-          FolderNavIconButton(
-            style: style,
-            tooltip: switch (settings.folderViewMode) {
-              FolderViewMode.list => l10n.hybridView,
-              FolderViewMode.hybrid => l10n.gridView,
-              FolderViewMode.grid => l10n.listView,
-            },
-            icon: Icon(
-              switch (settings.folderViewMode) {
-                FolderViewMode.list => Icons.grid_view_rounded,
-                FolderViewMode.hybrid => Icons.view_module_rounded,
-                FolderViewMode.grid => Icons.view_list_rounded,
-              },
-              size: 20,
-              color: style.iconColor,
-              shadows: style.shadows,
-            ),
-            onPressed: () {
-              settings.folderViewMode = switch (settings.folderViewMode) {
-                FolderViewMode.list => FolderViewMode.hybrid,
-                FolderViewMode.hybrid => FolderViewMode.grid,
-                FolderViewMode.grid => FolderViewMode.list,
-              };
-            },
-          ),
+          FolderZoomNavButton(style: style),
           FolderNavIconButton(
             style: style,
             tooltip: l10n.sort,
-            // 只有「模式进行中」才铺底色；目录级覆盖只着色图标
             isSelected: isSortActive,
             icon: Icon(
               isSortActive ? Icons.check_rounded : Icons.sort,

@@ -700,6 +700,8 @@ class SettingsService extends ChangeNotifier {
   static const String _keyOnlyAllowTrustedRemoteControl =
       'only_allow_trusted_remote_control';
   static const String _keyFolderViewMode = 'folder_view_mode';
+  static const String _keyFolderZoomScale = 'folder_zoom_scale';
+  static const double defaultFolderZoomScale = 0.65;
   static const String _keyRemoteCacheMaxSizeBytes = 'remote_cache_max_size_bytes';
   static const int defaultRemoteCacheMaxSizeBytes = 2 * 1024 * 1024 * 1024; // 2 GB (0 = unlimited)
   static const String _keyRemotePrefetchCount = 'remote_prefetch_count';
@@ -885,6 +887,29 @@ class SettingsService extends ChangeNotifier {
     customRead: (prefs, key, def) =>
         FolderViewModeX.fromStorageValue(prefs.getString(key), def),
     customWrite: (prefs, key, val) => prefs.setString(key, val.storageValue),
+  );
+
+  late final _folderZoomScaleProperty = SettingProperty<double>(
+    key: _keyFolderZoomScale,
+    defaultValue: defaultFolderZoomScale,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+    customRead: (prefs, key, def) {
+      final stored = prefs.getDouble(key);
+      if (stored != null) {
+        return stored.clamp(0.0, 1.0);
+      }
+      final legacyMode = FolderViewModeX.fromStorageValue(
+        prefs.getString(_keyFolderViewMode),
+        FolderViewMode.grid,
+      );
+      return switch (legacyMode) {
+        FolderViewMode.list => 0.35,
+        FolderViewMode.hybrid || FolderViewMode.grid => defaultFolderZoomScale,
+      };
+    },
+    customWrite: (prefs, key, val) =>
+        prefs.setDouble(key, val.clamp(0.0, 1.0)),
   );
 
   late final _albumSortFieldProperty = SettingProperty<AlbumSortField>(
@@ -3189,9 +3214,20 @@ class SettingsService extends ChangeNotifier {
     smallWindowQueueHeight = size.height;
   }
 
-  FolderViewMode get folderViewMode => _folderViewModeProperty.value;
-  set folderViewMode(FolderViewMode value) =>
-      _folderViewModeProperty.value = value;
+  FolderViewMode get folderViewMode => _folderZoomScaleProperty.value >= 0.5
+      ? FolderViewMode.grid
+      : FolderViewMode.list;
+  set folderViewMode(FolderViewMode value) {
+    _folderViewModeProperty.value = value;
+    _folderZoomScaleProperty.value = switch (value) {
+      FolderViewMode.list => 0.35,
+      FolderViewMode.hybrid || FolderViewMode.grid => defaultFolderZoomScale,
+    };
+  }
+
+  double get folderZoomScale => _folderZoomScaleProperty.value;
+  set folderZoomScale(double value) =>
+      _folderZoomScaleProperty.value = value.clamp(0.0, 1.0);
 
   String get windowsAudioOutputMode => _windowsAudioOutputModeProperty.value;
   set windowsAudioOutputMode(String value) {

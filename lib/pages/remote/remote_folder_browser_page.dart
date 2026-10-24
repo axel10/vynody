@@ -41,7 +41,7 @@ import 'remote_download_manager_page.dart';
 import 'widgets/webdav_content_slivers.dart';
 import '../../utils/selection_utils.dart';
 import '../../utils/song_locator_helper.dart';
-import '../../widgets/folder_nav_bar_scaffold.dart';
+import '../../widgets/folder_header_nav_bar.dart';
 import '../../widgets/folder_scan_widgets.dart';
 import '../../widgets/auto_hide_header.dart';
 
@@ -1089,43 +1089,42 @@ class _RemoteFolderBrowserPageState
 
     if (_scrollController.hasClients) {
       final settings = ref.read(settingsServiceProvider);
-      final viewMode = settings.folderViewMode;
-      final isFolderGrid =
-          viewMode == FolderViewMode.hybrid || viewMode == FolderViewMode.grid;
-      final isSongGrid = viewMode == FolderViewMode.grid;
+      final zoomScale = settings.folderZoomScale;
+      final isGrid = isFolderZoomGrid(zoomScale);
 
       final screenWidth = MediaQuery.of(context).size.width;
       final double crossAxisExtent = screenWidth - 32;
-      final int crossAxisCount = getFolderGridCrossAxisCount(crossAxisExtent);
-      final isPortrait =
-          MediaQuery.of(context).orientation == Orientation.portrait;
-      final textScale = MediaQuery.textScalerOf(context).scale(10) / 10;
-      final clampedScale = textScale.clamp(1.0, 1.3);
-      final double textHeight = (isPortrait ? 72.0 : 84.0) * clampedScale;
+      final int crossAxisCount =
+          getFolderZoomGridCrossAxisCount(crossAxisExtent, zoomScale);
+      final double textHeight = calculateFolderZoomGridTextHeight(
+        context,
+        zoomScale: zoomScale,
+      );
       final double cardWidth =
           (crossAxisExtent - (crossAxisCount - 1) * 16) / crossAxisCount;
       final double cardHeight = cardWidth + textHeight;
+      final double listRowStride = getFolderListTileExtent(zoomScale) + 8.0;
 
       double fileOffset = 48.0 + 190.0;
-      if (isFolderGrid) {
+      if (isGrid) {
         final rows = (matchedFolders.length / crossAxisCount).ceil();
         fileOffset += rows * (cardHeight + 16);
       } else {
-        fileOffset += matchedFolders.length * 80.0;
+        fileOffset += matchedFolders.length * listRowStride;
       }
 
-      if (isSongGrid) {
+      if (isGrid) {
         final songRows = (fileIndex / crossAxisCount).floor();
         fileOffset += songRows * (cardHeight + 16);
       } else {
-        fileOffset += fileIndex * 80.0;
+        fileOffset += fileIndex * listRowStride;
       }
 
       final double viewportHeight =
           _scrollController.position.viewportDimension;
       double targetOffset = fileOffset -
           (viewportHeight / 2) +
-          (isSongGrid ? cardHeight / 2 : 40.0);
+          (isGrid ? cardHeight / 2 : listRowStride / 2);
       final maxScroll = _scrollController.position.maxScrollExtent;
       targetOffset = targetOffset.clamp(0.0, maxScroll);
       _scrollController.animateTo(
@@ -1142,7 +1141,7 @@ class _RemoteFolderBrowserPageState
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
     final settings = ref.watch(settingsServiceProvider);
-    final viewMode = settings.folderViewMode;
+    final zoomScale = settings.folderZoomScale;
     final currentMusic = ref.watch(audioCurrentMusicProvider);
     final isAudioPlaying = ref.watch(audioIsPlayingProvider);
     final isPortrait =
@@ -1407,11 +1406,11 @@ class _RemoteFolderBrowserPageState
                 isSearching: false,
               )
             else ...[
-              // 1. Subfolders Sliver (Grid or List according to viewMode)
+              // 1. Subfolders Sliver (Grid or List according to zoomScale)
               if (matchedFolders.isNotEmpty)
                 WebDavSubfoldersSliver(
                   folders: matchedFolders,
-                  viewMode: viewMode,
+                  zoomScale: zoomScale,
                   server: widget.server,
                   password: widget.password,
                   isSelectionMode: _isSelectionMode,
@@ -1463,11 +1462,11 @@ class _RemoteFolderBrowserPageState
                   title: l10n.songsCountFormat(matchedFiles.length),
                 ),
 
-              // 3. Files/Songs Sliver (Grid or List according to viewMode)
+              // 3. Files/Songs Sliver (Grid or List according to zoomScale)
               if (matchedFiles.isNotEmpty)
                 WebDavSongsSliver(
                   files: matchedFiles,
-                  viewMode: viewMode,
+                  zoomScale: zoomScale,
                   server: widget.server,
                   password: widget.password,
                   metadataMap: _metadataMap,
@@ -1934,6 +1933,7 @@ class _RemoteFolderBrowserPageState
         mainAxisSize: MainAxisSize.min,
         children: [
           FolderScanSpinner(style: style),
+          FolderZoomNavButton(style: style),
           FolderNavActionMenu<String>(
             style: style,
             onSelected: (value) {
@@ -1942,11 +1942,7 @@ class _RemoteFolderBrowserPageState
               } else if (value == 'sort') {
                 _showSortDialog(context);
               } else if (value == 'view_mode') {
-                settings.folderViewMode = switch (settings.folderViewMode) {
-                  FolderViewMode.list => FolderViewMode.hybrid,
-                  FolderViewMode.hybrid => FolderViewMode.grid,
-                  FolderViewMode.grid => FolderViewMode.list,
-                };
+                showFolderZoomPopover(context);
               } else if (value == 'refresh') {
                 _loadDirectory(_currentPath, forceRefresh: true);
               } else if (value == 'downloads') {
@@ -1984,20 +1980,14 @@ class _RemoteFolderBrowserPageState
                 child: Row(
                   children: [
                     Icon(
-                      switch (settings.folderViewMode) {
-                        FolderViewMode.list => Icons.grid_view_rounded,
-                        FolderViewMode.hybrid => Icons.view_module_rounded,
-                        FolderViewMode.grid => Icons.view_list_rounded,
-                      },
+                      getFolderZoomTierIcon(settings.folderZoomScale),
                       size: 20,
                     ),
                     const SizedBox(width: 12),
                     Text(
-                      switch (settings.folderViewMode) {
-                        FolderViewMode.list => l10n.hybridView,
-                        FolderViewMode.hybrid => l10n.gridView,
-                        FolderViewMode.grid => l10n.listView,
-                      },
+                      isFolderZoomGrid(settings.folderZoomScale)
+                          ? l10n.gridView
+                          : l10n.listView,
                     ),
                   ],
                 ),
@@ -2053,31 +2043,7 @@ class _RemoteFolderBrowserPageState
             ),
             onPressed: () => _showSortDialog(context),
           ),
-          FolderNavIconButton(
-            style: style,
-            tooltip: switch (settings.folderViewMode) {
-              FolderViewMode.list => l10n.hybridView,
-              FolderViewMode.hybrid => l10n.gridView,
-              FolderViewMode.grid => l10n.listView,
-            },
-            icon: Icon(
-              switch (settings.folderViewMode) {
-                FolderViewMode.list => Icons.grid_view_rounded,
-                FolderViewMode.hybrid => Icons.view_module_rounded,
-                FolderViewMode.grid => Icons.view_list_rounded,
-              },
-              size: 20,
-              color: style.iconColor,
-              shadows: style.shadows,
-            ),
-            onPressed: () {
-              settings.folderViewMode = switch (settings.folderViewMode) {
-                FolderViewMode.list => FolderViewMode.hybrid,
-                FolderViewMode.hybrid => FolderViewMode.grid,
-                FolderViewMode.grid => FolderViewMode.list,
-              };
-            },
-          ),
+          FolderZoomNavButton(style: style),
           FolderNavIconButton(
             style: style,
             tooltip: l10n.refreshResults,

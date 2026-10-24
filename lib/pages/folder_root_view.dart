@@ -492,7 +492,7 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
         else ...[
           FolderSubfoldersSliver(
             folders: matchedRootFolders,
-            viewMode: settings.folderViewMode,
+            zoomScale: settings.folderZoomScale,
             scanner: scanner,
             isRoot: true,
             isSelectionMode: isRootSelectionMode,
@@ -546,7 +546,7 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
             ),
             RemoteServersSliver(
               servers: matchedRemoteServers,
-              viewMode: settings.folderViewMode,
+              zoomScale: settings.folderZoomScale,
               isSortMode: widget.isSortMode,
               crossAxisExtent: crossAxisExtent,
               onOpenServer: (server) => _openRemoteServer(context, server),
@@ -559,7 +559,7 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
             ),
           FolderSongsSliver(
             songs: matchedSongs,
-            viewMode: settings.folderViewMode,
+            zoomScale: settings.folderZoomScale,
             currentSongPath: currentMusic?.path,
             isPlaying: ref.watch(audioIsPlayingProvider),
             bottomPadding: rootListBottomPadding,

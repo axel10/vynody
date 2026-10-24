@@ -273,10 +273,11 @@ class RemoteServersSectionHeaderSliver extends StatelessWidget {
   }
 }
 
-/// Renders remote servers in grid or list view according to FolderViewMode.
+/// Renders remote servers in grid or list view according to FolderViewMode / zoomScale.
 class RemoteServersSliver extends ConsumerWidget {
   final List<RemoteServer> servers;
-  final FolderViewMode viewMode;
+  final FolderViewMode? viewMode;
+  final double? zoomScale;
   final bool isSortMode;
   final void Function(RemoteServer server) onOpenServer;
   final double bottomPadding;
@@ -285,12 +286,21 @@ class RemoteServersSliver extends ConsumerWidget {
   const RemoteServersSliver({
     super.key,
     required this.servers,
-    required this.viewMode,
+    this.viewMode,
+    this.zoomScale,
     this.isSortMode = false,
     required this.onOpenServer,
     this.bottomPadding = 160.0,
     this.crossAxisExtent,
   });
+
+  double get _effectiveZoomScale {
+    if (zoomScale != null) return zoomScale!.clamp(0.0, 1.0);
+    return switch (viewMode) {
+      FolderViewMode.list => 0.35,
+      FolderViewMode.hybrid || FolderViewMode.grid || null => 0.65,
+    };
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -299,16 +309,18 @@ class RemoteServersSliver extends ConsumerWidget {
     }
 
     final isProUnlocked = ref.watch(isProUnlockedProvider);
-    final isGrid =
-        viewMode == FolderViewMode.hybrid || viewMode == FolderViewMode.grid;
+    final effectiveZoom = _effectiveZoomScale;
+    final isGrid = isFolderZoomGrid(effectiveZoom);
+    final width = crossAxisExtent ?? MediaQuery.sizeOf(context).width;
 
     if (isGrid) {
-      final width = crossAxisExtent ?? MediaQuery.sizeOf(context).width;
-      final crossAxisCount = getFolderGridCrossAxisCount(width);
+      final crossAxisCount =
+          getFolderZoomGridCrossAxisCount(width, effectiveZoom);
       final childAspectRatio = calculateFolderGridChildAspectRatio(
         context,
         width,
         crossAxisCount,
+        zoomScale: effectiveZoom,
       );
 
       if (isSortMode) {

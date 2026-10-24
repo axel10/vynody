@@ -1,3 +1,4 @@
+import 'dart:ui' show lerpDouble;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vynody/models/music_file.dart';
@@ -11,18 +12,16 @@ import 'package:vynody/player/remote/services/remote_scan_root.dart';
 import 'package:vynody/player/settings/settings_service.dart';
 import 'package:vynody/utils/folder_helpers.dart';
 import 'package:vynody/utils/remote_context_menu_utils.dart';
-import 'package:vynody/widgets/album_grid_card.dart';
 import 'package:vynody/widgets/folder_grid_card.dart';
 import 'package:vynody/widgets/folder_layout_utils.dart';
-import 'package:vynody/widgets/folder_list_tile.dart';
 import 'package:vynody/widgets/song_grid_card.dart';
-import 'package:vynody/widgets/song_tile.dart';
 import 'package:vynody/widgets/draggable_song_item.dart';
 
-/// Renders WebDAV subfolders in grid or list view using unified FolderGridCard and FolderListTile.
+/// Renders WebDAV subfolders in unified zoom-driven grid or list view.
 class WebDavSubfoldersSliver extends ConsumerWidget {
   final List<WebDavFile> folders;
-  final FolderViewMode viewMode;
+  final FolderViewMode? viewMode;
+  final double? zoomScale;
   final RemoteServer server;
   final String password;
   final bool isSelectionMode;
@@ -33,13 +32,13 @@ class WebDavSubfoldersSliver extends ConsumerWidget {
   final void Function(String folderPath)? onToggleFolderSelection;
   final VoidCallback? onToggleSelectionMode;
   final void Function(WebDavFile folder)? onShowFolderBottomSheet;
-
   final double? crossAxisExtent;
 
   const WebDavSubfoldersSliver({
     super.key,
     required this.folders,
-    required this.viewMode,
+    this.viewMode,
+    this.zoomScale,
     required this.server,
     required this.password,
     this.isSelectionMode = false,
@@ -53,13 +52,18 @@ class WebDavSubfoldersSliver extends ConsumerWidget {
     this.crossAxisExtent,
   });
 
+  double get _effectiveZoomScale {
+    if (zoomScale != null) return zoomScale!.clamp(0.0, 1.0);
+    return switch (viewMode) {
+      FolderViewMode.list => 0.35,
+      FolderViewMode.hybrid || FolderViewMode.grid || null => 0.65,
+    };
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     ref.watch(remoteScanRootsProvider);
     final scanRootsNotifier = ref.read(remoteScanRootsProvider.notifier);
-
-    final isGrid =
-        viewMode == FolderViewMode.hybrid || viewMode == FolderViewMode.grid;
 
     void openContextMenu(WebDavFile folder, Offset globalPosition) {
       showWebDavFolderContextMenu(
@@ -77,100 +81,43 @@ class WebDavSubfoldersSliver extends ConsumerWidget {
       );
     }
 
-    if (isGrid) {
-      final width = crossAxisExtent ?? MediaQuery.sizeOf(context).width;
-      final crossAxisCount = getFolderGridCrossAxisCount(width);
-      final childAspectRatio = calculateFolderGridChildAspectRatio(
-        context,
-        width,
-        crossAxisCount,
-        textHeight: calculateAlbumGridTextHeight(
-          context,
-          isPortrait: MediaQuery.of(context).orientation == Orientation.portrait,
-        ),
-      );
+    final width = crossAxisExtent ?? MediaQuery.sizeOf(context).width;
+    final isPortrait =
+        MediaQuery.of(context).orientation == Orientation.portrait;
+    final effectiveZoom = _effectiveZoomScale;
 
-          return SliverPadding(
-            padding: const EdgeInsets.only(
-              top: 8,
-              bottom: 8,
-              left: kGridHorizontalPadding,
-              right: kGridHorizontalPadding,
-            ),
-            sliver: SliverGrid(
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: crossAxisCount,
-                crossAxisSpacing: kGridCrossAxisSpacing,
-                mainAxisSpacing: kGridMainAxisSpacing,
-                childAspectRatio: childAspectRatio,
-              ),
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final folder = folders[index];
-                  final isSelected = selectedFolderPaths.contains(folder.path);
-                  final isIndexed =
-                      scanRootsNotifier.isFolderIndexed(server.id, folder.path);
-                  final virtualUri =
-                      RemoteMediaResolver.buildRemoteUri(server, folder.path);
+    return FolderZoomSliverBuilder(
+      zoomScale: effectiveZoom,
+      width: width,
+      builder: (context, metrics) {
+        final hPad = lerpDouble(
+          isPortrait ? 4.0 : 8.0,
+          kGridHorizontalPadding,
+          metrics.gridMorph,
+        )!;
 
-                  return HoverableCard(
-                    child: FolderGridCard(
-                      folder: MusicFolder(path: virtualUri, name: folder.name),
-                      subtitle: 'Folder',
-                      enableHero: false,
-                      isSelected: isSelected,
-                      isSelectionMode: isSelectionMode,
-                      isIndexed: isIndexed,
-                      onTap: onFolderTap != null
-                          ? () => onFolderTap?.call(folder, index)
-                          : (isSelectionMode
-                              ? () => onToggleFolderSelection?.call(folder.path)
-                              : () => onOpenFolder(folder)),
-                      onSecondaryTapDown: (details) {
-                        openContextMenu(folder, details.globalPosition);
-                      },
-                      onLongPress: onFolderLongPress != null
-                          ? () => onFolderLongPress?.call(folder, index)
-                          : () {
-                              if (!isSelectionMode) {
-                                onToggleSelectionMode?.call();
-                                onToggleFolderSelection?.call(folder.path);
-                              } else {
-                                onToggleFolderSelection?.call(folder.path);
-                              }
-                            },
-                    ),
-                  );
-                },
-                childCount: folders.length,
-              ),
-            ),
-          );
-    } else {
-      final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
-      return SliverPadding(
-        padding: EdgeInsets.only(
-          top: 8,
-          bottom: 8,
-          left: isPortrait ? 4 : 8,
-          right: isPortrait ? 4 : 8,
-        ),
-        sliver: SliverList(
-          delegate: SliverChildBuilderDelegate(
-            (context, index) {
-              final folder = folders[index];
-              final isSelected = selectedFolderPaths.contains(folder.path);
-              final isIndexed =
-                  scanRootsNotifier.isFolderIndexed(server.id, folder.path);
-              final virtualUri =
-                  RemoteMediaResolver.buildRemoteUri(server, folder.path);
+        return SliverPadding(
+          padding: EdgeInsets.only(
+            top: 8,
+            bottom: 8,
+            left: hPad,
+            right: hPad,
+          ),
+          sliver: SliverGrid(
+            gridDelegate: SliverAnimatedZoomGridDelegate(metrics: metrics),
+            delegate: SliverChildBuilderDelegate(
+              (context, index) {
+                final folder = folders[index];
+                final isSelected = selectedFolderPaths.contains(folder.path);
+                final isIndexed =
+                    scanRootsNotifier.isFolderIndexed(server.id, folder.path);
+                final virtualUri =
+                    RemoteMediaResolver.buildRemoteUri(server, folder.path);
 
-              return Padding(
-                padding: const EdgeInsets.symmetric(
-                  vertical: 4,
-                ),
-                child: FolderListTile(
+                return FolderZoomItem(
+                  key: ValueKey('webdav_folder_${folder.path}'),
                   folder: MusicFolder(path: virtualUri, name: folder.name),
+                  metrics: metrics,
                   subtitle: 'Folder',
                   enableHero: false,
                   isSelected: isSelected,
@@ -182,10 +129,15 @@ class WebDavSubfoldersSliver extends ConsumerWidget {
                         icon: const Icon(Icons.more_vert_rounded, size: 20),
                         tooltip: 'More',
                         onPressed: () {
-                          final box = btnContext.findRenderObject() as RenderBox?;
+                          final box =
+                              btnContext.findRenderObject() as RenderBox?;
                           final pos = box != null
                               ? box.localToGlobal(
-                                  Offset(box.size.width / 2, box.size.height / 2))
+                                  Offset(
+                                    box.size.width / 2,
+                                    box.size.height / 2,
+                                  ),
+                                )
                               : Offset.zero;
                           openContextMenu(folder, pos);
                         },
@@ -197,6 +149,9 @@ class WebDavSubfoldersSliver extends ConsumerWidget {
                       : (isSelectionMode
                           ? () => onToggleFolderSelection?.call(folder.path)
                           : () => onOpenFolder(folder)),
+                  onSecondaryTapDown: (details) {
+                    openContextMenu(folder, details.globalPosition);
+                  },
                   onLongPress: onFolderLongPress != null
                       ? () => onFolderLongPress?.call(folder, index)
                       : () {
@@ -207,24 +162,22 @@ class WebDavSubfoldersSliver extends ConsumerWidget {
                             onToggleFolderSelection?.call(folder.path);
                           }
                         },
-                  onSecondaryTapDown: (details) {
-                    openContextMenu(folder, details.globalPosition);
-                  },
-                ),
-              );
-            },
-            childCount: folders.length,
+                );
+              },
+              childCount: folders.length,
+            ),
           ),
-        ),
-      );
-    }
+        );
+      },
+    );
   }
 }
 
-/// Renders songs & files in grid or list mode for WebDAV.
+/// Renders songs & files in unified zoom-driven grid or list mode for WebDAV.
 class WebDavSongsSliver extends ConsumerWidget {
   final List<WebDavFile> files;
-  final FolderViewMode viewMode;
+  final FolderViewMode? viewMode;
+  final double? zoomScale;
   final RemoteServer server;
   final String password;
   final Map<String, SongMetadata> metadataMap;
@@ -239,11 +192,13 @@ class WebDavSongsSliver extends ConsumerWidget {
   final void Function(WebDavFile, TapDownDetails)? onSongSecondaryTapDown;
   final void Function(WebDavFile, BuildContext)? onSongMorePressed;
   final double bottomPadding;
+  final double? crossAxisExtent;
 
   const WebDavSongsSliver({
     super.key,
     required this.files,
-    required this.viewMode,
+    this.viewMode,
+    this.zoomScale,
     required this.server,
     required this.password,
     required this.metadataMap,
@@ -261,130 +216,68 @@ class WebDavSongsSliver extends ConsumerWidget {
     this.crossAxisExtent,
   });
 
-  final double? crossAxisExtent;
+  double get _effectiveZoomScale {
+    if (zoomScale != null) return zoomScale!.clamp(0.0, 1.0);
+    return switch (viewMode) {
+      FolderViewMode.grid => 0.65,
+      FolderViewMode.list || FolderViewMode.hybrid || null => 0.35,
+    };
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isSongGrid = viewMode == FolderViewMode.grid;
+    final width = crossAxisExtent ?? MediaQuery.sizeOf(context).width;
+    final isPortrait =
+        MediaQuery.of(context).orientation == Orientation.portrait;
+    final effectiveZoom = _effectiveZoomScale;
 
-    if (isSongGrid) {
-      final width = crossAxisExtent ?? MediaQuery.sizeOf(context).width;
-      final crossAxisCount = getFolderGridCrossAxisCount(width);
-      final childAspectRatio = calculateFolderGridChildAspectRatio(
-        context,
-        width,
-        crossAxisCount,
-        textHeight: calculateAlbumGridTextHeight(
-          context,
-          isPortrait: MediaQuery.of(context).orientation == Orientation.portrait,
-        ),
-      );
+    return FolderZoomSliverBuilder(
+      zoomScale: effectiveZoom,
+      width: width,
+      builder: (context, metrics) {
+        final hPad = lerpDouble(
+          isPortrait ? 4.0 : 8.0,
+          kGridHorizontalPadding,
+          metrics.gridMorph,
+        )!;
 
-      return SliverPadding(
-            padding: const EdgeInsets.only(
-              top: 8,
-              bottom: 8,
-              left: kGridHorizontalPadding,
-              right: kGridHorizontalPadding,
-            ),
-            sliver: SliverGrid(
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: crossAxisCount,
-                crossAxisSpacing: kGridCrossAxisSpacing,
-                mainAxisSpacing: kGridMainAxisSpacing,
-                childAspectRatio: childAspectRatio,
-              ),
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final file = files[index];
-                  final uri = RemoteMediaResolver.buildRemoteUri(server, file.path);
-                  final isSelected = selectedSongPaths.contains(uri);
+        return SliverPadding(
+          padding: EdgeInsets.only(
+            top: 8,
+            bottom: 8,
+            left: hPad,
+            right: hPad,
+          ),
+          sliver: SliverGrid(
+            gridDelegate: SliverAnimatedZoomGridDelegate(metrics: metrics),
+            delegate: SliverChildBuilderDelegate(
+              (context, index) {
+                final file = files[index];
+                final uri =
+                    RemoteMediaResolver.buildRemoteUri(server, file.path);
+                final isSelected = selectedSongPaths.contains(uri);
 
-                  if (file.isAudio) {
-                    final meta = metadataMap[uri] ??
-                        ref.watch(scannerServiceProvider.select((s) => s.metadataMap[uri]));
-                    final musicFile = RemoteMediaResolver.buildMusicFile(
-                      file,
-                      server,
-                      metadata: meta,
-                    );
-                    final isCurrent = currentMusicPath == uri;
-                    final isHighlighted = highlightedSongPath == uri;
-
-                    return HoverableCard(
-                      child: SongGridCard(
-                        song: musicFile,
-                        isCurrent: isCurrent,
-                        isPlaying: isAudioPlaying,
-                        isSelected: isSelected,
-                        isSelectionMode: isSelectionMode,
-                        isHighlighted: isHighlighted,
-                        onTap: () => onSongTap(file, index),
-                        onLongPress: () => onSongLongPress?.call(file),
-                        onSecondaryTapDown: (details) =>
-                            onSongSecondaryTapDown?.call(file, details),
-                      ),
-                    );
-                  }
-
-                  final musicFile = RemoteMediaResolver.buildMusicFile(file, server);
-                  return HoverableCard(
-                    child: DraggableSongItem(
-                      song: musicFile,
-                      enabled: true,
-                      isSelected: isSelected,
-                      isSelectionMode: isSelectionMode,
-                      selectedPaths: selectedSongPaths,
-                      child: WebDavGenericFileGridCard(
-                        file: file,
-                        isSelected: isSelected,
-                        isSelectionMode: isSelectionMode,
-                        onTap: () => onSongTap(file, index),
-                        onLongPress: () => onSongLongPress?.call(file),
-                        onSecondaryTapDown: (details) =>
-                            onSongSecondaryTapDown?.call(file, details),
-                      ),
-                    ),
+                if (file.isAudio) {
+                  final meta = metadataMap[uri] ??
+                      ref.watch(
+                        scannerServiceProvider.select(
+                          (s) => s.metadataMap[uri],
+                        ),
+                      );
+                  final musicFile = RemoteMediaResolver.buildMusicFile(
+                    file,
+                    server,
+                    metadata: meta,
                   );
-                },
-                childCount: files.length,
-              ),
-            ),
-          );
-    } else {
-      final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
-      return SliverPadding(
-        padding: EdgeInsets.only(
-          top: 8,
-          bottom: 8,
-          left: isPortrait ? 4 : 8,
-          right: isPortrait ? 4 : 8,
-        ),
-        sliver: SliverList(
-          delegate: SliverChildBuilderDelegate(
-            (context, index) {
-              final file = files[index];
-              final uri = RemoteMediaResolver.buildRemoteUri(server, file.path);
-              final isSelected = selectedSongPaths.contains(uri);
+                  final isCurrent = currentMusicPath == uri;
+                  final isHighlighted = highlightedSongPath == uri;
 
-              if (file.isAudio) {
-                final meta = metadataMap[uri] ??
-                    ref.watch(scannerServiceProvider.select((s) => s.metadataMap[uri]));
-                final musicFile = RemoteMediaResolver.buildMusicFile(
-                  file,
-                  server,
-                  metadata: meta,
-                );
-                final isCurrent = currentMusicPath == uri;
-                final isHighlighted = highlightedSongPath == uri;
-
-                return Padding(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 4,
-                  ),
-                  child: SongTile(
+                  return SongZoomItem(
+                    key: ValueKey('webdav_song_$uri'),
                     song: musicFile,
+                    metrics: metrics,
                     isCurrent: isCurrent,
+                    isPlaying: isAudioPlaying,
                     isSelected: isSelected,
                     isSelectionMode: isSelectionMode,
                     selectedPaths: selectedSongPaths,
@@ -394,39 +287,49 @@ class WebDavSongsSliver extends ConsumerWidget {
                     onSecondaryTapDown: (details) =>
                         onSongSecondaryTapDown?.call(file, details),
                     onMorePressed: (ctx) => onSongMorePressed?.call(file, ctx),
-                  ),
-                );
-              }
+                  );
+                }
 
-              final musicFile = RemoteMediaResolver.buildMusicFile(file, server);
-              return Padding(
-                padding: const EdgeInsets.symmetric(
-                  vertical: 4,
-                ),
-                child: DraggableSongItem(
+                final musicFile =
+                    RemoteMediaResolver.buildMusicFile(file, server);
+                return DraggableSongItem(
+                  key: ValueKey('webdav_file_$uri'),
                   song: musicFile,
                   enabled: true,
                   isSelected: isSelected,
                   isSelectionMode: isSelectionMode,
                   selectedPaths: selectedSongPaths,
-                  child: WebDavGenericFileListTile(
-                    file: file,
-                    isSelected: isSelected,
-                    isSelectionMode: isSelectionMode,
-                    onTap: () => onSongTap(file, index),
-                    onLongPress: () => onSongLongPress?.call(file),
-                    onSecondaryTapDown: (details) =>
-                        onSongSecondaryTapDown?.call(file, details),
-                    onMorePressed: (ctx) => onSongMorePressed?.call(file, ctx),
-                  ),
-                ),
-              );
-            },
-            childCount: files.length,
+                  child: metrics.isGridTarget
+                      ? HoverableCard(
+                          child: WebDavGenericFileGridCard(
+                            file: file,
+                            isSelected: isSelected,
+                            isSelectionMode: isSelectionMode,
+                            onTap: () => onSongTap(file, index),
+                            onLongPress: () => onSongLongPress?.call(file),
+                            onSecondaryTapDown: (details) =>
+                                onSongSecondaryTapDown?.call(file, details),
+                          ),
+                        )
+                      : WebDavGenericFileListTile(
+                          file: file,
+                          isSelected: isSelected,
+                          isSelectionMode: isSelectionMode,
+                          onTap: () => onSongTap(file, index),
+                          onLongPress: () => onSongLongPress?.call(file),
+                          onSecondaryTapDown: (details) =>
+                              onSongSecondaryTapDown?.call(file, details),
+                          onMorePressed: (ctx) =>
+                              onSongMorePressed?.call(file, ctx),
+                        ),
+                );
+              },
+              childCount: files.length,
+            ),
           ),
-        ),
-      );
-    }
+        );
+      },
+    );
   }
 }
 
