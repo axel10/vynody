@@ -116,41 +116,62 @@ double calculateFolderZoomGridTextHeight(
   return baseHeight * clampedScale;
 }
 
-/// Centralized layout specification for folder zoom tiers, responsive column counts,
-/// card geometries, and scroll offset estimations.
+/// 目录页列表视图的行间距（相邻两行 `Row` 之间）。
+const double kFolderListRowSpacing = 8.0;
+
+/// 目录页内容的左右内边距。
+///
+/// 列表档位收窄（竖屏 `4`、横屏 `8`），网格档位统一 [kGridHorizontalPadding]；
+/// 切换档位时按 `gridMorph` 插值。目录类 sliver 与 [FolderZoomPolicy] 共用此函数，
+/// 不要在别处再写一遍 `lerpDouble(4/8 -> 16)`。
+double folderContentHorizontalPadding({
+  required bool isPortrait,
+  required double gridMorph,
+}) {
+  return lerpDouble(
+    isPortrait ? 4.0 : 8.0,
+    kGridHorizontalPadding,
+    gridMorph.clamp(0.0, 1.0),
+  )!;
+}
+
+/// 目录页缩放的布局规格：列数、卡片几何、滚动偏移估算。
+///
+/// **宽度语义已统一**：对外只接受「页面交给 sliver 的外层宽度」
+/// （即 `crossAxisExtent`，尚未扣除 [folderContentHorizontalPadding]）。
+/// 左右内边距由 [resolve] 内部扣除，调用方不要再自己 `- 32`。
 class FolderZoomPolicy {
-  final double width;
-  final double zoomScale;
-  final bool isPortrait;
-  final FolderZoomTier tier;
-  final int crossAxisCount;
-  final double textHeight;
+  /// 网格卡片宽度（内容宽度下均分）。
   final double cardWidth;
+
+  /// 网格卡片总高（封面 + 文字区）。
   final double cardHeight;
-  final double childAspectRatio;
-  final double listTileExtent;
+
+  /// 列表视图的单行步距（行高 + [kFolderListRowSpacing]）。
   final double listRowStride;
+
+  /// 网格列数。
+  final int crossAxisCount;
+
+  /// 目标档位是否落在网格侧（`zoomScale >= 0.5`）。
   final bool isGrid;
 
-  const FolderZoomPolicy({
-    required this.width,
-    required this.zoomScale,
-    required this.isPortrait,
-    required this.tier,
-    required this.crossAxisCount,
-    required this.textHeight,
+  const FolderZoomPolicy._({
     required this.cardWidth,
     required this.cardHeight,
-    required this.childAspectRatio,
-    required this.listTileExtent,
     required this.listRowStride,
+    required this.crossAxisCount,
     required this.isGrid,
   });
 
-  /// Resolves the complete layout policy from context, layout width, and zoom scale.
+  /// 标准网格 delegate（如排序态 `SliverGridDelegateWithFixedCrossAxisCount`）的宽高比。
+  double get childAspectRatio =>
+      (cardWidth > 0 && cardHeight > 0) ? cardWidth / cardHeight : 1.0;
+
+  /// 由上下文、外层宽度与缩放档位解析出完整布局规格。
   factory FolderZoomPolicy.resolve({
     required BuildContext context,
-    required double width,
+    required double outerWidth,
     required double zoomScale,
     bool? isPortrait,
   }) {
@@ -161,41 +182,46 @@ class FolderZoomPolicy {
     final isGrid = isFolderZoomGrid(snappedZoom);
 
     final crossAxisCount = calculateCrossAxisCount(
-      width: width,
+      width: outerWidth,
       tier: tier,
       isPortrait: portrait,
     );
-    final textHeight = calculateFolderZoomGridTextHeight(
-      context,
-      zoomScale: snappedZoom,
-    );
-
-    final itemWidth = calculateGridItemWidth(
-      width: width,
-      crossAxisCount: crossAxisCount,
-    );
-    final cardHeight = itemWidth + textHeight;
-    final childAspectRatio = cardHeight > 0 && itemWidth > 0
-        ? (itemWidth / cardHeight)
-        : 1.0;
-
-    final listTileExtent = getFolderListTileExtent(snappedZoom);
-    final listRowStride = listTileExtent + 8.0;
-
-    return FolderZoomPolicy(
-      width: width,
-      zoomScale: snappedZoom,
+    final horizontalPadding = folderContentHorizontalPadding(
       isPortrait: portrait,
-      tier: tier,
+      gridMorph: isGrid ? 1.0 : 0.0,
+    );
+    final contentWidth = math.max(
+      1.0,
+      outerWidth - horizontalPadding * 2,
+    );
+    final cardWidth = gridCardWidth(
+      contentWidth: contentWidth,
       crossAxisCount: crossAxisCount,
-      textHeight: textHeight,
-      cardWidth: itemWidth,
+    );
+    final cardHeight = cardWidth +
+        calculateFolderZoomGridTextHeight(context, zoomScale: snappedZoom);
+
+    return FolderZoomPolicy._(
+      cardWidth: cardWidth,
       cardHeight: cardHeight,
-      childAspectRatio: childAspectRatio,
-      listTileExtent: listTileExtent,
-      listRowStride: listRowStride,
+      listRowStride:
+          getFolderListTileExtent(snappedZoom) + kFolderListRowSpacing,
+      crossAxisCount: crossAxisCount,
       isGrid: isGrid,
     );
+  }
+
+  /// 内容宽度下按 [crossAxisCount] 均分得到的卡片宽度。
+  ///
+  /// 与 [SliverAnimatedZoomGridDelegate] 的几何计算共用，避免两处各推一份公式。
+  static double gridCardWidth({
+    required double contentWidth,
+    required int crossAxisCount,
+    double crossAxisSpacing = kGridCrossAxisSpacing,
+  }) {
+    if (crossAxisCount <= 0) return 0.0;
+    final usable = contentWidth - (crossAxisCount - 1) * crossAxisSpacing;
+    return math.max(1.0, usable / crossAxisCount);
   }
 
   /// Calculates responsive cross axis count based on [width], [tier], and [isPortrait].
@@ -264,25 +290,6 @@ class FolderZoomPolicy {
   }
 }
 
-/// Returns responsive cross axis count based on layout width and `zoomScale` (`>= 0.5`).
-int getFolderZoomGridCrossAxisCount(
-  double width,
-  double zoomScale, {
-  bool? isPortrait,
-  BuildContext? context,
-}) {
-  final tier = getFolderZoomTier(zoomScale);
-  final portrait = isPortrait ??
-      (context != null
-          ? MediaQuery.maybeOrientationOf(context) == Orientation.portrait
-          : width < 600);
-  return FolderZoomPolicy.calculateCrossAxisCount(
-    width: width,
-    tier: tier,
-    isPortrait: portrait,
-  );
-}
-
 /// Snapshot of animated layout metrics passed to unified folder/song slivers and items.
 class FolderZoomLayoutMetrics {
   final double targetZoomScale;
@@ -320,15 +327,20 @@ class FolderZoomLayoutMetrics {
   /// Target discrete column count in Grid View (e.g. 6, 7, 8).
   int get targetGridCols => animatedGridCols.round();
 
-  /// Target child aspect ratio for standard grid delegates (e.g. in Reorderable mode).
-  double targetChildAspectRatio(double width) {
-    final cols = targetGridCols;
-    final itemWidth = calculateGridItemWidth(
-      width: width,
-      crossAxisCount: cols,
+  /// 排序态网格（固定 delegate、不参与 morph）所需的宽高比。
+  ///
+  /// [outerWidth] 与 [FolderZoomPolicy.resolve] 同语义：未扣左右内边距的外层宽度。
+  double targetChildAspectRatio(double outerWidth) {
+    final contentWidth = math.max(
+      1.0,
+      outerWidth - kGridHorizontalPadding * 2,
     );
-    final cardHeight = itemWidth + animatedGridTextHeight;
-    return (cardHeight > 0 && itemWidth > 0) ? (itemWidth / cardHeight) : 1.0;
+    final cardWidth = FolderZoomPolicy.gridCardWidth(
+      contentWidth: contentWidth,
+      crossAxisCount: targetGridCols,
+    );
+    final cardHeight = cardWidth + animatedGridTextHeight;
+    return (cardHeight > 0 && cardWidth > 0) ? cardWidth / cardHeight : 1.0;
   }
 }
 
@@ -351,6 +363,14 @@ class FolderZoomSliverBuilder extends StatefulWidget {
   State<FolderZoomSliverBuilder> createState() =>
       _FolderZoomSliverBuilderState();
 }
+
+typedef _ZoomTargets = ({
+  double gridMorph,
+  double compactMorph,
+  double gridCols,
+  double gridTextHeight,
+  double listExtent,
+});
 
 class _FolderZoomSliverBuilderState extends State<FolderZoomSliverBuilder>
     with SingleTickerProviderStateMixin {
@@ -399,32 +419,61 @@ class _FolderZoomSliverBuilderState extends State<FolderZoomSliverBuilder>
   double _eval(double from, double to) =>
       lerpDouble(from, to, _curved.value) ?? to;
 
+  /// 当前 `zoomScale` / 宽度对应的目标布局值（动画的终点，也是首帧的起点）。
+  _ZoomTargets _targets() {
+    final zoomScale = widget.zoomScale;
+    final isPortrait =
+        MediaQuery.maybeOrientationOf(context) == Orientation.portrait;
+    return (
+      gridMorph: isFolderZoomGrid(zoomScale) ? 1.0 : 0.0,
+      compactMorph: isFolderZoomCompactList(zoomScale) ? 1.0 : 0.0,
+      gridCols: FolderZoomPolicy.calculateCrossAxisCount(
+        width: widget.width,
+        tier: getFolderZoomTier(zoomScale),
+        isPortrait: isPortrait,
+      ).toDouble(),
+      gridTextHeight: calculateFolderZoomGridTextHeight(
+        context,
+        zoomScale: zoomScale,
+      ),
+      listExtent: getFolderListTileExtent(zoomScale),
+    );
+  }
+
+  void _applyTargets(_ZoomTargets targets, {required bool animate}) {
+    if (animate) {
+      _fromZoomScale = _eval(_fromZoomScale, _toZoomScale);
+      _fromGridMorph = _eval(_fromGridMorph, _toGridMorph);
+      _fromCompactMorph = _eval(_fromCompactMorph, _toCompactMorph);
+      _fromGridCols = _eval(_fromGridCols, _toGridCols);
+      _fromGridTextHeight = _eval(_fromGridTextHeight, _toGridTextHeight);
+      _fromListExtent = _eval(_fromListExtent, _toListExtent);
+    } else {
+      _fromZoomScale = _toZoomScale = widget.zoomScale;
+      _fromGridMorph = _toGridMorph = targets.gridMorph;
+      _fromCompactMorph = _toCompactMorph = targets.compactMorph;
+      _fromGridCols = _toGridCols = targets.gridCols;
+      _fromGridTextHeight = _toGridTextHeight = targets.gridTextHeight;
+      _fromListExtent = _toListExtent = targets.listExtent;
+      return;
+    }
+
+    _toZoomScale = widget.zoomScale;
+    _toGridMorph = targets.gridMorph;
+    _toCompactMorph = targets.compactMorph;
+    _toGridCols = targets.gridCols;
+    _toGridTextHeight = targets.gridTextHeight;
+    _toListExtent = targets.listExtent;
+
+    _controller.forward(from: 0.0);
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final targetTextHeight = calculateFolderZoomGridTextHeight(
-      context,
-      zoomScale: widget.zoomScale,
-    );
-    final isPortrait =
-        MediaQuery.maybeOrientationOf(context) == Orientation.portrait;
-    final targetCols = getFolderZoomGridCrossAxisCount(
-      widget.width,
-      widget.zoomScale,
-      isPortrait: isPortrait,
-    ).toDouble();
-    final targetListExtent = getFolderListTileExtent(widget.zoomScale);
-    final targetGridMorph = isFolderZoomGrid(widget.zoomScale) ? 1.0 : 0.0;
-    final targetCompactMorph =
-        isFolderZoomCompactList(widget.zoomScale) ? 1.0 : 0.0;
-
+    final targets = _targets();
     if (!_initialized) {
-      _fromZoomScale = _toZoomScale = widget.zoomScale;
-      _fromGridMorph = _toGridMorph = targetGridMorph;
-      _fromCompactMorph = _toCompactMorph = targetCompactMorph;
-      _fromGridCols = _toGridCols = targetCols;
-      _fromGridTextHeight = _toGridTextHeight = targetTextHeight;
-      _fromListExtent = _toListExtent = targetListExtent;
+      _applyTargets(targets, animate: false);
       _initialized = true;
     }
   }
@@ -432,42 +481,14 @@ class _FolderZoomSliverBuilderState extends State<FolderZoomSliverBuilder>
   @override
   void didUpdateWidget(FolderZoomSliverBuilder oldWidget) {
     super.didUpdateWidget(oldWidget);
-    final targetTextHeight = calculateFolderZoomGridTextHeight(
-      context,
-      zoomScale: widget.zoomScale,
-    );
-    final isPortrait =
-        MediaQuery.maybeOrientationOf(context) == Orientation.portrait;
-    final targetCols = getFolderZoomGridCrossAxisCount(
-      widget.width,
-      widget.zoomScale,
-      isPortrait: isPortrait,
-    ).toDouble();
-    final targetListExtent = getFolderListTileExtent(widget.zoomScale);
-    final targetGridMorph = isFolderZoomGrid(widget.zoomScale) ? 1.0 : 0.0;
-    final targetCompactMorph =
-        isFolderZoomCompactList(widget.zoomScale) ? 1.0 : 0.0;
+    final targets = _targets();
 
     if ((oldWidget.zoomScale - widget.zoomScale).abs() > 1e-4) {
-      _fromZoomScale = _eval(_fromZoomScale, _toZoomScale);
-      _fromGridMorph = _eval(_fromGridMorph, _toGridMorph);
-      _fromCompactMorph = _eval(_fromCompactMorph, _toCompactMorph);
-      _fromGridCols = _eval(_fromGridCols, _toGridCols);
-      _fromGridTextHeight = _eval(_fromGridTextHeight, _toGridTextHeight);
-      _fromListExtent = _eval(_fromListExtent, _toListExtent);
-
-      _toZoomScale = widget.zoomScale;
-      _toGridMorph = targetGridMorph;
-      _toCompactMorph = targetCompactMorph;
-      _toGridCols = targetCols;
-      _toGridTextHeight = targetTextHeight;
-      _toListExtent = targetListExtent;
-
-      _controller.forward(from: 0.0);
+      _applyTargets(targets, animate: true);
     } else if ((oldWidget.width - widget.width).abs() > 0.5) {
       // Window resize: update column count immediately without lag.
-      _fromGridCols = _toGridCols = targetCols;
-      _fromGridTextHeight = _toGridTextHeight = targetTextHeight;
+      _fromGridCols = _toGridCols = targets.gridCols;
+      _fromGridTextHeight = _toGridTextHeight = targets.gridTextHeight;
     }
   }
 
@@ -500,7 +521,7 @@ class _FolderZoomSliverBuilderState extends State<FolderZoomSliverBuilder>
 class SliverAnimatedZoomGridDelegate extends SliverGridDelegate {
   const SliverAnimatedZoomGridDelegate({
     required this.metrics,
-    this.listMainAxisSpacing = 8.0,
+    this.listMainAxisSpacing = kFolderListRowSpacing,
     this.gridCrossAxisSpacing = kGridCrossAxisSpacing,
     this.gridMainAxisSpacing = kGridMainAxisSpacing,
   });
@@ -576,8 +597,11 @@ class _SliverAnimatedZoomGridLayout extends SliverGridLayout {
   SliverGridGeometry _gridGeometryForCols(int cols, int index) {
     final row = index ~/ cols;
     final col = index % cols;
-    final totalSpacing = (cols - 1) * gridCrossAxisSpacing;
-    final cardWidth = math.max(1.0, (usableWidth - totalSpacing) / cols);
+    final cardWidth = FolderZoomPolicy.gridCardWidth(
+      contentWidth: usableWidth,
+      crossAxisCount: cols,
+      crossAxisSpacing: gridCrossAxisSpacing,
+    );
     final cardHeight = cardWidth + gridTextHeight;
     final mainStride = cardHeight + gridMainAxisSpacing;
     final crossStride = cardWidth + gridCrossAxisSpacing;
@@ -639,20 +663,27 @@ class _SliverAnimatedZoomGridLayout extends SliverGridLayout {
     return math.max(0, (targetEndScrollOffset / stride).ceil() - 1);
   }
 
+  /// 每行（含行间距）的纵向步距，供 `getMin/MaxChildIndexForScrollOffset` 与
+  /// `computeMaxScrollOffset` 共用，避免三处各推一遍。
+  double _mainStrideForCols(int cols) {
+    final cardWidth = FolderZoomPolicy.gridCardWidth(
+      contentWidth: usableWidth,
+      crossAxisCount: cols,
+      crossAxisSpacing: gridCrossAxisSpacing,
+    );
+    return cardWidth + gridTextHeight + gridMainAxisSpacing;
+  }
+
   int _minIndexForCols(int cols, double scrollOffset) {
     if (scrollOffset <= 0.0) return 0;
-    final totalSpacing = (cols - 1) * gridCrossAxisSpacing;
-    final cardWidth = math.max(1.0, (usableWidth - totalSpacing) / cols);
-    final mainStride = cardWidth + gridTextHeight + gridMainAxisSpacing;
+    final mainStride = _mainStrideForCols(cols);
     if (mainStride <= 0.0) return 0;
     return math.max(0, cols * (scrollOffset ~/ mainStride));
   }
 
   int _maxIndexForCols(int cols, double targetEndScrollOffset) {
     if (targetEndScrollOffset <= 0.0) return 0;
-    final totalSpacing = (cols - 1) * gridCrossAxisSpacing;
-    final cardWidth = math.max(1.0, (usableWidth - totalSpacing) / cols);
-    final mainStride = cardWidth + gridTextHeight + gridMainAxisSpacing;
+    final mainStride = _mainStrideForCols(cols);
     if (mainStride <= 0.0) return 0;
     final rows = (targetEndScrollOffset / mainStride).ceil();
     return math.max(0, cols * rows - 1);
@@ -698,10 +729,7 @@ class _SliverAnimatedZoomGridLayout extends SliverGridLayout {
   double _maxScrollOffsetForCols(int cols, int childCount) {
     if (childCount <= 0) return 0.0;
     final rows = (childCount + cols - 1) ~/ cols;
-    final totalSpacing = (cols - 1) * gridCrossAxisSpacing;
-    final cardWidth = math.max(1.0, (usableWidth - totalSpacing) / cols);
-    final cardHeight = cardWidth + gridTextHeight;
-    final mainStride = cardHeight + gridMainAxisSpacing;
+    final mainStride = _mainStrideForCols(cols);
     return rows * mainStride - gridMainAxisSpacing;
   }
 

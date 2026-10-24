@@ -303,7 +303,7 @@ class RemoteServersSliver extends ConsumerWidget {
     final width = crossAxisExtent ?? MediaQuery.sizeOf(context).width;
     final policy = FolderZoomPolicy.resolve(
       context: context,
-      width: width,
+      outerWidth: width,
       zoomScale: _effectiveZoomScale,
     );
 

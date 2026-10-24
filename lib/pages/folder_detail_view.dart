@@ -74,6 +74,10 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
   late final ScrollController _localScrollController;
   late final TextEditingController _searchController;
   final ScrollController _breadcrumbsScrollController = ScrollController();
+
+  /// `LayoutBuilder` 给的列表内容宽度（已扣除 rail / 最大宽度约束）。
+  /// 「定位当前播放」用它估算偏移，避免用 `MediaQuery` 宽度高估卡片行高。
+  double? _contentCrossAxisExtent;
   bool _isSearching = false;
   bool _isSearchLoading = false;
   String _searchQuery = '';
@@ -267,10 +271,11 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
       fileOffset += 200.0;
     }
 
-    final screenWidth = MediaQuery.of(context).size.width;
+    final outerWidth =
+        _contentCrossAxisExtent ?? MediaQuery.sizeOf(context).width;
     final policy = FolderZoomPolicy.resolve(
       context: context,
-      width: screenWidth - 32,
+      outerWidth: outerWidth,
       zoomScale: settings.folderZoomScale,
     );
 
@@ -409,6 +414,8 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
     final Widget scrollBody = LayoutBuilder(
       builder: (context, constraints) {
         final double crossAxisExtent = constraints.maxWidth;
+        // 缓存给「定位当前播放」用：它是命令式回调，拿不到这里的约束。
+        _contentCrossAxisExtent = crossAxisExtent;
         return RefreshIndicator(
           edgeOffset: headerHeight,
           onRefresh: _handleRefresh,

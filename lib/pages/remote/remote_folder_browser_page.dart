@@ -91,6 +91,10 @@ class _RemoteFolderBrowserPageState
   late final TextEditingController _searchController;
   final ScrollController _scrollController = ScrollController();
   final ScrollController _breadcrumbsScrollController = ScrollController();
+
+  /// `LayoutBuilder` 给的列表内容宽度（已扣除最大宽度约束）。
+  /// 「定位当前播放」用它估算偏移，避免用 `MediaQuery` 宽度高估卡片行高。
+  double? _contentCrossAxisExtent;
   final ValueNotifier<double> _scrollProgress = ValueNotifier<double>(0.0);
   bool _isCoverVisible = true;
   bool _isSearching = false;
@@ -1089,10 +1093,11 @@ class _RemoteFolderBrowserPageState
 
     if (_scrollController.hasClients) {
       final settings = ref.read(settingsServiceProvider);
-      final screenWidth = MediaQuery.of(context).size.width;
+      final outerWidth =
+          _contentCrossAxisExtent ?? MediaQuery.sizeOf(context).width;
       final policy = FolderZoomPolicy.resolve(
         context: context,
-        width: screenWidth - 32,
+        outerWidth: outerWidth,
         zoomScale: settings.folderZoomScale,
       );
 
@@ -1536,9 +1541,14 @@ class _RemoteFolderBrowserPageState
               child: ConstrainedBox(
                 constraints:
                     const BoxConstraints(maxWidth: folderPageMaxWidth),
-                child: NotificationListener<ScrollNotification>(
-                  onNotification: _handleScrollNotification,
-                  child: mainContent,
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    _contentCrossAxisExtent = constraints.maxWidth;
+                    return NotificationListener<ScrollNotification>(
+                      onNotification: _handleScrollNotification,
+                      child: mainContent,
+                    );
+                  },
                 ),
               ),
             ),

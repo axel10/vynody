@@ -393,11 +393,10 @@ class FolderSubfoldersSliver extends StatelessWidget {
         }
 
         // Unified SliverGrid for both List Mode (`gridMorph = 0.0`) and Grid Mode (`gridMorph = 1.0`)
-        final hPad = lerpDouble(
-          isPortrait ? 4.0 : 8.0,
-          kGridHorizontalPadding,
-          metrics.gridMorph,
-        )!;
+        final hPad = folderContentHorizontalPadding(
+          isPortrait: isPortrait,
+          gridMorph: metrics.gridMorph,
+        );
         final topPad = lerpDouble(
           isRoot ? 0.0 : 8.0,
           8.0,
@@ -564,11 +563,10 @@ class FolderSongsSliver extends StatelessWidget {
       zoomScale: effectiveZoom,
       width: width,
       builder: (context, metrics) {
-        final hPad = lerpDouble(
-          isPortrait ? 4.0 : 8.0,
-          kGridHorizontalPadding,
-          metrics.gridMorph,
-        )!;
+        final hPad = folderContentHorizontalPadding(
+          isPortrait: isPortrait,
+          gridMorph: metrics.gridMorph,
+        );
 
         return SliverPadding(
           padding: EdgeInsets.only(

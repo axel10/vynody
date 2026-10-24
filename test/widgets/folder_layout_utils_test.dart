@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vynody/widgets/folder_layout_utils.dart';
 
@@ -80,95 +81,118 @@ void main() {
       expect(getFolderListCoverSize(kFolderZoomTierLargeList), equals(64.0));
     });
 
-    test('getFolderZoomGridCrossAxisCount adapts across 3 grid tiers', () {
+    test('FolderZoomPolicy.calculateCrossAxisCount adapts across 3 grid tiers', () {
       const desktopWidth = 1280.0;
       // In landscape: largeGrid is fixed at 6, medium is 7, small is 8 (+1 per smaller tier).
+      int cols(double width, FolderZoomTier tier, {required bool isPortrait}) =>
+          FolderZoomPolicy.calculateCrossAxisCount(
+            width: width,
+            tier: tier,
+            isPortrait: isPortrait,
+          );
+
       expect(
-        getFolderZoomGridCrossAxisCount(desktopWidth, kFolderZoomTierLargeGrid),
+        cols(desktopWidth, FolderZoomTier.largeGrid, isPortrait: false),
         equals(6),
       );
       expect(
-        getFolderZoomGridCrossAxisCount(desktopWidth, kFolderZoomTierMediumGrid),
+        cols(desktopWidth, FolderZoomTier.mediumGrid, isPortrait: false),
         equals(7),
       );
       expect(
-        getFolderZoomGridCrossAxisCount(desktopWidth, kFolderZoomTierSmallGrid),
+        cols(desktopWidth, FolderZoomTier.smallGrid, isPortrait: false),
         equals(8),
       );
 
       // In phone portrait: largeGrid is 2, medium is 3, small is 4 (+1 per smaller tier).
       const phoneWidth = 390.0;
       expect(
-        getFolderZoomGridCrossAxisCount(phoneWidth, kFolderZoomTierLargeGrid),
+        cols(phoneWidth, FolderZoomTier.largeGrid, isPortrait: true),
         equals(2),
       );
       expect(
-        getFolderZoomGridCrossAxisCount(phoneWidth, kFolderZoomTierMediumGrid),
+        cols(phoneWidth, FolderZoomTier.mediumGrid, isPortrait: true),
         equals(3),
       );
       expect(
-        getFolderZoomGridCrossAxisCount(phoneWidth, kFolderZoomTierSmallGrid),
+        cols(phoneWidth, FolderZoomTier.smallGrid, isPortrait: true),
         equals(4),
       );
 
       // In tablet portrait: largeGrid is 3, medium is 4, small is 5 (+1 per smaller tier).
       const tabletWidth = 768.0;
       expect(
-        getFolderZoomGridCrossAxisCount(
-          tabletWidth,
-          kFolderZoomTierLargeGrid,
-          isPortrait: true,
-        ),
+        cols(tabletWidth, FolderZoomTier.largeGrid, isPortrait: true),
         equals(3),
       );
       expect(
-        getFolderZoomGridCrossAxisCount(
-          tabletWidth,
-          kFolderZoomTierMediumGrid,
-          isPortrait: true,
-        ),
+        cols(tabletWidth, FolderZoomTier.mediumGrid, isPortrait: true),
         equals(4),
       );
       expect(
-        getFolderZoomGridCrossAxisCount(
-          tabletWidth,
-          kFolderZoomTierSmallGrid,
-          isPortrait: true,
-        ),
+        cols(tabletWidth, FolderZoomTier.smallGrid, isPortrait: true),
         equals(5),
       );
     });
 
-    test('FolderZoomPolicy correctly encapsulates offset calculation and viewport centering', () {
-      const policy = FolderZoomPolicy(
-        width: 1280.0,
-        zoomScale: 1.0,
-        isPortrait: false,
-        tier: FolderZoomTier.largeGrid,
-        crossAxisCount: 6,
-        textHeight: 74.0,
-        cardWidth: 200.0,
-        cardHeight: 274.0,
-        childAspectRatio: 200.0 / 274.0,
-        listTileExtent: 80.0,
-        listRowStride: 88.0,
-        isGrid: true,
-      );
+    testWidgets(
+      'FolderZoomPolicy.resolve 用外层宽度扣内边距，卡片几何与网格排布一致',
+      (tester) async {
+        late FolderZoomPolicy policy;
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Builder(
+              builder: (context) {
+                policy = FolderZoomPolicy.resolve(
+                  context: context,
+                  outerWidth: 1280.0,
+                  zoomScale: kFolderZoomTierLargeGrid,
+                  isPortrait: false,
+                );
+                return const SizedBox.shrink();
+              },
+            ),
+          ),
+        );
 
-      // 6 subfolders = 1 row in 6-col grid: 1 * (274 + 24) = 298.0
-      // songIndex 6 = row 1 (the 2nd row of songs): 1 * (274 + 24) = 298.0
-      // total = 596.0
-      final offset = policy.calculateScrollOffset(folderCount: 6, songIndex: 6);
-      expect(offset, equals(596.0));
+        expect(policy.isGrid, isTrue);
+        expect(policy.crossAxisCount, 6);
 
-      final centered = policy.centerInViewport(
-        itemOffset: 1000.0,
-        viewportDimension: 600.0,
-        maxScrollExtent: 2000.0,
-      );
-      // itemExtent is cardHeight (274.0):
-      // target = 1000 - 300 + 137 = 837.0
-      expect(centered, equals(837.0));
-    });
+        // 外层 1280 扣掉两侧 16 的网格内边距，再按 6 列均分、列距 16。
+        const expectedCardWidth = (1280.0 - 32.0 - 5 * 16.0) / 6.0;
+        expect(policy.cardWidth, closeTo(expectedCardWidth, 1e-9));
+
+        // 大网格横屏文字区 74。卡片高度必须等于卡片宽 + 文字区，
+        // 否则「定位当前播放」会按与真实行高不同的值估算偏移。
+        expect(policy.cardHeight, closeTo(expectedCardWidth + 74.0, 1e-9));
+        expect(
+          policy.childAspectRatio,
+          closeTo(expectedCardWidth / (expectedCardWidth + 74.0), 1e-9),
+        );
+
+        // 6 个子文件夹占满 1 行；歌曲第 6 首落在第 2 行。
+        final stride = policy.cardHeight + kGridMainAxisSpacing;
+        expect(
+          policy.calculateScrollOffset(folderCount: 6, songIndex: 6),
+          closeTo(stride * 2, 1e-9),
+        );
+
+        // 居中：减去半屏、加上半行，并夹在 [0, maxScrollExtent]。
+        final centered = policy.centerInViewport(
+          itemOffset: 1000.0,
+          viewportDimension: 600.0,
+          maxScrollExtent: 2000.0,
+        );
+        expect(centered, closeTo(1000.0 - 300.0 + policy.cardHeight / 2, 1e-9));
+        expect(
+          policy.centerInViewport(
+            itemOffset: 100.0,
+            viewportDimension: 600.0,
+            maxScrollExtent: 2000.0,
+          ),
+          0.0,
+        );
+      },
+    );
   });
 }

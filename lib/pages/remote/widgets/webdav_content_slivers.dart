@@ -1,4 +1,3 @@
-import 'dart:ui' show lerpDouble;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vynody/models/music_file.dart';
@@ -82,11 +81,10 @@ class WebDavSubfoldersSliver extends ConsumerWidget {
       zoomScale: effectiveZoom,
       width: width,
       builder: (context, metrics) {
-        final hPad = lerpDouble(
-          isPortrait ? 4.0 : 8.0,
-          kGridHorizontalPadding,
-          metrics.gridMorph,
-        )!;
+        final hPad = folderContentHorizontalPadding(
+          isPortrait: isPortrait,
+          gridMorph: metrics.gridMorph,
+        );
 
         return SliverPadding(
           padding: EdgeInsets.only(
@@ -219,11 +217,10 @@ class WebDavSongsSliver extends ConsumerWidget {
       zoomScale: effectiveZoom,
       width: width,
       builder: (context, metrics) {
-        final hPad = lerpDouble(
-          isPortrait ? 4.0 : 8.0,
-          kGridHorizontalPadding,
-          metrics.gridMorph,
-        )!;
+        final hPad = folderContentHorizontalPadding(
+          isPortrait: isPortrait,
+          gridMorph: metrics.gridMorph,
+        );
 
         return SliverPadding(
           padding: EdgeInsets.only(
