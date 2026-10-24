@@ -1,13 +1,19 @@
+import 'dart:math' as math;
+import 'dart:ui' show lerpDouble;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../player/audio/audio_riverpod.dart';
 import '../../../player/remote/remote_library_navigation.dart';
 import '../../../player/remote/remote_server_models.dart';
-import '../../../utils/layout_constants.dart';
 import '../../../utils/remote_context_menu_utils.dart';
 import '../../../utils/selection_utils.dart';
-import '../../../widgets/album_grid_card.dart';
+import '../../../widgets/cover_play_button.dart';
 import '../../../widgets/draggable_remote_album_item.dart';
+import '../../../widgets/folder_layout_utils.dart';
+import '../../../widgets/folder_zoom_gesture_layer.dart';
+import '../../../widgets/hoverable_card.dart';
+import '../../../widgets/library_zoom_popover.dart';
 import '../../../widgets/remote_artwork_widget.dart';
 import 'remote_library_common_widgets.dart';
 import 'remote_library_toolbar_widgets.dart';
@@ -152,6 +158,8 @@ class RemoteLibraryAlbumsToolbar extends StatelessWidget {
               starButton,
               const SizedBox(width: 8),
               sortDropdown,
+              const SizedBox(width: 4),
+              const LibraryZoomButton(scope: LibraryZoomScope.album),
             ],
           );
         }
@@ -163,6 +171,8 @@ class RemoteLibraryAlbumsToolbar extends StatelessWidget {
             starButton,
             const SizedBox(width: 8),
             sortDropdown,
+            const SizedBox(width: 4),
+            const LibraryZoomButton(scope: LibraryZoomScope.album),
           ],
         );
       },
@@ -226,129 +236,139 @@ class RemoteLibraryAlbumsView extends ConsumerWidget {
       );
     }
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final crossAxisCount = switch (constraints.maxWidth) {
-          >= 1350 => 6,
-          >= 1100 => 5,
-          >= 850 => 4,
-          >= 650 => 3,
-          _ => 2,
-        };
+    final albumZoomScale = ref.watch(
+      settingsServiceProvider.select((s) => s.albumZoomScale),
+    );
 
-        final isPortrait =
-            MediaQuery.of(context).orientation == Orientation.portrait;
-        final double textHeight =
-            calculateAlbumGridTextHeight(context, isPortrait: isPortrait);
-        final itemWidth = calculateGridItemWidth(
-          width: constraints.maxWidth,
-          crossAxisCount: crossAxisCount,
-        );
-        final childAspectRatio = itemWidth / (itemWidth + textHeight);
+    return FolderZoomGestureLayer(
+      scope: LibraryZoomScope.album,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isPortrait =
+              MediaQuery.of(context).orientation == Orientation.portrait;
+          final contentWidth = math.min(
+            constraints.maxWidth,
+            kFolderPageMaxWidth,
+          );
 
-        return Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1600),
-            child: albums.isEmpty
-                ? Column(
-                    children: [
-                      if (toolbar != null)
-                        RemoteContentConstraint(
-                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-                          child: toolbar!,
-                        ),
-                      Expanded(
-                        child: Center(
-                          child: Text(
-                            searchQuery.isEmpty
-                                ? l10n.noAlbumsOnServer
-                                : l10n.noMatchingAlbums,
-                            style: TextStyle(
-                              color: theme.colorScheme.onSurfaceVariant,
+          return Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: contentWidth),
+              child: albums.isEmpty
+                  ? Column(
+                      children: [
+                        if (toolbar != null)
+                          RemoteContentConstraint(
+                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                            child: toolbar!,
+                          ),
+                        Expanded(
+                          child: Center(
+                            child: Text(
+                              searchQuery.isEmpty
+                                  ? l10n.noAlbumsOnServer
+                                  : l10n.noMatchingAlbums,
+                              style: TextStyle(
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
-                  )
-                : RefreshIndicator(
-                    onRefresh: onRefresh,
-                    child: CustomScrollView(
-                      physics: const AlwaysScrollableScrollPhysics(),
+                      ],
+                    )
+                  : RefreshIndicator(
+                      onRefresh: onRefresh,
+                      child: CustomScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
                         slivers: [
                           if (toolbar != null)
                             SliverRemoteContentConstraint(
                               padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
                               child: toolbar!,
                             ),
-                          SliverPadding(
-                            padding: EdgeInsets.fromLTRB(
-                              kGridHorizontalPadding,
-                              0,
-                              kGridHorizontalPadding,
-                              bottomOffset,
-                            ),
-                            sliver: SliverGrid(
-                              gridDelegate:
-                                  SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: crossAxisCount,
-                                childAspectRatio: childAspectRatio,
-                                crossAxisSpacing: kGridCrossAxisSpacing,
-                                mainAxisSpacing: kGridMainAxisSpacing,
-                              ),
-                              delegate: SliverChildBuilderDelegate(
-                                (context, index) {
-                          final album = albums[index];
-                          final albumId = album['id'] as String? ?? '';
-                          final isSelected = selectedAlbumIds.contains(albumId);
-                          final title = album['title'] as String? ??
-                              album['name'] as String? ??
-                              l10n.unknownAlbum;
-                          final artist = album['artist'] as String? ??
-                              l10n.unknownArtist;
-                          final coverId = album['coverArt'] as String?;
-                          final songCount = album['songCount'] as int?;
-                          final year = album['year'] as int?;
+                          FolderZoomSliverBuilder(
+                            zoomScale: snapFolderZoomScale(albumZoomScale),
+                            width: contentWidth,
+                            builder: (context, metrics) {
+                              final hPad = folderContentHorizontalPadding(
+                                isPortrait: isPortrait,
+                                gridMorph: metrics.gridMorph,
+                              );
+                              return SliverPadding(
+                                padding: EdgeInsets.fromLTRB(
+                                  hPad,
+                                  0,
+                                  hPad,
+                                  bottomOffset,
+                                ),
+                                sliver: SliverGrid(
+                                  gridDelegate:
+                                      SliverAnimatedZoomGridDelegate(
+                                    metrics: metrics,
+                                  ),
+                                  delegate: SliverChildBuilderDelegate(
+                                    (context, index) {
+                                      final album = albums[index];
+                                      final albumId =
+                                          album['id'] as String? ?? '';
+                                      final isSelected =
+                                          selectedAlbumIds.contains(albumId);
+                                      final title = album['title'] as String? ??
+                                          album['name'] as String? ??
+                                          l10n.unknownAlbum;
+                                      final artist =
+                                          album['artist'] as String? ??
+                                              l10n.unknownArtist;
+                                      final coverId =
+                                          album['coverArt'] as String?;
+                                      final songCount =
+                                          album['songCount'] as int?;
+                                      final year = album['year'] as int?;
 
-                          return RemoteLibraryAlbumCard(
-                            server: server,
-                            password: password,
-                            album: album,
-                            albumId: albumId,
-                            title: title,
-                            artist: artist,
-                            coverId: coverId,
-                            songCount: songCount,
-                            year: year,
-                            index: index,
-                            isSelected: isSelected,
-                            isSelectionMode: isSelectionMode,
-                            filteredAlbums: albums,
-                            selectedAlbumIds: selectedAlbumIds,
-                            lastAlbumAnchorIndex: lastAlbumAnchorIndex,
-                            isPortrait: isPortrait,
-                            onSetSelection: onSetSelection,
-                            onToggleSelection: onToggleSelection,
-                            onUpdateAnchor: onUpdateAnchor,
-                            onPlayAlbumDirectly: () =>
-                                onPlayAlbumDirectly(albumId, title),
-                          );
-                        },
-                        childCount: albums.length,
+                                      return RemoteLibraryAlbumCard(
+                                        server: server,
+                                        password: password,
+                                        album: album,
+                                        albumId: albumId,
+                                        title: title,
+                                        artist: artist,
+                                        coverId: coverId,
+                                        songCount: songCount,
+                                        year: year,
+                                        index: index,
+                                        isSelected: isSelected,
+                                        isSelectionMode: isSelectionMode,
+                                        filteredAlbums: albums,
+                                        selectedAlbumIds: selectedAlbumIds,
+                                        lastAlbumAnchorIndex:
+                                            lastAlbumAnchorIndex,
+                                        isPortrait: isPortrait,
+                                        metrics: metrics,
+                                        onSetSelection: onSetSelection,
+                                        onToggleSelection: onToggleSelection,
+                                        onUpdateAnchor: onUpdateAnchor,
+                                        onPlayAlbumDirectly: () =>
+                                            onPlayAlbumDirectly(albumId, title),
+                                      );
+                                    },
+                                    childCount: albums.length,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
                       ),
                     ),
-                  ),
-                ],
-              ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }
 
-class RemoteLibraryAlbumCard extends ConsumerWidget {
+class RemoteLibraryAlbumCard extends ConsumerStatefulWidget {
   final RemoteServer server;
   final String password;
   final Map<String, dynamic> album;
@@ -365,6 +385,7 @@ class RemoteLibraryAlbumCard extends ConsumerWidget {
   final Set<String> selectedAlbumIds;
   final int? lastAlbumAnchorIndex;
   final bool isPortrait;
+  final FolderZoomLayoutMetrics metrics;
   final void Function(Set<String> keys) onSetSelection;
   final void Function(String albumId) onToggleSelection;
   final void Function(int? index) onUpdateAnchor;
@@ -388,6 +409,7 @@ class RemoteLibraryAlbumCard extends ConsumerWidget {
     required this.selectedAlbumIds,
     required this.lastAlbumAnchorIndex,
     required this.isPortrait,
+    required this.metrics,
     required this.onSetSelection,
     required this.onToggleSelection,
     required this.onUpdateAnchor,
@@ -395,103 +417,221 @@ class RemoteLibraryAlbumCard extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<RemoteLibraryAlbumCard> createState() =>
+      _RemoteLibraryAlbumCardState();
+}
+
+class _RemoteLibraryAlbumCardState
+    extends ConsumerState<RemoteLibraryAlbumCard> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final metrics = widget.metrics;
+    final gridMorph = metrics.gridMorph;
+    final isGridTarget = metrics.isGridTarget;
 
-    final extraInfo = songCount != null
-        ? l10n.trackCountShort(songCount!)
-        : (year != null && year! > 0 ? '$year' : '');
-    final subtitle = extraInfo.isNotEmpty ? '$artist · $extraInfo' : artist;
+    final extraInfo = widget.songCount != null
+        ? l10n.trackCountShort(widget.songCount!)
+        : (widget.year != null && widget.year! > 0 ? '${widget.year}' : '');
+    final subtitle = extraInfo.isNotEmpty
+        ? '${widget.artist} · $extraInfo'
+        : widget.artist;
 
-    final card = AlbumGridCard(
-      cover: RemoteArtworkWidget(
-        server: server,
-        password: password,
-        coverArtId: coverId,
-        size: 300,
-        borderRadius: BorderRadius.zero,
+    final coverRadiusValue = lerpDouble(8.0, 12.0, gridMorph)!;
+    final coverRadius = BorderRadius.circular(coverRadiusValue);
+
+    final coverWidget = RemoteArtworkWidget(
+      server: widget.server,
+      password: widget.password,
+      coverArtId: widget.coverId,
+      size: 300,
+      borderRadius: coverRadius,
+    );
+
+    final coverStack = ExcludeSemantics(
+      child: ClipRRect(
+        borderRadius: coverRadius,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            coverWidget,
+            if (widget.isSelectionMode)
+              Positioned.fill(
+                child: Container(
+                  color: widget.isSelected
+                      ? theme.colorScheme.primaryContainer
+                          .withValues(alpha: 0.35)
+                      : Colors.black26,
+                ),
+              ),
+            if (widget.isSelectionMode)
+              Align(
+                alignment: Alignment.lerp(
+                  Alignment.center,
+                  Alignment.topLeft,
+                  gridMorph,
+                )!,
+                child: Padding(
+                  padding: EdgeInsets.all(lerpDouble(0.0, 8.0, gridMorph)!),
+                  child: SizedBox(
+                    width: lerpDouble(32.0, 28.0, gridMorph)!,
+                    height: lerpDouble(32.0, 28.0, gridMorph)!,
+                    child: Checkbox(
+                      value: widget.isSelected,
+                      onChanged: (_) =>
+                          widget.onToggleSelection(widget.albumId),
+                      fillColor: WidgetStateProperty.all(Colors.white),
+                      checkColor: Colors.black,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            if (!widget.isSelectionMode)
+              Positioned(
+                right: lerpDouble(0.0, 8.0, gridMorph)!,
+                bottom: lerpDouble(0.0, 8.0, gridMorph)!,
+                child: IgnorePointer(
+                  ignoring: !(isGridTarget && _isHovered),
+                  child: AnimatedOpacity(
+                    duration: const Duration(milliseconds: 150),
+                    opacity: isGridTarget && _isHovered ? 1.0 : 0.0,
+                    child: CoverPlayButton(
+                      size: 36,
+                      iconSize: 22,
+                      onTap: widget.onPlayAlbumDirectly,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
-      title: title,
-      subtitle: subtitle,
-      isSelected: isSelected,
-      isSelectionMode: isSelectionMode,
+    );
+
+    final titleColor = widget.isSelectionMode && widget.isSelected
+        ? theme.colorScheme.primary
+        : theme.colorScheme.onSurface;
+
+    final listCoverSize = getFolderListCoverSize(metrics.animatedZoomScale);
+    final coverProgress = (listCoverSize / 40.0).clamp(0.0, 1.0);
+    final selectionOffset = (widget.isSelectionMode && gridMorph < 0.5)
+        ? (28.0 * (1.0 - coverProgress))
+        : 0.0;
+
+    final scaffold = ZoomItemScaffold(
+      metrics: metrics,
+      cover: coverStack,
+      titleText: widget.title,
+      subtitleText: subtitle,
+      titleColor: titleColor,
+      listTitleFontWeight: FontWeight.normal,
+      isSelected: widget.isSelected,
+      isSelectionMode: widget.isSelectionMode,
+      selectionOffset: selectionOffset,
+      wrapHoverableCard: false,
       onTap: () {
         SelectionActionHelper.handleItemTap(
-          index: index,
-          itemKey: albumId,
-          items: filteredAlbums,
+          index: widget.index,
+          itemKey: widget.albumId,
+          items: widget.filteredAlbums,
           keySelector: (a) => a['id'] as String? ?? '',
-          isSelectionMode: isSelectionMode,
-          selectedKeys: selectedAlbumIds,
-          lastAnchorIndex: lastAlbumAnchorIndex,
-          onUpdateAnchor: onUpdateAnchor,
-          onSetSelection: onSetSelection,
-          onToggleSelection: onToggleSelection,
+          isSelectionMode: widget.isSelectionMode,
+          selectedKeys: widget.selectedAlbumIds,
+          lastAnchorIndex: widget.lastAlbumAnchorIndex,
+          onUpdateAnchor: widget.onUpdateAnchor,
+          onSetSelection: widget.onSetSelection,
+          onToggleSelection: widget.onToggleSelection,
           onNormalTap: () {
             RemoteLibraryNavUtils.openAlbum(
               context,
               ref,
-              server: server,
-              password: password,
-              albumId: albumId,
-              albumName: title,
-              artistName: artist,
-              coverArtId: coverId,
+              server: widget.server,
+              password: widget.password,
+              albumId: widget.albumId,
+              albumName: widget.title,
+              artistName: widget.artist,
+              coverArtId: widget.coverId,
             );
           },
         );
       },
-      onToggleSelect: () => onToggleSelection(albumId),
       onLongPress: () {
-        onUpdateAnchor(index);
-        onToggleSelection(albumId);
+        widget.onUpdateAnchor(widget.index);
+        widget.onToggleSelection(widget.albumId);
       },
       onSecondaryTapDown: (details) {
-        if (!isSelectionMode) {
+        if (!widget.isSelectionMode) {
           showRemoteAlbumContextMenu(
             context: context,
             globalPosition: details.globalPosition,
             ref: ref,
-            server: server,
-            password: password,
-            albumId: albumId,
-            albumTitle: title,
-            artistName: artist,
-            coverArtId: coverId,
+            server: widget.server,
+            password: widget.password,
+            albumId: widget.albumId,
+            albumTitle: widget.title,
+            artistName: widget.artist,
+            coverArtId: widget.coverId,
             onViewDetails: () {
               RemoteLibraryNavUtils.openAlbum(
                 context,
                 ref,
-                server: server,
-                password: password,
-                albumId: albumId,
-                albumName: title,
-                artistName: artist,
-                coverArtId: coverId,
+                server: widget.server,
+                password: widget.password,
+                albumId: widget.albumId,
+                albumName: widget.title,
+                artistName: widget.artist,
+                coverArtId: widget.coverId,
               );
             },
-            onMultiSelect: isSelectionMode
+            onMultiSelect: widget.isSelectionMode
                 ? null
                 : () {
-                    onUpdateAnchor(index);
-                    onToggleSelection(albumId);
-                },
+                    widget.onUpdateAnchor(widget.index);
+                    widget.onToggleSelection(widget.albumId);
+                  },
           );
         }
       },
-      onPlay: onPlayAlbumDirectly,
+      fallbackLeadingWhenNoCover: widget.isSelectionMode && gridMorph < 0.5
+          ? Checkbox(
+              value: widget.isSelected,
+              onChanged: (_) => widget.onToggleSelection(widget.albumId),
+              fillColor: WidgetStateProperty.all(Colors.white),
+              checkColor: Colors.black,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(4),
+              ),
+            )
+          : null,
+    );
+
+    final cardContent = MouseRegion(
+      onEnter: (_) {
+        if (isGridTarget && !_isHovered) setState(() => _isHovered = true);
+      },
+      onExit: (_) {
+        if (_isHovered) setState(() => _isHovered = false);
+      },
+      cursor: SystemMouseCursors.click,
+      child: isGridTarget ? HoverableCard(child: scaffold) : scaffold,
     );
 
     return DraggableRemoteAlbumItem(
-      server: server,
-      albumId: albumId,
-      title: title,
-      artist: artist,
-      songCount: songCount,
-      isSelectionMode: isSelectionMode,
-      isSelected: isSelected,
-      selectedAlbumIds: selectedAlbumIds,
-      child: card,
+      server: widget.server,
+      albumId: widget.albumId,
+      title: widget.title,
+      artist: widget.artist,
+      songCount: widget.songCount,
+      isSelectionMode: widget.isSelectionMode,
+      isSelected: widget.isSelected,
+      selectedAlbumIds: widget.selectedAlbumIds,
+      child: cardContent,
     );
   }
 }

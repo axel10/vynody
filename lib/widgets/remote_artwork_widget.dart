@@ -221,16 +221,20 @@ class _RemoteArtworkWidgetState extends State<RemoteArtworkWidget> {
 
     // 1. If we have a local disk cache file, render directly from disk (0 network latency, never lost on scroll)
     if (_localDiskPath != null && File(_localDiskPath!).existsSync()) {
-      final cacheW = (w * 2).round();
-      final cacheH = (h * 2).round();
+      final cacheW = (w.isFinite && w > 0)
+          ? (w * 2).round()
+          : (widget.size > 0 ? (widget.size * 2).round() : null);
+      final cacheH = (h.isFinite && h > 0)
+          ? (h * 2).round()
+          : (widget.size > 0 ? (widget.size * 2).round() : null);
       return ClipRRect(
         borderRadius: radius,
         child: Image.file(
           File(_localDiskPath!),
           width: w,
           height: h,
-          cacheWidth: cacheW > 0 ? cacheW : null,
-          cacheHeight: cacheH > 0 ? cacheH : null,
+          cacheWidth: (cacheW != null && cacheW > 0) ? cacheW : null,
+          cacheHeight: (cacheH != null && cacheH > 0) ? cacheH : null,
           fit: widget.fit,
           gaplessPlayback: keepLastFrame,
           errorBuilder: (_, _, _) {
@@ -279,8 +283,12 @@ class _RemoteArtworkWidgetState extends State<RemoteArtworkWidget> {
       }
     }
 
-    final cacheW = (w * 2).round();
-    final cacheH = (h * 2).round();
+    final cacheW = (w.isFinite && w > 0)
+        ? (w * 2).round()
+        : (widget.size > 0 ? (widget.size * 2).round() : null);
+    final cacheH = (h.isFinite && h > 0)
+        ? (h * 2).round()
+        : (widget.size > 0 ? (widget.size * 2).round() : null);
 
     return ClipRRect(
       borderRadius: radius,
@@ -288,8 +296,8 @@ class _RemoteArtworkWidgetState extends State<RemoteArtworkWidget> {
         imageUrl,
         width: w,
         height: h,
-        cacheWidth: cacheW > 0 ? cacheW : null,
-        cacheHeight: cacheH > 0 ? cacheH : null,
+        cacheWidth: (cacheW != null && cacheW > 0) ? cacheW : null,
+        cacheHeight: (cacheH != null && cacheH > 0) ? cacheH : null,
         fit: widget.fit,
         gaplessPlayback: keepLastFrame,
         frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {

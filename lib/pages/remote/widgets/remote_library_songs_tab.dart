@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../l10n/app_localizations.dart';
@@ -12,9 +13,11 @@ import '../../../utils/remote_context_menu_utils.dart';
 import '../../../utils/remote_download_feedback.dart';
 import '../../../utils/selection_utils.dart';
 import '../../../utils/song_locator_helper.dart';
-import '../../../widgets/playing_equalizer_icon.dart';
+import '../../../widgets/folder_layout_utils.dart';
+import '../../../widgets/folder_zoom_gesture_layer.dart';
+import '../../../widgets/library_zoom_popover.dart';
 import '../../../widgets/remote_artwork_widget.dart';
-import '../../../widgets/draggable_song_item.dart';
+import '../../../widgets/song_zoom_item.dart';
 import '../../../player/remote/remote_library_navigation.dart';
 import 'remote_library_common_widgets.dart';
 import 'remote_library_toolbar_widgets.dart';
@@ -170,6 +173,8 @@ class RemoteLibrarySongsToolbar extends StatelessWidget {
             ),
           ],
         ),
+        const SizedBox(width: 4),
+        const LibraryZoomButton(scope: LibraryZoomScope.song),
       ],
     );
   }
@@ -238,13 +243,6 @@ class _RemoteLibrarySongsViewState
     with AutomaticKeepAliveClientMixin {
   @override
   bool get wantKeepAlive => true;
-
-  String _formatTrackDuration(int? seconds) {
-    if (seconds == null || seconds <= 0) return '--:--';
-    final m = seconds ~/ 60;
-    final s = seconds % 60;
-    return '$m:${s.toString().padLeft(2, '0')}';
-  }
 
   String _formatTotalDuration(List<MusicFile> songs) {
     int totalMs = 0;
@@ -463,130 +461,210 @@ class _RemoteLibrarySongsViewState
       );
     }
 
-    return NotificationListener<ScrollNotification>(
-      onNotification: (scrollInfo) {
-        if (scrollInfo.metrics.pixels >=
-            scrollInfo.metrics.maxScrollExtent - 300) {
-          if (widget.hasMore && !widget.isLoadingMore && !widget.isLoading) {
-            widget.onLoadMore?.call();
-          }
-        }
-        return false;
-      },
-      child: RefreshIndicator(
-        onRefresh: widget.onRefresh,
-        child: CustomScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          slivers: [
-            headerSliver,
+    final songZoomScale = ref.watch(
+      settingsServiceProvider.select((s) => s.songZoomScale),
+    );
 
-              // Songs fixed-extent list for O(1) jump and smooth scrollbar dragging
-              SliverFixedExtentList.builder(
-                itemExtent: 60.0,
-                itemCount: widget.songs.length,
-                itemBuilder: (context, songIndex) {
-                  final song = widget.songs[songIndex];
-                  final isCurrent = currentMusic?.path == song.path;
-                  final isHighlighted = highlightedPath == song.path;
-                  final isSelected =
-                      widget.selectedSongPaths.contains(song.path);
-                  final trackDuration = _formatTrackDuration(
-                      (song.durationMillis ?? 0) ~/ 1000);
+    return FolderZoomGestureLayer(
+      scope: LibraryZoomScope.song,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isPortrait =
+              MediaQuery.of(context).orientation == Orientation.portrait;
+          final contentWidth = math.min(
+            constraints.maxWidth,
+            kFolderPageMaxWidth,
+          );
 
-                  final trackId = RemoteMediaResolver.extractTrackId(song) ??
-                      (song.id != null && song.id! > 0
-                          ? song.id.toString()
-                          : '');
-                  final isStarred = widget.starredSongIds.contains(trackId);
-
-                  String? coverId;
-                  if (song.artworkPath != null &&
-                      song.artworkPath!.isNotEmpty) {
-                    coverId = song.artworkPath!.replaceFirst(
-                        'subsonic-cover://${widget.server.id}/', '');
+          return Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: contentWidth),
+              child: NotificationListener<ScrollNotification>(
+                onNotification: (scrollInfo) {
+                  if (scrollInfo.metrics.pixels >=
+                      scrollInfo.metrics.maxScrollExtent - 300) {
+                    if (widget.hasMore &&
+                        !widget.isLoadingMore &&
+                        !widget.isLoading) {
+                      widget.onLoadMore?.call();
+                    }
                   }
-                  if (coverId == null || coverId.isEmpty) {
-                    coverId = trackId.isNotEmpty ? trackId : null;
-                  }
+                  return false;
+                },
+                child: RefreshIndicator(
+                  onRefresh: widget.onRefresh,
+                  child: CustomScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    slivers: [
+                      headerSliver,
 
-                  return DraggableSongItem(
-                    song: song,
-                    enabled: true,
-                    isSelected: isSelected,
-                    isSelectionMode: widget.isSelectionMode,
-                    selectedPaths: widget.selectedSongPaths,
-                    child: RepaintBoundary(
-                      child: RemoteContentConstraint(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 2,
-                        ),
-                        child: GestureDetector(
-                              behavior: HitTestBehavior.opaque,
-                              onSecondaryTapDown: (details) {
-                                if (!widget.isSelectionMode) {
-                                  showRemoteSongContextMenu(
-                                    context: context,
-                                    globalPosition: details.globalPosition,
-                                    ref: ref,
+                      FolderZoomSliverBuilder(
+                        zoomScale: snapFolderZoomScale(songZoomScale),
+                        width: contentWidth,
+                        builder: (context, metrics) {
+                          final hPad = folderContentHorizontalPadding(
+                            isPortrait: isPortrait,
+                            gridMorph: metrics.gridMorph,
+                          );
+
+                          return SliverPadding(
+                            padding: EdgeInsets.symmetric(horizontal: hPad),
+                            sliver: SliverGrid(
+                              gridDelegate:
+                                  SliverAnimatedZoomGridDelegate(
+                                metrics: metrics,
+                              ),
+                              delegate: SliverChildBuilderDelegate(
+                                (context, songIndex) {
+                                  final song = widget.songs[songIndex];
+                                  final isCurrent =
+                                      currentMusic?.path == song.path;
+                                  final isHighlighted =
+                                      highlightedPath == song.path;
+                                  final isSelected = widget.selectedSongPaths
+                                      .contains(song.path);
+
+                                  final trackId =
+                                      RemoteMediaResolver.extractTrackId(song) ??
+                                          (song.id != null && song.id! > 0
+                                              ? song.id.toString()
+                                              : '');
+                                  final isStarred =
+                                      widget.starredSongIds.contains(trackId);
+
+                                  String? coverId;
+                                  if (song.artworkPath != null &&
+                                      song.artworkPath!.isNotEmpty) {
+                                    coverId = song.artworkPath!.replaceFirst(
+                                        'subsonic-cover://${widget.server.id}/',
+                                        '');
+                                  }
+                                  if (coverId == null || coverId.isEmpty) {
+                                    coverId =
+                                        trackId.isNotEmpty ? trackId : null;
+                                  }
+
+                                  final customCover = RemoteArtworkWidget(
                                     server: widget.server,
                                     password: widget.password,
-                                    song: song,
-                                    playlist: widget.songs,
-                                    onMultiSelect: widget.isSelectionMode
-                                        ? null
-                                        : () {
-                                            widget.onUpdateAnchor(songIndex);
-                                            widget.onToggleSelection(song.path);
-                                        },
-                                    onViewArtist: () {
-                                      if (song.artist != null &&
-                                          song.artist!.isNotEmpty) {
-                                        RemoteLibraryNavUtils.openArtist(
-                                          context,
-                                          ref,
-                                          server: widget.server,
-                                          password: widget.password,
-                                          artistId: '',
-                                          artistName: song.artist!,
-                                        );
-                                      }
-                                    },
+                                    coverArtId: coverId,
+                                    size: 200,
+                                    width: double.infinity,
+                                    height: double.infinity,
+                                    borderRadius: BorderRadius.zero,
                                   );
-                                }
-                              },
-                              onLongPressStart: (details) {
-                                widget.onUpdateAnchor(songIndex);
-                                widget.onToggleSelection(song.path);
-                              },
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: widget.isSelectionMode && isSelected
-                                      ? theme.colorScheme.primaryContainer
-                                          .withValues(alpha: 0.35)
-                                      : (isHighlighted
-                                          ? theme.colorScheme.primaryContainer
-                                              .withValues(alpha: 0.6)
-                                          : (isCurrent
-                                              ? theme.colorScheme
-                                                  .primaryContainer
-                                                  .withValues(alpha: 0.35)
-                                              : Colors.transparent)),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Material(
-                                  color: Colors.transparent,
-                                  borderRadius: BorderRadius.circular(10),
-                                  child: InkWell(
-                                    borderRadius: BorderRadius.circular(10),
+
+                                  final trailing = Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      IconButton(
+                                        iconSize: 20,
+                                        padding: EdgeInsets.zero,
+                                        constraints: const BoxConstraints(
+                                          minWidth: 32,
+                                          minHeight: 32,
+                                        ),
+                                        icon: Icon(
+                                          isStarred
+                                              ? Icons.favorite_rounded
+                                              : Icons.favorite_border_rounded,
+                                          color: isStarred
+                                              ? Colors.redAccent
+                                              : theme.colorScheme
+                                                  .onSurfaceVariant
+                                                  .withValues(alpha: 0.6),
+                                        ),
+                                        tooltip: isStarred
+                                            ? l10n.starredSongsOnly
+                                            : l10n.addToFavorites,
+                                        onPressed: () =>
+                                            widget.onToggleStar(song),
+                                      ),
+                                      Builder(
+                                        builder: (btnContext) => IconButton(
+                                          iconSize: 20,
+                                          padding: EdgeInsets.zero,
+                                          constraints: const BoxConstraints(
+                                            minWidth: 32,
+                                            minHeight: 32,
+                                          ),
+                                          icon: const Icon(
+                                              Icons.more_vert_rounded),
+                                          tooltip: l10n.more,
+                                          onPressed: () {
+                                            final renderBox = btnContext
+                                                    .findRenderObject()
+                                                as RenderBox?;
+                                            final position = renderBox != null
+                                                ? renderBox.localToGlobal(
+                                                        Offset.zero) +
+                                                    Offset(
+                                                      renderBox.size.width / 2,
+                                                      renderBox.size.height,
+                                                    )
+                                                : Offset.zero;
+                                            showRemoteSongContextMenu(
+                                              context: context,
+                                              globalPosition: position,
+                                              ref: ref,
+                                              server: widget.server,
+                                              password: widget.password,
+                                              song: song,
+                                              playlist: widget.songs,
+                                              onMultiSelect: widget
+                                                      .isSelectionMode
+                                                  ? null
+                                                  : () {
+                                                      widget.onUpdateAnchor(
+                                                          songIndex);
+                                                      widget.onToggleSelection(
+                                                          song.path);
+                                                    },
+                                              onViewArtist: () {
+                                                if (song.artist != null &&
+                                                    song.artist!.isNotEmpty) {
+                                                  RemoteLibraryNavUtils
+                                                      .openArtist(
+                                                    context,
+                                                    ref,
+                                                    server: widget.server,
+                                                    password: widget.password,
+                                                    artistId: '',
+                                                    artistName: song.artist!,
+                                                  );
+                                                }
+                                              },
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                    ],
+                                  );
+
+                                  return SongZoomItem(
+                                    key: ValueKey(song.path),
+                                    song: song,
+                                    metrics: metrics,
+                                    isCurrent: isCurrent,
+                                    isPlaying: isAudioPlaying,
+                                    isSelected: isSelected,
+                                    isSelectionMode: widget.isSelectionMode,
+                                    selectedPaths: widget.selectedSongPaths,
+                                    isHighlighted: isHighlighted,
+                                    customCover: customCover,
+                                    showRemoteBadge: false,
+                                    trailing: trailing,
+                                    trailingWidth: 72.0,
                                     onTap: () {
                                       SelectionActionHelper.handleItemTap(
                                         index: songIndex,
                                         itemKey: song.path,
                                         items: widget.songs,
                                         keySelector: (s) => s.path,
-                                        isSelectionMode: widget.isSelectionMode,
-                                        selectedKeys: widget.selectedSongPaths,
+                                        isSelectionMode:
+                                            widget.isSelectionMode,
+                                        selectedKeys:
+                                            widget.selectedSongPaths,
                                         lastAnchorIndex:
                                             widget.lastSongAnchorIndex,
                                         onUpdateAnchor: widget.onUpdateAnchor,
@@ -608,273 +686,97 @@ class _RemoteLibrarySongsViewState
                                         },
                                       );
                                     },
-                                    child: Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 12,
-                                        vertical: 6,
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          // Leading: Selection checkbox or Artwork thumbnail with equalizer
-                                          if (widget.isSelectionMode)
-                                            SizedBox(
-                                              width: 40,
-                                              height: 40,
-                                              child: Center(
-                                                child: Checkbox(
-                                                  value: isSelected,
-                                                  onChanged: (_) => widget
-                                                      .onToggleSelection(
-                                                          song.path),
-                                                  shape: RoundedRectangleBorder(
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            4),
-                                                  ),
-                                                ),
-                                              ),
-                                            )
-                                          else
-                                            Stack(
-                                              alignment: Alignment.center,
-                                              children: [
-                                                RemoteArtworkWidget(
-                                                  server: widget.server,
-                                                  password: widget.password,
-                                                  coverArtId: coverId,
-                                                  size: 44,
-                                                  borderRadius:
-                                                      BorderRadius.circular(8),
-                                                ),
-                                                if (isCurrent &&
-                                                    isAudioPlaying)
-                                                  Container(
-                                                    width: 44,
-                                                    height: 44,
-                                                    decoration: BoxDecoration(
-                                                      color: Colors.black45,
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              8),
-                                                    ),
-                                                    child: const Center(
-                                                      child:
-                                                          PlayingEqualizerIcon(
-                                                        size: 18,
-                                                        color: Colors.white,
-                                                      ),
-                                                    ),
-                                                  ),
-                                              ],
-                                            ),
-                                          const SizedBox(width: 14),
+                                    onLongPress: () {
+                                      widget.onUpdateAnchor(songIndex);
+                                      widget.onToggleSelection(song.path);
+                                    },
+                                    onSecondaryTapDown: (details) {
+                                      if (!widget.isSelectionMode) {
+                                        showRemoteSongContextMenu(
+                                          context: context,
+                                          globalPosition:
+                                              details.globalPosition,
+                                          ref: ref,
+                                          server: widget.server,
+                                          password: widget.password,
+                                          song: song,
+                                          playlist: widget.songs,
+                                          onMultiSelect: widget.isSelectionMode
+                                              ? null
+                                              : () {
+                                                  widget.onUpdateAnchor(
+                                                      songIndex);
+                                                  widget.onToggleSelection(
+                                                      song.path);
+                                                },
+                                          onViewArtist: () {
+                                            if (song.artist != null &&
+                                                song.artist!.isNotEmpty) {
+                                              RemoteLibraryNavUtils.openArtist(
+                                                context,
+                                                ref,
+                                                server: widget.server,
+                                                password: widget.password,
+                                                artistId: '',
+                                                artistName: song.artist!,
+                                              );
+                                            }
+                                          },
+                                        );
+                                      }
+                                    },
+                                  );
+                                },
+                                childCount: widget.songs.length,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
 
-                                          // Song Title & Artist/Album subtitle
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                Text(
-                                                  song.title ?? song.name,
-                                                  maxLines: 1,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  style: theme
-                                                      .textTheme.bodyMedium
-                                                      ?.copyWith(
-                                                    fontWeight: isCurrent ||
-                                                            (widget.isSelectionMode &&
-                                                                isSelected)
-                                                        ? FontWeight.bold
-                                                        : FontWeight.w500,
-                                                    color: isCurrent
-                                                        ? theme.colorScheme
-                                                            .primary
-                                                        : (widget.isSelectionMode &&
-                                                                isSelected
-                                                            ? theme.colorScheme
-                                                                .primary
-                                                            : theme.colorScheme
-                                                                .onSurface),
-                                                  ),
-                                                ),
-                                                const SizedBox(height: 2),
-                                                Text(
-                                                  [
-                                                    if (song.artist
-                                                            ?.isNotEmpty ==
-                                                        true)
-                                                      song.artist!,
-                                                    if (song.album
-                                                            ?.isNotEmpty ==
-                                                        true)
-                                                      song.album!,
-                                                  ].join(' · '),
-                                                  maxLines: 1,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  style: theme
-                                                      .textTheme.bodySmall
-                                                      ?.copyWith(
-                                                    color: theme.colorScheme
-                                                        .onSurfaceVariant,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-
-                                          // Trailing: duration & star & more actions
-                                          if (trackDuration != '--:--') ...[
-                                            const SizedBox(width: 8),
-                                            Text(
-                                              trackDuration,
-                                              style: theme.textTheme.bodySmall
-                                                  ?.copyWith(
-                                                color: theme.colorScheme
-                                                    .onSurfaceVariant,
-                                              ),
-                                            ),
-                                          ],
-                                          const SizedBox(width: 4),
-                                          IconButton(
-                                            iconSize: 20,
-                                            padding: EdgeInsets.zero,
-                                            constraints: const BoxConstraints(
-                                              minWidth: 32,
-                                              minHeight: 32,
-                                            ),
-                                            icon: Icon(
-                                              isStarred
-                                                  ? Icons.favorite_rounded
-                                                  : Icons
-                                                      .favorite_border_rounded,
-                                              color: isStarred
-                                                  ? Colors.redAccent
-                                                  : theme.colorScheme
-                                                      .onSurfaceVariant
-                                                      .withValues(alpha: 0.6),
-                                            ),
-                                            tooltip: isStarred
-                                                ? l10n.starredSongsOnly
-                                                : l10n.addToFavorites,
-                                            onPressed: () =>
-                                                widget.onToggleStar(song),
-                                          ),
-                                          Builder(
-                                            builder: (btnContext) =>
-                                                IconButton(
-                                              iconSize: 20,
-                                              padding: EdgeInsets.zero,
-                                              constraints:
-                                                  const BoxConstraints(
-                                                minWidth: 32,
-                                                minHeight: 32,
-                                              ),
-                                              icon: const Icon(
-                                                  Icons.more_vert_rounded),
-                                              tooltip: l10n.more,
-                                              onPressed: () {
-                                                final renderBox = btnContext
-                                                        .findRenderObject()
-                                                    as RenderBox?;
-                                                final position = renderBox !=
-                                                        null
-                                                    ? renderBox.localToGlobal(
-                                                            Offset.zero) +
-                                                        Offset(
-                                                          renderBox.size.width /
-                                                              2,
-                                                          renderBox
-                                                              .size.height,
-                                                        )
-                                                    : Offset.zero;
-                                                showRemoteSongContextMenu(
-                                                  context: context,
-                                                  globalPosition: position,
-                                                  ref: ref,
-                                                  server: widget.server,
-                                                  password: widget.password,
-                                                  song: song,
-                                                  playlist: widget.songs,
-                                                  onMultiSelect: widget.isSelectionMode
-                                                      ? null
-                                                      : () {
-                                                          widget.onUpdateAnchor(songIndex);
-                                                          widget.onToggleSelection(song.path);
-                                                      },
-                                                  onViewArtist: () {
-                                                    if (song.artist != null &&
-                                                        song.artist!
-                                                            .isNotEmpty) {
-                                                      RemoteLibraryNavUtils
-                                                          .openArtist(
-                                                        context,
-                                                        ref,
-                                                        server: widget.server,
-                                                        password:
-                                                            widget.password,
-                                                        artistId: '',
-                                                        artistName:
-                                                            song.artist!,
-                                                      );
-                                                    }
-                                                  },
-                                                );
-                                              },
-                                            ),
-                                          ),
-                                        ],
+                      // Loader item at bottom
+                      if (widget.hasMore || widget.isLoadingMore)
+                        SliverToBoxAdapter(
+                          child: Padding(
+                            padding: EdgeInsets.fromLTRB(
+                                16, 20, 16, widget.bottomOffset + 24),
+                            child: Center(
+                              child: widget.isLoadingMore
+                                  ? SizedBox(
+                                      width: 24,
+                                      height: 24,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                                brandColor),
                                       ),
-                                    ),
-                                  ),
-                               ),
+                                    )
+                                  : (widget.hasMore
+                                      ? TextButton.icon(
+                                          onPressed: widget.onLoadMore,
+                                          icon: const Icon(
+                                              Icons.expand_more_rounded),
+                                          label: Text(l10n.loadMore),
+                                        )
+                                      : const SizedBox.shrink()),
                             ),
                           ),
+                        )
+                      else if (widget.bottomOffset > 0)
+                        SliverToBoxAdapter(
+                          child: SizedBox(height: widget.bottomOffset + 16),
                         ),
-                      ),
-                    );
-                  },
-                ),
-
-              // Loader item at bottom
-              if (widget.hasMore || widget.isLoadingMore)
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: EdgeInsets.fromLTRB(
-                        16, 20, 16, widget.bottomOffset + 24),
-                    child: Center(
-                      child: widget.isLoadingMore
-                          ? SizedBox(
-                              width: 24,
-                              height: 24,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor:
-                                    AlwaysStoppedAnimation<Color>(brandColor),
-                              ),
-                            )
-                          : (widget.hasMore
-                              ? TextButton.icon(
-                                  onPressed: widget.onLoadMore,
-                                  icon: const Icon(Icons.expand_more_rounded),
-                                  label: Text(l10n.loadMore),
-                                )
-                              : const SizedBox.shrink()),
-                    ),
+                    ],
                   ),
-                )
-              else if (widget.bottomOffset > 0)
-                SliverToBoxAdapter(
-                  child: SizedBox(height: widget.bottomOffset + 16),
                 ),
-            ],
-          ),
-        ),
-      );
-    }
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
 }
 
 typedef NavidromeSongsToolbar = RemoteLibrarySongsToolbar;

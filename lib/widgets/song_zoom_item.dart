@@ -31,6 +31,10 @@ class SongZoomItem extends ConsumerWidget {
     this.isSelectionMode,
     this.selectedPaths,
     this.isHighlighted = false,
+    this.customCover,
+    this.showRemoteBadge = true,
+    this.trailing,
+    this.trailingWidth,
     this.dragHandle,
     this.enableDrag = true,
     this.onTap,
@@ -47,6 +51,19 @@ class SongZoomItem extends ConsumerWidget {
   final bool? isSelectionMode;
   final Iterable<String>? selectedPaths;
   final bool isHighlighted;
+
+  /// Optional custom cover widget to override default [SongThumbnail.fromSong].
+  final Widget? customCover;
+
+  /// Whether to show the remote media badge (cloud icon) in the corner of the cover.
+  final bool showRemoteBadge;
+
+  /// Optional trailing widget in list mode (e.g. favorite button + context menu).
+  final Widget? trailing;
+
+  /// Width reserved for [trailing] in list mode. Defaults to 44.0.
+  final double? trailingWidth;
+
   final Widget? dragHandle;
   final bool enableDrag;
   final VoidCallback? onTap;
@@ -127,13 +144,16 @@ class SongZoomItem extends ConsumerWidget {
               child: Hero(
                 tag: 'song-cover-${song.path}',
                 child: RemoteMediaBadge.wrapCover(
-                  child: SongThumbnail.fromSong(
-                    song,
-                    size: 200,
-                    width: double.infinity,
-                    height: double.infinity,
-                    borderRadius: coverRadius,
-                  ),
+                  showRemoteBadge: showRemoteBadge,
+                  fit: StackFit.expand,
+                  child: customCover ??
+                      SongThumbnail.fromSong(
+                        song,
+                        size: 200,
+                        width: double.infinity,
+                        height: double.infinity,
+                        borderRadius: coverRadius,
+                      ),
                   song: song,
                   title: song.displayName,
                   top: lerpDouble(4.0, 8.0, gridMorph)!,
@@ -211,6 +231,8 @@ class SongZoomItem extends ConsumerWidget {
           child: dragHandle!,
         );
       }
+    } else if (trailing != null) {
+      trailingWidget = trailing;
     } else if (isDesktop) {
       if (dragHandle != null) {
         trailingWidget = IconTheme(
@@ -377,8 +399,10 @@ class SongZoomItem extends ConsumerWidget {
                     lerpDouble(listCoverSize, gridCoverSize, gridMorph)!;
 
                 final hasTrailing = trailingWidget != null;
-                final trailingSpace =
-                    hasTrailing ? lerpDouble(44.0, 0.0, gridMorph)! : 0.0;
+                final effectiveTrailingWidth = trailingWidth ?? 44.0;
+                final trailingSpace = hasTrailing
+                    ? lerpDouble(effectiveTrailingWidth, 0.0, gridMorph)!
+                    : 0.0;
 
                 final coverProgress = (listCoverSize / 40.0).clamp(0.0, 1.0);
                 final listCoverGap = 16.0 * coverProgress;

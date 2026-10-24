@@ -121,6 +121,7 @@ class RemoteMediaBadge extends StatelessWidget {
     double iconSize = 13.0,
     double padding = 4.0,
     bool showRemoteBadge = true,
+    StackFit fit = StackFit.loose,
   }) {
     if (!showRemoteBadge) return child;
     final bool isTargetRemote = (songs != null && RemoteMediaHelper.isAllRemote(songs)) ||
@@ -129,6 +130,7 @@ class RemoteMediaBadge extends StatelessWidget {
     if (!isTargetRemote) return child;
 
     return Stack(
+      fit: fit,
       clipBehavior: Clip.none,
       children: [
         child,

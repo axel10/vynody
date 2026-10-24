@@ -58,6 +58,9 @@ enum LibraryZoomScope {
 
   /// 播放队列页（限制在列表4档）。
   queue,
+
+  /// 歌曲列表视图。
+  song,
 }
 
 enum VisualizerStyle {
@@ -751,6 +754,12 @@ class SettingsService extends ChangeNotifier {
   static const String _keyQueueZoomScale = 'queue_zoom_scale';
   static const double defaultQueueZoomScale = kFolderZoomTierStandardList;
 
+  /// 歌曲列表视图的档位，与其它视图分开记忆。
+  ///
+  /// 默认落在 `standardList`：经典标准曲目列表高度。
+  static const String _keySongZoomScale = 'song_zoom_scale';
+  static const double defaultSongZoomScale = kFolderZoomTierStandardList;
+
   static const String _keyRemoteCacheMaxSizeBytes = 'remote_cache_max_size_bytes';
   static const int defaultRemoteCacheMaxSizeBytes = 2 * 1024 * 1024 * 1024; // 2 GB (0 = unlimited)
   static const String _keyRemotePrefetchCount = 'remote_prefetch_count';
@@ -990,6 +999,17 @@ class SettingsService extends ChangeNotifier {
         kFolderZoomTierLargeList,
       ),
     ),
+  );
+
+  late final _songZoomScaleProperty = SettingProperty<double>(
+    key: _keySongZoomScale,
+    defaultValue: defaultSongZoomScale,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+    customRead: (prefs, key, def) =>
+        snapFolderZoomScale(prefs.getDouble(key) ?? def),
+    customWrite: (prefs, key, val) =>
+        prefs.setDouble(key, snapFolderZoomScale(val)),
   );
 
   late final _albumSortFieldProperty = SettingProperty<AlbumSortField>(
@@ -3313,12 +3333,17 @@ class SettingsService extends ChangeNotifier {
         kFolderZoomTierLargeList,
       );
 
+  double get songZoomScale => _songZoomScaleProperty.value;
+  set songZoomScale(double value) =>
+      _songZoomScaleProperty.value = snapFolderZoomScale(value);
+
   /// 按记忆域读取档位。共享的缩放弹窗与手势层只认 [scope]，不认具体字段。
   double zoomScaleFor(LibraryZoomScope scope) => switch (scope) {
         LibraryZoomScope.folder => folderZoomScale,
         LibraryZoomScope.album => albumZoomScale,
         LibraryZoomScope.artist => artistZoomScale,
         LibraryZoomScope.queue => queueZoomScale,
+        LibraryZoomScope.song => songZoomScale,
       };
 
   /// 按记忆域写入档位（内部已夹到最近的离散档）。
@@ -3332,6 +3357,8 @@ class SettingsService extends ChangeNotifier {
         artistZoomScale = value;
       case LibraryZoomScope.queue:
         queueZoomScale = value;
+      case LibraryZoomScope.song:
+        songZoomScale = value;
     }
   }
 
