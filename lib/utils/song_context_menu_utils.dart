@@ -286,6 +286,9 @@ Future<void> showSongContextMenu(
   VoidCallback? onDownload,
   VoidCallback? onImportLyrics,
   VoidCallback? onEditTags,
+  /// 传了才显示「多选」这一项。只有列表里的曲目行才该传：播放页标题、
+  /// 队列面板里的复制入口不给（那里没有选择态）。
+  VoidCallback? onMultiSelect,
 }) async {
   if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
     await showSongBottomSheet(
@@ -301,6 +304,7 @@ Future<void> showSongContextMenu(
       onDownload: onDownload,
       onImportLyrics: onImportLyrics,
       onEditTags: onEditTags,
+      onMultiSelect: onMultiSelect,
     );
     return;
   }
@@ -523,6 +527,22 @@ Future<void> showSongContextMenu(
     );
   }
 
+  // 多选入口独立成组。title / artistAlbum 是「复制文案」语境，没有选择态，
+  // 即使调用方传了也不显示。
+  if (onMultiSelect != null && mode == SongContextMenuMode.full) {
+    if (items.isNotEmpty && items.last is! PopupMenuDivider) {
+      items.add(const PopupMenuDivider());
+    }
+    items.add(
+      buildContextMenuItem<String>(
+        value: 'multi_select',
+        label: l10n.multiSelect,
+        icon: Icons.checklist_rounded,
+        context: context,
+      ),
+    );
+  }
+
   final selected = await AppContextMenu.show<String>(
     context: context,
     position: globalPosition,
@@ -530,6 +550,10 @@ Future<void> showSongContextMenu(
   );
 
   if (!context.mounted || selected == null) return;
+  if (selected == 'multi_select') {
+    onMultiSelect?.call();
+    return;
+  }
 
   await handleSongAction(
     selected: selected,
@@ -714,6 +738,7 @@ Future<void> showSongBottomSheet(
   VoidCallback? onDownload,
   VoidCallback? onImportLyrics,
   VoidCallback? onEditTags,
+  VoidCallback? onMultiSelect,
 }) async {
   final l10n = AppLocalizations.of(context)!;
   final theme = Theme.of(context);
@@ -938,6 +963,17 @@ Future<void> showSongBottomSheet(
         break;
     }
 
+    if (onMultiSelect != null && mode == SongContextMenuMode.full) {
+      actions.add(
+        _buildSongBottomSheetItem(
+          context: context,
+          value: 'multi_select',
+          label: l10n.multiSelect,
+          icon: Icons.checklist_rounded,
+        ),
+      );
+    }
+
     return actions;
   }
 
@@ -957,6 +993,10 @@ Future<void> showSongBottomSheet(
   );
 
   if (!context.mounted || selected == null) return;
+  if (selected == 'multi_select') {
+    onMultiSelect?.call();
+    return;
+  }
 
   await handleSongAction(
     selected: selected,

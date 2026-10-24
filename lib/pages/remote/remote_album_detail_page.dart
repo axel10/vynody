@@ -602,6 +602,7 @@ class _RemoteAlbumDetailPageState
                                       password: widget.password,
                                       song: song,
                                       playlist: _tracks,
+                                      onMultiSelect: () => enterSongSelectionMode(song.path),
                                       onViewArtist: () {
                                         if (song.artist != null && song.artist!.isNotEmpty) {
                                           RemoteLibraryNavUtils.openArtist(
@@ -786,6 +787,7 @@ class _RemoteAlbumDetailPageState
                                                           password: widget.password,
                                                           song: song,
                                                           playlist: _tracks,
+                                                          onMultiSelect: () => enterSongSelectionMode(song.path),
                                                           onViewArtist: () {
                                                             if (song.artist != null &&
                                                                 song.artist!.isNotEmpty) {

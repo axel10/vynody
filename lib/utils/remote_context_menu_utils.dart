@@ -187,6 +187,7 @@ Future<void> showRemoteAlbumContextMenu({
   List<MusicFile>? songs,
   VoidCallback? onViewDetails,
   VoidCallback? onViewArtist,
+  VoidCallback? onMultiSelect,
 }) async {
   final l10n = AppLocalizations.of(context)!;
   final client = RemoteMediaLibraryClient.create(
@@ -255,6 +256,14 @@ Future<void> showRemoteAlbumContextMenu({
         icon: Icons.copy_rounded,
       ),
     ],
+    [
+      if (onMultiSelect != null)
+        ContextMenuAction(
+          value: 'multi_select',
+          label: l10n.multiSelect,
+          icon: Icons.checklist_rounded,
+        ),
+    ],
   ];
 
   final selected = Platform.isAndroid || Platform.isIOS
@@ -283,6 +292,10 @@ Future<void> showRemoteAlbumContextMenu({
         );
 
   if (!context.mounted || selected == null) return;
+  if (selected == 'multi_select') {
+    onMultiSelect?.call();
+    return;
+  }
   await _handleAlbumMenuSelection(
     selected: selected,
     context: context,
@@ -439,6 +452,7 @@ Future<void> showRemoteSongContextMenu({
   VoidCallback? onRemoveFromPlaylist,
   RemoteDownloadLayout downloadLayout = RemoteDownloadLayout.album,
   String? downloadCollectionFolder,
+  VoidCallback? onMultiSelect,
 }) async {
   final l10n = AppLocalizations.of(context)!;
   final theme = Theme.of(context);
@@ -524,6 +538,14 @@ Future<void> showRemoteSongContextMenu({
           icon: Icons.mic_rounded,
         ),
     ],
+    [
+      if (onMultiSelect != null)
+        ContextMenuAction(
+          value: 'multi_select',
+          label: l10n.multiSelect,
+          icon: Icons.checklist_rounded,
+        ),
+    ],
   ];
 
   final selected = Platform.isAndroid || Platform.isIOS
@@ -544,6 +566,10 @@ Future<void> showRemoteSongContextMenu({
         );
 
   if (!context.mounted || selected == null) return;
+  if (selected == 'multi_select') {
+    onMultiSelect?.call();
+    return;
+  }
   await _handleSongMenuSelection(
     selected: selected,
     context: context,
@@ -661,6 +687,7 @@ Future<void> showRemoteArtistContextMenu({
   bool isStarred = false,
   void Function(bool isStarred)? onStarredChanged,
   VoidCallback? onViewDetails,
+  VoidCallback? onMultiSelect,
 }) async {
   final l10n = AppLocalizations.of(context)!;
   final client = RemoteMediaLibraryClient.create(
@@ -721,6 +748,14 @@ Future<void> showRemoteArtistContextMenu({
         icon: Icons.copy_rounded,
       ),
     ],
+    [
+      if (onMultiSelect != null)
+        ContextMenuAction(
+          value: 'multi_select',
+          label: l10n.multiSelect,
+          icon: Icons.checklist_rounded,
+        ),
+    ],
   ];
 
   final selected = Platform.isAndroid || Platform.isIOS
@@ -737,6 +772,10 @@ Future<void> showRemoteArtistContextMenu({
         );
 
   if (!context.mounted || selected == null) return;
+  if (selected == 'multi_select') {
+    onMultiSelect?.call();
+    return;
+  }
   await _handleArtistMenuSelection(
     selected: selected,
     context: context,
@@ -913,6 +952,7 @@ Future<void> showRemotePlaylistContextMenu({
   VoidCallback? onViewDetails,
   VoidCallback? onRename,
   VoidCallback? onDelete,
+  VoidCallback? onMultiSelect,
 }) async {
   final l10n = AppLocalizations.of(context)!;
   final theme = Theme.of(context);
@@ -974,6 +1014,14 @@ Future<void> showRemotePlaylistContextMenu({
         icon: Icons.title_rounded,
       ),
     ],
+    [
+      if (onMultiSelect != null)
+        ContextMenuAction(
+          value: 'multi_select',
+          label: l10n.multiSelect,
+          icon: Icons.checklist_rounded,
+        ),
+    ],
   ];
 
   final selected = Platform.isAndroid || Platform.isIOS
@@ -996,6 +1044,10 @@ Future<void> showRemotePlaylistContextMenu({
         );
 
   if (!context.mounted || selected == null) return;
+  if (selected == 'multi_select') {
+    onMultiSelect?.call();
+    return;
+  }
   await _handlePlaylistMenuSelection(
     selected: selected,
     context: context,

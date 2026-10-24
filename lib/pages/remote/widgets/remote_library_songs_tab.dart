@@ -533,6 +533,12 @@ class _RemoteLibrarySongsViewState
                                     password: widget.password,
                                     song: song,
                                     playlist: widget.songs,
+                                    onMultiSelect: widget.isSelectionMode
+                                        ? null
+                                        : () {
+                                            widget.onUpdateAnchor(songIndex);
+                                            widget.onToggleSelection(song.path);
+                                        },
                                     onViewArtist: () {
                                       if (song.artist != null &&
                                           song.artist!.isNotEmpty) {
@@ -793,6 +799,12 @@ class _RemoteLibrarySongsViewState
                                                   password: widget.password,
                                                   song: song,
                                                   playlist: widget.songs,
+                                                  onMultiSelect: widget.isSelectionMode
+                                                      ? null
+                                                      : () {
+                                                          widget.onUpdateAnchor(songIndex);
+                                                          widget.onToggleSelection(song.path);
+                                                      },
                                                   onViewArtist: () {
                                                     if (song.artist != null &&
                                                         song.artist!

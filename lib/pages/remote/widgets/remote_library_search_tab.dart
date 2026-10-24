@@ -454,6 +454,10 @@ class RemoteLibrarySearchView extends ConsumerWidget {
                     server: server,
                     password: password,
                     song: song,
+                    onMultiSelect: () {
+                      onUpdateSongAnchor(i);
+                      onToggleSongSelection(song.path);
+                    },
                   );
                 }
               },

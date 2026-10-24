@@ -522,6 +522,12 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab>
                         song: song,
                         songs: songsToAdd,
                         mode: SongContextMenuMode.full,
+                        onMultiSelect: isSelectionMode
+                            ? null
+                            : () {
+                                lastAnchorIndex = index;
+                                enterSelectionMode(index);
+                            },
                         onAddToPlaylist: () async {
                           _showAddToPlaylistDialog(menuContext, songsToAdd);
                         },
@@ -554,6 +560,12 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab>
                         song: song,
                         songs: songsToAdd,
                         mode: SongContextMenuMode.full,
+                        onMultiSelect: isSelectionMode
+                            ? null
+                            : () {
+                                lastAnchorIndex = index;
+                                enterSelectionMode(index);
+                            },
                         onAddToPlaylist: () async {
                           _showAddToPlaylistDialog(menuContext, songsToAdd);
                         },

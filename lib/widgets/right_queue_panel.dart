@@ -195,6 +195,15 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
       song: queue[index],
       songs: targetSongs,
       mode: SongContextMenuMode.full,
+      onMultiSelect: _isSelectionMode
+          ? null
+          : () => setState(() {
+                _isSelectionMode = true;
+                if (!_selectedIndices.contains(index)) {
+                  _selectedIndices.add(index);
+                }
+                _lastAnchorIndex = index;
+              }),
       onAddToPlaylist: () async {
         await showAddSongsToPlaylistDialog(context, playlistService, targetSongs);
       },

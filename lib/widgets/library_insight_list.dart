@@ -992,6 +992,7 @@ class _SongListItem extends ConsumerWidget {
               song: song,
               songs: [song],
               mode: SongContextMenuMode.full,
+              onMultiSelect: isSelectionMode ? null : onLongPress,
               onPlayNext: () => ref.read(audioServiceProvider).enqueueNext([song]),
               onAddToQueue: () => ref.read(audioServiceProvider).appendToQueue([song]),
               onAddToPlaylist: () async {

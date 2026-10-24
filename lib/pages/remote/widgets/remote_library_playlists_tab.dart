@@ -526,6 +526,12 @@ class RemoteLibraryPlaylistItem extends ConsumerWidget {
                     _showRenameDialog(context, ref, name, playlistId),
                 onDelete: () =>
                     _showDeleteDialog(context, ref, name, playlistId),
+                onMultiSelect: isSelectionMode
+                    ? null
+                    : () {
+                        onUpdateAnchor(index);
+                        onToggleSelection(playlistId);
+                    },
               );
             },
       onLongPressStart: (details) {
@@ -671,6 +677,12 @@ class RemoteLibraryPlaylistItem extends ConsumerWidget {
                             _showRenameDialog(context, ref, name, playlistId),
                         onDelete: () =>
                             _showDeleteDialog(context, ref, name, playlistId),
+                        onMultiSelect: isSelectionMode
+                            ? null
+                            : () {
+                                onUpdateAnchor(index);
+                                onToggleSelection(playlistId);
+                            },
                       );
                     },
                   ),

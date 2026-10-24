@@ -680,6 +680,16 @@ class _RemoteFolderBrowserPageState
       song: target,
       songs: songsToAdd,
       mode: SongContextMenuMode.full,
+      // 长按与右键共用同一入口：锚点必须按整个音频列表算，不能用显示顺序。
+      onMultiSelect: _isSelectionMode
+          ? null
+          : () {
+              final fileIndex =
+                  allAudio.indexWhere((s) => s.path == target.path);
+              if (fileIndex >= 0) {
+                _handleSongLongPress(file, fileIndex);
+              }
+            },
       onAddToPlaylist: () => showAddSongsToPlaylistDialog(
         context,
         ref.read(playlistServiceProvider),

@@ -253,6 +253,10 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage>
                     song: song,
                     songs: [song],
                     mode: SongContextMenuMode.full,
+                    onMultiSelect: () {
+                      lastAnchorIndex = index;
+                      enterSongSelectionMode(song.path);
+                    },
                     onPlayNext: () =>
                         ref.read(audioServiceProvider).enqueueNext([song]),
                     onAddToQueue: () =>

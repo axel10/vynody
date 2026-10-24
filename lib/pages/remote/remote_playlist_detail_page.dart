@@ -1408,6 +1408,7 @@ class _RemotePlaylistDetailContentState
                                   password: widget.password,
                                   song: song,
                                   playlist: _tracks,
+                                  onMultiSelect: () => enterSongSelectionMode(song.path),
                                   downloadLayout: RemoteDownloadLayout.playlist,
                                   downloadCollectionFolder: _currentName,
                                   onRemoveFromPlaylist: () => _removeTrackAt(index),
@@ -1644,6 +1645,7 @@ class _RemotePlaylistDetailContentState
                                                     password: widget.password,
                                                     song: song,
                                                     playlist: _tracks,
+                                                    onMultiSelect: () => enterSongSelectionMode(song.path),
                                                     downloadLayout:
                                                         RemoteDownloadLayout
                                                             .playlist,

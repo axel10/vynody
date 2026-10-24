@@ -396,6 +396,12 @@ class RemoteLibraryArtistItem extends ConsumerWidget {
             artistName: name,
             isStarred: isStarred,
             onViewDetails: onTap,
+            onMultiSelect: isSelectionMode
+                ? null
+                : () {
+                    onUpdateAnchor(index);
+                    onToggleSelection(artistId);
+                },
           );
         }
       },
@@ -525,6 +531,12 @@ class RemoteLibraryArtistItem extends ConsumerWidget {
                         artistId: artistId,
                         artistName: name,
                         onViewDetails: onTap,
+                        onMultiSelect: isSelectionMode
+                            ? null
+                            : () {
+                                onUpdateAnchor(index);
+                                onToggleSelection(artistId);
+                            },
                       );
                     },
                   ),

@@ -470,6 +470,12 @@ class RemoteLibraryAlbumCard extends ConsumerWidget {
                 coverArtId: coverId,
               );
             },
+            onMultiSelect: isSelectionMode
+                ? null
+                : () {
+                    onUpdateAnchor(index);
+                    onToggleSelection(albumId);
+                },
           );
         }
       },

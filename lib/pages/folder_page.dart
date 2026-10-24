@@ -276,6 +276,18 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
     });
   }
 
+  /// 子目录右键 / 长按菜单里的「多选」入口，与详情页长按格子里同一套状态
+  /// （`_selectedFolderPaths` + `folder` 作用域）。重复触发只保证选中，
+  /// 不再反选，避免菜单项被点第二下时把已选目录取消掉。
+  void _selectSubfolderFromMenu(String path) {
+    if (!_isSelectionMode) {
+      _toggleSelectionMode();
+    }
+    if (!_selectedFolderPaths.contains(path)) {
+      _toggleFolderSelection(path);
+    }
+  }
+
   void _selectAllVisible(MusicFolder currentFolder) {
     _librarySelectionScopeController.setScope(LibrarySelectionScope.folder);
     setState(() {
@@ -467,11 +479,7 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
                     ref,
                     folder,
                     isRoot: isRoot,
-                    onMultiSelect: (path) {
-                      setState(() {
-                        _selectedRootPaths.add(path);
-                      });
-                    },
+                    onMultiSelect: _selectSubfolderFromMenu,
                   ),
               onShowFolderContextMenu: (folder, position, {required isRoot}) =>
                   showFolderContextMenu(
@@ -480,11 +488,7 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
                     ref: ref,
                     folder: folder,
                     isRoot: isRoot,
-                    onMultiSelect: (path) {
-                      setState(() {
-                        _selectedRootPaths.add(path);
-                      });
-                    },
+                    onMultiSelect: _selectSubfolderFromMenu,
                   ),
             ),
           ),
@@ -516,11 +520,7 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
                   ref,
                   folder,
                   isRoot: isRoot,
-                  onMultiSelect: (path) {
-                    setState(() {
-                      _selectedRootPaths.add(path);
-                    });
-                  },
+                  onMultiSelect: _selectSubfolderFromMenu,
                 ),
             onShowFolderContextMenu: (folder, position, {required isRoot}) =>
                 showFolderContextMenu(
@@ -529,11 +529,7 @@ class FoldersPageState extends ConsumerState<FoldersPage> {
                   ref: ref,
                   folder: folder,
                   isRoot: isRoot,
-                  onMultiSelect: (path) {
-                    setState(() {
-                      _selectedRootPaths.add(path);
-                    });
-                  },
+                  onMultiSelect: _selectSubfolderFromMenu,
                 ),
           ),
         ),

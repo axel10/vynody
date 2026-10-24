@@ -99,14 +99,17 @@ Future<String?> showFolderContextMenu({
         icon: Icons.folder_open_rounded,
         context: context,
       ),
-    if (isRoot) ...[
-      const PopupMenuDivider(),
+    // 多选入口与歌曲行对齐：子目录同样提供，根目录额外的「移除」才需要 isRoot。
+    // 调用方没给 onMultiSelect 时（如无选择态的入口）不显示。
+    if (isRoot || onMultiSelect != null) const PopupMenuDivider(),
+    if (onMultiSelect != null)
       buildContextMenuItem<String>(
         value: 'multi_select',
-        label: selectLabel,
+        label: isRoot ? selectLabel : l10n.multiSelect,
         icon: Icons.checklist_rounded,
         context: context,
       ),
+    if (isRoot)
       buildContextMenuItem<String>(
         value: 'remove_root',
         label: removeLabel,
@@ -114,7 +117,6 @@ Future<String?> showFolderContextMenu({
         iconColor: theme.colorScheme.error,
         context: context,
       ),
-    ],
   ];
 
   final selected = await AppContextMenu.show<String>(
@@ -241,13 +243,14 @@ Future<String?> showFolderBottomSheet(
             label: l10n.openFolderLocation,
             icon: Icons.folder_open_rounded,
           ),
-        if (isRoot) ...[
+        if (onMultiSelect != null)
           _buildFolderBottomSheetItem(
             context: context,
             value: 'multi_select',
-            label: selectLabel,
+            label: isRoot ? selectLabel : l10n.multiSelect,
             icon: Icons.checklist_rounded,
           ),
+        if (isRoot)
           _buildFolderBottomSheetItem(
             context: context,
             value: 'remove_root',
@@ -255,7 +258,6 @@ Future<String?> showFolderBottomSheet(
             icon: Icons.delete_rounded,
             iconColor: theme.colorScheme.error,
           ),
-        ],
       ],
     );
   } finally {
@@ -343,9 +345,15 @@ Future<void> _handleFolderMenuAction({
       await openFolderLocation(folder.path);
       break;
     case 'multi_select':
+      // 根目录多选归根列表作用域，子目录多选归目录详情作用域。
+      // 全部写 folderRoot 会让详情页的勾选读不到状态，表现为「点了没反应」。
       ref
           .read(librarySelectionScopeProvider.notifier)
-          .setScope(LibrarySelectionScope.folderRoot);
+          .setScope(
+            isRoot
+                ? LibrarySelectionScope.folderRoot
+                : LibrarySelectionScope.folder,
+          );
       onMultiSelect?.call(folder.path);
       break;
     case 'remove_root':

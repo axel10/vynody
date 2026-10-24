@@ -313,6 +313,20 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
     }
   }
 
+  /// 长按与右键菜单里的「多选」共用：选中这一首并按需进入选择态。
+  ///
+  /// 两处各写一遍容易分叉（一处判 `isSelectionMode`、一处没判），所以收在这里。
+  void _enterSongSelection(MusicFile file, List<MusicFile> matchedSongs) {
+    final fileIndex = matchedSongs.indexOf(file);
+    if (fileIndex != -1) {
+      _lastSongAnchorIndex = fileIndex;
+    }
+    if (!widget.isSelectionMode) {
+      widget.onToggleSelectionMode();
+    }
+    widget.onToggleSelection(file.path);
+  }
+
   List<MusicFile> _getSelectedSongs() {
     final songs = <MusicFile>[];
     final folder = _effectiveFolder;
@@ -653,18 +667,8 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
                 },
               );
             },
-            onSongLongPress: (file) {
-              final fileIndex = matchedSongs.indexOf(file);
-              if (fileIndex != -1) {
-                _lastSongAnchorIndex = fileIndex;
-              }
-              if (!widget.isSelectionMode) {
-                widget.onToggleSelectionMode();
-                widget.onToggleSelection(file.path);
-              } else {
-                widget.onToggleSelection(file.path);
-              }
-            },
+            onSongLongPress: (file) =>
+                _enterSongSelection(file, matchedSongs),
             onSongSecondaryTapDown: (file, details) {
               final songsToAdd = (widget.selectedSongPaths.isNotEmpty ||
                       widget.selectedFolderPaths.isNotEmpty)
@@ -676,6 +680,9 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
                 song: file,
                 songs: songsToAdd,
                 mode: SongContextMenuMode.full,
+                onMultiSelect: widget.isSelectionMode
+                    ? null
+                    : () => _enterSongSelection(file, matchedSongs),
                 onAddToPlaylist: () => showAddSongsToPlaylistDialog(
                   context,
                   ref.read(playlistServiceProvider),
@@ -697,6 +704,9 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
                 song: file,
                 songs: songsToAdd,
                 mode: SongContextMenuMode.full,
+                onMultiSelect: widget.isSelectionMode
+                    ? null
+                    : () => _enterSongSelection(file, matchedSongs),
                 onAddToPlaylist: () => showAddSongsToPlaylistDialog(
                   buttonContext,
                   ref.read(playlistServiceProvider),

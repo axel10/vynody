@@ -221,6 +221,7 @@ class AlbumSectionSliver extends ConsumerWidget {
       song: song,
       songs: [song],
       mode: SongContextMenuMode.full,
+      onMultiSelect: () => onSongLongPress(section, song),
       onPlayNext: () => ref.read(audioServiceProvider).enqueueNext([song]),
       onAddToQueue: () => ref.read(audioServiceProvider).appendToQueue([song]),
       onAddToPlaylist: () async {

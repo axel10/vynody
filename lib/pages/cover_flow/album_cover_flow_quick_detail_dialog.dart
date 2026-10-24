@@ -340,6 +340,14 @@ class _AlbumCoverFlowQuickDetailDialogState
                   details.globalPosition,
                   song: song,
                   songs: [song],
+                  onMultiSelect: _isSelectionMode
+                      ? null
+                      : () {
+                          setState(() {
+                            _isSelectionMode = true;
+                            _selectedSongPaths.add(song.path);
+                          });
+                        },
                 );
               },
               child: Padding(
@@ -451,6 +459,14 @@ class _AlbumCoverFlowQuickDetailDialogState
                                 position,
                                 song: song,
                                 songs: [song],
+                                onMultiSelect: _isSelectionMode
+                                    ? null
+                                    : () {
+                                        setState(() {
+                                          _isSelectionMode = true;
+                                          _selectedSongPaths.add(song.path);
+                                        });
+                                      },
                               );
                             },
                             icon: const Icon(Icons.more_vert_rounded),

@@ -453,6 +453,12 @@ class _QueuePageState extends ConsumerState<QueuePage>
                                 song: song,
                                 songs: songsToAdd,
                                 mode: SongContextMenuMode.full,
+                                onMultiSelect: isSelectionMode
+                                    ? null
+                                    : () {
+                                        lastAnchorIndex = index;
+                                        enterSelectionMode(index);
+                                    },
                                 onAddToPlaylist: () =>
                                     showAddSongsToPlaylistDialog(
                                       menuContext,
@@ -500,6 +506,12 @@ class _QueuePageState extends ConsumerState<QueuePage>
                                 song: song,
                                 songs: songsToAdd,
                                 mode: SongContextMenuMode.full,
+                                onMultiSelect: isSelectionMode
+                                    ? null
+                                    : () {
+                                        lastAnchorIndex = index;
+                                        enterSelectionMode(index);
+                                    },
                                 onAddToPlaylist: () =>
                                     showAddSongsToPlaylistDialog(
                                       menuContext,

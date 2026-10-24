@@ -1445,6 +1445,7 @@ class _RemoteArtistDetailContentState
         password: widget.password,
         song: song,
         playlist: playlist,
+        onMultiSelect: () => enterSongSelectionMode(song.path),
         downloadLayout: RemoteDownloadLayout.artist,
         downloadCollectionFolder: widget.artistName,
         onViewAlbum: albumSection != null
