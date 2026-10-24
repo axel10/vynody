@@ -6,12 +6,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'folder_layout_utils.dart';
 
-/// 滚轮累计多少逻辑像素推进一个档位。
-const double kFolderZoomWheelStepDelta = 40.0;
-
-/// 两次滚轮换档之间的最小间隔：用来吞掉触控板松手后的惯性滚动，
-/// 否则一次滑到底会连跳好几档。
-const Duration kFolderZoomWheelCooldown = Duration(milliseconds: 150);
+/// 两次滚轮事件之间静默多久，就算「新的一次滚动」。
+///
+/// 「滚一格」在 macOS 上往往不是一个事件：平滑滚动会把它拆成一串间隔
+/// `8~16ms` 的事件，松手后的惯性还会再补一长串。所以滚轮按「滚动簇」处理——
+/// 时间戳间隔小于这个值的连续同向事件算同一簇，**一簇只换一档**。
+///
+/// 这个值要同时满足两件事：
+/// - 大于设备拆分单个物理格时的间隔（`~16ms`），否则一格会换两档；
+/// - 小于人手连续滚两格的最小间隔（`~40ms` 以上），否则两格并成一档。
+const Duration kFolderZoomWheelGestureGap = Duration(milliseconds: 50);
 
 /// 捏合比例超过这个倍数（或它的倒数）才算「有明确的放大/缩小意图」。
 ///
@@ -21,7 +25,8 @@ const double kFolderZoomPinchStepRatio = 1.08;
 
 /// 给目录页的滚动区挂上「视图档位」的第二套调节入口：
 ///
-/// - 键鼠：`Ctrl` + 滚轮（macOS 上 `⌘` + 滚轮同样有效），向上滚放大、向下滚缩小；
+/// - 键鼠：`Ctrl` + 滚轮（macOS 上 `⌘` + 滚轮同样有效），向上滚放大、向下滚缩小，
+///   一次滚动只走一档；
 /// - 触控板：双指捏合；
 /// - 触屏：双指捏合。
 ///
@@ -39,8 +44,18 @@ class FolderZoomGestureLayer extends ConsumerStatefulWidget {
 }
 
 class _FolderZoomGestureLayerState extends ConsumerState<FolderZoomGestureLayer> {
-  double _wheelAccum = 0.0;
-  DateTime? _lastWheelStepAt;
+  /// 当前滚动簇的方向（`1` 放大、`-1` 缩小，`0` 表示还没有簇）与上一笔事件时间戳。
+  ///
+  /// 旧实现是「按像素累计 + 150ms 冷却」，两个坑叠在一起：
+  /// 1. 累计到 40px 才换档，而 macOS 上一格鼠标滚轮的 `scrollDelta` 常小于 40，
+  ///    于是要滚好几格才响一次，手感就是「有时没反应」；
+  /// 2. 冷却期内的事件照样累加，冷却一过就把攒下来的量一次结算掉，
+  ///    于是「再滚一下就跳两档」。
+  ///
+  /// 现在改成按簇计：每簇的第一笔事件立刻换一档，同簇后续事件（含惯性）全部吞掉。
+  Duration? _lastWheelStamp;
+  int _wheelBurstDirection = 0;
+  bool _wheelBurstStepped = false;
 
   /// 本次捏合是否已经换过档。
   ///
@@ -87,27 +102,36 @@ class _FolderZoomGestureLayerState extends ConsumerState<FolderZoomGestureLayer>
       if (signal is PointerScrollEvent) {
         signal.respond(allowPlatformDefault: false);
       }
-      _accumulateWheel(amount);
+      _handleWheel(amount, event.timeStamp);
     });
   }
 
-  void _accumulateWheel(double amount) {
-    _wheelAccum += amount;
+  /// 一笔滚轮事件 → 最多推进一档。
+  ///
+  /// 用 [PointerScrollEvent.timeStamp]（引擎给的单调平台时间）而不是
+  /// `DateTime.now()`：它不会因为一帧内批量派发而失真，也便于测试直接构造时间轴。
+  void _handleWheel(double amount, Duration timeStamp) {
+    // 向上滚（dy 为负）放大、向下滚缩小，和浏览器 Ctrl+滚轮一致。
+    final int direction = amount.isNegative ? 1 : -1;
 
-    final now = DateTime.now();
-    final lastStepAt = _lastWheelStepAt;
-    if (lastStepAt != null &&
-        now.difference(lastStepAt) < kFolderZoomWheelCooldown) {
-      return;
+    final lastStamp = _lastWheelStamp;
+    _lastWheelStamp = timeStamp;
+
+    final bool continuesBurst = lastStamp != null &&
+        timeStamp >= lastStamp &&
+        timeStamp - lastStamp < kFolderZoomWheelGestureGap &&
+        direction == _wheelBurstDirection;
+
+    if (!continuesBurst) {
+      // 静默够久或换了方向：算新的一次滚动，重新获得一档额度。
+      _wheelBurstDirection = direction;
+      _wheelBurstStepped = false;
     }
-    if (_wheelAccum.abs() < kFolderZoomWheelStepDelta) return;
+    // 同一簇里只认第一笔：触控板惯性、系统把一个物理格拆成多笔，都走这里被吞掉。
+    if (_wheelBurstStepped) return;
 
-    // 单次事件最多跳一档：滚轮一格、触控板一小段都只走一步。
-    // 向上滚（dy 为负）放大、向下滚缩小，和浏览器 ctrl+滚轮一致。
-    final int steps = _wheelAccum.isNegative ? 1 : -1;
-    _wheelAccum = 0.0;
-    _lastWheelStepAt = now;
-    _stepTier(steps);
+    _wheelBurstStepped = true;
+    _stepTier(direction);
   }
 
   // ── 触控板捏合（PointerPanZoom） ───────────────────────────────────

@@ -92,6 +92,78 @@ void main() {
     expect(settings.folderZoomScale, kFolderZoomTierStandardList);
   });
 
+  testWidgets('同一格滚轮被拆成多笔事件时只换一档', (tester) async {
+    await tester.pumpWidget(buildHarness());
+    await tester.pumpAndSettle();
+
+    final pointer = TestPointer(1, PointerDeviceKind.mouse);
+    pointer.hover(tester.getCenter(find.byType(ListView)));
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    // macOS 的平滑滚动会把一个物理格拆成好几笔 8~16ms 的事件。
+    for (var i = 0; i < 5; i++) {
+      await tester.sendEventToBinding(
+        pointer.scroll(
+          const Offset(0, -12),
+          timeStamp: Duration(milliseconds: 16 * i),
+        ),
+      );
+    }
+    await tester.pumpAndSettle();
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+
+    expect(controller.offset, 0.0);
+    // 五笔事件属于同一次滚动：只进一档，不会「一下子两档」。
+    expect(settings.folderZoomScale, kFolderZoomTierLargeList);
+  });
+
+  testWidgets('静默后的下一次滚动重新换一档', (tester) async {
+    await tester.pumpWidget(buildHarness());
+    await tester.pumpAndSettle();
+
+    final pointer = TestPointer(1, PointerDeviceKind.mouse);
+    pointer.hover(tester.getCenter(find.byType(ListView)));
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendEventToBinding(
+      pointer.scroll(const Offset(0, -30), timeStamp: Duration.zero),
+    );
+    await tester.sendEventToBinding(
+      pointer.scroll(
+        const Offset(0, -30),
+        timeStamp: const Duration(milliseconds: 200),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+
+    // 两笔事件间隔 200ms，是两次独立滚动：各换一档。
+    expect(settings.folderZoomScale, kFolderZoomTierSmallGrid);
+  });
+
+  testWidgets('反方向滚动不必等静默，立刻退档', (tester) async {
+    await tester.pumpWidget(buildHarness());
+    await tester.pumpAndSettle();
+
+    final pointer = TestPointer(1, PointerDeviceKind.mouse);
+    pointer.hover(tester.getCenter(find.byType(ListView)));
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendEventToBinding(
+      pointer.scroll(const Offset(0, -30), timeStamp: Duration.zero),
+    );
+    await tester.sendEventToBinding(
+      pointer.scroll(
+        const Offset(0, 30),
+        timeStamp: const Duration(milliseconds: 16),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+
+    expect(settings.folderZoomScale, kFolderZoomTierStandardList);
+  });
+
   testWidgets('触控板双指捏合放大', (tester) async {
     await tester.pumpWidget(buildHarness());
     await tester.pumpAndSettle();
