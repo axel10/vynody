@@ -83,12 +83,17 @@ bool isFolderZoomGrid(double zoomScale) => zoomScale >= 0.5;
 
 bool isFolderZoomCompactList(double zoomScale) => zoomScale < 0.1;
 
-/// Thumbnail size in list view (`zoomScale < 0.5`), ranging from `40px` to `64px`.
+/// Thumbnail size in list view (`zoomScale < 0.5`), ranging from `40px` to `88px`.
+///
+/// Discrete steps:
+/// - Compact List (`0.0`): `40px` cover, `56px` tile
+/// - Standard List (`0.2`): `64px` cover, `80px` tile
+/// - Large List (`0.4`): `88px` cover, `104px` tile
 double getFolderListCoverSize(double zoomScale) {
   if (zoomScale <= 0.0) return 40.0;
-  if (zoomScale >= 0.4) return 64.0;
+  if (zoomScale >= 0.4) return 88.0;
   final t = (zoomScale / 0.4).clamp(0.0, 1.0);
-  return lerpDouble(40.0, 64.0, t)!;
+  return lerpDouble(40.0, 88.0, t)!;
 }
 
 /// Total height of a single row tile in list view (`coverSize + 16px` vertical padding).

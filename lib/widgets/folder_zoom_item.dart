@@ -66,7 +66,13 @@ class FolderZoomItem extends StatelessWidget {
       FolderZoomTier.mediumGrid => 40.0,
       FolderZoomTier.largeGrid || _ => 48.0,
     };
-    final defaultIconSize = lerpDouble(26.0, gridIconSize, gridMorph)!;
+    final listIconSize = switch (metrics.tier) {
+      FolderZoomTier.compactList => 22.0,
+      FolderZoomTier.standardList => 28.0,
+      FolderZoomTier.largeList => 38.0,
+      _ => 28.0,
+    };
+    final defaultIconSize = lerpDouble(listIconSize, gridIconSize, gridMorph)!;
     final defaultCoverWidget = DefaultCoverArt.folder(
       isSystem: isSystem,
       iconSize: defaultIconSize,

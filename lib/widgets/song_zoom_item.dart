@@ -261,7 +261,7 @@ class SongZoomItem extends ConsumerWidget {
         switch (metrics.tier) {
       FolderZoomTier.compactList => (14.0, 12.0, 11.0),
       FolderZoomTier.standardList => (14.0, 12.0, 11.0),
-      FolderZoomTier.largeList => (15.0, 12.5, 11.0),
+      FolderZoomTier.largeList => (15.5, 13.0, 11.5),
       FolderZoomTier.smallGrid ||
       FolderZoomTier.mediumGrid ||
       FolderZoomTier.largeGrid =>
@@ -484,7 +484,7 @@ class SongZoomItem extends ConsumerWidget {
                               children: [
                                 Row(
                                   children: [
-                                    if (isCurrent && !isMissing) ...[
+                                    if (isCurrent && !isMissing && textWidth >= 40.0) ...[
                                       PlayingEqualizerIcon(
                                         color: theme.colorScheme.primary,
                                         size: 16,

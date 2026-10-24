@@ -77,8 +77,8 @@ void main() {
 
     test('getFolderListCoverSize returns discrete sizes for list tiers', () {
       expect(getFolderListCoverSize(kFolderZoomTierCompactList), equals(40.0));
-      expect(getFolderListCoverSize(kFolderZoomTierStandardList), equals(52.0));
-      expect(getFolderListCoverSize(kFolderZoomTierLargeList), equals(64.0));
+      expect(getFolderListCoverSize(kFolderZoomTierStandardList), equals(64.0));
+      expect(getFolderListCoverSize(kFolderZoomTierLargeList), equals(88.0));
     });
 
     test('FolderZoomPolicy.calculateCrossAxisCount adapts across 3 grid tiers', () {
