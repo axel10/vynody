@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,7 +12,11 @@ import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/metadata/theaudiodb_artist_service.dart';
 import 'artist_detail_page.dart';
 import '../widgets/artist_avatar.dart';
+import '../widgets/artist_zoom_item.dart';
 import '../widgets/draggable_artist_item.dart';
+import '../widgets/folder_layout_utils.dart';
+import '../widgets/folder_zoom_gesture_layer.dart';
+import '../widgets/library_zoom_popover.dart';
 import '../widgets/remote_media_badge.dart';
 import '../widgets/library_selection_scope.dart';
 import '../widgets/library_selection_panel.dart';
@@ -93,6 +98,9 @@ class _ArtistsTabState extends ConsumerState<ArtistsTab>
     final isSongSelectionMode = selectionScope == LibrarySelectionScope.library;
     final currentSelection = ref.watch(librarySelectionStateProvider);
     final isSelectionMode = selectionScope == LibrarySelectionScope.artist;
+    final artistZoomScale = ref.watch(
+      settingsServiceProvider.select((s) => s.artistZoomScale),
+    );
 
     debugPrint(
       '[ArtistsTab] build loading=${artistsAsync.isLoading} '
@@ -220,6 +228,99 @@ class _ArtistsTabState extends ConsumerState<ArtistsTab>
           hasPlayingMusic: currentMusic != null,
           isSelectionMode: isSelectionMode || (isLandscape && isSongSelectionMode),
           selectionPanel: selectionPanel,
+          portraitScrollWrapper: (context, child) => FolderZoomGestureLayer(
+            scope: LibraryZoomScope.artist,
+            child: child,
+          ),
+          portraitSliverBuilder: (context, items, constraints, bottomOffset) {
+            final availableWidth = math.max(
+              0.0,
+              constraints.maxWidth - widget.contentLeftPadding,
+            );
+            final contentWidth = math.min(availableWidth, kFolderPageMaxWidth);
+            final isPortrait =
+                MediaQuery.orientationOf(context) == Orientation.portrait;
+
+            return [
+              FolderZoomSliverBuilder(
+                zoomScale: snapFolderZoomScale(artistZoomScale),
+                width: contentWidth,
+                builder: (context, metrics) {
+                  final hPad = folderContentHorizontalPadding(
+                    isPortrait: isPortrait,
+                    gridMorph: metrics.gridMorph,
+                  );
+
+                  return SliverPadding(
+                    padding: EdgeInsets.only(left: hPad, right: hPad),
+                    sliver: SliverGrid(
+                      gridDelegate:
+                          SliverAnimatedZoomGridDelegate(metrics: metrics),
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) {
+                          final artist = items[index];
+                          final isItemSelection = isSelected(artist.queryKey);
+
+                          return DraggableArtistItem(
+                            artist: artist,
+                            isSelectionMode: isSelectionMode,
+                            isSelected: isItemSelection,
+                            selectedArtists: isSelectionMode
+                                ? items
+                                    .where((a) => isSelected(a.queryKey))
+                                    .toList()
+                                : null,
+                            child: ArtistZoomItem(
+                              artist: artist,
+                              metrics: metrics,
+                              isSelected: isItemSelection,
+                              isSelectionMode: isSelectionMode,
+                              onTap: () {
+                                final artistIndex = items.indexOf(artist);
+                                handleItemTap(
+                                  index: artistIndex >= 0 ? artistIndex : 0,
+                                  itemKey: artist.queryKey,
+                                  allKeys:
+                                      items.map((a) => a.queryKey).toList(),
+                                  onNormalTap: () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute<void>(
+                                        settings: const RouteSettings(
+                                          name: 'artist_detail',
+                                        ),
+                                        builder: (_) =>
+                                            ArtistDetailPage(artist: artist),
+                                      ),
+                                    );
+                                  },
+                                );
+                              },
+                              onLongPress: () {
+                                final artistIndex = items.indexOf(artist);
+                                if (artistIndex >= 0) {
+                                  lastAnchorIndex = artistIndex;
+                                }
+                                if (isSelectionMode) {
+                                  toggleSelection(artist.queryKey);
+                                } else if (!isSongSelectionMode) {
+                                  enterSelectionMode(artist.queryKey);
+                                }
+                              },
+                              onToggleSelect: () =>
+                                  toggleSelection(artist.queryKey),
+                              onMultiSelect: (key) => enterSelectionMode(key),
+                            ),
+                          );
+                        },
+                        childCount: items.length,
+                      ),
+                    ),
+                  );
+                },
+              ),
+              SliverToBoxAdapter(child: SizedBox(height: bottomOffset)),
+            ];
+          },
           masterToolbarBuilder: (context, isWide) => _ArtistsToolbar(
             searchController: _searchController,
             searchQuery: _searchQuery,
@@ -660,6 +761,8 @@ class _ArtistsToolbar extends ConsumerWidget {
     final sortControls = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
+        if (!isWide)
+          const LibraryZoomButton(scope: LibraryZoomScope.artist),
         IconButton(
           tooltip: isZh ? '渠道与来源筛选' : 'Filter by Source',
           onPressed: () => showLibrarySourceFilterDialog(context),

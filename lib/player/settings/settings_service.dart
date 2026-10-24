@@ -20,7 +20,6 @@ import 'package:vynody/utils/app_proxy_manager.dart';
 import 'package:vynody/utils/localized_text.dart';
 import 'package:vynody/widgets/folder_layout_utils.dart'
     show
-        kFolderZoomTierMinimalList,
         kFolderZoomTierStandardList,
         kFolderZoomTierMediumGrid,
         kFolderZoomTierLargeGrid,
@@ -51,6 +50,9 @@ enum LibraryZoomScope {
 
   /// 专辑页的专辑卡片。
   album,
+
+  /// 艺术家页卡片（主要用于竖屏）。
+  artist,
 }
 
 enum VisualizerStyle {
@@ -732,6 +734,12 @@ class SettingsService extends ChangeNotifier {
   static const String _keyAlbumZoomScale = 'album_zoom_scale';
   static const double defaultAlbumZoomScale = kFolderZoomTierLargeGrid;
 
+  /// 艺术家页卡片的档位（竖屏），与其它视图分开记忆。
+  ///
+  /// 默认落在 `mediumGrid`：手机竖屏约 3 列圆形头像，观感轻快紧凑。
+  static const String _keyArtistZoomScale = 'artist_zoom_scale';
+  static const double defaultArtistZoomScale = kFolderZoomTierMediumGrid;
+
   static const String _keyRemoteCacheMaxSizeBytes = 'remote_cache_max_size_bytes';
   static const int defaultRemoteCacheMaxSizeBytes = 2 * 1024 * 1024 * 1024; // 2 GB (0 = unlimited)
   static const String _keyRemotePrefetchCount = 'remote_prefetch_count';
@@ -935,6 +943,17 @@ class SettingsService extends ChangeNotifier {
   late final _albumZoomScaleProperty = SettingProperty<double>(
     key: _keyAlbumZoomScale,
     defaultValue: defaultAlbumZoomScale,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+    customRead: (prefs, key, def) =>
+        snapFolderZoomScale(prefs.getDouble(key) ?? def),
+    customWrite: (prefs, key, val) =>
+        prefs.setDouble(key, snapFolderZoomScale(val)),
+  );
+
+  late final _artistZoomScaleProperty = SettingProperty<double>(
+    key: _keyArtistZoomScale,
+    defaultValue: defaultArtistZoomScale,
     prefs: _prefs,
     onChanged: notifyListeners,
     customRead: (prefs, key, def) =>
@@ -3253,10 +3272,15 @@ class SettingsService extends ChangeNotifier {
   set albumZoomScale(double value) =>
       _albumZoomScaleProperty.value = snapFolderZoomScale(value);
 
+  double get artistZoomScale => _artistZoomScaleProperty.value;
+  set artistZoomScale(double value) =>
+      _artistZoomScaleProperty.value = snapFolderZoomScale(value);
+
   /// 按记忆域读取档位。共享的缩放弹窗与手势层只认 [scope]，不认具体字段。
   double zoomScaleFor(LibraryZoomScope scope) => switch (scope) {
         LibraryZoomScope.folder => folderZoomScale,
         LibraryZoomScope.album => albumZoomScale,
+        LibraryZoomScope.artist => artistZoomScale,
       };
 
   /// 按记忆域写入档位（内部已夹到最近的离散档）。
@@ -3266,6 +3290,8 @@ class SettingsService extends ChangeNotifier {
         folderZoomScale = value;
       case LibraryZoomScope.album:
         albumZoomScale = value;
+      case LibraryZoomScope.artist:
+        artistZoomScale = value;
     }
   }
 

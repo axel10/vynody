@@ -54,6 +54,8 @@ class MasterDetailScaffold<T> extends ConsumerStatefulWidget {
     this.onItemLongPress,
     this.hasPlayingMusic = false,
     this.wrapWithInkWell = false,
+    this.portraitScrollWrapper,
+    this.portraitSliverBuilder,
   });
 
   /// 列表数据源
@@ -124,6 +126,17 @@ class MasterDetailScaffold<T> extends ConsumerStatefulWidget {
 
   /// 是否由脚手架自动为列表项包裹 InkWell（如果条目自身已有 InkWell 或拖拽/右键等手势，设为 false）
   final bool wrapWithInkWell;
+
+  /// 竖屏滚动区外层包裹器（例如接入手势变焦层）。
+  final Widget Function(BuildContext context, Widget child)? portraitScrollWrapper;
+
+  /// 竖屏 Slivers 构建器（若提供，将替代默认的单列列表 SliverPadding）。
+  final List<Widget> Function(
+    BuildContext context,
+    List<T> items,
+    BoxConstraints constraints,
+    double bottomOffset,
+  )? portraitSliverBuilder;
 
   @override
   ConsumerState<MasterDetailScaffold<T>> createState() =>
@@ -478,6 +491,13 @@ class _MasterDetailScaffoldState<T>
                         ? widget.emptyMasterBuilder!(context)
                         : const SizedBox.shrink(),
                   )
+                else if (widget.portraitSliverBuilder != null)
+                  ...widget.portraitSliverBuilder!(
+                    context,
+                    items,
+                    constraints,
+                    bottomOffset,
+                  )
                 else
                   SliverPadding(
                     padding: EdgeInsets.fromLTRB(16, 16, 16, bottomOffset),
@@ -521,6 +541,10 @@ class _MasterDetailScaffoldState<T>
               ],
             ),
           );
+
+          if (widget.portraitScrollWrapper != null) {
+            mainContent = widget.portraitScrollWrapper!(context, mainContent);
+          }
         }
 
         return Stack(

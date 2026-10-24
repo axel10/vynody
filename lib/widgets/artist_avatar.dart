@@ -214,7 +214,8 @@ class ArtistPlaceholder extends StatelessWidget {
 
     final effectiveWidth = width ?? size ?? 48.0;
     final effectiveHeight = height ?? size ?? 48.0;
-    final minSide = math.min(effectiveWidth, effectiveHeight);
+    final rawMinSide = math.min(effectiveWidth, effectiveHeight);
+    final minSide = rawMinSide.isFinite ? rawMinSide : 48.0;
     final effectiveIconSize = iconSize ?? (minSide * 0.54);
 
     final effectiveIconColor = iconColor ??
