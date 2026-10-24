@@ -9,6 +9,7 @@ import 'album_sections.dart';
 import 'collection_detail_header.dart';
 import 'library_selection_panel.dart';
 import 'library_selection_scope.dart';
+import 'marquee/marquee_selection_region.dart';
 import 'mini_player_wrapper.dart';
 
 /// 流派 / 年份等「集合型」条目的详情内容。
@@ -86,7 +87,8 @@ class _CollectionDetailContentState extends ConsumerState<CollectionDetailConten
     final durationLabel =
         formatDurationClock(widget.totalDurationMillis) ?? l10n.durationZero;
 
-    return Stack(
+    // 框选区域包住列表与底部面板，拖动时框线不会被面板遮挡。
+    final content = Stack(
       children: [
         CustomScrollView(
           controller: widget.scrollController,
@@ -178,6 +180,12 @@ class _CollectionDetailContentState extends ConsumerState<CollectionDetailConten
             ),
           ),
       ],
+    );
+
+    return MarqueeSelectionRegion(
+      scope: selectionScope,
+      scrollController: widget.scrollController,
+      child: content,
     );
   }
 }

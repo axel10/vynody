@@ -7,6 +7,7 @@ import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/audio/playback_source.dart';
 import 'package:vynody/utils/song_context_menu_utils.dart';
 import 'draggable_song_item.dart';
+import 'marquee/marquee_selection_region.dart';
 import 'playing_equalizer_icon.dart';
 import 'remote_media_badge.dart';
 import 'song_thumbnail.dart';
@@ -483,13 +484,21 @@ class AlbumSongTile extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (showTopDivider && !isTileSelected)
-            Divider(
+          // 分隔线始终占位：选中态只是隐藏线条，不能让行高变化，否则框选
+          // 过程中每次命中都会让下方内容上移 1px，框的边缘会跟着抖。
+          if (showTopDivider)
+            SizedBox(
               height: 1,
-              thickness: 0.5,
-              indent: 32,
-              endIndent: 8,
-              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2),
+              child: isTileSelected
+                  ? null
+                  : Divider(
+                      height: 1,
+                      thickness: 0.5,
+                      indent: 32,
+                      endIndent: 8,
+                      color: theme.colorScheme.outlineVariant
+                          .withValues(alpha: 0.2),
+                    ),
             ),
           SizedBox(
             height: 38.0,
@@ -602,13 +611,16 @@ class AlbumSongTile extends StatelessWidget {
       ),
     );
 
-    return DraggableSongItem(
-      song: song,
-      enabled: !song.isMissing,
-      isSelected: isSelected,
-      isSelectionMode: isSelectionMode,
-      selectedPaths: selectedPaths,
-      child: tileWidget,
+    return MarqueeSelectableItem(
+      selectionKey: song.path,
+      child: DraggableSongItem(
+        song: song,
+        enabled: !song.isMissing,
+        isSelected: isSelected,
+        isSelectionMode: isSelectionMode,
+        selectedPaths: selectedPaths,
+        child: tileWidget,
+      ),
     );
   }
 }

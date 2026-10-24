@@ -19,6 +19,7 @@ import 'package:vynody/utils/deleted_song_snack.dart';
 import 'package:vynody/utils/playlist_name.dart';
 import '../widgets/library_selection_panel.dart';
 import '../widgets/library_selection_scope.dart';
+import '../widgets/marquee/marquee_selection_region.dart';
 import 'package:vynody/utils/layout_constants.dart';
 import '../utils/app_snack_bar.dart';
 import '../widgets/playback_ui_tuning.dart';
@@ -470,7 +471,10 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab>
       padding: EdgeInsets.only(left: widget.contentLeftPadding),
       child: Stack(
         children: [
-          CustomScrollView(
+          MarqueeSelectionRegion(
+            scope: selectionScope,
+            scrollController: _scrollController,
+            child: CustomScrollView(
               controller: _scrollController,
               cacheExtent: 1000,
               slivers: [
@@ -595,8 +599,10 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab>
                             .toSet()
                         : const <String>{};
 
-                    return Align(
+                    return MarqueeSelectableItem(
                       key: ObjectKey(song),
+                      selectionKey: index,
+                      child: Align(
                       alignment: Alignment.center,
                       child: ConstrainedBox(
                         constraints: const BoxConstraints(maxWidth: kSingleColumnContentMaxWidth),
@@ -665,11 +671,12 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab>
                           ),
                         ),
                       ),
-                    );
+                    ));
                   },
                 ),
               ),
             ],
+            ),
           ),
           AnimatedSelectionPanel(
             isVisible: isSelectionMode,

@@ -17,6 +17,7 @@ import '../widgets/remote_media_badge.dart';
 import '../widgets/mini_player_wrapper.dart';
 import '../widgets/library_selection_panel.dart';
 import '../widgets/library_selection_scope.dart';
+import '../widgets/marquee/marquee_selection_region.dart';
 import '../widgets/detail_page_shell.dart';
 import '../widgets/library_selection_back_guard.dart';
 
@@ -169,7 +170,7 @@ class _ArtistDetailContentState extends ConsumerState<ArtistDetailContent>
         MediaQuery.orientationOf(context) == Orientation.portrait;
     final horizontalPadding = isPortrait ? 20.0 : 28.0;
 
-    return Stack(
+    final content = Stack(
       children: [
         CustomScrollView(
           controller: widget.scrollController,
@@ -263,6 +264,12 @@ class _ArtistDetailContentState extends ConsumerState<ArtistDetailContent>
           ),
         ),
       ],
+    );
+
+    return MarqueeSelectionRegion(
+      scope: selectionScope,
+      scrollController: widget.scrollController,
+      child: content,
     );
   }
 }

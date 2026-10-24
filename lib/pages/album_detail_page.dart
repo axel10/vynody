@@ -18,6 +18,7 @@ import '../widgets/mini_player_wrapper.dart';
 import '../widgets/library_selection_panel.dart';
 import '../widgets/library_selection_scope.dart';
 import '../widgets/draggable_song_item.dart';
+import '../widgets/marquee/marquee_selection_region.dart';
 import '../widgets/song_thumbnail.dart';
 import 'package:vynody/utils/layout_constants.dart';
 import '../widgets/auto_hide_header.dart';
@@ -163,7 +164,7 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage>
             ),
     ];
 
-    final Widget scrollBody = CustomScrollView(
+    final Widget scrollContent = CustomScrollView(
       controller: _scrollController,
       physics: const AlwaysScrollableScrollPhysics(
         parent: BouncingScrollPhysics(),
@@ -289,6 +290,12 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage>
           ),
         ),
       ],
+    );
+
+    final Widget scrollBody = MarqueeSelectionRegion(
+      scope: selectionScope,
+      scrollController: _scrollController,
+      child: scrollContent,
     );
 
     final isLandscape =
@@ -575,13 +582,16 @@ class _AlbumSongItem extends StatelessWidget {
       ),
     );
 
-    return DraggableSongItem(
-      song: song,
-      enabled: !song.isMissing,
-      isSelected: isSelected,
-      isSelectionMode: isSelectionMode,
-      selectedPaths: selectedPaths,
-      child: tileWidget,
+    return MarqueeSelectableItem(
+      selectionKey: song.path,
+      child: DraggableSongItem(
+        song: song,
+        enabled: !song.isMissing,
+        isSelected: isSelected,
+        isSelectionMode: isSelectionMode,
+        selectedPaths: selectedPaths,
+        child: tileWidget,
+      ),
     );
   }
 }

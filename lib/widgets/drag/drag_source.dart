@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:super_drag_and_drop/super_drag_and_drop.dart';
 import 'package:vynody/utils/drop_data_utils.dart';
 
+import '../marquee/marquee_selection_region.dart';
 import 'drag_payload.dart';
 
 /// The single native drag-source implementation used across the app.
@@ -39,6 +40,15 @@ class DragSource extends StatelessWidget {
   /// Whether native desktop drag & drop is available on this platform.
   static bool get isPlatformSupported => DropDataUtils.isPlatformSupported;
 
+  /// Lets an in-progress marquee selection win over native file dragging.
+  ///
+  /// Evaluated synchronously by `super_drag_and_drop` inside
+  /// `isPointerAllowed`, before the drag recognizer joins the gesture arena, so
+  /// holding Alt on a list row starts a marquee instead of dragging the file
+  /// out of the app. Returns `true` (drag allowed) everywhere else.
+  static bool _isLocationDraggable(Offset position) =>
+      !MarqueeSelectionRuntime.suppressNativeDrag;
+
   @override
   Widget build(BuildContext context) {
     if (!enabled || !isPlatformSupported) {
@@ -54,6 +64,7 @@ class DragSource extends StatelessWidget {
       dragBuilder: (context, child) => buildPreview(context),
       child: DraggableWidget(
         hitTestBehavior: HitTestBehavior.translucent,
+        isLocationDraggable: _isLocationDraggable,
         child: child,
       ),
     );
