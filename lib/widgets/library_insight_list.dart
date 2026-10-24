@@ -321,244 +321,153 @@ class _LibraryInsightListState extends ConsumerState<LibraryInsightList>
                     child: LayoutBuilder(
                       builder: (context, constraints) {
                         final isWide = constraints.maxWidth >= 600;
+
+                        final titleBlock = Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              widget.title,
+                              style: theme.textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              _searchQuery.isNotEmpty ? countLabel : widget.subtitle,
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        );
+
+                        final playAllButton = IconButton(
+                          tooltip: l10n.playAll,
+                          icon: const Icon(Icons.play_arrow_rounded),
+                          onPressed: visibleCount > 0
+                              ? () => _playAll(visibleSongs, visibleAlbums)
+                              : null,
+                        );
+
+                        final shufflePlayButton = IconButton(
+                          tooltip: l10n.shufflePlay,
+                          icon: const Icon(Icons.shuffle_rounded),
+                          onPressed: visibleCount > 0
+                              ? () => _playAll(visibleSongs, visibleAlbums, shuffle: true)
+                              : null,
+                        );
+
                         return Container(
                           padding: EdgeInsets.fromLTRB(16, 16, 16, isWide ? 12 : 16),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              if (isWide)
-                                if (widget.centerAction != null || widget.headerTrailing != null) ...[
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              widget.title,
-                                              style: theme.textTheme.headlineSmall?.copyWith(
-                                                fontWeight: FontWeight.w800,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 4),
-                                            Text(
-                                              _searchQuery.isNotEmpty
-                                                  ? countLabel
-                                                  : widget.subtitle,
-                                              style: theme.textTheme.bodyMedium?.copyWith(
-                                                color: theme.colorScheme.onSurfaceVariant,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      if (widget.centerAction != null)
-                                        widget.centerAction!,
-                                      Expanded(
-                                        child: Row(
-                                          mainAxisAlignment: MainAxisAlignment.end,
-                                          children: [
-                                            if (widget.headerTrailing != null) widget.headerTrailing!,
-                                            if (widget.headerAction != null) ...[
-                                              const SizedBox(width: 8),
-                                              widget.headerAction!,
-                                            ],
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+
+                              if (isWide) ...[
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      flex: 3,
+                                      child: titleBlock,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      flex: 5,
+                                      child: _buildSearchField(theme, l10n),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        playAllButton,
+                                        shufflePlayButton,
+                                        if (widget.headerTrailing != null) ...[
+                                          const SizedBox(width: 6),
+                                          widget.headerTrailing!,
+                                        ],
+                                        if (widget.headerAction != null) ...[
+                                          const SizedBox(width: 6),
+                                          widget.headerAction!,
+                                        ],
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                                if (widget.centerAction != null) ...[
                                   const SizedBox(height: 12),
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: _buildSearchField(theme, l10n),
-                                      ),
-                                      if (visibleCount > 0) ...[
-                                        const SizedBox(width: 16),
-                                        FilledButton.icon(
-                                          onPressed: () => _playAll(
-                                            visibleSongs,
-                                            visibleAlbums,
-                                          ),
-                                          icon: const Icon(Icons.play_arrow_rounded),
-                                          label: Text(l10n.playAll),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        OutlinedButton.icon(
-                                          onPressed: () => _playAll(
-                                            visibleSongs,
-                                            visibleAlbums,
-                                            shuffle: true,
-                                          ),
-                                          icon: const Icon(Icons.shuffle_rounded),
-                                          label: Text(l10n.shufflePlay),
-                                        ),
-                                      ],
-                                    ],
+                                  Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: widget.centerAction!,
                                   ),
-                                ] else
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        flex: 3,
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              widget.title,
-                                              style: theme.textTheme.headlineSmall?.copyWith(
-                                                fontWeight: FontWeight.w800,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 4),
-                                            Text(
-                                              _searchQuery.isNotEmpty
-                                                  ? countLabel
-                                                  : widget.subtitle,
-                                              style: theme.textTheme.bodyMedium?.copyWith(
-                                                color: theme.colorScheme.onSurfaceVariant,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        flex: 4,
-                                        child: _buildSearchField(theme, l10n),
-                                      ),
-                                      const SizedBox(width: 16),
-                                      if (visibleCount > 0) ...[
-                                        FilledButton.icon(
-                                          onPressed: () => _playAll(
-                                            visibleSongs,
-                                            visibleAlbums,
-                                          ),
-                                          icon: const Icon(Icons.play_arrow_rounded),
-                                          label: Text(l10n.playAll),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        OutlinedButton.icon(
-                                          onPressed: () => _playAll(
-                                            visibleSongs,
-                                            visibleAlbums,
-                                            shuffle: true,
-                                          ),
-                                          icon: const Icon(Icons.shuffle_rounded),
-                                          label: Text(l10n.shufflePlay),
-                                        ),
-                                      ],
-                                      if (widget.headerAction != null) ...[
-                                        const SizedBox(width: 8),
-                                        widget.headerAction!,
-                                      ],
-                                    ],
-                                  )
-                              else
+                                ],
+                              ]
+                              else ...[
                                 Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                widget.title,
-                                                style: theme.textTheme.headlineSmall?.copyWith(
-                                                  fontWeight: FontWeight.w800,
+                                    titleBlock,
+                                    const SizedBox(height: 10),
+                                    AnimatedSwitcher(
+                                      duration: const Duration(milliseconds: 200),
+                                      transitionBuilder: (child, animation) {
+                                        return FadeTransition(opacity: animation, child: child);
+                                      },
+                                      child: (_isSearchExpanded || _searchQuery.isNotEmpty)
+                                          ? Row(
+                                              key: const ValueKey('insight_header_search_active'),
+                                              children: [
+                                                Expanded(child: _buildSearchField(theme, l10n)),
+                                                const SizedBox(width: 8),
+                                                IconButton(
+                                                  tooltip: l10n.cancel,
+                                                  icon: const Icon(Icons.close_rounded),
+                                                  onPressed: () {
+                                                    _searchController.clear();
+                                                    setState(() {
+                                                      _searchQuery = '';
+                                                      _isSearchExpanded = false;
+                                                    });
+                                                    _searchFocusNode.unfocus();
+                                                  },
                                                 ),
-                                              ),
-                                              const SizedBox(height: 4),
-                                              Text(
-                                                _searchQuery.isNotEmpty
-                                                    ? countLabel
-                                                    : widget.subtitle,
-                                                style: theme.textTheme.bodyMedium?.copyWith(
-                                                  color: theme.colorScheme.onSurfaceVariant,
+                                              ],
+                                            )
+                                          : Row(
+                                              key: const ValueKey('insight_header_actions_normal'),
+                                              children: [
+                                                playAllButton,
+                                                shufflePlayButton,
+                                                IconButton(
+                                                  tooltip: l10n.search,
+                                                  icon: const Icon(Icons.search_rounded),
+                                                  onPressed: () {
+                                                    setState(() {
+                                                      _isSearchExpanded = true;
+                                                    });
+                                                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                                                      if (mounted) {
+                                                        _searchFocusNode.requestFocus();
+                                                      }
+                                                    });
+                                                  },
                                                 ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        if (widget.headerTrailing != null) ...[
-                                          widget.headerTrailing!,
-                                          const SizedBox(width: 6),
-                                        ],
-                                        if (widget.headerAction != null) ...[
-                                          widget.headerAction!,
-                                          const SizedBox(width: 4),
-                                        ],
-                                        IconButton(
-                                          icon: Icon(
-                                            _isSearchExpanded || _searchQuery.isNotEmpty
-                                                ? Icons.search_off_rounded
-                                                : Icons.search_rounded,
-                                          ),
-                                          tooltip: l10n.search,
-                                          onPressed: () {
-                                            setState(() {
-                                              _isSearchExpanded = !_isSearchExpanded;
-                                              if (_isSearchExpanded) {
-                                                _searchFocusNode.requestFocus();
-                                              } else {
-                                                _searchController.clear();
-                                                _searchQuery = '';
-                                                _searchFocusNode.unfocus();
-                                              }
-                                            });
-                                          },
-                                        ),
-                                      ],
+                                                const Spacer(),
+                                                if (widget.headerTrailing != null) widget.headerTrailing!,
+                                                if (widget.headerAction != null) ...[
+                                                  const SizedBox(width: 6),
+                                                  widget.headerAction!,
+                                                ],
+                                              ],
+                                            ),
                                     ),
                                     if (widget.centerAction != null) ...[
                                       const SizedBox(height: 12),
                                       Center(child: widget.centerAction!),
                                     ],
-                                    AnimatedCrossFade(
-                                      firstChild: const SizedBox.shrink(),
-                                      secondChild: Padding(
-                                        padding: const EdgeInsets.only(top: 12),
-                                        child: _buildSearchField(theme, l10n),
-                                      ),
-                                      crossFadeState: (_isSearchExpanded || _searchQuery.isNotEmpty)
-                                          ? CrossFadeState.showSecond
-                                          : CrossFadeState.showFirst,
-                                      duration: const Duration(milliseconds: 200),
-                                    ),
-                                    if (visibleCount > 0) ...[
-                                      const SizedBox(height: 16),
-                                      Row(
-                                        children: [
-                                          Expanded(
-                                            child: FilledButton.icon(
-                                              onPressed: () => _playAll(
-                                                visibleSongs,
-                                                visibleAlbums,
-                                              ),
-                                              icon: const Icon(Icons.play_arrow_rounded),
-                                              label: Text(l10n.playAll),
-                                            ),
-                                          ),
-                                          const SizedBox(width: 12),
-                                          Expanded(
-                                            child: OutlinedButton.icon(
-                                              onPressed: () => _playAll(
-                                                visibleSongs,
-                                                visibleAlbums,
-                                                shuffle: true,
-                                              ),
-                                              icon: const Icon(Icons.shuffle_rounded),
-                                              label: Text(l10n.shufflePlay),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
                                   ],
                                 ),
+                              ],
                               if (widget.showTimeRange) ...[
                                 const SizedBox(height: 16),
                                 SingleChildScrollView(
