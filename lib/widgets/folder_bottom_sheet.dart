@@ -170,179 +170,93 @@ Future<String?> showFolderBottomSheet(
 
   final String? selected;
   try {
-    selected = await AppContextMenu.showModalSheet<String>(
+    selected = await showAppActionSheet<String>(
       context: context,
-      builder: (context) => GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () => Navigator.pop(context),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            child: Align(
-              alignment: Alignment.bottomCenter,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 680),
-                child: GestureDetector(
-                  onTap: () {},
-                  child: Material(
-                    elevation: 16,
-                    color: theme.colorScheme.surface,
-                    shadowColor: Colors.black26,
-                    borderRadius: BorderRadius.circular(24),
-                    clipBehavior: Clip.antiAlias,
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Row(
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(14),
-                                child: Container(
-                                  width: 52,
-                                  height: 52,
-                                  color: theme.colorScheme.primaryContainer
-                                      .withValues(alpha: 0.4),
-                                  child: Icon(
-                                    isRoot
-                                        ? Icons.folder_shared
-                                        : Icons.folder_rounded,
-                                    size: 30,
-                                    color: Colors.amber,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      folder.name,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: theme.textTheme.titleMedium
-                                          ?.copyWith(
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                    ),
-                                    if (isRoot && folder.path.isNotEmpty) ...[
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        folder.path,
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: theme.textTheme.bodySmall?.copyWith(
-                                          color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-                                          fontSize: 11,
-                                        ),
-                                      ),
-                                    ],
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      l10n.songCount(songs.length),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: theme.textTheme.bodyMedium
-                                          ?.copyWith(
-                                            color: theme
-                                                .colorScheme
-                                                .onSurfaceVariant,
-                                          ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          const Divider(height: 1),
-                          const SizedBox(height: 8),
-                          _buildFolderBottomSheetItem(
-                            context: context,
-                            value: 'play_all',
-                            label: l10n.playAll,
-                            icon: Icons.play_arrow_rounded,
-                            enabled: songs.isNotEmpty,
-                          ),
-                          _buildFolderBottomSheetItem(
-                            context: context,
-                            value: 'shuffle',
-                            label: l10n.shufflePlay,
-                            icon: Icons.shuffle_rounded,
-                            enabled: songs.isNotEmpty,
-                          ),
-                          _buildFolderBottomSheetItem(
-                            context: context,
-                            value: 'play_next',
-                            label: l10n.playNext,
-                            icon: Icons.queue_play_next_rounded,
-                            enabled: songs.isNotEmpty,
-                          ),
-                          _buildFolderBottomSheetItem(
-                            context: context,
-                            value: 'add_to_queue',
-                            label: l10n.addToQueue,
-                            icon: Icons.queue_music_rounded,
-                            enabled: songs.isNotEmpty,
-                          ),
-                          _buildFolderBottomSheetItem(
-                            context: context,
-                            value: 'add_to_playlist',
-                            label: l10n.addToPlaylist,
-                            icon: Icons.playlist_add_rounded,
-                            enabled: songs.isNotEmpty,
-                          ),
-                          _buildFolderBottomSheetItem(
-                            context: context,
-                            value: 'edit_tags',
-                            label: songs.length > 1
-                                ? '${l10n.batchEditSongTagsTitle} (${songs.length})'
-                                : l10n.editSongTagsTitle,
-                            icon: Icons.edit_note_rounded,
-                            enabled: canEditTags,
-                          ),
-                          _buildFolderBottomSheetItem(
-                            context: context,
-                            value: 'transcode',
-                            label: l10n.transcodeAction,
-                            icon: Icons.sync_rounded,
-                            enabled: songs.isNotEmpty,
-                          ),
-                          if (canOpenLocation)
-                            _buildFolderBottomSheetItem(
-                              context: context,
-                              value: 'open_folder_location',
-                              label: l10n.openFolderLocation,
-                              icon: Icons.folder_open_rounded,
-                            ),
-                          if (isRoot) ...[
-                            _buildFolderBottomSheetItem(
-                              context: context,
-                              value: 'multi_select',
-                              label: selectLabel,
-                              icon: Icons.checklist_rounded,
-                            ),
-                            _buildFolderBottomSheetItem(
-                              context: context,
-                              value: 'remove_root',
-                              label: removeLabel,
-                              icon: Icons.delete_rounded,
-                              iconColor: theme.colorScheme.error,
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
+      header: ActionSheetHeader(
+        title: folder.name,
+        // 子目录的面包屑已经显示路径，只有根目录需要额外标注位置。
+        subtitle: isRoot && folder.path.isNotEmpty ? folder.path : null,
+        leading: ActionSheetSquareIcon(
+          icon: isRoot ? Icons.folder_shared : Icons.folder_rounded,
+          color: Colors.amber,
         ),
       ),
+      // 形参与外层 context 同名：条目行必须用面板自己的 context 关闭自己。
+      itemsBuilder: (context) => [
+        _buildFolderBottomSheetItem(
+          context: context,
+          value: 'play_all',
+          label: l10n.playAll,
+          icon: Icons.play_arrow_rounded,
+          enabled: songs.isNotEmpty,
+        ),
+        _buildFolderBottomSheetItem(
+          context: context,
+          value: 'shuffle',
+          label: l10n.shufflePlay,
+          icon: Icons.shuffle_rounded,
+          enabled: songs.isNotEmpty,
+        ),
+        _buildFolderBottomSheetItem(
+          context: context,
+          value: 'play_next',
+          label: l10n.playNext,
+          icon: Icons.queue_play_next_rounded,
+          enabled: songs.isNotEmpty,
+        ),
+        _buildFolderBottomSheetItem(
+          context: context,
+          value: 'add_to_queue',
+          label: l10n.addToQueue,
+          icon: Icons.queue_music_rounded,
+          enabled: songs.isNotEmpty,
+        ),
+        _buildFolderBottomSheetItem(
+          context: context,
+          value: 'add_to_playlist',
+          label: l10n.addToPlaylist,
+          icon: Icons.playlist_add_rounded,
+          enabled: songs.isNotEmpty,
+        ),
+        _buildFolderBottomSheetItem(
+          context: context,
+          value: 'edit_tags',
+          label: songs.length > 1
+              ? '${l10n.batchEditSongTagsTitle} (${songs.length})'
+              : l10n.editSongTagsTitle,
+          icon: Icons.edit_note_rounded,
+          enabled: canEditTags,
+        ),
+        _buildFolderBottomSheetItem(
+          context: context,
+          value: 'transcode',
+          label: l10n.transcodeAction,
+          icon: Icons.sync_rounded,
+          enabled: songs.isNotEmpty,
+        ),
+        if (canOpenLocation)
+          _buildFolderBottomSheetItem(
+            context: context,
+            value: 'open_folder_location',
+            label: l10n.openFolderLocation,
+            icon: Icons.folder_open_rounded,
+          ),
+        if (isRoot) ...[
+          _buildFolderBottomSheetItem(
+            context: context,
+            value: 'multi_select',
+            label: selectLabel,
+            icon: Icons.checklist_rounded,
+          ),
+          _buildFolderBottomSheetItem(
+            context: context,
+            value: 'remove_root',
+            label: removeLabel,
+            icon: Icons.delete_rounded,
+            iconColor: theme.colorScheme.error,
+          ),
+        ],
+      ],
     );
   } finally {
     if (ref.read(librarySelectionScopeProvider) ==
@@ -468,6 +382,8 @@ Future<void> _handleFolderMenuAction({
   }
 }
 
+/// 文件夹面板的行。渲染统一交给 [buildContextMenuSheetItem]，这里只保留调用点
+/// 熟悉的参数名。
 Widget _buildFolderBottomSheetItem({
   required BuildContext context,
   required String value,
@@ -476,24 +392,14 @@ Widget _buildFolderBottomSheetItem({
   bool enabled = true,
   Color? iconColor,
 }) {
-  final theme = Theme.of(context);
-  return ListTile(
-    leading: Icon(
-      icon,
-      color: enabled
-          ? (iconColor ?? theme.colorScheme.onSurfaceVariant)
-          : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+  return buildContextMenuSheetItem(
+    context,
+    ContextMenuAction(
+      value: value,
+      label: label,
+      icon: icon,
+      enabled: enabled,
+      accentColor: iconColor,
     ),
-    title: Text(
-      label,
-      style: theme.textTheme.bodyLarge?.copyWith(
-        color: enabled
-            ? (iconColor ?? theme.colorScheme.onSurface)
-            : theme.colorScheme.onSurface.withValues(alpha: 0.4),
-      ),
-    ),
-    enabled: enabled,
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    onTap: () => Navigator.pop(context, value),
   );
 }

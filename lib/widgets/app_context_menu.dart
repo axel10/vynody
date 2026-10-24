@@ -130,12 +130,19 @@ class ContextMenuAction {
     required this.label,
     required this.icon,
     this.enabled = true,
+    this.accentColor,
   });
 
   final String value;
   final String label;
   final IconData icon;
   final bool enabled;
+
+  /// 强调色（如「删除」用 error、会员项用品牌色）。
+  ///
+  /// 弹窗只给图标上色，底部面板图标与文字同色——两者各自沿用历史观感，
+  /// 所以这里只描述颜色，不描述落在哪个位置。
+  final Color? accentColor;
 }
 
 /// Builds popup menu entries from grouped [actions]. A divider is inserted
@@ -157,6 +164,7 @@ List<PopupMenuEntry<String>> buildContextMenuPopupItems(
           label: action.label,
           icon: action.icon,
           enabled: action.enabled,
+          iconColor: action.accentColor,
           context: context,
         ),
       );
@@ -165,34 +173,216 @@ List<PopupMenuEntry<String>> buildContextMenuPopupItems(
   return entries;
 }
 
+/// 底部操作面板的单行。
+///
+/// 全应用的面板行都从这里出：歌曲、文件夹、远程实体、本地实体各自造过一份
+/// 一模一样的 ListTile，差异只是图标颜色与行高。
+///
+/// [dense] 压缩行高与左右内边距，用于条目较多的面板（歌曲菜单最多十几项）。
+Widget buildContextMenuSheetItem(
+  BuildContext context,
+  ContextMenuAction action, {
+  bool dense = false,
+}) {
+  final theme = Theme.of(context);
+  final accent = action.accentColor;
+  final baseColor = accent ?? theme.colorScheme.onSurfaceVariant;
+  return ListTile(
+    leading: Icon(
+      action.icon,
+      size: dense ? 22 : null,
+      color: action.enabled ? baseColor : baseColor.withValues(alpha: 0.4),
+    ),
+    title: Text(
+      action.label,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: theme.textTheme.bodyLarge?.copyWith(
+        color: action.enabled
+            ? (accent ?? theme.colorScheme.onSurface)
+            : theme.colorScheme.onSurface.withValues(alpha: 0.4),
+      ),
+    ),
+    enabled: action.enabled,
+    contentPadding: dense
+        ? const EdgeInsets.symmetric(horizontal: 12, vertical: 0)
+        : null,
+    visualDensity: dense
+        ? const VisualDensity(horizontal: 0, vertical: -1)
+        : null,
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    onTap: () => Navigator.pop(context, action.value),
+  );
+}
+
 /// Builds bottom sheet rows from grouped [actions]. Groups are flattened
 /// (the sheet has no group dividers).
 List<Widget> buildContextMenuSheetItems(
   BuildContext context,
-  List<List<ContextMenuAction>> actions,
-) {
-  final theme = Theme.of(context);
+  List<List<ContextMenuAction>> actions, {
+  bool dense = false,
+}) {
   return [
     for (final group in actions)
       for (final action in group)
-        ListTile(
-          leading: Icon(
-            action.icon,
-            color: action.enabled
-                ? theme.colorScheme.onSurfaceVariant
-                : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
-          ),
-          title: Text(
-            action.label,
-            style: theme.textTheme.bodyLarge?.copyWith(
-              color: action.enabled
-                  ? theme.colorScheme.onSurface
-                  : theme.colorScheme.onSurface.withValues(alpha: 0.4),
+        buildContextMenuSheetItem(context, action, dense: dense),
+  ];
+}
+
+/// 底部操作面板的外壳（圆角浮层 + 头部 + 动作列表）。
+///
+/// 四个面板各自手抄过同一段外壳：实体菜单、远程文件夹、本地文件夹、歌曲菜单。
+/// 这里统一，屏宽上限、圆角、点击遮罩关闭、头部与列表间距都只有一处定义。
+///
+/// [itemsBuilder] 拿到的是面板自己的 [BuildContext]，行内的 `Navigator.pop`
+/// 必须用它——用外层页面的 context 会 pop 到页面所在的嵌套 Navigator 上，
+/// 面板本身不会被关掉（歌曲菜单此前正是这个问题）。
+Future<T?> showAppActionSheet<T>({
+  required BuildContext context,
+  required Widget header,
+  required List<Widget> Function(BuildContext sheetContext) itemsBuilder,
+  double maxWidth = 680,
+  bool scrollable = false,
+}) {
+  final theme = Theme.of(context);
+  return AppContextMenu.showModalSheet<T>(
+    context: context,
+    builder: (sheetContext) => GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => Navigator.pop(sheetContext),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+          child: Align(
+            alignment: Alignment.bottomCenter,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: maxWidth),
+              child: GestureDetector(
+                onTap: () {},
+                child: Material(
+                  elevation: 16,
+                  color: theme.colorScheme.surface,
+                  shadowColor: Colors.black26,
+                  borderRadius: BorderRadius.circular(24),
+                  clipBehavior: Clip.antiAlias,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        header,
+                        const SizedBox(height: 12),
+                        const Divider(height: 1),
+                        const SizedBox(height: 8),
+                        if (scrollable)
+                          ConstrainedBox(
+                            constraints: BoxConstraints(
+                              maxHeight:
+                                  MediaQuery.sizeOf(sheetContext).height * 0.6,
+                            ),
+                            child: SingleChildScrollView(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: itemsBuilder(sheetContext),
+                              ),
+                            ),
+                          )
+                        else
+                          ...itemsBuilder(sheetContext),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ),
           ),
-          enabled: action.enabled,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          onTap: () => Navigator.pop(context, action.value),
         ),
-  ];
+      ),
+    ),
+  );
+}
+
+/// 底部操作面板的头部：可选 52pt 缩略图 + 标题 + 副标题。
+class ActionSheetHeader extends StatelessWidget {  const ActionSheetHeader({
+    super.key,
+    required this.title,
+    this.subtitle,
+    this.leading,
+  });
+
+  final String title;
+  final String? subtitle;
+  final Widget? leading;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final secondary = subtitle;
+    return Row(
+      children: [
+        if (leading != null) ...[
+          leading!,
+          const SizedBox(width: 16),
+        ],
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              if (secondary != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  secondary,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// 底部操作面板头部左侧的方形图标（52pt）。
+///
+/// 用于没有封面、但类型明确的条目（文件夹、远程文件）。原先本地文件夹面板与
+/// 远程文件夹面板各写了一份同样的圆角容器。
+class ActionSheetSquareIcon extends StatelessWidget {
+  const ActionSheetSquareIcon({
+    super.key,
+    required this.icon,
+    this.color,
+    this.radius = 14,
+  });
+
+  final IconData icon;
+  final Color? color;
+  final double radius;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(radius),
+      child: Container(
+        width: 52,
+        height: 52,
+        color: theme.colorScheme.primaryContainer.withValues(alpha: 0.4),
+        child: Icon(icon, size: 30, color: color),
+      ),
+    );
+  }
 }

@@ -22,6 +22,7 @@ import '../player/remote/services/remote_track_load_progress.dart';
 import '../player/remote/services/remote_scan_root.dart';
 import '../player/remote/services/remote_directory_scanner.dart';
 import '../widgets/library_selection_scope.dart';
+import '../widgets/remote_artwork_widget.dart';
 import 'remote_download_feedback.dart';
 import 'song_context_menu_utils.dart';
 import '../widgets/app_context_menu.dart';
@@ -169,6 +170,10 @@ Future<List<MusicFile>> fetchSubsonicPlaylistTracks(
 
 
 /// Shows context menu for a remote Navidrome album.
+/// Shows context menu for a remote Navidrome album.
+///
+/// 弹窗（右键）与底部面板（长按）共用同一份动作分组，两个入口不会再有
+/// 「桌面能复制、移动端没有」这类分叉。
 Future<void> showRemoteAlbumContextMenu({
   required BuildContext context,
   required Offset globalPosition,
@@ -184,179 +189,98 @@ Future<void> showRemoteAlbumContextMenu({
   VoidCallback? onViewArtist,
 }) async {
   final l10n = AppLocalizations.of(context)!;
-  final client = RemoteMediaLibraryClient.create(server: server, password: password);
-  final isMobile = Platform.isAndroid || Platform.isIOS;
+  final client = RemoteMediaLibraryClient.create(
+    server: server,
+    password: password,
+  );
 
-  if (isMobile) {
-    // BottomSheet for mobile
-    final selected = await AppContextMenu.showModalSheet<String>(
-      context: context,
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-          child: Material(
-            color: Theme.of(ctx).colorScheme.surface,
-            borderRadius: BorderRadius.circular(20),
-            clipBehavior: Clip.antiAlias,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  ListTile(
-                    title: Text(
-                      albumTitle,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    subtitle: Text(
-                      artistName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  const Divider(height: 1),
-                  ListTile(
-                    leading: const Icon(Icons.play_arrow_rounded),
-                    title: Text(l10n.playAll),
-                    onTap: () => Navigator.pop(ctx, 'play'),
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.shuffle_rounded),
-                    title: Text(l10n.shufflePlay),
-                    onTap: () => Navigator.pop(ctx, 'shuffle'),
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.queue_play_next_rounded),
-                    title: Text(l10n.playNext),
-                    onTap: () => Navigator.pop(ctx, 'play_next'),
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.queue_music_rounded),
-                    title: Text(l10n.addToQueue),
-                    onTap: () => Navigator.pop(ctx, 'add_to_queue'),
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.playlist_add_rounded),
-                    title: Text(l10n.addToPlaylist),
-                    onTap: () => Navigator.pop(ctx, 'add_to_playlist'),
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.favorite_border_rounded),
-                    title: Text(l10n.starItem),
-                    onTap: () => Navigator.pop(ctx, 'star'),
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.download_rounded),
-                    title: Text(l10n.downloadAlbum),
-                    onTap: () => Navigator.pop(ctx, 'download'),
-                  ),
-                  if (onViewDetails != null)
-                    ListTile(
-                      leading: const Icon(Icons.album_rounded),
-                      title: Text(l10n.viewAlbumDetails),
-                      onTap: () => Navigator.pop(ctx, 'view_details'),
-                    ),
-                ],
-              ),
-            ),
-          ),
+  final groups = <List<ContextMenuAction>>[
+    [
+      ContextMenuAction(
+        value: 'play',
+        label: l10n.playAll,
+        icon: Icons.play_arrow_rounded,
+      ),
+      ContextMenuAction(
+        value: 'shuffle',
+        label: l10n.shufflePlay,
+        icon: Icons.shuffle_rounded,
+      ),
+      ContextMenuAction(
+        value: 'play_next',
+        label: l10n.playNext,
+        icon: Icons.queue_play_next_rounded,
+      ),
+      ContextMenuAction(
+        value: 'add_to_queue',
+        label: l10n.addToQueue,
+        icon: Icons.queue_music_rounded,
+      ),
+    ],
+    [
+      ContextMenuAction(
+        value: 'add_to_playlist',
+        label: l10n.addToPlaylist,
+        icon: Icons.playlist_add_rounded,
+      ),
+      ContextMenuAction(
+        value: 'star',
+        label: l10n.starItem,
+        icon: Icons.favorite_border_rounded,
+      ),
+    ],
+    [
+      ContextMenuAction(
+        value: 'download',
+        label: l10n.downloadAlbum,
+        icon: Icons.download_rounded,
+      ),
+    ],
+    [
+      if (onViewDetails != null)
+        ContextMenuAction(
+          value: 'view_details',
+          label: l10n.viewAlbumDetails,
+          icon: Icons.album_rounded,
         ),
+      if (onViewArtist != null)
+        ContextMenuAction(
+          value: 'view_artist',
+          label: l10n.viewArtistDetails,
+          icon: Icons.mic_rounded,
+        ),
+      ContextMenuAction(
+        value: 'copy_title',
+        label: l10n.copyAlbumTitle,
+        icon: Icons.copy_rounded,
       ),
-    );
-    if (!context.mounted || selected == null) return;
-    await _handleAlbumMenuSelection(
-      selected: selected,
-      context: context,
-      ref: ref,
-      client: client,
-      server: server,
-      password: password,
-      albumId: albumId,
-      albumTitle: albumTitle,
-      artistName: artistName,
-      songs: songs,
-      onViewDetails: onViewDetails,
-      onViewArtist: onViewArtist,
-    );
-    return;
-  }
-
-  // Desktop PopupMenu
-  final items = <PopupMenuEntry<String>>[
-    buildContextMenuItem<String>(
-      value: 'play',
-      label: l10n.playAll,
-      icon: Icons.play_arrow_rounded,
-      context: context,
-    ),
-    buildContextMenuItem<String>(
-      value: 'shuffle',
-      label: l10n.shufflePlay,
-      icon: Icons.shuffle_rounded,
-      context: context,
-    ),
-    buildContextMenuItem<String>(
-      value: 'play_next',
-      label: l10n.playNext,
-      icon: Icons.queue_play_next_rounded,
-      context: context,
-    ),
-    buildContextMenuItem<String>(
-      value: 'add_to_queue',
-      label: l10n.addToQueue,
-      icon: Icons.queue_music_rounded,
-      context: context,
-    ),
-    const PopupMenuDivider(),
-    buildContextMenuItem<String>(
-      value: 'add_to_playlist',
-      label: l10n.addToPlaylist,
-      icon: Icons.playlist_add_rounded,
-      context: context,
-    ),
-    buildContextMenuItem<String>(
-      value: 'star',
-      label: l10n.starItem,
-      icon: Icons.favorite_border_rounded,
-      context: context,
-    ),
-    const PopupMenuDivider(),
-    buildContextMenuItem<String>(
-      value: 'download',
-      label: l10n.downloadAlbum,
-      icon: Icons.download_rounded,
-      context: context,
-    ),
-    const PopupMenuDivider(),
-    if (onViewDetails != null)
-      buildContextMenuItem<String>(
-        value: 'view_details',
-        label: l10n.viewAlbumDetails,
-        icon: Icons.album_rounded,
-        context: context,
-      ),
-    if (onViewArtist != null)
-      buildContextMenuItem<String>(
-        value: 'view_artist',
-        label: l10n.viewArtistDetails,
-        icon: Icons.mic_rounded,
-        context: context,
-      ),
-    buildContextMenuItem<String>(
-      value: 'copy_title',
-      label: l10n.copyAlbumTitle,
-      icon: Icons.copy_rounded,
-      context: context,
-    ),
+    ],
   ];
 
-  final selected = await AppContextMenu.show<String>(
-    context: context,
-    position: globalPosition,
-    items: items,
-  );
+  final selected = Platform.isAndroid || Platform.isIOS
+      ? await showAppActionSheet<String>(
+          context: context,
+          header: ActionSheetHeader(
+            title: albumTitle,
+            subtitle: artistName,
+            leading: (coverArtId == null || coverArtId.isEmpty)
+                ? null
+                : RemoteArtworkWidget(
+                    server: server,
+                    password: password,
+                    coverArtId: coverArtId,
+                    size: 52,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+          ),
+          itemsBuilder: (sheetContext) =>
+              buildContextMenuSheetItems(sheetContext, groups),
+        )
+      : await AppContextMenu.show<String>(
+          context: context,
+          position: globalPosition,
+          items: buildContextMenuPopupItems(context, groups),
+        );
 
   if (!context.mounted || selected == null) return;
   await _handleAlbumMenuSelection(
@@ -374,6 +298,7 @@ Future<void> showRemoteAlbumContextMenu({
     onViewArtist: onViewArtist,
   );
 }
+
 
 Future<void> _handleAlbumMenuSelection({
   required String selected,
@@ -496,6 +421,11 @@ Future<void> _handleAlbumMenuSelection({
 /// [downloadLayout] / [downloadCollectionFolder] 描述曲目所在页面的目录维度
 /// （艺术家页传 artist + 艺术家名，歌单页传 playlist + 歌单名），
 /// 保证单曲下载的落盘结构与同页面批量下载一致。
+/// Shows context menu for a remote song.
+///
+/// [downloadLayout] / [downloadCollectionFolder] 描述曲目所在页面的目录维度
+/// （艺术家页传 artist + 艺术家名，歌单页传 playlist + 歌单名），
+/// 保证单曲下载的落盘结构与同页面批量下载一致。
 Future<void> showRemoteSongContextMenu({
   required BuildContext context,
   required Offset globalPosition,
@@ -511,202 +441,107 @@ Future<void> showRemoteSongContextMenu({
   String? downloadCollectionFolder,
 }) async {
   final l10n = AppLocalizations.of(context)!;
-  final client = RemoteMediaLibraryClient.create(server: server, password: password);
-  final isMobile = Platform.isAndroid || Platform.isIOS;
+  final theme = Theme.of(context);
+  final client = RemoteMediaLibraryClient.create(
+    server: server,
+    password: password,
+  );
 
   // Extract trackId
   final trackId = RemoteMediaResolver.extractTrackId(song) ??
       (song.id != null && song.id! > 0 ? song.id.toString() : '');
 
-  if (isMobile) {
-    final selected = await AppContextMenu.showModalSheet<String>(
-      context: context,
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-          child: Material(
-            color: Theme.of(ctx).colorScheme.surface,
-            borderRadius: BorderRadius.circular(20),
-            clipBehavior: Clip.antiAlias,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  ListTile(
-                    title: Text(
-                      song.displayName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    subtitle: Text(
-                      '${song.artist ?? l10n.unknownArtist} · ${song.album ?? l10n.unknownAlbum}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  const Divider(height: 1),
-                  ListTile(
-                    leading: const Icon(Icons.queue_play_next_rounded),
-                    title: Text(l10n.playNext),
-                    onTap: () => Navigator.pop(ctx, 'play_next'),
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.queue_music_rounded),
-                    title: Text(l10n.addToQueue),
-                    onTap: () => Navigator.pop(ctx, 'add_to_queue'),
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.playlist_add_rounded),
-                    title: Text(l10n.addToPlaylist),
-                    onTap: () => Navigator.pop(ctx, 'add_to_playlist'),
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.favorite_border_rounded),
-                    title: Text(l10n.starItem),
-                    onTap: () => Navigator.pop(ctx, 'star'),
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.download_rounded),
-                    title: Text(l10n.downloadSong),
-                    onTap: () => Navigator.pop(ctx, 'download'),
-                  ),
-                  if (onRemoveFromPlaylist != null)
-                    ListTile(
-                      leading: const Icon(Icons.remove_circle_outline_rounded, color: Colors.redAccent),
-                      title: Text(l10n.removeFromPlaylist, style: const TextStyle(color: Colors.redAccent)),
-                      onTap: () => Navigator.pop(ctx, 'remove_from_playlist'),
-                    ),
-                  if (onViewAlbum != null)
-                    ListTile(
-                      leading: const Icon(Icons.album_rounded),
-                      title: Text(l10n.viewAlbum),
-                      onTap: () => Navigator.pop(ctx, 'view_album'),
-                    ),
-                  if (onViewArtist != null)
-                    ListTile(
-                      leading: const Icon(Icons.mic_rounded),
-                      title: Text(l10n.viewArtist),
-                      onTap: () => Navigator.pop(ctx, 'view_artist'),
-                    ),
-                  ListTile(
-                    leading: const Icon(Icons.info_outline_rounded),
-                    title: Text(l10n.songProperties),
-                    onTap: () => Navigator.pop(ctx, 'details'),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
+  final groups = <List<ContextMenuAction>>[
+    [
+      ContextMenuAction(
+        value: 'play_next',
+        label: l10n.playNext,
+        icon: Icons.queue_play_next_rounded,
       ),
-    );
-
-    if (!context.mounted || selected == null) return;
-    await _handleSongMenuSelection(
-      selected: selected,
-      context: context,
-      ref: ref,
-      client: client,
-      server: server,
-      password: password,
-      song: song,
-      trackId: trackId,
-      onViewAlbum: onViewAlbum,
-      onViewArtist: onViewArtist,
-      onRemoveFromPlaylist: onRemoveFromPlaylist,
-      downloadLayout: downloadLayout,
-      downloadCollectionFolder: downloadCollectionFolder,
-    );
-    return;
-  }
-
-  // Desktop PopupMenu
-  final items = <PopupMenuEntry<String>>[
-    buildContextMenuItem<String>(
-      value: 'play_next',
-      label: l10n.playNext,
-      icon: Icons.queue_play_next_rounded,
-      context: context,
-    ),
-    buildContextMenuItem<String>(
-      value: 'add_to_queue',
-      label: l10n.addToQueue,
-      icon: Icons.queue_music_rounded,
-      context: context,
-    ),
-    const PopupMenuDivider(),
-    buildContextMenuItem<String>(
-      value: 'add_to_playlist',
-      label: l10n.addToPlaylist,
-      icon: Icons.playlist_add_rounded,
-      context: context,
-    ),
-    buildContextMenuItem<String>(
-      value: 'star',
-      label: l10n.starItem,
-      icon: Icons.favorite_border_rounded,
-      context: context,
-    ),
-    const PopupMenuDivider(),
-    buildContextMenuItem<String>(
-      value: 'download',
-      label: l10n.downloadSong,
-      icon: Icons.download_rounded,
-      context: context,
-    ),
-    if (onRemoveFromPlaylist != null) ...[
-      const PopupMenuDivider(),
-      buildContextMenuItem<String>(
-        value: 'remove_from_playlist',
-        label: l10n.removeFromPlaylist,
-        icon: Icons.remove_circle_outline_rounded,
-        context: context,
+      ContextMenuAction(
+        value: 'add_to_queue',
+        label: l10n.addToQueue,
+        icon: Icons.queue_music_rounded,
       ),
     ],
-    const PopupMenuDivider(),
-    if (onViewAlbum != null)
-      buildContextMenuItem<String>(
-        value: 'view_album',
-        label: l10n.viewAlbum,
-        icon: Icons.album_rounded,
-        context: context,
+    [
+      ContextMenuAction(
+        value: 'add_to_playlist',
+        label: l10n.addToPlaylist,
+        icon: Icons.playlist_add_rounded,
       ),
-    if (onViewArtist != null)
-      buildContextMenuItem<String>(
-        value: 'view_artist',
-        label: l10n.viewArtist,
-        icon: Icons.mic_rounded,
-        context: context,
+      ContextMenuAction(
+        value: 'star',
+        label: l10n.starItem,
+        icon: Icons.favorite_border_rounded,
       ),
-    buildContextMenuItem<String>(
-      value: 'details',
-      label: l10n.songProperties,
-      icon: Icons.info_outline_rounded,
-      context: context,
-    ),
-    const PopupMenuDivider(),
-    buildContextMenuItem<String>(
-      value: 'copy_title',
-      label: l10n.copyTitle,
-      icon: Icons.title_rounded,
-      context: context,
-    ),
-    if (song.artist != null && song.artist!.isNotEmpty)
-      buildContextMenuItem<String>(
-        value: 'copy_artist',
-        label: l10n.copyArtistName,
-        icon: Icons.mic_rounded,
-        context: context,
+    ],
+    [
+      ContextMenuAction(
+        value: 'download',
+        label: l10n.downloadSong,
+        icon: Icons.download_rounded,
       ),
+    ],
+    [
+      if (onRemoveFromPlaylist != null)
+        ContextMenuAction(
+          value: 'remove_from_playlist',
+          label: l10n.removeFromPlaylist,
+          icon: Icons.remove_circle_outline_rounded,
+          accentColor: theme.colorScheme.error,
+        ),
+    ],
+    [
+      if (onViewAlbum != null)
+        ContextMenuAction(
+          value: 'view_album',
+          label: l10n.viewAlbum,
+          icon: Icons.album_rounded,
+        ),
+      if (onViewArtist != null)
+        ContextMenuAction(
+          value: 'view_artist',
+          label: l10n.viewArtist,
+          icon: Icons.mic_rounded,
+        ),
+      ContextMenuAction(
+        value: 'details',
+        label: l10n.songProperties,
+        icon: Icons.info_outline_rounded,
+      ),
+    ],
+    [
+      ContextMenuAction(
+        value: 'copy_title',
+        label: l10n.copyTitle,
+        icon: Icons.title_rounded,
+      ),
+      if (song.artist != null && song.artist!.isNotEmpty)
+        ContextMenuAction(
+          value: 'copy_artist',
+          label: l10n.copyArtistName,
+          icon: Icons.mic_rounded,
+        ),
+    ],
   ];
 
-  final selected = await AppContextMenu.show<String>(
-    context: context,
-    position: globalPosition,
-    items: items,
-  );
+  final selected = Platform.isAndroid || Platform.isIOS
+      ? await showAppActionSheet<String>(
+          context: context,
+          header: ActionSheetHeader(
+            title: song.displayName,
+            subtitle:
+                '${song.artist ?? l10n.unknownArtist} · ${song.album ?? l10n.unknownAlbum}',
+          ),
+          itemsBuilder: (sheetContext) =>
+              buildContextMenuSheetItems(sheetContext, groups),
+        )
+      : await AppContextMenu.show<String>(
+          context: context,
+          position: globalPosition,
+          items: buildContextMenuPopupItems(context, groups),
+        );
 
   if (!context.mounted || selected == null) return;
   await _handleSongMenuSelection(
@@ -725,6 +560,7 @@ Future<void> showRemoteSongContextMenu({
     downloadCollectionFolder: downloadCollectionFolder,
   );
 }
+
 
 Future<void> _handleSongMenuSelection({
   required String selected,
@@ -813,6 +649,7 @@ Future<void> _handleSongMenuSelection({
 }
 
 /// Shows context menu for a remote Navidrome artist.
+/// Shows context menu for a remote Navidrome artist.
 Future<void> showRemoteArtistContextMenu({
   required BuildContext context,
   required Offset globalPosition,
@@ -826,161 +663,78 @@ Future<void> showRemoteArtistContextMenu({
   VoidCallback? onViewDetails,
 }) async {
   final l10n = AppLocalizations.of(context)!;
-  final client = RemoteMediaLibraryClient.create(server: server, password: password);
-  final isMobile = Platform.isAndroid || Platform.isIOS;
+  final client = RemoteMediaLibraryClient.create(
+    server: server,
+    password: password,
+  );
 
-  if (isMobile) {
-    final selected = await AppContextMenu.showModalSheet<String>(
-      context: context,
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-          child: Material(
-            color: Theme.of(ctx).colorScheme.surface,
-            borderRadius: BorderRadius.circular(20),
-            clipBehavior: Clip.antiAlias,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  ListTile(
-                    title: Text(
-                      artistName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  const Divider(height: 1),
-                  ListTile(
-                    leading: const Icon(Icons.play_arrow_rounded),
-                    title: Text(l10n.playAll),
-                    onTap: () => Navigator.pop(ctx, 'play_all'),
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.shuffle_rounded),
-                    title: Text(l10n.shufflePlay),
-                    onTap: () => Navigator.pop(ctx, 'shuffle'),
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.queue_play_next_rounded),
-                    title: Text(l10n.playNext),
-                    onTap: () => Navigator.pop(ctx, 'play_next'),
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.queue_music_rounded),
-                    title: Text(l10n.addToQueue),
-                    onTap: () => Navigator.pop(ctx, 'add_to_queue'),
-                  ),
-                  ListTile(
-                    leading: Icon(
-                      isStarred
-                          ? Icons.favorite_rounded
-                          : Icons.favorite_border_rounded,
-                      color: isStarred ? Colors.redAccent : null,
-                    ),
-                    title: Text(isStarred ? l10n.unstarItem : l10n.starItem),
-                    onTap: () =>
-                        Navigator.pop(ctx, isStarred ? 'unstar' : 'star'),
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.download_rounded),
-                    title: Text(l10n.downloadArtist),
-                    onTap: () => Navigator.pop(ctx, 'download'),
-                  ),
-                  if (onViewDetails != null)
-                    ListTile(
-                      leading: const Icon(Icons.mic_rounded),
-                      title: Text(l10n.viewArtistDetails),
-                      onTap: () => Navigator.pop(ctx, 'view_details'),
-                    ),
-                ],
-              ),
-            ),
-          ),
+  final groups = <List<ContextMenuAction>>[
+    [
+      ContextMenuAction(
+        value: 'play_all',
+        label: l10n.playAll,
+        icon: Icons.play_arrow_rounded,
+      ),
+      ContextMenuAction(
+        value: 'shuffle',
+        label: l10n.shufflePlay,
+        icon: Icons.shuffle_rounded,
+      ),
+      ContextMenuAction(
+        value: 'play_next',
+        label: l10n.playNext,
+        icon: Icons.queue_play_next_rounded,
+      ),
+      ContextMenuAction(
+        value: 'add_to_queue',
+        label: l10n.addToQueue,
+        icon: Icons.queue_music_rounded,
+      ),
+    ],
+    [
+      ContextMenuAction(
+        value: isStarred ? 'unstar' : 'star',
+        label: isStarred ? l10n.unstarItem : l10n.starItem,
+        icon: isStarred
+            ? Icons.favorite_rounded
+            : Icons.favorite_border_rounded,
+        accentColor: isStarred ? Colors.redAccent : null,
+      ),
+    ],
+    [
+      ContextMenuAction(
+        value: 'download',
+        label: l10n.downloadArtist,
+        icon: Icons.download_rounded,
+      ),
+    ],
+    [
+      if (onViewDetails != null)
+        ContextMenuAction(
+          value: 'view_details',
+          label: l10n.viewArtistDetails,
+          icon: Icons.mic_rounded,
         ),
+      ContextMenuAction(
+        value: 'copy_name',
+        label: l10n.copyArtistName,
+        icon: Icons.copy_rounded,
       ),
-    );
-    if (!context.mounted || selected == null) return;
-    await _handleArtistMenuSelection(
-      selected: selected,
-      context: context,
-      ref: ref,
-      client: client,
-      server: server,
-      password: password,
-      artistId: artistId,
-      artistName: artistName,
-      isStarred: isStarred,
-      onStarredChanged: onStarredChanged,
-      onViewDetails: onViewDetails,
-    );
-    return;
-  }
-
-  // Desktop PopupMenu
-  final items = <PopupMenuEntry<String>>[
-    buildContextMenuItem<String>(
-      value: 'play_all',
-      label: l10n.playAll,
-      icon: Icons.play_arrow_rounded,
-      context: context,
-    ),
-    buildContextMenuItem<String>(
-      value: 'shuffle',
-      label: l10n.shufflePlay,
-      icon: Icons.shuffle_rounded,
-      context: context,
-    ),
-    buildContextMenuItem<String>(
-      value: 'play_next',
-      label: l10n.playNext,
-      icon: Icons.queue_play_next_rounded,
-      context: context,
-    ),
-    buildContextMenuItem<String>(
-      value: 'add_to_queue',
-      label: l10n.addToQueue,
-      icon: Icons.queue_music_rounded,
-      context: context,
-    ),
-    const PopupMenuDivider(),
-    buildContextMenuItem<String>(
-      value: isStarred ? 'unstar' : 'star',
-      label: isStarred ? l10n.unstarItem : l10n.starItem,
-      icon: isStarred ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-      iconColor: isStarred ? Colors.redAccent : null,
-      context: context,
-    ),
-    const PopupMenuDivider(),
-    buildContextMenuItem<String>(
-      value: 'download',
-      label: l10n.downloadArtist,
-      icon: Icons.download_rounded,
-      context: context,
-    ),
-    const PopupMenuDivider(),
-    if (onViewDetails != null)
-      buildContextMenuItem<String>(
-        value: 'view_details',
-        label: l10n.viewArtistDetails,
-        icon: Icons.mic_rounded,
-        context: context,
-      ),
-    buildContextMenuItem<String>(
-      value: 'copy_name',
-      label: l10n.copyArtistName,
-      icon: Icons.copy_rounded,
-      context: context,
-    ),
+    ],
   ];
 
-  final selected = await AppContextMenu.show<String>(
-    context: context,
-    position: globalPosition,
-    items: items,
-  );
+  final selected = Platform.isAndroid || Platform.isIOS
+      ? await showAppActionSheet<String>(
+          context: context,
+          header: ActionSheetHeader(title: artistName),
+          itemsBuilder: (sheetContext) =>
+              buildContextMenuSheetItems(sheetContext, groups),
+        )
+      : await AppContextMenu.show<String>(
+          context: context,
+          position: globalPosition,
+          items: buildContextMenuPopupItems(context, groups),
+        );
 
   if (!context.mounted || selected == null) return;
   await _handleArtistMenuSelection(
@@ -997,6 +751,7 @@ Future<void> showRemoteArtistContextMenu({
     onViewDetails: onViewDetails,
   );
 }
+
 
 Future<void> _handleArtistMenuSelection({
   required String selected,
@@ -1145,6 +900,7 @@ Future<List<MusicFile>> _fetchPlaylistTracks(
 }
 
 /// Shows context menu for a remote Navidrome playlist.
+/// Shows context menu for a remote Navidrome playlist.
 Future<void> showRemotePlaylistContextMenu({
   required BuildContext context,
   required Offset globalPosition,
@@ -1159,174 +915,85 @@ Future<void> showRemotePlaylistContextMenu({
   VoidCallback? onDelete,
 }) async {
   final l10n = AppLocalizations.of(context)!;
-  final client = RemoteMediaLibraryClient.create(server: server, password: password);
-  final isMobile = Platform.isAndroid || Platform.isIOS;
+  final theme = Theme.of(context);
+  final client = RemoteMediaLibraryClient.create(
+    server: server,
+    password: password,
+  );
 
-  if (isMobile) {
-    final selected = await AppContextMenu.showModalSheet<String>(
-      context: context,
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-          child: Material(
-            color: Theme.of(ctx).colorScheme.surface,
-            borderRadius: BorderRadius.circular(20),
-            clipBehavior: Clip.antiAlias,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  ListTile(
-                    leading: const Icon(Icons.playlist_play_rounded, size: 28),
-                    title: Text(
-                      playlistName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    subtitle: Text(
-                      songs != null
-                          ? l10n.songCount(songs.length)
-                          : l10n.playlist,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  const Divider(height: 1),
-                  ListTile(
-                    leading: const Icon(Icons.play_arrow_rounded),
-                    title: Text(l10n.playAll),
-                    onTap: () => Navigator.pop(ctx, 'play_all'),
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.queue_play_next_rounded),
-                    title: Text(l10n.playNext),
-                    onTap: () => Navigator.pop(ctx, 'play_next'),
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.queue_music_rounded),
-                    title: Text(l10n.addToQueue),
-                    onTap: () => Navigator.pop(ctx, 'add_to_queue'),
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.download_rounded),
-                    title: Text(l10n.downloadAlbum),
-                    onTap: () => Navigator.pop(ctx, 'download'),
-                  ),
-                  if (onRename != null)
-                    ListTile(
-                      leading: const Icon(Icons.edit_rounded),
-                      title: Text(l10n.renamePlaylist),
-                      onTap: () => Navigator.pop(ctx, 'rename'),
-                    ),
-                  if (onDelete != null)
-                    ListTile(
-                      leading: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
-                      title: Text(l10n.deletePlaylist, style: const TextStyle(color: Colors.redAccent)),
-                      onTap: () => Navigator.pop(ctx, 'delete'),
-                    ),
-                  if (onViewDetails != null)
-                    ListTile(
-                      leading: const Icon(Icons.info_outline_rounded),
-                      title: Text(l10n.viewAlbumDetails),
-                      onTap: () => Navigator.pop(ctx, 'view_details'),
-                    ),
-                  ListTile(
-                    leading: const Icon(Icons.copy_rounded),
-                    title: Text(l10n.copyTitle),
-                    onTap: () => Navigator.pop(ctx, 'copy_name'),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
+  final groups = <List<ContextMenuAction>>[
+    [
+      ContextMenuAction(
+        value: 'play_all',
+        label: l10n.playAll,
+        icon: Icons.play_arrow_rounded,
       ),
-    );
-
-    if (!context.mounted || selected == null) return;
-    await _handlePlaylistMenuSelection(
-      selected: selected,
-      context: context,
-      ref: ref,
-      client: client,
-      server: server,
-      password: password,
-      playlistId: playlistId,
-      playlistName: playlistName,
-      songs: songs,
-      onViewDetails: onViewDetails,
-      onRename: onRename,
-      onDelete: onDelete,
-    );
-    return;
-  }
-
-  // Desktop PopupMenu
-  final items = <PopupMenuEntry<String>>[
-    buildContextMenuItem<String>(
-      value: 'play_all',
-      label: l10n.playAll,
-      icon: Icons.play_arrow_rounded,
-      context: context,
-    ),
-    buildContextMenuItem<String>(
-      value: 'play_next',
-      label: l10n.playNext,
-      icon: Icons.queue_play_next_rounded,
-      context: context,
-    ),
-    buildContextMenuItem<String>(
-      value: 'add_to_queue',
-      label: l10n.addToQueue,
-      icon: Icons.queue_music_rounded,
-      context: context,
-    ),
-    const PopupMenuDivider(),
-    buildContextMenuItem<String>(
-      value: 'download',
-      label: l10n.downloadAlbum,
-      icon: Icons.download_rounded,
-      context: context,
-    ),
-    if (onRename != null) ...[
-      const PopupMenuDivider(),
-      buildContextMenuItem<String>(
-        value: 'rename',
-        label: l10n.renamePlaylist,
-        icon: Icons.edit_rounded,
-        context: context,
+      ContextMenuAction(
+        value: 'play_next',
+        label: l10n.playNext,
+        icon: Icons.queue_play_next_rounded,
+      ),
+      ContextMenuAction(
+        value: 'add_to_queue',
+        label: l10n.addToQueue,
+        icon: Icons.queue_music_rounded,
       ),
     ],
-    if (onDelete != null)
-      buildContextMenuItem<String>(
-        value: 'delete',
-        label: l10n.deletePlaylist,
-        icon: Icons.delete_outline_rounded,
-        context: context,
+    [
+      ContextMenuAction(
+        value: 'download',
+        label: l10n.downloadAlbum,
+        icon: Icons.download_rounded,
       ),
-    const PopupMenuDivider(),
-    if (onViewDetails != null)
-      buildContextMenuItem<String>(
-        value: 'view_details',
-        label: l10n.viewAlbumDetails,
-        icon: Icons.info_outline_rounded,
-        context: context,
+    ],
+    [
+      if (onRename != null)
+        ContextMenuAction(
+          value: 'rename',
+          label: l10n.renamePlaylist,
+          icon: Icons.edit_rounded,
+        ),
+      if (onDelete != null)
+        ContextMenuAction(
+          value: 'delete',
+          label: l10n.deletePlaylist,
+          icon: Icons.delete_outline_rounded,
+          accentColor: theme.colorScheme.error,
+        ),
+    ],
+    [
+      if (onViewDetails != null)
+        ContextMenuAction(
+          value: 'view_details',
+          label: l10n.viewAlbumDetails,
+          icon: Icons.info_outline_rounded,
+        ),
+      ContextMenuAction(
+        value: 'copy_name',
+        label: l10n.copyTitle,
+        icon: Icons.title_rounded,
       ),
-    buildContextMenuItem<String>(
-      value: 'copy_name',
-      label: l10n.copyTitle,
-      icon: Icons.title_rounded,
-      context: context,
-    ),
+    ],
   ];
 
-  final selected = await AppContextMenu.show<String>(
-    context: context,
-    position: globalPosition,
-    items: items,
-  );
+  final selected = Platform.isAndroid || Platform.isIOS
+      ? await showAppActionSheet<String>(
+          context: context,
+          header: ActionSheetHeader(
+            title: playlistName,
+            subtitle: songs != null ? l10n.songCount(songs.length) : l10n.playlist,
+            leading: const ActionSheetSquareIcon(
+              icon: Icons.playlist_play_rounded,
+            ),
+          ),
+          itemsBuilder: (sheetContext) =>
+              buildContextMenuSheetItems(sheetContext, groups),
+        )
+      : await AppContextMenu.show<String>(
+          context: context,
+          position: globalPosition,
+          items: buildContextMenuPopupItems(context, groups),
+        );
 
   if (!context.mounted || selected == null) return;
   await _handlePlaylistMenuSelection(
@@ -1344,6 +1011,7 @@ Future<void> showRemotePlaylistContextMenu({
     onDelete: onDelete,
   );
 }
+
 
 Future<void> _handlePlaylistMenuSelection({
   required String selected,
@@ -1491,6 +1159,7 @@ Future<List<WebDavFile>> fetchAllWebDavAudioFilesRecursive(
 }
 
 /// Shows context menu for a remote WebDAV file (audio or generic file).
+/// Shows context menu for a remote WebDAV file (audio or generic file).
 Future<void> showWebDavFileContextMenu({
   required BuildContext context,
   required Offset globalPosition,
@@ -1502,173 +1171,92 @@ Future<void> showWebDavFileContextMenu({
   VoidCallback? onPlay,
 }) async {
   final l10n = AppLocalizations.of(context)!;
-  final isMobile = Platform.isAndroid || Platform.isIOS;
+  final theme = Theme.of(context);
   final isAudio = file.isAudio;
   final virtualUri = RemoteMediaResolver.buildRemoteUri(server, file.path);
   final meta = ref.read(scannerServiceProvider).metadataMap[virtualUri];
-  final song = isAudio ? RemoteMediaResolver.buildMusicFile(file, server, metadata: meta) : null;
+  final song = isAudio
+      ? RemoteMediaResolver.buildMusicFile(file, server, metadata: meta)
+      : null;
 
-  if (isMobile) {
-    final selected = await AppContextMenu.showModalSheet<String>(
-      context: context,
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-          child: Material(
-            color: Theme.of(ctx).colorScheme.surface,
-            borderRadius: BorderRadius.circular(20),
-            clipBehavior: Clip.antiAlias,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  ListTile(
-                    leading: Icon(
-                      isAudio ? Icons.music_note_rounded : Icons.insert_drive_file_outlined,
-                      color: isAudio ? Theme.of(ctx).colorScheme.primary : null,
-                      size: 28,
-                    ),
-                    title: Text(
-                      file.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    subtitle: Text(
-                      _formatWebDavFileSize(file.contentLength),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  const Divider(height: 1),
-                  if (isAudio) ...[
-                    ListTile(
-                      leading: const Icon(Icons.play_arrow_rounded),
-                      title: Text(l10n.play),
-                      onTap: () => Navigator.pop(ctx, 'play'),
-                    ),
-                    ListTile(
-                      leading: const Icon(Icons.queue_play_next_rounded),
-                      title: Text(l10n.playNext),
-                      onTap: () => Navigator.pop(ctx, 'play_next'),
-                    ),
-                    ListTile(
-                      leading: const Icon(Icons.queue_music_rounded),
-                      title: Text(l10n.addToQueue),
-                      onTap: () => Navigator.pop(ctx, 'add_to_queue'),
-                    ),
-                    ListTile(
-                      leading: const Icon(Icons.library_add_outlined),
-                      title: Text(l10n.addToLocalPlaylist),
-                      onTap: () => Navigator.pop(ctx, 'add_to_local_playlist'),
-                    ),
-                    ListTile(
-                      leading: const Icon(Icons.download_rounded),
-                      title: Text(l10n.downloadSong),
-                      onTap: () => Navigator.pop(ctx, 'download'),
-                    ),
-                    ListTile(
-                      leading: const Icon(Icons.info_outline_rounded),
-                      title: Text(l10n.songProperties),
-                      onTap: () => Navigator.pop(ctx, 'details'),
-                    ),
-                  ],
-                  ListTile(
-                    leading: const Icon(Icons.title_rounded),
-                    title: Text(l10n.copyTitle),
-                    onTap: () => Navigator.pop(ctx, 'copy_title'),
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.link_rounded),
-                    title: Text(l10n.copyFilePath),
-                    onTap: () => Navigator.pop(ctx, 'copy_path'),
-                  ),
-                ],
-              ),
-            ),
-          ),
+  final groups = <List<ContextMenuAction>>[
+    [
+      if (isAudio)
+        ContextMenuAction(
+          value: 'play',
+          label: l10n.play,
+          icon: Icons.play_arrow_rounded,
         ),
-      ),
-    );
-
-    if (!context.mounted || selected == null) return;
-    await _handleWebDavFileMenuSelection(
-      selected: selected,
-      context: context,
-      ref: ref,
-      server: server,
-      password: password,
-      file: file,
-      song: song,
-      currentAudioFiles: currentAudioFiles,
-      onPlay: onPlay,
-    );
-    return;
-  }
-
-  // Desktop PopupMenu
-  final items = <PopupMenuEntry<String>>[
-    if (isAudio) ...[
-      buildContextMenuItem<String>(
-        value: 'play',
-        label: l10n.play,
-        icon: Icons.play_arrow_rounded,
-        context: context,
-      ),
-      buildContextMenuItem<String>(
-        value: 'play_next',
-        label: l10n.playNext,
-        icon: Icons.queue_play_next_rounded,
-        context: context,
-      ),
-      buildContextMenuItem<String>(
-        value: 'add_to_queue',
-        label: l10n.addToQueue,
-        icon: Icons.queue_music_rounded,
-        context: context,
-      ),
-      const PopupMenuDivider(),
-      buildContextMenuItem<String>(
-        value: 'add_to_local_playlist',
-        label: l10n.addToLocalPlaylist,
-        icon: Icons.library_add_outlined,
-        context: context,
-      ),
-      buildContextMenuItem<String>(
-        value: 'download',
-        label: l10n.downloadSong,
-        icon: Icons.download_rounded,
-        context: context,
-      ),
-      const PopupMenuDivider(),
-      buildContextMenuItem<String>(
-        value: 'details',
-        label: l10n.songProperties,
-        icon: Icons.info_outline_rounded,
-        context: context,
-      ),
-      const PopupMenuDivider(),
+      if (isAudio)
+        ContextMenuAction(
+          value: 'play_next',
+          label: l10n.playNext,
+          icon: Icons.queue_play_next_rounded,
+        ),
+      if (isAudio)
+        ContextMenuAction(
+          value: 'add_to_queue',
+          label: l10n.addToQueue,
+          icon: Icons.queue_music_rounded,
+        ),
     ],
-    buildContextMenuItem<String>(
-      value: 'copy_title',
-      label: l10n.copyTitle,
-      icon: Icons.title_rounded,
-      context: context,
-    ),
-    buildContextMenuItem<String>(
-      value: 'copy_path',
-      label: l10n.copyFilePath,
-      icon: Icons.link_rounded,
-      context: context,
-    ),
+    [
+      if (isAudio)
+        ContextMenuAction(
+          value: 'add_to_local_playlist',
+          label: l10n.addToLocalPlaylist,
+          icon: Icons.library_add_outlined,
+        ),
+      if (isAudio)
+        ContextMenuAction(
+          value: 'download',
+          label: l10n.downloadSong,
+          icon: Icons.download_rounded,
+        ),
+    ],
+    [
+      if (isAudio)
+        ContextMenuAction(
+          value: 'details',
+          label: l10n.songProperties,
+          icon: Icons.info_outline_rounded,
+        ),
+    ],
+    [
+      ContextMenuAction(
+        value: 'copy_title',
+        label: l10n.copyTitle,
+        icon: Icons.title_rounded,
+      ),
+      ContextMenuAction(
+        value: 'copy_path',
+        label: l10n.copyFilePath,
+        icon: Icons.link_rounded,
+      ),
+    ],
   ];
 
-  final selected = await AppContextMenu.show<String>(
-    context: context,
-    position: globalPosition,
-    items: items,
-  );
+  final selected = Platform.isAndroid || Platform.isIOS
+      ? await showAppActionSheet<String>(
+          context: context,
+          header: ActionSheetHeader(
+            title: file.name,
+            subtitle: _formatWebDavFileSize(file.contentLength),
+            leading: ActionSheetSquareIcon(
+              icon: isAudio
+                  ? Icons.music_note_rounded
+                  : Icons.insert_drive_file_outlined,
+              color: isAudio ? theme.colorScheme.primary : null,
+            ),
+          ),
+          itemsBuilder: (sheetContext) =>
+              buildContextMenuSheetItems(sheetContext, groups),
+        )
+      : await AppContextMenu.show<String>(
+          context: context,
+          position: globalPosition,
+          items: buildContextMenuPopupItems(context, groups),
+        );
 
   if (!context.mounted || selected == null) return;
   await _handleWebDavFileMenuSelection(
@@ -1683,6 +1271,7 @@ Future<void> showWebDavFileContextMenu({
     onPlay: onPlay,
   );
 }
+
 
 Future<void> _handleWebDavFileMenuSelection({
   required String selected,
@@ -1753,6 +1342,89 @@ Future<void> _handleWebDavFileMenuSelection({
 
 /// Shows context menu for a remote WebDAV folder.
 /// Shows bottom sheet for a remote WebDAV folder, aligned with showFolderBottomSheet design.
+/// 远程文件夹菜单的动作分组：底部面板与弹窗共用，避免「是否收录进媒体库」
+/// 这类按状态翻转的条目在两个入口各判一次、判出两种结果。
+List<List<ContextMenuAction>> _webDavFolderActionGroups({
+  required AppLocalizations l10n,
+  required ThemeData theme,
+  required bool isIndexed,
+  required VoidCallback? onOpen,
+  required void Function(String folderPath)? onMultiSelect,
+}) {
+  return [
+    [
+      ContextMenuAction(
+        value: 'play_all',
+        label: l10n.playAll,
+        icon: Icons.play_arrow_rounded,
+      ),
+      ContextMenuAction(
+        value: 'shuffle',
+        label: l10n.shufflePlay,
+        icon: Icons.shuffle_rounded,
+      ),
+      ContextMenuAction(
+        value: 'play_next',
+        label: l10n.playNext,
+        icon: Icons.queue_play_next_rounded,
+      ),
+      ContextMenuAction(
+        value: 'add_to_queue',
+        label: l10n.addToQueue,
+        icon: Icons.queue_music_rounded,
+      ),
+      ContextMenuAction(
+        value: 'add_to_playlist',
+        label: l10n.addToPlaylist,
+        icon: Icons.playlist_add_rounded,
+      ),
+    ],
+    [
+      ContextMenuAction(
+        value: 'download_folder',
+        label: l10n.downloadAllAudio,
+        icon: Icons.download_rounded,
+      ),
+      ContextMenuAction(
+        value: isIndexed ? 'remove_from_media_library' : 'add_to_media_library',
+        label:
+            isIndexed ? l10n.removeFromMediaLibrary : l10n.addToMediaLibrary,
+        icon: isIndexed
+            ? Icons.bookmark_remove_rounded
+            : Icons.library_add_rounded,
+        accentColor: isIndexed ? Colors.orangeAccent : theme.colorScheme.primary,
+      ),
+    ],
+    [
+      if (onOpen != null)
+        ContextMenuAction(
+          value: 'open',
+          label: l10n.openFolder,
+          icon: Icons.folder_open_rounded,
+        ),
+      if (onMultiSelect != null)
+        ContextMenuAction(
+          value: 'multi_select',
+          label: l10n.selectFolders,
+          icon: Icons.checklist_rounded,
+        ),
+    ],
+    [
+      ContextMenuAction(
+        value: 'copy_name',
+        label: l10n.copyFolderName,
+        icon: Icons.copy_rounded,
+      ),
+      ContextMenuAction(
+        value: 'copy_path',
+        label: l10n.copyFolderPath,
+        icon: Icons.link_rounded,
+      ),
+    ],
+  ];
+}
+
+/// Shows bottom sheet for a remote WebDAV folder, aligned with showFolderBottomSheet design.
 Future<String?> showWebDavFolderBottomSheet({
   required BuildContext context,
   required WidgetRef ref,
@@ -1767,6 +1439,11 @@ Future<String?> showWebDavFolderBottomSheet({
   final RemoteDirectoryClient client = server.type == RemoteServerType.smb
       ? SmbClient(server: server, password: password)
       : WebDavClient(server: server, password: password);
+  final isIndexed = ref
+      .read(remoteScanRootsProvider.notifier)
+      .isFolderIndexed(server.id, folder.path);
+
+  // 面板本身会读一下选择态，先切到独立作用域，避免把页面上的多选带进面板。
   final previousScope = ref.read(librarySelectionScopeProvider);
   ref
       .read(librarySelectionScopeProvider.notifier)
@@ -1774,164 +1451,24 @@ Future<String?> showWebDavFolderBottomSheet({
 
   final String? selected;
   try {
-    selected = await AppContextMenu.showModalSheet<String>(
+    selected = await showAppActionSheet<String>(
       context: context,
-      builder: (ctx) => GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () => Navigator.pop(ctx),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            child: Align(
-              alignment: Alignment.bottomCenter,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 680),
-                child: GestureDetector(
-                  onTap: () {},
-                  child: Material(
-                    elevation: 16,
-                    color: theme.colorScheme.surface,
-                    shadowColor: Colors.black26,
-                    borderRadius: BorderRadius.circular(24),
-                    clipBehavior: Clip.antiAlias,
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Row(
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(14),
-                                child: Container(
-                                  width: 52,
-                                  height: 52,
-                                  color: theme.colorScheme.primaryContainer
-                                      .withValues(alpha: 0.4),
-                                  child: const Icon(
-                                    Icons.folder_rounded,
-                                    size: 30,
-                                    color: Colors.amber,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 14),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      folder.name,
-                                      style: theme.textTheme.titleMedium?.copyWith(
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      folder.path,
-                                      style: theme.textTheme.bodySmall?.copyWith(
-                                        color: theme.colorScheme.onSurfaceVariant
-                                            .withValues(alpha: 0.7),
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          const Divider(height: 1),
-                          const SizedBox(height: 8),
-                          _buildWebDavBottomSheetItem(
-                            context: ctx,
-                            value: 'play_all',
-                            label: l10n.playAll,
-                            icon: Icons.play_arrow_rounded,
-                            iconColor: theme.colorScheme.primary,
-                          ),
-                          _buildWebDavBottomSheetItem(
-                            context: ctx,
-                            value: 'shuffle',
-                            label: l10n.shufflePlay,
-                            icon: Icons.shuffle_rounded,
-                          ),
-                          _buildWebDavBottomSheetItem(
-                            context: ctx,
-                            value: 'play_next',
-                            label: l10n.playNext,
-                            icon: Icons.queue_play_next_rounded,
-                          ),
-                          _buildWebDavBottomSheetItem(
-                            context: ctx,
-                            value: 'add_to_queue',
-                            label: l10n.addToQueue,
-                            icon: Icons.queue_music_rounded,
-                          ),
-                          _buildWebDavBottomSheetItem(
-                            context: ctx,
-                            value: 'add_to_playlist',
-                            label: l10n.playlist,
-                            icon: Icons.playlist_add_rounded,
-                          ),
-                          _buildWebDavBottomSheetItem(
-                            context: ctx,
-                            value: 'download_folder',
-                            label: l10n.downloadAllAudio,
-                            icon: Icons.download_rounded,
-                          ),
-                          _buildWebDavBottomSheetItem(
-                            context: ctx,
-                            value: ref.read(remoteScanRootsProvider.notifier).isFolderIndexed(server.id, folder.path)
-                                ? 'remove_from_media_library'
-                                : 'add_to_media_library',
-                            label: ref.read(remoteScanRootsProvider.notifier).isFolderIndexed(server.id, folder.path)
-                                ? l10n.removeFromMediaLibrary
-                                : l10n.addToMediaLibrary,
-                            icon: ref.read(remoteScanRootsProvider.notifier).isFolderIndexed(server.id, folder.path)
-                                ? Icons.bookmark_remove_rounded
-                                : Icons.library_add_rounded,
-                            iconColor: ref.read(remoteScanRootsProvider.notifier).isFolderIndexed(server.id, folder.path)
-                                ? Colors.orangeAccent
-                                : theme.colorScheme.primary,
-                          ),
-                          if (onOpen != null)
-                            _buildWebDavBottomSheetItem(
-                              context: ctx,
-                              value: 'open',
-                              label: l10n.openFolder,
-                              icon: Icons.folder_open_rounded,
-                            ),
-                          _buildWebDavBottomSheetItem(
-                            context: ctx,
-                            value: 'multi_select',
-                            label: l10n.selectFolders,
-                            icon: Icons.checklist_rounded,
-                          ),
-                          const Divider(height: 1),
-                          _buildWebDavBottomSheetItem(
-                            context: ctx,
-                            value: 'copy_name',
-                            label: l10n.copyFolderName,
-                            icon: Icons.copy_rounded,
-                          ),
-                          _buildWebDavBottomSheetItem(
-                            context: ctx,
-                            value: 'copy_path',
-                            label: l10n.copyFolderPath,
-                            icon: Icons.link_rounded,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
+      header: ActionSheetHeader(
+        title: folder.name,
+        subtitle: folder.path,
+        leading: const ActionSheetSquareIcon(
+          icon: Icons.folder_rounded,
+          color: Colors.amber,
+        ),
+      ),
+      itemsBuilder: (sheetContext) => buildContextMenuSheetItems(
+        sheetContext,
+        _webDavFolderActionGroups(
+          l10n: l10n,
+          theme: theme,
+          isIndexed: isIndexed,
+          onOpen: onOpen,
+          onMultiSelect: onMultiSelect,
         ),
       ),
     );
@@ -1965,36 +1502,8 @@ Future<String?> showWebDavFolderBottomSheet({
   return selected;
 }
 
-Widget _buildWebDavBottomSheetItem({
-  required BuildContext context,
-  required String value,
-  required String label,
-  required IconData icon,
-  bool enabled = true,
-  Color? iconColor,
-}) {
-  final theme = Theme.of(context);
-  return ListTile(
-    leading: Icon(
-      icon,
-      color: enabled
-          ? (iconColor ?? theme.colorScheme.onSurfaceVariant)
-          : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
-    ),
-    title: Text(
-      label,
-      style: theme.textTheme.bodyLarge?.copyWith(
-        color: enabled
-            ? (iconColor ?? theme.colorScheme.onSurface)
-            : theme.colorScheme.onSurface.withValues(alpha: 0.4),
-      ),
-    ),
-    enabled: enabled,
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    onTap: () => Navigator.pop(context, value),
-  );
-}
 
+/// Shows context menu / bottom sheet for a remote WebDAV folder.
 /// Shows context menu / bottom sheet for a remote WebDAV folder.
 Future<void> showWebDavFolderContextMenu({
   required BuildContext context,
@@ -2007,12 +1516,12 @@ Future<void> showWebDavFolderContextMenu({
   void Function(String folderPath)? onMultiSelect,
 }) async {
   final l10n = AppLocalizations.of(context)!;
+  final theme = Theme.of(context);
   final RemoteDirectoryClient client = server.type == RemoteServerType.smb
       ? SmbClient(server: server, password: password)
       : WebDavClient(server: server, password: password);
-  final isMobile = Platform.isAndroid || Platform.isIOS;
 
-  if (isMobile) {
+  if (Platform.isAndroid || Platform.isIOS) {
     await showWebDavFolderBottomSheet(
       context: context,
       ref: ref,
@@ -2025,93 +1534,21 @@ Future<void> showWebDavFolderContextMenu({
     return;
   }
 
-  // Desktop PopupMenu
-  final items = <PopupMenuEntry<String>>[
-    buildContextMenuItem<String>(
-      value: 'play_all',
-      label: l10n.playAll,
-      icon: Icons.play_arrow_rounded,
-      context: context,
-    ),
-    buildContextMenuItem<String>(
-      value: 'shuffle',
-      label: l10n.shufflePlay,
-      icon: Icons.shuffle_rounded,
-      context: context,
-    ),
-    buildContextMenuItem<String>(
-      value: 'play_next',
-      label: l10n.playNext,
-      icon: Icons.queue_play_next_rounded,
-      context: context,
-    ),
-    buildContextMenuItem<String>(
-      value: 'add_to_queue',
-      label: l10n.addToQueue,
-      icon: Icons.queue_music_rounded,
-      context: context,
-    ),
-    buildContextMenuItem<String>(
-      value: 'add_to_playlist',
-      label: l10n.addToPlaylist,
-      icon: Icons.playlist_add_rounded,
-      context: context,
-    ),
-    const PopupMenuDivider(),
-    buildContextMenuItem<String>(
-      value: 'download_folder',
-      label: l10n.downloadAllAudio,
-      icon: Icons.download_rounded,
-      context: context,
-    ),
-    buildContextMenuItem<String>(
-      value: ref.read(remoteScanRootsProvider.notifier).isFolderIndexed(server.id, folder.path)
-          ? 'remove_from_media_library'
-          : 'add_to_media_library',
-      label: ref.read(remoteScanRootsProvider.notifier).isFolderIndexed(server.id, folder.path)
-          ? l10n.removeFromMediaLibrary
-          : l10n.addToMediaLibrary,
-      icon: ref.read(remoteScanRootsProvider.notifier).isFolderIndexed(server.id, folder.path)
-          ? Icons.bookmark_remove_rounded
-          : Icons.library_add_rounded,
-      iconColor: ref.read(remoteScanRootsProvider.notifier).isFolderIndexed(server.id, folder.path)
-          ? Colors.orangeAccent
-          : null,
-      context: context,
-    ),
-    if (onOpen != null)
-      buildContextMenuItem<String>(
-        value: 'open',
-        label: l10n.openFolder,
-        icon: Icons.folder_open_rounded,
-        context: context,
-      ),
-    if (onMultiSelect != null)
-      buildContextMenuItem<String>(
-        value: 'multi_select',
-        label: l10n.selectFolders,
-        icon: Icons.checklist_rounded,
-        context: context,
-      ),
-    const PopupMenuDivider(),
-    buildContextMenuItem<String>(
-      value: 'copy_name',
-      label: l10n.copyFolderName,
-      icon: Icons.copy_rounded,
-      context: context,
-    ),
-    buildContextMenuItem<String>(
-      value: 'copy_path',
-      label: l10n.copyFolderPath,
-      icon: Icons.link_rounded,
-      context: context,
-    ),
-  ];
-
   final selected = await AppContextMenu.show<String>(
     context: context,
     position: globalPosition,
-    items: items,
+    items: buildContextMenuPopupItems(
+      context,
+      _webDavFolderActionGroups(
+        l10n: l10n,
+        theme: theme,
+        isIndexed: ref
+            .read(remoteScanRootsProvider.notifier)
+            .isFolderIndexed(server.id, folder.path),
+        onOpen: onOpen,
+        onMultiSelect: onMultiSelect,
+      ),
+    ),
   );
 
   if (!context.mounted || selected == null) return;
@@ -2132,6 +1569,7 @@ Future<void> showWebDavFolderContextMenu({
     onOpen: onOpen,
   );
 }
+
 
 Future<void> _handleWebDavFolderMenuSelection({
   required String selected,

@@ -201,124 +201,10 @@ class _LibrarySelectionPanelState extends ConsumerState<LibrarySelectionPanel> {
     if (!widget.hideSecondaryActions) {
       final secondaryActions = <Widget>[];
 
-      if (widget.replaceFavoritesWithSongDetails) {
-        if (!widget.hideSongProperties) {
-          secondaryActions.add(
-            _buildSelectionActionButton(
-              context: context,
-              icon: Icons.info_outline_rounded,
-              label: l10n.songProperties,
-              onPressed: widget.selectedSongs.length == 1
-                  ? () => showSongDetailsDialog(
-                        context,
-                        widget.selectedSongs.first,
-                      )
-                  : null,
-            ),
-          );
-        }
-        final canEditTags = !isEmpty &&
-            !isSongSelectionEmpty &&
-            !isRemote &&
-            widget.selectedSongs.any((s) => !RemoteMediaResolver.isRemoteUri(s.path));
-        secondaryActions.add(
-          _buildSelectionActionButton(
-            context: context,
-            icon: Icons.edit_note_rounded,
-            label: l10n.editTagsAction,
-            onPressed: canEditTags
-                ? () async {
-                    if (widget.onEditTags != null) {
-                      widget.onEditTags!();
-                    } else {
-                      final result = await showSongTagEditSheet(
-                        context,
-                        songs: widget.selectedSongs,
-                      );
-                      if (result != null && context.mounted) {
-                        await applySongTagEditResult(context, ref, result);
-                        widget.onCancel();
-                      }
-                    }
-                  }
-                : null,
-          ),
-        );
-        if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
-          secondaryActions.add(
-            _buildSelectionActionButton(
-              context: context,
-              icon: Icons.folder_open_rounded,
-              label: widget.openLocationLabel ?? l10n.openFileLocation,
-              onPressed: canOpenLocation
-                  ? () async {
-                      if (widget.onOpenLocation != null) {
-                        widget.onOpenLocation!();
-                      } else {
-                        await openSongFileLocation(
-                          widget.selectedSongs.first.path,
-                        );
-                      }
-                      widget.onCancel();
-                    }
-                  : null,
-            ),
-          );
-        } else {
-          secondaryActions.add(
-            _buildSelectionActionButton(
-              context: context,
-              icon: Icons.lyrics_outlined,
-              label: l10n.importLyrics,
-              onPressed: isSingleSelected
-                  ? () async {
-                      if (widget.onImportLyrics != null) {
-                        widget.onImportLyrics!();
-                      } else {
-                        await importLyricsForSong(
-                          context,
-                          ref,
-                          widget.selectedSongs.first,
-                        );
-                      }
-                      widget.onCancel();
-                    }
-                  : null,
-            ),
-          );
-        }
-        if (widget.onAddToMediaLibrary != null) {
-          secondaryActions.add(
-            _buildSelectionActionButton(
-              context: context,
-              icon: Icons.library_add_rounded,
-              label: widget.addToMediaLibraryLabel ?? l10n.addToMediaLibrary,
-              onPressed: isEmpty ? null : widget.onAddToMediaLibrary,
-            ),
-          );
-        }
-        if (widget.onDownload != null) {
-          secondaryActions.add(
-            _buildSelectionActionButton(
-              context: context,
-              icon: Icons.download_rounded,
-              label: l10n.downloadSong.contains('下载') ? '下载' : 'Download',
-              onPressed: isEmpty ? null : widget.onDownload,
-            ),
-          );
-        }
-        if (widget.onDelete != null) {
-          secondaryActions.add(
-            _buildSelectionActionButton(
-              context: context,
-              icon: Icons.delete_outline_rounded,
-              label: widget.deleteLabel ?? l10n.delete,
-              onPressed: isEmpty ? null : widget.onDelete,
-              isDestructive: true,
-            ),
-          );
-        }
-      } else {
+      // 两套二次动作的差别只有「收藏 / 云收藏」这两项要不要换成歌曲属性行；
+      // 其后的编辑标签、定位文件（或导入歌词）、收录进媒体库、下载、删除、转码
+      // 完全一致，所以只写一份，避免两边一改一漏。
+      if (!widget.replaceFavoritesWithSongDetails) {
         secondaryActions.add(
           _buildSelectionActionButton(
             context: context,
@@ -327,33 +213,34 @@ class _LibrarySelectionPanelState extends ConsumerState<LibrarySelectionPanel> {
                 (widget.onAddToCloudFavorites != null
                     ? l10n.addToLocalFavorites
                     : l10n.addToFavorites),
-            onPressed: (isEmpty || (widget.onAddToFavorites == null && isSongSelectionEmpty))
-                ? null
-                : () async {
-                    if (widget.onAddToFavorites != null) {
-                      widget.onAddToFavorites!();
-                    } else {
-                      await playlistService.addSongsToPlaylist(
-                        PlaylistService.favoritePlaylistId,
-                        widget.selectedSongs,
-                      );
-                      if (context.mounted) {
-                        AppSnackBar.show(
-                          context,
-                          ref,
-                          SnackBar(
-                            content: Text(
-                              l10n.addedToPlaylist(
-                                widget.selectedSongs.length,
-                                l10n.favorites,
+            onPressed:
+                (isEmpty || (widget.onAddToFavorites == null && isSongSelectionEmpty))
+                    ? null
+                    : () async {
+                        if (widget.onAddToFavorites != null) {
+                          widget.onAddToFavorites!();
+                        } else {
+                          await playlistService.addSongsToPlaylist(
+                            PlaylistService.favoritePlaylistId,
+                            widget.selectedSongs,
+                          );
+                          if (context.mounted) {
+                            AppSnackBar.show(
+                              context,
+                              ref,
+                              SnackBar(
+                                content: Text(
+                                  l10n.addedToPlaylist(
+                                    widget.selectedSongs.length,
+                                    l10n.favorites,
+                                  ),
+                                ),
                               ),
-                            ),
-                          ),
-                        );
-                      }
-                      widget.onCancel();
-                    }
-                  },
+                            );
+                          }
+                          widget.onCancel();
+                        }
+                      },
           ),
         );
         if (widget.onAddToCloudFavorites != null) {
@@ -366,122 +253,122 @@ class _LibrarySelectionPanelState extends ConsumerState<LibrarySelectionPanel> {
             ),
           );
         }
-        if (!widget.hideSongProperties) {
-          secondaryActions.add(
-            _buildSelectionActionButton(
-              context: context,
-              icon: Icons.info_outline_rounded,
-              label: l10n.songProperties,
-              onPressed: isSingleSelected
-                  ? () => showSongDetailsDialog(
-                        context,
-                        widget.selectedSongs.first,
-                      )
-                  : null,
-            ),
-          );
-        }
-        final canEditTags = !isEmpty &&
-            !isSongSelectionEmpty &&
-            !isRemote &&
-            widget.selectedSongs.any((s) => !RemoteMediaResolver.isRemoteUri(s.path));
+      }
+
+      if (!widget.hideSongProperties) {
         secondaryActions.add(
           _buildSelectionActionButton(
             context: context,
-            icon: Icons.edit_note_rounded,
-            label: l10n.editTagsAction,
-            onPressed: canEditTags
-                ? () async {
-                    if (widget.onEditTags != null) {
-                      widget.onEditTags!();
-                    } else {
-                      final result = await showSongTagEditSheet(
-                        context,
-                        songs: widget.selectedSongs,
-                      );
-                      if (result != null && context.mounted) {
-                        await applySongTagEditResult(context, ref, result);
-                        widget.onCancel();
-                      }
-                    }
-                  }
+            icon: Icons.info_outline_rounded,
+            label: l10n.songProperties,
+            onPressed: isSingleSelected
+                ? () => showSongDetailsDialog(
+                      context,
+                      widget.selectedSongs.first,
+                    )
                 : null,
           ),
         );
-        if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
-          secondaryActions.add(
-            _buildSelectionActionButton(
-              context: context,
-              icon: Icons.folder_open_rounded,
-              label: widget.openLocationLabel ?? l10n.openFileLocation,
-              onPressed: canOpenLocation
-                  ? () async {
-                      if (widget.onOpenLocation != null) {
-                        widget.onOpenLocation!();
-                      } else {
-                        await openSongFileLocation(
-                          widget.selectedSongs.first.path,
-                        );
-                      }
+      }
+
+      final canEditTags = !isEmpty &&
+          !isSongSelectionEmpty &&
+          !isRemote &&
+          widget.selectedSongs.any((s) => !RemoteMediaResolver.isRemoteUri(s.path));
+      secondaryActions.add(
+        _buildSelectionActionButton(
+          context: context,
+          icon: Icons.edit_note_rounded,
+          label: l10n.editTagsAction,
+          onPressed: canEditTags
+              ? () async {
+                  if (widget.onEditTags != null) {
+                    widget.onEditTags!();
+                  } else {
+                    final result = await showSongTagEditSheet(
+                      context,
+                      songs: widget.selectedSongs,
+                    );
+                    if (result != null && context.mounted) {
+                      await applySongTagEditResult(context, ref, result);
                       widget.onCancel();
                     }
-                  : null,
-            ),
-          );
-        } else {
-          secondaryActions.add(
-            _buildSelectionActionButton(
-              context: context,
-              icon: Icons.lyrics_outlined,
-              label: l10n.importLyrics,
-              onPressed: isSingleSelected
-                  ? () async {
-                      if (widget.onImportLyrics != null) {
-                        widget.onImportLyrics!();
-                      } else {
-                        await importLyricsForSong(
-                          context,
-                          ref,
-                          widget.selectedSongs.first,
-                        );
+                  }
+                }
+              : null,
+        ),
+      );
+
+      secondaryActions.add(
+        (Platform.isWindows || Platform.isMacOS || Platform.isLinux)
+            ? _buildSelectionActionButton(
+                context: context,
+                icon: Icons.folder_open_rounded,
+                label: widget.openLocationLabel ?? l10n.openFileLocation,
+                onPressed: canOpenLocation
+                    ? () async {
+                        if (widget.onOpenLocation != null) {
+                          widget.onOpenLocation!();
+                        } else {
+                          await openSongFileLocation(
+                            widget.selectedSongs.first.path,
+                          );
+                        }
+                        widget.onCancel();
                       }
-                      widget.onCancel();
-                    }
-                  : null,
-            ),
-          );
-        }
-        if (widget.onAddToMediaLibrary != null) {
-          secondaryActions.add(
-            _buildSelectionActionButton(
-              context: context,
-              icon: Icons.library_add_rounded,
-              label: widget.addToMediaLibraryLabel ?? l10n.addToMediaLibrary,
-              onPressed: isEmpty ? null : widget.onAddToMediaLibrary,
-            ),
-          );
-        }
-        if (widget.onDownload != null) {
-          secondaryActions.add(
-            _buildSelectionActionButton(
-              context: context,
-              icon: Icons.download_rounded,
-              label: l10n.downloadSong.contains('下载') ? '下载' : 'Download',
-              onPressed: isEmpty ? null : widget.onDownload,
-            ),
-          );
-        }
-        if (widget.onDelete != null) {
-          secondaryActions.add(
-            _buildSelectionActionButton(
-              context: context,
-              icon: Icons.delete_outline_rounded,
-              label: widget.deleteLabel ?? l10n.delete,
-              onPressed: isEmpty ? null : widget.onDelete,
-              isDestructive: true,
-            ),
-          );
-        }
+                    : null,
+              )
+            : _buildSelectionActionButton(
+                context: context,
+                icon: Icons.lyrics_outlined,
+                label: l10n.importLyrics,
+                onPressed: isSingleSelected
+                    ? () async {
+                        if (widget.onImportLyrics != null) {
+                          widget.onImportLyrics!();
+                        } else {
+                          await importLyricsForSong(
+                            context,
+                            ref,
+                            widget.selectedSongs.first,
+                          );
+                        }
+                        widget.onCancel();
+                      }
+                    : null,
+              ),
+      );
+
+      if (widget.onAddToMediaLibrary != null) {
+        secondaryActions.add(
+          _buildSelectionActionButton(
+            context: context,
+            icon: Icons.library_add_rounded,
+            label: widget.addToMediaLibraryLabel ?? l10n.addToMediaLibrary,
+            onPressed: isEmpty ? null : widget.onAddToMediaLibrary,
+          ),
+        );
+      }
+      if (widget.onDownload != null) {
+        secondaryActions.add(
+          _buildSelectionActionButton(
+            context: context,
+            icon: Icons.download_rounded,
+            label: l10n.download,
+            onPressed: isEmpty ? null : widget.onDownload,
+          ),
+        );
+      }
+      if (widget.onDelete != null) {
+        secondaryActions.add(
+          _buildSelectionActionButton(
+            context: context,
+            icon: Icons.delete_outline_rounded,
+            label: widget.deleteLabel ?? l10n.delete,
+            onPressed: isEmpty ? null : widget.onDelete,
+            isDestructive: true,
+          ),
+        );
       }
 
       secondaryActions.add(
@@ -504,6 +391,7 @@ class _LibrarySelectionPanelState extends ConsumerState<LibrarySelectionPanel> {
                 },
         ),
       );
+
 
       for (var i = 0; i < secondaryActions.length; i += 4) {
         final chunk = secondaryActions.sublist(

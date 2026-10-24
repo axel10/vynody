@@ -207,7 +207,6 @@ Future<String?> showEntityBottomSheet<T>({
   VoidCallback? onViewDetails,
 }) async {
   final l10n = AppLocalizations.of(context)!;
-  final theme = Theme.of(context);
 
   // 面板本身会读一下选择态，先切到独立作用域，避免把页面上的多选带进面板。
   final previousScope = ref.read(librarySelectionScopeProvider);
@@ -217,87 +216,21 @@ Future<String?> showEntityBottomSheet<T>({
 
   final String? selected;
   try {
-    selected = await AppContextMenu.showModalSheet<String>(
+    selected = await showAppActionSheet<String>(
       context: context,
-      builder: (context) => GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () => Navigator.pop(context),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            child: Align(
-              alignment: Alignment.bottomCenter,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 680),
-                child: GestureDetector(
-                  onTap: () {},
-                  child: Material(
-                    elevation: 16,
-                    color: theme.colorScheme.surface,
-                    shadowColor: Colors.black26,
-                    borderRadius: BorderRadius.circular(24),
-                    clipBehavior: Clip.antiAlias,
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Row(
-                            children: [
-                              spec.cover(context, entity),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      spec.title(l10n, entity),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: theme.textTheme.titleMedium
-                                          ?.copyWith(
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      spec.subtitle(l10n, entity),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: theme.textTheme.bodyMedium
-                                          ?.copyWith(
-                                            color: theme
-                                                .colorScheme
-                                                .onSurfaceVariant,
-                                          ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          const Divider(height: 1),
-                          const SizedBox(height: 8),
-                          ...buildContextMenuSheetItems(
-                            context,
-                            buildEntityMenuActionGroups(
-                              l10n,
-                              spec,
-                              entity,
-                              showViewDetails: true,
-                              showMultiSelect: onMultiSelect != null,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
+      header: ActionSheetHeader(
+        title: spec.title(l10n, entity),
+        subtitle: spec.subtitle(l10n, entity),
+        leading: spec.cover(context, entity),
+      ),
+      itemsBuilder: (sheetContext) => buildContextMenuSheetItems(
+        sheetContext,
+        buildEntityMenuActionGroups(
+          l10n,
+          spec,
+          entity,
+          showViewDetails: true,
+          showMultiSelect: onMultiSelect != null,
         ),
       ),
     );
