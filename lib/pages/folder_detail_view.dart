@@ -23,6 +23,7 @@ import 'package:vynody/utils/song_locator_helper.dart';
 import '../widgets/folder_header_nav_bar.dart';
 import '../widgets/folder_layout_utils.dart';
 import '../widgets/folder_content_slivers.dart';
+import '../widgets/folder_zoom_gesture_layer.dart';
 import '../widgets/playback_ui_tuning.dart';
 import '../widgets/auto_hide_header.dart';
 
@@ -423,7 +424,8 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
         return RefreshIndicator(
           edgeOffset: headerHeight,
           onRefresh: _handleRefresh,
-          child: CustomScrollView(
+          child: FolderZoomGestureLayer(
+            child: CustomScrollView(
         key: PageStorageKey<String>('folder-detail-${folder.path}'),
         controller: _localScrollController,
         physics: const AlwaysScrollableScrollPhysics(
@@ -721,6 +723,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
         ),
       ],
       ),
+          ),
     );
       },
     );

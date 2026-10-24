@@ -33,6 +33,7 @@ import '../../widgets/library_selection_scope.dart';
 import '../../widgets/folder_header_banner.dart';
 import '../../widgets/folder_layout_utils.dart';
 import '../../widgets/folder_content_slivers.dart';
+import '../../widgets/folder_zoom_gesture_layer.dart';
 import '../../widgets/mini_player_wrapper.dart';
 import '../../widgets/song_thumbnail.dart';
 import '../../widgets/default_cover_art.dart';
@@ -1553,7 +1554,7 @@ class _RemoteFolderBrowserPageState
                     _contentCrossAxisExtent = constraints.maxWidth;
                     return NotificationListener<ScrollNotification>(
                       onNotification: _handleScrollNotification,
-                      child: mainContent,
+                      child: FolderZoomGestureLayer(child: mainContent),
                     );
                   },
                 ),

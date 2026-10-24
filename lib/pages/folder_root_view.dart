@@ -20,6 +20,7 @@ import 'package:vynody/utils/song_context_menu_utils.dart';
 import 'package:vynody/utils/folder_helpers.dart';
 import '../widgets/folder_header_nav_bar.dart';
 import '../widgets/folder_content_slivers.dart';
+import '../widgets/folder_zoom_gesture_layer.dart';
 import '../widgets/remote_server_slivers.dart';
 import '../dialogs/add_edit_remote_server_dialog.dart';
 import '../utils/selection_utils.dart';
@@ -364,7 +365,8 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
         return RefreshIndicator(
           edgeOffset: headerHeight,
           onRefresh: _handleRefresh,
-          child: CustomScrollView(
+          child: FolderZoomGestureLayer(
+            child: CustomScrollView(
         key: const PageStorageKey<String>('root_folders_scroll_view'),
         controller: _localScrollController,
         physics: const AlwaysScrollableScrollPhysics(
@@ -598,6 +600,7 @@ class _FolderRootViewState extends ConsumerState<FolderRootView> {
         ],
       ],
       ),
+          ),
     );
       },
     );

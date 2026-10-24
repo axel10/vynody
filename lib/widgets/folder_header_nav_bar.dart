@@ -274,6 +274,27 @@ class _FolderZoomPopoverCard extends ConsumerWidget {
                     ),
                   ],
                 ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.mouse_rounded,
+                      size: 13,
+                      color: theme.colorScheme.onSurfaceVariant
+                          .withValues(alpha: 0.75),
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'Ctrl + 滚轮，或双指捏合，可逐档调节',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant
+                              .withValues(alpha: 0.75),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
