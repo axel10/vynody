@@ -4,7 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/app_localizations.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
+import 'package:vynody/player/audio/playback_source.dart';
 import 'package:vynody/player/library/year_library.dart';
+import '../dialogs/sort_options_dialog.dart';
+import '../widgets/library_category_header.dart';
 import 'year_detail_page.dart';
 import '../widgets/master_detail_scaffold.dart';
 import '../widgets/library_selection_scope.dart';
@@ -91,6 +94,61 @@ class _YearsTabState extends ConsumerState<YearsTab>
     });
 
     return filtered;
+  }
+
+  void _playAllVisible(List<YearSummary> visibleYears, {bool shuffle = false}) {
+    final songs = <MusicFile>[];
+    final seen = <String>{};
+    for (final year in visibleYears) {
+      for (final song in year.songs) {
+        if (seen.add(song.path)) {
+          songs.add(song);
+        }
+      }
+    }
+    if (songs.isEmpty) return;
+    final l10n = AppLocalizations.of(context)!;
+    final playlist = shuffle ? (List<MusicFile>.of(songs)..shuffle()) : songs;
+    ref.read(audioServiceProvider).playPlaylist(
+      playlist,
+      source: PlaybackSource(
+        type: PlaybackSourceType.year,
+        id: shuffle ? 'all_years_shuffled' : 'all_years',
+        name: l10n.years,
+      ),
+    );
+  }
+
+  Future<void> _openSortDialog(BuildContext context, AppLocalizations l10n) async {
+    final result = await showDialog<SortResult<YearSortField>>(
+      context: context,
+      builder: (context) => SortOptionsDialog<YearSortField>(
+        title: l10n.years,
+        currentField: _sortField,
+        sortAscending: _sortAscending,
+        options: [
+          SortOptionItem(
+            value: YearSortField.year,
+            label: l10n.years,
+            icon: Icons.calendar_month_rounded,
+          ),
+          SortOptionItem(
+            value: YearSortField.songCount,
+            label: l10n.sortTrackCount,
+            icon: Icons.format_list_numbered_rounded,
+          ),
+        ],
+      ),
+    );
+    if (result != null) {
+      setState(() {
+        _sortField = result.field;
+        _sortAscending = result.sortAscending;
+      });
+      final settings = ref.read(settingsServiceProvider);
+      settings.yearSortField = result.field;
+      settings.yearSortAscending = result.sortAscending;
+    }
   }
 
   @override
@@ -230,14 +288,13 @@ class _YearsTabState extends ConsumerState<YearsTab>
           hasPlayingMusic: currentMusic != null,
           isSelectionMode: isSelectionMode || (isLandscape && isSongSelectionMode),
           selectionPanel: selectionPanel,
-          masterToolbarBuilder: (context, isWide) => _YearsToolbar(
+          masterToolbarBuilder: (context, isWide) => LibraryCategoryHeader(
+            title: yearsLabel,
+            countLabel: '${visibleYears.length} $yearsLabel',
+            isWide: isWide,
             searchController: _searchController,
             searchQuery: _searchQuery,
-            sortField: _sortField,
-            sortAscending: _sortAscending,
-            yearCount: visibleYears.length,
-            yearsLabel: yearsLabel,
-            isWide: isWide,
+            searchHintText: l10n.search,
             onSearchChanged: (value) {
               setState(() {
                 _searchQuery = value.trim();
@@ -249,15 +306,9 @@ class _YearsTabState extends ConsumerState<YearsTab>
                 _searchQuery = '';
               });
             },
-            onSortChanged: (field, sortAscending) {
-              setState(() {
-                _sortField = field;
-                _sortAscending = sortAscending;
-              });
-              final settings = ref.read(settingsServiceProvider);
-              settings.yearSortField = field;
-              settings.yearSortAscending = sortAscending;
-            },
+            onPlayAll: () => _playAllVisible(visibleYears, shuffle: false),
+            onShufflePlay: () => _playAllVisible(visibleYears, shuffle: true),
+            onSortPressed: () => _openSortDialog(context, l10n),
           ),
           masterItemBuilder: (context, year, index, isSelected, isWide, onTap) {
             final isItemSelection = this.isSelected(year.queryKey);
@@ -453,109 +504,4 @@ class _YearListItem extends ConsumerWidget {
   }
 }
 
-class _YearsToolbar extends StatelessWidget {
-  const _YearsToolbar({
-    required this.searchController,
-    required this.searchQuery,
-    required this.sortField,
-    required this.sortAscending,
-    required this.yearCount,
-    required this.yearsLabel,
-    required this.isWide,
-    required this.onSearchChanged,
-    required this.onSearchCleared,
-    required this.onSortChanged,
-  });
 
-  final TextEditingController searchController;
-  final String searchQuery;
-  final YearSortField sortField;
-  final bool sortAscending;
-  final int yearCount;
-  final String yearsLabel;
-  final bool isWide;
-  final ValueChanged<String> onSearchChanged;
-  final VoidCallback onSearchCleared;
-  final void Function(YearSortField field, bool ascending) onSortChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final l10n = AppLocalizations.of(context)!;
-
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-        isWide ? 12 : 16,
-        8,
-        isWide ? 12 : 16,
-        8,
-      ),
-      child: Row(
-        children: [
-          Text(
-            '$yearsLabel ($yearCount)',
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const Spacer(),
-          SizedBox(
-            width: isWide ? 180 : 130,
-            height: 36,
-            child: TextField(
-              controller: searchController,
-              onChanged: onSearchChanged,
-              decoration: InputDecoration(
-                hintText: l10n.search,
-                isDense: true,
-                filled: true,
-                fillColor:
-                    theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                prefixIcon: const Icon(Icons.search, size: 18),
-                suffixIcon: searchQuery.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear, size: 16),
-                        onPressed: onSearchCleared,
-                      )
-                    : null,
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(18),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          IconButton(
-            icon: Icon(
-              sortAscending
-                  ? Icons.arrow_upward_rounded
-                  : Icons.arrow_downward_rounded,
-              size: 20,
-            ),
-            tooltip: sortAscending ? l10n.ascending : l10n.descending,
-            onPressed: () => onSortChanged(sortField, !sortAscending),
-          ),
-          PopupMenuButton<YearSortField>(
-            icon: const Icon(Icons.sort_rounded, size: 20),
-            tooltip: l10n.sort,
-            initialValue: sortField,
-            onSelected: (field) => onSortChanged(field, sortAscending),
-            itemBuilder: (context) => [
-              PopupMenuItem(
-                value: YearSortField.year,
-                child: Text(l10n.years),
-              ),
-              PopupMenuItem(
-                value: YearSortField.songCount,
-                child: Text(l10n.sortTrackCount),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}

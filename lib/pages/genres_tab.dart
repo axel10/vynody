@@ -4,7 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/app_localizations.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
+import 'package:vynody/player/audio/playback_source.dart';
 import 'package:vynody/player/library/genre_library.dart';
+import '../dialogs/sort_options_dialog.dart';
+import '../widgets/library_category_header.dart';
 import 'genre_detail_page.dart';
 import '../widgets/master_detail_scaffold.dart';
 import '../widgets/library_selection_scope.dart';
@@ -83,6 +86,61 @@ class _GenresTabState extends ConsumerState<GenresTab>
     });
 
     return filtered;
+  }
+
+  void _playAllVisible(List<GenreSummary> visibleGenres, {bool shuffle = false}) {
+    final songs = <MusicFile>[];
+    final seen = <String>{};
+    for (final genre in visibleGenres) {
+      for (final song in genre.songs) {
+        if (seen.add(song.path)) {
+          songs.add(song);
+        }
+      }
+    }
+    if (songs.isEmpty) return;
+    final l10n = AppLocalizations.of(context)!;
+    final playlist = shuffle ? (List<MusicFile>.of(songs)..shuffle()) : songs;
+    ref.read(audioServiceProvider).playPlaylist(
+      playlist,
+      source: PlaybackSource(
+        type: PlaybackSourceType.genre,
+        id: shuffle ? 'all_genres_shuffled' : 'all_genres',
+        name: l10n.genres,
+      ),
+    );
+  }
+
+  Future<void> _openSortDialog(BuildContext context, AppLocalizations l10n) async {
+    final result = await showDialog<SortResult<GenreSortField>>(
+      context: context,
+      builder: (context) => SortOptionsDialog<GenreSortField>(
+        title: l10n.genres,
+        currentField: _sortField,
+        sortAscending: _sortAscending,
+        options: [
+          SortOptionItem(
+            value: GenreSortField.genre,
+            label: l10n.genres,
+            icon: Icons.style_rounded,
+          ),
+          SortOptionItem(
+            value: GenreSortField.songCount,
+            label: l10n.sortTrackCount,
+            icon: Icons.format_list_numbered_rounded,
+          ),
+        ],
+      ),
+    );
+    if (result != null) {
+      setState(() {
+        _sortField = result.field;
+        _sortAscending = result.sortAscending;
+      });
+      final settings = ref.read(settingsServiceProvider);
+      settings.genreSortField = result.field;
+      settings.genreSortAscending = result.sortAscending;
+    }
   }
 
   @override
@@ -215,14 +273,13 @@ class _GenresTabState extends ConsumerState<GenresTab>
           hasPlayingMusic: currentMusic != null,
           isSelectionMode: isSelectionMode || (isLandscape && isSongSelectionMode),
           selectionPanel: selectionPanel,
-          masterToolbarBuilder: (context, isWide) => _GenresToolbar(
+          masterToolbarBuilder: (context, isWide) => LibraryCategoryHeader(
+            title: genresLabel,
+            countLabel: '${visibleGenres.length} $genresLabel',
+            isWide: isWide,
             searchController: _searchController,
             searchQuery: _searchQuery,
-            sortField: _sortField,
-            sortAscending: _sortAscending,
-            genreCount: visibleGenres.length,
-            genresLabel: genresLabel,
-            isWide: isWide,
+            searchHintText: l10n.search,
             onSearchChanged: (value) {
               setState(() {
                 _searchQuery = value.trim();
@@ -234,15 +291,9 @@ class _GenresTabState extends ConsumerState<GenresTab>
                 _searchQuery = '';
               });
             },
-            onSortChanged: (field, sortAscending) {
-              setState(() {
-                _sortField = field;
-                _sortAscending = sortAscending;
-              });
-              final settings = ref.read(settingsServiceProvider);
-              settings.genreSortField = field;
-              settings.genreSortAscending = sortAscending;
-            },
+            onPlayAll: () => _playAllVisible(visibleGenres, shuffle: false),
+            onShufflePlay: () => _playAllVisible(visibleGenres, shuffle: true),
+            onSortPressed: () => _openSortDialog(context, l10n),
           ),
           masterItemBuilder: (context, genre, index, isSelected, isWide, onTap) {
             final isItemSelection = this.isSelected(genre.queryKey);
@@ -446,105 +497,4 @@ class _GenreListItem extends ConsumerWidget {
   }
 }
 
-class _GenresToolbar extends StatelessWidget {
-  const _GenresToolbar({
-    required this.searchController,
-    required this.searchQuery,
-    required this.sortField,
-    required this.sortAscending,
-    required this.genreCount,
-    required this.genresLabel,
-    required this.isWide,
-    required this.onSearchChanged,
-    required this.onSearchCleared,
-    required this.onSortChanged,
-  });
 
-  final TextEditingController searchController;
-  final String searchQuery;
-  final GenreSortField sortField;
-  final bool sortAscending;
-  final int genreCount;
-  final String genresLabel;
-  final bool isWide;
-  final ValueChanged<String> onSearchChanged;
-  final VoidCallback onSearchCleared;
-  final void Function(GenreSortField field, bool ascending) onSortChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final l10n = AppLocalizations.of(context)!;
-
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-        isWide ? 12 : 16,
-        8,
-        isWide ? 12 : 16,
-        8,
-      ),
-      child: Row(
-        children: [
-          Text(
-            '$genresLabel ($genreCount)',
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const Spacer(),
-          SizedBox(
-            width: isWide ? 180 : 130,
-            height: 36,
-            child: TextField(
-              controller: searchController,
-              onChanged: onSearchChanged,
-              decoration: InputDecoration(
-                hintText: l10n.search,
-                isDense: true,
-                filled: true,
-                fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                prefixIcon: const Icon(Icons.search, size: 18),
-                suffixIcon: searchQuery.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear, size: 16),
-                        onPressed: onSearchCleared,
-                      )
-                    : null,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(18),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          IconButton(
-            icon: Icon(
-              sortAscending ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
-              size: 20,
-            ),
-            tooltip: sortAscending ? l10n.ascending : l10n.descending,
-            onPressed: () => onSortChanged(sortField, !sortAscending),
-          ),
-          PopupMenuButton<GenreSortField>(
-            icon: const Icon(Icons.sort_rounded, size: 20),
-            tooltip: l10n.sort,
-            initialValue: sortField,
-            onSelected: (field) => onSortChanged(field, sortAscending),
-            itemBuilder: (context) => [
-              PopupMenuItem(
-                value: GenreSortField.genre,
-                child: Text(l10n.genres),
-              ),
-              PopupMenuItem(
-                value: GenreSortField.songCount,
-                child: Text(l10n.sortTrackCount),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}

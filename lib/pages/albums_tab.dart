@@ -20,14 +20,13 @@ import '../widgets/library_selection_scope.dart';
 import '../widgets/library_selection_panel.dart';
 import '../models/music_file.dart';
 import '../dialogs/sort_options_dialog.dart';
-import '../dialogs/library_source_filter_dialog.dart';
-import 'package:vynody/player/library/library_source_filter.dart';
 import 'package:vynody/player/settings/settings_service.dart';
 import 'main_layout_riverpod.dart';
 import '../utils/app_log.dart';
 import '../widgets/draggable_album_item.dart';
 import '../widgets/album_context_menu.dart';
 import '../widgets/playback_ui_tuning.dart';
+import '../widgets/library_category_header.dart';
 
 class AlbumsTab extends ConsumerStatefulWidget {
   const AlbumsTab({
@@ -222,14 +221,13 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab>
                         selectionPanelHeight: selectionPanelHeight,
                       );
 
-                final toolbar = _AlbumsToolbar(
+                final toolbar = LibraryCategoryHeader(
+                  title: l10n.albums,
+                  countLabel: l10n.albumCount(visibleAlbums.length),
+                  isWide: isWide,
                   searchController: _searchController,
                   searchQuery: _searchQuery,
-                  sortField: _sortField,
-                  sortAscending: _sortAscending,
-                  albumCount: visibleAlbums.length,
-                  isWide: isWide,
-                  is3DView: _is3DView,
+                  searchHintText: l10n.searchAlbums,
                   onSearchChanged: (value) {
                     setState(() {
                       _searchQuery = value.trim();
@@ -241,24 +239,32 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab>
                       _searchQuery = '';
                     });
                   },
-                  onSortChanged: (field, sortAscending) {
-                    setState(() {
-                      _sortField = field;
-                      _sortAscending = sortAscending;
-                      _isShuffledMode = false;
-                      _shuffledAlbums = null;
-                    });
-                    final settings = ref.read(settingsServiceProvider);
-                    settings.albumSortField = field;
-                    settings.albumSortAscending = sortAscending;
-                  },
-                  onViewModeToggled: () {
-                    setState(() {
-                      _is3DView = !_is3DView;
-                    });
-                    ref.read(isAlbum3DViewActiveProvider.notifier).set(_is3DView);
-                  },
-                  onShufflePressed: () => _onShufflePressed(albums),
+                  onPlayAll: () => _playAllVisible(visibleAlbums, shuffle: false),
+                  onShufflePlay: () => _playAllVisible(visibleAlbums, shuffle: true),
+                  onSortPressed: () => _openSortDialog(context, l10n),
+                  extraActions: [
+                    if (_is3DView)
+                      IconButton(
+                        tooltip: l10n.shuffleAlbumOrder,
+                        onPressed: () => _onShufflePressed(albums),
+                        icon: const Icon(Icons.shuffle_rounded),
+                      ),
+                    if (!_is3DView) const LibraryZoomButton(scope: LibraryZoomScope.album),
+                    IconButton(
+                      tooltip: _is3DView ? l10n.gridView : l10n.threeDView,
+                      onPressed: () {
+                        setState(() {
+                          _is3DView = !_is3DView;
+                        });
+                        ref.read(isAlbum3DViewActiveProvider.notifier).set(_is3DView);
+                      },
+                      icon: Icon(
+                        _is3DView ? Icons.grid_view_rounded : Icons.view_carousel_rounded,
+                      ),
+                    ),
+                  ],
+                  backgroundColor: _is3DView ? Colors.transparent : null,
+                  hasBorder: !_is3DView,
                 );
 
                 final Widget mainContent = AnimatedSwitcher(
@@ -270,7 +276,7 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab>
                       fit: StackFit.expand,
                       children: [
                         ...previousChildren,
-                        if (currentChild != null) currentChild,
+                        ?currentChild,
                       ],
                     );
                   },
@@ -500,6 +506,78 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab>
             );
   }
 
+  void _playAllVisible(List<AlbumSummary> visibleAlbums, {bool shuffle = false}) {
+    final songs = <MusicFile>[];
+    final seen = <String>{};
+    for (final album in visibleAlbums) {
+      for (final song in album.songs) {
+        if (seen.add(song.path)) {
+          songs.add(song);
+        }
+      }
+    }
+    if (songs.isEmpty) return;
+    final l10n = AppLocalizations.of(context)!;
+    final playlist = shuffle ? (List<MusicFile>.of(songs)..shuffle()) : songs;
+    ref.read(audioServiceProvider).playPlaylist(
+      playlist,
+      source: PlaybackSource(
+        type: PlaybackSourceType.album,
+        id: shuffle ? 'all_albums_shuffled' : 'all_albums',
+        name: l10n.albums,
+      ),
+    );
+  }
+
+  Future<void> _openSortDialog(BuildContext context, AppLocalizations l10n) async {
+    final result = await showDialog<SortResult<AlbumSortField>>(
+      context: context,
+      builder: (context) => SortOptionsDialog<AlbumSortField>(
+        title: l10n.albumSort,
+        currentField: _sortField,
+        sortAscending: _sortAscending,
+        options: [
+          SortOptionItem(
+            value: AlbumSortField.artist,
+            label: l10n.sortArtistAsc,
+            icon: Icons.mic_rounded,
+          ),
+          SortOptionItem(
+            value: AlbumSortField.title,
+            label: l10n.sortTitleAsc,
+            icon: Icons.album_rounded,
+          ),
+          SortOptionItem(
+            value: AlbumSortField.trackCount,
+            label: l10n.sortTrackCount,
+            icon: Icons.format_list_numbered_rounded,
+          ),
+          SortOptionItem(
+            value: AlbumSortField.duration,
+            label: l10n.sortDuration,
+            icon: Icons.access_time_rounded,
+          ),
+          SortOptionItem(
+            value: AlbumSortField.recentAdded,
+            label: l10n.sortRecentAdded,
+            icon: Icons.add_circle_outline_rounded,
+          ),
+        ],
+      ),
+    );
+    if (result != null) {
+      setState(() {
+        _sortField = result.field;
+        _sortAscending = result.sortAscending;
+        _isShuffledMode = false;
+        _shuffledAlbums = null;
+      });
+      final settings = ref.read(settingsServiceProvider);
+      settings.albumSortField = result.field;
+      settings.albumSortAscending = result.sortAscending;
+    }
+  }
+
   void _onShufflePressed(List<AlbumSummary> albums) {
     final coverFlowState = _coverFlowKey.currentState;
     void doShuffle() {
@@ -679,213 +757,4 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab>
   }
 }
 
-class _AlbumsToolbar extends ConsumerWidget {
-  const _AlbumsToolbar({
-    required this.searchController,
-    required this.searchQuery,
-    required this.sortField,
-    required this.sortAscending,
-    required this.albumCount,
-    required this.isWide,
-    required this.is3DView,
-    required this.onSearchChanged,
-    required this.onSearchCleared,
-    required this.onSortChanged,
-    required this.onViewModeToggled,
-    this.onShufflePressed,
-  });
-
-  final TextEditingController searchController;
-  final String searchQuery;
-  final AlbumSortField sortField;
-  final bool sortAscending;
-  final int albumCount;
-  final bool isWide;
-  final bool is3DView;
-  final ValueChanged<String> onSearchChanged;
-  final VoidCallback onSearchCleared;
-  final void Function(AlbumSortField field, bool sortAscending) onSortChanged;
-  final VoidCallback onViewModeToggled;
-  final VoidCallback? onShufflePressed;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
-    final isZh = Localizations.localeOf(context).languageCode == 'zh';
-    final currentFilter = ref.watch(librarySourceFilterProvider);
-    final isFiltered = currentFilter.type != LibrarySourceType.all;
-
-    final titleBlock = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          l10n.albums,
-          style: theme.textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          l10n.albumCount(albumCount),
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-      ],
-    );
-
-    final searchField = TextField(
-      controller: searchController,
-      onChanged: onSearchChanged,
-      decoration: InputDecoration(
-        hintText: l10n.searchAlbums,
-        hintStyle: TextStyle(
-          color: theme.colorScheme.onSecondaryContainer.withValues(alpha: 0.6),
-        ),
-        prefixIcon: Icon(
-          Icons.search,
-          color: theme.colorScheme.onSecondaryContainer.withValues(alpha: 0.8),
-        ),
-        suffixIcon: searchQuery.isEmpty
-            ? null
-            : IconButton(
-                onPressed: onSearchCleared,
-                icon: Icon(
-                  Icons.close,
-                  color: theme.colorScheme.onSecondaryContainer.withValues(alpha: 0.8),
-                  size: 18,
-                ),
-              ),
-        filled: true,
-        fillColor: theme.colorScheme.secondaryContainer.withValues(alpha: 0.45),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide.none,
-        ),
-        isDense: true,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      ),
-      style: TextStyle(
-        color: theme.colorScheme.onSecondaryContainer,
-        fontSize: 14,
-      ),
-    );
-
-    final sortControls = Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: [
-        IconButton(
-          tooltip: isZh ? '渠道与来源筛选' : 'Filter by Source',
-          onPressed: () => showLibrarySourceFilterDialog(context),
-          icon: Badge(
-            isLabelVisible: isFiltered,
-            smallSize: 8,
-            child: Icon(
-              Icons.tune_rounded,
-              color: isFiltered ? theme.colorScheme.primary : null,
-            ),
-          ),
-        ),
-        if (is3DView)
-          IconButton(
-            tooltip: l10n.shuffleAlbumOrder,
-            onPressed: onShufflePressed,
-            icon: const Icon(Icons.shuffle_rounded),
-          ),
-        // 档位只作用于网格视图；3D cover flow 是独立模式，不跟着缩放。
-        if (!is3DView) const LibraryZoomButton(scope: LibraryZoomScope.album),
-        IconButton(
-          tooltip: is3DView ? l10n.gridView : l10n.threeDView,
-          onPressed: onViewModeToggled,
-          icon: Icon(
-            is3DView ? Icons.grid_view_rounded : Icons.view_carousel_rounded,
-          ),
-        ),
-        IconButton(
-          tooltip: l10n.albumSort,
-          onPressed: () async {
-            final result = await showDialog<SortResult<AlbumSortField>>(
-              context: context,
-              builder: (context) => SortOptionsDialog<AlbumSortField>(
-                title: l10n.albumSort,
-                currentField: sortField,
-                sortAscending: sortAscending,
-                options: [
-                  SortOptionItem(
-                    value: AlbumSortField.artist,
-                    label: l10n.sortArtistAsc,
-                    icon: Icons.mic_rounded,
-                  ),
-                  SortOptionItem(
-                    value: AlbumSortField.title,
-                    label: l10n.sortTitleAsc,
-                    icon: Icons.album_rounded,
-                  ),
-                  SortOptionItem(
-                    value: AlbumSortField.trackCount,
-                    label: l10n.sortTrackCount,
-                    icon: Icons.format_list_numbered_rounded,
-                  ),
-                  SortOptionItem(
-                    value: AlbumSortField.duration,
-                    label: l10n.sortDuration,
-                    icon: Icons.access_time_rounded,
-                  ),
-                  SortOptionItem(
-                    value: AlbumSortField.recentAdded,
-                    label: l10n.sortRecentAdded,
-                    icon: Icons.add_circle_outline_rounded,
-                  ),
-                ],
-              ),
-            );
-            if (result != null) {
-              onSortChanged(result.field, result.sortAscending);
-            }
-          },
-          icon: const Icon(Icons.sort_rounded),
-        ),
-      ],
-    );
-
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-      decoration: BoxDecoration(
-        color: is3DView ? Colors.transparent : theme.colorScheme.surface,
-        border: is3DView
-            ? null
-            : Border(
-                bottom: BorderSide(
-                  color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
-                ),
-              ),
-      ),
-      child: isWide
-          ? Row(
-              children: [
-                Expanded(flex: 3, child: titleBlock),
-                Expanded(flex: 5, child: searchField),
-                const SizedBox(width: 12),
-                sortControls,
-              ],
-            )
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(child: titleBlock),
-                    sortControls,
-                  ],
-                ),
-                const SizedBox(height: 12),
-                searchField,
-              ],
-            ),
-    );
-  }
-}
 

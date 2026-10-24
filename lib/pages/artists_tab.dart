@@ -9,6 +9,7 @@ import '../l10n/app_localizations.dart';
 import 'package:vynody/models/artist_summary.dart';
 import 'package:vynody/player/library/artist_library.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
+import 'package:vynody/player/audio/playback_source.dart';
 import 'package:vynody/player/metadata/theaudiodb_artist_service.dart';
 import 'artist_detail_page.dart';
 import '../widgets/artist_avatar.dart';
@@ -22,9 +23,8 @@ import '../widgets/library_selection_scope.dart';
 import '../widgets/library_selection_panel.dart';
 import '../models/music_file.dart';
 import '../dialogs/sort_options_dialog.dart';
-import '../dialogs/library_source_filter_dialog.dart';
-import 'package:vynody/player/library/library_source_filter.dart';
 import 'package:vynody/player/settings/settings_service.dart';
+import '../widgets/library_category_header.dart';
 import '../widgets/artist_context_menu.dart';
 import '../widgets/master_detail_scaffold.dart';
 import 'main_layout_riverpod.dart';
@@ -321,14 +321,13 @@ class _ArtistsTabState extends ConsumerState<ArtistsTab>
               SliverToBoxAdapter(child: SizedBox(height: bottomOffset)),
             ];
           },
-          masterToolbarBuilder: (context, isWide) => _ArtistsToolbar(
+          masterToolbarBuilder: (context, isWide) => LibraryCategoryHeader(
+            title: artistsLabel,
+            countLabel: '${visibleArtists.length} $artistsLabel',
+            isWide: isWide,
             searchController: _searchController,
             searchQuery: _searchQuery,
-            sortField: _sortField,
-            sortAscending: _sortAscending,
-            artistCount: visibleArtists.length,
-            artistsLabel: artistsLabel,
-            isWide: isWide,
+            searchHintText: l10n.searchArtists,
             onSearchChanged: (value) {
               setState(() {
                 _searchQuery = value.trim();
@@ -340,15 +339,12 @@ class _ArtistsTabState extends ConsumerState<ArtistsTab>
                 _searchQuery = '';
               });
             },
-            onSortChanged: (field, sortAscending) {
-              setState(() {
-                _sortField = field;
-                _sortAscending = sortAscending;
-              });
-              final settings = ref.read(settingsServiceProvider);
-              settings.artistSortField = field;
-              settings.artistSortAscending = sortAscending;
-            },
+            onPlayAll: () => _playAllVisible(visibleArtists, shuffle: false),
+            onShufflePlay: () => _playAllVisible(visibleArtists, shuffle: true),
+            onSortPressed: () => _openSortDialog(context, l10n),
+            extraActions: [
+              if (!isWide) const LibraryZoomButton(scope: LibraryZoomScope.artist),
+            ],
           ),
           masterItemBuilder: (context, artist, index, isSelected, isWide, onTap) {
             final isItemSelection = this.isSelected(artist.queryKey);
@@ -443,6 +439,61 @@ class _ArtistsTabState extends ConsumerState<ArtistsTab>
     });
 
     return filtered;
+  }
+
+  void _playAllVisible(List<ArtistSummary> visibleArtists, {bool shuffle = false}) {
+    final songs = <MusicFile>[];
+    final seen = <String>{};
+    for (final artist in visibleArtists) {
+      for (final song in artist.songs) {
+        if (seen.add(song.path)) {
+          songs.add(song);
+        }
+      }
+    }
+    if (songs.isEmpty) return;
+    final l10n = AppLocalizations.of(context)!;
+    final playlist = shuffle ? (List<MusicFile>.of(songs)..shuffle()) : songs;
+    ref.read(audioServiceProvider).playPlaylist(
+      playlist,
+      source: PlaybackSource(
+        type: PlaybackSourceType.artist,
+        id: shuffle ? 'all_artists_shuffled' : 'all_artists',
+        name: l10n.artists,
+      ),
+    );
+  }
+
+  Future<void> _openSortDialog(BuildContext context, AppLocalizations l10n) async {
+    final result = await showDialog<SortResult<ArtistSortField>>(
+      context: context,
+      builder: (context) => SortOptionsDialog<ArtistSortField>(
+        title: l10n.artists,
+        currentField: _sortField,
+        sortAscending: _sortAscending,
+        options: [
+          SortOptionItem(
+            value: ArtistSortField.artist,
+            label: l10n.sortArtistAsc,
+            icon: Icons.mic_rounded,
+          ),
+          SortOptionItem(
+            value: ArtistSortField.songCount,
+            label: l10n.sortTrackCount,
+            icon: Icons.format_list_numbered_rounded,
+          ),
+        ],
+      ),
+    );
+    if (result != null) {
+      setState(() {
+        _sortField = result.field;
+        _sortAscending = result.sortAscending;
+      });
+      final settings = ref.read(settingsServiceProvider);
+      settings.artistSortField = result.field;
+      settings.artistSortAscending = result.sortAscending;
+    }
   }
 }
 
@@ -723,208 +774,6 @@ class _ArtistDetailPane extends StatelessWidget {
   }
 }
 
-class _ArtistsToolbar extends ConsumerWidget {
-  const _ArtistsToolbar({
-    required this.searchController,
-    required this.searchQuery,
-    required this.sortField,
-    required this.sortAscending,
-    required this.artistCount,
-    required this.artistsLabel,
-    required this.isWide,
-    required this.onSearchChanged,
-    required this.onSearchCleared,
-    required this.onSortChanged,
-  });
 
-  final TextEditingController searchController;
-  final String searchQuery;
-  final ArtistSortField sortField;
-  final bool sortAscending;
-  final int artistCount;
-  final String artistsLabel;
-  final bool isWide;
-  final ValueChanged<String> onSearchChanged;
-  final VoidCallback onSearchCleared;
-  final void Function(ArtistSortField field, bool sortAscending) onSortChanged;
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
-    final searchArtistsLabel = l10n.searchArtists;
-    final artistCountLabel = '$artistCount $artistsLabel';
-    final isZh = Localizations.localeOf(context).languageCode == 'zh';
-    final currentFilter = ref.watch(librarySourceFilterProvider);
-    final isFiltered = currentFilter.type != LibrarySourceType.all;
 
-    final sortControls = Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (!isWide)
-          const LibraryZoomButton(scope: LibraryZoomScope.artist),
-        IconButton(
-          tooltip: isZh ? '渠道与来源筛选' : 'Filter by Source',
-          onPressed: () => showLibrarySourceFilterDialog(context),
-          icon: Badge(
-            isLabelVisible: isFiltered,
-            smallSize: 8,
-            child: Icon(
-              Icons.tune_rounded,
-              color: isFiltered ? theme.colorScheme.primary : null,
-            ),
-          ),
-        ),
-        IconButton(
-          tooltip: l10n.albumSort,
-          onPressed: () async {
-            final result = await showDialog<SortResult<ArtistSortField>>(
-              context: context,
-              builder: (context) => SortOptionsDialog<ArtistSortField>(
-                title: l10n.albumSort,
-                currentField: sortField,
-                sortAscending: sortAscending,
-                options: [
-                  SortOptionItem(
-                    value: ArtistSortField.artist,
-                    label: l10n.sortArtistAsc,
-                    icon: Icons.mic_rounded,
-                  ),
-                  SortOptionItem(
-                    value: ArtistSortField.songCount,
-                    label: l10n.sortTrackCount,
-                    icon: Icons.format_list_numbered_rounded,
-                  ),
-                ],
-              ),
-            );
-            if (result != null) {
-              onSortChanged(result.field, result.sortAscending);
-            }
-          },
-          icon: const Icon(Icons.sort_rounded),
-        ),
-      ],
-    );
-
-    Widget buildTextField() {
-      return SizedBox(
-        height: 36,
-        child: TextField(
-          controller: searchController,
-          onChanged: onSearchChanged,
-          decoration: InputDecoration(
-            hintText: searchArtistsLabel,
-            hintStyle: TextStyle(
-              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.65),
-              fontSize: 13,
-            ),
-            prefixIcon: Icon(
-              Icons.search,
-              size: 18,
-              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-            ),
-            suffixIcon: searchQuery.isEmpty
-                ? null
-                : IconButton(
-                    onPressed: onSearchCleared,
-                    icon: Icon(
-                      Icons.close,
-                      color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-                      size: 16,
-                    ),
-                  ),
-            filled: true,
-            fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide.none,
-            ),
-            isDense: true,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          ),
-          style: TextStyle(
-            color: theme.colorScheme.onSurface,
-            fontSize: 13,
-          ),
-        ),
-      );
-    }
-
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        border: Border(
-          bottom: BorderSide(
-            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2),
-          ),
-        ),
-      ),
-      child: isWide
-          ? Row(
-              children: [
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.baseline,
-                  textBaseline: TextBaseline.alphabetic,
-                  children: [
-                    Text(
-                      artistsLabel,
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      artistCountLabel,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-                const Spacer(),
-                SizedBox(
-                  width: 240,
-                  child: buildTextField(),
-                ),
-                const SizedBox(width: 8),
-                sortControls,
-              ],
-            )
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            artistsLabel,
-                            style: theme.textTheme.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            artistCountLabel,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    sortControls,
-                  ],
-                ),
-                const SizedBox(height: 12),
-                buildTextField(),
-              ],
-            ),
-    );
-  }
-}
