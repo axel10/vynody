@@ -82,31 +82,60 @@ void main() {
 
     test('getFolderZoomGridCrossAxisCount adapts across 3 grid tiers', () {
       const desktopWidth = 1280.0;
+      // In landscape: largeGrid is fixed at 6, medium is 7, small is 8 (+1 per smaller tier).
       expect(
-        getFolderZoomGridCrossAxisCount(desktopWidth, kFolderZoomTierSmallGrid),
-        equals(7),
+        getFolderZoomGridCrossAxisCount(desktopWidth, kFolderZoomTierLargeGrid),
+        equals(6),
       );
       expect(
         getFolderZoomGridCrossAxisCount(desktopWidth, kFolderZoomTierMediumGrid),
-        equals(5),
+        equals(7),
       );
       expect(
-        getFolderZoomGridCrossAxisCount(desktopWidth, kFolderZoomTierLargeGrid),
-        equals(4),
+        getFolderZoomGridCrossAxisCount(desktopWidth, kFolderZoomTierSmallGrid),
+        equals(8),
       );
 
+      // In phone portrait: largeGrid is 2, medium is 3, small is 4 (+1 per smaller tier).
       const phoneWidth = 390.0;
-      expect(
-        getFolderZoomGridCrossAxisCount(phoneWidth, kFolderZoomTierSmallGrid),
-        equals(3),
-      );
-      expect(
-        getFolderZoomGridCrossAxisCount(phoneWidth, kFolderZoomTierMediumGrid),
-        equals(2),
-      );
       expect(
         getFolderZoomGridCrossAxisCount(phoneWidth, kFolderZoomTierLargeGrid),
         equals(2),
+      );
+      expect(
+        getFolderZoomGridCrossAxisCount(phoneWidth, kFolderZoomTierMediumGrid),
+        equals(3),
+      );
+      expect(
+        getFolderZoomGridCrossAxisCount(phoneWidth, kFolderZoomTierSmallGrid),
+        equals(4),
+      );
+
+      // In tablet portrait: largeGrid is 3, medium is 4, small is 5 (+1 per smaller tier).
+      const tabletWidth = 768.0;
+      expect(
+        getFolderZoomGridCrossAxisCount(
+          tabletWidth,
+          kFolderZoomTierLargeGrid,
+          isPortrait: true,
+        ),
+        equals(3),
+      );
+      expect(
+        getFolderZoomGridCrossAxisCount(
+          tabletWidth,
+          kFolderZoomTierMediumGrid,
+          isPortrait: true,
+        ),
+        equals(4),
+      );
+      expect(
+        getFolderZoomGridCrossAxisCount(
+          tabletWidth,
+          kFolderZoomTierSmallGrid,
+          isPortrait: true,
+        ),
+        equals(5),
       );
     });
   });

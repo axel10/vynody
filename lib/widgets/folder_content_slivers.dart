@@ -189,8 +189,11 @@ class FolderSubfoldersSliver extends StatelessWidget {
         // Reorderable mode for root folders
         if (isRoot && isSortMode && !isSelectionMode) {
           if (isGrid) {
-            final crossAxisCount =
-                getFolderZoomGridCrossAxisCount(width, effectiveZoom);
+            final crossAxisCount = getFolderZoomGridCrossAxisCount(
+              width,
+              effectiveZoom,
+              isPortrait: isPortrait,
+            );
             final childAspectRatio = calculateFolderGridChildAspectRatio(
               context,
               width,

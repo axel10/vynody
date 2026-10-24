@@ -1093,9 +1093,14 @@ class _RemoteFolderBrowserPageState
       final isGrid = isFolderZoomGrid(zoomScale);
 
       final screenWidth = MediaQuery.of(context).size.width;
+      final isPortrait =
+          MediaQuery.of(context).orientation == Orientation.portrait;
       final double crossAxisExtent = screenWidth - 32;
-      final int crossAxisCount =
-          getFolderZoomGridCrossAxisCount(crossAxisExtent, zoomScale);
+      final int crossAxisCount = getFolderZoomGridCrossAxisCount(
+        crossAxisExtent,
+        zoomScale,
+        isPortrait: isPortrait,
+      );
       final double textHeight = calculateFolderZoomGridTextHeight(
         context,
         zoomScale: zoomScale,

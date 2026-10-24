@@ -268,10 +268,15 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
     }
 
     final screenWidth = MediaQuery.of(context).size.width;
+    final isPortrait =
+        MediaQuery.of(context).orientation == Orientation.portrait;
     final double crossAxisExtent = screenWidth - 32;
     final zoomScale = settings.folderZoomScale;
-    final int crossAxisCount =
-        getFolderZoomGridCrossAxisCount(crossAxisExtent, zoomScale);
+    final int crossAxisCount = getFolderZoomGridCrossAxisCount(
+      crossAxisExtent,
+      zoomScale,
+      isPortrait: isPortrait,
+    );
 
     final double textHeight = calculateFolderZoomGridTextHeight(
       context,

@@ -119,34 +119,59 @@ double calculateFolderZoomGridTextHeight(
 }
 
 /// Returns responsive cross axis count based on layout width and `zoomScale` (`>= 0.5`).
-int getFolderZoomGridCrossAxisCount(double width, double zoomScale) {
+///
+/// In landscape orientation:
+/// - largeGrid (`1.0`) is fixed at 6 columns.
+/// - mediumGrid (`0.8`) is 7 columns (+1).
+/// - smallGrid (`0.6`) is 8 columns (+1).
+///
+/// In portrait orientation, each smaller tier also adds one column:
+/// - Mobile portrait (< 600px): largeGrid 2, mediumGrid 3, smallGrid 4.
+/// - Tablet portrait (>= 600px): largeGrid 3, mediumGrid 4, smallGrid 5.
+int getFolderZoomGridCrossAxisCount(
+  double width,
+  double zoomScale, {
+  bool? isPortrait,
+  BuildContext? context,
+}) {
   final tier = getFolderZoomTier(zoomScale);
+  final portrait = isPortrait ??
+      (context != null
+          ? MediaQuery.maybeOrientationOf(context) == Orientation.portrait
+          : width < 600);
+
+  if (!portrait) {
+    const baseLarge = 6;
+    return switch (tier) {
+      FolderZoomTier.smallGrid => baseLarge + 2, // 8
+      FolderZoomTier.mediumGrid => baseLarge + 1, // 7
+      FolderZoomTier.largeGrid || _ => baseLarge, // 6
+    };
+  }
+
+  final baseLarge = switch (width) {
+    >= 900 => 4,
+    >= 600 => 3,
+    _ => 2,
+  };
   return switch (tier) {
-    FolderZoomTier.smallGrid => switch (width) {
-        >= 1280 => 7,
-        >= 960 => 6,
-        >= 680 => 5,
-        >= 480 => 4,
-        _ => 3,
-      },
-    FolderZoomTier.mediumGrid => switch (width) {
-        >= 1280 => 5,
-        >= 960 => 4,
-        >= 680 => 3,
-        _ => 2,
-      },
-    FolderZoomTier.largeGrid || _ => switch (width) {
-        >= 1280 => 4,
-        >= 960 => 3,
-        >= 680 => 2,
-        _ => 2,
-      },
+    FolderZoomTier.smallGrid => baseLarge + 2,
+    FolderZoomTier.mediumGrid => baseLarge + 1,
+    FolderZoomTier.largeGrid || _ => baseLarge,
   };
 }
 
 /// Returns responsive cross axis count based on layout width for folder and song grids.
-int getFolderGridCrossAxisCount(double width, [double zoomScale = 0.8]) {
-  return getFolderZoomGridCrossAxisCount(width, zoomScale);
+int getFolderGridCrossAxisCount(
+  double width, [
+  double zoomScale = 0.8,
+  bool? isPortrait,
+]) {
+  return getFolderZoomGridCrossAxisCount(
+    width,
+    zoomScale,
+    isPortrait: isPortrait,
+  );
 }
 
 /// Calculates grid item aspect ratio considering system font scaling and orientation.
@@ -280,9 +305,13 @@ class _FolderZoomSliverBuilderState extends State<FolderZoomSliverBuilder>
       context,
       zoomScale: widget.zoomScale,
     );
-    final targetCols =
-        getFolderZoomGridCrossAxisCount(widget.width, widget.zoomScale)
-            .toDouble();
+    final isPortrait =
+        MediaQuery.maybeOrientationOf(context) == Orientation.portrait;
+    final targetCols = getFolderZoomGridCrossAxisCount(
+      widget.width,
+      widget.zoomScale,
+      isPortrait: isPortrait,
+    ).toDouble();
     final targetListExtent = getFolderListTileExtent(widget.zoomScale);
     final targetGridMorph = isFolderZoomGrid(widget.zoomScale) ? 1.0 : 0.0;
     final targetCompactMorph =
@@ -306,9 +335,13 @@ class _FolderZoomSliverBuilderState extends State<FolderZoomSliverBuilder>
       context,
       zoomScale: widget.zoomScale,
     );
-    final targetCols =
-        getFolderZoomGridCrossAxisCount(widget.width, widget.zoomScale)
-            .toDouble();
+    final isPortrait =
+        MediaQuery.maybeOrientationOf(context) == Orientation.portrait;
+    final targetCols = getFolderZoomGridCrossAxisCount(
+      widget.width,
+      widget.zoomScale,
+      isPortrait: isPortrait,
+    ).toDouble();
     final targetListExtent = getFolderListTileExtent(widget.zoomScale);
     final targetGridMorph = isFolderZoomGrid(widget.zoomScale) ? 1.0 : 0.0;
     final targetCompactMorph =

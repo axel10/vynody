@@ -313,10 +313,15 @@ class RemoteServersSliver extends ConsumerWidget {
     final effectiveZoom = _effectiveZoomScale;
     final isGrid = isFolderZoomGrid(effectiveZoom);
     final width = crossAxisExtent ?? MediaQuery.sizeOf(context).width;
+    final isPortrait =
+        MediaQuery.maybeOrientationOf(context) == Orientation.portrait;
 
     if (isGrid) {
-      final crossAxisCount =
-          getFolderZoomGridCrossAxisCount(width, effectiveZoom);
+      final crossAxisCount = getFolderZoomGridCrossAxisCount(
+        width,
+        effectiveZoom,
+        isPortrait: isPortrait,
+      );
       final childAspectRatio = calculateFolderGridChildAspectRatio(
         context,
         width,
