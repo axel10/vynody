@@ -704,6 +704,8 @@ class SettingsService extends ChangeNotifier {
   static const String _keyAllowRemoteControl = 'allow_remote_control';
   static const String _keyOnlyAllowTrustedRemoteControl =
       'only_allow_trusted_remote_control';
+  /// 旧版三档视图开关。仅用于 `folder_zoom_scale` 首次读取时的一次性迁移，
+  /// 不再有写入方，也不要再引入读取方。
   static const String _keyFolderViewMode = 'folder_view_mode';
   static const String _keyFolderZoomScale = 'folder_zoom_scale';
   static const double defaultFolderZoomScale = kFolderZoomTierMediumGrid;
@@ -883,16 +885,6 @@ class SettingsService extends ChangeNotifier {
     );
     notifyListeners();
   }
-
-  late final _folderViewModeProperty = SettingProperty<FolderViewMode>(
-    key: _keyFolderViewMode,
-    defaultValue: FolderViewMode.grid,
-    prefs: _prefs,
-    onChanged: notifyListeners,
-    customRead: (prefs, key, def) =>
-        FolderViewModeX.fromStorageValue(prefs.getString(key), def),
-    customWrite: (prefs, key, val) => prefs.setString(key, val.storageValue),
-  );
 
   late final _folderZoomScaleProperty = SettingProperty<double>(
     key: _keyFolderZoomScale,
@@ -3217,17 +3209,6 @@ class SettingsService extends ChangeNotifier {
   set savedSmallWindowQueueSize(Size size) {
     smallWindowQueueWidth = size.width;
     smallWindowQueueHeight = size.height;
-  }
-
-  FolderViewMode get folderViewMode => _folderZoomScaleProperty.value >= 0.5
-      ? FolderViewMode.grid
-      : FolderViewMode.list;
-  set folderViewMode(FolderViewMode value) {
-    _folderViewModeProperty.value = value;
-    _folderZoomScaleProperty.value = switch (value) {
-      FolderViewMode.list => kFolderZoomTierStandardList,
-      FolderViewMode.hybrid || FolderViewMode.grid => defaultFolderZoomScale,
-    };
   }
 
   double get folderZoomScale => _folderZoomScaleProperty.value;

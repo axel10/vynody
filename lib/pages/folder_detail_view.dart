@@ -268,49 +268,23 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
     }
 
     final screenWidth = MediaQuery.of(context).size.width;
-    final isPortrait =
-        MediaQuery.of(context).orientation == Orientation.portrait;
-    final double crossAxisExtent = screenWidth - 32;
-    final zoomScale = settings.folderZoomScale;
-    final int crossAxisCount = getFolderZoomGridCrossAxisCount(
-      crossAxisExtent,
-      zoomScale,
-      isPortrait: isPortrait,
+    final policy = FolderZoomPolicy.resolve(
+      context: context,
+      width: screenWidth - 32,
+      zoomScale: settings.folderZoomScale,
     );
 
-    final double textHeight = calculateFolderZoomGridTextHeight(
-      context,
-      zoomScale: zoomScale,
+    fileOffset += policy.calculateScrollOffset(
+      folderCount: matchedFolders.length,
+      songIndex: fileIndex,
     );
-    final double cardWidth =
-        (crossAxisExtent - (crossAxisCount - 1) * 16) / crossAxisCount;
-    final double cardHeight = cardWidth + textHeight;
-    final double listRowStride = getFolderListTileExtent(zoomScale) + 8.0;
-
-    final isGrid = isFolderZoomGrid(zoomScale);
-
-    if (isGrid) {
-      final totalGridItems = matchedFolders.length;
-      final int rows = (totalGridItems / crossAxisCount).ceil();
-      fileOffset += rows * (cardHeight + 16);
-    } else {
-      fileOffset += matchedFolders.length * listRowStride;
-    }
-
-    if (isGrid) {
-      final int songRows = (fileIndex / crossAxisCount).floor();
-      fileOffset += songRows * (cardHeight + 16);
-    } else {
-      fileOffset += fileIndex * listRowStride;
-    }
 
     if (_localScrollController.hasClients) {
-      final double viewportHeight = _localScrollController.position.viewportDimension;
-      double targetOffset = fileOffset -
-          (viewportHeight / 2) +
-          (isGrid ? cardHeight / 2 : listRowStride / 2);
-      final maxScroll = _localScrollController.position.maxScrollExtent;
-      targetOffset = targetOffset.clamp(0.0, maxScroll);
+      final targetOffset = policy.centerInViewport(
+        itemOffset: fileOffset,
+        viewportDimension: _localScrollController.position.viewportDimension,
+        maxScrollExtent: _localScrollController.position.maxScrollExtent,
+      );
 
       _localScrollController.animateTo(
         targetOffset,

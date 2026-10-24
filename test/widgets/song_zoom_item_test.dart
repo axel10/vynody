@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:vynody/l10n/app_localizations.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/widgets/folder_layout_utils.dart';
-import 'package:vynody/widgets/song_grid_card.dart';
+import 'package:vynody/widgets/song_zoom_item.dart';
 
 void main() {
   testWidgets('SongZoomItem renders without overflow across all zoom tiers', (tester) async {

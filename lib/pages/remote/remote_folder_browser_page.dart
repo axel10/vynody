@@ -1089,49 +1089,24 @@ class _RemoteFolderBrowserPageState
 
     if (_scrollController.hasClients) {
       final settings = ref.read(settingsServiceProvider);
-      final zoomScale = settings.folderZoomScale;
-      final isGrid = isFolderZoomGrid(zoomScale);
-
       final screenWidth = MediaQuery.of(context).size.width;
-      final isPortrait =
-          MediaQuery.of(context).orientation == Orientation.portrait;
-      final double crossAxisExtent = screenWidth - 32;
-      final int crossAxisCount = getFolderZoomGridCrossAxisCount(
-        crossAxisExtent,
-        zoomScale,
-        isPortrait: isPortrait,
+      final policy = FolderZoomPolicy.resolve(
+        context: context,
+        width: screenWidth - 32,
+        zoomScale: settings.folderZoomScale,
       );
-      final double textHeight = calculateFolderZoomGridTextHeight(
-        context,
-        zoomScale: zoomScale,
-      );
-      final double cardWidth =
-          (crossAxisExtent - (crossAxisCount - 1) * 16) / crossAxisCount;
-      final double cardHeight = cardWidth + textHeight;
-      final double listRowStride = getFolderListTileExtent(zoomScale) + 8.0;
 
       double fileOffset = 48.0 + 190.0;
-      if (isGrid) {
-        final rows = (matchedFolders.length / crossAxisCount).ceil();
-        fileOffset += rows * (cardHeight + 16);
-      } else {
-        fileOffset += matchedFolders.length * listRowStride;
-      }
+      fileOffset += policy.calculateScrollOffset(
+        folderCount: matchedFolders.length,
+        songIndex: fileIndex,
+      );
 
-      if (isGrid) {
-        final songRows = (fileIndex / crossAxisCount).floor();
-        fileOffset += songRows * (cardHeight + 16);
-      } else {
-        fileOffset += fileIndex * listRowStride;
-      }
-
-      final double viewportHeight =
-          _scrollController.position.viewportDimension;
-      double targetOffset = fileOffset -
-          (viewportHeight / 2) +
-          (isGrid ? cardHeight / 2 : listRowStride / 2);
-      final maxScroll = _scrollController.position.maxScrollExtent;
-      targetOffset = targetOffset.clamp(0.0, maxScroll);
+      final targetOffset = policy.centerInViewport(
+        itemOffset: fileOffset,
+        viewportDimension: _scrollController.position.viewportDimension,
+        maxScrollExtent: _scrollController.position.maxScrollExtent,
+      );
       _scrollController.animateTo(
         targetOffset,
         duration: const Duration(milliseconds: 350),

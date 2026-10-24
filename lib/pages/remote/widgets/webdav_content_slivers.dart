@@ -9,19 +9,18 @@ import 'package:vynody/player/remote/clients/webdav_client.dart';
 import 'package:vynody/player/remote/proxy/remote_media_resolver.dart';
 import 'package:vynody/player/remote/remote_server_models.dart';
 import 'package:vynody/player/remote/services/remote_scan_root.dart';
-import 'package:vynody/player/settings/settings_service.dart';
 import 'package:vynody/utils/folder_helpers.dart';
 import 'package:vynody/utils/remote_context_menu_utils.dart';
-import 'package:vynody/widgets/folder_grid_card.dart';
 import 'package:vynody/widgets/folder_layout_utils.dart';
-import 'package:vynody/widgets/song_grid_card.dart';
+import 'package:vynody/widgets/folder_zoom_item.dart';
+import 'package:vynody/widgets/hoverable_card.dart';
+import 'package:vynody/widgets/song_zoom_item.dart';
 import 'package:vynody/widgets/draggable_song_item.dart';
 
 /// Renders WebDAV subfolders in unified zoom-driven grid or list view.
 class WebDavSubfoldersSliver extends ConsumerWidget {
   final List<WebDavFile> folders;
-  final FolderViewMode? viewMode;
-  final double? zoomScale;
+  final double zoomScale;
   final RemoteServer server;
   final String password;
   final bool isSelectionMode;
@@ -37,8 +36,7 @@ class WebDavSubfoldersSliver extends ConsumerWidget {
   const WebDavSubfoldersSliver({
     super.key,
     required this.folders,
-    this.viewMode,
-    this.zoomScale,
+    required this.zoomScale,
     required this.server,
     required this.password,
     this.isSelectionMode = false,
@@ -52,14 +50,7 @@ class WebDavSubfoldersSliver extends ConsumerWidget {
     this.crossAxisExtent,
   });
 
-  double get _effectiveZoomScale {
-    if (zoomScale != null) return snapFolderZoomScale(zoomScale!);
-    return switch (viewMode) {
-      FolderViewMode.list => kFolderZoomTierStandardList,
-      FolderViewMode.hybrid || FolderViewMode.grid || null =>
-        kFolderZoomTierMediumGrid,
-    };
-  }
+  double get _effectiveZoomScale => snapFolderZoomScale(zoomScale);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -177,8 +168,7 @@ class WebDavSubfoldersSliver extends ConsumerWidget {
 /// Renders songs & files in unified zoom-driven grid or list mode for WebDAV.
 class WebDavSongsSliver extends ConsumerWidget {
   final List<WebDavFile> files;
-  final FolderViewMode? viewMode;
-  final double? zoomScale;
+  final double zoomScale;
   final RemoteServer server;
   final String password;
   final Map<String, SongMetadata> metadataMap;
@@ -198,8 +188,7 @@ class WebDavSongsSliver extends ConsumerWidget {
   const WebDavSongsSliver({
     super.key,
     required this.files,
-    this.viewMode,
-    this.zoomScale,
+    required this.zoomScale,
     required this.server,
     required this.password,
     required this.metadataMap,
@@ -217,14 +206,7 @@ class WebDavSongsSliver extends ConsumerWidget {
     this.crossAxisExtent,
   });
 
-  double get _effectiveZoomScale {
-    if (zoomScale != null) return snapFolderZoomScale(zoomScale!);
-    return switch (viewMode) {
-      FolderViewMode.grid => kFolderZoomTierMediumGrid,
-      FolderViewMode.list || FolderViewMode.hybrid || null =>
-        kFolderZoomTierStandardList,
-    };
-  }
+  double get _effectiveZoomScale => snapFolderZoomScale(zoomScale);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

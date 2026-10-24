@@ -5,10 +5,9 @@ import 'package:flutter_reorderable_grid_view/widgets/widgets.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/models/music_folder.dart';
 import 'package:vynody/player/scanner/scanner_service.dart';
-import 'package:vynody/player/settings/settings_service.dart';
-import 'folder_grid_card.dart';
-import 'song_grid_card.dart';
 import 'folder_layout_utils.dart';
+import 'folder_zoom_item.dart';
+import 'song_zoom_item.dart';
 
 /// Renders an empty search results placeholder sliver.
 class FolderEmptySearchResultsSliver extends StatelessWidget {
@@ -110,8 +109,7 @@ class FolderSectionHeaderSliver extends StatelessWidget {
 /// Renders subfolders in unified zoom-driven grid/list view.
 class FolderSubfoldersSliver extends StatelessWidget {
   final List<MusicFolder> folders;
-  final FolderViewMode? viewMode;
-  final double? zoomScale;
+  final double zoomScale;
   final ScannerService scanner;
   final bool isSelectionMode;
   final bool isSortMode;
@@ -136,8 +134,7 @@ class FolderSubfoldersSliver extends StatelessWidget {
   const FolderSubfoldersSliver({
     super.key,
     required this.folders,
-    this.viewMode,
-    this.zoomScale,
+    required this.zoomScale,
     required this.scanner,
     this.isSelectionMode = false,
     this.isSortMode = false,
@@ -158,14 +155,7 @@ class FolderSubfoldersSliver extends StatelessWidget {
     this.crossAxisExtent,
   });
 
-  double get _effectiveZoomScale {
-    if (zoomScale != null) return snapFolderZoomScale(zoomScale!);
-    return switch (viewMode) {
-      FolderViewMode.list => kFolderZoomTierStandardList,
-      FolderViewMode.hybrid || FolderViewMode.grid || null =>
-        kFolderZoomTierMediumGrid,
-    };
-  }
+  double get _effectiveZoomScale => snapFolderZoomScale(zoomScale);
 
   @override
   Widget build(BuildContext context) {
@@ -189,17 +179,8 @@ class FolderSubfoldersSliver extends StatelessWidget {
         // Reorderable mode for root folders
         if (isRoot && isSortMode && !isSelectionMode) {
           if (isGrid) {
-            final crossAxisCount = getFolderZoomGridCrossAxisCount(
-              width,
-              effectiveZoom,
-              isPortrait: isPortrait,
-            );
-            final childAspectRatio = calculateFolderGridChildAspectRatio(
-              context,
-              width,
-              crossAxisCount,
-              zoomScale: effectiveZoom,
-            );
+            final crossAxisCount = metrics.targetGridCols;
+            final childAspectRatio = metrics.targetChildAspectRatio(width);
 
             final List<MusicFolder> allFoldersWithSystem = [];
             final systemFolder = scanner.systemMediaFolder ??
@@ -533,8 +514,7 @@ class FolderSubfoldersSliver extends StatelessWidget {
 /// Renders songs in unified zoom-driven grid/list view.
 class FolderSongsSliver extends StatelessWidget {
   final List<MusicFile> songs;
-  final FolderViewMode? viewMode;
-  final double? zoomScale;
+  final double zoomScale;
   final String? currentSongPath;
   final bool isPlaying;
   final bool isSelectionMode;
@@ -552,8 +532,7 @@ class FolderSongsSliver extends StatelessWidget {
   const FolderSongsSliver({
     super.key,
     required this.songs,
-    this.viewMode,
-    this.zoomScale,
+    required this.zoomScale,
     this.currentSongPath,
     this.isPlaying = false,
     this.isSelectionMode = false,
@@ -568,14 +547,7 @@ class FolderSongsSliver extends StatelessWidget {
     this.crossAxisExtent,
   });
 
-  double get _effectiveZoomScale {
-    if (zoomScale != null) return snapFolderZoomScale(zoomScale!);
-    return switch (viewMode) {
-      FolderViewMode.grid => kFolderZoomTierMediumGrid,
-      FolderViewMode.list || FolderViewMode.hybrid || null =>
-        kFolderZoomTierStandardList,
-    };
-  }
+  double get _effectiveZoomScale => snapFolderZoomScale(zoomScale);
 
   @override
   Widget build(BuildContext context) {

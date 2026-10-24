@@ -138,5 +138,37 @@ void main() {
         equals(5),
       );
     });
+
+    test('FolderZoomPolicy correctly encapsulates offset calculation and viewport centering', () {
+      const policy = FolderZoomPolicy(
+        width: 1280.0,
+        zoomScale: 1.0,
+        isPortrait: false,
+        tier: FolderZoomTier.largeGrid,
+        crossAxisCount: 6,
+        textHeight: 74.0,
+        cardWidth: 200.0,
+        cardHeight: 274.0,
+        childAspectRatio: 200.0 / 274.0,
+        listTileExtent: 80.0,
+        listRowStride: 88.0,
+        isGrid: true,
+      );
+
+      // 6 subfolders = 1 row in 6-col grid: 1 * (274 + 24) = 298.0
+      // songIndex 6 = row 1 (the 2nd row of songs): 1 * (274 + 24) = 298.0
+      // total = 596.0
+      final offset = policy.calculateScrollOffset(folderCount: 6, songIndex: 6);
+      expect(offset, equals(596.0));
+
+      final centered = policy.centerInViewport(
+        itemOffset: 1000.0,
+        viewportDimension: 600.0,
+        maxScrollExtent: 2000.0,
+      );
+      // itemExtent is cardHeight (274.0):
+      // target = 1000 - 300 + 137 = 837.0
+      expect(centered, equals(837.0));
+    });
   });
 }

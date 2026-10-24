@@ -6,9 +6,8 @@ import '../dialogs/add_edit_remote_server_dialog.dart';
 import '../l10n/app_localizations.dart';
 import '../player/remote/remote_server_models.dart';
 import '../player/remote/remote_server_riverpod.dart';
-import '../player/settings/settings_service.dart';
-import 'folder_grid_card.dart';
 import 'folder_layout_utils.dart';
+import 'hoverable_card.dart';
 import 'app_context_menu.dart';
 import 'pro/pro_badge.dart';
 import '../player/pro/pro_license_service.dart';
@@ -273,11 +272,10 @@ class RemoteServersSectionHeaderSliver extends StatelessWidget {
   }
 }
 
-/// Renders remote servers in grid or list view according to FolderViewMode / zoomScale.
+/// Renders remote servers in grid or list view according to `zoomScale`.
 class RemoteServersSliver extends ConsumerWidget {
   final List<RemoteServer> servers;
-  final FolderViewMode? viewMode;
-  final double? zoomScale;
+  final double zoomScale;
   final bool isSortMode;
   final void Function(RemoteServer server) onOpenServer;
   final double bottomPadding;
@@ -286,22 +284,14 @@ class RemoteServersSliver extends ConsumerWidget {
   const RemoteServersSliver({
     super.key,
     required this.servers,
-    this.viewMode,
-    this.zoomScale,
+    required this.zoomScale,
     this.isSortMode = false,
     required this.onOpenServer,
     this.bottomPadding = 160.0,
     this.crossAxisExtent,
   });
 
-  double get _effectiveZoomScale {
-    if (zoomScale != null) return snapFolderZoomScale(zoomScale!);
-    return switch (viewMode) {
-      FolderViewMode.list => kFolderZoomTierStandardList,
-      FolderViewMode.hybrid || FolderViewMode.grid || null =>
-        kFolderZoomTierMediumGrid,
-    };
-  }
+  double get _effectiveZoomScale => snapFolderZoomScale(zoomScale);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -310,24 +300,16 @@ class RemoteServersSliver extends ConsumerWidget {
     }
 
     final isProUnlocked = ref.watch(isProUnlockedProvider);
-    final effectiveZoom = _effectiveZoomScale;
-    final isGrid = isFolderZoomGrid(effectiveZoom);
     final width = crossAxisExtent ?? MediaQuery.sizeOf(context).width;
-    final isPortrait =
-        MediaQuery.maybeOrientationOf(context) == Orientation.portrait;
+    final policy = FolderZoomPolicy.resolve(
+      context: context,
+      width: width,
+      zoomScale: _effectiveZoomScale,
+    );
 
-    if (isGrid) {
-      final crossAxisCount = getFolderZoomGridCrossAxisCount(
-        width,
-        effectiveZoom,
-        isPortrait: isPortrait,
-      );
-      final childAspectRatio = calculateFolderGridChildAspectRatio(
-        context,
-        width,
-        crossAxisCount,
-        zoomScale: effectiveZoom,
-      );
+    if (policy.isGrid) {
+      final crossAxisCount = policy.crossAxisCount;
+      final childAspectRatio = policy.childAspectRatio;
 
       if (isSortMode) {
             return SliverPadding(

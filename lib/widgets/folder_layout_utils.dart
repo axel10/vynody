@@ -82,8 +82,6 @@ bool isFolderZoomGrid(double zoomScale) => zoomScale >= 0.5;
 
 bool isFolderZoomCompactList(double zoomScale) => zoomScale < 0.1;
 
-bool isFolderZoomLargeGrid(double zoomScale) => zoomScale >= 0.9;
-
 /// Thumbnail size in list view (`zoomScale < 0.5`), ranging from `40px` to `64px`.
 double getFolderListCoverSize(double zoomScale) {
   if (zoomScale <= 0.0) return 40.0;
@@ -118,16 +116,155 @@ double calculateFolderZoomGridTextHeight(
   return baseHeight * clampedScale;
 }
 
+/// Centralized layout specification for folder zoom tiers, responsive column counts,
+/// card geometries, and scroll offset estimations.
+class FolderZoomPolicy {
+  final double width;
+  final double zoomScale;
+  final bool isPortrait;
+  final FolderZoomTier tier;
+  final int crossAxisCount;
+  final double textHeight;
+  final double cardWidth;
+  final double cardHeight;
+  final double childAspectRatio;
+  final double listTileExtent;
+  final double listRowStride;
+  final bool isGrid;
+
+  const FolderZoomPolicy({
+    required this.width,
+    required this.zoomScale,
+    required this.isPortrait,
+    required this.tier,
+    required this.crossAxisCount,
+    required this.textHeight,
+    required this.cardWidth,
+    required this.cardHeight,
+    required this.childAspectRatio,
+    required this.listTileExtent,
+    required this.listRowStride,
+    required this.isGrid,
+  });
+
+  /// Resolves the complete layout policy from context, layout width, and zoom scale.
+  factory FolderZoomPolicy.resolve({
+    required BuildContext context,
+    required double width,
+    required double zoomScale,
+    bool? isPortrait,
+  }) {
+    final snappedZoom = snapFolderZoomScale(zoomScale);
+    final portrait = isPortrait ??
+        (MediaQuery.maybeOrientationOf(context) == Orientation.portrait);
+    final tier = getFolderZoomTier(snappedZoom);
+    final isGrid = isFolderZoomGrid(snappedZoom);
+
+    final crossAxisCount = calculateCrossAxisCount(
+      width: width,
+      tier: tier,
+      isPortrait: portrait,
+    );
+    final textHeight = calculateFolderZoomGridTextHeight(
+      context,
+      zoomScale: snappedZoom,
+    );
+
+    final itemWidth = calculateGridItemWidth(
+      width: width,
+      crossAxisCount: crossAxisCount,
+    );
+    final cardHeight = itemWidth + textHeight;
+    final childAspectRatio = cardHeight > 0 && itemWidth > 0
+        ? (itemWidth / cardHeight)
+        : 1.0;
+
+    final listTileExtent = getFolderListTileExtent(snappedZoom);
+    final listRowStride = listTileExtent + 8.0;
+
+    return FolderZoomPolicy(
+      width: width,
+      zoomScale: snappedZoom,
+      isPortrait: portrait,
+      tier: tier,
+      crossAxisCount: crossAxisCount,
+      textHeight: textHeight,
+      cardWidth: itemWidth,
+      cardHeight: cardHeight,
+      childAspectRatio: childAspectRatio,
+      listTileExtent: listTileExtent,
+      listRowStride: listRowStride,
+      isGrid: isGrid,
+    );
+  }
+
+  /// Calculates responsive cross axis count based on [width], [tier], and [isPortrait].
+  ///
+  /// In landscape orientation:
+  /// - largeGrid (`1.0`) is fixed at 6 columns.
+  /// - mediumGrid (`0.8`) is 7 columns (+1).
+  /// - smallGrid (`0.6`) is 8 columns (+1).
+  ///
+  /// In portrait orientation, each smaller tier also adds one column:
+  /// - Mobile portrait (< 600px): largeGrid 2, mediumGrid 3, smallGrid 4.
+  /// - Tablet portrait (>= 600px): largeGrid 3, mediumGrid 4, smallGrid 5.
+  static int calculateCrossAxisCount({
+    required double width,
+    required FolderZoomTier tier,
+    required bool isPortrait,
+  }) {
+    if (!isPortrait) {
+      const baseLarge = 6;
+      return switch (tier) {
+        FolderZoomTier.smallGrid => baseLarge + 2, // 8
+        FolderZoomTier.mediumGrid => baseLarge + 1, // 7
+        FolderZoomTier.largeGrid || _ => baseLarge, // 6
+      };
+    }
+
+    final baseLarge = switch (width) {
+      >= 900 => 4,
+      >= 600 => 3,
+      _ => 2,
+    };
+    return switch (tier) {
+      FolderZoomTier.smallGrid => baseLarge + 2,
+      FolderZoomTier.mediumGrid => baseLarge + 1,
+      FolderZoomTier.largeGrid || _ => baseLarge,
+    };
+  }
+
+  /// Calculates scroll offset for an item at [songIndex] preceded by [folderCount] subfolders.
+  double calculateScrollOffset({
+    required int folderCount,
+    required int songIndex,
+  }) {
+    double offset = 0.0;
+    if (isGrid) {
+      final folderRows = (folderCount / crossAxisCount).ceil();
+      offset += folderRows * (cardHeight + kGridMainAxisSpacing);
+      final songRows = (songIndex / crossAxisCount).floor();
+      offset += songRows * (cardHeight + kGridMainAxisSpacing);
+    } else {
+      offset += folderCount * listRowStride;
+      offset += songIndex * listRowStride;
+    }
+    return offset;
+  }
+
+  /// Centers the item offset within the viewport, clamped to maxScrollExtent.
+  double centerInViewport({
+    required double itemOffset,
+    required double viewportDimension,
+    required double maxScrollExtent,
+  }) {
+    final itemExtent = isGrid ? cardHeight : listRowStride;
+    final target = itemOffset - (viewportDimension / 2) + (itemExtent / 2);
+    return target.clamp(0.0, maxScrollExtent);
+  }
+}
+
 /// Returns responsive cross axis count based on layout width and `zoomScale` (`>= 0.5`).
-///
-/// In landscape orientation:
-/// - largeGrid (`1.0`) is fixed at 6 columns.
-/// - mediumGrid (`0.8`) is 7 columns (+1).
-/// - smallGrid (`0.6`) is 8 columns (+1).
-///
-/// In portrait orientation, each smaller tier also adds one column:
-/// - Mobile portrait (< 600px): largeGrid 2, mediumGrid 3, smallGrid 4.
-/// - Tablet portrait (>= 600px): largeGrid 3, mediumGrid 4, smallGrid 5.
 int getFolderZoomGridCrossAxisCount(
   double width,
   double zoomScale, {
@@ -139,59 +276,11 @@ int getFolderZoomGridCrossAxisCount(
       (context != null
           ? MediaQuery.maybeOrientationOf(context) == Orientation.portrait
           : width < 600);
-
-  if (!portrait) {
-    const baseLarge = 6;
-    return switch (tier) {
-      FolderZoomTier.smallGrid => baseLarge + 2, // 8
-      FolderZoomTier.mediumGrid => baseLarge + 1, // 7
-      FolderZoomTier.largeGrid || _ => baseLarge, // 6
-    };
-  }
-
-  final baseLarge = switch (width) {
-    >= 900 => 4,
-    >= 600 => 3,
-    _ => 2,
-  };
-  return switch (tier) {
-    FolderZoomTier.smallGrid => baseLarge + 2,
-    FolderZoomTier.mediumGrid => baseLarge + 1,
-    FolderZoomTier.largeGrid || _ => baseLarge,
-  };
-}
-
-/// Returns responsive cross axis count based on layout width for folder and song grids.
-int getFolderGridCrossAxisCount(
-  double width, [
-  double zoomScale = 0.8,
-  bool? isPortrait,
-]) {
-  return getFolderZoomGridCrossAxisCount(
-    width,
-    zoomScale,
-    isPortrait: isPortrait,
-  );
-}
-
-/// Calculates grid item aspect ratio considering system font scaling and orientation.
-double calculateFolderGridChildAspectRatio(
-  BuildContext context,
-  double width,
-  int crossAxisCount, {
-  double? textHeight,
-  double zoomScale = 0.8,
-}) {
-  if (width <= 0) return 1.0;
-  final double resolvedTextHeight = textHeight ??
-      calculateFolderZoomGridTextHeight(context, zoomScale: zoomScale);
-  final itemWidth = calculateGridItemWidth(
+  return FolderZoomPolicy.calculateCrossAxisCount(
     width: width,
-    crossAxisCount: crossAxisCount,
+    tier: tier,
+    isPortrait: portrait,
   );
-  if (itemWidth <= 0 || (itemWidth + resolvedTextHeight) <= 0) return 1.0;
-  final ratio = itemWidth / (itemWidth + resolvedTextHeight);
-  return ratio > 0 ? ratio : 1.0;
 }
 
 /// Snapshot of animated layout metrics passed to unified folder/song slivers and items.
@@ -226,9 +315,21 @@ class FolderZoomLayoutMetrics {
   });
 
   bool get isGridTarget => isFolderZoomGrid(targetZoomScale);
-  bool get isLargeGridTarget => isFolderZoomLargeGrid(targetZoomScale);
-  bool get isCompactListTarget => isFolderZoomCompactList(targetZoomScale);
   FolderZoomTier get tier => getFolderZoomTier(targetZoomScale);
+
+  /// Target discrete column count in Grid View (e.g. 6, 7, 8).
+  int get targetGridCols => animatedGridCols.round();
+
+  /// Target child aspect ratio for standard grid delegates (e.g. in Reorderable mode).
+  double targetChildAspectRatio(double width) {
+    final cols = targetGridCols;
+    final itemWidth = calculateGridItemWidth(
+      width: width,
+      crossAxisCount: cols,
+    );
+    final cardHeight = itemWidth + animatedGridTextHeight;
+    return (cardHeight > 0 && itemWidth > 0) ? (itemWidth / cardHeight) : 1.0;
+  }
 }
 
 /// Animates [FolderZoomLayoutMetrics] smoothly whenever `zoomScale` changes,
