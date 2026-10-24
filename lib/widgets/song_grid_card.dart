@@ -65,7 +65,6 @@ class SongZoomItem extends ConsumerWidget {
     final gridMorph = metrics.gridMorph;
     final compactMorph = metrics.compactMorph;
     final isGridTarget = metrics.isGridTarget;
-    final isLargeGridTarget = metrics.isLargeGridTarget;
 
     final isGlobalSelectionActive = ref.watch(
       librarySelectionStateProvider.select(
@@ -114,14 +113,6 @@ class SongZoomItem extends ConsumerWidget {
       durationStr,
       formatStr,
     ].join(' | ');
-
-    final isDark = theme.brightness == Brightness.dark;
-    final capsuleBgColor = isDark
-        ? Colors.black.withValues(alpha: 0.6)
-        : Colors.white.withValues(alpha: 0.75);
-    final capsuleTextColor = isDark
-        ? Colors.white.withValues(alpha: 0.9)
-        : Colors.black.withValues(alpha: 0.9);
 
     final coverRadiusValue = lerpDouble(8.0, 12.0, gridMorph)!;
     final coverRadius = BorderRadius.circular(coverRadiusValue);
@@ -202,39 +193,6 @@ class SongZoomItem extends ConsumerWidget {
                 ),
               ),
             ),
-          if (gridMorph > 0.02)
-            Positioned(
-              left: 8,
-              bottom: 8,
-              child: IgnorePointer(
-                child: Opacity(
-                  opacity: gridMorph.clamp(0.0, 1.0),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: capsuleBgColor,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: (isDark ? Colors.white : Colors.black)
-                            .withValues(alpha: 0.1),
-                        width: 0.5,
-                      ),
-                    ),
-                    child: Text(
-                      '$formatStr • $durationStr',
-                      style: TextStyle(
-                        fontSize: isLargeGridTarget ? 10.0 : 9.0,
-                        fontWeight: FontWeight.bold,
-                        color: capsuleTextColor,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
         ],
       ),
     );
@@ -298,6 +256,16 @@ class SongZoomItem extends ConsumerWidget {
             ? theme.colorScheme.primary.withValues(alpha: 0.6)
             : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7);
 
+    final (double titleSize, double subSize, double infoSize) =
+        switch (metrics.tier) {
+      FolderZoomTier.compactList => (14.0, 12.0, 11.0),
+      FolderZoomTier.standardList => (14.0, 12.0, 11.0),
+      FolderZoomTier.largeList => (15.0, 12.5, 11.0),
+      FolderZoomTier.smallGrid => (isWide ? 13.0 : 12.5, 10.5, 9.5),
+      FolderZoomTier.mediumGrid => (isWide ? 14.0 : 13.5, 11.5, 10.0),
+      FolderZoomTier.largeGrid || _ => (isWide ? 15.0 : 14.5, 12.5, 11.0),
+    };
+
     final TextStyle titleStyle;
     final TextStyle subtitleStyle;
     if (!isGridTarget) {
@@ -305,26 +273,11 @@ class SongZoomItem extends ConsumerWidget {
         color: titleColor,
         fontWeight:
             isCurrent && !isMissing ? FontWeight.bold : FontWeight.normal,
-        height: 1.2,
-      );
-      subtitleStyle = (theme.textTheme.bodySmall ?? const TextStyle()).copyWith(
-        fontSize: 12.0,
-        height: 1.2,
-        color: subtitleColor,
-      );
-    } else if (!isLargeGridTarget) {
-      titleStyle = ((isPortrait
-                  ? theme.textTheme.titleSmall
-                  : theme.textTheme.titleMedium) ??
-              const TextStyle())
-          .copyWith(
-        fontWeight: FontWeight.w600,
-        fontSize: isWide ? 13.0 : 12.5,
-        color: titleColor,
+        fontSize: titleSize,
         height: 1.25,
       );
       subtitleStyle = (theme.textTheme.bodySmall ?? const TextStyle()).copyWith(
-        fontSize: 11.0,
+        fontSize: subSize,
         height: 1.2,
         color: subtitleColor,
       );
@@ -335,26 +288,30 @@ class SongZoomItem extends ConsumerWidget {
               const TextStyle())
           .copyWith(
         fontWeight: FontWeight.w600,
-        fontSize: isWide ? 14.5 : 14.0,
+        fontSize: titleSize,
         color: titleColor,
         height: 1.25,
       );
-      subtitleStyle = ((isPortrait
-                  ? theme.textTheme.bodySmall
-                  : theme.textTheme.bodyMedium) ??
-              const TextStyle())
-          .copyWith(
-        fontSize: isWide ? 12.5 : 12.0,
+      subtitleStyle = (theme.textTheme.bodySmall ?? const TextStyle()).copyWith(
+        fontSize: subSize,
         height: 1.2,
         color: subtitleColor,
       );
     }
 
     final infoStyle = (theme.textTheme.bodySmall ?? const TextStyle()).copyWith(
-      fontSize: 11.0,
+      fontSize: infoSize,
       height: 1.2,
       color: infoColor,
     );
+
+    final titleLineHeight = titleSize * 1.25;
+    final subLineHeight = subSize * 1.2;
+    final infoLineHeight = infoSize * 1.2;
+    const titleSubGap = 2.0;
+    const subInfoGap = 2.0;
+    final titleSubHeight = titleLineHeight + titleSubGap + subLineHeight;
+    final totalCombinedHeight = titleSubHeight + subInfoGap + infoLineHeight;
 
     final listBgAlpha = (1.0 - gridMorph).clamp(0.0, 1.0);
     final Color itemBgColor;
@@ -426,10 +383,10 @@ class SongZoomItem extends ConsumerWidget {
                   0.0,
                   W - listTextLeft - listPadH - trailingSpace,
                 );
-                final listTextHeight = listCoverSize;
+                final listTextHeight = math.max(listCoverSize, H - 8.0);
 
                 const gridTextLeft = 0.0;
-                final gridTextTop = gridCoverSize + 6.0;
+                final gridTextTop = gridCoverSize + 4.0;
                 final gridTextWidth = W;
                 final gridTextHeight = math.max(0.0, H - gridTextTop);
 
@@ -448,27 +405,51 @@ class SongZoomItem extends ConsumerWidget {
                   68.0,
                   math.max(68.0, textWidth * 0.45),
                 );
-                final titleRightPadding = lerpDouble(
-                  lerpDouble(0.0, estimatedInfoWidth, compactMorph)!,
+
+                final titleTopStandard =
+                    (textHeight - totalCombinedHeight) / 2.0;
+                final titleTopCompact = (textHeight - titleSubHeight) / 2.0;
+
+                final currentTitleTop = lerpDouble(
+                  lerpDouble(titleTopStandard, titleTopCompact, compactMorph)!,
+                  titleTopStandard,
+                  gridMorph,
+                )!;
+
+                final currentTitleRightPadding = lerpDouble(
+                  lerpDouble(0.0, estimatedInfoWidth + 8.0, compactMorph)!,
                   0.0,
                   gridMorph,
                 )!;
 
-                final titleAlignment = Alignment.lerp(
-                  Alignment.lerp(
-                    Alignment.topLeft,
-                    Alignment.centerLeft,
-                    compactMorph,
-                  )!,
-                  Alignment.topLeft,
+                final infoTopStandard =
+                    currentTitleTop + titleSubHeight + subInfoGap;
+                final infoTopCompact = (textHeight - infoLineHeight) / 2.0;
+
+                final targetInfoTop = lerpDouble(
+                  lerpDouble(infoTopStandard, infoTopCompact, compactMorph)!,
+                  infoTopStandard,
                   gridMorph,
                 )!;
 
-                final infoAlignment = Alignment.lerp(
-                  Alignment.bottomLeft,
-                  Alignment.centerRight,
-                  compactMorph,
+                final targetInfoLeft = lerpDouble(
+                  lerpDouble(
+                    0.0,
+                    textWidth - estimatedInfoWidth,
+                    compactMorph,
+                  )!,
+                  0.0,
+                  gridMorph,
                 )!;
+
+                final targetInfoWidth = lerpDouble(
+                  lerpDouble(textWidth, estimatedInfoWidth, compactMorph)!,
+                  textWidth,
+                  gridMorph,
+                )!;
+
+                final targetTextAlign =
+                    compactMorph > 0.6 ? TextAlign.right : TextAlign.left;
 
                 return Stack(
                   clipBehavior: Clip.none,
@@ -488,70 +469,73 @@ class SongZoomItem extends ConsumerWidget {
                       child: Stack(
                         clipBehavior: Clip.none,
                         children: [
-                          Align(
-                            alignment: titleAlignment,
-                            child: Padding(
-                              padding: EdgeInsets.only(
-                                right: titleRightPadding,
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Row(
-                                    children: [
-                                      if (isCurrent && !isMissing) ...[
-                                        PlayingEqualizerIcon(
-                                          color: theme.colorScheme.primary,
-                                          size: 16,
-                                          isPlaying: isPlaying,
+                          Positioned(
+                            left: 0.0,
+                            top: currentTitleTop,
+                            width: math.max(
+                              0.0,
+                              textWidth - currentTitleRightPadding,
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Row(
+                                  children: [
+                                    if (isCurrent && !isMissing) ...[
+                                      PlayingEqualizerIcon(
+                                        color: theme.colorScheme.primary,
+                                        size: 16,
+                                        isPlaying: isPlaying,
+                                      ),
+                                      const SizedBox(width: 6),
+                                    ],
+                                    Expanded(
+                                      child: AnimatedDefaultTextStyle(
+                                        duration: const Duration(
+                                          milliseconds: 180,
                                         ),
-                                        const SizedBox(width: 6),
-                                      ],
-                                      Expanded(
-                                        child: AnimatedDefaultTextStyle(
-                                          duration: const Duration(
-                                            milliseconds: 180,
-                                          ),
-                                          curve: Curves.easeOutCubic,
-                                          style: titleStyle,
-                                          child: Text(
-                                            song.displayName,
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
+                                        curve: Curves.easeOutCubic,
+                                        style: titleStyle,
+                                        child: Text(
+                                          song.displayName,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                         ),
                                       ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 2),
-                                  AnimatedDefaultTextStyle(
-                                    duration: const Duration(milliseconds: 180),
-                                    curve: Curves.easeOutCubic,
-                                    style: subtitleStyle,
-                                    child: Text(
-                                      artistAlbumText,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
                                     ),
+                                  ],
+                                ),
+                                const SizedBox(height: titleSubGap),
+                                AnimatedDefaultTextStyle(
+                                  duration: const Duration(milliseconds: 180),
+                                  curve: Curves.easeOutCubic,
+                                  style: subtitleStyle,
+                                  child: Text(
+                                    artistAlbumText,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
-                                ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          Positioned(
+                            left: targetInfoLeft.clamp(0.0, textWidth),
+                            top: targetInfoTop,
+                            width: targetInfoWidth.clamp(0.0, textWidth),
+                            child: AnimatedDefaultTextStyle(
+                              duration: const Duration(milliseconds: 180),
+                              curve: Curves.easeOutCubic,
+                              style: infoStyle,
+                              textAlign: targetTextAlign,
+                              child: Text(
+                                durationFormatText,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           ),
-                          if (gridMorph < 0.99)
-                            Align(
-                              alignment: infoAlignment,
-                              child: Opacity(
-                                opacity: (1.0 - gridMorph).clamp(0.0, 1.0),
-                                child: Text(
-                                  durationFormatText,
-                                  style: infoStyle,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ),
                         ],
                       ),
                     ),
@@ -663,14 +647,6 @@ class SongGridCard extends ConsumerWidget {
     final ext = p.extension(song.path).replaceAll('.', '').toUpperCase();
     final formatStr = ext.isNotEmpty ? ext : 'UNKNOWN';
 
-    final isDark = theme.brightness == Brightness.dark;
-    final capsuleBgColor = isDark
-        ? Colors.black.withValues(alpha: 0.6)
-        : Colors.white.withValues(alpha: 0.75);
-    final capsuleTextColor = isDark
-        ? Colors.white.withValues(alpha: 0.9)
-        : Colors.black.withValues(alpha: 0.9);
-
     final titleColor = isCurrent ? theme.colorScheme.primary : null;
     final coverRadius = BorderRadius.circular(12);
 
@@ -742,31 +718,6 @@ class SongGridCard extends ConsumerWidget {
                   ),
                 ),
               ),
-            // Format / duration capsule in the bottom-left corner
-            Positioned(
-              left: 8,
-              bottom: 8,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: capsuleBgColor,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: (isDark ? Colors.white : Colors.black)
-                        .withValues(alpha: 0.1),
-                    width: 0.5,
-                  ),
-                ),
-                child: Text(
-                  '$formatStr • $durationStr',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: capsuleTextColor,
-                  ),
-                ),
-              ),
-            ),
           ],
         ),
       ),
@@ -787,51 +738,66 @@ class SongGridCard extends ConsumerWidget {
             coverStack,
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      children: [
-                        if (isCurrent) ...[
-                          PlayingEqualizerIcon(
-                            color: theme.colorScheme.primary,
-                            size: 16,
-                            isPlaying: isPlaying,
-                          ),
-                          const SizedBox(width: 6),
-                        ],
-                        Expanded(
-                          child: Text(
-                            song.displayName,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: (isPortrait
-                                    ? theme.textTheme.titleSmall
-                                    : theme.textTheme.titleMedium)
-                                ?.copyWith(
-                              fontWeight: FontWeight.w600,
-                              fontSize: isWide ? 14.5 : 14.0,
-                              color: titleColor,
+                padding: const EdgeInsets.only(top: 6),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          if (isCurrent) ...[
+                            PlayingEqualizerIcon(
+                              color: theme.colorScheme.primary,
+                              size: 16,
+                              isPlaying: isPlaying,
+                            ),
+                            const SizedBox(width: 6),
+                          ],
+                          Expanded(
+                            child: Text(
+                              song.displayName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: (isPortrait
+                                      ? theme.textTheme.titleSmall
+                                      : theme.textTheme.titleMedium)
+                                  ?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                fontSize: isWide ? 14.5 : 14.0,
+                                color: titleColor,
+                              ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      artistAlbumText,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: (isPortrait
-                              ? theme.textTheme.bodySmall
-                              : theme.textTheme.bodyMedium)
-                          ?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
+                        ],
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 2),
+                      Text(
+                        artistAlbumText,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: (isPortrait
+                                ? theme.textTheme.bodySmall
+                                : theme.textTheme.bodyMedium)
+                            ?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '$formatStr • $durationStr',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontSize: 10.5,
+                          height: 1.2,
+                          color: theme.colorScheme.onSurfaceVariant
+                              .withValues(alpha: 0.75),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

@@ -6,53 +6,89 @@ import '../utils/layout_constants.dart';
 
 export '../utils/layout_constants.dart';
 
-/// Minimum and maximum values for `folderZoomScale`.
-const double kFolderZoomMin = 0.0;
-const double kFolderZoomCompactListThreshold = 0.25;
-const double kFolderZoomGridThreshold = 0.50;
-const double kFolderZoomLargeGridThreshold = 0.75;
-const double kFolderZoomMax = 1.0;
+/// Discrete fixed tier values for `folderZoomScale`:
+/// List view (3 tiers): 0.0, 0.2, 0.4
+/// Grid view (3 tiers): 0.6, 0.8, 1.0
+const double kFolderZoomTierCompactList = 0.0;
+const double kFolderZoomTierStandardList = 0.2;
+const double kFolderZoomTierLargeList = 0.4;
+const double kFolderZoomTierSmallGrid = 0.6;
+const double kFolderZoomTierMediumGrid = 0.8;
+const double kFolderZoomTierLargeGrid = 1.0;
+
+const List<double> kFolderZoomTierValues = [
+  kFolderZoomTierCompactList,
+  kFolderZoomTierStandardList,
+  kFolderZoomTierLargeList,
+  kFolderZoomTierSmallGrid,
+  kFolderZoomTierMediumGrid,
+  kFolderZoomTierLargeGrid,
+];
+
+/// Snaps an arbitrary zoom scale to the closest discrete tier value.
+double snapFolderZoomScale(double value) {
+  double closest = kFolderZoomTierValues.first;
+  double minDiff = (value - closest).abs();
+  for (final v in kFolderZoomTierValues) {
+    final diff = (value - v).abs();
+    if (diff < minDiff) {
+      minDiff = diff;
+      closest = v;
+    }
+  }
+  return closest;
+}
+
+/// Steps the zoom scale up or down by [delta] tiers.
+double stepFolderZoomScale(double current, int delta) {
+  final currentSnapped = snapFolderZoomScale(current);
+  final index = kFolderZoomTierValues.indexOf(currentSnapped);
+  if (index == -1) return currentSnapped;
+  final newIndex = (index + delta).clamp(0, kFolderZoomTierValues.length - 1);
+  return kFolderZoomTierValues[newIndex];
+}
 
 /// Discrete layout & typography tiers derived from `folderZoomScale`.
 enum FolderZoomTier {
-  /// `< 0.25`: Single-column list with smaller cover; song info moves to the right.
+  /// Tier 0: Single-column compact list with smaller cover; song info on the right.
   compactList,
 
-  /// `0.25 .. < 0.50`: Single-column list with larger cover; song info stays below subtitle.
+  /// Tier 1: Single-column standard list with medium cover; 3-line column.
   standardList,
 
-  /// `0.50 .. < 0.75`: Multi-column grid with smaller covers and small typography.
+  /// Tier 2: Single-column spacious list with large cover; 3-line column.
+  largeList,
+
+  /// Tier 3: Multi-column compact grid with higher column density.
   smallGrid,
 
-  /// `>= 0.75`: Multi-column grid with larger covers and large typography.
+  /// Tier 4: Multi-column standard grid.
+  mediumGrid,
+
+  /// Tier 5: Multi-column spacious grid with lower column density and larger cards.
   largeGrid,
 }
 
 FolderZoomTier getFolderZoomTier(double zoomScale) {
-  if (zoomScale < kFolderZoomCompactListThreshold) {
-    return FolderZoomTier.compactList;
-  }
-  if (zoomScale < kFolderZoomGridThreshold) {
-    return FolderZoomTier.standardList;
-  }
-  if (zoomScale < kFolderZoomLargeGridThreshold) {
-    return FolderZoomTier.smallGrid;
-  }
+  if (zoomScale < 0.1) return FolderZoomTier.compactList;
+  if (zoomScale < 0.3) return FolderZoomTier.standardList;
+  if (zoomScale < 0.5) return FolderZoomTier.largeList;
+  if (zoomScale < 0.7) return FolderZoomTier.smallGrid;
+  if (zoomScale < 0.9) return FolderZoomTier.mediumGrid;
   return FolderZoomTier.largeGrid;
 }
 
-bool isFolderZoomGrid(double zoomScale) =>
-    zoomScale >= kFolderZoomGridThreshold;
+bool isFolderZoomGrid(double zoomScale) => zoomScale >= 0.5;
 
-bool isFolderZoomCompactList(double zoomScale) =>
-    zoomScale < kFolderZoomCompactListThreshold;
+bool isFolderZoomCompactList(double zoomScale) => zoomScale < 0.1;
 
-bool isFolderZoomLargeGrid(double zoomScale) =>
-    zoomScale >= kFolderZoomLargeGridThreshold;
+bool isFolderZoomLargeGrid(double zoomScale) => zoomScale >= 0.9;
 
-/// Continuous thumbnail size in list view (`zoomScale < 0.5`), ranging from `40px` to `64px`.
+/// Thumbnail size in list view (`zoomScale < 0.5`), ranging from `40px` to `64px`.
 double getFolderListCoverSize(double zoomScale) {
-  final t = (zoomScale / kFolderZoomGridThreshold).clamp(0.0, 1.0);
+  if (zoomScale <= 0.0) return 40.0;
+  if (zoomScale >= 0.4) return 64.0;
+  final t = (zoomScale / 0.4).clamp(0.0, 1.0);
   return lerpDouble(40.0, 64.0, t)!;
 }
 
@@ -63,8 +99,8 @@ double getFolderListTileExtent(double zoomScale) {
 
 /// Returns the discrete text block height below the cover in grid view.
 ///
-/// Text size changes by tier (`smallGrid` vs `largeGrid`) rather than scaling
-/// continuously with `zoomScale`.
+/// Text size changes by tier (`smallGrid`, `mediumGrid`, `largeGrid`) rather
+/// than scaling continuously with `zoomScale`.
 double calculateFolderZoomGridTextHeight(
   BuildContext context, {
   required double zoomScale,
@@ -73,32 +109,43 @@ double calculateFolderZoomGridTextHeight(
       MediaQuery.of(context).orientation == Orientation.portrait;
   final textScale = MediaQuery.textScalerOf(context).scale(10) / 10;
   final clampedScale = textScale.clamp(1.0, 1.3);
-  final isLarge = isFolderZoomLargeGrid(zoomScale);
-  final double baseHeight = isLarge
-      ? (isPortrait ? 60.0 : 64.0)
-      : (isPortrait ? 50.0 : 54.0);
+  final tier = getFolderZoomTier(zoomScale);
+  final double baseHeight = switch (tier) {
+    FolderZoomTier.smallGrid => isPortrait ? 58.0 : 62.0,
+    FolderZoomTier.mediumGrid => isPortrait ? 64.0 : 68.0,
+    FolderZoomTier.largeGrid || _ => isPortrait ? 70.0 : 74.0,
+  };
   return baseHeight * clampedScale;
 }
 
 /// Returns responsive cross axis count based on layout width and `zoomScale` (`>= 0.5`).
 int getFolderZoomGridCrossAxisCount(double width, double zoomScale) {
-  final gridProgress = ((zoomScale - kFolderZoomGridThreshold) /
-          (kFolderZoomMax - kFolderZoomGridThreshold))
-      .clamp(0.0, 1.0);
-
-  final (int maxCols, int minCols) = switch (width) {
-    >= 1280 => (7, 3),
-    >= 960 => (6, 2),
-    >= 680 => (5, 2),
-    _ => (4, 2),
+  final tier = getFolderZoomTier(zoomScale);
+  return switch (tier) {
+    FolderZoomTier.smallGrid => switch (width) {
+        >= 1280 => 7,
+        >= 960 => 6,
+        >= 680 => 5,
+        >= 480 => 4,
+        _ => 3,
+      },
+    FolderZoomTier.mediumGrid => switch (width) {
+        >= 1280 => 5,
+        >= 960 => 4,
+        >= 680 => 3,
+        _ => 2,
+      },
+    FolderZoomTier.largeGrid || _ => switch (width) {
+        >= 1280 => 4,
+        >= 960 => 3,
+        >= 680 => 2,
+        _ => 2,
+      },
   };
-
-  final continuous = lerpDouble(maxCols.toDouble(), minCols.toDouble(), gridProgress)!;
-  return continuous.round().clamp(minCols, maxCols);
 }
 
 /// Returns responsive cross axis count based on layout width for folder and song grids.
-int getFolderGridCrossAxisCount(double width, [double zoomScale = 0.65]) {
+int getFolderGridCrossAxisCount(double width, [double zoomScale = 0.8]) {
   return getFolderZoomGridCrossAxisCount(width, zoomScale);
 }
 
@@ -108,7 +155,7 @@ double calculateFolderGridChildAspectRatio(
   double width,
   int crossAxisCount, {
   double? textHeight,
-  double zoomScale = 0.65,
+  double zoomScale = 0.8,
 }) {
   if (width <= 0) return 1.0;
   final double resolvedTextHeight = textHeight ??

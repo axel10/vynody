@@ -58,16 +58,16 @@ class FolderZoomItem extends StatelessWidget {
 
     final gridMorph = metrics.gridMorph;
     final isGridTarget = metrics.isGridTarget;
-    final isLargeGridTarget = metrics.isLargeGridTarget;
 
     final isSystem = folder.path == 'system';
     final coverRadiusValue = lerpDouble(8.0, 12.0, gridMorph)!;
     final coverRadius = BorderRadius.circular(coverRadiusValue);
-    final defaultIconSize = lerpDouble(
-      26.0,
-      isLargeGridTarget ? 48.0 : 36.0,
-      gridMorph,
-    )!;
+    final gridIconSize = switch (metrics.tier) {
+      FolderZoomTier.smallGrid => 32.0,
+      FolderZoomTier.mediumGrid => 40.0,
+      FolderZoomTier.largeGrid || _ => 48.0,
+    };
+    final defaultIconSize = lerpDouble(26.0, gridIconSize, gridMorph)!;
     final defaultCoverWidget = DefaultCoverArt.folder(
       isSystem: isSystem,
       iconSize: defaultIconSize,
@@ -181,76 +181,63 @@ class FolderZoomItem extends StatelessWidget {
         color: theme.colorScheme.onSurfaceVariant,
         height: 1.2,
       );
-    } else if (!isLargeGridTarget) {
+    } else {
+      final tier = metrics.tier;
+      final (double titleSize, double subSize) = switch (tier) {
+        FolderZoomTier.smallGrid => (isWide ? 13.0 : 12.5, 10.5),
+        FolderZoomTier.mediumGrid => (isWide ? 14.0 : 13.5, 11.5),
+        FolderZoomTier.largeGrid || _ => (isWide ? 15.0 : 14.5, 12.5),
+      };
       titleStyle = ((isPortrait
                   ? theme.textTheme.titleSmall
                   : theme.textTheme.titleMedium) ??
               const TextStyle())
           .copyWith(
         fontWeight: FontWeight.w600,
-        fontSize: isWide ? 13.0 : 12.5,
+        fontSize: titleSize,
         color: titleColor,
         height: 1.25,
       );
       subtitleStyle = (theme.textTheme.bodySmall ?? const TextStyle()).copyWith(
-        fontSize: 11.0,
-        color: theme.colorScheme.onSurfaceVariant,
-        height: 1.2,
-      );
-    } else {
-      titleStyle = ((isPortrait
-                  ? theme.textTheme.titleSmall
-                  : theme.textTheme.titleMedium) ??
-              const TextStyle())
-          .copyWith(
-        fontWeight: FontWeight.w600,
-        fontSize: isWide ? 14.5 : 14.0,
-        color: titleColor,
-        height: 1.25,
-      );
-      subtitleStyle = ((isPortrait
-                  ? theme.textTheme.bodySmall
-                  : theme.textTheme.bodyMedium) ??
-              const TextStyle())
-          .copyWith(
-        fontSize: isWide ? 12.5 : 12.0,
+        fontSize: subSize,
         color: theme.colorScheme.onSurfaceVariant,
         height: 1.2,
       );
     }
 
     final textColumn = Align(
-      alignment: Alignment.lerp(
-        Alignment.centerLeft,
-        Alignment.topLeft,
-        gridMorph,
-      )!,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          AnimatedDefaultTextStyle(
-            duration: const Duration(milliseconds: 180),
-            curve: Curves.easeOutCubic,
-            style: titleStyle,
-            child: Text(
-              customTitle ?? folder.name,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+      alignment: Alignment.centerLeft,
+      child: OverflowBox(
+        minHeight: 0.0,
+        maxHeight: double.infinity,
+        alignment: Alignment.centerLeft,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AnimatedDefaultTextStyle(
+              duration: const Duration(milliseconds: 180),
+              curve: Curves.easeOutCubic,
+              style: titleStyle,
+              child: Text(
+                customTitle ?? folder.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
-          ),
-          SizedBox(height: lerpDouble(4.0, 2.0, gridMorph)!),
-          AnimatedDefaultTextStyle(
-            duration: const Duration(milliseconds: 180),
-            curve: Curves.easeOutCubic,
-            style: subtitleStyle,
-            child: Text(
-              subtitle ?? l10n.songsCountFormat(songsCount),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+            SizedBox(height: lerpDouble(4.0, 2.0, gridMorph)!),
+            AnimatedDefaultTextStyle(
+              duration: const Duration(milliseconds: 180),
+              curve: Curves.easeOutCubic,
+              style: subtitleStyle,
+              child: Text(
+                subtitle ?? l10n.songsCountFormat(songsCount),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
 
@@ -316,10 +303,10 @@ class FolderZoomItem extends StatelessWidget {
                   0.0,
                   W - listTextLeft - listPadH - trailingSpace,
                 );
-                final listTextHeight = listCoverSize;
+                final listTextHeight = math.max(listCoverSize, H - 8.0);
 
                 const gridTextLeft = 0.0;
-                final gridTextTop = gridCoverSize + 6.0;
+                final gridTextTop = gridCoverSize + 4.0;
                 final gridTextWidth = W;
                 final gridTextHeight = math.max(0.0, H - gridTextTop);
 
@@ -545,39 +532,42 @@ class FolderGridCard extends StatelessWidget {
             ),
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      customTitle ?? folder.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: (isPortrait
-                              ? theme.textTheme.titleSmall
-                              : theme.textTheme.titleMedium)
-                          ?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        fontSize: isWide ? 14.5 : 14.0,
-                        color: isSelectionMode && isSelected
-                            ? theme.colorScheme.primary
-                            : null,
+                padding: const EdgeInsets.only(top: 6),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        customTitle ?? folder.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: (isPortrait
+                                ? theme.textTheme.titleSmall
+                                : theme.textTheme.titleMedium)
+                            ?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          fontSize: isWide ? 14.5 : 14.0,
+                          color: isSelectionMode && isSelected
+                              ? theme.colorScheme.primary
+                              : null,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle ?? l10n.songsCountFormat(songsCount),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: (isPortrait
-                              ? theme.textTheme.bodySmall
-                              : theme.textTheme.bodyMedium)
-                          ?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle ?? l10n.songsCountFormat(songsCount),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: (isPortrait
+                                ? theme.textTheme.bodySmall
+                                : theme.textTheme.bodyMedium)
+                            ?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),

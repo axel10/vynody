@@ -17,9 +17,11 @@ export 'folder_nav_bar_scaffold.dart';
 IconData getFolderZoomTierIcon(double zoomScale) {
   return switch (getFolderZoomTier(zoomScale)) {
     FolderZoomTier.compactList => Icons.density_small_rounded,
-    FolderZoomTier.standardList => Icons.view_list_rounded,
+    FolderZoomTier.standardList => Icons.density_medium_rounded,
+    FolderZoomTier.largeList => Icons.density_large_rounded,
     FolderZoomTier.smallGrid => Icons.grid_on_rounded,
-    FolderZoomTier.largeGrid => Icons.grid_view_rounded,
+    FolderZoomTier.mediumGrid => Icons.grid_view_rounded,
+    FolderZoomTier.largeGrid => Icons.view_module_rounded,
   };
 }
 
@@ -86,8 +88,15 @@ class _FolderZoomPopoverCard extends ConsumerWidget {
     final tier = getFolderZoomTier(zoomScale);
     final isGrid = isFolderZoomGrid(zoomScale);
 
-    final tierLabel = isGrid ? l10n.gridView : l10n.listView;
-    final percentText = '${(zoomScale * 100).round()}%';
+    final modeLabel = isGrid ? l10n.gridView : l10n.listView;
+    final tierName = switch (tier) {
+      FolderZoomTier.compactList => '紧凑',
+      FolderZoomTier.standardList => '标准',
+      FolderZoomTier.largeList => '大图',
+      FolderZoomTier.smallGrid => '小',
+      FolderZoomTier.mediumGrid => '中',
+      FolderZoomTier.largeGrid => '大',
+    };
 
     return Material(
       color: Colors.transparent,
@@ -96,7 +105,7 @@ class _FolderZoomPopoverCard extends ConsumerWidget {
         child: BackdropFilter(
           filter: AppBlur.mediumFilter,
           child: Container(
-            width: 268,
+            width: 276,
             padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
             decoration: BoxDecoration(
               color: theme.colorScheme.surfaceContainerHigh
@@ -127,7 +136,7 @@ class _FolderZoomPopoverCard extends ConsumerWidget {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        tierLabel,
+                        modeLabel,
                         style: theme.textTheme.labelLarge?.copyWith(
                           fontWeight: FontWeight.w600,
                         ),
@@ -135,7 +144,7 @@ class _FolderZoomPopoverCard extends ConsumerWidget {
                     ),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 7,
+                        horizontal: 8,
                         vertical: 2,
                       ),
                       decoration: BoxDecoration(
@@ -144,7 +153,7 @@ class _FolderZoomPopoverCard extends ConsumerWidget {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        percentText,
+                        tierName,
                         style: theme.textTheme.labelSmall?.copyWith(
                           color: theme.colorScheme.onPrimaryContainer,
                           fontWeight: FontWeight.bold,
@@ -164,10 +173,10 @@ class _FolderZoomPopoverCard extends ConsumerWidget {
                       ),
                       padding: EdgeInsets.zero,
                       icon: const Icon(Icons.remove_rounded, size: 18),
-                      onPressed: zoomScale > 0.0
+                      onPressed: zoomScale > 0.001
                           ? () {
                               settings.folderZoomScale =
-                                  (zoomScale - 0.125).clamp(0.0, 1.0);
+                                  stepFolderZoomScale(zoomScale, -1);
                             }
                           : null,
                     ),
@@ -183,11 +192,12 @@ class _FolderZoomPopoverCard extends ConsumerWidget {
                           ),
                         ),
                         child: Slider(
-                          value: zoomScale,
-                          min: kFolderZoomMin,
-                          max: kFolderZoomMax,
+                          value: snapFolderZoomScale(zoomScale),
+                          min: 0.0,
+                          max: 1.0,
+                          divisions: 5,
                           onChanged: (val) {
-                            settings.folderZoomScale = val;
+                            settings.folderZoomScale = snapFolderZoomScale(val);
                           },
                         ),
                       ),
@@ -200,10 +210,10 @@ class _FolderZoomPopoverCard extends ConsumerWidget {
                       ),
                       padding: EdgeInsets.zero,
                       icon: const Icon(Icons.add_rounded, size: 18),
-                      onPressed: zoomScale < 1.0
+                      onPressed: zoomScale < 0.999
                           ? () {
                               settings.folderZoomScale =
-                                  (zoomScale + 0.125).clamp(0.0, 1.0);
+                                  stepFolderZoomScale(zoomScale, 1);
                             }
                           : null,
                     ),
@@ -215,23 +225,52 @@ class _FolderZoomPopoverCard extends ConsumerWidget {
                   children: [
                     _ZoomTierPresetButton(
                       icon: Icons.density_small_rounded,
+                      tooltip: '${l10n.listView} · 紧凑',
                       isSelected: tier == FolderZoomTier.compactList,
-                      onTap: () => settings.folderZoomScale = 0.12,
+                      onTap: () => settings.folderZoomScale =
+                          kFolderZoomTierCompactList,
                     ),
                     _ZoomTierPresetButton(
-                      icon: Icons.view_list_rounded,
+                      icon: Icons.density_medium_rounded,
+                      tooltip: '${l10n.listView} · 标准',
                       isSelected: tier == FolderZoomTier.standardList,
-                      onTap: () => settings.folderZoomScale = 0.36,
+                      onTap: () => settings.folderZoomScale =
+                          kFolderZoomTierStandardList,
+                    ),
+                    _ZoomTierPresetButton(
+                      icon: Icons.density_large_rounded,
+                      tooltip: '${l10n.listView} · 大图',
+                      isSelected: tier == FolderZoomTier.largeList,
+                      onTap: () => settings.folderZoomScale =
+                          kFolderZoomTierLargeList,
+                    ),
+                    Container(
+                      width: 1,
+                      height: 18,
+                      margin: const EdgeInsets.symmetric(horizontal: 2),
+                      color: theme.colorScheme.outlineVariant
+                          .withValues(alpha: 0.5),
                     ),
                     _ZoomTierPresetButton(
                       icon: Icons.grid_on_rounded,
+                      tooltip: '${l10n.gridView} · 小',
                       isSelected: tier == FolderZoomTier.smallGrid,
-                      onTap: () => settings.folderZoomScale = 0.62,
+                      onTap: () => settings.folderZoomScale =
+                          kFolderZoomTierSmallGrid,
                     ),
                     _ZoomTierPresetButton(
                       icon: Icons.grid_view_rounded,
+                      tooltip: '${l10n.gridView} · 中',
+                      isSelected: tier == FolderZoomTier.mediumGrid,
+                      onTap: () => settings.folderZoomScale =
+                          kFolderZoomTierMediumGrid,
+                    ),
+                    _ZoomTierPresetButton(
+                      icon: Icons.view_module_rounded,
+                      tooltip: '${l10n.gridView} · 大',
                       isSelected: tier == FolderZoomTier.largeGrid,
-                      onTap: () => settings.folderZoomScale = 0.88,
+                      onTap: () => settings.folderZoomScale =
+                          kFolderZoomTierLargeGrid,
                     ),
                   ],
                 ),
@@ -249,21 +288,23 @@ class _ZoomTierPresetButton extends StatelessWidget {
     required this.icon,
     required this.isSelected,
     required this.onTap,
+    this.tooltip,
   });
 
   final IconData icon;
   final bool isSelected;
   final VoidCallback onTap;
+  final String? tooltip;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return InkWell(
+    final button = InkWell(
       borderRadius: BorderRadius.circular(8),
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 160),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
         decoration: BoxDecoration(
           color: isSelected
               ? theme.colorScheme.primary.withValues(alpha: 0.16)
@@ -285,6 +326,11 @@ class _ZoomTierPresetButton extends StatelessWidget {
         ),
       ),
     );
+
+    if (tooltip != null) {
+      return Tooltip(message: tooltip!, child: button);
+    }
+    return button;
   }
 }
 

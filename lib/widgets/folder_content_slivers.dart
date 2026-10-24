@@ -159,10 +159,11 @@ class FolderSubfoldersSliver extends StatelessWidget {
   });
 
   double get _effectiveZoomScale {
-    if (zoomScale != null) return zoomScale!.clamp(0.0, 1.0);
+    if (zoomScale != null) return snapFolderZoomScale(zoomScale!);
     return switch (viewMode) {
-      FolderViewMode.list => 0.35,
-      FolderViewMode.hybrid || FolderViewMode.grid || null => 0.65,
+      FolderViewMode.list => kFolderZoomTierStandardList,
+      FolderViewMode.hybrid || FolderViewMode.grid || null =>
+        kFolderZoomTierMediumGrid,
     };
   }
 
@@ -565,10 +566,11 @@ class FolderSongsSliver extends StatelessWidget {
   });
 
   double get _effectiveZoomScale {
-    if (zoomScale != null) return zoomScale!.clamp(0.0, 1.0);
+    if (zoomScale != null) return snapFolderZoomScale(zoomScale!);
     return switch (viewMode) {
-      FolderViewMode.grid => 0.65,
-      FolderViewMode.list || FolderViewMode.hybrid || null => 0.35,
+      FolderViewMode.grid => kFolderZoomTierMediumGrid,
+      FolderViewMode.list || FolderViewMode.hybrid || null =>
+        kFolderZoomTierStandardList,
     };
   }
 

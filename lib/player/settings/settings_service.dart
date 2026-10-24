@@ -18,6 +18,11 @@ import 'package:vynody/player/library/year_library.dart';
 import 'package:vynody/player/lyrics/timeline/lyrics_timeline_repository.dart';
 import 'package:vynody/utils/app_proxy_manager.dart';
 import 'package:vynody/utils/localized_text.dart';
+import 'package:vynody/widgets/folder_layout_utils.dart'
+    show
+        kFolderZoomTierStandardList,
+        kFolderZoomTierMediumGrid,
+        snapFolderZoomScale;
 
 export 'package:flutter/material.dart' show ThemeMode;
 export 'package:vynody/utils/app_proxy_manager.dart' show AppProxyMode;
@@ -701,7 +706,7 @@ class SettingsService extends ChangeNotifier {
       'only_allow_trusted_remote_control';
   static const String _keyFolderViewMode = 'folder_view_mode';
   static const String _keyFolderZoomScale = 'folder_zoom_scale';
-  static const double defaultFolderZoomScale = 0.65;
+  static const double defaultFolderZoomScale = kFolderZoomTierMediumGrid;
   static const String _keyRemoteCacheMaxSizeBytes = 'remote_cache_max_size_bytes';
   static const int defaultRemoteCacheMaxSizeBytes = 2 * 1024 * 1024 * 1024; // 2 GB (0 = unlimited)
   static const String _keyRemotePrefetchCount = 'remote_prefetch_count';
@@ -897,19 +902,19 @@ class SettingsService extends ChangeNotifier {
     customRead: (prefs, key, def) {
       final stored = prefs.getDouble(key);
       if (stored != null) {
-        return stored.clamp(0.0, 1.0);
+        return snapFolderZoomScale(stored);
       }
       final legacyMode = FolderViewModeX.fromStorageValue(
         prefs.getString(_keyFolderViewMode),
         FolderViewMode.grid,
       );
       return switch (legacyMode) {
-        FolderViewMode.list => 0.35,
+        FolderViewMode.list => kFolderZoomTierStandardList,
         FolderViewMode.hybrid || FolderViewMode.grid => defaultFolderZoomScale,
       };
     },
     customWrite: (prefs, key, val) =>
-        prefs.setDouble(key, val.clamp(0.0, 1.0)),
+        prefs.setDouble(key, snapFolderZoomScale(val)),
   );
 
   late final _albumSortFieldProperty = SettingProperty<AlbumSortField>(
@@ -3220,14 +3225,14 @@ class SettingsService extends ChangeNotifier {
   set folderViewMode(FolderViewMode value) {
     _folderViewModeProperty.value = value;
     _folderZoomScaleProperty.value = switch (value) {
-      FolderViewMode.list => 0.35,
+      FolderViewMode.list => kFolderZoomTierStandardList,
       FolderViewMode.hybrid || FolderViewMode.grid => defaultFolderZoomScale,
     };
   }
 
   double get folderZoomScale => _folderZoomScaleProperty.value;
   set folderZoomScale(double value) =>
-      _folderZoomScaleProperty.value = value.clamp(0.0, 1.0);
+      _folderZoomScaleProperty.value = snapFolderZoomScale(value);
 
   String get windowsAudioOutputMode => _windowsAudioOutputModeProperty.value;
   set windowsAudioOutputMode(String value) {

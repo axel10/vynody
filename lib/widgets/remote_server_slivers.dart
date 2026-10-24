@@ -295,10 +295,11 @@ class RemoteServersSliver extends ConsumerWidget {
   });
 
   double get _effectiveZoomScale {
-    if (zoomScale != null) return zoomScale!.clamp(0.0, 1.0);
+    if (zoomScale != null) return snapFolderZoomScale(zoomScale!);
     return switch (viewMode) {
-      FolderViewMode.list => 0.35,
-      FolderViewMode.hybrid || FolderViewMode.grid || null => 0.65,
+      FolderViewMode.list => kFolderZoomTierStandardList,
+      FolderViewMode.hybrid || FolderViewMode.grid || null =>
+        kFolderZoomTierMediumGrid,
     };
   }
 
