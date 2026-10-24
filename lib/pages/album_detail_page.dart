@@ -34,7 +34,9 @@ class AlbumDetailPage extends ConsumerStatefulWidget {
 }
 
 class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage>
-    with SongSelectionMixin<AlbumDetailPage> {
+    with
+        SelectionStateMixin<AlbumDetailPage, String>,
+        SongSelectionMixin<AlbumDetailPage> {
   @override
   LibrarySelectionScope get selectionScope => LibrarySelectionScope.library;
 

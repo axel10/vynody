@@ -153,7 +153,9 @@ class RemotePlaylistDetailContent extends ConsumerStatefulWidget {
 
 class _RemotePlaylistDetailContentState
     extends ConsumerState<RemotePlaylistDetailContent>
-    with SongSelectionMixin {
+    with
+        SelectionStateMixin<RemotePlaylistDetailContent, String>,
+        SongSelectionMixin<RemotePlaylistDetailContent> {
   bool _isLoading = true;
   String? _error;
   Map<String, dynamic>? _playlistData;

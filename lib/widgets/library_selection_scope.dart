@@ -358,129 +358,48 @@ mixin SelectionStateMixin<T extends ConsumerStatefulWidget, K>
   }
 }
 
-/// Mixin for managing generic selection state in [ConsumerStatefulWidget]s
-/// backed directly by [librarySelectionStateProvider] (Single Source of Truth).
-mixin SongSelectionMixin<T extends ConsumerStatefulWidget> on ConsumerState<T> {
-  LibrarySelectionScope get selectionScope => LibrarySelectionScope.library;
-  LibrarySelectionController? _selectionController;
-  int? _lastAnchorIndex;
-  int? get lastAnchorIndex => _lastAnchorIndex;
-  set lastAnchorIndex(int? value) => _lastAnchorIndex = value;
+/// [SelectionStateMixin] 在曲目列表上的特化：选择键固定为歌曲路径。
+///
+/// 状态与手势逻辑（Shift 范围、Ctrl/Cmd 点选、锚点、选择模式判定）全部由
+/// [SelectionStateMixin] 承担，这里只提供 `Song` 前缀的便捷别名，避免两份
+/// 实现各自漂移。使用方必须把父 mixin 写在前面：
+///
+/// ```dart
+/// class _FooState extends ConsumerState<Foo>
+///     with SelectionStateMixin<Foo, String>, SongSelectionMixin<Foo> {}
+/// ```
+mixin SongSelectionMixin<T extends ConsumerStatefulWidget>
+    on SelectionStateMixin<T, String> {
+  Set<String> get selectedSongPaths => selectedKeys;
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _selectionController = ref.read(librarySelectionStateProvider.notifier);
-  }
+  bool isSongSelected(String path) => selectedKeys.contains(path);
 
-  bool get isSelectionMode {
-    final state = ref.watch(librarySelectionStateProvider);
-    return state.isActive && state.scope == selectionScope;
-  }
+  List<MusicFile> getSelectedSongs(List<MusicFile> allSongs) =>
+      allSongs.where((s) => selectedKeys.contains(s.path)).toList();
 
-  Set<String> get selectedSongPaths {
-    final state = ref.watch(librarySelectionStateProvider);
-    if (state.scope != selectionScope) return const {};
-    return state.selectedKeys.cast<String>().toSet();
-  }
+  void enterSongSelectionMode([String? initialPath]) =>
+      enterSelectionMode(initialPath);
 
-  int get selectedCount => selectedSongPaths.length;
+  void toggleSongSelection(String path) => toggleSelection(path);
 
-  bool isSongSelected(String path) => selectedSongPaths.contains(path);
+  void toggleSelectAllSongs(List<MusicFile> allSongs) =>
+      toggleSelectAll(allSongs.map((s) => s.path));
 
-  List<MusicFile> getSelectedSongs(List<MusicFile> allSongs) {
-    final paths = selectedSongPaths;
-    return allSongs.where((s) => paths.contains(s.path)).toList();
-  }
-
-  void updateSelectionScope(bool active) {
-    if (active) {
-      ref
-          .read(librarySelectionStateProvider.notifier)
-          .setScope(selectionScope);
-    } else {
-      ref.read(librarySelectionStateProvider.notifier).clear();
-    }
-  }
-
-  void enterSongSelectionMode([String? initialPath]) {
-    ref.read(librarySelectionStateProvider.notifier).enter(
-      selectionScope,
-      initialKey: initialPath,
-    );
-  }
-
-  void toggleSongSelection(String path) {
-    ref.read(librarySelectionStateProvider.notifier).toggle(
-      path,
-      scope: selectionScope,
-    );
-  }
-
-  void toggleSelectAllSongs(List<MusicFile> allSongs) {
-    ref.read(librarySelectionStateProvider.notifier).toggleSelectAll(
-      allSongs.map((s) => s.path),
-      scope: selectionScope,
-    );
-  }
-
-  /// Unified song tap handler with shortcut modifiers support (Shift range, Ctrl/Cmd toggle).
-  /// Returns `true` if the tap was handled as a selection operation, or `false` if `onNormalTap` was executed.
   bool handleSongTap({
     required int index,
     required String songPath,
     required List<MusicFile> allSongs,
     void Function()? onNormalTap,
   }) {
-    final isShift = ModifierKeyUtils.isRangeSelectPressed;
-    final isCtrl = ModifierKeyUtils.isDiscreteSelectPressed;
-
-    if (isShift) {
-      final anchor = _lastAnchorIndex ?? index;
-      _lastAnchorIndex ??= index;
-      final range = ModifierKeyUtils.getIndexRange(anchor, index);
-      final nextPaths = Set<String>.from(selectedSongPaths);
-      for (final i in range) {
-        if (i >= 0 && i < allSongs.length) {
-          nextPaths.add(allSongs[i].path);
-        }
-      }
-      ref
-          .read(librarySelectionStateProvider.notifier)
-          .setSelection(nextPaths, scope: selectionScope);
-      return true;
-    } else if (isCtrl) {
-      toggleSongSelection(songPath);
-      _lastAnchorIndex = index;
-      return true;
-    } else {
-      if (isSelectionMode) {
-        toggleSongSelection(songPath);
-        _lastAnchorIndex = index;
-        return true;
-      } else {
-        _lastAnchorIndex = index;
-        onNormalTap?.call();
-        return false;
-      }
-    }
+    return handleItemTap(
+      index: index,
+      itemKey: songPath,
+      allKeys: allSongs.map((s) => s.path).toList(),
+      onNormalTap: onNormalTap,
+    );
   }
 
-  void cancelSongSelection() {
-    _lastAnchorIndex = null;
-    ref.read(librarySelectionStateProvider.notifier).clear();
-  }
-
-  @override
-  void dispose() {
-    final controller = _selectionController;
-    if (controller != null) {
-      Future.microtask(() {
-        controller.clearIfScope(selectionScope);
-      });
-    }
-    super.dispose();
-  }
+  void cancelSongSelection() => cancelSelection();
 }
 
 /// Reusable slide-up animation container for bottom selection panels.

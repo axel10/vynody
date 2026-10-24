@@ -248,7 +248,9 @@ class _RemoteAlbumSectionData {
 
 class _RemoteArtistDetailContentState
     extends ConsumerState<RemoteArtistDetailContent>
-    with SongSelectionMixin {
+    with
+        SelectionStateMixin<RemoteArtistDetailContent, String>,
+        SongSelectionMixin<RemoteArtistDetailContent> {
   bool _isLoading = true;
   String? _error;
   List<_RemoteAlbumSectionData> _albumSections = [];

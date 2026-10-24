@@ -69,7 +69,9 @@ class ArtistDetailContent extends ConsumerStatefulWidget {
 }
 
 class _ArtistDetailContentState extends ConsumerState<ArtistDetailContent>
-    with SongSelectionMixin<ArtistDetailContent> {
+    with
+        SelectionStateMixin<ArtistDetailContent, String>,
+        SongSelectionMixin<ArtistDetailContent> {
   @override
   LibrarySelectionScope get selectionScope => LibrarySelectionScope.library;
 

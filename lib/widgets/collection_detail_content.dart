@@ -52,7 +52,9 @@ class CollectionDetailContent extends ConsumerStatefulWidget {
 }
 
 class _CollectionDetailContentState extends ConsumerState<CollectionDetailContent>
-    with SongSelectionMixin<CollectionDetailContent> {
+    with
+        SelectionStateMixin<CollectionDetailContent, String>,
+        SongSelectionMixin<CollectionDetailContent> {
   @override
   LibrarySelectionScope get selectionScope => LibrarySelectionScope.library;
 

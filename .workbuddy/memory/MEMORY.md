@@ -36,7 +36,7 @@
 - **嵌套 `AutoHideHeaderScope` 各管自己的滚动**：`_ownsNotification()` 按「来源往上最近一个 scope 是否自己」判定，外层不收内层通知。
 - **禁持二进制、禁按字节做 key**：blob 列禁进 `MusicFolder.files` 与 `representativeSongCache`（执行点 `scanner_tree_builder` 三工厂、`_updateMusicFileInFolder`；数据源永远 SQLite）。播放态封面每次新 `Uint8List`，key 只能用品内容指纹。
 - **IndexedStack 常驻子页禁挂 PopScope**：`canPop:false` 会让整条路由 `doNotPop` 并派发给全部 PopEntry。共用 tab 写进 `_handleBackPressed()`；艺术家/流派/年份套 `library_selection_back_guard.dart`。
-- **多选状态禁条件切换 widget 根节点**：runtimeType 一变子树重建，dispose 微任务清掉刚建的多选状态。唯一状态 `librarySelectionStateProvider`。
+- **多选状态禁条件切换 widget 根节点**：runtimeType 一变子树重建，dispose 微任务清掉刚建的多选状态。唯一状态 `librarySelectionStateProvider`。`SongSelectionMixin` 只是 `SelectionStateMixin<T, String>` 的薄壳（`on SelectionStateMixin<T, String>`），使用方**必须串联书写**：`with SelectionStateMixin<X, String>, SongSelectionMixin<X>`；禁再往 Song 版里抄一份状态/手势逻辑。
 - **禁裸 `ref.watch(scannerServiceProvider)`**：缩略图每张 `notifyListeners()`。用 `ref.read` + `.select((s) => s.structureRevision)`；`rootFolders` 返回缓存的 `_rootFoldersView`；`build()` 只能 select `isScanning`。
 - **MainLayout 是 rebuild 放大器**：`_buildCurrentPage()` 每次 build 新建非 const 页，任何 `setState` 都 rebuild 全部已访问页。别随手加 `ref.watch`。
 - **Riverpod 3 禁在 `initState`/`dispose`/`build` 改 provider**：`dispose` 里 `Future.microtask(() => notifier.reset())`；`reset()` 先判 `ref.mounted` 与 `isDefault`。

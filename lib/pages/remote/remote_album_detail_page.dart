@@ -58,7 +58,9 @@ class RemoteAlbumDetailPage extends ConsumerStatefulWidget {
 
 class _RemoteAlbumDetailPageState
     extends ConsumerState<RemoteAlbumDetailPage>
-    with SongSelectionMixin {
+    with
+        SelectionStateMixin<RemoteAlbumDetailPage, String>,
+        SongSelectionMixin<RemoteAlbumDetailPage> {
   bool _isLoading = true;
   String? _error;
   Map<String, dynamic>? _albumData;

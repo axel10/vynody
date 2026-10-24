@@ -50,51 +50,6 @@ class AppContextMenu {
     );
   }
 
-  /// Builds a standard popup menu item with an icon and label adhering to
-  /// the app's theme and disabled states.
-  static PopupMenuItem<T> buildItem<T>({
-    required T value,
-    required String label,
-    required IconData icon,
-    required BuildContext context,
-    bool enabled = true,
-    Color? iconColor,
-    TextStyle? textStyle,
-  }) {
-    final theme = Theme.of(context);
-    final defaultIconColor = theme.colorScheme.onSurfaceVariant;
-    return PopupMenuItem<T>(
-      value: value,
-      enabled: enabled,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            size: 20,
-            color: enabled
-                ? (iconColor ?? defaultIconColor)
-                : defaultIconColor.withValues(alpha: 0.4),
-          ),
-          const SizedBox(width: 12),
-          Flexible(
-            child: Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: textStyle ??
-                  theme.textTheme.bodyMedium?.copyWith(
-                    color: enabled
-                        ? theme.colorScheme.onSurface
-                        : theme.colorScheme.onSurface.withValues(alpha: 0.4),
-                  ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   /// Shows a modal bottom sheet guaranteeing top-level root navigator display.
   static Future<T?> showModalSheet<T>({
     required BuildContext context,
@@ -116,6 +71,55 @@ class AppContextMenu {
       builder: builder,
     );
   }
+}
+
+/// Builds a standard popup menu item with an icon and label adhering to the
+/// app's theme and disabled states.
+///
+/// This is the single constructor for popup menu rows across the app; every
+/// context menu (song, album, artist, genre, year, folder, remote) goes through
+/// it so a styling change only has to happen here.
+PopupMenuItem<T> buildContextMenuItem<T>({
+  required T value,
+  required String label,
+  required IconData icon,
+  required BuildContext context,
+  bool enabled = true,
+  Color? iconColor,
+  TextStyle? textStyle,
+}) {
+  final theme = Theme.of(context);
+  final defaultIconColor = theme.colorScheme.onSurfaceVariant;
+  return PopupMenuItem<T>(
+    value: value,
+    enabled: enabled,
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          icon,
+          size: 20,
+          color: enabled
+              ? (iconColor ?? defaultIconColor)
+              : defaultIconColor.withValues(alpha: 0.4),
+        ),
+        const SizedBox(width: 12),
+        Flexible(
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: textStyle ??
+                theme.textTheme.bodyMedium?.copyWith(
+                  color: enabled
+                      ? theme.colorScheme.onSurface
+                      : theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                ),
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 /// A single menu action shared by the popup context menu (right click) and the
@@ -148,7 +152,7 @@ List<PopupMenuEntry<String>> buildContextMenuPopupItems(
     isFirstGroup = false;
     for (final action in group) {
       entries.add(
-        AppContextMenu.buildItem<String>(
+        buildContextMenuItem<String>(
           value: action.value,
           label: action.label,
           icon: action.icon,

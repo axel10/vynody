@@ -1215,21 +1215,3 @@ Future<void> showFolderContextMenu(
   }
 }
 
-PopupMenuItem<T> buildContextMenuItem<T>({
-  required T value,
-  required String label,
-  required IconData icon,
-  required BuildContext context,
-  bool enabled = true,
-  Color? iconColor,
-}) {
-  return AppContextMenu.buildItem<T>(
-    value: value,
-    label: label,
-    icon: icon,
-    context: context,
-    enabled: enabled,
-    iconColor: iconColor,
-  );
-}
-
