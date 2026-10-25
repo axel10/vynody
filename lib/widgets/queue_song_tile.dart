@@ -63,11 +63,8 @@ class _QueueSongTileState extends State<QueueSongTile> {
 
     final unknownArtistText = l10n?.unknownArtist ?? '未知艺术家';
     final artist = (widget.artistOverride ?? song.artist)?.trim();
-    final album = (widget.albumOverride ?? song.album)?.trim();
-    final displayArtist = (artist != null && artist.isNotEmpty) ? artist : unknownArtistText;
-    final displayAlbum = (album != null && album.isNotEmpty) ? album : null;
     final subtitleText =
-        displayAlbum != null ? '$displayArtist - $displayAlbum' : displayArtist;
+        (artist != null && artist.isNotEmpty) ? artist : unknownArtistText;
 
     final itemColor = widget.isSelected
         ? theme.colorScheme.primaryContainer.withValues(alpha: 0.55)
@@ -108,116 +105,128 @@ class _QueueSongTileState extends State<QueueSongTile> {
             ),
             child: Row(
               children: [
-                if (widget.showDragHandle)
-                  ReorderableDragStartListener(
-                    index: widget.index,
-                    child: MouseRegion(
-                      cursor: SystemMouseCursors.grab,
-                      child: Padding(
-                        padding: const EdgeInsets.only(right: 6),
-                        child: Icon(
-                          Icons.drag_handle_rounded,
-                          size: 16,
-                          color: theme.colorScheme.onSurface.withValues(
-                            alpha: _isHovered ? 0.6 : 0.25,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
                 Expanded(
-                  child: Row(
-                    children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(6),
-                        child: SizedBox(
-                          width: 36,
-                          height: 36,
-                          child: Stack(
-                            fit: StackFit.expand,
-                            children: [
-                              Opacity(
-                                opacity: widget.isSelectionMode
-                                    ? (widget.isSelected ? 0.5 : 0.7)
-                                    : 1.0,
-                                child: SongThumbnail.fromSong(
-                                  song,
-                                  size: 36.0,
+                  child: ReorderableDragStartListener(
+                    index: widget.index,
+                    enabled: widget.showDragHandle,
+                    child: Container(
+                      color: Colors.transparent,
+                      child: Row(
+                        children: [
+                          if (widget.showDragHandle)
+                            Padding(
+                              padding: const EdgeInsets.only(right: 6),
+                              child: SizedBox(
+                                width: 26,
+                                child: Text(
+                                  '${widget.index + 1}',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: widget.isCurrent
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
+                                    color: widget.isCurrent
+                                        ? theme.colorScheme.primary
+                                        : theme.colorScheme.onSurface.withValues(
+                                            alpha: _isHovered ? 0.8 : 0.45,
+                                          ),
+                                  ),
                                 ),
                               ),
-                              if (widget.isSelectionMode)
-                                Positioned.fill(
-                                  child: Align(
-                                    alignment: Alignment.center,
-                                    child: SizedBox(
-                                      width: 22,
-                                      height: 22,
-                                      child: Checkbox(
-                                        value: widget.isSelected,
-                                        onChanged: (_) => widget.onToggleSelect?.call(),
-                                        fillColor: WidgetStateProperty.all(Colors.white),
-                                        checkColor: Colors.black,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(4),
+                            ),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(6),
+                            child: SizedBox(
+                              width: 36,
+                              height: 36,
+                              child: Stack(
+                                fit: StackFit.expand,
+                                children: [
+                                  Opacity(
+                                    opacity: widget.isSelectionMode
+                                        ? (widget.isSelected ? 0.5 : 0.7)
+                                        : 1.0,
+                                    child: SongThumbnail.fromSong(
+                                      song,
+                                      size: 36.0,
+                                    ),
+                                  ),
+                                  if (widget.isSelectionMode)
+                                    Positioned.fill(
+                                      child: Align(
+                                        alignment: Alignment.center,
+                                        child: SizedBox(
+                                          width: 22,
+                                          height: 22,
+                                          child: Checkbox(
+                                            value: widget.isSelected,
+                                            onChanged: (_) => widget.onToggleSelect?.call(),
+                                            fillColor: WidgetStateProperty.all(Colors.white),
+                                            checkColor: Colors.black,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(4),
+                                            ),
+                                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                            visualDensity: VisualDensity.compact,
+                                          ),
                                         ),
-                                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                        visualDensity: VisualDensity.compact,
                                       ),
                                     ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                if (widget.isCurrent) ...[
-                                  PlayingEqualizerIcon(
-                                    color: theme.colorScheme.primary,
-                                    size: 14,
-                                    isPlaying: widget.isPlaying,
-                                  ),
-                                  const SizedBox(width: 4),
                                 ],
-                                Expanded(
-                                  child: Text(
-                                    song.displayName,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: widget.isCurrent
-                                          ? FontWeight.bold
-                                          : (widget.isPlaylistSong ? FontWeight.w500 : FontWeight.normal),
-                                      color: widget.isCurrent
-                                          ? theme.colorScheme.primary
-                                          : theme.colorScheme.onSurface,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    if (widget.isCurrent) ...[
+                                      PlayingEqualizerIcon(
+                                        color: theme.colorScheme.primary,
+                                        size: 14,
+                                        isPlaying: widget.isPlaying,
+                                      ),
+                                      const SizedBox(width: 4),
+                                    ],
+                                    Expanded(
+                                      child: Text(
+                                        song.displayName,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: widget.isCurrent
+                                              ? FontWeight.bold
+                                              : (widget.isPlaylistSong ? FontWeight.w500 : FontWeight.normal),
+                                          color: widget.isCurrent
+                                              ? theme.colorScheme.primary
+                                              : theme.colorScheme.onSurface,
+                                        ),
+                                      ),
                                     ),
+                                  ],
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  subtitleText,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: widget.isPlaylistSong ? 11.5 : 11,
+                                    color: theme.colorScheme.onSurfaceVariant,
                                   ),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 2),
-                            Text(
-                              subtitleText,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: widget.isPlaylistSong ? 11.5 : 11,
-                                color: theme.colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
                 ),
                 const SizedBox(width: 6),
