@@ -27,6 +27,12 @@ class RemoteMetadataHelper {
       return null;
     }
 
+    // 「这次尝试过文本解析」的时间戳。远程文件常常没有 mtime（WebDavFile 由
+    // 虚拟 URI 反推时 lastModified 为 null），所以不能拿 mtime 当扫描标记，
+    // 否则队列补全器每次都会被判定为「没解析过」而反复联网读同一首。
+    final int scannedAt = file.lastModified?.millisecondsSinceEpoch ??
+        DateTime.now().millisecondsSinceEpoch;
+
     final String virtualUri;
     final String fullUrl;
     final Map<String, String>? headers;
@@ -72,6 +78,7 @@ class RemoteMetadataHelper {
           trackNumber: null,
           thumbnailPath: null,
           lastModifiedTime: file.lastModified?.millisecondsSinceEpoch ?? 0,
+          metadataTextScanned: scannedAt,
           sourceFlags: sourceFlags ?? SongSourceFlags.remote,
         );
         final db = MetadataDatabase();
@@ -125,6 +132,7 @@ class RemoteMetadataHelper {
         artworkHeight: artworkHeight,
         themeColorsBlob: themeColorsBlob,
         lastModifiedTime: file.lastModified?.millisecondsSinceEpoch ?? 0,
+        metadataTextScanned: scannedAt,
         metadataImgScanned: file.lastModified?.millisecondsSinceEpoch ?? DateTime.now().millisecondsSinceEpoch,
         sourceFlags: sourceFlags ?? SongSourceFlags.remote,
         genres: genre.isNotEmpty ? [genre] : null,
@@ -146,6 +154,7 @@ class RemoteMetadataHelper {
         trackNumber: null,
         thumbnailPath: null,
         lastModifiedTime: file.lastModified?.millisecondsSinceEpoch ?? 0,
+        metadataTextScanned: scannedAt,
         sourceFlags: sourceFlags ?? SongSourceFlags.remote,
       );
       try {

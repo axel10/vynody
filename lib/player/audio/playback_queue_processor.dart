@@ -254,6 +254,10 @@ class PlaybackQueueProcessor {
             song: song,
             onUpdate: onUpdate,
             myId: myId,
+            // 远程曲目的网络解析交给 RemoteQueueMetadataEnricher 并发做：
+            // 这里是串行循环且随时会被下一次触发打断，把每首一次的网络
+            // TagLib 读取塞进来就会十几秒才走完，被打断后又要从头再来。
+            allowRemoteFetch: !isRemote,
           );
           await Future.delayed(Duration.zero);
         }
@@ -339,6 +343,7 @@ class PlaybackQueueProcessor {
     required MusicFile song,
     required Function(String path, Map<String, dynamic> updates) onUpdate,
     required int myId,
+    bool allowRemoteFetch = true,
   }) async {
     if (_disposed || myId != _currentProcessId) return;
 
@@ -441,6 +446,10 @@ class PlaybackQueueProcessor {
           }
         }
       } else {
+        if (!allowRemoteFetch) {
+          // 只做数据库回填（上面已经做过），网络解析由并发补全器负责。
+          return;
+        }
         final info = RemoteMediaResolver.parseUri(song.path);
         if (info != null &&
             (info.type == RemoteServerType.webdav ||

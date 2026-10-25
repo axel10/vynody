@@ -71,6 +71,10 @@ class AudioService extends Notifier<AudioSnapshot> {
   final Map<String, ({AudioDetails details, int? lastModifiedTime, int? fileSize})>
       _audioDetailsCache = {};
 
+  /// 待回写进 playlist track 的队列元数据更新（按路径合并后批量提交）。
+  final Map<String, MusicFile> _pendingQueueMetadataWrites = <String, MusicFile>{};
+  Timer? _queueMetadataWriteBackTimer;
+
   AudioTrack _audioTrackForSong(MusicFile song) {
     var effectivePath = song.path;
     if (Platform.isIOS || Platform.isMacOS) {
@@ -447,6 +451,7 @@ class AudioService extends Notifier<AudioSnapshot> {
     _queueBackgroundProcessor = QueueBackgroundProcessor(
       db: _db,
       queueProcessor: _queueProcessor,
+      remoteStorageGetter: () => ref.read(remoteServerStorageProvider.future),
     );
 
     _windowsIntegration = Platform.isWindows
@@ -3884,7 +3889,56 @@ class AudioService extends Notifier<AudioSnapshot> {
       currentMusic: () => currentMusic,
       logTrace: _logPlaybackTrace,
       debugSongLabel: _debugSongLabel,
+      onSongUpdated: _scheduleQueueMetadataWriteBack,
     );
+  }
+
+  /// 把后台解析出的元数据回写到播放队列。
+  ///
+  /// 队列抽屉通过 `audioPlaybackQueueProvider` 读的是 `_player.playlist` 里
+  /// track 缓存的 `MusicFile`；后台处理器只改了它自己那份局部 list，不覆盖
+  /// track 就不会出现在 UI 上（表现就是「文件名 + 默认封面 + 0:00」一直不变）。
+  ///
+  /// 一次批量解析会连续产生很多次单曲更新，这里按路径合并、160ms 集中刷一次，
+  /// 避免每首每字段都触发一次 playlist 通知和整棵队列重建。
+  void _scheduleQueueMetadataWriteBack(MusicFile song) {
+    if (_disposed) return;
+    _pendingQueueMetadataWrites[song.path] = song;
+    _queueMetadataWriteBackTimer ??= Timer(
+      const Duration(milliseconds: 160),
+      _flushQueueMetadataWriteBack,
+    );
+  }
+
+  void _flushQueueMetadataWriteBack() {
+    _queueMetadataWriteBackTimer = null;
+    if (_disposed || _pendingQueueMetadataWrites.isEmpty) return;
+
+    final pending = Map<String, MusicFile>.of(_pendingQueueMetadataWrites);
+    _pendingQueueMetadataWrites.clear();
+
+    var changed = false;
+    for (final track in _player.playlist.items) {
+      final updated = pending[track.id] ?? pending[track.uri];
+      if (updated == null) continue;
+      final current = _musicFileForTrack(track);
+      if (current != null && _sameQueueMetadata(current, updated)) continue;
+      _player.playlist.replaceTrack(_audioTrackForSong(updated));
+      changed = true;
+    }
+    if (changed) notifyListeners();
+  }
+
+  static bool _sameQueueMetadata(MusicFile a, MusicFile b) {
+    return a.title == b.title &&
+        a.artist == b.artist &&
+        a.album == b.album &&
+        a.trackNumber == b.trackNumber &&
+        a.durationMillis == b.durationMillis &&
+        a.thumbnailPath == b.thumbnailPath &&
+        a.artworkPath == b.artworkPath &&
+        a.artworkWidth == b.artworkWidth &&
+        a.artworkHeight == b.artworkHeight;
   }
 
   Future<void> completeHeroTransition({String? priorityPath}) async {
@@ -3960,11 +4014,15 @@ class AudioService extends Notifier<AudioSnapshot> {
     _currentWaveformSubscription?.cancel();
     _trackEndedSubscription?.cancel();
     _sleepTimer?.cancel();
+    _queueMetadataWriteBackTimer?.cancel();
+    _queueMetadataWriteBackTimer = null;
+    _pendingQueueMetadataWrites.clear();
     _player.removeListener(_handlePlayerChanges);
     _player.playlist.removeListener(_handlePlaylistChanges);
     _player.equalizer.removeListener(notifyListeners);
     settingsService.removeListener(_settingsListener);
     _queueProcessor.dispose();
+    _queueBackgroundProcessor.dispose();
     _player.visualizer.removeOutput('mini_player');
     _windowsIntegration?.dispose();
     _linuxIntegration?.dispose();
