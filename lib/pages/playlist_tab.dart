@@ -98,16 +98,27 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab>
       mirrorToConsole: true,
     );
 
-    final route = MaterialPageRoute<void>(
-      settings: RouteSettings(name: 'playlist_detail_${playlist.id}'),
-      builder: (_) => PlaylistDetailPage(
-        playlist: playlist,
-        onGoBack: () {
-          ref.read(selectedPlaylistIdProvider.notifier).set(null);
-          Navigator.of(context).maybePop();
-        },
-      ),
+    final detailWidget = PlaylistDetailPage(
+      playlist: playlist,
+      onGoBack: () {
+        ref.read(selectedPlaylistIdProvider.notifier).set(null);
+        Navigator.of(context).maybePop();
+      },
     );
+
+    final routeSettings = RouteSettings(name: 'playlist_detail_${playlist.id}');
+
+    final Route<void> route = wasPushed
+        ? PageRouteBuilder<void>(
+            settings: routeSettings,
+            pageBuilder: (_, _, _) => detailWidget,
+            transitionDuration: Duration.zero,
+            reverseTransitionDuration: Duration.zero,
+          )
+        : MaterialPageRoute<void>(
+            settings: routeSettings,
+            builder: (_) => detailWidget,
+          );
 
     final nav = Navigator.of(context);
     final pushFuture = wasPushed ? nav.pushReplacement(route) : nav.push(route);
