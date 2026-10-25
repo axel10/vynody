@@ -1,24 +1,36 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
 
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/app_localizations.dart';
+import 'package:vynody/models/album_summary.dart';
 import 'package:vynody/models/artist_summary.dart';
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/audio/playback_source.dart';
+import 'package:vynody/player/library/album_library.dart';
 import 'package:vynody/player/library/artist_library.dart';
 import 'package:vynody/player/metadata/theaudiodb_artist_service.dart';
+import 'package:vynody/player/settings/settings_service.dart';
+import 'package:vynody/utils/app_log.dart';
+import '../widgets/album_context_menu.dart';
 import '../widgets/album_sections.dart';
+import '../widgets/album_zoom_item.dart';
 import '../widgets/artist_avatar.dart';
+import '../widgets/draggable_album_item.dart';
+import '../widgets/folder_layout_utils.dart';
+import '../widgets/folder_zoom_gesture_layer.dart';
 import '../widgets/remote_media_badge.dart';
 import '../widgets/mini_player_wrapper.dart';
 import '../widgets/library_selection_panel.dart';
 import '../widgets/library_selection_scope.dart';
 import '../widgets/detail_page_shell.dart';
 import '../widgets/library_selection_back_guard.dart';
+import 'album_detail_page.dart';
 
 class ArtistDetailPage extends StatelessWidget {
   const ArtistDetailPage({
@@ -150,6 +162,135 @@ class _ArtistDetailContentState extends ConsumerState<ArtistDetailContent>
         name: widget.artist.name,
       );
 
+  List<AlbumSummary> _buildAlbums(
+    List<AlbumSection> sections,
+    List<AlbumSummary>? libraryAlbums,
+    String artistName,
+  ) {
+    final libraryMap = <String, AlbumSummary>{};
+    if (libraryAlbums != null) {
+      for (final album in libraryAlbums) {
+        libraryMap[album.id] = album;
+      }
+    }
+
+    return sections.map((section) {
+      final firstSong = section.songs.firstOrNull;
+      final effectiveArtist =
+          (firstSong?.albumArtist ?? firstSong?.artist ?? artistName).trim();
+      final expectedId =
+          '${section.title.toLowerCase()}::${effectiveArtist.toLowerCase()}';
+
+      final matched = libraryMap[expectedId];
+      if (matched != null) return matched;
+
+      if (libraryAlbums != null) {
+        final titleMatched = libraryAlbums.firstWhereOrNull(
+          (a) => a.title.toLowerCase() == section.title.toLowerCase(),
+        );
+        if (titleMatched != null) return titleMatched;
+      }
+
+      final albumYears = <int>{};
+      for (final s in section.songs) {
+        if (s.year != null && s.year! > 0) {
+          albumYears.add(s.year!);
+        }
+      }
+
+      return AlbumSummary(
+        id: expectedId,
+        title: section.title,
+        artist: effectiveArtist.isNotEmpty ? effectiveArtist : artistName,
+        songs: section.songs,
+        representativeSong: section.representativeSong,
+        totalDurationMillis: section.totalDurationMillis,
+        minYear: albumYears.isEmpty ? null : albumYears.reduce(math.min),
+        maxYear: albumYears.isEmpty ? null : albumYears.reduce(math.max),
+      );
+    }).toList();
+  }
+
+  void _openAlbumDetail(AlbumSummary album) {
+    AppLog.log(
+      '[NavTrace] ArtistDetailPage _openAlbumDetail: pushing AlbumDetailPage for album="${album.title}" (id=${album.id})',
+      mirrorToConsole: true,
+    );
+    if (!mounted) return;
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        settings: RouteSettings(
+          name: '/album_detail/${Uri.encodeComponent(album.id)}',
+        ),
+        builder: (_) => AlbumDetailPage(album: album),
+      ),
+    );
+  }
+
+  List<Widget> _buildPortraitAlbumGridSlivers({
+    required BuildContext context,
+    required WidgetRef ref,
+    required List<AlbumSummary> albums,
+    required double contentWidth,
+    required double albumZoomScale,
+  }) {
+    final audio = ref.read(audioServiceProvider);
+
+    return [
+      FolderZoomSliverBuilder(
+        zoomScale: snapFolderZoomScale(albumZoomScale),
+        width: contentWidth,
+        builder: (context, metrics) {
+          final hPad = folderContentHorizontalPadding(
+            isPortrait: true,
+            gridMorph: metrics.gridMorph,
+          );
+
+          return SliverPadding(
+            padding: EdgeInsets.symmetric(horizontal: hPad),
+            sliver: SliverGrid(
+              gridDelegate: SliverAnimatedZoomGridDelegate(metrics: metrics),
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  final album = albums[index];
+                  return DraggableAlbumItem(
+                    album: album,
+                    enabled: true,
+                    child: AlbumZoomItem(
+                      album: album,
+                      metrics: metrics,
+                      isSelected: false,
+                      isSelectionMode: false,
+                      enableHero: true,
+                      onTap: () => _openAlbumDetail(album),
+                      onSecondaryTapDown: (details) {
+                        showAlbumContextMenu(
+                          context: context,
+                          globalPosition: details.globalPosition,
+                          ref: ref,
+                          album: album,
+                        );
+                      },
+                      onPlay: () => audio.playPlaylist(
+                        album.songs,
+                        source: PlaybackSource(
+                          type: PlaybackSourceType.album,
+                          id: album.id,
+                          name: album.title,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+                childCount: albums.length,
+              ),
+            ),
+          );
+        },
+      ),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -169,9 +310,17 @@ class _ArtistDetailContentState extends ConsumerState<ArtistDetailContent>
         MediaQuery.orientationOf(context) == Orientation.portrait;
     final horizontalPadding = isPortrait ? 20.0 : 28.0;
 
-    return Stack(
-      children: [
-        CustomScrollView(
+    final libraryAlbums = ref.watch(albumLibraryProvider).asData?.value;
+    final albumZoomScale = ref.watch(
+      settingsServiceProvider.select((s) => s.albumZoomScale),
+    );
+    final albums = _buildAlbums(sections, libraryAlbums, widget.artist.name);
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final contentWidth = math.min(constraints.maxWidth, kFolderPageMaxWidth);
+
+        final scrollView = CustomScrollView(
           controller: widget.scrollController,
           physics: const AlwaysScrollableScrollPhysics(
             parent: BouncingScrollPhysics(),
@@ -183,7 +332,7 @@ class _ArtistDetailContentState extends ConsumerState<ArtistDetailContent>
                   horizontalPadding,
                   widget.topPadding > 0 ? widget.topPadding + 12 : 24,
                   horizontalPadding,
-                  20,
+                  isPortrait ? 30.0 : 20.0,
                 ),
                 child: _ArtistInfo(
                   artist: widget.artist,
@@ -203,6 +352,14 @@ class _ArtistDetailContentState extends ConsumerState<ArtistDetailContent>
                 child: Center(
                   child: Text(l10n.emptyList, style: theme.textTheme.titleMedium),
                 ),
+              )
+            else if (isPortrait)
+              ..._buildPortraitAlbumGridSlivers(
+                context: context,
+                ref: ref,
+                albums: albums,
+                contentWidth: contentWidth,
+                albumZoomScale: albumZoomScale,
               )
             else
               for (int i = 0; i < sections.length; i++) ...[
@@ -245,24 +402,37 @@ class _ArtistDetailContentState extends ConsumerState<ArtistDetailContent>
                   context,
                   hasPlayingMusic: currentMusic != null,
                   isSelectionMode: widget.hasBottomPanel ||
-                      (isSelectionMode && widget.showSelectionPanel),
+                      (!isPortrait && isSelectionMode && widget.showSelectionPanel),
                   selectionPanelHeight: 220.0,
                 ),
               ),
             ),
           ],
-        ),
-        AnimatedSelectionPanel(
-          isVisible: isSelectionMode && widget.showSelectionPanel,
-          child: LibrarySelectionPanel(
-            key: const ValueKey('library-selection-panel'),
-            selectedSongs: selectedSongs,
-            allSongs: displaySongs,
-            onToggleSelectAll: () => toggleSelectAllSongs(displaySongs),
-            onCancel: cancelSongSelection,
-          ),
-        ),
-      ],
+        );
+
+        final scrollContent = isPortrait
+            ? FolderZoomGestureLayer(
+                scope: LibraryZoomScope.album,
+                child: scrollView,
+              )
+            : scrollView;
+
+        return Stack(
+          children: [
+            scrollContent,
+            AnimatedSelectionPanel(
+              isVisible: !isPortrait && isSelectionMode && widget.showSelectionPanel,
+              child: LibrarySelectionPanel(
+                key: const ValueKey('library-selection-panel'),
+                selectedSongs: selectedSongs,
+                allSongs: displaySongs,
+                onToggleSelectAll: () => toggleSelectAllSongs(displaySongs),
+                onCancel: cancelSongSelection,
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

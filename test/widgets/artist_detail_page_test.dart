@@ -6,8 +6,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:vynody/l10n/app_localizations.dart';
 import 'package:vynody/models/artist_summary.dart';
+import 'package:vynody/pages/album_detail_page.dart';
 import 'package:vynody/pages/artist_detail_page.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
+import 'package:vynody/widgets/album_zoom_item.dart';
 import 'package:vynody/widgets/app_top_nav_bar.dart';
 
 import 'helpers/mobile_screenshot_harness.dart';
@@ -219,5 +221,31 @@ void main() {
     expect(find.byType(AppTopNavBar), findsOneWidget);
     final navBarPos = tester.getTopLeft(find.byType(AppTopNavBar));
     expect(navBarPos.dx, 216.0);
+  });
+
+  testWidgets('ArtistDetailPage - renders album grid in portrait and opens album detail on tap', (tester) async {
+    tester.view.physicalSize = const Size(390 * 3, 844 * 3);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    await tester.pumpWidget(
+      buildTestApp(
+        child: ArtistDetailPage(artist: sampleArtist),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Verify album grid item is rendered in portrait
+    expect(find.byType(AlbumZoomItem), findsWidgets);
+
+    // Tap on the first album item
+    await tester.tap(find.byType(AlbumZoomItem).first);
+    await tester.pumpAndSettle();
+
+    // Verify navigating to AlbumDetailPage
+    expect(find.byType(AlbumDetailPage), findsOneWidget);
   });
 }

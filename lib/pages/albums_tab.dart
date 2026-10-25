@@ -750,7 +750,9 @@ class _AlbumsTabState extends ConsumerState<AlbumsTab>
     if (!mounted) return;
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        settings: RouteSettings(name: 'album_detail_${album.id}'),
+        settings: RouteSettings(
+          name: '/album_detail/${Uri.encodeComponent(album.id)}',
+        ),
         builder: (_) => AlbumDetailPage(album: album),
       ),
     );
