@@ -10,6 +10,7 @@ import 'package:vynody/models/year_summary.dart';
 import 'package:vynody/pages/genre_detail_page.dart';
 import 'package:vynody/pages/year_detail_page.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
+import 'package:vynody/widgets/album_zoom_item.dart';
 import 'package:vynody/widgets/song_thumbnail.dart';
 
 import 'helpers/mobile_screenshot_harness.dart';
@@ -200,7 +201,7 @@ void main() {
     );
   });
 
-  testWidgets('流派详情页 - 竖屏头部同样无集合封面', (tester) async {
+  testWidgets('流派详情页 - 竖屏头部无集合封面，展示专辑网格', (tester) async {
     setPortrait(tester);
     await tester.pumpWidget(
       buildTestApp(child: GenreDetailPage(genre: sampleGenre)),
@@ -209,14 +210,11 @@ void main() {
 
     expect(tester.takeException(), isNull);
     expectNoHeaderCover();
-    // 窄屏分组封面为 84 小图，曲目列表在其下方展开
-    expect(
-      find.byWidgetPredicate((w) => w is SongThumbnail && w.size == 84),
-      findsWidgets,
-    );
+    // 竖屏下展示专辑网格（AlbumZoomItem）
+    expect(find.byType(AlbumZoomItem), findsWidgets);
   });
 
-  testWidgets('年份详情页 - 竖屏头部同样无集合封面', (tester) async {
+  testWidgets('年份详情页 - 竖屏头部无集合封面，展示专辑网格', (tester) async {
     setPortrait(tester);
     await tester.pumpWidget(
       buildTestApp(child: YearDetailPage(year: sampleYear)),
@@ -225,9 +223,7 @@ void main() {
 
     expect(tester.takeException(), isNull);
     expectNoHeaderCover();
-    expect(
-      find.byWidgetPredicate((w) => w is SongThumbnail && w.size == 84),
-      findsWidgets,
-    );
+    // 竖屏下展示专辑网格（AlbumZoomItem）
+    expect(find.byType(AlbumZoomItem), findsWidgets);
   });
 }
