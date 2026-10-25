@@ -1,11 +1,25 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:oktoast/oktoast.dart';
 import 'package:super_drag_and_drop/super_drag_and_drop.dart';
 
+import 'package:vynody/l10n/app_localizations.dart';
 import 'package:vynody/models/music_file.dart';
+import 'package:vynody/utils/app_log.dart';
 import 'package:vynody/utils/drop_data_utils.dart';
 import 'package:vynody/utils/layout_constants.dart';
+import 'package:vynody/widgets/drag/drag_payload.dart';
 
+/// Drop zone for the playback queue (drawer, queue page, mini queue, standalone
+/// queue window).
+///
+/// ## 回调必须尽快返回
+///
+/// 原生拖放实现会在 `performDragOperation:` 里忙等 `onPerformDrop` 的 future
+/// 结束，等待期间主线程困在轮询里，窗口既不重绘也不响应点击。因此
+/// [onFilesDropped] **不会**被等待：回调里只同步取出路径、给出提示，然后把
+/// 解析与入队交给后台继续。任何需要网络（远程专辑 / 艺术家 / 播放列表）或
+/// 磁盘扫描的工作都必须自己承担耗时反馈。
 class QueueFileDropTarget extends StatefulWidget {
   const QueueFileDropTarget({
     super.key,
@@ -24,7 +38,10 @@ class QueueFileDropTarget extends StatefulWidget {
   final List<MusicFile> displayQueue;
   final List<MusicFile> queueSongs;
   final GlobalKey Function(int index, MusicFile song) itemKeyBuilder;
-  final FutureOr<void> Function(List<String> paths, int? insertIndex) onFilesDropped;
+
+  /// 松手后立即触发（不 await），实现方自行负责耗时与错误反馈。
+  final FutureOr<void> Function(List<String> paths, int? insertIndex)
+      onFilesDropped;
   final bool enabled;
   final bool showPreview;
   final double indicatorHorizontalPadding;
@@ -115,12 +132,45 @@ class _QueueFileDropTargetState extends State<QueueFileDropTarget> {
         '[QueueFileDropTarget] onPerformDrop starting, insertIndex=$insertIndex, items=${event.session.items.length}');
     _clearDropPreview();
     final uniquePaths = await DropDataUtils.extractPathsFromDrop(event);
-    debugPrint(
-        '[QueueFileDropTarget] onPerformDrop extracted ${uniquePaths.length} paths, calling onFilesDropped...');
-    if (uniquePaths.isNotEmpty) {
-      await widget.onFilesDropped(uniquePaths, insertIndex);
-      debugPrint('[QueueFileDropTarget] onPerformDrop onFilesDropped completed');
+    if (uniquePaths.isEmpty) return;
+
+    // 这个回调必须尽快返回，否则整个窗口会冻结。
+    //
+    // 原生拖放实现会在 `performDragOperation:` 里忙等本回调的 future 结束
+    // （macOS / Linux 均由 super_native_extensions 的 Rust 层
+    // `while !done { poll_once() }` 实现），等待期间主线程困在轮询里，
+    // 窗口既不重绘也不响应点击。
+    //
+    // 远程专辑 / 艺术家 / 播放列表的解析必须向服务器换取曲目列表（一次甚至
+    // 多次网络往返），在这里 await 就等于把网络耗时直接变成冻结时长。所以只做
+    // 同步部分：提示 + 把解析和入队丢出去，回调立即返回。
+    final hasRemoteCollection = uniquePaths
+        .any((path) => RemoteCollectionRef.tryParse(path) != null);
+    if (hasRemoteCollection) {
+      _showRemoteLoadingHint();
     }
+
+    unawaited(
+      Future<void>(() => widget.onFilesDropped(uniquePaths, insertIndex))
+          .catchError((Object error, StackTrace stack) {
+        AppLog.log(
+          '[QueueFileDropTarget] onFilesDropped failed: $error',
+          mirrorToConsole: true,
+        );
+      }),
+    );
+  }
+
+  /// 远程集合要发网络请求才能展开成曲目，先给一个「正在加载」的回执。
+  ///
+  /// 独立队列窗口没有 OKToast 宿主，`showToast` 会抛异常，这里静默降级
+  /// （结果回执由 MediaDropImportService 负责，同样做了降级保护）。
+  void _showRemoteLoadingHint() {
+    final l10n = AppLocalizations.of(context);
+    if (l10n == null) return;
+    try {
+      showToast(l10n.loadingAlbumTracks);
+    } catch (_) {}
   }
 
   void _updateDropPreview(Offset localPosition) {

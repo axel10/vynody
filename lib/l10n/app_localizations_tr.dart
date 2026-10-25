@@ -2030,6 +2030,10 @@ class AppLocalizationsTr extends AppLocalizations {
   String get no => 'Hayır';
 
   @override
+  String get remoteCollectionDropFailed =>
+      'Uzak sunucudan parçalar yüklenemedi. Ağ veya sunucu durumunu kontrol edin.';
+
+  @override
   String dropAddedSongs(int addedCount) {
     return '$addedCount şarkı eklendi';
   }

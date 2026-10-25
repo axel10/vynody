@@ -831,6 +831,7 @@
   "queryContentLabel": "İçerik",
   "yes": "Evet",
   "no": "Hayır",
+  "remoteCollectionDropFailed": "Uzak sunucudan parçalar yüklenemedi. Ağ veya sunucu durumunu kontrol edin.",
   "dropAddedSongs": "{addedCount} şarkı eklendi",
   "@dropAddedSongs": {
     "placeholders": {

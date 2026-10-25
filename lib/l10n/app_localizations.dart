@@ -3813,6 +3813,12 @@ abstract class AppLocalizations {
   /// **'否'**
   String get no;
 
+  /// No description provided for @remoteCollectionDropFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'无法读取远程专辑曲目，请检查网络或服务器状态'**
+  String get remoteCollectionDropFailed;
+
   /// No description provided for @dropAddedSongs.
   ///
   /// In zh, this message translates to:

@@ -1955,6 +1955,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get no => '否';
 
   @override
+  String get remoteCollectionDropFailed => '无法读取远程专辑曲目，请检查网络或服务器状态';
+
+  @override
   String dropAddedSongs(int addedCount) {
     return '已添加 $addedCount 首歌曲';
   }
@@ -7324,6 +7327,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get no => '否';
+
+  @override
+  String get remoteCollectionDropFailed => '無法讀取遠端專輯曲目，請檢查網路或伺服器狀態';
 
   @override
   String dropAddedSongs(int addedCount) {

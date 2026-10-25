@@ -1981,6 +1981,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get no => 'いいえ';
 
   @override
+  String get remoteCollectionDropFailed =>
+      'リモートサーバーから曲を読み込めませんでした。ネットワークまたはサーバーの状態を確認してください。';
+
+  @override
   String dropAddedSongs(int addedCount) {
     return '$addedCount曲追加しました';
   }

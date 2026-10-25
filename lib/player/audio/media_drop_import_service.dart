@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oktoast/oktoast.dart';
 import 'package:path/path.dart' as p;
 import 'package:vynody/models/music_file.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
@@ -16,6 +17,7 @@ import 'package:vynody/player/remote/proxy/remote_media_resolver.dart';
 import 'package:vynody/player/remote/remote_server_models.dart';
 import 'package:vynody/player/remote/remote_server_riverpod.dart';
 import 'package:vynody/utils/app_log.dart';
+import 'package:vynody/utils/localized_text.dart';
 import 'package:vynody/utils/remote_context_menu_utils.dart';
 import 'package:vynody/widgets/drag/drag_payload.dart';
 
@@ -140,13 +142,18 @@ class MediaDropImportService {
   }
 
   /// Handles dropped paths by adding them to the playback queue at [insertIndex] (or end).
+  ///
+  /// 调用方（drop 回调）不再等待本方法，所以耗时与结果都要自己回报用户：
+  /// 远程集合解析失败或读不到曲目时给错误提示，成功时给「已添加 N 首」回执。
   Future<List<MusicFile>> handleDroppedPaths(
     List<String> paths, {
     int? insertIndex,
     bool playNow = false,
   }) async {
+    final hasRemoteCollection = _containsRemoteCollection(paths);
     final songs = await resolvePathsToMusicFiles(paths);
     if (songs.isEmpty) {
+      if (hasRemoteCollection) _notifyDropResult(addedCount: 0, failed: true);
       return const [];
     }
 
@@ -161,16 +168,46 @@ class MediaDropImportService {
       await audio.playFile(songs.first.path, songs.first.name);
     }
 
+    if (hasRemoteCollection) {
+      _notifyDropResult(addedCount: songs.length);
+    }
+
     return songs;
   }
 
   /// Adds resolved paths to the specified playlist.
   Future<List<MusicFile>> addPathsToPlaylist(String playlistId, List<String> paths) async {
+    final hasRemoteCollection = _containsRemoteCollection(paths);
     final songs = await resolvePathsToMusicFiles(paths);
     if (songs.isNotEmpty) {
       await ref.read(playlistServiceProvider).addSongsToPlaylist(playlistId, songs);
+      if (hasRemoteCollection) {
+        _notifyDropResult(addedCount: songs.length);
+      }
+    } else if (hasRemoteCollection) {
+      _notifyDropResult(addedCount: 0, failed: true);
     }
     return songs;
+  }
+
+  /// 拖入的路径里是否包含需要联网展开的远程集合（专辑 / 艺术家 / 播放列表）。
+  static bool _containsRemoteCollection(List<String> paths) =>
+      paths.any((path) => RemoteCollectionRef.tryParse(path) != null);
+
+  /// 远程集合拖放的完成回执。
+  ///
+  /// 走 [currentAppL10n] + oktoast，不依赖 BuildContext：drop 回调在松手瞬间
+  /// 就返回了，结果回来时原 widget 可能已经重建或失焦。独立队列窗口没有
+  /// OKToast 宿主时 `showToast` 会抛异常，这里静默降级。
+  void _notifyDropResult({required int addedCount, bool failed = false}) {
+    final l10n = currentAppL10n;
+    final message = failed
+        ? l10n.remoteCollectionDropFailed
+        : l10n.dropAddedSongs(addedCount);
+    try {
+      dismissAllToast();
+      showToast(message);
+    } catch (_) {}
   }
 
   Future<List<R>> _parallelMap<T, R>(

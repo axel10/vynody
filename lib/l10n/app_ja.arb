@@ -759,6 +759,7 @@
   "queryContentLabel": "内容",
   "yes": "はい",
   "no": "いいえ",
+  "remoteCollectionDropFailed": "リモートサーバーから曲を読み込めませんでした。ネットワークまたはサーバーの状態を確認してください。",
   "dropAddedSongs": "{addedCount}曲追加しました",
   "dropAddedSongsWithExisting": "{addedCount}曲追加、{existingCount}曲は既に存在しました",
   "copyCover": "カバーをクリップボードにコピー",

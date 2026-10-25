@@ -1355,6 +1355,7 @@
   "queryContentLabel": "内容",
   "yes": "是",
   "no": "否",
+  "remoteCollectionDropFailed": "无法读取远程专辑曲目，请检查网络或服务器状态",
   "dropAddedSongs": "已添加 {addedCount} 首歌曲",
   "@dropAddedSongs": {
     "placeholders": {

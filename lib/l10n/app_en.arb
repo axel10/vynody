@@ -795,6 +795,7 @@
   "queryContentLabel": "Content",
   "yes": "Yes",
   "no": "No",
+  "remoteCollectionDropFailed": "Couldn't load tracks from the remote server. Check your network or the server status.",
   "dropAddedSongs": "Added {addedCount} songs",
   "dropAddedSongsWithExisting": "Added {addedCount} songs, {existingCount} already existed",
   "copyCover": "Copy Cover to Clipboard",

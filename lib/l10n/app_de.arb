@@ -759,6 +759,7 @@
   "queryContentLabel": "Inhalt",
   "yes": "Ja",
   "no": "Nein",
+  "remoteCollectionDropFailed": "Titel konnten nicht vom Remote-Server geladen werden. Prüfe Netzwerk oder Serverstatus.",
   "dropAddedSongs": "{addedCount} Songs hinzugefügt",
   "dropAddedSongsWithExisting": "{addedCount} Songs hinzugefügt, {existingCount} bereits vorhanden",
   "copyCover": "Cover in Zwischenablage kopieren",

@@ -759,6 +759,7 @@
   "queryContentLabel": "Contenido",
   "yes": "Sí",
   "no": "No",
+  "remoteCollectionDropFailed": "No se pudieron cargar las pistas del servidor remoto. Revisa la red o el estado del servidor.",
   "dropAddedSongs": "Agregadas {addedCount} canciones",
   "dropAddedSongsWithExisting": "Agregadas {addedCount} canciones, {existingCount} ya existían",
   "copyCover": "Copiar carátula al portapapeles",

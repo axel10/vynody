@@ -759,6 +759,7 @@
   "queryContentLabel": "Contenu",
   "yes": "Oui",
   "no": "Non",
+  "remoteCollectionDropFailed": "Impossible de charger les pistes du serveur distant. Vérifiez le réseau ou l'état du serveur.",
   "dropAddedSongs": "{addedCount} chansons ajoutées",
   "dropAddedSongsWithExisting": "{addedCount} chansons ajoutées, {existingCount} existaient déjà",
   "copyCover": "Copier la pochette dans le presse-papier",

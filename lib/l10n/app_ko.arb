@@ -759,6 +759,7 @@
   "queryContentLabel": "내용",
   "yes": "예",
   "no": "아니오",
+  "remoteCollectionDropFailed": "원격 서버에서 곡을 불러오지 못했습니다. 네트워크나 서버 상태를 확인해 주세요.",
   "dropAddedSongs": "{addedCount}곡 추가됨",
   "dropAddedSongsWithExisting": "{addedCount}곡 추가됨, {existingCount}곡은 이미 존재함",
   "copyCover": "커버를 클립보드에 복사",

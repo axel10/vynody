@@ -2049,6 +2049,10 @@ class AppLocalizationsDe extends AppLocalizations {
   String get no => 'Nein';
 
   @override
+  String get remoteCollectionDropFailed =>
+      'Titel konnten nicht vom Remote-Server geladen werden. Prüfe Netzwerk oder Serverstatus.';
+
+  @override
   String dropAddedSongs(int addedCount) {
     return '$addedCount Songs hinzugefügt';
   }

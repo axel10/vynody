@@ -634,6 +634,7 @@
   "queryContentLabel": "內容",
   "yes": "是",
   "no": "否",
+  "remoteCollectionDropFailed": "無法讀取遠端專輯曲目，請檢查網路或伺服器狀態",
   "dropAddedSongs": "已新增 {addedCount} 首歌曲",
   "dropAddedSongsWithExisting": "已新增 {addedCount} 首歌曲，{existingCount} 首已存在",
   "copyCover": "複製封面到剪貼簿",

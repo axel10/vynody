@@ -1984,6 +1984,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get no => '아니오';
 
   @override
+  String get remoteCollectionDropFailed =>
+      '원격 서버에서 곡을 불러오지 못했습니다. 네트워크나 서버 상태를 확인해 주세요.';
+
+  @override
   String dropAddedSongs(int addedCount) {
     return '$addedCount곡 추가됨';
   }
