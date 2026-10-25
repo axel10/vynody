@@ -26,6 +26,7 @@ import 'package:vynody/widgets/folder_layout_utils.dart'
         kFolderZoomTierMediumGrid,
         kFolderZoomTierLargeGrid,
         snapFolderZoomScale;
+import 'package:vynody/utils/layout_constants.dart';
 
 export 'package:flutter/material.dart' show ThemeMode;
 export 'package:vynody/utils/app_proxy_manager.dart' show AppProxyMode;
@@ -703,6 +704,8 @@ class SettingsService extends ChangeNotifier {
   static const String _keyRegularWindowHeight = 'regular_window_height';
   static const String _keyRegularWindowMaximized = 'regular_window_maximized';
   static const String _keyRightQueueDrawerOpen = 'right_queue_drawer_open';
+  static const String _keyRightQueueDrawerWidth = 'right_queue_drawer_width';
+  static const String _keySidebarRailCustomWidth = 'sidebar_rail_custom_width';
   static const String _keySmallWindowWidth = 'small_window_width';
   static const String _keySmallWindowHeight = 'small_window_height';
   static const String _keySmallWindowBottomPanelMode =
@@ -822,6 +825,20 @@ class SettingsService extends ChangeNotifier {
   late final _isRightQueueDrawerOpenProperty = SettingProperty<bool>(
     key: _keyRightQueueDrawerOpen,
     defaultValue: false,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
+  late final _rightQueueDrawerWidthProperty = SettingProperty<double>(
+    key: _keyRightQueueDrawerWidth,
+    defaultValue: kDefaultRightQueueDrawerWidth,
+    prefs: _prefs,
+    onChanged: notifyListeners,
+  );
+
+  late final _sidebarRailCustomWidthProperty = SettingProperty<double>(
+    key: _keySidebarRailCustomWidth,
+    defaultValue: kDefaultSidebarRailWidthExtended,
     prefs: _prefs,
     onChanged: notifyListeners,
   );
@@ -3855,6 +3872,30 @@ class SettingsService extends ChangeNotifier {
 
   set isRightQueueDrawerOpen(bool value) {
     _isRightQueueDrawerOpenProperty.value = value;
+  }
+
+  double get rightQueueDrawerWidth => _rightQueueDrawerWidthProperty.value.clamp(
+        kMinRightQueueDrawerWidth,
+        kMaxRightQueueDrawerWidth,
+      );
+
+  set rightQueueDrawerWidth(double value) {
+    _rightQueueDrawerWidthProperty.value = value.clamp(
+      kMinRightQueueDrawerWidth,
+      kMaxRightQueueDrawerWidth,
+    );
+  }
+
+  double get sidebarRailCustomWidth => _sidebarRailCustomWidthProperty.value.clamp(
+        kMinSidebarRailWidthExtended,
+        kMaxSidebarRailWidthExtended,
+      );
+
+  set sidebarRailCustomWidth(double value) {
+    _sidebarRailCustomWidthProperty.value = value.clamp(
+      kMinSidebarRailWidthExtended,
+      kMaxSidebarRailWidthExtended,
+    );
   }
 
   bool get enableDesktopLyrics =>

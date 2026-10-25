@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:vynody/player/audio/audio_riverpod.dart';
+import 'package:vynody/utils/layout_constants.dart';
 
-const double kRightQueueDrawerWidth = 340.0;
 const double kMinComfortableWindowWidth = 920.0;
 const Size kDefaultRegularMinWindowSize = Size(400.0, 650.0);
 const Size kDrawerOpenMinWindowSize = Size(740.0, 650.0);
@@ -45,7 +45,7 @@ class RightQueueDrawerNotifier extends Notifier<bool> {
 
   /// Opens the drawer. Constrains the minimum window width to [kDrawerOpenMinWindowSize]
   /// and, if the current window width is too narrow (< 920px), smoothly expands the
-  /// window width by [kRightQueueDrawerWidth] to prevent squeezing the main content.
+  /// window width by current drawer width to prevent squeezing the main content.
   Future<void> open() async {
     if (state) return;
 
@@ -58,11 +58,12 @@ class RightQueueDrawerNotifier extends Notifier<bool> {
 
         if (!isMax && !isFull) {
           final currentSize = await windowManager.getSize();
+          final drawerWidth = ref.read(settingsServiceProvider).rightQueueDrawerWidth;
           if (currentSize.width < kMinComfortableWindowWidth) {
-            _expandedDeltaWidth = kRightQueueDrawerWidth;
+            _expandedDeltaWidth = drawerWidth;
             _sizeBeforeAutoExpand = currentSize;
 
-            final targetWidth = (currentSize.width + kRightQueueDrawerWidth)
+            final targetWidth = (currentSize.width + drawerWidth)
                 .clamp(kDrawerOpenMinWindowSize.width, 99999.0);
             debugPrint(
               '[RightQueueDrawer] Auto-expanding window width from ${currentSize.width} to $targetWidth',
@@ -138,3 +139,62 @@ class RightQueueDrawerNotifier extends Notifier<bool> {
 
 final rightQueueDrawerProvider =
     NotifierProvider<RightQueueDrawerNotifier, bool>(RightQueueDrawerNotifier.new);
+
+/// 队列抽屉宽度 Notifier
+class RightQueueDrawerWidthNotifier extends Notifier<double> {
+  @override
+  double build() {
+    try {
+      return ref.watch(
+        settingsServiceProvider.select((s) => s.rightQueueDrawerWidth),
+      );
+    } catch (_) {
+      return kDefaultRightQueueDrawerWidth;
+    }
+  }
+
+  void setWidth(double width) {
+    final clamped = width.clamp(
+      kMinRightQueueDrawerWidth,
+      kMaxRightQueueDrawerWidth,
+    );
+    ref.read(settingsServiceProvider).rightQueueDrawerWidth = clamped;
+    state = clamped;
+  }
+
+  void reset() {
+    setWidth(kDefaultRightQueueDrawerWidth);
+  }
+}
+
+final rightQueueDrawerWidthProvider =
+    NotifierProvider<RightQueueDrawerWidthNotifier, double>(
+  RightQueueDrawerWidthNotifier.new,
+);
+
+/// 标记是否正在拖拽右侧抽屉边缘（拖拽时让 AnimatedSize 零延迟，实现丝滑跟手体验）
+class DraggingStateNotifier extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void set(bool isDragging) {
+    state = isDragging;
+  }
+}
+
+final isDraggingRightQueueDrawerProvider =
+    NotifierProvider<DraggingStateNotifier, bool>(DraggingStateNotifier.new);
+
+/// 左侧导航栏当前实际宽度的响应式 Provider（输入当前窗口宽度）
+final sidebarRailWidthProvider = Provider.family<double, double>((ref, windowWidth) {
+  if (windowWidth < kSidebarRailExtendedMinWindowWidth) {
+    return kSidebarRailWidthCollapsed;
+  }
+  return ref.watch(
+    settingsServiceProvider.select((s) => s.sidebarRailCustomWidth),
+  );
+});
+
+/// 标记是否正在拖拽 Rail 栏边缘
+final isDraggingSidebarRailProvider =
+    NotifierProvider<DraggingStateNotifier, bool>(DraggingStateNotifier.new);

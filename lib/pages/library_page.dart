@@ -24,6 +24,7 @@ import '../widgets/auto_hide_header.dart';
 import '../widgets/app_top_nav_bar.dart';
 import '../utils/layout_constants.dart';
 import '../utils/app_log.dart';
+import '../player/platform/right_queue_drawer_controller.dart';
 
 // 媒体库页面：两级嵌套 Navigator 架构。
 //
@@ -189,7 +190,7 @@ class LibraryPageState extends ConsumerState<LibraryPage> {
         );
         final double topPadding = isLandscape ? (safeTop + 8.0) : safeTop;
         final double leftPadding =
-            isLandscape ? sidebarRailWidthFor(MediaQuery.of(context).size.width) : 0.0;
+            isLandscape ? ref.watch(sidebarRailWidthProvider(MediaQuery.of(context).size.width)) : 0.0;
 
         return LibraryDashboardView(
           contentTopPadding: topPadding,
@@ -402,7 +403,7 @@ class _LibrarySubHostPageState extends ConsumerState<LibrarySubHostPage> {
     final bool isLandscape = orientation == Orientation.landscape;
 
     final double railWidth =
-        isLandscape ? sidebarRailWidthFor(MediaQuery.of(context).size.width) : 0.0;
+        isLandscape ? ref.watch(sidebarRailWidthProvider(MediaQuery.of(context).size.width)) : 0.0;
     final double headerHeight = AppTopNavBar.getBarHeight(context);
 
     final int? activeIndex = ref.watch(libraryActiveTabIndexProvider);
@@ -522,7 +523,7 @@ class _LibrarySubHostPageState extends ConsumerState<LibrarySubHostPage> {
           index,
           topPadding: AppTopNavBar.getBarHeight(tabContext),
           leftPadding: isLandscape
-              ? sidebarRailWidthFor(MediaQuery.of(tabContext).size.width)
+              ? ref.watch(sidebarRailWidthProvider(MediaQuery.of(tabContext).size.width))
               : 0.0,
         );
       },

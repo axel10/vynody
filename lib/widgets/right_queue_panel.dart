@@ -25,7 +25,9 @@ import 'package:vynody/utils/time_format_utils.dart';
 import 'package:vynody/widgets/app_tooltip.dart';
 import 'package:vynody/widgets/queue_file_drop_target.dart';
 import 'package:vynody/widgets/queue_song_tile.dart';
+import 'package:vynody/widgets/sidebar_resize_handle.dart';
 import 'package:vynody/utils/drop_data_utils.dart';
+import 'package:vynody/utils/layout_constants.dart';
 
 class RightQueuePanel extends ConsumerStatefulWidget {
   const RightQueuePanel({super.key});
@@ -433,6 +435,7 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
     final isDesktop =
         Platform.isWindows || Platform.isLinux || Platform.isMacOS;
     final topPadding = isDesktop ? 32.0 : 0.0;
+    final drawerWidth = ref.watch(rightQueueDrawerWidthProvider);
 
     final activePlaylist = playlists.isNotEmpty
         ? (playlists.firstWhereOrNull((p) => p.id == _selectedPlaylistId) ??
@@ -465,7 +468,7 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
         focusNode: _focusNode,
         autofocus: true,
         child: Container(
-          width: kRightQueueDrawerWidth,
+          width: drawerWidth,
           decoration: BoxDecoration(
             color: theme.colorScheme.surface,
             border: Border(
@@ -482,68 +485,106 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
               ),
             ],
           ),
-          child: QueueFileDropTarget(
-            enabled: true,
-            displayQueue: _currentTabIndex == 0 ? queue : activePlaylistSongs,
-            queueSongs: _currentTabIndex == 0 ? queue : activePlaylistSongs,
-            itemKeyBuilder: (index, song) => _currentTabIndex == 0
-                ? _queueReorderController.getKey(index)
-                : _playlistSongReorderController.getKey(index),
-            showPreview: (_currentTabIndex == 0 ? queue : activePlaylistSongs).isNotEmpty,
-            indicatorHorizontalPadding: 12.0,
-            onFilesDropped: (paths, insertIndex) async {
-              debugPrint(
-                  '[RightQueuePanel] onFilesDropped called with ${paths.length} paths, insertIndex=$insertIndex, tab=$_currentTabIndex');
-              if (_currentTabIndex == 0) {
-                await ref
-                    .read(mediaDropImportServiceProvider)
-                    .handleDroppedPaths(paths, insertIndex: insertIndex);
-              } else if (activePlaylist != null) {
-                await ref
-                    .read(mediaDropImportServiceProvider)
-                    .addPathsToPlaylist(activePlaylist.id, paths);
-              }
-            },
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final isSelecting =
-                    _isSelectionMode || _selectedIndices.isNotEmpty;
-                final isWide = constraints.maxWidth >= 390;
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: QueueFileDropTarget(
+                  enabled: true,
+                  displayQueue: _currentTabIndex == 0 ? queue : activePlaylistSongs,
+                  queueSongs: _currentTabIndex == 0 ? queue : activePlaylistSongs,
+                  itemKeyBuilder: (index, song) => _currentTabIndex == 0
+                      ? _queueReorderController.getKey(index)
+                      : _playlistSongReorderController.getKey(index),
+                  showPreview: (_currentTabIndex == 0 ? queue : activePlaylistSongs).isNotEmpty,
+                  indicatorHorizontalPadding: 12.0,
+                  onFilesDropped: (paths, insertIndex) async {
+                    debugPrint(
+                        '[RightQueuePanel] onFilesDropped called with ${paths.length} paths, insertIndex=$insertIndex, tab=$_currentTabIndex');
+                    if (_currentTabIndex == 0) {
+                      await ref
+                          .read(mediaDropImportServiceProvider)
+                          .handleDroppedPaths(paths, insertIndex: insertIndex);
+                    } else if (activePlaylist != null) {
+                      await ref
+                          .read(mediaDropImportServiceProvider)
+                          .addPathsToPlaylist(activePlaylist.id, paths);
+                    }
+                  },
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final isSelecting =
+                          _isSelectionMode || _selectedIndices.isNotEmpty;
 
-                return Column(
-                  children: [
-                    if (topPadding > 0) SizedBox(height: topPadding),
-                    _buildHeader(context, queue, playlists, isWide: isWide),
-                    if (!isWide && !isSelecting)
-                      _buildTabBarRow(context, queue.length, playlists.length),
-                    Expanded(
-                      child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 180),
-                        child: _currentTabIndex == 0
-                            ? (queue.isEmpty
-                                ? _buildEmptyView(context)
-                                : _buildQueueList(
-                                    context,
-                                    queue,
-                                    currentIndex,
-                                    isPlaying,
-                                    audioService,
-                                  ))
-                            : _buildPlaylistsView(
-                                context,
-                                playlists,
-                                activePlaylist,
-                                audioService,
-                                playlistService,
-                                currentMusic,
-                                isPlaying,
-                              ),
-                      ),
-                    ),
-                  ],
-                );
-              },
-            ),
+                      return Column(
+                        children: [
+                          if (topPadding > 0) SizedBox(height: topPadding),
+                          _buildHeader(context, queue, playlists),
+                          if (!isSelecting)
+                            _buildTabBarRow(context, queue.length, playlists.length),
+                          Expanded(
+                            child: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 180),
+                              child: _currentTabIndex == 0
+                                  ? (queue.isEmpty
+                                      ? _buildEmptyView(context)
+                                      : _buildQueueList(
+                                          context,
+                                          queue,
+                                          currentIndex,
+                                          isPlaying,
+                                          audioService,
+                                        ))
+                                  : _buildPlaylistsView(
+                                      context,
+                                      playlists,
+                                      activePlaylist,
+                                      audioService,
+                                      playlistService,
+                                      currentMusic,
+                                      isPlaying,
+                                    ),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+              ),
+              Positioned(
+                left: 0,
+                top: 0,
+                bottom: 0,
+                child: SidebarResizeHandle(
+                  isLeft: true,
+                  onDoubleTap: () =>
+                      ref.read(rightQueueDrawerWidthProvider.notifier).reset(),
+                  onDragStart: (_) => ref
+                      .read(isDraggingRightQueueDrawerProvider.notifier)
+                      .set(true),
+                  onDragUpdate: (details) {
+                    final delta = details.primaryDelta ?? 0.0;
+                    final current = ref.read(rightQueueDrawerWidthProvider);
+                    final windowWidth = MediaQuery.of(context).size.width;
+                    final maxAllowed = (windowWidth * 0.45).clamp(
+                      kMinRightQueueDrawerWidth,
+                      kMaxRightQueueDrawerWidth,
+                    );
+                    final next =
+                        (current - delta).clamp(kMinRightQueueDrawerWidth, maxAllowed);
+                    ref
+                        .read(rightQueueDrawerWidthProvider.notifier)
+                        .setWidth(next);
+                  },
+                  onDragEnd: (_) => ref
+                      .read(isDraggingRightQueueDrawerProvider.notifier)
+                      .set(false),
+                  onDragCancel: () => ref
+                      .read(isDraggingRightQueueDrawerProvider.notifier)
+                      .set(false),
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -553,9 +594,8 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
   Widget _buildHeader(
     BuildContext context,
     List<MusicFile> queue,
-    List<Playlist> playlists, {
-    required bool isWide,
-  }) {
+    List<Playlist> playlists,
+  ) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
     final queueLength = queue.length;
@@ -636,26 +676,22 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
             )
           : Row(
               children: [
-                if (isWide)
-                  _buildInlineTabBar(context, queue.length, playlists.length)
-                else ...[
-                  Icon(
-                    _currentTabIndex == 0
-                        ? Icons.queue_music_rounded
-                        : Icons.playlist_play_rounded,
-                    size: 20,
-                    color: theme.colorScheme.primary,
+                Icon(
+                  _currentTabIndex == 0
+                      ? Icons.queue_music_rounded
+                      : Icons.playlist_play_rounded,
+                  size: 20,
+                  color: theme.colorScheme.primary,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  _currentTabIndex == 0 ? l10n.playQueue : l10n.playlist,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.onSurface,
                   ),
-                  const SizedBox(width: 8),
-                  Text(
-                    _currentTabIndex == 0 ? l10n.playQueue : l10n.playlist,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: theme.colorScheme.onSurface,
-                    ),
-                  ),
-                ],
+                ),
                 const Spacer(),
                 if (_currentTabIndex == 0) ...[
                   if (queueLength > 0) ...[
@@ -715,45 +751,6 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
                 ),
               ],
             ),
-    );
-  }
-
-  Widget _buildInlineTabBar(
-    BuildContext context,
-    int queueCount,
-    int playlistCount,
-  ) {
-    final theme = Theme.of(context);
-    final l10n = AppLocalizations.of(context)!;
-    return Container(
-      height: 32,
-      padding: const EdgeInsets.all(2),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.55),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _buildPillTabItem(
-            context: context,
-            title: l10n.playQueue,
-            count: queueCount,
-            index: 0,
-            isSelected: _currentTabIndex == 0,
-            isCompact: true,
-          ),
-          const SizedBox(width: 4),
-          _buildPillTabItem(
-            context: context,
-            title: l10n.playlist,
-            count: playlistCount,
-            index: 1,
-            isSelected: _currentTabIndex == 1,
-            isCompact: true,
-          ),
-        ],
-      ),
     );
   }
 

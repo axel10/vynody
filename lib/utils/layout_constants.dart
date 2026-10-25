@@ -17,21 +17,42 @@ const double kFolderPageMaxWidth = 1700.0;
 /// 桌面端或窗口化（如 iPadOS 台前调度 / 自由窗口模式）时窗口顶部的标准安全避让高度
 const double kDefaultWindowCaptionHeight = 46.0;
 
+/// 队列抽屉（Right Queue Panel）标准默认宽度
+const double kDefaultRightQueueDrawerWidth = 340.0;
+
+/// 队列抽屉最小与最大可拖拽宽度
+const double kMinRightQueueDrawerWidth = 280.0;
+const double kMaxRightQueueDrawerWidth = 600.0;
+
+/// 队列抽屉宽度常量（向后兼容）
+const double kRightQueueDrawerWidth = kDefaultRightQueueDrawerWidth;
+
 /// 左侧导航栏（Rail）折叠态宽度：仅显示图标 + 悬浮提示
 const double kSidebarRailWidthCollapsed = 80.0;
 
-/// 左侧导航栏（Rail）展开态宽度：图标 + 文字，用于桌面端宽窗口
-const double kSidebarRailWidthExtended = 216.0;
+/// 左侧导航栏（Rail）默认展开态宽度：图标 + 文字，用于桌面端宽窗口
+const double kDefaultSidebarRailWidthExtended = 216.0;
+const double kSidebarRailWidthExtended = kDefaultSidebarRailWidthExtended;
+
+/// 左侧导航栏展开态自定义调节范围（最小宽度维持原数值 216.0）
+const double kMinSidebarRailWidthExtended = 216.0;
+const double kMaxSidebarRailWidthExtended = 360.0;
 
 /// 左侧导航栏切换到展开态（图标 + 文字）所需的最小窗口宽度
 const double kSidebarRailExtendedMinWindowWidth = 900.0;
 
 /// 按窗口宽度计算左侧导航栏实际宽度：
 /// 窗口足够宽时展开为图标 + 文字，否则收回为纯图标，避免窄窗口挤压内容区。
-double sidebarRailWidthFor(double windowWidth) =>
-    windowWidth >= kSidebarRailExtendedMinWindowWidth
-        ? kSidebarRailWidthExtended
-        : kSidebarRailWidthCollapsed;
+double sidebarRailWidthFor(
+  double windowWidth, {
+  double? customExtendedWidth,
+}) {
+  if (windowWidth < kSidebarRailExtendedMinWindowWidth) {
+    return kSidebarRailWidthCollapsed;
+  }
+  return (customExtendedWidth ?? kDefaultSidebarRailWidthExtended)
+      .clamp(kMinSidebarRailWidthExtended, kMaxSidebarRailWidthExtended);
+}
 
 /// 判断当前是否处于窗口化运行环境（桌面端或平板多任务/窗口模式，如 iPadOS 台前调度 Stage Manager、分屏）
 bool isWindowedEnvironment(BuildContext context) {

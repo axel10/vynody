@@ -50,8 +50,9 @@ class _MiniPlayerWrapperState extends ConsumerState<MiniPlayerWrapper> {
     );
     final bool isDrawerOpen =
         isDesktop && !isSmallWin && ref.watch(rightQueueDrawerProvider);
-    final double effectiveWidth =
-        size.width - (isDrawerOpen ? kRightQueueDrawerWidth : 0.0);
+    final double rightDrawerWidth =
+        isDrawerOpen ? ref.watch(rightQueueDrawerWidthProvider) : 0.0;
+    final double effectiveWidth = size.width - rightDrawerWidth;
     final bool isLandscape = !isSmallWin && (effectiveWidth > size.height);
     final bool useSidebar = isLandscape;
 

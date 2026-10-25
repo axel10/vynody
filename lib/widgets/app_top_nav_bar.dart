@@ -43,7 +43,7 @@ class AppTopNavBar extends StatelessWidget {
       if (Platform.isMacOS) {
         final windowWidth = MediaQuery.sizeOf(context).width;
         final isRailCollapsed =
-            sidebarRailWidthFor(windowWidth) < kSidebarRailWidthExtended;
+            windowWidth < kSidebarRailExtendedMinWindowWidth;
         if (isRailCollapsed) {
           return getTitleBarTopPadding(context, defaultWindowPadding: 32.0);
         }

@@ -51,6 +51,7 @@ import '../widgets/library_selection_scope.dart';
 import '../utils/layout_constants.dart';
 import 'package:vynody/player/platform/right_queue_drawer_controller.dart';
 import '../widgets/right_queue_panel.dart';
+import '../widgets/sidebar_resize_handle.dart';
 import 'package:vynody/utils/deleted_song_snack.dart';
 import 'package:vynody/utils/corrupted_song_snack.dart';
 import 'package:vynody/utils/app_snack_bar.dart';
@@ -863,9 +864,9 @@ class _MainLayoutState extends ConsumerState<MainLayout>
     bool isCoverFlowImmersive,
   ) {
     _visitedTabs.add(_currentIndex);
-    // 窗口足够宽时左侧导航栏展开为图标 + 文字，否则收回为纯图标
+    // 窗口足够宽时左侧导航栏展开为图标 + 文字，否则收回为纯图标（支持拖拽调节与折叠）
     final double railWidth = useSidebar
-        ? sidebarRailWidthFor(MediaQuery.of(context).size.width)
+        ? ref.watch(sidebarRailWidthProvider(MediaQuery.of(context).size.width))
         : 0.0;
     final double leftPadding = railWidth;
 
@@ -1335,8 +1336,9 @@ class _MainLayoutState extends ConsumerState<MainLayout>
         theme.colorScheme.secondaryContainer;
     final bool isDrawerOpen =
         isDesktop && !isSmallWin && ref.watch(rightQueueDrawerProvider);
-    final double effectiveWidth =
-        size.width - (isDrawerOpen ? kRightQueueDrawerWidth : 0.0);
+    final double rightDrawerWidth =
+        isDrawerOpen ? ref.watch(rightQueueDrawerWidthProvider) : 0.0;
+    final double effectiveWidth = size.width - rightDrawerWidth;
     final bool isLandscape = !isSmallWin && (effectiveWidth > size.height);
     final bool isCoverFlowImmersive =
         isLandscape && ref.watch(isCoverFlowImmersiveActiveProvider);
@@ -1346,7 +1348,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
     final bool isKeyboardVisible = MediaQuery.of(context).viewInsets.bottom > 0;
 
     final double railWidth = (useSidebar && !isSidebarHidden)
-        ? sidebarRailWidthFor(size.width)
+        ? ref.watch(sidebarRailWidthProvider(size.width))
         : 0.0;
 
     final mainAppWidget = Focus(
@@ -1393,15 +1395,11 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                         ),
                       ),
                       if (isDesktop && !isSmallWin)
-                        ClipRect(
-                          child: AnimatedSize(
-                            duration: const Duration(milliseconds: 250),
-                            curve: Curves.easeOutCubic,
-                            alignment: Alignment.centerRight,
-                            child: ref.watch(rightQueueDrawerProvider)
-                                ? const RightQueuePanel()
-                                : const SizedBox.shrink(),
-                          ),
+                        _CollapsibleRightQueueDrawer(
+                          isOpen: isDrawerOpen,
+                          width: ref.watch(rightQueueDrawerWidthProvider),
+                          isDragging:
+                              ref.watch(isDraggingRightQueueDrawerProvider),
                         ),
                     ],
                   ),
@@ -1426,7 +1424,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                                   : 0.75,
                             ),
                             width: railWidth,
-                            extended: railWidth >= kSidebarRailWidthExtended,
+                            extended: railWidth > kSidebarRailWidthCollapsed,
                             selectedIndex: _currentIndex,
                             onDestinationSelected: (index) {
                               if (index == 1) {
@@ -1493,12 +1491,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                                   : 0.0))
                         : -120.0,
                     left: railWidth,
-                    right:
-                        (isDesktop &&
-                            !isSmallWin &&
-                            ref.watch(rightQueueDrawerProvider))
-                        ? kRightQueueDrawerWidth
-                        : 0.0,
+                    right: rightDrawerWidth,
                     child: AnimatedOpacity(
                       duration: const Duration(milliseconds: 300),
                       curve: Curves.easeInOut,
@@ -1515,13 +1508,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                                     final availableWidth =
                                         MediaQuery.of(context).size.width -
                                         railWidth -
-                                        ((isDesktop &&
-                                                !isSmallWin &&
-                                                ref.watch(
-                                                  rightQueueDrawerProvider,
-                                                ))
-                                            ? kRightQueueDrawerWidth
-                                            : 0.0);
+                                        rightDrawerWidth;
 
                                     return Container(
                                       key: const ValueKey('dynamic-island'),
@@ -1616,12 +1603,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                             isKeyboardVisible,
                         hideMiniPlayer:
                             hideMiniPlayerForSelection || isCoverFlowImmersive,
-                        rightDrawerWidth:
-                            (isDesktop &&
-                                !isSmallWin &&
-                                ref.watch(rightQueueDrawerProvider))
-                            ? kRightQueueDrawerWidth
-                            : 0.0,
+                        rightDrawerWidth: rightDrawerWidth,
                         additionalBottomOffset:
                             (((isRootSelectionMode && _currentIndex == 0) ||
                                 (isPlaylistSelectionMode &&
@@ -1650,7 +1632,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                     left: 0,
                     top: 0,
                     bottom: 0,
-                    right: isDrawerOpen ? kRightQueueDrawerWidth : 0.0,
+                    right: rightDrawerWidth,
                     child: AnimatedBuilder(
                       animation: _playbackDrawerAnimController,
                       builder: (context, child) {
@@ -1779,6 +1761,7 @@ class _SlidingNavigationRailState extends ConsumerState<SlidingNavigationRail> {
   bool _isEditingLibrary = false;
   bool _isHoveringPlaylist = false;
   bool _isPlaylistExpanded = true;
+  double _dragAccumulatedWidth = 0.0;
 
   @override
   void didUpdateWidget(covariant SlidingNavigationRail oldWidget) {
@@ -2218,95 +2201,138 @@ class _SlidingNavigationRailState extends ConsumerState<SlidingNavigationRail> {
             color: widget.backgroundColor,
             border: Border(right: BorderSide(color: borderColor, width: 0.5)),
           ),
-          child: Column(
+          child: Stack(
             children: [
-              SizedBox(height: topInset),
+              Positioned.fill(
+                child: Column(
+                  children: [
+                    SizedBox(height: topInset),
 
-              // 可滚动区：窗口高度不足时可上下滚动
-              Expanded(
-                child: Scrollbar(
-                  controller: _scrollController,
-                  thumbVisibility: false,
-                  child: SingleChildScrollView(
-                    controller: _scrollController,
-                    child: SizedBox(
-                      width: widget.width,
-                      height: contentHeight,
-                      child: Stack(
-                        children: [
-                          // 1. 纵向平移滑动的胶囊指示器
-                          AnimatedPositioned(
-                            duration: const Duration(milliseconds: 280),
-                            curve: Curves.easeOutCubic,
-                            left: pillLeft,
-                            top: pillTop,
-                            width: pillWidth,
-                            height: pillHeight,
-                            child: IgnorePointer(
-                              child: AnimatedOpacity(
-                                duration: const Duration(milliseconds: 180),
-                                opacity: showPill ? 1.0 : 0.0,
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    color: pillColor,
-                                    borderRadius: BorderRadius.circular(10),
+                    // 可滚动区：窗口高度不足时可上下滚动
+                    Expanded(
+                      child: Scrollbar(
+                        controller: _scrollController,
+                        thumbVisibility: false,
+                        child: SingleChildScrollView(
+                          controller: _scrollController,
+                          child: SizedBox(
+                            width: widget.width,
+                            height: contentHeight,
+                            child: Stack(
+                              children: [
+                                // 1. 纵向平移滑动的胶囊指示器
+                                AnimatedPositioned(
+                                  duration: const Duration(milliseconds: 280),
+                                  curve: Curves.easeOutCubic,
+                                  left: pillLeft,
+                                  top: pillTop,
+                                  width: pillWidth,
+                                  height: pillHeight,
+                                  child: IgnorePointer(
+                                    child: AnimatedOpacity(
+                                      duration: const Duration(milliseconds: 180),
+                                      opacity: showPill ? 1.0 : 0.0,
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          color: pillColor,
+                                          borderRadius: BorderRadius.circular(10),
+                                        ),
+                                      ),
+                                    ),
                                   ),
                                 ),
-                              ),
+
+                                // 2. 各条目按累加偏移定位，胶囊可精确对齐任意分组中的条目
+                                for (int i = 0; i < rows.length; i++)
+                                  Positioned(
+                                    top: offsetOf(i),
+                                    left: 0,
+                                    right: 0,
+                                    height: rows[i].height,
+                                    child: rows[i].child,
+                                  ),
+                              ],
                             ),
                           ),
-
-                          // 2. 各条目按累加偏移定位，胶囊可精确对齐任意分组中的条目
-                          for (int i = 0; i < rows.length; i++)
-                            Positioned(
-                              top: offsetOf(i),
-                              left: 0,
-                              right: 0,
-                              height: rows[i].height,
-                              child: rows[i].child,
-                            ),
-                        ],
+                        ),
                       ),
                     ),
+
+                    // 分割线：把常驻的设置入口与上方的页面导航区分开
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 6,
+                      ),
+                      child: Container(
+                        height: 0.5,
+                        color: theme.dividerColor.withValues(alpha: 0.35),
+                      ),
+                    ),
+
+                    // 设置页常驻左下角，不随上方条目滚动
+                    SizedBox(
+                      height: itemHeight,
+                      child: _buildTile(
+                        icon: destinations.last.icon,
+                        selectedIcon: destinations.last.selectedIcon,
+                        label: destinations.last.label,
+                        isSelected: widget.isSettingsActive,
+                        activeColor: activeColor,
+                        inactiveColor: inactiveColor,
+                        onTap: () {
+                          if (_isEditingLibrary) {
+                            setState(() {
+                              _isEditingLibrary = false;
+                            });
+                          }
+                          widget.onDestinationSelected(destinations.last.index);
+                        },
+                      ),
+                    ),
+                    SizedBox(
+                      height: math.max(10.0, MediaQuery.paddingOf(context).bottom),
+                    ),
+                  ],
+                ),
+              ),
+              if (MediaQuery.of(context).size.width >=
+                  kSidebarRailExtendedMinWindowWidth)
+                Positioned(
+                  right: 0,
+                  top: 0,
+                  bottom: 0,
+                  child: SidebarResizeHandle(
+                    isLeft: false,
+                    onDoubleTap: () {
+                      ref.read(settingsServiceProvider).sidebarRailCustomWidth =
+                          kDefaultSidebarRailWidthExtended;
+                    },
+                    onDragStart: (_) {
+                      _dragAccumulatedWidth = ref
+                          .read(settingsServiceProvider)
+                          .sidebarRailCustomWidth;
+                      ref
+                          .read(isDraggingSidebarRailProvider.notifier)
+                          .set(true);
+                    },
+                    onDragUpdate: (details) {
+                      final delta = details.primaryDelta ?? 0.0;
+                      final s = ref.read(settingsServiceProvider);
+                      _dragAccumulatedWidth += delta;
+                      s.sidebarRailCustomWidth = _dragAccumulatedWidth.clamp(
+                        kMinSidebarRailWidthExtended,
+                        kMaxSidebarRailWidthExtended,
+                      );
+                    },
+                    onDragEnd: (_) => ref
+                        .read(isDraggingSidebarRailProvider.notifier)
+                        .set(false),
+                    onDragCancel: () => ref
+                        .read(isDraggingSidebarRailProvider.notifier)
+                        .set(false),
                   ),
                 ),
-              ),
-
-              // 分割线：把常驻的设置入口与上方的页面导航区分开
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 6,
-                ),
-                child: Container(
-                  height: 0.5,
-                  color: theme.dividerColor.withValues(alpha: 0.35),
-                ),
-              ),
-
-              // 设置页常驻左下角，不随上方条目滚动
-              SizedBox(
-                height: itemHeight,
-                child: _buildTile(
-                  icon: destinations.last.icon,
-                  selectedIcon: destinations.last.selectedIcon,
-                  label: destinations.last.label,
-                  isSelected: widget.isSettingsActive,
-                  activeColor: activeColor,
-                  inactiveColor: inactiveColor,
-                  onTap: () {
-                    if (_isEditingLibrary) {
-                      setState(() {
-                        _isEditingLibrary = false;
-                      });
-                    }
-                    widget.onDestinationSelected(destinations.last.index);
-                  },
-                ),
-              ),
-              SizedBox(
-                height: math.max(10.0, MediaQuery.paddingOf(context).bottom),
-              ),
             ],
           ),
         ),
@@ -2633,3 +2659,98 @@ class _SlidingNavigationRailState extends ConsumerState<SlidingNavigationRail> {
     return tile;
   }
 }
+
+/// 支持丝滑拖拽调节与开合过渡动画的桌面端右侧队列抽屉容器。
+///
+/// 使用独立的 [AnimationController] 与 [OverflowBox] 裁剪方案，
+/// 避免 [AnimatedSize] 在拖拽与动态重新布局（performLayout）期间自脏变异（mutated）的框架级异常，
+/// 并在开合时提供平滑的抽屉滑入滑出视觉效果。
+class _CollapsibleRightQueueDrawer extends StatefulWidget {
+  final bool isOpen;
+  final double width;
+  final bool isDragging;
+
+  const _CollapsibleRightQueueDrawer({
+    required this.isOpen,
+    required this.width,
+    required this.isDragging,
+  });
+
+  @override
+  State<_CollapsibleRightQueueDrawer> createState() =>
+      _CollapsibleRightQueueDrawerState();
+}
+
+class _CollapsibleRightQueueDrawerState
+    extends State<_CollapsibleRightQueueDrawer>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 250),
+      value: widget.isOpen ? 1.0 : 0.0,
+    );
+    _animation = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant _CollapsibleRightQueueDrawer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isDragging) {
+      // 拖拽期间保持完全展开状态，避免动画逻辑干扰手势
+      if (_controller.value != 1.0) {
+        _controller.value = 1.0;
+      }
+    } else if (widget.isOpen != oldWidget.isOpen) {
+      if (widget.isOpen) {
+        _controller.forward();
+      } else {
+        _controller.reverse();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (context, child) {
+        final progress = _animation.value;
+        if (progress <= 0.0 && !widget.isOpen) {
+          return const SizedBox.shrink();
+        }
+        final currentWidth = widget.width * progress;
+        return SizedBox(
+          width: currentWidth,
+          child: ClipRect(
+            child: OverflowBox(
+              minWidth: 0.0,
+              maxWidth: widget.width,
+              alignment: Alignment.topRight,
+              child: SizedBox(
+                width: widget.width,
+                child: child,
+              ),
+            ),
+          ),
+        );
+      },
+      child: const RightQueuePanel(),
+    );
+  }
+}
+

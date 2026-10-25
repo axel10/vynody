@@ -20,6 +20,7 @@ import '../widgets/library_selection_scope.dart';
 import '../widgets/draggable_song_item.dart';
 import '../widgets/song_thumbnail.dart';
 import 'package:vynody/utils/layout_constants.dart';
+import '../player/platform/right_queue_drawer_controller.dart';
 import '../widgets/auto_hide_header.dart';
 import '../widgets/app_top_nav_bar.dart';
 import '../utils/app_log.dart';
@@ -294,7 +295,7 @@ class _AlbumDetailPageState extends ConsumerState<AlbumDetailPage>
     final isLandscape =
         MediaQuery.orientationOf(context) == Orientation.landscape;
     final double leftPadding =
-        isLandscape ? sidebarRailWidthFor(MediaQuery.of(context).size.width) : 0.0;
+        isLandscape ? ref.watch(sidebarRailWidthProvider(MediaQuery.of(context).size.width)) : 0.0;
 
     return AutoHideHeaderScope(
       forceVisible: isSelectionMode,

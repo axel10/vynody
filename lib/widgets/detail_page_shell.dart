@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../utils/layout_constants.dart';
+import '../player/platform/right_queue_drawer_controller.dart';
 import 'app_top_nav_bar.dart';
 import 'auto_hide_header.dart';
 import 'mini_player_wrapper.dart';
@@ -9,7 +10,7 @@ import 'mini_player_wrapper.dart';
 ///
 /// 负责：透明可自动隐藏的顶部导航栏、横屏下避让左侧 Rail 的左侧内边距、
 /// 以及底部迷你播放器的包裹。内容区只需关心「从顶部导航栏下沿开始」的滚动内容。
-class DetailPageShell extends StatefulWidget {
+class DetailPageShell extends ConsumerStatefulWidget {
   const DetailPageShell({
     super.key,
     required this.title,
@@ -35,10 +36,10 @@ class DetailPageShell extends StatefulWidget {
       AppTopNavBar.getBarHeight(context);
 
   @override
-  State<DetailPageShell> createState() => _DetailPageShellState();
+  ConsumerState<DetailPageShell> createState() => _DetailPageShellState();
 }
 
-class _DetailPageShellState extends State<DetailPageShell> {
+class _DetailPageShellState extends ConsumerState<DetailPageShell> {
   late final ScrollController _scrollController;
 
   @override
@@ -59,7 +60,7 @@ class _DetailPageShellState extends State<DetailPageShell> {
     final bool isLandscape =
         MediaQuery.orientationOf(context) == Orientation.landscape;
     final double leftPadding =
-        isLandscape ? sidebarRailWidthFor(MediaQuery.sizeOf(context).width) : 0.0;
+        isLandscape ? ref.watch(sidebarRailWidthProvider(MediaQuery.sizeOf(context).width)) : 0.0;
 
     return AutoHideHeaderScope(
       builder: (context, isHeaderVisible) {

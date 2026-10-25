@@ -24,6 +24,7 @@ import '../widgets/mini_player_wrapper.dart';
 import '../widgets/playlist_context_menu.dart';
 import '../widgets/playlist_cover.dart';
 import '../widgets/song_zoom_item.dart';
+import '../player/platform/right_queue_drawer_controller.dart';
 import 'main_layout_riverpod.dart';
 
 /// 播放列表详情页（第二级页面）
@@ -110,7 +111,7 @@ class _PlaylistDetailPageState extends ConsumerState<PlaylistDetailPage>
         MediaQuery.of(context).orientation == Orientation.portrait;
     final isLandscape = !isPortrait;
     final double leftPadding = isLandscape
-        ? sidebarRailWidthFor(MediaQuery.of(context).size.width)
+        ? ref.watch(sidebarRailWidthProvider(MediaQuery.of(context).size.width))
         : 0.0;
 
     final selectedSongs = isSelectionMode
