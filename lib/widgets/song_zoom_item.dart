@@ -1,6 +1,6 @@
 import 'dart:io' show Platform;
 import 'dart:math' as math;
-import 'dart:ui' show lerpDouble;
+import 'dart:ui' show FontFeature, lerpDouble;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -277,14 +277,18 @@ class SongZoomItem extends ConsumerWidget {
             ? theme.colorScheme.primary.withValues(alpha: 0.6)
             : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7);
 
-    // 网格档位的字号按**卡片宽度**分档（不是屏幕宽度）；列表档位与宽度无关。
+    // 网格档位的字号按**卡片宽度**分档（不是屏幕宽度）；列表档位在横屏下适度加大。
     final gridFonts = folderGridFontSizes(metrics.targetCardWidth);
     final (double titleSize, double subSize, double infoSize) =
         switch (metrics.tier) {
-      FolderZoomTier.minimalList => (13.5, 11.5, 11.0),
-      FolderZoomTier.compactList => (14.0, 12.0, 11.0),
-      FolderZoomTier.standardList => (14.0, 12.0, 11.0),
-      FolderZoomTier.largeList => (15.5, 13.0, 11.5),
+      FolderZoomTier.minimalList =>
+        isPortrait ? (13.5, 11.5, 11.0) : (14.0, 12.0, 12.0),
+      FolderZoomTier.compactList =>
+        isPortrait ? (14.0, 12.0, 11.0) : (14.5, 12.5, 12.0),
+      FolderZoomTier.standardList =>
+        isPortrait ? (14.0, 12.0, 11.0) : (15.5, 13.0, 13.0),
+      FolderZoomTier.largeList =>
+        isPortrait ? (15.5, 13.0, 11.5) : (16.5, 13.5, 13.5),
       FolderZoomTier.smallGrid ||
       FolderZoomTier.mediumGrid ||
       FolderZoomTier.largeGrid =>
@@ -434,7 +438,7 @@ class SongZoomItem extends ConsumerWidget {
                 final textHeight =
                     lerpDouble(listTextHeight, gridTextHeight, gridMorph)!;
 
-                // Reserve space on the right when in Compact List mode (`compactMorph -> 1.0`)
+                // 竖屏下列表紧凑模式相关插值
                 final estimatedInfoWidth =
                     (durationFormatText.length * 6.2 + 12.0).clamp(
                   68.0,
@@ -486,6 +490,63 @@ class SongZoomItem extends ConsumerWidget {
                 final targetTextAlign =
                     compactMorph > 0.6 ? TextAlign.right : TextAlign.left;
 
+                // 横屏多列桌面表格排版计算
+                final tableOpacity = isPortrait
+                    ? 0.0
+                    : (1.0 - gridMorph * 2.0).clamp(0.0, 1.0);
+                final gridOpacity = isPortrait
+                    ? 0.0
+                    : ((gridMorph - 0.5) * 2.0).clamp(0.0, 1.0);
+
+                const durationColWidth = 56.0;
+                const formatColWidth = 64.0;
+                const trackColWidth = 36.0;
+                const colGap = 16.0;
+
+                final landscapeTitleArtistLeft = (listCoverSize > 0.5)
+                    ? (listCoverLeft + listCoverSize + 12.0)
+                    : (effectiveSelectionMode
+                        ? (listCoverLeft + 28.0)
+                        : listCoverLeft);
+
+                final landscapeRightBoundary =
+                    W - listPadH - trailingSpace;
+                final landscapeDurationLeft =
+                    landscapeRightBoundary - durationColWidth;
+                final landscapeFormatLeft =
+                    landscapeDurationLeft - colGap - formatColWidth;
+                final landscapeTrackLeft =
+                    landscapeFormatLeft - colGap - trackColWidth;
+                final landscapeAlbumRight = landscapeTrackLeft - colGap;
+
+                final landscapeMiddleAvailable = math.max(
+                  0.0,
+                  landscapeAlbumRight - landscapeTitleArtistLeft,
+                );
+
+                final double landscapeAlbumWidth;
+                final double landscapeTitleArtistWidth;
+                if (landscapeMiddleAvailable > 320.0) {
+                  landscapeAlbumWidth = (landscapeMiddleAvailable * 0.35)
+                      .clamp(120.0, 340.0);
+                  landscapeTitleArtistWidth = math.max(
+                    0.0,
+                    landscapeMiddleAvailable - landscapeAlbumWidth - colGap,
+                  );
+                } else if (landscapeMiddleAvailable > 180.0) {
+                  landscapeAlbumWidth = (landscapeMiddleAvailable * 0.30)
+                      .clamp(60.0, 120.0);
+                  landscapeTitleArtistWidth = math.max(
+                    0.0,
+                    landscapeMiddleAvailable - landscapeAlbumWidth - 8.0,
+                  );
+                } else {
+                  landscapeAlbumWidth = 0.0;
+                  landscapeTitleArtistWidth = landscapeMiddleAvailable;
+                }
+                final landscapeAlbumLeft =
+                    landscapeTitleArtistLeft + landscapeTitleArtistWidth + colGap;
+
                 return Stack(
                   clipBehavior: Clip.none,
                   children: [
@@ -513,84 +574,342 @@ class SongZoomItem extends ConsumerWidget {
                           ),
                         ),
                       ),
-                    Positioned(
-                      left: textLeft,
-                      top: textTop,
-                      width: textWidth,
-                      height: textHeight,
-                      child: Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          Positioned(
-                            left: 0.0,
-                            top: currentTitleTop,
-                            width: math.max(
-                              0.0,
-                              textWidth - currentTitleRightPadding,
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
+                    if (!isPortrait) ...[
+                      // 1. 横屏多列表格视图内容（列表档位时 tableOpacity -> 1.0）
+                      if (tableOpacity > 0.01)
+                        Positioned.fill(
+                          child: Opacity(
+                            opacity: tableOpacity,
+                            child: Stack(
+                              clipBehavior: Clip.none,
                               children: [
-                                Row(
-                                  children: [
-                                    if (isCurrent && !isMissing && textWidth >= 40.0) ...[
-                                      PlayingEqualizerIcon(
-                                        color: theme.colorScheme.primary,
-                                        size: 16,
-                                        isPlaying: isPlaying,
+                                // 标题与艺术家列（副标题仅显示艺术家，不拼专辑名）
+                                if (landscapeTitleArtistWidth > 0)
+                                  Positioned(
+                                    left: landscapeTitleArtistLeft,
+                                    top: ((H - titleSubHeight) / 2.0)
+                                        .clamp(0.0, H),
+                                    width: landscapeTitleArtistWidth,
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            if (isCurrent &&
+                                                !isMissing &&
+                                                landscapeTitleArtistWidth >= 40.0) ...[
+                                              PlayingEqualizerIcon(
+                                                color: theme.colorScheme.primary,
+                                                size: 16,
+                                                isPlaying: isPlaying,
+                                              ),
+                                              const SizedBox(width: 6),
+                                            ],
+                                            Expanded(
+                                              child: AnimatedDefaultTextStyle(
+                                                duration:
+                                                    const Duration(milliseconds: 180),
+                                                curve: Curves.easeOutCubic,
+                                                style: titleStyle,
+                                                child: Text(
+                                                  song.displayName,
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: titleSubGap),
+                                        AnimatedDefaultTextStyle(
+                                          duration:
+                                              const Duration(milliseconds: 180),
+                                          curve: Curves.easeOutCubic,
+                                          style: subtitleStyle,
+                                          child: Text(
+                                            artist,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                // 专辑列（单独成列）
+                                if (landscapeAlbumWidth > 20.0)
+                                  Positioned(
+                                    left: landscapeAlbumLeft,
+                                    top: ((H - subLineHeight) / 2.0)
+                                        .clamp(0.0, H),
+                                    width: landscapeAlbumWidth,
+                                    child: AnimatedDefaultTextStyle(
+                                      duration:
+                                          const Duration(milliseconds: 180),
+                                      curve: Curves.easeOutCubic,
+                                      style: subtitleStyle.copyWith(
+                                        color: isMissing
+                                            ? theme.colorScheme.onSurfaceVariant
+                                                .withValues(alpha: 0.4)
+                                            : theme.colorScheme.onSurfaceVariant,
                                       ),
-                                      const SizedBox(width: 6),
-                                    ],
-                                    Expanded(
-                                      child: AnimatedDefaultTextStyle(
-                                        duration: const Duration(
-                                          milliseconds: 180,
-                                        ),
-                                        curve: Curves.easeOutCubic,
-                                        style: titleStyle,
-                                        child: Text(
-                                          song.displayName,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
+                                      child: Text(
+                                        album,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
-                                  ],
+                                  ),
+                                // 音轨号列（位于音频格式左边；元数据无音轨号则留空）
+                                Positioned(
+                                  left: landscapeTrackLeft,
+                                  top: 0,
+                                  bottom: 0,
+                                  width: trackColWidth,
+                                  child: Center(
+                                    child: trackStr != null
+                                        ? Text(
+                                            trackStr,
+                                            style: infoStyle.copyWith(
+                                              color: isCurrent
+                                                  ? theme.colorScheme.primary
+                                                  : theme.colorScheme.onSurfaceVariant
+                                                      .withValues(alpha: 0.7),
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                            maxLines: 1,
+                                          )
+                                        : const SizedBox.shrink(),
+                                  ),
                                 ),
-                                const SizedBox(height: titleSubGap),
-                                AnimatedDefaultTextStyle(
-                                  duration: const Duration(milliseconds: 180),
-                                  curve: Curves.easeOutCubic,
-                                  style: subtitleStyle,
-                                  child: Text(
-                                    artistAlbumText,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
+                                // 格式列（单独成列徽章）
+                                Positioned(
+                                  left: landscapeFormatLeft,
+                                  top: ((H - 24.0) / 2.0).clamp(0.0, H),
+                                  width: formatColWidth,
+                                  child: Center(
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 6,
+                                        vertical: 2,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: theme.colorScheme.onSurface
+                                            .withValues(alpha: 0.06),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Text(
+                                        formatStr,
+                                        style: infoStyle.copyWith(
+                                          fontSize: (infoSize - 1.0)
+                                              .clamp(10.0, 12.5),
+                                          fontWeight: FontWeight.w600,
+                                          letterSpacing: 0.4,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                // 时长列（单独成列右对齐）
+                                Positioned(
+                                  left: landscapeDurationLeft,
+                                  top: ((H - infoLineHeight) / 2.0)
+                                      .clamp(0.0, H),
+                                  width: durationColWidth,
+                                  child: Align(
+                                    alignment: Alignment.centerRight,
+                                    child: AnimatedDefaultTextStyle(
+                                      duration:
+                                          const Duration(milliseconds: 180),
+                                      curve: Curves.easeOutCubic,
+                                      style: infoStyle.copyWith(
+                                        fontFeatures: const [
+                                          FontFeature.tabularFigures(),
+                                        ],
+                                      ),
+                                      child: Text(
+                                        durationStr,
+                                        maxLines: 1,
+                                        textAlign: TextAlign.right,
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                          Positioned(
-                            left: targetInfoLeft.clamp(0.0, textWidth),
-                            top: targetInfoTop,
-                            width: targetInfoWidth.clamp(0.0, textWidth),
-                            child: AnimatedDefaultTextStyle(
-                              duration: const Duration(milliseconds: 180),
-                              curve: Curves.easeOutCubic,
-                              style: infoStyle,
-                              textAlign: targetTextAlign,
-                              child: Text(
-                                durationFormatText,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
+                        ),
+                      // 2. 网格模式下的文字块（向网格缩放时平滑淡入）
+                      if (gridOpacity > 0.01)
+                        Positioned(
+                          left: textLeft,
+                          top: textTop,
+                          width: textWidth,
+                          height: textHeight,
+                          child: Opacity(
+                            opacity: gridOpacity,
+                            child: Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                Positioned(
+                                  left: 0.0,
+                                  top: 0.0,
+                                  width: textWidth,
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          if (isCurrent &&
+                                              !isMissing &&
+                                              textWidth >= 40.0) ...[
+                                            PlayingEqualizerIcon(
+                                              color: theme.colorScheme.primary,
+                                              size: 16,
+                                              isPlaying: isPlaying,
+                                            ),
+                                            const SizedBox(width: 6),
+                                          ],
+                                          Expanded(
+                                            child: AnimatedDefaultTextStyle(
+                                              duration: const Duration(
+                                                milliseconds: 180,
+                                              ),
+                                              curve: Curves.easeOutCubic,
+                                              style: titleStyle,
+                                              child: Text(
+                                                song.displayName,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: titleSubGap),
+                                      AnimatedDefaultTextStyle(
+                                        duration:
+                                            const Duration(milliseconds: 180),
+                                        curve: Curves.easeOutCubic,
+                                        style: subtitleStyle,
+                                        child: Text(
+                                          artistAlbumText,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Positioned(
+                                  left: 0.0,
+                                  top: titleSubHeight + subInfoGap,
+                                  width: textWidth,
+                                  child: AnimatedDefaultTextStyle(
+                                    duration:
+                                        const Duration(milliseconds: 180),
+                                    curve: Curves.easeOutCubic,
+                                    style: infoStyle,
+                                    child: Text(
+                                      durationFormatText,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                        ],
+                        ),
+                    ] else ...[
+                      // 竖屏列表/网格布局
+                      Positioned(
+                        left: textLeft,
+                        top: textTop,
+                        width: textWidth,
+                        height: textHeight,
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            Positioned(
+                              left: 0.0,
+                              top: currentTitleTop,
+                              width: math.max(
+                                0.0,
+                                textWidth - currentTitleRightPadding,
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Row(
+                                    children: [
+                                      if (isCurrent &&
+                                          !isMissing &&
+                                          textWidth >= 40.0) ...[
+                                        PlayingEqualizerIcon(
+                                          color: theme.colorScheme.primary,
+                                          size: 16,
+                                          isPlaying: isPlaying,
+                                        ),
+                                        const SizedBox(width: 6),
+                                      ],
+                                      Expanded(
+                                        child: AnimatedDefaultTextStyle(
+                                          duration: const Duration(
+                                            milliseconds: 180,
+                                          ),
+                                          curve: Curves.easeOutCubic,
+                                          style: titleStyle,
+                                          child: Text(
+                                            song.displayName,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: titleSubGap),
+                                  AnimatedDefaultTextStyle(
+                                    duration:
+                                        const Duration(milliseconds: 180),
+                                    curve: Curves.easeOutCubic,
+                                    style: subtitleStyle,
+                                    child: Text(
+                                      artistAlbumText,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Positioned(
+                              left: targetInfoLeft.clamp(0.0, textWidth),
+                              top: targetInfoTop,
+                              width: targetInfoWidth.clamp(0.0, textWidth),
+                              child: AnimatedDefaultTextStyle(
+                                duration: const Duration(milliseconds: 180),
+                                curve: Curves.easeOutCubic,
+                                style: infoStyle,
+                                textAlign: targetTextAlign,
+                                child: Text(
+                                  durationFormatText,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
+                    ],
                     if (hasTrailing && gridMorph < 0.99)
                       Positioned(
                         right: listPadH,
