@@ -1633,53 +1633,55 @@ class _MainLayoutState extends ConsumerState<MainLayout>
                     top: 0,
                     bottom: 0,
                     right: rightDrawerWidth,
-                    child: AnimatedBuilder(
-                      animation: _playbackDrawerAnimController,
-                      builder: (context, child) {
-                        final double progress = isSmallWin
-                            ? 1.0
-                            : _playbackDrawerAnimController.value;
-                        final double screenHeight = size.height;
-                        final double offsetY = isSmallWin
-                            ? 0.0
-                            : ((1.0 - progress) * screenHeight).clamp(
-                                0.0,
-                                screenHeight,
-                              );
+                    child: ClipRect(
+                      child: AnimatedBuilder(
+                        animation: _playbackDrawerAnimController,
+                        builder: (context, child) {
+                          final double progress = isSmallWin
+                              ? 1.0
+                              : _playbackDrawerAnimController.value;
+                          final double screenHeight = size.height;
+                          final double offsetY = isSmallWin
+                              ? 0.0
+                              : ((1.0 - progress) * screenHeight).clamp(
+                                  0.0,
+                                  screenHeight,
+                                );
 
-                        return Transform.translate(
-                          offset: Offset(0, offsetY),
-                          child: child,
-                        );
-                      },
-                      child: Stack(
-                        children: [
-                          Positioned.fill(
-                            child: PlaybackPage(
-                              onCollapse: _collapsePlayback,
-                              isMouseActive: _isMouseActive,
+                          return Transform.translate(
+                            offset: Offset(0, offsetY),
+                            child: child,
+                          );
+                        },
+                        child: Stack(
+                          children: [
+                            Positioned.fill(
+                              child: PlaybackPage(
+                                onCollapse: _collapsePlayback,
+                                isMouseActive: _isMouseActive,
+                              ),
                             ),
-                          ),
-                          if (!useSidebar && !isSmallWin)
-                            FloatingDockBottomBar(
-                              currentIndex: 1,
-                              onDestinationSelected: (index) {
-                                if (index == 1) return;
-                                _collapsePlayback();
-                                if (index == 5) {
-                                  _openSettingsPage();
-                                } else {
-                                  _selectTab(index);
-                                }
-                              },
-                              isPlayback: true,
-                              isHidden:
-                                  settings.isImmersiveTabBarEnabled &&
-                                  settings.isUserInactive,
-                              hideMiniPlayer: true,
-                              rightDrawerWidth: 0.0,
-                            ),
-                        ],
+                            if (!useSidebar && !isSmallWin)
+                              FloatingDockBottomBar(
+                                currentIndex: 1,
+                                onDestinationSelected: (index) {
+                                  if (index == 1) return;
+                                  _collapsePlayback();
+                                  if (index == 5) {
+                                    _openSettingsPage();
+                                  } else {
+                                    _selectTab(index);
+                                  }
+                                },
+                                isPlayback: true,
+                                isHidden:
+                                    settings.isImmersiveTabBarEnabled &&
+                                    settings.isUserInactive,
+                                hideMiniPlayer: true,
+                                rightDrawerWidth: 0.0,
+                              ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
