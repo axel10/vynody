@@ -160,13 +160,6 @@ class PlaylistCover extends StatelessWidget {
       ),
     );
 
-    if (enableHero) {
-      return Hero(
-        tag: 'playlist-cover-${playlist.id}',
-        child: clipped,
-      );
-    }
-
     return clipped;
   }
 }

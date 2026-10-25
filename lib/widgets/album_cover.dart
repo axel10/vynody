@@ -46,6 +46,7 @@ class AlbumCover extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Hero 动画已全局禁用，直接使用原始封面组件
     Widget cover = SongThumbnail.fromAlbum(
       album,
       size: size,
@@ -53,14 +54,6 @@ class AlbumCover extends StatelessWidget {
       height: height,
       borderRadius: borderRadius,
     );
-
-    if (enableHero) {
-      final tag = heroTag ?? 'album-cover-${album.id}';
-      cover = Hero(
-        tag: tag,
-        child: cover,
-      );
-    }
 
     final double effectiveSize = width ?? height ?? size;
     return RemoteMediaBadge.wrapCover(

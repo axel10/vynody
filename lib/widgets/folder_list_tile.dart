@@ -80,12 +80,7 @@ class FolderListTile extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          enableHero
-              ? Hero(
-                  tag: 'folder-cover-${folder.path}',
-                  child: coverContent,
-                )
-              : coverContent,
+          coverContent,
           if (isSelectionMode)
             Positioned.fill(
               child: Align(

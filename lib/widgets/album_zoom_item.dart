@@ -49,18 +49,12 @@ class AlbumZoomItem extends StatelessWidget {
     final theme = Theme.of(context);
     final gridMorph = metrics.gridMorph;
 
-    Widget thumbnail = SongThumbnail.fromAlbum(
+    final thumbnail = SongThumbnail.fromAlbum(
       album,
       size: 250,
       width: double.infinity,
       height: double.infinity,
     );
-    if (enableHero) {
-      thumbnail = Hero(
-        tag: 'album-cover-${album.id}',
-        child: thumbnail,
-      );
-    }
 
     final coverWidget = RemoteMediaBadge.wrapCover(
       songs: album.songs,

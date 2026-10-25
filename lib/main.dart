@@ -786,7 +786,9 @@ class _MyAppState extends ConsumerState<MyApp>
             ),
           );
 
-          return OKToast(
+          return HeroMode(
+            enabled: false,
+            child: OKToast(
             backgroundColor: const Color(0xEB1C1D22),
             radius: 18.0,
             textPadding: const EdgeInsets.symmetric(
@@ -831,7 +833,8 @@ class _MyAppState extends ConsumerState<MyApp>
               );
             },
             child: appContent,
-          );
+          ),
+        );
         },
         localizationsDelegates: const [
           AppLocalizations.delegate,

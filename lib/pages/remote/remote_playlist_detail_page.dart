@@ -1078,44 +1078,41 @@ class _RemotePlaylistDetailContentState
                               ? 220
                               : (isNarrow ? 120 : 160);
 
-                          final coverWidget = Hero(
-                            tag: 'navidrome_playlist_${widget.playlistId}',
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(16),
-                              child: Container(
-                                width: imageSize,
-                                height: imageSize,
-                                decoration: BoxDecoration(
-                                  color:
-                                      theme.colorScheme.surfaceContainerHighest,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(
-                                        alpha: 0.15,
-                                      ),
-                                      blurRadius: 16,
-                                      offset: const Offset(0, 8),
+                          final coverWidget = ClipRRect(
+                            borderRadius: BorderRadius.circular(16),
+                            child: Container(
+                              width: imageSize,
+                              height: imageSize,
+                              decoration: BoxDecoration(
+                                color:
+                                    theme.colorScheme.surfaceContainerHighest,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(
+                                      alpha: 0.15,
                                     ),
-                                  ],
-                                ),
-                                child: coverId != null && coverId.isNotEmpty
-                                    ? RemoteArtworkWidget(
-                                        server: widget.server,
-                                        password: widget.password,
-                                        coverArtId: coverId,
-                                        size: imageSize,
-                                        borderRadius: BorderRadius.circular(16),
-                                      )
-                                    : Icon(
-                                        _isStarredView
-                                            ? Icons.favorite_rounded
-                                            : Icons.playlist_play_rounded,
-                                        size: imageSize * 0.45,
-                                        color: _isStarredView
-                                            ? Colors.redAccent
-                                            : theme.colorScheme.primary,
-                                      ),
+                                    blurRadius: 16,
+                                    offset: const Offset(0, 8),
+                                  ),
+                                ],
                               ),
+                              child: coverId != null && coverId.isNotEmpty
+                                  ? RemoteArtworkWidget(
+                                      server: widget.server,
+                                      password: widget.password,
+                                      coverArtId: coverId,
+                                      size: imageSize,
+                                      borderRadius: BorderRadius.circular(16),
+                                    )
+                                  : Icon(
+                                      _isStarredView
+                                          ? Icons.favorite_rounded
+                                          : Icons.playlist_play_rounded,
+                                      size: imageSize * 0.45,
+                                      color: _isStarredView
+                                          ? Colors.redAccent
+                                          : theme.colorScheme.primary,
+                                    ),
                             ),
                           );
 

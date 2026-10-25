@@ -409,30 +409,10 @@ class _FolderLandscapeHeaderBanner extends StatelessWidget {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
 
-    Widget resolvedCover;
-    if (heroTag != null) {
-      resolvedCover = HeroMode(
-        enabled: isHeroModeEnabled,
-        child: Hero(
-          tag: heroTag!,
-          // Explicit linear rect tween for smooth 1:1 horizontal flight in landscape mode
-          createRectTween: (begin, end) => SmoothRectTween(
-            begin: begin,
-            end: end,
-            curve: Curves.linear,
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: coverWidget,
-          ),
-        ),
-      );
-    } else {
-      resolvedCover = ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: coverWidget,
-      );
-    }
+    final resolvedCover = ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: coverWidget,
+    );
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -884,26 +864,10 @@ class _FolderPortraitHeaderBanner extends StatelessWidget {
                                 ),
                               ],
                             ),
-                            child: heroTag != null
-                                ? HeroMode(
-                                    enabled: isHeroModeEnabled,
-                                    child: Hero(
-                                      tag: heroTag!,
-                                      createRectTween: (begin, end) => SmoothRectTween(
-                                        begin: begin,
-                                        end: end,
-                                        curve: Curves.fastOutSlowIn,
-                                      ),
-                                      child: ClipRRect(
-                                        borderRadius: BorderRadius.circular(12),
-                                        child: coverWidget,
-                                      ),
-                                    ),
-                                  )
-                                : ClipRRect(
-                                    borderRadius: BorderRadius.circular(12),
-                                    child: coverWidget,
-                                  ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: coverWidget,
+                            ),
                           ),
                           Expanded(
                             child: _BannerInfoColumn(
@@ -1492,21 +1456,5 @@ class FolderPlayActionButtons extends StatelessWidget {
         shuffleButton,
       ],
     );
-  }
-}
-
-/// Custom RectTween with an explicit curve per hero transition context
-class SmoothRectTween extends RectTween {
-  SmoothRectTween({
-    super.begin,
-    super.end,
-    required this.curve,
-  });
-
-  final Curve curve;
-
-  @override
-  Rect? lerp(double t) {
-    return super.lerp(curve.transform(t));
   }
 }

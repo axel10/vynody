@@ -134,17 +134,14 @@ class SongZoomItem extends ConsumerWidget {
     final coverWidget = ExcludeSemantics(
       child: Opacity(
         opacity: isMissing ? 0.35 : 1.0,
-        child: Hero(
-          tag: 'song-cover-${song.path}',
-          child: RemoteMediaBadge.wrapCover(
-            showRemoteBadge: showRemoteBadge,
-            fit: StackFit.expand,
-            song: song,
-            title: song.displayName,
-            top: 4.0,
-            right: 4.0,
-            child: customCover ?? thumbnail,
-          ),
+        child: RemoteMediaBadge.wrapCover(
+          showRemoteBadge: showRemoteBadge,
+          fit: StackFit.expand,
+          song: song,
+          title: song.displayName,
+          top: 4.0,
+          right: 4.0,
+          child: customCover ?? thumbnail,
         ),
       ),
     );

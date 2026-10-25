@@ -42,16 +42,9 @@ class LibraryTabNavigator extends StatefulWidget {
 }
 
 class _LibraryTabNavigatorState extends State<LibraryTabNavigator> {
-  late final HeroController _heroController = HeroController();
   late final _TabRouteStackObserver _stackObserver = _TabRouteStackObserver(
     (hasChild) => widget.onHasChildRouteChanged?.call(hasChild),
   );
-
-  @override
-  void dispose() {
-    _heroController.dispose();
-    super.dispose();
-  }
 
   Route<void> _buildRootRoute() {
     return MaterialPageRoute<void>(
@@ -67,7 +60,7 @@ class _LibraryTabNavigatorState extends State<LibraryTabNavigator> {
       onNotification: (notification) => true,
       child: Navigator(
         key: widget.navigatorKey,
-        observers: [_heroController, _stackObserver],
+        observers: [_stackObserver],
         onGenerateInitialRoutes: (navigator, initialRoute) =>
             <Route<void>>[_buildRootRoute()],
         onGenerateRoute: (settings) => _buildRootRoute(),

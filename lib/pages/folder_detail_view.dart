@@ -879,24 +879,21 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
   }
 
   Widget _buildBreadcrumbs(MusicFolder current, ScannerService scanner, {bool isOverlay = false}) {
-    return Hero(
-      tag: 'folder-header-nav-bar',
-      child: Material(
-        type: MaterialType.transparency,
-        child: FolderHeaderNavBar(
-          isOverlay: isOverlay,
-          scrollProgress: _scrollProgress,
-          currentFolder: current,
-          navigationHistory: widget.navigationHistory ?? scanner.navigationHistory,
-          onGoBack: widget.onGoBack,
-          onLocateCurrentSong: widget.onLocateCurrentSong,
-          onSortPressed: () => _showSortDialog(context, scanner),
-          // 此目录脱离全局排序时给排序图标着色，提示它被单独设定过
-          isSortHighlighted: scanner.hasSortOverrideForFolder(current.path),
-          onClearAllSelection: widget.onClearAllSelection,
-          scrollController: _breadcrumbsScrollController,
-          onRefresh: _handleRefresh,
-        ),
+    return Material(
+      type: MaterialType.transparency,
+      child: FolderHeaderNavBar(
+        isOverlay: isOverlay,
+        scrollProgress: _scrollProgress,
+        currentFolder: current,
+        navigationHistory: widget.navigationHistory ?? scanner.navigationHistory,
+        onGoBack: widget.onGoBack,
+        onLocateCurrentSong: widget.onLocateCurrentSong,
+        onSortPressed: () => _showSortDialog(context, scanner),
+        // 此目录脱离全局排序时给排序图标着色，提示它被单独设定过
+        isSortHighlighted: scanner.hasSortOverrideForFolder(current.path),
+        onClearAllSelection: widget.onClearAllSelection,
+        scrollController: _breadcrumbsScrollController,
+        onRefresh: _handleRefresh,
       ),
     );
   }

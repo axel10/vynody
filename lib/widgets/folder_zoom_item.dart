@@ -120,12 +120,7 @@ class FolderZoomItem extends StatelessWidget {
       child: coverWidget,
     );
 
-    final heroCover = enableHero
-        ? Hero(
-            tag: 'folder-cover-${folder.path}',
-            child: cover,
-          )
-        : cover;
+    final heroCover = cover;
 
     final listCoverSize = getFolderListCoverSize(metrics.animatedZoomScale);
     final coverProgress = (listCoverSize / 40.0).clamp(0.0, 1.0);

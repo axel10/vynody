@@ -693,12 +693,7 @@ class Album3DCoverCard extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          isHeroEnabled
-              ? Hero(
-                  tag: 'album-cover-${album.id}',
-                  child: coverBox,
-                )
-              : coverBox,
+          coverBox,
           reflectionWidget,
         ],
       ),
