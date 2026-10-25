@@ -75,7 +75,7 @@ class ZoomItemLayout {
     );
 
     const gridTextLeft = 0.0;
-    final gridTextTop = gridCoverSize + 4.0;
+    final gridTextTop = gridCoverSize + 8.0;
     final gridTextWidth = W;
     final gridTextHeight = math.max(0.0, H - gridTextTop);
 
@@ -221,7 +221,7 @@ class ZoomItemDefaultTextColumn extends StatelessWidget {
               ],
             ),
             if (subtitle != null) ...[
-              SizedBox(height: lerpDouble(4.0, 2.0, gridMorph)!),
+              SizedBox(height: lerpDouble(4.0, 3.0, gridMorph)!),
               AnimatedDefaultTextStyle(
                 duration: const Duration(milliseconds: 180),
                 curve: Curves.easeOutCubic,
@@ -330,9 +330,12 @@ class ZoomItemScaffold extends StatelessWidget {
       listTitleFontSize: listTitleFontSize,
     );
 
-    final textAlignAlignment = gridAlignment != null
-        ? Alignment.lerp(Alignment.centerLeft, gridAlignment!, gridMorph)!
-        : Alignment.centerLeft;
+    final defaultGridAlignment = gridAlignment ?? Alignment.topLeft;
+    final textAlignAlignment = Alignment.lerp(
+      Alignment.centerLeft,
+      defaultGridAlignment,
+      gridMorph,
+    )!;
     final textCrossAlign = gridCrossAxisAlignment != null
         ? (gridMorph > 0.5 ? gridCrossAxisAlignment! : CrossAxisAlignment.start)
         : CrossAxisAlignment.start;
