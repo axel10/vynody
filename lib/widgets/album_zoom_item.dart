@@ -14,6 +14,10 @@ class AlbumZoomItem extends StatelessWidget {
     this.isSelected = false,
     this.isSelectionMode = false,
     this.enableHero = true,
+    this.trailing,
+    this.trailingWidth,
+    this.subtitleText,
+    this.titlePrefix,
     this.onTap,
     this.onLongPress,
     this.onSecondaryTapDown,
@@ -26,6 +30,10 @@ class AlbumZoomItem extends StatelessWidget {
   final bool isSelected;
   final bool isSelectionMode;
   final bool enableHero;
+  final Widget? trailing;
+  final double? trailingWidth;
+  final String? subtitleText;
+  final Widget? titlePrefix;
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
   final void Function(TapDownDetails details)? onSecondaryTapDown;
@@ -85,7 +93,10 @@ class AlbumZoomItem extends StatelessWidget {
       metrics: metrics,
       cover: cover,
       titleText: album.title,
-      subtitleText: album.artist,
+      subtitleText: subtitleText ?? album.artist,
+      titlePrefix: titlePrefix,
+      trailing: trailing,
+      trailingWidth: trailingWidth,
       titleColor: titleColor,
       listTitleFontWeight: FontWeight.normal,
       isSelected: isSelected,
