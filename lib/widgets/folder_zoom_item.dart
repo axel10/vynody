@@ -53,8 +53,6 @@ class FolderZoomItem extends StatelessWidget {
     final gridMorph = metrics.gridMorph;
 
     final isSystem = folder.path == 'system';
-    final coverRadiusValue = lerpDouble(8.0, 12.0, gridMorph)!;
-    final coverRadius = BorderRadius.circular(coverRadiusValue);
     final gridIconSize = switch (metrics.tier) {
       FolderZoomTier.smallGrid => 32.0,
       FolderZoomTier.mediumGrid => 40.0,
@@ -71,7 +69,6 @@ class FolderZoomItem extends StatelessWidget {
     final defaultCoverWidget = DefaultCoverArt.folder(
       isSystem: isSystem,
       iconSize: defaultIconSize,
-      borderRadius: coverRadius,
     );
 
     Widget coverWidget;
@@ -81,90 +78,56 @@ class FolderZoomItem extends StatelessWidget {
         size: 200,
         width: double.infinity,
         height: double.infinity,
-        borderRadius: coverRadius,
         fallbackWidget: defaultCoverWidget,
       );
     } else {
       coverWidget = defaultCoverWidget;
     }
 
-    final coverStack = ExcludeSemantics(
-      child: ClipRRect(
-        borderRadius: coverRadius,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            coverWidget,
-            if (isSelectionMode)
-              Positioned.fill(
-                child: Container(
-                  color: isSelected
-                      ? theme.colorScheme.primaryContainer.withValues(alpha: 0.35)
-                      : Colors.black26,
-                ),
+    Widget? indexBadge;
+    if (isIndexed) {
+      indexBadge = Positioned(
+        top: lerpDouble(3.0, 8.0, gridMorph)!,
+        right: lerpDouble(3.0, 8.0, gridMorph)!,
+        child: Tooltip(
+          message: l10n.remoteFolderAlreadyIndexed,
+          child: Container(
+            padding: EdgeInsets.all(lerpDouble(3.0, 4.5, gridMorph)!),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.55),
+              borderRadius: BorderRadius.circular(6.0),
+              border: Border.all(
+                color: theme.colorScheme.primary.withValues(alpha: 0.6),
+                width: 0.8,
               ),
-            if (isSelectionMode)
-              Align(
-                alignment: Alignment.lerp(
-                  Alignment.center,
-                  Alignment.topLeft,
-                  gridMorph,
-                )!,
-                child: Padding(
-                  padding: EdgeInsets.all(lerpDouble(0.0, 8.0, gridMorph)!),
-                  child: SizedBox(
-                    width: lerpDouble(32.0, 28.0, gridMorph)!,
-                    height: lerpDouble(32.0, 28.0, gridMorph)!,
-                    child: Checkbox(
-                      value: isSelected,
-                      onChanged: (_) => onTap?.call(),
-                      fillColor: WidgetStateProperty.all(Colors.white),
-                      checkColor: Colors.black,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            if (isIndexed)
-              Positioned(
-                top: lerpDouble(3.0, 8.0, gridMorph)!,
-                right: lerpDouble(3.0, 8.0, gridMorph)!,
-                child: Tooltip(
-                  message: l10n.remoteFolderAlreadyIndexed,
-                  child: Container(
-                    padding: EdgeInsets.all(lerpDouble(3.0, 4.5, gridMorph)!),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.55),
-                      borderRadius: BorderRadius.circular(6.0),
-                      border: Border.all(
-                        color: theme.colorScheme.primary.withValues(alpha: 0.6),
-                        width: 0.8,
-                      ),
-                    ),
-                    child: Icon(
-                      Icons.library_add_check_rounded,
-                      size: lerpDouble(11.0, 13.0, gridMorph)!,
-                      color: theme.colorScheme.primary,
-                    ),
-                  ),
-                ),
-              ),
-          ],
+            ),
+            child: Icon(
+              Icons.library_add_check_rounded,
+              size: lerpDouble(11.0, 13.0, gridMorph)!,
+              color: theme.colorScheme.primary,
+            ),
+          ),
         ),
-      ),
+      );
+    }
+
+    final cover = ZoomItemCover(
+      metrics: metrics,
+      isSelected: isSelected,
+      isSelectionMode: isSelectionMode,
+      onToggleSelect: onTap,
+      badge: indexBadge,
+      child: coverWidget,
     );
 
     final heroCover = enableHero
         ? Hero(
             tag: 'folder-cover-${folder.path}',
-            child: coverStack,
+            child: cover,
           )
-        : coverStack;
+        : cover;
 
-    final listCoverSize =
-        getFolderListCoverSize(metrics.animatedZoomScale);
+    final listCoverSize = getFolderListCoverSize(metrics.animatedZoomScale);
     final coverProgress = (listCoverSize / 40.0).clamp(0.0, 1.0);
     final selectionOffset = (isSelectionMode && gridMorph < 0.5)
         ? (28.0 * (1.0 - coverProgress))
@@ -173,6 +136,18 @@ class FolderZoomItem extends StatelessWidget {
     final titleColor = isSelectionMode && isSelected
         ? theme.colorScheme.primary
         : theme.colorScheme.onSurface;
+
+    final Widget? fallbackLeading = isSelectionMode && gridMorph < 0.5
+        ? Checkbox(
+            value: isSelected,
+            onChanged: (_) => onTap?.call(),
+            fillColor: WidgetStateProperty.all(Colors.white),
+            checkColor: Colors.black,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(4),
+            ),
+          )
+        : null;
 
     final scaffold = ZoomItemScaffold(
       metrics: metrics,
@@ -189,17 +164,7 @@ class FolderZoomItem extends StatelessWidget {
       onTap: onTap,
       onLongPress: onLongPress,
       onSecondaryTapDown: onSecondaryTapDown,
-      fallbackLeadingWhenNoCover: isSelectionMode && gridMorph < 0.5
-          ? Checkbox(
-              value: isSelected,
-              onChanged: (_) => onTap?.call(),
-              fillColor: WidgetStateProperty.all(Colors.white),
-              checkColor: Colors.black,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(4),
-              ),
-            )
-          : null,
+      fallbackLeadingWhenNoCover: fallbackLeading,
     );
 
     return DraggableFolderItem(

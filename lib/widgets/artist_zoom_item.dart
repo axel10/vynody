@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:ui' show lerpDouble;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,7 +10,6 @@ import '../player/metadata/theaudiodb_artist_service.dart';
 import 'artist_avatar.dart';
 import 'artist_context_menu.dart';
 import 'folder_layout_utils.dart';
-import 'library_zoom_card_layout.dart';
 import 'remote_media_badge.dart';
 
 /// 艺术家条目，随档位在「列表（左侧头像）」与「网格（居中大头像）」之间连续平滑变形。
@@ -120,7 +118,6 @@ class _ArtistZoomItemState extends ConsumerState<ArtistZoomItem> {
     final artist = widget.artist;
     final metrics = widget.metrics;
     final gridMorph = metrics.gridMorph;
-    final isGridTarget = metrics.isGridTarget;
     final isSelected = widget.isSelected;
 
     final displayImagePath = _cachedImagePath ?? artist.cachedImagePath;
@@ -135,148 +132,38 @@ class _ArtistZoomItemState extends ConsumerState<ArtistZoomItem> {
       subtitleParts.add(artist.disambiguation!.trim());
     }
 
-    // 头像及多选蒙层
-    final avatarStack = ExcludeSemantics(
-      child: ClipOval(
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final size = constraints.maxWidth.isFinite
-                    ? constraints.maxWidth
-                    : 48.0;
-                return ArtistAvatar(
-                  diameter: size,
-                  imagePath: displayImagePath,
-                  imageUrl: artist.imageUrl,
-                );
-              },
-            ),
-            if (widget.isSelectionMode)
-              Positioned.fill(
-                child: Container(
-                  color: isSelected
-                      ? theme.colorScheme.primaryContainer.withValues(alpha: 0.35)
-                      : Colors.black38,
-                ),
-              ),
-            if (widget.isSelectionMode)
-              Center(
-                child: SizedBox(
-                  width: lerpDouble(28.0, 32.0, gridMorph)!,
-                  height: lerpDouble(28.0, 32.0, gridMorph)!,
-                  child: Checkbox(
-                    value: isSelected,
-                    onChanged: (_) =>
-                        (widget.onToggleSelect ?? widget.onTap)?.call(),
-                    fillColor: WidgetStateProperty.all(Colors.white),
-                    checkColor: Colors.black,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
+    final avatar = LayoutBuilder(
+      builder: (context, constraints) {
+        final size =
+            constraints.maxWidth.isFinite ? constraints.maxWidth : 48.0;
+        return ArtistAvatar(
+          diameter: size,
+          imagePath: displayImagePath,
+          imageUrl: artist.imageUrl,
+        );
+      },
     );
 
-    // 文字样式与对齐
+    final cover = ZoomItemCover(
+      metrics: metrics,
+      isSelected: isSelected,
+      isSelectionMode: widget.isSelectionMode,
+      isCircle: true,
+      centerCheckboxInGrid: true,
+      selectionOverlayColor: Colors.black38,
+      onToggleSelect: (widget.onToggleSelect ?? widget.onTap),
+      child: avatar,
+    );
+
     final titleColor = widget.isSelectionMode && isSelected
         ? theme.colorScheme.primary
         : theme.colorScheme.onSurface;
 
-    final TextStyle titleStyle;
-    final TextStyle subtitleStyle;
-    if (!isGridTarget) {
-      titleStyle = (theme.textTheme.bodyMedium ?? const TextStyle()).copyWith(
-        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-        fontSize: 13.5,
-        color: titleColor,
-        height: 1.25,
-      );
-      subtitleStyle = (theme.textTheme.bodySmall ?? const TextStyle()).copyWith(
-        fontSize: 12.0,
-        color: theme.colorScheme.onSurfaceVariant,
-        height: 1.2,
-      );
-    } else {
-      final fonts = folderGridFontSizes(metrics.targetCardWidth);
-      titleStyle = (theme.textTheme.titleSmall ?? const TextStyle()).copyWith(
-        fontWeight: FontWeight.w600,
-        fontSize: fonts.title,
-        color: titleColor,
-        height: 1.25,
-      );
-      subtitleStyle = (theme.textTheme.bodySmall ?? const TextStyle()).copyWith(
-        fontSize: fonts.subtitle,
-        color: theme.colorScheme.onSurfaceVariant,
-        height: 1.2,
-      );
-    }
-
-    final textAlign = gridMorph > 0.5 ? TextAlign.center : TextAlign.start;
-    final textCrossAxisAlignment =
-        gridMorph > 0.5 ? CrossAxisAlignment.center : CrossAxisAlignment.start;
-    final textAlignAlignment = Alignment.lerp(
-      Alignment.centerLeft,
-      Alignment.topCenter,
-      gridMorph,
-    )!;
-
-    final textColumn = Align(
-      alignment: textAlignAlignment,
-      child: OverflowBox(
-        minHeight: 0.0,
-        maxHeight: double.infinity,
-        alignment: textAlignAlignment,
-        child: Column(
-          crossAxisAlignment: textCrossAxisAlignment,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: gridMorph > 0.5
-                  ? MainAxisAlignment.center
-                  : MainAxisAlignment.start,
-              children: [
-                Flexible(
-                  child: AnimatedDefaultTextStyle(
-                    duration: const Duration(milliseconds: 180),
-                    curve: Curves.easeOutCubic,
-                    style: titleStyle,
-                    child: Text(
-                      artist.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: textAlign,
-                    ),
-                  ),
-                ),
-                RemoteMediaBadge.pillTrailing(
-                  songs: artist.songs,
-                  title: artist.name,
-                ),
-              ],
-            ),
-            SizedBox(height: lerpDouble(4.0, 2.0, gridMorph)!),
-            AnimatedDefaultTextStyle(
-              duration: const Duration(milliseconds: 180),
-              curve: Curves.easeOutCubic,
-              style: subtitleStyle,
-              child: Text(
-                subtitleParts.join(' · '),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: textAlign,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+    final listCoverSize = getFolderListCoverSize(metrics.animatedZoomScale);
+    final coverProgress = (listCoverSize / 40.0).clamp(0.0, 1.0);
+    final selectionOffset = (widget.isSelectionMode && gridMorph < 0.5)
+        ? (28.0 * (1.0 - coverProgress))
+        : 0.0;
 
     final fallbackCheckbox = Checkbox(
       value: isSelected,
@@ -288,14 +175,26 @@ class _ArtistZoomItemState extends ConsumerState<ArtistZoomItem> {
       ),
     );
 
-    return LibraryZoomCardLayout(
+    return ZoomItemScaffold(
       metrics: metrics,
-      cover: avatarStack,
-      text: textColumn,
-      fallbackCheckbox: fallbackCheckbox,
+      cover: cover,
+      titleText: artist.name,
+      subtitleText: subtitleParts.join(' · '),
+      titleSuffix: RemoteMediaBadge.pillTrailing(
+        songs: artist.songs,
+        title: artist.name,
+      ),
+      gridAlignment: Alignment.topCenter,
+      gridCrossAxisAlignment: CrossAxisAlignment.center,
+      titleColor: titleColor,
+      listTitleFontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+      listTitleFontSize: 13.5,
       isSelected: isSelected,
       isSelectionMode: widget.isSelectionMode,
-      borderRadius: 12.0,
+      selectionOffset: selectionOffset,
+      fallbackLeadingWhenNoCover: widget.isSelectionMode && gridMorph < 0.5
+          ? fallbackCheckbox
+          : null,
       onTap: widget.onTap,
       onLongPress: () {
         if (widget.onLongPress != null) {

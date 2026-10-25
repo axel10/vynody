@@ -8,7 +8,6 @@ import '../../../player/remote/remote_library_navigation.dart';
 import '../../../player/remote/remote_server_models.dart';
 import '../../../utils/remote_context_menu_utils.dart';
 import '../../../utils/selection_utils.dart';
-import '../../../widgets/cover_play_button.dart';
 import '../../../widgets/draggable_remote_album_item.dart';
 import '../../../widgets/folder_layout_utils.dart';
 import '../../../widgets/folder_zoom_gesture_layer.dart';
@@ -451,67 +450,13 @@ class _RemoteLibraryAlbumCardState
       borderRadius: coverRadius,
     );
 
-    final coverStack = ExcludeSemantics(
-      child: ClipRRect(
-        borderRadius: coverRadius,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            coverWidget,
-            if (widget.isSelectionMode)
-              Positioned.fill(
-                child: Container(
-                  color: widget.isSelected
-                      ? theme.colorScheme.primaryContainer
-                          .withValues(alpha: 0.35)
-                      : Colors.black26,
-                ),
-              ),
-            if (widget.isSelectionMode)
-              Align(
-                alignment: Alignment.lerp(
-                  Alignment.center,
-                  Alignment.topLeft,
-                  gridMorph,
-                )!,
-                child: Padding(
-                  padding: EdgeInsets.all(lerpDouble(0.0, 8.0, gridMorph)!),
-                  child: SizedBox(
-                    width: lerpDouble(32.0, 28.0, gridMorph)!,
-                    height: lerpDouble(32.0, 28.0, gridMorph)!,
-                    child: Checkbox(
-                      value: widget.isSelected,
-                      onChanged: (_) =>
-                          widget.onToggleSelection(widget.albumId),
-                      fillColor: WidgetStateProperty.all(Colors.white),
-                      checkColor: Colors.black,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            if (!widget.isSelectionMode)
-              Positioned(
-                right: lerpDouble(0.0, 8.0, gridMorph)!,
-                bottom: lerpDouble(0.0, 8.0, gridMorph)!,
-                child: IgnorePointer(
-                  ignoring: !(isGridTarget && _isHovered),
-                  child: AnimatedOpacity(
-                    duration: const Duration(milliseconds: 150),
-                    opacity: isGridTarget && _isHovered ? 1.0 : 0.0,
-                    child: CoverPlayButton(
-                      size: 36,
-                      iconSize: 22,
-                      onTap: widget.onPlayAlbumDirectly,
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
+    final coverStack = ZoomItemCover(
+      metrics: metrics,
+      isSelected: widget.isSelected,
+      isSelectionMode: widget.isSelectionMode,
+      onToggleSelect: () => widget.onToggleSelection(widget.albumId),
+      onPlay: widget.onPlayAlbumDirectly,
+      child: coverWidget,
     );
 
     final titleColor = widget.isSelectionMode && widget.isSelected

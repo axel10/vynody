@@ -311,6 +311,12 @@ void main() {
       await tester.pumpWidget(wrap(container, const LibrarySubHostPage()));
       await tester.pumpAndSettle();
 
+      final searchBtn = find.byIcon(Icons.search_rounded);
+      if (searchBtn.evaluate().isNotEmpty) {
+        await tester.tap(searchBtn);
+        await tester.pumpAndSettle();
+      }
+
       await tester.enterText(find.byType(TextField), 'Sen');
       await tester.pump();
       expect(find.text('Lin Zhou'), findsNothing);
