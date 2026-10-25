@@ -482,13 +482,6 @@ class _SongZoomContent extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
           style: subtitleStyle,
         ),
-        const SizedBox(height: 2.0),
-        Text(
-          durationFormatText,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: infoStyle,
-        ),
       ],
     );
   }
