@@ -5,10 +5,12 @@ import 'package:vynody/player/audio/audio_riverpod.dart';
 import 'package:vynody/player/settings/settings_service.dart';
 import 'package:vynody/utils/blur_constants.dart';
 import 'folder_layout_utils.dart';
+import 'folder_zoom_tier_icon.dart';
 
-/// 使用方通常同时需要弹窗与记忆域枚举，这里一并导出。
+/// 使用方通常同时需要弹窗与记忆域枚举、档位微型指示器，这里一并导出。
 export 'package:vynody/player/settings/settings_service.dart'
     show LibraryZoomScope;
+export 'folder_zoom_tier_icon.dart';
 
 /// 视图片档位弹窗 / 按钮的共享实现。
 ///
@@ -18,13 +20,13 @@ export 'package:vynody/player/settings/settings_service.dart'
 /// 早于本文件时该弹窗是 `folder_header_nav_bar.dart` 里的私有实现，
 /// 那里现在只是转调。
 
-/// 档位对应的图标（列表四档 → 密度图标，网格三档 → 网格图标）。
+/// 档位对应的备用图标（若无法使用 [FolderZoomTierIcon] 控件时降级使用）。
 IconData getFolderZoomTierIcon(double zoomScale) {
   return switch (getFolderZoomTier(zoomScale)) {
     FolderZoomTier.minimalList => Icons.view_headline_rounded,
-    FolderZoomTier.compactList => Icons.density_small_rounded,
-    FolderZoomTier.standardList => Icons.density_medium_rounded,
-    FolderZoomTier.largeList => Icons.density_large_rounded,
+    FolderZoomTier.compactList => Icons.view_list_rounded,
+    FolderZoomTier.standardList => Icons.table_rows_rounded,
+    FolderZoomTier.largeList => Icons.view_agenda_rounded,
     FolderZoomTier.smallGrid => Icons.grid_on_rounded,
     FolderZoomTier.mediumGrid => Icons.grid_view_rounded,
     FolderZoomTier.largeGrid => Icons.view_module_rounded,
@@ -157,8 +159,8 @@ class LibraryZoomPopoverCard extends ConsumerWidget {
               children: [
                 Row(
                   children: [
-                    Icon(
-                      getFolderZoomTierIcon(zoomScale),
+                    FolderZoomTierIcon(
+                      zoomScale: zoomScale,
                       size: 16,
                       color: theme.colorScheme.primary,
                     ),
@@ -247,28 +249,28 @@ class LibraryZoomPopoverCard extends ConsumerWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     _ZoomTierPresetButton(
-                      icon: Icons.view_headline_rounded,
+                      tier: FolderZoomTier.minimalList,
                       tooltip: '${l10n.listView} · 极简',
                       isSelected: tier == FolderZoomTier.minimalList,
                       horizontalPadding: isListOnly ? 16 : 9,
                       onTap: () => setScale(kFolderZoomTierMinimalList),
                     ),
                     _ZoomTierPresetButton(
-                      icon: Icons.density_small_rounded,
+                      tier: FolderZoomTier.compactList,
                       tooltip: '${l10n.listView} · 紧凑',
                       isSelected: tier == FolderZoomTier.compactList,
                       horizontalPadding: isListOnly ? 16 : 9,
                       onTap: () => setScale(kFolderZoomTierCompactList),
                     ),
                     _ZoomTierPresetButton(
-                      icon: Icons.density_medium_rounded,
+                      tier: FolderZoomTier.standardList,
                       tooltip: '${l10n.listView} · 标准',
                       isSelected: tier == FolderZoomTier.standardList,
                       horizontalPadding: isListOnly ? 16 : 9,
                       onTap: () => setScale(kFolderZoomTierStandardList),
                     ),
                     _ZoomTierPresetButton(
-                      icon: Icons.density_large_rounded,
+                      tier: FolderZoomTier.largeList,
                       tooltip: '${l10n.listView} · 大图',
                       isSelected: tier == FolderZoomTier.largeList,
                       horizontalPadding: isListOnly ? 16 : 9,
@@ -283,19 +285,19 @@ class LibraryZoomPopoverCard extends ConsumerWidget {
                             .withValues(alpha: 0.5),
                       ),
                       _ZoomTierPresetButton(
-                        icon: Icons.grid_on_rounded,
+                        tier: FolderZoomTier.smallGrid,
                         tooltip: '${l10n.gridView} · 小',
                         isSelected: tier == FolderZoomTier.smallGrid,
                         onTap: () => setScale(kFolderZoomTierSmallGrid),
                       ),
                       _ZoomTierPresetButton(
-                        icon: Icons.grid_view_rounded,
+                        tier: FolderZoomTier.mediumGrid,
                         tooltip: '${l10n.gridView} · 中',
                         isSelected: tier == FolderZoomTier.mediumGrid,
                         onTap: () => setScale(kFolderZoomTierMediumGrid),
                       ),
                       _ZoomTierPresetButton(
-                        icon: Icons.view_module_rounded,
+                        tier: FolderZoomTier.largeGrid,
                         tooltip: '${l10n.gridView} · 大',
                         isSelected: tier == FolderZoomTier.largeGrid,
                         onTap: () => setScale(kFolderZoomTierLargeGrid),
@@ -335,14 +337,14 @@ class LibraryZoomPopoverCard extends ConsumerWidget {
 
 class _ZoomTierPresetButton extends StatelessWidget {
   const _ZoomTierPresetButton({
-    required this.icon,
+    required this.tier,
     required this.isSelected,
     required this.onTap,
     this.tooltip,
     this.horizontalPadding = 9.0,
   });
 
-  final IconData icon;
+  final FolderZoomTier tier;
   final bool isSelected;
   final VoidCallback onTap;
   final String? tooltip;
@@ -369,8 +371,8 @@ class _ZoomTierPresetButton extends StatelessWidget {
                 : Colors.transparent,
           ),
         ),
-        child: Icon(
-          icon,
+        child: FolderZoomTierIcon(
+          tier: tier,
           size: 16,
           color: isSelected
               ? theme.colorScheme.primary
@@ -421,8 +423,8 @@ class LibraryZoomButton extends ConsumerWidget {
           tooltip: tooltipText,
           visualDensity: visualDensity,
           onPressed: () => showLibraryZoomPopover(btnContext, scope: scope),
-          icon: Icon(
-            getFolderZoomTierIcon(zoomScale),
+          icon: FolderZoomTierIcon(
+            zoomScale: zoomScale,
             size: iconSize,
             color: color,
           ),

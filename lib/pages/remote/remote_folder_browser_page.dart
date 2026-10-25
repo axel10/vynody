@@ -1980,8 +1980,8 @@ class _RemoteFolderBrowserPageState
                 value: 'view_mode',
                 child: Row(
                   children: [
-                    Icon(
-                      getFolderZoomTierIcon(settings.folderZoomScale),
+                    FolderZoomTierIcon(
+                      zoomScale: settings.folderZoomScale,
                       size: 20,
                     ),
                     const SizedBox(width: 12),
