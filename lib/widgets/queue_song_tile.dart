@@ -89,7 +89,7 @@ class _QueueSongTileState extends State<QueueSongTile> {
           onExit: (_) => setState(() => _isHovered = false),
           child: Container(
             height: 54,
-            padding: const EdgeInsets.symmetric(horizontal: 10),
+            padding: const EdgeInsets.only(left: 10, right: 16),
             decoration: BoxDecoration(
               border: Border(
                 bottom: BorderSide(
