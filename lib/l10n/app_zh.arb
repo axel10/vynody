@@ -572,6 +572,15 @@
       }
     }
   },
+  "playlistCount": "{count} 个播放列表",
+  "@playlistCount": {
+    "description": "Playlist count summary",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "emptyList": "列表为空",
   "@emptyList": {
     "description": "List is empty"

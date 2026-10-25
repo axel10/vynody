@@ -969,6 +969,12 @@ abstract class AppLocalizations {
   /// **'{count} 张专辑'**
   String albumCount(int count);
 
+  /// Playlist count summary
+  ///
+  /// In zh, this message translates to:
+  /// **'{count} 个播放列表'**
+  String playlistCount(int count);
+
   /// List is empty
   ///
   /// In zh, this message translates to:

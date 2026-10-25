@@ -1,3 +1,4 @@
+import 'dart:ui' show lerpDouble;
 import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
@@ -51,11 +52,26 @@ class PlaylistZoomItem extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final gridMorph = metrics.gridMorph;
 
+    final gridIconSize = switch (metrics.tier) {
+      FolderZoomTier.smallGrid => 32.0,
+      FolderZoomTier.mediumGrid => 40.0,
+      FolderZoomTier.largeGrid || _ => 48.0,
+    };
+    final listIconSize = switch (metrics.tier) {
+      FolderZoomTier.minimalList => 0.0,
+      FolderZoomTier.compactList => 20.0,
+      FolderZoomTier.standardList => 28.0,
+      FolderZoomTier.largeList => 38.0,
+      _ => 28.0,
+    };
+    final defaultIconSize = lerpDouble(listIconSize, gridIconSize, gridMorph)!;
+
     final coverWidget = PlaylistCover(
       playlist: playlist,
       size: 250,
       width: double.infinity,
       height: double.infinity,
+      iconSize: defaultIconSize,
       enableHero: enableHero,
     );
 

@@ -467,6 +467,11 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String playlistCount(int count) {
+    return '$count개 재생목록';
+  }
+
+  @override
   String get emptyList => '목록이 비어 있습니다';
 
   @override

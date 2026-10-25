@@ -337,7 +337,7 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab>
                     SliverToBoxAdapter(
                       child: LibraryCategoryHeader(
                         title: l10n.playlist,
-                        countLabel: '${playlists.length}',
+                        countLabel: l10n.playlistCount(playlists.length),
                         isWide: !isPortrait,
                         searchController: _searchController,
                         searchQuery: _searchQuery,

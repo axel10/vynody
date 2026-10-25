@@ -139,6 +139,7 @@
   "copyAlbumTitle": "複製專輯名稱",
   "copyArtistName": "複製藝術家名稱",
   "albumCount": "{count} 張專輯",
+  "playlistCount": "{count} 個播放列表",
   "emptyList": "清單為空",
   "dragToAddMusic": "拖入檔案或資料夾以新增音樂",
   "unknownAlbum": "未知專輯",

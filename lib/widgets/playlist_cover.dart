@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../player/library/playlist_service.dart';
 import 'default_cover_art.dart';
@@ -13,6 +14,7 @@ class PlaylistCover extends StatelessWidget {
     this.height,
     this.borderRadius = 8.0,
     this.enableHero = false,
+    this.iconSize,
   });
 
   final Playlist playlist;
@@ -21,6 +23,7 @@ class PlaylistCover extends StatelessWidget {
   final double? height;
   final double borderRadius;
   final bool enableHero;
+  final double? iconSize;
 
   @override
   Widget build(BuildContext context) {
@@ -28,6 +31,66 @@ class PlaylistCover extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
     final isFavorite = playlist.id == PlaylistService.favoritePlaylistId;
     final hasSongs = playlist.songs.isNotEmpty;
+
+    Widget buildEmptyFavorite(double resolvedSide) {
+      final effectiveIconSize = iconSize ?? (resolvedSide * 0.4).clamp(16.0, 72.0);
+      return Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: isDark
+                ? [
+                    Colors.red.shade900.withValues(alpha: 0.6),
+                    Colors.pink.shade900.withValues(alpha: 0.4),
+                  ]
+                : [
+                    Colors.red.shade100,
+                    Colors.pink.shade50,
+                  ],
+          ),
+        ),
+        child: Center(
+          child: Icon(
+            Icons.favorite_rounded,
+            color: isDark ? Colors.red.shade300 : Colors.red.shade400,
+            size: effectiveIconSize,
+          ),
+        ),
+      );
+    }
+
+    Widget buildEmptyPlaylist(double resolvedSide) {
+      final effectiveIconSize = iconSize ?? (resolvedSide * 0.4).clamp(16.0, 72.0);
+      return Container(
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        child: Center(
+          child: DefaultCoverArt(
+            type: CoverArtType.folder,
+            customIcon: Icons.queue_music_rounded,
+            iconSize: effectiveIconSize,
+          ),
+        ),
+      );
+    }
+
+    Widget resolveEmptyContent(Widget Function(double side) builder) {
+      if (iconSize != null) {
+        return builder(size);
+      }
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          final side = (constraints.maxWidth.isFinite && constraints.maxHeight.isFinite)
+              ? math.min(constraints.maxWidth, constraints.maxHeight)
+              : (constraints.maxWidth.isFinite
+                  ? constraints.maxWidth
+                  : (constraints.maxHeight.isFinite
+                      ? constraints.maxHeight
+                      : size));
+          return builder(side);
+        },
+      );
+    }
 
     Widget content;
 
@@ -55,48 +118,25 @@ class PlaylistCover extends StatelessWidget {
               ),
             ),
             Positioned(
-              top: 8,
-              right: 8,
+              top: (width != null && width! < 60) ? 4 : 8,
+              right: (width != null && width! < 60) ? 4 : 8,
               child: Container(
-                padding: const EdgeInsets.all(4),
+                padding: EdgeInsets.all((width != null && width! < 60) ? 2.5 : 4),
                 decoration: BoxDecoration(
                   color: Colors.black.withValues(alpha: 0.45),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.favorite_rounded,
                   color: Colors.redAccent,
-                  size: 14,
+                  size: (width != null && width! < 60) ? 10 : 14,
                 ),
               ),
             ),
           ],
         );
       } else {
-        content = Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: isDark
-                  ? [
-                      Colors.red.shade900.withValues(alpha: 0.6),
-                      Colors.pink.shade900.withValues(alpha: 0.4),
-                    ]
-                  : [
-                      Colors.red.shade100,
-                      Colors.pink.shade50,
-                    ],
-            ),
-          ),
-          child: Center(
-            child: Icon(
-              Icons.favorite_rounded,
-              color: isDark ? Colors.red.shade300 : Colors.red.shade400,
-              size: (size * 0.4).clamp(18.0, 72.0),
-            ),
-          ),
-        );
+        content = resolveEmptyContent(buildEmptyFavorite);
       }
     } else {
       if (hasSongs) {
@@ -107,16 +147,7 @@ class PlaylistCover extends StatelessWidget {
           height: double.infinity,
         );
       } else {
-        content = Container(
-          color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-          child: Center(
-            child: DefaultCoverArt(
-              type: CoverArtType.folder,
-              customIcon: Icons.queue_music_rounded,
-              iconSize: (size * 0.4).clamp(18.0, 72.0),
-            ),
-          ),
-        );
+        content = resolveEmptyContent(buildEmptyPlaylist);
       }
     }
 

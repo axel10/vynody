@@ -468,6 +468,11 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String playlistCount(int count) {
+    return '$count個のプレイリスト';
+  }
+
+  @override
   String get emptyList => 'リストは空です';
 
   @override

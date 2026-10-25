@@ -465,6 +465,11 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String playlistCount(int count) {
+    return '$count 个播放列表';
+  }
+
+  @override
   String get emptyList => '列表为空';
 
   @override
@@ -5828,6 +5833,11 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   @override
   String albumCount(int count) {
     return '$count 張專輯';
+  }
+
+  @override
+  String playlistCount(int count) {
+    return '$count 個播放列表';
   }
 
   @override

@@ -473,6 +473,11 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
+  String playlistCount(int count) {
+    return '$count çalma listesi';
+  }
+
+  @override
   String get emptyList => 'Liste boş';
 
   @override

@@ -156,6 +156,7 @@
   "copyAlbumTitle": "앨범 제목 복사",
   "copyArtistName": "아티스트 이름 복사",
   "albumCount": "{count}개 앨범",
+  "playlistCount": "{count}개 재생목록",
   "emptyList": "목록이 비어 있습니다",
   "dragToAddMusic": "파일이나 폴더를 끌어다 놓아 음악을 추가하세요",
   "unknownAlbum": "알 수 없는 앨범",

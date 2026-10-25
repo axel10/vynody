@@ -1777,12 +1777,19 @@ class _SlidingNavigationRailState extends ConsumerState<SlidingNavigationRail> {
   final ScrollController _scrollController = ScrollController();
   bool _isHoveringLibrary = false;
   bool _isEditingLibrary = false;
+  bool _isHoveringPlaylist = false;
+  bool _isPlaylistExpanded = true;
 
   @override
   void didUpdateWidget(covariant SlidingNavigationRail oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (!widget.extended && _isEditingLibrary) {
-      _isEditingLibrary = false;
+    if (!widget.extended) {
+      if (_isEditingLibrary) {
+        _isEditingLibrary = false;
+      }
+      if (_isHoveringPlaylist) {
+        _isHoveringPlaylist = false;
+      }
     }
   }
 
@@ -2069,7 +2076,7 @@ class _SlidingNavigationRailState extends ConsumerState<SlidingNavigationRail> {
       );
     }
 
-    // 4. 播放列表分组（带新建「+」按钮，下方平铺「全部播放列表」及各个具体歌单）
+    // 4. 播放列表分组（带展开收起按钮，下方平铺「全部播放列表」及各个具体歌单）
     final playlistService = ref.watch(playlistServiceProvider);
     final selectedPlaylistId = ref.watch(selectedPlaylistIdProvider);
     final playlists = playlistService.playlists;
@@ -2081,8 +2088,18 @@ class _SlidingNavigationRailState extends ConsumerState<SlidingNavigationRail> {
           title: l10n.playlist,
           activeColor: activeColor,
           inactiveColor: inactiveColor,
-          onAdd: () => _showCreatePlaylistDialog(context),
+          isExpanded: _isPlaylistExpanded,
+          onToggleExpand: () {
+            setState(() {
+              _isPlaylistExpanded = !_isPlaylistExpanded;
+            });
+          },
           onTapTitle: () {
+            if (!_isPlaylistExpanded) {
+              setState(() {
+                _isPlaylistExpanded = true;
+              });
+            }
             ref.read(selectedPlaylistIdProvider.notifier).set(null);
             widget.onLibrarySubDestinationSelected(0);
           },
@@ -2090,50 +2107,17 @@ class _SlidingNavigationRailState extends ConsumerState<SlidingNavigationRail> {
       ),
     );
 
-    // 全部播放列表入口
-    final bool isAllPlaylistsSelected =
-        !_isEditingLibrary &&
-        2 == activeMainIndex &&
-        !widget.isSettingsActive &&
-        isLibrarySubActive &&
-        0 == widget.librarySubIndex &&
-        selectedPlaylistId == null;
-
-    if (isAllPlaylistsSelected) {
-      pillRow = rows.length;
-    }
-
-    rows.add(
-      _RailRow(
-        height: subItemHeight,
-        child: _buildTile(
-          icon: Icons.library_music_outlined,
-          selectedIcon: Icons.library_music_rounded,
-          label: l10n.allPlaylists,
-          isSelected: isAllPlaylistsSelected,
-          activeColor: activeColor,
-          inactiveColor: inactiveColor,
-          onTap: () {
-            ref.read(selectedPlaylistIdProvider.notifier).set(null);
-            widget.onLibrarySubDestinationSelected(0);
-          },
-        ),
-      ),
-    );
-
-    // 各具体歌单
-    for (int pIdx = 0; pIdx < playlists.length; pIdx++) {
-      final pl = playlists[pIdx];
-      final bool isFav = pl.id == PlaylistService.favoritePlaylistId;
-      final bool isPlSelected =
+    if (_isPlaylistExpanded) {
+      // 全部播放列表入口
+      final bool isAllPlaylistsSelected =
           !_isEditingLibrary &&
           2 == activeMainIndex &&
           !widget.isSettingsActive &&
           isLibrarySubActive &&
           0 == widget.librarySubIndex &&
-          selectedPlaylistId == pl.id;
+          selectedPlaylistId == null;
 
-      if (isPlSelected) {
+      if (isAllPlaylistsSelected) {
         pillRow = rows.length;
       }
 
@@ -2141,23 +2125,58 @@ class _SlidingNavigationRailState extends ConsumerState<SlidingNavigationRail> {
         _RailRow(
           height: subItemHeight,
           child: _buildTile(
-            icon: isFav
-                ? Icons.favorite_border_rounded
-                : Icons.queue_music_rounded,
-            selectedIcon: isFav
-                ? Icons.favorite_rounded
-                : Icons.queue_music_rounded,
-            label: localizedPlaylistName(context, pl),
-            isSelected: isPlSelected,
+            icon: Icons.library_music_outlined,
+            selectedIcon: Icons.library_music_rounded,
+            label: l10n.allPlaylists,
+            isSelected: isAllPlaylistsSelected,
             activeColor: activeColor,
             inactiveColor: inactiveColor,
             onTap: () {
-              ref.read(selectedPlaylistIdProvider.notifier).set(pl.id);
+              ref.read(selectedPlaylistIdProvider.notifier).set(null);
               widget.onLibrarySubDestinationSelected(0);
             },
           ),
         ),
       );
+
+      // 各具体歌单
+      for (int pIdx = 0; pIdx < playlists.length; pIdx++) {
+        final pl = playlists[pIdx];
+        final bool isFav = pl.id == PlaylistService.favoritePlaylistId;
+        final bool isPlSelected =
+            !_isEditingLibrary &&
+            2 == activeMainIndex &&
+            !widget.isSettingsActive &&
+            isLibrarySubActive &&
+            0 == widget.librarySubIndex &&
+            selectedPlaylistId == pl.id;
+
+        if (isPlSelected) {
+          pillRow = rows.length;
+        }
+
+        rows.add(
+          _RailRow(
+            height: subItemHeight,
+            child: _buildTile(
+              icon: isFav
+                  ? Icons.favorite_border_rounded
+                  : Icons.queue_music_rounded,
+              selectedIcon: isFav
+                  ? Icons.favorite_rounded
+                  : Icons.queue_music_rounded,
+              label: localizedPlaylistName(context, pl),
+              isSelected: isPlSelected,
+              activeColor: activeColor,
+              inactiveColor: inactiveColor,
+              onTap: () {
+                ref.read(selectedPlaylistIdProvider.notifier).set(pl.id);
+                widget.onLibrarySubDestinationSelected(0);
+              },
+            ),
+          ),
+        );
+      }
     }
 
     double offsetOf(int rowIndex) {
@@ -2398,121 +2417,81 @@ class _SlidingNavigationRailState extends ConsumerState<SlidingNavigationRail> {
     required String title,
     required Color activeColor,
     required Color inactiveColor,
-    required VoidCallback onAdd,
+    required bool isExpanded,
+    required VoidCallback onToggleExpand,
     VoidCallback? onTapTitle,
   }) {
     if (!widget.extended) {
       return const SizedBox.shrink();
     }
 
-    return Container(
-      height: 36.0,
-      alignment: Alignment.centerLeft,
-      padding: const EdgeInsets.only(
-        left: 20.0,
-        right: 14.0,
-        top: 10.0,
-        bottom: 2.0,
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: onTapTitle,
-                borderRadius: BorderRadius.circular(4),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 2.0),
-                  child: Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 12.0,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.2,
-                      color: inactiveColor.withValues(alpha: 0.70),
+    return MouseRegion(
+      onEnter: (_) {
+        if (!_isHoveringPlaylist) {
+          setState(() {
+            _isHoveringPlaylist = true;
+          });
+        }
+      },
+      onExit: (_) {
+        if (_isHoveringPlaylist) {
+          setState(() {
+            _isHoveringPlaylist = false;
+          });
+        }
+      },
+      child: Container(
+        height: 36.0,
+        alignment: Alignment.centerLeft,
+        padding: const EdgeInsets.only(
+          left: 20.0,
+          right: 14.0,
+          top: 10.0,
+          bottom: 2.0,
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: onTapTitle,
+                  borderRadius: BorderRadius.circular(4),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2.0),
+                    child: Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 12.0,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.2,
+                        color: inactiveColor.withValues(alpha: 0.70),
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
-          ),
-          Material(
-            color: Colors.transparent,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(6),
-              onTap: onAdd,
-              splashFactory: NoSplash.splashFactory,
-              highlightColor: Colors.transparent,
-              child: Padding(
-                padding: const EdgeInsets.all(3.0),
-                child: Icon(
-                  Icons.add_rounded,
-                  size: 16.0,
-                  color: inactiveColor.withValues(alpha: 0.85),
+            if (_isHoveringPlaylist)
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(6),
+                  onTap: onToggleExpand,
+                  splashFactory: NoSplash.splashFactory,
+                  highlightColor: Colors.transparent,
+                  child: Padding(
+                    padding: const EdgeInsets.all(3.0),
+                    child: Icon(
+                      isExpanded
+                          ? Icons.keyboard_arrow_down_rounded
+                          : Icons.keyboard_arrow_right_rounded,
+                      size: 16.0,
+                      color: inactiveColor.withValues(alpha: 0.85),
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showCreatePlaylistDialog(BuildContext context) {
-    final controller = TextEditingController();
-    String? errorText;
-    final l10n = AppLocalizations.of(context)!;
-
-    showDialog<void>(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: Text(l10n.createPlaylist),
-          content: TextField(
-            controller: controller,
-            autofocus: true,
-            decoration: InputDecoration(
-              labelText: l10n.playlistName,
-              hintText: l10n.enterPlaylistName,
-              errorText: errorText,
-            ),
-            onChanged: (val) {
-              if (errorText != null) {
-                setDialogState(() {
-                  errorText = null;
-                });
-              }
-            },
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(l10n.cancel),
-            ),
-            TextButton(
-              onPressed: () async {
-                final name = controller.text.trim();
-                if (name.isNotEmpty) {
-                  final playlistService = ref.read(playlistServiceProvider);
-                  if (playlistService.playlistExists(name)) {
-                    setDialogState(() {
-                      errorText = l10n.playlistNameExists;
-                    });
-                    return;
-                  }
-                  final newPl = await playlistService.createPlaylist(name);
-                  if (context.mounted) {
-                    Navigator.pop(context);
-                    ref
-                        .read(selectedPlaylistIdProvider.notifier)
-                        .set(newPl.id);
-                    widget.onLibrarySubDestinationSelected(0);
-                  }
-                }
-              },
-              child: Text(l10n.confirm),
-            ),
           ],
         ),
       ),

@@ -479,6 +479,11 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String playlistCount(int count) {
+    return '$count playlists';
+  }
+
+  @override
   String get emptyList => 'La liste est vide';
 
   @override

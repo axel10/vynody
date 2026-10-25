@@ -220,6 +220,15 @@
       }
     }
   },
+  "playlistCount": "{count} çalma listesi",
+  "@playlistCount": {
+    "description": "Playlist count summary",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "emptyList": "Liste boş",
   "dragToAddMusic": "Müzik eklemek için dosya veya klasörleri buraya sürükleyin",
   "unknownAlbum": "Bilinmeyen Albüm",

@@ -156,6 +156,7 @@
   "copyAlbumTitle": "Albumtitel kopieren",
   "copyArtistName": "Künstlernamen kopieren",
   "albumCount": "{count} Alben",
+  "playlistCount": "{count} Wiedergabelisten",
   "emptyList": "Liste ist leer",
   "dragToAddMusic": "Dateien oder Ordner zum Hinzufügen von Musik ziehen",
   "unknownAlbum": "Unbekanntes Album",

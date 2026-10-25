@@ -156,6 +156,7 @@
   "copyAlbumTitle": "アルバムタイトルをコピー",
   "copyArtistName": "アーティスト名をコピー",
   "albumCount": "{count}枚のアルバム",
+  "playlistCount": "{count}個のプレイリスト",
   "emptyList": "リストは空です",
   "dragToAddMusic": "ファイルまたはフォルダをドラッグして音楽を追加",
   "unknownAlbum": "不明なアルバム",

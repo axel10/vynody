@@ -156,6 +156,7 @@
   "copyAlbumTitle": "Copier le titre de l'album",
   "copyArtistName": "Copier le nom de l'artiste",
   "albumCount": "{count} albums",
+  "playlistCount": "{count} playlists",
   "emptyList": "La liste est vide",
   "dragToAddMusic": "Glissez des fichiers ou dossiers pour ajouter de la musique",
   "unknownAlbum": "Album inconnu",
