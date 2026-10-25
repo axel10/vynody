@@ -28,11 +28,7 @@ import 'main_layout_riverpod.dart';
 
 /// 播放列表详情页（第二级页面）
 class PlaylistDetailPage extends ConsumerStatefulWidget {
-  const PlaylistDetailPage({
-    super.key,
-    required this.playlist,
-    this.onGoBack,
-  });
+  const PlaylistDetailPage({super.key, required this.playlist, this.onGoBack});
 
   final Playlist playlist;
   final VoidCallback? onGoBack;
@@ -104,7 +100,8 @@ class _PlaylistDetailPageState extends ConsumerState<PlaylistDetailPage>
     final settings = ref.watch(settingsServiceProvider);
     final zoomScale = settings.folderZoomScale;
 
-    final Playlist activePlaylist = playlistService.playlists.firstWhereOrNull(
+    final Playlist activePlaylist =
+        playlistService.playlists.firstWhereOrNull(
           (p) => p.id == widget.playlist.id,
         ) ??
         widget.playlist;
@@ -112,8 +109,9 @@ class _PlaylistDetailPageState extends ConsumerState<PlaylistDetailPage>
     final isPortrait =
         MediaQuery.of(context).orientation == Orientation.portrait;
     final isLandscape = !isPortrait;
-    final double leftPadding =
-        isLandscape ? sidebarRailWidthFor(MediaQuery.of(context).size.width) : 0.0;
+    final double leftPadding = isLandscape
+        ? sidebarRailWidthFor(MediaQuery.of(context).size.width)
+        : 0.0;
 
     final selectedSongs = isSelectionMode
         ? getSelectedSongs(activePlaylist.songs)
@@ -130,7 +128,8 @@ class _PlaylistDetailPageState extends ConsumerState<PlaylistDetailPage>
     final plName = localizedPlaylistName(context, activePlaylist);
     final double barHeight = getBarHeight(context);
 
-    final isCustomPlaylist = activePlaylist.id != 'default' &&
+    final isCustomPlaylist =
+        activePlaylist.id != 'default' &&
         activePlaylist.id != PlaylistService.favoritePlaylistId;
 
     final metadataWidget = Wrap(
@@ -151,21 +150,23 @@ class _PlaylistDetailPageState extends ConsumerState<PlaylistDetailPage>
       ElevatedButton.icon(
         onPressed: activePlaylist.songs.isNotEmpty
             ? () => audio.playPlaylist(
-                  activePlaylist.songs,
-                  source: PlaybackSource(
-                    type: PlaybackSourceType.playlist,
-                    id: activePlaylist.id,
-                    name: activePlaylist.name,
-                  ),
-                )
+                activePlaylist.songs,
+                source: PlaybackSource(
+                  type: PlaybackSourceType.playlist,
+                  id: activePlaylist.id,
+                  name: activePlaylist.name,
+                ),
+              )
             : null,
         icon: const Icon(Icons.play_arrow_rounded),
         label: Text(l10n.playAll),
         style: isPortrait
             ? ElevatedButton.styleFrom(
                 shape: const StadiumBorder(),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
+                ),
               )
             : null,
       ),
@@ -173,13 +174,13 @@ class _PlaylistDetailPageState extends ConsumerState<PlaylistDetailPage>
           ? OutlinedButton.icon(
               onPressed: activePlaylist.songs.isNotEmpty
                   ? () => audio.playPlaylist(
-                        List.of(activePlaylist.songs)..shuffle(),
-                        source: PlaybackSource(
-                          type: PlaybackSourceType.playlist,
-                          id: activePlaylist.id,
-                          name: activePlaylist.name,
-                        ),
-                      )
+                      List.of(activePlaylist.songs)..shuffle(),
+                      source: PlaybackSource(
+                        type: PlaybackSourceType.playlist,
+                        id: activePlaylist.id,
+                        name: activePlaylist.name,
+                      ),
+                    )
                   : null,
               icon: const Icon(Icons.shuffle),
               label: Text(l10n.shufflePlay),
@@ -187,20 +188,22 @@ class _PlaylistDetailPageState extends ConsumerState<PlaylistDetailPage>
           : FilledButton.tonalIcon(
               onPressed: activePlaylist.songs.isNotEmpty
                   ? () => audio.playPlaylist(
-                        List.of(activePlaylist.songs)..shuffle(),
-                        source: PlaybackSource(
-                          type: PlaybackSourceType.playlist,
-                          id: activePlaylist.id,
-                          name: activePlaylist.name,
-                        ),
-                      )
+                      List.of(activePlaylist.songs)..shuffle(),
+                      source: PlaybackSource(
+                        type: PlaybackSourceType.playlist,
+                        id: activePlaylist.id,
+                        name: activePlaylist.name,
+                      ),
+                    )
                   : null,
               icon: const Icon(Icons.shuffle),
               label: Text(l10n.shufflePlay),
               style: FilledButton.styleFrom(
                 shape: const StadiumBorder(),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
+                ),
               ),
             ),
       PopupMenuButton<String>(
@@ -330,8 +333,9 @@ class _PlaylistDetailPageState extends ConsumerState<PlaylistDetailPage>
               key: ValueKey('${song.path}_$index'),
               alignment: Alignment.center,
               child: ConstrainedBox(
-                constraints:
-                    const BoxConstraints(maxWidth: kFolderPageMaxWidth),
+                constraints: const BoxConstraints(
+                  maxWidth: kFolderPageMaxWidth,
+                ),
                 child: Padding(
                   padding: EdgeInsets.symmetric(
                     horizontal: isPortrait ? 8 : 16,
@@ -347,20 +351,20 @@ class _PlaylistDetailPageState extends ConsumerState<PlaylistDetailPage>
                       isSelected: isSelected,
                       isSelectionMode: isSelectionMode,
                       selectedPaths: selectedSongPaths,
-                      dragHandle: !isSelectionMode
+                      dragHandle: isSelectionMode
                           ? ReorderableDragStartListener(
                               index: index,
                               child: const MouseRegion(
                                 cursor: SystemMouseCursors.grab,
                                 child: Padding(
-                                  padding:
-                                      EdgeInsets.symmetric(horizontal: 4.0),
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 4.0,
+                                  ),
                                   child: Icon(Icons.drag_handle_rounded),
                                 ),
                               ),
                             )
                           : null,
-                      enableDrag: false,
                       onTap: () {
                         handleSongTap(
                           index: index,
@@ -422,67 +426,63 @@ class _PlaylistDetailPageState extends ConsumerState<PlaylistDetailPage>
         padding: EdgeInsets.only(left: hPad, right: hPad),
         sliver: SliverGrid(
           gridDelegate: SliverAnimatedZoomGridDelegate(metrics: metrics),
-          delegate: SliverChildBuilderDelegate(
-            (context, index) {
-              final song = activePlaylist.songs[index];
-              final isCurrent = currentMusic?.path == song.path;
-              final isSelected = isSongSelected(song.path);
+          delegate: SliverChildBuilderDelegate((context, index) {
+            final song = activePlaylist.songs[index];
+            final isCurrent = currentMusic?.path == song.path;
+            final isSelected = isSongSelected(song.path);
 
-              return SongZoomItem(
-                key: ValueKey(song.path),
-                song: song,
-                metrics: metrics,
-                isCurrent: isCurrent,
-                isPlaying: isPlaying && isCurrent,
-                isSelected: isSelected,
-                isSelectionMode: isSelectionMode,
-                selectedPaths: selectedSongPaths,
-                enableDrag: false,
-                onTap: () {
-                  handleSongTap(
-                    index: index,
-                    songPath: song.path,
-                    allSongs: activePlaylist.songs,
-                    onNormalTap: () {
-                      audio.playPlaylist(
-                        activePlaylist.songs,
-                        initialIndex: index,
-                        source: PlaybackSource(
-                          type: PlaybackSourceType.playlist,
-                          id: activePlaylist.id,
-                          name: activePlaylist.name,
-                        ),
+            return SongZoomItem(
+              key: ValueKey(song.path),
+              song: song,
+              metrics: metrics,
+              isCurrent: isCurrent,
+              isPlaying: isPlaying && isCurrent,
+              isSelected: isSelected,
+              isSelectionMode: isSelectionMode,
+              selectedPaths: selectedSongPaths,
+              onTap: () {
+                handleSongTap(
+                  index: index,
+                  songPath: song.path,
+                  allSongs: activePlaylist.songs,
+                  onNormalTap: () {
+                    audio.playPlaylist(
+                      activePlaylist.songs,
+                      initialIndex: index,
+                      source: PlaybackSource(
+                        type: PlaybackSourceType.playlist,
+                        id: activePlaylist.id,
+                        name: activePlaylist.name,
+                      ),
+                    );
+                  },
+                );
+              },
+              onLongPress: () {
+                lastAnchorIndex = index;
+                if (!isSelectionMode) {
+                  enterSongSelectionMode(song.path);
+                }
+              },
+              onSecondaryTapDown: (details) {
+                if (!isSelectionMode) {
+                  showSongContextMenu(
+                    context,
+                    details.globalPosition,
+                    song: song,
+                    songs: activePlaylist.songs,
+                    onMultiSelect: () => enterSongSelectionMode(song.path),
+                    onRemoveFromPlaylist: () {
+                      playlistService.removeSongsFromPlaylist(
+                        activePlaylist.id,
+                        [index],
                       );
                     },
                   );
-                },
-                onLongPress: () {
-                  lastAnchorIndex = index;
-                  if (!isSelectionMode) {
-                    enterSongSelectionMode(song.path);
-                  }
-                },
-                onSecondaryTapDown: (details) {
-                  if (!isSelectionMode) {
-                    showSongContextMenu(
-                      context,
-                      details.globalPosition,
-                      song: song,
-                      songs: activePlaylist.songs,
-                      onMultiSelect: () => enterSongSelectionMode(song.path),
-                      onRemoveFromPlaylist: () {
-                        playlistService.removeSongsFromPlaylist(
-                          activePlaylist.id,
-                          [index],
-                        );
-                      },
-                    );
-                  }
-                },
-              );
-            },
-            childCount: activePlaylist.songs.length,
-          ),
+                }
+              },
+            );
+          }, childCount: activePlaylist.songs.length),
         ),
       );
     }
@@ -490,14 +490,19 @@ class _PlaylistDetailPageState extends ConsumerState<PlaylistDetailPage>
     final Widget scrollBody = FolderZoomGestureLayer(
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final contentWidth = math.min(constraints.maxWidth, kFolderPageMaxWidth);
+          final contentWidth = math.min(
+            constraints.maxWidth,
+            kFolderPageMaxWidth,
+          );
           return FolderZoomSliverBuilder(
             zoomScale: snapFolderZoomScale(zoomScale),
             width: contentWidth,
             builder: (context, metrics) {
               return Center(
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: kFolderPageMaxWidth),
+                  constraints: const BoxConstraints(
+                    maxWidth: kFolderPageMaxWidth,
+                  ),
                   child: CustomScrollView(
                     controller: _scrollController,
                     physics: const AlwaysScrollableScrollPhysics(
@@ -505,9 +510,7 @@ class _PlaylistDetailPageState extends ConsumerState<PlaylistDetailPage>
                     ),
                     slivers: [
                       if (!isPortrait)
-                        SliverToBoxAdapter(
-                          child: SizedBox(height: barHeight),
-                        ),
+                        SliverToBoxAdapter(child: SizedBox(height: barHeight)),
                       SliverToBoxAdapter(
                         child: isPortrait
                             ? AlbumPortraitHeaderBanner(
@@ -584,7 +587,9 @@ class _PlaylistDetailPageState extends ConsumerState<PlaylistDetailPage>
                       isVisible: isHeaderVisible,
                       child: AppTopNavBar(
                         title: plName,
-                        titleKey: ValueKey('playlist_title_${activePlaylist.id}'),
+                        titleKey: ValueKey(
+                          'playlist_title_${activePlaylist.id}',
+                        ),
                         onBack: _handleBack,
                       ),
                     ),
@@ -601,9 +606,7 @@ class _PlaylistDetailPageState extends ConsumerState<PlaylistDetailPage>
                       deleteLabel: l10n.removeFromPlaylist,
                       onDelete: () async {
                         final toRemove = <int>[];
-                        for (int i = 0;
-                            i < activePlaylist.songs.length;
-                            i++) {
+                        for (int i = 0; i < activePlaylist.songs.length; i++) {
                           if (isSongSelected(activePlaylist.songs[i].path)) {
                             toRemove.add(i);
                           }

@@ -10,6 +10,7 @@ import '../player/library/playlist_service.dart';
 import '../utils/app_log.dart';
 import '../utils/app_snack_bar.dart';
 import '../utils/file_selector_helper.dart';
+import '../widgets/draggable_playlist_item.dart';
 import '../widgets/folder_layout_utils.dart';
 import '../widgets/folder_zoom_gesture_layer.dart';
 import '../widgets/library_category_header.dart';
@@ -264,9 +265,7 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab>
       AppSnackBar.show(
         context,
         ref,
-        SnackBar(
-          content: Text(l10n.importPlaylistFailed(e.toString())),
-        ),
+        SnackBar(content: Text(l10n.importPlaylistFailed(e.toString()))),
       );
     }
   }
@@ -309,14 +308,14 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab>
 
     final playlists = _filterAndSortPlaylists(playlistService.playlists);
 
-    final selectedPlaylists =
-        playlists.where((p) => isSelected(p.id)).toList();
+    final selectedPlaylists = playlists.where((p) => isSelected(p.id)).toList();
     final selectedSongs = selectedPlaylists.expand((p) => p.songs).toList();
     final allSongs = playlists.expand((p) => p.songs).toList();
 
     final isCustomPlaylists = selectedKeys
-        .where((id) =>
-            id != 'default' && id != PlaylistService.favoritePlaylistId)
+        .where(
+          (id) => id != 'default' && id != PlaylistService.favoritePlaylistId,
+        )
         .toList();
 
     return Padding(
@@ -365,18 +364,23 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab>
                             icon: const Icon(Icons.file_download_outlined),
                             onPressed: () => _importM3uPlaylist(context),
                           ),
-                          if (playlistService.playlists.any((p) =>
-                              p.id != 'default' &&
-                              p.id != PlaylistService.favoritePlaylistId))
+                          if (playlistService.playlists.any(
+                            (p) =>
+                                p.id != 'default' &&
+                                p.id != PlaylistService.favoritePlaylistId,
+                          ))
                             IconButton(
                               tooltip: l10n.multiSelect,
                               icon: const Icon(Icons.checklist_rounded),
                               onPressed: () {
                                 final firstCustom = playlistService.playlists
-                                    .firstWhereOrNull((p) =>
-                                        p.id != 'default' &&
-                                        p.id !=
-                                            PlaylistService.favoritePlaylistId);
+                                    .firstWhereOrNull(
+                                      (p) =>
+                                          p.id != 'default' &&
+                                          p.id !=
+                                              PlaylistService
+                                                  .favoritePlaylistId,
+                                    );
                                 if (firstCustom != null) {
                                   enterSelectionMode(firstCustom.id);
                                 }
@@ -396,18 +400,18 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab>
                                 Icon(
                                   Icons.queue_music_rounded,
                                   size: 64,
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .outlineVariant,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.outlineVariant,
                                 ),
                                 const SizedBox(height: 16),
                                 Text(
                                   l10n.emptyList,
                                   style: TextStyle(
                                     fontSize: 16,
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurfaceVariant,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
                                   ),
                                 ),
                               ],
@@ -439,12 +443,24 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab>
                               gridDelegate: SliverAnimatedZoomGridDelegate(
                                 metrics: metrics,
                               ),
-                              delegate: SliverChildBuilderDelegate(
-                                (context, index) {
-                                  final pl = playlists[index];
-                                  final isPlSelected = isSelected(pl.id);
+                              delegate: SliverChildBuilderDelegate((
+                                context,
+                                index,
+                              ) {
+                                final pl = playlists[index];
+                                final isPlSelected = isSelected(pl.id);
+                                final selectedPlaylistsList = isSelectionMode
+                                    ? playlists
+                                          .where((p) => isSelected(p.id))
+                                          .toList()
+                                    : null;
 
-                                  return PlaylistZoomItem(
+                                return DraggablePlaylistItem(
+                                  playlist: pl,
+                                  isSelectionMode: isSelectionMode,
+                                  isSelected: isPlSelected,
+                                  selectedPlaylists: selectedPlaylistsList,
+                                  child: PlaylistZoomItem(
                                     playlist: pl,
                                     metrics: metrics,
                                     isSelected: isPlSelected,
@@ -492,10 +508,9 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab>
                                         name: pl.name,
                                       ),
                                     ),
-                                  );
-                                },
-                                childCount: playlists.length,
-                              ),
+                                  ),
+                                );
+                              }, childCount: playlists.length),
                             ),
                           );
                         },
@@ -534,10 +549,12 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab>
                             ),
                             FilledButton(
                               style: FilledButton.styleFrom(
-                                backgroundColor:
-                                    Theme.of(context).colorScheme.error,
-                                foregroundColor:
-                                    Theme.of(context).colorScheme.onError,
+                                backgroundColor: Theme.of(
+                                  context,
+                                ).colorScheme.error,
+                                foregroundColor: Theme.of(
+                                  context,
+                                ).colorScheme.onError,
                               ),
                               onPressed: () => Navigator.pop(ctx, true),
                               child: Text(l10n.delete),
