@@ -5459,4 +5459,10 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get homeTab => '라이브러리';
+
+  @override
+  String get allPlaylists => '모든 재생목록';
+
+  @override
+  String get viewPlaylistDetails => '재생목록 세부정보 보기';
 }

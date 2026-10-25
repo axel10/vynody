@@ -2093,5 +2093,7 @@
   "sortSongTitle": "곡 제목",
   "sortArtist": "아티스트",
   "allStars": "모든 별점",
-  "homeTab": "라이브러리"
+  "homeTab": "라이브러리",
+  "allPlaylists": "모든 재생목록",
+  "viewPlaylistDetails": "재생목록 세부정보 보기"
 }

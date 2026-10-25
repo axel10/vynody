@@ -34,6 +34,9 @@ import 'package:vynody/dialogs/remote_pair_dialogs.dart';
 import 'package:vynody/player/library/music_file_utils.dart';
 import 'package:vynody/player/pro/pro_license_service.dart';
 import 'package:vynody/models/music_file.dart';
+import 'package:collection/collection.dart';
+import 'package:vynody/player/library/playlist_service.dart';
+import 'package:vynody/utils/playlist_name.dart';
 import 'package:vynody/player/metadata/metadata_database.dart';
 import 'package:vynody/player/audio/playback_source.dart';
 import 'main_layout_riverpod.dart';
@@ -1838,13 +1841,6 @@ class _SlidingNavigationRailState extends ConsumerState<SlidingNavigationRail> {
     // 媒体库的二级分类入口，顺序与 libraryActiveTabIndexProvider 一致
     final librarySubDestinations = [
       (
-        id: 'playlist',
-        index: 0,
-        label: l10n.playlist,
-        icon: Icons.queue_music_rounded,
-        selectedIcon: Icons.queue_music_rounded,
-      ),
-      (
         id: 'recentlyPlayed',
         index: 1,
         label: l10n.recentlyPlayed,
@@ -1932,10 +1928,13 @@ class _SlidingNavigationRailState extends ConsumerState<SlidingNavigationRail> {
 
     final bool hasVisibleActiveSub =
         activeSubIndex != null &&
-        activeSubIndex < librarySubDestinations.length &&
-        settings.isLibraryTabVisible(
-          librarySubDestinations[activeSubIndex].id,
-        );
+        (activeSubIndex == 0 ||
+            settings.isLibraryTabVisible(
+              librarySubDestinations
+                      .firstWhereOrNull((d) => d.index == activeSubIndex)
+                      ?.id ??
+                  '',
+            ));
 
     // 1. 上方主要导航区：文件(0)、播放(1)、媒体库(2)、队列(3)、分享(4)
     for (int i = 0; i < destinations.length - 1; i++) {
@@ -2030,7 +2029,7 @@ class _SlidingNavigationRailState extends ConsumerState<SlidingNavigationRail> {
           2 == activeMainIndex &&
           !widget.isSettingsActive &&
           isLibrarySubActive &&
-          s == widget.librarySubIndex;
+          sub.index == widget.librarySubIndex;
 
       if (isSubSelected) {
         pillRow = rows.length;
@@ -2062,8 +2061,99 @@ class _SlidingNavigationRailState extends ConsumerState<SlidingNavigationRail> {
                     .read(settingsServiceProvider)
                     .toggleLibraryTabVisibility(sub.id);
               } else {
-                widget.onLibrarySubDestinationSelected(s);
+                widget.onLibrarySubDestinationSelected(sub.index);
               }
+            },
+          ),
+        ),
+      );
+    }
+
+    // 4. 播放列表分组（带新建「+」按钮，下方平铺「全部播放列表」及各个具体歌单）
+    final playlistService = ref.watch(playlistServiceProvider);
+    final selectedPlaylistId = ref.watch(selectedPlaylistIdProvider);
+    final playlists = playlistService.playlists;
+
+    rows.add(
+      _RailRow(
+        height: sectionHeaderHeight,
+        child: _buildPlaylistSectionHeader(
+          title: l10n.playlist,
+          activeColor: activeColor,
+          inactiveColor: inactiveColor,
+          onAdd: () => _showCreatePlaylistDialog(context),
+          onTapTitle: () {
+            ref.read(selectedPlaylistIdProvider.notifier).set(null);
+            widget.onLibrarySubDestinationSelected(0);
+          },
+        ),
+      ),
+    );
+
+    // 全部播放列表入口
+    final bool isAllPlaylistsSelected =
+        !_isEditingLibrary &&
+        2 == activeMainIndex &&
+        !widget.isSettingsActive &&
+        isLibrarySubActive &&
+        0 == widget.librarySubIndex &&
+        selectedPlaylistId == null;
+
+    if (isAllPlaylistsSelected) {
+      pillRow = rows.length;
+    }
+
+    rows.add(
+      _RailRow(
+        height: subItemHeight,
+        child: _buildTile(
+          icon: Icons.library_music_outlined,
+          selectedIcon: Icons.library_music_rounded,
+          label: l10n.allPlaylists,
+          isSelected: isAllPlaylistsSelected,
+          activeColor: activeColor,
+          inactiveColor: inactiveColor,
+          onTap: () {
+            ref.read(selectedPlaylistIdProvider.notifier).set(null);
+            widget.onLibrarySubDestinationSelected(0);
+          },
+        ),
+      ),
+    );
+
+    // 各具体歌单
+    for (int pIdx = 0; pIdx < playlists.length; pIdx++) {
+      final pl = playlists[pIdx];
+      final bool isFav = pl.id == PlaylistService.favoritePlaylistId;
+      final bool isPlSelected =
+          !_isEditingLibrary &&
+          2 == activeMainIndex &&
+          !widget.isSettingsActive &&
+          isLibrarySubActive &&
+          0 == widget.librarySubIndex &&
+          selectedPlaylistId == pl.id;
+
+      if (isPlSelected) {
+        pillRow = rows.length;
+      }
+
+      rows.add(
+        _RailRow(
+          height: subItemHeight,
+          child: _buildTile(
+            icon: isFav
+                ? Icons.favorite_border_rounded
+                : Icons.queue_music_rounded,
+            selectedIcon: isFav
+                ? Icons.favorite_rounded
+                : Icons.queue_music_rounded,
+            label: localizedPlaylistName(context, pl),
+            isSelected: isPlSelected,
+            activeColor: activeColor,
+            inactiveColor: inactiveColor,
+            onTap: () {
+              ref.read(selectedPlaylistIdProvider.notifier).set(pl.id);
+              widget.onLibrarySubDestinationSelected(0);
             },
           ),
         ),
@@ -2240,9 +2330,9 @@ class _SlidingNavigationRailState extends ConsumerState<SlidingNavigationRail> {
             _isEditingLibrary = false;
           });
           final int? currentSub = ref.read(libraryActiveTabIndexProvider);
-          if (currentSub != null && currentSub < subDestinations.length) {
-            final id = subDestinations[currentSub].id;
-            if (!ref.read(settingsServiceProvider).isLibraryTabVisible(id)) {
+          if (currentSub != null && currentSub != 0) {
+            final match = subDestinations.firstWhereOrNull((d) => d.index == currentSub);
+            if (match != null && !ref.read(settingsServiceProvider).isLibraryTabVisible(match.id)) {
               ref.read(libraryActiveTabIndexProvider.notifier).set(null);
             }
           }
@@ -2298,6 +2388,131 @@ class _SlidingNavigationRailState extends ConsumerState<SlidingNavigationRail> {
               ),
             ),
             ?action,
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPlaylistSectionHeader({
+    required String title,
+    required Color activeColor,
+    required Color inactiveColor,
+    required VoidCallback onAdd,
+    VoidCallback? onTapTitle,
+  }) {
+    if (!widget.extended) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      height: 36.0,
+      alignment: Alignment.centerLeft,
+      padding: const EdgeInsets.only(
+        left: 20.0,
+        right: 14.0,
+        top: 10.0,
+        bottom: 2.0,
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: onTapTitle,
+                borderRadius: BorderRadius.circular(4),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2.0),
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 12.0,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.2,
+                      color: inactiveColor.withValues(alpha: 0.70),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(6),
+              onTap: onAdd,
+              splashFactory: NoSplash.splashFactory,
+              highlightColor: Colors.transparent,
+              child: Padding(
+                padding: const EdgeInsets.all(3.0),
+                child: Icon(
+                  Icons.add_rounded,
+                  size: 16.0,
+                  color: inactiveColor.withValues(alpha: 0.85),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showCreatePlaylistDialog(BuildContext context) {
+    final controller = TextEditingController();
+    String? errorText;
+    final l10n = AppLocalizations.of(context)!;
+
+    showDialog<void>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text(l10n.createPlaylist),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            decoration: InputDecoration(
+              labelText: l10n.playlistName,
+              hintText: l10n.enterPlaylistName,
+              errorText: errorText,
+            ),
+            onChanged: (val) {
+              if (errorText != null) {
+                setDialogState(() {
+                  errorText = null;
+                });
+              }
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(l10n.cancel),
+            ),
+            TextButton(
+              onPressed: () async {
+                final name = controller.text.trim();
+                if (name.isNotEmpty) {
+                  final playlistService = ref.read(playlistServiceProvider);
+                  if (playlistService.playlistExists(name)) {
+                    setDialogState(() {
+                      errorText = l10n.playlistNameExists;
+                    });
+                    return;
+                  }
+                  final newPl = await playlistService.createPlaylist(name);
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                    ref
+                        .read(selectedPlaylistIdProvider.notifier)
+                        .set(newPl.id);
+                    widget.onLibrarySubDestinationSelected(0);
+                  }
+                }
+              },
+              child: Text(l10n.confirm),
+            ),
           ],
         ),
       ),

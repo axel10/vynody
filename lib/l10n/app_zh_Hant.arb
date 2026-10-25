@@ -1808,5 +1808,7 @@
   "sortSongTitle": "歌曲標題",
   "sortArtist": "藝術家",
   "allStars": "全部星級",
-  "homeTab": "媒體庫"
+  "homeTab": "媒體庫",
+  "allPlaylists": "全部播放清單",
+  "viewPlaylistDetails": "查看歌單詳情"
 }

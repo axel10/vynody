@@ -316,6 +316,7 @@ class AlbumLandscapeHeaderBanner extends StatelessWidget {
     required this.actionButtons,
     required this.coverWidget,
     this.alignActionsToBottom = false,
+    this.maxWidth = kSingleColumnContentMaxWidth,
   });
 
   final String title;
@@ -325,6 +326,7 @@ class AlbumLandscapeHeaderBanner extends StatelessWidget {
   final List<Widget> actionButtons;
   final Widget coverWidget;
   final bool alignActionsToBottom;
+  final double maxWidth;
 
   @override
   Widget build(BuildContext context) {
@@ -425,7 +427,7 @@ class AlbumLandscapeHeaderBanner extends StatelessWidget {
     return Align(
       alignment: Alignment.center,
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: kSingleColumnContentMaxWidth),
+        constraints: BoxConstraints(maxWidth: maxWidth),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Column(

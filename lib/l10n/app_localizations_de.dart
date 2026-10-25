@@ -5709,4 +5709,10 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get homeTab => 'Mediathek';
+
+  @override
+  String get allPlaylists => 'Alle Wiedergabelisten';
+
+  @override
+  String get viewPlaylistDetails => 'Wiedergabelistendetails anzeigen';
 }

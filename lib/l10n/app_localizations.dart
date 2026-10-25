@@ -9993,6 +9993,18 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'媒体库'**
   String get homeTab;
+
+  /// All playlists entry in navigation rail and library
+  ///
+  /// In zh, this message translates to:
+  /// **'全部播放列表'**
+  String get allPlaylists;
+
+  /// Context menu action to view playlist details
+  ///
+  /// In zh, this message translates to:
+  /// **'查看歌单详情'**
+  String get viewPlaylistDetails;
 }
 
 class _AppLocalizationsDelegate

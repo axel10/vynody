@@ -226,6 +226,21 @@ final selectedArtistKeyProvider =
   SelectedArtistKeyNotifier.new,
 );
 
+class SelectedPlaylistIdNotifier extends Notifier<String?> {
+  @override
+  String? build() => null;
+
+  void set(String? value) {
+    if (!ref.mounted) return;
+    state = value;
+  }
+}
+
+final selectedPlaylistIdProvider =
+    NotifierProvider<SelectedPlaylistIdNotifier, String?>(
+  SelectedPlaylistIdNotifier.new,
+);
+
 final isCoverFlowImmersiveActiveProvider = Provider<bool>((ref) {
   final mainIndex = ref.watch(mainTabIndexProvider);
   final libIndex = ref.watch(libraryActiveTabIndexProvider);

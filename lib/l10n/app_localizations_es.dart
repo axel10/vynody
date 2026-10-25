@@ -5719,4 +5719,10 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get homeTab => 'Biblioteca';
+
+  @override
+  String get allPlaylists => 'Todas las listas de reproducción';
+
+  @override
+  String get viewPlaylistDetails => 'Ver detalles de la lista de reproducción';
 }

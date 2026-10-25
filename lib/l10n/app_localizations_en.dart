@@ -5638,4 +5638,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get homeTab => 'Library';
+
+  @override
+  String get allPlaylists => 'All Playlists';
+
+  @override
+  String get viewPlaylistDetails => 'View Playlist Details';
 }

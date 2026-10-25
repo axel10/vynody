@@ -1,140 +1,198 @@
-import 'dart:convert';
-import 'dart:io';
-import 'dart:typed_data';
-
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../dialogs/sort_options_dialog.dart';
 import '../l10n/app_localizations.dart';
-import 'package:vynody/models/music_file.dart';
-import 'package:vynody/player/audio/audio_riverpod.dart';
-import 'package:vynody/player/audio/playback_source.dart';
-import 'package:vynody/player/library/playlist_service.dart';
-import '../dialogs/playlist_manager_dialog.dart';
-import '../widgets/song_tile.dart';
-import 'package:vynody/utils/file_selector_helper.dart';
-import 'package:vynody/utils/song_context_menu_utils.dart';
-import 'package:vynody/widgets/app_context_menu.dart';
-import 'package:vynody/utils/deleted_song_snack.dart';
-import 'package:vynody/utils/playlist_name.dart';
+import '../player/audio/audio_riverpod.dart';
+import '../player/audio/playback_source.dart';
+import '../player/library/playlist_service.dart';
+import '../utils/app_log.dart';
+import '../utils/app_snack_bar.dart';
+import '../utils/file_selector_helper.dart';
+import '../widgets/folder_layout_utils.dart';
+import '../widgets/folder_zoom_gesture_layer.dart';
+import '../widgets/library_category_header.dart';
 import '../widgets/library_selection_panel.dart';
 import '../widgets/library_selection_scope.dart';
-import 'package:vynody/utils/layout_constants.dart';
-import '../utils/app_snack_bar.dart';
 import '../widgets/playback_ui_tuning.dart';
+import '../widgets/playlist_context_menu.dart';
+import '../widgets/playlist_zoom_item.dart';
+import 'main_layout_riverpod.dart';
+import 'playlist_detail_page.dart';
 
+/// 播放列表总览页（第一级页面）
 class PlaylistTab extends ConsumerStatefulWidget {
-  final double contentTopPadding;
-  final double contentLeftPadding;
-
   const PlaylistTab({
     super.key,
     this.contentTopPadding = 0.0,
     this.contentLeftPadding = 0.0,
   });
 
+  final double contentTopPadding;
+  final double contentLeftPadding;
+
   @override
   ConsumerState<PlaylistTab> createState() => _PlaylistTabState();
 }
 
 class _PlaylistTabState extends ConsumerState<PlaylistTab>
-    with SelectionStateMixin<PlaylistTab, int> {
+    with SelectionStateMixin<PlaylistTab, String> {
   @override
   LibrarySelectionScope get selectionScope => LibrarySelectionScope.playlist;
+
   final ScrollController _scrollController = ScrollController();
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  PlaylistSortField _sortField = PlaylistSortField.updatedAt;
+  bool _sortAscending = false;
+  String? _pushedPlaylistId;
+  bool get _isDetailPushed => _pushedPlaylistId != null;
 
   @override
   void initState() {
     super.initState();
+    final settings = ref.read(settingsServiceProvider);
+    _sortField = settings.playlistSortField;
+    _sortAscending = settings.playlistSortAscending;
+
+    // 检查是否有外部选中的特定歌单需要直接进入详情
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final initialId = ref.read(selectedPlaylistIdProvider);
+      if (initialId != null) {
+        _checkAndOpenSelectedPlaylist(initialId);
+      }
+    });
   }
 
   @override
   void dispose() {
     _scrollController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
-  void _showClearPlaylistConfirmDialog(
-    BuildContext context,
-    Playlist playlist,
-  ) {
-    final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
-    final plName = localizedPlaylistName(context, playlist);
+  void _checkAndOpenSelectedPlaylist(String playlistId) {
+    if (_pushedPlaylistId == playlistId) return;
+    final playlistService = ref.read(playlistServiceProvider);
+    final playlist = playlistService.playlists.firstWhereOrNull(
+      (p) => p.id == playlistId,
+    );
+    if (playlist != null) {
+      _openPlaylistDetail(playlist);
+    }
+  }
 
-    showDialog(
+  void _openPlaylistDetail(Playlist playlist) {
+    if (!mounted) return;
+    if (_pushedPlaylistId == playlist.id) return;
+
+    final wasPushed = _isDetailPushed;
+    _pushedPlaylistId = playlist.id;
+    ref.read(selectedPlaylistIdProvider.notifier).set(playlist.id);
+
+    AppLog.log(
+      '[NavTrace] PlaylistTab _openPlaylistDetail: ${wasPushed ? "replacing with" : "pushing"} PlaylistDetailPage for "${playlist.name}" (id=${playlist.id})',
+      mirrorToConsole: true,
+    );
+
+    final route = MaterialPageRoute<void>(
+      settings: RouteSettings(name: 'playlist_detail_${playlist.id}'),
+      builder: (_) => PlaylistDetailPage(
+        playlist: playlist,
+        onGoBack: () {
+          ref.read(selectedPlaylistIdProvider.notifier).set(null);
+          Navigator.of(context).maybePop();
+        },
+      ),
+    );
+
+    final nav = Navigator.of(context);
+    final pushFuture = wasPushed ? nav.pushReplacement(route) : nav.push(route);
+
+    pushFuture.then((_) {
+      if (mounted && _pushedPlaylistId == playlist.id) {
+        _pushedPlaylistId = null;
+        final currentSelected = ref.read(selectedPlaylistIdProvider);
+        if (currentSelected == playlist.id) {
+          ref.read(selectedPlaylistIdProvider.notifier).set(null);
+        }
+      }
+    });
+  }
+
+  Future<void> _showSortDialog(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
+    final settings = ref.read(settingsServiceProvider);
+    final playlistService = ref.read(playlistServiceProvider);
+
+    final result = await showDialog<SortResult<PlaylistSortField>>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(l10n.clearPlaylist),
-        content: Text(l10n.confirmClearPlaylist(plName)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: Text(l10n.cancel),
+      builder: (dialogContext) => SortOptionsDialog<PlaylistSortField>(
+        title: l10n.sortPlaylists,
+        currentField: _sortField,
+        sortAscending: _sortAscending,
+        options: [
+          SortOptionItem(
+            value: PlaylistSortField.updatedAt,
+            label: l10n.sortRecentlyUpdated,
+            icon: Icons.update_rounded,
           ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: theme.colorScheme.error,
-              foregroundColor: theme.colorScheme.onError,
-            ),
-            onPressed: () async {
-              Navigator.pop(dialogContext);
-              await ref
-                  .read(playlistServiceProvider)
-                  .clearPlaylist(playlist.id);
-              if (context.mounted) {
-                AppSnackBar.show(
-                  context,
-                  ref,
-                  SnackBar(
-                    content: Text(l10n.playlistSongsCleared(plName)),
-                  ),
-                );
-              }
-            },
-            child: Text(l10n.clear),
+          SortOptionItem(
+            value: PlaylistSortField.name,
+            label: l10n.playlistName,
+            icon: Icons.sort_by_alpha_rounded,
+          ),
+          SortOptionItem(
+            value: PlaylistSortField.trackCount,
+            label: l10n.sortTrackCount,
+            icon: Icons.numbers_rounded,
+          ),
+          SortOptionItem(
+            value: PlaylistSortField.createdAt,
+            label: l10n.sortRecentlyCreated,
+            icon: Icons.calendar_today_rounded,
           ),
         ],
       ),
     );
-  }
 
-
-  void _showAddToPlaylistDialog(
-    BuildContext context,
-    List<MusicFile> selectedSongs,
-  ) {
-    final playlistService = ref.read(playlistServiceProvider);
-    showAddSongsToPlaylistDialog(
-      context,
-      playlistService,
-      selectedSongs,
-      onPlaylistCreatedOrUpdated: () {
-        cancelSelection();
-      },
-    );
+    if (result != null) {
+      setState(() {
+        _sortField = result.field;
+        _sortAscending = result.sortAscending;
+      });
+      settings.playlistSortField = result.field;
+      settings.playlistSortAscending = result.sortAscending;
+      await playlistService.sortPlaylists(
+        field: result.field,
+        ascending: result.sortAscending,
+      );
+    }
   }
 
   void _showCreatePlaylistDialog(BuildContext context) {
     final controller = TextEditingController();
     String? errorText;
+    final l10n = AppLocalizations.of(context)!;
 
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: Text(AppLocalizations.of(context)!.createPlaylist),
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text(l10n.createPlaylist),
           content: TextField(
             controller: controller,
             autofocus: true,
             decoration: InputDecoration(
-              labelText: AppLocalizations.of(context)!.playlistName,
-              hintText: AppLocalizations.of(context)!.enterPlaylistName,
+              labelText: l10n.playlistName,
+              hintText: l10n.enterPlaylistName,
               errorText: errorText,
             ),
             onChanged: (val) {
               if (errorText != null) {
-                setState(() {
+                setDialogState(() {
                   errorText = null;
                 });
               }
@@ -143,7 +201,7 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab>
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text(AppLocalizations.of(context)!.cancel),
+              child: Text(l10n.cancel),
             ),
             TextButton(
               onPressed: () async {
@@ -151,27 +209,25 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab>
                 if (name.isNotEmpty) {
                   final playlistService = ref.read(playlistServiceProvider);
                   if (playlistService.playlistExists(name)) {
-                    setState(() {
-                      errorText = AppLocalizations.of(
-                        context,
-                      )!.playlistNameExists;
+                    setDialogState(() {
+                      errorText = l10n.playlistNameExists;
                     });
                     return;
                   }
-                  await playlistService.createPlaylist(name);
+                  final newPl = await playlistService.createPlaylist(name);
                   if (context.mounted) {
                     Navigator.pop(context);
+                    _openPlaylistDetail(newPl);
                   }
                 }
               },
-              child: Text(AppLocalizations.of(context)!.createPlaylist),
+              child: Text(l10n.confirm),
             ),
           ],
         ),
       ),
     );
   }
-
 
   Future<void> _importM3uPlaylist(BuildContext context) async {
     try {
@@ -215,488 +271,289 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab>
     }
   }
 
-  Future<void> _exportPlaylistAsM3u(
-    BuildContext context,
-    Playlist playlist,
-  ) async {
-    final l10n = AppLocalizations.of(context)!;
-    if (playlist.songs.isEmpty) {
-      AppSnackBar.show(
-        context,
-        ref,
-        SnackBar(
-          content: Text(l10n.noSongsInPlaylist),
-        ),
-      );
-      return;
+  List<Playlist> _filterAndSortPlaylists(List<Playlist> rawPlaylists) {
+    var list = rawPlaylists;
+    if (_searchQuery.trim().isNotEmpty) {
+      final q = _searchQuery.trim().toLowerCase();
+      list = list.where((p) => p.name.toLowerCase().contains(q)).toList();
     }
-
-    try {
-      final playlistService = ref.read(playlistServiceProvider);
-      final scannerRoots = ref.read(scannerServiceProvider).rootPaths;
-      final m3uContent = playlistService.exportPlaylistToM3u(
-        playlist,
-        rootPaths: scannerRoots,
-      );
-      final bytes = Uint8List.fromList(utf8.encode(m3uContent));
-      final safeName = playlist.name.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
-      final suggestedName = '$safeName.m3u8';
-
-      final savedPath = await FileSelectorHelper.saveFile(
-        suggestedName: suggestedName,
-        extensions: ['m3u8', 'm3u'],
-        label: 'M3U8 Playlist',
-        bytes: bytes,
-      );
-
-      if (savedPath != null && context.mounted) {
-        AppSnackBar.show(
-          context,
-          ref,
-          SnackBar(
-            content: Text(l10n.exportPlaylistSuccess),
-          ),
-        );
-      }
-    } catch (e) {
-      if (!context.mounted) return;
-      AppSnackBar.show(
-        context,
-        ref,
-        SnackBar(
-          content: Text(l10n.exportPlaylistFailed(e.toString())),
-        ),
-      );
-    }
-  }
-
-
-
-  Widget _buildHeader(BuildContext context, Playlist? currentPlaylist) {
-    final theme = Theme.of(context);
-    final l10n = AppLocalizations.of(context)!;
-    final hasSongs = currentPlaylist?.songs.isNotEmpty == true;
-    final isPortrait =
-        MediaQuery.of(context).orientation == Orientation.portrait;
-    final horizontalPadding = isPortrait ? 12.0 : 16.0;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        border: Border(
-          bottom: BorderSide(
-            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
-          ),
-        ),
-      ),
-      child: Align(
-        alignment: Alignment.center,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: kSingleColumnContentMaxWidth),
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(
-              horizontalPadding,
-              16,
-              horizontalPadding,
-              12,
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        l10n.playlist,
-                        style: theme.textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      InkWell(
-                        borderRadius: BorderRadius.circular(12),
-                        onTap: () => PlaylistManagerDialog.show(context),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 2,
-                            vertical: 2,
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Flexible(
-                                child: Text(
-                                  currentPlaylist == null
-                                      ? l10n.emptyList
-                                      : localizedPlaylistName(
-                                          context,
-                                          currentPlaylist,
-                                        ),
-                                  overflow: TextOverflow.ellipsis,
-                                  style: theme.textTheme.bodyMedium?.copyWith(
-                                    color: theme.colorScheme.onSurfaceVariant,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 2),
-                              Icon(
-                                Icons.arrow_drop_down,
-                                color: theme.colorScheme.onSurfaceVariant,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                PopupMenuButton<String>(
-                  tooltip: l10n.more,
-                  onSelected: (value) {
-                    if (value == 'create') {
-                      _showCreatePlaylistDialog(context);
-                    } else if (value == 'import') {
-                      _importM3uPlaylist(context);
-                    } else if (value == 'export' && currentPlaylist != null) {
-                      _exportPlaylistAsM3u(context, currentPlaylist);
-                    } else if (value == 'clear' && currentPlaylist != null) {
-                      _showClearPlaylistConfirmDialog(context, currentPlaylist);
-                    }
-                  },
-                  itemBuilder: (context) => [
-                    buildContextMenuItem<String>(
-                      value: 'create',
-                      label: l10n.createPlaylist,
-                      icon: Icons.add_rounded,
-                      context: context,
-                    ),
-                    buildContextMenuItem<String>(
-                      value: 'import',
-                      label: l10n.importPlaylist,
-                      icon: Icons.file_download_outlined,
-                      context: context,
-                    ),
-                    if (currentPlaylist != null && hasSongs) ...[
-                      buildContextMenuItem<String>(
-                        value: 'export',
-                        label: l10n.exportPlaylist,
-                        icon: Icons.file_upload_outlined,
-                        context: context,
-                      ),
-                      buildContextMenuItem<String>(
-                        value: 'clear',
-                        label: l10n.clearPlaylist,
-                        icon: Icons.clear_all_rounded,
-                        iconColor: theme.colorScheme.error,
-                        context: context,
-                      ),
-                    ],
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEmptyState(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: kSingleColumnContentMaxWidth),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.playlist_add,
-              size: 64,
-              color: Theme.of(context).colorScheme.outlineVariant,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              l10n.emptyList,
-              style: const TextStyle(fontSize: 18, color: Colors.grey),
-            ),
-            if (Platform.isWindows)
-              Padding(
-                padding: const EdgeInsets.only(top: 8.0),
-                child: Text(
-                  l10n.dragToAddMusic,
-                  style: const TextStyle(fontSize: 14, color: Colors.grey),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
+    return list;
   }
 
   @override
   Widget build(BuildContext context) {
+    // 监听侧边栏等发起的歌单详情导航请求
+    ref.listen<String?>(selectedPlaylistIdProvider, (prev, next) {
+      AppLog.log(
+        '[NavTrace] PlaylistTab listen: prev=$prev, next=$next, isDetailPushed=$_isDetailPushed',
+        mirrorToConsole: true,
+      );
+      if (next == null) {
+        if (_isDetailPushed) {
+          Navigator.of(context).popUntil((route) => route.isFirst);
+        }
+      } else if (next != prev) {
+        _checkAndOpenSelectedPlaylist(next);
+      }
+    });
+
     final l10n = AppLocalizations.of(context)!;
-    final isSelectionMode =
-        ref.watch(librarySelectionScopeProvider) ==
-        LibrarySelectionScope.playlist;
     final audio = ref.read(audioServiceProvider);
-    final currentIndex = ref.watch(audioCurrentIndexProvider);
     final currentMusic = ref.watch(audioCurrentMusicProvider);
     final playlistService = ref.watch(playlistServiceProvider);
-    final currentPlaylist = playlistService.currentPlaylist;
+    final settings = ref.watch(settingsServiceProvider);
+    final zoomScale = settings.folderZoomScale;
 
-    if (currentPlaylist == null || currentPlaylist.songs.isEmpty) {
-      return Padding(
-        padding: EdgeInsets.only(
-          top: widget.contentTopPadding,
-          left: widget.contentLeftPadding,
-        ),
-        child: Column(
-          children: [
-            _buildHeader(context, currentPlaylist),
-            Expanded(child: _buildEmptyState(context)),
-          ],
-        ),
-      );
-    }
+    final isPortrait =
+        MediaQuery.of(context).orientation == Orientation.portrait;
 
-    final Playlist activePlaylist = currentPlaylist;
-    final selectedSongs = selectedKeys
-        .map((i) => activePlaylist.songs[i])
+    final playlists = _filterAndSortPlaylists(playlistService.playlists);
+
+    final selectedPlaylists =
+        playlists.where((p) => isSelected(p.id)).toList();
+    final selectedSongs = selectedPlaylists.expand((p) => p.songs).toList();
+    final allSongs = playlists.expand((p) => p.songs).toList();
+
+    final isCustomPlaylists = selectedKeys
+        .where((id) =>
+            id != 'default' && id != PlaylistService.favoritePlaylistId)
         .toList();
 
     return Padding(
       padding: EdgeInsets.only(left: widget.contentLeftPadding),
       child: Stack(
         children: [
-          CustomScrollView(
-              controller: _scrollController,
-              cacheExtent: 1000,
-              slivers: [
-                if (widget.contentTopPadding > 0)
-                  SliverToBoxAdapter(
-                    child: SizedBox(height: widget.contentTopPadding),
-                  ),
-                SliverToBoxAdapter(child: _buildHeader(context, activePlaylist)),
-              SliverPadding(
-                padding: EdgeInsets.only(
-                  bottom: MiniPlayerUiTuning.getListBottomPadding(
-                    context,
-                    hasPlayingMusic: currentMusic != null,
-                    isSelectionMode: isSelectionMode,
-                  ),
-                ),
-                sliver: SliverReorderableList(
-                  itemCount: activePlaylist.songs.length,
-                  onReorder: (oldIndex, newIndex) {
-                    if (newIndex > oldIndex) newIndex--;
-                    reorderSelection(oldIndex, newIndex);
-                    playlistService.reorderSongsInPlaylist(
-                      activePlaylist.id,
-                      oldIndex,
-                      newIndex,
-                    );
-                  },
-                  itemBuilder: (context, index) {
-                    final song = activePlaylist.songs[index];
-                    final isMissing = song.isMissing;
-                    final isCurrent =
-                        currentIndex == index &&
-                        currentMusic?.path == song.path;
-                    final isSelected = this.isSelected(index);
-
-                    void handleShowMenu(
-                      BuildContext menuContext,
-                      Offset position,
-                    ) {
-                      final songsToAdd = selectedKeys.isNotEmpty
-                          ? selectedKeys
-                                .map((i) => activePlaylist.songs[i])
-                                .toList()
-                          : <MusicFile>[song];
-
-                      showSongContextMenu(
-                        menuContext,
-                        position,
-                        song: song,
-                        songs: songsToAdd,
-                        mode: SongContextMenuMode.full,
-                        onMultiSelect: isSelectionMode
-                            ? null
-                            : () {
-                                lastAnchorIndex = index;
-                                enterSelectionMode(index);
-                            },
-                        onAddToPlaylist: () async {
-                          _showAddToPlaylistDialog(menuContext, songsToAdd);
+          FolderZoomGestureLayer(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final width = constraints.maxWidth;
+                return CustomScrollView(
+                  controller: _scrollController,
+                  slivers: [
+                    if (widget.contentTopPadding > 0)
+                      SliverToBoxAdapter(
+                        child: SizedBox(height: widget.contentTopPadding),
+                      ),
+                    SliverToBoxAdapter(
+                      child: LibraryCategoryHeader(
+                        title: l10n.playlist,
+                        countLabel: '${playlists.length}',
+                        isWide: !isPortrait,
+                        searchController: _searchController,
+                        searchQuery: _searchQuery,
+                        onSearchChanged: (query) {
+                          setState(() {
+                            _searchQuery = query;
+                          });
                         },
-                        onPlayNext: () => ref
-                            .read(audioServiceProvider)
-                            .enqueueNext(songsToAdd),
-                        onAddToQueue: () => ref
-                            .read(audioServiceProvider)
-                            .appendToQueue(songsToAdd),
-                        onRemoveFromPlaylist: isSelectionMode
-                            ? null
-                            : () {
-                                playlistService.removeSongsFromPlaylist(
-                                  activePlaylist.id,
-                                  [index],
-                                );
-                              },
-                      );
-                    }
-
-                    void handleShowBottomSheet(BuildContext menuContext) {
-                      final songsToAdd = selectedKeys.isNotEmpty
-                          ? selectedKeys
-                                .map((i) => activePlaylist.songs[i])
-                                .toList()
-                          : <MusicFile>[song];
-
-                      showSongBottomSheet(
-                        menuContext,
-                        song: song,
-                        songs: songsToAdd,
-                        mode: SongContextMenuMode.full,
-                        onMultiSelect: isSelectionMode
-                            ? null
-                            : () {
-                                lastAnchorIndex = index;
-                                enterSelectionMode(index);
-                            },
-                        onAddToPlaylist: () async {
-                          _showAddToPlaylistDialog(menuContext, songsToAdd);
+                        onSearchCleared: () {
+                          setState(() {
+                            _searchQuery = '';
+                            _searchController.clear();
+                          });
                         },
-                        onPlayNext: () => ref
-                            .read(audioServiceProvider)
-                            .enqueueNext(songsToAdd),
-                        onAddToQueue: () => ref
-                            .read(audioServiceProvider)
-                            .appendToQueue(songsToAdd),
-                        onRemoveFromPlaylist: isSelectionMode
-                            ? null
-                            : () {
-                                playlistService.removeSongsFromPlaylist(
-                                  activePlaylist.id,
-                                  [index],
-                                );
-                              },
-                      );
-                    }
-
-                    final selectedSongPaths = isSelectionMode
-                        ? selectedKeys
-                            .map((i) => (i >= 0 && i < activePlaylist.songs.length)
-                                ? activePlaylist.songs[i].path
-                                : null)
-                            .whereType<String>()
-                            .toSet()
-                        : const <String>{};
-
-                    return Align(
-                      key: ObjectKey(song),
-                      alignment: Alignment.center,
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: kSingleColumnContentMaxWidth),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 2,
+                        onSortPressed: () => _showSortDialog(context),
+                        showSourceFilter: false,
+                        extraActions: [
+                          IconButton(
+                            tooltip: l10n.createPlaylist,
+                            icon: const Icon(Icons.add_rounded),
+                            onPressed: () => _showCreatePlaylistDialog(context),
                           ),
-                          child: SongTile(
-                            song: song,
-                            isCurrent: isCurrent,
-                            isSelected: isSelected,
-                            isSelectionMode: isSelectionMode,
-                            selectedPaths: selectedSongPaths,
-                            dragHandle: ReorderableDragStartListener(
-                              index: index,
-                              child: const MouseRegion(
-                                cursor: SystemMouseCursors.grab,
-                                child: Padding(
-                                  padding: EdgeInsets.symmetric(horizontal: 4.0),
-                                  child: Icon(Icons.drag_handle_rounded),
+                          IconButton(
+                            tooltip: l10n.importPlaylist,
+                            icon: const Icon(Icons.file_download_outlined),
+                            onPressed: () => _importM3uPlaylist(context),
+                          ),
+                          if (playlistService.playlists.any((p) =>
+                              p.id != 'default' &&
+                              p.id != PlaylistService.favoritePlaylistId))
+                            IconButton(
+                              tooltip: l10n.multiSelect,
+                              icon: const Icon(Icons.checklist_rounded),
+                              onPressed: () {
+                                final firstCustom = playlistService.playlists
+                                    .firstWhereOrNull((p) =>
+                                        p.id != 'default' &&
+                                        p.id !=
+                                            PlaylistService.favoritePlaylistId);
+                                if (firstCustom != null) {
+                                  enterSelectionMode(firstCustom.id);
+                                }
+                              },
+                            ),
+                        ],
+                      ),
+                    ),
+                    if (playlists.isEmpty)
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 64.0),
+                          child: Center(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.queue_music_rounded,
+                                  size: 64,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .outlineVariant,
                                 ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  l10n.emptyList,
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      )
+                    else
+                      FolderZoomSliverBuilder(
+                        zoomScale: snapFolderZoomScale(zoomScale),
+                        width: width,
+                        builder: (context, metrics) {
+                          final hPad = folderContentHorizontalPadding(
+                            isPortrait: isPortrait,
+                            gridMorph: metrics.gridMorph,
+                          );
+
+                          return SliverPadding(
+                            padding: EdgeInsets.only(
+                              left: hPad,
+                              right: hPad,
+                              bottom: MiniPlayerUiTuning.getListBottomPadding(
+                                context,
+                                hasPlayingMusic: currentMusic != null,
+                                isSelectionMode: isSelectionMode,
                               ),
                             ),
-                            onTap: () {
-                              if (isMissing) {
-                                showDeletedSongSnack(
-                                  context,
-                                  ref,
-                                  skipped: false,
-                                );
-                                return;
-                              }
+                            sliver: SliverGrid(
+                              gridDelegate: SliverAnimatedZoomGridDelegate(
+                                metrics: metrics,
+                              ),
+                              delegate: SliverChildBuilderDelegate(
+                                (context, index) {
+                                  final pl = playlists[index];
+                                  final isPlSelected = isSelected(pl.id);
 
-                              handleItemTap(
-                                index: index,
-                                itemKey: index,
-                                allKeys: List.generate(
-                                  activePlaylist.songs.length,
-                                  (i) => i,
-                                ),
-                                onNormalTap: () {
-                                  audio.playPlaylist(
-                                    activePlaylist.songs,
-                                    initialIndex: index,
-                                    source: PlaybackSource(
-                                      type: PlaybackSourceType.playlist,
-                                      id: activePlaylist.id,
-                                      name: activePlaylist.name,
+                                  return PlaylistZoomItem(
+                                    playlist: pl,
+                                    metrics: metrics,
+                                    isSelected: isPlSelected,
+                                    isSelectionMode: isSelectionMode,
+                                    enableHero: true,
+                                    onTap: () {
+                                      handleItemTap(
+                                        index: index,
+                                        itemKey: pl.id,
+                                        allKeys: playlists
+                                            .map((p) => p.id)
+                                            .toList(),
+                                        onNormalTap: () =>
+                                            _openPlaylistDetail(pl),
+                                      );
+                                    },
+                                    onLongPress: () {
+                                      lastAnchorIndex = index;
+                                      if (isSelectionMode) {
+                                        toggleSelection(pl.id);
+                                      } else {
+                                        enterSelectionMode(pl.id);
+                                      }
+                                    },
+                                    onSecondaryTapDown: (details) {
+                                      if (!isSelectionMode) {
+                                        showPlaylistContextMenu(
+                                          context: context,
+                                          globalPosition:
+                                              details.globalPosition,
+                                          ref: ref,
+                                          playlist: pl,
+                                          onMultiSelect: (id) =>
+                                              enterSelectionMode(id),
+                                          onViewDetails: () =>
+                                              _openPlaylistDetail(pl),
+                                        );
+                                      }
+                                    },
+                                    onPlay: () => audio.playPlaylist(
+                                      pl.songs,
+                                      source: PlaybackSource(
+                                        type: PlaybackSourceType.playlist,
+                                        id: pl.id,
+                                        name: pl.name,
+                                      ),
                                     ),
                                   );
                                 },
-                              );
-                            },
-                            onLongPress: () {
-                              lastAnchorIndex = index;
-                              if (!isSelectionMode) {
-                                enterSelectionMode(index);
-                              }
-                            },
-                            onSecondaryTapDown: (details) {
-                              handleShowMenu(context, details.globalPosition);
-                            },
-                            onMorePressed: (buttonContext) {
-                              handleShowBottomSheet(buttonContext);
-                            },
-                          ),
-                        ),
+                                childCount: playlists.length,
+                              ),
+                            ),
+                          );
+                        },
                       ),
-                    );
-                  },
-                ),
-              ),
-            ],
+                  ],
+                );
+              },
+            ),
           ),
           AnimatedSelectionPanel(
             isVisible: isSelectionMode,
             child: LibrarySelectionPanel(
-              key: const ValueKey('library-selection-panel'),
+              key: const ValueKey('playlist-batch-selection-panel'),
               selectedSongs: selectedSongs,
-              allSongs: activePlaylist.songs,
-              onToggleSelectAll: () => toggleSelectAll(
-                List.generate(activePlaylist.songs.length, (i) => i),
-              ),
+              allSongs: allSongs,
+              title: l10n.selectedPlaylistsCount(selectedKeys.length),
+              onToggleSelectAll: () =>
+                  toggleSelectAll(playlists.map((p) => p.id)),
               onCancel: cancelSelection,
-              replaceFavoritesWithSongDetails: true,
-              onDelete: () {
-                final indices = selectedKeys.toList()..sort();
-                playlistService.removeSongsFromPlaylist(
-                  activePlaylist.id,
-                  indices,
-                );
-                AppSnackBar.show(
-                  context,
-                  ref,
-                  SnackBar(
-                    content: Text(l10n.deletedSongs(indices.length)),
-                  ),
-                );
-                cancelSelection();
-              },
+              deleteLabel: l10n.deletePlaylists,
+              onDelete: isCustomPlaylists.isNotEmpty
+                  ? () async {
+                      final confirmed = await showDialog<bool>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: Text(l10n.deletePlaylists),
+                          content: Text(
+                            l10n.confirmDeletePlaylists(
+                              isCustomPlaylists.length,
+                            ),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx, false),
+                              child: Text(l10n.cancel),
+                            ),
+                            FilledButton(
+                              style: FilledButton.styleFrom(
+                                backgroundColor:
+                                    Theme.of(context).colorScheme.error,
+                                foregroundColor:
+                                    Theme.of(context).colorScheme.onError,
+                              ),
+                              onPressed: () => Navigator.pop(ctx, true),
+                              child: Text(l10n.delete),
+                            ),
+                          ],
+                        ),
+                      );
+
+                      if (confirmed == true) {
+                        for (final id in isCustomPlaylists) {
+                          await playlistService.deletePlaylist(id);
+                        }
+                        cancelSelection();
+                      }
+                    }
+                  : null,
             ),
           ),
         ],
@@ -704,5 +561,3 @@ class _PlaylistTabState extends ConsumerState<PlaylistTab>
     );
   }
 }
-
-

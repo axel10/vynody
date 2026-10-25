@@ -5362,6 +5362,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get homeTab => '媒体库';
+
+  @override
+  String get allPlaylists => '全部播放列表';
+
+  @override
+  String get viewPlaylistDetails => '查看歌单详情';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -10722,4 +10728,10 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get homeTab => '媒體庫';
+
+  @override
+  String get allPlaylists => '全部播放清單';
+
+  @override
+  String get viewPlaylistDetails => '查看歌單詳情';
 }

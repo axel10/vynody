@@ -2093,5 +2093,7 @@
   "sortSongTitle": "Titre du morceau",
   "sortArtist": "Artiste",
   "allStars": "Toutes les étoiles",
-  "homeTab": "Bibliothèque"
+  "homeTab": "Bibliothèque",
+  "allPlaylists": "Toutes les listes de lecture",
+  "viewPlaylistDetails": "Afficher les détails de la playlist"
 }

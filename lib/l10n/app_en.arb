@@ -2484,6 +2484,8 @@
   "sortSongTitle": "Song Title",
   "sortArtist": "Artist",
   "allStars": "All Stars",
-  "homeTab": "Library"
+  "homeTab": "Library",
+  "allPlaylists": "All Playlists",
+  "viewPlaylistDetails": "View Playlist Details"
 }
 

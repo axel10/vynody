@@ -151,6 +151,9 @@ class LibraryPageState extends ConsumerState<LibraryPage> {
       mirrorToConsole: true,
     );
     ref.read(librarySelectionScopeProvider.notifier).clear();
+    if (index == 0) {
+      ref.read(selectedPlaylistIdProvider.notifier).set(null);
+    }
 
     if (_isSubHostPushed) {
       // 已在二级宿主内：只切换子分类索引，各分类的路由栈原地保留。

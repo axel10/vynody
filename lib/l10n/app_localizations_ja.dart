@@ -5454,4 +5454,10 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get homeTab => 'ライブラリ';
+
+  @override
+  String get allPlaylists => 'すべてのプレイリスト';
+
+  @override
+  String get viewPlaylistDetails => 'プレイリストの詳細を表示';
 }

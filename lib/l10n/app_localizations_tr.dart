@@ -5662,4 +5662,10 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get homeTab => 'Kitaplık';
+
+  @override
+  String get allPlaylists => 'Tüm Çalma Listeleri';
+
+  @override
+  String get viewPlaylistDetails => 'Çalma Listesi Ayrıntılarını Görüntüle';
 }

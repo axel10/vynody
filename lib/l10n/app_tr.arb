@@ -2217,5 +2217,7 @@
   "sortSongTitle": "Şarkı Başlığı",
   "sortArtist": "Sanatçı",
   "allStars": "Tüm Yıldızlar",
-  "homeTab": "Kitaplık"
+  "homeTab": "Kitaplık",
+  "allPlaylists": "Tüm Çalma Listeleri",
+  "viewPlaylistDetails": "Çalma Listesi Ayrıntılarını Görüntüle"
 }

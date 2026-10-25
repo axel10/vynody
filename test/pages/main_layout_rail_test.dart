@@ -85,16 +85,16 @@ void main() {
     // Now 完成 should be visible
     expect(find.text('完成'), findsOneWidget);
 
-    // Checkboxes should be displayed for each sub item (9 check icons since all visible by default)
-    expect(find.byIcon(Icons.check_rounded), findsNWidgets(9));
+    // Checkboxes should be displayed for each sub item (8 check icons since all visible by default)
+    expect(find.byIcon(Icons.check_rounded), findsNWidgets(8));
 
-    // Toggle (uncheck) "播放列表"
-    await tester.tap(find.text('播放列表'));
+    // Toggle (uncheck) "最近播放"
+    await tester.tap(find.text('最近播放'));
     await tester.pumpAndSettle();
 
-    // Now 播放列表 is unchecked (8 check icons remaining)
-    expect(find.byIcon(Icons.check_rounded), findsNWidgets(8));
-    expect(settingsService.isLibraryTabVisible('playlist'), isFalse);
+    // Now 最近播放 is unchecked (7 check icons remaining)
+    expect(find.byIcon(Icons.check_rounded), findsNWidgets(7));
+    expect(settingsService.isLibraryTabVisible('recentlyPlayed'), isFalse);
 
     // Click 完成 to exit edit mode
     await tester.tap(find.text('完成'));
@@ -103,8 +103,8 @@ void main() {
     // Edit mode exited
     expect(find.text('完成'), findsNothing);
 
-    // 播放列表 should no longer be displayed!
-    expect(find.text('播放列表'), findsNothing);
+    // 最近播放 should no longer be displayed in media library sub-tabs!
+    expect(find.text('最近播放'), findsNothing);
 
     // Other checked items (e.g. 专辑, 艺术家) are still displayed
     expect(find.text('专辑'), findsOneWidget);

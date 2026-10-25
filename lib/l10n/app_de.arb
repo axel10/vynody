@@ -2093,5 +2093,7 @@
   "sortSongTitle": "Songtitel",
   "sortArtist": "Künstler",
   "allStars": "Alle Sterne",
-  "homeTab": "Mediathek"
+  "homeTab": "Mediathek",
+  "allPlaylists": "Alle Wiedergabelisten",
+  "viewPlaylistDetails": "Wiedergabelistendetails anzeigen"
 }

@@ -2192,5 +2192,7 @@
   "sortSongTitle": "曲名",
   "sortArtist": "アーティスト",
   "allStars": "すべての星",
-  "homeTab": "ライブラリ"
+  "homeTab": "ライブラリ",
+  "allPlaylists": "すべてのプレイリスト",
+  "viewPlaylistDetails": "プレイリストの詳細を表示"
 }
