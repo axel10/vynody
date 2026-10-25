@@ -469,6 +469,7 @@ class _RightQueuePanelState extends ConsumerState<RightQueuePanel> {
         autofocus: true,
         child: Container(
           width: drawerWidth,
+          padding: EdgeInsets.zero,
           decoration: BoxDecoration(
             color: theme.colorScheme.surface,
             border: Border(

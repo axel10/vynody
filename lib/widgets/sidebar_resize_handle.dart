@@ -76,7 +76,9 @@ class _SidebarResizeHandleState extends State<SidebarResizeHandle> {
         },
         child: SizedBox(
           width: widget.hitTestWidth,
-          child: Center(
+          child: Align(
+            alignment:
+                widget.isLeft ? Alignment.centerLeft : Alignment.centerRight,
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 150),
               width: (_isHovered || _isDragging) ? 2.0 : 0.0,

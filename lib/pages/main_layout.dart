@@ -2199,6 +2199,7 @@ class _SlidingNavigationRailState extends ConsumerState<SlidingNavigationRail> {
         filter: AppBlur.heavyFilter,
         child: Container(
           width: widget.width,
+          padding: EdgeInsets.zero,
           decoration: BoxDecoration(
             color: widget.backgroundColor,
             border: Border(right: BorderSide(color: borderColor, width: 0.5)),
