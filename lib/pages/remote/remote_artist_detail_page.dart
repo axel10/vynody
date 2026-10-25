@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math' as math;
+import 'dart:ui' show lerpDouble;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oktoast/oktoast.dart';
@@ -10,7 +12,12 @@ import '../../player/audio/playback_source.dart';
 import '../../player/remote/remote_server_models.dart';
 import '../../player/remote/remote_server_riverpod.dart';
 import '../../player/remote/clients/remote_media_library_client.dart';
+import '../../player/settings/settings_service.dart';
 import '../../widgets/album_detail_widgets.dart';
+import '../../widgets/draggable_remote_album_item.dart';
+import '../../widgets/folder_layout_utils.dart';
+import '../../widgets/folder_zoom_gesture_layer.dart';
+import '../../widgets/hoverable_card.dart';
 import '../../widgets/remote_artwork_widget.dart';
 import '../../widgets/mini_player_wrapper.dart';
 import '../../widgets/playing_equalizer_icon.dart';
@@ -575,15 +582,124 @@ class _RemoteArtistDetailContentState
     showToast(l10n.playingTracksCount(_allSongs.length));
   }
 
+  void _openAlbumDetail(_RemoteAlbumSectionData album) {
+    final l10n = AppLocalizations.of(context)!;
+    final albumTitle =
+        album.name.isNotEmpty ? album.name : l10n.unknownAlbum;
+    RemoteLibraryNavUtils.openAlbum(
+      context,
+      ref,
+      server: widget.server,
+      password: widget.password,
+      albumId: album.id,
+      albumName: albumTitle,
+      artistName: album.artist,
+      coverArtId: album.coverArt,
+    );
+  }
+
+  Future<void> _playAlbumDirectly(_RemoteAlbumSectionData album) async {
+    final l10n = AppLocalizations.of(context)!;
+    final albumTitle =
+        album.name.isNotEmpty ? album.name : l10n.unknownAlbum;
+    if (album.songs.isNotEmpty) {
+      final audio = ref.read(audioServiceProvider);
+      await audio.playPlaylist(
+        album.songs,
+        source: PlaybackSource(
+          type: PlaybackSourceType.album,
+          id: 'remote-${widget.server.id}-${album.id}',
+          name: albumTitle,
+        ),
+      );
+    } else {
+      await RemoteLibrarySelectionActions.playAlbumDirectly(
+        context: context,
+        ref: ref,
+        server: widget.server,
+        password: widget.password,
+        albumId: album.id,
+        albumTitle: albumTitle,
+      );
+    }
+  }
+
+  void _showAlbumContextMenu(
+    Offset position,
+    _RemoteAlbumSectionData album,
+  ) {
+    final l10n = AppLocalizations.of(context)!;
+    final albumTitle =
+        album.name.isNotEmpty ? album.name : l10n.unknownAlbum;
+    showRemoteAlbumContextMenu(
+      context: context,
+      globalPosition: position,
+      ref: ref,
+      server: widget.server,
+      password: widget.password,
+      albumId: album.id,
+      albumTitle: albumTitle,
+      artistName: album.artist,
+      coverArtId: album.coverArt,
+      songs: album.songs,
+      onViewDetails: () => _openAlbumDetail(album),
+    );
+  }
+
+  List<Widget> _buildPortraitAlbumGridSlivers({
+    required BuildContext context,
+    required WidgetRef ref,
+    required List<_RemoteAlbumSectionData> albums,
+    required double contentWidth,
+    required double albumZoomScale,
+  }) {
+    return [
+      FolderZoomSliverBuilder(
+        zoomScale: snapFolderZoomScale(albumZoomScale),
+        width: contentWidth,
+        builder: (context, metrics) {
+          final hPad = folderContentHorizontalPadding(
+            isPortrait: true,
+            gridMorph: metrics.gridMorph,
+          );
+
+          return SliverPadding(
+            padding: EdgeInsets.symmetric(horizontal: hPad),
+            sliver: SliverGrid(
+              gridDelegate: SliverAnimatedZoomGridDelegate(metrics: metrics),
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  final album = albums[index];
+                  return _RemoteAlbumZoomItem(
+                    server: widget.server,
+                    password: widget.password,
+                    album: album,
+                    metrics: metrics,
+                    onTap: () => _openAlbumDetail(album),
+                    onPlay: () => _playAlbumDirectly(album),
+                    onContextMenu: (pos) => _showAlbumContextMenu(pos, album),
+                  );
+                },
+                childCount: albums.length,
+              ),
+            ),
+          );
+        },
+      ),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
     final currentMusic = ref.watch(audioCurrentMusicProvider);
+    final isPortrait =
+        MediaQuery.orientationOf(context) == Orientation.portrait;
     final bottomOffset = MiniPlayerUiTuning.getListBottomPadding(
       context,
       hasPlayingMusic: currentMusic != null,
-      isSelectionMode: isSelectionMode,
+      isSelectionMode: !isPortrait && isSelectionMode,
       selectionPanelHeight: 220.0,
     );
     final selectedSongs = getSelectedSongs(_allSongs);
@@ -639,30 +755,31 @@ class _RemoteArtistDetailContentState
         _artistInfo?['largeImageUrl'] ??
         _artistInfo?['mediumImageUrl'] ??
         _albumSections.firstOrNull?.coverArt;
-    final isPortrait =
-        MediaQuery.orientationOf(context) == Orientation.portrait;
     final screenWidth = MediaQuery.sizeOf(context).width;
+    final albumZoomScale = ref.watch(
+      settingsServiceProvider.select((s) => s.albumZoomScale),
+    );
 
-    return Stack(
-      children: [
-        Positioned.fill(
-          child: RefreshIndicator(
-            onRefresh: () => _loadArtistData(forceRefresh: true),
-            child: CustomScrollView(
-              controller: widget.scrollController,
-              physics: const AlwaysScrollableScrollPhysics(
-                parent: BouncingScrollPhysics(),
-              ),
-              slivers: [
-                // Artist Header (Styled similarly to local ArtistDetailContent)
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: EdgeInsets.fromLTRB(
-                      isPortrait ? 20 : 28,
-                      widget.topPadding > 0 ? widget.topPadding + 12 : 24,
-                      isPortrait ? 20 : 28,
-                      20,
-                    ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final contentWidth =
+            math.min(constraints.maxWidth, kFolderPageMaxWidth);
+
+        final scrollView = CustomScrollView(
+          controller: widget.scrollController,
+          physics: const AlwaysScrollableScrollPhysics(
+            parent: BouncingScrollPhysics(),
+          ),
+          slivers: [
+            // Artist Header (Styled similarly to local ArtistDetailContent)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(
+                  isPortrait ? 20 : 28,
+                  widget.topPadding > 0 ? widget.topPadding + 12 : 24,
+                  isPortrait ? 20 : 28,
+                  isPortrait ? 30.0 : 20.0,
+                ),
                     child: isPortrait
                               ? Column(
                                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -829,7 +946,7 @@ class _RemoteArtistDetailContentState
                                                   return true;
                                                 },
                                               );
-                                              if (queued != true) return;
+                                              if (queued != true || !context.mounted) return;
                                               showRemoteDownloadQueuedFeedback(
                                                 context,
                                                 ref,
@@ -960,6 +1077,14 @@ class _RemoteArtistDetailContentState
                       ),
                     ),
                   )
+                else if (isPortrait)
+                  ..._buildPortraitAlbumGridSlivers(
+                    context: context,
+                    ref: ref,
+                    albums: _albumSections,
+                    contentWidth: contentWidth,
+                    albumZoomScale: albumZoomScale,
+                  )
                 else ...[
                   const SliverToBoxAdapter(child: SizedBox(height: 12)),
                   for (int i = 0; i < _albumSections.length; i++) ...[
@@ -969,63 +1094,80 @@ class _RemoteArtistDetailContentState
                 ],
                 SliverToBoxAdapter(child: SizedBox(height: bottomOffset)),
               ],
+            );
+
+        final refreshView = RefreshIndicator(
+          onRefresh: () => _loadArtistData(forceRefresh: true),
+          child: scrollView,
+        );
+
+        final scrollContent = isPortrait
+            ? FolderZoomGestureLayer(
+                scope: LibraryZoomScope.album,
+                child: refreshView,
+              )
+            : refreshView;
+
+        return Stack(
+          children: [
+            Positioned.fill(child: scrollContent),
+            AnimatedSelectionPanel(
+              isVisible: !isPortrait && isSelectionMode,
+              child: LibrarySelectionPanel(
+                key: const ValueKey('remote-artist-selection-panel'),
+                selectedSongs: selectedSongs,
+                allSongs: _allSongs,
+                onToggleSelectAll: () => toggleSelectAllSongs(_allSongs),
+                onCancel: cancelSongSelection,
+                onAddToFavorites: () =>
+                    RemoteLibrarySelectionActions.handleBatchAddToLocalFavorites(
+                  context: context,
+                  ref: ref,
+                  onFetchSongs: () async => selectedSongs,
+                  onClearSelection: cancelSongSelection,
+                ),
+                onAddToCloudFavorites: () =>
+                    RemoteLibrarySelectionActions.handleBatchAddToCloudFavorites(
+                  context: context,
+                  ref: ref,
+                  server: widget.server,
+                  password: widget.password,
+                  onFetchSongs: () async => selectedSongs,
+                  onClearSelection: cancelSongSelection,
+                  onStarredChanged: (starredIds) {
+                    ref
+                        .read(activeRemoteSessionProvider.notifier)
+                        .updateNavidromeSongs(
+                          starredSongIds: {
+                            ...?ref
+                                .read(activeRemoteSessionProvider)
+                                ?.navidromeStarredSongIds,
+                            ...starredIds,
+                          },
+                        );
+                  },
+                ),
+                onDownload: () async {
+                  final sel = List<MusicFile>.from(selectedSongs);
+                  if (sel.isEmpty) return;
+                  await ref.read(remoteDownloadTasksProvider.notifier).enqueue(
+                        RemoteDownloadRequest(
+                          server: widget.server,
+                          password: widget.password,
+                          songs: sel,
+                          layout: RemoteDownloadLayout.artist,
+                          collectionFolder: widget.artistName,
+                        ),
+                      );
+                  cancelSongSelection();
+                  if (!context.mounted) return;
+                  showRemoteDownloadQueuedFeedback(context, ref, sel.length);
+                },
+              ),
             ),
-          ),
-        ),
-        AnimatedSelectionPanel(
-          isVisible: isSelectionMode,
-          child: LibrarySelectionPanel(
-            key: const ValueKey('remote-artist-selection-panel'),
-            selectedSongs: selectedSongs,
-            allSongs: _allSongs,
-            onToggleSelectAll: () => toggleSelectAllSongs(_allSongs),
-            onCancel: cancelSongSelection,
-            onAddToFavorites: () =>
-                RemoteLibrarySelectionActions.handleBatchAddToLocalFavorites(
-              context: context,
-              ref: ref,
-              onFetchSongs: () async => selectedSongs,
-              onClearSelection: cancelSongSelection,
-            ),
-            onAddToCloudFavorites: () =>
-                RemoteLibrarySelectionActions.handleBatchAddToCloudFavorites(
-              context: context,
-              ref: ref,
-              server: widget.server,
-              password: widget.password,
-              onFetchSongs: () async => selectedSongs,
-              onClearSelection: cancelSongSelection,
-              onStarredChanged: (starredIds) {
-                ref
-                    .read(activeRemoteSessionProvider.notifier)
-                    .updateNavidromeSongs(
-                      starredSongIds: {
-                        ...?ref
-                            .read(activeRemoteSessionProvider)
-                            ?.navidromeStarredSongIds,
-                        ...starredIds,
-                      },
-                    );
-              },
-            ),
-            onDownload: () async {
-              final sel = List<MusicFile>.from(selectedSongs);
-              if (sel.isEmpty) return;
-              await ref.read(remoteDownloadTasksProvider.notifier).enqueue(
-                    RemoteDownloadRequest(
-                      server: widget.server,
-                      password: widget.password,
-                      songs: sel,
-                      layout: RemoteDownloadLayout.artist,
-                      collectionFolder: widget.artistName,
-                    ),
-                  );
-              cancelSongSelection();
-              showRemoteDownloadQueuedFeedback(context, ref, sel.length);
-            },
-          ),
-        ),
-      ],
+          ],
+        );
+      },
     );
   }
 
@@ -1150,6 +1292,7 @@ class _RemoteArtistDetailContentState
                               collectionFolder: widget.artistName,
                             ),
                           );
+                      if (!mounted) return;
                       showRemoteDownloadQueuedFeedback(
                         context,
                         ref,
@@ -1631,3 +1774,106 @@ class _InfoChip extends StatelessWidget {
 
 typedef NavidromeArtistDetailPage = RemoteArtistDetailPage;
 typedef NavidromeArtistDetailContent = RemoteArtistDetailContent;
+
+class _RemoteAlbumZoomItem extends StatefulWidget {
+  final RemoteServer server;
+  final String password;
+  final _RemoteAlbumSectionData album;
+  final FolderZoomLayoutMetrics metrics;
+  final VoidCallback onTap;
+  final VoidCallback onPlay;
+  final void Function(Offset position)? onContextMenu;
+
+  const _RemoteAlbumZoomItem({
+    required this.server,
+    required this.password,
+    required this.album,
+    required this.metrics,
+    required this.onTap,
+    required this.onPlay,
+    this.onContextMenu,
+  });
+
+  @override
+  State<_RemoteAlbumZoomItem> createState() => _RemoteAlbumZoomItemState();
+}
+
+class _RemoteAlbumZoomItemState extends State<_RemoteAlbumZoomItem> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    final metrics = widget.metrics;
+    final gridMorph = metrics.gridMorph;
+    final isGridTarget = metrics.isGridTarget;
+
+    final album = widget.album;
+    final albumTitle = album.name.isNotEmpty ? album.name : l10n.unknownAlbum;
+    final extraInfo = album.songCount != null
+        ? l10n.trackCountShort(album.songCount!)
+        : (album.year != null && album.year! > 0 ? '${album.year}' : '');
+    final subtitle = extraInfo.isNotEmpty
+        ? '${album.artist} · $extraInfo'
+        : album.artist;
+
+    final coverRadiusValue = lerpDouble(8.0, 12.0, gridMorph)!;
+    final coverRadius = BorderRadius.circular(coverRadiusValue);
+
+    final thumbnail = RemoteArtworkWidget(
+      server: widget.server,
+      password: widget.password,
+      coverArtId: album.coverArt,
+      size: 300,
+      width: double.infinity,
+      height: double.infinity,
+      borderRadius: coverRadius,
+    );
+
+    final cover = ZoomItemCover(
+      metrics: metrics,
+      isSelected: false,
+      isSelectionMode: false,
+      onToggleSelect: widget.onTap,
+      onPlay: widget.onPlay,
+      child: thumbnail,
+    );
+
+    final scaffold = ZoomItemScaffold(
+      metrics: metrics,
+      cover: cover,
+      titleText: albumTitle,
+      subtitleText: subtitle,
+      titleColor: theme.colorScheme.onSurface,
+      listTitleFontWeight: FontWeight.normal,
+      isSelected: false,
+      isSelectionMode: false,
+      selectionOffset: 0.0,
+      wrapHoverableCard: false,
+      onTap: widget.onTap,
+      onContextMenu: widget.onContextMenu,
+    );
+
+    final cardContent = MouseRegion(
+      onEnter: (_) {
+        if (isGridTarget && !_isHovered) setState(() => _isHovered = true);
+      },
+      onExit: (_) {
+        if (_isHovered) setState(() => _isHovered = false);
+      },
+      cursor: SystemMouseCursors.click,
+      child: isGridTarget ? HoverableCard(child: scaffold) : scaffold,
+    );
+
+    return DraggableRemoteAlbumItem(
+      server: widget.server,
+      albumId: album.id,
+      title: albumTitle,
+      artist: album.artist,
+      songCount: album.songCount ?? album.songs.length,
+      child: cardContent,
+    );
+  }
+}
+
