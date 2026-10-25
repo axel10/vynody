@@ -94,6 +94,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
   int? _cachedTotalDurationMs;
   int? _lastSongAnchorIndex;
   int? _lastFolderAnchorIndex;
+  late final double _initialZoomScale;
 
   void _performSearch(String query) {
     _searchDebounce?.cancel();
@@ -173,6 +174,7 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
   @override
   void initState() {
     super.initState();
+    _initialZoomScale = ref.read(settingsServiceProvider).folderZoomScale;
     _searchController = TextEditingController();
     final targetOffset = ref.read(scannerServiceProvider).getFolderScrollOffset(_effectiveFolder.path);
     _localScrollController = ScrollController(initialScrollOffset: targetOffset);
@@ -519,7 +521,9 @@ class _FolderDetailViewState extends ConsumerState<FolderDetailView> {
                     });
                   },
                   heroTag: 'folder-cover-${folder.path}',
-                  isHeroModeEnabled: isCoverVisible,
+                  isHeroModeEnabled: isCoverVisible &&
+                      (settings.folderZoomScale - _initialZoomScale).abs() <=
+                          1e-4,
                 );
               },
             ),

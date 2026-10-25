@@ -105,10 +105,12 @@ class _RemoteFolderBrowserPageState
   String _searchQuery = '';
   String? _highlightedSongPath;
   Timer? _highlightTimer;
+  late final double _initialZoomScale;
 
   @override
   void initState() {
     super.initState();
+    _initialZoomScale = ref.read(settingsServiceProvider).folderZoomScale;
     _selectionScopeNotifier =
         ref.read(librarySelectionScopeProvider.notifier);
     _searchController = TextEditingController();
@@ -1839,7 +1841,11 @@ class _RemoteFolderBrowserPageState
         coverWidget: bannerCoverWidget,
         topHeader: topHeader,
         heroTag: 'webdav-cover-$_currentPath',
-        isHeroModeEnabled: _isCoverVisible,
+        isHeroModeEnabled: _isCoverVisible &&
+            (ref.watch(settingsServiceProvider).folderZoomScale -
+                        _initialZoomScale)
+                    .abs() <=
+                1e-4,
         actionButtons: [
           FolderPlayActionButtons(
             totalSongsCount: audioCount,
