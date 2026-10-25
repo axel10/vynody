@@ -752,6 +752,7 @@ class _StandaloneQueueAppState extends State<StandaloneQueueApp>
       colorScheme: colorScheme,
       scaffoldBackgroundColor: isDark ? const Color(0xFF141218) : null,
       useMaterial3: true,
+      splashFactory: NoSplash.splashFactory,
       fontFamily: (!kIsWeb && Platform.isWindows) ? 'Segoe UI' : null,
       fontFamilyFallback: (!kIsWeb && (Platform.isMacOS || Platform.isIOS))
           ? const [

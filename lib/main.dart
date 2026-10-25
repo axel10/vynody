@@ -622,6 +622,7 @@ class _MyAppState extends ConsumerState<MyApp>
       colorScheme: colorScheme,
       scaffoldBackgroundColor: isDark ? Colors.black : null,
       useMaterial3: true,
+      splashFactory: NoSplash.splashFactory,
       pageTransitionsTheme: const PageTransitionsTheme(
         builders: {
           // Android 关闭 Zoom 转场的快照：SnapshotWidget 会在返回时把下层页面的当前
