@@ -8,7 +8,7 @@ import 'package:vynody/player/library/library_source_filter.dart';
 /// 本地媒体库二级分类列表（专辑、艺术家、流派、年份等）的轻量统一工具栏。
 ///
 /// 标题统一由外层顶部导航栏（[AppTopNavBar]）承载，本组件专注于内容区操作：
-/// - 横屏（宽屏）：单行排列，左侧可选展示条目数量信息，中间常驻搜索输入框，右侧操作按钮区。
+/// - 横屏（宽屏）：单行两端对齐排列，左侧展示标题与条目数量信息，右侧整合常驻搜索框与操作按钮区。
 /// - 竖屏（窄屏）：单行轻量排列（播放全部、随机播放、排序、数量信息、搜索、扩展项、来源筛选）。
 ///   点击搜索按钮后，动画平滑切换为全宽搜索框与关闭按钮。
 class LibraryCategoryHeader extends ConsumerStatefulWidget {
@@ -235,14 +235,14 @@ class _LibraryCategoryHeaderState extends ConsumerState<LibraryCategoryHeader> {
                 ],
                 Expanded(
                   child: Align(
-                    alignment: Alignment.centerLeft,
+                    alignment: Alignment.centerRight,
                     child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 360),
+                      constraints: const BoxConstraints(maxWidth: 280),
                       child: _buildSearchField(context, theme, l10n),
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 8),
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [

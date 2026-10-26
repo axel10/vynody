@@ -169,7 +169,6 @@ class _RatedSongsTabState extends ConsumerState<RatedSongsTab> {
           contentTopPadding: widget.contentTopPadding,
           contentLeftPadding: widget.contentLeftPadding,
           title: l10n.ratedSongs,
-          subtitle: l10n.ratedSongsSubtitle,
           songs: processedItems,
           showTimeRange: false,
           customFilterBar: _buildFilterBar(theme, l10n),

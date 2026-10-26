@@ -373,17 +373,17 @@ class _LibraryInsightListState extends ConsumerState<LibraryInsightList>
                         Row(
                           children: [
                             largeTitleBlock,
-                            const SizedBox(width: 20),
+                            const SizedBox(width: 16),
                             Expanded(
                               child: Align(
-                                alignment: Alignment.centerLeft,
+                                alignment: Alignment.centerRight,
                                 child: ConstrainedBox(
-                                  constraints: const BoxConstraints(maxWidth: 360),
+                                  constraints: const BoxConstraints(maxWidth: 280),
                                   child: _buildSearchField(theme, l10n),
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 12),
+                            const SizedBox(width: 8),
                             Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
