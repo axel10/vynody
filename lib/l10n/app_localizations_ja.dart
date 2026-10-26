@@ -4476,6 +4476,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get noMatchingInGenre => '一致するアルバムや曲がありません';
 
   @override
+  String get searchInArtist => 'このアーティストのアルバム・曲を検索';
+
+  @override
+  String get noMatchingInArtist => '一致するアルバムや曲がありません';
+
+  @override
   String errorLoadingSongs(String error) {
     return '曲の読み込みに失敗しました: $error';
   }

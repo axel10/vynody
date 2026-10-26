@@ -1899,6 +1899,7 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
           ),
           RemoteLibraryArtistsView(
             toolbar: _buildArtistsToolbar(),
+            landscapeToolbar: _buildArtistsToolbar(compact: true),
             server: widget.server,
             password: widget.password,
             artists: _getFilteredArtists(),
@@ -2268,8 +2269,9 @@ class _RemoteLibraryPageState extends ConsumerState<RemoteLibraryPage>
     );
   }
 
-  Widget _buildArtistsToolbar() {
+  Widget _buildArtistsToolbar({bool compact = false}) {
     return RemoteLibraryArtistsToolbar(
+      compact: compact,
       searchController: _artistSearchController,
       searchFocusNode: _artistSearchFocusNode,
       searchQuery: _artistSearchQuery,

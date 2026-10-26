@@ -24,6 +24,10 @@ class RemoteLibraryArtistsToolbar extends StatelessWidget {
   final void Function(String field, bool asc) onSortChanged;
   final int? totalCount;
 
+  /// 给横屏左栏用的紧凑形态：搜索独占一行，计数 / 收藏 / 排序占第二行。
+  /// 左栏只有 260~300 宽，横排四个控件会把搜索框挤到放不下 hint。
+  final bool compact;
+
   const RemoteLibraryArtistsToolbar({
     super.key,
     required this.searchController,
@@ -37,6 +41,7 @@ class RemoteLibraryArtistsToolbar extends StatelessWidget {
     required this.sortField,
     required this.onSortChanged,
     this.totalCount,
+    this.compact = false,
   });
 
   @override
@@ -107,22 +112,47 @@ class RemoteLibraryArtistsToolbar extends StatelessWidget {
       ],
     );
 
+    final countText = totalCount != null
+        ? Text(
+            Localizations.localeOf(context).languageCode == 'zh'
+                ? '共 $totalCount 位艺术家'
+                : '$totalCount ${l10n.artists}',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w500,
+            ),
+          )
+        : null;
+
+    if (compact) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          searchBar,
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              if (countText != null)
+                Expanded(child: countText)
+              else
+                const Spacer(),
+              starButton,
+              const SizedBox(width: 6),
+              sortDropdown,
+            ],
+          ),
+        ],
+      );
+    }
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final isWide = constraints.maxWidth >= 600;
 
         if (isWide) {
-          final isZh = Localizations.localeOf(context).languageCode == 'zh';
-          final countText = totalCount != null
-              ? Text(
-                  isZh ? '共 $totalCount 位艺术家' : '$totalCount ${l10n.artists}',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                    fontWeight: FontWeight.w500,
-                  ),
-                )
-              : null;
-
           return Row(
             children: [
               ?countText,
@@ -173,6 +203,12 @@ class RemoteLibraryArtistsView extends ConsumerWidget {
   final void Function(int? index) onUpdateAnchor;
   final Widget? toolbar;
 
+  /// 横屏左栏专用的工具条（通常传 [RemoteLibraryArtistsToolbar] 的 compact 形态）。
+  ///
+  /// 横屏时工具条收进左栏内部，「左边搜艺术家、右边搜这位艺术家的内容」
+  /// 才和流派栏目一致；不传则回落到 [toolbar]。
+  final Widget? landscapeToolbar;
+
   const RemoteLibraryArtistsView({
     super.key,
     required this.server,
@@ -193,6 +229,7 @@ class RemoteLibraryArtistsView extends ConsumerWidget {
     required this.onToggleSelection,
     required this.onUpdateAnchor,
     this.toolbar,
+    this.landscapeToolbar,
   });
 
   @override
@@ -237,7 +274,7 @@ class RemoteLibraryArtistsView extends ConsumerWidget {
             onSetSelection: onSetSelection,
             onToggleSelection: onToggleSelection,
             onUpdateAnchor: onUpdateAnchor,
-            toolbar: toolbar,
+            toolbar: landscapeToolbar ?? toolbar,
             maxWidth: constraints.maxWidth,
           );
         }
@@ -627,30 +664,30 @@ class _LandscapeArtistsSplitViewState
 
     return NotificationListener<ScrollNotification>(
       onNotification: (_) => true,
-      child: Column(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (widget.toolbar != null)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-              child: widget.toolbar!,
-            ),
-          Expanded(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Left: Artist Master List
-                SizedBox(
-                  width: widget.maxWidth >= 1100 ? 300 : 260,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      border: Border(
-                        right: BorderSide(
-                          color: theme.colorScheme.outlineVariant
-                              .withValues(alpha: 0.2),
-                          width: 1,
-                        ),
-                      ),
+          // Left: Artist Master List，工具条收进这一栏内部
+          SizedBox(
+            width: widget.maxWidth >= 1100 ? 300 : 260,
+            child: Container(
+              decoration: BoxDecoration(
+                border: Border(
+                  right: BorderSide(
+                    color:
+                        theme.colorScheme.outlineVariant.withValues(alpha: 0.2),
+                    width: 1,
+                  ),
+                ),
+              ),
+              child: Column(
+                children: [
+                  if (widget.toolbar != null)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(12, 8, 12, 2),
+                      child: widget.toolbar!,
                     ),
+                  Expanded(
                     child: PrimaryScrollController.none(
                       child: RefreshIndicator(
                         onRefresh: widget.onRefresh,
@@ -703,26 +740,26 @@ class _LandscapeArtistsSplitViewState
                       ),
                     ),
                   ),
-                ),
-                // Right: Artist Detail View
-                Expanded(
-                  child: PrimaryScrollController.none(
-                    child: selectedArtist.isNotEmpty
-                        ? RemoteArtistDetailContent(
-                            key: ValueKey(selectedArtist['id']),
-                            server: widget.server,
-                            password: widget.password,
-                            artistId: selectedArtist['id'] as String? ?? '',
-                            artistName: selectedArtist['name'] as String? ??
-                                l10n.unknownArtist,
-                            coverArtId: selectedArtist['coverArt'] as String?,
-                            albumCount: selectedArtist['albumCount'] as int?,
-                            scrollController: _rightScrollController,
-                          )
-                        : Center(child: Text(l10n.noArtistSelected)),
-                  ),
-                ),
-              ],
+                ],
+              ),
+            ),
+          ),
+          // Right: Artist Detail View
+          Expanded(
+            child: PrimaryScrollController.none(
+              child: selectedArtist.isNotEmpty
+                  ? RemoteArtistDetailContent(
+                      key: ValueKey(selectedArtist['id']),
+                      server: widget.server,
+                      password: widget.password,
+                      artistId: selectedArtist['id'] as String? ?? '',
+                      artistName: selectedArtist['name'] as String? ??
+                          l10n.unknownArtist,
+                      coverArtId: selectedArtist['coverArt'] as String?,
+                      albumCount: selectedArtist['albumCount'] as int?,
+                      scrollController: _rightScrollController,
+                    )
+                  : Center(child: Text(l10n.noArtistSelected)),
             ),
           ),
         ],

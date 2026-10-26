@@ -1505,6 +1505,8 @@
   "noMatchingSongs": "沒有匹配的歌曲",
   "searchInGenre": "在這個流派內搜尋專輯或歌曲",
   "noMatchingInGenre": "沒有匹配的專輯或歌曲",
+  "searchInArtist": "在這位藝術家內搜尋專輯或歌曲",
+  "noMatchingInArtist": "沒有匹配的專輯或歌曲",
   "errorLoadingSongs": "載入歌曲失敗: {error}",
   "starredSongsOnly": "已收藏",
   "loadMore": "載入更多",

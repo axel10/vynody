@@ -31,6 +31,7 @@ import '../../widgets/library_selection_panel.dart';
 import '../../widgets/library_selection_scope.dart';
 import 'remote_download_manager_page.dart';
 import 'widgets/remote_library_selection_actions.dart';
+import 'widgets/remote_library_toolbar_widgets.dart';
 import '../../widgets/auto_hide_header.dart';
 
 class RemoteArtistDetailPage extends ConsumerStatefulWidget {
@@ -230,6 +231,23 @@ class _RemoteAlbumSectionData {
     'rawSongs': rawSongs,
   };
 
+  /// 艺术家内搜索只命中部分曲目时，用命中集合替换曲目，元信息保持不变。
+  ///
+  /// `songCount` 同步收缩成命中条数：竖屏网格卡片直接读它，
+  /// 不改会出现「显示整张 12 首、点开只有 3 首」。
+  _RemoteAlbumSectionData withSongs(List<MusicFile> songs) =>
+      _RemoteAlbumSectionData(
+        id: id,
+        name: name,
+        artist: artist,
+        coverArt: coverArt,
+        year: year,
+        songCount: songs.length,
+        duration: duration,
+        songs: songs,
+        rawSongs: rawSongs,
+      );
+
   static _RemoteAlbumSectionData fromJson(
     Map<String, dynamic> json,
     RemoteMediaLibraryClient client,
@@ -267,6 +285,16 @@ class _RemoteArtistDetailContentState
   String _resolvedArtistId = '';
   bool _isRevalidating = false;
 
+  /// 艺术家内搜索：默认收起，点详情区顶部的放大镜展开。
+  final TextEditingController _queryController = TextEditingController();
+  final FocusNode _queryFocus = FocusNode();
+  bool _searchOpen = false;
+  String _query = '';
+
+  /// 输入防抖。首页一次会展开这位艺术家的全部专辑全集，
+  /// 每个字符都重建一遍会掉帧。
+  Timer? _queryDebounce;
+
   @override
   void initState() {
     super.initState();
@@ -275,11 +303,24 @@ class _RemoteArtistDetailContentState
   }
 
   @override
+  void dispose() {
+    _queryDebounce?.cancel();
+    _queryController.dispose();
+    _queryFocus.dispose();
+    super.dispose();
+  }
+
+  @override
   void didUpdateWidget(RemoteArtistDetailContent oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.artistId != widget.artistId ||
         oldWidget.server.id != widget.server.id ||
         oldWidget.artistName != widget.artistName) {
+      // 换艺术家时别把上一位的搜索词带过来。
+      _queryDebounce?.cancel();
+      _queryController.clear();
+      _query = '';
+      _searchOpen = false;
       _resolvedArtistId = widget.artistId;
       _loadArtistData();
     }
@@ -560,14 +601,91 @@ class _RemoteArtistDetailContentState
     }
   }
 
-  Future<void> _playAll({bool shuffle = false}) async {
+  /// 当前搜索词命中后的专辑分组，空词时原样返回。
+  ///
+  /// 命中口径是「专辑名 / 专辑艺术家 / 曲目名 / 曲目艺术家」的并集：
+  /// - 命中专辑名或艺术家 → 整张专辑保留全部曲目；
+  /// - 只命中某些曲目 → 该专辑只保留命中曲目，分组标题仍是专辑名。
+  List<_RemoteAlbumSectionData> _visibleSections() {
+    final query = _query.toLowerCase();
+    if (query.isEmpty) return _albumSections;
+
+    final result = <_RemoteAlbumSectionData>[];
+    for (final section in _albumSections) {
+      if (section.name.toLowerCase().contains(query) ||
+          section.artist.toLowerCase().contains(query)) {
+        result.add(section);
+        continue;
+      }
+      final hits = section.songs
+          .where((song) => _matchesQuery(song, query))
+          .toList(growable: false);
+      if (hits.isEmpty) continue;
+      result.add(section.withSongs(hits));
+    }
+    return result;
+  }
+
+  bool _matchesQuery(MusicFile song, String query) {
+    if ((song.title ?? song.name).toLowerCase().contains(query)) return true;
+    if ((song.artist ?? '').toLowerCase().contains(query)) return true;
+    return (song.albumArtist ?? '').toLowerCase().contains(query);
+  }
+
+  void _onQueryChanged(String value) {
+    _queryDebounce?.cancel();
+    _queryDebounce = Timer(const Duration(milliseconds: 180), () {
+      if (!mounted) return;
+      final next = value.trim();
+      if (next == _query) return;
+      setState(() => _query = next);
+    });
+  }
+
+  void _toggleSearch() {
+    final open = !_searchOpen;
+    setState(() {
+      _queryDebounce?.cancel();
+      _searchOpen = open;
+      if (!open) {
+        // 收起必须连带清空，否则列表还停在旧结果上，看起来像数据丢了。
+        _queryController.clear();
+        _query = '';
+      }
+    });
+    if (open) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _queryFocus.requestFocus();
+      });
+    } else {
+      _queryFocus.unfocus();
+    }
+  }
+
+  void _clearQuery() {
+    _queryDebounce?.cancel();
+    _queryController.clear();
+    setState(() => _query = '');
+    _queryFocus.requestFocus();
+  }
+
+  /// 当前可见分组的曲目展平，顺序与界面一致。
+  List<MusicFile> _flatten(List<_RemoteAlbumSectionData> sections) => [
+        for (final section in sections) ...section.songs,
+      ];
+
+  Future<void> _playAll({
+    bool shuffle = false,
+    List<MusicFile>? songs,
+  }) async {
+    final source = songs ?? _allSongs;
     final l10n = AppLocalizations.of(context)!;
-    if (_allSongs.isEmpty) {
+    if (source.isEmpty) {
       showToast(l10n.noTracksForArtist);
       return;
     }
     final audio = ref.read(audioServiceProvider);
-    final playlist = List<MusicFile>.from(_allSongs);
+    final playlist = List<MusicFile>.from(source);
     if (shuffle) {
       playlist.shuffle();
     }
@@ -579,7 +697,7 @@ class _RemoteArtistDetailContentState
         name: widget.artistName,
       ),
     );
-    showToast(l10n.playingTracksCount(_allSongs.length));
+    showToast(l10n.playingTracksCount(source.length));
   }
 
   void _openAlbumDetail(_RemoteAlbumSectionData album) {
@@ -744,10 +862,17 @@ class _RemoteArtistDetailContentState
       );
     }
 
-    final totalSongCount = _allSongs.isNotEmpty
-        ? _allSongs.length
-        : _albumSections.fold<int>(0, (sum, sec) => sum + (sec.songCount ?? 0));
-    final totalAlbumCount = widget.albumCount ?? _albumSections.length;
+    final visibleSections = _visibleSections();
+    final visibleSongs = _flatten(visibleSections);
+
+    // 统计跟着可见集合走，避免「显示 12 张专辑但上面写着 3 张」。
+    final totalSongCount = visibleSongs.isNotEmpty
+        ? visibleSongs.length
+        : visibleSections.fold<int>(0, (sum, sec) => sum + (sec.songCount ?? 0));
+    final totalAlbumCount =
+        _query.isEmpty && widget.albumCount != null
+            ? widget.albumCount!
+            : visibleSections.length;
     final biography = _artistInfo?['biography'] as String?;
     final effectiveCoverArtId = widget.coverArtId ??
         _artistInfo?['coverArt'] ??
@@ -871,8 +996,11 @@ class _RemoteArtistDetailContentState
                                           child: SizedBox(
                                             height: 44,
                                             child: FilledButton.icon(
-                                              onPressed: _allSongs.isNotEmpty
-                                                  ? () => _playAll(shuffle: false)
+                                              onPressed: visibleSongs.isNotEmpty
+                                                  ? () => _playAll(
+                                                        shuffle: false,
+                                                        songs: visibleSongs,
+                                                      )
                                                   : null,
                                               icon: const Icon(Icons.play_arrow_rounded,
                                                   size: 20),
@@ -898,8 +1026,11 @@ class _RemoteArtistDetailContentState
                                         ),
                                         const SizedBox(width: 10),
                                         IconButton.filledTonal(
-                                          onPressed: _allSongs.isNotEmpty
-                                              ? () => _playAll(shuffle: true)
+                                          onPressed: visibleSongs.isNotEmpty
+                                              ? () => _playAll(
+                                                    shuffle: true,
+                                                    songs: visibleSongs,
+                                                  )
                                               : null,
                                           tooltip: l10n.shufflePlay,
                                           style: IconButton.styleFrom(
@@ -914,7 +1045,7 @@ class _RemoteArtistDetailContentState
                                           icon: const Icon(Icons.shuffle_rounded,
                                               size: 20),
                                         ),
-                                        if (_allSongs.isNotEmpty) ...[
+                                        if (visibleSongs.isNotEmpty) ...[
                                           const SizedBox(width: 10),
                                           IconButton.filledTonal(
                                             onPressed: () async {
@@ -935,7 +1066,7 @@ class _RemoteArtistDetailContentState
                                                               widget.server,
                                                           password: widget
                                                               .password,
-                                                          songs: _allSongs,
+                                                          songs: visibleSongs,
                                                           layout:
                                                               RemoteDownloadLayout
                                                                   .artist,
@@ -950,7 +1081,7 @@ class _RemoteArtistDetailContentState
                                               showRemoteDownloadQueuedFeedback(
                                                 context,
                                                 ref,
-                                                _allSongs.length,
+                                                visibleSongs.length,
                                               );
                                             },
                                             tooltip: l10n.download,
@@ -1061,7 +1192,31 @@ class _RemoteArtistDetailContentState
                                   totalSongCount,
                                   biography,
                                   effectiveCoverArtId,
+                                  visibleSongs,
                                 ),
+                  ),
+                ),
+
+                // 艺术家内搜索：默认收起，展开后在页头下方占一行。
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      isPortrait ? 20 : 28,
+                      0,
+                      isPortrait ? 20 : 28,
+                      10,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: _buildSearchToggle(l10n, theme),
+                        ),
+                        _buildSearchField(l10n),
+                      ],
+                    ),
                   ),
                 ),
 
@@ -1077,19 +1232,24 @@ class _RemoteArtistDetailContentState
                       ),
                     ),
                   )
+                else if (visibleSections.isEmpty)
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: _buildNoMatch(l10n, theme),
+                  )
                 else if (isPortrait)
                   ..._buildPortraitAlbumGridSlivers(
                     context: context,
                     ref: ref,
-                    albums: _albumSections,
+                    albums: visibleSections,
                     contentWidth: contentWidth,
                     albumZoomScale: albumZoomScale,
                   )
                 else ...[
                   const SliverToBoxAdapter(child: SizedBox(height: 12)),
-                  for (int i = 0; i < _albumSections.length; i++) ...[
+                  for (int i = 0; i < visibleSections.length; i++) ...[
                     if (i > 0) const SliverToBoxAdapter(child: SizedBox(height: 28)),
-                    _buildAlbumSection(theme, _albumSections[i], currentMusic),
+                    _buildAlbumSection(theme, visibleSections[i], currentMusic),
                   ],
                 ],
                 SliverToBoxAdapter(child: SizedBox(height: bottomOffset)),
@@ -1171,6 +1331,78 @@ class _RemoteArtistDetailContentState
     );
   }
 
+  /// 页头下方的搜索开关。展开时图标高亮，再点一次收起并清空。
+  Widget _buildSearchToggle(AppLocalizations l10n, ThemeData theme) {
+    return IconButton(
+      tooltip: _searchOpen ? l10n.closeSearch : l10n.search,
+      onPressed: _toggleSearch,
+      visualDensity: VisualDensity.compact,
+      padding: EdgeInsets.zero,
+      constraints: const BoxConstraints.tightFor(width: 34, height: 34),
+      icon: Icon(
+        _searchOpen ? Icons.search_off_rounded : Icons.search_rounded,
+        size: 20,
+        color: _searchOpen
+            ? theme.colorScheme.primary
+            : theme.colorScheme.onSurfaceVariant,
+      ),
+    );
+  }
+
+  /// 折叠式搜索框：收起时高度为 0，不占版面。
+  Widget _buildSearchField(AppLocalizations l10n) {
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOutCubic,
+      alignment: Alignment.topLeft,
+      child: _searchOpen
+          ? Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: RemoteSearchBar(
+                controller: _queryController,
+                focusNode: _queryFocus,
+                hintText: l10n.searchInArtist,
+                searchQuery: _query,
+                onChanged: _onQueryChanged,
+                onClear: _clearQuery,
+              ),
+            )
+          : const SizedBox(width: double.infinity, height: 0),
+    );
+  }
+
+  Widget _buildNoMatch(AppLocalizations l10n, ThemeData theme) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.search_off_rounded,
+              size: 32,
+              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              l10n.noMatchingInArtist,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 4),
+            TextButton.icon(
+              onPressed: _clearQuery,
+              icon: const Icon(Icons.clear_rounded, size: 18),
+              label: Text(l10n.clearSearch),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   /// 艺术家头像（圆形 + 柔和投影），竖屏与横屏共用。
   Widget _buildArtistAvatar(double size, String? coverArtId) {
     return Container(
@@ -1206,6 +1438,7 @@ class _RemoteArtistDetailContentState
     int totalSongCount,
     String? biography,
     String? coverArtId,
+    List<MusicFile> songs,
   ) {
     final screenWidth = MediaQuery.sizeOf(context).width;
     return Column(
@@ -1267,19 +1500,21 @@ class _RemoteArtistDetailContentState
           runSpacing: 12,
           children: [
             FilledButton.icon(
-              onPressed:
-                  _allSongs.isNotEmpty ? () => _playAll(shuffle: false) : null,
+              onPressed: songs.isNotEmpty
+                  ? () => _playAll(shuffle: false, songs: songs)
+                  : null,
               icon: const Icon(Icons.play_arrow_rounded, size: 20),
               label: Text(l10n.playAll),
             ),
             OutlinedButton.icon(
-              onPressed:
-                  _allSongs.isNotEmpty ? () => _playAll(shuffle: true) : null,
+              onPressed: songs.isNotEmpty
+                  ? () => _playAll(shuffle: true, songs: songs)
+                  : null,
               icon: const Icon(Icons.shuffle_rounded, size: 18),
               label: Text(l10n.shufflePlay),
             ),
             OutlinedButton.icon(
-              onPressed: _allSongs.isNotEmpty
+              onPressed: songs.isNotEmpty
                   ? () async {
                       await ref
                           .read(remoteDownloadTasksProvider.notifier)
@@ -1287,7 +1522,7 @@ class _RemoteArtistDetailContentState
                             RemoteDownloadRequest(
                               server: widget.server,
                               password: widget.password,
-                              songs: _allSongs,
+                              songs: songs,
                               layout: RemoteDownloadLayout.artist,
                               collectionFolder: widget.artistName,
                             ),
@@ -1296,7 +1531,7 @@ class _RemoteArtistDetailContentState
                       showRemoteDownloadQueuedFeedback(
                         context,
                         ref,
-                        _allSongs.length,
+                        songs.length,
                       );
                     }
                   : null,
@@ -1546,7 +1781,10 @@ class _RemoteArtistDetailContentState
                 _buildSongItem(
                   theme,
                   section.songs[j],
-                  j + 1,
+                  // 搜索只留下部分曲目时，用真实音轨号，别把「第 5 首」显示成「第 1 首」。
+                  _query.isEmpty
+                      ? j + 1
+                      : (section.songs[j].trackNumber ?? j + 1),
                   section.songs,
                   j,
                   currentMusic,

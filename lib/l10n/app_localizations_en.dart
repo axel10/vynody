@@ -4639,6 +4639,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noMatchingInGenre => 'No matching albums or songs';
 
   @override
+  String get searchInArtist => 'Search albums or songs by this artist';
+
+  @override
+  String get noMatchingInArtist => 'No matching albums or songs';
+
+  @override
   String errorLoadingSongs(String error) {
     return 'Error loading songs: $error';
   }

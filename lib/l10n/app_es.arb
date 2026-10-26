@@ -1784,6 +1784,8 @@
   "noMatchingSongs": "No hay canciones coincidentes",
   "searchInGenre": "Buscar álbumes o canciones en este género",
   "noMatchingInGenre": "No hay álbumes ni canciones coincidentes",
+  "searchInArtist": "Buscar álbumes o canciones de este artista",
+  "noMatchingInArtist": "No hay álbumes ni canciones coincidentes",
   "errorLoadingSongs": "Error al cargar canciones: {error}",
   "starredSongsOnly": "Favoritos",
   "loadMore": "Cargar más",

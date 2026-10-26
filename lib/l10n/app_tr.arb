@@ -1916,6 +1916,8 @@
   "noMatchingSongs": "Eşleşen şarkı yok",
   "searchInGenre": "Bu türde albüm veya şarkı ara",
   "noMatchingInGenre": "Eşleşen albüm veya şarkı yok",
+  "searchInArtist": "Bu sanatçının albümlerinde veya şarkılarında ara",
+  "noMatchingInArtist": "Eşleşen albüm veya şarkı yok",
   "errorLoadingSongs": "Şarkılar yüklenirken hata oluştu: {error}",
   "starredSongsOnly": "Yıldızlı",
   "loadMore": "Daha fazla yükle",
